@@ -53,3 +53,14 @@ matter the performance cost**. That check is removed only when the programmer
 has written a real guardrail (validation) and explicitly disables that one
 check via syntax. The final product's safety comes from programmer guardrails
 the compiler can see, not from compiler checks left behind.
+
+### The three check tiers (decided 2026-09-14; keyword spellings placeholder)
+
+- **default** — "I have no guardrails yet, and I want you to help me." The
+  compiler inserts a runtime check wherever it cannot prove safety.
+- **`check`** — "I've built a guardrail, could you help me verify it?" The
+  compiler proves the guardrail exactly; proven → check removed, otherwise a
+  compile error saying what fact is missing.
+- **`nocheck`** — "Okay, I'm sure this is correct." Check removed, no
+  verification. The one place the final product's safety rests on the
+  programmer alone.

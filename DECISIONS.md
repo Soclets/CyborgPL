@@ -43,9 +43,36 @@ chose runtime checks as the default instead, with explicit per-site removal.
 Note this does not alter the `:=` rule above: an unprovable `:=` is still a
 compile error, since that is about choosing a type, not guarding a value.
 
+### 2026-09-14 — Three check tiers at every safety-property site (owner)
+
+Keyword spellings are placeholders; the tiers are decided.
+
+- **default** (nothing written) — *"I have no guardrails yet, and I want you
+  to help me."* The compiler proves what it can and inserts a runtime check
+  wherever it can't. Never refuses to compile.
+- **`check`** — *"I've built a guardrail, could you help me verify it?"* The
+  compiler proves, exactly (bit-precise solver over the real program
+  semantics, not an approximate domain), that the programmer's guardrail
+  covers the property. Proven → the check is removed. Not proven → compile
+  error naming the counterexample or the missing fact (e.g. an unbounded loop
+  that needs a bound or invariant at the boundary).
+- **`nocheck`** — *"Okay, I'm sure this is correct."* The check is removed
+  with no verification. This is the only construct in the language that can
+  make a final product unsafe, and that is the programmer's responsibility.
+
+Claude proposed verified-only removal; the owner chose to also provide the
+trusted tier, with the discipline left to the developer.
+
+**Why the compiler needs the programmer at all (for the record):** a loop
+whose iteration count depends on outside data has an unbounded effect; no
+amount of compile time can bound it (Rice's theorem). The programmer supplies
+the missing facts at the boundary — value ranges, length limits, loop bounds
+or invariants — and the loop becomes provable.
+
 ## Open questions
 
-- Check-disable syntax: is the disable *verified* (compiler must prove the guardrail suffices, else compile error) or *trusted* (programmer's word, an unsafe escape hatch)? Claude recommends verified. (raised by Claude, 2026-09-14)
+- Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
+- Boundary annotations: how does the programmer state value ranges / length limits on an external-input type (e.g. `list<i64 in 0..1000, len <= 100_000>` as a placeholder)? Needed for `check` to succeed on loops. (raised by Claude, 2026-09-14)
 - Analysis precision budget: precise by default with a very large loop-unroll bound, widen beyond it and report where? (raised by Claude, 2026-09-14)
 - Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
