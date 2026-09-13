@@ -40,3 +40,16 @@ When no bound can be proven — the value comes from outside the program — `:=
 is a compile error. The programmer writes an explicit type at that boundary,
 and everything downstream is provable again. The only place a human writes a
 type is where the program touches the outside world.
+
+### Unproven safety properties (decided 2026-09-14)
+
+The compiler runs the whole program at compile time over *sets* of values:
+known values are executed outright, bounded values (explicit types at the
+boundary) are abstractly interpreted. Every safety property — overflow, bounds,
+division by zero — is a question asked of those sets.
+
+Where a property cannot be proven, the compiler **inserts a runtime check, no
+matter the performance cost**. That check is removed only when the programmer
+has written a real guardrail (validation) and explicitly disables that one
+check via syntax. The final product's safety comes from programmer guardrails
+the compiler can see, not from compiler checks left behind.
