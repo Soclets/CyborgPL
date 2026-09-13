@@ -28,3 +28,10 @@ Most of the syntax uses dot chaining, so a reader can "flow with the code".
 ## LLVM as the backend
 
 CyborgPL compiles to native code through LLVM.
+
+### What "best" means (decided 2026-09-14)
+
+Best for **safety and performance** of the final product. The compiler
+analyses every value the binding will ever hold, across the whole program,
+and picks the type that is provably safe and fastest for that set of values.
+It can afford to do this because compile time is unlimited.

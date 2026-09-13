@@ -15,9 +15,13 @@ Proposed and chosen by the owner. Full text in [design/core-features.md](design/
 4. **Dot-chained syntax** — most syntax reads as a chain; "flow with the code".
 5. **LLVM backend** — native code.
 
+### 2026-09-14 — `:=` picks the type that is best for safety and performance (owner)
+
+"Best" is defined as: the type that gives the safest *and* fastest final product, worked out by whole-program analysis of every value the binding ever holds. The compiler has effectively unlimited time, so it does the analysis rather than the programmer. Proposed options by Claude; the criterion chosen by the owner.
+
 ## Open questions
 
-- What "best type" means for `:=` — smallest fitting width? most precise? most constrained by later use? (raised by Claude, 2026-09-14)
+- `:=` follow-up: what happens when the analysis *cannot* prove a bound (e.g. a value from user input flows into the binding)? Fall back to a wide/checked type, refuse to compile without an explicit type, or require an explicit annotation only at the input boundary? (raised by Claude, 2026-09-14)
 - How far "everything at compile time" goes — constant folding only, or full evaluation of any call whose inputs are known (CTFE), or whole-program abstract interpretation? (raised by Claude, 2026-09-14)
 - Ownership: Rust-style with borrows/lifetimes, or ownership without borrowing (moves + copies only)? (raised by Claude, 2026-09-14)
 - Dot chaining: does it cover declarations and control flow too, or only expressions? (raised by Claude, 2026-09-14)
