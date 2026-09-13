@@ -35,3 +35,8 @@ Best for **safety and performance** of the final product. The compiler
 analyses every value the binding will ever hold, across the whole program,
 and picks the type that is provably safe and fastest for that set of values.
 It can afford to do this because compile time is unlimited.
+
+When no bound can be proven — the value comes from outside the program — `:=`
+is a compile error. The programmer writes an explicit type at that boundary,
+and everything downstream is provable again. The only place a human writes a
+type is where the program touches the outside world.

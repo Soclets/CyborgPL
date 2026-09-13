@@ -19,9 +19,17 @@ Proposed and chosen by the owner. Full text in [design/core-features.md](design/
 
 "Best" is defined as: the type that gives the safest *and* fastest final product, worked out by whole-program analysis of every value the binding ever holds. The compiler has effectively unlimited time, so it does the analysis rather than the programmer. Proposed options by Claude; the criterion chosen by the owner.
 
+### 2026-09-14 — Unprovable `:=` bounds are a compile error (owner)
+
+When the analysis cannot bound a value (it comes from outside the program —
+input, files, the network), `:=` is refused and the programmer must write an
+explicit type at that boundary. Downstream of the annotation everything is
+provable again. No silent fallback to a wide/checked type. Options (a) wide
+fallback, (b) refuse, (c) both proposed by Claude, who recommended (b); owner
+chose (b).
+
 ## Open questions
 
-- `:=` follow-up: what happens when the analysis *cannot* prove a bound (e.g. a value from user input flows into the binding)? Fall back to a wide/checked type, refuse to compile without an explicit type, or require an explicit annotation only at the input boundary? (raised by Claude, 2026-09-14)
 - How far "everything at compile time" goes — constant folding only, or full evaluation of any call whose inputs are known (CTFE), or whole-program abstract interpretation? (raised by Claude, 2026-09-14)
 - Ownership: Rust-style with borrows/lifetimes, or ownership without borrowing (moves + copies only)? (raised by Claude, 2026-09-14)
 - Dot chaining: does it cover declarations and control flow too, or only expressions? (raised by Claude, 2026-09-14)
