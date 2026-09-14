@@ -29,11 +29,10 @@ threads on cores; the program never allocates a core. A few hundred lines.
 ## The escape
 
 A loop that is parallel-safe but must run in order for an external reason
-(writing lines to a file, driving a device) opts out with a chain segment —
-spelling to confirm:
+(writing lines to a file, driving a device) opts out with a chain segment:
 
 ```
-loop.for.sequential 'line' in [lend 'lines'] {
+loop.for.seq 'line' in [lend 'lines'] {
     std::print.stdout['line' \n];
 }
 ```

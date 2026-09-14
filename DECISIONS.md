@@ -169,7 +169,7 @@ Exact is exact: fractions are true rationals (owner, 2026-09-14).
 Precog parallelises `loop.for` itself where ownership proves iterations
 independent and the trip count makes it worthwhile; the runtime carries a
 thread pool. The programmer writes nothing — except an opt-out chain segment
-(`loop.for.sequential`, spelling to confirm) for loops that must run in
+(`loop.for.seq`) for loops that must run in
 order. Concurrency proper (async, channels, shared state) remains open.
 Claude explained the concurrency/parallelism split and proposed this scope;
 owner chose it. See [design/parallelism.md](design/parallelism.md).
@@ -372,7 +372,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Zero values: the `var … := [ ]` shape implies a value is required at declaration; decide explicitly — Claude recommends no implicit zero. (Claude, 2026-09-14)
 - Error handling — not designed. (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
-- `loop.for.sequential` as the parallelism opt-out spelling — to confirm. (Claude, 2026-09-14)
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
 - Explicit numeric conversion spelling. (Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
