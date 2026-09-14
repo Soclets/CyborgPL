@@ -82,6 +82,8 @@ pub struct Call {
 pub struct Bracket {
     pub values: Vec<Value>,
     pub line: usize,
+    /// `[1,]` — a single value with a trailing comma is a one-element list
+    pub one_list: bool,
 }
 
 /// One comma-separated slot: either a single expression, or several

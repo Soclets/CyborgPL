@@ -13,4 +13,6 @@ MAIN {
         std::printu.stdout[(count[lend 'row']) \n];
     }
     std::printu.stdout[(count[["a", "b", "c"]]) \n];
+    var 'one' := [7,];
+    std::printu.stdout['one' " " (count[lend 'one']) \n];
 }

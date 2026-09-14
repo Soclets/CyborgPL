@@ -297,7 +297,7 @@ impl<'p> Interp<'p> {
     fn bracket(&mut self, b: &Bracket, line: usize) -> Result<(Value, Prov), RuntimeError> {
         match b.values.len() {
             0 => rt(line, "an empty `[ ]` is not a value"),
-            1 => self.value(&b.values[0]),
+            1 if !b.one_list => self.value(&b.values[0]),
             _ => {
                 let mut items = Vec::new();
                 for v in &b.values {

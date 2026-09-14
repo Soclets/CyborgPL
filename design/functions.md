@@ -101,7 +101,10 @@ made `main` an ordinary function, and C99 had to add the implicit 0 anyway.
 - **Comma** separates *values*: `[10, 20]`.
 
 A bracket holding several comma-separated values is a **list**:
-`var 'l' := [1, 2, 3];`. Function arguments are exactly that.
+`var 'l' := [1, 2, 3];`. Function arguments are exactly that. A list of one
+is written with a trailing comma, since `[1]` is the number: `[1,]`
+(decided 2026-09-14). A `[ ]` may sit inside a `[ ]` as a value —
+`[[1, 2], [3, 4]]` is a list of lists.
 
 ## Brackets
 

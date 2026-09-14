@@ -328,15 +328,21 @@ impl Parser {
         }
         self.expect(Tok::LBracket, "`[`")?;
         let mut values = Vec::new();
+        let mut trailing_comma = false;
         if *self.peek() != Tok::RBracket {
             loop {
                 values.push(self.value()?);
-                if *self.peek() == Tok::Comma { self.advance(); continue; }
+                if *self.peek() == Tok::Comma {
+                    self.advance();
+                    // `[1,]` — a trailing comma makes a one-element list (decided 2026-09-14)
+                    if *self.peek() == Tok::RBracket { trailing_comma = true; break; }
+                    continue;
+                }
                 break;
             }
         }
         self.expect(Tok::RBracket, "`]`")?;
-        Ok(Bracket { values, line })
+        Ok(Bracket { values, line, one_list: trailing_comma && values.len() == 1 })
     }
 
     // value := expr+   — one expr is the value; several are pieces joined as text

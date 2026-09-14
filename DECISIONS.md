@@ -205,6 +205,11 @@ issue — nothing else can reach it. Surfaced by the oracle; owner chose allow.
 Surfaced by the oracle; owner chose allowed. Precog's lifetime inference
 makes it safe in the compiler; the oracle refuses to return or store one.
 
+### 2026-09-14 — A one-element list is `[1,]` (owner)
+
+`[1]` is the number; `[1,]` is a list holding it. Surfaced by the oracle.
+Also recorded: a `[ ]` inside a `[ ]` is a value (`[[1, 2], [3, 4]]`).
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the
@@ -420,9 +425,9 @@ for JetPack, always containing analysable source, never an opaque binary
 ## Open questions
 
 **Language — surfaced by the oracle**
-- One-element lists: "one value in a bracket is that value" makes `[1]` the number and `[[1]]` also the number, so a list of one cannot be written. Trailing comma (`[1,]`)? A `std::` constructor? (oracle, 2026-09-14)
 
 **Language**
+- Lists beyond the literal: a type name for the typed form (`list.int32`?), indexing (and its base), length/append spelling, fixed-size vs growable. (Claude, 2026-09-14)
 - Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)
 - Range values (`std::range[0, 10]` vs an operator). (Claude, 2026-09-14)
 - Structs / records — not designed. (Claude, 2026-09-14)
