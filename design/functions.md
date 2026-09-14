@@ -45,6 +45,13 @@ return ['a' + 'b'];
 A bracket holding several comma-separated values is a **list**:
 `var 'l' := [1, 2, 3];`. Function arguments are exactly that.
 
+## Brackets
+
+- `[ ]` — value slot(s).
+- `{ }` — body.
+- `( )` — arithmetic grouping only: `['a' + ('b' * 2)]`. This is why `[ ]`
+  was chosen for values: parentheses stay free for math.
+
 ## Numbers
 
 Digit grouping uses `_`, never `,`: `[1_000_000]`.
