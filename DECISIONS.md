@@ -105,6 +105,11 @@ operator expression. Two adjacent bare numbers (`[10 20]`) are a compile
 error regardless of what precedes the bracket. Claude had proposed
 "juxtaposition always joins as text"; the owner rejected it for bare numbers.
 
+This is strict with no exceptions: `["count: " 10]` is also an error. A
+literal belongs inside the string (`"count: 10"`); a computed number goes
+into a variable first and is referenced as a piece (`["count: " 'n']`).
+Owner, 2026-09-14.
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -113,7 +118,6 @@ error regardless of what precedes the bracket. Claude had proposed
 - Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
 - Borrow and lifetime syntax: how `&`/`&mut`-equivalents and the optional lifetime annotation look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
-- A bare number adjacent to a text piece, `["count: " 10]`: error (strict, Claude's recommendation) or implicit text conversion? (raised by Claude, 2026-09-14)
 - Whether mixed-precedence arithmetic must be parenthesised (`[a + (b * 2)]`, Pony-style) or standard precedence applies. (raised by Claude, 2026-09-14)
 - Operator glyphs: `*` vs `x` for multiply, `^` vs `**` for power, whether tetration survives. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
