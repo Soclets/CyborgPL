@@ -78,6 +78,16 @@ outlives the owner and never aliases a mutation (Rust-style, with lifetimes).
 Claude presented A (borrowing), B (moves/copies only with compiler-elided
 copies), C (B plus opt-in verified borrows) and recommended B; owner chose A.
 
+### 2026-09-14 — Lifetimes: inferred by default, optional verified annotation (owner)
+
+The whole-program analyser sees every call site, so lifetimes are always
+inferred and nothing has to be written. Lifetime syntax exists as an
+*optional* annotation: writing one pins a function's borrow contract, and the
+compiler verifies the body against it (same spirit as `check`). There is no
+unverified form — a lifetime that isn't proven is a memory bug with no
+performance upside. Claude presented infer-only vs both, recommended both;
+owner chose both. Syntax deferred until dot-chaining is decided.
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -85,6 +95,5 @@ copies), C (B plus opt-in verified borrows) and recommended B; owner chose A.
 - Analysis precision budget: precise by default with a very large loop-unroll bound, widen beyond it and report where? (raised by Claude, 2026-09-14)
 - Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
-- Lifetimes: written by the programmer where ambiguous (Rust), or always inferred by the whole-program analyser, since it can see every call site? Claude recommends always inferred. (raised by Claude, 2026-09-14)
-- Borrow syntax: how `&`/`&mut`-equivalents look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
+- Borrow and lifetime syntax: how `&`/`&mut`-equivalents and the optional lifetime annotation look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
 - Dot chaining: does it cover declarations and control flow too, or only expressions? (raised by Claude, 2026-09-14)

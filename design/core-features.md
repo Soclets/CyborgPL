@@ -71,3 +71,7 @@ One owner per value; freed when the owner's scope ends. Moves transfer
 ownership, copies make a new value, and borrows give temporary access with the
 compiler proving the borrow never outlives its owner and never aliases a
 mutation.
+
+Lifetimes are inferred by default — the whole-program analyser sees every
+call site. An optional lifetime annotation pins a function's borrow contract,
+which the compiler then verifies. There is no unverified form.
