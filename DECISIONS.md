@@ -178,6 +178,14 @@ arithmetic, JetPack, harness, oracle. Tier 3: the standard Limb is checked by
 Precog itself. Claude proposed; owner chose. See
 [design/review-policy.md](design/review-policy.md).
 
+### 2026-09-14 — Licensing intent (owner)
+
+Using the language: free, no credit anywhere. Modifying the compiler: free,
+credit everywhere — source and every user-visible place. Claude mapped this
+to Apache-2.0 WITH LLVM-exception (runtime, std Limb), Apache-2.0 plus an
+attribution term (compiler), CC BY 4.0 (spec), trademarks (names), for
+counsel to draft. See [design/licensing.md](design/licensing.md).
+
 ### 2026-09-14 — The compile-time technology is called Precog (owner)
 
 The whole-program analysis/execution engine behind "everything at compile
