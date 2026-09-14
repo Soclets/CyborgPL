@@ -342,7 +342,8 @@ impl Parser {
             }
         }
         self.expect(Tok::RBracket, "`]`")?;
-        Ok(Bracket { values, line, one_list: trailing_comma && values.len() == 1 })
+        let one_list = trailing_comma && values.len() == 1;
+        Ok(Bracket { values, line, one_list })
     }
 
     // value := expr+   — one expr is the value; several are pieces joined as text
