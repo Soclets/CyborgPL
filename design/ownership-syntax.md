@@ -64,6 +64,11 @@ back, and Precog has the contract without the body.
 
 The words pair: the caller *lends*, the parameter is *lent*.
 
+A value with no owner yet — a literal or a call's result — may go straight
+into a `lent` parameter: `count[["a", "b"]]`. It lives for the call and is
+freed after; nothing else can reach it, so nothing is implied. (Decided
+2026-09-14.)
+
 ## Open
 
 - The lifetime annotation's spelling (optional, verified).

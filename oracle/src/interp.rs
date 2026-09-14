@@ -514,7 +514,8 @@ impl<'p> Interp<'p> {
                         Prov::Bare(n) => return rt(c.line, format!("`{name}` only looks at '{pn}' — pass `lend '{n}'`")),
                         Prov::Given => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `give`")),
                         Prov::Copied => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `copy`")),
-                        // A plain value, or a fresh temporary: nothing to lend from, it just arrives.
+                        // A plain value, or a fresh temporary (literal, call result): nothing owns
+                        // it, so it lives for the call and is lent by the call itself (decided 2026-09-14).
                         other => {
                             let v = self.fit(v, other, param.ty.as_ref(), c.line)?;
                             Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind, alive: true }
