@@ -151,6 +151,15 @@ raised the inconsistency of `>=`; Claude proposed `>==`, words, unicode, or
 none; owner chose `>==`). See
 [design/operators.md](design/operators.md).
 
+### 2026-09-14 — The compiler is verified by oracle + differential testing (owner)
+
+For CyborgPL's own developers, not users: a reference interpreter (the
+oracle, also the executable spec) and the optimised compiler are run on
+generated programs and compared; any difference is a bug. Translation
+validation of the LLVM half in CI; formal verification ruled out for now.
+Claude proposed the layering; owner's framing was "oracle + optimised
+generator". See [design/compiler-verification.md](design/compiler-verification.md).
+
 ### 2026-09-14 — The compile-time technology is called Precog (owner)
 
 The whole-program analysis/execution engine behind "everything at compile
