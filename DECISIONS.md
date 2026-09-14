@@ -88,6 +88,23 @@ unverified form — a lifetime that isn't proven is a memory bug with no
 performance upside. Claude presented infer-only vs both, recommended both;
 owner chose both. Syntax deferred until dot-chaining is decided.
 
+### 2026-09-14 — User names are quoted: `'name'` (owner; reaffirmed)
+
+Every user-defined name is written in single quotes — `var 'x'`, `'add'[1, 2]`
+— and every keyword is a bare dotted path. **This is settled; do not
+relitigate.** It has been argued against (noise, unfamiliarity) and the owner
+has reaffirmed it, because it is load-bearing:
+
+- **No reserved words, ever.** `var 'var' := [1];` is legal. New keywords can
+  never break existing code.
+- **Word operators depend on it.** `x`, `xx`, `mod`, `and`, `or`, `not` are
+  unambiguous only because a bare word is never a name.
+- **Names can be anything** — `'+'`, spaces, emoji, `'is valid?'`.
+- **Three token classes, visually distinct:** values wear `[ ]`, names wear
+  `' '`, keywords wear nothing. A reader never needs the keyword list.
+- Cost acknowledged: two extra (unshifted) characters per name, and a
+  permanent "why?" for readers from other languages. Accepted.
+
 ### 2026-09-14 — `[ ]` is the value bracket, and it is mandatory (owner)
 
 `[ ]` means "one value, built from what's inside". Text pieces join into a

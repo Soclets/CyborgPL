@@ -29,7 +29,9 @@ std.print.stdout['s' 'x' \n];
 - **`:=` appears only in the untyped form.** With a type, plain `=`. The
   glyph marks "the compiler chooses the best type".
 - **User names are quoted** (`'x'`, `'s'`); keywords are bare paths. So there
-  are no reserved words and names may contain anything.
+  are no reserved words and names may contain anything. **Settled and
+  reaffirmed — see `DECISIONS.md`; not open for relitigation.** The word
+  operators (`x`, `mod`, `and`, …) depend on it.
 - **`bin16` is IEEE 754 binary16** — a half-precision float, not a 16-bit
   integer.
 - **`[ ]` is the value bracket — "one value, built from what's inside" —
