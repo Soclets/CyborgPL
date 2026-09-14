@@ -164,6 +164,14 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — A stored call wears the outer bracket: `var 'n' := [count[lend 'words']];` (owner)
+
+The `[ ]`-mandatory rule applies literally; a call's own bracket is its
+argument list, not the value slot. Surfaced by the oracle (functions.md had
+`:= add[10, 20]`); Claude offered both and leaned to the shorter; owner chose
+the literal rule — one rule, no exception, and `[add[1] + 2]` never raises a
+question.
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the
@@ -379,7 +387,6 @@ for JetPack, always containing analysable source, never an opaque binary
 ## Open questions
 
 **Language — surfaced by the oracle**
-- `var 'sum' := add[10, 20];` (design/functions.md) vs "`[ ]` mandatory in every value position" (`:= [add[10, 20]]`): the docs disagree. The oracle accepts a call's own bracket as the slot. Which is it? (oracle, 2026-09-14)
 - `print` vs `printu` on *pieces*: `std::print.stdout["x is " 'x']` builds the text before print sees it, so which form does a number piece take? The oracle uses the print call's mode. (oracle, 2026-09-14)
 - Boolean literals: `true` / `false` were never decided; the oracle has none. (oracle, 2026-09-14)
 - Shadowing: may an inner scope redeclare a name? The oracle forbids it. (oracle, 2026-09-14)

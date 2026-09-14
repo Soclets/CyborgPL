@@ -3,6 +3,6 @@ func.int32 add [var.int32 'a', var.int32 'b'] {
 }
 
 MAIN {
-    var 'sum' := add[10, 20];
+    var 'sum' := [add[10, 20]];
     std::printu.stdout["sum: " 'sum' \n];
 }

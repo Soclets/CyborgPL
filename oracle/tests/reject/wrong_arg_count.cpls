@@ -2,5 +2,5 @@ func.int32 one [var.int32 'a'] {
     return ['a'];
 }
 MAIN {
-    var 'x' := one[1, 2];
+    var 'x' := [one[1, 2]];
 }

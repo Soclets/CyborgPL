@@ -6,8 +6,8 @@ Decided 2026-09-14. Current spelling:
 func.int32 add [var.int32 'a', var.int32 'b'] {
     return ['a' + 'b'];
 }
-var 'sum' := add[10, 20];              // this Limb: bare
-var 'big' := mathstuff::pow[2, 64];    // another Limb: Limb::path
+var 'sum' := [add[10, 20]];              // this Limb: bare
+var 'big' := [mathstuff::pow[2, 64]];    // another Limb: Limb::path
 ```
 
 ## Calling (decided 2026-09-14)
@@ -53,8 +53,11 @@ func.int32 add [var.int32 'a', var.int32 'b'] {
 ## Call
 
 Arguments are comma-separated values in one `[ ]`, positionally matched to
-the parameters. A call is a value and may appear inside any bracket:
-`var 'y' := [add[1, 2] x 3];`.
+the parameters. A call is a value, and a value position is always `[ ]` —
+so storing a call's result wears an outer bracket, always:
+`var 'sum' := [add[10, 20]];`, `var 'y' := [add[1, 2] x 3];`. A call as a
+*statement* (`std::print.stdout[...]`, `shout[lend.mut 'u'];`) has no value
+position, so no outer bracket. Decided 2026-09-14.
 
 ## Return
 
@@ -68,7 +71,7 @@ return ['a' + 'b'];
 
 ```
 MAIN {
-    var 'sum' := add[10, 20];
+    var 'sum' := [add[10, 20]];
     std::printu.stdout["sum: " 'sum' \n];
 }
 ```

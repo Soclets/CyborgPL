@@ -317,15 +317,13 @@ impl Parser {
     }
 
     // bracket := '[' (value (',' value)*)? ']'
-    //           | call            — provisional: a call's own `[ ]` serves as the
-    //                               value slot (`var 'sum' := add[10, 20];`), as
-    //                               design/functions.md writes it. See DECISIONS.md.
+    // Decided 2026-09-14: every value position is `[ ]`, a call included —
+    // `var 'n' := [count[lend 'words']];`, never `:= count[...]`.
     fn bracket(&mut self) -> PResult<Bracket> {
         let line = self.line();
         if let Tok::Word(w) = self.peek().clone() {
             if !KEYWORDS.contains(&w.as_str()) && !OP_WORDS.contains(&w.as_str()) {
-                let call = self.call()?;
-                return Ok(Bracket { values: vec![Value::Expr(Expr::Call(call))], line });
+                return self.err(format!("a value position is always `[ ]`, a call included: `[{w}[…]]`"));
             }
         }
         self.expect(Tok::LBracket, "`[`")?;

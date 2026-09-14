@@ -21,10 +21,10 @@ MAIN {
     shout[lend.mut 'u'];
     std::print.stdout['t' \n];
     std::print.stdout['u' \n];
-    var 'g' := greet[copy 'u'];
+    var 'g' := [greet[copy 'u']];
     std::print.stdout['g' \n];
     std::print.stdout['u' \n];
     var 'words' := ["a", "b", "c"];
-    var 'n' := count[lend 'words'];
+    var 'n' := [count[lend 'words']];
     std::printu.stdout['n' " words" \n];
 }
