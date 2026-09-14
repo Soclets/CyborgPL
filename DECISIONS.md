@@ -129,6 +129,17 @@ one gets the short name.
 exact algorithm is Claude's call as long as the output is what a reader would
 call useful; Claude will use shortest round-trip (Ryu-style). Owner, 2026-09-14.
 
+### 2026-09-14 — Functions (owner)
+
+`func.int32 'add' [var.int32 'a', var.int32 'b'] { return ['a' + 'b']; }`;
+called as `'add'[10, 20]`. The chain narrows `func` by return type; omitted →
+Precog infers. Parameters are `var` declarations; an untyped parameter's type
+is inferred from all call sites. Inside `[ ]`, whitespace joins pieces into
+one value and a comma separates values; several comma-separated values in a
+bracket is a list. Digit grouping is `_`, not `,`. Claude proposed the shape
+and `[a][b]` per-slot calls; owner chose comma-separated `[a, b]`. Full text
+in [design/functions.md](design/functions.md).
+
 ### 2026-09-14 — The compile-time technology is called Precog (owner)
 
 The whole-program analysis/execution engine behind "everything at compile
