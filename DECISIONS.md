@@ -467,7 +467,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Error handling — not designed. (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
-- Explicit numeric conversion spelling. (Claude, 2026-09-14)
+- Explicit conversion spelling — between numeric families, and **number → text for a lone value** (a number becomes text only as a piece; `return ['n']` from a `func.str.utf8` is an error, and `["" 'n']` is the only current workaround). (Claude, 2026-09-14; the second half surfaced by the oracle)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Whitespace between pieces in `[ ]`: separator only, or an implicit space? (Claude, 2026-09-14)
 - Long form (`variable`, `standard`) valid alongside the short form, or short only? (Claude, 2026-09-14)
