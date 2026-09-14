@@ -200,6 +200,11 @@ forbidden.
 `count[["a", "b"]]` is allowed: the temporary lives for the call. No safety
 issue — nothing else can reach it. Surfaced by the oracle; owner chose allow.
 
+### 2026-09-14 — A lend may have its own name: `var 'r' := [lend 's'];` (owner)
+
+Surfaced by the oracle; owner chose allowed. Precog's lifetime inference
+makes it safe in the compiler; the oracle refuses to return or store one.
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the
@@ -416,7 +421,6 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language — surfaced by the oracle**
 - One-element lists: "one value in a bracket is that value" makes `[1]` the number and `[[1]]` also the number, so a list of one cannot be written. Trailing comma (`[1,]`)? A `std::` constructor? (oracle, 2026-09-14)
-- Can a `:=` variable hold a `lend`? The oracle allows it (never returned). (oracle, 2026-09-14)
 
 **Language**
 - Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)

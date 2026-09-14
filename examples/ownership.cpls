@@ -29,4 +29,6 @@ MAIN {
     std::printu.stdout['n' " words" \n];
     var 'm' := [count[["x", "y"]]];
     std::printu.stdout['m' " fresh" \n];
+    var 'r' := [lend 'words'];
+    std::printu.stdout['r' \n];
 }

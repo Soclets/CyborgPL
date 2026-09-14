@@ -69,6 +69,11 @@ into a `lent` parameter: `count[["a", "b"]]`. It lives for the call and is
 freed after; nothing else can reach it, so nothing is implied. (Decided
 2026-09-14.)
 
+A lend may be given its own name (decided 2026-09-14):
+`var 'r' := [lend 's'];` — `'r'` looks at `'s'` without owning it: readable,
+not assignable, not give-able. Precog's lifetime inference keeps it from
+outliving `'s'`.
+
 ## Open
 
 - The lifetime annotation's spelling (optional, verified).
