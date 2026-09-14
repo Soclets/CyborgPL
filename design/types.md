@@ -60,6 +60,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   type with no fixed width that never rounds: it grows to hold whatever
   value it is given. Provided by the **standard Limb**, not built into the
   language — so it is CyborgPL source Precog can see through, and it takes
-  the role legacy's `bignum`/`bigint` had. Chain name `uer` (`var.uer 'n'`,
-  or via `std.` — spelling open). Open: does "exact" cover fractions
-  (`1/3` held as a true rational) or integers and decimals only?
+  the role legacy's `bignum`/`bigint` had. Reached through the Limb
+  boundary: `var.std::uer 'n' = [1000];`. **Exact is exact**: fractions are
+  held as true rationals, so `[1/3 x 3]` is exactly `1` (decided
+  2026-09-14).

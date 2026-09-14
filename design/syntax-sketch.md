@@ -10,7 +10,7 @@ Long form (every level of the chain spelled out):
 ```
 variable.IEEE754.Binary:16-bit 'x' = 1000;
 variable 's' := ["line 1" \n "line 2"];
-standard.print.standardoutput['s' 'x' \n];
+standard::print.standardoutput['s' 'x' \n];
 ```
 
 Short form — the owner's preference, and Claude's recommendation:
@@ -18,14 +18,20 @@ Short form — the owner's preference, and Claude's recommendation:
 ```
 var.bin16 'x' = 1000;
 var 's' := ["line 1" \n "line 2"];
-std.print.stdout['s' 'x' \n];
+std::print.stdout['s' 'x' \n];
 ```
 
 ## What the sample establishes
 
 - **Dot chains are paths from general to specific**, not method calls.
   `var.bin16` narrows "variable" to "16-bit binary-float variable";
-  `std.print.stdout` narrows the standard library down to one action.
+  `std::print.stdout` narrows the standard library down to one action.
+- **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
+  Anything that comes from a Limb is reached with `::` after the Limb's
+  name: `std::print.stdout[...]`, `var.std::uer 'n' = [1000];`. The chain
+  continues across the boundary, so a Limb-provided type sits in a `var`
+  chain exactly like a built-in one. (The sample above originally read
+  `std.print.stdout`; updated.)
 - **`:=` appears only in the untyped form.** With a type, plain `=`. The
   glyph marks "the compiler chooses the best type".
 - **User names are quoted** (`'x'`, `'s'`); keywords are bare paths. So there
@@ -39,7 +45,7 @@ std.print.stdout['s' 'x' \n];
   pieces, whitespace-separated with no commas, join into one text; a bare
   `\n` is a newline piece, so `'s'` above is the single string
   `line 1⏎line 2`. A formula evaluates: `[10 + 20 + 30]`. A lone literal is
-  still bracketed: `var.bin16 'x' = [1000];`. `std.print.stdout[...]` takes
+  still bracketed: `var.bin16 'x' = [1000];`. `std::print.stdout[...]` takes
   the same construct.
 - **Inside `[ ]`, a bare number is an operand, not a piece** (decided
   2026-09-14). Pieces — `"text"`, `'variable'`, `\n` — join as text. A bare
@@ -48,9 +54,9 @@ std.print.stdout['s' 'x' \n];
   text has a name first: `["count: " 'n']`.
 - **Names are quoted, so operators are free glyphs**: `var '+' := [10 + 20];`
   is legal — the name `'+'` and the operator `+` are different tokens.
-- **`print` vs `printu`** (decided 2026-09-14): `std.print.stdout[...]`
+- **`print` vs `printu`** (decided 2026-09-14): `std::print.stdout[...]`
   prints the real stored value (a `bin32` `0.1` prints as
-  `0.100000001490116119384765625`); `std.printu.stdout[...]` prints the
+  `0.100000001490116119384765625`); `std::printu.stdout[...]` prints the
   useful value (`0.1`). Identical for every type except `bin`.
 - Statements end with `;`.
 

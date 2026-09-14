@@ -114,7 +114,7 @@ has reaffirmed it, because it is load-bearing:
 
 `[ ]` means "one value, built from what's inside". Text pieces join into a
 text (`["line 1" \n "line 2"]`), a formula evaluates (`[10 + 20 + 30]`), a
-single literal is still bracketed (`[10]`), and `std.print.stdout[...]` takes
+single literal is still bracketed (`[10]`), and `std::print.stdout[...]` takes
 the same construct. Every value position uses it — `var.bin16 'x' = [1000];`
 — with no omission rule. Owner proposed bare-infix vs bracketed and chose
 bracketed; Claude recommended the same.
@@ -162,7 +162,14 @@ Character literals use **backticks**: `` var 'c' := [`1`]; `` — `"…"` is tex
 
 An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
-Open: whether exactness extends to fractions (rationals).
+Exact is exact: fractions are true rationals (owner, 2026-09-14).
+
+### 2026-09-14 — `::` is the Limb boundary; `.` narrows within (owner)
+
+Anything from a Limb is reached with `Limb::path`: `std::print.stdout[...]`,
+`var.std::uer 'n' = [1000];`. The chain continues across the boundary, so a
+Limb type sits in a `var` chain like a built-in. Earlier samples written
+`std.print.stdout` are superseded.
 
 ### 2026-09-14 — The typed form is always fully explicit (owner)
 
@@ -174,9 +181,9 @@ once.
 
 ### 2026-09-14 — `print` shows the real stored value; `printu` shows the useful one (owner)
 
-`std.print.stdout[...]` prints exactly what is in memory — for a `bin` value
+`std::print.stdout[...]` prints exactly what is in memory — for a `bin` value
 that is the full decimal expansion of the stored binary (`0.1` as `bin32`
-prints `0.100000001490116119384765625`). `std.printu.stdout[...]` — `u` for
+prints `0.100000001490116119384765625`). `std::printu.stdout[...]` — `u` for
 "useful" — prints the readable value (`0.1`). For `int`, `uint`, `str`, and
 `deci` the two are identical; the difference only shows on `bin`. The honest
 one gets the short name.
@@ -268,6 +275,5 @@ for JetPack, always containing analysable source, never an opaque binary
 - `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (raised by Claude, 2026-09-14)
-- `uer`: exact fractions (rationals) or integers/decimals only? How a std-Limb type appears in a chain (`var.uer` vs `var.std.uer`)? (raised by Claude, 2026-09-14)
 - Missing types:, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
-- Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
+- Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std::print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
