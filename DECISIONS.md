@@ -177,6 +177,14 @@ question.
 `var.bool 'correct?' = [true];`. Bare, reserved. Surfaced by the oracle —
 no literal had ever been written down.
 
+### 2026-09-14 — A number piece becomes text in its stored form, everywhere (owner)
+
+`["x is " 'x']` holds `x is 0.1000000000000000055511151231257827021181583404541015625`
+wherever it is built; `print` shows what a variable stores; `printu` alone
+produces the useful form, for its own argument and its own pieces. Surfaced
+by the oracle. Claude offered stored-by-default vs useful-when-building;
+owner chose stored.
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the
@@ -392,7 +400,6 @@ for JetPack, always containing analysable source, never an opaque binary
 ## Open questions
 
 **Language — surfaced by the oracle**
-- `print` vs `printu` on *pieces*: `std::print.stdout["x is " 'x']` builds the text before print sees it, so which form does a number piece take? The oracle uses the print call's mode. (oracle, 2026-09-14)
 - Shadowing: may an inner scope redeclare a name? The oracle forbids it. (oracle, 2026-09-14)
 - Same-operator chains: `2 xx 3 xx 2` — left or right associative? The oracle folds left. (oracle, 2026-09-14)
 - A literal or call result passed to a `lent` parameter (`count["abc"]`): accepted as a temporary, or must it be named and lent? The oracle accepts it. (oracle, 2026-09-14)

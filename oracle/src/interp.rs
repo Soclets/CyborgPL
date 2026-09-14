@@ -315,11 +315,12 @@ impl<'p> Interp<'p> {
     }
 
     fn value(&mut self, v: &crate::ast::Value) -> Result<(Value, Prov), RuntimeError> {
-        self.value_mode(v, false)
+        self.value_mode(v, true)
     }
 
-    /// `stored`: render number pieces in their stored form (inside `print`)
-    /// rather than the useful form (everywhere else — provisional, see README).
+    /// A number piece becomes text in its stored form, everywhere (decided
+    /// 2026-09-14). `printu` is the one place that renders its own pieces in
+    /// the useful form (`stored = false`).
     fn value_mode(&mut self, v: &crate::ast::Value, stored: bool) -> Result<(Value, Prov), RuntimeError> {
         match v {
             crate::ast::Value::Expr(e) => self.eval(e),

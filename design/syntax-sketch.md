@@ -68,6 +68,11 @@ std::print.stdout['s' 'x' \n];
   prints the real stored value (a `bin32` `0.1` prints as
   `0.100000001490116119384765625`); `std::printu.stdout[...]` prints the
   useful value (`0.1`). Identical for every type except `bin`.
+  **A number piece becomes text in its stored form, everywhere** (decided
+  2026-09-14): `var 's' := ["x is " 'x'];` holds the full expansion, and
+  `print['s']` shows what `'s'` stores. `printu` is the only thing that
+  produces the useful form, and only for its own argument — including its
+  own pieces: `printu["x is " 'x']` prints `x is 0.1`.
 - Statements end with `;`.
 
 ## Open

@@ -6,4 +6,8 @@ MAIN {
     std::printu.stdout['y' \n];
     var 'big' := [1_000_000 x 1_000_000];
     std::print.stdout['big' \n];
+    var 's' := ["x is " 'x'];
+    std::print.stdout['s' \n];
+    std::printu.stdout['s' \n];
+    std::printu.stdout["x is " 'x' \n];
 }

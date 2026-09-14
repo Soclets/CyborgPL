@@ -48,7 +48,6 @@ had to make to run at all; none is a decision.
 |---|---|---|
 | No operator precedence: mixing two different operators without parentheses is an error | `parser.rs` `expr` | The stricter rule; programs valid under it are valid under any precedence the owner chooses |
 | Same-operator chains fold left (including `xx`) | `parser.rs` `expr` | Simplest; legacy had `xx` right-associative |
-| Inside `print`, number pieces render in stored form; inside `printu` and everywhere else, in useful form | `interp.rs` `value_mode` | Otherwise `print["x is " 'x']` could never show the stored value — **`print` vs `printu` on pieces is undecided** |
 | Whitespace between pieces is a separator only — no implicit space | `interp.rs` `value_mode` | Open question in `DECISIONS.md` |
 | `/` on integers truncates; `mod` takes the sign of the dividend | `interp.rs` `binary` | Open question |
 | No shadowing: redeclaring a name visible from an enclosing scope is an error | `interp.rs` `declare` | Strict is the safe default; undecided |
