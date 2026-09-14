@@ -1,6 +1,15 @@
 # Functions
 
-Decided 2026-09-14.
+Decided 2026-09-14. (Written before the `lang:` prefix was decided; read
+`func` as `lang:func`, `var` as `lang:var`, `return` as `lang:return`.
+Current spelling:)
+
+```
+lang:func.int32 'add' [lang:var.int32 'a', lang:var.int32 'b'] {
+    lang:return ['a' + 'b'];
+}
+lang:var 'sum' := 'add'[10, 20];
+```
 
 ## Definition
 

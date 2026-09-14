@@ -36,10 +36,11 @@ std::print.stdout['s' 'x' \n];
   ```
 
   So every path says where it comes from: `lang:` = the language, `std::` =
-  the std Limb, `'…'` = the user. Nothing is bare. Open: whether `lang:` is
-  on *every* keyword (`lang:func`, `lang:return`, `lang:if`) or only on
-  declaration/type paths. Earlier samples written `var …` are read as
-  `lang:var …`.
+  the std Limb, `'…'` = the user. Nothing is bare, **ever**: `lang:` is on every
+  keyword — `lang:func`, `lang:return`, `lang:if`, `lang:check` (decided
+  2026-09-14). The language has zero reserved words; a Limb may even be
+  named `func`. Earlier samples written `var …`, `func …`, `return …` are
+  read with `lang:` in front.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
   Anything that comes from a Limb is reached with `::` after the Limb's
   name: `std::print.stdout[...]`, `var.std::uer 'n' = [1000];`. The chain
