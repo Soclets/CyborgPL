@@ -64,3 +64,10 @@ the compiler can see, not from compiler checks left behind.
 - **`nocheck`** — "Okay, I'm sure this is correct." Check removed, no
   verification. The one place the final product's safety rests on the
   programmer alone.
+
+### Ownership with borrowing (decided 2026-09-14)
+
+One owner per value; freed when the owner's scope ends. Moves transfer
+ownership, copies make a new value, and borrows give temporary access with the
+compiler proving the borrow never outlives its owner and never aliases a
+mutation.

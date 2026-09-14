@@ -69,6 +69,15 @@ amount of compile time can bound it (Rice's theorem). The programmer supplies
 the missing facts at the boundary — value ranges, length limits, loop bounds
 or invariants — and the loop becomes provable.
 
+### 2026-09-14 — Ownership with borrowing (owner)
+
+Every value has exactly one owner; the owner's scope end frees it. Moves
+transfer ownership; copies make an independent value; **borrows** give
+temporary access without ownership, and the compiler proves the borrow never
+outlives the owner and never aliases a mutation (Rust-style, with lifetimes).
+Claude presented A (borrowing), B (moves/copies only with compiler-elided
+copies), C (B plus opt-in verified borrows) and recommended B; owner chose A.
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -76,5 +85,6 @@ or invariants — and the loop becomes provable.
 - Analysis precision budget: precise by default with a very large loop-unroll bound, widen beyond it and report where? (raised by Claude, 2026-09-14)
 - Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
-- Ownership: Rust-style with borrows/lifetimes, or ownership without borrowing (moves + copies only)? (raised by Claude, 2026-09-14)
+- Lifetimes: written by the programmer where ambiguous (Rust), or always inferred by the whole-program analyser, since it can see every call site? Claude recommends always inferred. (raised by Claude, 2026-09-14)
+- Borrow syntax: how `&`/`&mut`-equivalents look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
 - Dot chaining: does it cover declarations and control flow too, or only expressions? (raised by Claude, 2026-09-14)
