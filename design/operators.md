@@ -9,6 +9,14 @@ Decided 2026-09-14.
 | `x` | multiply |
 | `xx` | power |
 | `/` | divide |
+| `mod` | remainder / modulo |
+| `==` | equal |
+| `and` | boolean and |
+| `or` | boolean or |
+| `not` | boolean not |
+
+Word operators (`x`, `xx`, `mod`, `and`, `or`, `not`) are safe for the same
+reason `x` is: user names are always quoted, so a bare word is never a name.
 
 `x`/`xx` carry over from legacy CyborgPL (the owner's design there). They are
 unambiguous because user names are always quoted: `['x' x 2]` is the
@@ -19,9 +27,10 @@ variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 
 ## Not yet listed (open)
 
-- Remainder / modulo.
-- Comparison (`=`, `<`, `>`, …) — note `=` is already assignment in the
-  typed form, so equality needs its own spelling.
-- Boolean and/or/not — waits on whether a boolean type exists.
+- The other comparisons: not-equal, `<`, `>`, `<=`, `>=` — assumed the usual
+  glyphs, with not-equal to be chosen (`!=`? `not ==`?).
+- A boolean type is now implied by `and`/`or`/`not` and `==`; its chain name
+  is not yet chosen (`bool`?).
 - Integer division vs. `/` on `int` (truncate? error on inexact?).
+- `mod` on negative operands (sign of the result).
 - Precedence: standard, or parentheses required when mixing levels.
