@@ -131,7 +131,7 @@ call useful; Claude will use shortest round-trip (Ryu-style). Owner, 2026-09-14.
 
 ### 2026-09-14 — Libraries are Limbs; the package manager is JetPack (owner)
 
-A library is a **Limb**. The package manager is **JetPack** (fast package),
+A **Limb** is the unit of distribution, like Rust's crate — any library or program; `std` is one Limb. The package manager is **JetPack** (fast package),
 manifest `JetPack.toml`. See [design/tooling.md](design/tooling.md).
 
 ## Open questions
@@ -146,6 +146,5 @@ manifest `JetPack.toml`. See [design/tooling.md](design/tooling.md).
 - Operator glyphs: `*` vs `x` for multiply, `^` vs `**` for power, whether tetration survives. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
-- "Limb": the standard library's name, or the word for any library/package? (raised by Claude, 2026-09-14)
 - Missing types: boolean, character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
