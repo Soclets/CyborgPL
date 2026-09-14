@@ -96,4 +96,4 @@ owner chose both. Syntax deferred until dot-chaining is decided.
 - Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
 - Borrow and lifetime syntax: how `&`/`&mut`-equivalents and the optional lifetime annotation look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
-- Dot chaining: does it cover declarations and control flow too, or only expressions? (raised by Claude, 2026-09-14)
+- Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
