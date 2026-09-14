@@ -174,6 +174,11 @@ Rust's words (`move`/`copy`/`borrow`) or owner's-perspective words
 (`give`/`copy`/`lend`), recommending Rust's; owner chose owner's-perspective
 as easier to understand. See [design/ownership-syntax.md](design/ownership-syntax.md).
 
+Parameters declare what they accept (owner, 2026-09-14): `lang:lent.str.utf8
+'text'` receives a shared borrow, `lang:lent.mut.…` a mutable one,
+`lang:var.…` ownership. Caller verb and parameter kind must agree. The
+signature is the ownership contract.
+
 ### 2026-09-14 — No `++` / `+=` shorthand (owner)
 
 Increment is `'i' = ['i' + 1];`. Claude laid out `++` (statement-only) and
@@ -317,7 +322,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)
 - Control flow: `if`/`else`, loops — not designed. (Claude, 2026-09-14)
 - Structs / records — not designed. (Claude, 2026-09-14)
-- Parameter side of `lang:lend`: how a parameter declares what it accepts; lifetime annotation spelling. (Claude, 2026-09-14)
+- Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `lang:check` / `lang:nocheck` sit on a statement. (Claude, 2026-09-14)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)

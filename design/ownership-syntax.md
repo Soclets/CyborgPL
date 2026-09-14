@@ -40,10 +40,32 @@ error appears two lines later. In CyborgPL nothing is implied, and these are
 exactly the assignments that cost something at runtime — so they are the
 ones that should be visible.
 
+## The parameter side (decided 2026-09-14)
+
+A parameter declares what it accepts, so the signature *is* the ownership
+contract:
+
+```
+lang:func.int32 'count' [lang:lent.str.utf8 'text'] { ... }       // looks at it
+lang:func 'edit'        [lang:lent.mut.str.utf8 'text'] { ... }   // may modify it
+lang:func 'keep'        [lang:var.str.utf8 'text'] { ... }        // owns it
+```
+
+- **`lang:lent`** — receives a shared borrow. The caller writes `lang:lend`.
+- **`lang:lent.mut`** — receives a mutable borrow. The caller writes
+  `lang:lend.mut`.
+- **`lang:var`** — receives ownership. The caller writes `lang:give` or
+  `lang:copy`.
+
+Caller verb and parameter kind must agree; a mismatch is a compile error
+with an obvious message ("`count` only looks at `'text'`; you tried to give
+it away"). A reader knows from the signature alone whether their value comes
+back, and Precog has the contract without the body.
+
+The words pair: the caller *lends*, the parameter is *lent*.
+
 ## Open
 
-- How a *parameter* declares what it accepts (must a `lang:lend` argument
-  land in a parameter declared as lent?), and the lifetime annotation's
-  spelling.
+- The lifetime annotation's spelling (optional, verified).
 - Whether `lang:copy` on a plain value is allowed as a no-op (for
   uniformity) or rejected as noise.
