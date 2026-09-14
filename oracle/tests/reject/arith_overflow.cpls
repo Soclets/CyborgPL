@@ -1,0 +1,6 @@
+func.int32 big [var.int32 'a'] {
+    return ['a' x 'a'];
+}
+MAIN {
+    var 'r' := big[100000];
+}

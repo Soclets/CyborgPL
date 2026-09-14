@@ -1,0 +1,5 @@
+func.int32 nothing [] {
+}
+MAIN {
+    var 'x' := nothing[];
+}

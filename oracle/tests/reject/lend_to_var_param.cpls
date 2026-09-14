@@ -1,0 +1,6 @@
+func keep [var.str.utf8 'text'] {
+}
+MAIN {
+    var 's' := ["a"];
+    keep[lend 's'];
+}

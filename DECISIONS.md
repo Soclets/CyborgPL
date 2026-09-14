@@ -164,6 +164,16 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — The oracle interpreter exists (owner)
+
+`oracle/` — a small Rust tree-walking interpreter implementing exactly the
+decided design, with `examples/*.cpls` (must run and match `.out`) and
+`oracle/tests/reject/*.cpls` (must fail with the named message) as its test
+suite. Owner asked for it so stale notes cannot drift from the language's
+reality. It is the executable spec, not the compiler. Every pick it had to
+make where the design is silent is listed in `oracle/README.md` and logged
+below as open.
+
 ### 2026-09-14 — Function names are bare at the definition (owner)
 
 `func.int32 add [...]`, matching the bare call `add[...]`. Quotes mean
@@ -367,6 +377,15 @@ for JetPack, always containing analysable source, never an opaque binary
 (whole-program analysis must see inside it). See [design/tooling.md](design/tooling.md).
 
 ## Open questions
+
+**Language — surfaced by the oracle**
+- `var 'sum' := add[10, 20];` (design/functions.md) vs "`[ ]` mandatory in every value position" (`:= [add[10, 20]]`): the docs disagree. The oracle accepts a call's own bracket as the slot. Which is it? (oracle, 2026-09-14)
+- `print` vs `printu` on *pieces*: `std::print.stdout["x is " 'x']` builds the text before print sees it, so which form does a number piece take? The oracle uses the print call's mode. (oracle, 2026-09-14)
+- Boolean literals: `true` / `false` were never decided; the oracle has none. (oracle, 2026-09-14)
+- Shadowing: may an inner scope redeclare a name? The oracle forbids it. (oracle, 2026-09-14)
+- Same-operator chains: `2 xx 3 xx 2` — left or right associative? The oracle folds left. (oracle, 2026-09-14)
+- A literal or call result passed to a `lent` parameter (`count["abc"]`): accepted as a temporary, or must it be named and lent? The oracle accepts it. (oracle, 2026-09-14)
+- Can a `:=` variable hold a `lend`? The oracle allows it (never returned). (oracle, 2026-09-14)
 
 **Language**
 - Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)

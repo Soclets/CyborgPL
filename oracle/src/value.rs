@@ -1,0 +1,154 @@
+//! Runtime values and the two ways to print them (design/syntax-sketch.md:
+//! `print` shows the stored value, `printu` the useful one).
+
+use crate::ast::{CharUnit, IntWidth, Ty};
+use std::fmt::Write as _;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Value {
+    Int(i128),
+    Bin(f64),
+    Bool(bool),
+    Str(String),
+    Char(CharUnit, String),
+    List(Vec<Value>),
+    Nothing,
+}
+
+impl Value {
+    /// Owned values live on the heap and need give/copy/lend to move around
+    /// (design/ownership-syntax.md). Plain values copy silently.
+    pub fn is_owned(&self) -> bool {
+        matches!(self, Value::Str(_) | Value::List(_) | Value::Char(CharUnit::Grapheme, _))
+    }
+
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Value::Int(_) => "integer",
+            Value::Bin(_) => "bin",
+            Value::Bool(_) => "bool",
+            Value::Str(_) => "str",
+            Value::Char(..) => "char",
+            Value::List(_) => "list",
+            Value::Nothing => "nothing",
+        }
+    }
+
+    /// `print`: exactly what is stored. For a bin, the full decimal expansion.
+    pub fn show_stored(&self) -> String {
+        match self {
+            Value::Int(i) => i.to_string(),
+            Value::Bin(b) => exact_decimal(*b),
+            Value::Bool(b) => if *b { "true".into() } else { "false".into() },
+            Value::Str(s) => s.clone(),
+            Value::Char(_, c) => c.clone(),
+            Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
+            Value::Nothing => "nothing".into(),
+        }
+    }
+
+    /// `printu`: the useful value. For a bin, the shortest text that reads back
+    /// to the same stored value. Identical for every other type.
+    pub fn show_useful(&self) -> String {
+        match self {
+            Value::Bin(b) => format!("{b}"),
+            Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
+            other => other.show_stored(),
+        }
+    }
+}
+
+pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
+    match ty {
+        Ty::Int(w) => Some(match w {
+            IntWidth::W8 => (i8::MIN as i128, i8::MAX as i128),
+            IntWidth::W16 => (i16::MIN as i128, i16::MAX as i128),
+            IntWidth::W32 => (i32::MIN as i128, i32::MAX as i128),
+            IntWidth::W64 => (i64::MIN as i128, i64::MAX as i128),
+            IntWidth::W128 => (i128::MIN, i128::MAX),
+        }),
+        Ty::Uint(w) => Some(match w {
+            IntWidth::W8 => (0, u8::MAX as i128),
+            IntWidth::W16 => (0, u16::MAX as i128),
+            IntWidth::W32 => (0, u32::MAX as i128),
+            IntWidth::W64 => (0, u64::MAX as i128),
+            IntWidth::W128 => (0, i128::MAX), // uint128's top half is beyond the oracle's i128
+        }),
+        _ => None,
+    }
+}
+
+pub fn ty_name(ty: &Ty) -> String {
+    match ty {
+        Ty::Int(w) => format!("int{}", w_num(w)),
+        Ty::Uint(w) => format!("uint{}", w_num(w)),
+        Ty::Bin(n) => format!("bin{n}"),
+        Ty::Deci(n) => format!("deci{n}"),
+        Ty::Str(e) => format!("str.{}", match e { crate::ast::Encoding::Utf8 => "utf8", crate::ast::Encoding::Utf16 => "utf16", crate::ast::Encoding::Utf32 => "utf32", crate::ast::Encoding::Ascii => "ascii" }),
+        Ty::Bool => "bool".into(),
+        Ty::Char(u) => format!("char.{}", match u { CharUnit::Byte => "byte", CharUnit::Point => "point", CharUnit::Grapheme => "grapheme" }),
+    }
+}
+
+fn w_num(w: &IntWidth) -> u32 {
+    match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }
+}
+
+/// The exact decimal expansion of an IEEE 754 binary64 value — every digit
+/// that is really stored. 0.1 → 0.1000000000000000055511151231257827021181583404541015625
+pub fn exact_decimal(x: f64) -> String {
+    if x.is_nan() { return "NaN".into(); }
+    if x.is_infinite() { return if x > 0.0 { "infinity".into() } else { "-infinity".into() }; }
+    if x == 0.0 { return if x.is_sign_negative() { "-0".into() } else { "0".into() }; }
+
+    let bits = x.to_bits();
+    let neg = (bits >> 63) == 1;
+    let exp_bits = ((bits >> 52) & 0x7ff) as i32;
+    let frac = bits & ((1u64 << 52) - 1);
+    let (mantissa, exp) = if exp_bits == 0 { (frac, -1074) } else { (frac | (1u64 << 52), exp_bits - 1075) };
+    // value = mantissa × 2^exp
+
+    // Little-endian base-1e9 big integer.
+    let mut big: Vec<u64> = vec![mantissa % 1_000_000_000, mantissa / 1_000_000_000];
+    while big.len() > 1 && *big.last().unwrap() == 0 { big.pop(); }
+    let mul = |big: &mut Vec<u64>, m: u64| {
+        let mut carry = 0u64;
+        for d in big.iter_mut() {
+            let v = *d * m + carry;
+            *d = v % 1_000_000_000;
+            carry = v / 1_000_000_000;
+        }
+        while carry > 0 { big.push(carry % 1_000_000_000); carry /= 1_000_000_000; }
+    };
+
+    let mut decimals = 0usize;
+    if exp >= 0 {
+        for _ in 0..exp { mul(&mut big, 2); }
+    } else {
+        // mantissa × 2^-k = mantissa × 5^k / 10^k
+        for _ in 0..(-exp) { mul(&mut big, 5); }
+        decimals = (-exp) as usize;
+    }
+
+    let mut digits = String::new();
+    write!(digits, "{}", big.last().unwrap()).unwrap();
+    for d in big.iter().rev().skip(1) { write!(digits, "{d:09}").unwrap(); }
+
+    let mut out = String::new();
+    if neg { out.push('-'); }
+    if decimals == 0 {
+        out.push_str(&digits);
+    } else {
+        if digits.len() <= decimals {
+            out.push_str("0.");
+            for _ in 0..(decimals - digits.len()) { out.push('0'); }
+            out.push_str(digits.trim_end_matches('0'));
+        } else {
+            let split = digits.len() - decimals;
+            out.push_str(&digits[..split]);
+            let tail = digits[split..].trim_end_matches('0');
+            if !tail.is_empty() { out.push('.'); out.push_str(tail); }
+        }
+    }
+    out
+}

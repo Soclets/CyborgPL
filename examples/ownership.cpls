@@ -1,0 +1,30 @@
+func.int32 count [lent 'items'] {
+    var 'n' := [0];
+    loop.for 'item' in [lend 'items'] {
+        'n' = ['n' + 1];
+    }
+    return ['n'];
+}
+
+func shout [lent.mut.str.utf8 'text'] {
+    'text' = [copy 'text' "!"];
+}
+
+func.str.utf8 greet [var.str.utf8 'name'] {
+    return ["hello " 'name'];
+}
+
+MAIN {
+    var 's' := ["line 1" \n "line 2"];
+    var 't' := [give 's'];
+    var 'u' := [copy 't'];
+    shout[lend.mut 'u'];
+    std::print.stdout['t' \n];
+    std::print.stdout['u' \n];
+    var 'g' := greet[copy 'u'];
+    std::print.stdout['g' \n];
+    std::print.stdout['u' \n];
+    var 'words' := ["a", "b", "c"];
+    var 'n' := count[lend 'words'];
+    std::printu.stdout['n' " words" \n];
+}

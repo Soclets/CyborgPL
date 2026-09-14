@@ -1,0 +1,23 @@
+MAIN {
+    var 'i' := [0];
+    loop.while ['i' < 3] {
+        std::printu.stdout["while " 'i' \n];
+        'i' = ['i' + 1];
+    }
+    var 'n' := [0];
+    loop {
+        'n' = ['n' + 1];
+        if ['n' == 2] {
+            continue;
+        }
+        if ['n' > 4] {
+            break;
+        }
+        std::printu.stdout["loop " 'n' \n];
+    }
+    var 'chars' := [`a`, `é`, `🍎`];
+    loop.for.seq 'c' in [lend 'chars'] {
+        std::print.stdout['c' \n];
+    }
+    std::exit[3];
+}

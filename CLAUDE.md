@@ -21,7 +21,13 @@ the owner explicitly chooses it.
 
 - `DECISIONS.md` — the running log of settled design decisions.
 - `design/` — design documents, one topic per file, as they are written.
-- `examples/` — `.cyborgpl` samples illustrating settled syntax only.
+- `examples/` — `.cpls` programs using settled syntax only, each with its
+  expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
+- `oracle/` — the reference interpreter (Rust): the executable spec. It
+  implements only what `design/` decides and refuses the rest. When a note
+  and the oracle disagree, fix whichever is wrong and add a test. Its
+  README lists every provisional pick it had to make; those are open
+  questions, not decisions. `cd oracle && cargo test`.
 
 ## Git
 

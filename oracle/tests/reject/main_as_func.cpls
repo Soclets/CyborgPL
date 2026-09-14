@@ -1,0 +1,3 @@
+func.int32 MAIN [] {
+    return [0];
+}

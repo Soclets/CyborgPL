@@ -1,0 +1,5 @@
+op.int32 dot [var.int32 'a', var.int32 'b'] {
+    return ['a' x 'b'];
+}
+MAIN {
+}

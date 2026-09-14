@@ -1,0 +1,9 @@
+MAIN {
+    var.bin64 'x' = [0.1];
+    std::print.stdout['x' \n];
+    std::printu.stdout['x' \n];
+    var.bin16 'y' = [1000];
+    std::printu.stdout['y' \n];
+    var 'big' := [1_000_000 x 1_000_000];
+    std::print.stdout['big' \n];
+}

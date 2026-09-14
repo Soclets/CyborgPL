@@ -1,0 +1,6 @@
+func edit [lent.mut.str.utf8 'text'] {
+}
+MAIN {
+    var 's' := ["a"];
+    edit[lend 's'];
+}

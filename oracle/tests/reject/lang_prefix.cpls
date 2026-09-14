@@ -1,0 +1,3 @@
+MAIN {
+    lang:var 'x' := [1];
+}

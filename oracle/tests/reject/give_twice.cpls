@@ -1,0 +1,5 @@
+MAIN {
+    var 's' := ["a"];
+    var 't' := [give 's'];
+    var 'u' := [give 's'];
+}

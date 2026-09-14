@@ -1,0 +1,62 @@
+//! Every `examples/*.cpls` must produce its `.out` (and its `.exit` code, if
+//! present). Every `tests/reject/*.cpls` must fail with a message containing
+//! its `.err`. Run: `cargo test` in oracle/.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+fn oracle() -> PathBuf {
+    PathBuf::from(env!("CARGO_BIN_EXE_oracle"))
+}
+
+fn root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
+}
+
+fn cpls_files(dir: &Path) -> Vec<PathBuf> {
+    let mut v: Vec<PathBuf> = fs::read_dir(dir).unwrap()
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().map(|x| x == "cpls").unwrap_or(false))
+        .collect();
+    v.sort();
+    v
+}
+
+#[test]
+fn examples_produce_expected_output() {
+    let dir = root().join("examples");
+    let mut failures = Vec::new();
+    for src in cpls_files(&dir) {
+        let want = fs::read_to_string(src.with_extension("out")).unwrap_or_else(|_| panic!("{} has no .out", src.display()));
+        let want_code: i32 = fs::read_to_string(src.with_extension("exit")).ok()
+            .and_then(|s| s.trim().strip_prefix("exit:").and_then(|n| n.parse().ok())).unwrap_or(0);
+        let out = Command::new(oracle()).arg(&src).output().unwrap();
+        let got = String::from_utf8_lossy(&out.stdout).to_string();
+        let code = out.status.code().unwrap_or(-1);
+        if got != want || code != want_code {
+            failures.push(format!("{}:\n  exit {code} (want {want_code})\n  stderr: {}\n  got:\n{got}\n  want:\n{want}",
+                src.file_name().unwrap().to_string_lossy(), String::from_utf8_lossy(&out.stderr), ));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
+#[test]
+fn rejected_programs_fail_with_the_right_message() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/reject");
+    let mut failures = Vec::new();
+    for src in cpls_files(&dir) {
+        let want = fs::read_to_string(src.with_extension("err")).unwrap_or_else(|_| panic!("{} has no .err", src.display()));
+        let want = want.trim();
+        let out = Command::new(oracle()).arg(&src).output().unwrap();
+        let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+        let code = out.status.code().unwrap_or(-1);
+        if code != 1 {
+            failures.push(format!("{}: expected rejection (exit 1), got exit {code}; stderr: {stderr}", src.file_name().unwrap().to_string_lossy()));
+        } else if !stderr.contains(want) {
+            failures.push(format!("{}: expected error containing `{want}`, got: {stderr}", src.file_name().unwrap().to_string_lossy()));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}

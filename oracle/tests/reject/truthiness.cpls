@@ -1,0 +1,6 @@
+MAIN {
+    var 'n' := [1];
+    if ['n'] {
+        std::print.stdout["yes"];
+    }
+}

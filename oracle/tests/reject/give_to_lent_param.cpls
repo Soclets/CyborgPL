@@ -1,0 +1,6 @@
+func look [lent.str.utf8 'text'] {
+}
+MAIN {
+    var 's' := ["a"];
+    look[give 's'];
+}

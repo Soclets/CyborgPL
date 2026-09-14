@@ -1,0 +1,4 @@
+MAIN {
+    var.int32 'a' = [1];
+    var.bin64 'b' = ['a'];
+}

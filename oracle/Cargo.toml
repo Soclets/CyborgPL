@@ -1,0 +1,12 @@
+[package]
+name = "oracle"
+version = "0.0.1"
+edition = "2021"
+description = "Reference interpreter for CyborgPL — the executable spec. Slow, small, obvious."
+publish = false
+
+[dependencies]
+
+[[bin]]
+name = "oracle"
+path = "src/main.rs"

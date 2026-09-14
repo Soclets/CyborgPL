@@ -1,0 +1,5 @@
+func.int32 'add' [var.int32 'a'] {
+    return ['a'];
+}
+MAIN {
+}

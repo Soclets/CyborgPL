@@ -1,0 +1,7 @@
+func touch [lent.str.utf8 'text'] {
+    'text' = ["b"];
+}
+MAIN {
+    var 's' := ["a"];
+    touch[lend 's'];
+}
