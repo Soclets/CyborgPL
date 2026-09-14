@@ -9,7 +9,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 | `deci` | IEEE 754 decimal floating point | 32, 64, 128 (IEEE 754-2008 defines only these three) |
 | `int` | signed integer, two's complement | 8, 16, 32, 64, 128 (proposed) |
 | `uint` | unsigned integer | 8, 16, 32, 64, 128 (proposed) |
-| `str` | text, narrowed by encoding: `var.str.utf8` (decided 2026-09-14) | encodings proposed: `utf8`, `utf16`, `utf32`, `ascii` |
+| `str` | text, narrowed by encoding: `var.str.utf8` (decided 2026-09-14) | `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best encoding from use |
 | `bool` | boolean; what comparisons and `and`/`or`/`not` produce | — |
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
@@ -34,9 +34,9 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   a heap buffer sized by the encoding. Known-at-compile-time strings need no
   heap — Precog bakes them into the binary as constant data.
 - **`str` encoding is part of the chain** (`var.str.utf8`), same shape as a
-  numeric width. Open: the exact encoding list; whether `:=` picks the best
-  encoding from use (recommended: yes); whether the encoding is mandatory in
-  the typed form like a width (recommended: yes).
+  numeric width. Encodings: `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best from use
+  (decided 2026-09-14). Open: whether the encoding is mandatory in the typed
+  form like a width (recommended: yes).
 - **Not yet listed:** a character type (or is a one-character
   `str` enough?); a byte alias for `uint8`; arbitrary-precision numbers
   (legacy had `bignum`/`bigint` via GMP — do they return?).

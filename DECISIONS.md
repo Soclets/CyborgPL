@@ -142,8 +142,9 @@ existed — `bool`. Widths as suffixes in the chain
 ### 2026-09-14 — `str` is narrowed by encoding in the chain: `var.str.utf8` (owner)
 
 Encoding is a chain segment on `str`, the same shape as a width on a numeric
-type. Owner proposed; Claude suggested the encoding set `utf8`/`utf16`/
-`utf32`/`ascii` and that `:=` picks the best encoding from use (open).
+type. Owner proposed the chain shape. Encodings `utf8`, `utf16`, `utf32`, `ascii`
+(Claude's list, owner accepted); `:=` picks the best encoding from the
+value's use (owner). Decided 2026-09-14.
 
 ### 2026-09-14 — `print` shows the real stored value; `printu` shows the useful one (owner)
 
@@ -241,6 +242,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
-- `str` encodings: `utf8`, `utf16`, `utf32`, `ascii`? Is the encoding mandatory in the typed form? Does `:=` pick it? (raised by Claude, 2026-09-14)
+- Is the `str` encoding mandatory in the typed form (`var.str.utf8`, never bare `var.str`), like a numeric width? Claude recommends yes. (raised by Claude, 2026-09-14)
 - Missing types: character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
