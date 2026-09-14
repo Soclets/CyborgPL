@@ -57,5 +57,5 @@ std.print.stdout['s' 'x' \n];
 - Whitespace between pieces in `[ ]`: separator only (pieces concatenate
   directly) or an implicit space?
 - Mixed precedence: parentheses required, or standard precedence?
-- Operator glyphs and explicit conversion spelling.
+- Explicit conversion spelling.
 - Whether the long form is also valid, or only the short form is the language.
