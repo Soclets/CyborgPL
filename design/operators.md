@@ -28,6 +28,13 @@ variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 
 `( )` groups: `['a' + ('b' x 2)]`.
 
+## No increment or compound assignment (decided 2026-09-14)
+
+There is no `++`, `--`, `+=`, or any other shorthand. Adding one is written
+in full: `'i' = ['i' + 1];`. Precog emits the same instruction either way;
+the shorthand would exist only for the reader, and the owner chose not to
+have it.
+
 ## Not yet listed (open)
 
 - Integer division vs. `/` on `int` (truncate? error on inexact?).

@@ -164,6 +164,12 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — No `++` / `+=` shorthand (owner)
+
+Increment is `'i' = ['i' + 1];`. Claude laid out `++` (statement-only) and
+compound assignment; owner considered `'i'++` and decided against any
+shorthand.
+
 ### 2026-09-14 — Entry point is `lang:func MAIN`, unquoted and uncallable (owner)
 
 `lang:func.int32 MAIN { … lang:return [0]; }` — the return value is the exit
