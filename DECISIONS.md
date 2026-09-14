@@ -164,6 +164,16 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — Ownership transfer is explicit: `lang:give` / `lang:copy` / `lang:lend` / `lang:lend.mut` (owner)
+
+A bare `'s' = ['t'];` on an owned (heap) value is a compile error; the
+programmer writes `lang:give` (move), `lang:copy`, or `lang:lend` /
+`lang:lend.mut` (borrow). Plain values copy with no keyword. Owner asked
+whether a move needs a keyword; Claude recommended explicit and offered
+Rust's words (`move`/`copy`/`borrow`) or owner's-perspective words
+(`give`/`copy`/`lend`), recommending Rust's; owner chose owner's-perspective
+as easier to understand. See [design/ownership-syntax.md](design/ownership-syntax.md).
+
 ### 2026-09-14 — No `++` / `+=` shorthand (owner)
 
 Increment is `'i' = ['i' + 1];`. Claude laid out `++` (statement-only) and
@@ -307,7 +317,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)
 - Control flow: `if`/`else`, loops — not designed. (Claude, 2026-09-14)
 - Structs / records — not designed. (Claude, 2026-09-14)
-- Borrow and lifetime syntax in the chain style. (Claude, 2026-09-14)
+- Parameter side of `lang:lend`: how a parameter declares what it accepts; lifetime annotation spelling. (Claude, 2026-09-14)
 - Check-tier syntax: where `lang:check` / `lang:nocheck` sit on a statement. (Claude, 2026-09-14)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
