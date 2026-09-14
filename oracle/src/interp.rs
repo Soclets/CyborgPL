@@ -396,6 +396,7 @@ impl<'p> Interp<'p> {
                 }
             }
             Expr::Call(c) => Ok((self.call(c)?, Prov::Fresh)),
+            Expr::Nested(b) => self.bracket(b, line),
             Expr::Paren(inner, _) => self.eval(inner),
             Expr::Unary(op, inner, _) => {
                 let (v, prov) = self.eval(inner)?;

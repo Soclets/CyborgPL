@@ -104,6 +104,8 @@ pub enum Expr {
     /// `give 'x'`, `copy 'x'`, `lend 'x'`, `lend.mut 'x'`
     Owned(Verb, String, usize),
     Call(Call),
+    /// a `[ ]` used as a value inside another bracket: a list literal, or just grouping
+    Nested(Bracket),
     Unary(String, Box<Expr>, usize),            // not, -
     Binary(String, Box<Expr>, Box<Expr>, usize),
     Paren(Box<Expr>, usize),
@@ -116,6 +118,7 @@ impl Expr {
             | Expr::Newline(l) | Expr::Var(_, l) | Expr::Owned(_, _, l)
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,
+            Expr::Nested(b) => b.line,
         }
     }
 }

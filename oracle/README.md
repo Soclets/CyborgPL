@@ -56,6 +56,8 @@ had to make to run at all; none is a decision.
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
 | `deci`, `bin128`, `uint128`'s top half, `std::uer` | — | Parsed, refused at run time as not implemented |
 
+| A `[ ]` inside a `[ ]` is a value like any other; `[[1, 2], [3, 4]]` is a list of lists and `[[1]]` is `1` | `parser.rs` `primary` | Follows from ":= [count[...]]"; **a one-element list cannot be written** |
+
 ## Not implemented because not designed
 
 Comments, list indexing and length, ranges, string iteration, structs,

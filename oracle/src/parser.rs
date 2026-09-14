@@ -441,7 +441,7 @@ impl Parser {
                 self.expect(Tok::RParen, "`)`")?;
                 Ok(Expr::Paren(Box::new(e), line))
             }
-            Tok::LBracket => self.err("a `[ ]` inside a `[ ]`: values are not nested; use parentheses to group arithmetic"),
+            Tok::LBracket => Ok(Expr::Nested(self.bracket()?)),
             Tok::Word(w) => match w.as_str() {
                 "give" | "copy" | "lend" => {
                     self.advance();
