@@ -152,7 +152,19 @@ A character type, with the chain saying which Unicode unit "one character"
 means: `byte` (1 byte), `point` (one code point, 4 bytes flat), `grapheme`
 (one grapheme cluster, variable size, owned). Claude laid out code point vs
 grapheme cluster and proposed the two-unit chain; owner chose it and added
-`byte`. Literal syntax open (cannot be `'a'`; proposed `char.point["a"]`).
+`byte`.
+
+Character literals use **backticks**: `` var 'c' := [`1`]; `` — `"…"` is text,
+`'…'` is a name, `` `…` `` is one character. Must be exactly one unit; with
+`:=` Precog picks the unit. Owner, 2026-09-14.
+
+### 2026-09-14 — The typed form is always fully explicit (owner)
+
+No bare `var.int`, `var.str`, or `var.char`: a typed declaration states the
+width / encoding / unit (`var.int32`, `var.str.utf8`, `var.char.point`).
+`:=` means Precog chooses; `=` means the programmer said everything. Claude
+recommended; owner chose. Closes the width, encoding, and unit questions at
+once.
 
 ### 2026-09-14 — `print` shows the real stored value; `printu` shows the useful one (owner)
 
@@ -249,8 +261,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Whether mixed-precedence arithmetic must be parenthesised (`[a + (b * 2)]`, Pony-style) or standard precedence applies. (raised by Claude, 2026-09-14)
 - `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
-- Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
-- Is the `str` encoding mandatory in the typed form (`var.str.utf8`, never bare `var.str`), like a numeric width? Claude recommends yes. (raised by Claude, 2026-09-14)
-- `char` literal syntax; does `:=` pick the unit; is the unit mandatory in the typed form. (raised by Claude, 2026-09-14)
+- Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (raised by Claude, 2026-09-14)
 - Missing types:, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)

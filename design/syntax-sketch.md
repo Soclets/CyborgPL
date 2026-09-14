@@ -61,3 +61,6 @@ std.print.stdout['s' 'x' \n];
 - Mixed precedence: parentheses required, or standard precedence?
 - Explicit conversion spelling.
 - Whether the long form is also valid, or only the short form is the language.
+
+Closed 2026-09-14: the typed form is always fully explicit (no bare
+`var.int`/`var.str`/`var.char`); character literals are backticked.

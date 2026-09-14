@@ -20,10 +20,8 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 - **Four numeric families, no implicit conversion between them.** `int32`
   and `bin32` are different families; mixing them in one expression is a
   compile error and conversion is explicit (spelling open).
-- **Width in the typed form.** With `:=` the compiler picks the width, so a
-  bare `int` is never needed there. Recommendation: in the explicit form the
-  width is mandatory (`var.int32`, never `var.int`) — the explicit form only
-  appears at boundaries, where being precise is the point.
+- **Width in the typed form is mandatory** (`var.int32`, never `var.int`) —
+  decided 2026-09-14; see "typed form is always fully explicit" below.
 - **Hardware reality**, for the LLVM backend: `bin16/32/64` are native on
   current targets; `bin128` is software (legacy CyborgPL had a from-scratch
   quad implementation). `deci*` is hardware on IBM POWER and z/Architecture
@@ -35,9 +33,8 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   a heap buffer sized by the encoding. Known-at-compile-time strings need no
   heap — Precog bakes them into the binary as constant data.
 - **`str` encoding is part of the chain** (`var.str.utf8`), same shape as a
-  numeric width. Encodings: `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best from use
-  (decided 2026-09-14). Open: whether the encoding is mandatory in the typed
-  form like a width (recommended: yes).
+  numeric width. Encodings: `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best from use;
+  in the typed form the encoding is mandatory (decided 2026-09-14).
 - **`char` units.** The chain narrows `char` by what "one character" means,
   because Unicode has three honest answers:
   - `char.byte` — one byte. 1 byte, flat. For ASCII and raw data.
@@ -49,9 +46,15 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
     *owned* value like `str`; needs Unicode segmentation tables in the
     binary; boundaries can shift with Unicode versions. The correct
     user-facing unit.
-  A character literal cannot be `'a'` (quotes mean names); proposed:
-  `char.point["a"]` etc., fitting the value-bracket rule. Open: whether `:=`
-  picks the unit from use, and whether the unit is mandatory in the typed
-  form.
+  A character literal is written in **backticks**: `` var 'c' := [`1`]; ``
+  (decided 2026-09-14). Three quote styles, three token classes: `"…"` text,
+  `'…'` name, `` `…` `` one character. The literal must be exactly one unit
+  of the chosen or inferred kind. With `:=`, Precog picks the unit from the
+  content and its use (`` `a` `` may be a byte; `` `🍎` `` needs `point`;
+  `` `เกี่ยว` `` can only be `grapheme`).
+- **The typed form is always fully explicit** (decided 2026-09-14): no bare
+  `var.int`, `var.str`, or `var.char`. `var.int32`, `var.str.utf8`,
+  `var.char.point`. `:=` means Precog chooses; `=` means you said
+  everything.
 - **Not yet listed:** arbitrary-precision numbers (legacy had
   `bignum`/`bigint` via GMP — do they return?).
