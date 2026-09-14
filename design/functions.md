@@ -23,8 +23,11 @@ Bare words are unambiguous because nothing else is bare: keywords carry
 `lang:`, other Limbs carry `::`, variables carry quotes. Consequently a call
 (`add[...]`) and a list index (`'items'[3]`) are told apart by shape.
 
-**Exception:** the operator words `x`, `xx`, `mod`, `and`, `or`, `not` are
-bare too, so they cannot be used as function names.
+The operator words (`x`, `xx`, `mod`, `and`, `or`, `not`) are bare too, but
+they never collide with a call: an operator sits *between* operands and is
+never followed by `[`; a call is a word followed by `[`. `[mod[7, 3] mod 2]`
+is legal and unambiguous. So they may be function names — zero reserved
+words, no exception.
 
 ## Definition
 

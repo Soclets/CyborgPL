@@ -169,8 +169,11 @@ Exact is exact: fractions are true rationals (owner, 2026-09-14).
 A function is a Limb member. Within its own Limb: `add[10, 20]`. From
 elsewhere: `mathstuff::pow[2, 64]`. Quoted only at definition. Claude had
 proposed `self::add`; owner chose bare, since `::` exists only for a real
-separate `.limb`. Call vs index is now told apart by shape. The six operator
-words cannot be function names (Claude's flag; recorded as the rule).
+separate `.limb`. Call vs index is told apart by shape, and so are calls and
+operator words (a call is a word followed by `[`; an operator sits between
+operands) — Claude first proposed reserving the six operator words as
+function names; the owner pointed out the positions never collide, and the
+exception was dropped. Zero reserved words, no exception.
 
 ### 2026-09-14 — `lang:` prefixes language built-ins (owner)
 
