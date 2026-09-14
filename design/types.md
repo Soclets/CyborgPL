@@ -11,6 +11,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 | `uint` | unsigned integer | 8, 16, 32, 64, 128 (proposed) |
 | `str` | text, narrowed by encoding: `var.str.utf8` (decided 2026-09-14) | `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best encoding from use |
 | `bool` | boolean; what comparisons and `and`/`or`/`not` produce | — |
+| `char` | one character, narrowed by *unit*: `var.char.point`, `var.char.grapheme`, `var.char.byte` (decided 2026-09-14) | see below |
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
 
@@ -37,6 +38,20 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   numeric width. Encodings: `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best from use
   (decided 2026-09-14). Open: whether the encoding is mandatory in the typed
   form like a width (recommended: yes).
-- **Not yet listed:** a character type (or is a one-character
-  `str` enough?); a byte alias for `uint8`; arbitrary-precision numbers
-  (legacy had `bignum`/`bigint` via GMP — do they return?).
+- **`char` units.** The chain narrows `char` by what "one character" means,
+  because Unicode has three honest answers:
+  - `char.byte` — one byte. 1 byte, flat. For ASCII and raw data.
+  - `char.point` — one Unicode code point. 4 bytes, flat, plain copy, no
+    heap, stable across Unicode versions. The fast internal unit.
+  - `char.grapheme` — one grapheme cluster: what a human sees as one
+    character (`เกี่ยว`'s syllables, `👨‍👩‍👧`, `e`+combining accent).
+    Variable size — small inline buffer with heap fallback, so it is an
+    *owned* value like `str`; needs Unicode segmentation tables in the
+    binary; boundaries can shift with Unicode versions. The correct
+    user-facing unit.
+  A character literal cannot be `'a'` (quotes mean names); proposed:
+  `char.point["a"]` etc., fitting the value-bracket rule. Open: whether `:=`
+  picks the unit from use, and whether the unit is mandatory in the typed
+  form.
+- **Not yet listed:** arbitrary-precision numbers (legacy had
+  `bignum`/`bigint` via GMP — do they return?).

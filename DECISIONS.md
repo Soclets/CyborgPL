@@ -146,6 +146,14 @@ type. Owner proposed the chain shape. Encodings `utf8`, `utf16`, `utf32`, `ascii
 (Claude's list, owner accepted); `:=` picks the best encoding from the
 value's use (owner). Decided 2026-09-14.
 
+### 2026-09-14 — `char` exists, narrowed by unit: `var.char.point` / `.grapheme` / `.byte` (owner)
+
+A character type, with the chain saying which Unicode unit "one character"
+means: `byte` (1 byte), `point` (one code point, 4 bytes flat), `grapheme`
+(one grapheme cluster, variable size, owned). Claude laid out code point vs
+grapheme cluster and proposed the two-unit chain; owner chose it and added
+`byte`. Literal syntax open (cannot be `'a'`; proposed `char.point["a"]`).
+
 ### 2026-09-14 — `print` shows the real stored value; `printu` shows the useful one (owner)
 
 `std.print.stdout[...]` prints exactly what is in memory — for a `bin` value
@@ -243,5 +251,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
 - Is the `str` encoding mandatory in the typed form (`var.str.utf8`, never bare `var.str`), like a numeric width? Claude recommends yes. (raised by Claude, 2026-09-14)
-- Missing types: character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
+- `char` literal syntax; does `:=` pick the unit; is the unit mandatory in the typed form. (raised by Claude, 2026-09-14)
+- Missing types:, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
