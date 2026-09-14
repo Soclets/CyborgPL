@@ -125,6 +125,10 @@ prints `0.100000001490116119384765625`). `std.printu.stdout[...]` — `u` for
 `deci` the two are identical; the difference only shows on `bin`. The honest
 one gets the short name.
 
+`print` on `bin128` dumps the full expansion — that is the point. `printu`'s
+exact algorithm is Claude's call as long as the output is what a reader would
+call useful; Claude will use shortest round-trip (Ryu-style). Owner, 2026-09-14.
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -137,6 +141,5 @@ one gets the short name.
 - Operator glyphs: `*` vs `x` for multiply, `^` vs `**` for power, whether tetration survives. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
-- `printu` definition: shortest decimal that round-trips to the same stored value (Ryu-style), as Claude assumes? And does `print` on `bin128` dump the full ~110-digit expansion? (raised by Claude, 2026-09-14)
 - Missing types: boolean, character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
