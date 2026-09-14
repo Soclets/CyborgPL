@@ -1,0 +1,10 @@
+MAIN {
+    var.bool 'correct?' = [true];
+    var 'wrong?' := [not 'correct?'];
+    if ['correct?' and (not 'wrong?')] {
+        std::print.stdout["fine" \n];
+    }
+    if ['wrong?' == false] {
+        std::print.stdout['correct?' " " 'wrong?' \n];
+    }
+}

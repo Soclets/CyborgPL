@@ -352,6 +352,7 @@ impl<'p> Interp<'p> {
         match e {
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
             Expr::Bin(b, _) => Ok((Value::Bin(*b), Prov::Literal)),
+            Expr::Bool(b, _) => Ok((Value::Bool(*b), Prov::Plain)),
             Expr::Text(t, _) => Ok((Value::Str(t.clone()), Prov::Fresh)),
             Expr::Newline(_) => Ok((Value::Str("\n".into()), Prov::Fresh)),
             Expr::Char(c, _) => {

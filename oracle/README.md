@@ -55,7 +55,6 @@ had to make to run at all; none is a decision.
 | A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |
 | A `lend` can be held in a `:=` variable (sharing the owner's cell) but never returned from a function | `interp.rs` | The oracle has no lifetimes |
 | A literal or call result passed to a `lent` parameter is accepted as a temporary | `interp.rs` `user_call` | Otherwise `count["abc"]` is impossible; undecided |
-| There are no boolean literals: write a comparison | `parser.rs` `primary` | **`true` / `false` were never decided** |
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
 | `deci`, `bin128`, `uint128`'s top half, `std::uer` | — | Parsed, refused at run time as not implemented |
 

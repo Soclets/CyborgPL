@@ -10,7 +10,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 | `int` | signed integer, two's complement | 8, 16, 32, 64, 128 (proposed) |
 | `uint` | unsigned integer | 8, 16, 32, 64, 128 (proposed) |
 | `str` | text, narrowed by encoding: `var.str.utf8` (decided 2026-09-14) | `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best encoding from use |
-| `bool` | boolean; what comparisons and `and`/`or`/`not` produce | — |
+| `bool` | boolean; what comparisons and `and`/`or`/`not` produce; literals `true` / `false` (decided 2026-09-14): `var.bool 'correct?' = [true];` | — |
 | `char` | one character, narrowed by *unit*: `var.char.point`, `var.char.grapheme`, `var.char.byte` (decided 2026-09-14) | see below |
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.

@@ -5,7 +5,7 @@ use crate::lexer::{Tok, Token};
 
 pub const KEYWORDS: &[&str] = &[
     "func", "var", "return", "if", "else", "loop", "in", "break", "continue",
-    "give", "copy", "lend", "lent", "op", "check", "nocheck",
+    "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false",
 ];
 
 const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
@@ -451,7 +451,8 @@ impl Parser {
                     }
                 }
                 "lent" => self.err("`lent` describes a parameter; a caller writes `lend`"),
-                "true" | "false" => self.err("there are no boolean literals yet; write a comparison such as `[1 == 1]` (open question)"),
+                "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
+                "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 _ if KEYWORDS.contains(&w.as_str()) => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
                 _ => Ok(Expr::Call(self.call()?)),
             },
