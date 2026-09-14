@@ -97,6 +97,14 @@ the same construct. Every value position uses it — `var.bin16 'x' = [1000];`
 — with no omission rule. Owner proposed bare-infix vs bracketed and chose
 bracketed; Claude recommended the same.
 
+### 2026-09-14 — Inside `[ ]`, a bare number is an operand, not a text piece (owner)
+
+Quoted literals, variable references, and specials like `\n` are *pieces*
+and join as text. A bare numeric literal is an *operand* and must sit in an
+operator expression. Two adjacent bare numbers (`[10 20]`) are a compile
+error regardless of what precedes the bracket. Claude had proposed
+"juxtaposition always joins as text"; the owner rejected it for bare numbers.
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -105,7 +113,7 @@ bracketed; Claude recommended the same.
 - Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
 - Borrow and lifetime syntax: how `&`/`&mut`-equivalents and the optional lifetime annotation look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
-- Juxtaposition of non-text pieces inside `[ ]`, e.g. `[10 20]`: error, or text-join (`"1020"`)? Claude recommends "juxtaposition always joins as text; operators always compute". (raised by Claude, 2026-09-14)
+- A bare number adjacent to a text piece, `["count: " 10]`: error (strict, Claude's recommendation) or implicit text conversion? (raised by Claude, 2026-09-14)
 - Whether mixed-precedence arithmetic must be parenthesised (`[a + (b * 2)]`, Pony-style) or standard precedence applies. (raised by Claude, 2026-09-14)
 - Operator glyphs: `*` vs `x` for multiply, `^` vs `**` for power, whether tetration survives. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)

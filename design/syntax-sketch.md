@@ -39,6 +39,10 @@ std.print.stdout['s' 'x' \n];
   `line 1⏎line 2`. A formula evaluates: `[10 + 20 + 30]`. A lone literal is
   still bracketed: `var.bin16 'x' = [1000];`. `std.print.stdout[...]` takes
   the same construct.
+- **Inside `[ ]`, a bare number is an operand, not a piece** (decided
+  2026-09-14). Pieces — `"text"`, `'variable'`, `\n` — join as text. A bare
+  number must be part of an operator expression; `[10 20]` is a compile
+  error.
 - **Names are quoted, so operators are free glyphs**: `var '+' := [10 + 20];`
   is legal — the name `'+'` and the operator `+` are different tokens.
 - Statements end with `;`.
@@ -47,7 +51,7 @@ std.print.stdout['s' 'x' \n];
 
 - Whitespace between pieces in `[ ]`: separator only (pieces concatenate
   directly) or an implicit space?
-- `[10 20]`: error, or text-join?
+- `["count: " 10]`: error, or implicit conversion?
 - Mixed precedence: parentheses required, or standard precedence?
 - Operator glyphs and explicit conversion spelling.
 - With `[ ]` taken for text, how is a list written?
