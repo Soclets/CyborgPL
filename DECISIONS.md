@@ -103,7 +103,12 @@ has reaffirmed it, because it is load-bearing:
 - **Three token classes, visually distinct:** values wear `[ ]`, names wear
   `' '`, keywords wear nothing. A reader never needs the keyword list.
 - Cost acknowledged: two extra (unshifted) characters per name, and a
-  permanent "why?" for readers from other languages. Accepted.
+  first-contact "why?" for readers from other languages. Accepted; the docs
+  should state the reason up front.
+- The "`'x'` looks like a character literal" objection is a prior from other
+  languages; CyborgPL has no character type, so `'` has one meaning. Rule
+  that follows: **if a character type is ever added, it must not use
+  `'…'`.**
 
 ### 2026-09-14 — `[ ]` is the value bracket, and it is mandatory (owner)
 
