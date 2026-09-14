@@ -110,6 +110,12 @@ literal belongs inside the string (`"count: 10"`); a computed number goes
 into a variable first and is referenced as a piece (`["count: " 'n']`).
 Owner, 2026-09-14.
 
+### 2026-09-14 — Initial type family (owner)
+
+`bin` (IEEE 754 binary float), `deci` (IEEE 754 decimal float), `int`
+(signed), `uint` (unsigned), `str` (text). Widths as suffixes in the chain
+(`var.bin16`). Full table and notes in [design/types.md](design/types.md).
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -121,4 +127,6 @@ Owner, 2026-09-14.
 - Whether mixed-precedence arithmetic must be parenthesised (`[a + (b * 2)]`, Pony-style) or standard precedence applies. (raised by Claude, 2026-09-14)
 - Operator glyphs: `*` vs `x` for multiply, `^` vs `**` for power, whether tetration survives. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
+- Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
+- Missing types: boolean, character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)

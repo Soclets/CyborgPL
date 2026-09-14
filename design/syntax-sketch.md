@@ -55,6 +55,4 @@ std.print.stdout['s' 'x' \n];
 - Mixed precedence: parentheses required, or standard precedence?
 - Operator glyphs and explicit conversion spelling.
 - With `[ ]` taken for text, how is a list written?
-- The rest of the numeric family: integer type names alongside `bin16/32/64`;
-  whether `bin128` exists.
 - Whether the long form is also valid, or only the short form is the language.
