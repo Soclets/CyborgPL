@@ -170,6 +170,14 @@ raised "latest LLVM", then Rust + wrapper once the team shape was known;
 owner chose Rust + wrapper. See
 [design/implementation-languages.md](design/implementation-languages.md).
 
+### 2026-09-14 — Review policy: human review follows risk (owner)
+
+Tier 1, every line reviewed: Precog, borrow checker, proof-feeding into LLVM,
+intrinsic contracts. Tier 2, tested and sampled: front end, runtime
+arithmetic, JetPack, harness, oracle. Tier 3: the standard Limb is checked by
+Precog itself. Claude proposed; owner chose. See
+[design/review-policy.md](design/review-policy.md).
+
 ### 2026-09-14 — The compile-time technology is called Precog (owner)
 
 The whole-program analysis/execution engine behind "everything at compile
