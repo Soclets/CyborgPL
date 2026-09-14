@@ -219,6 +219,14 @@ segment before the type (`var.immut.int32`), following the existing chain
 rule. No `const`: compile-time constants are Precog's to find. Owner's
 decision on Claude's explanation of immutable-vs-constant.
 
+### 2026-09-14 — Precedence: mathematics where settled, parentheses where not, parentheses override (owner)
+
+`xx` > unary `-` > `x`/`/`/`mod` > `+`/`-` > comparisons > `not` > `and` >
+`or`. Parentheses required for: `/` or `mod` beside another multiplicative
+operator, `mod` beside anything, chained comparisons, `not` beside a
+comparison. Claude offered a standard table vs none (recommending none);
+owner chose the mathematical rule. Table in [design/operators.md](design/operators.md).
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the
@@ -437,7 +445,6 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - Lists beyond the literal: a type name for the typed form (`list.int32`?), indexing (and its base), length/append spelling, fixed-size vs growable. (Claude, 2026-09-14)
-- Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)
 - Range values (`std::range[0, 10]` vs an operator). (Claude, 2026-09-14)
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)

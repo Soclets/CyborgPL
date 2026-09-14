@@ -408,47 +408,94 @@ impl Parser {
         }
     }
 
-    // expr := unary (binop unary)*
-    // Provisional rule (open question in DECISIONS.md): different operators
-    // may not be mixed without parentheses. Same-operator chains fold left,
-    // except `xx`, which folds right as mathematics does (decided 2026-09-14);
+    // expr — precedence follows mathematics where mathematics has a settled
+    // answer (decided 2026-09-14); where it does not, parentheses are required;
     // parentheses always override.
+    //
+    //   tightest   xx                     right-associative (a power tower)
+    //              unary -                so -2 xx 2 is -(2 xx 2)
+    //              x  /  mod              x chains; / and mod must be parenthesised
+    //                                     when mixed with x, /, or mod (6 / 2 x 3 has
+    //                                     no settled reading; mod has no notation)
+    //              +  -                   left-associative
+    //              == !== < > <== >==     never chained; never mixed with `not`
+    //              not                    applies to one operand or a parenthesis
+    //              and
+    //   loosest    or                     ∧ before ∨, as in logic
     fn expr(&mut self) -> PResult<Expr> {
+        let e = self.climb(0)?;
+        self.validate(&e)?;
+        Ok(e)
+    }
+
+    fn level(op: &str) -> u8 {
+        match op {
+            "or" => 1,
+            "and" => 2,
+            "==" | "!==" | "<" | ">" | "<==" | ">==" => 3,
+            "+" | "-" => 4,
+            "x" | "/" | "mod" => 5,
+            "xx" => 7,
+            _ => 0,
+        }
+    }
+
+    fn climb(&mut self, min: u8) -> PResult<Expr> {
         let line = self.line();
-        let first = self.unary()?;
-        let mut ops: Vec<String> = Vec::new();
-        let mut operands = vec![first];
-        while let Some(op) = self.binop() {
+        let mut lhs = self.unary()?;
+        loop {
+            let Some(op) = self.binop() else { break };
             if op == "=" { return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
+            let lv = Self::level(&op);
+            if lv < min || lv == 0 { break; }
             self.advance();
-            ops.push(op);
-            operands.push(self.unary()?);
+            // right-associative for xx, left for everything else
+            let rhs = if op == "xx" { self.climb(lv)? } else { self.climb(lv + 1)? };
+            lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
         }
-        if ops.is_empty() { return Ok(operands.pop().unwrap()); }
-        if ops.iter().any(|o| o != &ops[0]) {
-            return Err(ParseError { line, col: 0, msg: format!("mixing `{}` and `{}` without parentheses — no operator precedence: parenthesise one side (provisional rule, see DECISIONS.md)", ops[0], ops.iter().find(|o| **o != ops[0]).unwrap()) });
-        }
-        if ops[0] == "xx" {
-            let mut it = operands.into_iter().rev();
-            let mut acc = it.next().unwrap();
-            for lhs in it {
-                acc = Expr::Binary("xx".into(), Box::new(lhs), Box::new(acc), line);
+        Ok(lhs)
+    }
+
+    fn validate(&self, e: &Expr) -> PResult<()> {
+        let bad = |line: usize, msg: String| Err(ParseError { line, col: 0, msg });
+        match e {
+            Expr::Binary(op, l, r, line) => {
+                let is_cmp = |o: &str| matches!(o, "==" | "!==" | "<" | ">" | "<==" | ">==");
+                for child in [l.as_ref(), r.as_ref()] {
+                    match child {
+                        Expr::Binary(cop, ..) => {
+                            if cop == "mod" || op == "mod" {
+                                return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading for mod beside another operator — parenthesise"));
+                            }
+                            let both_mul = matches!(op.as_str(), "x" | "/" | "mod") && matches!(cop.as_str(), "x" | "/" | "mod");
+                            if both_mul && !(op == "x" && cop == "x") {
+                                return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading here (6 / 2 x 3, or anything with mod) — parenthesise one side"));
+                            }
+                            if is_cmp(op) && is_cmp(cop) {
+                                return bad(*line, format!("`{cop}` next to `{op}`: comparisons do not chain — write `[(a {cop} b) and (b {op} c)]`, or parenthesise"));
+                            }
+                        }
+                        Expr::Unary(u, ..) if u == "not" && is_cmp(op) => {
+                            return bad(*line, "`not` next to a comparison: no settled reading — write `[not (a == b)]` or `[(not a) == b]`".into());
+                        }
+                        _ => {}
+                    }
+                }
+                self.validate(l)?;
+                self.validate(r)
             }
-            return Ok(acc);
+            Expr::Unary(_, inner, _) => self.validate(inner),
+            Expr::Paren(inner, _) => self.validate(inner),
+            _ => Ok(()),
         }
-        let mut it = operands.into_iter();
-        let mut acc = it.next().unwrap();
-        for (op, rhs) in ops.into_iter().zip(it) {
-            acc = Expr::Binary(op, Box::new(acc), Box::new(rhs), line);
-        }
-        Ok(acc)
     }
 
     // unary := ('not' | '-') unary | primary
     fn unary(&mut self) -> PResult<Expr> {
         let line = self.line();
         if self.is_word("not") { self.advance(); return Ok(Expr::Unary("not".into(), Box::new(self.unary()?), line)); }
-        if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.unary()?), line)); }
+        // unary minus sits below xx: -2 xx 2 is -(2 xx 2), as in mathematics
+        if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(7)?), line)); }
         self.primary()
     }
 
