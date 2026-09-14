@@ -143,8 +143,11 @@ in [design/functions.md](design/functions.md).
 ### 2026-09-14 — Arithmetic operators (owner)
 
 `+`, `-`, `x` (multiply), `xx` (power), `/`, `mod`, `==`, `and`, `or`,
-`not`. No `*`, no tetration. Word operators are unambiguous because names are
-quoted. See
+`not`, `<`, `>`, `<==`, `>==`. No `*`, no tetration. Word operators are
+unambiguous because names are quoted. `<==`/`>==` are built from `==` because
+a lone `=` is assignment and must never appear inside a comparison (owner
+raised the inconsistency of `>=`; Claude proposed `>==`, words, unicode, or
+none; owner chose `>==`). See
 [design/operators.md](design/operators.md).
 
 ### 2026-09-14 — The compile-time technology is called Precog (owner)
@@ -171,7 +174,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
 - Borrow and lifetime syntax: how `&`/`&mut`-equivalents and the optional lifetime annotation look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
 - Whether mixed-precedence arithmetic must be parenthesised (`[a + (b * 2)]`, Pony-style) or standard precedence applies. (raised by Claude, 2026-09-14)
-- Remaining operators: not-equal and `< > <= >=`; `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
+- Not-equal: `!=` or `not ==`; `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
 - Boolean type is now implied (`and`/`or`/`not`, `==`): chain name? `bool`? Also character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
