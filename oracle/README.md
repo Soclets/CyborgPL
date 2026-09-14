@@ -48,7 +48,7 @@ had to make to run at all; none is a decision.
 | Pick | Where | Why this way |
 |---|---|---|
 | No operator precedence: mixing two different operators without parentheses is an error | `parser.rs` `expr` | The stricter rule; programs valid under it are valid under any precedence the owner chooses |
-| Same-operator chains fold left (including `xx`) | `parser.rs` `expr` | Simplest; legacy had `xx` right-associative |
+| Same-operator chains of `+ - x / mod and or` fold left | `parser.rs` `expr` | Standard; `xx` folds right by decision |
 | Whitespace between pieces is a separator only — no implicit space | `interp.rs` `value_mode` | Open question in `DECISIONS.md` |
 | `/` on integers truncates; `mod` takes the sign of the dividend | `interp.rs` `binary` | Open question |
 | A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |

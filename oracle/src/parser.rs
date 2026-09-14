@@ -384,7 +384,9 @@ impl Parser {
 
     // expr := unary (binop unary)*
     // Provisional rule (open question in DECISIONS.md): different operators
-    // may not be mixed without parentheses. Same-operator chains fold left.
+    // may not be mixed without parentheses. Same-operator chains fold left,
+    // except `xx`, which folds right as mathematics does (decided 2026-09-14);
+    // parentheses always override.
     fn expr(&mut self) -> PResult<Expr> {
         let line = self.line();
         let first = self.unary()?;
@@ -399,6 +401,14 @@ impl Parser {
         if ops.is_empty() { return Ok(operands.pop().unwrap()); }
         if ops.iter().any(|o| o != &ops[0]) {
             return Err(ParseError { line, col: 0, msg: format!("mixing `{}` and `{}` without parentheses — no operator precedence: parenthesise one side (provisional rule, see DECISIONS.md)", ops[0], ops.iter().find(|o| **o != ops[0]).unwrap()) });
+        }
+        if ops[0] == "xx" {
+            let mut it = operands.into_iter().rev();
+            let mut acc = it.next().unwrap();
+            for lhs in it {
+                acc = Expr::Binary("xx".into(), Box::new(lhs), Box::new(acc), line);
+            }
+            return Ok(acc);
         }
         let mut it = operands.into_iter();
         let mut acc = it.next().unwrap();

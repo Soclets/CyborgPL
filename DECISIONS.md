@@ -191,6 +191,10 @@ A name visible from an enclosing scope cannot be redeclared in an inner
 one. Surfaced by the oracle; Claude recommended forbidden; owner chose
 forbidden.
 
+### 2026-09-14 — `xx` chains are right-associative, as in mathematics; `( )` overrides (owner)
+
+`[2 xx 3 xx 2]` = 512; `[(2 xx 3) xx 2]` = 64. Surfaced by the oracle.
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the
@@ -406,7 +410,6 @@ for JetPack, always containing analysable source, never an opaque binary
 ## Open questions
 
 **Language — surfaced by the oracle**
-- Same-operator chains: `2 xx 3 xx 2` — left or right associative? The oracle folds left. (oracle, 2026-09-14)
 - A literal or call result passed to a `lent` parameter (`count["abc"]`): accepted as a temporary, or must it be named and lent? The oracle accepts it. (oracle, 2026-09-14)
 - Can a `:=` variable hold a `lend`? The oracle allows it (never returned). (oracle, 2026-09-14)
 

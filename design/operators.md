@@ -28,6 +28,11 @@ variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 
 `( )` groups: `['a' + ('b' x 2)]`.
 
+**`xx` chains follow mathematics** (decided 2026-09-14): `[2 xx 3 xx 2]` is
+`2 xx (3 xx 2)` = 512, a power tower read from the top. Parentheses always
+override, even against convention: `[(2 xx 3) xx 2]` = 64. The other
+operators chain left as usual.
+
 ## No increment or compound assignment (decided 2026-09-14)
 
 There is no `++`, `--`, `+=`, or any other shorthand. Adding one is written
