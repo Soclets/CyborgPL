@@ -3,7 +3,7 @@
 Decided 2026-09-14. Current spelling:
 
 ```
-func.int32 'add' [var.int32 'a', var.int32 'b'] {
+func.int32 add [var.int32 'a', var.int32 'b'] {
     return ['a' + 'b'];
 }
 var 'sum' := add[10, 20];              // this Limb: bare
@@ -14,8 +14,14 @@ var 'big' := mathstuff::pow[2, 64];    // another Limb: Limb::path
 
 A function is a member of a Limb. In the Limb where it is defined it is
 called **bare**: `add[10, 20]`. From any other Limb it is reached through
-the boundary: `mathstuff::pow[2, 64]`, `std::print.stdout[...]`. The name is
-quoted only at its definition (`func 'add'`), where it stands alone.
+the boundary: `mathstuff::pow[2, 64]`, `std::print.stdout[...]`.
+
+**Function names are bare at the definition too** (decided 2026-09-14):
+`func.int32 add [...]`. Quotes mean *variable*, and a function is not one.
+A function name is therefore a plain identifier — no spaces or symbols, not
+a keyword — as in every other language; variables keep the anything-goes
+naming. (Quoting only the definition, as first written, was decoration: the
+name had to be bare-legal to be callable anyway.)
 
 A call (`add[...]`) and a list index (`'items'[3]`) are told apart by
 shape; a keyword and a call are told apart by the reserved-word list (see
@@ -30,13 +36,13 @@ are not reserved.
 ## Definition
 
 ```
-func.int32 'add' [var.int32 'a', var.int32 'b'] {
+func.int32 add [var.int32 'a', var.int32 'b'] {
     return ['a' + 'b'];
 }
 ```
 
 - The chain narrows `func` by its **return type**, the same way `var.int32`
-  narrows `var`. `func 'name'` with no type: Precog picks the best return type
+  narrows `var`. `func name` with no type: Precog picks the best return type
   from every `return` in the body. No `return` at all: the function returns
   nothing.
 - **Parameters are `var` declarations** the caller fills in, comma-separated

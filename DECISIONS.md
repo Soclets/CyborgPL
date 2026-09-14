@@ -164,6 +164,14 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — Function names are bare at the definition (owner)
+
+`func.int32 add [...]`, matching the bare call `add[...]`. Quotes mean
+variable; a function is not one. Function names are plain identifiers;
+variables keep free naming. Owner asked whether functions should be quoted;
+Claude laid out bare-both-ends vs quoted-both-ends (the latter needing a
+separate index syntax); owner chose bare.
+
 ### 2026-09-14 — Automatic parallelism with an escape (owner)
 
 Precog parallelises `loop.for` itself where ownership proves iterations

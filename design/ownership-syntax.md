@@ -46,9 +46,9 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-func.int32 'count' [lent.str.utf8 'text'] { ... }       // looks at it
-func 'edit'        [lent.mut.str.utf8 'text'] { ... }   // may modify it
-func 'keep'        [var.str.utf8 'text'] { ... }        // owns it
+func.int32 count [lent.str.utf8 'text'] { ... }       // looks at it
+func edit        [lent.mut.str.utf8 'text'] { ... }   // may modify it
+func keep        [var.str.utf8 'text'] { ... }        // owns it
 ```
 
 - **`lent`** — receives a shared borrow. The caller writes `lend`.
