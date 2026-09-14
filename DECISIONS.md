@@ -303,15 +303,29 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
-- Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
-- Boundary annotations: how does the programmer state value ranges / length limits on an external-input type (e.g. `list<i64 in 0..1000, len <= 100_000>` as a placeholder)? Needed for `check` to succeed on loops. (raised by Claude, 2026-09-14)
-- Analysis precision budget: precise by default with a very large loop-unroll bound, widen beyond it and report where? (raised by Claude, 2026-09-14)
-- Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
-- Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
-- Borrow and lifetime syntax: how `&`/`&mut`-equivalents and the optional lifetime annotation look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
-- Whether mixed-precedence arithmetic must be parenthesised (`[a + (b * 2)]`, Pony-style) or standard precedence applies. (raised by Claude, 2026-09-14)
-- `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
-- Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
-- Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (raised by Claude, 2026-09-14)
-- Missing types:, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
-- Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std::print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
+**Language**
+- Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)
+- Control flow: `if`/`else`, loops — not designed. (Claude, 2026-09-14)
+- Structs / records — not designed. (Claude, 2026-09-14)
+- Borrow and lifetime syntax in the chain style. (Claude, 2026-09-14)
+- Check-tier syntax: where `lang:check` / `lang:nocheck` sit on a statement. (Claude, 2026-09-14)
+- Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
+- Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
+- Zero values: the `lang:var … := [ ]` shape implies a value is required at declaration; decide explicitly — Claude recommends no implicit zero. (Claude, 2026-09-14)
+- Error handling — not designed. (Claude, 2026-09-14)
+- Concurrency — not designed; interacts with ownership and Precog. (Claude, 2026-09-14)
+- `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
+- Explicit numeric conversion spelling. (Claude, 2026-09-14)
+- Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
+- Whitespace between pieces in `[ ]`: separator only, or an implicit space? (Claude, 2026-09-14)
+- Long form (`variable`, `standard`) valid alongside the short form, or short only? (Claude, 2026-09-14)
+- Limb name declared in source (`lang:limb [...]`)? Superseded in spirit by bare local calls; revisit with the module system. (Claude, 2026-09-14)
+- Parameter lists: drop the redundant `lang:var` inside `[ ]`? (Claude's suggestion, 2026-09-14)
+
+**Precog**
+- Compile-time side effects: I/O always a boundary? Claude recommends yes. (Claude, 2026-09-14)
+- Analysis precision budget and non-terminating compile-time code. (Claude, 2026-09-14)
+- Build output lists every `nocheck` site? Claude recommends yes. (Claude, 2026-09-14)
+
+**Process**
+- Build the oracle interpreter first, before the real compiler? Claude recommends yes. (Claude, 2026-09-14)
