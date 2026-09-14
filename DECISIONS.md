@@ -164,6 +164,14 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — Local functions are called bare; other Limbs' via `::` (owner)
+
+A function is a Limb member. Within its own Limb: `add[10, 20]`. From
+elsewhere: `mathstuff::pow[2, 64]`. Quoted only at definition. Claude had
+proposed `self::add`; owner chose bare, since `::` exists only for a real
+separate `.limb`. Call vs index is now told apart by shape. The six operator
+words cannot be function names (Claude's flag; recorded as the rule).
+
 ### 2026-09-14 — `lang:` prefixes language built-ins (owner)
 
 `lang:var.std::uer 'n' = [1000];`, `lang:char.grapheme`, alongside
@@ -204,7 +212,8 @@ call useful; Claude will use shortest round-trip (Ryu-style). Owner, 2026-09-14.
 ### 2026-09-14 — Functions (owner)
 
 `func.int32 'add' [var.int32 'a', var.int32 'b'] { return ['a' + 'b']; }`;
-called as `'add'[10, 20]`. The chain narrows `func` by return type; omitted →
+called as `add[10, 20]` (originally written `'add'[10, 20]`; superseded
+the same day — see below). The chain narrows `func` by return type; omitted →
 Precog infers. Parameters are `var` declarations; an untyped parameter's type
 is inferred from all call sites. Inside `[ ]`, whitespace joins pieces into
 one value and a comma separates values; several comma-separated values in a

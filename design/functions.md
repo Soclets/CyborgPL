@@ -8,8 +8,23 @@ Current spelling:)
 lang:func.int32 'add' [lang:var.int32 'a', lang:var.int32 'b'] {
     lang:return ['a' + 'b'];
 }
-lang:var 'sum' := 'add'[10, 20];
+lang:var 'sum' := add[10, 20];              // this Limb: bare
+lang:var 'big' := mathstuff::pow[2, 64];    // another Limb: Limb::path
 ```
+
+## Calling (decided 2026-09-14)
+
+A function is a member of a Limb. In the Limb where it is defined it is
+called **bare**: `add[10, 20]`. From any other Limb it is reached through
+the boundary: `mathstuff::pow[2, 64]`, `std::print.stdout[...]`. The name is
+quoted only at its definition (`lang:func 'add'`), where it stands alone.
+
+Bare words are unambiguous because nothing else is bare: keywords carry
+`lang:`, other Limbs carry `::`, variables carry quotes. Consequently a call
+(`add[...]`) and a list index (`'items'[3]`) are told apart by shape.
+
+**Exception:** the operator words `x`, `xx`, `mod`, `and`, `or`, `not` are
+bare too, so they cannot be used as function names.
 
 ## Definition
 
@@ -30,13 +45,9 @@ func.int32 'add' [var.int32 'a', var.int32 'b'] {
 
 ## Call
 
-```
-var 'sum' := 'add'[10, 20];
-```
-
 Arguments are comma-separated values in one `[ ]`, positionally matched to
 the parameters. A call is a value and may appear inside any bracket:
-`var 'x' := ['add'[1, 2] * 3];`.
+`lang:var 'y' := [add[1, 2] x 3];`.
 
 ## Return
 
