@@ -11,6 +11,7 @@ Decided 2026-09-14.
 | `/` | divide |
 | `mod` | remainder / modulo |
 | `==` | equal |
+| `!==` | not equal — built from `==`, same rule as `<==`/`>==` |
 | `<`, `>` | less than, greater than |
 | `<==`, `>==` | less-or-equal, greater-or-equal — built from `==`, because a lone `=` is assignment and must never appear inside a comparison |
 | `and` | boolean and |
@@ -29,7 +30,6 @@ variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 
 ## Not yet listed (open)
 
-- Not-equal: `!=` or `not ==` (either avoids a lone `=`).
 - A boolean type is now implied by `and`/`or`/`not` and `==`; its chain name
   is not yet chosen (`bool`?).
 - Integer division vs. `/` on `int` (truncate? error on inexact?).
