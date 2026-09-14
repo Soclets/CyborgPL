@@ -1,0 +1,23 @@
+func.str.utf8 label [var.int32 'n'] {
+    var 'by3' := [('n' mod 3) == 0];
+    var 'by5' := [('n' mod 5) == 0];
+    if ['by3' and 'by5'] {
+        return ["FizzBuzz"];
+    } else.if ['by3'] {
+        return ["Fizz"];
+    } else.if ['by5'] {
+        return ["Buzz"];
+    } else {
+        return ['n'];
+    }
+}
+
+MAIN {
+    var.immut.int32 'limit' = [15];
+    var 'i' := [1];
+    loop.while ['i' <== 'limit'] {
+        var 'word' := [label['i']];
+        std::print.stdout['word' \n];
+        'i' = ['i' + 1];
+    }
+}
