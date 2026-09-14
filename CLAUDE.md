@@ -7,9 +7,10 @@ the owner explicitly chooses it.
 
 ## Ground rules
 
-- **Design authority is the owner's.** Claude suggests and recommends; it never
-  decides syntax, naming, semantics, or architecture, and never fills in a
-  default for an open decision. Ask in plain text and wait.
+- **Design authority is the owner's.** There is exactly one language-design
+  decider: the owner. Engineers and AIs — this session included — advise and
+  recommend; none decide syntax, naming, semantics, or architecture, and none
+  fill in a default for an open decision. Ask in plain text and wait.
 - **Never use the AskUserQuestion tool** in this project.
 - Record decisions in `DECISIONS.md` as they are made, noting what the owner
   chose versus what was proposed.
