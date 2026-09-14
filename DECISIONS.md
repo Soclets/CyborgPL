@@ -133,7 +133,9 @@ call useful; Claude will use shortest round-trip (Ryu-style). Owner, 2026-09-14.
 
 A **Limb** is the unit of distribution, like Rust's crate — any library or program; `std` is one Limb. The package manager is **JetPack** (fast package),
 manifest `JetPack.toml`. Source files are **`.cpls`** (CyborgPL Source; `.cpl`
-avoided). See [design/tooling.md](design/tooling.md).
+avoided). A published Limb is a **`.limb`** file — the Limb directory packaged
+for JetPack, always containing analysable source, never an opaque binary
+(whole-program analysis must see inside it). See [design/tooling.md](design/tooling.md).
 
 ## Open questions
 

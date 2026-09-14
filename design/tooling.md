@@ -11,6 +11,15 @@ Owner, 2026-09-14.
 
 - **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
   deliberately avoided.
+- **`.limb`** — a *published* Limb: the Limb's directory (`JetPack.toml` +
+  `.cpls` files) packaged as one file for JetPack to upload, download, and
+  checksum. Same relationship as a Rust crate folder to its `.crate` tarball.
+  Checked 2026-09-14: no existing `.limb` format is registered.
+
+  A Limb can never be an opaque precompiled binary: whole-program analysis
+  must see inside every Limb to prove ranges, borrows, and guardrails across
+  the call boundary. A `.limb` therefore always contains analysable source
+  (optionally plus a cached front-end result, an optimisation for later).
 
 ## Open
 
