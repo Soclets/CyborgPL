@@ -56,5 +56,10 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   `var.int`, `var.str`, or `var.char`. `var.int32`, `var.str.utf8`,
   `var.char.point`. `:=` means Precog chooses; `=` means you said
   everything.
-- **Not yet listed:** arbitrary-precision numbers (legacy had
-  `bignum`/`bigint` via GMP — do they return?).
+- **`uer` — Unbounded Exact Representation** (owner, 2026-09-14). A number
+  type with no fixed width that never rounds: it grows to hold whatever
+  value it is given. Provided by the **standard Limb**, not built into the
+  language — so it is CyborgPL source Precog can see through, and it takes
+  the role legacy's `bignum`/`bigint` had. Chain name `uer` (`var.uer 'n'`,
+  or via `std.` — spelling open). Open: does "exact" cover fractions
+  (`1/3` held as a true rational) or integers and decimals only?

@@ -158,6 +158,12 @@ Character literals use **backticks**: `` var 'c' := [`1`]; `` — `"…"` is tex
 `'…'` is a name, `` `…` `` is one character. Must be exactly one unit; with
 `:=` Precog picks the unit. Owner, 2026-09-14.
 
+### 2026-09-14 — `uer`, Unbounded Exact Representation, from the standard Limb (owner)
+
+An arbitrary-size number that never rounds, supplied by the std Limb rather
+than the core language. Replaces the role of legacy's `bignum`/`bigint`.
+Open: whether exactness extends to fractions (rationals).
+
 ### 2026-09-14 — The typed form is always fully explicit (owner)
 
 No bare `var.int`, `var.str`, or `var.char`: a typed declaration states the
@@ -262,5 +268,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (raised by Claude, 2026-09-14)
+- `uer`: exact fractions (rationals) or integers/decimals only? How a std-Limb type appears in a chain (`var.uer` vs `var.std.uer`)? (raised by Claude, 2026-09-14)
 - Missing types:, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
