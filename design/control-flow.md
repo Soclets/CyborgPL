@@ -25,9 +25,20 @@ if ['x' > 10] {
 
 ## Scopes
 
-A block is a scope. A variable declared in it is gone when it ends. **No
-shadowing** (decided 2026-09-14): a name visible from an enclosing scope
-cannot be redeclared in an inner one — nothing is ever silently hidden.
+A block is a scope. A variable declared in it is gone when it ends.
+**Shadowing is never silent** (decided 2026-09-14): a name visible from an
+enclosing scope cannot be redeclared with `:=` or `=`. It *can* be
+deliberately hidden with `$:=` / `$=`, the `$` marking the intent:
+
+```
+var 'x' := [1];
+if [true] {
+    var 'x' $:= [2];          // shadows the outer 'x' until the block ends
+    var.int32 'y' $= [3];     // error: there is no 'y' to shadow
+}
+```
+
+An `immut` variable cannot be shadowed.
 
 ## Loops
 

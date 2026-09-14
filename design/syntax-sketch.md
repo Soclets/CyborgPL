@@ -73,6 +73,8 @@ std::print.stdout['s' 'x' \n];
   `print['s']` shows what `'s'` stores. `printu` is the only thing that
   produces the useful form, and only for its own argument — including its
   own pieces: `printu["x is " 'x']` prints `x is 0.1`.
+- **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
+  needs the `$`; without it, an error. `immut` names cannot be shadowed.
 - Statements end with `;`.
 
 ## Open

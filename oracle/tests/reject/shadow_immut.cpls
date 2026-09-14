@@ -1,0 +1,10 @@
+MAIN {
+    var 'x' := [1];
+    if [true] {
+        var 'x' $:= [2];
+        std::printu.stdout['x' \n];
+    }
+    std::printu.stdout['x' \n];
+    var.immut 'k' := [5];
+    var 'k' $:= [6];
+}

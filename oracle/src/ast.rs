@@ -61,7 +61,8 @@ pub struct Program {
 pub enum Stmt {
     /// `var 'x' := [v];` (ty None) or `var.T 'x' = [v];` (ty Some);
     /// optionally `var.mut` / `var.immut` before the type
-    Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, line: usize },
+    /// `shadow`: written with `$:=` / `$=`, deliberately hiding an outer name
+    Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, shadow: bool, line: usize },
     /// `'x' = [v];`
     Assign { name: String, value: Bracket, line: usize },
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },

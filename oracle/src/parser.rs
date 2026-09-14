@@ -220,7 +220,7 @@ impl Parser {
                 self.advance();
                 match self.peek() {
                     Tok::Eq => {}
-                    Tok::Walrus => return self.err(format!("`:=` declares; to assign to the existing '{name}' write `'{name}' = […];`")),
+                    Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq => return self.err(format!("`:=` declares; to assign to the existing '{name}' write `'{name}' = […];` (to shadow it, `var '{name}' $:= […];`)")),
                     Tok::LBracket => return self.err(format!("'{name}'[…] — indexing is not designed yet, and a call is a bare name (`{name}[…]`)")),
                     other => return self.err(format!("expected `=` after '{name}', found {other}")),
                 }
@@ -243,17 +243,20 @@ impl Parser {
             Tok::Word(w) => return self.err(format!("variable names are quoted: `var '{w}'`")),
             other => return self.err(format!("expected a quoted variable name, found {other}")),
         };
+        let shadow;
         match (self.peek().clone(), &ty) {
-            (Tok::Walrus, None) => { self.advance(); }
-            (Tok::Eq, Some(_)) => { self.advance(); }
-            (Tok::Walrus, Some(_)) => return self.err("`:=` means Precog chooses the type; with an explicit type write `=`"),
-            (Tok::Eq, None) => return self.err("`=` means you said everything; with no type write `:=` (or give the type)"),
+            (Tok::Walrus, None) => { self.advance(); shadow = false; }
+            (Tok::Eq, Some(_)) => { self.advance(); shadow = false; }
+            (Tok::ShadowWalrus, None) => { self.advance(); shadow = true; }
+            (Tok::ShadowEq, Some(_)) => { self.advance(); shadow = true; }
+            (Tok::Walrus | Tok::ShadowWalrus, Some(_)) => return self.err("`:=` means Precog chooses the type; with an explicit type write `=` (or `$=` to shadow)"),
+            (Tok::Eq | Tok::ShadowEq, None) => return self.err("`=` means you said everything; with no type write `:=` (or `$:=` to shadow)"),
             (Tok::Semi, _) => return self.err(format!("'{name}' needs a value; there are no implicit zero values")),
             (other, _) => return self.err(format!("expected `:=` or `=`, found {other}")),
         }
         let value = self.bracket()?;
         self.expect(Tok::Semi, "`;`")?;
-        Ok(Stmt::Decl { name, mutability, ty, value, line })
+        Ok(Stmt::Decl { name, mutability, ty, value, shadow, line })
     }
 
     // if := 'if' bracket block ('else' '.' 'if' bracket block)* ('else' block)?

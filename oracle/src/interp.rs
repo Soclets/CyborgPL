@@ -89,9 +89,17 @@ impl<'p> Interp<'p> {
     fn lookup_mut(&mut self, name: &str) -> Option<&mut Slot> { self.scopes.iter_mut().rev().find_map(|s| s.get_mut(name)) }
 
     fn declare(&mut self, name: &str, slot: Slot, line: usize) -> Result<(), RuntimeError> {
-        if self.lookup(name).is_some() {
-            // Decided 2026-09-14: no shadowing.
-            return rt(line, format!("'{name}' is already declared in an enclosing scope; shadowing is not allowed"));
+        self.declare_shadow(name, slot, false, line)
+    }
+
+    /// Decided 2026-09-14: a visible name may only be redeclared with `$:=` /
+    /// `$=`, and never if the visible one is `immut`.
+    fn declare_shadow(&mut self, name: &str, slot: Slot, shadow: bool, line: usize) -> Result<(), RuntimeError> {
+        match (self.lookup(name), shadow) {
+            (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`")),
+            (None, true) => return rt(line, format!("`$` shadows an existing '{name}', but none is visible here")),
+            (Some(existing), true) if existing.immut => return rt(line, format!("'{name}' is `immut` and cannot be shadowed")),
+            _ => {}
         }
         self.scopes.last_mut().unwrap().insert(name.to_string(), slot);
         Ok(())
@@ -118,7 +126,7 @@ impl<'p> Interp<'p> {
 
     fn stmt(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
         match s {
-            Stmt::Decl { name, mutability, ty, value, line } => {
+            Stmt::Decl { name, mutability, ty, value, shadow, line } => {
                 let (v, prov) = self.bracket(value, *line)?;
                 let immut = *mutability == Some(Mutability::Immut);
                 let slot = match prov {
@@ -132,7 +140,7 @@ impl<'p> Interp<'p> {
                         Slot { cell: Rc::new(RefCell::new(v)), ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut }
                     }
                 };
-                self.declare(name, slot, *line)?;
+                self.declare_shadow(name, slot, *shadow, *line)?;
                 Ok(Flow::Normal)
             }
             Stmt::Assign { name, value, line } => {

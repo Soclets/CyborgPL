@@ -185,11 +185,12 @@ produces the useful form, for its own argument and its own pieces. Surfaced
 by the oracle. Claude offered stored-by-default vs useful-when-building;
 owner chose stored.
 
-### 2026-09-14 — No shadowing (owner)
+### 2026-09-14 — Shadowing only with `$:=` / `$=`; never for `immut` (owner)
 
-A name visible from an enclosing scope cannot be redeclared in an inner
-one. Surfaced by the oracle; Claude recommended forbidden; owner chose
-forbidden.
+First decided as "no shadowing", then refined the same day: a visible name
+may be redeclared only with the `$`-marked operator, so hiding is always
+deliberate and visible. An `immut` variable cannot be shadowed. Surfaced by
+the oracle; owner's design.
 
 ### 2026-09-14 — `xx` chains are right-associative, as in mathematics; `( )` overrides (owner)
 

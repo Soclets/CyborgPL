@@ -38,7 +38,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
   every division zero-checked, because there is no Precog here to remove them
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
-- no shadowing: a name visible from an enclosing scope cannot be redeclared
+- shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `var.immut` cannot be assigned to; `var.mut` is accepted and changes nothing
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list
 

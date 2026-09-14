@@ -26,6 +26,8 @@ pub enum Tok {
     Dot,            // .
     Walrus,         // :=
     Eq,             // =
+    ShadowWalrus,   // $:=
+    ShadowEq,       // $=
     Semi,           // ;
     Comma,          // ,
     Op(String),     // + - / == !== < > <== >==
@@ -52,6 +54,8 @@ impl fmt::Display for Tok {
             Tok::Dot => write!(f, "."),
             Tok::Walrus => write!(f, ":="),
             Tok::Eq => write!(f, "="),
+            Tok::ShadowWalrus => write!(f, "$:="),
+            Tok::ShadowEq => write!(f, "$="),
             Tok::Semi => write!(f, ";"),
             Tok::Comma => write!(f, ","),
             Tok::Op(o) => write!(f, "{o}"),
@@ -212,6 +216,9 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         if rest.starts_with("!==") { push(Tok::Op("!==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with("<==") { push(Tok::Op("<==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with(">==") { push(Tok::Op(">==".into()), &mut toks); i += 3; col += 3; continue; }
+        if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
+        if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
+        if c == '$' { return err(tl, tc, "`$` marks a shadowing declaration and sits on the operator: `$:=` or `$=`".into()); }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }
         if two == ":=" { push(Tok::Walrus, &mut toks); i += 2; col += 2; continue; }
         if two == "==" { push(Tok::Op("==".into()), &mut toks); i += 2; col += 2; continue; }

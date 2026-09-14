@@ -1,0 +1,10 @@
+MAIN {
+    var 'x' := [1];
+    if [true] {
+        var 'x' $:= [2];
+        std::printu.stdout['x' \n];
+    }
+    std::printu.stdout['x' \n];
+    var.int32 'x' $= [3];
+    std::printu.stdout['x' \n];
+}
