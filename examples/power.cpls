@@ -1,6 +1,7 @@
 MAIN {
-    std::printu.stdout[2 xx 3 xx 2 \n];
-    std::printu.stdout[(2 xx 3) xx 2 \n];
-    std::printu.stdout[2 xx 10 \n];
-    std::printu.stdout[10 - 3 - 2 \n];
+    std::printu.stdout[(2 xx 3 xx 2) \n];
+    std::printu.stdout[((2 xx 3) xx 2) \n];
+    var 'kilo' := [2 xx 10];
+    std::printu.stdout['kilo' \n];
+    std::printu.stdout[(10 - 3 - 2) \n];
 }
