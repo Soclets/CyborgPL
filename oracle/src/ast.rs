@@ -28,9 +28,15 @@ pub enum ParamKind { Var, Lent, LentMut }
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Verb { Give, Copy, Lend, LendMut }
 
+/// Stated mutability (design/ownership-syntax.md). `None` = not stated;
+/// Precog infers, and stating it is not standard practice.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Mutability { Mut, Immut }
+
 #[derive(Debug, Clone)]
 pub struct Param {
     pub kind: ParamKind,
+    pub mutability: Option<Mutability>,
     pub ty: Option<Ty>,
     pub name: String,
     pub line: usize,
@@ -53,8 +59,9 @@ pub struct Program {
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    /// `var 'x' := [v];` (ty None) or `var.T 'x' = [v];` (ty Some)
-    Decl { name: String, ty: Option<Ty>, value: Bracket, line: usize },
+    /// `var 'x' := [v];` (ty None) or `var.T 'x' = [v];` (ty Some);
+    /// optionally `var.mut` / `var.immut` before the type
+    Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, line: usize },
     /// `'x' = [v];`
     Assign { name: String, value: Bracket, line: usize },
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },

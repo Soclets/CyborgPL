@@ -38,7 +38,8 @@ struct Slot {
     cell: Rc<RefCell<Value>>,
     ty: Option<Ty>,
     kind: SlotKind,
-    alive: bool, // false after `give`
+    alive: bool,     // false after `give`
+    immut: bool,     // stated `immut`: assignment is an error
 }
 
 enum Flow { Normal, Break, Continue, Return(Value) }
@@ -117,27 +118,29 @@ impl<'p> Interp<'p> {
 
     fn stmt(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
         match s {
-            Stmt::Decl { name, ty, value, line } => {
+            Stmt::Decl { name, mutability, ty, value, line } => {
                 let (v, prov) = self.bracket(value, *line)?;
+                let immut = *mutability == Some(Mutability::Immut);
                 let slot = match prov {
                     Prov::Bare(n) => return rt(*line, format!("declaring '{name}' from bare '{n}', which owns a {}: say `give '{n}'`, `copy '{n}'`, or `lend '{n}'`", v.kind())),
                     Prov::Borrowed(cell, is_mut) => {
                         if ty.is_some() { return rt(*line, format!("'{name}' would hold a lend; a lent variable takes no explicit type here (use `:=`)")); }
-                        Slot { cell, ty: None, kind: if is_mut { SlotKind::LentMut } else { SlotKind::Lent }, alive: true }
+                        Slot { cell, ty: None, kind: if is_mut { SlotKind::LentMut } else { SlotKind::Lent }, alive: true, immut }
                     }
                     _ => {
                         let v = self.fit(v, prov, ty.as_ref(), *line)?;
-                        Slot { cell: Rc::new(RefCell::new(v)), ty: ty.clone(), kind: SlotKind::Owned, alive: true }
+                        Slot { cell: Rc::new(RefCell::new(v)), ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut }
                     }
                 };
                 self.declare(name, slot, *line)?;
                 Ok(Flow::Normal)
             }
             Stmt::Assign { name, value, line } => {
-                let (kind, ty) = match self.lookup(name) {
-                    Some(s) => (s.kind, s.ty.clone()),
+                let (kind, ty, immut) = match self.lookup(name) {
+                    Some(s) => (s.kind, s.ty.clone(), s.immut),
                     None => return rt(*line, format!("'{name}' is not declared")),
                 };
+                if immut { return rt(*line, format!("'{name}' was declared `immut`; it cannot be assigned to")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 let (v, prov) = self.bracket(value, *line)?;
                 match prov {
@@ -179,7 +182,7 @@ impl<'p> Interp<'p> {
                 let (items, kind) = self.for_source(over, *line)?;
                 for item in items {
                     self.push();
-                    let r = self.declare(name, Slot { cell: Rc::new(RefCell::new(item)), ty: None, kind, alive: true }, *line)
+                    let r = self.declare(name, Slot { cell: Rc::new(RefCell::new(item)), ty: None, kind, alive: true, immut: false }, *line)
                         .and_then(|_| self.stmts(body));
                     self.pop();
                     match r? {
@@ -500,7 +503,7 @@ impl<'p> Interp<'p> {
                         _ => {}
                     }
                     let v = self.fit(v, prov, param.ty.as_ref(), c.line)?;
-                    Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind: SlotKind::Owned, alive: true }
+                    Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind: SlotKind::Owned, alive: true, immut: param.mutability == Some(Mutability::Immut) }
                 }
                 ParamKind::Lent | ParamKind::LentMut => {
                     let want_mut = param.kind == ParamKind::LentMut;
@@ -510,7 +513,7 @@ impl<'p> Interp<'p> {
                             if want_mut && !is_mut { return rt(c.line, format!("`{name}` may modify '{pn}': pass `lend.mut`, not `lend`")); }
                             if !want_mut && is_mut { return rt(c.line, format!("`{name}` only looks at '{pn}': pass `lend`, not `lend.mut`")); }
                             if let Some(t) = &param.ty { self.check_type(&v, t, c.line)?; }
-                            Slot { cell, ty: param.ty.clone(), kind, alive: true }
+                            Slot { cell, ty: param.ty.clone(), kind, alive: true, immut: false }
                         }
                         Prov::Bare(n) => return rt(c.line, format!("`{name}` only looks at '{pn}' — pass `lend '{n}'`")),
                         Prov::Given => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `give`")),
@@ -519,7 +522,7 @@ impl<'p> Interp<'p> {
                         // it, so it lives for the call and is lent by the call itself (decided 2026-09-14).
                         other => {
                             let v = self.fit(v, other, param.ty.as_ref(), c.line)?;
-                            Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind, alive: true }
+                            Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind, alive: true, immut: false }
                         }
                     }
                 }

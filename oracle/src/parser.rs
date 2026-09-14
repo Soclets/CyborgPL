@@ -5,7 +5,7 @@ use crate::lexer::{Tok, Token};
 
 pub const KEYWORDS: &[&str] = &[
     "func", "var", "return", "if", "else", "loop", "in", "break", "continue",
-    "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false",
+    "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
 ];
 
 const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
@@ -110,12 +110,28 @@ impl Parser {
             Tok::Var(v) => return self.err(format!("a parameter says how it is received: `var.T '{v}'`, `lent.T '{v}'`, or `lent.mut.T '{v}'`")),
             other => return self.err(format!("expected a parameter, found {other}")),
         };
-        let ty = if *self.peek() == Tok::Dot { self.advance(); Some(self.ty()?) } else { None };
+        let (mutability, ty) = if kind == ParamKind::Var { self.mutability_then_type()? } else {
+            (None, if *self.peek() == Tok::Dot { self.advance(); Some(self.ty()?) } else { None })
+        };
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             other => return self.err(format!("expected a quoted parameter name, found {other}")),
         };
-        Ok(Param { kind, ty, name, line })
+        Ok(Param { kind, mutability, ty, name, line })
+    }
+
+    // ('.' ('mut' | 'immut'))? ('.' type)?   — after `var` or `lent`
+    fn mutability_then_type(&mut self) -> PResult<(Option<Mutability>, Option<Ty>)> {
+        let mut m = None;
+        if *self.peek() == Tok::Dot {
+            match self.peek_at(1) {
+                Tok::Word(w) if w == "mut" => { self.advance(); self.advance(); m = Some(Mutability::Mut); }
+                Tok::Word(w) if w == "immut" => { self.advance(); self.advance(); m = Some(Mutability::Immut); }
+                _ => {}
+            }
+        }
+        let ty = if *self.peek() == Tok::Dot { self.advance(); Some(self.ty()?) } else { None };
+        Ok((m, ty))
     }
 
     // type := segments joined by '.', already positioned after the leading '.'
@@ -221,7 +237,7 @@ impl Parser {
     fn decl(&mut self) -> PResult<Stmt> {
         let line = self.line();
         self.expect_word("var")?;
-        let ty = if *self.peek() == Tok::Dot { self.advance(); Some(self.ty()?) } else { None };
+        let (mutability, ty) = self.mutability_then_type()?;
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) => return self.err(format!("variable names are quoted: `var '{w}'`")),
@@ -237,7 +253,7 @@ impl Parser {
         }
         let value = self.bracket()?;
         self.expect(Tok::Semi, "`;`")?;
-        Ok(Stmt::Decl { name, ty, value, line })
+        Ok(Stmt::Decl { name, mutability, ty, value, line })
     }
 
     // if := 'if' bracket block ('else' '.' 'if' bracket block)* ('else' block)?

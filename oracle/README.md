@@ -39,6 +39,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - no shadowing: a name visible from an enclosing scope cannot be redeclared
+- `var.immut` cannot be assigned to; `var.mut` is accepted and changes nothing
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list
 
 ## Provisional picks — the design has not decided these

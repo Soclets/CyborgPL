@@ -29,7 +29,7 @@ std::print.stdout['s' 'x' \n];
 - **Keywords are bare and reserved** (decided 2026-09-14, replacing the
   earlier `lang:` prefix). The language's words — currently `func`, `var`,
   `return`, `if`, `else`, `loop`, `in`, `break`, `continue`, `give`, `copy`,
-  `lend`, `lent`, `op`, `check`, `nocheck`, `true`, `false` — cannot be function names. Every
+  `lend`, `lent`, `op`, `check`, `nocheck`, `true`, `false`, `mut`, `immut` — cannot be function names. Every
   other language does this; the `lang:` prefix bought "zero reserved words"
   at five characters per statement, and the owner judged nobody would want
   a function named `return` anyway. Variables remain quoted and can never

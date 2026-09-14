@@ -210,6 +210,14 @@ makes it safe in the compiler; the oracle refuses to return or store one.
 `[1]` is the number; `[1,]` is a list holding it. Surfaced by the oracle.
 Also recorded: a `[ ]` inside a `[ ]` is a value (`[[1, 2], [3, 4]]`).
 
+### 2026-09-14 — Mutability is statable (`var.mut`, `var.immut`) but not standard practice (owner)
+
+Plain `var 'x' := [1000];` is the norm; Precog infers. `immut` is a verified
+contract (assignment is an error); `mut` states intent. Placed as a chain
+segment before the type (`var.immut.int32`), following the existing chain
+rule. No `const`: compile-time constants are Precog's to find. Owner's
+decision on Claude's explanation of immutable-vs-constant.
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the

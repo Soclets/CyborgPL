@@ -33,6 +33,25 @@ meaning for a number.
 The same verbs apply at call sites, which settles most of the borrow-syntax
 question: a parameter receives whatever the caller wrote.
 
+## Mutability: statable, not standard (decided 2026-09-14)
+
+A plain `var 'x' := [1000];` is the standard practice — Precog already knows
+whether `'x'` is ever reassigned, so nothing needs saying. The programmer
+*may* state it, as a chain segment before the type, and the compiler then
+holds them to it:
+
+```
+var.immut.int32 'limit' = [10];     // assigning to 'limit' later is an error
+var.mut 'counter' := [0];           // states the intent; nothing to enforce
+func.int32 twice [var.immut.int32 'n'] { ... }
+```
+
+`immut` is a verified contract, like `check` and the optional lifetime
+annotation. `mut` is documentation. Neither is expected in ordinary code.
+
+Not the same thing as a constant (a value known at compile time, baked into
+the binary): Precog finds those itself; no keyword exists for them.
+
 ## Why explicit
 
 Rust moves silently; the line that killed a variable says nothing, and the
