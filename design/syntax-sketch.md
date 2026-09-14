@@ -32,15 +32,24 @@ std.print.stdout['s' 'x' \n];
   are no reserved words and names may contain anything.
 - **`bin16` is IEEE 754 binary16** — a half-precision float, not a 16-bit
   integer.
-- **`[ ]` builds one text from pieces**, whitespace-separated, no commas; a
-  bare `\n` is a newline piece. `'s'` above is the single string
-  `line 1⏎line 2`. `std.print.stdout[...]` takes the same construct.
+- **`[ ]` is the value bracket — "one value, built from what's inside" —
+  and it is mandatory in every value position** (decided 2026-09-14). Text
+  pieces, whitespace-separated with no commas, join into one text; a bare
+  `\n` is a newline piece, so `'s'` above is the single string
+  `line 1⏎line 2`. A formula evaluates: `[10 + 20 + 30]`. A lone literal is
+  still bracketed: `var.bin16 'x' = [1000];`. `std.print.stdout[...]` takes
+  the same construct.
+- **Names are quoted, so operators are free glyphs**: `var '+' := [10 + 20];`
+  is legal — the name `'+'` and the operator `+` are different tokens.
 - Statements end with `;`.
 
 ## Open
 
 - Whitespace between pieces in `[ ]`: separator only (pieces concatenate
   directly) or an implicit space?
+- `[10 20]`: error, or text-join?
+- Mixed precedence: parentheses required, or standard precedence?
+- Operator glyphs and explicit conversion spelling.
 - With `[ ]` taken for text, how is a list written?
 - The rest of the numeric family: integer type names alongside `bin16/32/64`;
   whether `bin128` exists.

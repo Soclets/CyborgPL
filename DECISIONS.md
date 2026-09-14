@@ -88,6 +88,15 @@ unverified form — a lifetime that isn't proven is a memory bug with no
 performance upside. Claude presented infer-only vs both, recommended both;
 owner chose both. Syntax deferred until dot-chaining is decided.
 
+### 2026-09-14 — `[ ]` is the value bracket, and it is mandatory (owner)
+
+`[ ]` means "one value, built from what's inside". Text pieces join into a
+text (`["line 1" \n "line 2"]`), a formula evaluates (`[10 + 20 + 30]`), a
+single literal is still bracketed (`[10]`), and `std.print.stdout[...]` takes
+the same construct. Every value position uses it — `var.bin16 'x' = [1000];`
+— with no omission rule. Owner proposed bare-infix vs bracketed and chose
+bracketed; Claude recommended the same.
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -96,4 +105,8 @@ owner chose both. Syntax deferred until dot-chaining is decided.
 - Compile-time side effects: does a call like `read_file("config.txt")` with known arguments run at compile time, or is I/O always a boundary? Claude recommends always a boundary. (raised by Claude, 2026-09-14)
 - Non-terminating compile-time execution: accept (it is a program bug) or a step budget that becomes an error? (raised by Claude, 2026-09-14)
 - Borrow and lifetime syntax: how `&`/`&mut`-equivalents and the optional lifetime annotation look in a dot-chained language. Depends on the dot-chaining decision. (raised by Claude, 2026-09-14)
+- Juxtaposition of non-text pieces inside `[ ]`, e.g. `[10 20]`: error, or text-join (`"1020"`)? Claude recommends "juxtaposition always joins as text; operators always compute". (raised by Claude, 2026-09-14)
+- Whether mixed-precedence arithmetic must be parenthesised (`[a + (b * 2)]`, Pony-style) or standard precedence applies. (raised by Claude, 2026-09-14)
+- Operator glyphs: `*` vs `x` for multiply, `^` vs `**` for power, whether tetration survives. (raised by Claude, 2026-09-14)
+- Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
