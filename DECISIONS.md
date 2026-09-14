@@ -164,6 +164,14 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — Entry point simplified to `MAIN { }`; exit 0 implied; `std::exit[uint8]` otherwise (owner)
+
+Supersedes `func.int32 MAIN` + mandatory `return` from earlier today. `MAIN`
+is the program's block, not a function; ending it exits 0; other codes via
+`std::exit[…]`, typed `uint8` (exit status is 8 bits on Unix — Claude's
+correction of `int32`). Owner asked why a manual `return 0` exists at all;
+answer: only because C made `main` a function. Uncallable by construction.
+
 ### 2026-09-14 — `lang:` removed; keywords are bare and reserved (owner)
 
 The `lang:` prefix is dropped. Keywords — `func`, `var`, `return`, `if`,

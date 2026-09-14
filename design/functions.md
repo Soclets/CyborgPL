@@ -58,29 +58,33 @@ return ['a' + 'b'];
 
 `[ ]` mandatory, as everywhere. Bare `return;` in a nothing-function.
 
-## Entry point: `func MAIN` (decided 2026-09-14)
+## Entry point: `MAIN { }` (decided 2026-09-14)
 
 ```
-func.int32 MAIN {
+MAIN {
     var 'sum' := add[10, 20];
     std::printu.stdout["sum: " 'sum' \n];
-    return [0];
 }
 ```
 
+`MAIN` is the program's block — not a function. No `func`, no return type,
+no `return`. When the block ends, the process exits 0; that is the one
+implied thing in the language, and the one nobody has ever been surprised
+by. Any other exit code is stated where it happens: `std::exit[1];`, typed
+`uint8` because an exit status is 0–255 (Unix masks it to 8 bits; C's `int
+main` is a lie by 24 bits).
+
 `MAIN` is **unquoted** because it belongs to the language, not the user — a
-quoted `'main'` would have been the language's only reserved user name. It
-is a function, so the chain works as usual: the returned value is the
-process exit code. **`MAIN` must declare `.int32` and must `return`
-explicitly** — no implied exit 0 (decided 2026-09-14).
+quoted `'main'` would have been a reserved user name. It cannot be called:
+it is not a function. It is the single root of Precog's whole-program
+analysis and owns the program's top-level values.
 
 A Limb with a `MAIN` is a program; without one, a library. Command-line
-arguments come from the std Limb (`std::…`), so `MAIN`'s shape never changes.
+arguments come from the std Limb.
 
-**`MAIN` cannot be called.** `MAIN[]` is a compile error: it is the single
-root of Precog's whole-program analysis and the owner of the program's
-top-level values; there is no legitimate reason to re-enter it (C++ forbids
-calling `main` for the same reasons).
+History: first decided as `func.int32 MAIN` with a mandatory `return`, then
+simplified the same day — the manual `return 0` only ever existed because C
+made `main` an ordinary function, and C99 had to add the implicit 0 anyway.
 
 ## `[ ]` — the two separators
 
