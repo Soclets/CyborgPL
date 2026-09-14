@@ -9,6 +9,9 @@ Owner, 2026-09-14.
 - **JetPack** — the package manager. *Jet* = fast, *Pack* = package: a fast
   package. Its manifest file is `JetPack.toml`.
 
+- **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
+  deliberately avoided.
+
 ## Open
 
 - Whether `JetPack.toml` is also the name of the CLI (`jetpack add …`).
