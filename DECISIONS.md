@@ -160,6 +160,16 @@ validation of the LLVM half in CI; formal verification ruled out for now.
 Claude proposed the layering; owner's framing was "oracle + optimised
 generator". See [design/compiler-verification.md](design/compiler-verification.md).
 
+### 2026-09-14 — Implementation languages (owner)
+
+Rust for the compiler, `no_std` runtime, JetPack, test harness, and the
+oracle interpreter (the oracle by a different AI model, no shared code); C++
+only in a minimal LLVM wrapper; the standard Limb in CyborgPL. No C, no
+OCaml. Claude first recommended Rust, then C++ throughout when the owner
+raised "latest LLVM", then Rust + wrapper once the team shape was known;
+owner chose Rust + wrapper. See
+[design/implementation-languages.md](design/implementation-languages.md).
+
 ### 2026-09-14 — The compile-time technology is called Precog (owner)
 
 The whole-program analysis/execution engine behind "everything at compile
