@@ -46,6 +46,10 @@ std.print.stdout['s' 'x' \n];
   text has a name first: `["count: " 'n']`.
 - **Names are quoted, so operators are free glyphs**: `var '+' := [10 + 20];`
   is legal — the name `'+'` and the operator `+` are different tokens.
+- **`print` vs `printu`** (decided 2026-09-14): `std.print.stdout[...]`
+  prints the real stored value (a `bin32` `0.1` prints as
+  `0.100000001490116119384765625`); `std.printu.stdout[...]` prints the
+  useful value (`0.1`). Identical for every type except `bin`.
 - Statements end with `;`.
 
 ## Open

@@ -116,6 +116,15 @@ Owner, 2026-09-14.
 (signed), `uint` (unsigned), `str` (text). Widths as suffixes in the chain
 (`var.bin16`). Full table and notes in [design/types.md](design/types.md).
 
+### 2026-09-14 — `print` shows the real stored value; `printu` shows the useful one (owner)
+
+`std.print.stdout[...]` prints exactly what is in memory — for a `bin` value
+that is the full decimal expansion of the stored binary (`0.1` as `bin32`
+prints `0.100000001490116119384765625`). `std.printu.stdout[...]` — `u` for
+"useful" — prints the readable value (`0.1`). For `int`, `uint`, `str`, and
+`deci` the two are identical; the difference only shows on `bin`. The honest
+one gets the short name.
+
 ## Open questions
 
 - Should the build output list every `nocheck` site so they are auditable in one place? Claude recommends yes. (raised by Claude, 2026-09-14)
@@ -128,5 +137,6 @@ Owner, 2026-09-14.
 - Operator glyphs: `*` vs `x` for multiply, `^` vs `**` for power, whether tetration survives. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
+- `printu` definition: shortest decimal that round-trips to the same stored value (Ryu-style), as Claude assumes? And does `print` on `bin128` dump the full ~110-digit expansion? (raised by Claude, 2026-09-14)
 - Missing types: boolean, character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)
