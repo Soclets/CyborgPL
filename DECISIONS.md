@@ -227,6 +227,17 @@ operator, `mod` beside anything, chained comparisons, `not` beside a
 comparison. Claude offered a standard table vs none (recommending none);
 owner chose the mathematical rule. Table in [design/operators.md](design/operators.md).
 
+### 2026-09-14 — Builds are reproducible; requirements on Precog (owner)
+
+Same source + compiler + named target → identical binary. Precog: no
+wall-clock budgets (step counts only), pinned solver determinism (solver
+version is part of the compiler version), compile-time I/O always a boundary,
+target explicit and recorded, deterministic ordering, compile-time arithmetic
+matching the target. JetPack lock file records a proof summary per site so
+drift is visible. Raised via another session's question; Claude laid out the
+requirements; owner adopted them. See
+[design/reproducible-builds.md](design/reproducible-builds.md).
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the
@@ -464,8 +475,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Parameter lists: drop the redundant `var` inside `[ ]`? (Claude's suggestion, 2026-09-14)
 
 **Precog**
-- Compile-time side effects: I/O always a boundary? Claude recommends yes. (Claude, 2026-09-14)
-- Analysis precision budget and non-terminating compile-time code. (Claude, 2026-09-14)
+- Non-terminating compile-time code: with step budgets now required, the budget's size and the error it produces. (Claude, 2026-09-14)
 - Build output lists every `nocheck` site? Claude recommends yes. (Claude, 2026-09-14)
 
 **Process**
