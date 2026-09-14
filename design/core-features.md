@@ -39,6 +39,15 @@ analyses every value the binding will ever hold, across the whole program,
 and picks the type that is provably safe and fastest for that set of values.
 It can afford to do this because compile time is unlimited.
 
+"Best" is *not* "smallest". A lone `int8` scalar is no faster than an
+`int32` on a 32/64-bit register machine and sometimes slower; for scalars
+the best width is usually the machine's natural one, while for lists and
+structs — where memory bandwidth and cache lines dominate — narrower is
+genuinely better. The larger runtime win is not the width at all but the
+*proof* that came with it: a proven range removes overflow and bounds checks
+and is handed to LLVM as `nsw`/`nuw`/`!range`, unlocking optimisations that
+Go's and Rust's local inference can never justify.
+
 When no bound can be proven — the value comes from outside the program — `:=`
 is a compile error. The programmer writes an explicit type at that boundary,
 and everything downstream is provable again. The only place a human writes a
