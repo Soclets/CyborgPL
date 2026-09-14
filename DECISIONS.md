@@ -164,6 +164,16 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — Automatic parallelism with an escape (owner)
+
+Precog parallelises `loop.for` itself where ownership proves iterations
+independent and the trip count makes it worthwhile; the runtime carries a
+thread pool. The programmer writes nothing — except an opt-out chain segment
+(`loop.for.sequential`, spelling to confirm) for loops that must run in
+order. Concurrency proper (async, channels, shared state) remains open.
+Claude explained the concurrency/parallelism split and proposed this scope;
+owner chose it. See [design/parallelism.md](design/parallelism.md).
+
 ### 2026-09-14 — Entry point simplified to `MAIN { }`; exit 0 implied; `std::exit[uint8]` otherwise (owner)
 
 Supersedes `func.int32 MAIN` + mandatory `return` from earlier today. `MAIN`
@@ -361,7 +371,8 @@ for JetPack, always containing analysable source, never an opaque binary
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
 - Zero values: the `var … := [ ]` shape implies a value is required at declaration; decide explicitly — Claude recommends no implicit zero. (Claude, 2026-09-14)
 - Error handling — not designed. (Claude, 2026-09-14)
-- Concurrency — not designed; interacts with ownership and Precog. (Claude, 2026-09-14)
+- Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
+- `loop.for.sequential` as the parallelism opt-out spelling — to confirm. (Claude, 2026-09-14)
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
 - Explicit numeric conversion spelling. (Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
