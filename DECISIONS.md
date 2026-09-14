@@ -164,6 +164,14 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — Control flow: `lang:if` / `lang:else.if` / `lang:else`; `lang:loop` / `lang:loop.while` / `lang:loop.for` (owner)
+
+Branching as Claude proposed. Loops: Claude proposed three keywords
+(`loop`, `while`, `for`); owner chose one, narrowed by the chain —
+`lang:loop`, `lang:loop.while [cond]`, `lang:loop.for 'x' lang:in [list]`.
+Conditions must be `bool`; braces mandatory; `lang:break` / `lang:continue`.
+See [design/control-flow.md](design/control-flow.md).
+
 ### 2026-09-14 — Ownership transfer is explicit: `lang:give` / `lang:copy` / `lang:lend` / `lang:lend.mut` (owner)
 
 A bare `'s' = ['t'];` on an owned (heap) value is a compile error; the
@@ -320,7 +328,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)
-- Control flow: `if`/`else`, loops — not designed. (Claude, 2026-09-14)
+- `lang:in` as the `loop.for` separator; range values (`std::range[0, 10]` vs an operator). (Claude, 2026-09-14)
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `lang:check` / `lang:nocheck` sit on a statement. (Claude, 2026-09-14)
