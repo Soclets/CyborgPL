@@ -26,6 +26,20 @@ std::print.stdout['s' 'x' \n];
 - **Dot chains are paths from general to specific**, not method calls.
   `var.bin16` narrows "variable" to "16-bit binary-float variable";
   `std::print.stdout` narrows the standard library down to one action.
+- **`lang:` marks the language itself** (decided 2026-09-14). Built-in
+  paths carry a `lang:` prefix, the way Limb paths carry `Limb::`:
+
+  ```
+  lang:var.std::uer 'n' = [1000];
+  std::print.stdout["Hello, World!"];
+  lang:char.grapheme
+  ```
+
+  So every path says where it comes from: `lang:` = the language, `std::` =
+  the std Limb, `'…'` = the user. Nothing is bare. Open: whether `lang:` is
+  on *every* keyword (`lang:func`, `lang:return`, `lang:if`) or only on
+  declaration/type paths. Earlier samples written `var …` are read as
+  `lang:var …`.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
   Anything that comes from a Limb is reached with `::` after the Limb's
   name: `std::print.stdout[...]`, `var.std::uer 'n' = [1000];`. The chain
