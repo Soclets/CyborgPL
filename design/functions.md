@@ -63,16 +63,18 @@ return ['a' + 'b'];
 ## Entry point: `lang:func MAIN` (decided 2026-09-14)
 
 ```
-lang:func MAIN {
+lang:func.int32 MAIN {
     lang:var 'sum' := add[10, 20];
     std::printu.stdout["sum: " 'sum' \n];
+    lang:return [0];
 }
 ```
 
 `MAIN` is **unquoted** because it belongs to the language, not the user — a
 quoted `'main'` would have been the language's only reserved user name. It
-is a function, so the chain works as usual: `lang:func.int32 MAIN` makes the
-returned value the process exit code; no return type means exit 0.
+is a function, so the chain works as usual: the returned value is the
+process exit code. **`MAIN` must declare `.int32` and must `lang:return`
+explicitly** — no implied exit 0 (decided 2026-09-14).
 
 A Limb with a `MAIN` is a program; without one, a library. Command-line
 arguments come from the std Limb (`std::…`), so `MAIN`'s shape never changes.

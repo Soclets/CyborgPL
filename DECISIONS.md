@@ -166,8 +166,9 @@ Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
 ### 2026-09-14 — Entry point is `lang:func MAIN`, unquoted and uncallable (owner)
 
-`lang:func MAIN { … }`; `lang:func.int32 MAIN` returns the exit code; no
-type → exit 0. `MAIN` is unquoted because it is the language's, not the
+`lang:func.int32 MAIN { … lang:return [0]; }` — the return value is the exit
+code, and **`MAIN` must declare `.int32` and return explicitly**; no implied
+exit 0 (owner, after Claude offered both). `MAIN` is unquoted because it is the language's, not the
 user's — a quoted `'main'` would be a reserved user name (owner's
 observation). Owner proposed `START { }` or `lang:func MAIN`; chose the
 latter. `MAIN[]` is a compile error (Claude's recommendation; owner agreed):
