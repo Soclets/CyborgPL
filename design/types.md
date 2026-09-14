@@ -24,9 +24,11 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   appears at boundaries, where being precise is the point.
 - **Hardware reality**, for the LLVM backend: `bin16/32/64` are native on
   current targets; `bin128` is software (legacy CyborgPL had a from-scratch
-  quad implementation). `deci*` has no hardware support on x86/ARM (only IBM
-  POWER) and will be a software library in every case — correct and
-  exact for money, slower than `bin`.
+  quad implementation). `deci*` is hardware on IBM POWER and z/Architecture
+  (the owner's other language, Xag, already lowers to those DFP instructions)
+  and software everywhere else. LLVM IR has no decimal type, so the hardware
+  path must go through target intrinsics or inline asm rather than a plain IR
+  op.
 - **Not yet listed:** a boolean; a character type (or is a one-character
   `str` enough?); a byte alias for `uint8`; arbitrary-precision numbers
   (legacy had `bignum`/`bigint` via GMP — do they return?).
