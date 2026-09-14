@@ -11,10 +11,10 @@ Handing an **owned** value (heap types: `str`, lists, `char.grapheme`,
 `'s' = ['t'];` on an owned value is a compile error.
 
 ```
-'s' = [lang:give 't'];        // ownership transfers; 't' is dead after this
-'s' = [lang:copy 't'];        // a second, independent value; an allocation
-process[lang:lend 's'];       // temporary shared access; 's' still owns
-process[lang:lend.mut 's'];   // temporary exclusive access, may modify
+'s' = [give 't'];        // ownership transfers; 't' is dead after this
+'s' = [copy 't'];        // a second, independent value; an allocation
+process[lend 's'];       // temporary shared access; 's' still owns
+process[lend.mut 's'];   // temporary exclusive access, may modify
 ```
 
 - **`give`** — move. I give it away.
@@ -46,16 +46,16 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-lang:func.int32 'count' [lang:lent.str.utf8 'text'] { ... }       // looks at it
-lang:func 'edit'        [lang:lent.mut.str.utf8 'text'] { ... }   // may modify it
-lang:func 'keep'        [lang:var.str.utf8 'text'] { ... }        // owns it
+func.int32 'count' [lent.str.utf8 'text'] { ... }       // looks at it
+func 'edit'        [lent.mut.str.utf8 'text'] { ... }   // may modify it
+func 'keep'        [var.str.utf8 'text'] { ... }        // owns it
 ```
 
-- **`lang:lent`** — receives a shared borrow. The caller writes `lang:lend`.
-- **`lang:lent.mut`** — receives a mutable borrow. The caller writes
-  `lang:lend.mut`.
-- **`lang:var`** — receives ownership. The caller writes `lang:give` or
-  `lang:copy`.
+- **`lent`** — receives a shared borrow. The caller writes `lend`.
+- **`lent.mut`** — receives a mutable borrow. The caller writes
+  `lend.mut`.
+- **`var`** — receives ownership. The caller writes `give` or
+  `copy`.
 
 Caller verb and parameter kind must agree; a mismatch is a compile error
 with an obvious message ("`count` only looks at `'text'`; you tried to give
@@ -67,5 +67,5 @@ The words pair: the caller *lends*, the parameter is *lent*.
 ## Open
 
 - The lifetime annotation's spelling (optional, verified).
-- Whether `lang:copy` on a plain value is allowed as a no-op (for
+- Whether `copy` on a plain value is allowed as a no-op (for
   uniformity) or rejected as noise.

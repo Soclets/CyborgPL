@@ -90,7 +90,7 @@ owner chose both. Syntax deferred until dot-chaining is decided.
 
 ### 2026-09-14 — User names are quoted: `'name'` (owner; reaffirmed)
 
-Every user-defined *variable* name is written in single quotes — `lang:var 'x'`, `'x' + 'y'` — and a function's name is quoted at its definition (`lang:func 'add'`)
+Every user-defined *variable* name is written in single quotes — `var 'x'`, `'x' + 'y'` — and a function's name is quoted at its definition (`func 'add'`)
 — and every keyword is a bare dotted path. **This is settled; do not
 relitigate.** It has been argued against (noise, unfamiliarity) and the owner
 has reaffirmed it, because it is load-bearing:
@@ -164,27 +164,41 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
-### 2026-09-14 — Control flow: `lang:if` / `lang:else.if` / `lang:else`; `lang:loop` / `lang:loop.while` / `lang:loop.for` (owner)
+### 2026-09-14 — `lang:` removed; keywords are bare and reserved (owner)
+
+The `lang:` prefix is dropped. Keywords — `func`, `var`, `return`, `if`,
+`else`, `loop`, `in`, `break`, `continue`, `give`, `copy`, `lend`, `lent`,
+`op`, `check`, `nocheck` — are bare and reserved, as in every mainstream
+language. Claude laid out what `lang:` bought (zero reserved words, every
+token self-describing) against its cost (five characters per statement, the
+largest single source of verbosity, and the "esolang" first impression),
+and offered keep / drop / shrink to `@`; owner chose drop: "I don't think
+anyone would wanna name a function confusingly." Variables stay quoted;
+`::`, `.`, `[ ]`, `{ }` unchanged. All samples in `design/` now read
+without the prefix; earlier entries in this log that show `lang:` are
+historical.
+
+### 2026-09-14 — Control flow: `if` / `else.if` / `else`; `loop` / `loop.while` / `loop.for` (owner)
 
 Branching as Claude proposed. Loops: Claude proposed three keywords
 (`loop`, `while`, `for`); owner chose one, narrowed by the chain —
-`lang:loop`, `lang:loop.while [cond]`, `lang:loop.for 'x' lang:in [list]`.
-Conditions must be `bool`; braces mandatory; `lang:break` / `lang:continue`.
+`loop`, `loop.while [cond]`, `loop.for 'x' in [list]`.
+Conditions must be `bool`; braces mandatory; `break` / `continue`.
 See [design/control-flow.md](design/control-flow.md).
 
-### 2026-09-14 — Ownership transfer is explicit: `lang:give` / `lang:copy` / `lang:lend` / `lang:lend.mut` (owner)
+### 2026-09-14 — Ownership transfer is explicit: `give` / `copy` / `lend` / `lend.mut` (owner)
 
 A bare `'s' = ['t'];` on an owned (heap) value is a compile error; the
-programmer writes `lang:give` (move), `lang:copy`, or `lang:lend` /
-`lang:lend.mut` (borrow). Plain values copy with no keyword. Owner asked
+programmer writes `give` (move), `copy`, or `lend` /
+`lend.mut` (borrow). Plain values copy with no keyword. Owner asked
 whether a move needs a keyword; Claude recommended explicit and offered
 Rust's words (`move`/`copy`/`borrow`) or owner's-perspective words
 (`give`/`copy`/`lend`), recommending Rust's; owner chose owner's-perspective
 as easier to understand. See [design/ownership-syntax.md](design/ownership-syntax.md).
 
-Parameters declare what they accept (owner, 2026-09-14): `lang:lent.str.utf8
-'text'` receives a shared borrow, `lang:lent.mut.…` a mutable one,
-`lang:var.…` ownership. Caller verb and parameter kind must agree. The
+Parameters declare what they accept (owner, 2026-09-14): `lent.str.utf8
+'text'` receives a shared borrow, `lent.mut.…` a mutable one,
+`var.…` ownership. Caller verb and parameter kind must agree. The
 signature is the ownership contract.
 
 ### 2026-09-14 — No `++` / `+=` shorthand (owner)
@@ -193,13 +207,13 @@ Increment is `'i' = ['i' + 1];`. Claude laid out `++` (statement-only) and
 compound assignment; owner considered `'i'++` and decided against any
 shorthand.
 
-### 2026-09-14 — Entry point is `lang:func MAIN`, unquoted and uncallable (owner)
+### 2026-09-14 — Entry point is `func MAIN`, unquoted and uncallable (owner)
 
-`lang:func.int32 MAIN { … lang:return [0]; }` — the return value is the exit
+`func.int32 MAIN { … return [0]; }` — the return value is the exit
 code, and **`MAIN` must declare `.int32` and return explicitly**; no implied
 exit 0 (owner, after Claude offered both). `MAIN` is unquoted because it is the language's, not the
 user's — a quoted `'main'` would be a reserved user name (owner's
-observation). Owner proposed `START { }` or `lang:func MAIN`; chose the
+observation). Owner proposed `START { }` or `func MAIN`; chose the
 latter. `MAIN[]` is a compile error (Claude's recommendation; owner agreed):
 one analysis root, one owner of top-level values, no legitimate re-entry.
 A Limb with `MAIN` is a program; without, a library.
@@ -223,6 +237,8 @@ exception was dropped. Zero reserved words, no exception.
 Scope: **every keyword** — `lang:func`, `lang:return`, `lang:if`,
 `lang:check` (owner, 2026-09-14). Zero reserved words; a Limb may be named
 `func`. All earlier samples read with `lang:` in front.
+
+**Superseded the same day — see "`lang:` removed" below.**
 
 ### 2026-09-14 — `::` is the Limb boundary; `.` narrows within (owner)
 
@@ -328,13 +344,14 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - Precedence: standard, or parentheses required when mixing levels (Pony-style)? (Claude, 2026-09-14)
-- `lang:in` as the `loop.for` separator; range values (`std::range[0, 10]` vs an operator). (Claude, 2026-09-14)
+- Range values (`std::range[0, 10]` vs an operator). (Claude, 2026-09-14)
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
-- Check-tier syntax: where `lang:check` / `lang:nocheck` sit on a statement. (Claude, 2026-09-14)
+- Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)
+- Custom operators: `op` definition shape, bare infix use, and the precedence rule (Claude recommends: no precedence anywhere, parentheses required when mixing different operators). (Claude, 2026-09-14)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
-- Zero values: the `lang:var … := [ ]` shape implies a value is required at declaration; decide explicitly — Claude recommends no implicit zero. (Claude, 2026-09-14)
+- Zero values: the `var … := [ ]` shape implies a value is required at declaration; decide explicitly — Claude recommends no implicit zero. (Claude, 2026-09-14)
 - Error handling — not designed. (Claude, 2026-09-14)
 - Concurrency — not designed; interacts with ownership and Precog. (Claude, 2026-09-14)
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
@@ -342,8 +359,8 @@ for JetPack, always containing analysable source, never an opaque binary
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Whitespace between pieces in `[ ]`: separator only, or an implicit space? (Claude, 2026-09-14)
 - Long form (`variable`, `standard`) valid alongside the short form, or short only? (Claude, 2026-09-14)
-- Limb name declared in source (`lang:limb [...]`)? Superseded in spirit by bare local calls; revisit with the module system. (Claude, 2026-09-14)
-- Parameter lists: drop the redundant `lang:var` inside `[ ]`? (Claude's suggestion, 2026-09-14)
+- Limb name declared in source (`limb [...]`)? Superseded in spirit by bare local calls; revisit with the module system. (Claude, 2026-09-14)
+- Parameter lists: drop the redundant `var` inside `[ ]`? (Claude's suggestion, 2026-09-14)
 
 **Precog**
 - Compile-time side effects: I/O always a boundary? Claude recommends yes. (Claude, 2026-09-14)

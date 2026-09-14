@@ -26,21 +26,16 @@ std::print.stdout['s' 'x' \n];
 - **Dot chains are paths from general to specific**, not method calls.
   `var.bin16` narrows "variable" to "16-bit binary-float variable";
   `std::print.stdout` narrows the standard library down to one action.
-- **`lang:` marks the language itself** (decided 2026-09-14). Built-in
-  paths carry a `lang:` prefix, the way Limb paths carry `Limb::`:
-
-  ```
-  lang:var.std::uer 'n' = [1000];
-  std::print.stdout["Hello, World!"];
-  lang:char.grapheme
-  ```
-
-  So every path says where it comes from: `lang:` = the language, `std::` =
-  the std Limb, `'…'` = the user. Nothing is bare, **ever**: `lang:` is on every
-  keyword — `lang:func`, `lang:return`, `lang:if`, `lang:check` (decided
-  2026-09-14). The language has zero reserved words; a Limb may even be
-  named `func`. Earlier samples written `var …`, `func …`, `return …` are
-  read with `lang:` in front.
+- **Keywords are bare and reserved** (decided 2026-09-14, replacing the
+  earlier `lang:` prefix). The language's words — currently `func`, `var`,
+  `return`, `if`, `else`, `loop`, `in`, `break`, `continue`, `give`, `copy`,
+  `lend`, `lent`, `op`, `check`, `nocheck` — cannot be function names. Every
+  other language does this; the `lang:` prefix bought "zero reserved words"
+  at five characters per statement, and the owner judged nobody would want
+  a function named `return` anyway. Variables remain quoted and can never
+  collide with anything. Three origins are still visible: a keyword is a
+  reserved bare word, `std::…` is a Limb, `'…'` is a variable, and a bare
+  non-keyword before `[` is a call in this Limb.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
   Anything that comes from a Limb is reached with `::` after the Limb's
   name: `std::print.stdout[...]`, `var.std::uer 'n' = [1000];`. The chain

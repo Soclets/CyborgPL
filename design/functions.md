@@ -1,15 +1,13 @@
 # Functions
 
-Decided 2026-09-14. (Written before the `lang:` prefix was decided; read
-`func` as `lang:func`, `var` as `lang:var`, `return` as `lang:return`.
-Current spelling:)
+Decided 2026-09-14. Current spelling:
 
 ```
-lang:func.int32 'add' [lang:var.int32 'a', lang:var.int32 'b'] {
-    lang:return ['a' + 'b'];
+func.int32 'add' [var.int32 'a', var.int32 'b'] {
+    return ['a' + 'b'];
 }
-lang:var 'sum' := add[10, 20];              // this Limb: bare
-lang:var 'big' := mathstuff::pow[2, 64];    // another Limb: Limb::path
+var 'sum' := add[10, 20];              // this Limb: bare
+var 'big' := mathstuff::pow[2, 64];    // another Limb: Limb::path
 ```
 
 ## Calling (decided 2026-09-14)
@@ -17,17 +15,17 @@ lang:var 'big' := mathstuff::pow[2, 64];    // another Limb: Limb::path
 A function is a member of a Limb. In the Limb where it is defined it is
 called **bare**: `add[10, 20]`. From any other Limb it is reached through
 the boundary: `mathstuff::pow[2, 64]`, `std::print.stdout[...]`. The name is
-quoted only at its definition (`lang:func 'add'`), where it stands alone.
+quoted only at its definition (`func 'add'`), where it stands alone.
 
-Bare words are unambiguous because nothing else is bare: keywords carry
-`lang:`, other Limbs carry `::`, variables carry quotes. Consequently a call
-(`add[...]`) and a list index (`'items'[3]`) are told apart by shape.
+A call (`add[...]`) and a list index (`'items'[3]`) are told apart by
+shape; a keyword and a call are told apart by the reserved-word list (see
+`syntax-sketch.md`).
 
 The operator words (`x`, `xx`, `mod`, `and`, `or`, `not`) are bare too, but
 they never collide with a call: an operator sits *between* operands and is
 never followed by `[`; a call is a word followed by `[`. `[mod[7, 3] mod 2]`
-is legal and unambiguous. So they may be function names — zero reserved
-words, no exception.
+is legal and unambiguous. So they may be function names; the operator words
+are not reserved.
 
 ## Definition
 
@@ -50,7 +48,7 @@ func.int32 'add' [var.int32 'a', var.int32 'b'] {
 
 Arguments are comma-separated values in one `[ ]`, positionally matched to
 the parameters. A call is a value and may appear inside any bracket:
-`lang:var 'y' := [add[1, 2] x 3];`.
+`var 'y' := [add[1, 2] x 3];`.
 
 ## Return
 
@@ -60,20 +58,20 @@ return ['a' + 'b'];
 
 `[ ]` mandatory, as everywhere. Bare `return;` in a nothing-function.
 
-## Entry point: `lang:func MAIN` (decided 2026-09-14)
+## Entry point: `func MAIN` (decided 2026-09-14)
 
 ```
-lang:func.int32 MAIN {
-    lang:var 'sum' := add[10, 20];
+func.int32 MAIN {
+    var 'sum' := add[10, 20];
     std::printu.stdout["sum: " 'sum' \n];
-    lang:return [0];
+    return [0];
 }
 ```
 
 `MAIN` is **unquoted** because it belongs to the language, not the user — a
 quoted `'main'` would have been the language's only reserved user name. It
 is a function, so the chain works as usual: the returned value is the
-process exit code. **`MAIN` must declare `.int32` and must `lang:return`
+process exit code. **`MAIN` must declare `.int32` and must `return`
 explicitly** — no implied exit 0 (decided 2026-09-14).
 
 A Limb with a `MAIN` is a program; without one, a library. Command-line
