@@ -23,6 +23,12 @@ if ['x' > 10] {
 - Precog narrows the range of every variable inside a branch by its
   condition; this is where guardrails live.
 
+## Scopes
+
+A block is a scope. A variable declared in it is gone when it ends. **No
+shadowing** (decided 2026-09-14): a name visible from an enclosing scope
+cannot be redeclared in an inner one — nothing is ever silently hidden.
+
 ## Loops
 
 `loop` is the general case, narrowed by how it ends:

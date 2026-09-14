@@ -89,8 +89,8 @@ impl<'p> Interp<'p> {
 
     fn declare(&mut self, name: &str, slot: Slot, line: usize) -> Result<(), RuntimeError> {
         if self.lookup(name).is_some() {
-            // Provisional: no shadowing (open question). Strict is the safe default.
-            return rt(line, format!("'{name}' is already declared in an enclosing scope; shadowing is not allowed (provisional rule)"));
+            // Decided 2026-09-14: no shadowing.
+            return rt(line, format!("'{name}' is already declared in an enclosing scope; shadowing is not allowed"));
         }
         self.scopes.last_mut().unwrap().insert(name.to_string(), slot);
         Ok(())

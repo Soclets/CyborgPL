@@ -38,6 +38,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
   every division zero-checked, because there is no Precog here to remove them
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
+- no shadowing: a name visible from an enclosing scope cannot be redeclared
 
 ## Provisional picks — the design has not decided these
 
@@ -50,7 +51,6 @@ had to make to run at all; none is a decision.
 | Same-operator chains fold left (including `xx`) | `parser.rs` `expr` | Simplest; legacy had `xx` right-associative |
 | Whitespace between pieces is a separator only — no implicit space | `interp.rs` `value_mode` | Open question in `DECISIONS.md` |
 | `/` on integers truncates; `mod` takes the sign of the dividend | `interp.rs` `binary` | Open question |
-| No shadowing: redeclaring a name visible from an enclosing scope is an error | `interp.rs` `declare` | Strict is the safe default; undecided |
 | A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |
 | A `lend` can be held in a `:=` variable (sharing the owner's cell) but never returned from a function | `interp.rs` | The oracle has no lifetimes |
 | A literal or call result passed to a `lent` parameter is accepted as a temporary | `interp.rs` `user_call` | Otherwise `count["abc"]` is impossible; undecided |
