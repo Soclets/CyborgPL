@@ -90,7 +90,7 @@ owner chose both. Syntax deferred until dot-chaining is decided.
 
 ### 2026-09-14 — User names are quoted: `'name'` (owner; reaffirmed)
 
-Every user-defined name is written in single quotes — `var 'x'`, `'add'[1, 2]`
+Every user-defined *variable* name is written in single quotes — `lang:var 'x'`, `'x' + 'y'` — and a function's name is quoted at its definition (`lang:func 'add'`)
 — and every keyword is a bare dotted path. **This is settled; do not
 relitigate.** It has been argued against (noise, unfamiliarity) and the owner
 has reaffirmed it, because it is load-bearing:
