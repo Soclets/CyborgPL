@@ -10,6 +10,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 | `int` | signed integer, two's complement | 8, 16, 32, 64, 128 (proposed) |
 | `uint` | unsigned integer | 8, 16, 32, 64, 128 (proposed) |
 | `str` | text | — |
+| `bool` | boolean; what comparisons and `and`/`or`/`not` produce | — |
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
 
@@ -29,6 +30,6 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   and software everywhere else. LLVM IR has no decimal type, so the hardware
   path must go through target intrinsics or inline asm rather than a plain IR
   op.
-- **Not yet listed:** a boolean; a character type (or is a one-character
+- **Not yet listed:** a character type (or is a one-character
   `str` enough?); a byte alias for `uint8`; arbitrary-precision numbers
   (legacy had `bignum`/`bigint` via GMP — do they return?).

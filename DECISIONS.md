@@ -113,7 +113,8 @@ Owner, 2026-09-14.
 ### 2026-09-14 — Initial type family (owner)
 
 `bin` (IEEE 754 binary float), `deci` (IEEE 754 decimal float), `int`
-(signed), `uint` (unsigned), `str` (text). Widths as suffixes in the chain
+(signed), `uint` (unsigned), `str` (text), and — added once comparisons
+existed — `bool`. Widths as suffixes in the chain
 (`var.bin16`). Full table and notes in [design/types.md](design/types.md).
 
 ### 2026-09-14 — `print` shows the real stored value; `printu` shows the useful one (owner)
@@ -177,5 +178,5 @@ for JetPack, always containing analysable source, never an opaque binary
 - `/` on integers; `mod` sign rule. (raised by Claude, 2026-09-14)
 - Explicit numeric conversion spelling (no implicit cross-family conversion). (raised by Claude, 2026-09-14)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. Is the width mandatory in the explicit form (no bare `int`)? Claude recommends yes. (raised by Claude, 2026-09-14)
-- Boolean type is now implied (`and`/`or`/`not`, `==`): chain name? `bool`? Also character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
+- Missing types: character, byte alias, arbitrary precision (legacy `bignum`/`bigint`). (raised by Claude, 2026-09-14)
 - Dot chaining: the owner's sketch (`design/syntax-sketch.md`) reads chains as general→specific *paths* (`var.bin16`, `std.print.stdout`), not method calls. Still to confirm as the direction, plus: short form only or long form too; `[ ]` whitespace semantics; list syntax; integer type names. (owner sketch, 2026-09-14)

@@ -30,8 +30,6 @@ variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 
 ## Not yet listed (open)
 
-- A boolean type is now implied by `and`/`or`/`not` and `==`; its chain name
-  is not yet chosen (`bool`?).
 - Integer division vs. `/` on `int` (truncate? error on inexact?).
 - `mod` on negative operands (sign of the result).
 - Precedence: standard, or parentheses required when mixing levels.
