@@ -164,6 +164,16 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
+### 2026-09-14 — Entry point is `lang:func MAIN`, unquoted and uncallable (owner)
+
+`lang:func MAIN { … }`; `lang:func.int32 MAIN` returns the exit code; no
+type → exit 0. `MAIN` is unquoted because it is the language's, not the
+user's — a quoted `'main'` would be a reserved user name (owner's
+observation). Owner proposed `START { }` or `lang:func MAIN`; chose the
+latter. `MAIN[]` is a compile error (Claude's recommendation; owner agreed):
+one analysis root, one owner of top-level values, no legitimate re-entry.
+A Limb with `MAIN` is a program; without, a library.
+
 ### 2026-09-14 — Local functions are called bare; other Limbs' via `::` (owner)
 
 A function is a Limb member. Within its own Limb: `add[10, 20]`. From

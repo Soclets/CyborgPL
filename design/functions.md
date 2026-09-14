@@ -60,6 +60,28 @@ return ['a' + 'b'];
 
 `[ ]` mandatory, as everywhere. Bare `return;` in a nothing-function.
 
+## Entry point: `lang:func MAIN` (decided 2026-09-14)
+
+```
+lang:func MAIN {
+    lang:var 'sum' := add[10, 20];
+    std::printu.stdout["sum: " 'sum' \n];
+}
+```
+
+`MAIN` is **unquoted** because it belongs to the language, not the user — a
+quoted `'main'` would have been the language's only reserved user name. It
+is a function, so the chain works as usual: `lang:func.int32 MAIN` makes the
+returned value the process exit code; no return type means exit 0.
+
+A Limb with a `MAIN` is a program; without one, a library. Command-line
+arguments come from the std Limb (`std::…`), so `MAIN`'s shape never changes.
+
+**`MAIN` cannot be called.** `MAIN[]` is a compile error: it is the single
+root of Precog's whole-program analysis and the owner of the program's
+top-level values; there is no legitimate reason to re-enter it (C++ forbids
+calling `main` for the same reasons).
+
 ## `[ ]` — the two separators
 
 - **Whitespace** joins pieces into *one* value: `["sum: " 'sum' \n]`.
