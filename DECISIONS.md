@@ -129,6 +129,13 @@ one gets the short name.
 exact algorithm is Claude's call as long as the output is what a reader would
 call useful; Claude will use shortest round-trip (Ryu-style). Owner, 2026-09-14.
 
+### 2026-09-14 — The compile-time technology is called Precog (owner)
+
+The whole-program analysis/execution engine behind "everything at compile
+time" is **Precog**. Claude proposed Precog, Foresight, Rehearsal, Ghost run,
+Cortex and recommended Precog; owner chose Precog, accepting that the word is
+shared with unrelated products.
+
 ### 2026-09-14 — Libraries are Limbs; the package manager is JetPack (owner)
 
 A **Limb** is the unit of distribution, like Rust's crate — any library or program; `std` is one Limb. The package manager is **JetPack** (fast package),

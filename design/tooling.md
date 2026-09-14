@@ -2,6 +2,15 @@
 
 Owner, 2026-09-14.
 
+- **Precog** — the "everything at compile time" technology: whole-program
+  execution and exact analysis over sets of values (see
+  `core-features.md`). The compiler knows what the program will do before it
+  runs. Used as a noun everywhere: Precog finds an overflow, `check` asks
+  Precog to verify a guardrail, a "Precog-proven" site carries no runtime
+  check. The word is shared with unrelated products (an AI company, a
+  vulnerability scanner); the owner's view is that people search "CyborgPL
+  Precog", not "Precog".
+
 - **Limb** — the unit of code distribution, exactly like Rust's *crate*:
   every library or program is a Limb, JetPack installs Limbs, and the standard
   library is one Limb among them, reached as `std.` in a chain. (A cyborg has

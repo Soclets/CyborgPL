@@ -1,5 +1,8 @@
 # Core features of CyborgPL
 
+> The compile-time technology described under "Everything at compile time"
+> is named **Precog** (decided 2026-09-14).
+
 Decided by the owner, 2026-09-14. These are the five pillars every later
 design decision is measured against.
 
