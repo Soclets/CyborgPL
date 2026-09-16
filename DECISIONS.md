@@ -238,6 +238,13 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
+### 2026-09-16 — No development mode; Precog is optimised, never bypassed (owner)
+
+Another session suggested a quicker path for everyday edits. Owner: "making
+a shortcut for it is not Cyborg." Every build proves everything. Reusing
+proofs for unchanged code is optimisation (same guarantees), not a
+shortcut, and is allowed.
+
 ### 2026-09-14 — The oracle interpreter exists (owner)
 
 `oracle/` — a small Rust tree-walking interpreter implementing exactly the

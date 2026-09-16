@@ -66,6 +66,14 @@ has written a real guardrail (validation) and explicitly disables that one
 check via syntax. The final product's safety comes from programmer guardrails
 the compiler can see, not from compiler checks left behind.
 
+### No development mode (decided 2026-09-16)
+
+There is no build that skips Precog, no "prove later" tier, no fast path for
+everyday edits. Every build is a full build; the tagline is the contract.
+Precog gets faster by engineering — including not re-proving functions
+whose bodies and inputs are byte-identical to the last build, which reuses
+proofs rather than skipping them — never by doing less.
+
 ### The three check tiers (decided 2026-09-14; keyword spellings placeholder)
 
 - **default** — "I have no guardrails yet, and I want you to help me." The
