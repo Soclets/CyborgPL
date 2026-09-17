@@ -238,6 +238,15 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
+### 2026-09-18 — A scripting language on top of CyborgPL (owner)
+
+Exists; its writers never touch widths, streams, or `MAIN`; the final
+product is compiled with Cyborg (full Precog); while iterating it compiles
+itself, and that iteration compiler may assume what the real build will
+prove. Resolves the fast-edit-loop concern without a Cyborg dev mode. Open:
+what exactly is hidden, boundary defaults, iteration/real-build agreement,
+subset-or-own syntax, name. See [design/scripting.md](design/scripting.md).
+
 ### 2026-09-17 — Lists: two types, 1-based indexing, type-headed operations (owner)
 
 `list` (growable) and `array` (fixed), narrowing to the element type
@@ -527,6 +536,7 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
+- Scripting language: hidden surface, boundary defaults, subset vs own syntax, name. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
