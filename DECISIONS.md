@@ -506,7 +506,7 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
-- Lists: stating a length at a boundary (the range-annotation question). (Claude, 2026-09-17)
+- Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)

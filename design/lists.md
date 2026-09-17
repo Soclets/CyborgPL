@@ -88,6 +88,6 @@ is an error.
 
 ## Open
 
-- Stating a length at a boundary (a list from input) — the range-annotation
-  question.
+- Stating a length at a boundary (a list from input) — parked with input,
+  2026-09-17; it is the range-annotation question.
 - Index alongside element in `loop.for` (parked from 2026-09-17).
