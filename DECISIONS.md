@@ -243,7 +243,10 @@ requirements; owner adopted them. See
 Exists; its writers never touch widths, streams, or `MAIN`; the final
 product is compiled with Cyborg (full Precog); while iterating it compiles
 itself, and that iteration compiler may assume what the real build will
-prove. Resolves the fast-edit-loop concern without a Cyborg dev mode. Open:
+prove. Resolves the fast-edit-loop concern without a Cyborg dev mode. Its own
+iteration compiler **assumes the safest** (all checks on, nothing proven)
+and hands off to Cyborg only for the final-product build (owner,
+2026-09-18). Name given as "N%" — to confirm vs the `nsharp` repo. Open:
 what exactly is hidden, boundary defaults, iteration/real-build agreement,
 subset-or-own syntax, name. See [design/scripting.md](design/scripting.md).
 

@@ -17,6 +17,19 @@ Owner's direction, 2026-09-18. A higher-level language on top of CyborgPL.
   (see `core-features.md`, "No development mode": Cyborg never skips
   Precog; the scripting language's iteration compiler is not Cyborg).
 
+## The iteration rule (owner, 2026-09-18)
+
+The scripting language's own compiler, used while iterating, **assumes the
+safest**: every check on, widest types, nothing proven away — the default
+tier everywhere. It hands the program to Cyborg only when the writer asks
+for the final product, and Cyborg then proves what it can and removes what
+it proves. So an iteration build is never *less* safe than the final one,
+only slower; the writer sees the same behaviour in both, and the final one
+is faster.
+
+Name: the owner wrote **N%** (2026-09-18); to be confirmed against the
+existing `nsharp` (N#) repo.
+
 ## What it implies (open)
 
 1. **What the writer doesn't see:** probably also the ownership verbs, the
