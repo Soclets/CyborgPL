@@ -80,8 +80,8 @@ std::print.stdout['s' 'x' \n];
   - `#wl` — the *whole line*, including any code before the `#`.
   - `#Nl` — N lines, counting this one: `#3l` is this line and the next two.
   - `#Nld` — this line and N more *down*: `#3ld` is four lines.
-  A `#` followed by anything else is an ordinary comment; a digit with an
-  unknown suffix (`#3x`) is an error.
+  Anything else glued to the `#` (`#x`, `#3x`) is an error; a plain comment
+  is `#` followed by a space or the end of the line.
 - Statements end with `;`.
 
 ## Open

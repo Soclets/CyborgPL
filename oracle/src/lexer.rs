@@ -258,10 +258,10 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 } else if let Some(n) = word.strip_suffix('l').and_then(|d| d.parse::<usize>().ok()) {
                     if n == 0 { return err(tl, tc, "`#0l` comments nothing".into()); }
                     skip_lines = n - 1;
-                } else if word.is_empty() || !word.chars().next().unwrap().is_ascii_digit() {
-                    skip_lines = 0; // plain `#`: the word (if any) is just comment text
+                } else if word.is_empty() {
+                    skip_lines = 0; // plain `#`, followed by a space or the end of the line
                 } else {
-                    return err(tl, tc, format!("`#{word}` is not a comment form; use `#`, `#wl`, `#Nl`, or `#Nld`"));
+                    return err(tl, tc, format!("`#{word}` is not a comment form; use `# text`, `#wl`, `#Nl`, or `#Nld`"));
                 }
                 // rest of this line
                 while i < chars.len() && chars[i] != '\n' { i += 1; }
