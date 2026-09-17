@@ -16,6 +16,10 @@ the owner explicitly chooses it.
   chose versus what was proposed.
 - Stated identity (from the website hero): *"Very slow at the development,
   fast & safe at the final product."*
+- **CyborgPL is a hobby language** (owner, 2026-09-17). No timeline, no
+  obligation to build any part by any date, no team unless the owner feels
+  like one. Estimates, hiring notes, and the review policy in `design/` are
+  for if-and-when, not commitments. Do not push for schedules or scope.
 
 ## Layout
 
