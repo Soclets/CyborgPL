@@ -87,6 +87,8 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Str(e) => format!("str.{}", match e { crate::ast::Encoding::Utf8 => "utf8", crate::ast::Encoding::Utf16 => "utf16", crate::ast::Encoding::Utf32 => "utf32", crate::ast::Encoding::Ascii => "ascii" }),
         Ty::Bool => "bool".into(),
         Ty::Char(u) => format!("char.{}", match u { CharUnit::Byte => "byte", CharUnit::Point => "point", CharUnit::Grapheme => "grapheme" }),
+        Ty::List(t) => format!("list.{}", ty_name(t)),
+        Ty::Array(t) => format!("array.{}", ty_name(t)),
     }
 }
 

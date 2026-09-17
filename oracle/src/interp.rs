@@ -266,6 +266,7 @@ impl<'p> Interp<'p> {
                 Ok(Flow::Return(v))
             }
             Stmt::Call { call, .. } => { self.call(call)?; Ok(Flow::Normal) }
+            Stmt::BuiltinStmt { head, op, args, line } => { self.builtin(head, op, args, *line)?; Ok(Flow::Normal) }
         }
     }
 
@@ -333,6 +334,10 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::Bool, Value::Bool(_)) => Ok(()),
+            (Ty::List(inner) | Ty::Array(inner), Value::List(items)) => {
+                for it in items { self.check_type(it, inner, line)?; }
+                Ok(())
+            }
             (Ty::Char(unit), Value::Char(_, s)) => {
                 match unit {
                     CharUnit::Byte => if s.len() != 1 { return rt(line, format!("`{s}` is {} bytes, not one; it cannot be char.byte", s.len())); },
@@ -456,6 +461,20 @@ impl<'p> Interp<'p> {
             }
             Expr::Call(c) => Ok((self.call(c)?, Prov::Fresh)),
             Expr::Nested(b) => self.bracket(b, line),
+            Expr::Index(name, idx, _) => {
+                let v = self.read_var(name, line)?;
+                let items = match v { Value::List(items) => items, other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())) };
+                let (i, _) = self.eval(idx)?;
+                let i = match i { Value::Int(i) => i, other => return rt(line, format!("an index is an integer, got {}", other.kind())) };
+                // 1-based (decided 2026-09-17): 'xs'[1] is the first; 'xs'[0] does not exist.
+                if i < 1 || i as usize > items.len() {
+                    return rt(line, format!("index {i} is out of range for '{name}', which has {} element(s) (1 to {}) — default check tier", items.len(), items.len()));
+                }
+                let item = items[(i - 1) as usize].clone();
+                let prov = if item.is_owned() { Prov::Bare(format!("{name}'[{i}]'")) } else { Prov::Plain };
+                Ok((item, prov))
+            }
+            Expr::Builtin(head, op, args, _) => Ok((self.builtin(head, op, args, line)?, Prov::Plain)),
             Expr::Paren(inner, _) => self.eval(inner),
             Expr::Unary(op, inner, _) => {
                 let (v, prov) = self.eval(inner)?;
@@ -523,6 +542,53 @@ impl<'p> Interp<'p> {
             ("or", Bool(x), Bool(y)) => Bool(x || y),
             (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
         })
+    }
+
+    // ---- list / array operations (decided 2026-09-17) ---------------------
+
+    fn builtin(&mut self, head: &str, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
+        if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
+        let (v, prov) = self.value(&args.values[0])?;
+        let items = match &v { Value::List(items) => items.clone(), other => return rt(line, format!("`{head}.{op}` needs a list or array, got {}", other.kind())) };
+        // Which variable is this, and is it typed `array`?
+        let (var_name, is_array, cell) = match &prov {
+            Prov::Borrowed(cell, _) => {
+                let name = match &args.values[0] { crate::ast::Value::Expr(Expr::Owned(_, n, _)) => n.clone(), _ => String::new() };
+                let is_array = self.lookup(&name).map(|s| matches!(s.ty, Some(Ty::Array(_)))).unwrap_or(false);
+                (name, is_array, Some(cell.clone()))
+            }
+            Prov::Bare(n) => return rt(line, format!("`{head}.{op}` takes the list by `lend '{n}'` (or `lend.mut` to change it)")),
+            _ => (String::new(), false, None),
+        };
+        match op {
+            "length" => Ok(Value::Int(items.len() as i128)),
+            "append" | "remove" => {
+                if head == "array" { unreachable!() }
+                if is_array { return rt(line, format!("'{var_name}' is an `array`, which cannot grow or shrink; declare it a `list`")); }
+                let is_mut = matches!(prov, Prov::Borrowed(_, true));
+                if !is_mut { return rt(line, format!("`list.{op}` changes the list: pass `lend.mut '{var_name}'`")); }
+                let Some(cell) = cell else { return rt(line, "`list.append`/`remove` need a variable to change") };
+                let (arg, aprov) = self.value(&args.values[1])?;
+                let mut items = items;
+                if op == "append" {
+                    match aprov {
+                        Prov::Bare(n) => return rt(line, format!("appending bare '{n}': say `give '{n}'` or `copy '{n}'`")),
+                        Prov::Borrowed(..) => return rt(line, "a list owns its elements; append a `copy` or `give`, not a lend"),
+                        _ => {}
+                    }
+                    if let Some(Ty::List(inner)) = self.lookup(&var_name).and_then(|s| s.ty.clone()) { self.check_type(&arg, &inner, line)?; }
+                    items.push(arg);
+                } else {
+                    let i = match arg { Value::Int(i) => i, other => return rt(line, format!("`list.remove` takes a 1-based position, got {}", other.kind())) };
+                    if i < 1 || i as usize > items.len() { return rt(line, format!("position {i} is out of range for '{var_name}', which has {} element(s)", items.len())); }
+                    items.remove((i - 1) as usize);
+                }
+                *cell.borrow_mut() = Value::List(items);
+                Ok(Value::Nothing)
+            }
+            _ => unreachable!(),
+        }
     }
 
     // ---- calls ------------------------------------------------------------

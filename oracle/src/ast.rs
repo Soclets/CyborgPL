@@ -12,6 +12,8 @@ pub enum Ty {
     Str(Encoding),
     Bool,
     Char(CharUnit),
+    List(Box<Ty>),    // growable
+    Array(Box<Ty>),   // fixed-size
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -77,6 +79,8 @@ pub enum Stmt {
     Return { value: Option<Bracket>, line: usize },
     /// a call used as a statement: `add[1, 2];` or `std::print.stdout[...];`
     Call { call: Call, line: usize },
+    /// `list.append[…];` etc. as a statement
+    BuiltinStmt { head: String, op: String, args: Bracket, line: usize },
 }
 
 #[derive(Debug, Clone)]
@@ -119,6 +123,10 @@ pub enum Expr {
     Call(Call),
     /// a `[ ]` used as a value inside another bracket: a list literal, or just grouping
     Nested(Bracket),
+    /// `'xs'[i]` — 1-based
+    Index(String, Box<Expr>, usize),
+    /// `list.length[…]`, `list.append[…]`, `list.remove[…]`, `array.length[…]`
+    Builtin(String, String, Bracket, usize),
     Unary(String, Box<Expr>, usize),            // not, -
     Binary(String, Box<Expr>, Box<Expr>, usize),
     Paren(Box<Expr>, usize),
@@ -132,6 +140,8 @@ impl Expr {
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,
             Expr::Nested(b) => b.line,
+            Expr::Index(_, _, l) => *l,
+            Expr::Builtin(_, _, _, l) => *l,
         }
     }
 }

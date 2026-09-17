@@ -6,7 +6,7 @@ use crate::lexer::{Tok, Token};
 pub const KEYWORDS: &[&str] = &[
     "func", "var", "return", "if", "else", "loop", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq",
+    "temp", "perm", "range", "seq", "list", "array",
 ];
 
 const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
@@ -135,6 +135,17 @@ impl Parser {
         Ok((m, ty))
     }
 
+    /// A type from already-collected chain segments (used for list/array element types).
+    fn ty_from_segs(segs: &[String]) -> Result<Ty, String> {
+        let toks: Vec<Token> = segs.iter().enumerate().flat_map(|(i, w)| {
+            let mut v = vec![Token { tok: Tok::Word(w.clone()), line: 0, col: 0 }];
+            if i + 1 < segs.len() { v.push(Token { tok: Tok::Dot, line: 0, col: 0 }); }
+            v
+        }).chain(std::iter::once(Token { tok: Tok::Eof, line: 0, col: 0 })).collect();
+        let mut p = Parser::new(toks);
+        p.ty().map_err(|e| e.msg)
+    }
+
     // type := segments joined by '.', already positioned after the leading '.'
     fn ty(&mut self) -> PResult<Ty> {
         let mut segs = Vec::new();
@@ -165,6 +176,13 @@ impl Parser {
                     "point" => CharUnit::Point, "grapheme" => CharUnit::Grapheme, "byte" => CharUnit::Byte,
                     u => return bad(self, format!("unknown character unit `{u}`")),
                 }))
+            }
+            "list" | "array" => {
+                if segs.len() < 2 { return bad(self, format!("`{head}` narrows to its element type: `{head}.int32`, `{head}.str.utf8`, `{head}.list.int32`")); }
+                // re-parse the tail as a type
+                let tail: Vec<String> = segs[1..].to_vec();
+                let inner = Parser::ty_from_segs(&tail).map_err(|m| ParseError { line: self.line(), col: 0, msg: m })?;
+                Ok(if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) })
             }
             "int" | "uint" | "bin" | "deci" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
             _ => {
@@ -210,6 +228,11 @@ impl Parser {
                 "else" => self.err("`else` without an `if`"),
                 "check" | "nocheck" => self.err("the check tiers are decided but their syntax is not; the oracle refuses them for now"),
                 "give" | "copy" | "lend" => self.err(format!("`{w}` belongs inside a value: `'s' = [{w} 't'];`")),
+                "list" | "array" => {
+                    let (head, op, args) = self.builtin()?;
+                    self.expect(Tok::Semi, "`;`")?;
+                    Ok(Stmt::BuiltinStmt { head, op, args, line })
+                }
                 "while" | "for" if matches!(self.peek_at(1), Tok::LBracket | Tok::Var(_)) => self.err(format!("loops are narrowed from `loop`: `loop.{w}` / `loop.temp.{w}`")),
                 _ => {
                     let call = self.call()?;
@@ -222,7 +245,7 @@ impl Parser {
                 match self.peek() {
                     Tok::Eq => {}
                     Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq => return self.err(format!("`:=` declares; to assign to the existing '{name}' write `'{name}' = […];` (to shadow it, `var '{name}' $:= […];`)")),
-                    Tok::LBracket => return self.err(format!("'{name}'[…] — indexing is not designed yet, and a call is a bare name (`{name}[…]`)")),
+                    Tok::LBracket => return self.err(format!("assigning to an element ('{name}'[…] = …) is not designed yet")),
                     other => return self.err(format!("expected `=` after '{name}', found {other}")),
                 }
                 self.advance();
@@ -376,6 +399,21 @@ impl Parser {
         }
         let args = self.bracket()?;
         Ok(Call { limb, path, args, line })
+    }
+
+    // builtin := ('list' | 'array') '.' Word bracket
+    fn builtin(&mut self) -> PResult<(String, String, Bracket)> {
+        let head = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
+        self.expect(Tok::Dot, &format!("`.` after `{head}` (`{head}.length[…]`)"))?;
+        let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `{head}.`, found {other}")) };
+        let ok = match (head.as_str(), op.as_str()) {
+            ("list", "length" | "append" | "remove") | ("array", "length") => true,
+            _ => false,
+        };
+        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove, array has length")); }
+        if *self.peek() != Tok::LBracket { return self.err(format!("`{head}.{op}` is a call and needs `[…]`")); }
+        let args = self.bracket()?;
+        Ok((head, op, args))
     }
 
     // bracket := '[' (value (',' value)*)? ']'
@@ -550,7 +588,18 @@ impl Parser {
             Tok::Text(t) => { self.advance(); Ok(Expr::Text(t, line)) }
             Tok::Char(c) => { self.advance(); Ok(Expr::Char(c, line)) }
             Tok::Newline => { self.advance(); Ok(Expr::Newline(line)) }
-            Tok::Var(v) => { self.advance(); Ok(Expr::Var(v, line)) }
+            Tok::Var(v) => {
+                self.advance();
+                if *self.peek() == Tok::LBracket {
+                    // 'xs'[i] — 1-based indexing (decided 2026-09-17)
+                    self.advance();
+                    let idx = self.expr()?;
+                    if *self.peek() == Tok::Comma { return self.err("an index is one value: `'xs'[3]`"); }
+                    self.expect(Tok::RBracket, "`]` after the index")?;
+                    return Ok(Expr::Index(v, Box::new(idx), line));
+                }
+                Ok(Expr::Var(v, line))
+            }
             Tok::LParen => {
                 self.advance();
                 let e = self.expr()?;
@@ -577,6 +626,7 @@ impl Parser {
                     }
                 }
                 "lent" => self.err("`lent` describes a parameter; a caller writes `lend`"),
+                "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 _ if KEYWORDS.contains(&w.as_str()) => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),

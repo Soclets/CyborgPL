@@ -1,0 +1,26 @@
+func.int32 sum [lent.list.int32 'items'] {
+    var 'total' := [0];
+    loop.temp.for 'n' in [lend 'items'] {
+        'total' = ['total' + 'n'];
+    }
+    return ['total'];
+}
+
+MAIN {
+    var.list.int32 'xs' = [10, 20, 30];
+    std::printu.stdout["first " 'xs'[1] ", last " 'xs'[3] \n];
+    var 'n' := [list.length[lend 'xs']];
+    std::printu.stdout["length " 'n' \n];
+    list.append[lend.mut 'xs', 40];
+    list.remove[lend.mut 'xs', 1];
+    std::printu.stdout['xs' " length " (list.length[lend 'xs']) \n];
+    std::printu.stdout["sum " (sum[lend 'xs']) \n];
+    loop.temp.range 'i' [:= 1, := list.length[lend 'xs']] {
+        std::printu.stdout['xs'['i'] " "];
+    }
+    std::print.stdout[\n];
+    var.array.str.utf8 'days' = ["mon", "tue"];
+    std::print.stdout['days'[2] " of " (array.length[lend 'days']) \n];
+    var 'grid' := [[1, 2], [3, 4]];
+    std::printu.stdout['grid'[2] \n];
+}

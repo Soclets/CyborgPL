@@ -1,0 +1,4 @@
+MAIN {
+    var.list.int32 'xs' = [1, 2, 3];
+    list.append[lend.mut 'xs', 2.5];
+}

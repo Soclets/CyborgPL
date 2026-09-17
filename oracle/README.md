@@ -40,6 +40,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
+- `list.T` / `array.T` types; `'xs'[i]` 1-based with range checks; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
 - `loop.temp|perm.for` and `loop.temp|perm.range 'i' [:= a, := b, := step]`: inclusive stop, `perm` keeps the last value, the counter/element cannot be assigned
 - `var.immut` cannot be assigned to; `var.mut` is accepted and changes nothing
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list
@@ -61,7 +62,7 @@ had to make to run at all; none is a decision.
 
 ## Not implemented because not designed
 
-Comments, list indexing and length, ranges, string iteration, structs,
+Comments, element assignment, the empty list, string iteration, structs,
 custom operators (`op`), the check-tier syntax (`check` / `nocheck`),
 boundary range annotations, Limb declaration and other Limbs, input, error
 handling, concurrency. Each is refused with a message naming it.

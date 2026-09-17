@@ -238,6 +238,20 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
+### 2026-09-17 — Lists: two types, 1-based indexing, type-headed operations (owner)
+
+`list` (growable) and `array` (fixed), narrowing to the element type
+(`var.list.int32`); with `:=` Precog picks (never-grown → `array`). Owner
+chose two names over one after Claude laid out both and the everyday
+meanings of the words. Indexing `'xs'[i]` is **1-based** — owner: "`'xs'[0]`
+would be the value before the first, which doesn't exist"; Claude had
+recommended 0 and withdrew it, since inclusive ranges make 1-based the
+consistent choice. Operations are `list.length` / `list.append` /
+`list.remove` / `array.length` — the type name as the chain's head (owner's
+idea, "`list.` might just fit our lang"), `length` spelled out (owner: "`.length`
+is better" than `len`). Language operations, not std. Element assignment,
+empty list, boundary lengths remain open. See [design/lists.md](design/lists.md).
+
 ### 2026-09-17 — Range loops; `temp`/`perm` mandatory on `for` and `range` (owner)
 
 `loop.temp.range 'i' [:= 0, := 1000] { }` — owner's shape. Decided one by
@@ -477,7 +491,7 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
-- Lists beyond the literal: a type name for the typed form (`list.int32`?), indexing (and its base), length/append spelling, fixed-size vs growable. (Claude, 2026-09-14)
+- Lists: element assignment (`'xs'[2] = […]`), the empty list's spelling, stating a length at a boundary. (Claude, 2026-09-17)
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)

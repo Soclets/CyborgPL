@@ -1,0 +1,3 @@
+MAIN {
+    var.list.int32 'xs' = [1, 2, "three"];
+}
