@@ -66,9 +66,10 @@ loop.temp.range 'i' [:= 0, := 1000] {               // 'i' from 0 to 1000 inclus
 ### `temp` / `perm` — mandatory
 
 `temp`: the variable exists only inside the loop. `perm`: it is still there
-afterwards, holding **whatever the loop last gave it** — the stop value after
-a full run, the value at a `break`, the start value if the body never ran.
-One rule for every way a loop can end.
+afterwards, holding **whatever the loop last gave it** — the last value the
+body ran with after a full run (the stop value when the step lands on it; for
+`[:= 0, := 10, := 3]` it is 9), the value at a `break`, the start value if the
+body never ran. One rule for every way a loop can end.
 
 ```
 loop.perm.range 'i' [:= 0, := 100] {

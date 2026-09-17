@@ -19,7 +19,11 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 
 - **Four numeric families, no implicit conversion between them.** `int32`
   and `bin32` are different families; mixing them in one expression is a
-  compile error and conversion is explicit (spelling open).
+  compile error and conversion is explicit (spelling open). A bare numeric
+  **literal** has no family of its own: it takes the family of its context,
+  so `var.bin16 'x' = [1000];` and `['b' x 2]` with `'b'` a bin are fine. A
+  *variable* never converts: `var.bin64 'b' = ['a'];` with `'a'` an `int32`
+  is an error.
 - **Width in the typed form is mandatory** (`var.int32`, never `var.int`) —
   decided 2026-09-14; see "typed form is always fully explicit" below.
 - **Hardware reality**, for the LLVM backend: `bin16/32/64` are native on

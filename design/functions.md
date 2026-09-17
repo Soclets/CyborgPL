@@ -44,7 +44,8 @@ func.int32 add [var.int32 'a', var.int32 'b'] {
 - The chain narrows `func` by its **return type**, the same way `var.int32`
   narrows `var`. `func name` with no type: Precog picks the best return type
   from every `return` in the body. No `return` at all: the function returns
-  nothing.
+  nothing. A function declared *with* a return type must return a value on
+  every path; falling off the end is a compile error.
 - **Parameters are `var` declarations** the caller fills in, comma-separated
   in one `[ ]`. `var 'a'` with no type is legal: Precog infers the parameter's
   best type from every call site in the program.
@@ -110,7 +111,7 @@ is written with a trailing comma, since `[1]` is the number: `[1,]`
 
 - `[ ]` — value slot(s).
 - `{ }` — body.
-- `( )` — arithmetic grouping only: `['a' + ('b' * 2)]`. This is why `[ ]`
+- `( )` — arithmetic grouping only: `['a' + ('b' x 2)]`. This is why `[ ]`
   was chosen for values: parentheses stay free for math.
 
 ## Numbers

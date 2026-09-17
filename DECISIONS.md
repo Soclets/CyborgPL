@@ -510,6 +510,10 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
+**Language — surfaced by the second (OCaml) oracle, 2026-09-17**
+- `give`/`copy`/`lend` on a plain value (an integer): reject as noise (Rust oracle) or allow as a no-op (OCaml oracle)? The docs list it as open. (Claude, 2026-09-17)
+- `[1,000]`: by the rules it is the list `[1, 0]`; the Rust oracle rejects it with a "use `_`" hint. Should that hint be the rule? And are leading zeros in a literal (`000`, `007`) allowed? (Claude, 2026-09-17)
+
 **Language — surfaced by the oracle**
 
 **Language**
