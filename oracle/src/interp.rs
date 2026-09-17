@@ -127,7 +127,14 @@ impl<'p> Interp<'p> {
     fn stmt(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
         match s {
             Stmt::Decl { name, mutability, ty, value, shadow, line } => {
-                let (v, prov) = self.bracket(value, *line)?;
+                let (v, prov) = if value.values.is_empty() {
+                    match ty {
+                        Some(Ty::List(_)) => (Value::List(Vec::new()), Prov::Fresh),
+                        Some(Ty::Array(_)) => return rt(*line, format!("an empty `array` '{name}' could never be filled; make it a `list`")),
+                        Some(t) => return rt(*line, format!("`[]` is an empty list, but '{name}' is {}", ty_name(t))),
+                        None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `[list.empty]`")),
+                    }
+                } else { self.bracket(value, *line)? };
                 let immut = *mutability == Some(Mutability::Immut);
                 let slot = match prov {
                     Prov::Bare(n) => return rt(*line, format!("declaring '{name}' from bare '{n}', which owns a {}: say `give '{n}'`, `copy '{n}'`, or `lend '{n}'`", v.kind())),
@@ -499,7 +506,11 @@ impl<'p> Interp<'p> {
                 let prov = if item.is_owned() { Prov::Bare(format!("{name}'[{i}]'")) } else { Prov::Plain };
                 Ok((item, prov))
             }
-            Expr::Builtin(head, op, args, _) => Ok((self.builtin(head, op, args, line)?, Prov::Plain)),
+            Expr::Builtin(head, op, args, _) => {
+                let v = self.builtin(head, op, args, line)?;
+                let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                Ok((v, prov))
+            }
             Expr::Paren(inner, _) => self.eval(inner),
             Expr::Unary(op, inner, _) => {
                 let (v, prov) = self.eval(inner)?;
@@ -572,6 +583,7 @@ impl<'p> Interp<'p> {
     // ---- list / array operations (decided 2026-09-17) ---------------------
 
     fn builtin(&mut self, head: &str, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        if op == "empty" { return Ok(Value::List(Vec::new())); }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
         if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
         let (v, prov) = self.value(&args.values[0])?;
@@ -587,6 +599,7 @@ impl<'p> Interp<'p> {
             _ => (String::new(), false, None),
         };
         match op {
+            "empty" => Ok(Value::List(Vec::new())),
             "length" => Ok(Value::Int(items.len() as i128)),
             "append" | "remove" => {
                 if head == "array" { unreachable!() }

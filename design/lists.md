@@ -73,10 +73,21 @@ as calls with the ownership verbs: `lend` to look, `lend.mut` to change. No
 to an `array` is a compile error. A list owns its elements: `append` takes a
 fresh value, a `copy`, or a `give` — never a lend.
 
+## The empty list (decided 2026-09-17)
+
+```
+var.list.int32 'xs' = [];              // typed: the type says list, [] is empty
+var 'ys' := [list.empty];              // best-type: the value says list; Precog picks the
+                                       // element type from what is appended later
+```
+
+`[]` is a value only where a declared type says it is a list; anywhere else
+it is still "not a value". With `:=` nothing on the left says "list", so the
+value has to: `[list.empty]`. An empty `array` could never be filled, so it
+is an error.
+
 ## Open
 
 - Stating a length at a boundary (a list from input) — the range-annotation
   question.
-- The empty list: `[]` is not a value; an empty list is only possible in the
-  typed form, and needs a spelling.
 - Index alongside element in `loop.for` (parked from 2026-09-17).

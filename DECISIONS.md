@@ -252,6 +252,13 @@ idea, "`list.` might just fit our lang"), `length` spelled out (owner: "`.length
 is better" than `len`). Language operations, not std. Element assignment,
 empty list, boundary lengths remain open. See [design/lists.md](design/lists.md).
 
+### 2026-09-17 — Empty list: `= []` typed, `:= [list.empty]` untyped (owner)
+
+Claude offered `= []` vs `= [list.empty]` for the typed form and recommended
+the first; owner chose it and pointed out that under `:=` it must be
+`[list.empty]`, since nothing on the left says "list". An empty `array` is an
+error. See [design/lists.md](design/lists.md).
+
 ### 2026-09-17 — `pos` on every index; element assignment `'xs'[pos i] = […];` (owner)
 
 Owner proposed `'xs'[pos 2]` and `'xs'[value-is 2]`. `pos` adopted everywhere
@@ -499,7 +506,7 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
-- Lists: the empty list's spelling, stating a length at a boundary. (Claude, 2026-09-17)
+- Lists: stating a length at a boundary (the range-annotation question). (Claude, 2026-09-17)
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)

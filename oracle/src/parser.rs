@@ -425,10 +425,16 @@ impl Parser {
         self.expect(Tok::Dot, &format!("`.` after `{head}` (`{head}.length[…]`)"))?;
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `{head}.`, found {other}")) };
         let ok = match (head.as_str(), op.as_str()) {
-            ("list", "length" | "append" | "remove") | ("array", "length") => true,
+            ("list", "length" | "append" | "remove" | "empty") | ("array", "length") => true,
+            ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
-        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove, array has length")); }
+        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length")); }
+        if op == "empty" {
+            // `[list.empty]` — a value, not a call (decided 2026-09-17)
+            let line = self.line();
+            return Ok((head, op, Bracket { values: Vec::new(), line, one_list: false }));
+        }
         if *self.peek() != Tok::LBracket { return self.err(format!("`{head}.{op}` is a call and needs `[…]`")); }
         let args = self.bracket()?;
         Ok((head, op, args))
