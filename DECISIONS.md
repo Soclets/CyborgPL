@@ -238,6 +238,12 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
+### 2026-09-18 — Compiler names: Cyborg Chassis Assembler (CCA), Nowork (owner)
+
+The CyborgPL compiler is the **Cyborg Chassis Assembler**; N%'s compiler is
+**Nowork**. Owner acknowledges "Assembler" may be confused with a real
+assembler. Spelling "Chassis" vs the owner's "Chasis" to confirm.
+
 ### 2026-09-18 — A scripting language on top of CyborgPL (owner)
 
 Exists; its writers never touch widths, streams, or `MAIN`; the final

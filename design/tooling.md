@@ -2,6 +2,13 @@
 
 Owner, 2026-09-14.
 
+- **Cyborg Chassis Assembler (CCA)** — the CyborgPL compiler (owner,
+  2026-09-18; spelling of "Chassis" to confirm — owner wrote "Chasis").
+  Not an assembler in the `as` sense; the owner accepts the possible
+  confusion. The chassis is the frame; Precog is what is bolted to it.
+- **Nowork** — the N% compiler (owner, 2026-09-18): the iteration compiler
+  that does no proving and no optimising — no work — and hands the program
+  to CCA for the final product. See `scripting.md`.
 - **Precog** — the "everything at compile time" technology: whole-program
   execution and exact analysis over sets of values (see
   `core-features.md`). The compiler knows what the program will do before it
