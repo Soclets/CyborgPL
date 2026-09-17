@@ -252,6 +252,12 @@ idea, "`list.` might just fit our lang"), `length` spelled out (owner: "`.length
 is better" than `len`). Language operations, not std. Element assignment,
 empty list, boundary lengths remain open. See [design/lists.md](design/lists.md).
 
+### 2026-09-17 — Ownership verbs on a plain value are an error (owner)
+
+`give 'n'` on an integer is a compile error, not a no-op: a plain value owns
+nothing (no allocation behind it), so the verb would be false. Surfaced by
+the OCaml oracle experiment, which allowed it. Owner chose error.
+
 ### 2026-09-17 — Comments: `#`, `#wl`, `#Nl`, `#Nld` (owner)
 
 Owner's design, extending legacy's `#`/`#N`: `#` to end of line (trailing
@@ -511,7 +517,6 @@ for JetPack, always containing analysable source, never an opaque binary
 ## Open questions
 
 **Language — surfaced by the second (OCaml) oracle, 2026-09-17**
-- `give`/`copy`/`lend` on a plain value (an integer): reject as noise (Rust oracle) or allow as a no-op (OCaml oracle)? The docs list it as open. (Claude, 2026-09-17)
 - `[1,000]`: by the rules it is the list `[1, 0]`; the Rust oracle rejects it with a "use `_`" hint. Should that hint be the rule? And are leading zeros in a literal (`000`, `007`) allowed? (Claude, 2026-09-17)
 
 **Language — surfaced by the oracle**

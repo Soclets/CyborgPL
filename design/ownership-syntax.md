@@ -26,9 +26,12 @@ The words are the *owner's* — the keyword sits on the value being handed
 over, so "give" and "lend" read as what the owner does. (Rust's `move` /
 `borrow` are the receiver's words; the concepts are identical.)
 
-**Plain values** — `int32`, `bin64`, `bool`, `char.point`, … — own nothing,
-so `'s' = ['t'];` simply copies with no keyword. There is no other sensible
-meaning for a number.
+**Plain values** — `int32`, `bin64`, `bool`, `char.point`, … — own nothing:
+the value sits directly in the variable, with no allocation behind it to be
+responsible for. So `'s' = ['t'];` simply copies with no keyword, and
+`give`/`copy`/`lend` on a plain value is a **compile error** (decided
+2026-09-17): the verb would promise a transfer of a responsibility that does
+not exist.
 
 The same verbs apply at call sites, which settles most of the borrow-syntax
 question: a parameter receives whatever the caller wrote.
@@ -96,5 +99,3 @@ outliving `'s'`.
 ## Open
 
 - The lifetime annotation's spelling (optional, verified).
-- Whether `copy` on a plain value is allowed as a no-op (for
-  uniformity) or rejected as noise.
