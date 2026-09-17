@@ -75,6 +75,13 @@ std::print.stdout['s' 'x' \n];
   own pieces: `printu["x is " 'x']` prints `x is 0.1`.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; without it, an error. `immut` names cannot be shadowed.
+- **Comments** (decided 2026-09-17), all beginning with `#`:
+  - `#` — from here to the end of the line (trailing is fine).
+  - `#wl` — the *whole line*, including any code before the `#`.
+  - `#Nl` — N lines, counting this one: `#3l` is this line and the next two.
+  - `#Nld` — this line and N more *down*: `#3ld` is four lines.
+  A `#` followed by anything else is an ordinary comment; a digit with an
+  unknown suffix (`#3x`) is an error.
 - Statements end with `;`.
 
 ## Open

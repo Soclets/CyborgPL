@@ -239,7 +239,41 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             '^' => return err(tl, tc, "`^` is not an operator; power is `xx`".into()),
             '%' => return err(tl, tc, "`%` is not an operator; remainder is `mod`".into()),
             '&' | '|' | '!' => return err(tl, tc, format!("`{c}` is not an operator; use `and`, `or`, `not`")),
-            '#' => return err(tl, tc, "comments are not designed yet; the oracle accepts none".into()),
+            '#' => {
+                // Comments (decided 2026-09-17):
+                //   #      from here to the end of this line
+                //   #wl    the whole line, including code before the #
+                //   #Nl    N lines, counting this one
+                //   #Nld   this line and N more down (N+1 lines)
+                let mut j = i + 1;
+                let mut word = String::new();
+                while j < chars.len() && chars[j].is_ascii_alphanumeric() { word.push(chars[j]); j += 1; }
+                let skip_lines: usize;   // full lines to skip after this one
+                if word == "wl" {
+                    // drop everything already lexed on this line
+                    while toks.last().map(|t| t.line == tl).unwrap_or(false) { toks.pop(); }
+                    skip_lines = 0;
+                } else if let Some(n) = word.strip_suffix("ld").and_then(|d| d.parse::<usize>().ok()) {
+                    skip_lines = n;
+                } else if let Some(n) = word.strip_suffix('l').and_then(|d| d.parse::<usize>().ok()) {
+                    if n == 0 { return err(tl, tc, "`#0l` comments nothing".into()); }
+                    skip_lines = n - 1;
+                } else if word.is_empty() || !word.chars().next().unwrap().is_ascii_digit() {
+                    skip_lines = 0; // plain `#`: the word (if any) is just comment text
+                } else {
+                    return err(tl, tc, format!("`#{word}` is not a comment form; use `#`, `#wl`, `#Nl`, or `#Nld`"));
+                }
+                // rest of this line
+                while i < chars.len() && chars[i] != '\n' { i += 1; }
+                // and N more whole lines
+                let mut left = skip_lines;
+                while left > 0 && i < chars.len() {
+                    i += 1; line += 1; col = 1; // consume the newline
+                    while i < chars.len() && chars[i] != '\n' { i += 1; }
+                    left -= 1;
+                }
+                continue;
+            }
             other => return err(tl, tc, format!("unexpected character `{other}`")),
         };
         push(single, &mut toks);

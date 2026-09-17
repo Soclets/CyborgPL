@@ -252,6 +252,13 @@ idea, "`list.` might just fit our lang"), `length` spelled out (owner: "`.length
 is better" than `len`). Language operations, not std. Element assignment,
 empty list, boundary lengths remain open. See [design/lists.md](design/lists.md).
 
+### 2026-09-17 — Comments: `#`, `#wl`, `#Nl`, `#Nld` (owner)
+
+Owner's design, extending legacy's `#`/`#N`: `#` to end of line (trailing
+allowed, unlike legacy), `#wl` whole line including preceding code, `#Nl` N
+lines counting this one, `#Nld` this line plus N down. The oracle enforces
+them.
+
 ### 2026-09-17 — Empty list: `= []` typed, `:= [list.empty]` untyped (owner)
 
 Claude offered `= []` vs `= [list.empty]` for the typed form and recommended

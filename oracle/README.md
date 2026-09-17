@@ -38,6 +38,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - the default check tier: every integer operation is overflow-checked and
   every division zero-checked, because there is no Precog here to remove them
 - `print` shows the stored value (full binary expansion), `printu` the useful one
+- comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = [v];` element assignment; `var.list.T 'xs' = [];` and `var 'ys' := [list.empty];`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
@@ -62,7 +63,7 @@ had to make to run at all; none is a decision.
 
 ## Not implemented because not designed
 
-Comments, string iteration, structs,
+String iteration, structs,
 custom operators (`op`), the check-tier syntax (`check` / `nocheck`),
 boundary range annotations, Limb declaration and other Limbs, input, error
 handling, concurrency. Each is refused with a message naming it.
