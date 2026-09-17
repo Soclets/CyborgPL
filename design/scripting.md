@@ -27,8 +27,16 @@ it proves. So an iteration build is never *less* safe than the final one,
 only slower; the writer sees the same behaviour in both, and the final one
 is faster.
 
-Name: the owner wrote **N%** (2026-09-18); to be confirmed against the
-existing `nsharp` (N#) repo.
+## N% (owner, 2026-09-18)
+
+The scripting language is **N%** — its own language, distinct from both
+Cyborg and the owner's earlier N# (`nsharp`). **Its own syntax, not
+Cyborg's.** Designer-friendly; fast to compile; safest by default; does not
+care about performance until it is handed to Cyborg. The hand-off is
+therefore a real translation — N% source → CyborgPL source → Precog — not
+an insertion of defaults into Cyborg syntax; the translator is the
+component that has to be right, and the differential harness (N%'s own
+compiler vs. the lowered CyborgPL through the oracle) is how that is known.
 
 ## What it implies (open)
 
@@ -44,7 +52,6 @@ existing `nsharp` (N#) repo.
    same output — or the writer debugs a different program than they ship.
    The oracle is already that machine for lowered scripts; differential
    testing applies.
-4. **Syntax:** a strict subset of CyborgPL (lowering = inserting defaults;
-   a script writer graduates to Cyborg by adding chains), or its own.
-   Claude leans subset.
-5. **A name.**
+4. ~~Syntax~~ — decided: its own (above).
+5. ~~A name~~ — decided: N%.
+6. The translator N% → CyborgPL, and its verification.

@@ -246,7 +246,10 @@ itself, and that iteration compiler may assume what the real build will
 prove. Resolves the fast-edit-loop concern without a Cyborg dev mode. Its own
 iteration compiler **assumes the safest** (all checks on, nothing proven)
 and hands off to Cyborg only for the final-product build (owner,
-2026-09-18). Name given as "N%" — to confirm vs the `nsharp` repo. Open:
+2026-09-18). Named **N%**: a separate language from both Cyborg and N#, with its own
+designer-friendly syntax, fast compile, safest-by-default, performance
+deferred to the Cyborg hand-off (owner, 2026-09-18). The hand-off is a
+real translator. Open:
 what exactly is hidden, boundary defaults, iteration/real-build agreement,
 subset-or-own syntax, name. See [design/scripting.md](design/scripting.md).
 
@@ -539,7 +542,7 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
-- Scripting language: hidden surface, boundary defaults, subset vs own syntax, name. (owner's direction, 2026-09-18)
+- N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
