@@ -20,15 +20,39 @@ programmer only says which at a boundary.
 `[72, 95, 38]` — comma-separated values in a bracket. `[7,]` is a one-element
 list (`[7]` is the number seven). `[[1, 2], [3, 4]]` nests.
 
-## Indexing — 1-based
+## Indexing — `pos`, 1-based
 
-`'xs'[1]` is the first element; `'xs'[0]` does not exist and is an error.
-The index is an ordinal, the way people count. This lines up with inclusive
-ranges: `loop.temp.range 'i' [:= 1, := list.length[lend 'xs']]` walks the
-whole list with no `- 1` anywhere. An out-of-range index is a runtime check
-in the default tier, proven away by Precog where it can be.
+`'xs'[pos 1]` is the first element; `'xs'[pos 0]` does not exist and is an
+error. `pos` is mandatory on every index (decided 2026-09-17): it says the
+number is a *position*, so a reader never wonders whether `2` means "the
+second" or "the value 2". The position is an ordinal, the way people count,
+which lines up with inclusive ranges:
+`loop.temp.range 'i' [:= 1, := list.length[lend 'xs']]` walks the whole list
+with no `- 1` anywhere. An out-of-range position is a runtime check in the
+default tier, proven away by Precog where it can be.
 
-Assigning to an element (`'xs'[2] = […]`) is **not designed yet**.
+**Element assignment** (decided 2026-09-17) is the same shape on the left of `=`:
+
+```
+'xs'[pos 2] = [5];
+```
+
+The list must be assignable (not `immut`, not a shared `lent`); the position
+is range-checked; the value obeys the ownership verbs (an owned value is
+`give`n or `copy`d in). Works on `array` too — writing into a slot is not
+growth.
+
+Selecting by *value* (`'xs'[value-is 2]`) was considered and dropped: it is a
+search, and a search is a loop the reader should see —
+
+```
+loop.perm.range 'i' [:= 1, := list.length[lend 'xs']] {
+    if ['xs'[pos 'i'] == 2] { break; }
+}
+'xs'[pos 'i'] = [5];
+```
+
+— which the `perm` counter makes three plain lines.
 
 ## Operations — the type name as the chain's head
 
@@ -51,7 +75,6 @@ fresh value, a `copy`, or a `give` — never a lend.
 
 ## Open
 
-- Element assignment.
 - Stating a length at a boundary (a list from input) — the range-annotation
   question.
 - The empty list: `[]` is not a value; an empty list is only possible in the

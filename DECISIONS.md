@@ -252,6 +252,14 @@ idea, "`list.` might just fit our lang"), `length` spelled out (owner: "`.length
 is better" than `len`). Language operations, not std. Element assignment,
 empty list, boundary lengths remain open. See [design/lists.md](design/lists.md).
 
+### 2026-09-17 — `pos` on every index; element assignment `'xs'[pos i] = […];` (owner)
+
+Owner proposed `'xs'[pos 2]` and `'xs'[value-is 2]`. `pos` adopted everywhere
+(reads and writes) — the bare `'xs'[2]` form is gone. `value-is` dropped:
+Claude noted it hides a search with unanswered multiple-match questions;
+owner: "can't you just use `if` for that one?" — a `perm` range loop finds
+the position, then `pos` writes. No `list.find`. See [design/lists.md](design/lists.md).
+
 ### 2026-09-17 — Range loops; `temp`/`perm` mandatory on `for` and `range` (owner)
 
 `loop.temp.range 'i' [:= 0, := 1000] { }` — owner's shape. Decided one by
@@ -491,7 +499,7 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
-- Lists: element assignment (`'xs'[2] = […]`), the empty list's spelling, stating a length at a boundary. (Claude, 2026-09-17)
+- Lists: the empty list's spelling, stating a length at a boundary. (Claude, 2026-09-17)
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)

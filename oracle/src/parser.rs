@@ -6,7 +6,7 @@ use crate::lexer::{Tok, Token};
 pub const KEYWORDS: &[&str] = &[
     "func", "var", "return", "if", "else", "loop", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array",
+    "temp", "perm", "range", "seq", "list", "array", "pos",
 ];
 
 const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
@@ -242,10 +242,17 @@ impl Parser {
             },
             Tok::Var(name) => {
                 self.advance();
+                if *self.peek() == Tok::LBracket {
+                    // 'xs'[pos i] = [v];  (decided 2026-09-17)
+                    let idx = self.index_bracket(&name)?;
+                    self.expect(Tok::Eq, "`=` after the element")?;
+                    let value = self.bracket()?;
+                    self.expect(Tok::Semi, "`;`")?;
+                    return Ok(Stmt::AssignElem { name, index: idx, value, line });
+                }
                 match self.peek() {
                     Tok::Eq => {}
                     Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq => return self.err(format!("`:=` declares; to assign to the existing '{name}' write `'{name}' = […];` (to shadow it, `var '{name}' $:= […];`)")),
-                    Tok::LBracket => return self.err(format!("assigning to an element ('{name}'[…] = …) is not designed yet")),
                     other => return self.err(format!("expected `=` after '{name}', found {other}")),
                 }
                 self.advance();
@@ -399,6 +406,17 @@ impl Parser {
         }
         let args = self.bracket()?;
         Ok(Call { limb, path, args, line })
+    }
+
+    // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
+    fn index_bracket(&mut self, name: &str) -> PResult<Expr> {
+        self.expect(Tok::LBracket, "`[`")?;
+        if !self.is_word("pos") { return self.err(format!("an index says it is a position: `'{name}'[pos 2]`")); }
+        self.advance();
+        let idx = self.expr()?;
+        if *self.peek() == Tok::Comma { return self.err(format!("an index is one position: `'{name}'[pos 3]`")); }
+        self.expect(Tok::RBracket, "`]` after the position")?;
+        Ok(idx)
     }
 
     // builtin := ('list' | 'array') '.' Word bracket
@@ -591,11 +609,7 @@ impl Parser {
             Tok::Var(v) => {
                 self.advance();
                 if *self.peek() == Tok::LBracket {
-                    // 'xs'[i] — 1-based indexing (decided 2026-09-17)
-                    self.advance();
-                    let idx = self.expr()?;
-                    if *self.peek() == Tok::Comma { return self.err("an index is one value: `'xs'[3]`"); }
-                    self.expect(Tok::RBracket, "`]` after the index")?;
+                    let idx = self.index_bracket(&v)?;
                     return Ok(Expr::Index(v, Box::new(idx), line));
                 }
                 Ok(Expr::Var(v, line))

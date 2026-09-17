@@ -67,6 +67,8 @@ pub enum Stmt {
     Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, shadow: bool, line: usize },
     /// `'x' = [v];`
     Assign { name: String, value: Bracket, line: usize },
+    /// `'xs'[pos i] = [v];`
+    AssignElem { name: String, index: Expr, value: Bracket, line: usize },
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },
     Loop { body: Vec<Stmt>, line: usize },
     While { cond: Bracket, body: Vec<Stmt>, line: usize },
@@ -123,7 +125,7 @@ pub enum Expr {
     Call(Call),
     /// a `[ ]` used as a value inside another bracket: a list literal, or just grouping
     Nested(Bracket),
-    /// `'xs'[i]` — 1-based
+    /// `'xs'[pos i]` — 1-based
     Index(String, Box<Expr>, usize),
     /// `list.length[…]`, `list.append[…]`, `list.remove[…]`, `array.length[…]`
     Builtin(String, String, Bracket, usize),

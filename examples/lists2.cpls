@@ -8,7 +8,7 @@ func.int32 sum [lent.list.int32 'items'] {
 
 MAIN {
     var.list.int32 'xs' = [10, 20, 30];
-    std::printu.stdout["first " 'xs'[1] ", last " 'xs'[3] \n];
+    std::printu.stdout["first " 'xs'[pos 1] ", last " 'xs'[pos 3] \n];
     var 'n' := [list.length[lend 'xs']];
     std::printu.stdout["length " 'n' \n];
     list.append[lend.mut 'xs', 40];
@@ -16,11 +16,16 @@ MAIN {
     std::printu.stdout['xs' " length " (list.length[lend 'xs']) \n];
     std::printu.stdout["sum " (sum[lend 'xs']) \n];
     loop.temp.range 'i' [:= 1, := list.length[lend 'xs']] {
-        std::printu.stdout['xs'['i'] " "];
+        std::printu.stdout['xs'[pos 'i'] " "];
     }
     std::print.stdout[\n];
     var.array.str.utf8 'days' = ["mon", "tue"];
-    std::print.stdout['days'[2] " of " (array.length[lend 'days']) \n];
+    std::print.stdout['days'[pos 2] " of " (array.length[lend 'days']) \n];
     var 'grid' := [[1, 2], [3, 4]];
-    std::printu.stdout['grid'[2] \n];
+    std::printu.stdout['grid'[pos 2] \n];
+    loop.perm.range 'i' [:= 1, := list.length[lend 'xs']] {
+        if ['xs'[pos 'i'] == 30] { break; }
+    }
+    'xs'[pos 'i'] = [33];
+    std::printu.stdout['xs' \n];
 }

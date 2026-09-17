@@ -162,6 +162,31 @@ impl<'p> Interp<'p> {
                 *slot.cell.borrow_mut() = v;
                 Ok(Flow::Normal)
             }
+            Stmt::AssignElem { name, index, value, line } => {
+                let (kind, ty, immut, cell) = match self.lookup(name) {
+                    Some(s) => (s.kind, s.ty.clone(), s.immut, s.cell.clone()),
+                    None => return rt(*line, format!("'{name}' is not declared")),
+                };
+                if immut { return rt(*line, format!("'{name}' is `immut`; its elements cannot be assigned to")); }
+                if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); its elements cannot be assigned to — a `lent.mut` could")); }
+                let (i, _) = self.eval(index)?;
+                let i = match i { Value::Int(i) => i, other => return rt(*line, format!("a position is an integer, got {}", other.kind())) };
+                let (v, prov) = self.bracket(value, *line)?;
+                match prov {
+                    Prov::Bare(n) => return rt(*line, format!("storing bare '{n}' into '{name}': say `give '{n}'` or `copy '{n}'`")),
+                    Prov::Borrowed(..) => return rt(*line, "a list owns its elements; store a `copy` or `give`, not a lend"),
+                    _ => {}
+                }
+                let elem_ty = match &ty { Some(Ty::List(t)) | Some(Ty::Array(t)) => Some((**t).clone()), _ => None };
+                let v = self.fit(v, prov, elem_ty.as_ref(), *line)?;
+                let mut cur = cell.borrow_mut();
+                let items = match &mut *cur { Value::List(items) => items, other => return rt(*line, format!("'{name}' is {}, not a list or array", other.kind())) };
+                if i < 1 || i as usize > items.len() {
+                    return rt(*line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {}) — default check tier", items.len(), items.len()));
+                }
+                items[(i - 1) as usize] = v;
+                Ok(Flow::Normal)
+            }
             Stmt::If { arms, otherwise, line } => {
                 for (cond, body) in arms {
                     if self.cond(cond, *line)? { return self.block(body); }
@@ -466,9 +491,9 @@ impl<'p> Interp<'p> {
                 let items = match v { Value::List(items) => items, other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())) };
                 let (i, _) = self.eval(idx)?;
                 let i = match i { Value::Int(i) => i, other => return rt(line, format!("an index is an integer, got {}", other.kind())) };
-                // 1-based (decided 2026-09-17): 'xs'[1] is the first; 'xs'[0] does not exist.
+                // 1-based (decided 2026-09-17): 'xs'[pos 1] is the first; 'xs'[pos 0] does not exist.
                 if i < 1 || i as usize > items.len() {
-                    return rt(line, format!("index {i} is out of range for '{name}', which has {} element(s) (1 to {}) — default check tier", items.len(), items.len()));
+                    return rt(line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {}) — default check tier", items.len(), items.len()));
                 }
                 let item = items[(i - 1) as usize].clone();
                 let prov = if item.is_owned() { Prov::Bare(format!("{name}'[{i}]'")) } else { Prov::Plain };

@@ -1,4 +1,4 @@
 MAIN {
     var 'xs' := [1, 2, 3];
-    std::printu.stdout['xs'[0]];
+    std::printu.stdout['xs'[pos 0]];
 }
