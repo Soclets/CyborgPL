@@ -171,8 +171,11 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             continue;
         }
 
-        // numbers: digits, `_` grouping, optional fraction
+        // numbers: digits, `_` grouping, optional fraction; no leading zeros
         if c.is_ascii_digit() {
+            if c == '0' && i + 1 < chars.len() && chars[i + 1].is_ascii_digit() {
+                return err(tl, tc, "a number does not start with 0 (leading zeros are not allowed)".into());
+            }
             let mut s = String::new();
             let mut is_bin = false;
             while i < chars.len() {

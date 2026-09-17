@@ -76,6 +76,10 @@ std::print.stdout['s' 'x' \n];
   own pieces: `printu["x is " 'x']` prints `x is 0.1`.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; without it, an error. `immut` names cannot be shadowed.
+- **Numbers** (decided 2026-09-17): digit grouping is `_` only
+  (`1_000_000`); a number followed by `,` and more digits (`1,000`) is an
+  error that points at `_`, not a two-element list; leading zeros (`000`,
+  `007`) are illegal.
 - **Comments** (decided 2026-09-17), all beginning with `#`:
   - `#` — from here to the end of the line (trailing is fine).
   - `#wl` — the *whole line*, including any code before the `#`.

@@ -252,6 +252,12 @@ idea, "`list.` might just fit our lang"), `length` spelled out (owner: "`.length
 is better" than `len`). Language operations, not std. Element assignment,
 empty list, boundary lengths remain open. See [design/lists.md](design/lists.md).
 
+### 2026-09-17 — `1,000` is an error; leading zeros are illegal (owner)
+
+A number followed by a comma and digits is an error pointing at `_`, rather
+than the list `[1, 0]` the rules would otherwise make it; `000`/`007` are
+not numbers. Surfaced by the OCaml oracle experiment.
+
 ### 2026-09-17 — Ownership verbs on a plain value are an error (owner)
 
 `give 'n'` on an integer is a compile error, not a no-op: a plain value owns
@@ -517,7 +523,6 @@ for JetPack, always containing analysable source, never an opaque binary
 ## Open questions
 
 **Language — surfaced by the second (OCaml) oracle, 2026-09-17**
-- `[1,000]`: by the rules it is the list `[1, 0]`; the Rust oracle rejects it with a "use `_`" hint. Should that hint be the rule? And are leading zeros in a literal (`000`, `007`) allowed? (Claude, 2026-09-17)
 
 **Language — surfaced by the oracle**
 

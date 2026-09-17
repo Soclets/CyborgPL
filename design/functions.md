@@ -116,7 +116,8 @@ is written with a trailing comma, since `[1]` is the number: `[1,]`
 
 ## Numbers
 
-Digit grouping uses `_`, never `,`: `[1_000_000]`.
+Digit grouping uses `_`, never `,`: `[1_000_000]`. Writing `1,000` is an
+error (decided 2026-09-17), not the list `[1, 0]`; leading zeros are illegal.
 
 ## Still open
 
