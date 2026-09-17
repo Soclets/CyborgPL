@@ -68,7 +68,10 @@ pub enum Stmt {
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },
     Loop { body: Vec<Stmt>, line: usize },
     While { cond: Bracket, body: Vec<Stmt>, line: usize },
-    For { name: String, seq: bool, over: Bracket, body: Vec<Stmt>, line: usize },
+    /// `loop.temp.for` / `loop.perm.for`: `perm` keeps the variable after the loop
+    For { name: String, perm: bool, seq: bool, over: Bracket, body: Vec<Stmt>, line: usize },
+    /// `loop.temp.range 'i' [:= start, := stop, := step] { }` — inclusive stop
+    Range { name: String, perm: bool, seq: bool, ty: Option<Ty>, bounds: Bracket, body: Vec<Stmt>, line: usize },
     Break { line: usize },
     Continue { line: usize },
     Return { value: Option<Bracket>, line: usize },

@@ -238,6 +238,21 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
+### 2026-09-17 — Range loops; `temp`/`perm` mandatory on `for` and `range` (owner)
+
+`loop.temp.range 'i' [:= 0, := 1000] { }` — owner's shape. Decided one by
+one: stop is **inclusive** ("what the writer sees": start from, stop at);
+`temp`/`perm` **mandatory**; after `perm` the variable holds whatever the
+loop last gave it (Claude's rule, owner confirmed); typed form
+`loop.temp.range.int32 'i' [= 0, = 1000]` with the type last in the chain
+(owner chose over `range`-last); `temp`/`perm` apply to `for` too; chain
+order `loop.temp.seq.range.int32`; the body cannot assign to the counter
+(Claude explained why; owner accepted); **step** exists as a third slot;
+descending is a **negative step**; step 0 is an error. Parked: index
+alongside element (needs indexing). Skipped: labelled `break`, character
+ranges. `std::range[…]` as a value is superseded. The oracle enforces all of
+it; see [design/control-flow.md](design/control-flow.md).
+
 ### 2026-09-16 — No development mode; Precog is optimised, never bypassed (owner)
 
 Another session suggested a quicker path for everyday edits. Owner: "making
@@ -463,7 +478,6 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - Lists beyond the literal: a type name for the typed form (`list.int32`?), indexing (and its base), length/append spelling, fixed-size vs growable. (Claude, 2026-09-14)
-- Range values (`std::range[0, 10]` vs an operator). (Claude, 2026-09-14)
 - Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)

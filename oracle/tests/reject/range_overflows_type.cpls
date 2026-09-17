@@ -1,0 +1,4 @@
+MAIN {
+    loop.temp.range.int8 'i' [= 120, = 130] {
+    }
+}

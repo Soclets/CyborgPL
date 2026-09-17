@@ -40,6 +40,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
+- `loop.temp|perm.for` and `loop.temp|perm.range 'i' [:= a, := b, := step]`: inclusive stop, `perm` keeps the last value, the counter/element cannot be assigned
 - `var.immut` cannot be assigned to; `var.mut` is accepted and changes nothing
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list
 

@@ -20,7 +20,7 @@ MAIN {
     var 'evens' := [0];
     var 'best' := [0];
 
-    loop.for 'score' in [lend 'scores'] {
+    loop.temp.for 'score' in [lend 'scores'] {
         'count' = ['count' + 1];
         'total' = ['total' + 'score'];
         if [is_even['score']] {

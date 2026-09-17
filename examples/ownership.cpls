@@ -1,6 +1,6 @@
 func.int32 count [lent 'items'] {
     var 'n' := [0];
-    loop.for 'item' in [lend 'items'] {
+    loop.temp.for 'item' in [lend 'items'] {
         'n' = ['n' + 1];
     }
     return ['n'];

@@ -16,7 +16,7 @@ MAIN {
         std::printu.stdout["loop " 'n' \n];
     }
     var 'chars' := [`a`, `é`, `🍎`];
-    loop.for.seq 'c' in [lend 'chars'] {
+    loop.temp.seq.for 'c' in [lend 'chars'] {
         std::print.stdout['c' \n];
     }
     std::exit[3];

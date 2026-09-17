@@ -148,7 +148,7 @@ impl<'p> Interp<'p> {
                     Some(s) => (s.kind, s.ty.clone(), s.immut),
                     None => return rt(*line, format!("'{name}' is not declared")),
                 };
-                if immut { return rt(*line, format!("'{name}' was declared `immut`; it cannot be assigned to")); }
+                if immut { return rt(*line, format!("'{name}' cannot be assigned to: it is `immut` (a loop's counter or element belongs to the loop)")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 let (v, prov) = self.bracket(value, *line)?;
                 match prov {
@@ -186,11 +186,16 @@ impl<'p> Interp<'p> {
                 }
                 Ok(Flow::Normal)
             }
-            Stmt::For { name, over, body, line, .. } => {
+            Stmt::For { name, perm, over, body, line, .. } => {
                 let (items, kind) = self.for_source(over, *line)?;
+                // perm: the variable outlives the loop, holding whatever the loop last gave it.
+                let cell = Rc::new(RefCell::new(Value::Nothing));
+                let mut ran = false;
                 for item in items {
+                    ran = true;
+                    *cell.borrow_mut() = item;
                     self.push();
-                    let r = self.declare(name, Slot { cell: Rc::new(RefCell::new(item)), ty: None, kind, alive: true, immut: false }, *line)
+                    let r = self.declare(name, Slot { cell: cell.clone(), ty: None, kind, alive: true, immut: true }, *line)
                         .and_then(|_| self.stmts(body));
                     self.pop();
                     match r? {
@@ -198,6 +203,49 @@ impl<'p> Interp<'p> {
                         Flow::Return(v) => return Ok(Flow::Return(v)),
                         Flow::Normal | Flow::Continue => {}
                     }
+                }
+                if *perm {
+                    if !ran { return rt(*line, format!("`perm` '{name}' would outlive a loop over an empty list, but was never given a value")); }
+                    self.declare(name, Slot { cell, ty: None, kind: SlotKind::Owned, alive: true, immut: false }, *line)?;
+                }
+                Ok(Flow::Normal)
+            }
+            Stmt::Range { name, perm, ty, bounds, body, line, .. } => {
+                let mut nums = Vec::new();
+                for v in &bounds.values {
+                    let (val, prov) = self.value(v)?;
+                    let val = self.fit(val, prov, ty.as_ref(), *line)?;
+                    match val {
+                        Value::Int(i) => nums.push(i),
+                        other => return rt(*line, format!("a range bound must be an integer, got {}", other.kind())),
+                    }
+                }
+                let (start, stop) = (nums[0], nums[1]);
+                let step = if nums.len() == 3 { nums[2] } else { 1 };
+                if step == 0 { return rt(*line, "a range step of 0 would never end"); }
+                // Inclusive stop (decided 2026-09-17): 'i' reaches the stop value.
+                let cell = Rc::new(RefCell::new(Value::Int(start)));
+                let mut i = start;
+                let mut broke = false;
+                while (step > 0 && i <= stop) || (step < 0 && i >= stop) {
+                    if let Some(t) = ty { self.check_type(&Value::Int(i), t, *line)?; }
+                    *cell.borrow_mut() = Value::Int(i);
+                    self.push();
+                    let r = self.declare(name, Slot { cell: cell.clone(), ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut: true }, *line)
+                        .and_then(|_| self.stmts(body));
+                    self.pop();
+                    match r? {
+                        Flow::Break => { broke = true; break; }
+                        Flow::Return(v) => return Ok(Flow::Return(v)),
+                        Flow::Normal | Flow::Continue => {}
+                    }
+                    match i.checked_add(step) { Some(n) => i = n, None => break }
+                }
+                let _ = broke;
+                if *perm {
+                    // 'i' keeps whatever the loop last gave it: the last value the body ran
+                    // with, or the start if the body never ran.
+                    self.declare(name, Slot { cell, ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut: false }, *line)?;
                 }
                 Ok(Flow::Normal)
             }

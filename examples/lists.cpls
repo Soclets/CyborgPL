@@ -1,6 +1,6 @@
 func.int32 count [lent 'items'] {
     var 'n' := [0];
-    loop.for 'item' in [lend 'items'] {
+    loop.temp.for 'item' in [lend 'items'] {
         'n' = ['n' + 1];
     }
     return ['n'];
@@ -9,7 +9,7 @@ func.int32 count [lent 'items'] {
 MAIN {
     var 'grid' := [[1, 2], [3, 4]];
     std::printu.stdout['grid' \n];
-    loop.for 'row' in [lend 'grid'] {
+    loop.temp.for 'row' in [lend 'grid'] {
         std::printu.stdout[(count[lend 'row']) \n];
     }
     std::printu.stdout[(count[["a", "b", "c"]]) \n];

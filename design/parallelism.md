@@ -32,9 +32,10 @@ A loop that is parallel-safe but must run in order for an external reason
 (writing lines to a file, driving a device) opts out with a chain segment:
 
 ```
-loop.for.seq 'line' in [lend 'lines'] {
+loop.temp.seq.for 'line' in [lend 'lines'] {
     std::print.stdout['line' \n];
 }
 ```
 
 This is the entire parallelism syntax of v1: one word, for saying no.
+(`seq` sits after `temp`/`perm` in the chain — see `control-flow.md`.)

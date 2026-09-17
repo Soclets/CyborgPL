@@ -6,6 +6,7 @@ use crate::lexer::{Tok, Token};
 pub const KEYWORDS: &[&str] = &[
     "func", "var", "return", "if", "else", "loop", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
+    "temp", "perm", "range", "seq",
 ];
 
 const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
@@ -209,7 +210,7 @@ impl Parser {
                 "else" => self.err("`else` without an `if`"),
                 "check" | "nocheck" => self.err("the check tiers are decided but their syntax is not; the oracle refuses them for now"),
                 "give" | "copy" | "lend" => self.err(format!("`{w}` belongs inside a value: `'s' = [{w} 't'];`")),
-                "while" | "for" if matches!(self.peek_at(1), Tok::LBracket | Tok::Var(_)) => self.err(format!("loops are narrowed from `loop`: `loop.{w}`")),
+                "while" | "for" if matches!(self.peek_at(1), Tok::LBracket | Tok::Var(_)) => self.err(format!("loops are narrowed from `loop`: `loop.{w}` / `loop.temp.{w}`")),
                 _ => {
                     let call = self.call()?;
                     self.expect(Tok::Semi, "`;` after the call")?;
@@ -281,8 +282,11 @@ impl Parser {
         Ok(Stmt::If { arms, otherwise, line })
     }
 
-    // loop := 'loop' block | 'loop' '.' 'while' bracket block
-    //       | 'loop' '.' 'for' ('.' 'seq')? Var 'in' bracket block
+    // loop := 'loop' block
+    //       | 'loop' '.' 'while' bracket block
+    //       | 'loop' '.' ('temp'|'perm') ('.' 'seq')? '.' 'for' Var 'in' bracket block
+    //       | 'loop' '.' ('temp'|'perm') ('.' 'seq')? '.' 'range' ('.' type)? Var bracket block
+    // temp/perm is mandatory on for and range (decided 2026-09-17).
     fn loop_stmt(&mut self) -> PResult<Stmt> {
         let line = self.line();
         self.expect_word("loop")?;
@@ -290,26 +294,65 @@ impl Parser {
             return Ok(Stmt::Loop { body: self.block()?, line });
         }
         self.advance();
-        let kind = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected `while` or `for` after `loop.`, found {other}")) };
+        let first = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected `while`, `temp`, or `perm` after `loop.`, found {other}")) };
+        match first.as_str() {
+            "while" => return Ok(Stmt::While { cond: self.bracket()?, body: self.block()?, line }),
+            "for" | "range" => return self.err(format!("`loop.{first}` says whether its variable outlives the loop: `loop.temp.{first}` or `loop.perm.{first}`")),
+            "seq" => return self.err("`seq` comes after `temp`/`perm`: `loop.temp.seq.for`"),
+            "temp" | "perm" => {}
+            other => return self.err(format!("`loop.{other}` does not exist; loops are `loop`, `loop.while`, `loop.temp/perm.for`, `loop.temp/perm.range`")),
+        }
+        let perm = first == "perm";
+        self.expect(Tok::Dot, "`.` after `temp`/`perm`")?;
+        let mut kind = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected `seq`, `for`, or `range`, found {other}")) };
+        let mut seq = false;
+        if kind == "seq" {
+            seq = true;
+            self.expect(Tok::Dot, "`.for` or `.range` after `seq`")?;
+            kind = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected `for` or `range` after `seq.`, found {other}")) };
+        }
         match kind.as_str() {
-            "while" => Ok(Stmt::While { cond: self.bracket()?, body: self.block()?, line }),
             "for" => {
-                let mut seq = false;
-                if *self.peek() == Tok::Dot {
-                    self.advance();
-                    match self.advance().tok {
-                        Tok::Word(w) if w == "seq" => seq = true,
-                        other => return self.err(format!("the only narrowing of `loop.for` is `.seq`, found {other}")),
-                    }
-                }
+                if *self.peek() == Tok::Dot { return self.err("`loop.for` takes no type; the element's type is the list's"); }
                 let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted loop variable, found {other}")) };
                 self.expect_word("in")?;
                 let over = self.bracket()?;
                 let body = self.block()?;
-                Ok(Stmt::For { name, seq, over, body, line })
+                Ok(Stmt::For { name, perm, seq, over, body, line })
             }
-            other => self.err(format!("`loop.{other}` does not exist; loops are `loop`, `loop.while`, `loop.for`")),
+            "range" => {
+                let ty = if *self.peek() == Tok::Dot { self.advance(); Some(self.ty()?) } else { None };
+                let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted counter name, found {other}")) };
+                let bounds = self.range_bounds(ty.is_some())?;
+                let body = self.block()?;
+                Ok(Stmt::Range { name, perm, seq, ty, bounds, body, line })
+            }
+            other => self.err(format!("`loop.{first}.{other}` does not exist; after `temp`/`perm` comes `for` or `range`")),
         }
+    }
+
+    // range bounds := '[' bind value ',' bind value (',' bind value)? ']'
+    // where bind is `:=` (no type in the chain) or `=` (type in the chain).
+    fn range_bounds(&mut self, typed: bool) -> PResult<Bracket> {
+        let line = self.line();
+        self.expect(Tok::LBracket, "`[` to open the range bounds")?;
+        let mut values = Vec::new();
+        loop {
+            match (self.peek().clone(), typed) {
+                (Tok::Walrus, false) | (Tok::Eq, true) => { self.advance(); }
+                (Tok::Walrus, true) => return self.err("`:=` means Precog chooses; with a type in the chain each bound is written `= value`"),
+                (Tok::Eq, false) => return self.err("`=` means you said everything; with no type in the chain each bound is written `:= value`"),
+                (other, _) => return self.err(format!("each range bound starts with `:=` (or `=` when typed), found {other}")),
+            }
+            values.push(Value::Expr(self.expr()?));
+            if *self.peek() == Tok::Comma { self.advance(); continue; }
+            break;
+        }
+        self.expect(Tok::RBracket, "`]`")?;
+        if values.len() < 2 || values.len() > 3 {
+            return Err(ParseError { line, col: 0, msg: format!("a range is `[:= start, := stop]` or `[:= start, := stop, := step]`, not {} value(s)", values.len()) });
+        }
+        Ok(Bracket { values, line, one_list: false })
     }
 
     // call := (Word '::')? Word ('.' Word)* bracket

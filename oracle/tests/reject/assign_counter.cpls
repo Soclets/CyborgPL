@@ -1,0 +1,5 @@
+MAIN {
+    loop.temp.range 'i' [:= 0, := 3] {
+        'i' = ['i' + 1];
+    }
+}

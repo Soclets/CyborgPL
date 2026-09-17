@@ -1,0 +1,33 @@
+MAIN {
+    loop.temp.range 'i' [:= 1, := 3] {
+        std::printu.stdout['i' " "];
+    }
+    std::print.stdout[\n];
+    loop.temp.range 'k' [:= 0, := 10, := 5] {
+        std::printu.stdout['k' " "];
+    }
+    std::print.stdout[\n];
+    loop.temp.range 'd' [:= 3, := 1, := -1] {
+        std::printu.stdout['d' " "];
+    }
+    std::print.stdout[\n];
+    loop.perm.range 'stop' [:= 0, := 100] {
+        if [('stop' x 'stop') > 50] { break; }
+    }
+    std::printu.stdout["stopped at " 'stop' \n];
+    loop.perm.range 'never' [:= 5, := 2] {
+        std::print.stdout["unreachable" \n];
+    }
+    std::printu.stdout["never ran, holds " 'never' \n];
+    loop.perm.range 'done' [:= 0, := 3] {
+    }
+    std::printu.stdout["ran out, holds " 'done' \n];
+    loop.temp.range.int8 'b' [= 126, = 127] {
+        std::printu.stdout['b' " "];
+    }
+    std::print.stdout[\n];
+    var 'words' := ["a", "b", "c"];
+    loop.perm.for 'w' in [lend 'words'] {
+    }
+    std::print.stdout["last word " 'w' \n];
+}
