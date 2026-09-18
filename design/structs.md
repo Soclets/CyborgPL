@@ -50,9 +50,11 @@ shared `lent`), the field must not be `immut`.
 
 ## Ownership
 
-A struct holding an owned field (a `str`, a list, another such struct) is an
-owned value; `give` / `copy` / `lend` / `lend.mut` apply to the whole as
-usual. For the parts:
+**A struct is always an owned value** (decided 2026-09-18), even when every
+field is plain: a struct owns its fields, so `give` / `copy` / `lend` /
+`lend.mut` always apply to the whole. One rule, and adding a `str` field
+later never changes how the struct is passed around. Precog elides the
+copies it can prove unnecessary. For the parts:
 
 - A plain-value field (`'mine'.number`) copies freely, like any plain value.
 - An owned field needs a verb: `copy 'mine'.name`, `lend 'mine'.name`.

@@ -41,7 +41,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
-- `struct Name { type 'f' … }`, construction by field name with every field bracketed, `'s'.f` read / `'s'.f = [v];` write, `immut.` fields, `give 's'.f` consumes the whole variable
+- `struct Name { type 'f' … }`, construction by field name with every field bracketed, `'s'.f` read / `'s'.f = [v];` write, `immut.` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
 - `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = [v];` element assignment; `var.list.T 'xs' = [];` and `var 'ys' := [list.empty];`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
 - `loop.temp|perm.for` and `loop.temp|perm.range 'i' [:= a, := b, := step]`: inclusive stop, `perm` keeps the last value, the counter/element cannot be assigned
 - `var.immut` cannot be assigned to; `var.mut` is accepted and changes nothing
@@ -62,7 +62,6 @@ had to make to run at all; none is a decision.
 | `deci`, `bin128`, `uint128`'s top half, `std::uer` | — | Parsed, refused at run time as not implemented |
 
 
-| A struct value is always *owned* (needs give/copy/lend), even when every field is a plain value | `value.rs` `is_owned` | "A struct owns its fields"; the alternative — a struct of plain fields is itself plain — is undecided |
 
 ## Not implemented because not designed
 

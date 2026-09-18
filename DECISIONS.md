@@ -249,6 +249,13 @@ the no-exception form. Field access `'mine'.number` / `'mine'.number = [8];`
 **consumes the whole variable** — owner's design, replacing Claude's
 "forbid partial moves". See [design/structs.md](design/structs.md).
 
+### 2026-09-18 — A struct is always owned (owner)
+
+Even a struct of only plain fields needs the ownership verbs. Surfaced by
+the oracle; Claude laid out plain-when-fields-are vs always-owned and
+recommended always-owned (one rule; adding a field never changes call
+sites); owner chose always-owned.
+
 ### 2026-09-18 — Compiler names: Cyborg Chassis Assembler (CCA), Nowork (owner)
 
 The CyborgPL compiler is the **Cyborg Chassis Assembler**; N%'s compiler is
@@ -559,7 +566,6 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
-- Is a struct whose fields are all plain values itself plain (copies with no verb) or owned (needs give/copy/lend)? The oracle treats every struct as owned. (oracle, 2026-09-18)
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)

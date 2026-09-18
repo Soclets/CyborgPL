@@ -23,8 +23,8 @@ impl Value {
     pub fn is_owned(&self) -> bool {
         match self {
             Value::Str(_) | Value::List(_) | Value::Char(CharUnit::Grapheme, _) => true,
-            // Provisional: a struct is always an owned value, even when every field is plain
-            // (a struct owns its fields, so the verbs always apply). See oracle/README.md.
+            // Decided 2026-09-18: a struct is always an owned value, even when every
+            // field is plain — a struct owns its fields, so the verbs always apply.
             Value::Struct(..) => true,
             _ => false,
         }
