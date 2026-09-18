@@ -1,0 +1,5 @@
+struct P { str.utf8 'n' }
+MAIN {
+    var 'p' := [P['n' = ["a"]]];
+    var 't' := ['p'.n];
+}

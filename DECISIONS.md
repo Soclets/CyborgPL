@@ -559,6 +559,7 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language — surfaced by the oracle**
 
 **Language**
+- Is a struct whose fields are all plain values itself plain (copies with no verb) or owned (needs give/copy/lend)? The oracle treats every struct as owned. (oracle, 2026-09-18)
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)

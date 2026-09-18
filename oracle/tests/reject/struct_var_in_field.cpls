@@ -1,0 +1,3 @@
+struct P { var.int32 'x' }
+MAIN {
+}

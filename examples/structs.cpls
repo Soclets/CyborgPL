@@ -1,0 +1,37 @@
+struct Locker {
+    str.utf8 'name'
+    immut.int32 'number'
+    int32 'capacity'
+    bool 'occupied'
+}
+
+func.int32 free_space [lent.Locker 'l'] {
+    if ['l'.occupied] {
+        return [0];
+    }
+    return ['l'.capacity];
+}
+
+func claim [lent.mut.Locker 'l'] {
+    'l'.occupied = [true];
+}
+
+MAIN {
+    var 'mine' := [Locker['name' = ["field kit"], 'number' = [7], 'capacity' = [12], 'occupied' = [false]]];
+    std::printu.stdout['mine'.name " is #" 'mine'.number \n];
+    std::printu.stdout["free: " (free_space[lend 'mine']) \n];
+    claim[lend.mut 'mine'];
+    std::printu.stdout["free: " (free_space[lend 'mine']) \n];
+    'mine'.capacity = [20];
+    std::printu.stdout['mine' \n];
+    var 'label' := [copy 'mine'.name];
+    std::printu.stdout['label' \n];
+    var 'taken' := [give 'mine'.name];
+    std::printu.stdout['taken' \n];
+    var.Locker 'spare' = [Locker['name' = ["spare"], 'number' = [8], 'capacity' = [4], 'occupied' = [false]]];
+    var 'lockers' := [copy 'spare', Locker['name' = ["third"], 'number' = [9], 'capacity' = [4], 'occupied' = [true]]];
+    loop.temp.for 'l' in [lend 'lockers'] {
+        std::printu.stdout['l'.number " "];
+    }
+    std::print.stdout[\n];
+}

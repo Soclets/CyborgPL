@@ -1,0 +1,5 @@
+struct P { immut.int32 'id'  int32 'x' }
+MAIN {
+    var 'p' := [P['id' = [1], 'x' = [2]]];
+    'p'.id = [5];
+}

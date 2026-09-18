@@ -6,7 +6,7 @@ use crate::lexer::{Tok, Token};
 pub const KEYWORDS: &[&str] = &[
     "func", "var", "return", "if", "else", "loop", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct",
 ];
 
 const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
@@ -51,11 +51,13 @@ impl Parser {
     // program := (func | MAIN block)* Eof
     pub fn program(&mut self) -> PResult<Program> {
         let mut funcs = Vec::new();
+        let mut structs = Vec::new();
         let mut main = None;
         loop {
             match self.peek().clone() {
                 Tok::Eof => break,
                 Tok::Word(w) if w == "func" => funcs.push(self.func()?),
+                Tok::Word(w) if w == "struct" => structs.push(self.struct_def()?),
                 Tok::Word(w) if w == "MAIN" => {
                     if main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
@@ -67,7 +69,42 @@ impl Parser {
                 other => return self.err(format!("expected `func` or `MAIN` at the top level, found {other}")),
             }
         }
-        Ok(Program { funcs, main })
+        Ok(Program { funcs, structs, main })
+    }
+
+    // struct := 'struct' Word '{' (('immut' '.')? type Var)* '}'   — no `;`, no `var`
+    fn struct_def(&mut self) -> PResult<StructDef> {
+        let line = self.line();
+        self.expect_word("struct")?;
+        let name = match self.advance().tok {
+            Tok::Word(w) => w,
+            Tok::Var(v) => return self.err(format!("a struct's name is bare — it is a type: `struct {v}`")),
+            other => return self.err(format!("expected a struct name, found {other}")),
+        };
+        if KEYWORDS.contains(&name.as_str()) { return self.err(format!("`{name}` is a keyword and cannot name a struct")); }
+        self.expect(Tok::LBrace, "`{`")?;
+        let mut fields = Vec::new();
+        while *self.peek() != Tok::RBrace {
+            if *self.peek() == Tok::Eof { return self.err("unclosed `struct {`"); }
+            if self.is_word("var") { return self.err("a struct field has no `var`: a struct always owns its fields — write `int32 'number'`"); }
+            let mut immut = false;
+            if self.is_word("immut") {
+                self.advance(); self.expect(Tok::Dot, "`.` after `immut` (`immut.int32 'n'`)")?; immut = true;
+            }
+            let ty = self.ty()?;
+            let fname = match self.advance().tok {
+                Tok::Var(v) => v,
+                Tok::Word(w) => return self.err(format!("a field is a variable, so it is quoted: `'{w}'`")),
+                other => return self.err(format!("expected a quoted field name, found {other}")),
+            };
+            if fields.iter().any(|f: &Field| f.name == fname) { return self.err(format!("field '{fname}' is declared twice")); }
+            if *self.peek() == Tok::Semi { return self.err("no `;` after a struct field — fields are not statements"); }
+            if *self.peek() == Tok::Comma { return self.err("no `,` between struct fields — one per line"); }
+            fields.push(Field { ty, name: fname, immut });
+        }
+        self.advance();
+        if fields.is_empty() { return self.err(format!("struct `{name}` has no fields")); }
+        Ok(StructDef { name, fields, line })
     }
 
     // func := 'func' ('.' type)? Word '[' params ']' block
@@ -191,7 +228,8 @@ impl Parser {
                 if let Some(n) = width(head, "uint") { return int_w(n).map(Ty::Uint).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; uint is 8/16/32/64/128"))); }
                 if let Some(n) = width(head, "bin") { return if [16, 32, 64, 128].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64/128")) }; }
                 if let Some(n) = width(head, "deci") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; deci is 32/64/128 (IEEE 754 defines only these)")) }; }
-                bad(self, format!("unknown type `{head}`"))
+                // anything else is a struct name; the interpreter checks it was declared
+                Ok(Ty::Struct(head.to_string()))
             }
         }
     }
@@ -249,6 +287,15 @@ impl Parser {
                     let value = self.bracket()?;
                     self.expect(Tok::Semi, "`;`")?;
                     return Ok(Stmt::AssignElem { name, index: idx, value, line });
+                }
+                if *self.peek() == Tok::Dot {
+                    // 'mine'.field = [v];  (decided 2026-09-18)
+                    self.advance();
+                    let field = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a field name after `'{name}'.`, found {other}")) };
+                    self.expect(Tok::Eq, "`=` after the field")?;
+                    let value = self.bracket()?;
+                    self.expect(Tok::Semi, "`;`")?;
+                    return Ok(Stmt::AssignField { name, field, value, line });
                 }
                 match self.peek() {
                     Tok::Eq => {}
@@ -618,6 +665,11 @@ impl Parser {
                     let idx = self.index_bracket(&v)?;
                     return Ok(Expr::Index(v, Box::new(idx), line));
                 }
+                if *self.peek() == Tok::Dot {
+                    self.advance();
+                    let field = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a field name after `'{v}'.`, found {other}")) };
+                    return Ok(Expr::Field(v, field, line));
+                }
                 Ok(Expr::Var(v, line))
             }
             Tok::LParen => {
@@ -641,7 +693,14 @@ impl Parser {
                         }
                     };
                     match self.advance().tok {
-                        Tok::Var(v) => Ok(Expr::Owned(verb, v, line)),
+                        Tok::Var(v) => {
+                            if *self.peek() == Tok::Dot {
+                                self.advance();
+                                let field = match self.advance().tok { Tok::Word(f) => f, other => return self.err(format!("expected a field name after `'{v}'.`, found {other}")) };
+                                return Ok(Expr::OwnedField(verb, v, field, line));
+                            }
+                            Ok(Expr::Owned(verb, v, line))
+                        }
                         other => self.err(format!("`{w}` takes a variable: `{w} 'name'`, found {other}")),
                     }
                 }
@@ -650,6 +709,25 @@ impl Parser {
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 _ if KEYWORDS.contains(&w.as_str()) => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
+                _ if matches!(self.peek_at(1), Tok::LBracket) && matches!(self.peek_at(2), Tok::Var(_)) && matches!(self.peek_at(3), Tok::Eq | Tok::Walrus) => {
+                    self.advance(); self.advance();
+                    let mut fields = Vec::new();
+                    loop {
+                        let fname = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted field name, found {other}")) };
+                        match self.peek() {
+                            Tok::Eq => { self.advance(); }
+                            Tok::Walrus => return self.err(format!("a field's type is fixed by the struct: `'{fname}' = […]`, not `:=`")),
+                            other => return self.err(format!("expected `=` after '{fname}', found {other}")),
+                        }
+                        if *self.peek() != Tok::LBracket { return self.err(format!("a field value wears `[ ]`: `'{fname}' = [{}]`", self.peek())); }
+                        let value = self.bracket()?;
+                        fields.push((fname, value));
+                        if *self.peek() == Tok::Comma { self.advance(); continue; }
+                        break;
+                    }
+                    self.expect(Tok::RBracket, "`]` to close the struct value")?;
+                    Ok(Expr::Construct(w, fields, line))
+                }
                 _ => Ok(Expr::Call(self.call()?)),
             },
             Tok::Eof => self.err("unexpected end of file inside a value"),

@@ -14,6 +14,21 @@ pub enum Ty {
     Char(CharUnit),
     List(Box<Ty>),    // growable
     Array(Box<Ty>),   // fixed-size
+    Struct(String),   // a declared blueprint, by name
+}
+
+#[derive(Debug, Clone)]
+pub struct Field {
+    pub ty: Ty,
+    pub name: String,
+    pub immut: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct StructDef {
+    pub name: String,
+    pub fields: Vec<Field>,
+    pub line: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,6 +71,7 @@ pub struct Func {
 #[derive(Debug, Clone)]
 pub struct Program {
     pub funcs: Vec<Func>,
+    pub structs: Vec<StructDef>,
     pub main: Option<Vec<Stmt>>,
 }
 
@@ -69,6 +85,8 @@ pub enum Stmt {
     Assign { name: String, value: Bracket, line: usize },
     /// `'xs'[pos i] = [v];`
     AssignElem { name: String, index: Expr, value: Bracket, line: usize },
+    /// `'mine'.field = [v];`
+    AssignField { name: String, field: String, value: Bracket, line: usize },
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },
     Loop { body: Vec<Stmt>, line: usize },
     While { cond: Bracket, body: Vec<Stmt>, line: usize },
@@ -129,6 +147,12 @@ pub enum Expr {
     Index(String, Box<Expr>, usize),
     /// `list.length[…]`, `list.append[…]`, `list.remove[…]`, `array.length[…]`
     Builtin(String, String, Bracket, usize),
+    /// `'mine'.field` — read a field
+    Field(String, String, usize),
+    /// `Locker['name' = […], …]` — construct a struct value by field name
+    Construct(String, Vec<(String, Bracket)>, usize),
+    /// `give 'mine'.field` / `copy 'mine'.field` / `lend 'mine'.field`
+    OwnedField(Verb, String, String, usize),
     Unary(String, Box<Expr>, usize),            // not, -
     Binary(String, Box<Expr>, Box<Expr>, usize),
     Paren(Box<Expr>, usize),
@@ -144,6 +168,9 @@ impl Expr {
             Expr::Nested(b) => b.line,
             Expr::Index(_, _, l) => *l,
             Expr::Builtin(_, _, _, l) => *l,
+            Expr::Field(_, _, l) => *l,
+            Expr::Construct(_, _, l) => *l,
+            Expr::OwnedField(_, _, _, l) => *l,
         }
     }
 }

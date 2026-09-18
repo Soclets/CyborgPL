@@ -12,6 +12,8 @@ pub enum Value {
     Str(String),
     Char(CharUnit, String),
     List(Vec<Value>),
+    /// a struct value: blueprint name + fields in declaration order
+    Struct(String, Vec<(String, Value)>),
     Nothing,
 }
 
@@ -19,7 +21,13 @@ impl Value {
     /// Owned values live on the heap and need give/copy/lend to move around
     /// (design/ownership-syntax.md). Plain values copy silently.
     pub fn is_owned(&self) -> bool {
-        matches!(self, Value::Str(_) | Value::List(_) | Value::Char(CharUnit::Grapheme, _))
+        match self {
+            Value::Str(_) | Value::List(_) | Value::Char(CharUnit::Grapheme, _) => true,
+            // Provisional: a struct is always an owned value, even when every field is plain
+            // (a struct owns its fields, so the verbs always apply). See oracle/README.md.
+            Value::Struct(..) => true,
+            _ => false,
+        }
     }
 
     pub fn kind(&self) -> &'static str {
@@ -30,6 +38,7 @@ impl Value {
             Value::Str(_) => "str",
             Value::Char(..) => "char",
             Value::List(_) => "list",
+            Value::Struct(..) => "struct",
             Value::Nothing => "nothing",
         }
     }
@@ -43,6 +52,7 @@ impl Value {
             Value::Str(s) => s.clone(),
             Value::Char(_, c) => c.clone(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
+            Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("'{k}' = [{}]", v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Nothing => "nothing".into(),
         }
     }
@@ -53,6 +63,7 @@ impl Value {
         match self {
             Value::Bin(b) => format!("{b}"),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
+            Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("'{k}' = [{}]", v.show_useful())).collect::<Vec<_>>().join(", ")),
             other => other.show_stored(),
         }
     }
@@ -89,6 +100,7 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Char(u) => format!("char.{}", match u { CharUnit::Byte => "byte", CharUnit::Point => "point", CharUnit::Grapheme => "grapheme" }),
         Ty::List(t) => format!("list.{}", ty_name(t)),
         Ty::Array(t) => format!("array.{}", ty_name(t)),
+        Ty::Struct(n) => n.clone(),
     }
 }
 
