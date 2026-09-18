@@ -238,6 +238,17 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
+### 2026-09-18 — Structs (owner)
+
+Blueprint `struct Name { type 'field' … }` — owner's shape: type first, no
+`var` (a struct always owns its fields; Claude's reasoning, owner agreed),
+no `;` (owner), `immut.` allowed on a field (owner: "allow it"). Values by
+field name, every field required, each value in its own `[ ]` — owner chose
+the no-exception form. Field access `'mine'.number` / `'mine'.number = [8];`
+(owner confirmed the dot). Ownership: `give` on a field allowed and it
+**consumes the whole variable** — owner's design, replacing Claude's
+"forbid partial moves". See [design/structs.md](design/structs.md).
+
 ### 2026-09-18 — Compiler names: Cyborg Chassis Assembler (CCA), Nowork (owner)
 
 The CyborgPL compiler is the **Cyborg Chassis Assembler**; N%'s compiler is
@@ -550,7 +561,6 @@ for JetPack, always containing analysable source, never an opaque binary
 **Language**
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
-- Structs / records — not designed. (Claude, 2026-09-14)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)
 - Custom operators: `op` definition shape, bare infix use, and the precedence rule (Claude recommends: no precedence anywhere, parentheses required when mixing different operators). (Claude, 2026-09-14)
