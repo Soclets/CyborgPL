@@ -66,6 +66,9 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
 - **Named like a variable, quoted**: `'pi'`, used in expressions as
   `'pi' x 2`, reached from another Limb as `mathstuff::'pi'` (owner,
   2026-09-19: "single quoted"). One rule — quotes mean a user-named value.
+- **The OS door is open to every Limb** (2026-09-19): `extern`, `ptr[T]`
+  and inline asm are base-language features (`ffi.md`); std is the
+  library everyone uses for them, not a privileged one.
 - **There is no public variable** (owner, 2026-09-19: "No public
   variable"). A Limb exposes constants, functions, and structs; state
   another Limb may read *and assign* does not exist. The uses a public

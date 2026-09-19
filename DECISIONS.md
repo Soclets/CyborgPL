@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Low level is the base language's: `extern`, `ptr[T]`, `layout.c`, `size.of`, inline asm (owner)
+
+Owner asked how to print without std, then how std's print gets made
+(intrinsics → runtime → syscall), then — "I don't wanna rush (like Xag)"
+— asked what `extern` is; Claude explained from "a program is a pile of
+named functions" up. Then one by one: the OS door is open to every Limb,
+not std-only ("Syscall and lower-level stuff should be able to do, using
+the base Cyborg language"); asm is in too. (1) `extern fn name […] -> T;`
+— yes. (2) pointers: `ptr[T]` only in extern signatures, a lend satisfies
+it — owner: a. (3) an extern call is a `nocheck` site — "yes, reuse
+`nocheck`". (4) a returned pointer: hand back only, or read through —
+owner: **b** (read/write through), against Claude's recommendation of a.
+(5) `ptr.read/write/at`, `nocheck` sites — yes. Missing features listed;
+`ptr.is_null` — yes; `layout.c struct` — yes; variadic externs — yes;
+`size.of`/`align.of` — yes (owner asked what size and alignment are).
+Raw allocation: none in the language (`list[uint8]`, or `malloc` as an
+extern). `design/ffi.md`. Not yet in the oracle. Open: asm spelling,
+callbacks, extern data.
+
 ### 2026-09-19 — `std::uenr` renamed `std::uenr`, Unbounded Exact Numerical Representation (owner)
 
 Rename only; semantics unchanged. Owner also set the focus: the base
