@@ -74,6 +74,9 @@ pub struct Param {
     pub mutability: Option<Mutability>,
     pub ty: Option<Ty>,
     pub name: String,
+    /// `...'name'` (decided 2026-09-19): the rest of the arguments, any number, each
+    /// keeping its own type unless `: type` says otherwise; last parameter only
+    pub variadic: bool,
     pub line: usize,
 }
 

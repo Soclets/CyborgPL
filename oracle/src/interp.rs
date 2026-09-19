@@ -981,8 +981,10 @@ impl<'p> Interp<'p> {
         if !self.reachable(&c.from, &func.module, func.vis) {
             return rt(c.line, format!("`{}` is private to `{}`; mark it `pub` or `pub.limb`", join_path(&func.module, name), root_or(&func.module)));
         }
-        if c.args.values.len() != func.params.len() {
-            return rt(c.line, format!("`{name}` takes {} argument(s), given {}", func.params.len(), c.args.values.len()));
+        let variadic = func.params.last().map(|p| p.variadic).unwrap_or(false);
+        let fixed = if variadic { func.params.len() - 1 } else { func.params.len() };
+        if (!variadic && c.args.values.len() != fixed) || (variadic && c.args.values.len() < fixed) {
+            return rt(c.line, format!("`{name}` takes {}{} argument(s), given {}", if variadic { "at least " } else { "" }, fixed, c.args.values.len()));
         }
         // The caller's side of failure (decided 2026-09-19): a call that can fail must say
         // what happens; one that cannot must not. Checked before the call runs, as the
@@ -992,8 +994,15 @@ impl<'p> Interp<'p> {
         self.check_handler(c.handler.as_ref(), &func.fails, name, c.line)?;
 
         // Arguments against the parameter contract (design/ownership-syntax.md).
+        // A variadic parameter (`...'values'`) collects the rest into a list, each
+        // argument checked as if bound to that parameter on its own.
         let mut bound: Vec<(String, Slot)> = Vec::new();
-        for (arg, param) in c.args.values.iter().zip(&func.params) {
+        let mut pairs: Vec<(&crate::ast::Value, &Param)> = Vec::new();
+        for (i, arg) in c.args.values.iter().enumerate() {
+            pairs.push((arg, &func.params[i.min(func.params.len() - 1)]));
+        }
+        let mut rest: Vec<Value> = Vec::new();
+        for (arg, param) in pairs {
             let (v, prov) = self.value(arg)?;
             let pn = &param.name;
             let slot = match param.kind {
@@ -1028,7 +1037,11 @@ impl<'p> Interp<'p> {
                     }
                 }
             };
-            bound.push((pn.clone(), slot));
+            if param.variadic { rest.push(slot.cell.borrow().clone()); } else { bound.push((pn.clone(), slot)); }
+        }
+        if let Some(p) = func.params.last().filter(|p| p.variadic) {
+            let kind = match p.kind { ParamKind::Owned => SlotKind::Owned, ParamKind::Lent => SlotKind::Lent, ParamKind::LentMut => SlotKind::LentMut };
+            bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(Value::List(rest))), ty: None, kind, alive: true, immut: p.mutability == Some(Mutability::Immut) }));
         }
 
         // A function's scopes are its own: it cannot see the caller's variables.

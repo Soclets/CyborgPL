@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Variadic parameters: `...'name'`, compiled per call-site shape (owner)
+
+Model: (a) a list (needs a list-of-anything) vs (b) a fixed set per call
+site, specialised by Precog; owner asked "wouldn't we eventually need
+generics?" — (b) is the same machinery; owner: b. Spelling: Claude offered
+`many`; owner: could be confused with `array`; Claude offered `...` /
+`vararg` / `rest`, recommended `...` (the ellipsis, universal); owner
+asked why; "`...` it is." Owner asked about two types (`: int32, bin16`)
+— no: untyped keeps each argument's own type, the body constrains; a
+union type is not a thing yet. Oracle: `examples/variadic.cpls`, four
+reject tests. Closes the "variadic parameters" open item.
+
 ### 2026-09-19 — Borrowed prints live under their language: `std::c.printf`, `std::rs.println` (owner)
 
 "`std::<lang, only if it isn't Cyborg>.<that lang's print(s)>`" — so
@@ -838,7 +850,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
 - `list.length`'s type: fixed width or Precog-chosen? (cold read, 2026-09-19)
-- Variadic parameters (`many 'values'`?) — std's own `print` needs them. (2026-09-19)
+- Forwarding a variadic bundle to another variadic (spread). (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)

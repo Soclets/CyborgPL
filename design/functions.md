@@ -31,6 +31,20 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   best type from every call site in the program.
 - **A function that can fail says so**: `-> bool or fail[full, bad_item: str.utf8]`
   or `-> fail[disk_full]`; see `failures.md` (decided 2026-09-19).
+- **A variadic parameter is `...'name'`** (decided 2026-09-19): the rest
+  of the arguments, any number including zero; last parameter only, one
+  per function; composes with the verbs (`lent ...'parts'`). Model (b):
+  every call site has a fixed shape, so Precog compiles the function per
+  shape — the same machinery generics will use — and with no type each
+  argument keeps its own; the body's operations are the constraint,
+  checked per call site (`sum[1, "two"]` fails to compile at that call).
+  `...'nums': int32` restricts every argument. Inside the body the bundle
+  walks like a list (`for 'n' in lend 'nums'`, `list.length[…]` is a
+  compile-time constant there). `...` because it is the ellipsis — "and so
+  on" — the mark C, Java, Go, JS, Swift all use; owner asked and chose it
+  over `many` (reads like an array) and `vararg`. Open: forwarding the
+  bundle to another variadic; a union-typed variadic (`int32 or bin16`)
+  waits on union types. `examples/variadic.cpls`.
 - **The return type is `-> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not
   the function's type. No arrow: Precog picks the best return type from every

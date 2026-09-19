@@ -31,6 +31,7 @@ pub enum Tok {
     ShadowWalrus,   // $:=
     ShadowEq,       // $=
     Colon,          // :   'x': int32
+    Ellipsis,       // ... a variadic parameter
     Arrow,          // ->  fn f [...] -> int32
     Semi,           // ;
     Comma,          // ,
@@ -61,6 +62,7 @@ impl fmt::Display for Tok {
             Tok::ShadowWalrus => write!(f, "$:="),
             Tok::ShadowEq => write!(f, "$="),
             Tok::Colon => write!(f, ":"),
+            Tok::Ellipsis => write!(f, "..."),
             Tok::Arrow => write!(f, "->"),
             Tok::Semi => write!(f, ";"),
             Tok::Comma => write!(f, ","),
@@ -223,6 +225,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         if rest.starts_with(">==") { push(Tok::Op(">==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
         if two == "->" { push(Tok::Arrow, &mut toks); i += 2; col += 2; continue; }
+        if rest.starts_with("...") { push(Tok::Ellipsis, &mut toks); i += 3; col += 3; continue; }
         if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
         if c == '$' { return err(tl, tc, "`$` marks a shadowing declaration and sits on the operator: `$:=` or `$=`".into()); }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }

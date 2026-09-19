@@ -303,13 +303,17 @@ impl Parser {
             _ => {}
         }
         if *self.peek() == Tok::Dot { return self.err("a parameter's type follows its name: `lent 'text': str.utf8`"); }
+        let mut variadic = false;
+        if *self.peek() == Tok::Ellipsis { self.advance(); variadic = true; }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) => return self.err(format!("a parameter is `'name': type` — the name first, quoted (found `{w}`)")),
+            Tok::Ellipsis => return self.err("`...` goes right before the name: `...'values'`"),
             other => return self.err(format!("expected a quoted parameter name, found {other}")),
         };
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
-        Ok(Param { kind, mutability, ty, name, line })
+        if variadic && *self.peek() == Tok::Comma { return self.err(format!("`...'{name}'` takes the rest of the arguments, so it must be the last parameter")); }
+        Ok(Param { kind, mutability, ty, name, variadic, line })
     }
 
     // type := Word ('.' Word)* ('[' type (',' type)* ']')?
