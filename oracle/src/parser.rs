@@ -167,7 +167,9 @@ impl Parser {
         Ok(ConstDef { name, module: self.module.clone(), vis: Vis::Private, ty, value, line })
     }
 
-    // struct := 'struct' Word '{' (('mut' | 'immut')? Var ':' type)* '}'   — no `;`, no `let`
+    // struct := 'struct' Word '{' (('mut' | 'immut')? Word ':' type)* '}'   — no `;`, no `let`
+    // Field names are bare (decided 2026-09-19): a field is a path into the struct, not a
+    // variable you hold; the quotes go on the whole (`'l'`), the route into it is bare.
     fn struct_def(&mut self) -> PResult<StructDef> {
         let line = self.line();
         self.expect_word("struct")?;
@@ -181,17 +183,19 @@ impl Parser {
         let mut fields = Vec::new();
         while *self.peek() != Tok::RBrace {
             if *self.peek() == Tok::Eof { return self.err("unclosed `struct {`"); }
-            if self.is_word("let") || self.is_word("var") { return self.err("a struct field has no `let`: a struct always owns its fields — write `'number': int32`"); }
+            if self.is_word("let") || self.is_word("var") { return self.err("a struct field has no `let`: a struct always owns its fields — write `number: int32`"); }
             let mut immut = false;
             if self.is_word("immut") { self.advance(); immut = true; }
             else if self.is_word("mut") { self.advance(); }
-            if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut 'number': int32`"); }
+            if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut number: int32`"); }
             let fname = match self.advance().tok {
-                Tok::Var(v) => v,
-                Tok::Word(w) => return self.err(format!("a field is `'name': type` — the name first, quoted (found `{w}`)")),
-                other => return self.err(format!("expected a quoted field name, found {other}")),
+                Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword and cannot name a field")),
+                Tok::Word(w) => w,
+                Tok::Var(v) => return self.err(format!("a field's name is bare: `{v}: int32` — a field is a path into the struct, not a variable (decided 2026-09-19)")),
+                other => return self.err(format!("expected a field name, found {other}")),
             };
-            if *self.peek() != Tok::Colon { return self.err(format!("a field's type follows its name: `'{fname}': int32`")); }
+            if let Tok::Var(v) = self.peek().clone() { return self.err(format!("a field is `name: type` — the name first, bare: `{v}: {fname}`")); }
+            if *self.peek() != Tok::Colon { return self.err(format!("a field's type follows its name: `{fname}: int32`")); }
             self.advance();
             let ty = self.ty()?;
             if fields.iter().any(|f: &Field| f.name == fname) { return self.err(format!("field '{fname}' is declared twice")); }
@@ -589,14 +593,15 @@ impl Parser {
         }
     }
 
-    /// Word ('.' Word)* '[' Var ('=' | ':=' | ':')  — a struct construction
+    /// Word ('.' Word)* '[' (Word | Var) ('=' | ':=' | ':')  — a struct construction
+    /// (a Var here is the pre-2026-09-19 spelling, kept so the error can say so)
     fn is_construct(&self) -> bool {
         let mut i = 0;
         loop {
             if !matches!(self.peek_at(i), Tok::Word(_)) { return false; }
             match self.peek_at(i + 1) {
                 Tok::Dot => { i += 2; }
-                Tok::LBracket => return matches!(self.peek_at(i + 2), Tok::Var(_)) && matches!(self.peek_at(i + 3), Tok::Eq | Tok::Walrus | Tok::Colon),
+                Tok::LBracket => return matches!(self.peek_at(i + 2), Tok::Var(_) | Tok::Word(_)) && matches!(self.peek_at(i + 3), Tok::Eq | Tok::Walrus | Tok::Colon),
                 _ => return false,
             }
         }
@@ -904,12 +909,16 @@ impl Parser {
                     self.advance(); // [
                     let mut fields = Vec::new();
                     loop {
-                        let fname = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted field name, found {other}")) };
+                        let fname = match self.advance().tok {
+                            Tok::Word(w) => w,
+                            Tok::Var(v) => return self.err(format!("a field's name is bare: `{v} = …` (decided 2026-09-19)")),
+                            other => return self.err(format!("expected a field name, found {other}")),
+                        };
                         match self.peek() {
                             Tok::Eq => { self.advance(); }
-                            Tok::Walrus => return self.err(format!("a field's type is fixed by the struct: `'{fname}' = …`, not `:=`")),
-                            Tok::Colon => return self.err(format!("a field is given by name: `'{fname}' = value` (its type is fixed by the struct)")),
-                            other => return self.err(format!("expected `=` after '{fname}', found {other}")),
+                            Tok::Walrus => return self.err(format!("a field's type is fixed by the struct: `{fname} = …`, not `:=`")),
+                            Tok::Colon => return self.err(format!("a field is given by name: `{fname} = value` (its type is fixed by the struct)")),
+                            other => return self.err(format!("expected `=` after `{fname}`, found {other}")),
                         }
                         // one value; pieces join, `[ ]` builds a list (or just groups)
                         let vline = self.line();

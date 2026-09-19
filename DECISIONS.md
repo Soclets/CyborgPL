@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Field names are bare: `struct Locker { number: int32 }`, `Locker[number = 7]`, `'l'.number` (owner)
+
+A cold read (a fresh Claude chat shown `examples/lockers.cpls`) caught the
+inconsistency: fields were quoted in the declaration and the construction
+but bare at access. Claude offered (a) quote everywhere (`'l'.'number'`)
+or (b) bare everywhere, and recommended (b); owner asked "is `number` a
+var?" — no, a part of one: the quotes mark the thing you hold (`'l'`), the
+route into it (`.number`, `[pos 2]`) is bare. Owner: "b". The one-line
+rule is now: *quotes mark a value you can hold — a variable or a const;
+names reached through a dot or a Limb — functions, modules, fields — are
+bare.* Oracle, examples, tests converted; the quoted spelling is refused
+with a message.
+
 ### 2026-09-19 — The ladder is default → `check`; `nocheck` is the exit, not the last rung (owner)
 
 Owner's original picture: build guardrails, then write `nocheck` to remove
@@ -109,7 +122,7 @@ semantics, operators, `MAIN`). Full spelling in `design/syntax-sketch.md`,
    Types themselves keep their dot chains (`str.utf8`, `list.int32`,
    `std::uer`).
 3. **`mut` / `immut` before the name**: `let mut 'x': bin16 = 1000;`,
-   struct fields `immut 'number': int32` (owner chose (a) of three; Claude
+   struct fields `immut number: int32` (owner chose (a) of three; Claude
    recommended it).
 4. **Parameters: verb before the name, owning parameter bare** —
    `fn count [lent 'text': str.utf8]`, `['a': int32]`, `[mut 'a': int32]`

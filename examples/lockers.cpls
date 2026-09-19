@@ -1,9 +1,9 @@
 pub const 'capacity' := 12;
 
 struct Locker {
-    immut 'number': int32
-    'owner': str.utf8
-    'items': list.str.utf8
+    immut number: int32
+    owner: str.utf8
+    items: list.str.utf8
 }
 
 fn free_slots [lent 'l': Locker] -> int32 {
@@ -21,7 +21,7 @@ fn label [lent 'l': Locker] -> str.utf8 {
 }
 
 MAIN {
-    let 'mine' := Locker['number' = 7, 'owner' = "Tankun", 'items' = list.empty];
+    let 'mine' := Locker[number = 7, owner = "Tankun", items = list.empty];
     let 'names' := ["helmet", "gloves", "rope"];
     let mut 'stored': int32 = 0;
 

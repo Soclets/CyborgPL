@@ -8,15 +8,15 @@ The 2026-09-14 form is under **History** at the bottom.
 
 ```
 struct Locker {
-    'name': str.utf8
-    immut 'number': int32
-    'occupied': bool
+    name: str.utf8
+    immut number: int32
+    occupied: bool
 }
 
 fn count [lent 'text': str.utf8] -> int32 { … }
 
 MAIN {
-    let 'mine' := Locker['name' = "A", 'number' = 7, 'occupied' = false];
+    let 'mine' := Locker[name = "A", number = 7, occupied = false];
     let mut 'total': int32 = 0;
     for 'i' in range[1, 10] {
         if ('i' mod 2) == 0 { 'total' = 'total' + 'i'; }
@@ -80,7 +80,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   - collects a list: `[1, 2, 3]`, `[7,]` for one element, `[]` empty where a
     type says list;
   - carries a call's arguments: `add[10, 20]`, `std::exit[1]`;
-  - constructs a struct: `Locker['name' = "A", …]`;
+  - constructs a struct: `Locker[name = "A", …]`;
   - indexes: `'xs'[pos 3]`;
   - bounds a range: `range[1, 10, 2]`.
 

@@ -1,8 +1,8 @@
-struct P { 'x': int32 }
+struct P { x: int32 }
 fn poke [lent 'q': P] {
     'q'.x = 9;
 }
 MAIN {
-    let 'p' := P['x' = 1];
+    let 'p' := P[x = 1];
     poke[lend 'p'];
 }

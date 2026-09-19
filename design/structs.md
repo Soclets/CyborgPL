@@ -9,28 +9,32 @@ of every field.
 
 ```
 struct Locker {
-    'name': str.utf8
-    'number': int32
-    'capacity': int32
-    'occupied': bool
+    name: str.utf8
+    number: int32
+    capacity: int32
+    occupied: bool
 }
 ```
 
-- Top level, beside `fn`; `pub struct` exports it (`limbs.md`). The name is bare (a type, like `int32`); the
-  fields are variables, so quoted; `'name': type`, like every other
-  name-to-type site.
+- Top level, beside `fn`; `pub struct` exports it (`limbs.md`). The name is
+  bare (a type, like `int32`); **field names are bare too** (decided
+  2026-09-19, after a cold read caught `'number': int32` in the declaration
+  but `'l'.number` at access): a field is a path *into* a struct, not a
+  variable you hold. The quotes go on the whole — `'l'` — and the route
+  into it (`.number`, like `[pos 2]` into a list) is bare. `name: type`,
+  the type after the name like every other site.
 - No `let` on a field: a struct always *owns* its fields, so there is nothing
   to choose (a parameter's `lent` chooses; a field cannot).
 - No `;` after a field: fields are not statements.
-- `immut` is allowed on a field — `immut 'number': int32` — under the same
+- `immut` is allowed on a field — `immut number: int32` — under the same
   rule as `let immut`: a verified contract, allowed, not standard.
 - A field may be any type, including another struct or a list.
 
 ## Making a value — by field name
 
 ```
-let 'mine' := Locker['name' = "field kit", 'number' = 7,
-                     'capacity' = 12, 'occupied' = false];
+let 'mine' := Locker[name = "field kit", number = 7,
+                     'capacity' = 12, occupied = false];
 ```
 
 - The struct name, bare, before `[ ]`, like a call — this bracket *builds*
@@ -38,7 +42,7 @@ let 'mine' := Locker['name' = "field kit", 'number' = 7,
   fixed the types, so it is the typed form).
 - **Every field must be given** — there are no zero values. Order is free.
 - A field's value is a bare expression; a join or a list builds in its own
-  `[ ]`: `'name' = ["locker " 'n']`, `'tags' = [1, 2]`.
+  `[ ]`: `name = ["locker " 'n']`, `tags = [1, 2]`.
 
 ## Reading and writing a field
 

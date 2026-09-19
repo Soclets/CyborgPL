@@ -287,9 +287,9 @@ impl<'p> Interp<'p> {
                 if !self.lookup(name).unwrap().alive { return rt(*line, format!("'{name}' was given away and no longer owns anything")); }
                 if immut { return rt(*line, format!("'{name}' is `immut`; its fields cannot be assigned to")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); its fields cannot be assigned to — a `lent.mut` could")); }
-                let sname = match &*cell.borrow() { Value::Struct(n, _) => n.clone(), other => return rt(*line, format!("'{name}' is {}, not a struct; it has no field '{field}'", other.kind())) };
+                let sname = match &*cell.borrow() { Value::Struct(n, _) => n.clone(), other => return rt(*line, format!("'{name}' is {}, not a struct; it has no field `{field}`", other.kind())) };
                 let def = self.prog.structs.iter().find(|d| d.name == sname).cloned().unwrap();
-                let fdef = match def.fields.iter().find(|f| &f.name == field) { Some(f) => f.clone(), None => return rt(*line, format!("{sname} has no field '{field}'")) };
+                let fdef = match def.fields.iter().find(|f| &f.name == field) { Some(f) => f.clone(), None => return rt(*line, format!("{sname} has no field `{field}`")) };
                 if fdef.immut { return rt(*line, format!("'{field}' is an `immut` field of {sname}; it cannot be assigned to")); }
                 let (v, prov) = self.bracket(value, *line)?;
                 match prov {
@@ -648,7 +648,7 @@ impl<'p> Interp<'p> {
                 let fv = match v {
                     Value::Struct(sname, fields) => match fields.into_iter().find(|(k, _)| k == field) {
                         Some((_, v)) => v,
-                        None => return rt(line, format!("{sname} has no field '{field}'")),
+                        None => return rt(line, format!("{sname} has no field `{field}`")),
                     },
                     other => return rt(line, format!("'{name}' is {}, not a struct", other.kind())),
                 };
@@ -664,13 +664,13 @@ impl<'p> Interp<'p> {
             }
             Expr::Field(name, field, _) => {
                 let v = self.read_var(name, line)?;
-                let (sname, fields) = match v { Value::Struct(n, f) => (n, f), other => return rt(line, format!("'{name}' is {}, not a struct; it has no field '{field}'", other.kind())) };
+                let (sname, fields) = match v { Value::Struct(n, f) => (n, f), other => return rt(line, format!("'{name}' is {}, not a struct; it has no field `{field}`", other.kind())) };
                 match fields.into_iter().find(|(k, _)| k == field) {
                     Some((_, fv)) => {
                         let prov = if fv.is_owned() { Prov::Bare(format!("{name}'.{field} (write `copy '{name}'.{field}` or `lend '{name}'.{field}`; the field is owned by '{name}")) } else { Prov::Plain };
                         Ok((fv, prov))
                     }
-                    None => rt(line, format!("{sname} has no field '{field}'")),
+                    None => rt(line, format!("{sname} has no field `{field}`")),
                 }
             }
             Expr::OwnedField(verb, name, field, _) => {
@@ -682,7 +682,7 @@ impl<'p> Interp<'p> {
                 let fv = match &*cell.borrow() {
                     Value::Struct(sname, fields) => match fields.iter().find(|(k, _)| k == field) {
                         Some((_, v)) => v.clone(),
-                        None => return rt(line, format!("{sname} has no field '{field}'")),
+                        None => return rt(line, format!("{sname} has no field `{field}`")),
                     },
                     other => return rt(line, format!("'{name}' is {}, not a struct", other.kind())),
                 };
@@ -706,25 +706,25 @@ impl<'p> Interp<'p> {
             Expr::Construct(sname, given, _) => {
                 let def = match self.prog.structs.iter().find(|d| d.name == *sname) {
                     Some(d) => d.clone(),
-                    None => return rt(line, format!("no struct named `{sname}` is declared (a call to a function is `{sname}[…]` with plain values, not `'field' = …`)")),
+                    None => return rt(line, format!("no struct named `{sname}` is declared (a call to a function is `{sname}[…]` with plain values, not `field = …`)")),
                 };
                 let from = self.module.clone();
                 self.check_path(&from, &def.module, line)?;
                 if !self.reachable(&from, &def.module, def.vis) {
                     return rt(line, format!("struct `{sname}` is private to `{}`; mark it `pub` or `pub.limb`", root_or(&def.module)));
                 }
-                for (k, _) in given { if !def.fields.iter().any(|f| &f.name == k) { return rt(line, format!("{sname} has no field '{k}'")); } }
+                for (k, _) in given { if !def.fields.iter().any(|f| &f.name == k) { return rt(line, format!("{sname} has no field `{k}`")); } }
                 let mut out = Vec::new();
                 for f in &def.fields {
                     let b = match given.iter().find(|(k, _)| k == &f.name) {
                         Some((_, b)) => b,
-                        None => return rt(line, format!("{sname} is missing '{}': every field must be given — there are no zero values", f.name)),
+                        None => return rt(line, format!("{sname} is missing `{}`: every field must be given — there are no zero values", f.name)),
                     };
-                    if given.iter().filter(|(k, _)| k == &f.name).count() > 1 { return rt(line, format!("'{}' is given twice", f.name)); }
+                    if given.iter().filter(|(k, _)| k == &f.name).count() > 1 { return rt(line, format!("`{}` is given twice", f.name)); }
                     let (v, prov) = self.bracket(b, line)?;
                     match prov {
-                        Prov::Bare(n) => return rt(line, format!("bare '{n}' as field '{}': say `give '{n}'` or `copy '{n}'`", f.name)),
-                        Prov::Borrowed(..) => return rt(line, format!("a struct owns its fields; '{}' cannot hold a lend", f.name)),
+                        Prov::Bare(n) => return rt(line, format!("bare '{n}' as field `{}`: say `give '{n}'` or `copy '{n}'`", f.name)),
+                        Prov::Borrowed(..) => return rt(line, format!("a struct owns its fields; `{}` cannot hold a lend", f.name)),
                         _ => {}
                     }
                     let v = self.fit(v, prov, Some(&f.ty), line)?;
