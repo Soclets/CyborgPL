@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — The ladder is default → `check`; `nocheck` is the exit, not the last rung (owner)
+
+Owner's original picture: build guardrails, then write `nocheck` to remove
+the check. Clarified against the 2026-09-14 tiers entry ("proves what it
+can and inserts a runtime check wherever it can't"): once a guardrail is
+good, Precog removes the check by itself, with or without `check`;
+`check` only adds "refuse to compile and show the counterexample if it is
+not enough"; `nocheck` is for the site no guardrail can make provable.
+Owner: "if that's better, then yes. Not the original one." A proven check
+can never fire, so keeping it is pure runtime cost. Build output lists
+`nocheck` sites **and passed `check`s** (owner, 2026-09-19). Claude also
+proposed listing default-tier sites still carrying a runtime check ("where
+to add a guardrail") — not yet answered.
+
 ### 2026-09-19 — `check` / `nocheck` spelled: a word in front of a statement (owner)
 
 Owner asked for the tiers again, confirmed they are never global, asked
@@ -156,7 +170,7 @@ provable again. No silent fallback to a wide/checked type. Options (a) wide
 fallback, (b) refuse, (c) both proposed by Claude, who recommended (b); owner
 chose (b).
 
-### 2026-09-14 — Unproven safety properties get a compiler runtime check, removable only by a programmer guardrail (owner)
+### 2026-09-14 — Unproven safety properties get a compiler runtime check, removable only by a programmer guardrail (owner) — clarified 2026-09-19: a *proven* check is removed by Precog itself; syntax is never needed to remove one
 
 Where whole-program analysis cannot prove a safety property (overflow, bounds,
 division by zero, …), the compiler **inserts a runtime check, regardless of

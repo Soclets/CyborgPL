@@ -104,6 +104,16 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   be a global by another name. Never at the top level: **the tiers are never
   global** — no flag, no file-wide switch, no release mode (see "No
   development mode"). The grammar has nowhere to write a global one.
+- **The ladder** (clarified 2026-09-19): a guardrail that is good enough
+  already removes the check under the default tier — Precog proves it and
+  emits nothing; a proven check can never fire, so keeping it would be pure
+  cost. `check` does not remove anything extra; it makes the compiler *tell
+  you* when the guardrail is not enough. So the finish line is a passed
+  `check`, and `nocheck` is the exit for the site no guardrail can make
+  provable — never the last step after building one.
+- Build output lists every `nocheck` site and every passed `check` (owner,
+  2026-09-19). Proposed, unanswered: also the default-tier sites still
+  carrying a runtime check — the "where to add a guardrail" list.
 - A guardrail is an ordinary `if` in front of the site; `check` asks Precog
   to confirm the `if` is enough:
 
