@@ -9,7 +9,11 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 "Now, `printrs`, exactly like Rust's." `{}`, `{0}`, `{name}` from scope,
 `{:?}`, fill/align/sign/#/0/width/precision/type, `{{` `}}`, `\n` inside
-the format. Oracle: `examples/printrs.cpls`, five reject tests.
+the format. Oracle: `examples/printrs.cpls`, five reject tests. Owner then
+asked whether `printc`/`printrs` could be called with `( )` (a Limb-granted
+ability); Claude advised against — two call spellings, and `( )` is
+arithmetic grouping only by design; owner: "stick with `[]`, at least the
+insides look alike." Closed.
 
 ### 2026-09-19 — `std::printc`: C's `printf`, exactly, with checked holes (owner)
 
