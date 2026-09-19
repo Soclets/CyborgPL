@@ -1,7 +1,7 @@
 //! Tree-walking evaluation. Slow, small, obvious — the point is to be right.
 //!
 //! What it enforces beyond the parser:
-//!   - the typed form's ranges and kinds (`var.int8 'x' = [300]` is an error)
+//!   - the typed form's ranges and kinds (`let 'x': int8 = 300;` is an error)
 //!   - no implicit conversion between numeric families; a bare numeric
 //!     *literal* is untyped and takes the family of its context
 //!   - ownership: a bare `'t'` where an owned value would be *stored* is an
@@ -9,7 +9,7 @@
 //!     assigned to; `lend.mut` writes through
 //!   - the default check tier: every integer operation is overflow-checked,
 //!     every division checks for zero — there is no Precog here to remove them
-//!   - `if`/`loop.while` conditions must be bool
+//!   - `if`/`while` conditions must be bool
 
 use crate::ast::*;
 use crate::value::{exact_decimal, int_range, ty_name, Value};
@@ -132,7 +132,7 @@ impl<'p> Interp<'p> {
                         Some(Ty::List(_)) => (Value::List(Vec::new()), Prov::Fresh),
                         Some(Ty::Array(_)) => return rt(*line, format!("an empty `array` '{name}' could never be filled; make it a `list`")),
                         Some(t) => return rt(*line, format!("`[]` is an empty list, but '{name}' is {}", ty_name(t))),
-                        None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `[list.empty]`")),
+                        None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `list.empty`")),
                     }
                 } else { self.bracket(value, *line)? };
                 let immut = *mutability == Some(Mutability::Immut);
@@ -335,12 +335,12 @@ impl<'p> Interp<'p> {
     }
 
     fn for_source(&mut self, b: &Bracket, line: usize) -> Result<(Vec<Value>, SlotKind), RuntimeError> {
-        if b.values.len() != 1 { return rt(line, "`loop.for … in [ ]` takes one list"); }
-        let expr = match &b.values[0] { crate::ast::Value::Expr(e) => e, crate::ast::Value::Pieces(_) => return rt(line, "`loop.for` needs a list, not text pieces") };
+        if b.values.len() != 1 { return rt(line, "`for … in` takes one list"); }
+        let expr = match &b.values[0] { crate::ast::Value::Expr(e) => e, crate::ast::Value::Pieces(_) => return rt(line, "`for` needs a list, not text pieces") };
         let (v, prov) = self.eval(expr)?;
         let items = match v {
             Value::List(items) => items,
-            other => return rt(line, format!("`loop.for` needs a list, this is {}", other.kind())),
+            other => return rt(line, format!("`for` needs a list, this is {}", other.kind())),
         };
         let kind = match prov {
             Prov::Bare(n) => return rt(line, format!("'{n}' is owned: say how the loop takes it — `lend '{n}'`, `copy '{n}'`, or `give '{n}'`")),
@@ -753,7 +753,7 @@ impl<'p> Interp<'p> {
             let (v, prov) = self.value(arg)?;
             let pn = &param.name;
             let slot = match param.kind {
-                ParamKind::Var => {
+                ParamKind::Owned => {
                     match &prov {
                         Prov::Bare(n) => return rt(c.line, format!("`{name}` takes ownership of '{pn}' — pass `give '{n}'` or `copy '{n}'`")),
                         Prov::Borrowed(..) => return rt(c.line, format!("`{name}` takes ownership of '{pn}' but you lent it; `give` or `copy` instead")),
@@ -801,7 +801,7 @@ impl<'p> Interp<'p> {
             Flow::Break | Flow::Continue => return rt(func.line, "`break`/`continue` outside a loop"),
         };
         match (&func.ret, &result) {
-            (Some(t), Value::Nothing) => rt(c.line, format!("`{name}` is declared `func.{}` but returned nothing", ty_name(t))),
+            (Some(t), Value::Nothing) => rt(c.line, format!("`{name}` is declared `-> {}` but returned nothing", ty_name(t))),
             (Some(t), v) => { self.check_type(v, t, c.line)?; Ok(result) }
             (None, _) => Ok(result),
         }

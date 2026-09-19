@@ -1,5 +1,5 @@
-func.int32 true [] {
-    return [1];
+fn true [] -> int32 {
+    return 1;
 }
 MAIN {
 }

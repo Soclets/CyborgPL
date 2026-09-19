@@ -8,13 +8,13 @@ lifetimes with optional verified annotation).
 
 Handing an **owned** value (heap types: `str`, lists, `char.grapheme`,
 `std::uer`, …) to somewhere else says what happens to it. A bare
-`'s' = ['t'];` on an owned value is a compile error.
+`'s' = 't';` on an owned value is a compile error.
 
 ```
-'s' = [give 't'];        // ownership transfers; 't' is dead after this
-'s' = [copy 't'];        // a second, independent value; an allocation
-process[lend 's'];       // temporary shared access; 's' still owns
-process[lend.mut 's'];   // temporary exclusive access, may modify
+'s' = give 't';          # ownership transfers; 't' is dead after this
+'s' = copy 't';          # a second, independent value; an allocation
+process[lend 's'];       # temporary shared access; 's' still owns
+process[lend.mut 's'];   # temporary exclusive access, may modify
 ```
 
 - **`give`** — move. I give it away.
@@ -28,7 +28,7 @@ over, so "give" and "lend" read as what the owner does. (Rust's `move` /
 
 **Plain values** — `int32`, `bin64`, `bool`, `char.point`, … — own nothing:
 the value sits directly in the variable, with no allocation behind it to be
-responsible for. So `'s' = ['t'];` simply copies with no keyword, and
+responsible for. So `'s' = 't';` simply copies with no keyword, and
 `give`/`copy`/`lend` on a plain value is a **compile error** (decided
 2026-09-17): the verb would promise a transfer of a responsibility that does
 not exist.
@@ -38,15 +38,15 @@ question: a parameter receives whatever the caller wrote.
 
 ## Mutability: statable, not standard (decided 2026-09-14)
 
-A plain `var 'x' := [1000];` is the standard practice — Precog already knows
+A plain `let 'x' := 1000;` is the standard practice — Precog already knows
 whether `'x'` is ever reassigned, so nothing needs saying. The programmer
-*may* state it, as a chain segment before the type, and the compiler then
-holds them to it:
+*may* state it, as a bare word before the name (revised 2026-09-19; it was
+a chain segment, `var.immut.int32`), and the compiler then holds them to it:
 
 ```
-var.immut.int32 'limit' = [10];     // assigning to 'limit' later is an error
-var.mut 'counter' := [0];           // states the intent; nothing to enforce
-func.int32 twice [var.immut.int32 'n'] { ... }
+let immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
+let mut 'counter' := 0;             # states the intent; nothing to enforce
+fn twice [immut 'n': int32] -> int32 { … }
 ```
 
 `immut` is a verified contract, like `check` and the optional lifetime
@@ -68,16 +68,22 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-func.int32 count [lent.str.utf8 'text'] { ... }       // looks at it
-func edit        [lent.mut.str.utf8 'text'] { ... }   // may modify it
-func keep        [var.str.utf8 'text'] { ... }        // owns it
+fn count [lent 'text': str.utf8] -> int32 { … }    # looks at it
+fn edit  [lent.mut 'text': str.utf8] { … }         # may modify it
+fn keep  ['text': str.utf8] { … }                  # owns it
 ```
 
 - **`lent`** — receives a shared borrow. The caller writes `lend`.
 - **`lent.mut`** — receives a mutable borrow. The caller writes
   `lend.mut`.
-- **`var`** — receives ownership. The caller writes `give` or
-  `copy`.
+- **No keyword** — receives ownership. The caller writes `give` or
+  `copy`. (Until 2026-09-19 this was `var.str.utf8 'text'`; with the type
+  after the name the owning case needs no word.)
+
+The verb sits before the name on both sides, so the definition mirrors the
+call: `count[lend 's']` ↔ `[lent 'text': …]`. Rust puts the borrow in the
+type (`text: &str`) and mirrors it at the call with `&s`; the owner chose the
+mirror over the type-position, 2026-09-19.
 
 Caller verb and parameter kind must agree; a mismatch is a compile error
 with an obvious message ("`count` only looks at `'text'`; you tried to give
@@ -92,7 +98,7 @@ freed after; nothing else can reach it, so nothing is implied. (Decided
 2026-09-14.)
 
 A lend may be given its own name (decided 2026-09-14):
-`var 'r' := [lend 's'];` — `'r'` looks at `'s'` without owning it: readable,
+`let 'r' := lend 's';` — `'r'` looks at `'s'` without owning it: readable,
 not assignable, not give-able. Precog's lifetime inference keeps it from
 outliving `'s'`.
 

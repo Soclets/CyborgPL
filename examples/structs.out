@@ -1,7 +1,7 @@
 field kit is #7
 free: 12
 free: 0
-Locker['name' = [field kit], 'number' = [7], 'capacity' = [20], 'occupied' = [true]]
+Locker['name' = field kit, 'number' = 7, 'capacity' = 20, 'occupied' = true]
 field kit
 field kit
 8 9 

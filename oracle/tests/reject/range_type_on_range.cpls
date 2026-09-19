@@ -1,0 +1,4 @@
+MAIN {
+    for temp 'i' in range.int32[0, 3] {
+    }
+}

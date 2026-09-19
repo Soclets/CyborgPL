@@ -5,6 +5,63 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Syntax revision: `let`/`fn`, type after the name, `[ ]` only where it builds, bare control flow (owner)
+
+The owner opened the day with "I'm thinking of changing the syntax to
+Rust-style: `let 'x' := [1000]; let 'x':bin16 = [1000];`" and took it
+through ten questions, one at a time. Everything not listed here stands
+as decided before (quoted names, `:=`/`=`, the verbs, `::`/`.`, `[ ]`
+semantics, operators, `MAIN`). Full spelling in `design/syntax-sketch.md`,
+`functions.md`, `control-flow.md`, `structs.md`, `ownership-syntax.md`.
+
+1. **`let`**, not `var` (owner). Claude had recommended keeping `var` —
+   "says what it is"; the owner's own 2026-09-17 objection to `let`
+   (`let.mut.bin16`) dissolves once the type leaves the keyword chain, and
+   the quotes already mark variables.
+2. **The type follows the name after `:`** — `let 'x': bin16 = 1000;` (owner's
+   proposal, Claude recommended it). Touches only the five name-to-type
+   sites: variables, parameters, return type, struct fields, loop counters.
+   Types themselves keep their dot chains (`str.utf8`, `list.int32`,
+   `std::uer`).
+3. **`mut` / `immut` before the name**: `let mut 'x': bin16 = 1000;`,
+   struct fields `immut 'number': int32` (owner chose (a) of three; Claude
+   recommended it).
+4. **Parameters: verb before the name, owning parameter bare** —
+   `fn count [lent 'text': str.utf8]`, `['a': int32]`, `[mut 'a': int32]`
+   (owner chose (a) over Rust's type-position `'text': lent.str.utf8`, after
+   asking how Rust does it; Claude recommended (a) for the def/call mirror).
+5. **`fn`**, not `func` (owner, unprompted, with 4).
+6. **Return type `-> T`** after the parameters: `fn add ['a': int32, 'b': int32] -> int32`
+   (owner chose Rust's arrow over `: int32`; Claude recommended the arrow —
+   `:` attaches a type to a name, and a result is not the function's type).
+7. **`[ ]` only where it builds** (owner: "calm that `[]` spam down";
+   Claude proposed the cut, owner accepted). Brackets stay for text joins,
+   lists, call arguments, struct construction, index, `range[…]`; a single
+   expression stands bare on the right of `:=`/`=`/`return`, in conditions,
+   as a struct field's value. Pieces outside `[ ]` are an error. Supersedes
+   the 2026-09-14 "mandatory in every value position" and "a stored call
+   wears the outer bracket".
+8. **`else if`**, **`while`**, **`for`** — bare (owner, three questions;
+   Claude recommended each). `loop { }` stays.
+9. **One `for`; `range[start, stop, step]` is what it runs over**;
+   the counter is typed on its name (`'i': int32`); the per-bound `:=`/`=`
+   markers are gone (owner asked why, accepted "it would say the same thing
+   twice"). `range[…]` as a standalone value is undecided.
+10. **Modifiers bare, before the name**: `for seq perm 'i' in range[1, 10]`
+    — `seq` first, then `temp`/`perm` (owner chose (b) over `for.perm.seq`;
+    Claude recommended (b)).
+11. **`MAIN { }` stays** (owner; Claude recommended keeping it — its
+    distinctness is the feature).
+
+Also confirmed: a Limb-provided type is `'r': std::uer`; style is a space
+after `:`, none around `::`. `pub` was mentioned ("if we do `pub` too") and
+is logged as open, not decided.
+
+Oracle updated the same day (lexer `:` / `->`; parser rewritten for the
+new grammar; every example and reject test converted; old spellings —
+`var`, `func`, `loop.while`, `else.if`, `loop.temp.for`, `range[:= …]`,
+`int32 'x'` — are refused with a message naming the new one).
+
 ### 2026-09-14 — The five core features (owner)
 
 Proposed and chosen by the owner. Full text in [design/core-features.md](design/core-features.md).
@@ -110,7 +167,7 @@ has reaffirmed it, because it is load-bearing:
   that follows: **if a character type is ever added, it must not use
   `'…'`.**
 
-### 2026-09-14 — `[ ]` is the value bracket, and it is mandatory (owner)
+### 2026-09-14 — `[ ]` is the value bracket, and it is mandatory (owner) — superseded 2026-09-19: only where it builds
 
 `[ ]` means "one value, built from what's inside". Text pieces join into a
 text (`["line 1" \n "line 2"]`), a formula evaluates (`[10 + 20 + 30]`), a
@@ -139,14 +196,14 @@ Owner, 2026-09-14.
 existed — `bool`. Widths as suffixes in the chain
 (`var.bin16`). Full table and notes in [design/types.md](design/types.md).
 
-### 2026-09-14 — `str` is narrowed by encoding in the chain: `var.str.utf8` (owner)
+### 2026-09-14 — `str` is narrowed by encoding in the chain: `var.str.utf8` (owner) — now `'s': str.utf8`
 
 Encoding is a chain segment on `str`, the same shape as a width on a numeric
 type. Owner proposed the chain shape. Encodings `utf8`, `utf16`, `utf32`, `ascii`
 (Claude's list, owner accepted); `:=` picks the best encoding from the
 value's use (owner). Decided 2026-09-14.
 
-### 2026-09-14 — `char` exists, narrowed by unit: `var.char.point` / `.grapheme` / `.byte` (owner)
+### 2026-09-14 — `char` exists, narrowed by unit: `var.char.point` / `.grapheme` / `.byte` (owner) — now `'c': char.point`
 
 A character type, with the chain saying which Unicode unit "one character"
 means: `byte` (1 byte), `point` (one code point, 4 bytes flat), `grapheme`
@@ -164,7 +221,7 @@ An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.
 Exact is exact: fractions are true rationals (owner, 2026-09-14).
 
-### 2026-09-14 — A stored call wears the outer bracket: `var 'n' := [count[lend 'words']];` (owner)
+### 2026-09-14 — A stored call wears the outer bracket: `var 'n' := [count[lend 'words']];` (owner) — superseded 2026-09-19: `let 'n' := count[lend 'words'];`
 
 The `[ ]`-mandatory rule applies literally; a call's own bracket is its
 argument list, not the value slot. Surfaced by the oracle (functions.md had
@@ -201,7 +258,7 @@ the oracle; owner's design.
 `count[["a", "b"]]` is allowed: the temporary lives for the call. No safety
 issue — nothing else can reach it. Surfaced by the oracle; owner chose allow.
 
-### 2026-09-14 — A lend may have its own name: `var 'r' := [lend 's'];` (owner)
+### 2026-09-14 — A lend may have its own name: `var 'r' := [lend 's'];` (owner) — now `let 'r' := lend 's';`
 
 Surfaced by the oracle; owner chose allowed. Precog's lifetime inference
 makes it safe in the compiler; the oracle refuses to return or store one.
@@ -211,7 +268,7 @@ makes it safe in the compiler; the oracle refuses to return or store one.
 `[1]` is the number; `[1,]` is a list holding it. Surfaced by the oracle.
 Also recorded: a `[ ]` inside a `[ ]` is a value (`[[1, 2], [3, 4]]`).
 
-### 2026-09-14 — Mutability is statable (`var.mut`, `var.immut`) but not standard practice (owner)
+### 2026-09-14 — Mutability is statable (`var.mut`, `var.immut`) but not standard practice (owner) — now `let mut` / `let immut`
 
 Plain `var 'x' := [1000];` is the norm; Precog infers. `immut` is a verified
 contract (assignment is an error); `mut` states intent. Placed as a chain
@@ -238,7 +295,7 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
-### 2026-09-18 — Structs (owner)
+### 2026-09-18 — Structs (owner) — spelling revised 2026-09-19: `'name': str.utf8`, `Locker['name' = "A"]`
 
 Blueprint `struct Name { type 'field' … }` — owner's shape: type first, no
 `var` (a struct always owns its fields; Claude's reasoning, owner agreed),
@@ -325,7 +382,7 @@ Claude noted it hides a search with unanswered multiple-match questions;
 owner: "can't you just use `if` for that one?" — a `perm` range loop finds
 the position, then `pos` writes. No `list.find`. See [design/lists.md](design/lists.md).
 
-### 2026-09-17 — Range loops; `temp`/`perm` mandatory on `for` and `range` (owner)
+### 2026-09-17 — Range loops; `temp`/`perm` mandatory on `for` and `range` (owner) — spelling revised 2026-09-19: `for temp 'i' in range[a, b]`
 
 `loop.temp.range 'i' [:= 0, := 1000] { }` — owner's shape. Decided one by
 one: stop is **inclusive** ("what the writer sees": start from, stop at);
@@ -397,7 +454,7 @@ anyone would wanna name a function confusingly." Variables stay quoted;
 without the prefix; earlier entries in this log that show `lang:` are
 historical.
 
-### 2026-09-14 — Control flow: `if` / `else.if` / `else`; `loop` / `loop.while` / `loop.for` (owner)
+### 2026-09-14 — Control flow: `if` / `else.if` / `else`; `loop` / `loop.while` / `loop.for` (owner) — spelling revised 2026-09-19: `else if`, `while`, `for`
 
 Branching as Claude proposed. Loops: Claude proposed three keywords
 (`loop`, `while`, `for`); owner chose one, narrowed by the chain —
@@ -405,7 +462,7 @@ Branching as Claude proposed. Loops: Claude proposed three keywords
 Conditions must be `bool`; braces mandatory; `break` / `continue`.
 See [design/control-flow.md](design/control-flow.md).
 
-### 2026-09-14 — Ownership transfer is explicit: `give` / `copy` / `lend` / `lend.mut` (owner)
+### 2026-09-14 — Ownership transfer is explicit: `give` / `copy` / `lend` / `lend.mut` (owner) — parameter side revised 2026-09-19: `lent 'text': str.utf8`, owning is bare
 
 A bare `'s' = ['t'];` on an owned (heap) value is a compile error; the
 programmer writes `give` (move), `copy`, or `lend` /
@@ -487,7 +544,7 @@ one gets the short name.
 exact algorithm is Claude's call as long as the output is what a reader would
 call useful; Claude will use shortest round-trip (Ryu-style). Owner, 2026-09-14.
 
-### 2026-09-14 — Functions (owner)
+### 2026-09-14 — Functions (owner) — spelling revised 2026-09-19: `fn add ['a': int32] -> int32`
 
 `func.int32 'add' [var.int32 'a', var.int32 'b'] { return ['a' + 'b']; }`;
 called as `add[10, 20]` (originally written `'add'[10, 20]`; superseded
@@ -573,16 +630,16 @@ for JetPack, always containing analysable source, never an opaque binary
 - Custom operators: `op` definition shape, bare infix use, and the precedence rule (Claude recommends: no precedence anywhere, parentheses required when mixing different operators). (Claude, 2026-09-14)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
-- Zero values: the `var … := [ ]` shape implies a value is required at declaration; decide explicitly — Claude recommends no implicit zero. (Claude, 2026-09-14)
+- Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Error handling — not designed. (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
-- Explicit conversion spelling — between numeric families, and **number → text for a lone value** (a number becomes text only as a piece; `return ['n']` from a `func.str.utf8` is an error, and `["" 'n']` is the only current workaround). (Claude, 2026-09-14; the second half surfaced by the oracle)
+- Explicit conversion spelling — between numeric families, and **number → text for a lone value** (a number becomes text only as a piece; `return 'n'` from a `-> str.utf8` is an error, and `["" 'n']` is the only current workaround). (Claude, 2026-09-14; the second half surfaced by the oracle)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Whitespace between pieces in `[ ]`: separator only, or an implicit space? (Claude, 2026-09-14)
-- Long form (`variable`, `standard`) valid alongside the short form, or short only? (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Superseded in spirit by bare local calls; revisit with the module system. (Claude, 2026-09-14)
-- Parameter lists: drop the redundant `var` inside `[ ]`? (Claude's suggestion, 2026-09-14)
+- `pub` / visibility across Limbs — raised by the owner 2026-09-19 ("if we do `pub` too"), undecided.
+- `range[…]` as a standalone value (not only after `for … in`). (Claude, 2026-09-19)
 
 **Precog**
 - Non-terminating compile-time code: with step budgets now required, the budget's size and the error it produces. (Claude, 2026-09-14)

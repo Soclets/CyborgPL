@@ -1,6 +1,6 @@
-struct P { str.utf8 'n'  int32 'x' }
+struct P { 'n': str.utf8  'x': int32 }
 MAIN {
-    var 'p' := [P['n' = ["a"], 'x' = [2]]];
-    var 't' := [give 'p'.n];
+    let 'p' := P['n' = "a", 'x' = 2];
+    let 't' := give 'p'.n;
     std::printu.stdout['p'.x];
 }

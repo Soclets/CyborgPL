@@ -1,18 +1,18 @@
-func.int32 count [lent 'items'] {
-    var 'n' := [0];
-    loop.temp.for 'item' in [lend 'items'] {
-        'n' = ['n' + 1];
+fn count [lent 'items'] -> int32 {
+    let 'n' := 0;
+    for temp 'item' in lend 'items' {
+        'n' = 'n' + 1;
     }
-    return ['n'];
+    return 'n';
 }
 
 MAIN {
-    var 'grid' := [[1, 2], [3, 4]];
+    let 'grid' := [[1, 2], [3, 4]];
     std::printu.stdout['grid' \n];
-    loop.temp.for 'row' in [lend 'grid'] {
+    for temp 'row' in lend 'grid' {
         std::printu.stdout[(count[lend 'row']) \n];
     }
     std::printu.stdout[(count[["a", "b", "c"]]) \n];
-    var 'one' := [7,];
+    let 'one' := [7,];
     std::printu.stdout['one' " " (count[lend 'one']) \n];
 }

@@ -1,4 +1,4 @@
 MAIN {
-    var 'b' := [2]; #wl
+    let 'b' := 2; #wl
     std::printu.stdout['b'];
 }

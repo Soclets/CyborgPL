@@ -5,6 +5,7 @@
 //!   bare word                    keyword, function name, or operator word
 //!   [ ] { } ( )                  value slot, body, arithmetic grouping
 //!   ::  .  :=  =  ;  ,           Limb boundary, chain, best-type bind, typed bind, end, separator
+//!   :  ->                        name-to-type, function return type (decided 2026-09-19)
 //!   \n                           a newline piece (bare, outside any string)
 //!   numbers                      `_` groups digits; `,` never does
 
@@ -28,6 +29,8 @@ pub enum Tok {
     Eq,             // =
     ShadowWalrus,   // $:=
     ShadowEq,       // $=
+    Colon,          // :   'x': int32
+    Arrow,          // ->  fn f [...] -> int32
     Semi,           // ;
     Comma,          // ,
     Op(String),     // + - / == !== < > <== >==
@@ -56,6 +59,8 @@ impl fmt::Display for Tok {
             Tok::Eq => write!(f, "="),
             Tok::ShadowWalrus => write!(f, "$:="),
             Tok::ShadowEq => write!(f, "$="),
+            Tok::Colon => write!(f, ":"),
+            Tok::Arrow => write!(f, "->"),
             Tok::Semi => write!(f, ";"),
             Tok::Comma => write!(f, ","),
             Tok::Op(o) => write!(f, "{o}"),
@@ -220,10 +225,12 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         if rest.starts_with("<==") { push(Tok::Op("<==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with(">==") { push(Tok::Op(">==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
+        if two == "->" { push(Tok::Arrow, &mut toks); i += 2; col += 2; continue; }
         if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
         if c == '$' { return err(tl, tc, "`$` marks a shadowing declaration and sits on the operator: `$:=` or `$=`".into()); }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }
         if two == ":=" { push(Tok::Walrus, &mut toks); i += 2; col += 2; continue; }
+        if c == ':' { push(Tok::Colon, &mut toks); i += 1; col += 1; continue; }
         if two == "==" { push(Tok::Op("==".into()), &mut toks); i += 2; col += 2; continue; }
         if two == "!=" { return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()); }
         if two == "<=" { return err(tl, tc, "`<=` is not an operator; less-or-equal is `<==`".into()); }

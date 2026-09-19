@@ -1,6 +1,7 @@
 # Structs
 
-Decided 2026-09-18. A struct is a blueprint: a named shape made of typed
+Decided 2026-09-18; spelling revised 2026-09-19 (name-then-type fields,
+no brackets around field values). A struct is a blueprint: a named shape made of typed
 slots. A struct *value* is that shape filled in; each value has its own copy
 of every field.
 
@@ -8,39 +9,42 @@ of every field.
 
 ```
 struct Locker {
-    str.utf8 'name'
-    int32 'number'
-    int32 'capacity'
-    bool 'occupied'
+    'name': str.utf8
+    'number': int32
+    'capacity': int32
+    'occupied': bool
 }
 ```
 
-- Top level, beside `func`. The name is bare (a type, like `int32`); the
-  fields are variables, so quoted; type first, then name.
-- No `var` on a field: a struct always *owns* its fields, so there is nothing
-  to choose (a parameter's `var`/`lent` chooses; a field cannot).
+- Top level, beside `fn`. The name is bare (a type, like `int32`); the
+  fields are variables, so quoted; `'name': type`, like every other
+  name-to-type site.
+- No `let` on a field: a struct always *owns* its fields, so there is nothing
+  to choose (a parameter's `lent` chooses; a field cannot).
 - No `;` after a field: fields are not statements.
-- `immut.` is allowed on a field — `immut.int32 'number'` — under the same
-  rule as `var.immut`: a verified contract, allowed, not standard.
+- `immut` is allowed on a field — `immut 'number': int32` — under the same
+  rule as `let immut`: a verified contract, allowed, not standard.
 - A field may be any type, including another struct or a list.
 
 ## Making a value — by field name
 
 ```
-var 'mine' := [Locker['name' = ["field kit"], 'number' = [7],
-                      'capacity' = [12], 'occupied' = [false]]];
+let 'mine' := Locker['name' = "field kit", 'number' = 7,
+                     'capacity' = 12, 'occupied' = false];
 ```
 
-- The struct name, bare, before `[ ]`, like a call; inside, each field by
-  name with `=` (the blueprint fixed the types, so it is the typed form).
+- The struct name, bare, before `[ ]`, like a call — this bracket *builds*
+  the value, so it stays; inside, each field by name with `=` (the blueprint
+  fixed the types, so it is the typed form).
 - **Every field must be given** — there are no zero values. Order is free.
-- Every field value wears its own `[ ]` — the value rule, no exception.
+- A field's value is a bare expression; a join or a list builds in its own
+  `[ ]`: `'name' = ["locker " 'n']`, `'tags' = [1, 2]`.
 
 ## Reading and writing a field
 
 ```
-var 'n' := ['mine'.number];         # read
-'mine'.number = [8];                # write
+let 'n' := 'mine'.number;           # read
+'mine'.number = 8;                  # write
 ```
 
 A quoted name followed by `.` is field access — a new shape, unambiguous

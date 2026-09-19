@@ -1,5 +1,5 @@
 MAIN {
-    var 'items' := [1, 2, 3];
-    loop.temp.for 'i' in ['items'] {
+    let 'items' := [1, 2, 3];
+    for temp 'i' in 'items' {
     }
 }

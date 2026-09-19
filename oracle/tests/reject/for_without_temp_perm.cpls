@@ -1,5 +1,5 @@
 MAIN {
-    var 'items' := [1, 2];
-    loop.for 'i' in [lend 'items'] {
+    let 'items' := [1, 2];
+    for 'i' in lend 'items' {
     }
 }

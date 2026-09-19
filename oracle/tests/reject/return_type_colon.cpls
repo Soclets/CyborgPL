@@ -1,0 +1,5 @@
+fn add ['a': int32]: int32 {
+    return 'a';
+}
+MAIN {
+}

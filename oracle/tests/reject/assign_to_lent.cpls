@@ -1,7 +1,7 @@
-func touch [lent.str.utf8 'text'] {
-    'text' = ["b"];
+fn touch [lent 'text': str.utf8] {
+    'text' = "b";
 }
 MAIN {
-    var 's' := ["a"];
+    let 's' := "a";
     touch[lend 's'];
 }

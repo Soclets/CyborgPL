@@ -22,21 +22,21 @@ Word operators (`x`, `xx`, `mod`, `and`, `or`, `not`) are safe for the same
 reason `x` is: user names are always quoted, so a bare word is never a name.
 
 `x`/`xx` carry over from legacy CyborgPL (the owner's design there). They are
-unambiguous because user names are always quoted: `['x' x 2]` is the
+unambiguous because user names are always quoted: `'x' x 2` is the
 variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 `*` is not an operator.
 
-`( )` groups: `['a' + ('b' x 2)]`.
+`( )` groups: `'a' + ('b' x 2)`.
 
-**`xx` chains follow mathematics** (decided 2026-09-14): `[2 xx 3 xx 2]` is
+**`xx` chains follow mathematics** (decided 2026-09-14): `2 xx 3 xx 2` is
 `2 xx (3 xx 2)` = 512, a power tower read from the top. Parentheses always
-override, even against convention: `[(2 xx 3) xx 2]` = 64. The other
+override, even against convention: `(2 xx 3) xx 2` = 64. The other
 operators chain left as usual.
 
 ## No increment or compound assignment (decided 2026-09-14)
 
 There is no `++`, `--`, `+=`, or any other shorthand. Adding one is written
-in full: `'i' = ['i' + 1];`. Precog emits the same instruction either way;
+in full: `'i' = 'i' + 1;`. Precog emits the same instruction either way;
 the shorthand would exist only for the reader, and the owner chose not to
 have it.
 
@@ -59,7 +59,7 @@ Tightest to loosest:
 | 7 | `and` | ∧ before ∨, as in logic |
 | 8 | `or` | |
 
-So `[1 + 2 x 3]` = 7, `[2 x 3 xx 2]` = 18, `['a' + 1 > 'b' - 2 and not ('a' == 'b')]` reads as expected, and `[6 / 2 x 3]`, `[10 mod 3 + 1]`, `[not 1 == 2]` are errors that say "parenthesise".
+So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and not ('a' == 'b')` reads as expected, and `6 / 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
 
 ## Not yet listed (open)
 

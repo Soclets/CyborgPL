@@ -52,7 +52,7 @@ impl Value {
             Value::Str(s) => s.clone(),
             Value::Char(_, c) => c.clone(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
-            Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("'{k}' = [{}]", v.show_stored())).collect::<Vec<_>>().join(", ")),
+            Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("'{k}' = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Nothing => "nothing".into(),
         }
     }
@@ -63,7 +63,7 @@ impl Value {
         match self {
             Value::Bin(b) => format!("{b}"),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
-            Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("'{k}' = [{}]", v.show_useful())).collect::<Vec<_>>().join(", ")),
+            Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("'{k}' = {}", v.show_useful())).collect::<Vec<_>>().join(", ")),
             other => other.show_stored(),
         }
     }

@@ -1,5 +1,5 @@
-func.int32 nothing [] {
+fn nothing [] -> int32 {
 }
 MAIN {
-    var 'x' := [nothing[]];
+    let 'x' := nothing[];
 }

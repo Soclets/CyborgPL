@@ -1,12 +1,12 @@
-func.int32 twice [var.immut.int32 'n'] {
-    return ['n' x 2];
+fn twice [immut 'n': int32] -> int32 {
+    return 'n' x 2;
 }
 
 MAIN {
-    var 'plain' := [1];
-    'plain' = ['plain' + 1];
-    var.mut 'counter' := [0];
-    'counter' = ['counter' + 1];
-    var.immut.int32 'limit' = [10];
+    let 'plain' := 1;
+    'plain' = 'plain' + 1;
+    let mut 'counter' := 0;
+    'counter' = 'counter' + 1;
+    let immut 'limit': int32 = 10;
     std::printu.stdout['plain' " " 'counter' " " 'limit' " " (twice['limit']) \n];
 }

@@ -1,34 +1,34 @@
-func.int32 count [lent 'items'] {
-    var 'n' := [0];
-    loop.temp.for 'item' in [lend 'items'] {
-        'n' = ['n' + 1];
+fn count [lent 'items'] -> int32 {
+    let 'n' := 0;
+    for temp 'item' in lend 'items' {
+        'n' = 'n' + 1;
     }
-    return ['n'];
+    return 'n';
 }
 
-func shout [lent.mut.str.utf8 'text'] {
+fn shout [lent.mut 'text': str.utf8] {
     'text' = [copy 'text' "!"];
 }
 
-func.str.utf8 greet [var.str.utf8 'name'] {
+fn greet ['name': str.utf8] -> str.utf8 {
     return ["hello " 'name'];
 }
 
 MAIN {
-    var 's' := ["line 1" \n "line 2"];
-    var 't' := [give 's'];
-    var 'u' := [copy 't'];
+    let 's' := ["line 1" \n "line 2"];
+    let 't' := give 's';
+    let 'u' := copy 't';
     shout[lend.mut 'u'];
     std::print.stdout['t' \n];
     std::print.stdout['u' \n];
-    var 'g' := [greet[copy 'u']];
+    let 'g' := greet[copy 'u'];
     std::print.stdout['g' \n];
     std::print.stdout['u' \n];
-    var 'words' := ["a", "b", "c"];
-    var 'n' := [count[lend 'words']];
+    let 'words' := ["a", "b", "c"];
+    let 'n' := count[lend 'words'];
     std::printu.stdout['n' " words" \n];
-    var 'm' := [count[["x", "y"]]];
+    let 'm' := count[["x", "y"]];
     std::printu.stdout['m' " fresh" \n];
-    var 'r' := [lend 'words'];
+    let 'r' := lend 'words';
     std::printu.stdout['r' \n];
 }

@@ -39,7 +39,7 @@ pub enum CharUnit { Byte, Point, Grapheme }
 
 /// How a parameter receives its argument (design/ownership-syntax.md).
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ParamKind { Var, Lent, LentMut }
+pub enum ParamKind { Owned, Lent, LentMut }
 
 /// What a caller does with an owned value (design/ownership-syntax.md).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -77,22 +77,22 @@ pub struct Program {
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    /// `var 'x' := [v];` (ty None) or `var.T 'x' = [v];` (ty Some);
-    /// optionally `var.mut` / `var.immut` before the type
+    /// `let 'x' := v;` (ty None) or `let 'x': T = v;` (ty Some);
+    /// optionally `let mut` / `let immut` before the name (decided 2026-09-19)
     /// `shadow`: written with `$:=` / `$=`, deliberately hiding an outer name
     Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, shadow: bool, line: usize },
-    /// `'x' = [v];`
+    /// `'x' = v;`
     Assign { name: String, value: Bracket, line: usize },
-    /// `'xs'[pos i] = [v];`
+    /// `'xs'[pos i] = v;`
     AssignElem { name: String, index: Expr, value: Bracket, line: usize },
-    /// `'mine'.field = [v];`
+    /// `'mine'.field = v;`
     AssignField { name: String, field: String, value: Bracket, line: usize },
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },
     Loop { body: Vec<Stmt>, line: usize },
     While { cond: Bracket, body: Vec<Stmt>, line: usize },
-    /// `loop.temp.for` / `loop.perm.for`: `perm` keeps the variable after the loop
+    /// `for temp 'x' in lend 'xs' { }` / `for perm …`: `perm` keeps the variable after the loop
     For { name: String, perm: bool, seq: bool, over: Bracket, body: Vec<Stmt>, line: usize },
-    /// `loop.temp.range 'i' [:= start, := stop, := step] { }` — inclusive stop
+    /// `for temp 'i' in range[start, stop, step] { }` — inclusive stop; `'i': T` types the counter
     Range { name: String, perm: bool, seq: bool, ty: Option<Ty>, bounds: Bracket, body: Vec<Stmt>, line: usize },
     Break { line: usize },
     Continue { line: usize },
@@ -112,7 +112,8 @@ pub struct Call {
 }
 
 /// `[ … ]` — one or more comma-separated values. One value is that value;
-/// more than one is a list.
+/// more than one is a list. Since 2026-09-19 a bare single expression is also
+/// carried as a one-value Bracket: `[ ]` is only written where it builds.
 #[derive(Debug, Clone)]
 pub struct Bracket {
     pub values: Vec<Value>,
@@ -149,7 +150,7 @@ pub enum Expr {
     Builtin(String, String, Bracket, usize),
     /// `'mine'.field` — read a field
     Field(String, String, usize),
-    /// `Locker['name' = […], …]` — construct a struct value by field name
+    /// `Locker['name' = v, …]` — construct a struct value by field name
     Construct(String, Vec<(String, Bracket)>, usize),
     /// `give 'mine'.field` / `copy 'mine'.field` / `lend 'mine'.field`
     OwnedField(Verb, String, String, usize),

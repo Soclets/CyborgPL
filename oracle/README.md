@@ -24,15 +24,15 @@ Everything in `design/syntax-sketch.md`, `types.md`, `operators.md`,
 entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - quoted names are variables; function names are bare; keywords are reserved
-- `:=` only without a type, `=` only with one; the typed form is fully explicit
-- `[ ]` is the value slot; whitespace joins pieces; a comma separates values;
-  a bare number is an operand and never a piece
+- `let 'x' := v;` / `let 'x': T = v;` — `:=` only without a type, `=` only with one; the typed form is fully explicit; `let mut` / `let immut` before the name (revised 2026-09-19; `var`, `func`, `loop.while`, `else.if`, `loop.temp.for` are refused with the new spelling)
+- `fn name ['a': int32, lent 'b': str.utf8, lent.mut 'c': list.int32] -> int32 { }`; an owning parameter has no keyword; the return type is `-> T` after the parameters
+- `[ ]` is written only where it builds: a text join (whitespace joins pieces), a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); pieces outside `[ ]` are an error; a bare number is an operand and never a piece
 - precedence as mathematics has it, parentheses required where it has no settled answer (`6 / 2 x 3`, `mod` beside anything, chained comparisons, `not` beside a comparison)
 - `x xx + - / mod == !== < > <== >== and or not`; `*`, `^`, `%`, `!=`, `>=`,
   `++`, `+=` are refused with a pointer to the right spelling
 - no implicit conversion between numeric families; a bare literal adopts its
   context's family; typed widths are range-checked
-- `give` / `copy` / `lend` / `lend.mut` at the call, `var` / `lent` /
+- `give` / `copy` / `lend` / `lend.mut` at the call, nothing / `lent` /
   `lent.mut` at the parameter, and they must agree; a bare owned variable
   cannot be stored; a given variable is dead until reassigned
 - the default check tier: every integer operation is overflow-checked and
@@ -41,10 +41,10 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
-- `struct Name { type 'f' … }`, construction by field name with every field bracketed, `'s'.f` read / `'s'.f = [v];` write, `immut.` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
-- `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = [v];` element assignment; `var.list.T 'xs' = [];` and `var 'ys' := [list.empty];`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
-- `loop.temp|perm.for` and `loop.temp|perm.range 'i' [:= a, := b, := step]`: inclusive stop, `perm` keeps the last value, the counter/element cannot be assigned
-- `var.immut` cannot be assigned to; `var.mut` is accepted and changes nothing
+- `struct Name { 'f': type … }`, construction by field name `Name['f' = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut 'f': type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
+- `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = v;` element assignment; `let 'xs': list.T = [];` and `let 'ys' := list.empty;`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
+- `if c { } else if c { } else { }`, `loop { }`, `while c { }`, `for [seq] temp|perm 'x' in lend 'xs' { }`, `for [seq] temp|perm 'i'[: T] in range[start, stop, step] { }`: inclusive stop, `perm` keeps the last value, the counter/element cannot be assigned, `seq` first then `temp`/`perm`
+- `let immut` cannot be assigned to; `let mut` is accepted and changes nothing
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list
 
 ## Provisional picks — the design has not decided these

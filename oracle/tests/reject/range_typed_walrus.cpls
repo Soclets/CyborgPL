@@ -1,4 +1,0 @@
-MAIN {
-    loop.temp.range.int32 'i' [:= 0, := 3] {
-    }
-}

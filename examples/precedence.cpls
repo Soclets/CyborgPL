@@ -6,9 +6,9 @@ MAIN {
     std::printu.stdout[(10 - 4 - 3) \n];
     std::printu.stdout[(6 / (2 x 3)) \n];
     std::printu.stdout[((6 / 2) x 3) \n];
-    var 'a' := [5];
-    var 'b' := [7];
-    if ['a' + 1 > 'b' - 2 and not ('a' == 'b') or false] {
+    let 'a' := 5;
+    let 'b' := 7;
+    if 'a' + 1 > 'b' - 2 and not ('a' == 'b') or false {
         std::print.stdout["logic holds" \n];
     }
 }

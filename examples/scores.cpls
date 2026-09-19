@@ -1,47 +1,47 @@
-func.bool is_even [var.int32 'n'] {
-    return [('n' mod 2) == 0];
+fn is_even ['n': int32] -> bool {
+    return ('n' mod 2) == 0;
 }
 
-func.int32 clamp [var.int32 'n', var.int32 'low', var.int32 'high'] {
-    if ['n' < 'low'] {
-        return ['low'];
-    } else.if ['n' > 'high'] {
-        return ['high'];
+fn clamp ['n': int32, 'low': int32, 'high': int32] -> int32 {
+    if 'n' < 'low' {
+        return 'low';
+    } else if 'n' > 'high' {
+        return 'high';
     } else {
-        return ['n'];
+        return 'n';
     }
 }
 
 MAIN {
-    var 'scores' := [72, 95, 38, 100, 61, 87];
+    let 'scores' := [72, 95, 38, 100, 61, 87];
 
-    var 'count' := [0];
-    var 'total' := [0];
-    var 'evens' := [0];
-    var 'best' := [0];
+    let 'count' := 0;
+    let 'total' := 0;
+    let 'evens' := 0;
+    let 'best' := 0;
 
-    loop.temp.for 'score' in [lend 'scores'] {
-        'count' = ['count' + 1];
-        'total' = ['total' + 'score'];
-        if [is_even['score']] {
-            'evens' = ['evens' + 1];
+    for temp 'score' in lend 'scores' {
+        'count' = 'count' + 1;
+        'total' = 'total' + 'score';
+        if is_even['score'] {
+            'evens' = 'evens' + 1;
         }
-        if ['score' > 'best'] {
-            'best' = ['score'];
+        if 'score' > 'best' {
+            'best' = 'score';
         }
     }
 
-    var 'average' := ['total' / 'count'];
-    var 'curved' := [clamp['average' + 10, 0, 100]];
+    let 'average' := 'total' / 'count';
+    let 'curved' := clamp['average' + 10, 0, 100];
 
     std::printu.stdout["scored " 'count' " tests" \n];
     std::printu.stdout["total " 'total' ", best " 'best' \n];
     std::printu.stdout["even scores: " 'evens' \n];
     std::printu.stdout["average " 'average' ", curved " 'curved' \n];
 
-    if ['average' >== 90] {
+    if 'average' >== 90 {
         std::printu.stdout["grade A" \n];
-    } else.if ['average' >== 75] {
+    } else if 'average' >== 75 {
         std::printu.stdout["grade B" \n];
     } else {
         std::printu.stdout["keep going" \n];

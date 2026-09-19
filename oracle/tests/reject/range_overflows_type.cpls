@@ -1,4 +1,4 @@
 MAIN {
-    loop.temp.range.int8 'i' [= 120, = 130] {
+    for temp 'i': int8 in range[120, 130] {
     }
 }

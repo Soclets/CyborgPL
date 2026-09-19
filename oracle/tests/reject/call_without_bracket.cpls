@@ -1,3 +1,3 @@
 MAIN {
-    var 's' := std::input.stdin[];
+    let 's' := std::input.stdin;
 }

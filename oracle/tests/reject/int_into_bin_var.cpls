@@ -1,4 +1,4 @@
 MAIN {
-    var.int32 'a' = [1];
-    var.bin64 'b' = ['a'];
+    let 'a': int32 = 1;
+    let 'b': bin64 = 'a';
 }

@@ -1,0 +1,4 @@
+MAIN {
+    for temp 'i' in range[:= 0, := 3] {
+    }
+}

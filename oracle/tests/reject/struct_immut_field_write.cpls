@@ -1,5 +1,5 @@
-struct P { immut.int32 'id'  int32 'x' }
+struct P { immut 'id': int32  'x': int32 }
 MAIN {
-    var 'p' := [P['id' = [1], 'x' = [2]]];
-    'p'.id = [5];
+    let 'p' := P['id' = 1, 'x' = 2];
+    'p'.id = 5;
 }

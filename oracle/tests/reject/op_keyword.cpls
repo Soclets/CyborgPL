@@ -1,5 +1,5 @@
-op.int32 dot [var.int32 'a', var.int32 'b'] {
-    return ['a' x 'b'];
+op dot ['a': int32, 'b': int32] -> int32 {
+    return 'a' x 'b';
 }
 MAIN {
 }

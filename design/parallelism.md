@@ -6,7 +6,7 @@ questions.
 
 ## Automatic
 
-The programmer writes `loop.for`. Precog decides whether it runs in
+The programmer writes `for`. Precog decides whether it runs in
 parallel:
 
 - **Whether it can:** the iterations must provably not touch each other's
@@ -29,10 +29,10 @@ threads on cores; the program never allocates a core. A few hundred lines.
 ## The escape
 
 A loop that is parallel-safe but must run in order for an external reason
-(writing lines to a file, driving a device) opts out with a chain segment:
+(writing lines to a file, driving a device) opts out with one word before `temp`/`perm` (revised 2026-09-19; it was the chain segment `loop.temp.seq.for`):
 
 ```
-loop.temp.seq.for 'line' in [lend 'lines'] {
+for seq temp 'line' in lend 'lines' {
     std::print.stdout['line' \n];
 }
 ```

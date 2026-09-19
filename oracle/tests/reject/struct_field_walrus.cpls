@@ -1,4 +1,4 @@
-struct P { int32 'x' }
+struct P { 'x': int32 }
 MAIN {
-    var 'p' := [P['x' := [1]]];
+    let 'p' := P['x' := 1];
 }

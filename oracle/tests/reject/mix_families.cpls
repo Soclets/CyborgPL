@@ -1,5 +1,5 @@
 MAIN {
-    var.int32 'a' = [1];
-    var.bin64 'b' = [1.5];
-    var 'c' := ['a' + 'b'];
+    let 'a': int32 = 1;
+    let 'b': bin64 = 1.5;
+    let 'c' := 'a' + 'b';
 }

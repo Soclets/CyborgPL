@@ -1,5 +1,5 @@
 MAIN {
-    var 's' := ["a"];
-    var 't' := [give 's'];
-    var 'u' := [give 's'];
+    let 's' := "a";
+    let 't' := give 's';
+    let 'u' := give 's';
 }

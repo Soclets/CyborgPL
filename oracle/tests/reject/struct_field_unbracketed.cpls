@@ -1,4 +1,3 @@
 struct P { int32 'x' }
 MAIN {
-    var 'p' := [P['x' = 1]];
 }

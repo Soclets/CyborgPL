@@ -1,5 +1,5 @@
-func.int32 'add' [var.int32 'a'] {
-    return ['a'];
+fn 'add' ['a': int32] -> int32 {
+    return 'a';
 }
 MAIN {
 }
