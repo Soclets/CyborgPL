@@ -5,6 +5,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Modules (owner)
+
+Owner asked what Rust's `pub()` is, then what modules are, then "Yeah, we
+should have modules." Five questions, one at a time:
+1. File-as-module (a) vs `module` block (b) vs both (c): owner asked why not
+   (b), what (a) misses, what (c) is — chose **(c)**: every `.cpls` is a
+   module named after it (directories nest) and `module name { … }` nests
+   a block. Keyword **`module`** — owner caught that `mod` is the remainder
+   operator.
+2. Root: **`limb.cpls`** (owner chose (a) over "no root"; asked about the
+   `.limb` archive and kept the name).
+3. Names: **"whatever has most compat"** — lowercase ASCII identifier, no
+   Windows device names; a bad file name is a compile error.
+4. Middle audience: **`pub.limb`** (owner chose the chain over `pub(limb)`,
+   which would break "`( )` is arithmetic grouping only", and over no
+   middle level).
+5. Reaching the root from a module: **`limb.helper[…]`** (owner chose (c)
+   over lexical fallback and over the Limb's own name).
+Consequences written into `design/limbs.md`: bare = this module, dotted =
+relative, `limb.` = absolute; visibility checked along the path; file
+modules provisionally public. Oracle runs Limb directories
+(`examples/geometry/`), blocks (`examples/modules.cpls`), 20 reject tests.
+
 ### 2026-09-19 — No public variable (owner)
 
 Asked twice how to make a public variable; Claude: none exists, and laid

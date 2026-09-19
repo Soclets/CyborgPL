@@ -24,10 +24,27 @@ pub struct Field {
     pub immut: bool,
 }
 
+/// Visibility (decided 2026-09-19): nothing = this module (and its descendants),
+/// `pub.limb` = the whole Limb, `pub` = other Limbs too.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Vis { Private, Limb, Pub }
+
+/// A module: a file of the Limb (`shapes.cpls` → `shapes`, `shapes/circle.cpls`
+/// → `shapes.circle`) or a `module name { … }` block. The root, `limb.cpls`,
+/// is the empty path.
+#[derive(Debug, Clone)]
+pub struct ModuleDef {
+    pub path: Vec<String>,
+    pub vis: Vis,
+    pub line: usize,
+}
+
 #[derive(Debug, Clone)]
 pub struct StructDef {
+    /// canonical: "shapes.Locker" for a struct in module `shapes`, "Locker" at the root
     pub name: String,
-    pub is_pub: bool,
+    pub module: Vec<String>,
+    pub vis: Vis,
     pub fields: Vec<Field>,
     pub line: usize,
 }
@@ -63,7 +80,8 @@ pub struct Param {
 #[derive(Debug, Clone)]
 pub struct Func {
     pub name: String,
-    pub is_pub: bool,
+    pub module: Vec<String>,
+    pub vis: Vis,
     pub ret: Option<Ty>,
     pub params: Vec<Param>,
     pub body: Vec<Stmt>,
@@ -75,9 +93,10 @@ pub struct Func {
 #[derive(Debug, Clone)]
 pub struct ConstDef {
     pub name: String,
+    pub module: Vec<String>,
+    pub vis: Vis,
     pub ty: Option<Ty>,
     pub value: Bracket,
-    pub is_pub: bool,
     pub line: usize,
 }
 
@@ -85,6 +104,7 @@ pub struct Program {
     pub funcs: Vec<Func>,
     pub structs: Vec<StructDef>,
     pub consts: Vec<ConstDef>,
+    pub modules: Vec<ModuleDef>,
     pub main: Option<Vec<Stmt>>,
 }
 
@@ -119,7 +139,11 @@ pub enum Stmt {
 #[derive(Debug, Clone)]
 pub struct Call {
     pub limb: Option<String>,   // None = this Limb; Some("std") = std::
-    pub path: Vec<String>,      // print.stdout → ["print", "stdout"]
+    /// std: print.stdout → ["print", "stdout"]; this Limb: the canonical path from
+    /// the root, `limb.` stripped, the calling module prefixed to a relative one
+    pub path: Vec<String>,
+    /// the module the call is written in (for visibility)
+    pub from: Vec<String>,
     pub args: Bracket,
     pub line: usize,
 }
@@ -167,6 +191,8 @@ pub enum Expr {
     Construct(String, Vec<(String, Bracket)>, usize),
     /// `give 'mine'.field` / `copy 'mine'.field` / `lend 'mine'.field`
     OwnedField(Verb, String, String, usize),
+    /// `shapes.'pi'` / `limb.'pi'` — a const reached by module path (canonical), from a module
+    ConstPath(Vec<String>, String, Vec<String>, usize),
     Unary(String, Box<Expr>, usize),            // not, -
     Binary(String, Box<Expr>, Box<Expr>, usize),
     Paren(Box<Expr>, usize),
@@ -185,6 +211,7 @@ impl Expr {
             Expr::Field(_, _, l) => *l,
             Expr::Construct(_, _, l) => *l,
             Expr::OwnedField(_, _, _, l) => *l,
+            Expr::ConstPath(_, _, _, l) => *l,
         }
     }
 }

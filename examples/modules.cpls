@@ -1,0 +1,26 @@
+# Modules as blocks in one file (a Limb of one root file). See examples/geometry/ for files.
+const 'scale' := 10;
+
+module counter {
+    pub const 'start' := 1;
+    pub struct Count { 'n': int32 }
+    pub fn bump ['c': Count] -> Count {
+        return Count['n' = 'c'.n + step[]];
+    }
+    fn step [] -> int32 { return limb.'scale'; }      # private; reaches the root's const
+    pub.limb module inner {
+        pub.limb fn twice ['n': int32] -> int32 { return 'n' x 2; }
+    }
+}
+
+fn show ['c': counter.Count] {
+    std::printu.stdout["count " 'c'.n \n];
+}
+
+MAIN {
+    let 'c' := counter.Count['n' = counter.'start'];
+    show[copy 'c'];
+    let 'd' := counter.bump[give 'c'];
+    show[copy 'd'];
+    std::printu.stdout[(counter.inner.twice['d'.n]) \n];
+}

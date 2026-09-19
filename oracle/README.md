@@ -13,8 +13,9 @@ for where it fits.
 cd oracle
 cargo build
 ./target/debug/oracle ../examples/scores.cpls
-cargo test          # every examples/*.cpls must match its .out;
-                    # every tests/reject/*.cpls must fail with its .err
+./target/debug/oracle ../examples/geometry     # a Limb directory: limb.cpls + modules
+cargo test          # every examples/*.cpls (or Limb directory) must match its .out;
+                    # every tests/reject/*.cpls (or directory) must fail with its .err
 ```
 
 ## What it enforces
@@ -40,7 +41,8 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
-- `pub` before `fn`/`struct`/`const` is accepted and recorded (one Limb: nothing to hide from); `const 'x' := v;` at the top level only — evaluated before MAIN in order, never assignable/shadowed/verbed, a `std::` call in its value is refused; `let` at the top level is refused
+- modules (2026-09-19): a Limb directory's `limb.cpls` is the root, every other `.cpls` a module (directories nest), `module name { }` blocks nest; names lowercase ASCII, not device names; bare = this module, dotted = relative, `limb.` = root; visibility nothing / `pub.limb` / `pub` on fn, struct, const, module, checked along the whole path (`pub` and `pub.limb` behave alike inside one Limb); `mod x`, `module x;`, MAIN outside the root, a file-and-block module are refused
+- `const 'x' := v;` at the top level only — evaluated before MAIN in order, never assignable/shadowed/verbed, a `std::` call in its value is refused; `let` at the top level is refused
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `struct Name { 'f': type … }`, construction by field name `Name['f' = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut 'f': type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
 - `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = v;` element assignment; `let 'xs': list.T = [];` and `let 'ys' := list.empty;`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
@@ -61,6 +63,7 @@ had to make to run at all; none is a decision.
 | A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them) |
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
 | `deci`, `bin128`, `uint128`'s top half, `std::uer` | — | Parsed, refused at run time as not implemented |
+| A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.limb`; open in `design/limbs.md` |
 
 
 

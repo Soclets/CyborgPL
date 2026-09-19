@@ -57,23 +57,28 @@ enum Prov {
 
 pub struct Interp<'p> {
     prog: &'p Program,
-    /// Limb-level `const`s: visible everywhere, never assignable, every read a fresh value.
+    /// Limb-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
     consts: HashMap<String, Slot>,
+    /// the module the running code was written in (for bare names and visibility)
+    module: Vec<String>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
 }
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
     pub fn run(&mut self) -> Result<u8, RuntimeError> {
         // Consts first, in order: each may use the ones above it. Precog would
         // fold these at compile time; the oracle evaluates them before MAIN.
+        self.check_duplicates()?;
         for c in &self.prog.consts {
-            if self.consts.contains_key(&c.name) { return rt(c.line, format!("const '{}' is declared twice", c.name)); }
+            let key = const_key(&c.module, &c.name);
+            if self.consts.contains_key(&key) { return rt(c.line, format!("const '{}' is declared twice", c.name)); }
+            self.module = c.module.clone();
             if let Some(call) = first_std_call(&c.value) {
                 return rt(c.line, format!("a const's value must be known at compile time; `std::{call}` is an effect, not a value"));
             }
@@ -81,8 +86,9 @@ impl<'p> Interp<'p> {
             let (v, prov) = self.bracket(&c.value, c.line)?;
             if matches!(prov, Prov::Borrowed(..)) { return rt(c.line, format!("const '{}' cannot hold a lend", c.name)); }
             let v = self.fit(v, prov, c.ty.as_ref(), c.line)?;
-            self.consts.insert(c.name.clone(), Slot { cell: Rc::new(RefCell::new(v)), ty: c.ty.clone(), kind: SlotKind::Const, alive: true, immut: true });
+            self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(v)), ty: c.ty.clone(), kind: SlotKind::Const, alive: true, immut: true });
         }
+        self.module = Vec::new();
         let main = match &self.prog.main {
             Some(m) => m,
             None => return rt(0, "this Limb has no MAIN, so it is a library, not a program"),
@@ -100,9 +106,48 @@ impl<'p> Interp<'p> {
 
     fn push(&mut self) { self.scopes.push(HashMap::new()); }
     fn pop(&mut self) { self.scopes.pop(); }
-    fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)).or_else(|| self.consts.get(name)) }
+    fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)).or_else(|| self.consts.get(&const_key(&self.module, name))) }
     fn lookup_mut(&mut self, name: &str) -> Option<&mut Slot> { self.scopes.iter_mut().rev().find_map(|s| s.get_mut(name)) }
-    fn is_const(&self, name: &str) -> bool { self.consts.contains_key(name) && !self.scopes.iter().any(|s| s.contains_key(name)) }
+    fn is_const(&self, name: &str) -> bool { self.consts.contains_key(&const_key(&self.module, name)) && !self.scopes.iter().any(|s| s.contains_key(name)) }
+
+    /// Two items with one canonical name, or a module declared twice (a file and a block).
+    fn check_duplicates(&self) -> Result<(), RuntimeError> {
+        let mut seen: HashMap<String, usize> = HashMap::new();
+        for f in &self.prog.funcs {
+            let k = format!("fn {}", join_path(&f.module, &f.name));
+            if let Some(l) = seen.insert(k.clone(), f.line) { return rt(f.line, format!("`{}` is defined twice (first at line {l})", &k[3..])); }
+        }
+        for d in &self.prog.structs {
+            let k = format!("struct {}", d.name);
+            if let Some(l) = seen.insert(k.clone(), d.line) { return rt(d.line, format!("struct `{}` is defined twice (first at line {l})", d.name)); }
+        }
+        for m in &self.prog.modules {
+            let k = format!("module {}", m.path.join("."));
+            if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at line {l}) — a file and a block cannot both be it", m.path.join("."))); }
+        }
+        Ok(())
+    }
+
+    /// Visibility (decided 2026-09-19): an item declared in module `owner` with `vis`
+    /// is reachable from module `from` if it is `pub` / `pub.limb` (one Limb here, so
+    /// both count) or `from` is `owner` or a descendant of it. Every module on the
+    /// way is checked the same way.
+    fn reachable(&self, from: &[String], owner: &[String], vis: Vis) -> bool {
+        vis != Vis::Private || from.starts_with(owner)
+    }
+
+    fn check_path(&self, from: &[String], module: &[String], line: usize) -> Result<(), RuntimeError> {
+        for i in 1..=module.len() {
+            let path = &module[..i];
+            let Some(m) = self.prog.modules.iter().find(|m| m.path == path) else {
+                return rt(line, format!("no module `{}` in this Limb", path.join(".")));
+            };
+            if !self.reachable(from, &module[..i - 1], m.vis) {
+                return rt(line, format!("module `{}` is private to `{}`", path.join("."), root_or(&module[..i - 1])));
+            }
+        }
+        Ok(())
+    }
 
     fn declare(&mut self, name: &str, slot: Slot, line: usize) -> Result<(), RuntimeError> {
         self.declare_shadow(name, slot, false, line)
@@ -603,6 +648,11 @@ impl<'p> Interp<'p> {
                     Some(d) => d.clone(),
                     None => return rt(line, format!("no struct named `{sname}` is declared (a call to a function is `{sname}[…]` with plain values, not `'field' = …`)")),
                 };
+                let from = self.module.clone();
+                self.check_path(&from, &def.module, line)?;
+                if !self.reachable(&from, &def.module, def.vis) {
+                    return rt(line, format!("struct `{sname}` is private to `{}`; mark it `pub` or `pub.limb`", root_or(&def.module)));
+                }
                 for (k, _) in given { if !def.fields.iter().any(|f| &f.name == k) { return rt(line, format!("{sname} has no field '{k}'")); } }
                 let mut out = Vec::new();
                 for f in &def.fields {
@@ -623,6 +673,19 @@ impl<'p> Interp<'p> {
                 let val = Value::Struct(sname.clone(), out);
                 let prov = if val.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((val, prov))
+            }
+            Expr::ConstPath(module, name, from, _) => {
+                self.check_path(from, module, line)?;
+                let def = match self.prog.consts.iter().find(|c| &c.module == module && &c.name == name) {
+                    Some(c) => c,
+                    None => return rt(line, format!("no const '{name}' in `{}`", root_or(module))),
+                };
+                if !self.reachable(from, module, def.vis) {
+                    return rt(line, format!("const '{name}' is private to `{}`; mark it `pub` or `pub.limb`", root_or(module)));
+                }
+                let v = self.consts[&const_key(module, name)].cell.borrow().clone();
+                let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                Ok((v, prov))
             }
             Expr::Builtin(head, op, args, _) => {
                 let v = self.builtin(head, op, args, line)?;
@@ -758,12 +821,16 @@ impl<'p> Interp<'p> {
     }
 
     fn user_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
-        if c.path.len() != 1 { return rt(c.line, format!("`{}`: a function in this Limb is a bare name; `.` narrows types and keywords, not calls", c.path.join("."))); }
-        let name = &c.path[0];
-        let func = match self.prog.funcs.iter().find(|f| &f.name == name) {
+        let (module, name) = c.path.split_at(c.path.len() - 1);
+        let name = &name[0];
+        self.check_path(&c.from, module, c.line)?;
+        let func = match self.prog.funcs.iter().find(|f| f.module == module && &f.name == name) {
             Some(f) => f,
-            None => return rt(c.line, format!("no function `{name}` in this Limb")),
+            None => return rt(c.line, format!("no function `{name}` in `{}`", root_or(module))),
         };
+        if !self.reachable(&c.from, &func.module, func.vis) {
+            return rt(c.line, format!("`{}` is private to `{}`; mark it `pub` or `pub.limb`", join_path(&func.module, name), root_or(&func.module)));
+        }
         if c.args.values.len() != func.params.len() {
             return rt(c.line, format!("`{name}` takes {} argument(s), given {}", func.params.len(), c.args.values.len()));
         }
@@ -810,11 +877,13 @@ impl<'p> Interp<'p> {
 
         // A function's scopes are its own: it cannot see the caller's variables.
         let saved = std::mem::replace(&mut self.scopes, vec![HashMap::new()]);
+        let saved_module = std::mem::replace(&mut self.module, func.module.clone());
         let flow = (|| {
             for (n, s) in bound { self.declare(&n, s, func.line)?; }
             self.stmts(&func.body)
         })();
         self.scopes = saved;
+        self.module = saved_module;
 
         let result = match flow? {
             Flow::Return(v) => v,
@@ -852,6 +921,10 @@ impl<'p> Interp<'p> {
         }
     }
 }
+
+fn const_key(module: &[String], name: &str) -> String { format!("{}/{name}", module.join(".")) }
+fn join_path(module: &[String], name: &str) -> String { if module.is_empty() { name.to_string() } else { format!("{}.{name}", module.join(".")) } }
+fn root_or(module: &[String]) -> String { if module.is_empty() { "the root (limb.cpls)".into() } else { module.join(".") } }
 
 /// The first `std::` call inside a const's value, if any (an effect at compile time).
 fn first_std_call(b: &Bracket) -> Option<String> {

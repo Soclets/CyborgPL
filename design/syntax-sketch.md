@@ -62,11 +62,13 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   words — `fn`, `let`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `pos`, `struct`, `pub`, `const` (and the retired `var`, `func`) — cannot
+  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb` (and the retired `var`, `func`) — cannot
   be function names. Variables are quoted and can never collide with
   anything.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
-  `std::print.stdout[…]`, `'r': std::uer`, `crate_x::Locker[…]`.
+  `std::print.stdout[…]`, `'r': std::uer`, `crate_x::Locker[…]`. Inside a
+  Limb the same `.` walks modules: `shapes.circle.area[…]`, `limb.helper[…]`
+  for the root (`limbs.md`, 2026-09-19).
 - **User names are quoted** (`'x'`, `'s'`). **Settled and reaffirmed — see
   `DECISIONS.md`; not open for relitigation.** The word operators (`x`,
   `mod`, `and`, …) and the bare keywords depend on it.

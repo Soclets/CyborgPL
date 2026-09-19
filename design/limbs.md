@@ -67,9 +67,87 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   a body `let` is still the only declaration and Precog finds the constants
   itself. `const` exists only where `let` does not.
 
+## Modules (decided 2026-09-19)
+
+A Limb has modules: named boxes inside it, each with its own namespace and
+its own private/public line. Owner: "we should have modules"; then (c) of
+file-only / block-only / both.
+
+### Where a module comes from
+
+- **Every `.cpls` file in the Limb is a module named after the file**:
+  `shapes.cpls` → `shapes`; a directory nests: `shapes/circle.cpls` →
+  `shapes.circle`. Nothing declares it — JetPack knows the files, and `ls`
+  shows the tree.
+- **`module name { … }` inside a file** nests one more module that has no
+  file of its own — for a private helper namespace or tests beside the code.
+  The keyword is `module`, not `mod`: `mod` is the remainder operator.
+  There is no `module name;` include line (Rust's `mod x;` exists only
+  because Cargo does not scan).
+- A module cannot be both a file and a block.
+- **The root is `limb.cpls`** (kept over `root.cpls`; the echo with the
+  `.limb` archive is fine — that is the whole Limb packed, this is the file
+  inside it). Its items are the Limb's top level, `geometry::…` from outside.
+  `MAIN` lives there and nowhere else. A small Limb is one `limb.cpls`.
+
+### Names — "whatever has most compat"
+
+A module name, file or block, is a lowercase ASCII identifier: `a`–`z`,
+`0`–`9`, `_`, starting with a letter. Not a keyword; not a Windows device
+name (`con`, `nul`, `aux`, `prn`, `com1`–`9`, `lpt1`–`9`). A file in the
+Limb whose name does not fit is a compile error naming it, never silently
+skipped. Why: macOS and Windows file systems are case-insensitive
+(`Shapes.cpls` and `shapes.cpls` collide on some machines and not others),
+and macOS normalises Unicode names differently from Linux.
+
+### Reaching in — `::` crosses, `.` narrows, `limb.` is the root
+
+```
+shapes.area[…]                 # from the root: a module's item
+limb.helper[…]                 # from inside a module: the root's item
+limb.shapes.circle.area[…]     # from inside any module: an absolute path
+circle.area[…]                 # from inside `shapes`: its own child
+geometry::shapes.circle.area[…]   # from another Limb
+'r': shapes.circle.Circle      # a struct through modules
+shapes.circle.'pi'             # a const through modules
+```
+
+- A bare name is **this module's**. A dotted path is **relative to this
+  module**. `limb.` starts at the root (owner chose (c) over lexical
+  fallback and over the Limb's own name — a root item added later cannot
+  break a distant module, and a Limb's source does not depend on its
+  package name). Rust's `crate::`, spelled with the word that already names
+  the root file.
+- From outside, the Limb's name replaces `limb`: `geometry::shapes.area`
+  — the same path with the boundary marked.
+
+### Visibility — three audiences
+
+```
+fn helper [] { … }                 # this module and its descendants
+pub.limb fn shared [] { … }        # the whole Limb, not outside
+pub fn api [] { … }                # other Limbs too
+pub.limb module tests { … }        # modules carry it as well
+```
+
+- Nothing: private to the module it is declared in, visible to that module
+  and the modules nested inside it (so a block reaches its file's private
+  helpers, and `limb.helper` works from anywhere when `helper` is at the
+  root).
+- **`pub.limb`**: the rest of this Limb. Owner chose the chain over Rust's
+  `pub(crate)` — `( )` is arithmetic grouping only — and over having no
+  middle level. `pub.limb` narrows `pub` the way `lend.mut` narrows `lend`.
+- **`pub`**: other Limbs.
+- Every module on a path is checked the same way: a `pub` item inside a
+  private module is unreachable from outside that module's parent.
+- A file module is public (provisional: a file has no declaration line to
+  carry `pub.limb`; each item inside still carries its own visibility).
+
 ## Open
 
-- The spelling of the author's "reachable bare" choice — a flag beside or
-  on `pub`. Undecided.
+- The spelling of the author's "reachable bare" / re-export choice — a
+  flag beside or on `pub`; with modules it is also how `shapes.circle.area`
+  becomes `geometry::area` for users. Undecided.
+- A file module's own visibility (provisionally public).
 - Limb name declared in source, or only in `JetPack.toml`? (Claude,
   2026-09-14.)

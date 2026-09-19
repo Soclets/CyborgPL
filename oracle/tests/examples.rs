@@ -14,10 +14,12 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
 }
 
+/// `.cpls` files, plus Limb directories (a directory holding `limb.cpls`);
+/// a directory's expected `.out` / `.err` sits beside it, named after it.
 fn cpls_files(dir: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = fs::read_dir(dir).unwrap()
         .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().map(|x| x == "cpls").unwrap_or(false))
+        .filter(|p| p.extension().map(|x| x == "cpls").unwrap_or(false) || p.join("limb.cpls").is_file())
         .collect();
     v.sort();
     v

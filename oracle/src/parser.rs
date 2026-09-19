@@ -11,7 +11,7 @@ use crate::lexer::{Tok, Token};
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -28,12 +28,28 @@ pub struct ParseError {
 pub struct Parser {
     toks: Vec<Token>,
     pos: usize,
+    /// the module being parsed: [] for limb.cpls, ["shapes"] for shapes.cpls,
+    /// extended by each `module name { … }` block
+    module: Vec<String>,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0 } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new() } }
+    /// A parser for a file that is the module `module` (its path from the root).
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module } }
+
+    /// A path written in this module, made canonical (from the root):
+    /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
+    fn resolve(&self, segs: &[String]) -> Vec<String> {
+        if segs.first().map(|s| s == "limb").unwrap_or(false) { return segs[1..].to_vec(); }
+        let mut out = self.module.clone();
+        out.extend(segs.iter().cloned());
+        out
+    }
+
+    fn canonical(&self, segs: &[String]) -> String { self.resolve(segs).join(".") }
 
     fn peek(&self) -> &Tok { &self.toks[self.pos].tok }
     fn peek_at(&self, n: usize) -> &Tok { &self.toks[(self.pos + n).min(self.toks.len() - 1)].tok }
@@ -55,44 +71,76 @@ impl Parser {
         if self.is_word(w) { self.advance(); Ok(()) } else { self.err(format!("expected `{w}`, found {}", self.peek())) }
     }
 
-    // program := (fn | struct | MAIN block)* Eof
+    // program := item* Eof
+    // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
-        let mut funcs = Vec::new();
-        let mut structs = Vec::new();
-        let mut consts = Vec::new();
-        let mut main = None;
+        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), consts: Vec::new(), modules: Vec::new(), main: None };
+        self.items(&mut prog, 0)?;
+        Ok(prog)
+    }
+
+    /// Parse items until `}` (depth > 0) or end of file (depth 0).
+    fn items(&mut self, prog: &mut Program, depth: usize) -> PResult<()> {
         loop {
-            // `pub` before fn / struct / const (decided 2026-09-19); the oracle is one
-            // Limb, so it records the flag and enforces nothing.
-            let mut is_pub = false;
+            if depth > 0 && *self.peek() == Tok::RBrace { self.advance(); return Ok(()); }
+            if *self.peek() == Tok::Eof {
+                if depth > 0 { return self.err("unclosed `module {`"); }
+                return Ok(());
+            }
+            // visibility (decided 2026-09-19): nothing, `pub.limb`, `pub`
+            let mut vis = Vis::Private;
             if self.is_word("pub") {
                 self.advance();
-                is_pub = true;
+                vis = Vis::Pub;
+                if *self.peek() == Tok::Dot {
+                    self.advance();
+                    match self.advance().tok {
+                        Tok::Word(w) if w == "limb" => vis = Vis::Limb,
+                        other => return self.err(format!("the only narrowing of `pub` is `pub.limb` (visible in this Limb only), found {other}")),
+                    }
+                }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
-                    other => return self.err(format!("`pub` goes before `fn`, `struct`, or `const`, found {other}")),
+                    other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
                 }
             }
             match self.peek().clone() {
-                Tok::Eof => break,
-                Tok::Word(w) if w == "fn" => { let mut f = self.func()?; f.is_pub = is_pub; funcs.push(f) }
-                Tok::Word(w) if w == "struct" => { let mut d = self.struct_def()?; d.is_pub = is_pub; structs.push(d) }
-                Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.is_pub = is_pub; consts.push(c) }
+                Tok::Word(w) if w == "fn" => { let mut f = self.func()?; f.vis = vis; prog.funcs.push(f) }
+                Tok::Word(w) if w == "struct" => { let mut d = self.struct_def()?; d.vis = vis; prog.structs.push(d) }
+                Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.vis = vis; prog.consts.push(c) }
+                Tok::Word(w) if w == "module" => {
+                    let line = self.line();
+                    self.advance();
+                    let name = match self.advance().tok {
+                        Tok::Word(w) => w,
+                        Tok::Var(v) => return self.err(format!("a module's name is bare: `module {v}`")),
+                        other => return self.err(format!("expected a module name, found {other}")),
+                    };
+                    if let Err(m) = module_name_ok(&name) { return self.err(format!("`{name}` cannot name a module: {m}")); }
+                    if *self.peek() == Tok::Semi { return self.err(format!("a module is a file (`{name}.cpls`) or a block (`module {name} {{ … }}`); there is no `module {name};` include line")); }
+                    self.expect(Tok::LBrace, "`{` to open the module")?;
+                    self.module.push(name);
+                    prog.modules.push(ModuleDef { path: self.module.clone(), vis, line });
+                    self.items(prog, depth + 1)?;
+                    self.module.pop();
+                }
                 Tok::Word(w) if w == "MAIN" => {
-                    if main.is_some() { return self.err("a program has exactly one MAIN"); }
+                    if !self.module.is_empty() { return self.err("MAIN lives at the root of the Limb (`limb.cpls`, outside any module)"); }
+                    if prog.main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
                     if *self.peek() == Tok::LBracket { return self.err("MAIN is a block, not a function: `MAIN { … }`, no parameter list"); }
-                    main = Some(self.block()?);
+                    prog.main = Some(self.block()?);
                 }
                 Tok::Word(w) if w == "op" => return self.err("custom operators (`op`) are not decided yet; the oracle refuses them"),
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
                 Tok::Word(w) if w == "let" || w == "var" => return self.err("a `let` cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`"),
-                other => return self.err(format!("expected `fn`, `struct`, `const`, or `MAIN` at the top level, found {other}")),
+                Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
+                Tok::RBrace => return self.err("`}` with nothing open"),
+                other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
             }
         }
-        Ok(Program { funcs, structs, consts, main })
     }
 
     // const := 'const' Var (':' type)? (':=' | '=') rhs ';'   — top level only (decided 2026-09-19)
@@ -115,7 +163,7 @@ impl Parser {
         }
         let value = self.rhs()?;
         self.expect(Tok::Semi, "`;`")?;
-        Ok(ConstDef { name, ty, value, is_pub: false, line })
+        Ok(ConstDef { name, module: self.module.clone(), vis: Vis::Private, ty, value, line })
     }
 
     // struct := 'struct' Word '{' (('mut' | 'immut')? Var ':' type)* '}'   — no `;`, no `let`
@@ -152,7 +200,7 @@ impl Parser {
         }
         self.advance();
         if fields.is_empty() { return self.err(format!("struct `{name}` has no fields")); }
-        Ok(StructDef { name, is_pub: false, fields, line })
+        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, fields, line })
     }
 
     // fn := 'fn' Word '[' params ']' ('->' type)? block
@@ -185,7 +233,7 @@ impl Parser {
             _ => None,
         };
         let body = self.block()?;
-        Ok(Func { name, is_pub: false, ret, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, params, body, line })
     }
 
     // param := ('lent' ('.' 'mut')? | 'mut' | 'immut')? Var (':' type)?
@@ -218,13 +266,13 @@ impl Parser {
     }
 
     /// A type from already-collected chain segments (used for list/array element types).
-    fn ty_from_segs(segs: &[String]) -> Result<Ty, String> {
+    fn ty_from_segs(segs: &[String], module: &[String]) -> Result<Ty, String> {
         let toks: Vec<Token> = segs.iter().enumerate().flat_map(|(i, w)| {
             let mut v = vec![Token { tok: Tok::Word(w.clone()), line: 0, col: 0 }];
             if i + 1 < segs.len() { v.push(Token { tok: Tok::Dot, line: 0, col: 0 }); }
             v
         }).chain(std::iter::once(Token { tok: Tok::Eof, line: 0, col: 0 })).collect();
-        let mut p = Parser::new(toks);
+        let mut p = Parser::new_in(toks, module.to_vec());
         p.ty().map_err(|e| e.msg)
     }
 
@@ -263,19 +311,25 @@ impl Parser {
                 if segs.len() < 2 { return bad(self, format!("`{head}` narrows to its element type: `{head}.int32`, `{head}.str.utf8`, `{head}.list.int32`")); }
                 // re-parse the tail as a type
                 let tail: Vec<String> = segs[1..].to_vec();
-                let inner = Parser::ty_from_segs(&tail).map_err(|m| ParseError { line: self.line(), col: 0, msg: m })?;
+                let inner = Parser::ty_from_segs(&tail, &self.module).map_err(|m| ParseError { line: self.line(), col: 0, msg: m })?;
                 Ok(if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) })
             }
             "int" | "uint" | "bin" | "deci" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
             _ if KEYWORDS.contains(&head) => bad(self, format!("`{head}` is a keyword, not a type")),
             _ => {
-                if segs.len() > 1 { return bad(self, format!("`{}` takes no narrowing", segs.join("."))); }
+                if segs.len() > 1 {
+                    // a struct reached through modules: `shapes.Locker`, `limb.Locker`
+                    if segs[..segs.len() - 1].iter().any(|m| m == "limb" || module_name_ok(m).is_ok()) {
+                        return Ok(Ty::Struct(self.canonical(&segs)));
+                    }
+                    return bad(self, format!("`{}` takes no narrowing", segs.join(".")));
+                }
                 if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }
                 if let Some(n) = width(head, "uint") { return int_w(n).map(Ty::Uint).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; uint is 8/16/32/64/128"))); }
                 if let Some(n) = width(head, "bin") { return if [16, 32, 64, 128].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64/128")) }; }
                 if let Some(n) = width(head, "deci") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; deci is 32/64/128 (IEEE 754 defines only these)")) }; }
-                // anything else is a struct name; the interpreter checks it was declared
-                Ok(Ty::Struct(head.to_string()))
+                // anything else is a struct name in this module; the interpreter checks it was declared
+                Ok(Ty::Struct(self.canonical(&segs)))
             }
         }
     }
@@ -312,7 +366,8 @@ impl Parser {
                 }
                 "fn" | "func" => self.err("a `fn` cannot be defined inside a body; it goes at the top level"),
                 "const" => self.err("a `const` sits at the top level of the Limb; inside a body use `let` (Precog finds the constants itself)"),
-                "pub" => self.err("`pub` goes at the top level, before `fn`, `struct`, or `const`"),
+                "pub" => self.err("`pub` goes at the top level, before `fn`, `struct`, `const`, or `module`"),
+                "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),
                 "else" => self.err("`else` without an `if`"),
                 "check" | "nocheck" => self.err("the check tiers are decided but their syntax is not; the oracle refuses them for now"),
@@ -509,6 +564,29 @@ impl Parser {
         Ok(Bracket { values: vec![Value::Expr(e)], line, one_list: false })
     }
 
+    /// Word ('.' Word)* '.' Var  — a const reached by path
+    fn is_const_path(&self) -> bool {
+        let mut i = 0;
+        loop {
+            if !matches!(self.peek_at(i), Tok::Word(_)) { return false; }
+            if *self.peek_at(i + 1) != Tok::Dot { return false; }
+            match self.peek_at(i + 2) { Tok::Var(_) => return true, Tok::Word(_) => i += 2, _ => return false }
+        }
+    }
+
+    /// Word ('.' Word)* '[' Var ('=' | ':=' | ':')  — a struct construction
+    fn is_construct(&self) -> bool {
+        let mut i = 0;
+        loop {
+            if !matches!(self.peek_at(i), Tok::Word(_)) { return false; }
+            match self.peek_at(i + 1) {
+                Tok::Dot => { i += 2; }
+                Tok::LBracket => return matches!(self.peek_at(i + 2), Tok::Var(_)) && matches!(self.peek_at(i + 3), Tok::Eq | Tok::Walrus | Tok::Colon),
+                _ => return false,
+            }
+        }
+    }
+
     // call := (Word '::')? Word ('.' Word)* bracket
     fn call(&mut self) -> PResult<Call> {
         let line = self.line();
@@ -529,7 +607,8 @@ impl Parser {
             return self.err(format!("`{shown}` is followed by {}; a call needs `[…]`", self.peek()));
         }
         let args = self.bracket()?;
-        Ok(Call { limb, path, args, line })
+        let path = if limb.is_none() { self.resolve(&path) } else { path };
+        Ok(Call { limb, path, from: self.module.clone(), args, line })
     }
 
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
@@ -781,9 +860,28 @@ impl Parser {
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
-                _ if KEYWORDS.contains(&w.as_str()) => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
-                _ if matches!(self.peek_at(1), Tok::LBracket) && matches!(self.peek_at(2), Tok::Var(_)) && matches!(self.peek_at(3), Tok::Eq | Tok::Walrus) => {
-                    self.advance(); self.advance();
+                "limb" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`limb` is the root of this Limb and is followed by `.`: `limb.helper[]`, `limb.'pi'`"),
+                _ if KEYWORDS.contains(&w.as_str()) && w != "limb" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
+                _ if self.is_const_path() => {
+                    // `shapes.'pi'`, `limb.'pi'`
+                    let mut segs = Vec::new();
+                    loop {
+                        match self.advance().tok { Tok::Word(w) => segs.push(w), _ => unreachable!() }
+                        self.expect(Tok::Dot, "`.`")?;
+                        if let Tok::Var(_) = self.peek() { break; }
+                    }
+                    let name = match self.advance().tok { Tok::Var(v) => v, _ => unreachable!() };
+                    Ok(Expr::ConstPath(self.resolve(&segs), name, self.module.clone(), line))
+                }
+                _ if self.is_construct() => {
+                    let mut segs = Vec::new();
+                    loop {
+                        match self.advance().tok { Tok::Word(w) => segs.push(w), _ => unreachable!() }
+                        if *self.peek() == Tok::Dot { self.advance(); continue; }
+                        break;
+                    }
+                    let w = self.canonical(&segs);
+                    self.advance(); // [
                     let mut fields = Vec::new();
                     loop {
                         let fname = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted field name, found {other}")) };
@@ -809,4 +907,23 @@ impl Parser {
             other => self.err(format!("expected a value, found {other}")),
         }
     }
+}
+
+/// Module names (decided 2026-09-19, "whatever has most compat"): lowercase
+/// ASCII letters, digits, `_`, starting with a letter; not a Windows device
+/// name; not a keyword. The same rule for file names and `module` blocks.
+pub fn module_name_ok(name: &str) -> Result<(), String> {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_lowercase() => {}
+        Some(c) if c.is_ascii_uppercase() => return Err("lowercase only — macOS and Windows file systems do not tell `Shapes` from `shapes`".into()),
+        _ => return Err("it must start with a lowercase ASCII letter".into()),
+    }
+    if let Some(c) = name.chars().find(|c| !(c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '_')) {
+        return Err(format!("`{c}` is not allowed — lowercase ASCII letters, digits, and `_` only"));
+    }
+    const DEVICES: &[&str] = &["con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"];
+    if DEVICES.contains(&name) { return Err("it is a reserved device name on Windows".into()); }
+    if KEYWORDS.contains(&name) { return Err("it is a keyword".into()); }
+    Ok(())
 }
