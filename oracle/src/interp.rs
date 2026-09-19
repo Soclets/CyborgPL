@@ -1129,13 +1129,13 @@ impl<'p> Interp<'p> {
             if c == '\\' && i + 1 < chars.len() {
                 match chars[i + 1] {
                     'n' => out.push('\n'), 't' => out.push('\t'), '\\' => out.push('\\'), '"' => out.push('"'),
-                    other => return rt(line, format!("printrs: unknown escape `\\{other}` in the format (it knows \\n \\t \\\\ \\\")")),
+                    other => return rt(line, format!("rs.print: unknown escape `\\{other}` in the format (it knows \\n \\t \\\\ \\\")")),
                 }
                 i += 2; continue;
             }
             if c == '{' && chars.get(i + 1) == Some(&'{') { out.push('{'); i += 2; continue; }
             if c == '}' && chars.get(i + 1) == Some(&'}') { out.push('}'); i += 2; continue; }
-            if c == '}' { return rt(line, "printrs: a lone `}` in the format (`}}` prints one)"); }
+            if c == '}' { return rt(line, "rs.print: a lone `}` in the format (`}}` prints one)"); }
             if c != '{' { out.push(c); i += 1; continue; }
             // a hole: { [arg] [: spec] }
             i += 1;
@@ -1143,20 +1143,20 @@ impl<'p> Interp<'p> {
             while i < chars.len() && chars[i] != ':' && chars[i] != '}' { arg.push(chars[i]); i += 1; }
             let mut spec = String::new();
             if i < chars.len() && chars[i] == ':' { i += 1; while i < chars.len() && chars[i] != '}' { spec.push(chars[i]); i += 1; } }
-            if i >= chars.len() { return rt(line, "printrs: the format ends inside a `{` hole"); }
+            if i >= chars.len() { return rt(line, "rs.print: the format ends inside a `{` hole"); }
             i += 1; // }
             let arg = arg.trim();
             let v: Value = if arg.is_empty() {
                 let k = next; next += 1;
-                match vals.get(k) { Some(v) => { used[k] = true; v.clone() }, None => return rt(line, format!("printrs: hole #{} has no value — the format has more holes than values", k + 1)) }
+                match vals.get(k) { Some(v) => { used[k] = true; v.clone() }, None => return rt(line, format!("rs.print: hole #{} has no value — the format has more holes than values", k + 1)) }
             } else if let Ok(k) = arg.parse::<usize>() {
-                match vals.get(k) { Some(v) => { used[k] = true; v.clone() }, None => return rt(line, format!("printrs: `{{{k}}}` but only {} value(s) were given", vals.len())) }
+                match vals.get(k) { Some(v) => { used[k] = true; v.clone() }, None => return rt(line, format!("rs.print: `{{{k}}}` but only {} value(s) were given", vals.len())) }
             } else {
                 // a name: a variable in scope (Rust's captured identifier)
                 match self.lookup(arg) {
                     Some(slot) if slot.alive => slot.cell.borrow().clone(),
-                    Some(_) => return rt(line, format!("printrs: `{{{arg}}}` names '{arg}', which was given away")),
-                    None => return rt(line, format!("printrs: `{{{arg}}}` names no variable in scope (write it as '{arg}' in the program)")),
+                    Some(_) => return rt(line, format!("rs.print: `{{{arg}}}` names '{arg}', which was given away")),
+                    None => return rt(line, format!("rs.print: `{{{arg}}}` names no variable in scope (write it as '{arg}' in the program)")),
                 }
             };
             // spec: [[fill]align][sign][#][0][width][.precision][type]
@@ -1186,9 +1186,9 @@ impl<'p> Interp<'p> {
                 ("b", Value::Int(n)) => if alt { format!("{n:#b}") } else { format!("{n:b}") },
                 ("e", Value::Bin(x)) => match prec { Some(p) => format!("{x:.p$e}"), None => format!("{x:e}") },
                 ("E", Value::Bin(x)) => match prec { Some(p) => format!("{x:.p$E}"), None => format!("{x:E}") },
-                ("x" | "X" | "o" | "b", other) => return rt(line, format!("printrs: `{{:{ty}}}` wants an integer, got {}", other.kind())),
-                ("e" | "E", other) => return rt(line, format!("printrs: `{{:{ty}}}` wants a bin, got {}", other.kind())),
-                (other, _) => return rt(line, format!("printrs: unknown format type `{other}` (it knows ? x X o b e E)")),
+                ("x" | "X" | "o" | "b", other) => return rt(line, format!("rs.print: `{{:{ty}}}` wants an integer, got {}", other.kind())),
+                ("e" | "E", other) => return rt(line, format!("rs.print: `{{:{ty}}}` wants a bin, got {}", other.kind())),
+                (other, _) => return rt(line, format!("rs.print: unknown format type `{other}` (it knows ? x X o b e E)")),
             };
             let body = if plus && matches!(v, Value::Int(n) if n >= 0) || plus && matches!(v, Value::Bin(x) if x >= 0.0) { format!("+{body}") } else { body };
             let len = body.chars().count();
@@ -1212,7 +1212,7 @@ impl<'p> Interp<'p> {
             };
             out.push_str(&padded);
         }
-        if let Some(k) = used.iter().position(|u| !u) { return rt(line, format!("printrs: value #{} has no hole — the format uses fewer values than were given", k + 1)); }
+        if let Some(k) = used.iter().position(|u| !u) { return rt(line, format!("rs.print: value #{} has no hole — the format uses fewer values than were given", k + 1)); }
         Ok(out)
     }
 
@@ -1234,7 +1234,9 @@ impl<'p> Interp<'p> {
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
             }
-            "printc.stdout" | "printc.stderr" => {
+            "printc.stdout" | "printc.stderr" | "printrs.stdout" | "printrs.stderr" =>
+                rt(c.line, format!("std::{path} was renamed (2026-09-19): C's is `std::c.printf` / `std::c.fprintf.stderr`, Rust's is `std::rs.print` / `println` / `eprint` / `eprintln`")),
+            "c.printf" | "c.fprintf.stderr" => {
                 // `printc` is C's printf (decided 2026-09-19): a format string it reads
                 // itself — %d %i %u %x %X %o %f %e %g %s %c %%, flags - 0 +, width,
                 // .precision, and C's \n \t \\ inside the format — followed by the
@@ -1246,11 +1248,11 @@ impl<'p> Interp<'p> {
                 let mut vals = Vec::new();
                 for a in &c.args.values[1..] { vals.push(self.value(a)?.0); }
                 let text = printc_format(&fmt, &vals, c.line)?;
-                if path.ends_with("stderr") { eprint!("{text}"); }
+                if path == "c.fprintf.stderr" { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
             }
-            "printrs.stdout" | "printrs.stderr" => {
+            "rs.print" | "rs.println" | "rs.eprint" | "rs.eprintln" => {
                 // `printrs` is Rust's print! (decided 2026-09-19): `{}` holes, `{0}`
                 // positional, `{name}` a variable in scope, `{:?}` debug, and the spec
                 // {:[fill][align][sign][#][0][width][.precision][type]}; `{{` `}}`; C-style
@@ -1260,8 +1262,9 @@ impl<'p> Interp<'p> {
                 let fmt = match fmt { Value::Str(f) => f, other => return rt(c.line, format!("std::{path}'s first value is the format text, got {}", other.kind())) };
                 let mut vals = Vec::new();
                 for a in &c.args.values[1..] { vals.push(self.value(a)?.0); }
-                let text = self.printrs_format(&fmt, &vals, c.line)?;
-                if path.ends_with("stderr") { eprint!("{text}"); }
+                let mut text = self.printrs_format(&fmt, &vals, c.line)?;
+                if path.ends_with("ln") { text.push('\n'); }
+                if path.starts_with("rs.e") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
             }
@@ -1273,7 +1276,7 @@ impl<'p> Interp<'p> {
                     o => rt(c.line, format!("std::exit takes a uint8, got {}", o.kind())),
                 }
             }
-            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print/printu/printc/printrs .stdout/.stderr, exit)")),
+            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print/printu .stdout/.stderr, c.printf, c.fprintf.stderr, rs.print/println/eprint/eprintln, exit)")),
         }
     }
 }
@@ -1339,13 +1342,13 @@ fn printc_format(fmt: &str, vals: &[Value], line: usize) -> Result<String, Runti
         if c == '\\' && i + 1 < chars.len() {
             match chars[i + 1] {
                 'n' => out.push('\n'), 't' => out.push('\t'), '\\' => out.push('\\'), '"' => out.push('"'),
-                other => return rt(line, format!("printc: unknown escape `\\{other}` in the format (it knows \\n \\t \\\\ \\\")")),
+                other => return rt(line, format!("c.printf: unknown escape `\\{other}` in the format (it knows \\n \\t \\\\ \\\")")),
             }
             i += 2; continue;
         }
         if c != '%' { out.push(c); i += 1; continue; }
         i += 1;
-        if i >= chars.len() { return rt(line, "printc: a lone `%` at the end of the format (`%%` prints one)"); }
+        if i >= chars.len() { return rt(line, "c.printf: a lone `%` at the end of the format (`%%` prints one)"); }
         if chars[i] == '%' { out.push('%'); i += 1; continue; }
         // flags
         let (mut left, mut zero, mut plus) = (false, false, false);
@@ -1363,10 +1366,10 @@ fn printc_format(fmt: &str, vals: &[Value], line: usize) -> Result<String, Runti
             while i < chars.len() && chars[i].is_ascii_digit() { p.push(chars[i]); i += 1; }
             prec = Some(p.parse().unwrap_or(0));
         }
-        if i >= chars.len() { return rt(line, "printc: the format ends inside a `%` hole"); }
+        if i >= chars.len() { return rt(line, "c.printf: the format ends inside a `%` hole"); }
         let spec = chars[i]; i += 1;
         let hole = next; next += 1;
-        let Some(v) = vals.get(hole) else { return rt(line, format!("printc: hole #{} (`%{spec}`) has no value — the format has more holes than values", hole + 1)); };
+        let Some(v) = vals.get(hole) else { return rt(line, format!("c.printf: hole #{} (`%{spec}`) has no value — the format has more holes than values", hole + 1)); };
         let body = match (spec, v) {
             ('d' | 'i', Value::Int(n)) => { let s = n.to_string(); if plus && *n >= 0 { format!("+{s}") } else { s } }
             ('u', Value::Int(n)) if *n >= 0 => n.to_string(),
@@ -1382,15 +1385,15 @@ fn printc_format(fmt: &str, vals: &[Value], line: usize) -> Result<String, Runti
                 format!("{m}e{sign}{:0>2}", digits)
             }
             ('g', Value::Bin(x)) => format!("{x}"),
-            ('f' | 'e' | 'g', Value::Int(n)) => return rt(line, format!("printc: `%{spec}` wants a bin, value #{} is the integer {n} — convert it (`to.bin64[…]`) or use `%d`", hole + 1)),
-            ('d' | 'i' | 'u' | 'x' | 'X' | 'o', Value::Bin(x)) => return rt(line, format!("printc: `%{spec}` wants an integer, value #{} is the bin {x} — use `%f`", hole + 1)),
+            ('f' | 'e' | 'g', Value::Int(n)) => return rt(line, format!("c.printf: `%{spec}` wants a bin, value #{} is the integer {n} — convert it (`to.bin64[…]`) or use `%d`", hole + 1)),
+            ('d' | 'i' | 'u' | 'x' | 'X' | 'o', Value::Bin(x)) => return rt(line, format!("c.printf: `%{spec}` wants an integer, value #{} is the bin {x} — use `%f`", hole + 1)),
             ('s', Value::Str(t)) => match prec { Some(p) => t.chars().take(p).collect(), None => t.clone() },
-            ('s', other) => return rt(line, format!("printc: `%s` wants text, value #{} is {} — convert it (`to.str.utf8[…]`)", hole + 1, other.kind())),
+            ('s', other) => return rt(line, format!("c.printf: `%s` wants text, value #{} is {} — convert it (`to.str.utf8[…]`)", hole + 1, other.kind())),
             ('c', Value::Char(_, ch)) => ch.clone(),
-            ('c', other) => return rt(line, format!("printc: `%c` wants a char, value #{} is {}", hole + 1, other.kind())),
+            ('c', other) => return rt(line, format!("c.printf: `%c` wants a char, value #{} is {}", hole + 1, other.kind())),
             ('b', Value::Bool(t)) => t.to_string(),
-            ('d' | 'i' | 'u' | 'x' | 'X' | 'o' | 'f' | 'e' | 'g' | 'b', other) => return rt(line, format!("printc: `%{spec}` does not take {} (value #{})", other.kind(), hole + 1)),
-            (other, _) => return rt(line, format!("printc: unknown specifier `%{other}` (it knows d i u x X o f e g s c b %%)")),
+            ('d' | 'i' | 'u' | 'x' | 'X' | 'o' | 'f' | 'e' | 'g' | 'b', other) => return rt(line, format!("c.printf: `%{spec}` does not take {} (value #{})", other.kind(), hole + 1)),
+            (other, _) => return rt(line, format!("c.printf: unknown specifier `%{other}` (it knows d i u x X o f e g s c b %%)")),
         };
         let padded = match width {
             Some(w) if body.chars().count() < w => {
@@ -1407,6 +1410,6 @@ fn printc_format(fmt: &str, vals: &[Value], line: usize) -> Result<String, Runti
         };
         out.push_str(&padded);
     }
-    if next < vals.len() { return rt(line, format!("printc: {} value(s) have no hole — the format has fewer holes than values", vals.len() - next)); }
+    if next < vals.len() { return rt(line, format!("c.printf: {} value(s) have no hole — the format has fewer holes than values", vals.len() - next)); }
     Ok(out)
 }

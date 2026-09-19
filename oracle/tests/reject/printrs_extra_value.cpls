@@ -1,3 +1,3 @@
 MAIN {
-    std::printrs.stdout["{}\n", 1, 2];
+    std::rs.println["{}", 1, 2];
 }

@@ -10,12 +10,12 @@ MAIN {
     # printu: the same, each in its useful form
     std::printu.stdout["x is ", 'x', \n];
 
-    # printc: exactly C's printf
-    std::printc.stdout["%s scored %d, x is %.3f\n", 'name', 'count', 'x'];
+    # std::c.printf: exactly C's printf
+    std::c.printf["%s scored %d, x is %.3f\n", 'name', 'count', 'x'];
 
-    # printrs: exactly Rust's print!
-    std::printrs.stdout["{name} scored {count}, x is {x:.3}\n"];
-    std::printrs.stdout["{:>8}|{:<8}|{:^8}|\n", 'name', 'count', 'x'];
+    # std::rs.println: exactly Rust's println!
+    std::rs.println["{name} scored {count}, x is {x:.3}"];
+    std::rs.println["{:>8}|{:<8}|{:^8}|", 'name', 'count', 'x'];
 
     # a joined text is already text: print and printu agree on it
     let 'line' := 'name' ++ " scored " ++ to.str.utf8['count'];
@@ -23,5 +23,5 @@ MAIN {
     std::printu.stdout['line', \n];
 
     # stderr for all four
-    std::printc.stderr["warning: %d is low\n", 'count'];
+    std::c.fprintf.stderr["warning: %d is low\n", 'count'];
 }

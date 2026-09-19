@@ -1,0 +1,11 @@
+MAIN {
+    let 'count' := 6;
+    let 'average' := 75.5;
+    let 'name' := "Ann";
+    std::rs.println["scored {} tests, average {:.2}, name {}", 'count', 'average', 'name'];
+    std::rs.println["{name} scored {count} — a variable in scope, by name"];
+    std::rs.println["{1} then {0}, {0} again", "a", "b"];
+    std::rs.println["[{:>6}] [{:<6}] [{:^6}] [{:*^7}] [{:06}] [{:+}]", 42, 42, 42, 42, 42, 42];
+    std::rs.println["{:x} {:#X} {:#b} {:o} {:e} {:?} {:?}", 255, 255, 5, 8, 'average', 'name', `A`];
+    std::rs.println["{{braces}} and a tab\there"];
+}

@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Borrowed prints live under their language: `std::c.printf`, `std::rs.println` (owner)
+
+"`std::<lang, only if it isn't Cyborg>.<that lang's print(s)>`" — so
+`printc` → `std::c.printf` / `std::c.fprintf.stderr`; `printrs` →
+`std::rs.print` / `println` / `eprint` / `eprintln` (Rust's own names, and
+`println` adds the newline as Rust's does). Owner also asked whether the
+values inside could go unquoted; Claude: it would need variadic
+parameters (undecided, and needed for std's own `print`) and a
+per-parameter `bare` flag, which makes call parsing depend on the callee
+and adds a second dialect; recommended variadics soon, `bare` shelved.
+Owner: "yup." Open: variadic parameters; `bare` (advised against).
+
 ### 2026-09-19 — `std::printrs`: Rust's `print!`, exactly, with checked holes (owner)
 
 "Now, `printrs`, exactly like Rust's." `{}`, `{0}`, `{name}` from scope,
@@ -826,6 +838,8 @@ for JetPack, always containing analysable source, never an opaque binary
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
 - `list.length`'s type: fixed width or Precog-chosen? (cold read, 2026-09-19)
+- Variadic parameters (`many 'values'`?) — std's own `print` needs them. (2026-09-19)
+- A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
 - The Limb author's "reachable bare" flag — spelling, beside or on `pub`. (`design/limbs.md`, 2026-09-19)
