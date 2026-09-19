@@ -138,7 +138,7 @@ semantics, operators, `MAIN`). Full spelling in `design/syntax-sketch.md`,
 2. **The type follows the name after `:`** — `let 'x': bin16 = 1000;` (owner's
    proposal, Claude recommended it). Touches only the five name-to-type
    sites: variables, parameters, return type, struct fields, loop counters.
-   Types themselves keep their dot chains (`str.utf8`, `list.int32`,
+   Types themselves keep their dot chains (`str.utf8`, `list.int32` — bracketed later that day,
    `std::uer`).
 3. **`mut` / `immut` before the name**: `let mut 'x': bin16 = 1000;`,
    struct fields `immut number: int32` (owner chose (a) of three; Claude
@@ -455,7 +455,7 @@ real translator. Open:
 what exactly is hidden, boundary defaults, iteration/real-build agreement,
 subset-or-own syntax, name. See [design/scripting.md](design/scripting.md).
 
-### 2026-09-17 — Lists: two types, 1-based indexing, type-headed operations (owner)
+### 2026-09-17 — Lists: two types, 1-based indexing, type-headed operations (owner) — element type bracketed since 2026-09-19: `list[int32]`
 
 `list` (growable) and `array` (fixed), narrowing to the element type
 (`var.list.int32`); with `:=` Precog picks (never-grown → `array`). Owner

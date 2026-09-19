@@ -54,8 +54,9 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 ## What the sample establishes
 
 - **Dot chains narrow general→specific inside a type and inside a Limb
-  path** — `str.utf8`, `char.grapheme`, `list[int32]`, `std::printu.stdout`,
-  `lend.mut`. They no longer carry the name-to-type job (that is `:`) and no
+  path** — `str.utf8`, `char.grapheme`, `std::printu.stdout`, `lend.mut`.
+  A *type parameter* is bracketed, not chained: `list[int32]`,
+  `array[list[str.utf8]]` (decided 2026-09-19). They no longer carry the name-to-type job (that is `:`) and no
   longer hold keywords together (`else if`, `while`, `for`). The chains
   that stay are the ones doing real work.
 - **Keywords are bare and reserved** (decided 2026-09-14). The language's
