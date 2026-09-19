@@ -1,0 +1,27 @@
+# The four prints. All are std's; the base language has no print.
+MAIN {
+    let 'name' := "Ann";
+    let 'count' := 6;
+    let 'x': bin64 = 0.1;
+
+    # print: any values, each in its stored form, nothing between
+    std::print.stdout["x is ", 'x', \n];
+
+    # printu: the same, each in its useful form
+    std::printu.stdout["x is ", 'x', \n];
+
+    # printc: exactly C's printf
+    std::printc.stdout["%s scored %d, x is %.3f\n", 'name', 'count', 'x'];
+
+    # printrs: exactly Rust's print!
+    std::printrs.stdout["{name} scored {count}, x is {x:.3}\n"];
+    std::printrs.stdout["{:>8}|{:<8}|{:^8}|\n", 'name', 'count', 'x'];
+
+    # a joined text is already text: print and printu agree on it
+    let 'line' := 'name' ++ " scored " ++ to.str.utf8['count'];
+    std::print.stdout['line', \n];
+    std::printu.stdout['line', \n];
+
+    # stderr for all four
+    std::printc.stderr["warning: %d is low\n", 'count'];
+}
