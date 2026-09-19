@@ -55,12 +55,14 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
 - **Named like a variable, quoted**: `'pi'`, used in expressions as
   `'pi' x 2`, reached from another Limb as `mathstuff::'pi'` (owner,
   2026-09-19: "single quoted"). One rule — quotes mean a user-named value.
-- Why not `let` at the top level: the only honest use of a global is a
-  named constant a Limb shares. Configuration read once is a boundary
-  value and arrives as a parameter; genuinely mutable program-wide state
-  has no owner and conflicts with the ownership model (Rust makes
-  `static mut` unsafe for the same reason) — if ever wanted, it is a
-  concurrency-era design, not a `let`.
+- **There is no public variable** (owner, 2026-09-19: "No public
+  variable"). A Limb exposes constants, functions, and structs; state
+  another Limb may read *and assign* does not exist. The uses a public
+  variable serves have owned shapes: a configuration knob is a parameter or
+  a struct field; a shared counter or cache is a value someone owns and
+  lends mutably; a singleton is what `MAIN` owns and hands down. A global
+  has no owner, so ownership, whole-program analysis, and automatic
+  parallelism would all have a hole in it. Closed, not parked.
 - This does not reopen "no `const` keyword for locals" (2026-09-14): inside
   a body `let` is still the only declaration and Precog finds the constants
   itself. `const` exists only where `let` does not.

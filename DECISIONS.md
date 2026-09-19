@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — No public variable (owner)
+
+Asked twice how to make a public variable; Claude: none exists, and laid
+out what one would be for (configuration knobs, shared counters/caches,
+singletons) and the owned shape of each (parameter or struct field; a
+value lent mutably; what `MAIN` owns). Owner: "No public variable." A Limb
+exposes `pub const`, `pub fn`, `pub struct` only. Closed. In
+`design/limbs.md`.
+
 ### 2026-09-19 — `pub`; a Limb's top-level value is `pub const 'name'` (owner)
 
 Owner asked how to declare a public variable. Claude: a Limb has no
