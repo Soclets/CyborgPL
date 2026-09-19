@@ -36,6 +36,7 @@ let 'x': bin16 = 1000;           # explicit type; must be fully explicit
 let mut 'n': int32 = 0;          # mutability, when stated, before the name
 let immut 'limit' := 10;
 let 'r': std::uer = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
+pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
 ```
 
 - **`let`**, not `var`. The quotes already say "this is a variable", so the
@@ -61,7 +62,7 @@ let 'r': std::uer = 1000;        # a Limb-provided type: `::` crosses, `.` narro
   words — `fn`, `let`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `pos`, `struct` (and the retired `var`, `func`) — cannot
+  `list`, `array`, `pos`, `struct`, `pub`, `const` (and the retired `var`, `func`) — cannot
   be function names. Variables are quoted and can never collide with
   anything.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
@@ -116,7 +117,7 @@ let 'r': std::uer = 1000;        # a Limb-provided type: `::` crosses, `.` narro
 - Whitespace between pieces in `[ ]`: separator only (pieces concatenate
   directly) or an implicit space?
 - Explicit conversion spelling.
-- `pub` / visibility across Limbs (raised 2026-09-19, undecided).
+- The Limb author's "reachable bare" flag (`limbs.md`).
 
 Closed 2026-09-14: the typed form is always fully explicit (no bare
 `int`/`str`/`char`); character literals are backticked.

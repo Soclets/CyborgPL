@@ -21,7 +21,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `-> type`, body in
-  `{ }`.
+  `{ }`. `pub fn` makes it visible to other Limbs (`limbs.md`).
 - **Parameters are `'name': type`.** The ownership verb, when there is one,
   sits before the name and mirrors the caller exactly: the caller writes
   `lend 's'`, the parameter reads `lent 'text': …`; `lend.mut` ↔ `lent.mut`.
@@ -119,5 +119,4 @@ Digit grouping uses `_`, never `,`: `1_000_000`. `1,000` is an error
 
 ## Still open
 
-- `pub` / visibility across Limbs.
 - The lifetime annotation's spelling.

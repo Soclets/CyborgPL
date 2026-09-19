@@ -11,7 +11,7 @@ use crate::lexer::{Tok, Token};
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -59,12 +59,27 @@ impl Parser {
     pub fn program(&mut self) -> PResult<Program> {
         let mut funcs = Vec::new();
         let mut structs = Vec::new();
+        let mut consts = Vec::new();
         let mut main = None;
         loop {
+            // `pub` before fn / struct / const (decided 2026-09-19); the oracle is one
+            // Limb, so it records the flag and enforces nothing.
+            let mut is_pub = false;
+            if self.is_word("pub") {
+                self.advance();
+                is_pub = true;
+                match self.peek().clone() {
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" => {}
+                    Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
+                    Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
+                    other => return self.err(format!("`pub` goes before `fn`, `struct`, or `const`, found {other}")),
+                }
+            }
             match self.peek().clone() {
                 Tok::Eof => break,
-                Tok::Word(w) if w == "fn" => funcs.push(self.func()?),
-                Tok::Word(w) if w == "struct" => structs.push(self.struct_def()?),
+                Tok::Word(w) if w == "fn" => { let mut f = self.func()?; f.is_pub = is_pub; funcs.push(f) }
+                Tok::Word(w) if w == "struct" => { let mut d = self.struct_def()?; d.is_pub = is_pub; structs.push(d) }
+                Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.is_pub = is_pub; consts.push(c) }
                 Tok::Word(w) if w == "MAIN" => {
                     if main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
@@ -73,11 +88,34 @@ impl Parser {
                 }
                 Tok::Word(w) if w == "op" => return self.err("custom operators (`op`) are not decided yet; the oracle refuses them"),
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
-                Tok::Word(w) if w == "let" || w == "var" => return self.err("a `let` cannot sit at the top level; it goes inside MAIN or a fn"),
-                other => return self.err(format!("expected `fn`, `struct`, or `MAIN` at the top level, found {other}")),
+                Tok::Word(w) if w == "let" || w == "var" => return self.err("a `let` cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`"),
+                other => return self.err(format!("expected `fn`, `struct`, `const`, or `MAIN` at the top level, found {other}")),
             }
         }
-        Ok(Program { funcs, structs, main })
+        Ok(Program { funcs, structs, consts, main })
+    }
+
+    // const := 'const' Var (':' type)? (':=' | '=') rhs ';'   — top level only (decided 2026-09-19)
+    fn const_def(&mut self) -> PResult<ConstDef> {
+        let line = self.line();
+        self.expect_word("const")?;
+        if self.is_word("mut") || self.is_word("immut") { return self.err("a `const` is neither `mut` nor `immut`; it is a constant"); }
+        let name = match self.advance().tok {
+            Tok::Var(v) => v,
+            Tok::Word(w) => return self.err(format!("a const is named like a variable, quoted: `const '{w}'`")),
+            other => return self.err(format!("expected a quoted const name, found {other}")),
+        };
+        let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
+        match (self.peek().clone(), &ty) {
+            (Tok::Walrus, None) | (Tok::Eq, Some(_)) => { self.advance(); }
+            (Tok::Walrus, Some(_)) => return self.err("`:=` means Precog chooses the type; with an explicit type write `=`"),
+            (Tok::Eq, None) => return self.err("`=` means you said everything; with no type write `:=`"),
+            (Tok::ShadowWalrus | Tok::ShadowEq, _) => return self.err("a const cannot shadow anything; there is nothing above the top level"),
+            (other, _) => return self.err(format!("expected `:=` or `=` after '{name}', found {other}")),
+        }
+        let value = self.rhs()?;
+        self.expect(Tok::Semi, "`;`")?;
+        Ok(ConstDef { name, ty, value, is_pub: false, line })
     }
 
     // struct := 'struct' Word '{' (('mut' | 'immut')? Var ':' type)* '}'   — no `;`, no `let`
@@ -114,7 +152,7 @@ impl Parser {
         }
         self.advance();
         if fields.is_empty() { return self.err(format!("struct `{name}` has no fields")); }
-        Ok(StructDef { name, fields, line })
+        Ok(StructDef { name, is_pub: false, fields, line })
     }
 
     // fn := 'fn' Word '[' params ']' ('->' type)? block
@@ -147,7 +185,7 @@ impl Parser {
             _ => None,
         };
         let body = self.block()?;
-        Ok(Func { name, ret, params, body, line })
+        Ok(Func { name, is_pub: false, ret, params, body, line })
     }
 
     // param := ('lent' ('.' 'mut')? | 'mut' | 'immut')? Var (':' type)?
@@ -273,6 +311,8 @@ impl Parser {
                     Ok(Stmt::Return { value, line })
                 }
                 "fn" | "func" => self.err("a `fn` cannot be defined inside a body; it goes at the top level"),
+                "const" => self.err("a `const` sits at the top level of the Limb; inside a body use `let` (Precog finds the constants itself)"),
+                "pub" => self.err("`pub` goes at the top level, before `fn`, `struct`, or `const`"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),
                 "else" => self.err("`else` without an `if`"),
                 "check" | "nocheck" => self.err("the check tiers are decided but their syntax is not; the oracle refuses them for now"),

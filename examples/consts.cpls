@@ -1,0 +1,13 @@
+pub const 'max' := 8;
+const 'pi': bin64 = 3.141_592_653_589_793;
+const 'twice_max' := 'max' x 2;
+const 'greeting' := ["hello " "world"];
+pub struct P { 'x': int32 }
+pub fn area ['r': bin64] -> bin64 { return 'pi' x 'r' x 'r'; }
+MAIN {
+    std::printu.stdout['max' " " 'twice_max' " " 'greeting' " " (area[2.0]) \n];
+    let 's' := 'greeting';
+    let 'p' := P['x' = 'max'];
+    for 'i' in range[1, 'max', 4] { std::printu.stdout['i' " "]; }
+    std::print.stdout[\n];
+}

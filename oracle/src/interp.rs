@@ -31,7 +31,7 @@ fn rt<T>(line: usize, msg: impl Into<String>) -> Result<T, RuntimeError> {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum SlotKind { Owned, Lent, LentMut }
+enum SlotKind { Owned, Lent, LentMut, Const }
 
 #[derive(Clone)]
 struct Slot {
@@ -57,17 +57,32 @@ enum Prov {
 
 pub struct Interp<'p> {
     prog: &'p Program,
+    /// Limb-level `const`s: visible everywhere, never assignable, every read a fresh value.
+    consts: HashMap<String, Slot>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
 }
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
     pub fn run(&mut self) -> Result<u8, RuntimeError> {
+        // Consts first, in order: each may use the ones above it. Precog would
+        // fold these at compile time; the oracle evaluates them before MAIN.
+        for c in &self.prog.consts {
+            if self.consts.contains_key(&c.name) { return rt(c.line, format!("const '{}' is declared twice", c.name)); }
+            if let Some(call) = first_std_call(&c.value) {
+                return rt(c.line, format!("a const's value must be known at compile time; `std::{call}` is an effect, not a value"));
+            }
+            if c.value.values.is_empty() { return rt(c.line, format!("const '{}' needs a value", c.name)); }
+            let (v, prov) = self.bracket(&c.value, c.line)?;
+            if matches!(prov, Prov::Borrowed(..)) { return rt(c.line, format!("const '{}' cannot hold a lend", c.name)); }
+            let v = self.fit(v, prov, c.ty.as_ref(), c.line)?;
+            self.consts.insert(c.name.clone(), Slot { cell: Rc::new(RefCell::new(v)), ty: c.ty.clone(), kind: SlotKind::Const, alive: true, immut: true });
+        }
         let main = match &self.prog.main {
             Some(m) => m,
             None => return rt(0, "this Limb has no MAIN, so it is a library, not a program"),
@@ -85,8 +100,9 @@ impl<'p> Interp<'p> {
 
     fn push(&mut self) { self.scopes.push(HashMap::new()); }
     fn pop(&mut self) { self.scopes.pop(); }
-    fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)) }
+    fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)).or_else(|| self.consts.get(name)) }
     fn lookup_mut(&mut self, name: &str) -> Option<&mut Slot> { self.scopes.iter_mut().rev().find_map(|s| s.get_mut(name)) }
+    fn is_const(&self, name: &str) -> bool { self.consts.contains_key(name) && !self.scopes.iter().any(|s| s.contains_key(name)) }
 
     fn declare(&mut self, name: &str, slot: Slot, line: usize) -> Result<(), RuntimeError> {
         self.declare_shadow(name, slot, false, line)
@@ -98,6 +114,7 @@ impl<'p> Interp<'p> {
         match (self.lookup(name), shadow) {
             (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`")),
             (None, true) => return rt(line, format!("`$` shadows an existing '{name}', but none is visible here")),
+            (Some(existing), true) if existing.kind == SlotKind::Const => return rt(line, format!("'{name}' is a const and cannot be shadowed")),
             (Some(existing), true) if existing.immut => return rt(line, format!("'{name}' is `immut` and cannot be shadowed")),
             _ => {}
         }
@@ -155,6 +172,7 @@ impl<'p> Interp<'p> {
                     Some(s) => (s.kind, s.ty.clone(), s.immut),
                     None => return rt(*line, format!("'{name}' is not declared")),
                 };
+                if kind == SlotKind::Const { return rt(*line, format!("'{name}' is a const and cannot be assigned to")); }
                 if immut { return rt(*line, format!("'{name}' cannot be assigned to: it is `immut` (a loop's counter or element belongs to the loop)")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 let (v, prov) = self.bracket(value, *line)?;
@@ -495,7 +513,9 @@ impl<'p> Interp<'p> {
             }
             Expr::Var(name, _) => {
                 let v = self.read_var(name, line)?;
-                let prov = if v.is_owned() { Prov::Bare(name.clone()) } else { Prov::Plain };
+                // a const is baked in: every use is a fresh value, nobody owns it
+                let prov = if self.is_const(name) { if v.is_owned() { Prov::Fresh } else { Prov::Plain } }
+                    else if v.is_owned() { Prov::Bare(name.clone()) } else { Prov::Plain };
                 Ok((v, prov))
             }
             Expr::Owned(verb, name, _) => {
@@ -504,6 +524,7 @@ impl<'p> Interp<'p> {
                     None => return rt(line, format!("'{name}' is not declared")),
                 };
                 if !alive { return rt(line, format!("'{name}' was already given away")); }
+                if kind == SlotKind::Const { return rt(line, format!("'{name}' is a const: nobody owns it, every use is a fresh value — write it bare, no `give`/`copy`/`lend`")); }
                 let v = cell.borrow().clone();
                 if !v.is_owned() {
                     return rt(line, format!("'{name}' is a plain {} and owns nothing; it copies by itself — no `give`/`copy`/`lend`", v.kind()));
@@ -830,6 +851,26 @@ impl<'p> Interp<'p> {
             other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print.stdout, printu.stdout, print.stderr, printu.stderr, exit)")),
         }
     }
+}
+
+/// The first `std::` call inside a const's value, if any (an effect at compile time).
+fn first_std_call(b: &Bracket) -> Option<String> {
+    fn in_expr(e: &Expr) -> Option<String> {
+        match e {
+            Expr::Call(c) => { if c.limb.is_some() { return Some(c.path.join(".")); } in_bracket(&c.args) }
+            Expr::Nested(b) => in_bracket(b),
+            Expr::Builtin(_, _, b, _) => in_bracket(b),
+            Expr::Construct(_, fs, _) => fs.iter().find_map(|(_, b)| in_bracket(b)),
+            Expr::Index(_, i, _) => in_expr(i),
+            Expr::Unary(_, i, _) | Expr::Paren(i, _) => in_expr(i),
+            Expr::Binary(_, l, r, _) => in_expr(l).or_else(|| in_expr(r)),
+            _ => None,
+        }
+    }
+    fn in_bracket(b: &Bracket) -> Option<String> {
+        b.values.iter().find_map(|v| match v { crate::ast::Value::Expr(e) => in_expr(e), crate::ast::Value::Pieces(ps) => ps.iter().find_map(in_expr) })
+    }
+    in_bracket(b)
 }
 
 fn same_family(a: &Value, b: &Value, line: usize, op: &str) -> Result<(), RuntimeError> {

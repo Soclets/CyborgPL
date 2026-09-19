@@ -16,7 +16,7 @@ struct Locker {
 }
 ```
 
-- Top level, beside `fn`. The name is bare (a type, like `int32`); the
+- Top level, beside `fn`; `pub struct` exports it (`limbs.md`). The name is bare (a type, like `int32`); the
   fields are variables, so quoted; `'name': type`, like every other
   name-to-type site.
 - No `let` on a field: a struct always *owns* its fields, so there is nothing

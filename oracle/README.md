@@ -40,6 +40,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
+- `pub` before `fn`/`struct`/`const` is accepted and recorded (one Limb: nothing to hide from); `const 'x' := v;` at the top level only — evaluated before MAIN in order, never assignable/shadowed/verbed, a `std::` call in its value is refused; `let` at the top level is refused
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `struct Name { 'f': type … }`, construction by field name `Name['f' = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut 'f': type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
 - `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = v;` element assignment; `let 'xs': list.T = [];` and `let 'ys' := list.empty;`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error

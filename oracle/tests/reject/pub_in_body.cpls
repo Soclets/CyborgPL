@@ -1,0 +1,3 @@
+MAIN {
+    pub fn f [] { }
+}

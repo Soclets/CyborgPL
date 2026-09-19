@@ -27,6 +27,7 @@ pub struct Field {
 #[derive(Debug, Clone)]
 pub struct StructDef {
     pub name: String,
+    pub is_pub: bool,
     pub fields: Vec<Field>,
     pub line: usize,
 }
@@ -62,16 +63,28 @@ pub struct Param {
 #[derive(Debug, Clone)]
 pub struct Func {
     pub name: String,
+    pub is_pub: bool,
     pub ret: Option<Ty>,
     pub params: Vec<Param>,
     pub body: Vec<Stmt>,
     pub line: usize,
 }
 
+/// `pub const 'name' := v;` at the top level (decided 2026-09-19): a value
+/// known at compile time, baked in at every use, exportable; never assignable.
 #[derive(Debug, Clone)]
+pub struct ConstDef {
+    pub name: String,
+    pub ty: Option<Ty>,
+    pub value: Bracket,
+    pub is_pub: bool,
+    pub line: usize,
+}
+
 pub struct Program {
     pub funcs: Vec<Func>,
     pub structs: Vec<StructDef>,
+    pub consts: Vec<ConstDef>,
     pub main: Option<Vec<Stmt>>,
 }
 

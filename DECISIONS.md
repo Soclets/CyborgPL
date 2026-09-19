@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — `pub`; a Limb's top-level value is `pub const 'name'` (owner)
+
+Owner asked how to declare a public variable. Claude: a Limb has no
+top-level variables yet; proposed `pub` before `fn`/`struct`/`let` with a
+top-level `let` immutable only. Owner asked what top-level variables are
+for; Claude: named constants (legitimate), configuration (a boundary
+value), mutable program state (conflicts with ownership). Owner: "So, it's
+`pub const`?" — yes; and the name is **single quoted** (`'pi'`,
+`mathstuff::'pi'`), owner's choice over a bare function-like name. Rules
+in `design/limbs.md`; oracle enforces (`examples/consts.cpls`, twelve
+reject tests). The author's "reachable bare" flag stays open.
+
 ### 2026-09-19 — No `import`/`use`; the Limb maker decides bare reachability (owner)
 
 Asked the difference between `import` and Rust's `use`; Claude: `import`
@@ -652,7 +664,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Whitespace between pieces in `[ ]`: separator only, or an implicit space? (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
-- `pub` / visibility across Limbs — raised by the owner 2026-09-19 ("if we do `pub` too"), undecided; the same declaration would carry the author's "reachable bare" choice (`design/limbs.md`).
+- The Limb author's "reachable bare" flag — spelling, beside or on `pub`. (`design/limbs.md`, 2026-09-19)
 - `range[…]` as a standalone value (not only after `for … in`). (Claude, 2026-09-19)
 
 **Precog**
