@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — No `import`/`use`; the Limb maker decides bare reachability (owner)
+
+Asked the difference between `import` and Rust's `use`; Claude: `import`
+loads and binds, `use` only shortens a path that already works — and Cyborg
+already sits on Rust's side (JetPack.toml lists, `::` reaches). Owner:
+whether a Limb's items may be used bare is **the Limb maker's decision**,
+stated in the Limb's source; a user cannot alias or override — "if you want
+to override that, you edit the source code yourself." Spelling of the
+author's choice is open, alongside `pub`. In `design/limbs.md`.
+
 ### 2026-09-19 — Syntax revision: `let`/`fn`, type after the name, `[ ]` only where it builds, bare control flow (owner)
 
 The owner opened the day with "I'm thinking of changing the syntax to
@@ -641,8 +651,8 @@ for JetPack, always containing analysable source, never an opaque binary
 - Explicit conversion spelling — between numeric families, and **number → text for a lone value** (a number becomes text only as a piece; `return 'n'` from a `-> str.utf8` is an error, and `["" 'n']` is the only current workaround). (Claude, 2026-09-14; the second half surfaced by the oracle)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Whitespace between pieces in `[ ]`: separator only, or an implicit space? (Claude, 2026-09-14)
-- Limb name declared in source (`limb [...]`)? Superseded in spirit by bare local calls; revisit with the module system. (Claude, 2026-09-14)
-- `pub` / visibility across Limbs — raised by the owner 2026-09-19 ("if we do `pub` too"), undecided.
+- Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
+- `pub` / visibility across Limbs — raised by the owner 2026-09-19 ("if we do `pub` too"), undecided; the same declaration would carry the author's "reachable bare" choice (`design/limbs.md`).
 - `range[…]` as a standalone value (not only after `for … in`). (Claude, 2026-09-19)
 
 **Precog**
