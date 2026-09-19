@@ -1,0 +1,3 @@
+MAIN {
+    std::printc.stdout["%d\n", 1, 2];
+}
