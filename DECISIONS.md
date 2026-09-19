@@ -397,7 +397,7 @@ drift is visible. Raised via another session's question; Claude laid out the
 requirements; owner adopted them. See
 [design/reproducible-builds.md](design/reproducible-builds.md).
 
-### 2026-09-18 — Structs (owner) — spelling revised 2026-09-19: `'name': str.utf8`, `Locker['name' = "A"]`
+### 2026-09-18 — Structs (owner) — spelling revised 2026-09-19: `name: str.utf8`, `Locker[name = "A"]` (fields bare, later that day)
 
 Blueprint `struct Name { type 'field' … }` — owner's shape: type first, no
 `var` (a struct always owns its fields; Claude's reasoning, owner agreed),
