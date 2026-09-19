@@ -26,15 +26,18 @@ pub struct RuntimeError {
     pub exit: Option<u8>,
     /// a safety check fired (overflow, range, fit, zero) — the thing the tiers govern
     pub site: bool,
+    /// not an error: a control-flow exit (`otherwise return …`, `otherwise fail`) that
+    /// has to climb out of an expression to the enclosing statement
+    pub leave: Option<Flow>,
 }
 
 fn rt<T>(line: usize, msg: impl Into<String>) -> Result<T, RuntimeError> {
-    Err(RuntimeError { line, msg: msg.into(), exit: None, site: false })
+    Err(RuntimeError { line, msg: msg.into(), exit: None, site: false, leave: None })
 }
 
 /// A failed safety check at a check site.
 fn site<T>(line: usize, msg: impl Into<String>) -> Result<T, RuntimeError> {
-    Err(RuntimeError { line, msg: msg.into(), exit: None, site: true })
+    Err(RuntimeError { line, msg: msg.into(), exit: None, site: true, leave: None })
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -49,7 +52,8 @@ struct Slot {
     immut: bool,     // stated `immut`: assignment is an error
 }
 
-enum Flow { Normal, Break, Continue, Return(Value) }
+#[derive(Debug)]
+pub enum Flow { Normal, Break, Continue, Return(Value), Fail(String, Option<Value>) }
 
 /// What an evaluated expression *is*, for ownership and typing purposes.
 enum Prov {
@@ -68,6 +72,11 @@ pub struct Interp<'p> {
     consts: HashMap<String, Slot>,
     /// the module the running code was written in (for bare names and visibility)
     module: Vec<String>,
+    /// the ways the running function may fail (empty in MAIN)
+    fails: Vec<FailCase>,
+    /// the call being evaluated is a statement (its value is unused), so an
+    /// `otherwise { … }` arm may fall through
+    call_is_stmt: bool,
     /// `lend.mut 'x'.field` hands out a temporary cell; at the end of the statement
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
@@ -77,7 +86,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -85,6 +94,7 @@ impl<'p> Interp<'p> {
         // Consts first, in order: each may use the ones above it. Precog would
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
+        self.check_fails()?;
         for c in &self.prog.consts {
             let key = const_key(&c.module, &c.name);
             if self.consts.contains_key(&key) { return rt(c.line, format!("const '{}' is declared twice", c.name)); }
@@ -106,6 +116,7 @@ impl<'p> Interp<'p> {
         match self.block(main) {
             Ok(Flow::Normal) => Ok(0),
             Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
+            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
             Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
             Err(e) => Err(e),
@@ -135,6 +146,35 @@ impl<'p> Interp<'p> {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at line {l}) — a file and a block cannot both be it", m.path.join("."))); }
         }
+        Ok(())
+    }
+
+    /// `fail name;` only names a reason its function lists; MAIN cannot fail (decided 2026-09-19).
+    fn check_fails(&self) -> Result<(), RuntimeError> {
+        fn walk(stmts: &[Stmt], fails: &[FailCase], who: &str) -> Result<(), RuntimeError> {
+            for s in stmts {
+                match s {
+                    Stmt::Fail { name, payload, line } => {
+                        if who == "MAIN" { return rt(*line, "MAIN cannot fail; it exits (`std::exit[…]`) or handles the failure"); }
+                        match fails.iter().find(|f| &f.name == name) {
+                            None if fails.is_empty() => return rt(*line, format!("`{who}` cannot fail: its signature has no `fail[…]`; add `-> … or fail[{name}]`")),
+                            None => return rt(*line, format!("`{who}` does not list `{name}` in its `fail[…]` (it lists {})", fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", "))),
+                            Some(f) => {
+                                if f.ty.is_some() && payload.is_none() { return rt(*line, format!("`{name}` carries a {}; `fail {name}[…]` needs it", ty_name(f.ty.as_ref().unwrap()))); }
+                                if f.ty.is_none() && payload.is_some() { return rt(*line, format!("`{name}` carries nothing; write `fail {name};`")); }
+                            }
+                        }
+                    }
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, fails, who)?; } if let Some(b) = otherwise { walk(b, fails, who)?; } }
+                    Stmt::Loop { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } | Stmt::Block { body, .. } => walk(body, fails, who)?,
+                    Stmt::Tier { body, .. } => walk(std::slice::from_ref(body), fails, who)?,
+                    _ => {}
+                }
+            }
+            Ok(())
+        }
+        for f in &self.prog.funcs { walk(&f.body, &f.fails, &f.name)?; }
+        if let Some(m) = &self.prog.main { walk(m, &[], "MAIN")?; }
         Ok(())
     }
 
@@ -197,7 +237,10 @@ impl<'p> Interp<'p> {
     }
 
     fn stmt(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
-        let r = self.stmt_inner(s);
+        let r = match self.stmt_inner(s) {
+            Err(RuntimeError { leave: Some(f), .. }) => Ok(f),
+            other => other,
+        };
         // write mutable field lends back (a statement is the unit of a lend here)
         let borrows = std::mem::take(&mut self.field_borrows);
         for (owner, field, tmp) in borrows {
@@ -313,7 +356,7 @@ impl<'p> Interp<'p> {
             Stmt::Loop { body, .. } => loop {
                 match self.block(body)? {
                     Flow::Break => return Ok(Flow::Normal),
-                    Flow::Return(v) => return Ok(Flow::Return(v)),
+                    f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
                     Flow::Normal | Flow::Continue => {}
                 }
             },
@@ -321,7 +364,7 @@ impl<'p> Interp<'p> {
                 while self.cond(cond, *line)? {
                     match self.block(body)? {
                         Flow::Break => break,
-                        Flow::Return(v) => return Ok(Flow::Return(v)),
+                        f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
                         Flow::Normal | Flow::Continue => {}
                     }
                 }
@@ -341,7 +384,7 @@ impl<'p> Interp<'p> {
                     self.pop();
                     match r? {
                         Flow::Break => break,
-                        Flow::Return(v) => return Ok(Flow::Return(v)),
+                        f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
                         Flow::Normal | Flow::Continue => {}
                     }
                 }
@@ -377,7 +420,7 @@ impl<'p> Interp<'p> {
                     self.pop();
                     match r? {
                         Flow::Break => { broke = true; break; }
-                        Flow::Return(v) => return Ok(Flow::Return(v)),
+                        f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
                         Flow::Normal | Flow::Continue => {}
                     }
                     match i.checked_add(step) { Some(n) => i = n, None => break }
@@ -406,7 +449,29 @@ impl<'p> Interp<'p> {
                 };
                 Ok(Flow::Return(v))
             }
-            Stmt::Call { call, .. } => { self.call(call)?; Ok(Flow::Normal) }
+            Stmt::Call { call, .. } => {
+                self.call_is_stmt = true;
+                let r = self.call(call);
+                self.call_is_stmt = false;
+                r?;
+                Ok(Flow::Normal)
+            }
+            Stmt::Fail { name, payload, line } => {
+                let case = match self.fails.iter().find(|f| &f.name == name) { Some(f) => f.clone(), None => return rt(*line, format!("`{name}` is not a listed failure here")) };
+                let v = match payload {
+                    None => None,
+                    Some(b) => {
+                        let (v, prov) = self.bracket(b, *line)?;
+                        match prov {
+                            Prov::Bare(n) => return rt(*line, format!("a failure carries bare '{n}', which owns a {}: say `give '{n}'` or `copy '{n}'`", v.kind())),
+                            Prov::Borrowed(..) => return rt(*line, "a failure cannot carry a lend"),
+                            _ => {}
+                        }
+                        Some(self.fit(v, prov, case.ty.as_ref(), *line)?)
+                    }
+                };
+                Ok(Flow::Fail(name.clone(), v))
+            }
             Stmt::BuiltinStmt { head, op, args, line } => { self.builtin(head, op, args, *line)?; Ok(Flow::Normal) }
             Stmt::Block { body, .. } => self.block(body),
             // The tiers (decided 2026-09-19). The oracle has no Precog, so it cannot
@@ -421,7 +486,7 @@ impl<'p> Interp<'p> {
                             Tier::Check => format!("`check` at line {line} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", e.msg),
                             Tier::NoCheck => format!("`nocheck` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
                         };
-                        Err(RuntimeError { line: e.line, msg, exit: None, site: false })
+                        Err(RuntimeError { line: e.line, msg, exit: None, site: false, leave: None })
                     }
                     other => other,
                 }
@@ -743,7 +808,7 @@ impl<'p> Interp<'p> {
                 match (op.as_str(), v) {
                     ("not", Value::Bool(b)) => Ok((Value::Bool(!b), Prov::Plain)),
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
-                    ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None, site: true })?), keep)),
+                    ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None, site: true, leave: None })?), keep)),
                     ("-", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),
@@ -776,7 +841,7 @@ impl<'p> Interp<'p> {
 
     fn binary(&self, op: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
         use Value::*;
-        let ovf = |what: &str| RuntimeError { line, msg: format!("integer overflow in `{what}`"), exit: None, site: true };
+        let ovf = |what: &str| RuntimeError { line, msg: format!("integer overflow in `{what}`"), exit: None, site: true, leave: None };
         Ok(match (op, a, b) {
             ("+", Int(x), Int(y)) => Int(x.checked_add(y).ok_or_else(|| ovf("+"))?),
             ("-", Int(x), Int(y)) => Int(x.checked_sub(y).ok_or_else(|| ovf("-"))?),
@@ -888,6 +953,31 @@ impl<'p> Interp<'p> {
         if c.args.values.len() != func.params.len() {
             return rt(c.line, format!("`{name}` takes {} argument(s), given {}", func.params.len(), c.args.values.len()));
         }
+        // The caller's side of failure (decided 2026-09-19): a call that can fail must say
+        // what happens; one that cannot must not. Checked before the call runs, as the
+        // compiler would.
+        let value_used = !self.call_is_stmt;
+        self.call_is_stmt = false;
+        let list = || func.fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
+        match (&c.handler, func.fails.is_empty()) {
+            (None, false) => return rt(c.line, format!("`{name}` can fail ({}); say what happens: `{name}[…] otherwise …`", list())),
+            (Some(_), true) => return rt(c.line, format!("`{name}` cannot fail; drop the `otherwise`")),
+            (Some(Handler::Arms(arms)), false) => {
+                for a in arms {
+                    match func.fails.iter().find(|f| f.name == a.name) {
+                        None => return rt(a.line, format!("`{name}` never fails with `{}` (it fails with {})", a.name, list())),
+                        Some(f) => if a.bind.is_some() && f.ty.is_none() { return rt(a.line, format!("`{}` carries nothing; there is no value to name", a.name)); },
+                    }
+                }
+                let missing: Vec<&str> = func.fails.iter().filter(|f| !arms.iter().any(|a| a.name == f.name)).map(|f| f.name.as_str()).collect();
+                if !missing.is_empty() { return rt(c.line, format!("`{name}` can also fail with {}; every reason must be handled (or `otherwise fail;` to pass them up)", missing.join(", "))); }
+            }
+            (Some(Handler::Propagate), false) => {
+                let missing: Vec<&str> = func.fails.iter().filter(|f| !self.fails.iter().any(|m| m.name == f.name)).map(|f| f.name.as_str()).collect();
+                if !missing.is_empty() { return rt(c.line, format!("`otherwise fail;` passes {} up, but this function does not list {} in its `fail[…]`", list(), missing.join(", "))); }
+            }
+            _ => {}
+        }
 
         // Arguments against the parameter contract (design/ownership-syntax.md).
         let mut bound: Vec<(String, Slot)> = Vec::new();
@@ -932,22 +1022,59 @@ impl<'p> Interp<'p> {
         // A function's scopes are its own: it cannot see the caller's variables.
         let saved = std::mem::replace(&mut self.scopes, vec![HashMap::new()]);
         let saved_module = std::mem::replace(&mut self.module, func.module.clone());
+        let saved_fails = std::mem::replace(&mut self.fails, func.fails.clone());
         let flow = (|| {
             for (n, s) in bound { self.declare(&n, s, func.line)?; }
             self.stmts(&func.body)
         })();
         self.scopes = saved;
         self.module = saved_module;
+        self.fails = saved_fails;
 
         let result = match flow? {
             Flow::Return(v) => v,
             Flow::Normal => Value::Nothing,
             Flow::Break | Flow::Continue => return rt(func.line, "`break`/`continue` outside a loop"),
+            Flow::Fail(reason, payload) => return self.handle_failure(c, name, reason, payload, value_used),
         };
         match (&func.ret, &result) {
             (Some(t), Value::Nothing) => rt(c.line, format!("`{name}` is declared `-> {}` but returned nothing", ty_name(t))),
             (Some(t), v) => { self.check_type(v, t, c.line)?; Ok(result) }
             (None, _) => Ok(result),
+        }
+    }
+
+    /// The callee failed; do what the caller wrote after `otherwise`.
+    fn handle_failure(&mut self, c: &Call, name: &str, reason: String, payload: Option<Value>, value_used: bool) -> Result<Value, RuntimeError> {
+        let leave = |f: Flow| RuntimeError { line: c.line, msg: String::new(), exit: None, site: false, leave: Some(f) };
+        match c.handler.as_ref().unwrap() {
+            Handler::Value(b) => {
+                let (v, prov) = self.bracket(b, c.line)?;
+                match prov {
+                    Prov::Bare(n) => rt(c.line, format!("the fallback is bare '{n}', which owns a {}: say `give '{n}'` or `copy '{n}'`", v.kind())),
+                    _ => Ok(v),
+                }
+            }
+            Handler::Propagate => Err(leave(Flow::Fail(reason, payload))),
+            Handler::Leave(s) => match self.stmt(s)? {
+                Flow::Normal => rt(c.line, "the statement after `otherwise` must leave (return, fail, break, continue)"),
+                f => Err(leave(f)),
+            },
+            Handler::Arms(arms) => {
+                let arm = arms.iter().find(|a| a.name == reason).unwrap();
+                self.push();
+                if let (Some(b), Some(v)) = (&arm.bind, payload) {
+                    let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(v)), ty: None, kind: SlotKind::Owned, alive: true, immut: false }, arm.line);
+                    if let Err(e) = r { self.pop(); return Err(e); }
+                }
+                let r = self.stmts(&arm.body);
+                self.pop();
+                match r? {
+                    Flow::Normal if value_used => rt(arm.line, format!("the `{reason}` arm must leave (return, fail, break, continue, or std::exit) because the value of `{name}` is used")),
+                    Flow::Normal => Ok(Value::Nothing),
+                    f => Err(leave(f)),
+                }
+            }
         }
     }
 
@@ -966,13 +1093,13 @@ impl<'p> Interp<'p> {
                     text.push_str(&if useful { v.show_useful() } else { v.show_stored() });
                 }
                 if path.ends_with("stderr") { eprint!("{text}"); }
-                else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false })?; }
+                else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
             }
             "exit" => {
                 let (v, _) = self.single(&c.args, c.line)?;
                 match v {
-                    Value::Int(i) if (0..=255).contains(&i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some(i as u8), site: false }),
+                    Value::Int(i) if (0..=255).contains(&i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some(i as u8), site: false, leave: None }),
                     Value::Int(i) => site(c.line, format!("exit code {i} does not fit uint8 (0 to 255)")),
                     o => rt(c.line, format!("std::exit takes a uint8, got {}", o.kind())),
                 }

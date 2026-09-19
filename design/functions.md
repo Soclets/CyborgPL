@@ -29,6 +29,8 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   `mut`/`immut` go where they go on `let`: before the name.
   A parameter with no type (`lent 'items'`) is legal: Precog infers its
   best type from every call site in the program.
+- **A function that can fail says so**: `-> bool or fail[full, bad_item: str.utf8]`
+  or `-> fail[disk_full]`; see `failures.md` (decided 2026-09-19).
 - **The return type is `-> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not
   the function's type. No arrow: Precog picks the best return type from every

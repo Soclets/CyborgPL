@@ -1,0 +1,43 @@
+struct Locker {
+    owner: str.utf8
+    items: list[str.utf8]
+}
+
+fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
+    if list.length[lend 'l'.items] >== 2 { fail full; }
+    if 'item' == "" { fail bad_item["(empty)"]; }
+    list.append[lend.mut 'l'.items, give 'item'];
+    return true;
+}
+
+fn parse_digit ['t': str.utf8] -> int32 or fail[not_a_digit] {
+    if 't' == "7" { return 7; }
+    fail not_a_digit;
+}
+
+fn double_digit ['t': str.utf8] -> int32 or fail[not_a_digit] {
+    let 'd' := parse_digit[copy 't'] otherwise fail;      # pass it up
+    return 'd' x 2;
+}
+
+fn save [lent 'l': Locker] -> fail[disk_full] {
+    if list.length[lend 'l'.items] > 1 { fail disk_full; }
+}
+
+MAIN {
+    let 'mine' := Locker[owner = "Tankun", items = list.empty];
+    let 'names' := ["rope", "", "helmet", "torch"];
+    for 'n' in lend 'names' {
+        let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {
+            full           { std::print.stdout["full, stopping", \n]; break; }
+            bad_item 'why' { std::print.stdout["bad item ", 'why', \n]; continue; }
+        };
+        std::print.stdout["stored ", 'n', \n];
+    }
+    let 'a' := double_digit["7"] otherwise 0;
+    let 'b' := double_digit["x"] otherwise 0;
+    std::printu.stdout['a', " ", 'b', \n];
+    save[lend 'mine'] otherwise { disk_full { std::print.stdout["could not save", \n]; } };
+    let 'c' := parse_digit["x"] otherwise std::exit[3];
+    std::print.stdout["unreachable", \n];
+}

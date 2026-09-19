@@ -11,7 +11,7 @@ use crate::lexer::{Tok, Token};
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -231,14 +231,51 @@ impl Parser {
             }
         }
         self.expect(Tok::RBracket, "`]` to close the parameter list")?;
-        let ret = match self.peek() {
-            Tok::Arrow => { self.advance(); Some(self.ty()?) }
+        // -> T | -> T or fail[…] | -> fail[…]   (decided 2026-09-19)
+        let mut ret = None;
+        let mut fails = Vec::new();
+        match self.peek() {
+            Tok::Arrow => {
+                self.advance();
+                if self.is_word("fail") { fails = self.fail_list()?; }
+                else {
+                    ret = Some(self.ty()?);
+                    if self.is_word("or") {
+                        self.advance();
+                        if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`: `-> bool or fail[full, bad_item: str.utf8]`"); }
+                        fails = self.fail_list()?;
+                    }
+                }
+            }
             Tok::Colon => return self.err("a return type is written `-> int32`, not `: int32` (`:` attaches a type to a name)"),
+            Tok::Word(w) if w == "or" || w == "fail" => return self.err("a function that can fail says so after `->`: `-> bool or fail[full]` or `-> fail[full]`"),
             Tok::Word(_) => return self.err("a return type is written `-> int32` after the parameter list"),
-            _ => None,
-        };
+            _ => {}
+        }
         let body = self.block()?;
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails, params, body, line })
+    }
+
+    // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
+    fn fail_list(&mut self) -> PResult<Vec<FailCase>> {
+        self.expect_word("fail")?;
+        self.expect(Tok::LBracket, "`[` after `fail` to list the ways this function can fail")?;
+        let mut cases = Vec::new();
+        loop {
+            let name = match self.advance().tok {
+                Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword and cannot name a failure")),
+                Tok::Word(w) => w,
+                Tok::Var(v) => return self.err(format!("a failure's name is bare: `fail[{v}]` — it names a reason, not a variable")),
+                other => return self.err(format!("expected a failure name, found {other}")),
+            };
+            if cases.iter().any(|c: &FailCase| c.name == name) { return self.err(format!("failure `{name}` is listed twice")); }
+            let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
+            cases.push(FailCase { name, ty });
+            if *self.peek() == Tok::Comma { self.advance(); continue; }
+            break;
+        }
+        self.expect(Tok::RBracket, "`]` to close the failure list")?;
+        Ok(cases)
     }
 
     // param := ('lent' ('.' 'mut')? | 'mut' | 'immut')? Var (':' type)?
@@ -399,8 +436,24 @@ impl Parser {
                     self.expect(Tok::Semi, "`;`")?;
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
                 }
+                "fail" => {
+                    // fail name; | fail name[payload];   (decided 2026-09-19)
+                    self.advance();
+                    let name = match self.advance().tok {
+                        Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword, not a failure name")),
+                        Tok::Word(w) => w,
+                        Tok::Var(v) => return self.err(format!("a failure's name is bare: `fail {v};`")),
+                        Tok::Semi => return self.err("`fail` names its reason: `fail full;` — the reasons are listed in the signature's `fail[…]`"),
+                        other => return self.err(format!("expected a failure name after `fail`, found {other}")),
+                    };
+                    let payload = if *self.peek() == Tok::LBracket { Some(self.bracket()?) } else { None };
+                    self.expect(Tok::Semi, "`;` after fail")?;
+                    Ok(Stmt::Fail { name, payload, line })
+                }
+                "otherwise" => self.err("`otherwise` follows a call that can fail: `stash[…] otherwise false;`"),
                 _ => {
-                    let call = self.call()?;
+                    let mut call = self.call()?;
+                    call.handler = self.handler()?;
                     self.expect(Tok::Semi, "`;` after the call")?;
                     Ok(Stmt::Call { call, line })
                 }
@@ -582,11 +635,60 @@ impl Parser {
     fn rhs(&mut self) -> PResult<Bracket> {
         let line = self.line();
         if *self.peek() == Tok::LBracket { return self.bracket(); }
-        let e = self.expr()?;
+        let mut e = self.expr()?;
         if self.starts_primary() {
             return self.err(format!("two values next to each other (found {} after the value): join text with `++`", self.peek()));
         }
+        // `call[…] otherwise …` — only when the call is the whole right-hand side (decided 2026-09-19)
+        if self.is_word("otherwise") {
+            match &mut e {
+                Expr::Call(c) => c.handler = self.handler()?,
+                _ => return self.err("`otherwise` handles a call that can fail, and the call must be the whole value: put it in its own `let` first"),
+            }
+        }
         Ok(Bracket { values: vec![Value::Expr(e)], line, one_list: false })
+    }
+
+    // handler := 'otherwise' ( 'fail' ';'-ahead | leaving-stmt | '{' arm* '}' | expr )
+    fn handler(&mut self) -> PResult<Option<Handler>> {
+        if !self.is_word("otherwise") { return Ok(None); }
+        self.advance();
+        let h = match self.peek().clone() {
+            Tok::Word(w) if w == "fail" && *self.peek_at(1) == Tok::Semi => { self.advance(); Handler::Propagate }
+            Tok::Word(w) if w == "fail" || w == "return" || w == "break" || w == "continue" => {
+                // a leaving statement, `;` included; the outer statement's `;` is this one
+                let s = self.stmt()?;
+                self.pos -= 1; // hand the `;` back to the enclosing statement
+                Handler::Leave(Box::new(s))
+            }
+            Tok::LBrace => {
+                self.advance();
+                let mut arms = Vec::new();
+                while *self.peek() != Tok::RBrace {
+                    let line = self.line();
+                    let name = match self.advance().tok {
+                        Tok::Word(w) => w,
+                        Tok::Var(v) => return self.err(format!("an arm starts with the failure's bare name; the payload's name comes after it: `bad_item {v} {{ … }}`")),
+                        Tok::Eof => return self.err("unclosed `otherwise {`"),
+                        other => return self.err(format!("expected a failure name to handle, found {other}")),
+                    };
+                    let bind = if let Tok::Var(v) = self.peek().clone() { self.advance(); Some(v) } else { None };
+                    let body = self.block()?;
+                    if arms.iter().any(|a: &Arm| a.name == name) { return self.err(format!("`{name}` is handled twice")); }
+                    arms.push(Arm { name, bind, body, line });
+                }
+                self.advance();
+                if arms.is_empty() { return self.err("`otherwise { }` handles nothing; list the failures, or use `otherwise fail;`"); }
+                Handler::Arms(arms)
+            }
+            Tok::Semi => return self.err("`otherwise` needs what to do: a value, `fail`, `return …`, or `{ arms }`"),
+            _ => {
+                let line = self.line();
+                let e = self.expr()?;
+                Handler::Value(Bracket { values: vec![Value::Expr(e)], line, one_list: false })
+            }
+        };
+        Ok(Some(h))
     }
 
     /// Word ('.' Word)* '.' Var  — a const reached by path
@@ -634,7 +736,7 @@ impl Parser {
         }
         let args = self.bracket()?;
         let path = if limb.is_none() { self.resolve(&path) } else { path };
-        Ok(Call { limb, path, from: self.module.clone(), args, line })
+        Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line })
     }
 
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
@@ -707,7 +809,7 @@ impl Parser {
     fn starts_primary(&self) -> bool {
         match self.peek() {
             Tok::Int(_) | Tok::Bin(_) | Tok::Text(_) | Tok::Char(_) | Tok::Newline | Tok::Var(_) | Tok::LParen => true,
-            Tok::Word(w) => !OP_WORDS.contains(&w.as_str()) && w != "not",
+            Tok::Word(w) => !OP_WORDS.contains(&w.as_str()) && w != "not" && w != "otherwise",
             _ => false,
         }
     }

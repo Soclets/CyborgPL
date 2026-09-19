@@ -83,6 +83,9 @@ pub struct Func {
     pub module: Vec<String>,
     pub vis: Vis,
     pub ret: Option<Ty>,
+    /// `-> T or fail[a, b: type]` (decided 2026-09-19): the ways this function can fail.
+    /// Empty = cannot fail.
+    pub fails: Vec<FailCase>,
     pub params: Vec<Param>,
     pub body: Vec<Stmt>,
     pub line: usize,
@@ -97,6 +100,35 @@ pub struct ConstDef {
     pub vis: Vis,
     pub ty: Option<Ty>,
     pub value: Bracket,
+    pub line: usize,
+}
+
+/// One way a function can fail: a name, optionally carrying a payload.
+#[derive(Debug, Clone)]
+pub struct FailCase {
+    pub name: String,
+    pub ty: Option<Ty>,
+}
+
+/// What a caller wrote after `otherwise` (decided 2026-09-19). A call that can
+/// fail must carry one; a call that cannot must not.
+#[derive(Debug, Clone)]
+pub enum Handler {
+    /// `otherwise <value>` — use this value instead
+    Value(Bracket),
+    /// `otherwise return …;` / `break;` / `continue;` / `fail …;` — whatever the reason, leave
+    Leave(Box<Stmt>),
+    /// `otherwise fail;` — fail the same way (the enclosing fn must list the names)
+    Propagate,
+    /// `otherwise { name ['bind'] { … } … }` — one arm per reason, all covered
+    Arms(Vec<Arm>),
+}
+
+#[derive(Debug, Clone)]
+pub struct Arm {
+    pub name: String,
+    pub bind: Option<String>,
+    pub body: Vec<Stmt>,
     pub line: usize,
 }
 
@@ -139,6 +171,8 @@ pub enum Stmt {
     Tier { tier: Tier, body: Box<Stmt>, line: usize },
     /// a bare `{ }` block as a statement (needed so `check { … }` is just the prefix rule)
     Block { body: Vec<Stmt>, line: usize },
+    /// `fail name;` / `fail name[payload];` — leave the function with a failure (decided 2026-09-19)
+    Fail { name: String, payload: Option<Bracket>, line: usize },
 }
 
 /// The three check tiers (decided 2026-09-14): default is written as nothing.
@@ -147,6 +181,8 @@ pub enum Tier { Check, NoCheck }
 
 #[derive(Debug, Clone)]
 pub struct Call {
+    /// `otherwise …` after the call, if any
+    pub handler: Option<Handler>,
     pub limb: Option<String>,   // None = this Limb; Some("std") = std::
     /// std: print.stdout → ["print", "stdout"]; this Limb: the canonical path from
     /// the root, `limb.` stripped, the calling module prefixed to a relative one

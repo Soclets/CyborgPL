@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Failures: a value the caller must handle; `-> T or fail[…]`, `fail name;`, `otherwise` (owner)
+
+Owner asked what the base language needs; Claude ranked error handling
+first. Five questions: (1) model — exceptions / failure-as-value /
+sentinel; owner: **failure as a value** (b). (2) what it carries — nothing
+/ a name / a name and a payload; owner: **name and payload** (c). (3) where
+the reasons are declared — inline per function / a named `enum`; owner
+asked what an enum is, then: **inline** (option 1), so no enum yet. (4)
+the function's side: `-> bool or fail[full, bad_item: str.utf8]`,
+`fail full;`, `fail bad_item["x"];` — owner: yes. (5) the caller's side:
+a fallback value, a leaving statement (owner asked "isn't it `return
+false`?" — both exist), `fail` to pass up, or arms with every reason
+covered; owner: yes. Claude then caught that `or` collides with the
+boolean operator; candidates `else`/`catch`/`otherwise`/`onfail`; owner:
+**`otherwise`**. Full text in `design/failures.md`; oracle enforces
+(`examples/failures.cpls`, 18 reject tests).
+
 ### 2026-09-19 — Text joins with `++`; the whitespace join is gone; `print` takes many values (owner)
 
 Owner: "Feeling like adding `++` for strings connecting." Claude asked
@@ -751,7 +768,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
-- Error handling — not designed. (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
 - Explicit conversion spelling — between numeric families, and **number → text for a lone value** (a number becomes text only as a piece; `return 'n'` from a `-> str.utf8` is an error, and `["" 'n']` is the only current workaround). (Claude, 2026-09-14; the second half surfaced by the oracle)

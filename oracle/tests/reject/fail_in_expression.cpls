@@ -1,0 +1,4 @@
+fn f [] -> int32 or fail[a] { fail a; }
+MAIN {
+    let 'x' := f[] + 1 otherwise 0;
+}

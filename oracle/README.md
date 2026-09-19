@@ -44,6 +44,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - modules (2026-09-19): a Limb directory's `limb.cpls` is the root, every other `.cpls` a module (directories nest), `module name { }` blocks nest; names lowercase ASCII, not device names; bare = this module, dotted = relative, `limb.` = root; visibility nothing / `pub.limb` / `pub` on fn, struct, const, module, checked along the whole path (`pub` and `pub.limb` behave alike inside one Limb); `mod x`, `module x;`, MAIN outside the root, a file-and-block module are refused
+- failures (2026-09-19): `-> T or fail[a, b: type]`, `fail a;` / `fail b[v];`, `call[…] otherwise value | return … | fail | { a { } b 'v' { } }`; the caller's side is checked before the call runs; `examples/failures.cpls`
 - `const 'x' := v;` at the top level only — evaluated before MAIN in order, never assignable/shadowed/verbed, a `std::` call in its value is refused; `let` at the top level is refused
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `struct Name { f: type … }` (bare field names, 2026-09-19), construction by field name `Name[f = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut f: type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
@@ -73,5 +74,5 @@ had to make to run at all; none is a decision.
 
 String iteration,
 custom operators (`op`),
-boundary range annotations, Limb declaration and other Limbs, input, error
-handling, concurrency. Each is refused with a message naming it.
+boundary range annotations, Limb declaration and other Limbs, input,
+concurrency, a general variant type. Each is refused with a message naming it.
