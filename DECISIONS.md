@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Explicit conversion: `to.int32[…]`, `to.str.utf8[…]`; `++` takes text on both sides (owner)
+
+Cold read #3 flagged `++` converting a number implicitly — the second
+reader to do so. Claude offered (a) keep it or (b) make it explicit with a
+types-as-calls spelling (`int32["42"]`); owner asked what
+`int32["42"] otherwise 0` was, then why not `std::to.int32`; Claude: the
+compiler owns conversion, and text→number failing uses the failure model.
+Owner: "b, `to.int32[…]`?" — a bare keyword head, like `list.length`.
+Consequences set by Claude: `++` demands text on both sides; text→number
+fails with `not_a_number`; narrowing is a check site; encoding always
+spelled; stored form. `design/conversion.md`; oracle enforces (nine reject
+tests); every example converted. Closes open item "explicit conversion
+spelling"; `std::exit[…]` is also now a leaving statement after
+`otherwise` (cold-read consequence).
+
 ### 2026-09-19 — Failures: a value the caller must handle; `-> T or fail[…]`, `fail name;`, `otherwise` (owner)
 
 Owner asked what the base language needs; Claude ranked error handling
@@ -770,7 +785,8 @@ for JetPack, always containing analysable source, never an opaque binary
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
-- Explicit conversion spelling — between numeric families, and **number → text for a lone value** (a number becomes text only as a piece; `return 'n'` from a `-> str.utf8` is an error, and `["" 'n']` is the only current workaround). (Claude, 2026-09-14; the second half surfaced by the oracle)
+- Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
+- `list.length`'s type: fixed width or Precog-chosen? (cold read, 2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
 - The Limb author's "reachable bare" flag — spelling, beside or on `pub`. (`design/limbs.md`, 2026-09-19)

@@ -63,7 +63,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   words — `fn`, `let`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise` (and the retired `var`, `func`) — cannot
+  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise`, `to` (and the retired `var`, `func`) — cannot
   be function names. Variables are quoted and can never collide with
   anything.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
@@ -88,16 +88,16 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   `occupied = false` inside a construction. A bracket around a single
   expression is allowed as grouping and builds nothing.
 - **Text joins with `++`** (decided 2026-09-19, replacing the whitespace
-  join of 2026-09-14 — "we'll make it explicit"): `"#" ++ 'n' ++ " (" ++
-  'owner' ++ ")"`, `"line 1" ++ \n ++ "line 2"` (a bare `\n` is a newline
-  text). At least one side must be text; the other side — a number, a bool,
-  a char — becomes text **in its stored form**. `1 ++ 2` is an error
-  ("numbers add with `+`"). Two values side by side with nothing between
+  join of 2026-09-14 — "we'll make it explicit"): `"#" ++ to.str.utf8['n']
+  ++ " (" ++ 'owner' ++ ")"`, `"line 1" ++ \n ++ "line 2"` (a bare `\n` is
+  a newline text). **Both sides must be text** (later the same day): a
+  number is converted first with `to.str.utf8[…]` (`conversion.md`), and
+  becomes text in its stored form. Two values side by side with nothing between
   (`"a" 'b'`, `[10 20]`) are an error naming `++` and `,`. Precedence: below
   `+ -`, above comparisons, left-associative — `"n=" ++ 'a' + 'b'` joins the
   sum. The 2026-09-14 rule "a bare number is an operand, not a piece" is
-  retired with the whitespace join: `"count: " ++ 10` is fine, since nothing
-  is ambiguous any more.
+  retired with the whitespace join; `"count: " ++ to.str.utf8[10]` is the
+  spelling.
 - **Names are quoted, so operators are free glyphs**: `let '+' := 10 + 20;`
   is legal — the name `'+'` and the operator `+` are different tokens.
 - **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,

@@ -1,0 +1,3 @@
+MAIN {
+    let 't' := to.str.utf8[42] otherwise "";
+}

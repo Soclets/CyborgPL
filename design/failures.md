@@ -60,7 +60,7 @@ save[lend 'mine'] otherwise { disk_full { std::print.stdout["not saved", \n]; } 
 ```
 
 - **A value** — used instead. **A leaving statement** (`return …`, `fail …`,
-  `break`, `continue`) — for every reason alike. **`fail`** — the failure
+  `break`, `continue`, `std::exit[…]`) — for every reason alike. **`fail`** — the failure
   climbs to *my* caller; my own `fail[…]` must list every name the callee
   can fail with. **Arms** — every reason the callee lists must be covered
   (adding a failure to a function breaks every caller on purpose); a payload

@@ -796,6 +796,36 @@ impl<'p> Interp<'p> {
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((v, prov))
             }
+            Expr::Convert(ty, b, handler, _) => {
+                let (v, _) = self.single(b, line)?;
+                let target = ty_name(ty);
+                let can_fail = matches!(v, Value::Str(_)) && matches!(ty, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_));
+                let fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }] } else { Vec::new() };
+                self.check_handler(handler.as_ref(), &fails, &format!("to.{target}"), line)?;
+                let out = match (ty, &v) {
+                    (Ty::Str(_), Value::Nothing) => return rt(line, "a call that returns nothing has no text"),
+                    (Ty::Str(_), other) => Value::Str(other.show_stored()),
+                    (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { self.check_type(&Value::Int(*i), ty, line)?; Value::Int(*i) }
+                    (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); self.check_type(&b, ty, line)?; b }
+                    (Ty::Bin(_), Value::Bin(x)) => { self.check_type(&Value::Bin(*x), ty, line)?; Value::Bin(*x) }
+                    (Ty::Int(_) | Ty::Uint(_), Value::Bin(_)) => return rt(line, "bin → int conversion is not decided (round? truncate? refuse a fraction?); the oracle refuses it"),
+                    (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_), Value::Str(s)) => {
+                        let parsed = if matches!(ty, Ty::Bin(_)) { s.parse::<f64>().ok().map(Value::Bin) } else { s.parse::<i128>().ok().map(Value::Int) };
+                        match parsed {
+                            Some(p) => { self.check_type(&p, ty, line)?; p }
+                            None => {
+                                let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_a_number".into(), None, true)?;
+                                let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                                return Ok((v, prov));
+                            }
+                        }
+                    }
+                    (Ty::Bool, _) => return rt(line, "nothing converts to bool: there is no truthiness; compare instead"),
+                    (t, other) => return rt(line, format!("no conversion from {} to {}", other.kind(), ty_name(t))),
+                };
+                let prov = if out.is_owned() { Prov::Fresh } else { Prov::Plain };
+                Ok((out, prov))
+            }
             Expr::Builtin(head, op, args, _) => {
                 let v = self.builtin(head, op, args, line)?;
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
@@ -824,13 +854,14 @@ impl<'p> Interp<'p> {
                     _ => (a, b),
                 };
                 if op == "++" {
-                    // Text join (decided 2026-09-19): at least one side is text; the other
-                    // becomes text in its stored form (2026-09-14). A fresh owned value.
+                    // Text join (decided 2026-09-19): both sides text — nothing converts by
+                    // itself; a number is spelled `to.str.utf8[…]` (later that day).
                     let is_text = |v: &Value| matches!(v, Value::Str(_) | Value::Char(..));
-                    if !is_text(&a) && !is_text(&b) {
-                        return rt(line, format!("`++` joins text, and neither side is text ({} and {}); numbers add with `+`, or start with a text: `\"\" ++ …`", a.kind(), b.kind()));
+                    for (side, v) in [("left", &a), ("right", &b)] {
+                        if !is_text(v) {
+                            return rt(line, format!("`++` joins text, and its {side} side is {}; convert it first: `to.str.utf8[…]`", v.kind()));
+                        }
                     }
-                    if matches!(a, Value::Nothing) || matches!(b, Value::Nothing) { return rt(line, "a call that returns nothing cannot be joined"); }
                     return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));
                 }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
@@ -958,26 +989,7 @@ impl<'p> Interp<'p> {
         // compiler would.
         let value_used = !self.call_is_stmt;
         self.call_is_stmt = false;
-        let list = || func.fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
-        match (&c.handler, func.fails.is_empty()) {
-            (None, false) => return rt(c.line, format!("`{name}` can fail ({}); say what happens: `{name}[…] otherwise …`", list())),
-            (Some(_), true) => return rt(c.line, format!("`{name}` cannot fail; drop the `otherwise`")),
-            (Some(Handler::Arms(arms)), false) => {
-                for a in arms {
-                    match func.fails.iter().find(|f| f.name == a.name) {
-                        None => return rt(a.line, format!("`{name}` never fails with `{}` (it fails with {})", a.name, list())),
-                        Some(f) => if a.bind.is_some() && f.ty.is_none() { return rt(a.line, format!("`{}` carries nothing; there is no value to name", a.name)); },
-                    }
-                }
-                let missing: Vec<&str> = func.fails.iter().filter(|f| !arms.iter().any(|a| a.name == f.name)).map(|f| f.name.as_str()).collect();
-                if !missing.is_empty() { return rt(c.line, format!("`{name}` can also fail with {}; every reason must be handled (or `otherwise fail;` to pass them up)", missing.join(", "))); }
-            }
-            (Some(Handler::Propagate), false) => {
-                let missing: Vec<&str> = func.fails.iter().filter(|f| !self.fails.iter().any(|m| m.name == f.name)).map(|f| f.name.as_str()).collect();
-                if !missing.is_empty() { return rt(c.line, format!("`otherwise fail;` passes {} up, but this function does not list {} in its `fail[…]`", list(), missing.join(", "))); }
-            }
-            _ => {}
-        }
+        self.check_handler(c.handler.as_ref(), &func.fails, name, c.line)?;
 
         // Arguments against the parameter contract (design/ownership-syntax.md).
         let mut bound: Vec<(String, Slot)> = Vec::new();
@@ -1035,7 +1047,7 @@ impl<'p> Interp<'p> {
             Flow::Return(v) => v,
             Flow::Normal => Value::Nothing,
             Flow::Break | Flow::Continue => return rt(func.line, "`break`/`continue` outside a loop"),
-            Flow::Fail(reason, payload) => return self.handle_failure(c, name, reason, payload, value_used),
+            Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
         match (&func.ret, &result) {
             (Some(t), Value::Nothing) => rt(c.line, format!("`{name}` is declared `-> {}` but returned nothing", ty_name(t))),
@@ -1044,20 +1056,47 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// The caller's side, checked before anything runs (as the compiler would): a
+    /// call that can fail must say what happens; one that cannot must not; arms
+    /// cover every reason; `otherwise fail;` needs the reasons in the caller's list.
+    fn check_handler(&self, handler: Option<&Handler>, fails: &[FailCase], name: &str, line: usize) -> Result<(), RuntimeError> {
+        let list = || fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
+        match (handler, fails.is_empty()) {
+            (None, false) => return rt(line, format!("`{name}` can fail ({}); say what happens: `{name}[…] otherwise …`", list())),
+            (Some(_), true) => return rt(line, format!("`{name}` cannot fail; drop the `otherwise`")),
+            (Some(Handler::Arms(arms)), false) => {
+                for a in arms {
+                    match fails.iter().find(|f| f.name == a.name) {
+                        None => return rt(a.line, format!("`{name}` never fails with `{}` (it fails with {})", a.name, list())),
+                        Some(f) => if a.bind.is_some() && f.ty.is_none() { return rt(a.line, format!("`{}` carries nothing; there is no value to name", a.name)); },
+                    }
+                }
+                let missing: Vec<&str> = fails.iter().filter(|f| !arms.iter().any(|a| a.name == f.name)).map(|f| f.name.as_str()).collect();
+                if !missing.is_empty() { return rt(line, format!("`{name}` can also fail with {}; every reason must be handled (or `otherwise fail;` to pass them up)", missing.join(", "))); }
+            }
+            (Some(Handler::Propagate), false) => {
+                let missing: Vec<&str> = fails.iter().filter(|f| !self.fails.iter().any(|m| m.name == f.name)).map(|f| f.name.as_str()).collect();
+                if !missing.is_empty() { return rt(line, format!("`otherwise fail;` passes {} up, but this function does not list {} in its `fail[…]`", list(), missing.join(", "))); }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
     /// The callee failed; do what the caller wrote after `otherwise`.
-    fn handle_failure(&mut self, c: &Call, name: &str, reason: String, payload: Option<Value>, value_used: bool) -> Result<Value, RuntimeError> {
-        let leave = |f: Flow| RuntimeError { line: c.line, msg: String::new(), exit: None, site: false, leave: Some(f) };
-        match c.handler.as_ref().unwrap() {
+    fn handle_failure(&mut self, handler: &Handler, line: usize, name: &str, reason: String, payload: Option<Value>, value_used: bool) -> Result<Value, RuntimeError> {
+        let leave = |f: Flow| RuntimeError { line, msg: String::new(), exit: None, site: false, leave: Some(f) };
+        match handler {
             Handler::Value(b) => {
-                let (v, prov) = self.bracket(b, c.line)?;
+                let (v, prov) = self.bracket(b, line)?;
                 match prov {
-                    Prov::Bare(n) => rt(c.line, format!("the fallback is bare '{n}', which owns a {}: say `give '{n}'` or `copy '{n}'`", v.kind())),
+                    Prov::Bare(n) => rt(line, format!("the fallback is bare '{n}', which owns a {}: say `give '{n}'` or `copy '{n}'`", v.kind())),
                     _ => Ok(v),
                 }
             }
             Handler::Propagate => Err(leave(Flow::Fail(reason, payload))),
             Handler::Leave(s) => match self.stmt(s)? {
-                Flow::Normal => rt(c.line, "the statement after `otherwise` must leave (return, fail, break, continue)"),
+                Flow::Normal => rt(line, "the statement after `otherwise` must leave (return, fail, break, continue)"),
                 f => Err(leave(f)),
             },
             Handler::Arms(arms) => {

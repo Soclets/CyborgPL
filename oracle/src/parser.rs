@@ -7,11 +7,12 @@
 
 use crate::ast::*;
 use crate::lexer::{Tok, Token};
+use crate::value::ty_name;
 
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -31,14 +32,17 @@ pub struct Parser {
     /// the module being parsed: [] for limb.cpls, ["shapes"] for shapes.cpls,
     /// extended by each `module name { … }` block
     module: Vec<String>,
+    /// set while parsing the type in `to.<type>[…]`: the bracket belongs to the
+    /// conversion, not to the type
+    to_target: bool,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -322,7 +326,7 @@ impl Parser {
             break;
         }
         let mut params = Vec::new();
-        if *self.peek() == Tok::LBracket {
+        if *self.peek() == Tok::LBracket && !self.to_target {
             self.advance();
             loop {
                 params.push(self.ty()?);
@@ -451,6 +455,7 @@ impl Parser {
                     Ok(Stmt::Fail { name, payload, line })
                 }
                 "otherwise" => self.err("`otherwise` follows a call that can fail: `stash[…] otherwise false;`"),
+                "to" => self.err("`to.…[…]` is a value; use it: `let 'n' := to.int32[\"42\"] otherwise 0;`"),
                 _ => {
                     let mut call = self.call()?;
                     call.handler = self.handler()?;
@@ -643,6 +648,7 @@ impl Parser {
         if self.is_word("otherwise") {
             match &mut e {
                 Expr::Call(c) => c.handler = self.handler()?,
+                Expr::Convert(_, _, h, _) => *h = self.handler()?,
                 _ => return self.err("`otherwise` handles a call that can fail, and the call must be the whole value: put it in its own `let` first"),
             }
         }
@@ -655,7 +661,8 @@ impl Parser {
         self.advance();
         let h = match self.peek().clone() {
             Tok::Word(w) if w == "fail" && *self.peek_at(1) == Tok::Semi => { self.advance(); Handler::Propagate }
-            Tok::Word(w) if w == "fail" || w == "return" || w == "break" || w == "continue" => {
+            Tok::Word(w) if w == "fail" || w == "return" || w == "break" || w == "continue"
+                || (w == "std" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(e) if e == "exit")) => {
                 // a leaving statement, `;` included; the outer statement's `;` is this one
                 let s = self.stmt()?;
                 self.pos -= 1; // hand the `;` back to the enclosing statement
@@ -978,6 +985,20 @@ impl Parser {
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
                 "check" | "nocheck" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "to" => {
+                    // to.<type>[value]   (decided 2026-09-19)
+                    self.advance();
+                    self.expect(Tok::Dot, "`.` after `to` (`to.int32[…]`, `to.str.utf8[…]`)")?;
+                    self.to_target = true;
+                    let ty = self.ty();
+                    self.to_target = false;
+                    let ty = ty?;
+                    if matches!(ty, Ty::List(_) | Ty::Array(_) | Ty::Struct(_)) { return self.err(format!("no conversion to {}; conversions are between numbers and text", ty_name(&ty))); }
+                    if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
+                    let b = self.bracket()?;
+                    if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
+                    Ok(Expr::Convert(ty, b, None, line))
+                }
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 "limb" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`limb` is the root of this Limb and is followed by `.`: `limb.helper[]`, `limb.'pi'`"),

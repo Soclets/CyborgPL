@@ -239,6 +239,9 @@ pub enum Expr {
     OwnedField(Verb, String, String, usize),
     /// `shapes.'pi'` / `limb.'pi'` — a const reached by module path (canonical), from a module
     ConstPath(Vec<String>, String, Vec<String>, usize),
+    /// `to.int32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
+    /// fail (`not_a_number`), so it may carry an `otherwise` handler
+    Convert(Ty, Bracket, Option<Handler>, usize),
     Unary(String, Box<Expr>, usize),            // not, -
     Binary(String, Box<Expr>, Box<Expr>, usize),
     Paren(Box<Expr>, usize),
@@ -259,6 +262,7 @@ impl Expr {
             Expr::Construct(_, _, l) => *l,
             Expr::OwnedField(_, _, _, l) => *l,
             Expr::ConstPath(_, _, _, l) => *l,
+            Expr::Convert(_, _, _, l) => *l,
         }
     }
 }
