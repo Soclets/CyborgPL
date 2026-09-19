@@ -5,6 +5,11 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — `std::uer` renamed `std::uenr`, Unbounded Exact Numerical Representation (owner)
+
+Rename only; semantics unchanged. Owner also set the focus: the base
+language before std.
+
 ### 2026-09-19 — Variadic parameters: `...'name'`, compiled per call-site shape (owner)
 
 Model: (a) a list (needs a list-of-anything) vs (b) a fixed set per call
@@ -431,7 +436,7 @@ Character literals use **backticks**: `` var 'c' := [`1`]; `` — `"…"` is tex
 `'…'` is a name, `` `…` `` is one character. Must be exactly one unit; with
 `:=` Precog picks the unit. Owner, 2026-09-14.
 
-### 2026-09-14 — `uer`, Unbounded Exact Representation, from the standard Limb (owner)
+### 2026-09-14 — `uenr`, Unbounded Exact Numerical Representation, from the standard Limb (owner)
 
 An arbitrary-size number that never rounds, supplied by the std Limb rather
 than the core language. Replaces the role of legacy's `bignum`/`bigint`.

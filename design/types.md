@@ -60,7 +60,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   `int`, `str`, or `char`. `int32`, `str.utf8`,
   `char.point`. `:=` means Precog chooses; `=` means you said
   everything.
-- **`uer` — Unbounded Exact Representation** (owner, 2026-09-14). A number
+- **`uenr` — Unbounded Exact Numerical Representation** (owner, 2026-09-14). A number
   type with no fixed width that never rounds: it grows to hold whatever
   value it is given. Provided by the **standard Limb**, not built into the
   language — so it is CyborgPL source Precog can see through, and it takes
