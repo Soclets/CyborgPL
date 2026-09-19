@@ -1,4 +1,4 @@
-fn sum [lent 'items': list.int32] -> int32 {
+fn sum [lent 'items': list[int32]] -> int32 {
     let 'total' := 0;
     for 'n' in lend 'items' {
         'total' = 'total' + 'n';
@@ -7,7 +7,7 @@ fn sum [lent 'items': list.int32] -> int32 {
 }
 
 MAIN {
-    let 'xs': list.int32 = [10, 20, 30];
+    let 'xs': list[int32] = [10, 20, 30];
     std::printu.stdout["first ", 'xs'[pos 1], ", last ", 'xs'[pos 3], \n];
     let 'n' := list.length[lend 'xs'];
     std::printu.stdout["length ", 'n', \n];
@@ -19,7 +19,7 @@ MAIN {
         std::printu.stdout['xs'[pos 'i'], " "];
     }
     std::print.stdout[\n];
-    let 'days': array.str.utf8 = ["mon", "tue"];
+    let 'days': array[str.utf8] = ["mon", "tue"];
     std::print.stdout['days'[pos 2], " of ", array.length[lend 'days'], \n];
     let 'grid' := [[1, 2], [3, 4]];
     std::printu.stdout['grid'[pos 2], \n];

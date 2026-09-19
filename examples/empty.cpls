@@ -1,5 +1,5 @@
 MAIN {
-    let 'xs': list.int32 = [];
+    let 'xs': list[int32] = [];
     list.append[lend.mut 'xs', 7];
     list.append[lend.mut 'xs', 8];
     std::printu.stdout['xs', " ", list.length[lend 'xs'], \n];

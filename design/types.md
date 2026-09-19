@@ -1,7 +1,7 @@
 # Types
 
 Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
-(`'x': bin16`, `'s': str.utf8`, …; the type follows the name since 2026-09-19).
+(`'x': bin16`, `'s': str.utf8`, …; the type follows the name since 2026-09-19). A type parameter goes in brackets — `list[int32]`, `array[str.utf8]` — while `.` picks a fixed variant of a type (decided 2026-09-19; see `lists.md`).
 
 | Chain name | Meaning | Widths |
 |---|---|---|

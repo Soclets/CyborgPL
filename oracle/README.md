@@ -26,7 +26,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - quoted names are variables; function names are bare; keywords are reserved
 - `let 'x' := v;` / `let 'x': T = v;` — `:=` only without a type, `=` only with one; the typed form is fully explicit; `let mut` / `let immut` before the name (revised 2026-09-19; `var`, `func`, `loop.while`, `else.if`, `loop.temp.for` are refused with the new spelling)
-- `fn name ['a': int32, lent 'b': str.utf8, lent.mut 'c': list.int32] -> int32 { }`; an owning parameter has no keyword; the return type is `-> T` after the parameters
+- `fn name ['a': int32, lent 'b': str.utf8, lent.mut 'c': list[int32]] -> int32 { }`; an owning parameter has no keyword; the return type is `-> T` after the parameters
 - `[ ]` is written only where it builds: a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); two values side by side are an error
 - `++` joins text (2026-09-19): one side must be text, the other is rendered in stored form; `1 ++ 2` is refused; precedence below `+ -`, above comparisons; `print`/`printu` take any number of comma-separated values and render each (stored / useful)
 - precedence as mathematics has it, parentheses required where it has no settled answer (`6 / 2 x 3`, `mod` beside anything, chained comparisons, `not` beside a comparison)
@@ -47,7 +47,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `const 'x' := v;` at the top level only — evaluated before MAIN in order, never assignable/shadowed/verbed, a `std::` call in its value is refused; `let` at the top level is refused
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `struct Name { f: type … }` (bare field names, 2026-09-19), construction by field name `Name[f = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut f: type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
-- `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = v;` element assignment; `let 'xs': list.T = [];` and `let 'ys' := list.empty;`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
+- `list[T]` / `array[T]` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = v;` element assignment; `let 'xs': list[T] = [];` and `let 'ys' := list.empty;`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
 - `if c { } else if c { } else { }`, `loop { }`, `while c { }`, `for [seq] [temp|perm] 'x' in lend 'xs' { }`, `for [seq] [perm] 'i'[: T] in range[start, stop, step] { }`: inclusive stop, `temp` is the default, `perm` keeps the last value, the counter/element cannot be assigned, `seq` first then `perm`
 - `let immut` cannot be assigned to; `let mut` is accepted and changes nothing
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list

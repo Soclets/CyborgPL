@@ -270,18 +270,10 @@ impl Parser {
         Ok(Param { kind, mutability, ty, name, line })
     }
 
-    /// A type from already-collected chain segments (used for list/array element types).
-    fn ty_from_segs(segs: &[String], module: &[String]) -> Result<Ty, String> {
-        let toks: Vec<Token> = segs.iter().enumerate().flat_map(|(i, w)| {
-            let mut v = vec![Token { tok: Tok::Word(w.clone()), line: 0, col: 0 }];
-            if i + 1 < segs.len() { v.push(Token { tok: Tok::Dot, line: 0, col: 0 }); }
-            v
-        }).chain(std::iter::once(Token { tok: Tok::Eof, line: 0, col: 0 })).collect();
-        let mut p = Parser::new_in(toks, module.to_vec());
-        p.ty().map_err(|e| e.msg)
-    }
-
-    // type := segments joined by '.'  (a Limb's type, `std::uer`, is not modelled)
+    // type := Word ('.' Word)* ('[' type (',' type)* ']')?
+    // Decided 2026-09-19: `.` picks a fixed variant (`str.utf8`, `char.grapheme`);
+    // `[ ]` supplies type parameters (`list[int32]`, `list[list[int32]]`). A struct
+    // through modules is a dotted path (`shapes.Locker`, `limb.Locker`).
     fn ty(&mut self) -> PResult<Ty> {
         let mut segs = Vec::new();
         loop {
@@ -292,14 +284,26 @@ impl Parser {
             if *self.peek() == Tok::Dot { self.advance(); continue; }
             break;
         }
+        let mut params = Vec::new();
+        if *self.peek() == Tok::LBracket {
+            self.advance();
+            loop {
+                params.push(self.ty()?);
+                if *self.peek() == Tok::Comma { self.advance(); continue; }
+                break;
+            }
+            self.expect(Tok::RBracket, "`]` to close the type parameters")?;
+        }
         let head = segs[0].as_str();
         let width = |s: &str, prefix: &str| -> Option<u32> { s.strip_prefix(prefix).and_then(|w| w.parse().ok()) };
         let int_w = |n: u32| match n { 8 => Some(IntWidth::W8), 16 => Some(IntWidth::W16), 32 => Some(IntWidth::W32), 64 => Some(IntWidth::W64), 128 => Some(IntWidth::W128), _ => None };
         let bad = |s: &Self, m: String| -> PResult<Ty> { s.err(m) };
+        let no_params = |s: &Self, name: &str| -> PResult<()> { if params.is_empty() { Ok(()) } else { s.err(format!("`{name}` takes no type parameters")) } };
         match head {
-            "bool" => { if segs.len() > 1 { return bad(self, "`bool` takes no narrowing".into()); } Ok(Ty::Bool) }
+            "bool" => { if segs.len() > 1 { return bad(self, "`bool` takes no narrowing".into()); } no_params(self, "bool")?; Ok(Ty::Bool) }
             "str" => {
                 if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `str.utf8`, `str.utf16`, `str.utf32`, or `str.ascii` — never bare `str`".into()); }
+                no_params(self, "str")?;
                 Ok(Ty::Str(match segs[1].as_str() {
                     "utf8" => Encoding::Utf8, "utf16" => Encoding::Utf16, "utf32" => Encoding::Utf32, "ascii" => Encoding::Ascii,
                     e => return bad(self, format!("unknown text encoding `{e}`")),
@@ -307,21 +311,22 @@ impl Parser {
             }
             "char" => {
                 if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `char.point`, `char.grapheme`, or `char.byte` — never bare `char`".into()); }
+                no_params(self, "char")?;
                 Ok(Ty::Char(match segs[1].as_str() {
                     "point" => CharUnit::Point, "grapheme" => CharUnit::Grapheme, "byte" => CharUnit::Byte,
                     u => return bad(self, format!("unknown character unit `{u}`")),
                 }))
             }
             "list" | "array" => {
-                if segs.len() < 2 { return bad(self, format!("`{head}` narrows to its element type: `{head}.int32`, `{head}.str.utf8`, `{head}.list.int32`")); }
-                // re-parse the tail as a type
-                let tail: Vec<String> = segs[1..].to_vec();
-                let inner = Parser::ty_from_segs(&tail, &self.module).map_err(|m| ParseError { line: self.line(), col: 0, msg: m })?;
+                if segs.len() > 1 { return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`", segs[1..].join("."), segs.join("."))); }
+                if params.len() != 1 { return bad(self, format!("`{head}` takes exactly one type parameter: `{head}[int32]`, `{head}[str.utf8]`, `{head}[list[int32]]`")); }
+                let inner = params.pop().unwrap();
                 Ok(if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) })
             }
             "int" | "uint" | "bin" | "deci" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
             _ if KEYWORDS.contains(&head) => bad(self, format!("`{head}` is a keyword, not a type")),
             _ => {
+                if !params.is_empty() { return bad(self, format!("`{}` takes no type parameters (generic structs are not designed)", segs.join("."))); }
                 if segs.len() > 1 {
                     // a struct reached through modules: `shapes.Locker`, `limb.Locker`
                     if segs[..segs.len() - 1].iter().any(|m| m == "limb" || module_name_ok(m).is_ok()) {
