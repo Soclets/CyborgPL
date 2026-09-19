@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-09-19 — `std::uer` renamed `std::uenr`, Unbounded Exact Numerical Representation (owner)
+### 2026-09-19 — `std::uenr` renamed `std::uenr`, Unbounded Exact Numerical Representation (owner)
 
 Rename only; semantics unchanged. Owner also set the focus: the base
 language before std.
@@ -239,7 +239,7 @@ semantics, operators, `MAIN`). Full spelling in `design/syntax-sketch.md`,
    proposal, Claude recommended it). Touches only the five name-to-type
    sites: variables, parameters, return type, struct fields, loop counters.
    Types themselves keep their dot chains (`str.utf8`, `list.int32` — bracketed later that day,
-   `std::uer`).
+   `std::uenr`).
 3. **`mut` / `immut` before the name**: `let mut 'x': bin16 = 1000;`,
    struct fields `immut number: int32` (owner chose (a) of three; Claude
    recommended it).
@@ -274,7 +274,7 @@ semantics, operators, `MAIN`). Full spelling in `design/syntax-sketch.md`,
     `temp` may still be written and changes nothing. Supersedes the
     2026-09-17 "temp/perm mandatory".
 
-Also confirmed: a Limb-provided type is `'r': std::uer`; style is a space
+Also confirmed: a Limb-provided type is `'r': std::uenr`; style is a space
 after `:`, none around `::`. `pub` was mentioned ("if we do `pub` too") and
 is logged as open, not decided.
 
@@ -728,7 +728,7 @@ exception was dropped. Zero reserved words, no exception.
 
 ### 2026-09-14 — `lang:` prefixes language built-ins (owner)
 
-`lang:var.std::uer 'n' = [1000];`, `lang:char.grapheme`, alongside
+`lang:var.std::uenr 'n' = [1000];`, `lang:char.grapheme`, alongside
 `std::print.stdout[...]`. Every path names its origin: `lang:` the language,
 `Limb::` a Limb, `'…'` the user. Earlier `var …` samples read as `lang:var …`.
 Scope: **every keyword** — `lang:func`, `lang:return`, `lang:if`,
@@ -740,7 +740,7 @@ Scope: **every keyword** — `lang:func`, `lang:return`, `lang:if`,
 ### 2026-09-14 — `::` is the Limb boundary; `.` narrows within (owner)
 
 Anything from a Limb is reached with `Limb::path`: `std::print.stdout[...]`,
-`var.std::uer 'n' = [1000];`. The chain continues across the boundary, so a
+`var.std::uenr 'n' = [1000];`. The chain continues across the boundary, so a
 Limb type sits in a `var` chain like a built-in. Earlier samples written
 `std.print.stdout` are superseded.
 

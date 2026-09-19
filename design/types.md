@@ -65,6 +65,6 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   value it is given. Provided by the **standard Limb**, not built into the
   language — so it is CyborgPL source Precog can see through, and it takes
   the role legacy's `bignum`/`bigint` had. Reached through the Limb
-  boundary: `let 'n': std::uer = 1000;`. **Exact is exact**: fractions are
+  boundary: `let 'n': std::uenr = 1000;`. **Exact is exact**: fractions are
   held as true rationals, so `(1/3) x 3` is exactly `1` (decided
   2026-09-14).

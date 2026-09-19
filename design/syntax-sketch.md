@@ -35,7 +35,7 @@ let 'x' := 1000;                 # Precog picks the best type
 let 'x': bin16 = 1000;           # explicit type; must be fully explicit
 let mut 'n': int32 = 0;          # mutability, when stated, before the name
 let immut 'limit' := 10;
-let 'r': std::uer = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
+let 'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
 pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
 ```
 
@@ -69,7 +69,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
   anything.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
-  `std::print.stdout[…]`, `'r': std::uer`, `crate_x::Locker[…]`. Inside a
+  `std::print.stdout[…]`, `'r': std::uenr`, `crate_x::Locker[…]`. Inside a
   Limb the same `.` walks modules: `shapes.circle.area[…]`, `limb.helper[…]`
   for the root (`limbs.md`, 2026-09-19).
 - **User names are quoted** (`'x'`, `'s'`). **Settled and reaffirmed — see

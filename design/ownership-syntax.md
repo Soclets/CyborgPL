@@ -7,7 +7,7 @@ lifetimes with optional verified annotation).
 ## Explicit, from the owner's perspective
 
 Handing an **owned** value (heap types: `str`, lists, `char.grapheme`,
-`std::uer`, …) to somewhere else says what happens to it. A bare
+`std::uenr`, …) to somewhere else says what happens to it. A bare
 `'s' = 't';` on an owned value is a compile error.
 
 ```

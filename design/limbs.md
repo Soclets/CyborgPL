@@ -8,7 +8,7 @@ Decided 2026-09-19. The module-system pieces settled so far; the rest
 - **Dependencies are declared in `JetPack.toml`**, never in source. A source
   file has no statement that loads a Limb.
 - **Every item is reached by its full path**: `std::printu.stdout[…]`,
-  `mathstuff::pow[2, 64]`, `'r': std::uer`, `crate_x::Locker[…]`. `::`
+  `mathstuff::pow[2, 64]`, `'r': std::uenr`, `crate_x::Locker[…]`. `::`
   crosses the boundary and the reader always sees where a thing comes from
   (decided 2026-09-14). This is Rust's model (Cargo lists, paths reach), not
   Python's (`import` loads and binds).
