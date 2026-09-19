@@ -121,6 +121,16 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   `let 's' := "x is " ++ 'x';` holds the full expansion, and `printu['s']`
   cannot undo it. `printu` is the only thing that produces the useful form,
   and only for the values handed to it directly.
+- **`std::printc`** (owner, 2026-09-19: "exactly like C's") is `printf`: a
+  format text `printc` reads itself — `%d %i %u %x %X %o %f %e %g %s %c %b
+  %%`, flags `- 0 +`, width, `.precision`, and C's `\n` `\t` `\\` `\"`
+  *inside the format* (the literal still holds a backslash and an `n`;
+  `printc` is what turns them into a newline, as it turns `%d` into
+  digits) — then the values: `std::printc.stdout["%d tests, avg %.2f\n",
+  'count', 'avg'];`. Unlike C, the format is a known value, so every hole
+  is checked against its value at compile time: a missing value, an extra
+  one, or `%d` over a `bin` is a compile error, never undefined behaviour.
+  Width and precision live here and nowhere else.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; `let 'x' $:= 2;`. `immut` names cannot be shadowed.
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only

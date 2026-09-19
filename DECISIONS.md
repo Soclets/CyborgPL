@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — `std::printc`: C's `printf`, exactly, with checked holes (owner)
+
+Owner asked what C's print looks like and what it would look like here,
+then "I kinda feel like adding `printc`"; Claude proposed a checked subset
+with the newline as a trailing value; owner: "`printc` is exactly like
+C's" — so `\n` inside the format is `printc`'s to interpret, the base
+string rule untouched. Precog checks holes against values (a mismatch is
+a compile error). Oracle implements d i u x X o f e g s c b %%, flags,
+width, precision; `examples/printc.cpls`, five reject tests. The base
+language has no print at all (owner asked; it is std's, a boundary).
+
 ### 2026-09-19 — Strings have no escapes but `\"` and `\\`; the newline is the bare `\n` outside (owner)
 
 Owner asked whether `"\n"` prints literally — the oracle's lexer had
