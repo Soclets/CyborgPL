@@ -90,9 +90,9 @@ pub enum Stmt {
     If { arms: Vec<(Bracket, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>>, line: usize },
     Loop { body: Vec<Stmt>, line: usize },
     While { cond: Bracket, body: Vec<Stmt>, line: usize },
-    /// `for temp 'x' in lend 'xs' { }` / `for perm …`: `perm` keeps the variable after the loop
+    /// `for 'x' in lend 'xs' { }` / `for perm …`: `perm` keeps the variable after the loop (temp is the default)
     For { name: String, perm: bool, seq: bool, over: Bracket, body: Vec<Stmt>, line: usize },
-    /// `for temp 'i' in range[start, stop, step] { }` — inclusive stop; `'i': T` types the counter
+    /// `for 'i' in range[start, stop, step] { }` — inclusive stop; `'i': T` types the counter
     Range { name: String, perm: bool, seq: bool, ty: Option<Ty>, bounds: Bracket, body: Vec<Stmt>, line: usize },
     Break { line: usize },
     Continue { line: usize },

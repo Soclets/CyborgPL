@@ -1,6 +1,6 @@
 fn count [lent 'items'] -> int32 {
     let 'n' := 0;
-    for temp 'item' in lend 'items' {
+    for 'item' in lend 'items' {
         'n' = 'n' + 1;
     }
     return 'n';

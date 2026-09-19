@@ -29,10 +29,10 @@ threads on cores; the program never allocates a core. A few hundred lines.
 ## The escape
 
 A loop that is parallel-safe but must run in order for an external reason
-(writing lines to a file, driving a device) opts out with one word before `temp`/`perm` (revised 2026-09-19; it was the chain segment `loop.temp.seq.for`):
+(writing lines to a file, driving a device) opts out with one word before the name (revised 2026-09-19; it was the chain segment `loop.temp.seq.for`):
 
 ```
-for seq temp 'line' in lend 'lines' {
+for seq 'line' in lend 'lines' {
     std::print.stdout['line' \n];
 }
 ```

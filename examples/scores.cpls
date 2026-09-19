@@ -20,7 +20,7 @@ MAIN {
     let 'evens' := 0;
     let 'best' := 0;
 
-    for temp 'score' in lend 'scores' {
+    for 'score' in lend 'scores' {
         'count' = 'count' + 1;
         'total' = 'total' + 'score';
         if is_even['score'] {

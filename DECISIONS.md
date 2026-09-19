@@ -52,6 +52,10 @@ semantics, operators, `MAIN`). Full spelling in `design/syntax-sketch.md`,
     Claude recommended (b)).
 11. **`MAIN { }` stays** (owner; Claude recommended keeping it — its
     distinctness is the feature).
+12. **`temp` is the default** (owner, later the same day): `for 'x' in …`
+    is a temp loop; `perm` is stated when the variable outlives the loop;
+    `temp` may still be written and changes nothing. Supersedes the
+    2026-09-17 "temp/perm mandatory".
 
 Also confirmed: a Limb-provided type is `'r': std::uer`; style is a space
 after `:`, none around `::`. `pub` was mentioned ("if we do `pub` too") and
@@ -382,7 +386,7 @@ Claude noted it hides a search with unanswered multiple-match questions;
 owner: "can't you just use `if` for that one?" — a `perm` range loop finds
 the position, then `pos` writes. No `list.find`. See [design/lists.md](design/lists.md).
 
-### 2026-09-17 — Range loops; `temp`/`perm` mandatory on `for` and `range` (owner) — spelling revised 2026-09-19: `for temp 'i' in range[a, b]`
+### 2026-09-17 — Range loops; `temp`/`perm` mandatory on `for` and `range` (owner) — revised 2026-09-19: `for 'i' in range[a, b]`, `temp` is the default
 
 `loop.temp.range 'i' [:= 0, := 1000] { }` — owner's shape. Decided one by
 one: stop is **inclusive** ("what the writer sees": start from, stop at);

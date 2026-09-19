@@ -27,7 +27,7 @@ error. `pos` is mandatory on every index (decided 2026-09-17): it says the
 number is a *position*, so a reader never wonders whether `2` means "the
 second" or "the value 2". The position is an ordinal, the way people count,
 which lines up with inclusive ranges:
-`for temp 'i' in range[1, list.length[lend 'xs']]` walks the whole list
+`for 'i' in range[1, list.length[lend 'xs']]` walks the whole list
 with no `- 1` anywhere. An out-of-range position is a runtime check in the
 default tier, proven away by Precog where it can be.
 

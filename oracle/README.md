@@ -43,7 +43,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `struct Name { 'f': type … }`, construction by field name `Name['f' = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut 'f': type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
 - `list.T` / `array.T` types; `'xs'[pos i]` 1-based with range checks, `pos` mandatory; `'xs'[pos i] = v;` element assignment; `let 'xs': list.T = [];` and `let 'ys' := list.empty;`; `list.length/append/remove[lend…]`, `array.length`; append to an array is an error
-- `if c { } else if c { } else { }`, `loop { }`, `while c { }`, `for [seq] temp|perm 'x' in lend 'xs' { }`, `for [seq] temp|perm 'i'[: T] in range[start, stop, step] { }`: inclusive stop, `perm` keeps the last value, the counter/element cannot be assigned, `seq` first then `temp`/`perm`
+- `if c { } else if c { } else { }`, `loop { }`, `while c { }`, `for [seq] [temp|perm] 'x' in lend 'xs' { }`, `for [seq] [perm] 'i'[: T] in range[start, stop, step] { }`: inclusive stop, `temp` is the default, `perm` keeps the last value, the counter/element cannot be assigned, `seq` first then `perm`
 - `let immut` cannot be assigned to; `let mut` is accepted and changes nothing
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list
 

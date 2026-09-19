@@ -18,7 +18,7 @@ fn count [lent 'text': str.utf8] -> int32 { … }
 MAIN {
     let 'mine' := Locker['name' = "A", 'number' = 7, 'occupied' = false];
     let mut 'total': int32 = 0;
-    for temp 'i' in range[1, 10] {
+    for 'i' in range[1, 10] {
         if ('i' mod 2) == 0 { 'total' = 'total' + 'i'; }
         else if 'i' == 7 { break; }
         else { continue; }
@@ -55,7 +55,7 @@ let 'r': std::uer = 1000;        # a Limb-provided type: `::` crosses, `.` narro
 - **Dot chains narrow general→specific inside a type and inside a Limb
   path** — `str.utf8`, `char.grapheme`, `list.int32`, `std::printu.stdout`,
   `lend.mut`. They no longer carry the name-to-type job (that is `:`) and no
-  longer hold keywords together (`else if`, `while`, `for temp`). The chains
+  longer hold keywords together (`else if`, `while`, `for`). The chains
   that stay are the ones doing real work.
 - **Keywords are bare and reserved** (decided 2026-09-14). The language's
   words — `fn`, `let`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,

@@ -1,6 +1,6 @@
 fn count [lent 'items'] -> int32 {
     let 'n' := 0;
-    for temp 'item' in lend 'items' {
+    for 'item' in lend 'items' {
         'n' = 'n' + 1;
     }
     return 'n';
@@ -9,7 +9,7 @@ fn count [lent 'items'] -> int32 {
 MAIN {
     let 'grid' := [[1, 2], [3, 4]];
     std::printu.stdout['grid' \n];
-    for temp 'row' in lend 'grid' {
+    for 'row' in lend 'grid' {
         std::printu.stdout[(count[lend 'row']) \n];
     }
     std::printu.stdout[(count[["a", "b", "c"]]) \n];

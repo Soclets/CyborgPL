@@ -1,6 +1,6 @@
 fn sum [lent 'items': list.int32] -> int32 {
     let 'total' := 0;
-    for temp 'n' in lend 'items' {
+    for 'n' in lend 'items' {
         'total' = 'total' + 'n';
     }
     return 'total';
@@ -15,7 +15,7 @@ MAIN {
     list.remove[lend.mut 'xs', 1];
     std::printu.stdout['xs' " length " (list.length[lend 'xs']) \n];
     std::printu.stdout["sum " (sum[lend 'xs']) \n];
-    for temp 'i' in range[1, list.length[lend 'xs']] {
+    for 'i' in range[1, list.length[lend 'xs']] {
         std::printu.stdout['xs'[pos 'i'] " "];
     }
     std::print.stdout[\n];

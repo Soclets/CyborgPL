@@ -54,18 +54,20 @@ while 'count' < 100 {                          # while a condition holds
     …
 }
 
-for temp 'item' in lend 'items' {              # each element; 'item' gone after
+for 'item' in lend 'items' {                   # each element; 'item' gone after
     …
 }
 
-for temp 'i' in range[0, 1000] {               # 'i' from 0 to 1000 inclusive
+for 'i' in range[0, 1000] {                    # 'i' from 0 to 1000 inclusive
     …
 }
 ```
 
-### `temp` / `perm` — mandatory, before the name
+### `temp` (default) / `perm` — before the name
 
-`temp`: the variable exists only inside the loop. `perm`: it is still there
+`temp`: the variable exists only inside the loop — **the default** (decided
+2026-09-19; until then stating one of the two was mandatory). Writing `temp`
+is allowed and changes nothing, like `let mut`. `perm`: it is still there
 afterwards, holding **whatever the loop last gave it** — the last value the
 body ran with after a full run (the stop value when the step lands on it; for
 `range[0, 10, 3]` it is 9), the value at a `break`, the start value if the
@@ -95,8 +97,8 @@ bounds; `'i': int32` → explicit, every value must fit. The bounds carry no
 `:=`/`=` markers (they would say the same thing twice):
 
 ```
-for temp 'i' in range[0, 9] { }            # like  let 'i' := 0;
-for temp 'i': int8 in range[0, 9] { }      # like  let 'i': int8 = 0;
+for 'i' in range[0, 9] { }                 # like  let 'i' := 0;
+for 'i': int8 in range[0, 9] { }           # like  let 'i': int8 = 0;
 ```
 
 `range[…]` is only decided as what a `for` runs over; as a standalone value
@@ -109,10 +111,11 @@ Precog. Skipping ahead is a `while` with your own counter.
 
 ### Modifier order
 
-`for [seq] temp|perm 'name'[: type] in …` — `seq` (opt out of automatic
-parallelism, see `parallelism.md`) first, then `temp`/`perm`, then the name,
-reading "for, sequentially, a permanent 'i'":
-`for seq perm 'i': int32 in range[0, 9] { }`.
+`for [seq] [temp|perm] 'name'[: type] in …` — `seq` (opt out of automatic
+parallelism, see `parallelism.md`) first, then `perm` if the variable
+outlives the loop, then the name, reading "for, sequentially, a permanent
+'i'": `for seq perm 'i': int32 in range[0, 9] { }`. Plain `for 'i' in …` is
+the common case.
 
 ### Not in the language
 

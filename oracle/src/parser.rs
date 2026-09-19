@@ -390,7 +390,7 @@ impl Parser {
             self.advance();
             return match self.peek().clone() {
                 Tok::Word(w) if w == "while" => self.err("`loop.while` became `while` (2026-09-19): `while 'i' < 3 { }`"),
-                Tok::Word(w) if w == "temp" || w == "perm" || w == "for" || w == "range" => self.err("`loop.temp.for` / `loop.temp.range` became `for` (2026-09-19): `for temp 'x' in lend 'xs' { }`, `for temp 'i' in range[1, 10] { }`"),
+                Tok::Word(w) if w == "temp" || w == "perm" || w == "for" || w == "range" => self.err("`loop.temp.for` / `loop.temp.range` became `for` (2026-09-19): `for 'x' in lend 'xs' { }`, `for 'i' in range[1, 10] { }`"),
                 other => self.err(format!("`loop` takes no chain; loops are `loop`, `while`, and `for` (found `.{other}`)")),
             };
         }
@@ -404,20 +404,20 @@ impl Parser {
         Ok(Stmt::While { cond: self.cond()?, body: self.block()?, line })
     }
 
-    // for := 'for' ('seq')? ('temp' | 'perm') Var (':' type)? 'in' ('range' bounds | rhs) block
-    // temp/perm is mandatory (decided 2026-09-17); modifiers are bare words before the name (2026-09-19).
+    // for := 'for' ('seq')? ('temp' | 'perm')? Var (':' type)? 'in' ('range' bounds | rhs) block
+    // `temp` is the default (decided 2026-09-19); `perm` keeps the variable after the loop;
+    // modifiers are bare words before the name, `seq` first.
     fn for_stmt(&mut self) -> PResult<Stmt> {
         let line = self.line();
         self.expect_word("for")?;
-        if *self.peek() == Tok::Dot { return self.err("`for` takes no chain: `for temp 'x' in …`, `for seq perm 'i' in …`"); }
+        if *self.peek() == Tok::Dot { return self.err("`for` takes no chain: `for 'x' in …`, `for seq perm 'i' in …`"); }
         let mut seq = false;
         if self.is_word("seq") { self.advance(); seq = true; }
         let perm = match self.peek().clone() {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
-            Tok::Word(w) if w == "seq" => return self.err("`seq` comes first: `for seq temp 'x' in …`"),
-            Tok::Var(v) => return self.err(format!("`for` says whether its variable outlives the loop: `for temp '{v}' in …` or `for perm '{v}' in …`")),
-            other => return self.err(format!("expected `temp` or `perm` after `for`, found {other}")),
+            Tok::Word(w) if w == "seq" => return self.err("`seq` comes first: `for seq perm 'x' in …`"),
+            _ => false,
         };
         let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted loop variable, found {other}")) };
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };

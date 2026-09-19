@@ -1,5 +1,5 @@
 MAIN {
     let 'xs' := [1, 2];
-    for temp 'x': int32 in lend 'xs' {
+    for 'x': int32 in lend 'xs' {
     }
 }

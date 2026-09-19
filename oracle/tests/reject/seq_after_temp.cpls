@@ -1,4 +1,0 @@
-MAIN {
-    for temp seq 'i' in range[0, 3] {
-    }
-}
