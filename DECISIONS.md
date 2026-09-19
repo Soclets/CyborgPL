@@ -17,7 +17,11 @@ Owner: "if that's better, then yes. Not the original one." A proven check
 can never fire, so keeping it is pure runtime cost. Build output lists
 `nocheck` sites **and passed `check`s** (owner, 2026-09-19). Claude also
 proposed listing default-tier sites still carrying a runtime check ("where
-to add a guardrail") — not yet answered.
+to add a guardrail") — not yet answered. **No alias for `nocheck`** (owner,
+2026-09-19): a `*` shorthand was raised for codebases dense with it; Claude
+advised that `nocheck` should stay long and rare (Rust's `unsafe` is ugly
+on purpose) and that `nocheck { … }` covers the honest dense case; owner
+closed it.
 
 ### 2026-09-19 — `check` / `nocheck` spelled: a word in front of a statement (owner)
 

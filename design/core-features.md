@@ -97,7 +97,8 @@ check { for 'i' in range[1, 'n'] { … } }     # every site in the region
 check if 'x' > 0 { … }                       # an if or a loop is a statement too
 ```
 
-- Innermost word wins when they nest.
+- Innermost word wins when they nest. **No alias** for `nocheck` (owner,
+  2026-09-19): it stays long and rare; a dense region uses `nocheck { … }`.
 - Never on an expression (`'a' + (check 'b')`): if half a statement needs
   it, split the statement. Never on a `fn`, `struct`, `const`, or `module`:
   a function's safety is the sum of its statements, and a `check fn` would
