@@ -1,0 +1,3 @@
+MAIN {
+    std::printrs.stdout["a } b\n"];
+}

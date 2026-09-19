@@ -1,0 +1,11 @@
+MAIN {
+    let 'count' := 6;
+    let 'average' := 75.5;
+    let 'name' := "Ann";
+    std::printrs.stdout["scored {} tests, average {:.2}, name {}\n", 'count', 'average', 'name'];
+    std::printrs.stdout["{name} scored {count} — a variable in scope, by name\n"];
+    std::printrs.stdout["{1} then {0}, {0} again\n", "a", "b"];
+    std::printrs.stdout["[{:>6}] [{:<6}] [{:^6}] [{:*^7}] [{:06}] [{:+}]\n", 42, 42, 42, 42, 42, 42];
+    std::printrs.stdout["{:x} {:#X} {:#b} {:o} {:e} {:?} {:?}\n", 255, 255, 5, 8, 'average', 'name', `A`];
+    std::printrs.stdout["{{braces}} and a tab\there\n"];
+}

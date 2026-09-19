@@ -1,0 +1,3 @@
+MAIN {
+    std::printrs.stdout["{} and {}\n", 1];
+}

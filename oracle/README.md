@@ -40,7 +40,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - the default check tier: every integer operation is overflow-checked and
   every division zero-checked, because there is no Precog here to remove them
 - `check <stmt>` / `nocheck <stmt>` / `check { … }` (2026-09-19): the oracle runs the check anyway; a `check` whose site fires reports the counterexample value, a `nocheck` whose site fires reports the lie; refused on a fn/struct/const/module, inside a value, at the top level, or doubled
-- `print` shows the stored value (full binary expansion), `printu` the useful one; `printc` is C's printf with the holes checked against the values (2026-09-19)
+- `print` shows the stored value (full binary expansion), `printu` the useful one; `printc` is C's printf and `printrs` is Rust's print!, both with the holes checked against the values (2026-09-19)
 - strings are exactly their characters; only `\"` and `\\` escape; `"\n"` is two characters, the newline is the bare `\n` (2026-09-19)
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked

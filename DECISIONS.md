@@ -5,6 +5,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — `std::printrs`: Rust's `print!`, exactly, with checked holes (owner)
+
+"Now, `printrs`, exactly like Rust's." `{}`, `{0}`, `{name}` from scope,
+`{:?}`, fill/align/sign/#/0/width/precision/type, `{{` `}}`, `\n` inside
+the format. Oracle: `examples/printrs.cpls`, five reject tests.
+
 ### 2026-09-19 — `std::printc`: C's `printf`, exactly, with checked holes (owner)
 
 Owner asked what C's print looks like and what it would look like here,

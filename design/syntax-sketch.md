@@ -130,7 +130,14 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   'count', 'avg'];`. Unlike C, the format is a known value, so every hole
   is checked against its value at compile time: a missing value, an extra
   one, or `%d` over a `bin` is a compile error, never undefined behaviour.
-  Width and precision live here and nowhere else.
+- **`std::printrs`** (owner, 2026-09-19: "exactly like Rust's") is
+  `print!`: `{}` holes, `{0}` positional, `{name}` a variable in scope
+  (Rust's captured identifier — `{count}` reads `'count'`), `{:?}` debug,
+  the spec `{:[fill][align][sign][#][0][width][.precision][type]}` with
+  types `? x X o b e E`, `{{` `}}`, and `\n` inside the format:
+  `std::printrs.stdout["{name} scored {:.2}\n", 'avg'];`. Holes are checked
+  against values like `printc`'s. Three prints, then: `print`/`printu` take
+  values and render them; `printc` speaks C; `printrs` speaks Rust.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; `let 'x' $:= 2;`. `immut` names cannot be shadowed.
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
