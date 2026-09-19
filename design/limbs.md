@@ -33,6 +33,17 @@ Consequences:
   otherwise. Whether std exports anything bare is std's decision, made
   when std is written.
 
+## A keyword may name a function — reached by path, never bare (decided 2026-09-19)
+
+`::` already says "what follows is a name in that Limb," so `std::to[…]`
+is unambiguous even though `to` is a keyword; the reservation rule only
+ever protected *bare* positions. So `fn to […]` is legal, and such a
+function is reached through a path everywhere: `std::to[…]` from outside,
+`limb.to[…]` inside its own Limb (owner floated `std:to` / `std:::to` for
+the inside; `:` already attaches types and `limb.` already means "my own
+Limb," so `limb.` it is). Bare `to[…]` is the keyword. Structs, consts and
+modules keep the strict rule — their names appear bare in type positions.
+
 ## `pub` and `const` (decided 2026-09-19)
 
 ```

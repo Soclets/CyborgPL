@@ -24,7 +24,7 @@ Everything in `design/syntax-sketch.md`, `types.md`, `operators.md`,
 `functions.md`, `control-flow.md`, `ownership-syntax.md`, and the `MAIN`
 entry point — see `tests/reject/` for one program per rule. Highlights:
 
-- quoted names are variables; function names are bare; keywords are reserved
+- quoted names are variables; function names are bare; keywords are reserved in bare positions — a keyword-named `fn` is reached only by path (`limb.to[…]`, 2026-09-19)
 - `let 'x' := v;` / `let 'x': T = v;` — `:=` only without a type, `=` only with one; the typed form is fully explicit; `let mut` / `let immut` before the name (revised 2026-09-19; `var`, `func`, `loop.while`, `else.if`, `loop.temp.for` are refused with the new spelling)
 - `fn name ['a': int32, lent 'b': str.utf8, lent.mut 'c': list[int32]] -> int32 { }`; an owning parameter has no keyword; the return type is `-> T` after the parameters
 - `[ ]` is written only where it builds: a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); two values side by side are an error

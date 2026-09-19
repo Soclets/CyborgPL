@@ -1,0 +1,5 @@
+fn to [] -> int32 { return 5; }
+MAIN {
+    let 'x' := limb.to[];
+    std::printu.stdout['x', \n];
+}

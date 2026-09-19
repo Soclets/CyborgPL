@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — A keyword may name a function, reached by path only (owner)
+
+Owner: "`std::to` wouldn't be ambiguous, even with `to` being the lang's,
+right? it has `std::`." Claude: correct from outside; inside its own Limb a
+bare `to[…]` would collide, so the rule is "reached through a path, never
+bare" — `std::to[…]` outside, `limb.to[…]` inside. Owner proposed `std:to`
+then `std:::to` for the inside; Claude: `:` is taken and `limb.` already
+means this. Owner: "Yup." Functions only. Oracle enforces
+(`examples/keyword_fn.cpls`, `keyword_fn_bare` reject).
+
 ### 2026-09-19 — Explicit conversion: `to.int32[…]`, `to.str.utf8[…]`; `++` takes text on both sides (owner)
 
 Cold read #3 flagged `++` converting a number implicitly — the second

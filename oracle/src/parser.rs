@@ -222,7 +222,8 @@ impl Parser {
             Tok::Var(v) => return self.err(format!("function names are bare: `fn {v}`, not `fn '{v}'` (quotes mean variable)")),
             other => return self.err(format!("expected a function name, found {other}")),
         };
-        if KEYWORDS.contains(&name.as_str()) { return self.err(format!("`{name}` is a keyword and cannot name a function")); }
+        // A keyword may name a function (decided 2026-09-19) — it is then never called
+        // bare, only through a path: `limb.to[…]` inside, `std::to[…]` outside.
         if name == "MAIN" { return self.err("MAIN is the program's block, not a function: `MAIN { … }`"); }
         if *self.peek() == Tok::LParen { return self.err("parameters sit in `[ ]`; `( )` is arithmetic grouping"); }
         self.expect(Tok::LBracket, "`[` to open the parameter list")?;
@@ -726,6 +727,9 @@ impl Parser {
     fn call(&mut self) -> PResult<Call> {
         let line = self.line();
         let first = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a name, found {other}")) };
+        if KEYWORDS.contains(&first.as_str()) && first != "limb" && *self.peek() != Tok::ColonColon {
+            return self.err(format!("`{first}` is a keyword; a function named `{first}` is reached through a path, never bare: `limb.{first}[…]`"));
+        }
         let (limb, mut path) = if *self.peek() == Tok::ColonColon {
             self.advance();
             let seg = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a name after `::`, found {other}")) };

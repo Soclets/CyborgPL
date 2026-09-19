@@ -1,0 +1,4 @@
+fn perm [] { }
+MAIN {
+    perm[];
+}
