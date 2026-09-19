@@ -38,6 +38,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
   cannot be stored; a given variable is dead until reassigned
 - the default check tier: every integer operation is overflow-checked and
   every division zero-checked, because there is no Precog here to remove them
+- `check <stmt>` / `nocheck <stmt>` / `check { … }` (2026-09-19): the oracle runs the check anyway; a `check` whose site fires reports the counterexample value, a `nocheck` whose site fires reports the lie; refused on a fn/struct/const/module, inside a value, at the top level, or doubled
 - `print` shows the stored value (full binary expansion), `printu` the useful one
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
@@ -70,6 +71,6 @@ had to make to run at all; none is a decision.
 ## Not implemented because not designed
 
 String iteration,
-custom operators (`op`), the check-tier syntax (`check` / `nocheck`),
+custom operators (`op`),
 boundary range annotations, Limb declaration and other Limbs, input, error
 handling, concurrency. Each is refused with a message naming it.

@@ -137,6 +137,7 @@ impl Parser {
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
                 Tok::Word(w) if w == "let" || w == "var" => return self.err("a `let` cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
+                Tok::Word(w) if w == "check" || w == "nocheck" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Limb-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
                 other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
             }
@@ -370,7 +371,19 @@ impl Parser {
                 "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),
                 "else" => self.err("`else` without an `if`"),
-                "check" | "nocheck" => self.err("the check tiers are decided but their syntax is not; the oracle refuses them for now"),
+                "check" | "nocheck" => {
+                    // decided 2026-09-19: a word before a statement (or a `{ }` block)
+                    self.advance();
+                    let tier = if w == "check" { Tier::Check } else { Tier::NoCheck };
+                    match self.peek().clone() {
+                        Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos 'i'] = 5;` or `{w} {{ … }}`")),
+                        Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`{w}` covers a statement, not a `{k}` — a function's safety is the sum of its statements")),
+                        Tok::Word(k) if k == "check" || k == "nocheck" => return self.err(format!("`{w} {k}`: one tier per statement; the innermost wins when they nest")),
+                        _ => {}
+                    }
+                    let body = self.stmt()?;
+                    Ok(Stmt::Tier { tier, body: Box::new(body), line })
+                }
                 "give" | "copy" | "lend" => self.err(format!("`{w}` belongs inside a value: `'s' = {w} 't';`")),
                 "list" | "array" => {
                     let (head, op, args) = self.builtin()?;
@@ -383,6 +396,7 @@ impl Parser {
                     Ok(Stmt::Call { call, line })
                 }
             },
+            Tok::LBrace => Ok(Stmt::Block { body: self.block()?, line }),
             Tok::Var(name) => {
                 self.advance();
                 if *self.peek() == Tok::LBracket {
@@ -857,6 +871,7 @@ impl Parser {
                 }
                 "lent" => self.err("`lent` describes a parameter; a caller writes `lend`"),
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
+                "check" | "nocheck" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }

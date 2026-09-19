@@ -134,7 +134,16 @@ pub enum Stmt {
     Call { call: Call, line: usize },
     /// `list.append[…];` etc. as a statement
     BuiltinStmt { head: String, op: String, args: Bracket, line: usize },
+    /// `check <stmt>` / `nocheck <stmt>` (decided 2026-09-19): a bare word before a
+    /// statement, covering every check site inside it; a `{ }` block is a statement
+    Tier { tier: Tier, body: Box<Stmt>, line: usize },
+    /// a bare `{ }` block as a statement (needed so `check { … }` is just the prefix rule)
+    Block { body: Vec<Stmt>, line: usize },
 }
+
+/// The three check tiers (decided 2026-09-14): default is written as nothing.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Tier { Check, NoCheck }
 
 #[derive(Debug, Clone)]
 pub struct Call {

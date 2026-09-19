@@ -24,10 +24,17 @@ pub struct RuntimeError {
     pub msg: String,
     /// `std::exit` unwinds through here.
     pub exit: Option<u8>,
+    /// a safety check fired (overflow, range, fit, zero) — the thing the tiers govern
+    pub site: bool,
 }
 
 fn rt<T>(line: usize, msg: impl Into<String>) -> Result<T, RuntimeError> {
-    Err(RuntimeError { line, msg: msg.into(), exit: None })
+    Err(RuntimeError { line, msg: msg.into(), exit: None, site: false })
+}
+
+/// A failed safety check at a check site.
+fn site<T>(line: usize, msg: impl Into<String>) -> Result<T, RuntimeError> {
+    Err(RuntimeError { line, msg: msg.into(), exit: None, site: true })
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -252,7 +259,7 @@ impl<'p> Interp<'p> {
                 let mut cur = cell.borrow_mut();
                 let items = match &mut *cur { Value::List(items) => items, other => return rt(*line, format!("'{name}' is {}, not a list or array", other.kind())) };
                 if i < 1 || i as usize > items.len() {
-                    return rt(*line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {}) — default check tier", items.len(), items.len()));
+                    return site(*line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {})", items.len(), items.len()));
                 }
                 items[(i - 1) as usize] = v;
                 Ok(Flow::Normal)
@@ -386,6 +393,24 @@ impl<'p> Interp<'p> {
             }
             Stmt::Call { call, .. } => { self.call(call)?; Ok(Flow::Normal) }
             Stmt::BuiltinStmt { head, op, args, line } => { self.builtin(head, op, args, *line)?; Ok(Flow::Normal) }
+            Stmt::Block { body, .. } => self.block(body),
+            // The tiers (decided 2026-09-19). The oracle has no Precog, so it cannot
+            // prove; it runs every check and reports what the compiler *would* have
+            // found: a `check` whose site fires is the missing guardrail, shown with
+            // the concrete value (the compiler's counterexample); a `nocheck` whose
+            // site fires is a lie — the compiled program would be undefined there.
+            Stmt::Tier { tier, body, line } => {
+                match self.stmt(body) {
+                    Err(e) if e.site => {
+                        let msg = match tier {
+                            Tier::Check => format!("`check` at line {line} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", e.msg),
+                            Tier::NoCheck => format!("`nocheck` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
+                        };
+                        Err(RuntimeError { line: e.line, msg, exit: None, site: false })
+                    }
+                    other => other,
+                }
+            }
         }
     }
 
@@ -433,14 +458,14 @@ impl<'p> Interp<'p> {
         match (ty, v) {
             (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => {
                 let (lo, hi) = int_range(ty).unwrap();
-                if *i < lo || *i > hi { return rt(line, format!("{i} does not fit {name} (range {lo} to {hi})")); }
+                if *i < lo || *i > hi { return site(line, format!("{i} does not fit {name} (range {lo} to {hi})")); }
                 Ok(())
             }
             (Ty::Int(_) | Ty::Uint(_), Value::Bin(b)) => rt(line, format!("{} is a bin, not {name}; there is no implicit conversion between numeric families", exact_decimal(*b))),
             (Ty::Bin(w), Value::Bin(b)) => {
                 match w {
-                    16 => if b.abs() > 65504.0 { return rt(line, format!("{b} does not fit bin16 (max 65504)")); },
-                    32 => if b.abs() > f32::MAX as f64 { return rt(line, format!("{b} does not fit bin32")); },
+                    16 => if b.abs() > 65504.0 { return site(line, format!("{b} does not fit bin16 (max 65504)")); },
+                    32 => if b.abs() > f32::MAX as f64 { return site(line, format!("{b} does not fit bin32")); },
                     128 => return rt(line, "bin128 is not implemented in the oracle"),
                     _ => {}
                 }
@@ -597,7 +622,7 @@ impl<'p> Interp<'p> {
                 let i = match i { Value::Int(i) => i, other => return rt(line, format!("an index is an integer, got {}", other.kind())) };
                 // 1-based (decided 2026-09-17): 'xs'[pos 1] is the first; 'xs'[pos 0] does not exist.
                 if i < 1 || i as usize > items.len() {
-                    return rt(line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {}) — default check tier", items.len(), items.len()));
+                    return site(line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {})", items.len(), items.len()));
                 }
                 let item = items[(i - 1) as usize].clone();
                 let prov = if item.is_owned() { Prov::Bare(format!("{name}'[{i}]'")) } else { Prov::Plain };
@@ -699,7 +724,7 @@ impl<'p> Interp<'p> {
                 match (op.as_str(), v) {
                     ("not", Value::Bool(b)) => Ok((Value::Bool(!b), Prov::Plain)),
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
-                    ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None })?), keep)),
+                    ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None, site: true })?), keep)),
                     ("-", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),
@@ -722,14 +747,14 @@ impl<'p> Interp<'p> {
 
     fn binary(&self, op: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
         use Value::*;
-        let ovf = |what: &str| RuntimeError { line, msg: format!("integer overflow in `{what}` (default check tier: there is no Precog here to prove it away)"), exit: None };
+        let ovf = |what: &str| RuntimeError { line, msg: format!("integer overflow in `{what}`"), exit: None, site: true };
         Ok(match (op, a, b) {
             ("+", Int(x), Int(y)) => Int(x.checked_add(y).ok_or_else(|| ovf("+"))?),
             ("-", Int(x), Int(y)) => Int(x.checked_sub(y).ok_or_else(|| ovf("-"))?),
             ("x", Int(x), Int(y)) => Int(x.checked_mul(y).ok_or_else(|| ovf("x"))?),
-            ("/", Int(_), Int(0)) => return rt(line, "division by zero"),
+            ("/", Int(_), Int(0)) => return site(line, "division by zero"),
             ("/", Int(x), Int(y)) => Int(x.checked_div(y).ok_or_else(|| ovf("/"))?), // provisional: truncates (open question)
-            ("mod", Int(_), Int(0)) => return rt(line, "`mod` by zero"),
+            ("mod", Int(_), Int(0)) => return site(line, "`mod` by zero"),
             ("mod", Int(x), Int(y)) => Int(x.checked_rem(y).ok_or_else(|| ovf("mod"))?), // provisional: sign follows the dividend
             ("xx", Int(x), Int(y)) => {
                 if y < 0 { return rt(line, "a negative exponent on integers would produce a fraction"); }
@@ -800,7 +825,7 @@ impl<'p> Interp<'p> {
                     items.push(arg);
                 } else {
                     let i = match arg { Value::Int(i) => i, other => return rt(line, format!("`list.remove` takes a 1-based position, got {}", other.kind())) };
-                    if i < 1 || i as usize > items.len() { return rt(line, format!("position {i} is out of range for '{var_name}', which has {} element(s)", items.len())); }
+                    if i < 1 || i as usize > items.len() { return site(line, format!("position {i} is out of range for '{var_name}', which has {} element(s)", items.len())); }
                     items.remove((i - 1) as usize);
                 }
                 *cell.borrow_mut() = Value::List(items);
@@ -906,14 +931,14 @@ impl<'p> Interp<'p> {
                 let (v, _) = self.value_mode(&c.args.values[0], !useful)?;
                 let text = if useful { v.show_useful() } else { v.show_stored() };
                 if path.ends_with("stderr") { eprint!("{text}"); }
-                else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None })?; }
+                else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false })?; }
                 Ok(Value::Nothing)
             }
             "exit" => {
                 let (v, _) = self.single(&c.args, c.line)?;
                 match v {
-                    Value::Int(i) if (0..=255).contains(&i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some(i as u8) }),
-                    Value::Int(i) => rt(c.line, format!("exit code {i} does not fit uint8 (0 to 255)")),
+                    Value::Int(i) if (0..=255).contains(&i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some(i as u8), site: false }),
+                    Value::Int(i) => site(c.line, format!("exit code {i} does not fit uint8 (0 to 255)")),
                     o => rt(c.line, format!("std::exit takes a uint8, got {}", o.kind())),
                 }
             }

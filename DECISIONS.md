@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — `check` / `nocheck` spelled: a word in front of a statement (owner)
+
+Owner asked for the tiers again, confirmed they are never global, asked
+for a syntax; Claude proposed one rule — the word before a statement,
+covering its check sites; a `{ }` block is a statement so `check { … }`
+needs no second rule; innermost wins; never on an expression, a `fn`, or
+the top level — and walked through a guardrail as a plain `if` before the
+site. Owner: "So, `check` & `nocheck` at the front?" — yes. Oracle enforces
+(`examples/check_tiers.cpls`, seven reject tests); the oracle cannot prove,
+so a firing `check` reports the counterexample value and a firing
+`nocheck` reports the lie. Only `nocheck` sites are listed in build output
+(Claude's pick, flagged).
+
 ### 2026-09-19 — Modules (owner)
 
 Owner asked what Rust's `pub()` is, then what modules are, then "Yeah, we
@@ -684,7 +697,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
-- Check-tier syntax: where `check` / `nocheck` sit on a statement. (Claude, 2026-09-14)
 - Custom operators: `op` definition shape, bare infix use, and the precedence rule (Claude recommends: no precedence anywhere, parentheses required when mixing different operators). (Claude, 2026-09-14)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)

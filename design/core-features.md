@@ -74,16 +74,49 @@ Precog gets faster by engineering — including not re-proving functions
 whose bodies and inputs are byte-identical to the last build, which reuses
 proofs rather than skipping them — never by doing less.
 
-### The three check tiers (decided 2026-09-14; keyword spellings placeholder)
+### The three check tiers (decided 2026-09-14; spelling decided 2026-09-19)
 
 - **default** — "I have no guardrails yet, and I want you to help me." The
   compiler inserts a runtime check wherever it cannot prove safety.
 - **`check`** — "I've built a guardrail, could you help me verify it?" The
   compiler proves the guardrail exactly; proven → check removed, otherwise a
-  compile error saying what fact is missing.
+  compile error **with a counterexample** — the value that gets past the
+  guardrail.
 - **`nocheck`** — "Okay, I'm sure this is correct." Check removed, no
   verification. The one place the final product's safety rests on the
-  programmer alone.
+  programmer alone. The build output lists every `nocheck` site.
+
+**Spelling** (owner, 2026-09-19: "`check` & `nocheck` at the front"): a bare
+word in front of a statement, covering every check site inside it. A `{ }`
+block is a statement, so a region is `check { … }` with no second rule.
+
+```
+check 'xs'[pos 'i'] = 'total' + 'score';     # prove: index in range, add fits
+nocheck 'hash' = 'hash' x 31 + 'c';          # I want the wrap; on my word
+check { for 'i' in range[1, 'n'] { … } }     # every site in the region
+check if 'x' > 0 { … }                       # an if or a loop is a statement too
+```
+
+- Innermost word wins when they nest.
+- Never on an expression (`'a' + (check 'b')`): if half a statement needs
+  it, split the statement. Never on a `fn`, `struct`, `const`, or `module`:
+  a function's safety is the sum of its statements, and a `check fn` would
+  be a global by another name. Never at the top level: **the tiers are never
+  global** — no flag, no file-wide switch, no release mode (see "No
+  development mode"). The grammar has nowhere to write a global one.
+- A guardrail is an ordinary `if` in front of the site; `check` asks Precog
+  to confirm the `if` is enough:
+
+  ```
+  if 'x' > 65_504 { deny[]; } else {
+      check let 'y': bin16 = 'x';     # proven from the branch: check removed
+  }
+  ```
+  Without the `if`, the same line is a compile error: *"'x' does not fit
+  bin16 when input is 70000."*
+- The oracle cannot prove, so it runs every check and reports what the
+  compiler would have found: a `check` whose site fires names the missing
+  guardrail with the concrete value; a `nocheck` whose site fires "lied".
 
 ### Ownership with borrowing (decided 2026-09-14)
 

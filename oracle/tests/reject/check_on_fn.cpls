@@ -1,0 +1,3 @@
+check fn f [] { }
+MAIN {
+}

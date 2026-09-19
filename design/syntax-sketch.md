@@ -62,7 +62,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   words — `fn`, `let`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb` (and the retired `var`, `func`) — cannot
+  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck` (and the retired `var`, `func`) — cannot
   be function names. Variables are quoted and can never collide with
   anything.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
