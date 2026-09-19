@@ -1,7 +1,7 @@
 //! Tokens. Everything the design says about how source text is cut up lives here.
 //!
 //! Token classes, by shape (design/syntax-sketch.md):
-//!   "…"   text literal          '…'   variable name          `…`   one character
+//!   "…"   text literal (exactly its characters; `\"` and `\\` only)   '…'   variable name   `…`   one character
 //!   bare word                    keyword, function name, or operator word
 //!   [ ] { } ( )                  value slot, body, arithmetic grouping
 //!   ::  .  :=  =  ;  ,           Limb boundary, chain, best-type bind, typed bind, end, separator
@@ -123,16 +123,12 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 if i >= chars.len() { return err(tl, tc, "unterminated text literal".into()); }
                 let d = chars[i];
                 if d == '"' { i += 1; col += 1; break; }
-                if d == '\\' {
-                    if i + 1 >= chars.len() { return err(line, col, "unterminated escape in text".into()); }
-                    let e = chars[i + 1];
-                    s.push(match e {
-                        'n' => '\n',
-                        't' => '\t',
-                        '"' => '"',
-                        '\\' => '\\',
-                        other => return err(line, col, format!("unknown escape `\\{other}` in text")),
-                    });
+                // Decided 2026-09-19: a string is exactly its characters. `\` escapes only
+                // what cannot otherwise be written inside one — `\"` and `\\`. Anything
+                // else after a backslash is literal (`"\n"` is a backslash and an n; the
+                // newline is the bare `\n` outside quotes).
+                if d == '\\' && i + 1 < chars.len() && (chars[i + 1] == '"' || chars[i + 1] == '\\') {
+                    s.push(chars[i + 1]);
                     i += 2; col += 2; continue;
                 }
                 if d == '\n' { line += 1; col = 0; }

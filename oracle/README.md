@@ -41,6 +41,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
   every division zero-checked, because there is no Precog here to remove them
 - `check <stmt>` / `nocheck <stmt>` / `check { … }` (2026-09-19): the oracle runs the check anyway; a `check` whose site fires reports the counterexample value, a `nocheck` whose site fires reports the lie; refused on a fn/struct/const/module, inside a value, at the top level, or doubled
 - `print` shows the stored value (full binary expansion), `printu` the useful one
+- strings are exactly their characters; only `\"` and `\\` escape; `"\n"` is two characters, the newline is the bare `\n` (2026-09-19)
 - comments: `#`, `#wl`, `#Nl`, `#Nld`
 - `MAIN { }` is a block; `std::exit[n]` is `uint8`-checked
 - modules (2026-09-19): a Limb directory's `limb.cpls` is the root, every other `.cpls` a module (directories nest), `module name { }` blocks nest; names lowercase ASCII, not device names; bare = this module, dotted = relative, `limb.` = root; visibility nothing / `pub.limb` / `pub` on fn, struct, const, module, checked along the whole path (`pub` and `pub.limb` behave alike inside one Limb); `mod x`, `module x;`, MAIN outside the root, a file-and-block module are refused

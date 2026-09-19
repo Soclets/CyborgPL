@@ -100,6 +100,13 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   sum. The 2026-09-14 rule "a bare number is an operand, not a piece" is
   retired with the whitespace join; `"count: " ++ to.str.utf8[10]` is the
   spelling.
+- **A string is exactly its characters** (decided 2026-09-19). Inside
+  `"…"`, `\` escapes only what cannot otherwise be written in a string:
+  `\"` and `\\`. Everything else is literal — `"\n"` is a backslash and an
+  `n`, a tab is a typed tab. **The newline is the bare `\n` outside
+  quotes**, which is why it lives outside: `"Line 1" ++ \n ++ "Line 2"`,
+  `let 'nl' := \n;`. (The oracle's first lexer had C-style `\n`/`\t` inside
+  quotes; a default, never decided, now removed.)
 - **Names are quoted, so operators are free glyphs**: `let '+' := 10 + 20;`
   is legal — the name `'+'` and the operator `+` are different tokens.
 - **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,

@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Strings have no escapes but `\"` and `\\`; the newline is the bare `\n` outside (owner)
+
+Owner asked whether `"\n"` prints literally — the oracle's lexer had
+C-style escapes by default. Owner: "That's why I made it outside" — the
+bare `\n` piece is the newline; then: "escape in double quotes uses `\`,
+but only for what needs that when inside" — `\"` and `\\`. Anything else
+after a backslash is literal. `examples/strings.cpls`.
+
 ### 2026-09-19 — A keyword may name a function, reached by path only (owner)
 
 Owner: "`std::to` wouldn't be ambiguous, even with `to` being the lang's,
