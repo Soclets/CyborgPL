@@ -23,8 +23,8 @@ MAIN {
         else if 'i' == 7 { break; }
         else { continue; }
     }
-    let 's' := ["line 1" \n "line 2"];
-    std::printu.stdout["total: " 'total' \n];
+    let 's' := "line 1" ++ \n ++ "line 2";
+    std::printu.stdout["total: ", 'total', \n];
 }
 ```
 
@@ -75,8 +75,6 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 - **`bin16` is IEEE 754 binary16** — a half-precision float.
 - **`[ ]` is written only where it builds a value** (decided 2026-09-19,
   replacing "mandatory in every value position"). It builds when it
-  - joins pieces into text: `["count: " 'n' \n]` — whitespace joins, a bare
-    `\n` is a newline piece;
   - collects a list: `[1, 2, 3]`, `[7,]` for one element, `[]` empty where a
     type says list;
   - carries a call's arguments: `add[10, 20]`, `std::exit[1]`;
@@ -86,13 +84,19 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 
   A **single expression stands bare**: `let 'x' := 1000;`, `'i' = 'i' + 1;`,
   `return 'a' + 'b';`, `if 'a' == 'b' { }`, `let 'n' := add[10, 20];`,
-  `'occupied' = false` inside a construction. **Pieces join only inside
-  `[ ]`**: `let 's' := "a" 'b';` is an error, `let 's' := ["a" 'b'];` is the
-  join. A bracket around a single expression is allowed as grouping and
-  builds nothing.
-- **Inside `[ ]`, a bare number is an operand, not a piece** (decided
-  2026-09-14). `[10 20]` and `["count: " 10]` are errors; a number that
-  belongs in text has a name first: `["count: " 'n']`.
+  `occupied = false` inside a construction. A bracket around a single
+  expression is allowed as grouping and builds nothing.
+- **Text joins with `++`** (decided 2026-09-19, replacing the whitespace
+  join of 2026-09-14 — "we'll make it explicit"): `"#" ++ 'n' ++ " (" ++
+  'owner' ++ ")"`, `"line 1" ++ \n ++ "line 2"` (a bare `\n` is a newline
+  text). At least one side must be text; the other side — a number, a bool,
+  a char — becomes text **in its stored form**. `1 ++ 2` is an error
+  ("numbers add with `+`"). Two values side by side with nothing between
+  (`"a" 'b'`, `[10 20]`) are an error naming `++` and `,`. Precedence: below
+  `+ -`, above comparisons, left-associative — `"n=" ++ 'a' + 'b'` joins the
+  sum. The 2026-09-14 rule "a bare number is an operand, not a piece" is
+  retired with the whitespace join: `"count: " ++ 10` is fine, since nothing
+  is ambiguous any more.
 - **Names are quoted, so operators are free glyphs**: `let '+' := 10 + 20;`
   is legal — the name `'+'` and the operator `+` are different tokens.
 - **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,
@@ -100,10 +104,13 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 - **`print` vs `printu`** (decided 2026-09-14): `std::print.stdout[…]`
   prints the real stored value (a `bin32` `0.1` prints as
   `0.100000001490116119384765625`); `std::printu.stdout[…]` prints the
-  useful value (`0.1`). **A number piece becomes text in its stored form,
-  everywhere**: `let 's' := ["x is " 'x'];` holds the full expansion.
-  `printu` is the only thing that produces the useful form, and only for its
-  own pieces.
+  useful value (`0.1`). Both take **any number of values, comma-separated**,
+  render each and print them with nothing between (2026-09-19):
+  `std::printu.stdout["x is ", 'x', \n]` → `x is 0.1`. **A number joined
+  with `++` becomes text in its stored form, everywhere**:
+  `let 's' := "x is " ++ 'x';` holds the full expansion, and `printu['s']`
+  cannot undo it. `printu` is the only thing that produces the useful form,
+  and only for the values handed to it directly.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; `let 'x' $:= 2;`. `immut` names cannot be shadowed.
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
@@ -116,8 +123,6 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 
 ## Open
 
-- Whitespace between pieces in `[ ]`: separator only (pieces concatenate
-  directly) or an implicit space?
 - Explicit conversion spelling.
 - The Limb author's "reachable bare" flag (`limbs.md`).
 

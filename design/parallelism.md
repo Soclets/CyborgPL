@@ -33,7 +33,7 @@ A loop that is parallel-safe but must run in order for an external reason
 
 ```
 for seq 'line' in lend 'lines' {
-    std::print.stdout['line' \n];
+    std::print.stdout['line', \n];
 }
 ```
 

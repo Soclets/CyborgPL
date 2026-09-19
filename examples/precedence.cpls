@@ -1,14 +1,14 @@
 MAIN {
-    std::printu.stdout[(1 + 2 x 3) \n];
-    std::printu.stdout[(2 x 3 xx 2) \n];
-    std::printu.stdout[(-2 xx 2) \n];
-    std::printu.stdout[((-2) xx 2) \n];
-    std::printu.stdout[(10 - 4 - 3) \n];
-    std::printu.stdout[(6 / (2 x 3)) \n];
-    std::printu.stdout[((6 / 2) x 3) \n];
+    std::printu.stdout[(1 + 2 x 3), \n];
+    std::printu.stdout[(2 x 3 xx 2), \n];
+    std::printu.stdout[(-2 xx 2), \n];
+    std::printu.stdout[((-2) xx 2), \n];
+    std::printu.stdout[(10 - 4 - 3), \n];
+    std::printu.stdout[(6 / (2 x 3)), \n];
+    std::printu.stdout[((6 / 2) x 3), \n];
     let 'a' := 5;
     let 'b' := 7;
     if 'a' + 1 > 'b' - 2 and not ('a' == 'b') or false {
-        std::print.stdout["logic holds" \n];
+        std::print.stdout["logic holds", \n];
     }
 }

@@ -42,7 +42,7 @@ compiler vs. the lowered CyborgPL through the oracle) is how that is known.
 
 1. **What the writer doesn't see:** probably also the ownership verbs, the
    typed form, `std::` paths. `print["hi"]` rather than
-   `std::printu.stdout["hi" \n]`; a script file is its own `MAIN`.
+   `std::printu.stdout["hi", \n]`; a script file is its own `MAIN`.
 2. **The boundary problem.** Precog refuses `:=` on a value it cannot bound;
    a script writer never writes a type, so the lowering must supply wide
    defaults at every boundary (`int64`, `str.utf8`, unbounded `list`) and

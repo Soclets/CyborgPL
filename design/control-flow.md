@@ -77,7 +77,7 @@ body never ran. One rule for every way a loop can end.
 for perm 'i' in range[0, 100] {
     if found['i'] { break; }
 }
-std::printu.stdout["stopped at " 'i' \n];
+std::printu.stdout["stopped at ", 'i', \n];
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an

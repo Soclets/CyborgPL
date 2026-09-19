@@ -7,6 +7,7 @@
 //!   ::  .  :=  =  ;  ,           Limb boundary, chain, best-type bind, typed bind, end, separator
 //!   :  ->                        name-to-type, function return type (decided 2026-09-19)
 //!   \n                           a newline piece (bare, outside any string)
+//!   ++                           joins text (decided 2026-09-19)
 //!   numbers                      `_` groups digits; `,` never does
 
 use std::fmt;
@@ -33,7 +34,7 @@ pub enum Tok {
     Arrow,          // ->  fn f [...] -> int32
     Semi,           // ;
     Comma,          // ,
-    Op(String),     // + - / == !== < > <== >==
+    Op(String),     // + - / ++ == !== < > <== >==
     Eof,
 }
 
@@ -235,8 +236,9 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         if two == "!=" { return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()); }
         if two == "<=" { return err(tl, tc, "`<=` is not an operator; less-or-equal is `<==`".into()); }
         if two == ">=" { return err(tl, tc, "`>=` is not an operator; greater-or-equal is `>==`".into()); }
-        if two == "++" || two == "--" || two == "+=" || two == "-=" {
-            return err(tl, tc, format!("`{two}` does not exist; write the assignment in full: 'i' = ['i' + 1];"));
+        if two == "++" { push(Tok::Op("++".into()), &mut toks); i += 2; col += 2; continue; }   // text join (decided 2026-09-19)
+        if two == "--" || two == "+=" || two == "-=" {
+            return err(tl, tc, format!("`{two}` does not exist; write the assignment in full: 'i' = 'i' + 1;"));
         }
 
         let single = match c {

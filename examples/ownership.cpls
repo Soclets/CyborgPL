@@ -7,28 +7,28 @@ fn count [lent 'items'] -> int32 {
 }
 
 fn shout [lent.mut 'text': str.utf8] {
-    'text' = [copy 'text' "!"];
+    'text' = copy 'text' ++ "!";
 }
 
 fn greet ['name': str.utf8] -> str.utf8 {
-    return ["hello " 'name'];
+    return "hello " ++ 'name';
 }
 
 MAIN {
-    let 's' := ["line 1" \n "line 2"];
+    let 's' := "line 1" ++ \n ++ "line 2";
     let 't' := give 's';
     let 'u' := copy 't';
     shout[lend.mut 'u'];
-    std::print.stdout['t' \n];
-    std::print.stdout['u' \n];
+    std::print.stdout['t', \n];
+    std::print.stdout['u', \n];
     let 'g' := greet[copy 'u'];
-    std::print.stdout['g' \n];
-    std::print.stdout['u' \n];
+    std::print.stdout['g', \n];
+    std::print.stdout['u', \n];
     let 'words' := ["a", "b", "c"];
     let 'n' := count[lend 'words'];
-    std::printu.stdout['n' " words" \n];
+    std::printu.stdout['n', " words", \n];
     let 'm' := count[["x", "y"]];
-    std::printu.stdout['m' " fresh" \n];
+    std::printu.stdout['m', " fresh", \n];
     let 'r' := lend 'words';
-    std::printu.stdout['r' \n];
+    std::printu.stdout['r', \n];
 }

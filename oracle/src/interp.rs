@@ -439,7 +439,7 @@ impl<'p> Interp<'p> {
 
     fn for_source(&mut self, b: &Bracket, line: usize) -> Result<(Vec<Value>, SlotKind), RuntimeError> {
         if b.values.len() != 1 { return rt(line, "`for … in` takes one list"); }
-        let expr = match &b.values[0] { crate::ast::Value::Expr(e) => e, crate::ast::Value::Pieces(_) => return rt(line, "`for` needs a list, not text pieces") };
+        let expr = match &b.values[0] { crate::ast::Value::Expr(e) => e };
         let (v, prov) = self.eval(expr)?;
         let items = match v {
             Value::List(items) => items,
@@ -548,25 +548,9 @@ impl<'p> Interp<'p> {
         self.value_mode(v, true)
     }
 
-    /// A number piece becomes text in its stored form, everywhere (decided
-    /// 2026-09-14). `printu` is the one place that renders its own pieces in
-    /// the useful form (`stored = false`).
-    fn value_mode(&mut self, v: &crate::ast::Value, stored: bool) -> Result<(Value, Prov), RuntimeError> {
+    fn value_mode(&mut self, v: &crate::ast::Value, _stored: bool) -> Result<(Value, Prov), RuntimeError> {
         match v {
             crate::ast::Value::Expr(e) => self.eval(e),
-            crate::ast::Value::Pieces(pieces) => {
-                // Whitespace joins pieces into one text. Provisional (open):
-                // whitespace is a separator only — no implicit space.
-                let mut out = String::new();
-                for p in pieces {
-                    let (val, _) = self.eval(p)?;
-                    match val {
-                        Value::Nothing => return rt(p.line(), "a call that returns nothing cannot be a text piece"),
-                        other => out.push_str(&if stored { other.show_stored() } else { other.show_useful() }),
-                    }
-                }
-                Ok((Value::Str(out), Prov::Fresh))
-            }
         }
     }
 
@@ -774,6 +758,16 @@ impl<'p> Interp<'p> {
                     (Value::Int(i), Value::Bin(_), Prov::Literal, _) => (Value::Bin(*i as f64), b.clone()),
                     _ => (a, b),
                 };
+                if op == "++" {
+                    // Text join (decided 2026-09-19): at least one side is text; the other
+                    // becomes text in its stored form (2026-09-14). A fresh owned value.
+                    let is_text = |v: &Value| matches!(v, Value::Str(_) | Value::Char(..));
+                    if !is_text(&a) && !is_text(&b) {
+                        return rt(line, format!("`++` joins text, and neither side is text ({} and {}); numbers add with `+`, or start with a text: `\"\" ++ …`", a.kind(), b.kind()));
+                    }
+                    if matches!(a, Value::Nothing) || matches!(b, Value::Nothing) { return rt(line, "a call that returns nothing cannot be joined"); }
+                    return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));
+                }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
                 self.binary(op, a, b, line).map(|v| (v, if both_lit { Prov::Literal } else { Prov::Plain }))
             }
@@ -961,10 +955,16 @@ impl<'p> Interp<'p> {
         let path = c.path.join(".");
         match path.as_str() {
             "print.stdout" | "printu.stdout" | "print.stderr" | "printu.stderr" => {
+                // Since 2026-09-19 print takes any number of values and renders each —
+                // `print` in stored form, `printu` in useful form — with nothing between.
                 let useful = path.starts_with("printu");
-                if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one value")); }
-                let (v, _) = self.value_mode(&c.args.values[0], !useful)?;
-                let text = if useful { v.show_useful() } else { v.show_stored() };
+                if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
+                let mut text = String::new();
+                for a in &c.args.values {
+                    let (v, _) = self.value_mode(a, !useful)?;
+                    if matches!(v, Value::Nothing) { return rt(c.line, "a call that returns nothing cannot be printed"); }
+                    text.push_str(&if useful { v.show_useful() } else { v.show_stored() });
+                }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false })?; }
                 Ok(Value::Nothing)
@@ -1001,7 +1001,7 @@ fn first_std_call(b: &Bracket) -> Option<String> {
         }
     }
     fn in_bracket(b: &Bracket) -> Option<String> {
-        b.values.iter().find_map(|v| match v { crate::ast::Value::Expr(e) => in_expr(e), crate::ast::Value::Pieces(ps) => ps.iter().find_map(in_expr) })
+        b.values.iter().find_map(|v| match v { crate::ast::Value::Expr(e) => in_expr(e) })
     }
     in_bracket(b)
 }

@@ -41,8 +41,8 @@ let 'mine' := Locker[name = "field kit", number = 7,
   the value, so it stays; inside, each field by name with `=` (the blueprint
   fixed the types, so it is the typed form).
 - **Every field must be given** — there are no zero values. Order is free.
-- A field's value is a bare expression; a join or a list builds in its own
-  `[ ]`: `name = ["locker " 'n']`, `tags = [1, 2]`.
+- A field's value is a bare expression: `name = "locker " ++ 'n'`,
+  `tags = [1, 2]`.
 
 ## Reading and writing a field
 

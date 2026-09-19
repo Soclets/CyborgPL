@@ -2,9 +2,9 @@ MAIN {
     let 'xs': list.int32 = [];
     list.append[lend.mut 'xs', 7];
     list.append[lend.mut 'xs', 8];
-    std::printu.stdout['xs' " " (list.length[lend 'xs']) \n];
+    std::printu.stdout['xs', " ", list.length[lend 'xs'], \n];
     let 'ys' := list.empty;
-    std::printu.stdout[(list.length[lend 'ys']) \n];
+    std::printu.stdout[list.length[lend 'ys'], \n];
     list.append[lend.mut 'ys', "a"];
-    std::printu.stdout['ys' \n];
+    std::printu.stdout['ys', \n];
 }

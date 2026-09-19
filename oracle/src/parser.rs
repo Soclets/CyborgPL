@@ -423,6 +423,7 @@ impl Parser {
                 }
                 match self.peek() {
                     Tok::Eq => {}
+                    Tok::Op(o) if o == "++" => return self.err(format!("`++` joins text; to add one write `'{name}' = '{name}' + 1;`")),
                     Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq => return self.err(format!("`:=` declares; to assign to the existing '{name}' write `'{name}' = …;` (to shadow it, `let '{name}' $:= …;`)")),
                     Tok::Colon => return self.err(format!("a declaration starts with `let`: `let '{name}': int32 = …;`")),
                     other => return self.err(format!("expected `=` after '{name}', found {other}")),
@@ -578,7 +579,7 @@ impl Parser {
         if *self.peek() == Tok::LBracket { return self.bracket(); }
         let e = self.expr()?;
         if self.starts_primary() {
-            return self.err(format!("pieces join only inside `[ ]`: `[\"a\" 'b' \\n]` (found {} after the value)", self.peek()));
+            return self.err(format!("two values next to each other (found {} after the value): join text with `++`", self.peek()));
         }
         Ok(Bracket { values: vec![Value::Expr(e)], line, one_list: false })
     }
@@ -688,30 +689,14 @@ impl Parser {
         Ok(Bracket { values, line, one_list })
     }
 
-    // value := expr+   — one expr is the value; several are pieces joined as text
+    // value := expr   — one expression per comma-separated slot.
+    // Decided 2026-09-19: joining is explicit (`++`); two values side by side are an error.
     fn value(&mut self) -> PResult<Value> {
-        let mut exprs = vec![self.expr()?];
-        while self.starts_primary() {
-            exprs.push(self.expr()?);
+        let e = self.expr()?;
+        if self.starts_primary() {
+            return self.err(format!("two values next to each other (found {} after the value): join text with `++`, separate values with `,`", self.peek()));
         }
-        if exprs.len() == 1 {
-            return Ok(Value::Expr(exprs.pop().unwrap()));
-        }
-        // Pieces: quoted text, variables, \n, characters, calls, parenthesised
-        // expressions. A bare number is an operand, never a piece; an operator
-        // expression next to a piece is ambiguous.
-        for e in &exprs {
-            match e {
-                Expr::Int(..) | Expr::Bin(..) =>
-                    return Err(ParseError { line: e.line(), col: 0, msg: "a bare number next to another piece: numbers are operands and need an operator; a number that belongs in text has a name first (`\"count: \" 'n'`)".into() }),
-                Expr::Binary(..) =>
-                    return Err(ParseError { line: e.line(), col: 0, msg: "an operator expression next to other pieces is ambiguous; put it in a variable or in parentheses".into() }),
-                Expr::Unary(..) =>
-                    return Err(ParseError { line: e.line(), col: 0, msg: "a unary expression next to other pieces is ambiguous; put it in parentheses".into() }),
-                _ => {}
-            }
-        }
-        Ok(Value::Pieces(exprs))
+        Ok(Value::Expr(e))
     }
 
     fn starts_primary(&self) -> bool {
@@ -741,6 +726,8 @@ impl Parser {
     //                                     when mixed with x, /, or mod (6 / 2 x 3 has
     //                                     no settled reading; mod has no notation)
     //              +  -                   left-associative
+    //              ++                     text join, left-associative; below arithmetic,
+    //                                     above comparisons (decided 2026-09-19)
     //              == !== < > <== >==     never chained; never mixed with `not`
     //              not                    applies to one operand or a parenthesis
     //              and
@@ -756,9 +743,10 @@ impl Parser {
             "or" => 1,
             "and" => 2,
             "==" | "!==" | "<" | ">" | "<==" | ">==" => 3,
-            "+" | "-" => 4,
-            "x" | "/" | "mod" => 5,
-            "xx" => 7,
+            "++" => 4,
+            "+" | "-" => 5,
+            "x" | "/" | "mod" => 6,
+            "xx" => 8,
             _ => 0,
         }
     }
@@ -818,7 +806,7 @@ impl Parser {
         let line = self.line();
         if self.is_word("not") { self.advance(); return Ok(Expr::Unary("not".into(), Box::new(self.unary()?), line)); }
         // unary minus sits below xx: -2 xx 2 is -(2 xx 2), as in mathematics
-        if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(7)?), line)); }
+        if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(8)?), line)); }
         self.primary()
     }
 

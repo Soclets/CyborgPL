@@ -65,7 +65,7 @@ the parameters. A call is a value and stands bare wherever a value goes:
 
 ```
 return 'a' + 'b';
-return ["hello " 'name'];     # a join still builds in [ ]
+return "hello " ++ 'name';    # text joins with ++ (2026-09-19)
 return;                       # in a nothing-function
 ```
 
@@ -74,7 +74,7 @@ return;                       # in a nothing-function
 ```
 MAIN {
     let 'sum' := add[10, 20];
-    std::printu.stdout["sum: " 'sum' \n];
+    std::printu.stdout["sum: ", 'sum', \n];
 }
 ```
 
@@ -96,10 +96,11 @@ arguments come from the std Limb.
 History: first decided as `func.int32 MAIN` with a mandatory `return`, then
 simplified the same day; `func` became `fn` on 2026-09-19.
 
-## `[ ]` — the two separators
+## `[ ]` — one separator
 
-- **Whitespace** joins pieces into *one* value: `["sum: " 'sum' \n]`.
-- **Comma** separates *values*: `[10, 20]`.
+- **Comma** separates *values*: `[10, 20]`. Two values with nothing between
+  them are an error. (Until 2026-09-19 whitespace joined pieces into text;
+  joining is now the explicit `++`.)
 
 A bracket holding several comma-separated values is a **list**:
 `let 'l' := [1, 2, 3];`. Function arguments are exactly that. A list of one
@@ -108,7 +109,7 @@ a value — `[[1, 2], [3, 4]]` is a list of lists.
 
 ## Brackets
 
-- `[ ]` — builds a value (join, list, arguments, construction, index, range).
+- `[ ]` — builds a value (list, arguments, construction, index, range).
 - `{ }` — body.
 - `( )` — arithmetic grouping only: `'a' + ('b' x 2)`.
 

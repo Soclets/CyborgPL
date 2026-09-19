@@ -168,12 +168,11 @@ pub struct Bracket {
     pub one_list: bool,
 }
 
-/// One comma-separated slot: either a single expression, or several
-/// whitespace-separated pieces that join into one text.
+/// One comma-separated slot. (Until 2026-09-19 several whitespace-separated
+/// pieces joined into one text here; joining is now explicit with `++`.)
 #[derive(Debug, Clone)]
 pub enum Value {
     Expr(Expr),
-    Pieces(Vec<Expr>),
 }
 
 #[derive(Debug, Clone)]

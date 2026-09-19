@@ -27,7 +27,8 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - quoted names are variables; function names are bare; keywords are reserved
 - `let 'x' := v;` / `let 'x': T = v;` — `:=` only without a type, `=` only with one; the typed form is fully explicit; `let mut` / `let immut` before the name (revised 2026-09-19; `var`, `func`, `loop.while`, `else.if`, `loop.temp.for` are refused with the new spelling)
 - `fn name ['a': int32, lent 'b': str.utf8, lent.mut 'c': list.int32] -> int32 { }`; an owning parameter has no keyword; the return type is `-> T` after the parameters
-- `[ ]` is written only where it builds: a text join (whitespace joins pieces), a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); pieces outside `[ ]` are an error; a bare number is an operand and never a piece
+- `[ ]` is written only where it builds: a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); two values side by side are an error
+- `++` joins text (2026-09-19): one side must be text, the other is rendered in stored form; `1 ++ 2` is refused; precedence below `+ -`, above comparisons; `print`/`printu` take any number of comma-separated values and render each (stored / useful)
 - precedence as mathematics has it, parentheses required where it has no settled answer (`6 / 2 x 3`, `mod` beside anything, chained comparisons, `not` beside a comparison)
 - `x xx + - / mod == !== < > <== >== and or not`; `*`, `^`, `%`, `!=`, `>=`,
   `++`, `+=` are refused with a pointer to the right spelling
@@ -58,7 +59,6 @@ had to make to run at all; none is a decision.
 
 | Pick | Where | Why this way |
 |---|---|---|
-| Whitespace between pieces is a separator only — no implicit space | `interp.rs` `value_mode` | Open question in `DECISIONS.md` |
 | `/` on integers truncates; `mod` takes the sign of the dividend | `interp.rs` `binary` | Open question |
 | A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |
 | A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them) |

@@ -1,0 +1,13 @@
+MAIN {
+    let 'n' := 3;
+    let 's' := "n=" ++ 'n' + 4;              # arithmetic first, then the join
+    std::print.stdout['s', \n];
+    std::print.stdout["count: " ++ 10, \n];   # a number joins in its stored form
+    let 'x': bin64 = 0.1;
+    let 't' := "x is " ++ 'x';               # stored form, always
+    std::printu.stdout['t', \n];             # printu cannot undo a join…
+    std::printu.stdout["x is ", 'x', \n];    # …but renders its own values usefully
+    if "a" ++ "b" == "ab" { std::print.stdout["joined", \n]; }
+    let 'c' := `é` ++ "!";
+    std::print.stdout['c', \n];
+}

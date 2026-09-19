@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-19 — Text joins with `++`; the whitespace join is gone; `print` takes many values (owner)
+
+Owner: "Feeling like adding `++` for strings connecting." Claude asked
+whether it coexists with the whitespace join or replaces it; owner asked
+"is our current method implicit?" — yes, the space was the operator, and
+the number→text conversion was implicit too; owner: "we'll make it
+explicit." Glyph shortlist (`++`, `..`, `...`, `<>`, `&`, `~`, a word such
+as legacy's `stch`); Claude recommended `++`; owner: "`++` it is."
+Consequences Claude set and flagged: precedence below `+ -`, above
+comparisons, left-assoc; at least one side text, the other rendered in
+stored form (the 2026-09-14 "number piece → stored form" rule survives,
+the "bare number is never a piece" rule is retired since nothing is
+ambiguous now); two values side by side are an error; `print`/`printu`
+take any number of comma-separated values and render each — the only way
+`printu` can still show the useful form of a number, since a `++` join has
+already fixed the text. Oracle, examples (`examples/join.cpls`), tests,
+docs converted. The "whitespace: separator or implicit space?" question
+closes with it.
+
 ### 2026-09-19 — Field names are bare: `struct Locker { number: int32 }`, `Locker[number = 7]`, `'l'.number` (owner)
 
 A cold read (a fresh Claude chat shown `examples/lockers.cpls`) caught the
@@ -278,7 +297,7 @@ the same construct. Every value position uses it — `var.bin16 'x' = [1000];`
 — with no omission rule. Owner proposed bare-infix vs bracketed and chose
 bracketed; Claude recommended the same.
 
-### 2026-09-14 — Inside `[ ]`, a bare number is an operand, not a text piece (owner)
+### 2026-09-14 — Inside `[ ]`, a bare number is an operand, not a text piece (owner) — retired 2026-09-19 with the whitespace join; `"count: " ++ 10` is fine
 
 Quoted literals, variable references, and specials like `\n` are *pieces*
 and join as text. A bare numeric literal is an *operand* and must sit in an
@@ -737,7 +756,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
 - Explicit conversion spelling — between numeric families, and **number → text for a lone value** (a number becomes text only as a piece; `return 'n'` from a `-> str.utf8` is an error, and `["" 'n']` is the only current workaround). (Claude, 2026-09-14; the second half surfaced by the oracle)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
-- Whitespace between pieces in `[ ]`: separator only, or an implicit space? (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
 - The Limb author's "reachable bare" flag — spelling, beside or on `pub`. (`design/limbs.md`, 2026-09-19)
 - `range[…]` as a standalone value (not only after `for … in`). (Claude, 2026-09-19)
