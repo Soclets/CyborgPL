@@ -411,6 +411,7 @@ impl Parser {
                     // 'mine'.field = v;  (decided 2026-09-18)
                     self.advance();
                     let field = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a field name after `'{name}'.`, found {other}")) };
+                    if *self.peek() == Tok::LBracket { return self.err(format!("assigning into an element of a field (`'{name}'.{field}[pos …] = …`) is not modelled by the oracle; lend the list to a name first: `let 'xs' := lend.mut '{name}'.{field};`")); }
                     self.expect(Tok::Eq, "`=` after the field")?;
                     let value = self.rhs()?;
                     self.expect(Tok::Semi, "`;`")?;
@@ -833,6 +834,10 @@ impl Parser {
                 if *self.peek() == Tok::Dot {
                     self.advance();
                     let field = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a field name after `'{v}'.`, found {other}")) };
+                    if *self.peek() == Tok::LBracket {
+                        let idx = self.index_bracket(&format!("{v}'.{field}"))?;
+                        return Ok(Expr::FieldIndex(v, field, Box::new(idx), line));
+                    }
                     return Ok(Expr::Field(v, field, line));
                 }
                 Ok(Expr::Var(v, line))

@@ -68,13 +68,16 @@ pub struct Interp<'p> {
     consts: HashMap<String, Slot>,
     /// the module the running code was written in (for bare names and visibility)
     module: Vec<String>,
+    /// `lend.mut 'x'.field` hands out a temporary cell; at the end of the statement
+    /// its value is written back into the field (struct cell, field name, temp cell)
+    field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
 }
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -194,6 +197,18 @@ impl<'p> Interp<'p> {
     }
 
     fn stmt(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
+        let r = self.stmt_inner(s);
+        // write mutable field lends back (a statement is the unit of a lend here)
+        let borrows = std::mem::take(&mut self.field_borrows);
+        for (owner, field, tmp) in borrows {
+            if let Value::Struct(_, fields) = &mut *owner.borrow_mut() {
+                if let Some((_, slot)) = fields.iter_mut().find(|(k, _)| k == &field) { *slot = tmp.borrow().clone(); }
+            }
+        }
+        r
+    }
+
+    fn stmt_inner(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
         match s {
             Stmt::Decl { name, mutability, ty, value, shadow, line } => {
                 let (v, prov) = if value.values.is_empty() {
@@ -628,6 +643,25 @@ impl<'p> Interp<'p> {
                 let prov = if item.is_owned() { Prov::Bare(format!("{name}'[{i}]'")) } else { Prov::Plain };
                 Ok((item, prov))
             }
+            Expr::FieldIndex(name, field, idx, _) => {
+                let v = self.read_var(name, line)?;
+                let fv = match v {
+                    Value::Struct(sname, fields) => match fields.into_iter().find(|(k, _)| k == field) {
+                        Some((_, v)) => v,
+                        None => return rt(line, format!("{sname} has no field '{field}'")),
+                    },
+                    other => return rt(line, format!("'{name}' is {}, not a struct", other.kind())),
+                };
+                let items = match fv { Value::List(items) => items, other => return rt(line, format!("'{name}'.{field} is {}, not a list or array; it cannot be indexed", other.kind())) };
+                let (i, _) = self.eval(idx)?;
+                let i = match i { Value::Int(i) => i, other => return rt(line, format!("an index is an integer, got {}", other.kind())) };
+                if i < 1 || i as usize > items.len() {
+                    return site(line, format!("position {i} is out of range for '{name}'.{field}, which has {} element(s) (1 to {})", items.len(), items.len()));
+                }
+                let item = items[(i - 1) as usize].clone();
+                let prov = if item.is_owned() { Prov::Bare(format!("{name}'.{field}[{i}]'")) } else { Prov::Plain };
+                Ok((item, prov))
+            }
             Expr::Field(name, field, _) => {
                 let v = self.read_var(name, line)?;
                 let (sname, fields) = match v { Value::Struct(n, f) => (n, f), other => return rt(line, format!("'{name}' is {}, not a struct; it has no field '{field}'", other.kind())) };
@@ -663,8 +697,9 @@ impl<'p> Interp<'p> {
                     Verb::Copy => Ok((fv, Prov::Copied)),
                     Verb::Lend | Verb::LendMut => {
                         if *verb == Verb::LendMut && kind == SlotKind::Lent { return rt(line, format!("'{name}' is lent (shared); its fields cannot be lent mutably")); }
-                        // The oracle lends a field as a snapshot; write-through into a field via lend.mut is not modelled.
-                        Ok((fv.clone(), Prov::Borrowed(Rc::new(RefCell::new(fv)), *verb == Verb::LendMut)))
+                        let tmp = Rc::new(RefCell::new(fv.clone()));
+                        if *verb == Verb::LendMut { self.field_borrows.push((cell.clone(), field.clone(), tmp.clone())); }
+                        Ok((fv, Prov::Borrowed(tmp, *verb == Verb::LendMut)))
                     }
                 }
             }

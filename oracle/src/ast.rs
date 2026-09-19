@@ -196,6 +196,8 @@ pub enum Expr {
     Builtin(String, String, Bracket, usize),
     /// `'mine'.field` — read a field
     Field(String, String, usize),
+    /// `'mine'.items[pos i]` — index a field (read only)
+    FieldIndex(String, String, Box<Expr>, usize),
     /// `Locker['name' = v, …]` — construct a struct value by field name
     Construct(String, Vec<(String, Bracket)>, usize),
     /// `give 'mine'.field` / `copy 'mine'.field` / `lend 'mine'.field`
@@ -218,6 +220,7 @@ impl Expr {
             Expr::Index(_, _, l) => *l,
             Expr::Builtin(_, _, _, l) => *l,
             Expr::Field(_, _, l) => *l,
+            Expr::FieldIndex(_, _, _, l) => *l,
             Expr::Construct(_, _, l) => *l,
             Expr::OwnedField(_, _, _, l) => *l,
             Expr::ConstPath(_, _, _, l) => *l,
