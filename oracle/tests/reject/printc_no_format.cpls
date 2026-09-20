@@ -1,3 +1,0 @@
-MAIN {
-    std::c.printf[5];
-}

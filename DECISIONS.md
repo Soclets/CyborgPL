@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — The borrowed prints are removed (owner)
+
+"Remove `std::<lang>.<prints>`." `std::c.printf`, `std::c.fprintf.stderr`,
+`std::rs.print` / `println` / `eprint` / `eprintln` — decided 2026-09-19 as
+a joke feature, gone a day later. `print` and `printu` are the prints.
+The oracle refuses the old names by name; examples and tests removed.
+
 ### 2026-09-20 — `/` floors, `mod` is the mathematician's; truncation is `std::div.trunc` / `std::mod.trunc` (owner)
 
 Owner asked the difference (negatives only: `-7 mod 2` is `1` floored,
@@ -117,7 +124,7 @@ asked why; "`...` it is." Owner asked about two types (`: int32, bin16`)
 union type is not a thing yet. Oracle: `examples/variadic.cpls`, four
 reject tests. Closes the "variadic parameters" open item.
 
-### 2026-09-19 — Borrowed prints live under their language: `std::c.printf`, `std::rs.println` (owner)
+### 2026-09-19 — Borrowed prints live under their language: `std::c.printf`, `std::rs.println` (owner) — removed 2026-09-20
 
 "`std::<lang, only if it isn't Cyborg>.<that lang's print(s)>`" — so
 `printc` → `std::c.printf` / `std::c.fprintf.stderr`; `printrs` →
@@ -129,7 +136,7 @@ per-parameter `bare` flag, which makes call parsing depend on the callee
 and adds a second dialect; recommended variadics soon, `bare` shelved.
 Owner: "yup." Open: variadic parameters; `bare` (advised against).
 
-### 2026-09-19 — `std::printrs`: Rust's `print!`, exactly, with checked holes (owner)
+### 2026-09-19 — `std::printrs`: Rust's `print!`, exactly, with checked holes (owner) — removed 2026-09-20
 
 "Now, `printrs`, exactly like Rust's." `{}`, `{0}`, `{name}` from scope,
 `{:?}`, fill/align/sign/#/0/width/precision/type, `{{` `}}`, `\n` inside
@@ -139,7 +146,7 @@ ability); Claude advised against — two call spellings, and `( )` is
 arithmetic grouping only by design; owner: "stick with `[]`, at least the
 insides look alike." Closed.
 
-### 2026-09-19 — `std::printc`: C's `printf`, exactly, with checked holes (owner)
+### 2026-09-19 — `std::printc`: C's `printf`, exactly, with checked holes (owner) — removed 2026-09-20
 
 Owner asked what C's print looks like and what it would look like here,
 then "I kinda feel like adding `printc`"; Claude proposed a checked subset

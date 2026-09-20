@@ -1,3 +1,0 @@
-MAIN {
-    std::c.printf["%d and %d\n", 1];
-}

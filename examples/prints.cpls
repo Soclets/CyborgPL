@@ -1,4 +1,4 @@
-# The four prints. All are std's; the base language has no print.
+# The two prints. Both are std's; the base language has no print.
 MAIN {
     let 'name' := "Ann";
     let 'count' := 6;
@@ -10,18 +10,11 @@ MAIN {
     # printu: the same, each in its useful form
     std::printu.stdout["x is ", 'x', \n];
 
-    # std::c.printf: exactly C's printf
-    std::c.printf["%s scored %d, x is %.3f\n", 'name', 'count', 'x'];
-
-    # std::rs.println: exactly Rust's println!
-    std::rs.println["{name} scored {count}, x is {x:.3}"];
-    std::rs.println["{:>8}|{:<8}|{:^8}|", 'name', 'count', 'x'];
-
     # a joined text is already text: print and printu agree on it
     let 'line' := 'name' ++ " scored " ++ to.str.utf8['count'];
     std::print.stdout['line', \n];
     std::printu.stdout['line', \n];
 
-    # stderr for all four
-    std::c.fprintf.stderr["warning: %d is low\n", 'count'];
+    # stderr
+    std::printu.stderr["warning: ", 'count', " is low", \n];
 }
