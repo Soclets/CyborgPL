@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Text: three counts, no length; walk by unit; no `[pos]`; toolbox in std; exact `==`; no `<` (owner)
+
+Four questions. (1) length: no `str.length` — `str.bytes` / `str.points`
+/ `str.graphemes` (owner asked "what?", got the emoji example, yes).
+(2) walking: `str.each.<unit>[…]`, no bare `for` over a text — yes.
+(3) the toolbox (`split`, `trim`, `upper`, …) is std's, `==` compares
+bytes exactly, `<`/`>` on text is an error — yes. (4) no `'s'[pos 3]`;
+`std::str.at.<unit>` with a failure — yes. `design/strings.md`; oracle
+enforces the language half and emulates the std half
+(`examples/text.cpls`, seven reject tests). A `char` now compares by
+content across units (Claude, needed for the example).
+
 ### 2026-09-20 — Inline assembly: a statement, raw braces, arrows for direction (owner)
 
 Three questions: statement vs value — owner: statement (option 1); the
