@@ -1101,6 +1101,29 @@ impl Parser {
                 "check" | "nocheck" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "ptr" => { let (h, o, a) = self.ptr_op()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "str" if matches!(self.peek_at(1), Tok::Dot) && !matches!(self.peek_at(2), Tok::Word(u) if u == "utf8" || u == "utf16" || u == "utf32" || u == "ascii") => {
+                    // str.bytes[…] / str.points[…] / str.graphemes[…] / str.each.<unit>[…]  (decided 2026-09-20)
+                    self.advance(); self.advance();
+                    let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `str.`, found {other}")) };
+                    let op = match op.as_str() {
+                        "bytes" | "points" | "graphemes" => op,
+                        "each" => {
+                            self.expect(Tok::Dot, "`.byte`, `.point`, or `.grapheme` after `str.each`")?;
+                            match self.advance().tok {
+                                Tok::Word(u) if u == "byte" || u == "point" || u == "grapheme" => format!("each.{u}"),
+                                other => return self.err(format!("`str.each` walks by a unit: `.byte`, `.point`, or `.grapheme`; found {other}")),
+                            }
+                        }
+                        "length" | "len" | "count" => return self.err("a text has no single length: `str.bytes[…]`, `str.points[…]`, or `str.graphemes[…]` — say which (decided 2026-09-20)"),
+                        "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" =>
+                            return self.err(format!("`str.{op}` is std's: `std::str.{op}[…]` — the language owns only the units (bytes/points/graphemes) and `each`")),
+                        _ => return self.err(format!("`str.{op}` does not exist; the language has str.bytes, str.points, str.graphemes, str.each.<unit>")),
+                    };
+                    if *self.peek() != Tok::LBracket { return self.err(format!("`str.{op}` is a call and needs `[…]`")); }
+                    let args = self.bracket()?;
+                    if args.values.len() != 1 { return self.err(format!("`str.{op}` takes one text: `str.{op}[lend 's']`")); }
+                    Ok(Expr::Builtin("str".into(), op, args, line))
+                }
                 "size" | "align" => {
                     // size.of[T] / align.of[T]   (design/ffi.md)
                     self.advance();

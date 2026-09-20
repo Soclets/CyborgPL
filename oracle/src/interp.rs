@@ -506,17 +506,6 @@ impl<'p> Interp<'p> {
                 let n = text.lines().filter(|l| !l.trim().is_empty()).count();
                 rt(*line, format!("the oracle cannot run assembly ({n} instruction line(s), {} binding(s)); the compiler hands it to LLVM's assembler", binds.len()))
             }
-            Stmt::Asm { text, binds, line } => {
-                if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a nocheck site: the compiler cannot see inside it"); }
-                for b in binds {
-                    match b {
-                        AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("'{v}' is not declared")); } }
-                        _ => {}
-                    }
-                }
-                let n = text.lines().filter(|l| !l.trim().is_empty()).count();
-                rt(*line, format!("the oracle cannot run assembly ({n} instruction line(s), {} binding(s)); the compiler hands it to LLVM's assembler", binds.len()))
-            }
             Stmt::Fail { name, payload, line } => {
                 let case = match self.fails.iter().find(|f| &f.name == name) { Some(f) => f.clone(), None => return rt(*line, format!("`{name}` is not a listed failure here")) };
                 let v = match payload {
@@ -750,7 +739,11 @@ impl<'p> Interp<'p> {
             Expr::Nested(b) => self.bracket(b, line),
             Expr::Index(name, idx, _) => {
                 let v = self.read_var(name, line)?;
-                let items = match v { Value::List(items) => items, other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())) };
+                let items = match v {
+                    Value::List(items) => items,
+                    Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `std::str.at.grapheme[lend '{name}', pos …]` (decided 2026-09-20)")),
+                    other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())),
+                };
                 let (i, _) = self.eval(idx)?;
                 let i = match i { Value::Int(i) => i, other => return rt(line, format!("an index is an integer, got {}", other.kind())) };
                 // 1-based (decided 2026-09-17): 'xs'[pos 1] is the first; 'xs'[pos 0] does not exist.
@@ -968,6 +961,9 @@ impl<'p> Interp<'p> {
             ("xx", Bin(x), Bin(y)) => Bin(x.powf(y)),
             ("+" | "-" | "x" | "/" | "mod" | "xx", Int(_), Bin(_)) | ("+" | "-" | "x" | "/" | "mod" | "xx", Bin(_), Int(_)) =>
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
+            // a char compares by its content, whatever unit it was declared in
+            ("==", Char(_, a), Char(_, b)) => Bool(a == b),
+            ("!==", Char(_, a), Char(_, b)) => Bool(a != b),
             ("==", x, y) => { same_family(&x, &y, line, "==")?; Bool(x == y) }
             ("!==", x, y) => { same_family(&x, &y, line, "!==")?; Bool(x != y) }
             ("<", Int(x), Int(y)) => Bool(x < y),
@@ -978,6 +974,7 @@ impl<'p> Interp<'p> {
             (">", Bin(x), Bin(y)) => Bool(x > y),
             ("<==", Bin(x), Bin(y)) => Bool(x <= y),
             (">==", Bin(x), Bin(y)) => Bool(x >= y),
+            ("<" | ">" | "<==" | ">==", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is std's (decided 2026-09-20)")),
             ("and", Bool(x), Bool(y)) => Bool(x && y),
             ("or", Bool(x), Bool(y)) => Bool(x || y),
             (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
@@ -988,6 +985,21 @@ impl<'p> Interp<'p> {
 
     fn builtin(&mut self, head: &str, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
         if head == "ptr" { return self.ptr_op(op, args, line); }
+        if head == "str" {
+            // The units of a text (decided 2026-09-20): no single length, no bare walk.
+            let (v, prov) = self.value(&args.values[0])?;
+            let s = match v { Value::Str(s) => s, Value::Char(_, c) => c, other => return rt(line, format!("`str.{op}` needs a text, got {}", other.kind())) };
+            if let Prov::Bare(n) = prov { return rt(line, format!("`str.{op}` looks at '{n}': `lend '{n}'`")); }
+            return Ok(match op {
+                "bytes" => Value::Int(s.len() as i128),
+                "points" => Value::Int(s.chars().count() as i128),
+                "graphemes" => Value::Int(grapheme_count(&s) as i128),
+                "each.byte" => Value::List(s.bytes().map(|b| Value::Int(b as i128)).collect()),
+                "each.point" => Value::List(s.chars().map(|c| Value::Char(CharUnit::Point, c.to_string())).collect()),
+                "each.grapheme" => Value::List(graphemes(&s).into_iter().map(|g| Value::Char(CharUnit::Grapheme, g)).collect()),
+                _ => unreachable!(),
+            });
+        }
         if op == "empty" { return Ok(Value::List(Vec::new())); }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
         if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
@@ -1428,6 +1440,55 @@ impl<'p> Interp<'p> {
 
     fn std_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         let path = c.path.join(".");
+        let value_used = !self.call_is_stmt;
+        self.call_is_stmt = false;
+        // std's text toolbox (decided 2026-09-20: the toolbox is std's; the oracle
+        // emulates a few so examples can run). The ones that can fail say so.
+        let fails: Vec<FailCase> = match path.as_str() {
+            "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" => vec![FailCase { name: "out_of_range".into(), ty: None }],
+            "str.find.grapheme" => vec![FailCase { name: "missing".into(), ty: None }],
+            _ => Vec::new(),
+        };
+        if path.starts_with("str.") {
+            self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
+            let mut vals = Vec::new();
+            for a in &c.args.values {
+                let (v, prov) = self.value(a)?;
+                if let Prov::Bare(n) = prov { return rt(c.line, format!("std::{path} looks at '{n}': `lend '{n}'`")); }
+                vals.push(v);
+            }
+            let text = |i: usize| -> Result<String, RuntimeError> { match vals.get(i) { Some(Value::Str(s)) => Ok(s.clone()), Some(Value::Char(_, ch)) => Ok(ch.clone()), Some(o) => rt(c.line, format!("std::{path}: argument {} must be text, got {}", i + 1, o.kind())), None => rt(c.line, format!("std::{path}: missing argument {}", i + 1)) } };
+            let int = |i: usize| -> Result<i128, RuntimeError> { match vals.get(i) { Some(Value::Int(n)) => Ok(*n), Some(o) => rt(c.line, format!("std::{path}: argument {} must be an integer, got {}", i + 1, o.kind())), None => rt(c.line, format!("std::{path}: missing argument {}", i + 1)) } };
+            let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), reason.into(), None, value_used) };
+            return match path.as_str() {
+                "str.split" => { let (s, sep) = (text(0)?, text(1)?); if sep.is_empty() { return rt(c.line, "std::str.split: an empty separator"); } Ok(Value::List(s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect())) }
+                "str.contains" => Ok(Value::Bool(text(0)?.contains(text(1)?.as_str()))),
+                "str.starts_with" => Ok(Value::Bool(text(0)?.starts_with(text(1)?.as_str()))),
+                "str.ends_with" => Ok(Value::Bool(text(0)?.ends_with(text(1)?.as_str()))),
+                "str.trim" => Ok(Value::Str(text(0)?.trim().to_string())),
+                "str.upper" => Ok(Value::Str(text(0)?.to_uppercase())),
+                "str.lower" => Ok(Value::Str(text(0)?.to_lowercase())),
+                "str.replace" => Ok(Value::Str(text(0)?.replace(text(1)?.as_str(), &text(2)?))),
+                "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("std::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "std::str.join[lend 'parts', sep]") },
+                "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
+                    let s = text(0)?; let i = int(1)?;
+                    let units: Vec<Value> = match path.as_str() { "str.at.grapheme" => graphemes(&s).into_iter().map(|g| Value::Char(CharUnit::Grapheme, g)).collect(), "str.at.point" => s.chars().map(|ch| Value::Char(CharUnit::Point, ch.to_string())).collect(), _ => s.bytes().map(|b| Value::Int(b as i128)).collect() };
+                    match usize::try_from(i - 1).ok().and_then(|k| units.get(k)) { Some(v) if i >= 1 => Ok(v.clone()), _ => fail(self, "out_of_range") }
+                }
+                "str.slice.grapheme" => {
+                    let s = text(0)?; let (a, b) = (int(1)?, int(2)?);
+                    let gs = graphemes(&s);
+                    if a < 1 || b < a || b as usize > gs.len() { return fail(self, "out_of_range"); }
+                    Ok(Value::Str(gs[(a - 1) as usize..b as usize].concat()))
+                }
+                "str.find.grapheme" => {
+                    let (s, sub) = (text(0)?, text(1)?);
+                    match s.find(sub.as_str()) { Some(byte_ix) => Ok(Value::Int(grapheme_count(&s[..byte_ix]) as i128 + 1)), None => fail(self, "missing") }
+                }
+                other => rt(c.line, format!("std::{other} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")),
+            };
+        }
+        if c.handler.is_some() { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
         match path.as_str() {
             "print.stdout" | "printu.stdout" | "print.stderr" | "printu.stderr" => {
                 // Since 2026-09-19 print takes any number of values and renders each —
@@ -1525,6 +1586,22 @@ fn same_family(a: &Value, b: &Value, line: usize, op: &str) -> Result<(), Runtim
 /// Grapheme clusters, approximated: a base character plus any combining
 /// marks, ZWJ sequences, variation selectors, and skin-tone modifiers. Enough
 /// for the oracle to tell "one" from "several"; the real runtime needs UAX #29.
+/// Split into graphemes with the same approximation as `grapheme_count`.
+fn graphemes(s: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut prev_zwj = false;
+    for ch in s.chars() {
+        let cp = ch as u32;
+        let combining = (0x0300..=0x036F).contains(&cp) || (0x0E31..=0x0E3A).contains(&cp) || (0x0E47..=0x0E4E).contains(&cp)
+            || (0x1AB0..=0x1AFF).contains(&cp) || (0x20D0..=0x20FF).contains(&cp) || (0xFE00..=0xFE0F).contains(&cp)
+            || (0x1F3FB..=0x1F3FF).contains(&cp);
+        if cp == 0x200D { prev_zwj = true; if let Some(last) = out.last_mut() { last.push(ch); } continue; }
+        if (combining || prev_zwj) && !out.is_empty() { out.last_mut().unwrap().push(ch); } else { out.push(ch.to_string()); }
+        prev_zwj = false;
+    }
+    out
+}
+
 fn grapheme_count(s: &str) -> usize {
     let mut n = 0;
     let mut prev_zwj = false;
