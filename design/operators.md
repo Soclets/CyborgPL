@@ -111,8 +111,10 @@ Four questions, one at a time:
    dead; the `give` form guarantees it.
 
 Rules that follow: exactly two operands; `-> T` required; an operator
-cannot fail (make it a `fn`); it is never called with `[…]`; `not` and the
-language's operators cannot be redefined. Prefix (one-operand) custom
+cannot fail (make it a `fn`); it is never called with `[…]`; `not`, `and`,
+`or` cannot be redefined; the language's other operators may be **defined
+for a user type** (`op + ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
+interfaces) but never changed for the language's own types. Prefix (one-operand) custom
 operators are not offered.
 
 Oracle: `examples/operators.cpls`, thirteen reject tests. It resolves an

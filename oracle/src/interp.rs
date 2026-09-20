@@ -103,6 +103,7 @@ impl<'p> Interp<'p> {
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
         self.check_fails()?;
+        self.check_claims()?;
         self.check_boundary()?;
         for c in &self.prog.consts {
             let key = const_key(&c.module, &c.name);
@@ -771,14 +772,17 @@ impl<'p> Interp<'p> {
                 Ok((v, prov))
             }
             Expr::Owned(verb, name, _) => {
-                let (kind, alive, cell) = match self.lookup(name) {
-                    Some(s) => (s.kind, s.alive, s.cell.clone()),
+                let (kind, alive, cell, generic) = match self.lookup(name) {
+                    Some(s) => (s.kind, s.alive, s.cell.clone(), matches!(s.ty, Some(Ty::Var(_)) | Some(Ty::Inst(..)))),
                     None => return rt(line, format!("'{name}' is not declared")),
                 };
                 if !alive { return rt(line, format!("'{name}' was already given away")); }
                 if kind == SlotKind::Const { return rt(line, format!("'{name}' is a const: nobody owns it, every use is a fresh value — write it bare, no `give`/`copy`/`lend`")); }
                 let v = cell.borrow().clone();
                 if !v.is_owned() {
+                    // In generic code the type may be owned or plain; the verbs are written for
+                    // the owned case and do nothing for a plain one (design/generics.md).
+                    if generic { return Ok((v, Prov::Plain)); }
                     return rt(line, format!("'{name}' is a plain {} and owns nothing; it copies by itself — no `give`/`copy`/`lend`", v.kind()));
                 }
                 match verb {
@@ -961,6 +965,13 @@ impl<'p> Interp<'p> {
             }
             Expr::Binary(op, l, r, _) => {
                 let (a, pa) = self.eval(l)?;
+                // the language's operator, defined for a user type (2026-09-20)
+                if matches!(a, Value::Struct(..) | Value::Enum(..)) {
+                    let shape = shape_of(&a);
+                    if self.prog.funcs.iter().any(|f| f.is_op && f.name == *op && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false)) {
+                        return self.custom_op_with(op, (a, pa), l, r, line);
+                    }
+                }
                 let (b, pb) = self.eval(r)?;
                 // A bare literal adopts the other side's family.
                 let (a, b) = match (&a, &b, &pa, &pb) {
@@ -1204,6 +1215,13 @@ impl<'p> Interp<'p> {
             bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(Value::List(rest))), ty: None, kind, alive: true, immut: p.mutability == Some(Mutability::Immut) }));
         }
 
+        // `<T: Ordered>`: the type that filled the blank must keep the promise
+        for (var, iface) in &func.bounds {
+            let shape = self.tvars.borrow().get(var).cloned();
+            if let Some(shape) = shape {
+                if let Err(m) = self.satisfies(&shape, iface, c.line)? { return rt(c.line, format!("`{name}` needs `<{var}: {iface}>`, but {m}")); }
+            }
+        }
         let flow = self.run_body(func, bound);
         // this call's blanks are its own; the body's `let 'y': <T>` and the return check use them
         let result = match flow? {
@@ -1217,6 +1235,37 @@ impl<'p> Interp<'p> {
             (Some(t), v) => { self.check_type(v, t, c.line)?; Ok(result) }
             (None, _) => Ok(result),
         }
+    }
+
+    /// Does a type (by shape) keep an interface's promises? Built-in operators
+    /// count for the language's types; a user type needs an `op`/`fn` for each entry.
+    fn satisfies(&self, shape: &str, iface: &str, line: usize) -> Result<Result<(), String>, RuntimeError> {
+        let def = match self.prog.interfaces.iter().find(|i| i.name == iface) { Some(i) => i, None => return rt(line, format!("no interface named `{iface}`")) };
+        let builtin_ops: &[&str] = match shape {
+            "integer" | "bin" => &["+", "-", "x", "xx", "/", "mod", "<", ">", "<==", ">==", "==", "!=="],
+            "bool" => &["and", "or", "==", "!=="],
+            "str" => &["++", "==", "!=="],
+            "char" | "list" => &["==", "!=="],
+            _ => &["==", "!=="],
+        };
+        for e in &def.entries {
+            let found = if e.is_op {
+                builtin_ops.contains(&e.name.as_str()) || self.prog.funcs.iter().any(|f| f.is_op && f.name == e.name && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false))
+            } else {
+                self.prog.funcs.iter().any(|f| !f.is_op && f.name == e.name && f.params.len() == e.params.len()
+                    && f.params.iter().zip(&e.params).all(|(fp, ep)| match (&fp.ty, &ep.ty) { (Some(ft), Some(Ty::Var(_))) => ty_shape(ft) == shape, (Some(ft), Some(et)) => ty_name(ft) == ty_name(et), _ => true }))
+            };
+            if !found { return Ok(Err(format!("{} is not `{iface}`: no `{} {}` for it", shape, if e.is_op { "op" } else { "fn" }, e.name))); }
+        }
+        Ok(Ok(()))
+    }
+
+    /// `Vec satisfies Ordered;` claims, checked at load.
+    fn check_claims(&self) -> Result<(), RuntimeError> {
+        for c in &self.prog.claims {
+            if let Err(m) = self.satisfies(&ty_shape(&c.ty), &c.iface, c.line)? { return rt(c.line, format!("the claim `{} satisfies {}` is false: {m}", ty_name(&c.ty), c.iface)); }
+        }
+        Ok(())
     }
 
     /// Run a function's body with its parameters bound. A function's scopes are its
@@ -1238,7 +1287,17 @@ impl<'p> Interp<'p> {
     /// A custom operator (decided 2026-09-20): `'u' <+> 'v'` / `'u' dot 'v'`. Operands
     /// are lent unless the `op` says `give`, in which case the caller writes `give` too.
     fn custom_op(&mut self, op: &str, l: &Expr, r: &Expr, line: usize) -> Result<(Value, Prov), RuntimeError> {
-        let def = match self.prog.funcs.iter().find(|f| f.is_op && f.name == op) {
+        let left = self.eval(l)?;
+        self.custom_op_with(op, left, l, r, line)
+    }
+
+    /// As `custom_op`, with the left operand already evaluated (it is evaluated once).
+    fn custom_op_with(&mut self, op: &str, left: (Value, Prov), l: &Expr, r: &Expr, line: usize) -> Result<(Value, Prov), RuntimeError> {
+        // pick the definition whose first operand's type matches the left value (an
+        // operator may be defined for several types)
+        let lshape = shape_of(&left.0);
+        let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == op).cloned().collect();
+        let def = match candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| ty_shape(t) == lshape || matches!(t, Ty::Var(_))).unwrap_or(true)).or(candidates.first()) {
             Some(f) => f.clone(),
             None => {
                 let hint = match op {
@@ -1249,8 +1308,9 @@ impl<'p> Interp<'p> {
             }
         };
         let mut bound = Vec::new();
+        let mut left = Some(left);
         for (expr, param) in [(l, &def.params[0]), (r, &def.params[1])] {
-            let (v, prov) = self.eval(expr)?;
+            let (v, prov) = match left.take() { Some(lv) => lv, None => self.eval(expr)? };
             let slot = match param.kind {
                 ParamKind::Owned => {
                     match &prov {
@@ -1713,6 +1773,15 @@ impl<'p> Interp<'p> {
             }
             other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print/printu .stdout/.stderr, exit, div.trunc, mod.trunc, str.*)")),
         }
+    }
+}
+
+/// A type's shape, matching `shape_of`: the kind, or the struct/enum name.
+fn ty_shape(t: &Ty) -> String {
+    match t {
+        Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
+        Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"),
     }
 }
 

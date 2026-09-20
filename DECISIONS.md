@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Interfaces: `interface`, operators definable for user types, automatic satisfaction + `satisfies` claim, `<T: Ordered>` (owner)
+
+"How do you say what your generic supports?" — you don't yet; owner:
+"now". (1) may a type define the language's operators for itself — yes
+(revises the 2026-09-19 no-redefinition rule: never for the language's
+types). (2) `interface Name { fn …;  op …; }` about some `<T>`, and
+`<T: Ordered>` on one mention — yes. (3) automatic / declared / both:
+owner asked twice what the options meant, chose (c) automatic plus an
+optional checked claim; asked what `is`, what `Ordered`, what the claim
+line are; worried `is` reads wrong with other names — Claude offered
+`satisfies`; "`satisfies` it is." Consequence set by Claude: verbs on a
+`<T>` value are allowed and do nothing for a plain type, so generic code
+can `return give 'a'`. `design/interfaces.md`; oracle:
+`examples/interfaces.cpls`, nine reject tests. Closes "generic
+constraints".
+
 ### 2026-09-20 — Generics: `<T>` on every mention; struct/enum blanks by first appearance (owner)
 
 Claude offered a declared list (`fn max [type T] […]`) vs implicit; owner
@@ -975,7 +991,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
-- Generic constraints (a spelled bound on `<T>`), generic `op`/`const`. (2026-09-20)
+- Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)

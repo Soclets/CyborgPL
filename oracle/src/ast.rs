@@ -130,6 +130,8 @@ pub struct Func {
     /// `op NAME ['a': T, 'b': T] -> R { }` — a custom operator (design/operators.md, 2026-09-20):
     /// used between two operands, never called with `[…]`; operands lent unless `give`
     pub is_op: bool,
+    /// `<T: Ordered>` — each type variable's required interface (canonical), if any
+    pub bounds: Vec<(String, String)>,
     pub params: Vec<Param>,
     pub body: Vec<Stmt>,
     pub line: usize,
@@ -176,10 +178,31 @@ pub struct Arm {
     pub line: usize,
 }
 
+/// `interface Name { fn …;  op …; }` (design/interfaces.md, 2026-09-20): a named list of
+/// promises about some `<T>`; a type keeps it by having the operations.
+#[derive(Debug, Clone)]
+pub struct InterfaceDef {
+    pub name: String,        // canonical
+    pub module: Vec<String>,
+    pub vis: Vis,
+    pub entries: Vec<Func>,  // signatures only; `is_op` tells fn from op
+    pub line: usize,
+}
+
+/// `Vec satisfies Ordered;` — an optional, verified claim.
+#[derive(Debug, Clone)]
+pub struct Claim {
+    pub ty: Ty,
+    pub iface: String,       // canonical
+    pub line: usize,
+}
+
 pub struct Program {
     pub funcs: Vec<Func>,
     pub structs: Vec<StructDef>,
     pub enums: Vec<EnumDef>,
+    pub interfaces: Vec<InterfaceDef>,
+    pub claims: Vec<Claim>,
     pub consts: Vec<ConstDef>,
     pub modules: Vec<ModuleDef>,
     pub main: Option<Vec<Stmt>>,

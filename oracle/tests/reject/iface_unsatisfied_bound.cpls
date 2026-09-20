@@ -1,0 +1,5 @@
+interface Ordered { op < ['a': <T>, 'b': <T>] -> bool; }
+fn max ['a': <T: Ordered>, 'b': <T>] -> <T> { if 'b' < 'a' { return 'a'; } return 'b'; }
+MAIN {
+    let 'x' := max["a", "b"];
+}

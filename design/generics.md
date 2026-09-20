@@ -42,13 +42,18 @@ let 'm' := Maybe.some[42];                                          # filled fro
   arguments; that is the quiet cost accepted.
 - A blank cannot be sized (`size.of[<T>]`) or cross to C.
 
+## Constraints
+
+`<T: Ordered>` — see `interfaces.md` (decided later the same day). A
+`<T>` without a bound is constrained by its body, checked at each use.
+
+## Verbs on a `<T>`
+
+Generic code writes the verbs for the owned case (`return give 'a'`); for
+a plain `T` they do nothing (`interfaces.md`).
+
 ## Not decided
 
-- **Constraints** — saying a `<T>` must support `>` or `++` (Rust's
-  trait bounds, Swift's protocols). Today a generic body is checked at
-  each use, like a variadic's: `max["a", "b"]` fails to compile at that
-  call because `>` on text is an error. Precog-style "the body is the
-  constraint" (Zig) may be enough; a spelled constraint is open.
 - A generic `op`; a generic `const`.
 
 ## Oracle

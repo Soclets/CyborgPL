@@ -1,7 +1,7 @@
 # Generics (design/generics.md): a blank, <T>, filled per use by the compiler.
 fn max ['a': <T>, 'b': <T>] -> <T> {
-    if 'a' > 'b' { return 'a'; }
-    return 'b';
+    if 'a' > 'b' { return give 'a'; }     # a <T> may be owned: generic code writes the verbs
+    return give 'b';
 }
 
 fn first [lent 'xs': list[<T>]] -> <T> or fail[empty] {

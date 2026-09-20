@@ -1,0 +1,3 @@
+interface Ordered { op < ['a': <T>, 'b': <T>] -> bool { return true; } }
+MAIN {
+}
