@@ -76,8 +76,18 @@ proofs rather than skipping them — never by doing less.
 
 ### The three check tiers (decided 2026-09-14; spelling decided 2026-09-19)
 
-- **default** — "I have no guardrails yet, and I want you to help me." The
-  compiler inserts a runtime check wherever it cannot prove safety.
+- **default** — "I have no guardrails yet, and I want you to help me." In
+  the **working build** the compiler inserts a runtime check wherever it
+  cannot prove safety, so the program runs and fails loudly where a
+  guardrail is missing. In the **final build** (owner, 2026-09-20: the
+  runtime-check rule "was when building around, dev testing, not the
+  final product") the same site is a **compile error with a
+  counterexample** — the default behaves as `check`. Both builds run
+  Precog in full; the final build is stricter, never looser, so this is
+  not the rejected development mode. The final product contains no
+  runtime checks: every site is proven, `check`-confirmed, or `nocheck`.
+  Proposed: `jetpack build` / `jetpack final`, JetPack's, so no file-wide
+  switch enters the language.
 - **`check`** — "I've built a guardrail, could you help me verify it?" The
   compiler proves the guardrail exactly; proven → check removed, otherwise a
   compile error **with a counterexample** — the value that gets past the

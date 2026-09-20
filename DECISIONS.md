@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — The final build has no runtime checks: an unproven site is a compile error there (owner's clarification of 2026-09-14)
+
+Owner, on being told the unproven runtime checks ship: "Oh shit, that's
+not what I meant" — "'runtime checks stay, no matter the cost' — that was
+when building around, dev testing, not the final product." So: two
+builds, the same full Precog, differing only in what an unproven site
+becomes. Working build (`jetpack build`, proposed): a runtime check, so
+the program runs and crashes loudly where a guardrail is missing. Final
+build (`jetpack final`, proposed): a compile error with the
+counterexample — the default tier behaves as `check`. Nothing unproven
+and nothing runtime-checked ships; `nocheck` remains the only way to ship
+an unproven site, listed in the build output. Not the rejected
+development mode: nothing is skipped, the final build is stricter. The
+2026-09-14 tiers entry is corrected below rather than appended to.
+Claude's understanding was restated as a table and awaits the owner's
+"yes"; the build-command names are Claude's proposal, JetPack's, so no
+file-wide switch enters the language.
+
+Pending from the same thread: `/` on integers and `mod` — Claude
+recommends floor division with the mathematician's `mod` (b) over
+truncation (a); the fix-up is semantics, not a check, so it stays in the
+final binary where a sign is unproven (a few cycles beside a 10–40 cycle
+divide) and is gone where Precog knows the sign. Owner asked about
+performance and about what ships; not yet decided.
+
 ### 2026-09-20 — Enums: `enum Status { empty  claimed: str.utf8  locked }`, `Status.claimed["x"]`, `match` (owner)
 
 Owner asked "didn't we already do enums?" (no — failures chose inline
@@ -372,7 +397,7 @@ provable again. No silent fallback to a wide/checked type. Options (a) wide
 fallback, (b) refuse, (c) both proposed by Claude, who recommended (b); owner
 chose (b).
 
-### 2026-09-14 — Unproven safety properties get a compiler runtime check, removable only by a programmer guardrail (owner) — clarified 2026-09-19: a *proven* check is removed by Precog itself; syntax is never needed to remove one
+### 2026-09-14 — Unproven safety properties get a compiler runtime check, removable only by a programmer guardrail (owner) — clarified 2026-09-19: a *proven* check is removed by Precog itself; corrected 2026-09-20: the runtime check is the *working build's* behaviour; in the final build an unproven site is a compile error
 
 Where whole-program analysis cannot prove a safety property (overflow, bounds,
 division by zero, …), the compiler **inserts a runtime check, regardless of
