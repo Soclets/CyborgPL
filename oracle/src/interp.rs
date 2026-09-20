@@ -12,6 +12,7 @@
 //!   - `if`/`while` conditions must be bool
 
 use crate::ast::*;
+use crate::value::Ptr;
 use crate::value::{exact_decimal, int_range, ty_name, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -77,6 +78,9 @@ pub struct Interp<'p> {
     /// the call being evaluated is a statement (its value is unused), so an
     /// `otherwise { … }` arm may fall through
     call_is_stmt: bool,
+    /// how many `nocheck` statements enclose the running code (extern calls and
+    /// pointer reads/writes need at least one — design/ffi.md)
+    nocheck_depth: usize,
     /// `lend.mut 'x'.field` hands out a temporary cell; at the end of the statement
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
@@ -86,7 +90,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, nocheck_depth: 0, field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -95,6 +99,7 @@ impl<'p> Interp<'p> {
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
         self.check_fails()?;
+        self.check_boundary()?;
         for c in &self.prog.consts {
             let key = const_key(&c.module, &c.name);
             if self.consts.contains_key(&key) { return rt(c.line, format!("const '{}' is declared twice", c.name)); }
@@ -145,6 +150,40 @@ impl<'p> Interp<'p> {
         for m in &self.prog.modules {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at line {l}) — a file and a block cannot both be it", m.path.join("."))); }
+        }
+        Ok(())
+    }
+
+    /// design/ffi.md: only C-shaped types cross to C; a struct that crosses is `layout.c`.
+    fn c_shaped(&self, ty: &Ty) -> Result<(), String> {
+        match ty {
+            Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Bool => Ok(()),
+            Ty::Ptr(inner, _) => self.c_shaped(inner),
+            Ty::Struct(n) => match self.prog.structs.iter().find(|d| &d.name == n) {
+                Some(d) if d.layout_c => Ok(()),
+                Some(_) => Err(format!("struct `{n}` is not `layout.c`; its layout is Precog's, not C's")),
+                None => Err(format!("no struct named `{n}`")),
+            },
+            other => Err(format!("{} is not C-shaped (numbers, bool, ptr, layout.c structs are)", ty_name(other))),
+        }
+    }
+
+    fn check_boundary(&self) -> Result<(), RuntimeError> {
+        for d in self.prog.structs.iter().filter(|d| d.layout_c) {
+            for f in &d.fields {
+                if let Err(m) = self.c_shaped(&f.ty) { return rt(d.line, format!("`layout.c struct {}`: field `{}` — {m}", d.name, f.name)); }
+            }
+        }
+        for f in self.prog.funcs.iter().filter(|f| f.is_extern) {
+            for p in &f.params {
+                match &p.ty {
+                    None if !p.variadic => return rt(f.line, format!("`extern fn {}`: parameter '{}' needs a type; C has no inference", f.name, p.name)),
+                    Some(t) => if let Err(m) = self.c_shaped(t) { return rt(f.line, format!("`extern fn {}`: parameter '{}' — {m}", f.name, p.name)); },
+                    None => {}
+                }
+                if p.kind != ParamKind::Owned { return rt(f.line, format!("`extern fn {}`: C receives values and pointers, not `lent`; a lend is written at the call, against a `ptr` parameter", f.name)); }
+            }
+            if let Some(t) = &f.ret { if let Err(m) = self.c_shaped(t) { return rt(f.line, format!("`extern fn {}`: return type — {m}", f.name)); } }
         }
         Ok(())
     }
@@ -480,7 +519,10 @@ impl<'p> Interp<'p> {
             // the concrete value (the compiler's counterexample); a `nocheck` whose
             // site fires is a lie — the compiled program would be undefined there.
             Stmt::Tier { tier, body, line } => {
-                match self.stmt(body) {
+                if *tier == Tier::NoCheck { self.nocheck_depth += 1; }
+                let r = self.stmt(body);
+                if *tier == Tier::NoCheck { self.nocheck_depth -= 1; }
+                match r {
                     Err(e) if e.site => {
                         let msg = match tier {
                             Tier::Check => format!("`check` at line {line} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", e.msg),
@@ -565,6 +607,11 @@ impl<'p> Interp<'p> {
             (Ty::Struct(want), Value::Struct(have, _)) => {
                 if want == have { Ok(()) } else { rt(line, format!("expected a {want}, got a {have}")) }
             }
+            (Ty::Ptr(_, want_mut), Value::Ptr(p)) => {
+                if *want_mut && !p.mutable { return rt(line, "a `ptr.mut` is needed, but this pointer is read-only (lend it with `lend.mut`)"); }
+                Ok(())
+            }
+            (Ty::Ptr(..), v) => rt(line, format!("expected a pointer ({name}); got {} — a pointer is a `lend` of a list/array/str, or comes from C", v.kind())),
             (Ty::Struct(want), v) => {
                 if !self.prog.structs.iter().any(|sd| &sd.name == want) { return rt(line, format!("no struct named `{want}` is declared")); }
                 rt(line, format!("expected a {want}, got {}", v.kind()))
@@ -826,6 +873,10 @@ impl<'p> Interp<'p> {
                 let prov = if out.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((out, prov))
             }
+            Expr::SizeOf(ty, is_size, _) => {
+                let (size, align) = self.size_align(ty, line)?;
+                Ok((Value::Int(if *is_size { size } else { align } as i128), Prov::Literal))
+            }
             Expr::Builtin(head, op, args, _) => {
                 let v = self.builtin(head, op, args, line)?;
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
@@ -914,6 +965,7 @@ impl<'p> Interp<'p> {
     // ---- list / array operations (decided 2026-09-17) ---------------------
 
     fn builtin(&mut self, head: &str, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        if head == "ptr" { return self.ptr_op(op, args, line); }
         if op == "empty" { return Ok(Value::List(Vec::new())); }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
         if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
@@ -980,6 +1032,11 @@ impl<'p> Interp<'p> {
         };
         if !self.reachable(&c.from, &func.module, func.vis) {
             return rt(c.line, format!("`{}` is private to `{}`; mark it `pub` or `pub.limb`", join_path(&func.module, name), root_or(&func.module)));
+        }
+        if func.is_extern {
+            if self.nocheck_depth == 0 { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a nocheck site: `nocheck … {name}[…]`")); }
+            if c.handler.is_some() { return rt(c.line, format!("`{name}` is extern and cannot fail; drop the `otherwise` (a wrapper turns its return into a failure)")); }
+            return self.extern_call(func, c);
         }
         let variadic = func.params.last().map(|p| p.variadic).unwrap_or(false);
         let fixed = if variadic { func.params.len() - 1 } else { func.params.len() };
@@ -1227,6 +1284,124 @@ impl<'p> Interp<'p> {
         }
         if let Some(k) = used.iter().position(|u| !u) { return rt(line, format!("rs.print: value #{} has no hole — the format uses fewer values than were given", k + 1)); }
         Ok(out)
+    }
+
+    /// C's sizes and alignments; a normal struct gets the same rule (Precog's real
+    /// choice is not modelled), lists and strs are their 24-byte handle.
+    fn size_align(&self, ty: &Ty, line: usize) -> Result<(usize, usize), RuntimeError> {
+        Ok(match ty {
+            Ty::Int(w) | Ty::Uint(w) => { let n = match w { IntWidth::W8 => 1, IntWidth::W16 => 2, IntWidth::W32 => 4, IntWidth::W64 => 8, IntWidth::W128 => 16 }; (n, n) }
+            Ty::Bin(b) | Ty::Deci(b) => { let n = (*b as usize) / 8; (n, n) }
+            Ty::Bool => (1, 1),
+            Ty::Char(CharUnit::Byte) => (1, 1),
+            Ty::Char(CharUnit::Point) => (4, 4),
+            Ty::Char(_) | Ty::Str(_) | Ty::List(_) | Ty::Array(_) => (24, 8),
+            Ty::Ptr(..) => (8, 8),
+            Ty::Struct(n) => {
+                let d = match self.prog.structs.iter().find(|d| &d.name == n) { Some(d) => d, None => return rt(line, format!("no struct named `{n}`")) };
+                let (mut off, mut al) = (0usize, 1usize);
+                for f in &d.fields {
+                    let (s, a) = self.size_align(&f.ty, line)?;
+                    off = (off + a - 1) / a * a + s;
+                    al = al.max(a);
+                }
+                ((off + al - 1) / al * al, al)
+            }
+        })
+    }
+
+    /// ptr.read / ptr.write / ptr.at / ptr.is_null (design/ffi.md). The first three
+    /// are nocheck sites; a pointer into a lent Cyborg value reads that value's
+    /// elements (bytes, for a str).
+    fn ptr_op(&mut self, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        let (pv, _) = self.value(&args.values[0])?;
+        let p = match pv { Value::Ptr(p) => p, other => return rt(line, format!("`ptr.{op}` needs a pointer, got {}", other.kind())) };
+        if op == "is_null" { return Ok(Value::Bool(p.cell.is_none())); }
+        if self.nocheck_depth == 0 { return rt(line, format!("`ptr.{op}` goes through a pointer the compiler cannot vouch for — it is a nocheck site")); }
+        let Some(cell) = p.cell.clone() else { return site(line, format!("`ptr.{op}` on a null pointer")) };
+        match op {
+            "at" => {
+                let (n, _) = self.value(&args.values[1])?;
+                let n = match n { Value::Int(n) => n, other => return rt(line, format!("`ptr.at` moves by an integer number of elements, got {}", other.kind())) };
+                Ok(Value::Ptr(Ptr { cell: Some(cell), index: p.index + n, mutable: p.mutable }))
+            }
+            "read" => {
+                let v = cell.borrow();
+                let i = p.index;
+                match &*v {
+                    Value::List(items) => match usize::try_from(i).ok().and_then(|i| items.get(i)) { Some(x) => Ok(x.clone()), None => site(line, format!("`ptr.read` {i} element(s) in: past the end of what the pointer was lent ({} element(s))", items.len())) },
+                    Value::Str(s) => match usize::try_from(i).ok().and_then(|i| s.as_bytes().get(i)) { Some(b) => Ok(Value::Int(*b as i128)), None if i as usize == s.len() => Ok(Value::Int(0)), None => site(line, format!("`ptr.read` {i} byte(s) in: past the end of the lent text ({} bytes)", s.len())) },
+                    other => rt(line, format!("a pointer into {} cannot be read element-wise", other.kind())),
+                }
+            }
+            "write" => {
+                if !p.mutable { return rt(line, "`ptr.write` needs a `ptr.mut` (lend it with `lend.mut`)"); }
+                let (nv, _) = self.value(&args.values[1])?;
+                let mut v = cell.borrow_mut();
+                let i = p.index;
+                match &mut *v {
+                    Value::List(items) => match usize::try_from(i).ok().filter(|i| *i < items.len()) { Some(i) => { items[i] = nv; Ok(Value::Nothing) }, None => site(line, format!("`ptr.write` {i} element(s) in: past the end of what the pointer was lent ({} element(s))", items.len())) },
+                    other => rt(line, format!("a pointer into {} cannot be written element-wise", other.kind())),
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// The oracle cannot link C. It emulates a few libc functions so extern
+    /// programs can run: write, exit, getenv, strlen, malloc, free.
+    fn extern_call(&mut self, func: &Func, c: &Call) -> Result<Value, RuntimeError> {
+        let mut args = Vec::new();
+        for (i, a) in c.args.values.iter().enumerate() {
+            let (v, prov) = self.value(a)?;
+            let param = func.params.get(i).or(func.params.last());
+            let v = match (param.and_then(|p| p.ty.as_ref()), &v, prov) {
+                (Some(Ty::Ptr(_, want_mut)), _, Prov::Borrowed(cell, is_mut)) => {
+                    if *want_mut && !is_mut { return rt(c.line, format!("`{}` wants a `ptr.mut` for '{}': lend it with `lend.mut`", func.name, param.unwrap().name)); }
+                    match &*cell.borrow() { Value::List(_) | Value::Str(_) => {}, other => return rt(c.line, format!("a pointer needs a list, array, or str behind it, not {}", other.kind())) }
+                    Value::Ptr(Ptr { cell: Some(cell), index: 0, mutable: is_mut })
+                }
+                (Some(Ty::Ptr(..)), Value::Ptr(_), _) => v,
+                (Some(Ty::Ptr(..)), other, _) => return rt(c.line, format!("`{}` wants a pointer for '{}': `lend` a list/array/str, or pass a pointer from C; got {}", func.name, param.unwrap().name, other.kind())),
+                (Some(t), _, prov) => self.fit(v, prov, Some(t), c.line)?,
+                (None, Value::Str(_) | Value::List(_) | Value::Char(..), _) => return rt(c.line, format!("`{}` is a variadic extern; its extra arguments must be C-shaped, not {}", func.name, v.kind())),
+                (None, _, _) => v,
+            };
+            args.push(v);
+        }
+        let fixed = func.params.iter().filter(|p| !p.variadic).count();
+        if args.len() < fixed || (args.len() > fixed && !func.params.last().map(|p| p.variadic).unwrap_or(false)) {
+            return rt(c.line, format!("`{}` takes {} argument(s), given {}", func.name, fixed, args.len()));
+        }
+        let read_bytes = |p: &Ptr, len: Option<usize>| -> Vec<u8> {
+            let Some(cell) = &p.cell else { return Vec::new() };
+            let v = cell.borrow();
+            let all: Vec<u8> = match &*v { Value::List(items) => items.iter().map(|x| if let Value::Int(i) = x { *i as u8 } else { 0 }).collect(), Value::Str(s) => s.as_bytes().to_vec(), _ => Vec::new() };
+            let start = (p.index.max(0) as usize).min(all.len());
+            let rest = &all[start..];
+            match len { Some(n) => rest[..n.min(rest.len())].to_vec(), None => rest.iter().take_while(|b| **b != 0).cloned().collect() }
+        };
+        match func.name.as_str() {
+            "write" => {
+                let (fd, p, len) = match (&args[0], &args[1], &args[2]) { (Value::Int(fd), Value::Ptr(p), Value::Int(len)) => (*fd, p.clone(), *len as usize), _ => return rt(c.line, "write[fd, ptr, len]") };
+                let bytes = read_bytes(&p, Some(len));
+                let text = String::from_utf8_lossy(&bytes).to_string();
+                if fd == 2 { eprint!("{text}"); } else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
+                Ok(Value::Int(bytes.len() as i128))
+            }
+            "exit" => match &args[0] { Value::Int(i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some((*i & 0xff) as u8), site: false, leave: None }), _ => rt(c.line, "exit[code]") },
+            "strlen" => match &args[0] { Value::Ptr(p) => Ok(Value::Int(read_bytes(p, None).len() as i128)), _ => rt(c.line, "strlen[ptr]") },
+            "getenv" => {
+                let name = match &args[0] { Value::Ptr(p) => String::from_utf8_lossy(&read_bytes(p, None)).to_string(), _ => return rt(c.line, "getenv[ptr]") };
+                match std::env::var(&name) {
+                    Ok(val) => { let mut bytes: Vec<Value> = val.bytes().map(|b| Value::Int(b as i128)).collect(); bytes.push(Value::Int(0)); Ok(Value::Ptr(Ptr { cell: Some(Rc::new(RefCell::new(Value::List(bytes)))), index: 0, mutable: false })) }
+                    Err(_) => Ok(Value::Ptr(Ptr { cell: None, index: 0, mutable: false })),
+                }
+            }
+            "malloc" => match &args[0] { Value::Int(n) => Ok(Value::Ptr(Ptr { cell: Some(Rc::new(RefCell::new(Value::List(vec![Value::Int(0); (*n).max(0) as usize])))), index: 0, mutable: true })), _ => rt(c.line, "malloc[bytes]") },
+            "free" => Ok(Value::Nothing),
+            other => rt(c.line, format!("extern `{other}`: the oracle cannot link C; it emulates write, exit, getenv, strlen, malloc, free")),
+        }
     }
 
     fn std_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {

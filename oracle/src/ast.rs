@@ -15,6 +15,8 @@ pub enum Ty {
     List(Box<Ty>),    // growable
     Array(Box<Ty>),   // fixed-size
     Struct(String),   // a declared blueprint, by name
+    /// `ptr[T]` / `ptr.mut[T]` (design/ffi.md): only in an extern signature or a layout.c field
+    Ptr(Box<Ty>, bool),
 }
 
 #[derive(Debug, Clone)]
@@ -43,6 +45,8 @@ pub struct ModuleDef {
 pub struct StructDef {
     /// canonical: "shapes.Locker" for a struct in module `shapes`, "Locker" at the root
     pub name: String,
+    /// `layout.c struct`: C's layout, C-shaped fields only; may cross to C
+    pub layout_c: bool,
     pub module: Vec<String>,
     pub vis: Vis,
     pub fields: Vec<Field>,
@@ -89,6 +93,8 @@ pub struct Func {
     /// `-> T or fail[a, b: type]` (decided 2026-09-19): the ways this function can fail.
     /// Empty = cannot fail.
     pub fails: Vec<FailCase>,
+    /// `extern fn …;` — the body is somewhere else (design/ffi.md); a call is a nocheck site
+    pub is_extern: bool,
     pub params: Vec<Param>,
     pub body: Vec<Stmt>,
     pub line: usize,
@@ -245,6 +251,8 @@ pub enum Expr {
     /// `to.int32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
     /// fail (`not_a_number`), so it may carry an `otherwise` handler
     Convert(Ty, Bracket, Option<Handler>, usize),
+    /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
+    SizeOf(Ty, bool, usize),
     Unary(String, Box<Expr>, usize),            // not, -
     Binary(String, Box<Expr>, Box<Expr>, usize),
     Paren(Box<Expr>, usize),
@@ -266,6 +274,7 @@ impl Expr {
             Expr::OwnedField(_, _, _, l) => *l,
             Expr::ConstPath(_, _, _, l) => *l,
             Expr::Convert(_, _, _, l) => *l,
+            Expr::SizeOf(_, _, l) => *l,
         }
     }
 }

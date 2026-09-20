@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — FFI in the oracle (Claude, per yesterday's decisions)
+
+`extern fn`, `ptr[T]`, `nocheck` on extern calls and pointer reads/writes,
+`ptr.is_null`, `layout.c struct` with C-shaped fields, variadic externs,
+`size.of`/`align.of` — all enforced; libc emulated for six functions so
+`examples/ffi.cpls` runs. Nineteen reject tests. `asm` refused as
+unspelled. Surfaced: a `str` has no length operation yet (string
+operations, open).
+
 ### 2026-09-19 — Low level is the base language's: `extern`, `ptr[T]`, `layout.c`, `size.of`, inline asm (owner)
 
 Owner asked how to print without std, then how std's print gets made

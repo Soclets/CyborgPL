@@ -14,7 +14,27 @@ pub enum Value {
     List(Vec<Value>),
     /// a struct value: blueprint name + fields in declaration order
     Struct(String, Vec<(String, Value)>),
+    /// a C pointer (design/ffi.md): into a lent Cyborg list/array/str, or from
+    /// an emulated extern; `cell: None` is C's null
+    Ptr(Ptr),
     Nothing,
+}
+
+#[derive(Debug, Clone)]
+pub struct Ptr {
+    pub cell: Option<std::rc::Rc<std::cell::RefCell<Value>>>,
+    pub index: i128,
+    pub mutable: bool,
+}
+
+impl PartialEq for Ptr {
+    fn eq(&self, o: &Ptr) -> bool {
+        match (&self.cell, &o.cell) {
+            (None, None) => true,
+            (Some(a), Some(b)) => std::rc::Rc::ptr_eq(a, b) && self.index == o.index,
+            _ => false,
+        }
+    }
 }
 
 impl Value {
@@ -39,6 +59,7 @@ impl Value {
             Value::Char(..) => "char",
             Value::List(_) => "list",
             Value::Struct(..) => "struct",
+            Value::Ptr(_) => "ptr",
             Value::Nothing => "nothing",
         }
     }
@@ -53,6 +74,7 @@ impl Value {
             Value::Char(_, c) => c.clone(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
+            Value::Ptr(p) => if p.cell.is_none() { "null".into() } else { format!("ptr+{}", p.index) },
             Value::Nothing => "nothing".into(),
         }
     }
@@ -101,6 +123,7 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::List(t) => format!("list[{}]", ty_name(t)),
         Ty::Array(t) => format!("array[{}]", ty_name(t)),
         Ty::Struct(n) => n.clone(),
+        Ty::Ptr(t, m) => format!("ptr{}[{}]", if *m { ".mut" } else { "" }, ty_name(t)),
     }
 }
 

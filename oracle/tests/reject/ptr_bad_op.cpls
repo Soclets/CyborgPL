@@ -1,0 +1,5 @@
+extern fn malloc ['n': uint64] -> ptr.mut[uint8];
+MAIN {
+    nocheck let 'p' := malloc[2];
+    nocheck let 'q' := ptr.deref['p'];
+}

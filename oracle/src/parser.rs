@@ -12,7 +12,7 @@ use crate::value::ty_name;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "asm",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -35,14 +35,16 @@ pub struct Parser {
     /// set while parsing the type in `to.<type>[…]`: the bracket belongs to the
     /// conversion, not to the type
     to_target: bool,
+    /// set while parsing an extern signature or a layout.c struct: `ptr[T]` is allowed
+    at_boundary: bool,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, at_boundary: false } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, at_boundary: false } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -104,7 +106,7 @@ impl Parser {
                     }
                 }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
                     other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
@@ -113,6 +115,31 @@ impl Parser {
             match self.peek().clone() {
                 Tok::Word(w) if w == "fn" => { let mut f = self.func()?; f.vis = vis; prog.funcs.push(f) }
                 Tok::Word(w) if w == "struct" => { let mut d = self.struct_def()?; d.vis = vis; prog.structs.push(d) }
+                Tok::Word(w) if w == "extern" => {
+                    // extern fn name [params] -> T;   (design/ffi.md)
+                    self.advance();
+                    if !self.is_word("fn") { return self.err("`extern` goes before `fn`: `extern fn write [...] -> int64;`"); }
+                    self.at_boundary = true;
+                    let f = self.func();
+                    self.at_boundary = false;
+                    let mut f = f?;
+                    f.vis = vis; f.is_extern = true;
+                    prog.funcs.push(f);
+                }
+                Tok::Word(w) if w == "layout" => {
+                    // layout.c struct Name { … }   (design/ffi.md)
+                    self.advance();
+                    self.expect(Tok::Dot, "`.c` after `layout` (`layout.c struct …`)")?;
+                    match self.advance().tok { Tok::Word(l) if l == "c" => {}, other => return self.err(format!("the only layout is `layout.c`, found {other}")) }
+                    if !self.is_word("struct") { return self.err("`layout.c` goes before `struct`: `layout.c struct Timeval { … }`"); }
+                    self.at_boundary = true;
+                    let d = self.struct_def();
+                    self.at_boundary = false;
+                    let mut d = d?;
+                    d.vis = vis; d.layout_c = true;
+                    prog.structs.push(d);
+                }
+                Tok::Word(w) if w == "asm" => return self.err("inline assembly is decided to exist but its spelling is not; the oracle refuses it"),
                 Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.vis = vis; prog.consts.push(c) }
                 Tok::Word(w) if w == "module" => {
                     let line = self.line();
@@ -209,7 +236,7 @@ impl Parser {
         }
         self.advance();
         if fields.is_empty() { return self.err(format!("struct `{name}` has no fields")); }
-        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, fields, line })
+        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, fields, line })
     }
 
     // fn := 'fn' Word '[' params ']' ('->' type)? block
@@ -257,8 +284,13 @@ impl Parser {
             Tok::Word(_) => return self.err("a return type is written `-> int32` after the parameter list"),
             _ => {}
         }
-        let body = self.block()?;
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails, params, body, line })
+        let body = if self.at_boundary {
+            if *self.peek() == Tok::LBrace { return self.err("an `extern fn` has no body — it lives somewhere else; end it with `;`"); }
+            if !fails.is_empty() { return self.err("an `extern fn` cannot `fail`; C has no failures — a wrapper turns its return value into one"); }
+            self.expect(Tok::Semi, "`;` to end the extern declaration")?;
+            Vec::new()
+        } else { self.block()? };
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, params, body, line })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -341,6 +373,12 @@ impl Parser {
             self.expect(Tok::RBracket, "`]` to close the type parameters")?;
         }
         let head = segs[0].as_str();
+        if head == "ptr" {
+            if !self.at_boundary { return bad_ptr(self); }
+            let mutable = match segs.len() { 1 => false, 2 if segs[1] == "mut" => true, _ => return self.err("a pointer is `ptr[T]` or `ptr.mut[T]`") };
+            if params.len() != 1 { return self.err("a pointer says what it points at: `ptr[uint8]`, `ptr.mut[Timeval]`"); }
+            return Ok(Ty::Ptr(Box::new(params.pop().unwrap()), mutable));
+        }
         let width = |s: &str, prefix: &str| -> Option<u32> { s.strip_prefix(prefix).and_then(|w| w.parse().ok()) };
         let int_w = |n: u32| match n { 8 => Some(IntWidth::W8), 16 => Some(IntWidth::W16), 32 => Some(IntWidth::W32), 64 => Some(IntWidth::W64), 128 => Some(IntWidth::W128), _ => None };
         let bad = |s: &Self, m: String| -> PResult<Ty> { s.err(m) };
@@ -461,6 +499,14 @@ impl Parser {
                 }
                 "otherwise" => self.err("`otherwise` follows a call that can fail: `stash[…] otherwise false;`"),
                 "to" => self.err("`to.…[…]` is a value; use it: `let 'n' := to.int32[\"42\"] otherwise 0;`"),
+                "ptr" => {
+                    // ptr.write[…]; as a statement
+                    let (head, op, args) = self.ptr_op()?;
+                    self.expect(Tok::Semi, "`;`")?;
+                    Ok(Stmt::BuiltinStmt { head, op, args, line })
+                }
+                "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
+                "asm" => self.err("inline assembly is decided to exist but its spelling is not; the oracle refuses it"),
                 _ => {
                     let mut call = self.call()?;
                     call.handler = self.handler()?;
@@ -765,6 +811,18 @@ impl Parser {
         Ok(idx)
     }
 
+    // ptr op := 'ptr' '.' ('read' | 'write' | 'at' | 'is_null') bracket   (design/ffi.md)
+    fn ptr_op(&mut self) -> PResult<(String, String, Bracket)> {
+        self.expect_word("ptr")?;
+        self.expect(Tok::Dot, "`.` after `ptr` (`ptr.read[…]`, `ptr.write[…]`, `ptr.at[…]`, `ptr.is_null[…]`)")?;
+        let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `ptr.`, found {other}")) };
+        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null")) };
+        if *self.peek() != Tok::LBracket { return self.err(format!("`ptr.{op}` is a call and needs `[…]`")); }
+        let args = self.bracket()?;
+        if args.values.len() != want { return self.err(format!("`ptr.{op}` takes {want} argument(s), given {}", args.values.len())); }
+        Ok(("ptr".into(), op, args))
+    }
+
     // builtin := ('list' | 'array') '.' Word bracket
     fn builtin(&mut self) -> PResult<(String, String, Bracket)> {
         let head = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
@@ -993,6 +1051,20 @@ impl Parser {
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
                 "check" | "nocheck" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "ptr" => { let (h, o, a) = self.ptr_op()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "size" | "align" => {
+                    // size.of[T] / align.of[T]   (design/ffi.md)
+                    self.advance();
+                    self.expect(Tok::Dot, &format!("`.of` after `{w}` (`{w}.of[int32]`)"))?;
+                    match self.advance().tok { Tok::Word(o) if o == "of" => {}, other => return self.err(format!("`{w}.of[…]` is the only form, found {other}")) }
+                    self.expect(Tok::LBracket, "`[`")?;
+                    let saved = self.at_boundary; self.at_boundary = true;
+                    let ty = self.ty();
+                    self.at_boundary = saved;
+                    let ty = ty?;
+                    self.expect(Tok::RBracket, "`]`")?;
+                    Ok(Expr::SizeOf(ty, w == "size", line))
+                }
                 "to" => {
                     // to.<type>[value]   (decided 2026-09-19)
                     self.advance();
@@ -1060,6 +1132,10 @@ impl Parser {
             other => self.err(format!("expected a value, found {other}")),
         }
     }
+}
+
+fn bad_ptr<T>(p: &Parser) -> PResult<T> {
+    p.err("`ptr[T]` exists only at the boundary: in an `extern fn` signature or a `layout.c struct` field (design/ffi.md); a pointer is held with `:=`, never declared")
 }
 
 /// Module names (decided 2026-09-19, "whatever has most compat"): lowercase

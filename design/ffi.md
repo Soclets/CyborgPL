@@ -5,7 +5,9 @@ std's print gets made and then: "Syscall and lower-level stuff should be
 able to do, using the base Cyborg language." So the door to the OS is the
 language's, open to every Limb (as in C and Rust); std is the library
 everyone uses, not a privileged one. Inline assembly is also in — spelling
-not yet designed. **Not yet in the oracle.**
+not yet designed. In the oracle since 2026-09-20: every rule below is
+enforced; the oracle cannot link C, so it emulates `write`, `exit`,
+`getenv`, `strlen`, `malloc`, `free` (`examples/ffi.cpls`).
 
 ## `extern` — a function whose body is somewhere else
 
@@ -80,5 +82,5 @@ chose.
 - Callbacks (C calling a Cyborg function) — waits on functions as values.
 - Extern data (`extern const`/`let` for a C global).
 - Reading a C string into a `str.utf8` — std's, behind one intrinsic.
-- Oracle enforcement of all of the above (declarations, `nocheck`
-  requirement, `ptr` placement, `layout.c` field rules); it cannot link C.
+- A text's length (`list.length` refuses a `str`) — string operations are
+  open; `strlen` through the door is the stopgap.

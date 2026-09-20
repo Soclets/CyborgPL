@@ -1,0 +1,6 @@
+extern fn getenv ['n': ptr[uint8]] -> ptr[uint8];
+MAIN {
+    let 'k' := "PATH";
+    nocheck let 'p' := getenv[lend 'k'];
+    nocheck ptr.write['p', 1];
+}
