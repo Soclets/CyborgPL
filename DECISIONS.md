@@ -11,9 +11,13 @@ Three questions: statement vs value — owner: statement (option 1); the
 block — Claude first wrote a list of strings (Rust's shape), owner: "I
 don't think Assembly looks like that" — raw verbatim braces; bindings —
 Claude proposed words and arrows both, owner asked what the arrows were
-for, then: "drop the words, keep the arrows." `nocheck asm { … } with
-['v' -> x0, 'n' <- x0, clobber x16];`. In `design/ffi.md`; oracle
-parses/checks and refuses to run.
+for, then: "drop the words, keep the arrows." Then the head: owner
+proposed `nocheck inline_code.ASM`; Claude offered house style
+`inline.asm` (no underscore, lowercase) and the `inline.<language>` family
+(`inline.C` later via clang); owner took `inline.` but kept the capitals —
+"the inline code name should be easy to spot, just like `MAIN`" — so
+**`nocheck inline.ASM { … } with ['v' -> x0, 'n' <- x0, clobber x16];`**.
+In `design/ffi.md`; oracle parses/checks and refuses to run.
 
 ### 2026-09-20 — FFI in the oracle (Claude, per yesterday's decisions)
 
