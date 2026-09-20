@@ -960,6 +960,33 @@ impl<'p> Interp<'p> {
                     _ => unreachable!(),
                 }
             }
+            // Wrapping arithmetic (decided 2026-09-20): `+~ -~ x~ xx~` are always defined —
+            // modulo the type's size. The oracle wraps at the left operand's declared
+            // integer width (Precog knows every width; the oracle only knows declared ones).
+            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+~" | "-~" | "x~" | "xx~") => {
+                let width = match l.as_ref() {
+                    Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
+                    _ => None,
+                };
+                let (bits, signed) = match width {
+                    Some(Ty::Int(w)) => (int_bits(&w), true),
+                    Some(Ty::Uint(w)) => (int_bits(&w), false),
+                    _ => return rt(line, format!("`{op}` wraps modulo a type's size, and the oracle only knows a declared one: put the left operand in a variable declared `: int32` / `: uint64` (the compiler knows every width)")),
+                };
+                let (a, _) = self.eval(l)?;
+                let (b, _) = self.eval(r)?;
+                let (x, y) = match (a, b) { (Value::Int(x), Value::Int(y)) => (x, y), (a, b) => return rt(line, format!("`{op}` is integer arithmetic, got {} and {}", a.kind(), b.kind())) };
+                let raw = match op.as_str() {
+                    "+~" => x.wrapping_add(y),
+                    "-~" => x.wrapping_sub(y),
+                    "x~" => x.wrapping_mul(y),
+                    _ => { if y < 0 { return rt(line, "a negative exponent on integers would produce a fraction"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
+                };
+                let m: i128 = 1i128 << bits;
+                let mut v = raw.rem_euclid(m);
+                if signed && v >= m / 2 { v -= m; }
+                Ok((Value::Int(v), Prov::Plain))
+            }
             Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "/" | "mod" | "++" | "==" | "!==" | "<" | ">" | "<==" | ">==" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
@@ -1801,6 +1828,8 @@ fn subst(ty: &Ty, map: &HashMap<String, Ty>) -> Ty {
         other => other.clone(),
     }
 }
+
+fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 127 } }
 
 fn const_key(module: &[String], name: &str) -> String { format!("{}/{name}", module.join(".")) }
 fn join_path(module: &[String], name: &str) -> String { if module.is_empty() { name.to_string() } else { format!("{}.{name}", module.join(".")) } }

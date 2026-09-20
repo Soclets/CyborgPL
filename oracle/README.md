@@ -30,7 +30,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `[ ]` is written only where it builds: a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); two values side by side are an error
 - `++` joins text (2026-09-19): both sides must be text (`to.str.utf8[…]` converts); `to.<type>[value]` converts — text→number fails with `not_a_number` and takes `otherwise`, narrowing is a check site, bin→int / bool / char / list / struct are refused; precedence below `+ -`, above comparisons; `print`/`printu` take any number of comma-separated values and render each (stored / useful)
 - precedence as mathematics has it, parentheses required where it has no settled answer (`6 / 2 x 3`, `mod` beside anything, chained comparisons, `not` beside a comparison)
-- `x xx + - / mod ++ == !== < > <== >== and or not`; `!=`, `>=`, `<=`, `--`, `+=`, `-=` are refused with a pointer to the right spelling; `*`, `^`, `%`, `&`, `|`, `!` are refused unless declared with `op`
+- `x xx + - / mod ++ == !== < > <== >== and or not`, wrapping `+~ -~ x~ xx~` (the oracle wraps at the left operand's declared width — a typed variable — and refuses otherwise); `!=`, `>=`, `<=`, `--`, `+=`, `-=` are refused with a pointer to the right spelling; `*`, `^`, `%`, `&`, `|`, `!` are refused unless declared with `op`
 - no implicit conversion between numeric families; a bare literal adopts its
   context's family; typed widths are range-checked
 - `give` / `copy` / `lend` / `lend.mut` at the call, nothing / `lent` /

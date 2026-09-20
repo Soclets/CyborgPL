@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Wrapping arithmetic: `+~ -~ x~ xx~` (owner)
+
+Homes: std functions / operators / a wrapping type; Claude recommended
+operators (the floor-vs-`div.trunc` logic: the default operator is the
+safe meaning, the other has its own spelling) with Zig's `+%`; owner:
+"`%` is percent, not modulo" — Claude offered Swift's `&+` or a tilde;
+owner: "`&` reads like borrow" — "`~` it is." `examples/wrapping.cpls`
+(FNV-1a with no `nocheck`), four reject tests. Surfaced: no bitwise
+operators (xor, and, or, shifts) exist yet — logged open.
+
 ### 2026-09-20 — Interfaces: `interface`, operators definable for user types, automatic satisfaction + `satisfies` claim, `<T: Ordered>` (owner)
 
 "How do you say what your generic supports?" — you don't yet; owner:
@@ -993,7 +1003,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
-- Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
+- Bitwise operators (xor, and, or, not, shifts) — none exist; a hash currently substitutes subtraction. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)

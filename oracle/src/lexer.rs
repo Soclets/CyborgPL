@@ -221,6 +221,13 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             }
             // `inline.ASM { … }` — the braces hold raw assembly, taken verbatim up to
             // the matching `}` (design/ffi.md, 2026-09-20)
+            // `x~` / `xx~` — wrapping multiply / power (decided 2026-09-20): the word and the
+            // tilde are one operator
+            if (s == "x" || s == "xx") && i < chars.len() && chars[i] == '~' {
+                push(Tok::Op(format!("{s}~")), &mut toks);
+                i += 1; col += 1;
+                continue;
+            }
             let is_asm = s == "ASM" && toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
             push(Tok::Word(s), &mut toks);
             if is_asm {
