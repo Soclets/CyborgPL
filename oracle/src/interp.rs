@@ -174,6 +174,7 @@ impl<'p> Interp<'p> {
                 None => Err(format!("no struct named `{n}`")),
             },
             Ty::Var(_) | Ty::Inst(..) => Err("a generic type cannot cross to C".into()),
+            Ty::Ranged(..) => Err("a range type cannot cross to C; C has no ranges — use the plain type".into()),
             other => Err(format!("{} is not C-shaped (numbers, bool, ptr, layout.c structs are)", ty_name(other))),
         }
     }
@@ -612,6 +613,7 @@ impl<'p> Interp<'p> {
         let Some(t) = ty else { return Ok(v) };
         let v = match (t, &v, &prov) {
             (Ty::Bin(_), Value::Int(i), Prov::Literal) => Value::Bin(*i as f64),
+            (Ty::Ranged(b, _, _), Value::Int(i), Prov::Literal) if matches!(**b, Ty::Bin(_)) => Value::Bin(*i as f64),
             _ => v,
         };
         self.check_type(&v, t, line)?;
@@ -646,6 +648,15 @@ impl<'p> Interp<'p> {
             (Ty::List(inner) | Ty::Array(inner), Value::List(items)) => {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
+            }
+            (Ty::Ranged(base, lo, hi), v) => {
+                self.check_type(v, base, line)?;
+                let inside = match (v, lo, hi) {
+                    (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b,
+                    (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b,
+                    _ => true,
+                };
+                if inside { Ok(()) } else { site(line, format!("{} does not fit {name}", v.show_useful())) }
             }
             (Ty::Var(n), v) => {
                 // a blank: bound by the first value that reaches it, checked by every later one
@@ -910,8 +921,13 @@ impl<'p> Interp<'p> {
             Expr::Convert(ty, b, handler, _) => {
                 let (v, _) = self.single(b, line)?;
                 let target = ty_name(ty);
-                let can_fail = matches!(v, Value::Str(_)) && matches!(ty, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_));
-                let fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }] } else { Vec::new() };
+                let full_ty = ty;
+                let (base, ranged): (&Ty, bool) = match ty { Ty::Ranged(b, _, _) => (b, true), t => (t, false) };
+                let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_));
+                let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }] } else { Vec::new() };
+                // into a range type, a value out of range is a failure, not a check (decided 2026-09-20)
+                if ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
+                let ty = base;
                 self.check_handler(handler.as_ref(), &fails, &format!("to.{target}"), line)?;
                 let out = match (ty, &v) {
                     (Ty::Str(_), Value::Nothing) => return rt(line, "a call that returns nothing has no text"),
@@ -934,6 +950,14 @@ impl<'p> Interp<'p> {
                     (Ty::Bool, _) => return rt(line, "nothing converts to bool: there is no truthiness; compare instead"),
                     (t, other) => return rt(line, format!("no conversion from {} to {}", other.kind(), ty_name(t))),
                 };
+                if let Ty::Ranged(_, lo, hi) = full_ty {
+                    let inside = match (&out, lo, hi) { (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b, (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b, _ => true };
+                    if !inside {
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{}", ty_name(full_ty)), "out_of_range".into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        return Ok((v, prov));
+                    }
+                }
                 let prov = if out.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((out, prov))
             }
@@ -1543,6 +1567,7 @@ impl<'p> Interp<'p> {
             Ty::Char(_) | Ty::Str(_) | Ty::List(_) | Ty::Array(_) => (24, 8),
             Ty::Ptr(..) => (8, 8),
             Ty::Var(n) => return rt(line, format!("`size.of[<{n}>]`: a type variable has no size until it is filled")),
+            Ty::Ranged(b, _, _) => return self.size_align(b, line),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
                 let d = match self.prog.structs.iter().find(|d| &d.name == n) { Some(d) => d, None => return rt(line, format!("no struct named `{n}`")) };
@@ -1759,8 +1784,23 @@ impl<'p> Interp<'p> {
                 other => rt(c.line, format!("std::{other} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")),
             };
         }
-        if c.handler.is_some() { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
+        if c.handler.is_some() && !path.starts_with("input.") { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
         match path.as_str() {
+            "input.line" | "input.all" => {
+                // a boundary (decided 2026-09-20): text as it came; `closed` when there is none
+                if !c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes no arguments")); }
+                let fails = vec![FailCase { name: "closed".into(), ty: None }];
+                self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
+                let mut text = String::new();
+                let got = if path == "input.line" {
+                    match std::io::stdin().read_line(&mut text) { Ok(0) => false, Ok(_) => { if text.ends_with('\n') { text.pop(); if text.ends_with('\r') { text.pop(); } } true }, Err(_) => false }
+                } else {
+                    use std::io::Read;
+                    match std::io::stdin().read_to_string(&mut text) { Ok(0) => false, Ok(_) => true, Err(_) => false }
+                };
+                if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), "closed".into(), None, value_used); }
+                Ok(Value::Str(text))
+            }
             "div.trunc" | "mod.trunc" => {
                 // hardware truncation, by name (decided 2026-09-20); the language's `/` and `mod` floor
                 if c.args.values.len() != 2 { return rt(c.line, format!("std::{path} takes two integers")); }
@@ -1808,7 +1848,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b),
     }
 }
 

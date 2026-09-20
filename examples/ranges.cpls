@@ -1,0 +1,23 @@
+# Range types (design/input.md, 2026-09-20): a type with bounds, provably within them.
+struct Percent { value: uint8[0, 100] }
+
+fn scale ['p': Percent, 'total': int32[0, 1000]] -> int32[0, 1000] {
+    return ('total' x to.int32['p'.value]) / 100;
+}
+
+MAIN {
+    let 'half' := Percent[value = 50];
+    std::printu.stdout[scale[give 'half', 800], \n];
+    let 'raw' := 250;
+    if 'raw' >== 0 and 'raw' <== 100 {
+        let 'ok': int32[0, 100] = 'raw';                   # the if is the guardrail; a check site
+        std::printu.stdout['ok', \n];
+    } else {
+        std::print.stdout["250 is not a percentage", \n];
+    }
+    let 'r' := to.uint8[0, 100]["42"] otherwise 0;          # into a range type: fails, does not check
+    let 'bad' := to.uint8[0, 100]["142"] otherwise 0;
+    std::printu.stdout['r', " ", 'bad', \n];
+    let 'unit': bin64[0.0, 1.0] = 0.25;
+    std::printu.stdout['unit', \n];
+}

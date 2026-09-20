@@ -524,6 +524,28 @@ impl Parser {
             if *self.peek() == Tok::Dot { self.advance(); continue; }
             break;
         }
+        // `int32[0, 100]` — a range type (design/input.md): a numeric head with two bounds
+        {
+            let head = segs[0].as_str();
+            let numeric = ["int", "uint", "bin", "deci"].iter().any(|p| head.strip_prefix(p).map(|w| w.parse::<u32>().is_ok()).unwrap_or(false));
+            let range_ahead = *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_)) || matches!(self.peek_at(1), Tok::Op(o) if o == "-"));
+            if numeric && range_ahead && (!self.to_target || self.bracket_then_bracket()) {
+                self.advance();
+                let lo = self.bound()?;
+                self.expect(Tok::Comma, "`,` between the bounds")?;
+                let hi = self.bound()?;
+                self.expect(Tok::RBracket, "`]` after the bounds")?;
+                let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0 }, Token { tok: Tok::Eof, line: 0, col: 0 }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
+                match (&base, &lo, &hi) {
+                    (Ty::Int(_) | Ty::Uint(_), Bound::Bin(_), _) | (Ty::Int(_) | Ty::Uint(_), _, Bound::Bin(_)) => return self.err("an integer's bounds are integers"),
+                    (Ty::Bin(_) | Ty::Deci(_), Bound::Int(_), _) | (Ty::Bin(_) | Ty::Deci(_), _, Bound::Int(_)) => return self.err("a bin's bounds are written as bins: `bin64[0.0, 1.0]`"),
+                    _ => {}
+                }
+                let ok = match (&lo, &hi) { (Bound::Int(a), Bound::Int(b)) => a <= b, (Bound::Bin(a), Bound::Bin(b)) => a <= b, _ => true };
+                if !ok { return self.err("a range's low bound comes first: `int32[0, 100]`"); }
+                return Ok(Ty::Ranged(Box::new(base), lo, hi));
+            }
+        }
         let mut params = Vec::new();
         if *self.peek() == Tok::LBracket && !self.to_target {
             self.advance();
@@ -959,6 +981,30 @@ impl Parser {
         Ok(Some(h))
     }
 
+    /// A range type's bound: a numeric literal, possibly negated.
+    fn bound(&mut self) -> PResult<Bound> {
+        let neg = if matches!(self.peek(), Tok::Op(o) if o == "-") { self.advance(); true } else { false };
+        match self.advance().tok {
+            Tok::Int(i) => Ok(Bound::Int(if neg { -i } else { i })),
+            Tok::Bin(b) => Ok(Bound::Bin(if neg { -b } else { b })),
+            other => self.err(format!("a range's bounds are numeric literals, found {other}")),
+        }
+    }
+
+    /// `[ … ][` — in `to.int32[0, 100]['text']` the first bracket is the range, the second the value.
+    fn bracket_then_bracket(&self) -> bool {
+        let mut i = 0; let mut depth = 0;
+        loop {
+            match self.peek_at(i) {
+                Tok::LBracket => depth += 1,
+                Tok::RBracket => { depth -= 1; if depth == 0 { return *self.peek_at(i + 1) == Tok::LBracket; } }
+                Tok::Eof => return false,
+                _ => {}
+            }
+            i += 1;
+        }
+    }
+
     /// Word ('.' Word)+ not followed by '[' or '::'  — an enum case with no data
     fn is_enum_bare(&self) -> bool {
         let mut i = 0;
@@ -1358,6 +1404,7 @@ impl Parser {
                     self.to_target = false;
                     let ty = ty?;
                     if matches!(ty, Ty::List(_) | Ty::Array(_) | Ty::Struct(_) | Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers and text", ty_name(&ty))); }
+                    if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     let b = self.bracket()?;
                     if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }

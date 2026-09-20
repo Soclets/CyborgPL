@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Input: `std::input.line` / `.all` failing with `closed`; range types `int32[0, 100]` (owner)
+
+(1) reading: two std functions returning `str.utf8`, `closed` on nothing
+left — yes (owner caught Claude's nested `otherwise` inside a bracket,
+which the whole-right-hand-side rule forbids; two lines instead).
+(2) how Precog learns an outside value's range: guardrail `if` / bound on
+the conversion / range types; owner noted `int32` is already a bound;
+chose **c, range types**. (3) spelling `int32[0, 100]` — yes. (4) two
+ways in: assignment (a check site) and `to.int32[0, 100][…]` (fails
+`out_of_range`) — yes. `design/input.md`; oracle: `examples/input.cpls`,
+`examples/ranges.cpls`, ten reject tests. Closes "input" and "boundary
+range annotations".
+
 ### 2026-09-20 — Wrapping arithmetic: `+~ -~ x~ xx~` (owner)
 
 Homes: std functions / operators / a wrapping type; Claude recommended
@@ -1003,10 +1016,9 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
-- Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
+- Range types on non-numbers (a text's or list's length bound) — the old "length at a boundary" question, now shaped like `int32[0, 100]`; one-ended ranges. (2026-09-20)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
-- Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Bitwise operators (xor, and, or, not, shifts) — none exist; a hash currently substitutes subtraction. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)

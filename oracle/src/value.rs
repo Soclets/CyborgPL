@@ -131,10 +131,13 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Array(t) => format!("array[{}]", ty_name(t)),
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
+        Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
         Ty::Inst(n, args) => format!("{n}[{}]", args.iter().map(ty_name).collect::<Vec<_>>().join(", ")),
         Ty::Ptr(t, m) => format!("ptr{}[{}]", if *m { ".mut" } else { "" }, ty_name(t)),
     }
 }
+
+pub fn bound_name(b: &crate::ast::Bound) -> String { match b { crate::ast::Bound::Int(i) => i.to_string(), crate::ast::Bound::Bin(x) => format!("{x}") } }
 
 fn w_num(w: &IntWidth) -> u32 {
     match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }

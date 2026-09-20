@@ -1,0 +1,4 @@
+struct P { v: uint8[0, 100] }
+MAIN {
+    let 'p' := P[v = 120];
+}

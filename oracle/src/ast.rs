@@ -22,7 +22,14 @@ pub enum Ty {
     Var(String),
     /// `Stack[int32]` — a generic struct or enum with its blanks filled, in order of first appearance
     Inst(String, Vec<Ty>),
+    /// `int32[0, 100]` / `bin64[0.0, 1.0]` — a range type (design/input.md, 2026-09-20): the base
+    /// type, provably within inclusive bounds; assigning into it is a check site
+    Ranged(Box<Ty>, Bound, Bound),
 }
+
+/// A range type's bound: a numeric literal.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Bound { Int(i128), Bin(f64) }
 
 impl Ty {
     /// The type variables mentioned, in order of first appearance — a generic
