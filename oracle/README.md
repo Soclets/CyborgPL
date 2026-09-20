@@ -30,8 +30,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `[ ]` is written only where it builds: a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); two values side by side are an error
 - `++` joins text (2026-09-19): both sides must be text (`to.str.utf8[…]` converts); `to.<type>[value]` converts — text→number fails with `not_a_number` and takes `otherwise`, narrowing is a check site, bin→int / bool / char / list / struct are refused; precedence below `+ -`, above comparisons; `print`/`printu` take any number of comma-separated values and render each (stored / useful)
 - precedence as mathematics has it, parentheses required where it has no settled answer (`6 / 2 x 3`, `mod` beside anything, chained comparisons, `not` beside a comparison)
-- `x xx + - / mod == !== < > <== >== and or not`; `*`, `^`, `%`, `!=`, `>=`,
-  `++`, `+=` are refused with a pointer to the right spelling
+- `x xx + - / mod ++ == !== < > <== >== and or not`; `!=`, `>=`, `<=`, `--`, `+=`, `-=` are refused with a pointer to the right spelling; `*`, `^`, `%`, `&`, `|`, `!` are refused unless declared with `op`
 - no implicit conversion between numeric families; a bare literal adopts its
   context's family; typed widths are range-checked
 - `give` / `copy` / `lend` / `lend.mut` at the call, nothing / `lent` /
@@ -50,6 +49,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - text (design/strings.md, 2026-09-20): `str.bytes/points/graphemes[lend 's']`, `str.each.<unit>[…]`; `str.length`, `'s'[pos …]`, `<` on text, and a bare `for` over a text are refused; emulated std: `std::str.split/join/contains/starts_with/ends_with/trim/upper/lower/replace`, `at.<unit>` and `slice.grapheme` (fail out_of_range), `find.grapheme` (fail missing)
 - enums (design/enums.md, 2026-09-20): `enum S { a  b: int32 }`, `S.a`, `S.b[1]`, `match 's' { a { } b 'v' { } }` with every case covered; an enum is owned; `==` works; `match` on a non-enum is refused
 - `/` on integers floors and `mod` has the divisor's sign (2026-09-20); `std::div.trunc` / `std::mod.trunc` truncate
+- custom operators (design/operators.md, 2026-09-20): `op <+> ['a': V, 'b': V] -> V { }`, `op dot […]`, `op ** [give 'a': V, 'b': bin64] -> V { }`; a run of `! % & * + - / < > = ? @ ^ | ~` is one operator; no precedence (parenthesise); operands lent unless `give`; the language's operators and near-misses cannot be redefined; an op is never called with `[…]`
 - `const 'x' := v;` at the top level only — evaluated before MAIN in order, never assignable/shadowed/verbed, a `std::` call in its value is refused; `let` at the top level is refused
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `struct Name { f: type … }` (bare field names, 2026-09-19), construction by field name `Name[f = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut f: type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields

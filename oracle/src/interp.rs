@@ -937,6 +937,9 @@ impl<'p> Interp<'p> {
                     _ => unreachable!(),
                 }
             }
+            Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "/" | "mod" | "++" | "==" | "!==" | "<" | ">" | "<==" | ">==" | "and" | "or") => {
+                self.custom_op(op, l, r, line)
+            }
             Expr::Binary(op, l, r, _) => {
                 let (a, pa) = self.eval(l)?;
                 let (b, pb) = self.eval(r)?;
@@ -1105,6 +1108,7 @@ impl<'p> Interp<'p> {
         if !self.reachable(&c.from, &func.module, func.vis) {
             return rt(c.line, format!("`{}` is private to `{}`; mark it `pub` or `pub.limb`", join_path(&func.module, name), root_or(&func.module)));
         }
+        if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
         if func.is_extern {
             if self.nocheck_depth == 0 { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a nocheck site: `nocheck … {name}[…]`")); }
             if c.handler.is_some() { return rt(c.line, format!("`{name}` is extern and cannot fail; drop the `otherwise` (a wrapper turns its return into a failure)")); }
@@ -1173,18 +1177,7 @@ impl<'p> Interp<'p> {
             bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(Value::List(rest))), ty: None, kind, alive: true, immut: p.mutability == Some(Mutability::Immut) }));
         }
 
-        // A function's scopes are its own: it cannot see the caller's variables.
-        let saved = std::mem::replace(&mut self.scopes, vec![HashMap::new()]);
-        let saved_module = std::mem::replace(&mut self.module, func.module.clone());
-        let saved_fails = std::mem::replace(&mut self.fails, func.fails.clone());
-        let flow = (|| {
-            for (n, s) in bound { self.declare(&n, s, func.line)?; }
-            self.stmts(&func.body)
-        })();
-        self.scopes = saved;
-        self.module = saved_module;
-        self.fails = saved_fails;
-
+        let flow = self.run_body(func, bound);
         let result = match flow? {
             Flow::Return(v) => v,
             Flow::Normal => Value::Nothing,
@@ -1196,6 +1189,72 @@ impl<'p> Interp<'p> {
             (Some(t), v) => { self.check_type(v, t, c.line)?; Ok(result) }
             (None, _) => Ok(result),
         }
+    }
+
+    /// Run a function's body with its parameters bound. A function's scopes are its
+    /// own: it cannot see the caller's variables.
+    fn run_body(&mut self, func: &Func, bound: Vec<(String, Slot)>) -> Result<Flow, RuntimeError> {
+        let saved = std::mem::replace(&mut self.scopes, vec![HashMap::new()]);
+        let saved_module = std::mem::replace(&mut self.module, func.module.clone());
+        let saved_fails = std::mem::replace(&mut self.fails, func.fails.clone());
+        let flow = (|| {
+            for (n, s) in bound { self.declare(&n, s, func.line)?; }
+            self.stmts(&func.body)
+        })();
+        self.scopes = saved;
+        self.module = saved_module;
+        self.fails = saved_fails;
+        flow
+    }
+
+    /// A custom operator (decided 2026-09-20): `'u' <+> 'v'` / `'u' dot 'v'`. Operands
+    /// are lent unless the `op` says `give`, in which case the caller writes `give` too.
+    fn custom_op(&mut self, op: &str, l: &Expr, r: &Expr, line: usize) -> Result<(Value, Prov), RuntimeError> {
+        let def = match self.prog.funcs.iter().find(|f| f.is_op && f.name == op) {
+            Some(f) => f.clone(),
+            None => {
+                let hint = match op {
+                    "*" => "; multiply is `x`, power is `xx`", "^" => "; power is `xx`", "%" => "; remainder is `mod`",
+                    "&" | "|" | "!" => "; use `and`, `or`, `not`", _ => "",
+                };
+                return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));
+            }
+        };
+        let mut bound = Vec::new();
+        for (expr, param) in [(l, &def.params[0]), (r, &def.params[1])] {
+            let (v, prov) = self.eval(expr)?;
+            let slot = match param.kind {
+                ParamKind::Owned => {
+                    match &prov {
+                        Prov::Bare(n) => return rt(line, format!("`{op}` takes '{}' by value: write `give '{n}'` (or `copy '{n}'`)", param.name)),
+                        Prov::Borrowed(..) => return rt(line, format!("`{op}` takes '{}' by value, not a lend", param.name)),
+                        _ => {}
+                    }
+                    let v = self.fit(v, prov, param.ty.as_ref(), line)?;
+                    Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind: SlotKind::Owned, alive: true, immut: false }
+                }
+                _ => {
+                    // lent: an operand is looked at, never consumed; a variable is borrowed in place
+                    let is_lit = matches!(prov, Prov::Literal);
+                    let cell = match (expr, &prov) {
+                        (Expr::Var(name, _), Prov::Bare(_)) => { if let Some(t) = &param.ty { self.check_type(&v, t, line)?; } self.lookup(name).map(|s| s.cell.clone()).unwrap_or_else(|| Rc::new(RefCell::new(v))) }
+                        (_, Prov::Borrowed(c, _)) => { if let Some(t) = &param.ty { self.check_type(&v, t, line)?; } c.clone() }
+                        _ => { let v = self.fit(v, if is_lit { Prov::Literal } else { Prov::Plain }, param.ty.as_ref(), line)?; Rc::new(RefCell::new(v)) }
+                    };
+                    Slot { cell, ty: param.ty.clone(), kind: SlotKind::Lent, alive: true, immut: false }
+                }
+            };
+            bound.push((param.name.clone(), slot));
+        }
+        let result = match self.run_body(&def, bound)? {
+            Flow::Return(v) => v,
+            Flow::Normal => return rt(line, format!("`op {op}` fell off the end without returning a value")),
+            Flow::Break | Flow::Continue => return rt(def.line, "`break`/`continue` outside a loop"),
+            Flow::Fail(..) => return rt(line, "an operator cannot fail"),
+        };
+        if let Some(t) = &def.ret { self.check_type(&result, t, line)?; }
+        let prov = if result.is_owned() { Prov::Fresh } else { Prov::Plain };
+        Ok((result, prov))
     }
 
     /// The caller's side, checked before anything runs (as the compiler would): a

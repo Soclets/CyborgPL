@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Custom operators: `op`, words and glyphs, any run, no precedence, lent-or-`give` operands (owner)
+
+Owner: "How do you make a custom operator?" — not yet; then "one by one".
+(1) words only vs glyphs too — owner: glyphs too. (2) the characters
+`! % & * + - / < > = ? @ ^ | ~`; Claude proposed a three-character cap;
+owner: `<+>-` is just an operator, a negative goes on the operand — a
+maximal run is one operator, no cap. (3) precedence — owner: "Require"
+(parentheses whenever a custom operator meets another). (4) operands —
+Claude proposed always-lent; owner asked the difference, then how Rust
+behaves (by value; four impls), then which has better performance
+(by-value can reuse a dead operand's buffer); owner: "middle" — lent by
+default, `give` on an operand takes it by value and the caller writes
+`give`. `design/operators.md`; oracle: `examples/operators.cpls`, thirteen
+reject tests. Closes the "custom operators" open item.
+
 ### 2026-09-20 — The borrowed prints are removed (owner)
 
 "Remove `std::<lang>.<prints>`." `std::c.printf`, `std::c.fprintf.stderr`,
@@ -949,7 +964,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
-- Custom operators: `op` definition shape, bare infix use, and the precedence rule (Claude recommends: no precedence anywhere, parentheses required when mixing different operators). (Claude, 2026-09-14)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)

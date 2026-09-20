@@ -249,38 +249,43 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         // multi-char punctuation, longest first
         let rest: String = chars[i..chars.len().min(i + 3)].iter().collect();
         let two: String = rest.chars().take(2).collect();
-        if rest.starts_with("!==") { push(Tok::Op("!==".into()), &mut toks); i += 3; col += 3; continue; }
-        if rest.starts_with("<==") { push(Tok::Op("<==".into()), &mut toks); i += 3; col += 3; continue; }
-        if rest.starts_with(">==") { push(Tok::Op(">==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
-        if rest.starts_with("<->") { push(Tok::BothArrow, &mut toks); i += 3; col += 3; continue; }
-        if two == "->" { push(Tok::Arrow, &mut toks); i += 2; col += 2; continue; }
-        if two == "<-" { push(Tok::LeftArrow, &mut toks); i += 2; col += 2; continue; }
-        if rest.starts_with("...") { push(Tok::Ellipsis, &mut toks); i += 3; col += 3; continue; }
         if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
         if c == '$' { return err(tl, tc, "`$` marks a shadowing declaration and sits on the operator: `$:=` or `$=`".into()); }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }
         if two == ":=" { push(Tok::Walrus, &mut toks); i += 2; col += 2; continue; }
         if c == ':' { push(Tok::Colon, &mut toks); i += 1; col += 1; continue; }
-        if two == "==" { push(Tok::Op("==".into()), &mut toks); i += 2; col += 2; continue; }
-        if two == "!=" { return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()); }
-        if two == "<=" { return err(tl, tc, "`<=` is not an operator; less-or-equal is `<==`".into()); }
-        if two == ">=" { return err(tl, tc, "`>=` is not an operator; greater-or-equal is `>==`".into()); }
-        if two == "++" { push(Tok::Op("++".into()), &mut toks); i += 2; col += 2; continue; }   // text join (decided 2026-09-19)
-        if two == "--" || two == "+=" || two == "-=" {
-            return err(tl, tc, format!("`{two}` does not exist; write the assignment in full: 'i' = 'i' + 1;"));
+        if rest.starts_with("...") { push(Tok::Ellipsis, &mut toks); i += 3; col += 3; continue; }
+
+        // Operator characters (decided 2026-09-20): a maximal run is one operator —
+        // the language's own, or a custom `op`; a space separates two. `$`, `:`, `.`
+        // and the brackets are grammar, not operator characters.
+        const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
+        if OP_CHARS.contains(c) {
+            let mut run = String::new();
+            let mut j = i;
+            while j < chars.len() && OP_CHARS.contains(chars[j]) { run.push(chars[j]); j += 1; }
+            let n = run.len();
+            let tok = match run.as_str() {
+                "->" => Tok::Arrow,
+                "<-" => Tok::LeftArrow,
+                "<->" => Tok::BothArrow,
+                "=" => Tok::Eq,
+                "!=" => return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()),
+                "<=" => return err(tl, tc, "`<=` is not an operator; less-or-equal is `<==`".into()),
+                ">=" => return err(tl, tc, "`>=` is not an operator; greater-or-equal is `>==`".into()),
+                "--" | "+=" | "-=" => return err(tl, tc, format!("`{run}` does not exist; write the assignment in full: 'i' = 'i' + 1;")),
+                _ => Tok::Op(run),   // built-in or custom; the parser tells them apart
+            };
+            push(tok, &mut toks);
+            i = j; col += n; continue;
         }
 
         let single = match c {
             '[' => Tok::LBracket, ']' => Tok::RBracket,
             '{' => Tok::LBrace, '}' => Tok::RBrace,
             '(' => Tok::LParen, ')' => Tok::RParen,
-            '.' => Tok::Dot, '=' => Tok::Eq, ';' => Tok::Semi, ',' => Tok::Comma,
-            '+' | '-' | '/' | '<' | '>' => Tok::Op(c.to_string()),
-            '*' => return err(tl, tc, "`*` is not an operator; multiply is `x`, power is `xx`".into()),
-            '^' => return err(tl, tc, "`^` is not an operator; power is `xx`".into()),
-            '%' => return err(tl, tc, "`%` is not an operator; remainder is `mod`".into()),
-            '&' | '|' | '!' => return err(tl, tc, format!("`{c}` is not an operator; use `and`, `or`, `not`")),
+            '.' => Tok::Dot, ';' => Tok::Semi, ',' => Tok::Comma,
             '#' => {
                 // Comments (decided 2026-09-17):
                 //   #      from here to the end of this line

@@ -106,7 +106,7 @@ impl Parser {
                     }
                 }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
                     other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
@@ -194,7 +194,43 @@ impl Parser {
                     if *self.peek() == Tok::LBracket { return self.err("MAIN is a block, not a function: `MAIN { … }`, no parameter list"); }
                     prog.main = Some(self.block()?);
                 }
-                Tok::Word(w) if w == "op" => return self.err("custom operators (`op`) are not decided yet; the oracle refuses them"),
+                Tok::Word(w) if w == "op" => {
+                    // op NAME ['a': T, 'b': T] -> R { … }   (decided 2026-09-20)
+                    let line = self.line();
+                    self.advance();
+                    let name = match self.advance().tok {
+                        Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot be an operator")),
+                        Tok::Word(n) if OP_WORDS.contains(&n.as_str()) || n == "not" => return self.err(format!("`{n}` is the language's operator; it cannot be redefined")),
+                        Tok::Word(n) => n,
+                        Tok::Op(o) if Parser::level(&o) != 0 => return self.err(format!("`{o}` is the language's operator; it cannot be redefined")),
+                        Tok::Op(o) => o,
+                        Tok::Var(v) => return self.err(format!("an operator's name is bare — a word or a run of operator characters, not `'{v}'`")),
+                        other => return self.err(format!("expected an operator name after `op`, found {other}")),
+                    };
+                    self.expect(Tok::LBracket, "`[` to open the two operands")?;
+                    let mut params = Vec::new();
+                    loop {
+                        let pline = self.line();
+                        let kind = match self.peek().clone() {
+                            Tok::Word(w) if w == "give" => { self.advance(); ParamKind::Owned }
+                            Tok::Word(w) if w == "lent" || w == "lend" => return self.err("an operator's operands are lent by default; write just `'a': T` (or `give 'a': T` to take it by value)"),
+                            Tok::Word(w) if w == "mut" || w == "immut" || w == "copy" => return self.err(format!("`{w}` has no meaning on an operand; an operand is lent, or `give`")),
+                            Tok::Ellipsis => return self.err("an operator takes exactly two operands; no `...`"),
+                            _ => ParamKind::Lent,
+                        };
+                        let pname = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted operand name, found {other}")) };
+                        let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
+                        params.push(Param { kind, mutability: None, ty, name: pname, variadic: false, line: pline });
+                        if *self.peek() == Tok::Comma { self.advance(); continue; }
+                        break;
+                    }
+                    self.expect(Tok::RBracket, "`]`")?;
+                    if params.len() != 2 { return self.err(format!("an operator takes exactly two operands, `op {name}` has {}", params.len())); }
+                    let ret = if *self.peek() == Tok::Arrow { self.advance(); Some(self.ty()?) } else { return self.err("an operator produces a value: `-> T` is required"); };
+                    if self.is_word("or") { return self.err("an operator cannot fail; make it a `fn` if it can"); }
+                    let body = self.block()?;
+                    prog.funcs.push(Func { name, module: self.module.clone(), vis, ret, fails: Vec::new(), is_extern: false, is_op: true, params, body, line });
+                }
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
                 Tok::Word(w) if w == "let" || w == "var" => return self.err("a `let` cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
@@ -320,7 +356,7 @@ impl Parser {
             self.expect(Tok::Semi, "`;` to end the extern declaration")?;
             Vec::new()
         } else { self.block()? };
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, params, body, line })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -1000,10 +1036,14 @@ impl Parser {
         match self.peek() {
             Tok::Op(o) => Some(o.clone()),
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
+            // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
+            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(1) != Tok::LBracket && *self.peek_at(1) != Tok::ColonColon && *self.peek_at(1) != Tok::Dot => Some(w.clone()),
             Tok::Eq => Some("=".into()),
             _ => None,
         }
     }
+
+    fn is_custom_op(op: &str) -> bool { Parser::level(op) == 0 && op != "=" }
 
     // expr — precedence follows mathematics where mathematics has a settled
     // answer (decided 2026-09-14); where it does not, parentheses are required;
@@ -1046,6 +1086,17 @@ impl Parser {
         loop {
             let Some(op) = self.binop() else { break };
             if op == "=" { return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
+            if Parser::is_custom_op(&op) {
+                // A custom operator has no precedence (decided 2026-09-20): it may not
+                // sit next to another operator without parentheses.
+                if min > 0 { break; }
+                if matches!(lhs, Expr::Binary(..)) { return self.err(format!("`{op}` next to another operator: a custom operator has no precedence — parenthesise")); }
+                self.advance();
+                let rhs = self.unary()?;
+                if let Some(next) = self.binop() { if next != "=" { return self.err(format!("`{next}` after `{op}`: a custom operator has no precedence — parenthesise")); } }
+                lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
+                continue;
+            }
             let lv = Self::level(&op);
             if lv < min || lv == 0 { break; }
             self.advance();

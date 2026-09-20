@@ -105,6 +105,9 @@ pub struct Func {
     pub fails: Vec<FailCase>,
     /// `extern fn …;` — the body is somewhere else (design/ffi.md); a call is a nocheck site
     pub is_extern: bool,
+    /// `op NAME ['a': T, 'b': T] -> R { }` — a custom operator (design/operators.md, 2026-09-20):
+    /// used between two operands, never called with `[…]`; operands lent unless `give`
+    pub is_op: bool,
     pub params: Vec<Param>,
     pub body: Vec<Stmt>,
     pub line: usize,

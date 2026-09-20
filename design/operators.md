@@ -66,3 +66,55 @@ Tightest to loosest:
 - Integer division vs. `/` on `int` (truncate? error on inexact?).
 - `mod` on negative operands (sign of the result).
 
+## Custom operators — `op` (decided 2026-09-20)
+
+```
+struct Vec { x: bin64  y: bin64 }
+op <+> ['a': Vec, 'b': Vec] -> Vec { return Vec[x = 'a'.x + 'b'.x, y = 'a'.y + 'b'.y]; }
+op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
+op **  [give 'a': Vec, 'b': bin64] -> Vec { … return give 'a'; }
+
+let 'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
+let 'd' := ('u' <+> 'v') dot 'v';       # parenthesise when operators meet
+let 's' := give 'u' ** 10;              # this op takes 'a' by value; the caller says so
+```
+
+Four questions, one at a time:
+
+1. **Words and glyphs** (owner: "glyphs too", over Claude's words-only).
+   A word operator is a bare non-keyword word between operands — the
+   mechanism `x`, `mod`, `and` already use, possible only because names
+   are quoted.
+2. **Which characters, how long.** A glyph operator is any run of
+   `! % & * + - / < > = ? @ ^ | ~` — the characters not taken by the
+   grammar (`$` is the shadow mark, `:` `.` and the brackets are
+   structure). **A maximal run is one operator**; a space separates two:
+   `'a' <+> -'b'` is `<+>` then a negation, `'a' <+>-'b'` is the operator
+   `<+>-`. Claude proposed a three-character cap; owner: "isn't `<+>-` an
+   operator? if they wanted negative, they could put that inside `b`" —
+   no cap. The language's own operators and its deliberate near-misses
+   (`!=`, `<=`, `>=`, `--`, `+=`, `-=`) cannot be redefined; `*`, `^`,
+   `%`, `&`, `|`, `!` are free to declare, and undeclared they still
+   point at `x`, `xx`, `mod`, `and`/`or`/`not`.
+3. **No precedence** (owner: "Require"). A custom operator next to any
+   other operator is a compile error until parenthesised — the `mod`
+   rule: where there is no settled reading, parens. Nobody memorises a
+   library's table.
+4. **Operands are lent by default; `give` on an operand takes it by value,
+   and then the caller writes `give` too** (owner: "middle", between
+   always-lent and Rust's by-value). Rust's `a + b` moves both operands,
+   which is why every numeric crate writes four `impl`s per operator;
+   always-lent reads like arithmetic but cannot reuse a dead operand's
+   buffer (`s = s + "x"` in a loop). The middle keeps `'u' <+> 'v'` for
+   the common case and lets an `op` say `give 'a'` when it wants the
+   memory. Precog may elide the copy in the lent case when the operand is
+   dead; the `give` form guarantees it.
+
+Rules that follow: exactly two operands; `-> T` required; an operator
+cannot fail (make it a `fn`); it is never called with `[…]`; `not` and the
+language's operators cannot be redefined. Prefix (one-operand) custom
+operators are not offered.
+
+Oracle: `examples/operators.cpls`, thirteen reject tests. It resolves an
+operator by name across the whole program (visibility not modelled for
+operators — open).
