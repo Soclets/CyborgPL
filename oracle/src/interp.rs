@@ -81,6 +81,10 @@ pub struct Interp<'p> {
     /// how many `nocheck` statements enclose the running code (extern calls and
     /// pointer reads/writes need at least one — design/ffi.md)
     nocheck_depth: usize,
+    /// type variables (`<T>`) of the running generic function, bound to a value's
+    /// shape as arguments arrive (design/generics.md); the oracle checks
+    /// consistency by kind, the compiler specialises per type
+    tvars: std::cell::RefCell<HashMap<String, String>>,
     /// `lend.mut 'x'.field` hands out a temporary cell; at the end of the statement
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
@@ -90,7 +94,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, nocheck_depth: 0, field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -168,6 +172,7 @@ impl<'p> Interp<'p> {
                 Some(_) => Err(format!("struct `{n}` is not `layout.c`; its layout is Precog's, not C's")),
                 None => Err(format!("no struct named `{n}`")),
             },
+            Ty::Var(_) | Ty::Inst(..) => Err("a generic type cannot cross to C".into()),
             other => Err(format!("{} is not C-shaped (numbers, bool, ptr, layout.c structs are)", ty_name(other))),
         }
     }
@@ -641,6 +646,35 @@ impl<'p> Interp<'p> {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
             }
+            (Ty::Var(n), v) => {
+                // a blank: bound by the first value that reaches it, checked by every later one
+                let shape = shape_of(v);
+                let mut vars = self.tvars.borrow_mut();
+                match vars.get(n) {
+                    Some(s) if *s == shape => Ok(()),
+                    Some(s) => rt(line, format!("`<{n}>` was filled with {s} earlier in this call, now {shape} — one blank, one type")),
+                    None => { vars.insert(n.clone(), shape); Ok(()) }
+                }
+            }
+            (Ty::Inst(want, args), Value::Struct(have, fields)) => {
+                if want != have { return rt(line, format!("expected a {name}, got a {have}")); }
+                let def = match self.prog.structs.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no struct named `{want}`")) };
+                if def.params.len() != args.len() { return rt(line, format!("`{want}` has {} blank(s) ({}), given {}", def.params.len(), def.params.iter().map(|p| format!("<{p}>")).collect::<Vec<_>>().join(", "), args.len())); }
+                let map: HashMap<String, Ty> = def.params.iter().cloned().zip(args.iter().cloned()).collect();
+                for f in &def.fields {
+                    if let Some((_, fv)) = fields.iter().find(|(k, _)| k == &f.name) { self.check_type(fv, &subst(&f.ty, &map), line)?; }
+                }
+                Ok(())
+            }
+            (Ty::Inst(want, args), Value::Enum(have, case, data)) => {
+                if want != have { return rt(line, format!("expected a {name}, got a {have}")); }
+                let def = match self.prog.enums.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{want}`")) };
+                if def.params.len() != args.len() { return rt(line, format!("`{want}` has {} blank(s), given {}", def.params.len(), args.len())); }
+                let map: HashMap<String, Ty> = def.params.iter().cloned().zip(args.iter().cloned()).collect();
+                if let (Some(c), Some(d)) = (def.cases.iter().find(|c| c.name == *case), data) { if let Some(t) = &c.ty { self.check_type(d, &subst(t, &map), line)?; } }
+                Ok(())
+            }
+            (Ty::Inst(want, _), v) => rt(line, format!("expected a {want}[…], got {}", v.kind())),
             (Ty::Struct(want), Value::Struct(have, _)) | (Ty::Struct(want), Value::Enum(have, _, _)) => {
                 if want == have { Ok(()) } else { rt(line, format!("expected a {want}, got a {have}")) }
             }
@@ -850,26 +884,11 @@ impl<'p> Interp<'p> {
                 if !self.reachable(&from, &def.module, def.vis) {
                     return rt(line, format!("struct `{sname}` is private to `{}`; mark it `pub` or `pub.limb`", root_or(&def.module)));
                 }
-                for (k, _) in given { if !def.fields.iter().any(|f| &f.name == k) { return rt(line, format!("{sname} has no field `{k}`")); } }
-                let mut out = Vec::new();
-                for f in &def.fields {
-                    let b = match given.iter().find(|(k, _)| k == &f.name) {
-                        Some((_, b)) => b,
-                        None => return rt(line, format!("{sname} is missing `{}`: every field must be given — there are no zero values", f.name)),
-                    };
-                    if given.iter().filter(|(k, _)| k == &f.name).count() > 1 { return rt(line, format!("`{}` is given twice", f.name)); }
-                    let (v, prov) = self.bracket(b, line)?;
-                    match prov {
-                        Prov::Bare(n) => return rt(line, format!("bare '{n}' as field `{}`: say `give '{n}'` or `copy '{n}'`", f.name)),
-                        Prov::Borrowed(..) => return rt(line, format!("a struct owns its fields; `{}` cannot hold a lend", f.name)),
-                        _ => {}
-                    }
-                    let v = self.fit(v, prov, Some(&f.ty), line)?;
-                    out.push((f.name.clone(), v));
-                }
-                let val = Value::Struct(sname.clone(), out);
-                let prov = if val.is_owned() { Prov::Fresh } else { Prov::Plain };
-                Ok((val, prov))
+                // a generic struct's blanks are filled by the values given (Precog: from use)
+                let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
+                let r = self.construct_fields(&def, sname, given, line);
+                *self.tvars.borrow_mut() = saved_tvars;
+                return r;
             }
             Expr::ConstPath(module, name, from, _) => {
                 self.check_path(from, module, line)?;
@@ -1125,6 +1144,14 @@ impl<'p> Interp<'p> {
         let value_used = !self.call_is_stmt;
         self.call_is_stmt = false;
         self.check_handler(c.handler.as_ref(), &func.fails, name, c.line)?;
+        // this call's blanks (`<T>`) are its own
+        let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
+        let r = self.user_call_inner(func, c, name, value_used);
+        *self.tvars.borrow_mut() = saved_tvars;
+        r
+    }
+
+    fn user_call_inner(&mut self, func: &Func, c: &Call, name: &str, value_used: bool) -> Result<Value, RuntimeError> {
 
         // Arguments against the parameter contract (design/ownership-syntax.md).
         // A variadic parameter (`...'values'`) collects the rest into a list, each
@@ -1178,6 +1205,7 @@ impl<'p> Interp<'p> {
         }
 
         let flow = self.run_body(func, bound);
+        // this call's blanks are its own; the body's `let 'y': <T>` and the return check use them
         let result = match flow? {
             Flow::Return(v) => v,
             Flow::Normal => Value::Nothing,
@@ -1427,6 +1455,8 @@ impl<'p> Interp<'p> {
             Ty::Char(CharUnit::Point) => (4, 4),
             Ty::Char(_) | Ty::Str(_) | Ty::List(_) | Ty::Array(_) => (24, 8),
             Ty::Ptr(..) => (8, 8),
+            Ty::Var(n) => return rt(line, format!("`size.of[<{n}>]`: a type variable has no size until it is filled")),
+            Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
                 let d = match self.prog.structs.iter().find(|d| &d.name == n) { Some(d) => d, None => return rt(line, format!("no struct named `{n}`")) };
                 let (mut off, mut al) = (0usize, 1usize);
@@ -1532,6 +1562,32 @@ impl<'p> Interp<'p> {
             "free" => Ok(Value::Nothing),
             other => rt(c.line, format!("extern `{other}`: the oracle cannot link C; it emulates write, exit, getenv, strlen, malloc, free")),
         }
+    }
+
+
+    /// Fill a struct's fields by name; every field required, types checked (a `<T>` field binds).
+    fn construct_fields(&mut self, def: &StructDef, sname: &str, given: &[(String, Bracket)], line: usize) -> Result<(Value, Prov), RuntimeError> {
+        for (k, _) in given { if !def.fields.iter().any(|f| &f.name == k) { return rt(line, format!("{sname} has no field `{k}`")); } }
+        let mut out = Vec::new();
+        for f in &def.fields {
+            let b = match given.iter().find(|(k, _)| k == &f.name) {
+                Some((_, b)) => b,
+                None => return rt(line, format!("{sname} is missing `{}`: every field must be given — there are no zero values", f.name)),
+            };
+            if given.iter().filter(|(k, _)| k == &f.name).count() > 1 { return rt(line, format!("`{}` is given twice", f.name)); }
+            let (v, prov) = self.bracket(b, line)?;
+            match prov {
+                Prov::Bare(n) => return rt(line, format!("bare '{n}' as field `{}`: say `give '{n}'` or `copy '{n}'`", f.name)),
+                Prov::Borrowed(..) => return rt(line, format!("a struct owns its fields; `{}` cannot hold a lend", f.name)),
+                _ => {}
+            }
+            let v = self.fit(v, prov, Some(&f.ty), line)?;
+            out.push((f.name.clone(), v));
+        }
+        let val = Value::Struct(sname.to_string(), out);
+        let prov = if val.is_owned() { Prov::Fresh } else { Prov::Plain };
+        Ok((val, prov))
+
     }
 
     /// Build an enum value: the case must exist; data exactly when the case carries some.
@@ -1657,6 +1713,23 @@ impl<'p> Interp<'p> {
             }
             other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print/printu .stdout/.stderr, exit, div.trunc, mod.trunc, str.*)")),
         }
+    }
+}
+
+/// A value's shape, for binding a `<T>`: the kind, or the struct/enum name.
+fn shape_of(v: &Value) -> String {
+    match v { Value::Struct(n, _) | Value::Enum(n, _, _) => n.clone(), other => other.kind().to_string() }
+}
+
+/// Replace type variables in `ty` with what a generic struct's use filled them with.
+fn subst(ty: &Ty, map: &HashMap<String, Ty>) -> Ty {
+    match ty {
+        Ty::Var(n) => map.get(n).cloned().unwrap_or_else(|| ty.clone()),
+        Ty::List(t) => Ty::List(Box::new(subst(t, map))),
+        Ty::Array(t) => Ty::Array(Box::new(subst(t, map))),
+        Ty::Ptr(t, m) => Ty::Ptr(Box::new(subst(t, map)), *m),
+        Ty::Inst(n, args) => Ty::Inst(n.clone(), args.iter().map(|a| subst(a, map)).collect()),
+        other => other.clone(),
     }
 }
 

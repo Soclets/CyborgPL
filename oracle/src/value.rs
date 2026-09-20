@@ -130,6 +130,8 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::List(t) => format!("list[{}]", ty_name(t)),
         Ty::Array(t) => format!("array[{}]", ty_name(t)),
         Ty::Struct(n) => n.clone(),
+        Ty::Var(n) => format!("<{n}>"),
+        Ty::Inst(n, args) => format!("{n}[{}]", args.iter().map(ty_name).collect::<Vec<_>>().join(", ")),
         Ty::Ptr(t, m) => format!("ptr{}[{}]", if *m { ".mut" } else { "" }, ty_name(t)),
     }
 }

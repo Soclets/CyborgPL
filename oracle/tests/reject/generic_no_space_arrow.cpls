@@ -1,0 +1,3 @@
+fn f ['a': <T>] -><T> { return 'a'; }
+MAIN {
+}

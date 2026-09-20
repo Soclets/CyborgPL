@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Generics: `<T>` on every mention; struct/enum blanks by first appearance (owner)
+
+Claude offered a declared list (`fn max [type T] […]`) vs implicit; owner
+proposed `fn max ['a': <T>, 'b': <T>] -> T`, then "both use `<>`" — every
+mention. For structs, Claude proposed a bracket after the name for order
+(`struct Pair [<A>, <B>]`); owner asked why, then "how's it without
+generics?", then "why does it need `[<T>]`?" — it doesn't; owner: "no
+bracket, first appearance." `design/generics.md`; oracle:
+`examples/generics.cpls`, eight reject tests. Closes the generics
+spelling item; constraints are open.
+
 ### 2026-09-20 — Custom operators: `op`, words and glyphs, any run, no precedence, lent-or-`give` operands (owner)
 
 Owner: "How do you make a custom operator?" — not yet; then "one by one".
@@ -964,6 +975,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lists: stating a length at a boundary — **parked with input** (owner, 2026-09-17); it is the range-annotation question and lives where input is designed.
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
+- Generic constraints (a spelled bound on `<T>`), generic `op`/`const`. (2026-09-20)
 - Boundary annotations: stating value ranges / length limits on external input, needed for `check` to succeed on loops. (Claude, 2026-09-14)
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)

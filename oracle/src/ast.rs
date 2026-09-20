@@ -17,6 +17,24 @@ pub enum Ty {
     Struct(String),   // a declared blueprint, by name
     /// `ptr[T]` / `ptr.mut[T]` (design/ffi.md): only in an extern signature or a layout.c field
     Ptr(Box<Ty>, bool),
+    /// `<T>` — a type variable (design/generics.md, 2026-09-20): a blank the compiler fills
+    /// per use; every mention wears the `< >`
+    Var(String),
+    /// `Stack[int32]` — a generic struct or enum with its blanks filled, in order of first appearance
+    Inst(String, Vec<Ty>),
+}
+
+impl Ty {
+    /// The type variables mentioned, in order of first appearance — a generic
+    /// struct's or enum's parameter order (decided 2026-09-20: no bracket, first appearance).
+    pub fn vars_into(&self, out: &mut Vec<String>) {
+        match self {
+            Ty::Var(n) => if !out.contains(n) { out.push(n.clone()); },
+            Ty::List(t) | Ty::Array(t) | Ty::Ptr(t, _) => t.vars_into(out),
+            Ty::Inst(_, args) => for a in args { a.vars_into(out); },
+            _ => {}
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +66,8 @@ pub struct EnumDef {
     pub module: Vec<String>,
     pub vis: Vis,
     pub cases: Vec<FailCase>, // a case is a name with an optional payload — the failure shape
+    /// type variables, in order of first appearance (design/generics.md)
+    pub params: Vec<String>,
     pub line: usize,
 }
 
@@ -57,6 +77,8 @@ pub struct StructDef {
     pub name: String,
     /// `layout.c struct`: C's layout, C-shaped fields only; may cross to C
     pub layout_c: bool,
+    /// type variables, in order of first appearance (design/generics.md)
+    pub params: Vec<String>,
     pub module: Vec<String>,
     pub vis: Vis,
     pub fields: Vec<Field>,

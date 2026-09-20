@@ -143,7 +143,9 @@ impl Parser {
                     }
                     self.advance();
                     if cases.is_empty() { return self.err(format!("enum `{name}` has no cases")); }
-                    prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, line });
+                    let mut params = Vec::new();
+                    for c in &cases { if let Some(t) = &c.ty { t.vars_into(&mut params); } }
+                    prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params, line });
                 }
                 Tok::Word(w) if w == "extern" => {
                     // extern fn name [params] -> T;   (design/ffi.md)
@@ -302,7 +304,9 @@ impl Parser {
         }
         self.advance();
         if fields.is_empty() { return self.err(format!("struct `{name}` has no fields")); }
-        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, fields, line })
+        let mut params = Vec::new();
+        for f in &fields { f.ty.vars_into(&mut params); }
+        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, params, fields, line })
     }
 
     // fn := 'fn' Word '[' params ']' ('->' type)? block
@@ -419,6 +423,19 @@ impl Parser {
     // `[ ]` supplies type parameters (`list[int32]`, `list[list[int32]]`). A struct
     // through modules is a dotted path (`shapes.Locker`, `limb.Locker`).
     fn ty(&mut self) -> PResult<Ty> {
+        // `<T>` — a type variable (design/generics.md, 2026-09-20)
+        if matches!(self.peek(), Tok::Op(o) if o == "<") {
+            self.advance();
+            let name = match self.advance().tok {
+                Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name a type variable")),
+                Tok::Word(n) => n,
+                Tok::Var(v) => return self.err(format!("a type variable is a bare name: `<{v}>`")),
+                other => return self.err(format!("expected a type variable's name after `<`, found {other}")),
+            };
+            match self.advance().tok { Tok::Op(o) if o == ">" => {}, other => return self.err(format!("expected `>` to close `<{name}`, found {other}")) }
+            return Ok(Ty::Var(name));
+        }
+        if matches!(self.peek(), Tok::Op(o) if o.starts_with('<')) { return self.err("a type variable is `<T>` — with a space before it after `->` (`-> <T>`), since a run of operator characters is one token"); }
         let mut segs = Vec::new();
         loop {
             match self.advance().tok {
@@ -476,7 +493,12 @@ impl Parser {
             "int" | "uint" | "bin" | "deci" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
             _ if KEYWORDS.contains(&head) => bad(self, format!("`{head}` is a keyword, not a type")),
             _ => {
-                if !params.is_empty() { return bad(self, format!("`{}` takes no type parameters (generic structs are not designed)", segs.join("."))); }
+                if !params.is_empty() {
+                    let builtin = ["int", "uint", "bin", "deci"].iter().any(|p| width(head, p).is_some());
+                    if builtin { return bad(self, format!("`{head}` takes no type parameters")); }
+                    // `Stack[int32]` — a generic struct or enum with its blanks filled
+                    return Ok(Ty::Inst(self.canonical(&segs), params));
+                }
                 if segs.len() > 1 {
                     // a struct reached through modules: `shapes.Locker`, `limb.Locker`
                     if segs[..segs.len() - 1].iter().any(|m| m == "limb" || module_name_ok(m).is_ok()) {
@@ -1256,7 +1278,7 @@ impl Parser {
                     let ty = self.ty();
                     self.to_target = false;
                     let ty = ty?;
-                    if matches!(ty, Ty::List(_) | Ty::Array(_) | Ty::Struct(_)) { return self.err(format!("no conversion to {}; conversions are between numbers and text", ty_name(&ty))); }
+                    if matches!(ty, Ty::List(_) | Ty::Array(_) | Ty::Struct(_) | Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers and text", ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     let b = self.bracket()?;
                     if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
