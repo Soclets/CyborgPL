@@ -14,6 +14,10 @@ safe meaning, the other has its own spelling) with Zig's `+%`; owner:
 owner: "`&` reads like borrow" — "`~` it is." `examples/wrapping.cpls`
 (FNV-1a with no `nocheck`), four reject tests. Surfaced: no bitwise
 operators (xor, and, or, shifts) exist yet — logged open.
+Owner then floated `and or not` → `& / !` and `/` → `div`; Claude: `div`
+and `!` fine, `&` has the borrow reading the owner had just rejected, `/`
+for or would be misread by everyone; offered two coherent sets. Owner:
+"Nvm, back to normal." Unchanged.
 
 ### 2026-09-20 — Interfaces: `interface`, operators definable for user types, automatic satisfaction + `satisfies` claim, `<T: Ordered>` (owner)
 
