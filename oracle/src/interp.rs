@@ -971,9 +971,11 @@ impl<'p> Interp<'p> {
             ("-", Int(x), Int(y)) => Int(x.checked_sub(y).ok_or_else(|| ovf("-"))?),
             ("x", Int(x), Int(y)) => Int(x.checked_mul(y).ok_or_else(|| ovf("x"))?),
             ("/", Int(_), Int(0)) => return site(line, "division by zero"),
-            ("/", Int(x), Int(y)) => Int(x.checked_div(y).ok_or_else(|| ovf("/"))?), // provisional: truncates (open question)
+            // Decided 2026-09-20: floor division and the mathematician's mod
+            // (-7 / 2 = -4, -7 mod 2 = 1); hardware truncation is std::div.trunc / std::mod.trunc.
+            ("/", Int(x), Int(y)) => { let q = x.checked_div(y).ok_or_else(|| ovf("/"))?; Int(if x % y != 0 && ((x < 0) != (y < 0)) { q - 1 } else { q }) }
             ("mod", Int(_), Int(0)) => return site(line, "`mod` by zero"),
-            ("mod", Int(x), Int(y)) => Int(x.checked_rem(y).ok_or_else(|| ovf("mod"))?), // provisional: sign follows the dividend
+            ("mod", Int(x), Int(y)) => { let r = x.checked_rem(y).ok_or_else(|| ovf("mod"))?; Int(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r }) }
             ("xx", Int(x), Int(y)) => {
                 if y < 0 { return rt(line, "a negative exponent on integers would produce a fraction"); }
                 let mut acc: i128 = 1;
@@ -1558,6 +1560,17 @@ impl<'p> Interp<'p> {
         }
         if c.handler.is_some() { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
         match path.as_str() {
+            "div.trunc" | "mod.trunc" => {
+                // hardware truncation, by name (decided 2026-09-20); the language's `/` and `mod` floor
+                if c.args.values.len() != 2 { return rt(c.line, format!("std::{path} takes two integers")); }
+                let (a, _) = self.value(&c.args.values[0])?;
+                let (b, _) = self.value(&c.args.values[1])?;
+                match (a, b) {
+                    (Value::Int(_), Value::Int(0)) => site(c.line, "division by zero"),
+                    (Value::Int(x), Value::Int(y)) => Ok(Value::Int(if path == "div.trunc" { x.checked_div(y) } else { x.checked_rem(y) }.ok_or_else(|| RuntimeError { line: c.line, msg: "integer overflow".into(), exit: None, site: true, leave: None })?)),
+                    (a, b) => rt(c.line, format!("std::{path} takes two integers, got {} and {}", a.kind(), b.kind())),
+                }
+            }
             "print.stdout" | "printu.stdout" | "print.stderr" | "printu.stderr" => {
                 // Since 2026-09-19 print takes any number of values and renders each —
                 // `print` in stored form, `printu` in useful form — with nothing between.

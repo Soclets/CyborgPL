@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — `/` floors, `mod` is the mathematician's; truncation is `std::div.trunc` / `std::mod.trunc` (owner)
+
+Owner asked the difference (negatives only: `-7 mod 2` is `1` floored,
+`-1` truncated — the clock/hash bug), chose floor, then "should we leave
+hardware that to std?" — yes. Also confirmed ("yea") the final-build
+understanding: working build keeps runtime checks at unproven sites, the
+final build makes them compile errors, nothing unproven ships. Oracle
+switched from its day-one provisional truncation; `examples/division.cpls`.
+
 ### 2026-09-20 — The final build has no runtime checks: an unproven site is a compile error there (owner's clarification of 2026-09-14)
 
 Owner, on being told the unproven runtime checks ship: "Oh shit, that's
@@ -23,12 +32,7 @@ Claude's understanding was restated as a table and awaits the owner's
 "yes"; the build-command names are Claude's proposal, JetPack's, so no
 file-wide switch enters the language.
 
-Pending from the same thread: `/` on integers and `mod` — Claude
-recommends floor division with the mathematician's `mod` (b) over
-truncation (a); the fix-up is semantics, not a check, so it stays in the
-final binary where a sign is unproven (a few cycles beside a 10–40 cycle
-divide) and is gone where Precog knows the sign. Owner asked about
-performance and about what ships; not yet decided.
+Owner confirmed the next day ("yea"); `/` and `mod` decided then too.
 
 ### 2026-09-20 — Enums: `enum Status { empty  claimed: str.utf8  locked }`, `Status.claimed["x"]`, `match` (owner)
 
@@ -943,7 +947,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Wrapping arithmetic: hashes and ring counters *want* wrap; without an explicit wrapping form every such site becomes `nocheck`. (Claude, 2026-09-14)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
-- `/` on integers (truncate? error on inexact?); `mod` sign rule. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
 - `list.length`'s type: fixed width or Precog-chosen? (cold read, 2026-09-19)
 - Forwarding a variadic bundle to another variadic (spread). (2026-09-19)

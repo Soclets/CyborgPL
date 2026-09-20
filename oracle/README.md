@@ -49,6 +49,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - FFI (design/ffi.md, 2026-09-20): `extern fn …;` (C-shaped types only, no `lent`, no `fail`, no body), a call is refused outside `nocheck`; `ptr[T]`/`ptr.mut[T]` only in extern signatures and `layout.c` fields, a `lend`/`lend.mut` becomes the pointer; `ptr.read/write/at` are nocheck sites (past-the-end or null under nocheck = "lied"), `ptr.is_null` is not; `layout.c struct` fields must be C-shaped; `size.of`/`align.of` are C's sizes; `nocheck inline.ASM { raw } with ['v' -> x0, 'n' <- x0, clobber x16];` is parsed and checked, then refused to run; emulated libc: write, exit, getenv, strlen, malloc, free
 - text (design/strings.md, 2026-09-20): `str.bytes/points/graphemes[lend 's']`, `str.each.<unit>[…]`; `str.length`, `'s'[pos …]`, `<` on text, and a bare `for` over a text are refused; emulated std: `std::str.split/join/contains/starts_with/ends_with/trim/upper/lower/replace`, `at.<unit>` and `slice.grapheme` (fail out_of_range), `find.grapheme` (fail missing)
 - enums (design/enums.md, 2026-09-20): `enum S { a  b: int32 }`, `S.a`, `S.b[1]`, `match 's' { a { } b 'v' { } }` with every case covered; an enum is owned; `==` works; `match` on a non-enum is refused
+- `/` on integers floors and `mod` has the divisor's sign (2026-09-20); `std::div.trunc` / `std::mod.trunc` truncate
 - `const 'x' := v;` at the top level only — evaluated before MAIN in order, never assignable/shadowed/verbed, a `std::` call in its value is refused; `let` at the top level is refused
 - shadowing only with `$:=` / `$=`; an `immut` name cannot be shadowed
 - `struct Name { f: type … }` (bare field names, 2026-09-19), construction by field name `Name[f = v, …]` with every field given, `'s'.f` read / `'s'.f = v;` write, `immut f: type` fields, `give 's'.f` consumes the whole variable; a struct is always owned (verbs required) even with only plain fields
@@ -64,7 +65,6 @@ had to make to run at all; none is a decision.
 
 | Pick | Where | Why this way |
 |---|---|---|
-| `/` on integers truncates; `mod` takes the sign of the dividend | `interp.rs` `binary` | Open question |
 | A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |
 | A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them) |
 | `lend.mut 'x'.field` writes back at the end of the statement; `'x'.field[pos i] = v` is refused (lend the list to a name first) | `interp.rs` `stmt` | A statement is the unit of a lend here; the compiler tracks the borrow itself |
