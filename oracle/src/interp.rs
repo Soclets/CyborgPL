@@ -12,7 +12,7 @@
 //!   - `if`/`while` conditions must be bool
 
 use crate::ast::*;
-use crate::value::Ptr;
+use crate::value::{Ptr, FuncVal};
 use crate::value::{exact_decimal, int_range, ty_name, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -175,6 +175,7 @@ impl<'p> Interp<'p> {
             },
             Ty::Var(_) | Ty::Inst(..) => Err("a generic type cannot cross to C".into()),
             Ty::Ranged(..) => Err("a range type cannot cross to C; C has no ranges — use the plain type".into()),
+            Ty::Fn(..) => Err("a function value cannot cross to C yet (callbacks are open)".into()),
             other => Err(format!("{} is not C-shaped (numbers, bool, ptr, layout.c structs are)", ty_name(other))),
         }
     }
@@ -506,6 +507,13 @@ impl<'p> Interp<'p> {
                 r?;
                 Ok(Flow::Normal)
             }
+            Stmt::CallValue { name, args, handler, line } => {
+                self.call_is_stmt = true;
+                let r = self.call_value(name, args, handler.as_ref(), *line);
+                self.call_is_stmt = false;
+                r?;
+                Ok(Flow::Normal)
+            }
             Stmt::Match { value, arms, line } => {
                 let (v, _) = self.single(value, *line)?;
                 let (tname, case, data) = match v { Value::Enum(t, c, d) => (t, c, d), other => return rt(*line, format!("`match` takes an enum value, got {} — for other types use `if`", other.kind())) };
@@ -658,6 +666,26 @@ impl<'p> Interp<'p> {
                 };
                 if inside { Ok(()) } else { site(line, format!("{} does not fit {name}", v.show_useful())) }
             }
+            (Ty::Fn(ps, ret, fails), Value::Func(fv)) => {
+                let f = &fv.def;
+                if f.params.len() != ps.len() { return rt(line, format!("expected {name}, got a function taking {} argument(s)", f.params.len())); }
+                for (fp, (kind, t)) in f.params.iter().zip(ps) {
+                    if fp.kind != *kind { return rt(line, format!("expected {name}: parameter '{}' is {} where {} is needed", fp.name, kind_word(fp.kind), kind_word(*kind))); }
+                    if let Some(ft) = &fp.ty { if !matches!(t, Ty::Var(_)) && !matches!(ft, Ty::Var(_)) && ty_name(ft) != ty_name(t) { return rt(line, format!("expected {name}: parameter '{}' is {}, not {}", fp.name, ty_name(ft), ty_name(t))); } }
+                }
+                match (&f.ret, ret) {
+                    (Some(a), Some(b)) => if !matches!(**b, Ty::Var(_)) && !matches!(a, Ty::Var(_)) && ty_name(a) != ty_name(b) { return rt(line, format!("expected {name}: returns {}, not {}", ty_name(a), ty_name(b))); },
+                    (None, Some(b)) => return rt(line, format!("expected {name}: the function returns nothing, {} is needed", ty_name(b))),
+                    (Some(a), None) => return rt(line, format!("expected {name}: the function returns {}, nothing is needed", ty_name(a))),
+                    (None, None) => {}
+                }
+                let fnames: Vec<&str> = f.fails.iter().map(|c| c.name.as_str()).collect();
+                if fnames.iter().any(|n| !fails.iter().any(|x| x == n)) || fails.iter().any(|x| !fnames.contains(&x.as_str())) {
+                    return rt(line, format!("expected {name}: the function fails with [{}]", fnames.join(", ")));
+                }
+                Ok(())
+            }
+            (Ty::Fn(..), v) => rt(line, format!("expected {name}, got {}", v.kind())),
             (Ty::Var(n), v) => {
                 // a blank: bound by the first value that reaches it, checked by every later one
                 let shape = shape_of(v);
@@ -889,6 +917,17 @@ impl<'p> Interp<'p> {
                     }
                 }
             }
+            Expr::OwnedElem(verb, name, idx, _) => {
+                // an element handed over with a verb: lend/copy read it; give would leave a hole
+                let (v, _) = self.eval(&Expr::Index(name.clone(), idx.clone(), line))?;
+                if !v.is_owned() { return rt(line, format!("'{name}'[pos …] is a plain {} and owns nothing; it copies by itself — no `give`/`copy`/`lend`", v.kind())); }
+                match verb {
+                    Verb::Give => rt(line, format!("giving an element out of '{name}' would leave a hole; `copy` it, or `list.remove` it first")),
+                    Verb::Copy => Ok((v, Prov::Copied)),
+                    Verb::Lend => Ok((v.clone(), Prov::Borrowed(Rc::new(RefCell::new(v)), false))),
+                    Verb::LendMut => rt(line, format!("`lend.mut` of an element of '{name}' is not modelled by the oracle; lend the whole list")),
+                }
+            }
             Expr::Construct(sname, given, _) => {
                 let def = match self.prog.structs.iter().find(|d| d.name == *sname) {
                     Some(d) => d.clone(),
@@ -962,6 +1001,43 @@ impl<'p> Interp<'p> {
                 Ok((out, prov))
             }
             Expr::EnumValue(tname, case, _, _) => self.enum_value(tname, case, None, &Vec::new(), line),
+            Expr::FnRef(path, from, _) => {
+                let (module, name) = path.split_at(path.len() - 1);
+                let name = &name[0];
+                self.check_path(from, module, line)?;
+                let f = match self.prog.funcs.iter().find(|f| f.module == module && &f.name == name) {
+                    Some(f) => f,
+                    None => return rt(line, format!("no function `{name}` in `{}` (a bare name with no brackets is the function as a value)", root_or(module))),
+                };
+                if !self.reachable(from, &f.module, f.vis) { return rt(line, format!("`{name}` is private to `{}`", root_or(&f.module))); }
+                if f.is_op { return rt(line, format!("`{name}` is an operator; it is not a value")); }
+                if f.is_extern { return rt(line, format!("`{name}` is extern; a C function as a value is not decided")); }
+                Ok((Value::Func(FuncVal { def: Rc::new(f.clone()), captures: Vec::new() }), Prov::Plain))
+            }
+            Expr::Lambda(def, caps, _) => {
+                // captures are taken now, each with its verb; nothing else from this scope is visible inside
+                let mut captures = Vec::new();
+                for (verb, v) in caps {
+                    let (kind, alive, cell, val) = match self.lookup(v) { Some(s) => (s.kind, s.alive, s.cell.clone(), s.cell.borrow().clone()), None => return rt(line, format!("'{v}' is not declared")) };
+                    if !alive { return rt(line, format!("'{v}' was already given away")); }
+                    match verb {
+                        Verb::Lend => captures.push((v.clone(), cell, false)),
+                        Verb::LendMut => { if kind == SlotKind::Lent { return rt(line, format!("'{v}' is lent (shared); it cannot be lent mutably")); } captures.push((v.clone(), cell, true)); }
+                        Verb::Copy => captures.push((v.clone(), Rc::new(RefCell::new(val)), true)),
+                        Verb::Give => {
+                            if kind != SlotKind::Owned { return rt(line, format!("'{v}' is lent, not owned; you cannot give away what you do not own")); }
+                            if val.is_owned() { self.lookup_mut(v).unwrap().alive = false; }
+                            captures.push((v.clone(), Rc::new(RefCell::new(val)), true));
+                        }
+                    }
+                }
+                Ok((Value::Func(FuncVal { def: def.clone(), captures }), Prov::Plain))
+            }
+            Expr::CallValue(name, args, handler, _) => {
+                let v = self.call_value(name, args, handler.as_ref(), line)?;
+                let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                Ok((v, prov))
+            }
             Expr::SizeOf(ty, is_size, _) => {
                 let (size, align) = self.size_align(ty, line)?;
                 Ok((Value::Int(if *is_size { size } else { align } as i128), Prov::Literal))
@@ -1248,6 +1324,10 @@ impl<'p> Interp<'p> {
     }
 
     fn user_call_inner(&mut self, func: &Func, c: &Call, name: &str, value_used: bool) -> Result<Value, RuntimeError> {
+        self.call_func_with(func, c, name, value_used, Vec::new())
+    }
+
+    fn call_func_with(&mut self, func: &Func, c: &Call, name: &str, value_used: bool, captures: Vec<(String, Rc<RefCell<Value>>, bool)>) -> Result<Value, RuntimeError> {
 
         // Arguments against the parameter contract (design/ownership-syntax.md).
         // A variadic parameter (`...'values'`) collects the rest into a list, each
@@ -1307,6 +1387,11 @@ impl<'p> Interp<'p> {
                 if let Err(m) = self.satisfies(&shape, iface, c.line)? { return rt(c.line, format!("`{name}` needs `<{var}: {iface}>`, but {m}")); }
             }
         }
+        // captured variables (a function value's `with […]`) are visible inside as what they were taken as
+        for (cname, cell, mutable) in captures {
+            if bound.iter().any(|(n, _)| n == &cname) { return rt(c.line, format!("'{cname}' is both a parameter and a capture")); }
+            bound.push((cname, Slot { cell, ty: None, kind: if mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false }));
+        }
         let flow = self.run_body(func, bound);
         // this call's blanks are its own; the body's `let 'y': <T>` and the return check use them
         let result = match flow? {
@@ -1351,6 +1436,25 @@ impl<'p> Interp<'p> {
             if let Err(m) = self.satisfies(&ty_shape(&c.ty), &c.iface, c.line)? { return rt(c.line, format!("the claim `{} satisfies {}` is false: {m}", ty_name(&c.ty), c.iface)); }
         }
         Ok(())
+    }
+
+    /// `'f'[args]` — call a function value: bind arguments as `user_call` does, then the
+    /// captures as variables of the body (lent or owned by how they were taken).
+    fn call_value(&mut self, name: &str, args: &Bracket, handler: Option<&Handler>, line: usize) -> Result<Value, RuntimeError> {
+        let fv = match self.lookup(name) {
+            Some(s) if !s.alive => return rt(line, format!("'{name}' was already given away")),
+            Some(s) => match &*s.cell.borrow() { Value::Func(fv) => fv.clone(), other => return rt(line, format!("'{name}' is {}, not a function; `'{name}'[…]` calls, `'{name}'[pos …]` indexes", other.kind())) },
+            None => return rt(line, format!("'{name}' is not declared")),
+        };
+        let func = fv.def.clone();
+        let value_used = !self.call_is_stmt;
+        self.call_is_stmt = false;
+        self.check_handler(handler, &func.fails, name, line)?;
+        let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
+        let synthetic = Call { handler: handler.cloned(), limb: None, path: vec![func.name.clone()], from: self.module.clone(), args: args.clone(), line };
+        let r = self.call_func_with(&func, &synthetic, name, value_used, fv.captures.clone());
+        *self.tvars.borrow_mut() = saved_tvars;
+        r
     }
 
     /// Run a function's body with its parameters bound. A function's scopes are its
@@ -1602,6 +1706,7 @@ impl<'p> Interp<'p> {
             Ty::Ptr(..) => (8, 8),
             Ty::Var(n) => return rt(line, format!("`size.of[<{n}>]`: a type variable has no size until it is filled")),
             Ty::Ranged(b, _, _) => return self.size_align(b, line),
+            Ty::Fn(..) => (8, 8),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
                 let d = match self.prog.structs.iter().find(|d| &d.name == n) { Some(d) => d, None => return rt(line, format!("no struct named `{n}`")) };
@@ -1882,7 +1987,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::Fn(..) => "function".into(),
     }
 }
 
@@ -1904,6 +2009,8 @@ fn subst(ty: &Ty, map: &HashMap<String, Ty>) -> Ty {
 }
 
 fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 127 } }
+
+fn kind_word(k: ParamKind) -> &'static str { match k { ParamKind::Owned => "owning", ParamKind::Lent => "lent", ParamKind::LentMut => "lent.mut" } }
 
 fn const_key(module: &[String], name: &str) -> String { format!("{}/{name}", module.join(".")) }
 fn join_path(module: &[String], name: &str) -> String { if module.is_empty() { name.to_string() } else { format!("{}.{name}", module.join(".")) } }

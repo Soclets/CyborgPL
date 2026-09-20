@@ -1,1 +1,1 @@
-says it is a position
+not a function; `'xs'[…]` calls, `'xs'[pos …]` indexes

@@ -16,11 +16,22 @@ pub enum Value {
     Struct(String, Vec<(String, Value)>),
     /// an enum value (design/enums.md): type name, case name, the case's data if any
     Enum(String, String, Option<Box<Value>>),
+    /// a function as a value (design/functions-as-values.md): the definition and its captures
+    Func(FuncVal),
     /// a C pointer (design/ffi.md): into a lent Cyborg list/array/str, or from
     /// an emulated extern; `cell: None` is C's null
     Ptr(Ptr),
     Nothing,
 }
+
+/// A function value: its definition plus captured variables (name, cell, mutable).
+#[derive(Clone)]
+pub struct FuncVal {
+    pub def: std::rc::Rc<crate::ast::Func>,
+    pub captures: Vec<(String, std::rc::Rc<std::cell::RefCell<Value>>, bool)>,
+}
+impl PartialEq for FuncVal { fn eq(&self, o: &FuncVal) -> bool { std::rc::Rc::ptr_eq(&self.def, &o.def) } }
+impl std::fmt::Debug for FuncVal { fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "fn {}", self.def.name) } }
 
 #[derive(Debug, Clone)]
 pub struct Ptr {
@@ -64,6 +75,7 @@ impl Value {
             Value::List(_) => "list",
             Value::Struct(..) => "struct",
             Value::Enum(..) => "enum",
+            Value::Func(..) => "function",
             Value::Ptr(_) => "ptr",
             Value::Nothing => "nothing",
         }
@@ -81,6 +93,7 @@ impl Value {
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Ptr(p) => if p.cell.is_none() { "null".into() } else { format!("ptr+{}", p.index) },
             Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_stored()), None => format!("{t}.{c}") },
+            Value::Func(f) => format!("fn {}", f.def.name),
             Value::Nothing => "nothing".into(),
         }
     }
@@ -132,6 +145,13 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
         Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
+        Ty::Fn(ps, r, fails) => {
+            let ps: Vec<String> = ps.iter().map(|(k, t)| format!("{}{}", match k { crate::ast::ParamKind::Owned => "", crate::ast::ParamKind::Lent => "lent ", crate::ast::ParamKind::LentMut => "lent.mut " }, ty_name(t))).collect();
+            let mut s = format!("fn[{}]", ps.join(", "));
+            if let Some(r) = r { s.push_str(&format!(" -> {}", ty_name(r))); }
+            if !fails.is_empty() { s.push_str(&format!("{} fail[{}]", if r.is_some() { " or" } else { " ->" }, fails.join(", "))); }
+            s
+        }
         Ty::Inst(n, args) => format!("{n}[{}]", args.iter().map(ty_name).collect::<Vec<_>>().join(", ")),
         Ty::Ptr(t, m) => format!("ptr{}[{}]", if *m { ".mut" } else { "" }, ty_name(t)),
     }

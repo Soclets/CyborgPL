@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Functions as values: bare name, `fn[…] -> T` types, `with [lend 'v']` captures (owner)
+
+Owner asked what it is for (sorting by a rule, callbacks, map/filter, C
+callbacks). (1) a bare name is the function as a value, `'f'[…]` calls it
+— yes. (2) the type is the signature without the names, verbs included —
+owner asked how it compares to a normal fn (names and body removed) —
+yes. (3) named-only / inline-without-capture / inline with explicit
+`with [lend 'limit']` captures — owner: c. `design/functions-as-values.md`;
+oracle: `examples/functions_as_values.cpls`, ten reject tests; `lend
+'xs'[pos i]` added on the way. Closes open item 11.
+
 ### 2026-09-21 — Bitwise: `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr` (owner)
 
 Owner asked why the spelling extends from `and`/`or`/`not`, then what

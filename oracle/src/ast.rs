@@ -25,6 +25,9 @@ pub enum Ty {
     /// `int32[0, 100]` / `bin64[0.0, 1.0]` — a range type (design/input.md, 2026-09-20): the base
     /// type, provably within inclusive bounds; assigning into it is a check site
     Ranged(Box<Ty>, Bound, Bound),
+    /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
+    /// 2026-09-21): its signature with the names removed
+    Fn(Vec<(ParamKind, Ty)>, Option<Box<Ty>>, Vec<String>),
 }
 
 /// A range type's bound: a numeric literal.
@@ -39,6 +42,7 @@ impl Ty {
             Ty::Var(n) => if !out.contains(n) { out.push(n.clone()); },
             Ty::List(t) | Ty::Array(t) | Ty::Ptr(t, _) => t.vars_into(out),
             Ty::Inst(_, args) => for a in args { a.vars_into(out); },
+            Ty::Fn(ps, r, _) => { for (_, t) in ps { t.vars_into(out); } if let Some(r) = r { r.vars_into(out); } }
             _ => {}
         }
     }
@@ -252,6 +256,8 @@ pub enum Stmt {
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
     /// `match v { case ['bind'] { … } … }` — every case covered (decided 2026-09-20)
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
+    /// `'f'[args];` — a function value called as a statement
+    CallValue { name: String, args: Bracket, handler: Option<Handler>, line: usize },
 }
 
 #[derive(Debug, Clone)]
@@ -324,6 +330,8 @@ pub enum Expr {
     Construct(String, Vec<(String, Bracket)>, usize),
     /// `give 'mine'.field` / `copy 'mine'.field` / `lend 'mine'.field`
     OwnedField(Verb, String, String, usize),
+    /// `lend 'xs'[pos i]` / `copy 'xs'[pos i]` — an element handed over with a verb
+    OwnedElem(Verb, String, Box<Expr>, usize),
     /// `shapes.'pi'` / `limb.'pi'` — a const reached by module path (canonical), from a module
     ConstPath(Vec<String>, String, Vec<String>, usize),
     /// `to.int32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
@@ -331,6 +339,12 @@ pub enum Expr {
     Convert(Ty, Bracket, Option<Handler>, usize),
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
     SizeOf(Ty, bool, usize),
+    /// `average` — a function as a value (canonical path); bare name, no brackets
+    FnRef(Vec<String>, Vec<String>, usize),
+    /// `fn [params] -> T with [lend 'v', give 'w'] { … }` — an anonymous function with explicit captures
+    Lambda(std::rc::Rc<Func>, Vec<(Verb, String)>, usize),
+    /// `'f'[args]` — calling a function value held in a variable
+    CallValue(String, Bracket, Option<Handler>, usize),
     /// `Status.empty` / `Status.claimed["x"]` — an enum value (canonical type name, case, data)
     EnumValue(String, String, Option<Bracket>, usize),
     Unary(String, Box<Expr>, usize),            // not, -
@@ -352,9 +366,11 @@ impl Expr {
             Expr::FieldIndex(_, _, _, l) => *l,
             Expr::Construct(_, _, l) => *l,
             Expr::OwnedField(_, _, _, l) => *l,
+            Expr::OwnedElem(_, _, _, l) => *l,
             Expr::ConstPath(_, _, _, l) => *l,
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
+            Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,
         }
     }

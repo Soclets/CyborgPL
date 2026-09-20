@@ -1,0 +1,5 @@
+MAIN {
+    let 'limit' := 60;
+    let 'f' := fn ['s': int32] -> bool { return 's' >== 'limit'; };
+    let 'b' := 'f'[70];
+}

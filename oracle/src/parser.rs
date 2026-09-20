@@ -12,7 +12,7 @@ use crate::value::ty_name;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -44,14 +44,16 @@ pub struct Parser {
     in_interface: bool,
     /// `<T: Ordered>` bounds seen while parsing the current signature
     bounds: Vec<(String, String)>,
+    /// captures of the anonymous function just parsed
+    pending_captures: Vec<(Verb, String)>,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, at_boundary: false, in_interface: false, bounds: Vec::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, at_boundary: false, in_interface: false, bounds: Vec::new() } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -518,6 +520,37 @@ impl Parser {
             return Ok(Ty::Var(name));
         }
         if matches!(self.peek(), Tok::Op(o) if o.starts_with('<')) { return self.err("a type variable is `<T>` — with a space before it after `->` (`-> <T>`), since a run of operator characters is one token"); }
+        // `fn[lent T, U] -> R or fail[…]` — a function's type (2026-09-21)
+        if self.is_word("fn") {
+            self.advance();
+            self.expect(Tok::LBracket, "`[` after `fn` in a type: `fn[lent Locker, int32] -> bool`")?;
+            let mut ps = Vec::new();
+            if *self.peek() != Tok::RBracket {
+                loop {
+                    let kind = match self.peek().clone() {
+                        Tok::Word(w) if w == "lent" => { self.advance(); if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(m) if m == "mut") { self.advance(); self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
+                        Tok::Var(v) => return self.err(format!("a function type has no parameter names: `fn[lent Locker]`, not `fn[lent '{v}': Locker]`")),
+                        _ => ParamKind::Owned,
+                    };
+                    let t = self.ty()?;
+                    ps.push((kind, t));
+                    if *self.peek() == Tok::Comma { self.advance(); continue; }
+                    break;
+                }
+            }
+            self.expect(Tok::RBracket, "`]`")?;
+            let mut ret = None;
+            let mut fails = Vec::new();
+            if *self.peek() == Tok::Arrow {
+                self.advance();
+                if self.is_word("fail") { fails = self.fail_list()?.into_iter().map(|c| c.name).collect(); }
+                else {
+                    ret = Some(Box::new(self.ty()?));
+                    if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?.into_iter().map(|c| c.name).collect(); }
+                }
+            }
+            return Ok(Ty::Fn(ps, ret, fails));
+        }
         let mut segs = Vec::new();
         loop {
             match self.advance().tok {
@@ -767,6 +800,13 @@ impl Parser {
             Tok::LBrace => Ok(Stmt::Block { body: self.block()?, line }),
             Tok::Var(name) => {
                 self.advance();
+                if *self.peek() == Tok::LBracket && !matches!(self.peek_at(1), Tok::Word(w) if w == "pos") {
+                    // 'f'[args];  — a function value called as a statement (2026-09-21)
+                    let args = self.bracket()?;
+                    let handler = self.handler()?;
+                    self.expect(Tok::Semi, "`;` after the call")?;
+                    return Ok(Stmt::CallValue { name, args, handler, line });
+                }
                 if *self.peek() == Tok::LBracket {
                     // 'xs'[pos i] = v;  (decided 2026-09-17)
                     let idx = self.index_bracket(&name)?;
@@ -950,6 +990,7 @@ impl Parser {
             match &mut e {
                 Expr::Call(c) => c.handler = self.handler()?,
                 Expr::Convert(_, _, h, _) => *h = self.handler()?,
+                Expr::CallValue(_, _, h, _) => *h = self.handler()?,
                 _ => return self.err("`otherwise` handles a call that can fail, and the call must be the whole value: put it in its own `let` first"),
             }
         }
@@ -1006,6 +1047,59 @@ impl Parser {
             }
             i += 1;
         }
+    }
+
+    /// A lone Word (not a keyword, no bracket, no path) in value position — a function as a value.
+    /// A dotted path without a bracket is an enum case (`is_enum_bare`) unless it ends in a
+    /// lowercase segment after an uppercase one… the oracle resolves both at run time, so a
+    /// single bare word is treated as a function reference and a dotted one as an enum case.
+    fn is_fn_ref(&self) -> bool {
+        matches!(self.peek(), Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && !OP_WORDS.contains(&w.as_str()))
+            && !matches!(self.peek_at(1), Tok::LBracket | Tok::ColonColon | Tok::Dot)
+    }
+
+    /// The body of an anonymous function: `fn [params] -> T with [captures] { … }`
+    fn anon_func(&mut self) -> PResult<Func> {
+        let line = self.line();
+        self.expect_word("fn")?;
+        self.expect(Tok::LBracket, "`[` to open the parameter list")?;
+        let mut params = Vec::new();
+        if *self.peek() != Tok::RBracket {
+            loop { params.push(self.param()?); if *self.peek() == Tok::Comma { self.advance(); continue; } break; }
+        }
+        self.expect(Tok::RBracket, "`]` to close the parameter list")?;
+        let mut ret = None; let mut fails = Vec::new();
+        if *self.peek() == Tok::Arrow {
+            self.advance();
+            if self.is_word("fail") { fails = self.fail_list()?; }
+            else { ret = Some(self.ty()?); if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?; } }
+        }
+        // captures: nothing is taken from the surrounding scope unless listed here, with a verb
+        let mut caps = Vec::new();
+        if self.is_word("with") {
+            self.advance();
+            self.expect(Tok::LBracket, "`[` after `with`: `with [lend 'limit', give 'name']`")?;
+            if *self.peek() != Tok::RBracket {
+                loop {
+                    let verb = match self.advance().tok {
+                        Tok::Word(w) if w == "lend" => { if *self.peek() == Tok::Dot { self.advance(); match self.advance().tok { Tok::Word(m) if m == "mut" => Verb::LendMut, other => return self.err(format!("the only narrowing of `lend` is `.mut`, found {other}")) } } else { Verb::Lend } }
+                        Tok::Word(w) if w == "give" => Verb::Give,
+                        Tok::Word(w) if w == "copy" => Verb::Copy,
+                        Tok::Var(v) => return self.err(format!("a capture says how it is taken: `lend '{v}'`, `copy '{v}'`, or `give '{v}'` — nothing is captured silently")),
+                        other => return self.err(format!("expected `lend`, `copy`, or `give` before a captured variable, found {other}")),
+                    };
+                    let v = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted variable to capture, found {other}")) };
+                    caps.push((verb, v));
+                    if *self.peek() == Tok::Comma { self.advance(); continue; }
+                    break;
+                }
+            }
+            self.expect(Tok::RBracket, "`]` to close the captures")?;
+        }
+        let body = self.block()?;
+        self.pending_captures = caps;
+        let bounds = std::mem::take(&mut self.bounds);
+        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, bounds, params, body, line })
     }
 
     /// Word ('.' Word)+ not followed by '[' or '::'  — an enum case with no data
@@ -1324,6 +1418,11 @@ impl Parser {
             Tok::Newline => { self.advance(); Ok(Expr::Newline(line)) }
             Tok::Var(v) => {
                 self.advance();
+                if *self.peek() == Tok::LBracket && !matches!(self.peek_at(1), Tok::Word(w) if w == "pos") {
+                    // 'f'[args] — calling a function value; an index always says `pos` (2026-09-21)
+                    let args = self.bracket()?;
+                    return Ok(Expr::CallValue(v, args, None, line));
+                }
                 if *self.peek() == Tok::LBracket {
                     let idx = self.index_bracket(&v)?;
                     return Ok(Expr::Index(v, Box::new(idx), line));
@@ -1365,6 +1464,10 @@ impl Parser {
                                 self.advance();
                                 let field = match self.advance().tok { Tok::Word(f) => f, other => return self.err(format!("expected a field name after `'{v}'.`, found {other}")) };
                                 return Ok(Expr::OwnedField(verb, v, field, line));
+                            }
+                            if *self.peek() == Tok::LBracket {
+                                let idx = self.index_bracket(&v)?;
+                                return Ok(Expr::OwnedElem(verb, v, Box::new(idx), line));
                             }
                             Ok(Expr::Owned(verb, v, line))
                         }
@@ -1430,7 +1533,27 @@ impl Parser {
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 "limb" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`limb` is the root of this Limb and is followed by `.`: `limb.helper[]`, `limb.'pi'`"),
+                "fn" => {
+                    // fn [params] -> T with [lend 'v', give 'w'] { … } — an anonymous function (2026-09-21)
+                    let saved_bounds = std::mem::take(&mut self.bounds);
+                    // reuse func(): give it a name it can never collide with
+                    let mut f = self.anon_func()?;
+                    self.bounds = saved_bounds;
+                    f.name = format!("<anonymous at line {line}>");
+                    let caps = std::mem::take(&mut self.pending_captures);
+                    Ok(Expr::Lambda(std::rc::Rc::new(f), caps, line))
+                }
                 _ if KEYWORDS.contains(&w.as_str()) && w != "limb" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
+                _ if self.is_fn_ref() => {
+                    // a bare function name with no brackets: the function as a value
+                    let mut segs = Vec::new();
+                    loop {
+                        match self.advance().tok { Tok::Word(w) => segs.push(w), _ => unreachable!() }
+                        if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) { self.advance(); continue; }
+                        break;
+                    }
+                    Ok(Expr::FnRef(self.resolve(&segs), self.module.clone(), line))
+                }
                 _ if self.is_enum_bare() => {
                     // `Status.empty` / `shapes.Status.empty` — an enum case with no data;
                     // `Status.claimed["x"]` goes through call() and resolves at run time

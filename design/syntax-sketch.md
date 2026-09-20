@@ -63,7 +63,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   words — `fn`, `let`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise`, `to` (and the retired `var`, `func`) — cannot
+  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
   be used bare as function names; a function *may* be named with one, and
   is then reached only through a path (`std::to[…]`, `limb.to[…]`;
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
