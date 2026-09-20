@@ -182,6 +182,16 @@ pub enum Stmt {
     Block { body: Vec<Stmt>, line: usize },
     /// `fail name;` / `fail name[payload];` — leave the function with a failure (decided 2026-09-19)
     Fail { name: String, payload: Option<Bracket>, line: usize },
+    /// `asm { … } with [ 'v' -> reg, 'v' <- reg, 'v' <-> reg, clobber reg ];` (design/ffi.md, 2026-09-20)
+    Asm { text: String, binds: Vec<AsmBind>, line: usize },
+}
+
+#[derive(Debug, Clone)]
+pub enum AsmBind {
+    In(String, String),      // 'v' -> reg
+    Out(String, String),     // 'v' <- reg   (declares 'v')
+    InOut(String, String),   // 'v' <-> reg
+    Clobber(String),         // clobber reg
 }
 
 /// The three check tiers (decided 2026-09-14): default is written as nothing.

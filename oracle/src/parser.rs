@@ -139,7 +139,7 @@ impl Parser {
                     d.vis = vis; d.layout_c = true;
                     prog.structs.push(d);
                 }
-                Tok::Word(w) if w == "asm" => return self.err("inline assembly is decided to exist but its spelling is not; the oracle refuses it"),
+                Tok::Word(w) if w == "asm" => return self.err("an `asm` block is a statement; it goes inside a body, under `nocheck`"),
                 Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.vis = vis; prog.consts.push(c) }
                 Tok::Word(w) if w == "module" => {
                     let line = self.line();
@@ -506,7 +506,47 @@ impl Parser {
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
-                "asm" => self.err("inline assembly is decided to exist but its spelling is not; the oracle refuses it"),
+                "asm" => {
+                    // nocheck asm { … } with [ … ];   (design/ffi.md, 2026-09-20)
+                    self.advance();
+                    let text = match self.advance().tok {
+                        Tok::Raw(t) => t,
+                        Tok::LBracket => return self.err("assembly goes in braces, verbatim: `asm { mov x16, #4 … }` — not a list of strings"),
+                        other => return self.err(format!("expected `{{` after `asm`, found {other}")),
+                    };
+                    let mut binds = Vec::new();
+                    if self.is_word("with") {
+                        self.advance();
+                        self.expect(Tok::LBracket, "`[` after `with`")?;
+                        if *self.peek() != Tok::RBracket {
+                            loop {
+                                match self.advance().tok {
+                                    Tok::Var(v) => {
+                                        let dir = self.advance().tok;
+                                        let reg = match self.advance().tok { Tok::Word(r) => r, other => return self.err(format!("expected a register name, found {other}")) };
+                                        binds.push(match dir {
+                                            Tok::Arrow => AsmBind::In(v, reg),
+                                            Tok::LeftArrow => AsmBind::Out(v, reg),
+                                            Tok::BothArrow => AsmBind::InOut(v, reg),
+                                            other => return self.err(format!("after '{v}' comes an arrow: `-> reg` (in), `<- reg` (out), `<-> reg` (both); found {other}")),
+                                        });
+                                    }
+                                    Tok::Word(w) if w == "clobber" => {
+                                        let reg = match self.advance().tok { Tok::Word(r) => r, other => return self.err(format!("expected a register after `clobber`, found {other}")) };
+                                        binds.push(AsmBind::Clobber(reg));
+                                    }
+                                    Tok::Word(w) if w == "in" || w == "out" || w == "inout" => return self.err(format!("no `{w}` word: the arrow says the direction — `'v' -> x0`, `'v' <- x0`, `'v' <-> x0`")),
+                                    other => return self.err(format!("expected `'variable' -> register`, `'variable' <- register`, or `clobber register`, found {other}")),
+                                }
+                                if *self.peek() == Tok::Comma { self.advance(); continue; }
+                                break;
+                            }
+                        }
+                        self.expect(Tok::RBracket, "`]` to close the `with` list")?;
+                    }
+                    self.expect(Tok::Semi, "`;` after the asm block")?;
+                    Ok(Stmt::Asm { text, binds, line })
+                }
                 _ => {
                     let mut call = self.call()?;
                     call.handler = self.handler()?;

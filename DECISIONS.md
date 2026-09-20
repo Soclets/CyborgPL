@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Inline assembly: a statement, raw braces, arrows for direction (owner)
+
+Three questions: statement vs value — owner: statement (option 1); the
+block — Claude first wrote a list of strings (Rust's shape), owner: "I
+don't think Assembly looks like that" — raw verbatim braces; bindings —
+Claude proposed words and arrows both, owner asked what the arrows were
+for, then: "drop the words, keep the arrows." `nocheck asm { … } with
+['v' -> x0, 'n' <- x0, clobber x16];`. In `design/ffi.md`; oracle
+parses/checks and refuses to run.
+
 ### 2026-09-20 — FFI in the oracle (Claude, per yesterday's decisions)
 
 `extern fn`, `ptr[T]`, `nocheck` on extern calls and pointer reads/writes,

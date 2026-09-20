@@ -495,6 +495,28 @@ impl<'p> Interp<'p> {
                 r?;
                 Ok(Flow::Normal)
             }
+            Stmt::Asm { text, binds, line } => {
+                if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a nocheck site: the compiler cannot see inside it"); }
+                for b in binds {
+                    match b {
+                        AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("'{v}' is not declared")); } }
+                        _ => {}
+                    }
+                }
+                let n = text.lines().filter(|l| !l.trim().is_empty()).count();
+                rt(*line, format!("the oracle cannot run assembly ({n} instruction line(s), {} binding(s)); the compiler hands it to LLVM's assembler", binds.len()))
+            }
+            Stmt::Asm { text, binds, line } => {
+                if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a nocheck site: the compiler cannot see inside it"); }
+                for b in binds {
+                    match b {
+                        AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("'{v}' is not declared")); } }
+                        _ => {}
+                    }
+                }
+                let n = text.lines().filter(|l| !l.trim().is_empty()).count();
+                rt(*line, format!("the oracle cannot run assembly ({n} instruction line(s), {} binding(s)); the compiler hands it to LLVM's assembler", binds.len()))
+            }
             Stmt::Fail { name, payload, line } => {
                 let case = match self.fails.iter().find(|f| &f.name == name) { Some(f) => f.clone(), None => return rt(*line, format!("`{name}` is not a listed failure here")) };
                 let v = match payload {

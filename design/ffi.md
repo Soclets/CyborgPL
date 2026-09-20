@@ -75,10 +75,32 @@ Compile-time constants, spelled like `to.`: `malloc[10 x size.of[Timeval]]`.
 A `layout.c` struct has C's size; a normal struct's is whatever Precog
 chose.
 
+## Inline assembly (decided 2026-09-20)
+
+```
+nocheck asm {
+    mov x16, #4
+    svc 0
+} with ['fd' -> x0, 'buf' -> x1, 'len' -> x2, 'n' <- x0, clobber x16];
+```
+
+- **A statement, not a value** (owner: option 1) — a syscall can set
+  several registers, so results come out through named bindings.
+- **The braces hold raw assembly, verbatim**, for the target CPU (arm64
+  on the owner's Mac: `mov x16, #4` / `svc 0` is macOS's `write`); the
+  compiler does not read it, LLVM's assembler does. Not a list of strings
+  (owner: "I don't think Assembly looks like that").
+- **`with [ … ]` binds variables to registers; the arrow is the
+  direction** (owner: "drop the words, keep the arrows"): `'v' -> x0`
+  copies the variable in before the block, `'v' <- x0` stores the
+  register into `'v'` after (declaring it, like a `let`), `'v' <-> x0`
+  both; `clobber x16` says a register was overwritten.
+- Always a `nocheck` site. Per-architecture by nature.
+- The oracle parses and checks all of this and then refuses to run it
+  ("the oracle cannot run assembly"), with six reject tests.
+
 ## Open
 
-- Inline assembly: spelling; it is the one thing Precog cannot look
-  inside, so `nocheck`-style thinking applies.
 - Callbacks (C calling a Cyborg function) — waits on functions as values.
 - Extern data (`extern const`/`let` for a C global).
 - Reading a C string into a `str.utf8` — std's, behind one intrinsic.

@@ -32,6 +32,9 @@ pub enum Tok {
     ShadowEq,       // $=
     Colon,          // :   'x': int32
     Ellipsis,       // ... a variadic parameter
+    LeftArrow,      // <-  asm: register into variable
+    BothArrow,      // <-> asm: both ways
+    Raw(String),    // the verbatim text of an `asm { … }` block
     Arrow,          // ->  fn f [...] -> int32
     Semi,           // ;
     Comma,          // ,
@@ -63,6 +66,9 @@ impl fmt::Display for Tok {
             Tok::ShadowEq => write!(f, "$="),
             Tok::Colon => write!(f, ":"),
             Tok::Ellipsis => write!(f, "..."),
+            Tok::LeftArrow => write!(f, "<-"),
+            Tok::BothArrow => write!(f, "<->"),
+            Tok::Raw(_) => write!(f, "assembly"),
             Tok::Arrow => write!(f, "->"),
             Tok::Semi => write!(f, ";"),
             Tok::Comma => write!(f, ","),
@@ -213,7 +219,30 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 s.push(chars[i]);
                 i += 1; col += 1;
             }
+            let is_asm = s == "asm";
             push(Tok::Word(s), &mut toks);
+            if is_asm {
+                // `asm { … }` — the braces hold raw assembly, taken verbatim up to the
+                // matching `}` (design/ffi.md, 2026-09-20)
+                let mut j = i;
+                while j < chars.len() && chars[j].is_whitespace() && chars[j] != '\n' { j += 1; }
+                if j < chars.len() && chars[j] == '{' {
+                    let (bl, bc) = (line, col + (j - i));
+                    let mut k = j + 1;
+                    let mut depth = 1;
+                    let mut raw = String::new();
+                    while k < chars.len() {
+                        let d = chars[k];
+                        if d == '{' { depth += 1; } else if d == '}' { depth -= 1; if depth == 0 { break; } }
+                        raw.push(d);
+                        k += 1;
+                    }
+                    if k >= chars.len() { return err(bl, bc, "unclosed `asm {`".into()); }
+                    for d in chars[i..=k].iter() { if *d == '\n' { line += 1; col = 1; } else { col += 1; } }
+                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc });
+                    i = k + 1;
+                }
+            }
             continue;
         }
 
@@ -224,7 +253,9 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         if rest.starts_with("<==") { push(Tok::Op("<==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with(">==") { push(Tok::Op(">==".into()), &mut toks); i += 3; col += 3; continue; }
         if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
+        if rest.starts_with("<->") { push(Tok::BothArrow, &mut toks); i += 3; col += 3; continue; }
         if two == "->" { push(Tok::Arrow, &mut toks); i += 2; col += 2; continue; }
+        if two == "<-" { push(Tok::LeftArrow, &mut toks); i += 2; col += 2; continue; }
         if rest.starts_with("...") { push(Tok::Ellipsis, &mut toks); i += 3; col += 3; continue; }
         if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
         if c == '$' { return err(tl, tc, "`$` marks a shadowing declaration and sits on the operator: `$:=` or `$=`".into()); }

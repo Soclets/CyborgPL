@@ -1,0 +1,4 @@
+MAIN {
+    let 'fd' := 1;
+    nocheck asm { nop } with [in 'fd' -> x0];
+}

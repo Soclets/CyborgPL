@@ -1,0 +1,3 @@
+MAIN {
+    nocheck asm { nop } with ['zzz' -> x0];
+}
