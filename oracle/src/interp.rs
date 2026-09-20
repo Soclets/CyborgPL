@@ -147,6 +147,10 @@ impl<'p> Interp<'p> {
             let k = format!("struct {}", d.name);
             if let Some(l) = seen.insert(k.clone(), d.line) { return rt(d.line, format!("struct `{}` is defined twice (first at line {l})", d.name)); }
         }
+        for e in &self.prog.enums {
+            let k = format!("struct {}", e.name);   // structs and enums share the type namespace
+            if let Some(l) = seen.insert(k.clone(), e.line) { return rt(e.line, format!("type `{}` is defined twice (first at line {l})", e.name)); }
+        }
         for m in &self.prog.modules {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at line {l}) — a file and a block cannot both be it", m.path.join("."))); }
@@ -495,6 +499,28 @@ impl<'p> Interp<'p> {
                 r?;
                 Ok(Flow::Normal)
             }
+            Stmt::Match { value, arms, line } => {
+                let (v, _) = self.single(value, *line)?;
+                let (tname, case, data) = match v { Value::Enum(t, c, d) => (t, c, d), other => return rt(*line, format!("`match` takes an enum value, got {} — for other types use `if`", other.kind())) };
+                let def = match self.prog.enums.iter().find(|e| e.name == tname) { Some(d) => d.clone(), None => return rt(*line, format!("no enum named `{tname}`")) };
+                for a in arms {
+                    match def.cases.iter().find(|c| c.name == a.name) {
+                        None => return rt(a.line, format!("`{tname}` has no case `{}` (it has {})", a.name, def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
+                        Some(c) => if a.bind.is_some() && c.ty.is_none() { return rt(a.line, format!("`{}` carries nothing; there is no value to name", a.name)); },
+                    }
+                }
+                let missing: Vec<&str> = def.cases.iter().filter(|c| !arms.iter().any(|a| a.name == c.name)).map(|c| c.name.as_str()).collect();
+                if !missing.is_empty() { return rt(*line, format!("`match` on `{tname}` does not handle {}; every case must be covered", missing.join(", "))); }
+                let arm = arms.iter().find(|a| a.name == case).unwrap();
+                self.push();
+                if let (Some(b), Some(d)) = (&arm.bind, data) {
+                    let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(*d)), ty: None, kind: SlotKind::Owned, alive: true, immut: false }, arm.line);
+                    if let Err(e) = r { self.pop(); return Err(e); }
+                }
+                let r = self.stmts(&arm.body);
+                self.pop();
+                r
+            }
             Stmt::Asm { text, binds, line } => {
                 if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a nocheck site: the compiler cannot see inside it"); }
                 for b in binds {
@@ -615,7 +641,7 @@ impl<'p> Interp<'p> {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
             }
-            (Ty::Struct(want), Value::Struct(have, _)) => {
+            (Ty::Struct(want), Value::Struct(have, _)) | (Ty::Struct(want), Value::Enum(have, _, _)) => {
                 if want == have { Ok(()) } else { rt(line, format!("expected a {want}, got a {have}")) }
             }
             (Ty::Ptr(_, want_mut), Value::Ptr(p)) => {
@@ -624,7 +650,7 @@ impl<'p> Interp<'p> {
             }
             (Ty::Ptr(..), v) => rt(line, format!("expected a pointer ({name}); got {} — a pointer is a `lend` of a list/array/str, or comes from C", v.kind())),
             (Ty::Struct(want), v) => {
-                if !self.prog.structs.iter().any(|sd| &sd.name == want) { return rt(line, format!("no struct named `{want}` is declared")); }
+                if !self.prog.structs.iter().any(|sd| &sd.name == want) && !self.prog.enums.iter().any(|e| &e.name == want) { return rt(line, format!("no struct or enum named `{want}` is declared")); }
                 rt(line, format!("expected a {want}, got {}", v.kind()))
             }
             (Ty::Char(unit), Value::Char(_, s)) => {
@@ -888,6 +914,7 @@ impl<'p> Interp<'p> {
                 let prov = if out.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((out, prov))
             }
+            Expr::EnumValue(tname, case, _, _) => self.enum_value(tname, case, None, &Vec::new(), line),
             Expr::SizeOf(ty, is_size, _) => {
                 let (size, align) = self.size_align(ty, line)?;
                 Ok((Value::Int(if *is_size { size } else { align } as i128), Prov::Literal))
@@ -1059,6 +1086,15 @@ impl<'p> Interp<'p> {
     fn user_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         let (module, name) = c.path.split_at(c.path.len() - 1);
         let name = &name[0];
+        // `Status.claimed["x"]` — an enum case with data, spelled like a call
+        if !module.is_empty() {
+            let tname = module.join(".");
+            if self.prog.enums.iter().any(|e| e.name == tname) {
+                if c.handler.is_some() { return rt(c.line, "an enum value cannot fail; drop the `otherwise`"); }
+                let from = c.from.clone();
+                return self.enum_value(&tname, name, Some(&c.args), &from, c.line).map(|(v, _)| v);
+            }
+        }
         self.check_path(&c.from, module, c.line)?;
         let func = match self.prog.funcs.iter().find(|f| f.module == module && &f.name == name) {
             Some(f) => f,
@@ -1438,6 +1474,38 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// Build an enum value: the case must exist; data exactly when the case carries some.
+    fn enum_value(&mut self, tname: &str, case: &str, args: Option<&Bracket>, from: &[String], line: usize) -> Result<(Value, Prov), RuntimeError> {
+        let def = match self.prog.enums.iter().find(|e| e.name == tname) {
+            Some(d) => d.clone(),
+            None => return rt(line, format!("`{tname}` is not an enum (or a function `{tname}.{case}` — neither exists)")),
+        };
+        let from = if from.is_empty() { self.module.clone() } else { from.to_vec() };
+        self.check_path(&from, &def.module, line)?;
+        if !self.reachable(&from, &def.module, def.vis) { return rt(line, format!("enum `{tname}` is private to `{}`; mark it `pub` or `pub.limb`", root_or(&def.module))); }
+        let cdef = match def.cases.iter().find(|c| c.name == case) {
+            Some(c) => c,
+            None => return rt(line, format!("`{tname}` has no case `{case}` (it has {})", def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
+        };
+        let data = match (&cdef.ty, args) {
+            (None, None) => None,
+            (None, Some(b)) if b.values.is_empty() => None,
+            (None, Some(_)) => return rt(line, format!("`{tname}.{case}` carries nothing; write it bare")),
+            (Some(t), None) => return rt(line, format!("`{tname}.{case}` carries a {}: `{tname}.{case}[…]`", ty_name(t))),
+            (Some(t), Some(b)) => {
+                if b.values.len() != 1 { return rt(line, format!("`{tname}.{case}` carries one value")); }
+                let (v, prov) = self.bracket(b, line)?;
+                match prov {
+                    Prov::Bare(n) => return rt(line, format!("bare '{n}' as the data of `{case}`: say `give '{n}'` or `copy '{n}'`")),
+                    Prov::Borrowed(..) => return rt(line, "an enum owns its data; it cannot hold a lend"),
+                    _ => {}
+                }
+                Some(Box::new(self.fit(v, prov, Some(t), line)?))
+            }
+        };
+        Ok((Value::Enum(tname.to_string(), case.to_string(), data), Prov::Fresh))
+    }
+
     fn std_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         let path = c.path.join(".");
         let value_used = !self.call_is_stmt;
@@ -1579,7 +1647,8 @@ fn first_std_call(b: &Bracket) -> Option<String> {
 fn same_family(a: &Value, b: &Value, line: usize, op: &str) -> Result<(), RuntimeError> {
     let ok = matches!((a, b),
         (Value::Int(_), Value::Int(_)) | (Value::Bin(_), Value::Bin(_)) | (Value::Bool(_), Value::Bool(_))
-        | (Value::Str(_), Value::Str(_)) | (Value::Char(..), Value::Char(..)) | (Value::List(_), Value::List(_)));
+        | (Value::Str(_), Value::Str(_)) | (Value::Char(..), Value::Char(..)) | (Value::List(_), Value::List(_))
+        | (Value::Enum(..), Value::Enum(..)) | (Value::Struct(..), Value::Struct(..)));
     if ok { Ok(()) } else { rt(line, format!("`{op}` between {} and {}: no implicit conversion", a.kind(), b.kind())) }
 }
 

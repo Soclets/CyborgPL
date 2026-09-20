@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-20 — Enums: `enum Status { empty  claimed: str.utf8  locked }`, `Status.claimed["x"]`, `match` (owner)
+
+Owner asked "didn't we already do enums?" (no — failures chose inline
+lists, leaving item 4 open) and "what are enums?" (one of a few options,
+like `bool` with your own names). Declaration shape and `enum` keyword —
+yes. Branching: the `otherwise` arms with a word in front; owner asked
+for a small program, then "why `match`?" — the value is matched against
+shapes; `switch` has fall-through baggage, `when` reads as time. "`match`
+it is." Consequences set by Claude: `match` is a statement; an enum is
+always owned like a struct; `==` works. `design/enums.md`; oracle:
+`examples/enums.cpls`, thirteen reject tests. Closes open item 4.
+
 ### 2026-09-20 — Text: three counts, no length; walk by unit; no `[pos]`; toolbox in std; exact `==`; no `<` (owner)
 
 Four questions. (1) length: no `str.length` — `str.bytes` / `str.points`

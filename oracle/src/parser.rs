@@ -12,7 +12,7 @@ use crate::value::ty_name;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -80,7 +80,7 @@ impl Parser {
     // program := item* Eof
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
-        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), consts: Vec::new(), modules: Vec::new(), main: None };
+        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), consts: Vec::new(), modules: Vec::new(), main: None };
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -106,7 +106,7 @@ impl Parser {
                     }
                 }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
                     other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
@@ -115,6 +115,36 @@ impl Parser {
             match self.peek().clone() {
                 Tok::Word(w) if w == "fn" => { let mut f = self.func()?; f.vis = vis; prog.funcs.push(f) }
                 Tok::Word(w) if w == "struct" => { let mut d = self.struct_def()?; d.vis = vis; prog.structs.push(d) }
+                Tok::Word(w) if w == "enum" => {
+                    // enum Name { case  case: type … }   (design/enums.md, 2026-09-20)
+                    let line = self.line();
+                    self.advance();
+                    let name = match self.advance().tok {
+                        Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
+                        Tok::Word(n) => n,
+                        Tok::Var(v) => return self.err(format!("an enum's name is bare — it is a type: `enum {v}`")),
+                        other => return self.err(format!("expected an enum name, found {other}")),
+                    };
+                    self.expect(Tok::LBrace, "`{`")?;
+                    let mut cases: Vec<FailCase> = Vec::new();
+                    while *self.peek() != Tok::RBrace {
+                        let cname = match self.advance().tok {
+                            Tok::Word(c) if KEYWORDS.contains(&c.as_str()) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
+                            Tok::Word(c) => c,
+                            Tok::Var(v) => return self.err(format!("a case's name is bare, like a field: `{v}` — it is a path into the type")),
+                            Tok::Eof => return self.err("unclosed `enum {`"),
+                            other => return self.err(format!("expected a case name, found {other}")),
+                        };
+                        if cases.iter().any(|c| c.name == cname) { return self.err(format!("case `{cname}` is declared twice")); }
+                        let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
+                        if *self.peek() == Tok::Semi { return self.err("no `;` after a case"); }
+                        if *self.peek() == Tok::Comma { return self.err("no `,` between cases — one per line, like struct fields"); }
+                        cases.push(FailCase { name: cname, ty });
+                    }
+                    self.advance();
+                    if cases.is_empty() { return self.err(format!("enum `{name}` has no cases")); }
+                    prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, line });
+                }
                 Tok::Word(w) if w == "extern" => {
                     // extern fn name [params] -> T;   (design/ffi.md)
                     self.advance();
@@ -507,6 +537,15 @@ impl Parser {
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
                 "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20)"),
+                "match" => {
+                    // match v { case ['bind'] { … } … }   (design/enums.md, 2026-09-20)
+                    self.advance();
+                    let value = self.rhs()?;
+                    if *self.peek() != Tok::LBrace { return self.err(format!("expected `{{` after the value to match, found {}", self.peek())); }
+                    let arms = self.arms("match")?;
+                    Ok(Stmt::Match { value, arms, line })
+                }
+                "enum" => self.err("an `enum` sits at the top level of a file"),
                 "inline" => {
                     // nocheck inline.ASM { … } with [ … ];   (design/ffi.md, 2026-09-20)
                     // The language's name is in capitals, like MAIN: easy to spot (owner).
@@ -769,22 +808,7 @@ impl Parser {
                 Handler::Leave(Box::new(s))
             }
             Tok::LBrace => {
-                self.advance();
-                let mut arms = Vec::new();
-                while *self.peek() != Tok::RBrace {
-                    let line = self.line();
-                    let name = match self.advance().tok {
-                        Tok::Word(w) => w,
-                        Tok::Var(v) => return self.err(format!("an arm starts with the failure's bare name; the payload's name comes after it: `bad_item {v} {{ … }}`")),
-                        Tok::Eof => return self.err("unclosed `otherwise {`"),
-                        other => return self.err(format!("expected a failure name to handle, found {other}")),
-                    };
-                    let bind = if let Tok::Var(v) = self.peek().clone() { self.advance(); Some(v) } else { None };
-                    let body = self.block()?;
-                    if arms.iter().any(|a: &Arm| a.name == name) { return self.err(format!("`{name}` is handled twice")); }
-                    arms.push(Arm { name, bind, body, line });
-                }
-                self.advance();
+                let arms = self.arms("otherwise")?;
                 if arms.is_empty() { return self.err("`otherwise { }` handles nothing; list the failures, or use `otherwise fail;`"); }
                 Handler::Arms(arms)
             }
@@ -796,6 +820,20 @@ impl Parser {
             }
         };
         Ok(Some(h))
+    }
+
+    /// Word ('.' Word)+ not followed by '[' or '::'  — an enum case with no data
+    fn is_enum_bare(&self) -> bool {
+        let mut i = 0;
+        let mut dots = 0;
+        loop {
+            if !matches!(self.peek_at(i), Tok::Word(_)) { return false; }
+            match self.peek_at(i + 1) {
+                Tok::Dot if matches!(self.peek_at(i + 2), Tok::Word(_)) => { i += 2; dots += 1; }
+                Tok::Dot | Tok::LBracket | Tok::ColonColon => return false,   // a const path, a call, a Limb
+                _ => return dots >= 1,
+            }
+        }
     }
 
     /// Word ('.' Word)* '.' Var  — a const reached by path
@@ -822,6 +860,27 @@ impl Parser {
         }
     }
 
+    // arms := '{' (Word Var? block)* '}'   — shared by `otherwise` and `match`
+    fn arms(&mut self, what: &str) -> PResult<Vec<Arm>> {
+        self.expect(Tok::LBrace, "`{`")?;
+        let mut arms = Vec::new();
+        while *self.peek() != Tok::RBrace {
+            let line = self.line();
+            let name = match self.advance().tok {
+                Tok::Word(w) => w,
+                Tok::Var(v) => return self.err(format!("an arm starts with the case's bare name; the data's name comes after it: `claimed {v} {{ … }}`")),
+                Tok::Eof => return self.err(format!("unclosed `{what} {{`")),
+                other => return self.err(format!("expected a case name to handle, found {other}")),
+            };
+            let bind = if let Tok::Var(v) = self.peek().clone() { self.advance(); Some(v) } else { None };
+            let body = self.block()?;
+            if arms.iter().any(|a: &Arm| a.name == name) { return self.err(format!("`{name}` is handled twice")); }
+            arms.push(Arm { name, bind, body, line });
+        }
+        self.advance();
+        Ok(arms)
+    }
+
     // call := (Word '::')? Word ('.' Word)* bracket
     fn call(&mut self) -> PResult<Call> {
         let line = self.line();
@@ -842,6 +901,7 @@ impl Parser {
         }
         if *self.peek() != Tok::LBracket {
             let shown = match &limb { Some(l) => format!("{l}::{}", path.join(".")), None => path.join(".") };
+            if limb.is_none() && path.len() >= 2 { return self.err(format!("`{shown}`: a call needs `[…]`; an enum case with no data is written bare (`Status.empty`) — is `{}` an enum?", path[path.len() - 2])); }
             return self.err(format!("`{shown}` is followed by {}; a call needs `[…]`", self.peek()));
         }
         let args = self.bracket()?;
@@ -1155,6 +1215,18 @@ impl Parser {
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 "limb" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`limb` is the root of this Limb and is followed by `.`: `limb.helper[]`, `limb.'pi'`"),
                 _ if KEYWORDS.contains(&w.as_str()) && w != "limb" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
+                _ if self.is_enum_bare() => {
+                    // `Status.empty` / `shapes.Status.empty` — an enum case with no data;
+                    // `Status.claimed["x"]` goes through call() and resolves at run time
+                    let mut segs = Vec::new();
+                    loop {
+                        match self.advance().tok { Tok::Word(w) => segs.push(w), _ => unreachable!() }
+                        if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) { self.advance(); continue; }
+                        break;
+                    }
+                    let case = segs.pop().unwrap();
+                    Ok(Expr::EnumValue(self.canonical(&segs), case, None, line))
+                }
                 _ if self.is_const_path() => {
                     // `shapes.'pi'`, `limb.'pi'`
                     let mut segs = Vec::new();

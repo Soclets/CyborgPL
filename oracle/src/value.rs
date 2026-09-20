@@ -14,6 +14,8 @@ pub enum Value {
     List(Vec<Value>),
     /// a struct value: blueprint name + fields in declaration order
     Struct(String, Vec<(String, Value)>),
+    /// an enum value (design/enums.md): type name, case name, the case's data if any
+    Enum(String, String, Option<Box<Value>>),
     /// a C pointer (design/ffi.md): into a lent Cyborg list/array/str, or from
     /// an emulated extern; `cell: None` is C's null
     Ptr(Ptr),
@@ -46,6 +48,8 @@ impl Value {
             // Decided 2026-09-18: a struct is always an owned value, even when every
             // field is plain — a struct owns its fields, so the verbs always apply.
             Value::Struct(..) => true,
+            // Decided 2026-09-20: an enum is always owned, like a struct — one rule.
+            Value::Enum(..) => true,
             _ => false,
         }
     }
@@ -59,6 +63,7 @@ impl Value {
             Value::Char(..) => "char",
             Value::List(_) => "list",
             Value::Struct(..) => "struct",
+            Value::Enum(..) => "enum",
             Value::Ptr(_) => "ptr",
             Value::Nothing => "nothing",
         }
@@ -75,6 +80,7 @@ impl Value {
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Ptr(p) => if p.cell.is_none() { "null".into() } else { format!("ptr+{}", p.index) },
+            Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_stored()), None => format!("{t}.{c}") },
             Value::Nothing => "nothing".into(),
         }
     }
@@ -86,6 +92,7 @@ impl Value {
             Value::Bin(b) => format!("{b}"),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_useful())).collect::<Vec<_>>().join(", ")),
+            Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_useful()), None => format!("{t}.{c}") },
             other => other.show_stored(),
         }
     }

@@ -41,6 +41,16 @@ pub struct ModuleDef {
     pub line: usize,
 }
 
+/// `enum Status { empty  claimed: str.utf8  locked }` (decided 2026-09-20)
+#[derive(Debug, Clone)]
+pub struct EnumDef {
+    pub name: String,        // canonical, like a struct's
+    pub module: Vec<String>,
+    pub vis: Vis,
+    pub cases: Vec<FailCase>, // a case is a name with an optional payload — the failure shape
+    pub line: usize,
+}
+
 #[derive(Debug, Clone)]
 pub struct StructDef {
     /// canonical: "shapes.Locker" for a struct in module `shapes`, "Locker" at the root
@@ -144,6 +154,7 @@ pub struct Arm {
 pub struct Program {
     pub funcs: Vec<Func>,
     pub structs: Vec<StructDef>,
+    pub enums: Vec<EnumDef>,
     pub consts: Vec<ConstDef>,
     pub modules: Vec<ModuleDef>,
     pub main: Option<Vec<Stmt>>,
@@ -184,6 +195,8 @@ pub enum Stmt {
     Fail { name: String, payload: Option<Bracket>, line: usize },
     /// `asm { … } with [ 'v' -> reg, 'v' <- reg, 'v' <-> reg, clobber reg ];` (design/ffi.md, 2026-09-20)
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
+    /// `match v { case ['bind'] { … } … }` — every case covered (decided 2026-09-20)
+    Match { value: Bracket, arms: Vec<Arm>, line: usize },
 }
 
 #[derive(Debug, Clone)]
@@ -263,6 +276,8 @@ pub enum Expr {
     Convert(Ty, Bracket, Option<Handler>, usize),
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
     SizeOf(Ty, bool, usize),
+    /// `Status.empty` / `Status.claimed["x"]` — an enum value (canonical type name, case, data)
+    EnumValue(String, String, Option<Bracket>, usize),
     Unary(String, Box<Expr>, usize),            // not, -
     Binary(String, Box<Expr>, Box<Expr>, usize),
     Paren(Box<Expr>, usize),
@@ -285,6 +300,7 @@ impl Expr {
             Expr::ConstPath(_, _, _, l) => *l,
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
+            Expr::EnumValue(_, _, _, l) => *l,
         }
     }
 }
