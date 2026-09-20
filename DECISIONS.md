@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Bitwise: `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr` (owner)
+
+Owner asked why the spelling extends from `and`/`or`/`not`, then what
+"keep a 1 only if both have a 1" meant, then how that relates to `and`
+— walked through column by column; "`and.bit` it is." No precedence
+(parenthesise), integers only, shifts are check sites.
+`examples/bitwise.cpls`; the FNV-1a hash example now uses `xor` and
+matches the real algorithm (1335831723 for "hello"); six reject tests.
+
 ### 2026-09-20 — Input: `std::input.line` / `.all` failing with `closed`; range types `int32[0, 100]` (owner)
 
 (1) reading: two std functions returning `str.utf8`, `closed` on nothing
@@ -1019,7 +1028,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Range types on non-numbers (a text's or list's length bound) — the old "length at a boundary" question, now shaped like `int32[0, 100]`; one-ended ranges. (2026-09-20)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
-- Bitwise operators (xor, and, or, not, shifts) — none exist; a hash currently substitutes subtraction. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)

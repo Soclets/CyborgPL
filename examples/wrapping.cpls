@@ -3,7 +3,7 @@
 fn hash [lent 'text': str.utf8] -> uint32 {
     let 'h': uint32 = 2_166_136_261;                 # FNV-1a
     for 'b' in str.each.byte[lend 'text'] {
-        'h' = 'h' -~ 'b';                           # xor is not decided yet; subtraction stands in
+        'h' = 'h' xor 'b';                          # FNV-1a: xor, then a wrapping multiply
         'h' = 'h' x~ 16_777_619;                    # wraps instead of overflowing
     }
     return 'h';

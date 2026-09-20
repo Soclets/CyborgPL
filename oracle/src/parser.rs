@@ -12,12 +12,15 @@ use crate::value::ty_name;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
 
 const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
+/// Bitwise operators (decided 2026-09-21): the boolean words narrowed with `.bit`, plus xor/shl/shr;
+/// no precedence — parentheses whenever one meets another operator.
+const BIT_OPS: &[&str] = &["and.bit", "or.bit", "xor", "shl", "shr"];
 
 #[derive(Debug)]
 pub struct ParseError {
@@ -1182,7 +1185,10 @@ impl Parser {
     fn binop(&self) -> Option<String> {
         match self.peek() {
             Tok::Op(o) => Some(o.clone()),
+            // `and.bit` / `or.bit` — one operator spelled as a chain
+            Tok::Word(w) if (w == "and" || w == "or") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bit") => Some(format!("{w}.bit")),
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
+            Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
             Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(1) != Tok::LBracket && *self.peek_at(1) != Tok::ColonColon && *self.peek_at(1) != Tok::Dot => Some(w.clone()),
             Tok::Eq => Some("=".into()),
@@ -1235,12 +1241,15 @@ impl Parser {
             if op == "=" { return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
             if Parser::is_custom_op(&op) {
                 // A custom operator has no precedence (decided 2026-09-20): it may not
-                // sit next to another operator without parentheses.
+                // sit next to another operator without parentheses. Bitwise operators
+                // follow the same rule (2026-09-21): mathematics has no reading for them.
                 if min > 0 { break; }
-                if matches!(lhs, Expr::Binary(..)) { return self.err(format!("`{op}` next to another operator: a custom operator has no precedence — parenthesise")); }
+                let what = if BIT_OPS.contains(&op.as_str()) { "a bitwise operator" } else { "a custom operator" };
+                if matches!(lhs, Expr::Binary(..)) { return self.err(format!("`{op}` next to another operator: {what} has no precedence — parenthesise")); }
                 self.advance();
+                if op.ends_with(".bit") { self.advance(); self.advance(); }
                 let rhs = self.unary()?;
-                if let Some(next) = self.binop() { if next != "=" { return self.err(format!("`{next}` after `{op}`: a custom operator has no precedence — parenthesise")); } }
+                if let Some(next) = self.binop() { if next != "=" { return self.err(format!("`{next}` after `{op}`: {what} has no precedence — parenthesise")); } }
                 lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
                 continue;
             }
@@ -1291,7 +1300,15 @@ impl Parser {
     // unary := ('not' | '-') unary | primary
     fn unary(&mut self) -> PResult<Expr> {
         let line = self.line();
-        if self.is_word("not") { self.advance(); return Ok(Expr::Unary("not".into(), Box::new(self.unary()?), line)); }
+        if self.is_word("not") {
+            self.advance();
+            if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(b) if b == "bit") {
+                self.advance(); self.advance();
+                let inner = self.primary()?;
+                return Ok(Expr::Unary("not.bit".into(), Box::new(inner), line));
+            }
+            return Ok(Expr::Unary("not".into(), Box::new(self.unary()?), line));
+        }
         // unary minus sits below xx: -2 xx 2 is -(2 xx 2), as in mathematics
         if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(8)?), line)); }
         self.primary()

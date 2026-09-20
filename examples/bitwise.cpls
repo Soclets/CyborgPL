@@ -1,0 +1,14 @@
+# Bitwise operators (decided 2026-09-21): the boolean words, per bit.
+MAIN {
+    let 'a': uint8 = 12;                       # 0000 1100
+    let 'b': uint8 = 10;                       # 0000 1010
+    std::printu.stdout['a' and.bit 'b', \n];   # 0000 1000 = 8
+    std::printu.stdout['a' or.bit 'b', \n];    # 0000 1110 = 14
+    std::printu.stdout['a' xor 'b', \n];       # 0000 0110 = 6
+    std::printu.stdout[not.bit 'a', \n];       # 1111 0011 = 243
+    std::printu.stdout['a' shl 2, " ", 'a' shr 2, \n];   # 48 3
+    let 'flags': uint8 = 0;
+    'flags' = 'flags' or.bit 4;                # set bit 2
+    'flags' = 'flags' or.bit 1;                # set bit 0
+    std::printu.stdout['flags', " ", ('flags' and.bit 4) !== 0, \n];   # 5 true — parenthesised next to !==
+}

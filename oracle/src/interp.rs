@@ -975,6 +975,16 @@ impl<'p> Interp<'p> {
             Expr::Unary(op, inner, _) => {
                 let (v, prov) = self.eval(inner)?;
                 let keep = if matches!(prov, Prov::Literal) { Prov::Literal } else { Prov::Plain };
+                if op == "not.bit" {
+                    // flip every bit, at the operand's declared width (the oracle needs a typed variable)
+                    let width = match inner.as_ref() { Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()), _ => None };
+                    let (bits, signed) = match width { Some(Ty::Int(w)) => (int_bits(&w), true), Some(Ty::Uint(w)) => (int_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, and the oracle only knows a declared width: put the operand in a variable declared `: uint32` / `: int8`") };
+                    let x = match v { Value::Int(x) => x, o => return rt(line, format!("`not.bit` is integer arithmetic, got {}", o.kind())) };
+                    let m: i128 = 1i128 << bits;
+                    let mut r = (!x).rem_euclid(m);
+                    if signed && r >= m / 2 { r -= m; }
+                    return Ok((Value::Int(r), Prov::Plain));
+                }
                 match (op.as_str(), v) {
                     ("not", Value::Bool(b)) => Ok((Value::Bool(!b), Prov::Plain)),
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
@@ -1009,6 +1019,30 @@ impl<'p> Interp<'p> {
                 let m: i128 = 1i128 << bits;
                 let mut v = raw.rem_euclid(m);
                 if signed && v >= m / 2 { v -= m; }
+                Ok((Value::Int(v), Prov::Plain))
+            }
+            // Bitwise (decided 2026-09-21): integers only; `shl` past the width is a check site.
+            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "and.bit" | "or.bit" | "xor" | "shl" | "shr") => {
+                let (a, _) = self.eval(l)?;
+                let (b, _) = self.eval(r)?;
+                let (x, y) = match (a, b) { (Value::Int(x), Value::Int(y)) => (x, y), (a, b) => return rt(line, format!("`{op}` works on integers, got {} and {}", a.kind(), b.kind())) };
+                let v = match op.as_str() {
+                    "and.bit" => x & y,
+                    "or.bit" => x | y,
+                    "xor" => x ^ y,
+                    "shl" | "shr" => {
+                        if y < 0 { return rt(line, format!("`{op}` by a negative count")); }
+                        let width_ty = match l.as_ref() { Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()), _ => None };
+                        let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
+                        if y as u32 >= bits { return site(line, format!("`{op}` by {y} on a {bits}-bit value: every bit is lost")); }
+                        if op == "shl" {
+                            let r = x.checked_shl(y as u32).ok_or_else(|| RuntimeError { line, msg: "shift overflow".into(), exit: None, site: true, leave: None })?;
+                            if let Some(t) = width_ty { if let Some((lo, hi)) = crate::value::int_range(&t) { if r < lo || r > hi { return site(line, format!("`shl` by {y} overflows: {r} does not fit the {bits}-bit type")); } } }
+                            r
+                        } else { x >> (y as u32) }
+                    }
+                    _ => unreachable!(),
+                };
                 Ok((Value::Int(v), Prov::Plain))
             }
             Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "/" | "mod" | "++" | "==" | "!==" | "<" | ">" | "<==" | ">==" | "and" | "or") => {
