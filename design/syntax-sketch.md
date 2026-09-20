@@ -121,26 +121,9 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   `let 's' := "x is " ++ 'x';` holds the full expansion, and `printu['s']`
   cannot undo it. `printu` is the only thing that produces the useful form,
   and only for the values handed to it directly.
-- **`std::printc`** (owner, 2026-09-19: "exactly like C's") is `printf`: a
-  format text `printc` reads itself — `%d %i %u %x %X %o %f %e %g %s %c %b
-  %%`, flags `- 0 +`, width, `.precision`, and C's `\n` `\t` `\\` `\"`
-  *inside the format* (the literal still holds a backslash and an `n`;
-  `printc` is what turns them into a newline, as it turns `%d` into
-  digits) — then the values: `std::c.printf["%d tests, avg %.2f\n",
-  'count', 'avg'];`, `std::c.fprintf.stderr[…]` for stderr. Unlike C, the format is a known value, so every hole
-  is checked against its value at compile time: a missing value, an extra
-  one, or `%d` over a `bin` is a compile error, never undefined behaviour.
-- **`std::rs.print` / `println` / `eprint` / `eprintln`** (owner,
-  2026-09-19: "exactly like Rust's") are Rust's macros by their own names: `{}` holes, `{0}` positional, `{name}` a variable in scope
-  (Rust's captured identifier — `{count}` reads `'count'`), `{:?}` debug,
-  the spec `{:[fill][align][sign][#][0][width][.precision][type]}` with
-  types `? x X o b e E`, `{{` `}}`, and `\n` inside the format:
-  `std::rs.println["{name} scored {:.2}", 'avg'];`. Holes are checked
-  against values like `c.printf`'s. So: `print`/`printu` are Cyborg's own;
-  a borrowed print lives under its language's name with that language's
-  spelling. Calls stay `[ ]` (owner: "at least the insides look alike"),
-  and the values inside stay quoted — a per-parameter `bare` flag was
-  sketched (needs variadics first) and shelved.
+- Borrowed prints (`std::printc`/`std::c.printf`, `std::printrs`/`std::rs.println`)
+  existed for a day (2026-09-19) and were removed by the owner on
+  2026-09-20; `print` and `printu` are the prints.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; `let 'x' $:= 2;`. `immut` names cannot be shadowed.
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
