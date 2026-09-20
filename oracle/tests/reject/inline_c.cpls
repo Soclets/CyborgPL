@@ -1,0 +1,3 @@
+MAIN {
+    nocheck inline.C { return 1; };
+}

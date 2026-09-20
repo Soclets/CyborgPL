@@ -75,14 +75,20 @@ Compile-time constants, spelled like `to.`: `malloc[10 x size.of[Timeval]]`.
 A `layout.c` struct has C's size; a normal struct's is whatever Precog
 chose.
 
-## Inline assembly (decided 2026-09-20)
+## Inline assembly — `inline.ASM` (decided 2026-09-20)
 
 ```
-nocheck asm {
+nocheck inline.ASM {
     mov x16, #4
     svc 0
 } with ['fd' -> x0, 'buf' -> x1, 'len' -> x2, 'n' <- x0, clobber x16];
 ```
+
+- **`inline.<LANGUAGE>`** — owner's shape, over bare `asm`: a family, with
+  assembly its first member; `inline.C` is feasible later without new
+  machinery (LLVM ships clang). **The language's name is in capitals, like
+  `MAIN`**, so an inline block is easy to spot (owner, over Claude's
+  lowercase `inline.asm`). `inline.asm` is refused with that reason.
 
 - **A statement, not a value** (owner: option 1) — a syscall can set
   several registers, so results come out through named bindings.
@@ -97,7 +103,7 @@ nocheck asm {
   both; `clobber x16` says a register was overwritten.
 - Always a `nocheck` site. Per-architecture by nature.
 - The oracle parses and checks all of this and then refuses to run it
-  ("the oracle cannot run assembly"), with six reject tests.
+  ("the oracle cannot run assembly"), with nine reject tests.
 
 ## Open
 

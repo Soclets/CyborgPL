@@ -12,7 +12,7 @@ use crate::value::ty_name;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "asm",
+    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -139,7 +139,7 @@ impl Parser {
                     d.vis = vis; d.layout_c = true;
                     prog.structs.push(d);
                 }
-                Tok::Word(w) if w == "asm" => return self.err("an `asm` block is a statement; it goes inside a body, under `nocheck`"),
+                Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.ASM` block is a statement; it goes inside a body, under `nocheck`"),
                 Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.vis = vis; prog.consts.push(c) }
                 Tok::Word(w) if w == "module" => {
                     let line = self.line();
@@ -506,13 +506,22 @@ impl Parser {
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
-                "asm" => {
-                    // nocheck asm { … } with [ … ];   (design/ffi.md, 2026-09-20)
+                "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20)"),
+                "inline" => {
+                    // nocheck inline.ASM { … } with [ … ];   (design/ffi.md, 2026-09-20)
+                    // The language's name is in capitals, like MAIN: easy to spot (owner).
                     self.advance();
+                    self.expect(Tok::Dot, "`.ASM` after `inline` (`inline.ASM { … }`)")?;
+                    match self.advance().tok {
+                        Tok::Word(l) if l == "ASM" => {}
+                        Tok::Word(l) if l == "asm" => return self.err("the inline language is in capitals, like MAIN: `inline.ASM`"),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; only `inline.ASM` exists (`inline.C` is possible later — LLVM ships clang)")),
+                        other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
+                    }
                     let text = match self.advance().tok {
                         Tok::Raw(t) => t,
-                        Tok::LBracket => return self.err("assembly goes in braces, verbatim: `asm { mov x16, #4 … }` — not a list of strings"),
-                        other => return self.err(format!("expected `{{` after `asm`, found {other}")),
+                        Tok::LBracket => return self.err("assembly goes in braces, verbatim: `inline.ASM { mov x16, #4 … }` — not a list of strings"),
+                        other => return self.err(format!("expected `{{` after `inline.ASM`, found {other}")),
                     };
                     let mut binds = Vec::new();
                     if self.is_word("with") {

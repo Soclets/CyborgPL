@@ -219,11 +219,11 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 s.push(chars[i]);
                 i += 1; col += 1;
             }
-            let is_asm = s == "asm";
+            // `inline.ASM { … }` — the braces hold raw assembly, taken verbatim up to
+            // the matching `}` (design/ffi.md, 2026-09-20)
+            let is_asm = s == "ASM" && toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
             push(Tok::Word(s), &mut toks);
             if is_asm {
-                // `asm { … }` — the braces hold raw assembly, taken verbatim up to the
-                // matching `}` (design/ffi.md, 2026-09-20)
                 let mut j = i;
                 while j < chars.len() && chars[j].is_whitespace() && chars[j] != '\n' { j += 1; }
                 if j < chars.len() && chars[j] == '{' {
