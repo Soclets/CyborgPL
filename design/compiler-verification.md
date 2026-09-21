@@ -30,6 +30,27 @@ way it has been found. This runs continuously in the compiler's CI.
 - **Full formal verification** (CompCert-style, in a proof assistant) — the
   strongest guarantee and a decade of expert work. Ruled out for now.
 
+## Three oracles (owner, 2026-09-21)
+
+The interpreter is one of three independent checks, each of a different
+kind — a second interpreter would only be the same reading again:
+
+1. **The interpreter oracle** (exists, `oracle/`) — answers "what does this
+   program *do*". Differential testing against the compiler on the
+   examples and on generated programs.
+2. **The Precog oracle** — answers "what can be *proven*". A small, slow,
+   brute-force analyser: run a check site over every value its range type
+   allows, every input up to a size, and say "safe" or show the
+   counterexample. The real Precog is clever and fast; this one is dumb and
+   exhaustive, and a disagreement is a Precog bug. It comes with the Precog
+   design, which is not yet written.
+3. **The translation-validation oracle** — answers "does the machine code
+   still mean the source". Checks the compiler's LLVM IR against the
+   program (Alive2's territory), as above.
+
+Each is authored independently of the compiler. None is user-facing.
+Hobby language: an intention, not a schedule.
+
 ## Recommended order (Claude)
 
 Build the oracle interpreter first, before the real compiler: it is cheap, it

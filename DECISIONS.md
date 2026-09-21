@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Three oracles: interpreter, Precog, translation validation (owner)
+
+Owner asked how many oracles there should be. Claude: one interpreter
+(the triangle docs / oracle / compiler closes), and if a third existed
+it should be a different *kind* of check — a brute-force Precog oracle
+(the one worth having), translation validation, or the program
+generator (already decided). Owner: "Interpreter + Precog +
+translation-validation seems good." Recorded as the intended set in
+`design/compiler-verification.md`. Benchmarks the same day: the oracle
+(release) runs the 1000-digit pi spigot in 49 s vs CPython 0.49 s vs
+C++/Rust 0.023 s — as intended; it is the spec, not the product.
+
 ### 2026-09-21 — Cold read 5 (`examples/inventory.cpls`): nothing changed; a wrong recommendation caught
 
 A fresh chat traced the output correctly, praised the range types
