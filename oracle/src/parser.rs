@@ -1480,6 +1480,14 @@ impl Parser {
                 Ok(Expr::Paren(Box::new(e), line))
             }
             Tok::LBracket => Ok(Expr::Nested(self.bracket()?)),
+            Tok::Ellipsis => {
+                // `...'xs'` — unpack a list into a call's variadic part (decided 2026-09-21)
+                self.advance();
+                match self.advance().tok {
+                    Tok::Var(v) => Ok(Expr::Spread(v, line)),
+                    other => self.err(format!("`...` unpacks a list variable into a call: `...'xs'`, found {other}")),
+                }
+            }
             Tok::Op(o) if o == "&" => {
                 note_ampersand();
                 // `&'s'` / `&mut 's'` — Rust's spelling, an alternative to `lend` / `lend.mut` (owner, 2026-09-21)

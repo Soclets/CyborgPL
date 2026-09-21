@@ -1,0 +1,29 @@
+# `...'xs'` at a call: unpack a list into the variadic part (decided 2026-09-21).
+# Only where the list's length is known — a literal, a `list[T][lo, hi]`, a bundle.
+
+fn sum [...'nums': int32] -> int32 {
+    let mut 'total' := 0;
+    for 'n' in lend 'nums' { 'total' = 'total' + 'n'; }
+    return 'total';
+}
+
+fn show [lent 'label': str.utf8, lent ...'parts'] {
+    std::printu.stdout['label', ":"];
+    for 'p' in lend 'parts' { std::printu.stdout[" ", 'p']; }
+    std::print.stdout[\n];
+}
+
+fn shout [lent ...'parts'] { show["loud", ...'parts']; }      # a bundle passed on: its count is known
+
+MAIN {
+    let 'xs' := [1, 2, 3];
+    std::printu.stdout[sum[...'xs'], \n];                   # same as sum[1, 2, 3]
+    std::printu.stdout[sum[10, ...'xs', 20], \n];           # mixed with hand-typed values
+    let mut 'ys': list[int32][0, 4] = list.empty;
+    list.append[lend.mut 'ys', 7];
+    list.append[lend.mut 'ys', 8];
+    std::printu.stdout[sum[...'ys'], \n];                   # bounded: at most four
+    let 'words' := ["a", "b"];
+    show["letters", ...'words'];
+    shout[1, true];
+}

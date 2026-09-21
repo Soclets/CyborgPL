@@ -42,9 +42,19 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   walks like a list (`for 'n' in lend 'nums'`, `list.length[…]` is a
   compile-time constant there). `...` because it is the ellipsis — "and so
   on" — the mark C, Java, Go, JS, Swift all use; owner asked and chose it
-  over `many` (reads like an array) and `vararg`. Open: forwarding the
-  bundle to another variadic; a union-typed variadic (`int32 or bin16`)
-  waits on union types. `examples/variadic.cpls`.
+  over `many` (reads like an array) and `vararg`. Open: a union-typed
+  variadic (`int32 or bin16`) waits on union types. `examples/variadic.cpls`.
+- **Unpacking a list into a call: `...'xs'`** (decided 2026-09-21).
+  `sum[...'xs']` with `'xs'` holding `1, 2, 3` is `sum[1, 2, 3]`; it may
+  sit among hand-typed values (`sum[10, ...'xs', 20]`) and a bundle may be
+  passed on (`show["loud", ...'parts']`). Because a variadic is compiled
+  per call shape, **the list's length must be known at the call**: a
+  literal list, a `list[T][lo, hi]`, a variadic bundle. A plain list whose
+  length Precog cannot see (one read from input, one appended to without a
+  bound) is a compile error at that call — "give it a bound or pass it as
+  a list" — never a quietly built list-taking version (owner chose this
+  over that). `...` is only meaningful as a call argument.
+  `examples/spread.cpls`.
 - **The return type is `-> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not
   the function's type. No arrow: Precog picks the best return type from every

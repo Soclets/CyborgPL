@@ -341,6 +341,8 @@ pub enum Expr {
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
     FnRef(Vec<String>, Vec<String>, usize),
+    /// `...'xs'` in a call: unpack the list into the variadic part (decided 2026-09-21)
+    Spread(String, usize),
     /// `fn [params] -> T with [lend 'v', give 'w'] { … }` — an anonymous function with explicit captures
     Lambda(std::rc::Rc<Func>, Vec<(Verb, String)>, usize),
     /// `'f'[args]` — calling a function value held in a variable
@@ -370,7 +372,7 @@ impl Expr {
             Expr::ConstPath(_, _, _, l) => *l,
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
-            Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) => *l,
+            Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,
         }
     }

@@ -4,7 +4,7 @@ fn sum [...'nums'] -> bin64 {
     return 'total';
 }
 
-fn count_ints [...'nums': int32] -> int32 {
+fn count_ints [...'nums': int32] -> uint64 {
     return list.length[lend 'nums'];
 }
 

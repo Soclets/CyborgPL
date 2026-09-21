@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — `...'xs'` unpacks a list into a variadic call; only where its length is known (owner)
+
+Open since 2026-09-19. Owner first asked what the line even does
+("unpacks the list: `sum[...'xs']` becomes `sum[1, 2, 3]`"), confirmed
+`sum` is an ordinary variadic function, then said yes. Follow-up: a list
+whose length Precog cannot see (from input, no bound) — (b) a compile
+error at that call, "give it a bound or pass it as a list", or (c) the
+compiler quietly builds a list-taking version. Owner: b. Forwarding a
+bundle to another variadic is the same mechanism (a bundle's count is
+always known) and closes that older open item. Unpacking owned elements
+into an owning variadic (copy or give?) is left open; the oracle refuses
+it. `examples/spread.cpls`.
+
 ### 2026-09-21 — A length bound on a list: `list[T][lo, hi]` (owner)
 
 Opened from the `uint64` decision: how to tell Precog a length it can't
@@ -1110,7 +1123,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
-- Forwarding a variadic bundle to another variadic (spread). (2026-09-19)
+- Unpacking (`...`) a list of owned elements into an owning variadic: copy or give? (2026-09-21)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
