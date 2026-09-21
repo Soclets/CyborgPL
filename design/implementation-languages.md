@@ -13,6 +13,28 @@ writing most code, nobody who reviews C or OCaml.
 | Program generator and test/translation-validation harness | **Rust** | Shares the compiler's AST so generated programs are valid by construction. |
 | Oracle interpreter | **Rust**, by a *different AI model* than the compiler, no shared code | Author independence in place of language independence. OCaml was considered and rejected — nobody on the team would review it. |
 
+## Talking to LLVM — three layers (decided 2026-09-21)
+
+1. **`inkwell`** — the safe Rust wrapper. Nearly all lowering code.
+2. **`llvm-sys`** — the raw C API, `unsafe`. Only for a call the C API has
+   but inkwell has not wrapped yet. Same LLVM version as inkwell (inkwell
+   brings its own llvm-sys; the two cannot point at different LLVMs).
+3. **The C++ wrapper** — only for what the C API does not expose at all.
+
+Each layer is reached only when the one above cannot do the job, so the
+`unsafe` and the C++ stay as small as possible. The safety difference is
+in the compiler's own code (misusing LLVM through raw pointers crashes the
+compiler; inkwell's lifetimes catch most of that at compile time), never
+in the binaries produced — both paths hand LLVM the same IR.
+
+**The LLVM version follows inkwell.** On 2026-09-21: LLVM 23.1.1 was out,
+`llvm-sys` 231 already on it, `inkwell` 0.10 on LLVM 22.1 — the usual lag
+of a few weeks to months. The 22 → 23 differences that would touch Cyborg:
+a C-API change to branch opcodes (inkwell's problem), a new IR byte type
+(not needed), and an AArch64 inline-asm fix (dodged, see `ffi.md`). Owner
+chose inkwell over bare llvm-sys after asking about the safety difference
+and the version lag.
+
 ## Why not C++ throughout
 
 C++ has zero friction with LLVM and was seriously considered. Rust + wrapper

@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — LLVM through `inkwell`, then `llvm-sys`, then the C++ wrapper; version follows inkwell (owner)
+
+Owner asked how the language is built and in what (recap of the
+2026-09-14 pipeline: Rust front end, checker + Precog, lowering via the
+LLVM C API, LLVM, system linker; `no_std` Rust runtime; std in
+CyborgPL; not self-hosted), then inkwell vs llvm-sys: safety difference
+is in the compiler's own code only; inkwell 0.10 is on LLVM 22.1 while
+LLVM 23.1.1 and llvm-sys 231 are out; the drop-down to llvm-sys reaches
+unwrapped C-API calls on the *same* LLVM, not a newer one. The 22 → 23
+changes that touch Cyborg: branch-opcode C-API change (inkwell's), IR
+byte type (unused), AArch64 clobber bug for `x29`/`x30` written as `xN`
+— dodged by renaming to `fp`/`lr` in the asm lowering, as Clang does.
+Owner: record it. `design/implementation-languages.md`, `design/ffi.md`.
+
 ### 2026-09-21 — bin → int fails unless whole: `not_whole` (owner)
 
 Open since 2026-09-19. Proposed: fail unless whole (rounding said first,

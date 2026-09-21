@@ -128,6 +128,11 @@ nocheck inline.ASM {
   copies the variable in before the block, `'v' <- x0` stores the
   register into `'v'` after (declaring it, like a `let`), `'v' <-> x0`
   both; `clobber x16` says a register was overwritten.
+- **Compiler rule (2026-09-21):** on AArch64 the lowering spells `x29` as
+  `fp` and `x30` as `lr` in what it hands LLVM — the ABI names. LLVM 22
+  ignores a clobber of those two when written as `xN` (fixed in 23; Clang
+  never hit it because it always emits the ABI names). The programmer
+  keeps writing `x30`; the rename is invisible and harmless on 23.
 - Always a `nocheck` site. Per-architecture by nature.
 - The oracle parses and checks all of this and then refuses to run it
   ("the oracle cannot run assembly"), with nine reject tests.
