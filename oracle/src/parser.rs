@@ -472,6 +472,11 @@ impl Parser {
                     self.advance(); self.advance(); ParamKind::LentMut
                 } else { ParamKind::Lent };
             }
+            Tok::Op(o) if o == "&" => {
+                // `&'text': T` / `&mut 'buf': T` — an alternative to `lent` / `lent.mut` (owner, 2026-09-21)
+                self.advance();
+                kind = if self.is_word("mut") { self.advance(); ParamKind::LentMut } else { ParamKind::Lent };
+            }
             Tok::Word(w) if w == "mut" => { self.advance(); mutability = Some(Mutability::Mut); }
             Tok::Word(w) if w == "immut" => { self.advance(); mutability = Some(Mutability::Immut); }
             Tok::Word(w) if w == "var" || w == "let" => return self.err(format!("an owning parameter has no `{w}`: `'a': int32`")),
@@ -536,6 +541,7 @@ impl Parser {
                 loop {
                     let kind = match self.peek().clone() {
                         Tok::Word(w) if w == "lent" => { self.advance(); if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(m) if m == "mut") { self.advance(); self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
+                        Tok::Op(o) if o == "&" => { self.advance(); if self.is_word("mut") { self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
                         Tok::Var(v) => return self.err(format!("a function type has no parameter names: `fn[lent Locker]`, not `fn[lent '{v}': Locker]`")),
                         _ => ParamKind::Owned,
                     };
@@ -1452,6 +1458,23 @@ impl Parser {
                 Ok(Expr::Paren(Box::new(e), line))
             }
             Tok::LBracket => Ok(Expr::Nested(self.bracket()?)),
+            Tok::Op(o) if o == "&" => {
+                // `&'s'` / `&mut 's'` — Rust's spelling, an alternative to `lend` / `lend.mut` (owner, 2026-09-21)
+                self.advance();
+                let verb = if self.is_word("mut") { self.advance(); Verb::LendMut } else { Verb::Lend };
+                match self.advance().tok {
+                    Tok::Var(v) => {
+                        if *self.peek() == Tok::Dot {
+                            self.advance();
+                            let field = match self.advance().tok { Tok::Word(f) => f, other => return self.err(format!("expected a field name after `'{v}'.`, found {other}")) };
+                            return Ok(Expr::OwnedField(verb, v, field, line));
+                        }
+                        if *self.peek() == Tok::LBracket { let idx = self.index_bracket(&v)?; return Ok(Expr::OwnedElem(verb, v, Box::new(idx), line)); }
+                        Ok(Expr::Owned(verb, v, line))
+                    }
+                    other => self.err(format!("`&` lends a variable: `&'name'` or `&mut 'name'`, found {other}")),
+                }
+            }
             Tok::Word(w) => match w.as_str() {
                 "give" | "copy" | "lend" => {
                     self.advance();

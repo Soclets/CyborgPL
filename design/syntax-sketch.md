@@ -116,7 +116,10 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   `0.100000001490116119384765625`); `std::printu.stdout[…]` prints the
   useful value (`0.1`). Both take **any number of values, comma-separated**,
   render each and print them with nothing between (2026-09-19):
-  `std::printu.stdout["x is ", 'x', \n]` → `x is 0.1`. **A number joined
+  `std::printu.stdout["x is ", 'x', \n]` → `x is 0.1`. Alternative
+  spelling for `printu` (owner, 2026-09-21, after four readers called it
+  cryptic): `std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output[…]`
+  (and `…standard_error`). `printu` stays. **A number joined
   with `++` becomes text in its stored form, everywhere**:
   `let 's' := "x is " ++ 'x';` holds the full expansion, and `printu['s']`
   cannot undo it. `printu` is the only thing that produces the useful form,

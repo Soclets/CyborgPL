@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — `&` / `&mut` as alternatives to `lend` / `lend.mut` (and `lent` / `lent.mut`); `printu` kept, long alias added (owner)
+
+Four cold readers in a row tripped on `lent` vs `lend` and called `printu`
+cryptic. Claude laid out the cost of each (one letter apart; a made-up
+word) and asked what, if anything, to change. Owner: keep `printu`, add
+`std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output`
+as its alternative (the `…standard_error` twin follows); add `&` / `&mut`
+as alternatives to the lending verbs. Both spellings are equal — `&'s'`
+is `lend 's'`, `&mut 's'` is `lend.mut 's'`, `&'x': T` in a parameter is
+`lent 'x': T`, `fn[&T]` is `fn[lent T]`. Binary `&` between two values is
+still an undefined custom operator. `examples/alternatives.cpls`.
+
 ### 2026-09-21 — Cold read 4 (`examples/shop.cpls`): lends may escape (kept), three notes (owner)
 
 A fresh Claude chat read the shop program: the call-site verbs are "the

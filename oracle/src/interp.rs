@@ -2008,10 +2008,14 @@ impl<'p> Interp<'p> {
                     (a, b) => rt(c.line, format!("std::{path} takes two integers, got {} and {}", a.kind(), b.kind())),
                 }
             }
-            "print.stdout" | "printu.stdout" | "print.stderr" | "printu.stderr" => {
+            "print.stdout" | "printu.stdout" | "print.stderr" | "printu.stderr"
+            | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output"
+            | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" => {
                 // Since 2026-09-19 print takes any number of values and renders each —
                 // `print` in stored form, `printu` in useful form — with nothing between.
-                let useful = path.starts_with("printu");
+                // The long form is the owner's answer to "printu is cryptic" (2026-09-21).
+                let useful = path.starts_with("printu") || path.starts_with("this_will_print_the_useful");
+                let path = if path.ends_with("standard_error") { "printu.stderr".to_string() } else { path };
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
                 let mut text = String::new();
                 for a in &c.args.values {

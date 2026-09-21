@@ -22,6 +22,15 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
 - **`lend`** — borrow, shared. **`lend.mut`** — borrow, mutable; the chain
   narrows `lend` the usual way.
 
+**Alternative spelling (owner, 2026-09-21): `&` for `lend` / `lent`, `&mut`
+for `lend.mut` / `lent.mut`**, on both sides of a call —
+`count[&'s']`, `process[&mut 's']`, `fn count [&'text': str.utf8]`,
+`fn edit [&mut 'text': str.utf8]`, `fn[&str.utf8] -> int32`. Same
+meaning, same rules; a program may mix the two. Added after four cold
+readers in a row confused `lent` with `lend` — `&` is the spelling Rust
+readers already know. `&` between two values is still an (undefined)
+custom operator; the lending `&` is the one that opens a value.
+
 The words are the *owner's* — the keyword sits on the value being handed
 over, so "give" and "lend" read as what the owner does. (Rust's `move` /
 `borrow` are the receiver's words; the concepts are identical.)
