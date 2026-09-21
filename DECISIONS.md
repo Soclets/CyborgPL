@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Extern data: `extern let ['mut'] 'x': T;` (owner)
+
+Open since the FFI decisions. Proposed: `extern let` mirroring `extern
+fn` (reads and writes nocheck sites, C-shaped type, no value); no extern
+data, only C helper functions; `extern` on a `ptr` read with `ptr.read`.
+Owner: a. Noted: `errno` is a macro on macOS/Linux, so std will offer
+`std::c.errno[]`; `extern let` is for plain globals.
+`examples/extern_data.cpls`, five reject tests.
+
 ### 2026-09-21 — `char` conversions: `char.code` / `from_code`, text → char fails, units down fail (owner)
 
 Three questions. (1) Number ↔ char: `to.int32[`7`]` gives the code (55,

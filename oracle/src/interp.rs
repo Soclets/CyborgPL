@@ -42,7 +42,7 @@ fn site<T>(line: usize, msg: impl Into<String>) -> Result<T, RuntimeError> {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum SlotKind { Owned, Lent, LentMut, Const }
+enum SlotKind { Owned, Lent, LentMut, Const, Extern, ExternMut }
 
 #[derive(Clone)]
 struct Slot {
@@ -118,6 +118,13 @@ impl<'p> Interp<'p> {
             if matches!(prov, Prov::Borrowed(..)) { return rt(c.line, format!("const '{}' cannot hold a lend", c.name)); }
             let v = self.fit(v, prov, c.ty.as_ref(), c.line)?;
             self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(v)), ty: c.ty.clone(), kind: SlotKind::Const, alive: true, immut: true, sized: false });
+        }
+        // extern variables live beside the consts: C's memory, emulated as zero until written
+        for x in &self.prog.externs {
+            let key = const_key(&x.module, &x.name);
+            if self.consts.contains_key(&key) { return rt(x.line, format!("'{}' is declared twice", x.name)); }
+            let zero = match &x.ty { Ty::Bin(_) => Value::Bin(0.0), Ty::Bool => Value::Bool(false), Ty::Ptr(..) => Value::Ptr(Ptr { cell: None, index: 0, mutable: x.mutable }), _ => Value::Int(0) };
+            self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(zero)), ty: Some(x.ty.clone()), kind: if x.mutable { SlotKind::ExternMut } else { SlotKind::Extern }, alive: true, immut: !x.mutable, sized: false });
         }
         self.module = Vec::new();
         let main = match &self.prog.main {
@@ -202,6 +209,10 @@ impl<'p> Interp<'p> {
             for f in &d.fields {
                 if let Err(m) = self.c_shaped(&f.ty) { return rt(d.line, format!("`layout.c struct {}`: field `{}` — {m}", d.name, f.name)); }
             }
+        }
+        // `extern let` (decided 2026-09-21): C-shaped, like an extern parameter
+        for x in &self.prog.externs {
+            if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`extern let '{}'`: {m}", x.name)); }
         }
         for f in self.prog.funcs.iter().filter(|f| f.is_extern) {
             for p in &f.params {
@@ -356,6 +367,8 @@ impl<'p> Interp<'p> {
                     None => return rt(*line, format!("'{name}' is not declared")),
                 };
                 if kind == SlotKind::Const { return rt(*line, format!("'{name}' is a const and cannot be assigned to")); }
+                if kind == SlotKind::Extern { return rt(*line, format!("'{name}' is `extern let`, read-only; declare it `extern let mut` to write C's variable")); }
+                if kind == SlotKind::ExternMut && self.nocheck_depth == 0 { return rt(*line, format!("'{name}' is extern: writing C's variable is a nocheck site: `nocheck '{name}' = …;`")); }
                 if immut { return rt(*line, format!("'{name}' cannot be assigned to: it is `immut` (a loop's counter or element belongs to the loop)")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 let (v, prov) = self.bracket(value, *line)?;
@@ -366,6 +379,11 @@ impl<'p> Interp<'p> {
                 }
                 let v = self.fit(v, prov, ty.as_ref(), *line)?;
                 let sized = Self::sized_from(value, ty.as_ref());
+                if kind == SlotKind::ExternMut {
+                    // C's variable: the cell lives beside the consts
+                    *self.consts[&const_key(&self.module, name)].cell.borrow_mut() = v;
+                    return Ok(Flow::Normal);
+                }
                 let slot = self.lookup_mut(name).unwrap();
                 slot.alive = true; // assigning to a given-away variable revives it
                 slot.sized = sized;
@@ -812,6 +830,8 @@ impl<'p> Interp<'p> {
     fn read_var(&self, name: &str, line: usize) -> Result<Value, RuntimeError> {
         match self.lookup(name) {
             None => rt(line, format!("'{name}' is not declared")),
+            Some(s) if matches!(s.kind, SlotKind::Extern | SlotKind::ExternMut) && self.nocheck_depth == 0 =>
+                rt(line, format!("'{name}' is extern: C's variable, which nothing can be proven about — reading it is a nocheck site: `nocheck … '{name}' …`")),
             Some(s) if !s.alive => rt(line, format!("'{name}' was given away and no longer owns anything")),
             Some(s) => Ok(s.cell.borrow().clone()),
         }
@@ -865,6 +885,7 @@ impl<'p> Interp<'p> {
                 };
                 if !alive { return rt(line, format!("'{name}' was already given away")); }
                 if kind == SlotKind::Const { return rt(line, format!("'{name}' is a const: nobody owns it, every use is a fresh value — write it bare, no `give`/`copy`/`lend`")); }
+                if matches!(kind, SlotKind::Extern | SlotKind::ExternMut) { return rt(line, format!("'{name}' is extern: C's plain value, it copies by itself — no `give`/`copy`/`lend`")); }
                 let v = cell.borrow().clone();
                 if !v.is_owned() {
                     // In generic code the type may be owned or plain; the verbs are written for

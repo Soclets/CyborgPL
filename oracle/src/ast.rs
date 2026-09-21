@@ -150,6 +150,17 @@ pub struct Func {
 
 /// `pub const 'name' := v;` at the top level (decided 2026-09-19): a value
 /// known at compile time, baked in at every use, exportable; never assignable.
+/// `extern let 'errno': int32;` / `extern let mut 'x': T;` — a C global (design/ffi.md, decided 2026-09-21)
+#[derive(Debug, Clone)]
+pub struct ExternVar {
+    pub name: String,
+    pub module: Vec<String>,
+    pub vis: Vis,
+    pub ty: Ty,
+    pub mutable: bool,
+    pub line: usize,
+}
+
 #[derive(Debug, Clone)]
 pub struct ConstDef {
     pub name: String,
@@ -215,6 +226,7 @@ pub struct Program {
     pub interfaces: Vec<InterfaceDef>,
     pub claims: Vec<Claim>,
     pub consts: Vec<ConstDef>,
+    pub externs: Vec<ExternVar>,
     pub modules: Vec<ModuleDef>,
     pub main: Option<Vec<Stmt>>,
 }

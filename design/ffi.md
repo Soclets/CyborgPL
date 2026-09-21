@@ -83,6 +83,30 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 - Consequence: `ptr[T]` may now appear in any function's parameters and
   return (a callback receives pointers); a `let` still cannot declare one.
 
+## `extern let` — a C global (decided 2026-09-21)
+
+```
+extern let 'lib_version': int32;        # C: extern int lib_version;   read-only
+extern let mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
+
+nocheck let 'v' := 'lib_version';       # reading C's variable is a nocheck site
+nocheck 'lib_verbose' = 1;              # so is writing one
+```
+
+A C library's variables, named the way `extern fn` names its functions.
+The type is required and C-shaped (numbers, `bool`, `ptr`, `layout.c`
+structs); no value — C owns it; `mut` says it may be written, `immut` is
+meaningless. Every read and write is a nocheck site, like an extern call:
+nothing about C's memory can be proven. It is a plain value that copies
+by itself — no verbs. Proposed alternatives: no extern data at all (a C
+helper function per variable) and `extern 'x': ptr[T]` read through
+`ptr.read`. Owner chose `extern let`.
+
+**`errno` is not a plain global** on macOS and Linux — it is a macro
+that calls a function — so `extern let 'errno': int32;` would be wrong
+there; the std Limb offers `std::c.errno[]` backed by the real thing.
+`extern let` is for genuinely plain C globals. `examples/extern_data.cpls`.
+
 ## `layout.c` — a struct in C's shape
 
 ```
@@ -139,7 +163,6 @@ nocheck inline.ASM {
 
 ## Open
 
-- Extern data (`extern const`/`let` for a C global).
 - Reading a C string into a `str.utf8` — std's, behind one intrinsic.
 - A text's length (`list.length` refuses a `str`) — string operations are
   open; `strlen` through the door is the stopgap.

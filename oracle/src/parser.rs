@@ -96,7 +96,7 @@ impl Parser {
     // program := item* Eof
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
-        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), modules: Vec::new(), main: None };
+        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None };
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -165,8 +165,26 @@ impl Parser {
                 }
                 Tok::Word(w) if w == "extern" => {
                     // extern fn name [params] -> T;   (design/ffi.md)
+                    let line = self.line();
                     self.advance();
-                    if !self.is_word("fn") { return self.err("`extern` goes before `fn`: `extern fn write [...] -> int64;`"); }
+                    if self.is_word("let") {
+                        // extern let ['mut'] 'name': T;   — a C global (decided 2026-09-21)
+                        self.advance();
+                        let mutable = if self.is_word("mut") { self.advance(); true } else { false };
+                        if self.is_word("immut") { return self.err("an `extern let` is C's variable; it is read-only unless `mut`, never `immut`"); }
+                        let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern let '{w}': …`")), other => return self.err(format!("expected a quoted name after `extern let`, found {other}")) };
+                        if *self.peek() != Tok::Colon { return self.err(format!("`extern let '{name}'` needs a type; C has no inference: `extern let '{name}': int32;`")); }
+                        self.advance();
+                        self.at_boundary = true;
+                        let ty = self.ty();
+                        self.at_boundary = false;
+                        let ty = ty?;
+                        if matches!(self.peek(), Tok::Walrus | Tok::Eq) { return self.err(format!("`extern let '{name}'` has no value here; C owns it. A value of your own is a `const`")); }
+                        self.expect(Tok::Semi, "`;` after the extern variable's type")?;
+                        prog.externs.push(ExternVar { name, module: self.module.clone(), vis, ty, mutable, line });
+                        continue;
+                    }
+                    if !self.is_word("fn") { return self.err("`extern` goes before `fn` or `let`: `extern fn write [...] -> int64;`, `extern let 'errno': int32;`"); }
                     self.at_boundary = true;
                     let f = self.func();
                     self.at_boundary = false;

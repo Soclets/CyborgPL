@@ -1,0 +1,2 @@
+extern let 'a': int32;
+MAIN { let 'x' := 'a'; }
