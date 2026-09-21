@@ -28,7 +28,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `let 'x' := v;` / `let 'x': T = v;` — `:=` only without a type, `=` only with one; the typed form is fully explicit; `let mut` / `let immut` before the name (revised 2026-09-19; `var`, `func`, `loop.while`, `else.if`, `loop.temp.for` are refused with the new spelling)
 - `&'x'` / `&mut 'x'` are accepted wherever `lend 'x'` / `lend.mut 'x'` are (call site, `.field`, `[pos]`), and `&'x': T` / `&mut 'x': T` wherever `lent` / `lent.mut` are (parameters, `fn[…]` types) — the build then prints `What are you? Rust programmer or Claude?` on stdout once per `&`, then runs; `std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output` is `printu.stdout` (both 2026-09-21)
 - `fn name ['a': int32, lent 'b': str.utf8, lent.mut 'c': list[int32]] -> int32 { }`; an owning parameter has no keyword; the return type is `-> T` after the parameters; `...'rest'` (last only) collects the remaining arguments, each checked as if bound to that parameter (2026-09-19)
-- `...'xs'` in a call unpacks a list into the variadic part; refused when the list's length is not known here (the oracle knows: a literal list, `list.empty`, a bounded type, a bundle — and forgets after `append`/`remove` on an unbounded list), when the function has no variadic, when it would land on a fixed parameter, or outside a call (2026-09-21)
+- `...'xs'` in a call unpacks a list into the variadic part; refused when the list's length is not known here (the oracle knows: a literal list, `list.empty`, a bounded type, a bundle — and forgets after `append`/`remove` on an unbounded list), when the function has no variadic, when it would land on a fixed parameter, or outside a call; owned elements into an owning variadic need `...copy` / `...give` (give empties the list), a verb on plain elements or into a `lent ...` is refused (2026-09-21)
 - `list[T][lo, hi]` is a length-bounded list: construction, assignment, `append` and `remove` are checked against the bound; its `list.length` is `uint64[lo, hi]`; `array[T][…]` is refused (2026-09-21)
 - `list.length` / `array.length` are `uint64`: an untyped `let` from one takes that type, so a later negative assignment is refused (2026-09-21)
 - `[ ]` is written only where it builds: a list (comma separates values), a call's arguments, a struct construction, an index, `range[…]`; a single expression stands bare (`let 'x' := 1000;`, `if 'a' == 'b' { }`); two values side by side are an error
@@ -68,7 +68,6 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 ## Provisional picks — the design has not decided these
 
-- Unpacking (`...'xs'`) a list of *owned* elements (text, lists, structs) into an *owning* variadic: copy or give? Undecided; the oracle refuses and asks for `lent ...`. Into a `lent ...` it lends each element.
 
 Each is marked "provisional" in the source. They are picks the interpreter
 had to make to run at all; none is a decision.

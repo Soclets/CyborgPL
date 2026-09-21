@@ -15,6 +15,8 @@ fn show [lent 'label': str.utf8, lent ...'parts'] {
 
 fn shout [lent ...'parts'] { show["loud", ...'parts']; }      # a bundle passed on: its count is known
 
+fn keep [...'names': str.utf8] -> uint64 { return list.length[lend 'names']; }   # takes ownership of each
+
 MAIN {
     let 'xs' := [1, 2, 3];
     std::printu.stdout[sum[...'xs'], \n];                   # same as sum[1, 2, 3]
@@ -24,6 +26,8 @@ MAIN {
     list.append[lend.mut 'ys', 8];
     std::printu.stdout[sum[...'ys'], \n];                   # bounded: at most four
     let 'words' := ["a", "b"];
-    show["letters", ...'words'];
+    show["letters", ...'words'];                            # no verb: the elements are lent
     shout[1, true];
+    std::printu.stdout[keep[...copy 'words'], " kept, ", 'words', " still here", \n];
+    std::printu.stdout[keep[...give 'words'], " kept, ", 'words', " left", \n];
 }

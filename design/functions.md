@@ -53,7 +53,13 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   length Precog cannot see (one read from input, one appended to without a
   bound) is a compile error at that call — "give it a bound or pass it as
   a list" — never a quietly built list-taking version (owner chose this
-  over that). `...` is only meaningful as a call argument.
+  over that). `...` is only meaningful as a call argument. **Owned
+  elements** (text, lists, structs) going to an *owning* variadic need the
+  verb said, as every owned hand-over does: `keep[...copy 'words']`
+  duplicates each, `keep[...give 'words']` moves each out and leaves the
+  list empty (a give never leaves holes). No verb, into a `lent ...`,
+  lends each element; plain elements take no verb (they copy by
+  themselves). Owner chose this over "always copy" and "always give".
   `examples/spread.cpls`.
 - **The return type is `-> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not

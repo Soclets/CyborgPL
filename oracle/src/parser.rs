@@ -1483,8 +1483,15 @@ impl Parser {
             Tok::Ellipsis => {
                 // `...'xs'` — unpack a list into a call's variadic part (decided 2026-09-21)
                 self.advance();
+                // `...copy 'xs'` / `...give 'xs'`: how owned elements are handed over (decided 2026-09-21)
+                let verb = match self.peek() {
+                    Tok::Word(w) if w == "copy" => { self.advance(); Some(Verb::Copy) }
+                    Tok::Word(w) if w == "give" => { self.advance(); Some(Verb::Give) }
+                    Tok::Word(w) if w == "lend" => return self.err("`...'xs'` with no verb already lends its elements to a `lent ...` parameter; `copy` or `give` are the verbs that go after `...`"),
+                    _ => None,
+                };
                 match self.advance().tok {
-                    Tok::Var(v) => Ok(Expr::Spread(v, line)),
+                    Tok::Var(v) => Ok(Expr::Spread(v, verb, line)),
                     other => self.err(format!("`...` unpacks a list variable into a call: `...'xs'`, found {other}")),
                 }
             }

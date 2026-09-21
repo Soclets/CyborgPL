@@ -812,7 +812,7 @@ impl<'p> Interp<'p> {
         let line = e.line();
         match e {
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
-            Expr::Spread(n, _) => rt(line, format!("`...'{n}'` unpacks a list into a call's variadic arguments; it has no meaning here")),
+            Expr::Spread(n, _, _) => rt(line, format!("`...'{n}'` unpacks a list into a call's variadic arguments; it has no meaning here")),
             Expr::Bin(b, _) => Ok((Value::Bin(*b), Prov::Literal)),
             Expr::Bool(b, _) => Ok((Value::Bool(*b), Prov::Plain)),
             Expr::Text(t, _) => Ok((Value::Str(t.clone()), Prov::Fresh)),
@@ -1396,7 +1396,7 @@ impl<'p> Interp<'p> {
         let variadic_at = func.params.last().filter(|p| p.variadic).map(|_| func.params.len() - 1);
         let mut pos = 0usize;
         for arg in c.args.values.iter() {
-            if let crate::ast::Value::Expr(Expr::Spread(xs, _)) = arg {
+            if let crate::ast::Value::Expr(Expr::Spread(xs, verb, _)) = arg {
                 let Some(vi) = variadic_at else { return rt(c.line, format!("`...'{xs}'` unpacks into a variadic parameter, and `{name}` has none")) };
                 if pos < vi { return rt(c.line, format!("`...'{xs}'` unpacks into the variadic part of `{name}`, but parameter '{}' comes first and takes one value", func.params[pos].name)); }
                 let slot = match self.lookup(xs) { Some(s) => s.clone(), None => return rt(c.line, format!("'{xs}' is not declared")) };
@@ -1404,12 +1404,28 @@ impl<'p> Interp<'p> {
                 let items = match &*slot.cell.borrow() { Value::List(items) => items.clone(), other => return rt(c.line, format!("`...'{xs}'` unpacks a list; '{xs}' is a {}", other.kind())) };
                 if !slot.sized { return rt(c.line, format!("`...'{xs}'`: the length of '{xs}' is not known here, so `{name}` cannot be compiled for it — give '{xs}' a bound (`list[T][lo, hi]`) or pass it as a list (decided 2026-09-21)")); }
                 let param = &func.params[vi];
+                let owned_elems = items.iter().any(|it| it.is_owned());
+                // Owned elements into an owning parameter need the verb said (decided 2026-09-21):
+                // `...copy 'xs'` duplicates each, `...give 'xs'` moves each out and leaves '{xs}' empty.
+                match (verb, param.kind, owned_elems) {
+                    (Some(_), _, false) => return rt(c.line, format!("the elements of '{xs}' are plain values and own nothing; they copy by themselves — `...'{xs}'` with no verb")),
+                    (Some(_), ParamKind::Lent, true) => return rt(c.line, format!("`{name}` only looks at '{}': `...'{xs}'` with no verb lends the elements", param.name)),
+                    (None, ParamKind::Owned, true) => return rt(c.line, format!("`{name}` takes ownership of '{}': say `...copy '{xs}'` or `...give '{xs}'`", param.name)),
+                    (_, ParamKind::LentMut, true) => return rt(c.line, format!("`lend.mut` of the elements of '{xs}' by `...` is not modelled by the oracle")),
+                    _ => {}
+                }
                 for it in items {
-                    let prov = if it.is_owned() {
-                        if param.kind != ParamKind::Lent { return rt(c.line, format!("`...'{xs}'` would hand the elements of '{xs}' to `{name}` as owned values; whether that copies or gives is not decided — the oracle refuses (make the parameter `lent ...`)")); }
-                        Prov::Borrowed(Rc::new(RefCell::new(it.clone())), false)
-                    } else { Prov::Plain };
+                    let prov = match (verb, it.is_owned()) {
+                        (_, false) => Prov::Plain,
+                        (None, true) => Prov::Borrowed(Rc::new(RefCell::new(it.clone())), false),
+                        (Some(Verb::Copy), true) => Prov::Copied,
+                        (Some(_), true) => Prov::Given,
+                    };
                     pairs.push((Arg::Val(it, prov), param));
+                }
+                if matches!(verb, Some(Verb::Give)) && owned_elems {
+                    // every element moved out: the list is empty now, not holed
+                    if let Some(s) = self.lookup_mut(xs) { *s.cell.borrow_mut() = Value::List(Vec::new()); }
                 }
                 pos += 1;
                 continue;

@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Owned elements through `...`: say the verb — `...copy 'xs'` / `...give 'xs'` (owner)
+
+Proposed: always copy (safe, a copy per element), always give (moves
+out, empties the list), or say it after `...`, as every owned hand-over
+in Cyborg says its verb. Owner: c. A `give` empties the whole list —
+never holes. No verb into a `lent ...` lends each element; plain
+elements take no verb. `examples/spread.cpls`.
+
 ### 2026-09-21 — `...'xs'` unpacks a list into a variadic call; only where its length is known (owner)
 
 Open since 2026-09-19. Owner first asked what the line even does
@@ -1123,7 +1131,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
-- Unpacking (`...`) a list of owned elements into an owning variadic: copy or give? (2026-09-21)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
