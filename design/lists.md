@@ -64,7 +64,9 @@ for perm 'i' in range[1, list.length[lend 'xs']] {
 ```
 let 'n' := list.length[lend 'xs'];
 list.append[lend.mut 'xs', 40];
-list.remove[lend.mut 'xs', 1];            # by 1-based position
+list.remove[lend.mut 'xs', 1];            # by 1-based position; the element is dropped
+let 'first' := list.remove[lend.mut 'xs', 1];   # or handed back (decided 2026-09-21)
+run[list.remove[lend.mut 'queue', 1]];    # straight into a call: moved, never copied
 let 'm' := array.length[lend 'fixed'];
 ```
 
@@ -100,6 +102,16 @@ proves it where it can see the list, the tiers handle the rest. The low
 bound is 0 or more; an `array` takes no bound (its one length is already
 known). Inside a call the parameter is written the same way:
 `lent 'ys': list[int32][0, 1000]`.
+
+**`list.remove` hands the removed element back** (decided 2026-09-21): the
+list stops owning it, so the caller does — or drops it by not taking it.
+This is the one way to move an owned element *out* of a list without a
+copy. `give 'xs'[pos i]` stays refused: it would leave a hole (a slot
+with nothing in it, which every later access would have to check for —
+a cost on every list in the program), and shrinking-by-give would be a
+second spelling of `list.remove`. Positions that must stay put are the
+element type's business: `enum Slot { empty  job: Job }`. `list.append`
+hands nothing back and cannot be used as a value.
 
 `array` has `length` only; `list` has `length`, `append`, `remove`. Appending
 to an `array` is a compile error. A list owns its elements: `append` takes a

@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — `list.remove` hands the element back; no `give` of an element (owner)
+
+Surfaced while explaining `...give`: the oracle had refused
+`give 'xs'[pos i]` since functions-as-values ("it would leave a hole")
+without the owner ever being asked — Claude's default, now put properly.
+Owner asked what giving an element is for (moving a big owned element
+into a function without a copy), why no hole (every list access in the
+program would carry an "is it still there?" check; a marker that keeps
+positions is an `enum` element's job), whether shrinking does what a
+hole can (all but keeping positions), and whether a `give` that shrinks
+differs from a `list.remove` that hands back (no — two spellings).
+Owner: `list.remove` hands. Bare `list.remove[…];` still just drops it.
+`list.append` as a value is refused. `examples/queue.cpls`.
+
 ### 2026-09-21 — Owned elements through `...`: say the verb — `...copy 'xs'` / `...give 'xs'` (owner)
 
 Proposed: always copy (safe, a copy per element), always give (moves

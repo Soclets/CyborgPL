@@ -946,7 +946,7 @@ impl<'p> Interp<'p> {
                 let (v, _) = self.eval(&Expr::Index(name.clone(), idx.clone(), line))?;
                 if !v.is_owned() { return rt(line, format!("'{name}'[pos …] is a plain {} and owns nothing; it copies by itself — no `give`/`copy`/`lend`", v.kind())); }
                 match verb {
-                    Verb::Give => rt(line, format!("giving an element out of '{name}' would leave a hole; `copy` it, or `list.remove` it first")),
+                    Verb::Give => rt(line, format!("giving an element out of '{name}' would leave a hole; `copy` it, or take it out: `list.remove[lend.mut '{name}', …]` hands it back (decided 2026-09-21)")),
                     Verb::Copy => Ok((v, Prov::Copied)),
                     Verb::Lend => Ok((v.clone(), Prov::Borrowed(Rc::new(RefCell::new(v)), false))),
                     Verb::LendMut => rt(line, format!("`lend.mut` of an element of '{name}' is not modelled by the oracle; lend the whole list")),
@@ -1068,6 +1068,7 @@ impl<'p> Interp<'p> {
             }
             Expr::Builtin(head, op, args, _) => {
                 let v = self.builtin(head, op, args, line)?;
+                if matches!(v, Value::Nothing) { return rt(line, format!("`{head}.{op}` hands nothing back; it cannot be used as a value")); }
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((v, prov))
             }
@@ -1299,6 +1300,9 @@ impl<'p> Interp<'p> {
                 let Some(cell) = cell else { return rt(line, "`list.append`/`remove` need a variable to change") };
                 let (arg, aprov) = self.value(&args.values[1])?;
                 let mut items = items;
+                // `list.remove` hands the removed element back (decided 2026-09-21): the list
+                // stops owning it, so the caller does — or drops it, as a bare statement.
+                let mut removed: Option<Value> = None;
                 if op == "append" {
                     match aprov {
                         Prov::Bare(n) => return rt(line, format!("appending bare '{n}': say `give '{n}'` or `copy '{n}'`")),
@@ -1312,14 +1316,14 @@ impl<'p> Interp<'p> {
                 } else {
                     let i = match arg { Value::Int(i) => i, other => return rt(line, format!("`list.remove` takes a 1-based position, got {}", other.kind())) };
                     if i < 1 || i as usize > items.len() { return site(line, format!("position {i} is out of range for '{var_name}', which has {} element(s)", items.len())); }
-                    items.remove((i - 1) as usize);
+                    removed = Some(items.remove((i - 1) as usize));
                 }
                 // A length-bounded list (`list[T][lo, hi]`) is checked after every change (decided 2026-09-21).
                 let new_len = Value::List(items);
                 if let Some(t @ Ty::Ranged(..)) = self.lookup(&var_name).and_then(|s| s.ty.clone()) { self.check_type(&new_len, &t, line)?; }
                 else if let Some(s) = self.lookup_mut(&var_name) { s.sized = false; }   // Precog would track it; the oracle does not
                 *cell.borrow_mut() = new_len;
-                Ok(Value::Nothing)
+                Ok(removed.unwrap_or(Value::Nothing))
             }
             _ => unreachable!(),
         }

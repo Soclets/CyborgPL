@@ -56,7 +56,8 @@ silently, which is where "why is this borrowed" bugs come from.
   as an owned one; a capture and a parameter cannot share a name.
 - `lend 'xs'[pos i]` / `copy 'xs'[pos i]` — a verb on an element — is now
   spelled (needed to pass elements to a `lent` parameter); `give` of an
-  element is refused (it would leave a hole; `list.remove`).
+  element is refused (it would leave a hole; `list.remove` hands the element
+  back — owner, 2026-09-21).
 
 ## Open
 
