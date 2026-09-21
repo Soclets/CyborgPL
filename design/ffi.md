@@ -56,6 +56,33 @@ extern fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
   `array[uint8]` (owned, checked, lent to C); bytes nobody owns are
   `malloc`/`free`, two externs.
 
+## Callbacks — a Cyborg function C calls (decided 2026-09-21)
+
+```
+extern fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
+                 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
+
+fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+    nocheck return ptr.read['a'] - ptr.read['b'];
+}
+nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
+```
+
+- **Only capture-free functions cross** (owner: a, over smuggling captures
+  through a `void *userdata`). A C callback slot holds an address and
+  nothing else; a function with `with [lend 'limit']` handed to C is a
+  compile error — "C has nowhere to keep `'limit'`" — and the userdata
+  pattern is done by hand with an ordinary `ptr[…]` argument.
+- In an `extern` signature a callback is a `fn[…]` type held to the
+  C-shaped rule through and through: parameters by value (no `lent`; C
+  passes pointers), C-shaped types, no `fail`. The compiler emits the
+  function with C's convention when it is handed over.
+- A function pointer C hands *to* Cyborg (`signal` returns the previous
+  handler) is a `fn[…]` value to hold and pass back; calling it is an
+  `extern` call, a `nocheck` site.
+- Consequence: `ptr[T]` may now appear in any function's parameters and
+  return (a callback receives pointers); a `let` still cannot declare one.
+
 ## `layout.c` — a struct in C's shape
 
 ```
@@ -107,7 +134,6 @@ nocheck inline.ASM {
 
 ## Open
 
-- Callbacks (C calling a Cyborg function) — waits on functions as values.
 - Extern data (`extern const`/`let` for a C global).
 - Reading a C string into a `str.utf8` — std's, behind one intrinsic.
 - A text's length (`list.length` refuses a `str`) — string operations are

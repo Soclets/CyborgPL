@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Callbacks: capture-free, C-shaped functions cross to C; `fn[…]` in extern signatures (owner)
+
+Owner asked what callbacks are for (sorting, events, signals, servers).
+(1) what may cross: only capture-free functions (a), over smuggling
+captures via userdata (b) — owner asked what (b) was for, chose a.
+(2) `fn[…]` in an extern signature, C-shaped, by value, no fail; a C
+function pointer received is a `fn[…]` value called under `nocheck` —
+yes. Consequence: `ptr[T]` allowed in any fn signature. Oracle emulates
+`qsort` with the callback (`examples/callbacks.cpls`), six reject tests.
+
 ### 2026-09-21 — Functions as values: bare name, `fn[…] -> T` types, `with [lend 'v']` captures (owner)
 
 Owner asked what it is for (sorting by a rule, callbacks, map/filter, C

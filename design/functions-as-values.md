@@ -60,8 +60,7 @@ silently, which is where "why is this borrowed" bugs come from.
 
 ## Open
 
-- Function values crossing to C (callbacks) — `extern` with a `fn[…]`
-  parameter; the C-ABI shape of a capturing function.
+- (Callbacks across the C boundary: decided 2026-09-21, `ffi.md`.)
 - An operator as a value (`let 'f' := <+>`).
 - Returning a function that captured a `lend` — the lifetime rule.
 
