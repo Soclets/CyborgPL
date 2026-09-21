@@ -157,6 +157,15 @@ pub.limb module tests { … }        # modules carry it as well
 - A file module is public (provisional: a file has no declaration line to
   carry `pub.limb`; each item inside still carries its own visibility).
 
+## One name, one thing (decided 2026-09-21)
+
+A module and a type (struct, enum, interface) cannot share a name in a
+Limb: `module shapes { }` beside `struct shapes { }` — or a file
+`shapes.cpls` beside it — is a compile error, "rename one". Proposed
+alternative: allow it and tell them apart by what follows the dot
+(`shapes.'pi'` the module, `shapes.claimed` the type). Owner chose the
+refusal: nothing to disambiguate, for the reader or for Precog.
+
 ## Open
 
 - The spelling of the author's "reachable bare" / re-export choice — a

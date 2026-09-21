@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — A module and a type cannot share a name (owner)
+
+Proposed: refuse (one name, one thing, per Limb) or allow and tell apart
+by what follows the dot. Owner: a, refuse. Covers module blocks and file
+modules, against structs, enums and interfaces. Reject test
+`module_type_clash`.
+
 ### 2026-09-21 — LLVM through `inkwell`, then `llvm-sys`, then the C++ wrapper; version follows inkwell (owner)
 
 Owner asked how the language is built and in what (recap of the

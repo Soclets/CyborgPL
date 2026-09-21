@@ -160,6 +160,13 @@ impl<'p> Interp<'p> {
         for m in &self.prog.modules {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at line {l}) — a file and a block cannot both be it", m.path.join("."))); }
+            // One name, one thing, per Limb (decided 2026-09-21): a module and a type cannot share a name.
+            let path = m.path.join(".");
+            let clash = self.prog.structs.iter().map(|d| (&d.name, d.line, "struct")).chain(self.prog.enums.iter().map(|e| (&e.name, e.line, "enum"))).chain(self.prog.interfaces.iter().map(|i| (&i.name, i.line, "interface"))).find(|(n, _, _)| **n == path);
+            if let Some((_, l, what)) = clash {
+                let where_ = if m.line == 0 { format!("the file `{path}.cpls` and a {what} at line {l}") } else { format!("a module block at line {} and a {what} at line {}", m.line, l) };
+                return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a Limb — rename one"));
+            }
         }
         Ok(())
     }
