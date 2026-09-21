@@ -29,11 +29,12 @@ pub struct ParseError {
     pub msg: String,
 }
 
-/// Set when a program spells a lend with `&` / `&mut`. The build then says
-/// "What are you? Rust programmer or Claude?" once (owner, 2026-09-21).
-pub static AMPERSAND_USED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// Counts every `&` / `&mut` lend in the program. The build then says
+/// "What are you? Rust programmer or Claude?" once per `&`, on stdout,
+/// and carries on (owner, 2026-09-21). You're not supposed to use that.
+pub static AMPERSANDS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
-fn note_ampersand() { AMPERSAND_USED.store(true, std::sync::atomic::Ordering::Relaxed); }
+fn note_ampersand() { AMPERSANDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
 
 pub struct Parser {
     toks: Vec<Token>,

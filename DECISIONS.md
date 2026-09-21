@@ -15,9 +15,9 @@ as its alternative (the `…standard_error` twin follows); add `&` / `&mut`
 as alternatives to the lending verbs. Both spellings are equal — `&'s'`
 is `lend 's'`, `&mut 's'` is `lend.mut 's'`, `&'x': T` in a parameter is
 `lent 'x': T`, `fn[&T]` is `fn[lent T]`. Binary `&` between two values is
-still an undefined custom operator. Using `&` / `&mut` makes the build
-print `What are you? Rust programmer or Claude?` once, then carry on
-(owner). `examples/alternatives.cpls`.
+still an undefined custom operator. Every `&` / `&mut` makes the build
+print `What are you? Rust programmer or Claude?` on stdout — one line
+per `&` — then carry on (owner: "You're not supposed to use that"). `examples/alternatives.cpls`.
 
 ### 2026-09-21 — Cold read 4 (`examples/shop.cpls`): lends may escape (kept), three notes (owner)
 
