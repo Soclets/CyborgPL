@@ -48,6 +48,19 @@ kind — a second interpreter would only be the same reading again:
    still mean the source". Checks the compiler's LLVM IR against the
    program (Alive2's territory), as above.
 
+Two of the three are mostly borrowed: translation validation feeds
+Alive2; the Precog oracle can sit on an SMT solver (Z3), asking the dumb
+literal question where Precog asks the clever one. The interpreter stays
+ours — it is the spec.
+
+**4. Twin programs — other languages as oracles** (owner, 2026-09-21).
+A Cyborg program and the same algorithm in C, Rust, or Python, expected
+to print the same thing (`examples/pi.cpls` has all three). Covers what
+both languages define alike — arithmetic, widths, text output, lists —
+and cannot share a misreading of our spec, having never read it. Cannot
+cover what only Cyborg has: failures, ownership, check sites, range
+types. Those stay with the oracle and the cold reads.
+
 Each is authored independently of the compiler. None is user-facing.
 Hobby language: an intention, not a schedule.
 

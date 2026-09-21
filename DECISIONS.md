@@ -13,7 +13,8 @@ it should be a different *kind* of check — a brute-force Precog oracle
 (the one worth having), translation validation, or the program
 generator (already decided). Owner: "Interpreter + Precog +
 translation-validation seems good." Recorded as the intended set in
-`design/compiler-verification.md`. Benchmarks the same day: the oracle
+`design/compiler-verification.md`. Added the same day (owner): **twin
+programs** — other languages as oracles for the parts they share. Benchmarks the same day: the oracle
 (release) runs the 1000-digit pi spigot in 49 s vs CPython 0.49 s vs
 C++/Rust 0.023 s — as intended; it is the spec, not the product.
 
