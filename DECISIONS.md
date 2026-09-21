@@ -12,7 +12,14 @@ Three readings, cost ascending: (a) GPU libraries through `extern`
 (already possible in principle; a bindings Limb); (b) kernels written in
 Cyborg, compiled via LLVM to PTX / SPIR-V / Metal, Precog proving the
 index math; (c) automatic offload of a parallel `for`, the parallelism
-pillar extended to the GPU, dependent on (b). Which is meant is open.
+pillar extended to the GPU, dependent on (b). Owner: **c**. So: the
+programmer writes `for`, Precog decides CPU cores or GPU, `for seq` says
+no — no GPU syntax in the language. (b) exists underneath as mechanism
+(loop bodies compiled via LLVM to PTX / SPIR-V / Metal, a runtime that
+launches and copies). Precog's offload test: iterations provably
+independent (the existing parallel test), trip count worth the bus
+transfer, body within what the GPU can do (no text, no `extern`, no
+failure escaping the loop). Undesigned beyond this.
 
 ### 2026-09-21 — Three oracles: interpreter, Precog, translation validation (owner)
 
@@ -1225,7 +1232,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
-- GPU support for v1 (owner, 2026-09-21): extern bindings, kernels in Cyborg, or automatic offload? Not designed.
+- GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
 
 **Language — surfaced by the second (OCaml) oracle, 2026-09-17**
 

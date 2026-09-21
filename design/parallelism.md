@@ -39,3 +39,13 @@ for seq 'line' in lend 'lines' {
 
 This is the entire parallelism syntax of v1: one word, for saying no.
 (`seq` sits after `temp`/`perm` in the chain — see `control-flow.md`.)
+
+## The GPU (owner, 2026-09-21: automatic)
+
+Same rule, one more place to run: the programmer writes `for`, Precog
+decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
+loop bodies are compiled by LLVM for the GPU target and a runtime launches
+them and moves the data. Precog offloads only when the iterations are
+provably independent (the existing test), the trip count is worth the
+transfer, and the body stays within what the GPU can do. Part of v1.
+Undesigned beyond this.
