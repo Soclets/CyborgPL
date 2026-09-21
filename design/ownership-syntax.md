@@ -104,4 +104,6 @@ outliving `'s'`.
 
 ## Open
 
-- The lifetime annotation's spelling (optional, verified).
+- The lifetime annotation's spelling (optional, verified). (Reaffirmed 2026-09-21:
+  a lend *may* escape a call and Precog proves it; the rule "a lend never
+  outlives its scope" was offered and declined.)

@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Cold read 4 (`examples/shop.cpls`): lends may escape (kept), three notes (owner)
+
+A fresh Claude chat read the shop program: the call-site verbs are "the
+thing to build around", the failure system and `pos` earn their place;
+it asked whether a borrow can escape a call, what arithmetic does to a
+range type, how failures propagate, where `<T>` is introduced, whether
+interfaces are structural, and why mutation is unmarked — all decided,
+mostly not visible in one program. It misread `int32[0, 100_000]` as a
+generic instantiation (a cost, logged), claimed there is no char literal
+(there is: backticks), and called the quotes "two shifted keystrokes" —
+they are unshifted (owner). Recurring for the fourth reader: `lent`/`lend`
+one letter apart; `printu` cryptic.
+
+Claude proposed adopting "a lend never outlives the scope that made it"
+(no lifetime annotations ever; a returned view becomes a copy Precog
+elides where it can) and, asked why it was trying to change it, admitted
+the reason was that the oracle already behaves that way. Owner: "Keep it
+as it is." So: views may escape, Precog infers lifetimes, the optional
+annotation's spelling stays open, and **the oracle's refusal to return a
+lend is a known gap, not the design.**
+
 ### 2026-09-21 — Callbacks: capture-free, C-shaped functions cross to C; `fn[…]` in extern signatures (owner)
 
 Owner asked what callbacks are for (sorting, events, signals, servers).

@@ -70,7 +70,7 @@ had to make to run at all; none is a decision.
 | Pick | Where | Why this way |
 |---|---|---|
 | A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |
-| A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them) |
+| A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them). Confirmed a gap, not the design, 2026-09-21 |
 | `lend.mut 'x'.field` writes back at the end of the statement; `'x'.field[pos i] = v` is refused (lend the list to a name first) | `interp.rs` `stmt` | A statement is the unit of a lend here; the compiler tracks the borrow itself |
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
 | `deci`, `bin128`, `uint128`'s top half, `std::uenr` | — | Parsed, refused at run time as not implemented |
