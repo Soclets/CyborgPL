@@ -48,7 +48,12 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 - **`:=` only without a type, `=` only with one.** Unchanged. `:=` marks
   "the compiler chooses the best type"; `=` marks "you said everything".
 - **`mut` / `immut`** are bare words between `let` and the name (Rust's
-  spot). Statable, not standard — see `ownership-syntax.md`.
+  spot). Statable, not standard — see `ownership-syntax.md`. **Plain
+  means Precog infers**: `let 'x' := 1; 'x' = 2;` is legal; `mut` states
+  intent, `immut` is the enforced contract. The same rule holds for an
+  owning parameter (`'items': T` may be changed; `immut 'n': T` may not).
+  Not Rust's default-fixed — a fifth cold reader assumed it was
+  (2026-09-21).
 - Style: a space after `:`, none around `::`.
 
 ## What the sample establishes

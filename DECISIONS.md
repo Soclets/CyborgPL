@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Cold read 5 (`examples/inventory.cpls`): nothing changed; a wrong recommendation caught
+
+A fresh chat traced the output correctly, praised the range types
+("build the language around it"), failures in the signature, `bin64`,
+and quoted names for keyword-proofing. It asked about `otherwise fail`
+(passes the name on — decided), `std::` vs `list.`/`char.` (language ops
+vs the Limb — decided, docs), unhandled `list.append`/`remove` (check
+sites, the tiers — decided), `std::exit` in an arm (arms must leave —
+decided), `>==`, brackets, 1-based, quotes (reader five). It called
+`let mut 'best'` beside an unmarked owned parameter inconsistent; Claude
+accepted that Rust-shaped assumption, recommended `mut` on parameters
+and argued against "auto mut" — then checked: plain `let` and plain
+parameters are Precog-inferred (2026-09-14), the oracle runs
+`let 'x' := 1; 'x' = 2;`. Nothing inconsistent, nothing changed; a docs
+line added. Lesson recorded in memory: verify in DECISIONS/design and
+the oracle before recommending. Also noted: the example's
+`heaviest[...copy 'shelf']` teaches an expensive pattern — the example's
+fault, not the language's.
+
 ### 2026-09-21 — Extern data: `extern let ['mut'] 'x': T;` (owner)
 
 Open since the FFI decisions. Proposed: `extern let` mirroring `extern
