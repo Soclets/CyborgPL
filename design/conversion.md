@@ -30,6 +30,13 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } }
 - A number becomes text in its **stored form**, always (2026-09-14). A
   useful-form conversion (`0.1` rather than the 55 digits) has no spelling
   yet — `printu` is the only thing that produces it.
-- Not decided, refused by the oracle: bin → int (round, truncate, or refuse
-  a fraction?); anything → `bool` (no truthiness — compare instead); to or
-  from `char`, lists, structs.
+- **bin → int fails unless the bin is whole** (decided 2026-09-21):
+  `to.int32[2.0] otherwise …` is `2`; `to.int32[2.7]` fails `not_whole`.
+  Nothing is thrown away silently — rounding is said first, and the
+  reader sees where: `to.int32[std::round['x']]`. The rounding toolbox
+  (`std::round`, `floor`, `ceil`, `trunc`: a bin in, a whole bin out) is
+  std's, like `div.trunc`; names provisional. Owner chose this over C's
+  quiet truncation and over floor (which would match `/`).
+  `examples/whole.cpls`.
+- Not decided, refused by the oracle: anything → `bool` (no truthiness —
+  compare instead); to or from `char`, lists, structs.

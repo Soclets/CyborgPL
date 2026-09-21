@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — bin → int fails unless whole: `not_whole` (owner)
+
+Open since 2026-09-19. Proposed: fail unless whole (rounding said first,
+`to.int32[std::round['x']]`), truncate (C, quiet), floor (matches `/`,
+quiet). Owner: a. The rounding toolbox — `std::round`, `floor`, `ceil`,
+`trunc`, a bin to a whole bin — is std's; names provisional.
+`examples/whole.cpls`.
+
 ### 2026-09-21 — `list.remove` hands the element back; no `give` of an element (owner)
 
 Surfaced while explaining `...give`: the oracle had refused
@@ -1144,7 +1152,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
-- Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
+- Conversion, still open parts: a useful-form (short) number → text; `char`. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)

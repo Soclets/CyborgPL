@@ -1,0 +1,12 @@
+# bin → int fails unless the bin is whole (decided 2026-09-21). Rounding is said first.
+MAIN {
+    let 'x': bin64 = 2.0;
+    let 'y': bin64 = 2.7;
+    let 'a' := to.int32['x'] otherwise -1;                    # whole: 2
+    let 'b' := to.int32['y'] otherwise -1;                    # not whole: fails → -1
+    let 'c' := to.int32[std::round['y']] otherwise -1;        # said: 3
+    let 'd' := to.int32[std::floor['y']] otherwise -1;        # said: 2
+    let 'e' := to.int32[std::trunc[0.0 - 'y']] otherwise -1;  # said: -2
+    std::printu.stdout['a', " ", 'b', " ", 'c', " ", 'd', " ", 'e', \n];
+    let 'f' := to.int32['y'] otherwise { not_whole { std::printu.stdout["2.7 is not whole", \n]; std::exit[0]; } };
+}

@@ -988,6 +988,8 @@ impl<'p> Interp<'p> {
                 let (base, ranged): (&Ty, bool) = match ty { Ty::Ranged(b, _, _) => (b, true), t => (t, false) };
                 let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_));
                 let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }] } else { Vec::new() };
+                // bin → int fails unless the bin is whole (decided 2026-09-21): rounding is said first, in std
+                if matches!(v, Value::Bin(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
                 // into a range type, a value out of range is a failure, not a check (decided 2026-09-20)
                 if ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
                 let ty = base;
@@ -998,7 +1000,16 @@ impl<'p> Interp<'p> {
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { self.check_type(&Value::Int(*i), ty, line)?; Value::Int(*i) }
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); self.check_type(&b, ty, line)?; b }
                     (Ty::Bin(_), Value::Bin(x)) => { self.check_type(&Value::Bin(*x), ty, line)?; Value::Bin(*x) }
-                    (Ty::Int(_) | Ty::Uint(_), Value::Bin(_)) => return rt(line, "bin → int conversion is not decided (round? truncate? refuse a fraction?); the oracle refuses it"),
+                    (Ty::Int(_) | Ty::Uint(_), Value::Bin(x)) => {
+                        if !x.is_finite() || x.fract() != 0.0 {
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_whole".into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
+                        let i = Value::Int(*x as i128);
+                        self.check_type(&i, ty, line)?;
+                        i
+                    }
                     (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_), Value::Str(s)) => {
                         let parsed = if matches!(ty, Ty::Bin(_)) { s.parse::<f64>().ok().map(Value::Bin) } else { s.parse::<i128>().ok().map(Value::Int) };
                         match parsed {
@@ -2087,6 +2098,15 @@ impl<'p> Interp<'p> {
                 };
                 if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), "closed".into(), None, value_used); }
                 Ok(Value::Str(text))
+            }
+            "round" | "floor" | "ceil" | "trunc" => {
+                // the rounding toolbox (std, provisional names): a bin in, a whole bin out — then `to.int32[…]`
+                if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one bin")); }
+                let (a, _) = self.value(&c.args.values[0])?;
+                match a {
+                    Value::Bin(x) => Ok(Value::Bin(match path.as_str() { "round" => x.round(), "floor" => x.floor(), "ceil" => x.ceil(), _ => x.trunc() })),
+                    other => rt(c.line, format!("std::{path} takes a bin, got {}", other.kind())),
+                }
             }
             "div.trunc" | "mod.trunc" => {
                 // hardware truncation, by name (decided 2026-09-20); the language's `/` and `mod` floor
