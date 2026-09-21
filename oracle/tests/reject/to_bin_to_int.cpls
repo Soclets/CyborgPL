@@ -1,4 +1,0 @@
-MAIN {
-    let 'x': bin64 = 2.5;
-    let 'i' := to.int32['x'];
-}
