@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — Precog has a first design: Kespar (`~/Kespar`, 2026-09-16..19)
+
+Not a decision; a correction of the record. Claude had said all day that
+Precog was undesigned. The owner: "Kespar was built by your Precog docs."
+`~/Kespar/design/precog.md` (149 lines) + ~14.6k lines of Rust: a
+three-layer Precog — known values executed at compile time; bounded
+values tracked as exact sets (≤4096) then intervals, loops to a fixpoint
+with widening and trip-by-trip following (100k/loop, 2M/program),
+functions inlined per call site (depth 8); what is left asked of Z3 as a
+bit-precise query (unroll 16/64, `rlimit` not timeout) — plus a
+separately-authored oracle, a program generator that found Precog bugs,
+and a bench (sieve 14.7 s → 2.6 s of compile time after four engineering
+fixes). No clock anywhere: same answer on every machine. Missing by its
+own account: loop invariants. The POC is finished ("abandoned"); the
+Cyborg Precog document starts from it. Its provisional numbers are open
+questions here.
+
 ### 2026-09-21 — v1 public release includes GPU support (owner, direction)
 
 Stated while discussing hardware and cross-compilation. Not designed.
