@@ -407,7 +407,10 @@ impl Parser {
                 self.advance();
                 if self.is_word("fail") { fails = self.fail_list()?; }
                 else {
-                    ret = Some(self.ty()?);
+                    let saved = self.at_boundary; self.at_boundary = true;
+                    let r = self.ty();
+                    self.at_boundary = saved;
+                    ret = Some(r?);
                     if self.is_word("or") {
                         self.advance();
                         if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`: `-> bool or fail[full, bad_item: str.utf8]`"); }
@@ -484,7 +487,11 @@ impl Parser {
             Tok::Ellipsis => return self.err("`...` goes right before the name: `...'values'`"),
             other => return self.err(format!("expected a quoted parameter name, found {other}")),
         };
-        let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
+        // a signature may mention `ptr[T]` (a callback C calls receives pointers); a `let` may not
+        let saved = self.at_boundary; self.at_boundary = true;
+        let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()) } else { None };
+        self.at_boundary = saved;
+        let ty = match ty { Some(t) => Some(t?), None => None };
         if variadic && *self.peek() == Tok::Comma { return self.err(format!("`...'{name}'` takes the rest of the arguments, so it must be the last parameter")); }
         Ok(Param { kind, mutability, ty, name, variadic, line })
     }

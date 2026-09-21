@@ -175,7 +175,16 @@ impl<'p> Interp<'p> {
             },
             Ty::Var(_) | Ty::Inst(..) => Err("a generic type cannot cross to C".into()),
             Ty::Ranged(..) => Err("a range type cannot cross to C; C has no ranges — use the plain type".into()),
-            Ty::Fn(..) => Err("a function value cannot cross to C yet (callbacks are open)".into()),
+            // a callback (design/ffi.md, 2026-09-21): C-shaped through and through, by value, no failures
+            Ty::Fn(ps, ret, fails) => {
+                if !fails.is_empty() { return Err("a callback cannot fail; C has no failures".into()); }
+                for (k, t) in ps {
+                    if *k != ParamKind::Owned { return Err("a callback's parameters are by value; C passes pointers for the rest".into()); }
+                    self.c_shaped(t)?;
+                }
+                if let Some(r) = ret { self.c_shaped(r)?; }
+                Ok(())
+            }
             other => Err(format!("{} is not C-shaped (numbers, bool, ptr, layout.c structs are)", ty_name(other))),
         }
     }
@@ -1457,6 +1466,26 @@ impl<'p> Interp<'p> {
         r
     }
 
+    /// Call a function value from emulated C: arguments already evaluated, by value.
+    fn call_func_value(&mut self, fv: &FuncVal, args: Vec<Value>, line: usize) -> Result<Value, RuntimeError> {
+        let func = fv.def.clone();
+        if args.len() != func.params.len() { return rt(line, format!("`{}` takes {} argument(s), C gave {}", func.name, func.params.len(), args.len())); }
+        let mut bound = Vec::new();
+        for (v, p) in args.into_iter().zip(&func.params) {
+            let v = self.fit(v, Prov::Plain, p.ty.as_ref(), line)?;
+            bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(v)), ty: p.ty.clone(), kind: SlotKind::Owned, alive: true, immut: false }));
+        }
+        let saved_depth = self.nocheck_depth;
+        let flow = self.run_body(&func, bound);
+        self.nocheck_depth = saved_depth;
+        match flow? {
+            Flow::Return(v) => Ok(v),
+            Flow::Normal => Ok(Value::Nothing),
+            Flow::Fail(..) => rt(line, "a callback cannot fail"),
+            Flow::Break | Flow::Continue => rt(line, "`break`/`continue` outside a loop"),
+        }
+    }
+
     /// Run a function's body with its parameters bound. A function's scopes are its
     /// own: it cannot see the caller's variables.
     fn run_body(&mut self, func: &Func, bound: Vec<(String, Slot)>) -> Result<Flow, RuntimeError> {
@@ -1774,6 +1803,11 @@ impl<'p> Interp<'p> {
                 }
                 (Some(Ty::Ptr(..)), Value::Ptr(_), _) => v,
                 (Some(Ty::Ptr(..)), other, _) => return rt(c.line, format!("`{}` wants a pointer for '{}': `lend` a list/array/str, or pass a pointer from C; got {}", func.name, param.unwrap().name, other.kind())),
+                (Some(t @ Ty::Fn(..)), Value::Func(fv), _) => {
+                    if !fv.captures.is_empty() { return rt(c.line, format!("`{}` is a callback for C, and `{}` captures [{}]: C has nowhere to keep them — pass them as a pointer argument instead", param.unwrap().name, fv.def.name, fv.captures.iter().map(|(n, _, _)| format!("'{n}'")).collect::<Vec<_>>().join(", "))); }
+                    self.check_type(&v, t, c.line)?;
+                    v
+                }
                 (Some(t), _, prov) => self.fit(v, prov, Some(t), c.line)?,
                 (None, Value::Str(_) | Value::List(_) | Value::Char(..), _) => return rt(c.line, format!("`{}` is a variadic extern; its extra arguments must be C-shaped, not {}", func.name, v.kind())),
                 (None, _, _) => v,
@@ -1808,6 +1842,29 @@ impl<'p> Interp<'p> {
                     Ok(val) => { let mut bytes: Vec<Value> = val.bytes().map(|b| Value::Int(b as i128)).collect(); bytes.push(Value::Int(0)); Ok(Value::Ptr(Ptr { cell: Some(Rc::new(RefCell::new(Value::List(bytes)))), index: 0, mutable: false })) }
                     Err(_) => Ok(Value::Ptr(Ptr { cell: None, index: 0, mutable: false })),
                 }
+            }
+            "qsort" => {
+                // C's qsort, emulated: the comparator is a Cyborg function called with pointers to elements
+                let (p, n, cmp) = match (&args[0], &args[1], &args[3]) { (Value::Ptr(p), Value::Int(n), Value::Func(f)) => (p.clone(), *n as usize, f.clone()), _ => return rt(c.line, "qsort[ptr.mut, n, size, cmp]") };
+                let Some(cell) = p.cell.clone() else { return site(c.line, "qsort on a null pointer") };
+                let start = p.index.max(0) as usize;
+                let len = match &*cell.borrow() { Value::List(items) => items.len(), _ => return rt(c.line, "qsort needs a pointer into a list or array") };
+                if start + n > len { return site(c.line, format!("qsort over {n} element(s) from {start}: past the end ({len})")); }
+                // insertion sort, calling back for each comparison
+                for i in (start + 1)..(start + n) {
+                    let mut j = i;
+                    while j > start {
+                        let a = Value::Ptr(Ptr { cell: Some(cell.clone()), index: (j - 1) as i128, mutable: false });
+                        let b = Value::Ptr(Ptr { cell: Some(cell.clone()), index: j as i128, mutable: false });
+                        let r = self.call_func_value(&cmp, vec![a, b], c.line)?;
+                        let order = match r { Value::Int(o) => o, other => return rt(c.line, format!("the comparator returned {}, not an int32", other.kind())) };
+                        if order <= 0 { break; }
+                        let mut v = cell.borrow_mut();
+                        if let Value::List(items) = &mut *v { items.swap(j - 1, j); }
+                        j -= 1;
+                    }
+                }
+                Ok(Value::Nothing)
             }
             "malloc" => match &args[0] { Value::Int(n) => Ok(Value::Ptr(Ptr { cell: Some(Rc::new(RefCell::new(Value::List(vec![Value::Int(0); (*n).max(0) as usize])))), index: 0, mutable: true })), _ => rt(c.line, "malloc[bytes]") },
             "free" => Ok(Value::Nothing),
