@@ -29,7 +29,9 @@ for `lend.mut` / `lent.mut`**, on both sides of a call —
 meaning, same rules; a program may mix the two. Added after four cold
 readers in a row confused `lent` with `lend` — `&` is the spelling Rust
 readers already know. `&` between two values is still an (undefined)
-custom operator; the lending `&` is the one that opens a value.
+custom operator; the lending `&` is the one that opens a value. A build
+that sees `&` or `&mut` anywhere prints, once:
+`What are you? Rust programmer or Claude?` — and builds anyway (owner).
 
 The words are the *owner's* — the keyword sits on the value being handed
 over, so "give" and "lend" read as what the owner does. (Rust's `move` /

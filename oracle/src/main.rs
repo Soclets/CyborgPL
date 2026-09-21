@@ -87,6 +87,10 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
 
 pub fn run_path(path: &Path, out: Box<dyn std::io::Write>) -> Result<u8, String> {
     let prog = load(path)?;
+    if parser::AMPERSAND_USED.swap(false, std::sync::atomic::Ordering::Relaxed) {
+        // The build's one remark on the `&` spelling: said once, before the program runs (owner, 2026-09-21).
+        eprintln!("What are you? Rust programmer or Claude?");
+    }
     let mut interp = interp::Interp::new(&prog, out);
     interp.run().map_err(|e| if e.line == 0 { format!("{}: {}", path.display(), e.msg) } else { format!("{}: line {}: {}", path.display(), e.line, e.msg) })
 }
@@ -100,5 +104,5 @@ fn main() {
     match run_path(Path::new(&args[1]), Box::new(std::io::stdout())) {
         Ok(code) => exit(code as i32),
         Err(msg) => { eprintln!("{msg}"); exit(1); }
-    }
+    };
 }

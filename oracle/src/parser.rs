@@ -29,6 +29,12 @@ pub struct ParseError {
     pub msg: String,
 }
 
+/// Set when a program spells a lend with `&` / `&mut`. The build then says
+/// "What are you? Rust programmer or Claude?" once (owner, 2026-09-21).
+pub static AMPERSAND_USED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn note_ampersand() { AMPERSAND_USED.store(true, std::sync::atomic::Ordering::Relaxed); }
+
 pub struct Parser {
     toks: Vec<Token>,
     pos: usize,
@@ -473,6 +479,7 @@ impl Parser {
                 } else { ParamKind::Lent };
             }
             Tok::Op(o) if o == "&" => {
+                note_ampersand();
                 // `&'text': T` / `&mut 'buf': T` — an alternative to `lent` / `lent.mut` (owner, 2026-09-21)
                 self.advance();
                 kind = if self.is_word("mut") { self.advance(); ParamKind::LentMut } else { ParamKind::Lent };
@@ -541,7 +548,7 @@ impl Parser {
                 loop {
                     let kind = match self.peek().clone() {
                         Tok::Word(w) if w == "lent" => { self.advance(); if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(m) if m == "mut") { self.advance(); self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
-                        Tok::Op(o) if o == "&" => { self.advance(); if self.is_word("mut") { self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
+                        Tok::Op(o) if o == "&" => { note_ampersand(); self.advance(); if self.is_word("mut") { self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
                         Tok::Var(v) => return self.err(format!("a function type has no parameter names: `fn[lent Locker]`, not `fn[lent '{v}': Locker]`")),
                         _ => ParamKind::Owned,
                     };
@@ -1459,6 +1466,7 @@ impl Parser {
             }
             Tok::LBracket => Ok(Expr::Nested(self.bracket()?)),
             Tok::Op(o) if o == "&" => {
+                note_ampersand();
                 // `&'s'` / `&mut 's'` — Rust's spelling, an alternative to `lend` / `lend.mut` (owner, 2026-09-21)
                 self.advance();
                 let verb = if self.is_word("mut") { self.advance(); Verb::LendMut } else { Verb::Lend };
