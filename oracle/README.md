@@ -73,6 +73,8 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 ## Provisional picks — the design has not decided these
 
+- The oracle is not parameterised by target (pointer size, `bin128` in hardware or not); it behaves as one 64-bit machine. Cross-target proofs would need it to take those as inputs (noted 2026-09-21).
+
 
 Each is marked "provisional" in the source. They are picks the interpreter
 had to make to run at all; none is a decision.
