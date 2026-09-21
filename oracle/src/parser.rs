@@ -1025,6 +1025,7 @@ impl Parser {
             match &mut e {
                 Expr::Call(c) => c.handler = self.handler()?,
                 Expr::Convert(_, _, h, _) => *h = self.handler()?,
+                Expr::CharFromCode(_, _, h, _) => *h = self.handler()?,
                 Expr::CallValue(_, _, h, _) => *h = self.handler()?,
                 _ => return self.err("`otherwise` handles a call that can fail, and the call must be the whole value: put it in its own `let` first"),
             }
@@ -1569,6 +1570,25 @@ impl Parser {
                     let args = self.bracket()?;
                     if args.values.len() != 1 { return self.err(format!("`str.{op}` takes one text: `str.{op}[lend 's']`")); }
                     Ok(Expr::Builtin("str".into(), op, args, line))
+                }
+                "char" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(u) if u == "code" || ((u == "point" || u == "byte" || u == "grapheme") && *self.peek_at(3) == Tok::Dot)) => {
+                    // char.code[c] — the number under a char.point / char.byte;
+                    // char.point.from_code[n] / char.byte.from_code[n] — back, failing not_a_char (decided 2026-09-21)
+                    self.advance(); self.advance();
+                    let w = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
+                    if w == "code" {
+                        if *self.peek() != Tok::LBracket { return self.err("`char.code` is a call and needs `[…]`: `char.code[`A`]`"); }
+                        let args = self.bracket()?;
+                        if args.values.len() != 1 { return self.err("`char.code` takes one character"); }
+                        return Ok(Expr::Builtin("char".into(), "code".into(), args, line));
+                    }
+                    self.advance(); // the dot
+                    match self.advance().tok { Tok::Word(f) if f == "from_code" => {}, other => return self.err(format!("`char.{w}.` is followed by `from_code[…]`, found {other}")) }
+                    let unit = match w.as_str() { "point" => CharUnit::Point, "byte" => CharUnit::Byte, _ => return self.err("a grapheme has no single code; build it from text: `to.char.grapheme[\"…\"]`") };
+                    if *self.peek() != Tok::LBracket { return self.err(format!("`char.{w}.from_code` is a call and needs `[…]`")); }
+                    let args = self.bracket()?;
+                    if args.values.len() != 1 { return self.err(format!("`char.{w}.from_code` takes one number")); }
+                    Ok(Expr::CharFromCode(unit, args, None, line))
                 }
                 "size" | "align" => {
                     // size.of[T] / align.of[T]   (design/ffi.md)

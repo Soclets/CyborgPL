@@ -341,6 +341,8 @@ pub enum Expr {
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
     FnRef(Vec<String>, Vec<String>, usize),
+    /// `char.point.from_code[n]` / `char.byte.from_code[n]`: a number to a character, fails `not_a_char` (decided 2026-09-21)
+    CharFromCode(CharUnit, Bracket, Option<Handler>, usize),
     /// `...'xs'` in a call: unpack the list into the variadic part (decided 2026-09-21)
     Spread(String, Option<Verb>, usize),
     /// `fn [params] -> T with [lend 'v', give 'w'] { … }` — an anonymous function with explicit captures
@@ -373,6 +375,7 @@ impl Expr {
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
             Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
+            Expr::CharFromCode(_, _, _, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,
         }
     }

@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — `char` conversions: `char.code` / `from_code`, text → char fails, units down fail (owner)
+
+Three questions. (1) Number ↔ char: `to.int32[`7`]` gives the code (55,
+the C trap), the digit (7, a parse in disguise), or is refused with two
+named operations — `char.code[…]` and `char.<unit>.from_code[…]
+otherwise …` (fails `not_a_char`), digit value via text — owner: c. (2)
+Text → char: a failing conversion `to.char.point["A"] otherwise …`
+(`not_one_char`), or only `std::str.at` — owner: a. (3) Between units:
+down fails (`not_one_point`, `not_one_byte`), up always works, or all
+refused — owner: a. Oracle fix on the way: a char literal now takes its
+declared unit (`let 'g': char.grapheme = `é`` was staying a point).
+`examples/chars.cpls`, four reject tests.
+
 ### 2026-09-21 — A module and a type cannot share a name (owner)
 
 Proposed: refuse (one name, one thing, per Limb) or allow and tell apart
@@ -1173,7 +1186,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
-- Conversion, still open parts: a useful-form (short) number → text; `char`. (2026-09-19)
+- Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)

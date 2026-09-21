@@ -38,5 +38,27 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } }
   std's, like `div.trunc`; names provisional. Owner chose this over C's
   quiet truncation and over floor (which would match `/`).
   `examples/whole.cpls`.
+- **`char`** (decided 2026-09-21, three questions):
+  - **Number ↔ char is not a conversion.** `to.int32[`7`]` is refused: it
+    could mean 55 (the code) or 7 (the digit), and C's answer is the trap.
+    Two named operations instead: `char.code[`A`]` → `65` (a `uint32`
+    for a point, `uint8` for a byte; a grapheme has no single code and is
+    refused), and `char.point.from_code[65] otherwise …` /
+    `char.byte.from_code[…] otherwise …` → the char, failing `not_a_char`
+    for a code that is not one. A digit's value is a text parse, spelled
+    as one: `to.int32[to.str.utf8[`7`]] otherwise …`. Owner chose this
+    over "`to.int32` gives the code" and "`to.int32` gives the digit".
+  - **Text → char is a conversion that can fail**: `to.char.point["A"]
+    otherwise …` gives `` `A` ``; `"AB"` or `""` fails `not_one_char`.
+    The unit in the target says what "one" means
+    (`to.char.grapheme["เกี่ยว"]` fails: several graphemes). Char → text
+    is `to.str.utf8[…]`, never fails. Owner chose this over "use
+    `std::str.at.<unit>`".
+  - **Between units, down can fail, up never does**: `to.char.point[g]`
+    from a grapheme fails `not_one_point` unless it is a single point;
+    `to.char.byte[p]` fails `not_one_byte` unless it is ASCII;
+    `to.char.grapheme[p]` and `to.char.point[b]` always work and take no
+    `otherwise`. Same shape as `not_whole`.
+  `examples/chars.cpls`.
 - Not decided, refused by the oracle: anything → `bool` (no truthiness —
-  compare instead); to or from `char`, lists, structs.
+  compare instead); to or from lists, structs.

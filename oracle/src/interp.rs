@@ -646,6 +646,8 @@ impl<'p> Interp<'p> {
         let v = match (t, &v, &prov) {
             (Ty::Bin(_), Value::Int(i), Prov::Literal) => Value::Bin(*i as f64),
             (Ty::Ranged(b, _, _), Value::Int(i), Prov::Literal) if matches!(**b, Ty::Bin(_)) => Value::Bin(*i as f64),
+            // a char literal takes the declared unit (`let 'g': char.grapheme = `é`;` is a grapheme, not a point)
+            (Ty::Char(unit), Value::Char(_, c), Prov::Plain | Prov::Fresh) => Value::Char(unit.clone(), c.clone()),
             _ => v,
         };
         self.check_type(&v, t, line)?;
@@ -819,6 +821,21 @@ impl<'p> Interp<'p> {
         let line = e.line();
         match e {
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
+            Expr::CharFromCode(unit, b, handler, _) => {
+                let fails = vec![FailCase { name: "not_a_char".into(), ty: None }];
+                let uname = match unit { CharUnit::Point => "point", CharUnit::Byte => "byte", CharUnit::Grapheme => "grapheme" };
+                self.check_handler(handler.as_ref(), &fails, &format!("char.{uname}.from_code"), line)?;
+                let (v, _) = self.single(b, line)?;
+                let n = match v { Value::Int(n) => n, other => return rt(line, format!("`char.{uname}.from_code` takes a number, got {}", other.kind())) };
+                let made = match unit {
+                    CharUnit::Byte => u8::try_from(n).ok().map(|b| (b as char).to_string()),
+                    _ => u32::try_from(n).ok().and_then(char::from_u32).map(|c| c.to_string()),
+                };
+                match made {
+                    Some(s) => Ok((Value::Char(unit.clone(), s), Prov::Plain)),
+                    None => { let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("char.{uname}.from_code"), "not_a_char".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
+                }
+            }
             Expr::Spread(n, _, _) => rt(line, format!("`...'{n}'` unpacks a list into a call's variadic arguments; it has no meaning here")),
             Expr::Bin(b, _) => Ok((Value::Bin(*b), Prov::Literal)),
             Expr::Bool(b, _) => Ok((Value::Bool(*b), Prov::Plain)),
@@ -997,6 +1014,19 @@ impl<'p> Interp<'p> {
                 let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }] } else { Vec::new() };
                 // bin → int fails unless the bin is whole (decided 2026-09-21): rounding is said first, in std
                 if matches!(v, Value::Bin(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
+                // text → char fails unless the text is exactly one unit; char → a smaller unit fails
+                // unless it fits (decided 2026-09-21). Numbers never convert to or from chars.
+                if let Ty::Char(unit) = base {
+                    match &v {
+                        Value::Str(_) => fails.push(FailCase { name: "not_one_char".into(), ty: None }),
+                        Value::Char(from, _) => match (from, unit) {
+                            (CharUnit::Grapheme, CharUnit::Point) => fails.push(FailCase { name: "not_one_point".into(), ty: None }),
+                            (CharUnit::Grapheme | CharUnit::Point, CharUnit::Byte) => fails.push(FailCase { name: "not_one_byte".into(), ty: None }),
+                            _ => {}
+                        },
+                        _ => {}
+                    }
+                }
                 // into a range type, a value out of range is a failure, not a check (decided 2026-09-20)
                 if ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
                 let ty = base;
@@ -1027,6 +1057,18 @@ impl<'p> Interp<'p> {
                                 return Ok((v, prov));
                             }
                         }
+                    }
+                    (Ty::Int(_) | Ty::Uint(_), Value::Char(_, c)) => return rt(line, format!("a character does not convert to a number: `char.code[`{c}`]` is its code, `to.int32[to.str.utf8[…]]` its digit value (decided 2026-09-21)")),
+                    (Ty::Char(_), Value::Int(_)) => return rt(line, "a number does not convert to a character: `char.point.from_code[…] otherwise …` (decided 2026-09-21)"),
+                    (Ty::Char(unit), Value::Str(s) | Value::Char(_, s)) => {
+                        let count = match unit { CharUnit::Byte => s.len(), CharUnit::Point => s.chars().count(), CharUnit::Grapheme => grapheme_count(s) };
+                        if count != 1 {
+                            let which = if matches!(v, Value::Str(_)) { "not_one_char" } else if *unit == CharUnit::Point { "not_one_point" } else { "not_one_byte" };
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), which.into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
+                        Value::Char(unit.clone(), s.clone())
                     }
                     (Ty::Bool, _) => return rt(line, "nothing converts to bool: there is no truthiness; compare instead"),
                     (t, other) => return rt(line, format!("no conversion from {} to {}", other.kind(), ty_name(t))),
@@ -1277,6 +1319,15 @@ impl<'p> Interp<'p> {
 
     fn builtin(&mut self, head: &str, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
         if head == "ptr" { return self.ptr_op(op, args, line); }
+        if head == "char" {
+            // char.code[c] (decided 2026-09-21): the number under a point or a byte
+            let (v, _) = self.value(&args.values[0])?;
+            return match v {
+                Value::Char(CharUnit::Grapheme, g) => rt(line, format!("`{g}` is a grapheme, which has no single code; its points: `str.each.point[lend to.str.utf8[…]]`, or `to.char.point[…] otherwise …` if it is one")),
+                Value::Char(_, c) => Ok(Value::Int(c.chars().next().map(|ch| ch as i128).unwrap_or(0))),
+                other => rt(line, format!("`char.code` takes a character, got {}", other.kind())),
+            };
+        }
         if head == "str" {
             // The units of a text (decided 2026-09-20): no single length, no bare walk.
             let (v, prov) = self.value(&args.values[0])?;
