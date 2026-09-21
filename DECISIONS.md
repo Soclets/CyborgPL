@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — A length bound on a list: `list[T][lo, hi]` (owner)
+
+Opened from the `uint64` decision: how to tell Precog a length it can't
+see. Three placements proposed — `list[int32][0, 1000]` (the thing, then
+its bounds, as `int32[0, 100]`), `list[int32, 0, 1000]` (mistakable for
+three things), `list[int32] length[0, 1000]` (a word). Owner: `a`. Claude
+applied the existing rule for what follows — every change to a bounded
+list is a check site, its length is `uint64[lo, hi]`, low bound ≥ 0, no
+bound on `array` — and asked the owner to confirm. `examples/bounded.cpls`.
+
 ### 2026-09-21 — `list.length` / `array.length` are `uint64` (owner)
 
 Open since 2026-09-17: the number's type. Proposed `int32` (matches
@@ -1094,7 +1104,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
-- Range types on non-numbers (a text's or list's length bound) — the old "length at a boundary" question, now shaped like `int32[0, 100]`; one-ended ranges. (2026-09-20)
+- Range types on a text (a length bound on `str`, now that a list has one); one-ended ranges. (2026-09-20, narrowed 2026-09-21)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)

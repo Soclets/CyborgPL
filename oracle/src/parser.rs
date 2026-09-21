@@ -646,7 +646,21 @@ impl Parser {
                 if segs.len() > 1 { return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`", segs[1..].join("."), segs.join("."))); }
                 if params.len() != 1 { return bad(self, format!("`{head}` takes exactly one type parameter: `{head}[int32]`, `{head}[str.utf8]`, `{head}[list[int32]]`")); }
                 let inner = params.pop().unwrap();
-                Ok(if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) })
+                let base = if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) };
+                // `list[int32][0, 1000]` — a length bound, the thing then its bounds like `int32[0, 100]` (decided 2026-09-21)
+                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_)) {
+                    if head == "array" { return bad(self, "an `array` has one fixed length, so a bound on it says nothing; a length bound belongs on a `list`".to_string()); }
+                    self.advance();
+                    let lo = self.bound()?;
+                    self.expect(Tok::Comma, "`,` between the length bounds")?;
+                    let hi = self.bound()?;
+                    self.expect(Tok::RBracket, "`]` after the length bounds")?;
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a length bound is a pair of whole numbers: `list[int32][0, 1000]`".to_string()) };
+                    if *a < 0 { return bad(self, "a length is never negative: the low bound is 0 or more".to_string()); }
+                    if a > b { return bad(self, "a range's low bound comes first: `list[int32][0, 1000]`".to_string()); }
+                    return Ok(Ty::Ranged(Box::new(base), lo, hi));
+                }
+                Ok(base)
             }
             "int" | "uint" | "bin" | "deci" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
             _ if KEYWORDS.contains(&head) => bad(self, format!("`{head}` is a keyword, not a type")),

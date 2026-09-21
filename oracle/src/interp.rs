@@ -333,7 +333,7 @@ impl<'p> Interp<'p> {
                         let v = self.fit(v, prov, ty.as_ref(), *line)?;
                         // `:=` takes the value's own type where the oracle knows it (only the length
                         // operations so far: `uint64`, decided 2026-09-21) — so a later assignment is checked.
-                        let ty = ty.clone().or_else(|| Self::known_ty(value));
+                        let ty = ty.clone().or_else(|| self.known_ty(value));
                         Slot { cell: Rc::new(RefCell::new(v)), ty, kind: SlotKind::Owned, alive: true, immut }
                     }
                 };
@@ -674,6 +674,12 @@ impl<'p> Interp<'p> {
                 let inside = match (v, lo, hi) {
                     (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b,
                     (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b,
+                    // a length bound on a list (decided 2026-09-21)
+                    (Value::List(items), Bound::Int(a), Bound::Int(b)) => {
+                        let n = items.len() as i128;
+                        if !(*a <= n && n <= *b) { return site(line, format!("a list of {n} does not fit {name}")); }
+                        true
+                    }
                     _ => true,
                 };
                 if inside { Ok(()) } else { site(line, format!("{} does not fit {name}", v.show_useful())) }
@@ -1219,9 +1225,16 @@ impl<'p> Interp<'p> {
     /// The static type of a single-expression bracket, for the few expressions the
     /// oracle knows one for: `list.length[…]` / `array.length[…]` are `uint64`
     /// (decided 2026-09-21). Everything else: unknown (a provisional gap, see README).
-    fn known_ty(value: &Bracket) -> Option<Ty> {
+    fn known_ty(&self, value: &Bracket) -> Option<Ty> {
         match value.values.as_slice() {
-            [crate::ast::Value::Expr(Expr::Builtin(head, op, _, _))] if (head == "list" || head == "array") && op == "length" => Some(Ty::Uint(crate::ast::IntWidth::W64)),
+            [crate::ast::Value::Expr(Expr::Builtin(head, op, args, _))] if (head == "list" || head == "array") && op == "length" => {
+                let u64 = Ty::Uint(crate::ast::IntWidth::W64);
+                // the length of a `list[T][lo, hi]` is a `uint64[lo, hi]`
+                if let Some(crate::ast::Value::Expr(Expr::Owned(_, n, _))) = args.values.first() {
+                    if let Some(Ty::Ranged(_, lo, hi)) = self.lookup(n).and_then(|s| s.ty.clone()) { return Some(Ty::Ranged(Box::new(u64), lo, hi)); }
+                }
+                Some(u64)
+            }
             _ => None,
         }
     }
@@ -1277,14 +1290,19 @@ impl<'p> Interp<'p> {
                         Prov::Borrowed(..) => return rt(line, "a list owns its elements; append a `copy` or `give`, not a lend"),
                         _ => {}
                     }
-                    if let Some(Ty::List(inner)) = self.lookup(&var_name).and_then(|s| s.ty.clone()) { self.check_type(&arg, &inner, line)?; }
+                    let slot_ty = self.lookup(&var_name).and_then(|s| s.ty.clone());
+                    let inner = match &slot_ty { Some(Ty::List(inner)) => Some(inner.clone()), Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(inner) => Some(inner.clone()), _ => None }, _ => None };
+                    if let Some(inner) = inner { self.check_type(&arg, &inner, line)?; }
                     items.push(arg);
                 } else {
                     let i = match arg { Value::Int(i) => i, other => return rt(line, format!("`list.remove` takes a 1-based position, got {}", other.kind())) };
                     if i < 1 || i as usize > items.len() { return site(line, format!("position {i} is out of range for '{var_name}', which has {} element(s)", items.len())); }
                     items.remove((i - 1) as usize);
                 }
-                *cell.borrow_mut() = Value::List(items);
+                // A length-bounded list (`list[T][lo, hi]`) is checked after every change (decided 2026-09-21).
+                let new_len = Value::List(items);
+                if let Some(t @ Ty::Ranged(..)) = self.lookup(&var_name).and_then(|s| s.ty.clone()) { self.check_type(&new_len, &t, line)?; }
+                *cell.borrow_mut() = new_len;
                 Ok(Value::Nothing)
             }
             _ => unreachable!(),
