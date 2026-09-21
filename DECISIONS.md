@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — v1 public release includes GPU support (owner, direction)
+
+Stated while discussing hardware and cross-compilation. Not designed.
+Three readings, cost ascending: (a) GPU libraries through `extern`
+(already possible in principle; a bindings Limb); (b) kernels written in
+Cyborg, compiled via LLVM to PTX / SPIR-V / Metal, Precog proving the
+index math; (c) automatic offload of a parallel `for`, the parallelism
+pillar extended to the GPU, dependent on (b). Which is meant is open.
+
 ### 2026-09-21 — Three oracles: interpreter, Precog, translation validation (owner)
 
 Owner asked how many oracles there should be. Claude: one interpreter
@@ -1215,6 +1224,8 @@ for JetPack, always containing analysable source, never an opaque binary
 (whole-program analysis must see inside it). See [design/tooling.md](design/tooling.md).
 
 ## Open questions
+
+- GPU support for v1 (owner, 2026-09-21): extern bindings, kernels in Cyborg, or automatic offload? Not designed.
 
 **Language — surfaced by the second (OCaml) oracle, 2026-09-17**
 
