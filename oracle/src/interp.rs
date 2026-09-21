@@ -331,7 +331,10 @@ impl<'p> Interp<'p> {
                     }
                     _ => {
                         let v = self.fit(v, prov, ty.as_ref(), *line)?;
-                        Slot { cell: Rc::new(RefCell::new(v)), ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut }
+                        // `:=` takes the value's own type where the oracle knows it (only the length
+                        // operations so far: `uint64`, decided 2026-09-21) — so a later assignment is checked.
+                        let ty = ty.clone().or_else(|| Self::known_ty(value));
+                        Slot { cell: Rc::new(RefCell::new(v)), ty, kind: SlotKind::Owned, alive: true, immut }
                     }
                 };
                 self.declare_shadow(name, slot, *shadow, *line)?;
@@ -1211,6 +1214,16 @@ impl<'p> Interp<'p> {
             ("or", Bool(x), Bool(y)) => Bool(x || y),
             (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
         })
+    }
+
+    /// The static type of a single-expression bracket, for the few expressions the
+    /// oracle knows one for: `list.length[…]` / `array.length[…]` are `uint64`
+    /// (decided 2026-09-21). Everything else: unknown (a provisional gap, see README).
+    fn known_ty(value: &Bracket) -> Option<Ty> {
+        match value.values.as_slice() {
+            [crate::ast::Value::Expr(Expr::Builtin(head, op, _, _))] if (head == "list" || head == "array") && op == "length" => Some(Ty::Uint(crate::ast::IntWidth::W64)),
+            _ => None,
+        }
     }
 
     // ---- list / array operations (decided 2026-09-17) ---------------------

@@ -74,6 +74,14 @@ as calls with the ownership verbs: `lend` to look, `lend.mut` to change. No
 `std::`, no reserved verb names, no chain hanging off a variable. `list` and
 `array` are keywords.
 
+**A length is a `uint64`** (decided 2026-09-21): a count is never negative
+and never too big for 64 bits. `let 'n' := list.length[lend 'xs'];` makes
+`'n'` a `uint64`; `let 'm': int32 = list.length[lend 'xs'];` is a narrowing
+check site — Precog proves it wherever it can see the list (a literal, a
+guarded `if`), and the tiers handle the rest. The written type is the
+promise; the final build stores a length it has proven small in whatever
+is fastest.
+
 `array` has `length` only; `list` has `length`, `append`, `remove`. Appending
 to an `array` is a compile error. A list owns its elements: `append` takes a
 fresh value, a `copy`, or a `give` — never a lend.

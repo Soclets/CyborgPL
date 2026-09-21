@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-21 — `list.length` / `array.length` are `uint64` (owner)
+
+Open since 2026-09-17: the number's type. Proposed `int32` (matches
+counters; lies past 2 billion), `uint64` (a count: never negative, never
+too big; narrowing into `int32` is a check site Precog proves wherever it
+can see the list) and `int64`. Owner asked whether Precog makes the
+choice moot — it makes the check free in the visible case, and the final
+build may store a proven-small length however it likes; the written type
+is for the reader and the unseen case. Owner: "`uint64` it is". For the
+unseen case (a list from input) the owner asked for a way to state the
+bound: a guard `if` already works; a length bound on the list's type
+(`list[int32][0, 1000]`) is opened as the next question.
+
 ### 2026-09-21 — `&` / `&mut` as alternatives to `lend` / `lend.mut` (and `lent` / `lent.mut`); `printu` kept, long alias added (owner)
 
 Four cold readers in a row tripped on `lent` vs `lend` and called `printu`
@@ -1087,7 +1100,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
 - Conversion, still open parts: bin → int rule; a useful-form (short) number → text; `char`. (2026-09-19)
-- `list.length`'s type: fixed width or Precog-chosen? (cold read, 2026-09-19)
 - Forwarding a variadic bundle to another variadic (spread). (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
