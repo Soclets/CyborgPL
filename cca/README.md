@@ -63,6 +63,19 @@ Dated, with the alternative, so each can become a question later.
   machine's. It moves into the target description the day there is one.
   Alternative: refuse every `simd` until JetPack exists, which would leave
   `examples/simd.cpls` unbuildable.
+- **2026-09-22 — a `list` is 24 bytes even where Precog could prove it
+  smaller.** `lists.md` says a sequence nothing appends to becomes an
+  `array`, and a list whose final size is proven needs no capacity field.
+  Neither is implemented, so a `SeqKind::Free` is lowered as the shape that
+  can do both. Sound, and larger than it needs to be. The same is true of
+  `map`: `MapOrder::Free` is lowered as the ordered shape. Alternative:
+  refuse to lower until Precog settles the variant, which would block
+  programs for a size question.
+- **2026-09-22 — nothing frees a text yet.** Every text a program can build
+  today is a constant, so nothing is on the heap and `Drop` emits nothing.
+  The sentinel `types.md` describes — the high bit of the length, tested by
+  the free where a name may hold either — is not written, because no name
+  can yet hold a built text. It arrives with `++` at run time.
 - **2026-09-22 — `bin16` and `bin128` constants are not rounded to their
   width at compile time.** A `bin32` constant is rounded exactly (through
   `f32`) and a `bin64` needs none, so both meet

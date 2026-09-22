@@ -228,6 +228,7 @@ impl SiteKind {
             SiteKind::DivZero => "the divisor can be zero, and nothing can be divided by zero".into(),
             SiteKind::ModZero => "the divisor can be zero, and there is no remainder by zero".into(),
             SiteKind::Bounds => "the position can be past the end".into(),
+            SiteKind::Narrow { to } if *to == Ty::Duration => "a duration is a length of time, and this can take it below zero".to_string(),
             SiteKind::Narrow { to } => format!("the value can be outside what a `{}` holds", spell(to)),
             SiteKind::LengthBound { to } => format!("this can take it outside the bound its type gives it (`{}`)", spell(to)),
             SiteKind::ShiftWidth => "the shift can move every bit out".into(),

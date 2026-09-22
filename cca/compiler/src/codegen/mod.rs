@@ -106,6 +106,23 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Ty::Ptr { .. } => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             Ty::Char(crate::types::Unit::Byte) => Some(self.ctx.i8_type().into()),
             Ty::Char(crate::types::Unit::Point) => Some(self.ctx.i32_type().into()),
+            // The handles the owner decided on 2026-09-22 (`types.md`,
+            // `lists.md`, `maps.md`). Each type is exactly as big as it
+            // needs to be: a text and an array never grow, so they carry no
+            // capacity; a list does, so it carries one; a map that is never
+            // walked has no order list to point at.
+            Ty::Str(_) => Some(self.handle(2).into()),
+            Ty::Seq { kind, .. } => match kind {
+                crate::types::SeqKind::Array => Some(self.handle(2).into()),
+                // `Free` is Precog's to settle — "a sequence nothing ever
+                // appends to becomes an `array`" — and until it does, the
+                // shape that can do both is the safe one.
+                _ => Some(self.handle(3).into()),
+            },
+            Ty::Map { order, .. } => match order {
+                crate::types::MapOrder::Unordered => Some(self.handle(3).into()),
+                _ => Some(self.handle(4).into()),
+            },
             Ty::Struct { id, args } => {
                 let info = self.p.items.structs[id.0 as usize].clone();
                 let mut fields = Vec::new();
@@ -128,6 +145,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             _ => None,
         }
+    }
+
+    /// A handle: a pointer, then `n - 1` machine words. A text and an
+    /// array are two fields; a list and an unordered map three; an ordered
+    /// map four, the last a pointer to its order list.
+    fn handle(&mut self, fields: usize) -> inkwell::types::StructType<'ctx> {
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let w = self.ctx.i64_type();
+        let mut v: Vec<BasicTypeEnum> = vec![p.into()];
+        for i in 1..fields {
+            v.push(if i == fields - 1 && fields == 4 { p.into() } else { w.into() });
+        }
+        self.ctx.struct_type(&v, false)
     }
 
     fn ty_or_complain(&mut self, t: &Ty, span: Option<crate::source::Span>) -> Option<BasicTypeEnum<'ctx>> {
@@ -316,10 +346,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         self.store_place(fi, place, v, slots);
                     }
                 }
-                StmtKind::Op { op, .. } => {
+                StmtKind::Op { dest, op, args } => {
                     pending_site = None;
-                    let name = format!("{:?}", op);
-                    self.cannot(format!("`{}` has no shape in the generated code yet", readable_op(&name)), Some(f.span(s.span)));
+                    match self.op(fi, op, args, slots) {
+                        Some(v) => {
+                            if let Some(d) = dest {
+                                self.store_place(fi, d, v, slots);
+                            }
+                        }
+                        None => {
+                            let name = format!("{:?}", op);
+                            self.cannot(format!("`{}` has no shape in the generated code yet", readable_op(&name)), Some(f.span(s.span)));
+                        }
+                    }
                 }
                 StmtKind::Drop(_) | StmtKind::EndLend(_) | StmtKind::Nop => {}
                 StmtKind::Task { .. } => self.cannot("starting a task has no shape in the generated code yet", Some(f.span(s.span))),
@@ -438,9 +477,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Const::Duration(n) => Some(self.ctx.i64_type().const_int(*n as u64, true).into()),
             Const::SizeOf { .. } => Some(self.ctx.i64_type().const_int(8, false).into()),
             Const::Char(s) => Some(self.ctx.i32_type().const_int(s.chars().next().map(|c| c as u64).unwrap_or(0), false).into()),
-            Const::Str(_) => {
-                self.cannot("a text has no shape in the generated code yet: the runtime's layout is not decided", None);
-                None
+            Const::Str(text) => {
+                // Known at compile time, so it needs no heap: the bytes go
+                // into the binary and the handle points at them
+                // (`types.md`). Precog knows this memory is not the heap, so
+                // nothing frees it and no sentinel is paid.
+                let bytes = self.global_bytes(text);
+                let len = self.ctx.i64_type().const_int(text.len() as u64, false);
+                let h = self.handle(2);
+                Some(h.const_named_struct(&[bytes.into(), len.into()]).into())
             }
             Const::Const(id) => {
                 let _ = fi;
@@ -692,8 +737,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Arg::Copy(p) => self.operand(fi, &Operand::Read(p.clone()), slots)?,
                 Arg::Give(p) => self.operand(fi, &Operand::Move(p.clone()), slots)?,
                 Arg::Lend { place, .. } => {
-                    let (slot, _) = self.slot_of(fi, place, slots)?;
-                    slot.into()
+                    let (slot, ty) = self.slot_of(fi, place, slots)?;
+                    // "A lend satisfies a pointer: `write[1, lend 'bytes', 3]`
+                    // hands C the address of the lent *data*" (`ffi.md`), so
+                    // what crosses is the handle's pointer, not the handle.
+                    if matches!(callee, Callee::Extern(_)) && is_handle(&ty) {
+                        let shape = self.ty(&ty)?;
+                        let st = match shape {
+                            BasicTypeEnum::StructType(s) => s,
+                            _ => return None,
+                        };
+                        let field = self.builder.build_struct_gep(st, slot, 0, "data").ok()?;
+                        self.builder.build_load(self.ctx.ptr_type(AddressSpace::default()), field, "p").ok()?
+                    } else {
+                        slot.into()
+                    }
                 }
                 Arg::Spread { .. } => {
                     self.cannot("`...` at a call has no shape in the generated code yet", None);
@@ -723,6 +781,28 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         basic_result(call)
     }
 
+    /// The language's own operations. A length is a field of the handle,
+    /// which is why the handle carries one.
+    fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<BasicValueEnum<'ctx>> {
+        match op {
+            // Bytes is the length a `str` already carries; the other two
+            // units have to walk the text, and that is std's to write.
+            Op::StrBytes | Op::ListLength | Op::ArrayLength | Op::MapLength => {
+                let p = args.first()?.place()?;
+                let (slot, ty) = self.slot_of(fi, p, slots)?;
+                let shape = self.ty(&ty)?;
+                let st = match shape {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let field = self.builder.build_struct_gep(st, slot, 1, "len").ok()?;
+                let raw = self.builder.build_load(self.ctx.i64_type(), field, "n").ok()?;
+                Some(raw)
+            }
+            _ => None,
+        }
+    }
+
     fn store_place(&mut self, fi: usize, p: &Place, v: BasicValueEnum<'ctx>, slots: &[Option<PointerValue<'ctx>>]) {
         if let Some((slot, ty)) = self.slot_of(fi, p, slots) {
             // The slot's width is what the type says; a value computed at a
@@ -750,6 +830,11 @@ fn basic_result(call: inkwell::values::CallSiteValue<'_>) -> Option<BasicValueEn
 /// that is the side to move when two widths meet.
 fn is_double(t: inkwell::types::FloatType<'_>, ctx: &Context) -> bool {
     t == ctx.f64_type()
+}
+
+/// A value the runtime holds behind a handle.
+fn is_handle(t: &Ty) -> bool {
+    matches!(t.base(), Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. })
 }
 
 fn sanitise(name: &str) -> String {

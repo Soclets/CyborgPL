@@ -60,13 +60,15 @@ pub struct Analysis {
     pub steps: u64,
     /// The whole program ran at compile time: nothing came from outside.
     pub whole_program: bool,
+    /// How many instructions layer 1 replaced by their answer.
+    pub folded: usize,
 }
 
 /// One local's value, as far as this path knows.
 type Env = HashMap<LocalId, Domain>;
 
 pub fn analyse(p: &mut Program) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), cache: HashMap::new(), reads_outside: false };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -82,6 +84,24 @@ pub fn analyse(p: &mut Program) -> Analysis {
             for f in 0..p.functions.len() {
                 let entry = a.entry_env(f);
                 a.run_function(f, entry, 0);
+            }
+        }
+    }
+    // Fold what layer 1 settled, before anything reads the graph again —
+    // and only when it settled *everything*. A recursion deeper than the
+    // limit means `'n' < 2` looked false on every trip the analysis took
+    // and true on the one it never reached, and folding that would be a
+    // program that never stops.
+    let mut folded = 0usize;
+    let folds: Vec<((usize, usize, usize), Option<Const>)> = if a.gave_up { Vec::new() } else { a.folds.iter().map(|(k, v)| (*k, v.clone())).collect() };
+    for ((f, b, si), known) in &folds {
+        let Some(c) = known else { continue };
+        if let Some(st) = p.functions.get_mut(*f).and_then(|f| f.blocks.get_mut(*b)).and_then(|blk| blk.stmts.get_mut(*si)) {
+            if let StmtKind::Assign { place, rvalue } = &st.kind {
+                if !matches!(rvalue, Rvalue::Use(Operand::Const(_))) {
+                    st.kind = StmtKind::Assign { place: place.clone(), rvalue: Rvalue::Use(Operand::Const(c.clone())) };
+                    folded += 1;
+                }
             }
         }
     }
@@ -101,7 +121,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
     let mut certain_under_nocheck = a.lies;
     certain_under_nocheck.sort_by_key(|(f, s, _)| (*f, s.0));
     certain_under_nocheck.dedup_by_key(|(f, s, _)| (*f, s.0));
-    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside }
+    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded }
 }
 
 struct Precog {
@@ -115,6 +135,15 @@ struct Precog {
     /// answer is the one kept.
     results: HashMap<(usize, u32), Verdict>,
     lies: Vec<(usize, SiteId, String)>,
+    /// What layer 1 worked out for an instruction, where it worked out the
+    /// same answer every time it went past. `None` poisons it: the
+    /// instruction was reached with different values, so it stays.
+    folds: HashMap<(usize, usize, usize), Option<Const>>,
+    /// The analysis stopped short somewhere — a call deeper than the limit,
+    /// a budget spent. Nothing may be folded after that: a value that looked
+    /// settled might only have looked that way because the contexts that
+    /// would have disagreed were never walked.
+    gave_up: bool,
     /// What a function returns, for one set of argument domains.
     cache: HashMap<(usize, String), Domain>,
     reads_outside: bool,
@@ -139,6 +168,7 @@ impl Precog {
     /// Walk one function's graph to a fixpoint, recording every site.
     fn run_function(&mut self, f: usize, entry: Env, depth: u32) -> Domain {
         if depth > CALL_DEPTH {
+            self.gave_up = true;
             let ret = self.prog().functions[f].ret.clone();
             return Domain::of_ty(&ret, &self.prog().items);
         }
@@ -158,6 +188,7 @@ impl Precog {
         while let Some(b) = work.pop() {
             self.steps += 1;
             if self.steps > STEP_BUDGET {
+                self.gave_up = true;
                 break;
             }
             let Some(mut env) = states[b].clone() else { continue };
@@ -172,11 +203,29 @@ impl Precog {
             // to reach back to the list, or the next `list.length` of the
             // same list would know nothing.
             let mut lengths: HashMap<LocalId, (Op, Place)> = HashMap::new();
-            for s in &stmts {
+            for (si, s) in stmts.iter().enumerate() {
                 self.steps += 1;
                 match &s.kind {
                     StmtKind::Assign { place, rvalue } => {
                         let d = self.eval_rvalue(f, rvalue, &env, &mut facts, place);
+                        // Layer 1: "everything that does not depend on the
+                        // outside world is known… the result is folded in".
+                        // An instruction that comes out the same every time
+                        // it is reached becomes that answer.
+                        if foldable(rvalue) {
+                            let known = known_const(&d);
+                            let key = (f, b, si);
+                            match self.folds.get(&key) {
+                                None => {
+                                    self.folds.insert(key, known);
+                                }
+                                Some(prev) => {
+                                    if *prev != known {
+                                        self.folds.insert(key, None);
+                                    }
+                                }
+                            }
+                        }
                         self.store(f, &mut env, place, d);
                         lengths.retain(|k, (_, p)| *k != place.local && p.local != place.local);
                     }
@@ -544,6 +593,19 @@ impl Precog {
             }
             return Domain::Ints(s);
         }
+        if let (Domain::Duration(x), Domain::Duration(y)) = (a, b) {
+            return match op {
+                BinOp::Add => Domain::Duration(x.add(y)),
+                BinOp::Sub => Domain::Duration(x.sub(y)),
+                _ => match cmp_of(op) {
+                    Some(c) => {
+                        let (t, fa) = x.compare(y, c);
+                        Domain::Bools(t, fa)
+                    }
+                    None => Domain::of_ty(&ty, &self.prog().items),
+                },
+            };
+        }
         if let (Domain::Bins { .. }, Domain::Bins { .. }) = (a, b) {
             if let Some(c) = cmp_of(op) {
                 let (t, fa) = a.compare_bin(b, c);
@@ -742,6 +804,7 @@ impl Precog {
                     return cached.clone();
                 }
                 if depth >= CALL_DEPTH {
+                    self.gave_up = true;
                     let ret = self.prog().functions[i].ret.clone();
                     return Domain::of_ty(&ret, &self.prog().items);
                 }
@@ -761,7 +824,11 @@ impl Precog {
                 let ret = self.prog().items.externs[id.0 as usize].ret.clone();
                 Domain::of_ty(&ret, &self.prog().items)
             }
-            Callee::Value(_) => Domain::Any,
+            Callee::Value(_) => {
+                // A held function: which one it is was not followed here.
+                self.gave_up = true;
+                Domain::Any
+            }
             Callee::Op(op) => {
                 let ops: Vec<Operand> = args.iter().map(arg_operand).collect();
                 self.eval_op(f, op, &ops, env)
@@ -922,6 +989,12 @@ impl Precog {
                 }
             }
             SiteKind::Narrow { to } => {
+                // A duration's site carries both sides, because what has to
+                // fit is the difference.
+                if *to == Ty::Duration {
+                    let (Some(Domain::Duration(a)), Some(Domain::Duration(b))) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
+                    return self.fits_type(&Domain::Duration(a.sub(b)), to);
+                }
                 let Some(d) = ds.first() else { return Verdict::Unproven };
                 self.fits_type(d, to)
             }
@@ -991,6 +1064,17 @@ impl Precog {
             (Domain::Ints(s), Domain::Ints(limit)) => {
                 let Some((lo, hi)) = limit.bounds() else { return Verdict::Unproven };
                 self.fit(s, lo, hi, to)
+            }
+            (Domain::Duration(s), Domain::Duration(limit)) => {
+                let Some((lo, hi)) = limit.bounds() else { return Verdict::Unproven };
+                let Some((a, b)) = s.bounds() else { return Verdict::Unproven };
+                if a >= lo && b <= hi {
+                    Verdict::Proven { how: "layer 2" }
+                } else if b < lo {
+                    Verdict::Fails { counterexample: format!("every time: {} nanoseconds, and a duration is a length of time — it is never negative", describe_ints(s)) }
+                } else {
+                    Verdict::Fails { counterexample: "it can go below zero, and a duration is never negative".to_string() }
+                }
             }
             (Domain::Bins { lo, hi }, Domain::Bins { lo: llo, hi: lhi }) => {
                 let (Some(a), Some(b)) = (lo, hi) else { return Verdict::Unproven };
@@ -1083,6 +1167,26 @@ fn arg_operand(a: &Arg) -> Operand {
         Arg::Value(o) => o.clone(),
         Arg::Lend { place, .. } | Arg::Copy(place) | Arg::Spread { place, .. } => Operand::Read(place.clone()),
         Arg::Give(place) => Operand::Move(place.clone()),
+    }
+}
+
+/// Instructions worth replacing by their answer. A `lend` is not one: it
+/// is an address, and the address is not what was computed.
+fn foldable(rv: &Rvalue) -> bool {
+    matches!(rv, Rvalue::Binary { .. } | Rvalue::Unary { .. } | Rvalue::Convert { .. })
+}
+
+/// The one value a domain holds, when it holds exactly one. Bins are left
+/// alone: rounding at `bin16` and `bin128` is not modelled yet, and a fold
+/// is where that would first tell a lie.
+fn known_const(d: &Domain) -> Option<Const> {
+    match d {
+        Domain::Ints(s) => s.single().map(Const::Int),
+        Domain::Bools(true, false) => Some(Const::Bool(true)),
+        Domain::Bools(false, true) => Some(Const::Bool(false)),
+        Domain::Text { values: Some(v), .. } if v.len() == 1 => Some(Const::Str(v[0].clone())),
+        Domain::Duration(s) => s.single().map(Const::Duration),
+        _ => None,
     }
 }
 

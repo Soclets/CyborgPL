@@ -47,6 +47,9 @@ pub fn render(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
     let trusted = a.sites.iter().filter(|r| matches!(r.verdict, Verdict::Trusted)).count();
     let checked = a.sites.len() - proven - trusted;
     let _ = writeln!(o, "{} site(s): {} proven, {} checked at run time, {} trusted", a.sites.len(), proven, checked, trusted);
+    if a.folded > 0 {
+        let _ = writeln!(o, "{} instruction(s) were worked out at compile time and are not in the binary", a.folded);
+    }
     o
 }
 

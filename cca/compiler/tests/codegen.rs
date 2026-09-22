@@ -79,19 +79,30 @@ fn programs_build_and_run() {
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
-/// What the generated code proves away is not a matter of taste: a program
-/// whose values are all known has no checks left in it at all.
+/// A guarded value keeps no check, and the proof reaches LLVM.
 #[test]
-fn a_known_program_keeps_no_checks() {
-    let src = dir().join("arithmetic.cpls");
-    let out = std::env::temp_dir().join("cca-codegen-tests/ir-probe");
+fn a_proven_site_hands_its_fact_to_llvm() {
+    let ir = ir_of("proven_add");
+    assert!(!ir.contains("with.overflow"), "a site Precog proved still carries a run-time check:\n{}", ir);
+    assert!(ir.contains("nsw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
+}
+
+/// A program whose values are all known has the answers in it, not the
+/// working: layer 1 ran it (`precog.md`).
+#[test]
+fn a_known_program_is_already_the_answer() {
+    let ir = ir_of("arithmetic");
+    assert!(!ir.contains("with.overflow"), "a known program still carries a run-time check:\n{}", ir);
+    assert!(!ir.contains(" add ") && !ir.contains("add nsw"), "a known program still does its arithmetic at run time:\n{}", ir);
+}
+
+fn ir_of(name: &str) -> String {
+    let src = dir().join(format!("{}.cpls", name));
+    let out = std::env::temp_dir().join(format!("cca-codegen-tests/ir-{}", name));
     let _ = std::fs::create_dir_all(out.parent().unwrap());
     let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&out).env("CCA_IR", "1").output().unwrap();
-    let ir = String::from_utf8_lossy(&r.stdout).to_string();
-    assert!(r.status.success(), "would not build:\n{}", String::from_utf8_lossy(&r.stderr));
-    assert!(!ir.contains("with.overflow"), "a program Precog proved still carries a run-time check:\n{}", ir);
-    // And the proof went to LLVM, which is the point of having it.
-    assert!(ir.contains("nsw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
+    assert!(r.status.success(), "{} would not build:\n{}", name, String::from_utf8_lossy(&r.stderr));
+    String::from_utf8_lossy(&r.stdout).to_string()
 }
 
 fn indent(s: &str) -> String {

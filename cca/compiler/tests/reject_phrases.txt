@@ -78,7 +78,7 @@ const_verb :: it is a value known at compile time
 construct_quoted_field :: `x = …`, not `'x' = …`
 detached_lend :: no scope protects it, so 'x' could be gone while the task still looks at it
 div_zero :: the divisor can be zero, and nothing can be divided by zero
-duration_negative :: !pending
+duration_negative :: a duration is a length of time, and this can take it below zero
 else_if_bare :: `else.if` became `else if`: two bare words
 empty_array :: an array is fixed at the size it was made with
 empty_int :: `[]` is an empty list, but the declared type is a `int32`

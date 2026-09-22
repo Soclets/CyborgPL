@@ -7,3 +7,4 @@ structs 42
 recursion 55
 check_fires trap
 bin_guard 7
+proven_add 0

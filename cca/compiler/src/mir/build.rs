@@ -1014,6 +1014,12 @@ impl<'a> FnBuilder<'a> {
             BinOp::Mod if int => {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
             }
+            // A duration is a length of time and is never negative
+            // (`concurrency.md`, owner 2026-09-22): taking one past zero is
+            // a check site like any narrowing past a bound.
+            BinOp::Sub if ty.base() == &Ty::Duration => {
+                self.site_of(SiteKind::Narrow { to: Ty::Duration }, vec![l.clone(), r.clone()], Some(Ty::Duration), span);
+            }
             BinOp::Shl => {
                 self.site_of(SiteKind::ShiftWidth, vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
