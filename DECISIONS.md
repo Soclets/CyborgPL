@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — No explicit SIMD types for now; plain loops, Precog, LLVM's vectoriser (owner: a)
+
+Raised by Swift's `SIMD16<UInt8>` example. Proposed (a) none: a plain
+`for` over an `array[uint8]` with its checks proven away is what
+LLVM's vectoriser wants; measure once the compiler exists; (b)
+language vector types (`uint8x16`) with element-wise operators; (c) a
+std Limb over intrinsics. Owner: a. Revisit only if measured plain
+loops come out slow. Same day: Swift 6.4 `-O` measured at 1.4–3.3×
+C on the seven benchmarks (overflow and bounds checks it cannot prove
+away; refcounts; COW) and 0.9× on strings — the working-build cost
+Precog exists to remove.
+
 ### 2026-09-22 — No `std::` for now; Precog built in from the first commit (owner, in the compiler session; confirmed here)
 
 Relayed by compiler claude on its first day, confirmed by the owner in
@@ -1544,6 +1556,8 @@ for JetPack, always containing analysable source, never an opaque binary
 (whole-program analysis must see inside it). See [design/tooling.md](design/tooling.md).
 
 ## Open questions
+
+- Explicit SIMD types (`uint8x16`) — only if measured plain loops vectorise poorly after Precog. (owner: none for now, 2026-09-22)
 
 
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
