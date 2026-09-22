@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The verification session opens: "check claude" (owner)
+
+Owner: "let's start the verification session". Its brief is
+`design/verification-session.md`, its clone
+`/Users/ts/CyborgPL v2 verification`, its code `check/`, its trailer
+`check claude`. The rule that gives it its point, from 2026-09-21: it
+is a different author from Precog's, so it never reads `cca/` or
+`oracle/src` — it attacks what they claim, never their reasoning.
+Build order: the generator, the differential harness, the Precog
+oracle's three attacks, then translation validation on Alive2.
+
 ### 2026-09-23 — `closed` is counted at run time, and Precog deletes the counting where it proves it (owner: c)
 
 The last thing blocking `channel.take … otherwise` and `whichever`.
