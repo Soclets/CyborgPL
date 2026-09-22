@@ -9,10 +9,10 @@ download beside a keyboard — where the waiting is the point.
 ```
 let 'results' := channel[str.utf8];
 let 'a' := "a.com";
-concur with [lend 'results', give 'a'] { channel.send[lend 'results', give fetch['a']]; }
-concur with [lend 'results'] { channel.send[lend 'results', give fetch["b.com"]]; }
+concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }   # a call's result is fresh: no verb
+concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
 for 'i' in range[1, 2] {
-    let 'page' := channel.take[lend 'results'] otherwise fail;    # waits; whichever finished first
+    let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
     std::printu.stdout[str.bytes[lend 'page'], \n];
 }
 ```
