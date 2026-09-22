@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Solver disagreement: run the counterexample, continue safe, report the solver (owner: c)
+
+Proposed (a) refuse the build; (b) treat as unproven, continue; (c) run
+the `sat` solver's counterexample at compile time to see which solver
+lied, continue with the safe answer, name the culprit. Owner asked
+whether running it at compile time is input — no: the reads are
+replaced by the solver's values, nothing is read, deterministic. Owner:
+c, and asked whether the writer is told to open an issue — yes, at
+Cyborg's tracker with the query file attached; Cyborg forwards upstream.
+
 ### 2026-09-22 — A ranged extern return is a contract enforced as a failure (owner: c)
 
 Proposed (a) nothing on the extern, a guard after each call; (b) a

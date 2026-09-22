@@ -126,7 +126,21 @@ full budget**, and the results combine — any `unsat` is a proof (a wrong
 `unsat` would be a solver bug, which is what the Precog oracle exists to
 catch); if both say `sat`, Z3's counterexample is the one reported (fixed
 order, so the same input on every machine); `unknown` from both is
-unproven. The doubling is paid in parallel across cores. The
+unproven. The doubling is paid in parallel across cores.
+
+**Disagreement** (`unsat` from one, `sat` from the other; decided
+2026-09-22, owner: c): one solver has a bug. Precog runs the `sat`
+solver's counterexample at compile time — the program's reads replaced
+by the counterexample's values, no I/O, deterministic. If the site
+fails on them, the `unsat` solver was wrong and the site is `sat`. If it
+does not, the `sat` solver was wrong and the site is **unproven** — the
+other's answer is not trusted on a query that made one solver lie. The
+build continues with the safe answer either way, and the report names
+the solver, says in plain words that this is a solver bug and not the
+program's, points at Cyborg's issue tracker (never the solver's — the
+writer need not know what SMT is), and writes the query with both
+answers to a file to attach. Proposed alternatives: refuse the build;
+treat as unproven without diagnosing. The
 query encodes the path to the site — the domains, every assignment on
 the way, every branch taken, loops unrolled to **16 iterations per loop
 and 64 across the program** (provisional; deeper made Z3 quadratic on
@@ -284,6 +298,4 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
 - The character-class vocabulary for text (which classes; how each std
   text operation maps them) — decided in principle (c), list open.
 - The `std::uenr` digit-count warning threshold (provisional 10⁶).
-- The pinned solver versions and configurations; what disagreement
-  between Z3 and CVC5 (`sat` vs `unsat` on one query) does beyond being
-  reported — it should never happen, and the build should say so loudly.
+- The pinned solver versions and configurations.
