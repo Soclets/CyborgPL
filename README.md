@@ -1,13 +1,14 @@
-<picture align="right">
-  <source media="(prefers-color-scheme: dark)" srcset="brand/mark-white.svg">
-  <img src="brand/mark-black.svg" alt="CyborgPL" width="88" align="right">
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/mark-white.svg">
+    <img src="brand/mark-black.svg" alt="" width="96">
+  </picture>
+</p>
 
-# CyborgPL
+<h3 align="center">CyborgPL</h3>
 
-Just a small hobby lang 😊
-
-Very slow at the development, fast & safe at the final product.
+<p align="center">Just a small hobby lang 😊<br>
+Very slow at the development, fast &amp; safe at the final product.</p>
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
