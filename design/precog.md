@@ -35,7 +35,11 @@ sets and its SMT encoding, the parallel-loop proof, the lowering — reads
 MIR, so the flow graph is derived once. **MIR carries proofs**: a
 temporary's type includes its proven domain, and a proof made in Precog
 rides the instruction to LLVM as `nsw` / `nuw` / `!range`. Proof reuse
-keys on canonical MIR (see Reuse), never on source bytes.
+keys on canonical MIR (see Reuse), never on source bytes. **Precog is
+the last MIR pass** (decided 2026-09-22): after it, MIR is frozen and
+lowered as is. Any MIR-level optimisation runs before Precog, so Precog
+proves exactly what is emitted, and no later pass can change an
+instruction out from under its proof.
 
 `jetpack build` runs everything and inserts a runtime check at every
 unproven site; `jetpack final` runs the same Precog and refuses the

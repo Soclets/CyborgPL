@@ -17,8 +17,9 @@ Merkle hash of reachable functions + argument domains + target + Precog
 and solver versions and configs. (2) `nsw`/`nuw`/`!range` make Precog
 part of the trusted base — a wrong proof is silent UB; owner asked who
 a proofs-as-assertions mode is for (authors, never writers) and said
-yes: the Precog oracle's fourth attack. Still to settle from the read:
-Precog as the last MIR pass; LLVM's narrow fact vocabulary.
+yes: the Precog oracle's fourth attack. Also from the read: **Precog is the last
+MIR pass** (owner: yes) — MIR is frozen after it. Still open: LLVM's
+narrow fact vocabulary.
 
 ### 2026-09-22 — Three IRs: AST, MIR, LLVM (owner: b)
 
