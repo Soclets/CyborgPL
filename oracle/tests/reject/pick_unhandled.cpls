@@ -1,0 +1,1 @@
+MAIN { let 'c' := channel[int32]; pick { 'v' from lend 'c' { } } }

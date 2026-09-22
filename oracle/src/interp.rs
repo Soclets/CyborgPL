@@ -12,7 +12,7 @@
 //!   - `if`/`while` conditions must be bool
 
 use crate::ast::*;
-use crate::value::{Ptr, FuncVal};
+use crate::value::{Ptr, FuncVal, Chan, Timer};
 use crate::value::{exact_decimal, int_range, ty_name, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -57,6 +57,19 @@ struct Slot {
 #[derive(Debug)]
 pub enum Flow { Normal, Break, Continue, Return(Value), Fail(String, Option<Value>) }
 
+/// A started, not-yet-run task (design/concurrency.md).
+struct Task {
+    body: Vec<Stmt>,
+    captures: Vec<(String, Rc<RefCell<Value>>, bool)>,
+    handler: Option<Handler>,
+    fails: Vec<FailCase>,
+    module: Vec<String>,
+    /// the scope depth of the block that started it: that block waits for it at its end
+    depth: usize,
+    detached: bool,
+    line: usize,
+}
+
 /// What an evaluated expression *is*, for ownership and typing purposes.
 enum Prov {
     Literal,                             // a bare numeric literal: untyped, adopts its context's family
@@ -79,6 +92,11 @@ pub struct Interp<'p> {
     /// the call being evaluated is a statement (its value is unused), so an
     /// `otherwise { … }` arm may fall through
     call_is_stmt: bool,
+    /// tasks started by `concur` and not yet run (design/concurrency.md). The oracle's
+    /// schedule: a task runs when something waits on it (a `take`, a `pick`, a full
+    /// `send`) or when the block that started it ends — in source order. One valid schedule.
+    tasks: Vec<Task>,
+    next_chan_id: usize,
     /// how many `nocheck` statements enclose the running code (extern calls and
     /// pointer reads/writes need at least one — design/ffi.md)
     nocheck_depth: usize,
@@ -95,7 +113,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -305,9 +323,84 @@ impl<'p> Interp<'p> {
 
     fn block(&mut self, stmts: &[Stmt]) -> Result<Flow, RuntimeError> {
         self.push();
+        let depth = self.scopes.len();
         let r = self.stmts(stmts);
+        // structured concurrency: the block waits for every task it started (decided 2026-09-22)
+        let r = match r { Ok(flow) => self.drain_tasks(depth).map(|_| flow), e => e };
         self.pop();
         r
+    }
+
+    /// Run every pending task started at `depth` or deeper, in order (detached tasks are
+    /// nobody's to wait for; they run only on demand).
+    fn drain_tasks(&mut self, depth: usize) -> Result<(), RuntimeError> {
+        loop {
+            let Some(i) = self.tasks.iter().position(|t| !t.detached && t.depth >= depth) else { return Ok(()) };
+            let task = self.tasks.remove(i);
+            self.run_task(task)?;
+        }
+    }
+
+    /// Run one pending task — any, in order — because something is waiting. False if none.
+    fn run_any_task(&mut self) -> Result<bool, RuntimeError> {
+        if self.tasks.is_empty() { return Ok(false); }
+        let task = self.tasks.remove(0);
+        self.run_task(task)?;
+        Ok(true)
+    }
+
+    fn run_task(&mut self, task: Task) -> Result<(), RuntimeError> {
+        let saved = std::mem::replace(&mut self.scopes, vec![HashMap::new()]);
+        let saved_module = std::mem::replace(&mut self.module, task.module.clone());
+        let saved_fails = std::mem::replace(&mut self.fails, task.fails.clone());
+        let saved_stmt = self.call_is_stmt;
+        let flow = (|| {
+            for (n, cell, mutable) in &task.captures {
+                self.declare(n, Slot { cell: cell.clone(), ty: None, kind: if *mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false }, task.line)?;
+            }
+            self.block(&task.body)
+        })();
+        self.scopes = saved; self.module = saved_module; self.fails = saved_fails; self.call_is_stmt = saved_stmt;
+        match flow {
+            Ok(Flow::Fail(name, payload)) => {
+                // the task's failure lands where its `concur` was written (owner, 2026-09-22)
+                let Some(h) = task.handler.as_ref() else { return rt(task.line, format!("the task failed (`{name}`) and its `concur` has no `otherwise`")) };
+                self.call_is_stmt = true;
+                let r = self.handle_failure(h, task.line, "concur", name, payload, false);
+                self.call_is_stmt = saved_stmt;
+                match r { Ok(_) => Ok(()), Err(e) => Err(e) }
+            }
+            Ok(Flow::Return(_)) => rt(task.line, "`return` inside a task: a task is a block, not a function"),
+            Ok(Flow::Break) | Ok(Flow::Continue) => rt(task.line, "`break`/`continue` inside a task reach no loop"),
+            Ok(Flow::Normal) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// The failure names a task body can produce: its own `fail` statements and what it passes on.
+    fn task_fails(&self, body: &[Stmt]) -> Vec<FailCase> {
+        fn walk(stmts: &[Stmt], out: &mut Vec<FailCase>, prog: &Program) {
+            for s in stmts {
+                match s {
+                    Stmt::Fail { name, payload, .. } => if !out.iter().any(|f| &f.name == name) { out.push(FailCase { name: name.clone(), ty: if payload.is_some() { Some(Ty::Bool) } else { None } }); },
+                    Stmt::Call { call, .. } => if matches!(call.handler, Some(Handler::Propagate)) {
+                        if let Some(f) = prog.funcs.iter().find(|f| f.name == *call.path.last().unwrap()) { for fc in &f.fails { if !out.iter().any(|x| x.name == fc.name) { out.push(fc.clone()); } } }
+                    },
+                    Stmt::Decl { value, .. } | Stmt::Assign { value, .. } => {
+                        for v in &value.values { if let crate::ast::Value::Expr(Expr::Call(c)) = v { if matches!(c.handler, Some(Handler::Propagate)) {
+                            if let Some(f) = prog.funcs.iter().find(|f| f.name == *c.path.last().unwrap()) { for fc in &f.fails { if !out.iter().any(|x| x.name == fc.name) { out.push(fc.clone()); } } }
+                        } } }
+                    }
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, out, prog); } if let Some(b) = otherwise { walk(b, out, prog); } }
+                    Stmt::Loop { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } | Stmt::Block { body, .. } => walk(body, out, prog),
+                    Stmt::Tier { body, .. } => walk(std::slice::from_ref(body), out, prog),
+                    _ => {}
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(body, &mut out, self.prog);
+        out
     }
 
     fn stmts(&mut self, stmts: &[Stmt]) -> Result<Flow, RuntimeError> {
@@ -554,6 +647,72 @@ impl<'p> Interp<'p> {
                 r?;
                 Ok(Flow::Normal)
             }
+            Stmt::Concur { detached, caps, body, handler, line } => {
+                // captures, each with its verb — as an anonymous fn's (design/functions-as-values.md)
+                let mut captures = Vec::new();
+                for (verb, v) in caps {
+                    let (kind, alive, cell, val) = match self.lookup(v) { Some(s) => (s.kind, s.alive, s.cell.clone(), s.cell.borrow().clone()), None => return rt(*line, format!("'{v}' is not declared")) };
+                    if !alive { return rt(*line, format!("'{v}' was already given away")); }
+                    match verb {
+                        Verb::Lend | Verb::LendMut => {
+                            if *detached { return rt(*line, format!("`concur.detached` may not lend '{v}': no scope protects a detached task — `give` or `copy` it")); }
+                            if *verb == Verb::LendMut && kind == SlotKind::Lent { return rt(*line, format!("'{v}' is lent (shared); it cannot be lent mutably")); }
+                            captures.push((v.clone(), cell, *verb == Verb::LendMut));
+                        }
+                        Verb::Copy => captures.push((v.clone(), Rc::new(RefCell::new(val)), true)),
+                        Verb::Give => {
+                            if kind != SlotKind::Owned { return rt(*line, format!("'{v}' is lent, not owned; you cannot give away what you do not own")); }
+                            if val.is_owned() { self.lookup_mut(v).unwrap().alive = false; }
+                            captures.push((v.clone(), Rc::new(RefCell::new(val)), true));
+                        }
+                    }
+                }
+                let fails = self.task_fails(body);
+                self.call_is_stmt = true;
+                let ch = self.check_handler(handler.as_ref(), &fails, "concur", *line);
+                self.call_is_stmt = false;
+                ch?;
+                self.tasks.push(Task { body: body.clone(), captures, handler: handler.clone(), fails, module: self.module.clone(), depth: self.scopes.len(), detached: *detached, line: *line });
+                Ok(Flow::Normal)
+            }
+            Stmt::Pick { arms, handler, line } => {
+                let fails = vec![FailCase { name: "closed".into(), ty: None }];
+                self.call_is_stmt = true;
+                let ch = self.check_handler(handler.as_ref(), &fails, "pick", *line);
+                self.call_is_stmt = false;
+                ch?;
+                // the channels, each lent
+                let mut chans = Vec::new();
+                for arm in arms {
+                    let (v, prov) = self.single(&arm.chan, arm.line)?;
+                    match (v, prov) {
+                        (Value::Chan(c), Prov::Borrowed(..)) | (Value::Chan(c), Prov::Plain) | (Value::Chan(c), Prov::Fresh) => chans.push(c),
+                        (Value::Chan(_), Prov::Bare(n)) => return rt(arm.line, format!("a `pick` arm lends its channel: `from lend '{n}'`")),
+                        (other, _) => return rt(arm.line, format!("a `pick` arm waits on a channel, got {}", other.kind())),
+                    }
+                }
+                loop {
+                    // a real value first, in arm order
+                    for (i, c) in chans.iter().enumerate() {
+                        if let Some(v) = self.chan_ready(c, false) {
+                            return self.run_pick_arm(&arms[i], v);
+                        }
+                    }
+                    // nothing ready: let a task run
+                    if self.run_any_task()? { continue; }
+                    // nothing can run: time may pass — a timer channel fires
+                    for (i, c) in chans.iter().enumerate() {
+                        if let Some(v) = self.chan_ready(c, true) {
+                            return self.run_pick_arm(&arms[i], v);
+                        }
+                    }
+                    // every channel is closed
+                    self.call_is_stmt = true;
+                    let r = self.handle_failure(handler.as_ref().unwrap(), *line, "pick", "closed".into(), None, false);
+                    self.call_is_stmt = false;
+                    return r.map(|_| Flow::Normal);
+                }
+            }
             Stmt::MapFailStmt { op, args, handler, line } => {
                 self.map_fail(op, args, handler.as_ref(), *line, false)?;
                 Ok(Flow::Normal)
@@ -710,6 +869,8 @@ impl<'p> Interp<'p> {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
             }
+            (Ty::Duration, Value::Duration(_)) => Ok(()),
+            (Ty::Channel(_), Value::Chan(_)) => Ok(()),
             (Ty::Map(kt, vt, _), Value::Map(ps)) => {
                 for (k, v) in ps { self.check_type(k, kt, line)?; self.check_type(v, vt, line)?; }
                 Ok(())
@@ -731,6 +892,7 @@ impl<'p> Interp<'p> {
                         if !(*a <= n && n <= *b) { return site(line, format!("a list of {n} does not fit {name}")); }
                         true
                     }
+                    (Value::Chan(_), _, _) => true,
                     (Value::Map(ps), Bound::Int(a), Bound::Int(b)) => {
                         let n = ps.len() as i128;
                         if !(*a <= n && n <= *b) { return site(line, format!("a map of {n} does not fit {name}")); }
@@ -865,6 +1027,11 @@ impl<'p> Interp<'p> {
         let line = e.line();
         match e {
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
+            Expr::Duration(n, _) => Ok((Value::Duration(*n), Prov::Plain)),
+            Expr::ChannelNew(_, cap, _) => {
+                self.next_chan_id += 1;
+                Ok((Value::Chan(Rc::new(RefCell::new(Chan { queue: std::collections::VecDeque::new(), cap: *cap, timer: None, id: self.next_chan_id }))), Prov::Fresh))
+            }
             Expr::MapLit(pairs, _) => {
                 let mut out: Vec<(Value, Value)> = Vec::new();
                 for (ke, vb) in pairs {
@@ -1345,6 +1512,16 @@ impl<'p> Interp<'p> {
             ("+" | "-" | "x" | "/" | "mod" | "xx", Int(_), Bin(_)) | ("+" | "-" | "x" | "/" | "mod" | "xx", Bin(_), Int(_)) =>
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
             // a char compares by its content, whatever unit it was declared in
+            // durations (design/concurrency.md): compare, add, subtract, scale by an integer
+            ("==", Duration(a), Duration(b)) => Bool(a == b),
+            ("!==", Duration(a), Duration(b)) => Bool(a != b),
+            ("<", Duration(a), Duration(b)) => Bool(a < b),
+            (">", Duration(a), Duration(b)) => Bool(a > b),
+            ("<==", Duration(a), Duration(b)) => Bool(a <= b),
+            (">==", Duration(a), Duration(b)) => Bool(a >= b),
+            ("+", Duration(a), Duration(b)) => Duration(a + b),
+            ("-", Duration(a), Duration(b)) => { if b > a { return rt(line, "a duration is never negative"); } Duration(a - b) }
+            ("x", Duration(a), Int(k)) | ("x", Int(k), Duration(a)) => { if k < 0 { return rt(line, "a duration is never negative"); } Duration(a * k) }
             ("==", Char(_, a), Char(_, b)) => Bool(a == b),
             ("!==", Char(_, a), Char(_, b)) => Bool(a != b),
             ("==", x, y) => { same_family(&x, &y, line, "==")?; Bool(x == y) }
@@ -1419,6 +1596,7 @@ impl<'p> Interp<'p> {
             });
         }
         if head == "map" { return self.map_op(op, args, line); }
+        if head == "channel" { return self.chan_send(args, line); }
         if op == "empty" { return Ok(Value::List(Vec::new())); }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
         if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
@@ -1601,6 +1779,7 @@ impl<'p> Interp<'p> {
 
     /// `map.get` / `map.remove`: hand the value back, or fail `missing`.
     fn map_fail(&mut self, op: &str, args: &Bracket, handler: Option<&Handler>, line: usize, value_used: bool) -> Result<Value, RuntimeError> {
+        if op == "take" { return self.chan_take(args, handler, line, value_used); }
         let fails = vec![FailCase { name: "missing".into(), ty: None }];
         self.check_handler(handler, &fails, &format!("map.{op}"), line)?;
         let (cell, is_mut, rest) = self.map_arg(args, 2, op, line)?;
@@ -1623,6 +1802,76 @@ impl<'p> Interp<'p> {
             }
             None => self.handle_failure(handler.unwrap(), line, &format!("map.{op}"), "missing".into(), None, value_used),
         }
+    }
+
+    // ---- channels (design/concurrency.md, 2026-09-22) ---------------------------
+
+    fn chan_arg(&mut self, args: &Bracket, want: usize, op: &str, line: usize) -> Result<(Rc<RefCell<Chan>>, Vec<Value>), RuntimeError> {
+        if args.values.len() != want { return rt(line, format!("`channel.{op}` takes {want} argument(s), given {}", args.values.len())); }
+        let (v, prov) = self.value(&args.values[0])?;
+        let c = match (v, &prov) {
+            (Value::Chan(c), Prov::Borrowed(..)) | (Value::Chan(c), Prov::Plain) | (Value::Chan(c), Prov::Fresh) => c,
+            (Value::Chan(_), Prov::Bare(n)) => return rt(line, format!("`channel.{op}` takes the channel by `lend '{n}'`")),
+            (other, _) => return rt(line, format!("`channel.{op}` needs a channel, got {}", other.kind())),
+        };
+        let mut rest = Vec::new();
+        for a in &args.values[1..] {
+            let (v, prov) = self.value(a)?;
+            match prov {
+                Prov::Bare(n) => return rt(line, format!("bare '{n}' into a channel: say `give '{n}'` or `copy '{n}'` — the sender no longer has it")),
+                Prov::Borrowed(..) => return rt(line, "a value sent down a channel is given, never lent (no two tasks may hold one thing)"),
+                _ => {}
+            }
+            rest.push(v);
+        }
+        Ok((c, rest))
+    }
+
+    fn chan_send(&mut self, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        let (c, rest) = self.chan_arg(args, 2, "send", line)?;
+        if c.borrow().timer.is_some() { return rt(line, "a timer channel (`std::time.after`/`every`) only receives from time; nothing can send into it"); }
+        // The oracle cannot suspend a task mid-body, so a sender never waits here: a
+        // hand-off or a full bounded channel simply queues (provisional — the waiting is
+        // unobservable in output; only its absence in a deadlock would be). Takers wait.
+        c.borrow_mut().queue.push_back(rest.into_iter().next().unwrap());
+        Ok(Value::Nothing)
+    }
+
+    /// A value from the channel if one is ready. `time_may_pass`: nothing else can run, so a
+    /// timer channel fires.
+    fn chan_ready(&mut self, c: &Rc<RefCell<Chan>>, time_may_pass: bool) -> Option<Value> {
+        let mut ch = c.borrow_mut();
+        if let Some(v) = ch.queue.pop_front() { return Some(v); }
+        match &mut ch.timer {
+            Some(Timer::After { fired, nanos }) if time_may_pass && !*fired => { *fired = true; Some(Value::Duration(*nanos)) }
+            Some(Timer::Every { nanos }) if time_may_pass => Some(Value::Duration(*nanos)),
+            _ => None,
+        }
+    }
+
+    fn chan_take(&mut self, args: &Bracket, handler: Option<&Handler>, line: usize, value_used: bool) -> Result<Value, RuntimeError> {
+        let fails = vec![FailCase { name: "closed".into(), ty: None }];
+        self.check_handler(handler, &fails, "channel.take", line)?;
+        let (c, _) = self.chan_arg(args, 1, "take", line)?;
+        loop {
+            if let Some(v) = self.chan_ready(&c, false) { return Ok(v); }
+            if self.run_any_task()? { continue; }
+            if let Some(v) = self.chan_ready(&c, true) { return Ok(v); }
+            // nothing can ever send: closed
+            return self.handle_failure(handler.unwrap(), line, "channel.take", "closed".into(), None, value_used);
+        }
+    }
+
+    fn run_pick_arm(&mut self, arm: &PickArm, v: Value) -> Result<Flow, RuntimeError> {
+        self.push();
+        let owned = v.is_owned();
+        let r = (|| {
+            self.declare(&arm.name, Slot { cell: Rc::new(RefCell::new(v)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false }, arm.line)?;
+            let _ = owned;
+            self.block(&arm.body)
+        })();
+        self.pop();
+        r
     }
 
     // ---- calls ------------------------------------------------------------
@@ -1970,7 +2219,7 @@ impl<'p> Interp<'p> {
     fn check_handler(&self, handler: Option<&Handler>, fails: &[FailCase], name: &str, line: usize) -> Result<(), RuntimeError> {
         let list = || fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
         match (handler, fails.is_empty()) {
-            (None, false) => return rt(line, format!("`{name}` can fail ({}); say what happens: `{name}[…] otherwise …`", list())),
+            (None, false) => { let shape = if name == "concur" || name == "pick" { format!("{name} {{ … }}") } else { format!("{name}[…]") }; return rt(line, format!("`{name}` can fail ({}); say what happens: `{shape} otherwise …`", list())) }
             (Some(_), true) => return rt(line, format!("`{name}` cannot fail; drop the `otherwise`")),
             (Some(Handler::Arms(arms)), false) => {
                 for a in arms {
@@ -2138,6 +2387,8 @@ impl<'p> Interp<'p> {
             Ty::Ranged(b, _, _) => return self.size_align(b, line),
             Ty::TextRanged(e, _, _, _) => return self.size_align(&Ty::Str(e.clone()), line),
             Ty::Map(..) => (24, 8),
+            Ty::Channel(_) => (8, 8),
+            Ty::Duration => (8, 8),
             Ty::Fn(..) => (8, 8),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
@@ -2409,6 +2660,21 @@ impl<'p> Interp<'p> {
                     other => rt(c.line, format!("std::{path} takes a bin, got {}", other.kind())),
                 }
             }
+            "time.wait" => {
+                // the oracle does not sleep: time is the outside world, and nothing here observes it
+                if c.args.values.len() != 1 { return rt(c.line, "std::time.wait takes one duration: `std::time.wait[5 seconds]`"); }
+                let (d, _) = self.value(&c.args.values[0])?;
+                if !matches!(d, Value::Duration(_)) { return rt(c.line, format!("std::time.wait takes a duration (`5 seconds`), got {}", d.kind())); }
+                Ok(Value::Nothing)
+            }
+            "time.after" | "time.every" => {
+                if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one duration")); }
+                let (d, _) = self.value(&c.args.values[0])?;
+                let Value::Duration(n) = d else { return rt(c.line, format!("std::{path} takes a duration (`5 seconds`), got {}", d.kind())) };
+                self.next_chan_id += 1;
+                let timer = if path == "time.after" { Timer::After { fired: false, nanos: n } } else { Timer::Every { nanos: n } };
+                Ok(Value::Chan(Rc::new(RefCell::new(Chan { queue: std::collections::VecDeque::new(), cap: None, timer: Some(timer), id: self.next_chan_id }))))
+            }
             "div.trunc" | "mod.trunc" => {
                 // hardware truncation, by name (decided 2026-09-20); the language's `/` and `mod` floor
                 if c.args.values.len() != 2 { return rt(c.line, format!("std::{path} takes two integers")); }
@@ -2460,7 +2726,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Fn(..) => "function".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(),
     }
 }
 

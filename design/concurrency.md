@@ -133,12 +133,12 @@ an integer wide enough for centuries); `5 seconds == 5_000 millis`.
 Tasks run on the thread pool `parallelism.md` already has — as
 lighter tasks multiplexed over it, so a thousand waiting connections
 do not cost a thousand threads. An implementation choice, not syntax;
-the oracle runs tasks cooperatively in source order, which is one
-valid schedule.
+the oracle runs tasks cooperatively in source order — a task runs when
+something waits on it or when its block ends — which is one valid
+schedule (its README lists what it simplifies).
 
 ## Open
 
 - Cancellation beyond "a failing block cancels its tasks": can a task
   be cancelled by hand, and what does it see.
 - Whether `pick` may also `send` (Go's `select` can).
-- The oracle does not run `concur` yet.

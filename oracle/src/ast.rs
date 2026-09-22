@@ -27,6 +27,10 @@ pub enum Ty {
     Ranged(Box<Ty>, Bound, Bound),
     /// `str.utf8[1, 40 graphemes]` — a length bound on text, in a named unit (decided 2026-09-22)
     TextRanged(Encoding, i128, i128, CharUnit),
+    /// `channel[T]` — a typed pipe between tasks (decided 2026-09-22); bounded via `Ranged`
+    Channel(Box<Ty>),
+    /// `std::duration` — a span of time, from a duration literal `5 seconds`
+    Duration,
     /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is Precog's
     /// to pick unless written: `map.ordered` keeps insertion order, `map.unordered` cannot be walked
     Map(Box<Ty>, Box<Ty>, MapOrder),
@@ -276,11 +280,18 @@ pub enum Stmt {
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
     /// `match v { case ['bind'] { … } … }` — every case covered (decided 2026-09-20)
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
+    /// `concur [with […]] { … }` / `concur f[…];` — start a task (design/concurrency.md, 2026-09-22)
+    Concur { detached: bool, caps: Vec<(Verb, String)>, body: Vec<Stmt>, handler: Option<Handler>, line: usize },
+    /// `pick { 'v' from lend 'c' { … } … }` — wait on several channels, take from whichever first
+    Pick { arms: Vec<PickArm>, handler: Option<Handler>, line: usize },
     /// `map.remove[…] otherwise …;` — a failing map operation as a statement, value dropped
     MapFailStmt { op: String, args: Bracket, handler: Option<Handler>, line: usize },
     /// `'f'[args];` — a function value called as a statement
     CallValue { name: String, args: Bracket, handler: Option<Handler>, line: usize },
 }
+
+#[derive(Debug, Clone)]
+pub struct PickArm { pub name: String, pub chan: Bracket, pub body: Vec<Stmt>, pub line: usize }
 
 #[derive(Debug, Clone)]
 pub enum AsmBind {
@@ -363,6 +374,10 @@ pub enum Expr {
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
     FnRef(Vec<String>, Vec<String>, usize),
+    /// `5 seconds` — a duration literal, in nanoseconds (decided 2026-09-22)
+    Duration(i128, usize),
+    /// `channel[T]` / `channel[T][0, N]` — a new channel (hand-off, or a bounded queue)
+    ChannelNew(Ty, Option<usize>, usize),
     /// `map["ann" = 5551, "bob" = 5552]` — a map literal (decided 2026-09-22): key = value pairs
     MapLit(Vec<(Expr, Bracket)>, usize),
     /// `map.get[lend 'm', k]` / `map.remove[lend.mut 'm', k]`: hand a value back or fail `missing` (decided 2026-09-22)
@@ -401,7 +416,7 @@ impl Expr {
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
             Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
-            Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) | Expr::MapLit(_, l) => *l,
+            Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) | Expr::MapLit(_, l) | Expr::Duration(_, l) | Expr::ChannelNew(_, _, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,
         }
     }

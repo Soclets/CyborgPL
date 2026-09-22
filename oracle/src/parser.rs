@@ -9,10 +9,12 @@ use crate::ast::*;
 use crate::lexer::{Tok, Token};
 use crate::value::ty_name;
 
+const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
+
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "map", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
+    "temp", "perm", "range", "seq", "list", "array", "map", "channel", "concur", "pick", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -592,6 +594,11 @@ impl Parser {
             }
             return Ok(Ty::Fn(ps, ret, fails));
         }
+        // `std::duration` — the one std type the oracle knows (design/concurrency.md)
+        if self.is_word("std") && *self.peek_at(1) == Tok::ColonColon {
+            if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
+            return self.err("the only std type the oracle knows is `std::duration`");
+        }
         let mut segs = Vec::new();
         loop {
             match self.advance().tok {
@@ -682,6 +689,21 @@ impl Parser {
                     "point" => CharUnit::Point, "grapheme" => CharUnit::Grapheme, "byte" => CharUnit::Byte,
                     u => return bad(self, format!("unknown character unit `{u}`")),
                 }))
+            }
+            "channel" => {
+                // channel[T] / channel[T][0, N]  (design/concurrency.md)
+                if segs.len() > 1 { return bad(self, "`channel` takes its element type in brackets: `channel[str.utf8]`".into()); }
+                if params.len() != 1 { return bad(self, "`channel` takes exactly one type: `channel[str.utf8]`".into()); }
+                let base = Ty::Channel(Box::new(params.pop().unwrap()));
+                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_)) {
+                    self.advance();
+                    let lo = self.bound()?; self.expect(Tok::Comma, "`,` between the bounds")?; let hi = self.bound()?; self.expect(Tok::RBracket, "`]` after the bounds")?;
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a channel's bound is whole numbers: `channel[T][0, 100]`".into()) };
+                    if *a != 0 { return bad(self, "a channel's low bound is 0: it may be empty".into()); }
+                    if *b < 1 { return bad(self, "a channel that holds nothing is a hand-off: write `channel[T]` with no bound".into()); }
+                    return Ok(Ty::Ranged(Box::new(base), lo, hi));
+                }
+                Ok(base)
             }
             "map" => {
                 // map[K, V]  (decided 2026-09-22: a language collection beside list and array)
@@ -816,6 +838,54 @@ impl Parser {
                     }
                     self.expect(Tok::Semi, "`;`")?;
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
+                }
+                "channel" => {
+                    let (head, op, args) = self.builtin()?;
+                    if op == "take" {
+                        let handler = if self.is_word("otherwise") { self.handler()? } else { None };
+                        self.expect(Tok::Semi, "`;`")?;
+                        return Ok(Stmt::MapFailStmt { op, args, handler, line });
+                    }
+                    self.expect(Tok::Semi, "`;`")?;
+                    Ok(Stmt::BuiltinStmt { head, op, args, line })
+                }
+                "concur" => {
+                    // concur [.detached] [with [captures]] { … } [otherwise …];   |   concur f[…] [otherwise …];
+                    self.advance();
+                    let detached = if *self.peek() == Tok::Dot {
+                        self.advance();
+                        match self.advance().tok { Tok::Word(d) if d == "detached" => true, other => return self.err(format!("the only variant of `concur` is `concur.detached`, found {other}")) }
+                    } else { false };
+                    let caps = self.captures()?;
+                    let body = if *self.peek() == Tok::LBrace { self.block()? } else {
+                        // a call, run as a task
+                        let cline = self.line();
+                        let c = self.call()?;
+                        vec![Stmt::Call { call: c, line: cline }]
+                    };
+                    let handler = if self.is_word("otherwise") { self.handler()? } else { None };
+                    if *self.peek() == Tok::Semi { self.advance(); }
+                    Ok(Stmt::Concur { detached, caps, body, handler, line })
+                }
+                "pick" => {
+                    // pick { 'v' from lend 'c' { … } … } [otherwise …];
+                    self.advance();
+                    self.expect(Tok::LBrace, "`{` after `pick`")?;
+                    let mut arms = Vec::new();
+                    while *self.peek() != Tok::RBrace {
+                        let aline = self.line();
+                        let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("a `pick` arm names its value: `'msg' from lend 'inbox' {{ … }}`, found {other}")) };
+                        if !self.is_word("from") { return self.err("after the arm's name comes `from`: `'msg' from lend 'inbox' { … }`"); }
+                        self.advance();
+                        let chan = Bracket { values: vec![self.value()?], line: aline, one_list: false };
+                        let body = self.block()?;
+                        arms.push(PickArm { name, chan, body, line: aline });
+                    }
+                    self.advance();
+                    if arms.is_empty() { return self.err("`pick` needs at least one arm"); }
+                    let handler = if self.is_word("otherwise") { self.handler()? } else { None };
+                    if *self.peek() == Tok::Semi { self.advance(); }
+                    Ok(Stmt::Pick { arms, handler, line })
                 }
                 "fail" => {
                     // fail name; | fail name[payload];   (decided 2026-09-19)
@@ -1185,6 +1255,15 @@ impl Parser {
             if self.is_word("fail") { fails = self.fail_list()?; }
             else { ret = Some(self.ty()?); if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?; } }
         }
+        let caps = self.captures()?;
+        let body = self.block()?;
+        self.pending_captures = caps;
+        let bounds = std::mem::take(&mut self.bounds);
+        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, bounds, params, body, line })
+    }
+
+    /// `with [lend 'a', give 'b']` — explicit captures, for an anonymous fn and for `concur`.
+    fn captures(&mut self) -> PResult<Vec<(Verb, String)>> {
         // captures: nothing is taken from the surrounding scope unless listed here, with a verb
         let mut caps = Vec::new();
         if self.is_word("with") {
@@ -1207,10 +1286,7 @@ impl Parser {
             }
             self.expect(Tok::RBracket, "`]` to close the captures")?;
         }
-        let body = self.block()?;
-        self.pending_captures = caps;
-        let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, bounds, params, body, line })
+        Ok(caps)
     }
 
     /// Word ('.' Word)+ not followed by '[' or '::'  — an enum case with no data
@@ -1331,6 +1407,7 @@ impl Parser {
         let ok = match (head.as_str(), op.as_str()) {
             ("list", "length" | "append" | "remove" | "empty") | ("array", "length") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
+            ("channel", "send" | "take") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
@@ -1523,7 +1600,18 @@ impl Parser {
     fn primary(&mut self) -> PResult<Expr> {
         let line = self.line();
         match self.peek().clone() {
-            Tok::Int(i) => { self.advance(); Ok(Expr::Int(i, line)) }
+            Tok::Int(i) => {
+                self.advance();
+                // `5 seconds` — a duration literal (design/concurrency.md): the unit sits on the number
+                if let Tok::Word(w) = self.peek().clone() {
+                    if let Some((_, per)) = DURATION_UNITS.iter().find(|(u, _)| *u == w) {
+                        self.advance();
+                        if i < 0 { return self.err("a duration is never negative"); }
+                        return Ok(Expr::Duration(i * per, line));
+                    }
+                }
+                Ok(Expr::Int(i, line))
+            }
             Tok::Bin(b) => { self.advance(); Ok(Expr::Bin(b, line)) }
             Tok::Text(t) => { self.advance(); Ok(Expr::Text(t, line)) }
             Tok::Char(c) => { self.advance(); Ok(Expr::Char(c, line)) }
@@ -1623,6 +1711,24 @@ impl Parser {
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
                 "check" | "nocheck" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "channel" if *self.peek_at(1) == Tok::LBracket => {
+                    // channel[T] / channel[T][0, N] as a value: a new channel
+                    self.advance(); self.advance();
+                    let ty = self.ty()?;
+                    self.expect(Tok::RBracket, "`]` after the channel's type")?;
+                    let mut cap = None;
+                    if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_)) {
+                        self.advance();
+                        let lo = self.bound()?; self.expect(Tok::Comma, "`,` between the bounds")?; let hi = self.bound()?; self.expect(Tok::RBracket, "`]` after the bounds")?;
+                        match (lo, hi) { (Bound::Int(0), Bound::Int(b)) if b >= 1 => cap = Some(b as usize), _ => return self.err("a channel's bound is `[0, N]` with N at least 1; no bound is a hand-off") }
+                    }
+                    Ok(Expr::ChannelNew(ty, cap, line))
+                }
+                "channel" => {
+                    let (h, o, a) = self.builtin()?;
+                    if o == "take" { return Ok(Expr::MapFail("take".into(), a, None, line)); }   // can fail `closed`
+                    Ok(Expr::Builtin(h, o, a, line))
+                }
                 "map" if *self.peek_at(1) == Tok::LBracket => {
                     // map["ann" = 5551, "bob" = 5552]  (decided 2026-09-22): `key = value`, the struct's spelling
                     self.advance(); self.advance();

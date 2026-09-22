@@ -2,6 +2,8 @@
 //! `print` shows the stored value, `printu` the useful one).
 
 use crate::ast::{CharUnit, IntWidth, Ty};
+use std::rc::Rc;
+use std::cell::RefCell;
 use std::fmt::Write as _;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -12,6 +14,10 @@ pub enum Value {
     Str(String),
     Char(CharUnit, String),
     List(Vec<Value>),
+    /// a duration in nanoseconds (design/concurrency.md)
+    Duration(i128),
+    /// a channel (design/concurrency.md): shared between tasks
+    Chan(Rc<RefCell<Chan>>),
     /// a map, insertion-ordered (the oracle's order; the design leaves iteration open): (key, value) pairs
     Map(Vec<(Value, Value)>),
     /// a struct value: blueprint name + fields in declaration order
@@ -57,7 +63,7 @@ impl Value {
     /// (design/ownership-syntax.md). Plain values copy silently.
     pub fn is_owned(&self) -> bool {
         match self {
-            Value::Str(_) | Value::List(_) | Value::Map(_) | Value::Char(CharUnit::Grapheme, _) => true,
+            Value::Str(_) | Value::List(_) | Value::Map(_) | Value::Chan(_) | Value::Char(CharUnit::Grapheme, _) => true,
             // Decided 2026-09-18: a struct is always an owned value, even when every
             // field is plain — a struct owns its fields, so the verbs always apply.
             Value::Struct(..) => true,
@@ -76,6 +82,8 @@ impl Value {
             Value::Char(..) => "char",
             Value::List(_) => "list",
             Value::Map(_) => "map",
+            Value::Duration(_) => "duration",
+            Value::Chan(_) => "channel",
             Value::Struct(..) => "struct",
             Value::Enum(..) => "enum",
             Value::Func(..) => "function",
@@ -94,6 +102,8 @@ impl Value {
             Value::Char(_, c) => c.clone(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
             Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_stored(), v.show_stored())).collect::<Vec<_>>().join(", ")),
+            Value::Duration(n) => show_duration(*n),
+            Value::Chan(_) => "channel".into(),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Ptr(p) => if p.cell.is_none() { "null".into() } else { format!("ptr+{}", p.index) },
             Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_stored()), None => format!("{t}.{c}") },
@@ -136,6 +146,20 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
     }
 }
 
+/// A channel's state. `after`/`every` are std::time's: ready only when nothing else can run.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Chan { pub queue: std::collections::VecDeque<Value>, pub cap: Option<usize>, pub timer: Option<Timer>, pub id: usize }
+#[derive(Debug, Clone, PartialEq)]
+pub enum Timer { After { fired: bool, nanos: i128 }, Every { nanos: i128 } }
+
+/// `5 seconds` / `1500 millis`: the largest unit that divides evenly, singular for 1.
+pub fn show_duration(n: i128) -> String {
+    for (name, per) in [("hour", 3_600_000_000_000i128), ("minute", 60_000_000_000), ("second", 1_000_000_000), ("milli", 1_000_000), ("micro", 1_000), ("nano", 1)] {
+        if n % per == 0 { let k = n / per; return format!("{k} {name}{}", if k == 1 { "" } else { "s" }); }
+    }
+    format!("{n} nanos")
+}
+
 pub fn unit_word(u: &CharUnit) -> &'static str { match u { CharUnit::Byte => "bytes", CharUnit::Point => "points", CharUnit::Grapheme => "graphemes" } }
 
 pub fn ty_name(ty: &Ty) -> String {
@@ -152,6 +176,8 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
         Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
+        Ty::Channel(t) => format!("channel[{}]", ty_name(t)),
+        Ty::Duration => "std::duration".into(),
         Ty::Map(k, v, o) => format!("map{}[{}, {}]", match o { crate::ast::MapOrder::Any => "", crate::ast::MapOrder::Ordered => ".ordered", crate::ast::MapOrder::Unordered => ".unordered" }, ty_name(k), ty_name(v)),
         Ty::TextRanged(e, lo, hi, u) => format!("{}[{}, {} {}]", ty_name(&Ty::Str(e.clone())), lo, hi, unit_word(u)),
         Ty::Fn(ps, r, fails) => {

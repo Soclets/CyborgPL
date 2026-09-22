@@ -21,7 +21,9 @@ capacity by the bound rule, no bound = hand-off, unbounded refused
 std, with duration literals — owner: `[1 seconds]` not `[1, seconds]`
 (the unit on the number, as a bound); units nanos…hours, more precise
 "down to what a clock measures"; singular and plural accepted.
-`design/concurrency.md`. Oracle: not yet.
+`design/concurrency.md`. Oracle: implemented the same day — a
+cooperative demand-driven schedule; `examples/concur.cpls`,
+`examples/pick.cpls`, seven reject tests.
 
 ### 2026-09-22 — Diagnostics: root cause first, Rust-helpful, human and IDE locations (owner)
 
