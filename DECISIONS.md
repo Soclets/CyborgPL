@@ -13,7 +13,10 @@ lied, continue with the safe answer, name the culprit. Owner asked
 whether running it at compile time is input — no: the reads are
 replaced by the solver's values, nothing is read, deterministic. Owner:
 c, and asked whether the writer is told to open an issue — yes, at
-Cyborg's tracker with the query file attached; Cyborg forwards upstream.
+Cyborg's tracker with the query file attached. Owner then asked whether
+it is necessarily a solver bug — no: both solvers got Precog's query,
+so a wrong query makes a right solver look wrong; the report says
+"solver or Precog", and which one is the Precog oracle's job.
 
 ### 2026-09-22 — A ranged extern return is a contract enforced as a failure (owner: c)
 
