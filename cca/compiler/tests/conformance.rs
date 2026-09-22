@@ -170,9 +170,9 @@ fn reject_programs_are_refused_in_ccas_own_words() {
             continue;
         };
         let got = check(&src).and_then(|()| prove(&src));
-        if want == "!pending" {
+        if let Some(why) = want.strip_prefix("!pending") {
             if got.is_err() {
-                failures.push(format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message:\n{}", name, indent(got.as_ref().unwrap_err())));
+                failures.push(format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message.{}\n{}", name, if why.trim().is_empty() { String::new() } else { format!(" It said:{}", why) }, indent(got.as_ref().unwrap_err())));
             }
             continue;
         }

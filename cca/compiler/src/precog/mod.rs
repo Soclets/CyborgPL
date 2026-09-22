@@ -902,7 +902,29 @@ impl Precog {
                 let Some(d) = ds.first() else { return Verdict::Unproven };
                 self.fits_type(d, to)
             }
-            SiteKind::ShiftWidth => Verdict::Unproven,
+            SiteKind::ShiftWidth => {
+                // Two ways a shift goes wrong: it moves every bit out of the
+                // type, or the answer no longer fits it.
+                let ty = match site.result_ty.clone().or_else(|| ty_of(self, 0)) {
+                    Some(t) => t,
+                    None => return Verdict::Unproven,
+                };
+                let Some((lo, hi)) = int_limits(&ty, &self.prog().items) else { return Verdict::Unproven };
+                let width = match ty.base() {
+                    Ty::Int(crate::types::IntW::Fixed { bits, .. }) => *bits as i128,
+                    _ => return Verdict::Unproven,
+                };
+                let (Some(Domain::Ints(a)), Some(Domain::Ints(b))) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
+                let (Some((blo, bhi)), Some(_)) = (b.bounds(), a.bounds()) else { return Verdict::Unproven };
+                if blo >= width {
+                    return Verdict::Fails { counterexample: format!("every time: a shift of {} moves every bit out of a `{}`, which is {} bits wide", blo, self.spell(&ty), width) };
+                }
+                if bhi >= width {
+                    return Verdict::Fails { counterexample: format!("a shift of {} would move every bit out of a `{}`, which is {} bits wide", bhi, self.spell(&ty), width) };
+                }
+                let shifted = a.mul(&ISet::range(1 << blo.max(0), 1 << bhi.max(0)));
+                self.fit(&shifted, lo, hi, &ty)
+            }
             SiteKind::SimdRange { lanes } => {
                 let (Some(Domain::Ints(i)), Some(Domain::Seq { len, .. })) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
                 let last = i.add(&ISet::one(*lanes as i128 - 1));

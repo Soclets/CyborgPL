@@ -3,7 +3,7 @@
 # first line, reviewed once against the oracle's `.err` (which is the oracle's
 # wording, not a template — design/compiler-session.md). `!pending` marks a
 # program CCA cannot refuse yet: it needs Precog, which decides values, not
-# spellings. The test insists a pending one is still accepted, so this file has
+# spellings; a reason may follow the marker on the same line. The test insists a
 # to be updated the moment it starts being refused. `!by-design` marks one
 # CCA is *right* to accept: the oracle refuses it for a reason that is not a
 # rule, and the line says which. Those never move.
@@ -19,7 +19,7 @@ arith_overflow :: `x` can leave what the type holds
 asm_bare_word :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
 asm_in_word :: the arrow is the direction
 asm_lowercase :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
-asm_refused :: !pending
+asm_refused :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
 asm_strings :: `inline.ASM { mov x16, #4 }`
 asm_top_level :: `inline.ASM` goes inside a body, as a statement, under `nocheck`
 asm_unknown_var :: 'zzz' is not declared
@@ -43,8 +43,8 @@ bit_ampersand :: the boolean operators are `and`, `or`, `not`; the bitwise ones 
 bit_mixed_needs_parens :: a bitwise operator has no precedence
 bit_not_untyped :: `not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let 'x': uint8 = …`)
 bit_on_bin :: `xor` works on integers, and this is a `bin`
-bit_shl_overflow :: !pending
-bit_shl_too_far :: !pending
+bit_shl_overflow :: the shift can move every bit out
+bit_shl_too_far :: the shift can move every bit out
 bound_append_over :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
 bound_backwards :: the low bound comes first: `[2, 5]`
 bound_on_array :: an `array` has one length, already known
@@ -98,7 +98,7 @@ enum_quoted_case :: a case's name is bare
 enum_unknown_case :: `S` has no case `zz`: its cases are a, b
 eq_in_value :: `=` assigns; equality is `==`
 eq_without_type :: `=` means you said everything, so it needs the type: `let 'x': int32 = …;`
-exit_range :: !pending
+exit_range :: !pending `std::exit` is a stub until std exists; its `uint8` argument gets no narrowing site yet
 extern_fail :: an `extern fn` cannot `fail`: C has no failures
 extern_lent_param :: ptr[T]` and hand it a lend at the call
 extern_not_c_shaped :: the `extern let 'a'` is not C-shaped
@@ -196,15 +196,15 @@ list_two_params :: `list` takes exactly one type parameter, the element type: `l
 main_as_func :: write `MAIN { … }` with no `fn`, no return type, no `return`
 map_bad_key_type :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant :: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
-map_bound_over :: !pending
+map_bound_over :: !pending needs a map's *known keys*, not only its count: three `set`s of three different literals grow it by exactly three, and layer 2 today says "by 0 to 3", so the site is a check rather than a refusal
 map_get_unhandled :: `map.get` can fail (missing): say what happens
-map_hash_disagrees :: !pending
+map_hash_disagrees :: !pending the `KeyHashAgrees` site exists in MIR and needs layer 3 (the solver) to prove or disprove it
 map_literal_dup_key :: this key is written twice in the literal
 map_literal_empty :: an empty map is `map.empty`; `map[]` builds nothing
 map_literal_no_pair :: `map["ann" = 5551, "bob" = 5552]`
 map_set_needs_mut :: `map.set` changes the collection, so it takes `lend.mut`, not `lend`
 map_unordered_walk :: `map.keys` needs a `map` or `map.ordered`
-map_value_out_of_range :: !pending
+map_value_out_of_range :: the value can be outside what a `int32[0, 10]` holds
 missing_return_type_value :: every path must `return` a value (or `fail`)
 mix_families :: there is no implicit conversion between numeric families
 mod_beside_cmp :: mathematics has no settled reading for `mod` beside another operator
@@ -261,8 +261,8 @@ ptr_bad_op :: a pointer has `read`, `write`, `at`, `is_null`
 ptr_declared :: in an `extern fn` signature or a `layout.c` field
 ptr_in_let_still_refused :: in an `extern fn` signature or a `layout.c` field
 ptr_lend_mut_needed :: C may write through it, so write `lend.mut`
-ptr_read_null_lied :: !pending
-ptr_read_past_end_lied :: !pending
+ptr_read_null_lied :: !by-design a `nocheck` read through C's pointer; nothing at compile time can know what C returned, and `nocheck` says so — the oracle catches it only by running it
+ptr_read_past_end_lied :: !by-design a `nocheck` read past what C allocated; nothing at compile time can know that, and `nocheck` says so — the oracle catches it only by running it
 ptr_read_without_nocheck :: nothing about C's memory can be proven
 ptr_write_readonly :: this pointer is read-only
 pub_in_body :: `pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`

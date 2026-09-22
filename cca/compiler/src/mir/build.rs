@@ -1015,7 +1015,7 @@ impl<'a> FnBuilder<'a> {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
             }
             BinOp::Shl => {
-                self.site(SiteKind::ShiftWidth, vec![l.clone(), r.clone()], span);
+                self.site_of(SiteKind::ShiftWidth, vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
             _ => {}
         }
@@ -1196,6 +1196,39 @@ impl<'a> FnBuilder<'a> {
                 let list = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
                 self.site(SiteKind::SimdRange { lanes }, vec![idx, list], span);
             }
+            // A value going into a collection has to fit what the
+            // collection holds, as a store into a variable does.
+            Op::ListAppend | Op::MapSet => {
+                let Some(coll) = args.first().and_then(|a| match a {
+                    Arg::Lend { place, .. } => Some(place.clone()),
+                    _ => None,
+                }) else {
+                    return;
+                };
+                let base = self.locals[coll.local.0 as usize].ty.clone();
+                let coll_ty = projected_ty(&base, &coll.proj, &self.arena.items);
+                let (key_ty, val_ty) = match coll_ty.base() {
+                    Ty::Seq { elem, .. } => (None, Some((**elem).clone())),
+                    Ty::Map { key, val, .. } => (Some((**key).clone()), Some((**val).clone())),
+                    _ => (None, None),
+                };
+                if *op == Op::MapSet {
+                    if let (Some(k), Some(a)) = (key_ty, args.get(1)) {
+                        let have = self.arg_mir_ty(a);
+                        let o = arg_as_operand(a);
+                        self.narrow_arg(&o, &have, &k, span);
+                    }
+                    if let (Some(v), Some(a)) = (val_ty, args.get(2)) {
+                        let have = self.arg_mir_ty(a);
+                        let o = arg_as_operand(a);
+                        self.narrow_arg(&o, &have, &v, span);
+                    }
+                } else if let (Some(v), Some(a)) = (val_ty, args.get(1)) {
+                    let have = self.arg_mir_ty(a);
+                    let o = arg_as_operand(a);
+                    self.narrow_arg(&o, &have, &v, span);
+                }
+            }
             // Adding N lanes together can leave what one lane holds.
             Op::SimdSum => {
                 let v = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
@@ -1204,6 +1237,20 @@ impl<'a> FnBuilder<'a> {
             }
             _ => {}
         }
+    }
+
+    /// The type a MIR argument already has.
+    fn arg_mir_ty(&self, a: &Arg) -> Ty {
+        let p = match a {
+            Arg::Value(Operand::Const(Const::Int(_))) => return Ty::Int(crate::types::IntW::Free(crate::types::InferId(0))),
+            Arg::Value(o) => match o.place() {
+                Some(p) => p,
+                None => return Ty::Nothing,
+            },
+            Arg::Lend { place, .. } | Arg::Give(place) | Arg::Copy(place) | Arg::Spread { place, .. } => place,
+        };
+        let base = self.locals[p.local.0 as usize].ty.clone();
+        projected_ty(&base, &p.proj, &self.arena.items)
     }
 
     fn arg_ty_lanes(&self, a: &Arg) -> Option<u32> {
