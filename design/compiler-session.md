@@ -26,18 +26,21 @@ Push to `main` over HTTPS, as the repo does. The design session's
 commits carry `Claude Opus 5`; yours carry `compiler claude`, so the
 log says who wrote what.
 
-## Where you work (owner, 2026-09-23: "same same")
+## Where you work (owner, 2026-09-23)
 
-The same repository **and the same working tree**: `/Users/ts/CyborgPL
-v2`, beside the design session. Your code lives in **`cca/`** (a Cargo
-crate) and **`jetpack/`**, next to `design/`, `oracle/` and `examples/`,
-so the docs and the tests you build against are always the current
-ones and the differential harness runs `oracle/` and `cca/` side by
-side. Two sessions in one tree means one rule: **stage only your own
-paths** — `git add cca jetpack`, never `git add -A` — so you never sweep
-up the design session's half-finished files, and it never sweeps yours.
-Commit to `main` and push. You do not edit `design/`, `oracle/` or
-`examples/` — a change there is a question to the design session.
+The same repository, `Artificial-IntelligenceAI/CyborgPL`, on `main` —
+no branch — in **your own clone** at `/Users/ts/CyborgPL v2 compiler`.
+A separate folder for two reasons: two sessions in one working tree
+would step on each other's unsaved files, and Claude's memory is kept
+per folder, so a folder of your own gives you a memory of your own
+(owner's point). Your code lives in **`cca/`** (a Cargo crate) and
+**`jetpack/`**, beside `design/`, `oracle/` and `examples/`, so the
+docs and the tests you build against are always the current ones and
+the differential harness runs `oracle/` and `cca/` side by side. Commit
+to `main`; `git pull --rebase` before every push — the design session
+pushes to the same `main` from its own clone. You do not edit
+`design/`, `oracle/` or `examples/` — a change there is a question to
+the design session.
 
 ## How to reach the design session
 
