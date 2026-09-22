@@ -34,6 +34,11 @@ custom operator; the lending `&` is the one that opens a value. Every `&` or
 `What are you? Rust programmer or Claude?` — one line per `&` — and
 build anyway (owner). You're not supposed to use that.
 
+**A lend is an address** (noted 2026-09-22, from the compiler session):
+this file says what a lend *means* — temporary access, the owner keeps
+it — and a `lent` parameter crosses as a pointer, which is what that
+is made of. Not a decision; the only shape it could have.
+
 The words are the *owner's* — the keyword sits on the value being handed
 over, so "give" and "lend" read as what the owner does. (Rust's `move` /
 `borrow` are the receiver's words; the concepts are identical.)
