@@ -14,3 +14,5 @@ pub mod hir;
 pub mod resolve;
 pub mod types;
 pub mod load;
+
+pub mod mir;

@@ -568,7 +568,7 @@ impl Checker {
                 None
             }
         };
-        Ok(hir::StmtKind::Concur { detached, captures: caps, body: b, otherwise: ow })
+        Ok(hir::StmtKind::Concur { detached, captures: caps, body: b, otherwise: ow, fails })
     }
 
     fn whichever_stmt(&mut self, ctx: &mut FnCtx, arms: &[ast::WhicheverArm], otherwise: Option<&ast::Otherwise>, span: Span) -> Result<hir::StmtKind> {

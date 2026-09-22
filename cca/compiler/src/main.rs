@@ -7,6 +7,7 @@ use cca::source::SourceMap;
 fn usage() -> ! {
     eprintln!("usage: cca parse <file.cpls>…      parse only, report the first refusal");
     eprintln!("       cca check <file.cpls | limb-dir>…   parse and check");
+    eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
     exit(2)
 }
 
@@ -38,8 +39,39 @@ fn main() {
                 exit(1);
             }
         }
+        "mir" => {
+            let mut failed = false;
+            for f in &args[1..] {
+                if let Err(d) = mir_one(Path::new(f)) {
+                    failed = true;
+                    eprint!("{}", d);
+                }
+            }
+            if failed {
+                exit(1);
+            }
+        }
         _ => usage(),
     }
+}
+
+fn mir_one(path: &Path) -> Result<(), String> {
+    let mut sources = SourceMap::default();
+    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = cca::check::Checker::new(items);
+    checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
+    let program = checker.check_program().map_err(|d| d.render(&sources))?;
+    let mir = cca::mir::build::build(program);
+    let problems = cca::mir::verify::program(&mir);
+    for (i, f) in mir.functions.iter().enumerate() {
+        println!("# f{}{}", i, if Some(cca::mir::FnIdx(i as u32)) == mir.main { "  (MAIN)" } else { "" });
+        print!("{}", cca::mir::print::function(f, &mir.items));
+        println!();
+    }
+    if let Err(problems) = problems {
+        return Err(format!("error: the flow graph is not well formed — this is a bug in CCA, not in the program:\n  {}\n", problems.join("\n  ")));
+    }
+    Ok(())
 }
 
 fn parse_one(path: &Path) -> Result<(), String> {

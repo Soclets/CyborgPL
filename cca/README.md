@@ -8,13 +8,17 @@ from `design/` and the oracle's tests, never from `oracle/src`
 cd cca
 cargo build
 ./target/debug/cca parse ../examples/hello.cpls     # parse only; the first refusal, in the diagnostics.md shape
+./target/debug/cca check ../examples/add.cpls       # parse and check
+./target/debug/cca mir   ../examples/add.cpls       # check, then print the flow graph
 ```
 
 ## Layout
 
 - `compiler/` — the `cca` crate: `source` (files, spans), `diag` (the
-  labelled message shape), `lexer`, `ast`, `parser`; then the checker,
-  MIR, Precog and the LLVM lowering as they arrive.
+  labelled message shape), `lexer`, `ast`, `parser`, `resolve` (items and
+  modules), `check` (names, types, verbs, failures) producing `hir`, and
+  `mir` (the flow graph, its domains, its verifier and its printer).
+  Precog and the LLVM lowering come next.
 - `runtime/` — `cca-runtime`, the `no_std` Rust library linked into every
   CyborgPL binary.
 

@@ -29,6 +29,33 @@ fn check(path: &Path) -> Result<(), String> {
     checker.check_program().map(|_| ()).map_err(|d| d.render(&sources))
 }
 
+/// Check, then lower to MIR and verify the graph.
+fn lower(path: &Path) -> Result<(), String> {
+    let mut sources = cca::source::SourceMap::default();
+    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = cca::check::Checker::new(items);
+    checker.std_stubs = true;
+    let program = checker.check_program().map_err(|d| d.render(&sources))?;
+    let mir = cca::mir::build::build(program);
+    cca::mir::verify::program(&mir).map_err(|p| p.join("\n"))
+}
+
+#[test]
+fn examples_lower_to_a_well_formed_graph() {
+    let pending = load_pending();
+    let mut failures = Vec::new();
+    for src in targets(&repo().join("examples")) {
+        let name = name_of(&src);
+        if pending.contains_key(&name) {
+            continue;
+        }
+        if let Err(msg) = lower(&src) {
+            failures.push(format!("{}:\n{}", name, indent(&msg)));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
 fn targets(dir: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = std::fs::read_dir(dir)
         .unwrap()
