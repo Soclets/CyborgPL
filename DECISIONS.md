@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Three IRs: AST, MIR, LLVM (owner: b)
+
+Proposed (a) none of ours beyond the tree, AST to LLVM (Kespar); (b)
+one mid-level IR — a CFG with explicit temporaries, checks, drops,
+lends, failure edges, spans, carrying proven domains on its types; (c)
+a high-level IR as well. Owner asked which is better regardless of
+code volume: b — the typed AST already is the high-level IR, and
+quality comes from MIR carrying proofs, not from another layer. Owner:
+b. Reuse keys on MIR bytes.
+
 ### 2026-09-22 — Solver disagreement: run the counterexample, continue safe, report the solver (owner: c)
 
 Proposed (a) refuse the build; (b) treat as unproven, continue; (c) run

@@ -18,11 +18,25 @@ still provisional here, listed under Open. What Kespar could not do
 ## The pipeline
 
 ```
-.cpls ──parse──▶ AST ──check──▶ typed AST ──Precog──▶ annotated AST ──lower──▶ LLVM IR ──▶ binary
-                                              │
-                                              ▼
-                                         proof report
+.cpls ──parse──▶ AST ──check──▶ typed AST ──build──▶ MIR ──Precog──▶ MIR + proofs ──lower──▶ LLVM IR ──▶ binary
+                                                          │
+                                                          ▼
+                                                     proof report
 ```
+
+**Three IRs** (decided 2026-09-22, owner: b): our AST (the parser's, and
+what messages quote), our **MIR** (a control-flow graph: basic blocks,
+explicit jumps, one operation per instruction on named temporaries,
+every check site, drop, lend and failure edge an explicit instruction,
+a source span on each), and LLVM's. The typed AST is what rustc calls
+HIR — a second high-level IR would duplicate it (proposed as c,
+declined). Everything that reasons — the ownership checker, Precog's
+sets and its SMT encoding, the parallel-loop proof, the lowering — reads
+MIR, so the flow graph is derived once. **MIR carries proofs**: a
+temporary's type includes its proven domain, and a proof made in Precog
+rides the instruction to LLVM as `nsw` / `nuw` / `!range`. Proof reuse
+keys on a function's MIR bytes, not its source bytes — a comment change
+invalidates nothing.
 
 `jetpack build` runs everything and inserts a runtime check at every
 unproven site; `jetpack final` runs the same Precog and refuses the
@@ -228,7 +242,7 @@ already specifies: write the type.
 Precog's own work splits: sites are independent questions, call-site
 specialisations are independent jobs, layer-3 queries run across all
 cores. Results are **content-addressed**: a function's analysis is keyed
-by (its bytes, its argument domains, the target), so an unchanged function
+by (its MIR bytes, its argument domains, the target), so an unchanged function
 with unchanged inputs is not re-proven — reused, never skipped
 (`core-features.md`, 2026-09-16). A shared cache of those keys is what a
 team's build farm serves. Memory: must run a large program in 32 GB and
