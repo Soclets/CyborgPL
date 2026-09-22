@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = ["compiler", "runtime"]
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+debug = 1
+
+[profile.dev]
+panic = "abort"

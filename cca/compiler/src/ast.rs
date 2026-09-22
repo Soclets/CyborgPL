@@ -1,0 +1,524 @@
+//! The syntax tree, exactly as parsed: what messages quote. Types and
+//! names are resolved later; here a path is still spelling.
+
+use crate::source::Span;
+
+/// A bare word: a keyword, function, type, module, field or case name.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ident {
+    pub name: String,
+    pub span: Span,
+}
+
+/// A quoted name: `'x'` — a value the writer holds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QName {
+    pub name: String,
+    pub span: Span,
+}
+
+/// `a.b.c`, `limb.helper`, `std::print.stdout`, `list.length`, `to.int32`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Path {
+    /// The Limb before `::`, if any.
+    pub limb: Option<Ident>,
+    pub segs: Vec<Ident>,
+    pub span: Span,
+}
+
+impl Path {
+    pub fn head(&self) -> &str {
+        &self.segs[0].name
+    }
+    pub fn seg(&self, i: usize) -> Option<&str> {
+        self.segs.get(i).map(|s| s.name.as_str())
+    }
+    pub fn last(&self) -> &Ident {
+        self.segs.last().unwrap()
+    }
+    pub fn is(&self, spelled: &[&str]) -> bool {
+        self.limb.is_none() && self.segs.len() == spelled.len() && self.segs.iter().zip(spelled).all(|(s, w)| s.name == *w)
+    }
+    pub fn starts(&self, spelled: &[&str]) -> bool {
+        self.limb.is_none() && self.segs.len() >= spelled.len() && self.segs.iter().zip(spelled).all(|(s, w)| s.name == *w)
+    }
+    pub fn spelled(&self) -> String {
+        let mut s = String::new();
+        if let Some(l) = &self.limb {
+            s.push_str(&l.name);
+            s.push_str("::");
+        }
+        s.push_str(&self.segs.iter().map(|x| x.name.as_str()).collect::<Vec<_>>().join("."));
+        s
+    }
+}
+
+// ---------------------------------------------------------------- types
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Type {
+    pub kind: TypeKind,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TypeKind {
+    /// `int32`, `str.utf8`, `list[T]`, `map.ordered[K, V]`, `Pair[int32, str.utf8]`,
+    /// `shapes.circle.Circle`, `std::uenr`, `ptr.mut[T]`, `channel[T]`.
+    Path { path: Path, args: Vec<Type> },
+    /// `T[lo, hi]`, `str.utf8[1, 40 graphemes]`, `list[T][0, 10]`.
+    Bound { inner: Box<Type>, lo: Box<Expr>, hi: Box<Expr>, unit: Option<Ident>, span: Span },
+    /// `<T>` / `<T: Ordered>`.
+    Var { name: Ident, bound: Option<Path> },
+    /// `fn[lent T, T] -> R or fail[…]`.
+    Fn { params: Vec<FnTypeParam>, ret: Option<Box<Type>>, fails: Vec<FailSpec> },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FnTypeParam {
+    pub kind: ParamKind,
+    pub amp: bool,
+    pub ty: Type,
+}
+
+/// One entry of `fail[a, b: T]`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FailSpec {
+    pub name: Ident,
+    pub payload: Option<Type>,
+}
+
+// ---------------------------------------------------------------- expressions
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Verb {
+    Give,
+    Copy,
+    Lend,
+    LendMut,
+}
+
+impl Verb {
+    pub fn spelled(self) -> &'static str {
+        match self {
+            Verb::Give => "give",
+            Verb::Copy => "copy",
+            Verb::Lend => "lend",
+            Verb::LendMut => "lend.mut",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnOp {
+    Neg,
+    Not,
+    NotBit,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BinOp {
+    Add,
+    Sub,
+    Mul,
+    Pow,
+    Div,
+    Mod,
+    WrapAdd,
+    WrapSub,
+    WrapMul,
+    WrapPow,
+    Join,
+    Eq,
+    Ne,
+    Lt,
+    Gt,
+    Le,
+    Ge,
+    And,
+    Or,
+    AndBit,
+    OrBit,
+    Xor,
+    Shl,
+    Shr,
+    /// A glyph run or a bare word the language does not own.
+    Custom(String),
+}
+
+impl BinOp {
+    pub fn spelled(&self) -> String {
+        match self {
+            BinOp::Add => "+".into(),
+            BinOp::Sub => "-".into(),
+            BinOp::Mul => "x".into(),
+            BinOp::Pow => "xx".into(),
+            BinOp::Div => "/".into(),
+            BinOp::Mod => "mod".into(),
+            BinOp::WrapAdd => "+~".into(),
+            BinOp::WrapSub => "-~".into(),
+            BinOp::WrapMul => "x~".into(),
+            BinOp::WrapPow => "xx~".into(),
+            BinOp::Join => "++".into(),
+            BinOp::Eq => "==".into(),
+            BinOp::Ne => "!==".into(),
+            BinOp::Lt => "<".into(),
+            BinOp::Gt => ">".into(),
+            BinOp::Le => "<==".into(),
+            BinOp::Ge => ">==".into(),
+            BinOp::And => "and".into(),
+            BinOp::Or => "or".into(),
+            BinOp::AndBit => "and.bit".into(),
+            BinOp::OrBit => "or.bit".into(),
+            BinOp::Xor => "xor".into(),
+            BinOp::Shl => "shl".into(),
+            BinOp::Shr => "shr".into(),
+            BinOp::Custom(s) => s.clone(),
+        }
+    }
+    pub fn is_comparison(&self) -> bool {
+        matches!(self, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge)
+    }
+    pub fn is_bitwise(&self) -> bool {
+        matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr)
+    }
+    pub fn is_multiplicative(&self) -> bool {
+        matches!(self, BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::WrapMul)
+    }
+}
+
+/// One argument in a call, construction or map literal bracket.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Arg {
+    /// `add[10, 20]`
+    Positional(Expr),
+    /// `Locker[name = "A"]`
+    Named(Ident, Expr),
+    /// `map["ann" = 5551]`
+    Pair(Expr, Expr),
+}
+
+impl Arg {
+    pub fn span(&self) -> Span {
+        match self {
+            Arg::Positional(e) => e.span,
+            Arg::Named(n, e) => n.span.to(e.span),
+            Arg::Pair(k, v) => k.span.to(v.span),
+        }
+    }
+}
+
+/// What follows `otherwise`.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Otherwise {
+    /// A fallback value (or a leaving call such as `std::exit[1]`).
+    Value(Expr),
+    /// `return …`, `fail name…`, `break`, `continue`.
+    Leave(Box<Stmt>),
+    /// Bare `fail`: pass the failure up unchanged.
+    PassUp(Span),
+    /// One arm per reason.
+    Arms(Vec<FailArm>, Span),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FailArm {
+    pub name: Ident,
+    pub bind: Option<QName>,
+    pub body: Block,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Capture {
+    pub verb: Verb,
+    pub amp: bool,
+    pub name: QName,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Expr {
+    pub kind: ExprKind,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ExprKind {
+    Int(String),
+    Bin(String),
+    Str(String),
+    Char(String),
+    /// The bare `\n`.
+    Newline,
+    Bool(bool),
+    /// `5 seconds`
+    Duration { value: String, unit: Ident },
+    /// `'x'`
+    Name(QName),
+    /// `a.'k'`, `shapes.circle.'pi'`, `mathstuff::'pi'`, `limb.'scale'`.
+    ConstPath { path: Path, name: QName },
+    /// A bare path with no bracket: a function as a value, `Status.empty`,
+    /// `list.empty`, `map.empty`.
+    Path(Path),
+    /// `add[…]`, `list.length[…]`, `Status.claimed["x"]`, `Locker[name = …]`,
+    /// `map["a" = 1]`, `std::exit[1]` — the bracket is `args`; what the path
+    /// names is decided by the resolver.
+    Call { path: Path, args: Vec<Arg>, otherwise: Option<Box<Otherwise>> },
+    /// `'f'[…]` — calling a held function.
+    CallValue { callee: Box<Expr>, args: Vec<Arg>, otherwise: Option<Box<Otherwise>> },
+    /// `'x'.field`
+    Field { base: Box<Expr>, field: Ident },
+    /// `'xs'[pos i]`
+    Index { base: Box<Expr>, index: Box<Expr> },
+    /// `give 'x'`, `lend 'xs'[pos 1]`, `&'s'`.
+    Verb { verb: Verb, amp: bool, expr: Box<Expr> },
+    Unary { op: UnOp, expr: Box<Expr> },
+    Binary { op: BinOp, op_span: Span, lhs: Box<Expr>, rhs: Box<Expr> },
+    /// `( … )`
+    Paren(Box<Expr>),
+    /// `[1, 2, 3]`, `[7,]`, `[]`
+    List(Vec<Expr>),
+    /// `to.int32[…]`, `to.int32[0, 100][…]`, `to.str.utf8[…]`.
+    Conv { target: Type, expr: Box<Expr>, otherwise: Option<Box<Otherwise>> },
+    /// `channel[T]`, `channel[T][0, N]`
+    Channel { elem: Type, bound: Option<Box<(Expr, Expr)>> },
+    /// `fn [params] -> T with [captures] { body }`
+    FnLit(Box<FnLit>),
+    /// `...'xs'`, `...copy 'xs'`
+    Spread { verb: Option<Verb>, expr: Box<Expr> },
+    /// `size.of[T]` / `align.of[T]`
+    SizeOf { align: bool, ty: Type },
+    /// `range[start, stop, step]` — only what a `for` runs over.
+    Range { start: Box<Expr>, stop: Box<Expr>, step: Option<Box<Expr>> },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FnLit {
+    pub params: Vec<Param>,
+    pub ret: Option<Type>,
+    pub fails: Vec<FailSpec>,
+    pub captures: Vec<Capture>,
+    pub body: Block,
+}
+
+// ---------------------------------------------------------------- statements
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Block {
+    pub stmts: Vec<Stmt>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mutability {
+    Mut,
+    Immut,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Tier {
+    Check,
+    Nocheck,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ForIter {
+    Range { start: Expr, stop: Expr, step: Option<Expr> },
+    /// `lend 'xs'`, `give 'xs'`, `str.each.grapheme[…]`, `map.keys[…]`.
+    Over(Expr),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ElseArm {
+    If(Box<Stmt>),
+    Block(Block),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MatchArm {
+    pub case: Ident,
+    pub bind: Option<QName>,
+    pub body: Block,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WhicheverArm {
+    pub name: QName,
+    pub channel: Expr,
+    pub body: Block,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AsmDir {
+    In,
+    Out,
+    InOut,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AsmBinding {
+    Reg { name: QName, dir: AsmDir, reg: Ident },
+    Clobber(Ident),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ConcurBody {
+    Block(Block),
+    Call(Expr),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Stmt {
+    pub kind: StmtKind,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StmtKind {
+    Let { mutability: Option<Mutability>, name: QName, ty: Option<Type>, shadow: bool, value: Expr },
+    Assign { target: Expr, value: Expr },
+    Expr(Expr),
+    If { cond: Expr, then: Block, else_: Option<ElseArm> },
+    Loop(Block),
+    While { cond: Expr, body: Block },
+    For { seq: bool, perm: bool, name: QName, ty: Option<Type>, iter: ForIter, body: Block },
+    Return(Option<Expr>),
+    Fail { name: Ident, payload: Option<Expr> },
+    Break,
+    Continue,
+    Block(Block),
+    Tier { tier: Tier, stmt: Box<Stmt> },
+    Concur { detached: bool, captures: Vec<Capture>, body: ConcurBody, otherwise: Option<Otherwise> },
+    Whichever { arms: Vec<WhicheverArm>, otherwise: Option<Otherwise> },
+    Match { value: Expr, arms: Vec<MatchArm> },
+    InlineAsm { text: String, bindings: Vec<AsmBinding> },
+}
+
+// ---------------------------------------------------------------- items
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParamKind {
+    Owned,
+    Lent,
+    LentMut,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Param {
+    pub kind: ParamKind,
+    pub amp: bool,
+    pub mutability: Option<Mutability>,
+    pub variadic: bool,
+    pub name: QName,
+    pub ty: Option<Type>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FnDecl {
+    pub name: Ident,
+    pub params: Vec<Param>,
+    pub ret: Option<Type>,
+    pub fails: Vec<FailSpec>,
+    /// `None` for `extern fn` and interface entries.
+    pub body: Option<Block>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Field {
+    pub immut: bool,
+    pub name: Ident,
+    pub ty: Type,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructDecl {
+    pub name: Ident,
+    pub layout_c: bool,
+    pub fields: Vec<Field>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnumCase {
+    pub name: Ident,
+    pub payload: Option<Type>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnumDecl {
+    pub name: Ident,
+    pub cases: Vec<EnumCase>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum IfaceEntryName {
+    Fn(Ident),
+    Op(Ident),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IfaceEntry {
+    pub name: IfaceEntryName,
+    pub params: Vec<Param>,
+    pub ret: Option<Type>,
+    pub fails: Vec<FailSpec>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IfaceDecl {
+    pub name: Ident,
+    pub entries: Vec<IfaceEntry>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct OpDecl {
+    /// The operator's spelling: `<+>`, `dot`, `<`, `+`.
+    pub op: Ident,
+    pub params: Vec<Param>,
+    pub ret: Option<Type>,
+    pub body: Block,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConstDecl {
+    pub name: QName,
+    pub ty: Option<Type>,
+    pub value: Expr,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Vis {
+    Private,
+    Limb,
+    Pub,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ItemKind {
+    Fn(FnDecl),
+    ExternFn(FnDecl),
+    ExternLet { mutable: bool, name: QName, ty: Type },
+    Struct(StructDecl),
+    Enum(EnumDecl),
+    Interface(IfaceDecl),
+    Op(OpDecl),
+    Const(ConstDecl),
+    Module { name: Ident, items: Vec<Item> },
+    /// `Vec satisfies Ordered;`
+    Satisfies { ty: Type, iface: Path },
+    Main(Block),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Item {
+    pub vis: Vis,
+    pub kind: ItemKind,
+    pub span: Span,
+}
+
+/// One parsed `.cpls` file.
+#[derive(Debug, Clone, PartialEq)]
+pub struct File {
+    pub items: Vec<Item>,
+}

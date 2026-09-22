@@ -1,0 +1,14 @@
+[package]
+name = "cca-runtime"
+version = "0.0.1"
+edition = "2021"
+description = "The no_std runtime linked into every CyborgPL binary"
+publish = false
+
+[lib]
+name = "cca_runtime"
+path = "src/lib.rs"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+
