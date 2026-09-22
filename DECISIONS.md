@@ -18,8 +18,10 @@ and solver versions and configs. (2) `nsw`/`nuw`/`!range` make Precog
 part of the trusted base — a wrong proof is silent UB; owner asked who
 a proofs-as-assertions mode is for (authors, never writers) and said
 yes: the Precog oracle's fourth attack. Also from the read: **Precog is the last
-MIR pass** (owner: yes) — MIR is frozen after it. Still open: LLVM's
-narrow fact vocabulary.
+MIR pass** (owner: yes) — MIR is frozen after it. LLVM's narrow fact
+vocabulary (owner asked "why not" hand everything over): every fact is
+handed over wherever LLVM benefits — native flags always, `llvm.assume`
+by measurement, a wrapper pass for facts worth more than LLVM offers.
 
 ### 2026-09-22 — Three IRs: AST, MIR, LLVM (owner: b)
 

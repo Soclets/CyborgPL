@@ -207,8 +207,15 @@ to c".
 
 ## The tiers, as emitted
 
-- **proven** → plain instruction, and the proven range handed to LLVM as
-  `nsw` / `nuw` / `!range` so it can optimise on it.
+- **proven** → plain instruction, and the proven fact handed to LLVM
+  wherever LLVM benefits (owner, 2026-09-22): always where it has a
+  native home (`nsw` / `nuw` on add, sub, mul, shifts; `!range` on loads
+  and calls — free); through `llvm.assume` per kind of fact where
+  measurement shows it helps (it can also hinder — rustc dropped most of
+  its assumes for that reason); and through a custom pass in the C++
+  wrapper for a kind of fact worth more than LLVM offers a home for.
+  Removing the check is the win that needs nothing from LLVM; a fact
+  LLVM ignores costs speed, never correctness.
 - **default, unproven** → working build: a checked instruction, trap on
   failure with the site named; final build: refused.
 - **`check`, unproven** → compile error with the counterexample, or
