@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — A name never changes numeric family; `examples/check_tiers.cpls` was wrong (owner)
+
+The compiler session, building its checker, found `design/types.md`
+("a *variable* never converts: `let 'b': bin64 = 'a';` with `'a'` an
+`int32` is an error", with the reject test `int_into_bin_var`) against
+`examples/check_tiers.cpls` line 7, which stored an integer-holding
+`:=` name into a `bin16`. It had passed only because that branch never
+runs; the oracle refuses the same line when reachable. Its proposed
+reading — a `:=` name has no family until Precog picks one, so it may
+land in a bin slot and the store is a fit check — would let Precog
+change 70000 into 69984 (the nearest `bin16`) with nothing written.
+Owner, on being shown the line: "shouldn't this error?" — yes. The
+docs stand; Claude's example was wrong and is fixed (the value is a
+`bin32` from the start, so the check site is a width narrowing, which
+is what `core-features.md` meant). Crossing families stays
+`to.bin16[…] otherwise …`, which fails rather than rounds.
+
+### 2026-09-22 — SIMD types are spelled `simd[uint8, 16]` (owner)
+
+Proposed (a) `uint8x16` (Swift's and Rust's look, a naming convention
+the parser must know), (b) `simd[T, N]` — the language's own bracket
+rule for type parameters, (c) `uint8[16]` (refused: it collides with
+the range-type shape). Owner: `simd[uint8, 16]`.
+
 ### 2026-09-22 — Explicit SIMD types: language types like `uint8x16` (owner: b)
 
 Raised by Swift's `SIMD16<UInt8>` example. Proposed (a) none — the
@@ -1561,7 +1585,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
-- Explicit SIMD types: the design (owner chose to have them, 2026-09-22) — spelling, widths, operators, load/store, lanes, Precog's per-lane domains, narrower targets.
+- SIMD, the rest of the design (spelling decided: `simd[T, N]`): which T and N, operators, load/store against an `array`, one lane, Precog's per-lane domains, a target whose registers are narrower. (2026-09-22)
 
 
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
