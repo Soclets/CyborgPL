@@ -1488,6 +1488,8 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
+- A third print where the text IS processed (`"hello\n"` prints a newline) — owner's intent, 2026-09-22 ("adding another print version"); the name (`printe`? `print.escaped`?) and what it processes (escapes only, or C formatting) to be asked. (2026-09-22)
+
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
 
 **Language — surfaced by the second (OCaml) oracle, 2026-09-17**
