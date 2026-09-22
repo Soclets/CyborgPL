@@ -36,12 +36,22 @@ cargo test        # every examples/*.cpls checks; every reject program is
 
 ## Status
 
-- 2026-09-22: lexer, parser, item resolution and the checker. Every
-  `examples/*.cpls` loads and checks; 38 of the 39 reject *programs* CCA
-  can decide are refused in CCA's own words (`compiler/tests/reject_phrases.txt`),
-  and the 38 that need Precog are marked `!pending` there — the test
-  insists they are still *accepted*, so the file has to be updated the day
-  each one starts being refused. No MIR, no Precog, no LLVM yet.
+- 2026-09-22: the whole pipeline runs — lexer, parser, item resolution,
+  the checker, HIR, MIR, the ownership walk, Precog (layers 1, 2 and 3)
+  and LLVM, out to an object file and a linked binary. Every
+  `examples/*.cpls` loads, checks and lowers to a well-formed graph, and
+  none is refused by Precog. Of the 358 reject programs, 344 are refused
+  in CCA's own words (`compiler/tests/reject_phrases.txt`); 9 are marked
+  `!pending` and 5 `!by-design`. The test insists a `!pending` one is
+  still *accepted*, so the file has to be updated the day each starts
+  being refused.
+- Over the examples, Precog settles 398 of 422 sites: layer 1 folds what
+  it can, layer 2 proves most of the rest, and layer 3 is asked what is
+  left. 21 sites keep a check at run time and 3 are `nocheck`.
+- What has no code generated yet: the heap types (list, map, text
+  building), failures as values, `concur`, `channel` and `inline.ASM`.
+  CCA checks, proves and reports those programs; it refuses to write
+  machine code for them rather than writing something wrong.
 
 ## Provisional — picks made to keep moving, not decisions
 
@@ -119,3 +129,36 @@ Dated, with the alternative, so each can become a question later.
   was reviewed once against the `.err`, and fails when that phrase
   disappears. Alternative: match the oracle's substring literally, which
   would make the oracle's wording the template the brief says it is not.
+- **2026-09-22 — Layer 3's unrolling bounds.** One loop is unrolled 16
+  times into a query and a whole query holds 64 unrollings
+  (`UNROLL_PER_LOOP`, `UNROLL_TOTAL` in `compiler/src/precog/smt.rs`).
+  `precog.md` leaves the numbers open and says a site inside a loop may
+  be proven for the first trips and unproven after, which is exactly what
+  these do: when the unrolling had to cut a path, an `unsat` is reported
+  as *unproven*, never as a proof. Deeper made Z3 quadratic on nested
+  loops. Alternative: prove loops by induction over an invariant instead
+  of unrolling, which proves whole loops but needs invariants nothing
+  writes yet.
+- **2026-09-22 — The solver budget is 10,000,000 `rlimit`.** A step
+  count, never a clock, so the same program gives the same answer on
+  every machine (`precog.md`). It rides in the query text as
+  `(set-option :rlimit …)`, which both Z3 and CVC5 honour, so no member
+  of the portfolio is held to a budget the others were not. Alternative:
+  a wall-clock timeout, which would make a proof depend on what else the
+  machine was doing.
+- **2026-09-22 — CVC5 installed by hand.** Homebrew has no `cvc5`
+  formula, so the official release binary (cvc5 1.4.0,
+  `cvc5-macOS-arm64-static.zip`, sha256
+  `6560851586d3aabb2a97e0c19f5f75e28da88149dc916a373debe5f2e435d71c`) is
+  at `~/.local/bin/cvc5`. The portfolio reports which members it found,
+  because a portfolio missing a member is not the portfolio the design
+  decided on. Alternative: build CVC5 from source, which pins the exact
+  commit at the cost of a long build.
+- **2026-09-22 — 128-bit whole numbers are refused.** Every number Precog
+  reasons about is held in `i128`, so a `uint128` has values it cannot
+  write down and an `int128` has sums it cannot; a proof about a number
+  the prover cannot represent would not be a proof. `int128`/`uint128`
+  are *proposed* in `design/types.md`, not decided, so CCA says so in a
+  message instead of carrying them badly (it used to panic). Alternative:
+  a wider value model throughout Precog's domains, which is real work for
+  a width that may not survive the design.

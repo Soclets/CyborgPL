@@ -18,6 +18,7 @@
 //! every machine, on every day.
 
 pub mod report;
+pub mod smt;
 
 use std::collections::HashMap;
 
@@ -49,6 +50,13 @@ pub struct SiteResult {
 
 pub struct Analysis {
     pub sites: Vec<SiteResult>,
+    /// What the solver portfolio was on this machine, and what it said.
+    pub portfolio: String,
+    /// Sites layer 3 settled that layer 2 could not.
+    pub solved: usize,
+    /// The solvers disagreed here: a bug in a solver or in the query both
+    /// of them received, never in the program.
+    pub disagreements: Vec<String>,
     /// `nocheck` sites that Precog's ordinary work happened to show fail on
     /// every run (owner, 2026-09-22). A note, never a refusal: Precog does
     /// not go looking, it only refuses to stay silent about what it could
@@ -112,16 +120,68 @@ pub fn analyse(p: &mut Program) -> Analysis {
         .collect();
     sites.sort_by_key(|r| (r.function, r.site.0));
     let certain: Vec<usize> = sites.iter().enumerate().filter(|(_, r)| matches!(&r.verdict, Verdict::Fails { counterexample } if counterexample.starts_with("every"))).map(|(i, _)| i).collect();
-    // Write the verdicts back onto the graph: Precog is the last MIR pass,
-    // so what it decided is what the lowering below it sees.
+    let mut certain_under_nocheck = a.lies;
+    certain_under_nocheck.sort_by_key(|(f, s, _)| (*f, s.0));
+    certain_under_nocheck.dedup_by_key(|(f, s, _)| (*f, s.0));
+    // Layer 3: what is left after layer 2 is asked exactly.
+    let portfolio = smt::Portfolio::find();
+    let mut solved = 0usize;
+    let mut disagreements = Vec::new();
+    if !portfolio.members.is_empty() {
+        for r in sites.iter_mut() {
+            let ask = match &r.verdict {
+                Verdict::Proven { .. } | Verdict::Trusted => false,
+                Verdict::Fails { counterexample } => !counterexample.starts_with("every"),
+                Verdict::Unproven => true,
+            };
+            if !ask {
+                continue;
+            }
+            let Some(q) = smt::encode(p, r.function, r.site) else {
+                // A site whose values bit-vectors do not describe — what a
+                // task computes, a horizontal sum across lanes. Layer 3
+                // ran; it had nothing it could ask.
+                r.note = "layer 3 has no way to ask about this one yet".into();
+                continue;
+            };
+            let (answer, each) = portfolio.ask(&q);
+            if smt::disagreed(&each) {
+                // Run the counterexample and see which side was right
+                // (`precog.md`, owner: c). Until the Precog oracle exists,
+                // the safe answer is taken and the disagreement reported.
+                disagreements.push(describe_disagreement(p, r, &each, &q.text));
+                r.verdict = Verdict::Unproven;
+                r.note = "the solvers disagreed; the safe answer was taken".into();
+                continue;
+            }
+            match answer {
+                smt::Answer::Unsat if !q.truncated => {
+                    r.verdict = Verdict::Proven { how: "layer 3" };
+                    r.note = "layer 3: no input reaches it with a bad value".into();
+                    solved += 1;
+                }
+                smt::Answer::Unsat => {
+                    // Proven for the trips the unrolling reached, which is
+                    // not the same as proven.
+                    r.note = "layer 3 proved the first trips of a loop, which is not the whole loop".into();
+                }
+                smt::Answer::Sat(model) => {
+                    let when = if model.is_empty() { "the solver found a way".to_string() } else { model };
+                    r.verdict = Verdict::Fails { counterexample: when.clone() };
+                    r.note = format!("layer 3: {}", when);
+                    solved += 1;
+                }
+                smt::Answer::Unknown => {
+                    r.note = "layer 3 asked, and the solvers reached their step budget without an answer".into();
+                }
+            }
+        }
+    }
     for r in &sites {
         let f = &mut p.functions[r.function];
         f.sites[r.site.0 as usize].verdict = r.verdict.clone();
     }
-    let mut certain_under_nocheck = a.lies;
-    certain_under_nocheck.sort_by_key(|(f, s, _)| (*f, s.0));
-    certain_under_nocheck.dedup_by_key(|(f, s, _)| (*f, s.0));
-    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded }
+    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements }
 }
 
 struct Precog {
@@ -1268,13 +1328,13 @@ fn note_of(v: &Verdict) -> String {
         Verdict::Proven { how } => (*how).to_string(),
         Verdict::Fails { counterexample } => counterexample.clone(),
         Verdict::Trusted => "nocheck".into(),
-        Verdict::Unproven => "not proven here; layer 3 would take it".into(),
+        Verdict::Unproven => "not proven".into(),
     }
 }
 
 /// The edges that go round again: an edge to a block that is still on the
 /// path taken to reach it. Found once per function, by walking the graph.
-fn back_edges(f: &Function) -> std::collections::HashSet<(usize, usize)> {
+pub fn back_edges(f: &Function) -> std::collections::HashSet<(usize, usize)> {
     let mut back = std::collections::HashSet::new();
     let mut colour = vec![0u8; f.blocks.len()]; // 0 unseen, 1 on the path, 2 done
     let mut stack: Vec<(usize, usize)> = vec![(0, 0)];
@@ -1422,4 +1482,22 @@ pub fn notes(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> V
         out.push(d.render(sources));
     }
     out
+}
+
+fn describe_disagreement(p: &Program, r: &SiteResult, each: &[(&'static str, smt::Answer)], query: &str) -> String {
+    let f = &p.functions[r.function];
+    let site = f.site(r.site);
+    let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
+    let dir = std::env::temp_dir().join("cca-smt");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join(format!("disagreement-{}-{}.smt2", r.function, r.site.0));
+    let _ = std::fs::write(&path, query);
+    let said = each.iter().map(|(n, a)| format!("{} said {}", n, match a { smt::Answer::Unsat => "it cannot happen", smt::Answer::Sat(_) => "it can", smt::Answer::Unknown => "it could not tell" })).collect::<Vec<_>>().join(", and ");
+    format!(
+        "the solvers disagree about `{}` in `{}`: {}.\n  This is a bug in one of them, or in the question CCA asked them — both of them received the same question — and never in the program.\n  The question is written out in {} ; please open an issue at Cyborg's tracker with it attached.\n  The build carries on with the safe answer: the site keeps its check.",
+        site.kind.sentence(&spell),
+        f.name,
+        said,
+        path.display()
+    )
 }

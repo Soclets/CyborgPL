@@ -1,0 +1,919 @@
+//! Layer 3 — the exact question.
+//!
+//! `design/precog.md`: a site layer 2 could not settle is asked exactly,
+//! as a **bit-precise SMT query over the real program semantics**, put to
+//! a **portfolio of Z3 and CVC5**, both pinned and both run to their full
+//! budget. Any `unsat` proves. Both `sat` → Z3's counterexample, by fixed
+//! order, so the same program gives the same answer on every machine.
+//! Both `unknown` → unproven.
+//!
+//! The query is built by unrolling the flow graph into a straight line:
+//! each block, at each trip through it, becomes its own copy, and a local
+//! gets a fresh name at every assignment. Loops are unrolled to a bound,
+//! and **a bound means a proof about a prefix** — so when the unrolling
+//! had to cut a path, an `unsat` is reported as *unproven*, exactly as
+//! `precog.md` says ("a site inside a loop may be proven for the first 16
+//! trips and unproven after"). A `sat` is always real: it is a path the
+//! solver actually found.
+//!
+//! Every limit is a step count. `rlimit` is Z3's own, never a timeout,
+//! because a timeout would make the answer depend on the machine.
+
+use std::collections::HashMap;
+use std::fmt::Write as _;
+
+use crate::ast::{BinOp, UnOp};
+use crate::mir::*;
+use crate::types::{Bound, IntW, Ty};
+
+/// Provisional, Kespar's (`precog.md`, Open): how many times one loop is
+/// unrolled into the query, and how many unrollings the whole query may
+/// hold. Deeper made Z3 quadratic on nested loops.
+pub const UNROLL_PER_LOOP: u32 = 16;
+pub const UNROLL_TOTAL: usize = 64;
+/// Provisional: the solver's own step budget, never a clock.
+pub const RLIMIT: u64 = 10_000_000;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Answer {
+    /// No input reaches the site with a bad value: proven.
+    Unsat,
+    /// One does, and here it is.
+    Sat(String),
+    /// The budget ran out, or the solver would not say.
+    Unknown,
+}
+
+/// What the portfolio is made of on this machine. Named in the report,
+/// because a portfolio missing a member is not the portfolio the design
+/// decided on and the reader should know which answered.
+pub struct Portfolio {
+    pub members: Vec<Solver>,
+}
+
+pub struct Solver {
+    pub name: &'static str,
+    pub program: &'static str,
+    pub version: String,
+}
+
+impl Portfolio {
+    pub fn find() -> Portfolio {
+        let mut members = Vec::new();
+        for (name, program, args) in [("Z3", "z3", &["--version"][..]), ("CVC5", "cvc5", &["--version"][..])] {
+            if let Ok(out) = std::process::Command::new(program).args(args).output() {
+                let version = String::from_utf8_lossy(&out.stdout).lines().next().unwrap_or("").trim().to_string();
+                members.push(Solver { name, program, version });
+            }
+        }
+        Portfolio { members }
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.members.len() == 2
+    }
+
+    pub fn describe(&self) -> String {
+        if self.members.is_empty() {
+            return "no solver: layer 3 asked nothing".into();
+        }
+        let list = self.members.iter().map(|s| format!("{} ({})", s.name, s.version)).collect::<Vec<_>>().join(" + ");
+        if self.is_complete() {
+            list
+        } else {
+            format!("{} — the portfolio is Z3 *and* CVC5, and only one is here, so an `unsat` rests on one solver where the design wants two", list)
+        }
+    }
+
+    /// Put one query to every member, each to its full budget — never
+    /// first-to-answer, so the answer does not depend on which machine ran
+    /// faster.
+    pub fn ask(&self, q: &Query) -> (Answer, Vec<(&'static str, Answer)>) {
+        let mut answers = Vec::new();
+        for s in &self.members {
+            answers.push((s.name, run(s, q)));
+        }
+        let combined = combine(&answers);
+        (combined, answers)
+    }
+
+    /// Put a bare query to the first member. For asking about a query
+    /// itself — whether it was answerable at all — rather than about a
+    /// program.
+    pub fn ask_text(&self, text: &str) -> Answer {
+        let Some(s) = self.members.first() else { return Answer::Unknown };
+        run(s, &Query { text: text.to_string(), assumptions: String::new(), truncated: false, inputs: Vec::new() })
+    }
+}
+
+fn run(s: &Solver, q: &Query) -> Answer {
+    let dir = std::env::temp_dir().join("cca-smt");
+    let _ = std::fs::create_dir_all(&dir);
+    // One file per query, not one per process: queries are asked from
+    // more than one thread, and two of them sharing a name means a
+    // solver answering a question that was never put to it.
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let path = dir.join(format!("q{}-{}-{}.smt2", std::process::id(), n, s.name));
+    if std::fs::write(&path, &q.text).is_err() {
+        return Answer::Unknown;
+    }
+    // The step budget rides in the query itself (`set-option :rlimit`), so
+    // every member is held to the same one and no member is given a
+    // budget on the command line that the others did not get.
+    let mut cmd = std::process::Command::new(s.program);
+    match s.name {
+        "Z3" => {
+            cmd.arg("-smt2").arg(&path);
+        }
+        _ => {
+            cmd.arg("--lang=smt2").arg(&path);
+        }
+    }
+    let out = cmd.output();
+    // The query is kept only when someone asked to see it.
+    if std::env::var("CCA_KEEP_SMT").is_err() {
+        let _ = std::fs::remove_file(&path);
+    }
+    let Ok(out) = out else { return Answer::Unknown };
+    let text = String::from_utf8_lossy(&out.stdout).to_string();
+    // Not the first line: a solver may print `unsupported`, a warning, or
+    // an echo before it answers. The answer is the first line that is one.
+    let said = text.lines().map(str::trim).find(|l| matches!(*l, "sat" | "unsat" | "unknown"));
+    match said {
+        Some("unsat") => Answer::Unsat,
+        Some("sat") => Answer::Sat(model_of(&text, &q.inputs)),
+        _ => Answer::Unknown,
+    }
+}
+
+/// Any `unsat` proves — a wrong `unsat` would be a solver bug, which is
+/// what the Precog oracle exists to catch. Both `sat` takes the first
+/// member's counterexample, by fixed order.
+fn combine(answers: &[(&'static str, Answer)]) -> Answer {
+    if answers.iter().any(|(_, a)| *a == Answer::Unsat) {
+        return Answer::Unsat;
+    }
+    for (_, a) in answers {
+        if let Answer::Sat(m) = a {
+            return Answer::Sat(m.clone());
+        }
+    }
+    Answer::Unknown
+}
+
+/// Did the members disagree? `unsat` from one and `sat` from the other is
+/// a bug in a solver or in the query both of them received — never in the
+/// program (`precog.md`, owner: c).
+pub fn disagreed(answers: &[(&'static str, Answer)]) -> bool {
+    answers.iter().any(|(_, a)| *a == Answer::Unsat) && answers.iter().any(|(_, a)| matches!(a, Answer::Sat(_)))
+}
+
+/// The values a solver said make the site fail, in the program's own
+/// words. Only the query's inputs are worth showing — a parameter, what a
+/// call gave back, how long something was — never the working.
+fn model_of(text: &str, inputs: &[Input]) -> String {
+    let vals = defined_values(text);
+    let mut out = Vec::new();
+    for i in inputs {
+        if let Some(v) = vals.get(&i.sym) {
+            if let Some(n) = literal(v, i.signed) {
+                out.push(format!("{} = {}", i.show, n));
+            }
+        }
+    }
+    out.join(", ")
+}
+
+/// Every `(define-fun name () sort body)` a model holds, as name → body.
+/// Read as s-expressions and not line by line, because Z3 puts the body
+/// on the line after the sort and CVC5 puts it on the same line.
+fn defined_values(text: &str) -> HashMap<String, String> {
+    let b = text.as_bytes();
+    let mut out = HashMap::new();
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'(' && b[i + 1..].starts_with(b"define-fun") {
+            let mut j = i + 1 + "define-fun".len();
+            let Some((name, k)) = read_sexp(b, j) else { break };
+            j = k;
+            let Some(k) = read_sexp(b, j).map(|(_, k)| k) else { break }; // ()
+            let Some(k) = read_sexp(b, k).map(|(_, k)| k) else { break }; // the sort
+            let Some((body, k)) = read_sexp(b, k) else { break };
+            out.insert(name, body);
+            i = k;
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+/// One s-expression starting at or after `i`: a `|quoted symbol|`, a bare
+/// atom, or a balanced `(…)`. Gives the text and where it ended.
+fn read_sexp(b: &[u8], mut i: usize) -> Option<(String, usize)> {
+    while i < b.len() && b[i].is_ascii_whitespace() {
+        i += 1;
+    }
+    if i >= b.len() {
+        return None;
+    }
+    let start = i;
+    match b[i] {
+        b'|' => {
+            i += 1;
+            while i < b.len() && b[i] != b'|' {
+                i += 1;
+            }
+            i += 1;
+        }
+        b'(' => {
+            let mut depth = 0usize;
+            while i < b.len() {
+                match b[i] {
+                    b'(' => depth += 1,
+                    b')' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            i += 1;
+                            break;
+                        }
+                    }
+                    b'|' => {
+                        i += 1;
+                        while i < b.len() && b[i] != b'|' {
+                            i += 1;
+                        }
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+            if depth != 0 {
+                return None;
+            }
+        }
+        _ => {
+            while i < b.len() && !b[i].is_ascii_whitespace() && b[i] != b'(' && b[i] != b')' {
+                i += 1;
+            }
+        }
+    }
+    if i > b.len() {
+        return None;
+    }
+    Some((String::from_utf8_lossy(&b[start..i]).into_owned(), i))
+}
+
+/// A model body that is a plain number, written the way the type reads
+/// it: a `uint8` of 200 is 200 and not −56.
+fn literal(v: &str, signed: bool) -> Option<String> {
+    if v == "true" || v == "false" {
+        return Some(v.to_string());
+    }
+    let (digits, radix) = if let Some(h) = v.strip_prefix("#x") {
+        (h, 16)
+    } else if let Some(b) = v.strip_prefix("#b") {
+        (b, 2)
+    } else {
+        return None;
+    };
+    let n = u128::from_str_radix(digits, radix).ok()?;
+    let bits = digits.len() * if radix == 16 { 4 } else { 1 };
+    if signed {
+        Some(as_signed(n, bits).to_string())
+    } else {
+        Some(n.to_string())
+    }
+}
+
+/// How a length reads in a counterexample.
+fn length_word(op: &Op) -> &'static str {
+    match op {
+        Op::ListLength => "how many elements the list has",
+        Op::ArrayLength => "how many elements the array has",
+        Op::MapLength => "how many entries the map has",
+        Op::StrBytes => "how many bytes the text has",
+        Op::StrPoints => "how many code points the text has",
+        Op::StrGraphemes => "how many characters the text has",
+        _ => "a length",
+    }
+}
+
+fn as_signed(n: u128, bits: usize) -> i128 {
+    if bits >= 128 {
+        return n as i128;
+    }
+    let top = 1u128 << (bits - 1);
+    if n >= top {
+        (n as i128) - ((1i128) << bits)
+    } else {
+        n as i128
+    }
+}
+
+// ---------------------------------------------------------------- the query
+
+pub struct Query {
+    pub text: String,
+    /// Everything the program allows, without the question. If *this*
+    /// has no model then the question was never really asked: every
+    /// answer would be `unsat`, and `unsat` reads as a proof. Nothing
+    /// should ever be proven by a query that could not be satisfied
+    /// whatever the program did.
+    pub assumptions: String,
+    /// The unrolling had to cut a path, so an `unsat` is a proof about a
+    /// prefix and not about the program.
+    pub truncated: bool,
+    /// What the query knows nothing about, and so what a counterexample
+    /// is made of.
+    pub inputs: Vec<Input>,
+}
+
+/// A value the query cannot see inside: a parameter, what a call gave
+/// back, how long something is. `sym` is what the query calls it, `show`
+/// is what the program calls it.
+pub struct Input {
+    pub sym: String,
+    pub show: String,
+    pub signed: bool,
+}
+
+/// Build the exact question for one site: *can any input reach here with a
+/// value this instruction cannot take?*
+pub fn encode(p: &Program, f: usize, site: SiteId) -> Option<Query> {
+    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new() };
+    e.build(site)?;
+    if e.reached.is_empty() {
+        return None;
+    }
+    let mut text = String::new();
+    let _ = writeln!(text, "; CyborgPL — Precog layer 3, {}", describe_site(p, f, site));
+    let _ = writeln!(text, "(set-option :rlimit {})", RLIMIT);
+    let _ = writeln!(text, "(set-option :produce-models true)");
+    let _ = writeln!(text, "(set-logic QF_BV)");
+    for d in &e.defs {
+        let _ = writeln!(text, "{}", d);
+    }
+    let assumptions = format!("{}(check-sat)\n", text);
+    let _ = writeln!(text, "(assert (or {}))", e.reached.join(" "));
+    let _ = writeln!(text, "(check-sat)");
+    let _ = writeln!(text, "(get-model)");
+    Some(Query { text, assumptions, truncated: e.truncated, inputs: e.inputs })
+}
+
+fn describe_site(p: &Program, f: usize, site: SiteId) -> String {
+    let func = &p.functions[f];
+    let s = func.site(site);
+    let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
+    format!("in {}: {}", func.name, s.kind.sentence(&spell))
+}
+
+/// A term, and the width it is held at. `None` means the value is not
+/// something bit-vectors describe (a text, a list, a struct) — the query
+/// then knows nothing about it, which is sound and simply proves less.
+#[derive(Clone)]
+struct Val {
+    term: String,
+    bits: u32,
+    signed: bool,
+}
+
+struct Enc<'a> {
+    p: &'a Program,
+    f: usize,
+    defs: Vec<String>,
+    next: u32,
+    truncated: bool,
+    /// One term per copy of the site: it is reached *and* the value is bad.
+    reached: Vec<String>,
+    inputs: Vec<Input>,
+}
+
+type Env = HashMap<LocalId, Val>;
+
+impl<'a> Enc<'a> {
+    /// A value the query knows nothing about. It is declared under a plain
+    /// name and remembered under the program's own, so a counterexample
+    /// reads as the program reads.
+    fn fresh(&mut self, prefix: &str, bits: u32, signed: bool, show: String) -> Val {
+        let sym = format!("{}{}", prefix, self.next);
+        self.next += 1;
+        self.defs.push(format!("(declare-fun {} () (_ BitVec {}))", sym, bits));
+        // Two inputs that would read the same are told apart, or the
+        // counterexample would name one thing twice.
+        let same = self.inputs.iter().filter(|i| i.show == show || i.show.starts_with(&format!("{} (", show))).count();
+        let show = if same == 0 { show } else { format!("{} ({})", show, same + 1) };
+        self.inputs.push(Input { sym: sym.clone(), show, signed });
+        Val { term: sym, bits, signed }
+    }
+
+    fn define(&mut self, bits: u32, body: &str, signed: bool) -> Val {
+        let name = format!("v{}", self.next);
+        self.next += 1;
+        self.defs.push(format!("(define-fun {} () (_ BitVec {}) {})", name, bits, body));
+        Val { term: name, bits, signed }
+    }
+
+    fn define_bool(&mut self, body: &str) -> String {
+        let name = format!("b{}", self.next);
+        self.next += 1;
+        self.defs.push(format!("(define-fun {} () Bool {})", name, body));
+        name
+    }
+
+    fn func(&self) -> &'a Function {
+        &self.p.functions[self.f]
+    }
+
+    /// What to call a callee in a counterexample.
+    fn callee_name(&self, c: &Callee) -> String {
+        match c {
+            Callee::Fn(i) => self.p.functions[i.0 as usize].name.clone(),
+            Callee::Extern(id) => self.p.items.externs[id.0 as usize].name.clone(),
+            Callee::Value(_) => "that function".to_string(),
+            Callee::Op(_) => "that operation".to_string(),
+            Callee::Convert(t) => format!("that `to.{}`", crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }),
+        }
+    }
+
+    /// Unroll the graph and emit the question at every copy of the site.
+    fn build(&mut self, site: SiteId) -> Option<()> {
+        let f = self.func();
+        let back = crate::precog::back_edges(f);
+        // Nodes of the unrolled graph: (block, level). A back edge moves to
+        // the next level; everything else stays.
+        let mut incoming: HashMap<(usize, u32), Vec<(String, Env)>> = HashMap::new();
+        let mut order: Vec<(usize, u32)> = Vec::new();
+        let mut seen: Vec<(usize, u32)> = Vec::new();
+
+        // The entry: parameters are whatever their type allows.
+        let mut env0: Env = Env::new();
+        for l in &f.params {
+            let ty = f.locals[l.0 as usize].ty.clone();
+            if let Some((bits, signed)) = int_shape(&ty) {
+                let v = self.fresh("in", bits, signed, self.p.functions[self.f].locals[l.0 as usize].name.clone().unwrap_or_else(|| "a parameter".to_string()));
+                self.constrain_range(&v, &ty);
+                env0.insert(*l, v);
+            }
+        }
+        incoming.insert((0, 0), vec![("true".to_string(), env0)]);
+        let mut queue = vec![(0usize, 0u32)];
+        let mut unrollings = 0usize;
+
+        while let Some(node) = queue.first().copied() {
+            queue.remove(0);
+            if seen.contains(&node) {
+                continue;
+            }
+            seen.push(node);
+            order.push(node);
+            let (b, level) = node;
+            for t in crate::mir::verify::successors(&f.blocks[b].term) {
+                let ti = t.0 as usize;
+                if ti >= f.blocks.len() {
+                    continue;
+                }
+                let is_back = back.contains(&(b, ti));
+                let next_level = if is_back { level + 1 } else { level };
+                if is_back && (next_level > UNROLL_PER_LOOP || unrollings >= UNROLL_TOTAL) {
+                    // The path is cut here: an `unsat` would only be about
+                    // the trips we did look at.
+                    self.truncated = true;
+                    continue;
+                }
+                if is_back {
+                    unrollings += 1;
+                }
+                if !seen.contains(&(ti, next_level)) && !queue.contains(&(ti, next_level)) {
+                    queue.push((ti, next_level));
+                }
+            }
+        }
+
+        // Walk the nodes in the order they were discovered, merging what
+        // arrives and emitting what each block does.
+        for node in order.clone() {
+            let (b, level) = node;
+            let Some(arrivals) = incoming.get(&node).cloned() else { continue };
+            let (guard, mut env) = self.merge(&arrivals);
+            let stmts = self.func().blocks[b].stmts.clone();
+            for s in &stmts {
+                match &s.kind {
+                    StmtKind::Assign { place, rvalue } => {
+                        let v = self.rvalue(rvalue, &env);
+                        self.assign(&mut env, place, v);
+                    }
+                    StmtKind::Op { dest, op, args } => {
+                        let v = self.op(op, args, &env);
+                        if let Some(d) = dest {
+                            self.assign(&mut env, d, v);
+                        }
+                    }
+                    StmtKind::Site(id) if *id == site => {
+                        if let Some(bad) = self.bad_value(*id, &env) {
+                            let both = self.define_bool(&format!("(and {} {})", guard, bad));
+                            self.reached.push(both);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            // Where it goes, and what each successor then knows.
+            let term = self.func().blocks[b].term.clone();
+            let mut send = |this: &mut Self, to: BlockId, g: String, e: Env| {
+                let ti = to.0 as usize;
+                let is_back = crate::precog::back_edges(this.func()).contains(&(b, ti));
+                let lvl = if is_back { level + 1 } else { level };
+                if seen.contains(&(ti, lvl)) || incoming.contains_key(&(ti, lvl)) {
+                    incoming.entry((ti, lvl)).or_default().push((g, e));
+                }
+            };
+            match &term {
+                Terminator::Goto(t) => send(self, *t, guard.clone(), env.clone()),
+                Terminator::If { cond, then, else_ } => {
+                    let c = self.operand(cond, &env);
+                    match c {
+                        Some(v) if v.bits == 1 => {
+                            let is_true = format!("(= {} (_ bv1 1))", v.term);
+                            let g1 = self.define_bool(&format!("(and {} {})", guard, is_true));
+                            let g2 = self.define_bool(&format!("(and {} (not {}))", guard, is_true));
+                            send(self, *then, g1, env.clone());
+                            send(self, *else_, g2, env.clone());
+                        }
+                        _ => {
+                            send(self, *then, guard.clone(), env.clone());
+                            send(self, *else_, guard.clone(), env.clone());
+                        }
+                    }
+                }
+                Terminator::Call { callee, dest, ok, fail, .. } => {
+                    let mut e = env.clone();
+                    if let Some(d) = dest {
+                        // What a call gives back is not followed here; its
+                        // type is all the query knows about it.
+                        let ty = self.place_ty(d);
+                        let v = int_shape(&ty).map(|(bits, signed)| {
+                            let f = self.fresh("call", bits, signed, format!("what {} gave back", self.callee_name(callee)));
+                            self.constrain_range(&f, &ty);
+                            f
+                        });
+                        self.assign(&mut e, d, v);
+                    }
+                    send(self, *ok, guard.clone(), e);
+                    for arm in fail {
+                        send(self, arm.block, guard.clone(), env.clone());
+                    }
+                }
+                other => {
+                    for t in crate::mir::verify::successors(other) {
+                        send(self, t, guard.clone(), env.clone());
+                    }
+                }
+            }
+        }
+        Some(())
+    }
+
+    /// One state from several arriving ones: a value is whichever the path
+    /// that got here left, and the block is reached if any path reached it.
+    fn merge(&mut self, arrivals: &[(String, Env)]) -> (String, Env) {
+        if arrivals.len() == 1 {
+            return arrivals[0].clone();
+        }
+        let guard = self.define_bool(&format!("(or {})", arrivals.iter().map(|(g, _)| g.clone()).collect::<Vec<_>>().join(" ")));
+        let mut env = Env::new();
+        let mut names: Vec<LocalId> = arrivals.iter().flat_map(|(_, e)| e.keys().copied()).collect();
+        names.sort();
+        names.dedup();
+        for l in names {
+            let mut holders: Vec<(String, Val)> = Vec::new();
+            for (g, e) in arrivals {
+                if let Some(v) = e.get(&l) {
+                    holders.push((g.clone(), v.clone()));
+                }
+            }
+            if holders.len() != arrivals.len() {
+                continue;
+            }
+            let bits = holders[0].1.bits;
+            if holders.iter().any(|(_, v)| v.bits != bits) {
+                continue;
+            }
+            let mut term = holders.last().unwrap().1.term.clone();
+            for (g, v) in holders.iter().rev().skip(1) {
+                term = format!("(ite {} {} {})", g, v.term, term);
+            }
+            let signed = holders[0].1.signed;
+            let v = self.define(bits, &term, signed);
+            env.insert(l, v);
+        }
+        (guard, env)
+    }
+
+    fn assign(&mut self, env: &mut Env, place: &Place, v: Option<Val>) {
+        if !place.proj.is_empty() {
+            // Part of a value: what the whole holds is no longer described.
+            env.remove(&place.local);
+            return;
+        }
+        match v {
+            Some(v) => {
+                env.insert(place.local, v);
+            }
+            None => {
+                env.remove(&place.local);
+            }
+        }
+    }
+
+    fn place_ty(&self, p: &Place) -> Ty {
+        let base = self.func().locals[p.local.0 as usize].ty.clone();
+        crate::mir::build::projected_ty(&base, &p.proj, &self.p.items)
+    }
+
+    fn operand(&mut self, o: &Operand, env: &Env) -> Option<Val> {
+        match o {
+            Operand::Const(Const::Int(v)) => {
+                let bits = 64;
+                Some(self.define(bits, &bv(*v, bits), true))
+            }
+            Operand::Const(Const::Bool(b)) => Some(self.define(1, &bv(*b as i128, 1), false)),
+            Operand::Const(Const::Duration(v)) => Some(self.define(64, &bv(*v, 64), true)),
+            Operand::Const(_) => None,
+            Operand::Read(p) | Operand::Move(p) => {
+                if !p.proj.is_empty() {
+                    return None;
+                }
+                env.get(&p.local).cloned()
+            }
+        }
+    }
+
+    fn rvalue(&mut self, rv: &Rvalue, env: &Env) -> Option<Val> {
+        match rv {
+            Rvalue::Use(o) => self.operand(o, env),
+            Rvalue::Unary { op, operand } => {
+                let v = self.operand(operand, env)?;
+                match op {
+                    UnOp::Neg => Some(self.define(v.bits, &format!("(bvneg {})", v.term), v.signed)),
+                    UnOp::Not | UnOp::NotBit => Some(self.define(v.bits, &format!("(bvnot {})", v.term), v.signed)),
+                }
+            }
+            Rvalue::Binary { op, lhs, rhs } => {
+                let a = self.operand(lhs, env)?;
+                let b = self.operand(rhs, env)?;
+                let (a, b) = self.same_width(a, b);
+                let signed = a.signed || b.signed;
+                let w = a.bits;
+                let body = match op {
+                    BinOp::Add | BinOp::WrapAdd => format!("(bvadd {} {})", a.term, b.term),
+                    BinOp::Sub | BinOp::WrapSub => format!("(bvsub {} {})", a.term, b.term),
+                    BinOp::Mul | BinOp::WrapMul => format!("(bvmul {} {})", a.term, b.term),
+                    BinOp::Div => format!("({} {} {})", if signed { "bvsdiv" } else { "bvudiv" }, a.term, b.term),
+                    BinOp::Mod => format!("({} {} {})", if signed { "bvsrem" } else { "bvurem" }, a.term, b.term),
+                    BinOp::AndBit | BinOp::And => format!("(bvand {} {})", a.term, b.term),
+                    BinOp::OrBit | BinOp::Or => format!("(bvor {} {})", a.term, b.term),
+                    BinOp::Xor => format!("(bvxor {} {})", a.term, b.term),
+                    BinOp::Shl => format!("(bvshl {} {})", a.term, b.term),
+                    BinOp::Shr => format!("({} {} {})", if signed { "bvashr" } else { "bvlshr" }, a.term, b.term),
+                    BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => {
+                        let pred = compare(op, signed, &a.term, &b.term);
+                        return Some(self.define(1, &format!("(ite {} (_ bv1 1) (_ bv0 1))", pred), false));
+                    }
+                    _ => return None,
+                };
+                Some(self.define(w, &body, signed))
+            }
+            Rvalue::Convert { to, operand } => {
+                let v = self.operand(operand, env)?;
+                let (bits, signed) = int_shape(to)?;
+                Some(self.resize(v, bits, signed))
+            }
+            _ => None,
+        }
+    }
+
+    fn op(&mut self, op: &Op, args: &[Operand], env: &Env) -> Option<Val> {
+        match op {
+            // A length is never negative, and that is worth telling the
+            // solver even when nothing else about it is known.
+            Op::ListLength | Op::ArrayLength | Op::MapLength | Op::StrBytes | Op::StrPoints | Op::StrGraphemes => {
+                let _ = (args, env);
+                let v = self.fresh("len", 64, false, length_word(op).to_string());
+                self.defs.push(format!("(assert (bvsge {} (_ bv0 64)))", v.term));
+                Some(v)
+            }
+            _ => None,
+        }
+    }
+
+    fn same_width(&mut self, a: Val, b: Val) -> (Val, Val) {
+        if a.bits == b.bits {
+            return (a, b);
+        }
+        if a.bits > b.bits {
+            let signed = b.signed;
+            let nb = self.resize(b, a.bits, signed);
+            (a, nb)
+        } else {
+            let signed = a.signed;
+            let na = self.resize(a, b.bits, signed);
+            (na, b)
+        }
+    }
+
+    fn resize(&mut self, v: Val, bits: u32, signed: bool) -> Val {
+        if v.bits == bits {
+            return Val { signed, ..v };
+        }
+        let body = if bits > v.bits {
+            let by = bits - v.bits;
+            if v.signed {
+                format!("((_ sign_extend {}) {})", by, v.term)
+            } else {
+                format!("((_ zero_extend {}) {})", by, v.term)
+            }
+        } else {
+            format!("((_ extract {} 0) {})", bits - 1, v.term)
+        };
+        self.define(bits, &body, signed)
+    }
+
+    /// The width at which a value can be read as a signed number without
+    /// changing it: an unsigned one needs a bit more room for the sign.
+    fn signed_width(v: &Val) -> u32 {
+        v.bits + if v.signed { 0 } else { 1 }
+    }
+
+    /// Compare a value against a constant bound, at a width that holds
+    /// both of them.
+    ///
+    /// A bound need not fit the value's own width: a `uint32` is asked
+    /// whether it is below 0, an `int32` whether it is above 4294967295.
+    /// Asked at the value's width the constant wraps — 4294967295 as 32
+    /// bits *is* −1 — and the solver then answers truthfully about a
+    /// different question. That is how a query could come back `unsat`
+    /// because it was impossible rather than because the program was
+    /// safe, and an impossible query reads as a proof. Widen first.
+    fn cmp_const(&mut self, v: &Val, op: &str, bound: i128) -> Option<String> {
+        let w = Self::signed_width(v).max(signed_bits(bound));
+        if w > 128 {
+            // Wider than the query can write a literal for. Nothing is
+            // claimed rather than something unchecked.
+            return None;
+        }
+        let ext = self.resize(v.clone(), w, true);
+        Some(format!("({} {} {})", op, ext.term, bv(bound, w)))
+    }
+
+    /// The same, between two values.
+    fn cmp_vals(&mut self, a: &Val, op: &str, b: &Val) -> Option<String> {
+        let w = Self::signed_width(a).max(Self::signed_width(b));
+        if w > 128 {
+            return None;
+        }
+        let x = self.resize(a.clone(), w, true);
+        let y = self.resize(b.clone(), w, true);
+        Some(format!("({} {} {})", op, x.term, y.term))
+    }
+
+    fn constrain_range(&mut self, v: &Val, ty: &Ty) {
+        if let Some((lo, hi)) = int_bounds(ty) {
+            let (Some(l), Some(h)) = (self.cmp_const(v, "bvsge", lo), self.cmp_const(v, "bvsle", hi)) else {
+                // Saying nothing about the value is sound: it allows more
+                // than the type does, so nothing is proven that is not.
+                return;
+            };
+            self.defs.push(format!("(assert (and {} {}))", l, h));
+        }
+    }
+
+    /// The site's question: what makes this instruction wrong.
+    fn bad_value(&mut self, id: SiteId, env: &Env) -> Option<String> {
+        let site = self.func().sites[id.0 as usize].clone();
+        let mut ops = Vec::new();
+        for o in &site.operands {
+            ops.push(self.operand(o, env));
+        }
+        match &site.kind {
+            SiteKind::Overflow(op) => {
+                let ty = site.result_ty.clone()?;
+                let (bits, signed) = int_shape(&ty)?;
+                let (lo, hi) = int_bounds(&ty)?;
+                let a = ops.first().cloned().flatten()?;
+                match op {
+                    BinOp::Add | BinOp::Sub | BinOp::Mul => {
+                        let b = ops.get(1).cloned().flatten()?;
+                        // Compute wide enough that the true answer fits, then
+                        // ask whether it is outside what the type holds.
+                        let wide = if *op == BinOp::Mul { bits * 2 } else { bits + 1 };
+                        let a = self.resize(a, wide, signed);
+                        let b = self.resize(b, wide, signed);
+                        let body = match op {
+                            BinOp::Add => format!("(bvadd {} {})", a.term, b.term),
+                            BinOp::Sub => format!("(bvsub {} {})", a.term, b.term),
+                            _ => format!("(bvmul {} {})", a.term, b.term),
+                        };
+                        let r = self.define(wide, &body, signed);
+                        Some(format!("(or {} {})", self.cmp_const(&r, "bvsgt", hi)?, self.cmp_const(&r, "bvslt", lo)?))
+                    }
+                    BinOp::Div => {
+                        // The one division that leaves the type: the lowest
+                        // value by -1.
+                        let b = ops.get(1).cloned().flatten()?;
+                        let (a, b) = self.same_width(a, b);
+                        Some(format!("(and (= {} {}) (= {} {}))", a.term, bv(lo, a.bits), b.term, bv(-1, b.bits)))
+                    }
+                    _ => None,
+                }
+            }
+            SiteKind::DivZero | SiteKind::ModZero => {
+                let b = ops.first().cloned().flatten()?;
+                Some(format!("(= {} {})", b.term, bv(0, b.bits)))
+            }
+            SiteKind::Bounds => {
+                let i = ops.first().cloned().flatten()?;
+                let len = ops.get(1).cloned().flatten()?;
+                // 1-based: legal is 1 ..= len.
+                Some(format!("(not (and {} {}))", self.cmp_const(&i, "bvsge", 1)?, self.cmp_vals(&i, "bvsle", &len)?))
+            }
+            SiteKind::Narrow { to } | SiteKind::LengthBound { to } => {
+                let v = ops.first().cloned().flatten()?;
+                let (lo, hi) = int_bounds(to)?;
+                Some(format!("(or {} {})", self.cmp_const(&v, "bvsgt", hi)?, self.cmp_const(&v, "bvslt", lo)?))
+            }
+            SiteKind::ShiftWidth => {
+                let a = ops.first().cloned().flatten()?;
+                let b = ops.get(1).cloned().flatten()?;
+                let width = a.bits as i128;
+                self.cmp_const(&b, "bvsge", width)
+            }
+            _ => None,
+        }
+    }
+}
+
+fn compare(op: &BinOp, signed: bool, a: &str, b: &str) -> String {
+    let p = |s: &str, u: &str| if signed { s.to_string() } else { u.to_string() };
+    match op {
+        BinOp::Eq => format!("(= {} {})", a, b),
+        BinOp::Ne => format!("(not (= {} {}))", a, b),
+        BinOp::Lt => format!("({} {} {})", p("bvslt", "bvult"), a, b),
+        BinOp::Le => format!("({} {} {})", p("bvsle", "bvule"), a, b),
+        BinOp::Gt => format!("({} {} {})", p("bvsgt", "bvugt"), a, b),
+        BinOp::Ge => format!("({} {} {})", p("bvsge", "bvuge"), a, b),
+        _ => "false".to_string(),
+    }
+}
+
+/// How many bits two's complement needs to hold a number exactly.
+fn signed_bits(v: i128) -> u32 {
+    let mut n = 1u32;
+    while n < 128 {
+        let max = (1i128 << (n - 1)) - 1;
+        let min = -(1i128 << (n - 1));
+        if v >= min && v <= max {
+            return n;
+        }
+        n += 1;
+    }
+    128
+}
+
+/// A bit-vector literal, two's complement at `bits`.
+fn bv(v: i128, bits: u32) -> String {
+    let mask: u128 = if bits >= 128 { u128::MAX } else { (1u128 << bits) - 1 };
+    let raw = (v as u128) & mask;
+    format!("(_ bv{} {})", raw, bits)
+}
+
+/// The width and signedness a type is held at, when it is a whole number.
+pub fn int_shape(ty: &Ty) -> Option<(u32, bool)> {
+    match ty.base() {
+        Ty::Int(IntW::Fixed { signed, bits }) => Some((*bits as u32, *signed)),
+        // A width Precog has not chosen is held at the machine's natural
+        // one, which is what the lowering does with it too.
+        Ty::Int(IntW::Free(_)) => Some((64, true)),
+        Ty::Bool => Some((1, false)),
+        Ty::Duration => Some((64, true)),
+        _ => None,
+    }
+}
+
+/// What a type holds, as two numbers.
+pub fn int_bounds(ty: &Ty) -> Option<(i128, i128)> {
+    if let Ty::Bounded { bound: Bound::Int { lo, hi }, .. } = ty {
+        return Some((*lo, *hi));
+    }
+    if let Ty::Bounded { bound: Bound::Len { lo, hi, .. }, .. } = ty {
+        return Some((*lo as i128, *hi as i128));
+    }
+    match ty.base() {
+        Ty::Int(IntW::Fixed { signed, bits }) => Some(crate::resolve::int_range(*signed, *bits)),
+        Ty::Int(IntW::Free(_)) => Some((i64::MIN as i128, i64::MAX as i128)),
+        Ty::Bool => Some((0, 1)),
+        Ty::Duration => Some((0, i64::MAX as i128)),
+        _ => None,
+    }
+}

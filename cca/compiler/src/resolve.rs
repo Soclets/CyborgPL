@@ -725,6 +725,20 @@ impl Items {
         };
         if path.limb.is_none() {
             if let Some(t) = primitive(head) {
+                if let Ty::Int(IntW::Fixed { bits: 128, .. }) = t {
+                    // Every number Precog reasons about is held in 128
+                    // bits signed, so a `uint128` has values it cannot
+                    // write down and an `int128` has sums it cannot. A
+                    // proof about a number the prover cannot represent
+                    // would not be a proof, so the type is refused rather
+                    // than carried badly. (`design/types.md` marks the
+                    // 128-bit widths proposed, not decided.)
+                    return err(Diagnostic::error(format!("CCA carries whole numbers up to 64 bits, and `{}` is 128", head))
+                        .at(span)
+                        .why("Precog holds every number it reasons about in 128 bits signed; a 128-bit whole number has values that will not fit there, and a proof it cannot represent is not a proof")
+                        .why("`design/types.md` lists the 128-bit widths as proposed, not decided")
+                        .try_(format!("`{}64`", if head.starts_with('u') { "uint" } else { "int" })));
+                }
                 if path.segs.len() > 1 {
                     return err(Diagnostic::error(format!("`{}` takes no narrowing: `{}` is already a complete type", path.spelled(), head)).at(span));
                 }
@@ -945,11 +959,20 @@ pub fn primitive(head: &str) -> Option<Ty> {
     }
 }
 
+/// What a whole number of this width holds. Everything here is held in
+/// `i128`, so 128 bits is the ceiling and the widths above it are not
+/// carried — `resolve_type_path` refuses them before anything asks.
 pub fn int_range(signed: bool, bits: u16) -> (i128, i128) {
     if signed {
+        if bits >= 128 {
+            return (i128::MIN, i128::MAX);
+        }
         let max = (1i128 << (bits - 1)) - 1;
         (-max - 1, max)
     } else {
+        if bits >= 127 {
+            return (0, i128::MAX);
+        }
         (0, (1i128 << bits) - 1)
     }
 }
