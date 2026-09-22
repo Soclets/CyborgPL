@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — A length bound on text names its unit: `str.utf8[1, 40 graphemes]` (owner: c)
+
+Proposed (a) bytes, (b) graphemes, (c) the unit is part of the bound —
+`bytes`, `points`, or `graphemes` after the high bound, since the
+language refuses a single `str.length`. Owner: c. No unit is a compile
+error. Conversions into a bounded text fail `out_of_range`.
+`examples/text_bound.cpls`, three reject tests.
+
 ### 2026-09-22 — Cold read of `precog.md`: reuse key corrected; proofs-as-assertions mode (owner: yes)
 
 A fresh chat read the Precog document. Decided already: `rlimit` not
@@ -1373,7 +1381,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
-- Range types on a text (a length bound on `str`, now that a list has one); one-ended ranges. (2026-09-20, narrowed 2026-09-21)
+- One-ended ranges (`int32[0, …]`). (2026-09-20)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)

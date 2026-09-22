@@ -25,6 +25,8 @@ pub enum Ty {
     /// `int32[0, 100]` / `bin64[0.0, 1.0]` — a range type (design/input.md, 2026-09-20): the base
     /// type, provably within inclusive bounds; assigning into it is a check site
     Ranged(Box<Ty>, Bound, Bound),
+    /// `str.utf8[1, 40 graphemes]` — a length bound on text, in a named unit (decided 2026-09-22)
+    TextRanged(Encoding, i128, i128, CharUnit),
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed
     Fn(Vec<(ParamKind, Ty)>, Option<Box<Ty>>, Vec<String>),

@@ -4,6 +4,25 @@ Decided 2026-09-20, one question at a time. A `str` is an owned value
 (`str.utf8` / `utf16` / `utf32` / `ascii`, `types.md`); this file is what
 you can *do* with one.
 
+## A length bound names its unit (decided 2026-09-22)
+
+```
+let 'name': str.utf8[1, 40 graphemes] = std::input.line[] otherwise "";
+fn greet [lent 'who': str.utf8[1, 10 graphemes]] { … }
+let 'field': str.utf8[0, 255 bytes] = …;
+let 'code': str.utf8[4, 4 points] = …;
+```
+
+The thing, then its bounds, as `int32[0, 100]` and `list[T][lo, hi]` —
+and, because a text has three lengths and no single one, the bound
+**says which it counts**: `bytes`, `points`, or `graphemes`, after the
+high bound. `str.utf8[0, 20]` with no unit is a compile error. Every
+change to a bounded text (assignment, `++`) is a check site against the
+bound; a conversion into one (`to.str.utf8[0, 3 bytes][…]`) fails
+`out_of_range` like any conversion into a range type. Precog carries
+the length interval per unit already. Proposed: bytes always, graphemes
+always, or say which; owner chose "say which".
+
 ## No single length
 
 `"é🍎"` is 5 bytes, 2 code points, 2 graphemes; a family emoji is 18

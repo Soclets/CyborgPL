@@ -622,7 +622,8 @@ impl Parser {
             }
         }
         let mut params = Vec::new();
-        if *self.peek() == Tok::LBracket && !self.to_target {
+        // `[` followed by a number is a bound (`str.utf8[1, 40 graphemes]`), not type parameters
+        if *self.peek() == Tok::LBracket && !self.to_target && !matches!(self.peek_at(1), Tok::Int(_)) {
             self.advance();
             loop {
                 params.push(self.ty()?);
@@ -647,10 +648,30 @@ impl Parser {
             "str" => {
                 if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `str.utf8`, `str.utf16`, `str.utf32`, or `str.ascii` — never bare `str`".into()); }
                 no_params(self, "str")?;
-                Ok(Ty::Str(match segs[1].as_str() {
+                let enc = match segs[1].as_str() {
                     "utf8" => Encoding::Utf8, "utf16" => Encoding::Utf16, "utf32" => Encoding::Utf32, "ascii" => Encoding::Ascii,
                     e => return bad(self, format!("unknown text encoding `{e}`")),
-                }))
+                };
+                // `str.utf8[1, 40 graphemes]` — a length bound in a named unit (decided 2026-09-22):
+                // text has three lengths, so the bound says which it counts.
+                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_)) && (!self.to_target || self.bracket_then_bracket()) {
+                    self.advance();
+                    let lo = match self.advance().tok { Tok::Int(i) => i, _ => unreachable!() };
+                    self.expect(Tok::Comma, "`,` between the length bounds")?;
+                    let hi = match self.advance().tok { Tok::Int(i) => i, other => return bad(self, format!("a text's length bounds are whole numbers, found {other}")) };
+                    let unit = match self.advance().tok {
+                        Tok::Word(w) if w == "bytes" => CharUnit::Byte,
+                        Tok::Word(w) if w == "points" => CharUnit::Point,
+                        Tok::Word(w) if w == "graphemes" => CharUnit::Grapheme,
+                        Tok::RBracket => return bad(self, "a text has three lengths: say which the bound counts — `str.utf8[1, 40 graphemes]`, `[…bytes]`, or `[…points]`".into()),
+                        other => return bad(self, format!("the unit after a text's bounds is `bytes`, `points`, or `graphemes`, found {other}")),
+                    };
+                    self.expect(Tok::RBracket, "`]` after the unit")?;
+                    if lo < 0 { return bad(self, "a length is never negative: the low bound is 0 or more".into()); }
+                    if lo > hi { return bad(self, "a range's low bound comes first: `str.utf8[0, 100 bytes]`".into()); }
+                    return Ok(Ty::TextRanged(enc, lo, hi, unit));
+                }
+                Ok(Ty::Str(enc))
             }
             "char" => {
                 if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `char.point`, `char.grapheme`, or `char.byte` — never bare `char`".into()); }

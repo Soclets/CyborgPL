@@ -131,6 +131,8 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
     }
 }
 
+pub fn unit_word(u: &CharUnit) -> &'static str { match u { CharUnit::Byte => "bytes", CharUnit::Point => "points", CharUnit::Grapheme => "graphemes" } }
+
 pub fn ty_name(ty: &Ty) -> String {
     match ty {
         Ty::Int(w) => format!("int{}", w_num(w)),
@@ -145,6 +147,7 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
         Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
+        Ty::TextRanged(e, lo, hi, u) => format!("{}[{}, {} {}]", ty_name(&Ty::Str(e.clone())), lo, hi, unit_word(u)),
         Ty::Fn(ps, r, fails) => {
             let ps: Vec<String> = ps.iter().map(|(k, t)| format!("{}{}", match k { crate::ast::ParamKind::Owned => "", crate::ast::ParamKind::Lent => "lent ", crate::ast::ParamKind::LentMut => "lent.mut " }, ty_name(t))).collect();
             let mut s = format!("fn[{}]", ps.join(", "));

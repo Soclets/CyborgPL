@@ -706,6 +706,12 @@ impl<'p> Interp<'p> {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
             }
+            (Ty::TextRanged(enc, lo, hi, unit), Value::Str(s)) => {
+                self.check_type(v, &Ty::Str(enc.clone()), line)?;
+                let n = match unit { CharUnit::Byte => s.len(), CharUnit::Point => s.chars().count(), CharUnit::Grapheme => grapheme_count(s) } as i128;
+                if n < *lo || n > *hi { return site(line, format!("a text of {n} {} does not fit {name}", crate::value::unit_word(unit))); }
+                Ok(())
+            }
             (Ty::Ranged(base, lo, hi), v) => {
                 self.check_type(v, base, line)?;
                 let inside = match (v, lo, hi) {
@@ -1035,7 +1041,12 @@ impl<'p> Interp<'p> {
                 let (v, _) = self.single(b, line)?;
                 let target = ty_name(ty);
                 let full_ty = ty;
-                let (base, ranged): (&Ty, bool) = match ty { Ty::Ranged(b, _, _) => (b, true), t => (t, false) };
+                let text_base;
+                let (base, ranged): (&Ty, bool) = match ty {
+                    Ty::Ranged(b, _, _) => (b, true),
+                    Ty::TextRanged(e, _, _, _) => { text_base = Ty::Str(e.clone()); (&text_base, true) }   // a bounded text: out of it is `out_of_range` (2026-09-22)
+                    t => (t, false),
+                };
                 let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_));
                 let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }] } else { Vec::new() };
                 // bin → int fails unless the bin is whole (decided 2026-09-21): rounding is said first, in std
@@ -1099,6 +1110,13 @@ impl<'p> Interp<'p> {
                     (Ty::Bool, _) => return rt(line, "nothing converts to bool: there is no truthiness; compare instead"),
                     (t, other) => return rt(line, format!("no conversion from {} to {}", other.kind(), ty_name(t))),
                 };
+                if let Ty::TextRanged(..) = full_ty {
+                    if self.check_type(&out, full_ty, line).is_err() {
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{}", ty_name(full_ty)), "out_of_range".into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        return Ok((v, prov));
+                    }
+                }
                 if let Ty::Ranged(_, lo, hi) = full_ty {
                     let inside = match (&out, lo, hi) { (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b, (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b, _ => true };
                     if !inside {
@@ -1935,6 +1953,7 @@ impl<'p> Interp<'p> {
             Ty::Ptr(..) => (8, 8),
             Ty::Var(n) => return rt(line, format!("`size.of[<{n}>]`: a type variable has no size until it is filled")),
             Ty::Ranged(b, _, _) => return self.size_align(b, line),
+            Ty::TextRanged(e, _, _, _) => return self.size_align(&Ty::Str(e.clone()), line),
             Ty::Fn(..) => (8, 8),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
@@ -2257,7 +2276,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::Fn(..) => "function".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Fn(..) => "function".into(),
     }
 }
 
