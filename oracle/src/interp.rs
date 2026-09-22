@@ -223,7 +223,12 @@ impl<'p> Interp<'p> {
                 }
                 if p.kind != ParamKind::Owned { return rt(f.line, format!("`extern fn {}`: C receives values and pointers, not `lent`; a lend is written at the call, against a `ptr` parameter", f.name)); }
             }
-            if let Some(t) = &f.ret { if let Err(m) = self.c_shaped(t) { return rt(f.line, format!("`extern fn {}`: return type — {m}", f.name)); } }
+            // A ranged return (`-> uint64[0, 1_000_000]`) is a contract checked at the door: the call
+            // fails `out_of_range` when C returns outside it (decided 2026-09-22). The base must be C-shaped.
+            if let Some(t) = &f.ret {
+                let base = match t { Ty::Ranged(b, _, _) => &**b, t => t };
+                if let Err(m) = self.c_shaped(base) { return rt(f.line, format!("`extern fn {}`: return type — {m}", f.name)); }
+            }
         }
         Ok(())
     }
@@ -1452,7 +1457,21 @@ impl<'p> Interp<'p> {
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
         if func.is_extern {
             if self.nocheck_depth == 0 { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a nocheck site: `nocheck … {name}[…]`")); }
-            if c.handler.is_some() { return rt(c.line, format!("`{name}` is extern and cannot fail; drop the `otherwise` (a wrapper turns its return into a failure)")); }
+            let ranged_ret = matches!(func.ret, Some(Ty::Ranged(..)));
+            if !ranged_ret && c.handler.is_some() { return rt(c.line, format!("`{name}` is extern and cannot fail; drop the `otherwise` (a wrapper turns its return into a failure — or give the extern a ranged return, which fails `out_of_range`)")); }
+            if ranged_ret {
+                // the extern's return contract: a failure, not a check site — `nocheck` does not remove it
+                let value_used = !self.call_is_stmt;
+                self.call_is_stmt = false;
+                let fails = vec![FailCase { name: "out_of_range".into(), ty: None }];
+                self.check_handler(c.handler.as_ref(), &fails, name, c.line)?;
+                let v = self.extern_call(func, c)?;
+                let ret = func.ret.clone().unwrap();
+                if self.check_type(&v, &ret, c.line).is_err() {
+                    return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, "out_of_range".into(), None, value_used);
+                }
+                return Ok(v);
+            }
             return self.extern_call(func, c);
         }
         let variadic = func.params.last().map(|p| p.variadic).unwrap_or(false);

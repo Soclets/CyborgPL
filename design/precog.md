@@ -49,7 +49,8 @@ A value from outside the program has a **domain**: what its type allows.
 `std::input.line[]` is any text; `to.int32[…] otherwise …` on it is any
 `int32`; `to.int32[0, 100][…]` is `[0, 100]`; a `list[T][lo, hi]` has a
 length in `[lo, hi]`; an `extern` result is anything its C-shaped type
-holds. Precog runs the program abstractly over those domains: each
+holds — or, with a ranged return (`ffi.md`, 2026-09-22), the range,
+enforced at the door as a failure. Precog runs the program abstractly over those domains: each
 expression gets the set of values it can take, computed exactly through
 every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
 
@@ -286,5 +287,3 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
 - The pinned solver versions and configurations; what disagreement
   between Z3 and CVC5 (`sat` vs `unsat` on one query) does beyond being
   reported — it should never happen, and the build should say so loudly.
-- Interaction with `extern`: a C result's domain is its type's full range;
-  is there ever a way to say more (a contract on an extern)? Today: no.

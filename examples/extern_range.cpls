@@ -1,0 +1,12 @@
+# A ranged extern return is a contract checked at the door (decided 2026-09-22): outside it, the call fails out_of_range.
+extern fn strlen ['s': ptr[uint8]] -> uint64[0, 10];      # C promises at most 10; checked at the door
+
+MAIN {
+    let 'short' := "hello";
+    let 'long' := "this is longer than ten";
+    nocheck let 'a' := strlen[lend 'short'] otherwise 99;
+    nocheck let 'b' := strlen[lend 'long'] otherwise 99;    # 23 is outside 0..10: fails out_of_range
+    let 'c': int8 = 'a';                                    # proven by the bound: at most 10
+    std::printu.stdout['a', " ", 'b', " ", 'c', \n];
+    nocheck let 'd' := strlen[lend 'long'] otherwise { out_of_range { std::printu.stdout["C lied", \n]; std::exit[3]; } };
+}

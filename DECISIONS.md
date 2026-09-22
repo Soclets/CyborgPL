@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — A ranged extern return is a contract enforced as a failure (owner: c)
+
+Proposed (a) nothing on the extern, a guard after each call; (b) a
+trusted range, unverified; (c) a range checked at the door. Owner
+asked whether extern's `nocheck` conflicts — it would with a *check*
+(nocheck removes checks), so (c) is done as a *failure*: the call fails
+`out_of_range` outside the range, `nocheck` does not touch failures,
+the final build keeps it — the same rule as the input boundary
+(`to.int32[0, 100][…]`; Kespar's "read contract is not a site"). Owner
+asked safety and performance vs (a): identical; (c) is written once.
+Owner: c. Oracle: ranged return allowed, `otherwise` required, plain
+return still cannot fail. `examples/extern_range.cpls`, one reject test.
+
 ### 2026-09-22 — The Precog oracle: exhaustive execution + independent interval analysis + re-encoded negation (owner: b + c)
 
 Proposed (a) exhaustive/random execution over small domains (Kespar's

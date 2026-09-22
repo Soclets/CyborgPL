@@ -83,6 +83,29 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 - Consequence: `ptr[T]` may now appear in any function's parameters and
   return (a callback receives pointers); a `let` still cannot declare one.
 
+## A ranged return — C's contract, checked at the door (decided 2026-09-22)
+
+```
+extern fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
+nocheck let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
+```
+
+An extern's return may be a range type. It is a promise about C that
+Cyborg does not trust: the value is compared against the range at the
+door, and outside it the call **fails `out_of_range`**, which the caller
+handles like any failure. Inside it, Precog knows the value's domain
+and everything downstream is provable. It is a failure, not a check
+site — so `nocheck` (which the call needs) does not remove it, and the
+final build keeps it: one compare per call, the program's own logic,
+the same rule as `to.int32[0, 100][…]` at the input boundary. An extern
+with a plain return still cannot fail. Parameters cannot be ranged (C
+receives what it is given). Proposed: (a) nothing on the extern, a
+guard `if` after each call; (b) a trusted range, unverified — a
+`nocheck` in disguise, rejected; (c) this. Owner asked the safety and
+performance difference against (a): none — same compare, same proofs;
+written once in the signature instead of after every call. Owner: c.
+`examples/extern_range.cpls`.
+
 ## `extern let` — a C global (decided 2026-09-21)
 
 ```
