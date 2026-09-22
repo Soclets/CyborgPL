@@ -20,7 +20,7 @@ cargo build
 
 ## Status
 
-- 2026-09-23: lexer and parser cover every decided spelling; every
+- 2026-09-22: lexer and parser cover every decided spelling; every
   `examples/*.cpls` parses; the syntax-level reject tests are refused with
   a message that says what the `.err` says. No checker, no MIR, no LLVM yet.
 
@@ -28,16 +28,16 @@ cargo build
 
 Dated, with the alternative, so each can become a question later.
 
-- **2026-09-23 — `cca/` is a Cargo workspace** (`compiler/` + `runtime/`),
+- **2026-09-22 — `cca/` is a Cargo workspace** (`compiler/` + `runtime/`),
   not one crate as the brief's wording has it: the runtime must be
   `no_std` and `staticlib`, which a second crate is the only way to say.
   Alternative: one crate with the runtime as a module and a build script.
-- **2026-09-23 — `;` after a `concur` or `whichever` statement is
+- **2026-09-22 — `;` after a `concur` or `whichever` statement is
   optional.** The examples write it both ways (`whichever.cpls`); the
   oracle accepts both; every other statement needs its `;` and there are
   no empty statements. Alternative: require it always (would break the
   examples) or never (would break them too).
-- **2026-09-23 — Reject-test matching.** CCA's messages are in CCA's
+- **2026-09-22 — Reject-test matching.** CCA's messages are in CCA's
   words, so the `.err` substring is not matched literally; the harness
   (to come) records, per reject test, a phrase of CCA's own message that
   was reviewed once against the `.err`, and fails when that phrase
