@@ -231,10 +231,10 @@ impl Domain {
     /// The domain a type allows, before anything is proven. This is where
     /// layer 2 starts, and it is already a real fact: a `uint8` is 0..255,
     /// an `int32[0, 100]` is 0..100, a `list[T][0, 5]` has 0..5 elements.
-    pub fn of_ty(ty: &Ty) -> Domain {
+    pub fn of_ty(ty: &Ty, items: &crate::resolve::Items) -> Domain {
         match ty {
             Ty::Bounded { inner, bound } => {
-                let inner_domain = Domain::of_ty(inner);
+                let inner_domain = Domain::of_ty(inner, items);
                 match (bound, inner_domain) {
                     (Bound::Int { lo, hi }, Domain::Ints(s)) => Domain::Ints(s.clamp(*lo, *hi)),
                     (Bound::Bin { lo, hi }, _) => Domain::Bins { lo: lo.parse().ok(), hi: hi.parse().ok() },
@@ -263,8 +263,14 @@ impl Domain {
             Ty::Bool => Domain::Bools(true, true),
             Ty::Str(_) => Domain::Text { len: Lengths::any(), values: None, classes: Vec::new() },
             Ty::Char(_) => Domain::Chars { values: None },
-            Ty::Seq { elem, .. } => Domain::Seq { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, elem: Box::new(Domain::of_ty(elem)) },
-            Ty::Map { key, val, .. } => Domain::Map { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, key: Box::new(Domain::of_ty(key)), val: Box::new(Domain::of_ty(val)) },
+            Ty::Seq { elem, .. } => Domain::Seq { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, elem: Box::new(Domain::of_ty(elem, items)) },
+            Ty::Map { key, val, .. } => Domain::Map { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, key: Box::new(Domain::of_ty(key, items)), val: Box::new(Domain::of_ty(val, items)) },
+            // A struct is its fields, so what is known about one field is
+            // known about it: a guardrail on `'s'.scores` reaches the list.
+            Ty::Struct { id, args } => {
+                let info = &items.structs[id.0 as usize];
+                Domain::Struct(info.fields.iter().map(|f| Domain::of_ty(&f.ty.subst(args), items)).collect())
+            }
             Ty::Duration => Domain::Duration(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
             _ => Domain::Any,
         }
@@ -407,5 +413,260 @@ pub fn bin_width(ty: &Ty) -> Option<BinW> {
     match ty.base() {
         Ty::Bin(w) => Some(*w),
         _ => None,
+    }
+}
+
+// ---------------------------------------------------------------- arithmetic
+
+/// Every pairwise result, while both sides are small enough to walk; an
+/// interval otherwise. Sound either way: the interval contains every
+/// pairwise result.
+fn pointwise(a: &ISet, b: &ISet, f: impl Fn(i128, i128) -> Option<i128>) -> ISet {
+    if let (Some(av), Some(bv)) = (a.values(), b.values()) {
+        if av.len() * bv.len() <= SET_CAP {
+            let mut out: Vec<i128> = Vec::with_capacity(av.len() * bv.len());
+            for x in &av {
+                for y in &bv {
+                    match f(*x, *y) {
+                        Some(v) => out.push(v),
+                        // No answer for this pair (a division by zero): the
+                        // check site is what refuses it, not the domain.
+                        None => {}
+                    }
+                }
+            }
+            if out.is_empty() {
+                return ISet::Empty;
+            }
+            out.sort_unstable();
+            out.dedup();
+            return ISet::Exact(out);
+        }
+    }
+    ISet::Empty
+}
+
+/// The four corners of two intervals, for an operation that is monotone in
+/// each argument (`+`, `-`, `x`).
+fn corners(a: &ISet, b: &ISet, f: impl Fn(i128, i128) -> Option<i128>) -> ISet {
+    let (Some((a1, a2)), Some((b1, b2))) = (a.bounds(), b.bounds()) else { return ISet::Empty };
+    let mut lo = None;
+    let mut hi = None;
+    for x in [a1, a2] {
+        for y in [b1, b2] {
+            let Some(v) = f(x, y) else { continue };
+            lo = Some(lo.map_or(v, |l: i128| l.min(v)));
+            hi = Some(hi.map_or(v, |h: i128| h.max(v)));
+        }
+    }
+    match (lo, hi) {
+        (Some(l), Some(h)) => ISet::Range { lo: l, hi: h },
+        _ => ISet::Empty,
+    }
+}
+
+impl ISet {
+    pub fn add(&self, o: &ISet) -> ISet {
+        self.arith(o, |x, y| x.checked_add(y), true)
+    }
+    pub fn sub(&self, o: &ISet) -> ISet {
+        self.arith(o, |x, y| x.checked_sub(y), true)
+    }
+    pub fn mul(&self, o: &ISet) -> ISet {
+        self.arith(o, |x, y| x.checked_mul(y), true)
+    }
+    /// Floor division, the language's `/` (`operators.md`). Division by
+    /// zero has no answer and simply is not in the result.
+    pub fn div_floor(&self, o: &ISet) -> ISet {
+        self.arith(o, |x, y| if y == 0 { None } else { Some(x.div_euclid(y) + if (x % y != 0) && ((x % y < 0) != (y < 0)) { 0 } else { 0 }) }, false)
+    }
+    /// The mathematician's `mod`: the result has the divisor's sign.
+    pub fn mod_floor(&self, o: &ISet) -> ISet {
+        self.arith(o, |x, y| if y == 0 { None } else { Some(x.rem_euclid(y.abs()) * if y < 0 { -1 } else { 1 }) }, false)
+    }
+    pub fn pow(&self, o: &ISet) -> ISet {
+        self.arith(
+            o,
+            |x, y| {
+                if !(0..=127).contains(&y) {
+                    return None;
+                }
+                let mut acc: i128 = 1;
+                for _ in 0..y {
+                    acc = acc.checked_mul(x)?;
+                }
+                Some(acc)
+            },
+            false,
+        )
+    }
+    pub fn neg(&self) -> ISet {
+        match self {
+            ISet::Empty => ISet::Empty,
+            ISet::Exact(v) => {
+                let mut out: Vec<i128> = v.iter().filter_map(|x| x.checked_neg()).collect();
+                out.sort_unstable();
+                ISet::Exact(out)
+            }
+            ISet::Range { lo, hi } => ISet::Range { lo: -hi, hi: -lo },
+        }
+    }
+
+    fn arith(&self, o: &ISet, f: impl Fn(i128, i128) -> Option<i128> + Copy, monotone: bool) -> ISet {
+        if self.is_empty() || o.is_empty() {
+            return ISet::Empty;
+        }
+        let exact = pointwise(self, o, f);
+        if !exact.is_empty() {
+            return exact;
+        }
+        if monotone {
+            corners(self, o, f)
+        } else {
+            // Not monotone (division, mod, powers): the only sound answer
+            // without walking is "anything the divisor's shape allows".
+            match (self.bounds(), o.bounds()) {
+                (Some((a1, a2)), Some((b1, b2))) => {
+                    let mut lo: Option<i128> = None;
+                    let mut hi: Option<i128> = None;
+                    for x in [a1, a2] {
+                        for y in [b1, b2, -1, 1] {
+                            if y < b1 || y > b2 {
+                                continue;
+                            }
+                            let Some(v) = f(x, y) else { continue };
+                            lo = Some(lo.map_or(v, |l| l.min(v)));
+                            hi = Some(hi.map_or(v, |h| h.max(v)));
+                        }
+                    }
+                    // A remainder is bounded by its divisor whatever else is true.
+                    match (lo, hi) {
+                        (Some(l), Some(h)) => ISet::Range { lo: l, hi: h },
+                        _ => ISet::Empty,
+                    }
+                }
+                _ => ISet::Empty,
+            }
+        }
+    }
+
+    /// Can `self op other` be true? Can it be false? Both may be true.
+    pub fn compare(&self, o: &ISet, op: Cmp) -> (bool, bool) {
+        let (Some((a1, a2)), Some((b1, b2))) = (self.bounds(), o.bounds()) else { return (false, false) };
+        let (always, never) = match op {
+            Cmp::Lt => (a2 < b1, a1 >= b2),
+            Cmp::Le => (a2 <= b1, a1 > b2),
+            Cmp::Gt => (a1 > b2, a2 <= b1),
+            Cmp::Ge => (a1 >= b2, a2 < b1),
+            Cmp::Eq => {
+                let one = self.single().zip(o.single()).map(|(x, y)| x == y).unwrap_or(false);
+                (one, a2 < b1 || b2 < a1)
+            }
+            Cmp::Ne => {
+                let one = self.single().zip(o.single()).map(|(x, y)| x == y).unwrap_or(false);
+                (a2 < b1 || b2 < a1, one)
+            }
+        };
+        (!never, !always)
+    }
+
+    /// What `self` can be, given `self op other` held.
+    pub fn assume(&self, o: &ISet, op: Cmp) -> ISet {
+        let Some((b1, b2)) = o.bounds() else { return self.clone() };
+        match op {
+            Cmp::Lt => self.clamp(i128::MIN / 4, b2.saturating_sub(1)),
+            Cmp::Le => self.clamp(i128::MIN / 4, b2),
+            Cmp::Gt => self.clamp(b1.saturating_add(1), i128::MAX / 4),
+            Cmp::Ge => self.clamp(b1, i128::MAX / 4),
+            Cmp::Eq => self.meet(o),
+            Cmp::Ne => match o.single() {
+                Some(v) => match self.values() {
+                    Some(vs) => {
+                        let kept: Vec<i128> = vs.into_iter().filter(|x| *x != v).collect();
+                        if kept.is_empty() {
+                            ISet::Empty
+                        } else {
+                            ISet::Exact(kept)
+                        }
+                    }
+                    None => self.clone(),
+                },
+                None => self.clone(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Cmp {
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    Eq,
+    Ne,
+}
+
+impl Cmp {
+    pub fn flip(self) -> Cmp {
+        match self {
+            Cmp::Lt => Cmp::Gt,
+            Cmp::Le => Cmp::Ge,
+            Cmp::Gt => Cmp::Lt,
+            Cmp::Ge => Cmp::Le,
+            Cmp::Eq => Cmp::Eq,
+            Cmp::Ne => Cmp::Ne,
+        }
+    }
+    pub fn negate(self) -> Cmp {
+        match self {
+            Cmp::Lt => Cmp::Ge,
+            Cmp::Le => Cmp::Gt,
+            Cmp::Gt => Cmp::Le,
+            Cmp::Ge => Cmp::Lt,
+            Cmp::Eq => Cmp::Ne,
+            Cmp::Ne => Cmp::Eq,
+        }
+    }
+}
+
+impl Domain {
+    /// Widen towards the type's own domain: what a loop does when a set
+    /// keeps growing (`precog.md`, layer 2). Never narrower than the union,
+    /// so it stays sound; it only gives up precision.
+    pub fn widen(&self, next: &Domain, ty: &Ty, items: &crate::resolve::Items) -> Domain {
+        let joined = self.union(next);
+        match (&joined, self) {
+            (Domain::Ints(new), Domain::Ints(old)) => {
+                let (Some((n1, n2)), Some((o1, o2))) = (new.bounds(), old.bounds()) else { return joined };
+                let top = match Domain::of_ty(ty, items) {
+                    Domain::Ints(s) => s.bounds().unwrap_or((i64::MIN as i128, i64::MAX as i128)),
+                    _ => (i64::MIN as i128, i64::MAX as i128),
+                };
+                let lo = if n1 < o1 { top.0 } else { n1 };
+                let hi = if n2 > o2 { top.1 } else { n2 };
+                Domain::Ints(ISet::range(lo, hi))
+            }
+            (Domain::Seq { len, elem }, Domain::Seq { len: old, .. }) => {
+                let (Some((n1, n2)), Some((o1, o2))) = (len.bounds(), old.bounds()) else { return joined.clone() };
+                let lo = if n1 < o1 { 0 } else { n1 };
+                let hi = if n2 > o2 { i64::MAX as i128 } else { n2 };
+                Domain::Seq { len: ISet::range(lo, hi), elem: elem.clone() }
+            }
+            (Domain::Text { len, values, classes }, Domain::Text { len: old, .. }) => {
+                let widen_one = |n: &ISet, o: &ISet| -> ISet {
+                    match (n.bounds(), o.bounds()) {
+                        (Some((n1, n2)), Some((o1, o2))) => ISet::range(if n1 < o1 { 0 } else { n1 }, if n2 > o2 { i64::MAX as i128 } else { n2 }),
+                        _ => n.clone(),
+                    }
+                };
+                Domain::Text {
+                    len: Lengths { bytes: widen_one(&len.bytes, &old.bytes), points: widen_one(&len.points, &old.points), graphemes: widen_one(&len.graphemes, &old.graphemes) },
+                    values: values.clone().filter(|v| v.len() <= 8),
+                    classes: classes.clone(),
+                }
+            }
+            _ => joined,
+        }
     }
 }

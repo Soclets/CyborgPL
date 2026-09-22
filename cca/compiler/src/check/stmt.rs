@@ -62,6 +62,18 @@ impl Checker {
     }
 
     pub fn stmt(&mut self, ctx: &mut FnCtx, s: &ast::Stmt) -> Result<hir::Stmt> {
+        // `check` / `nocheck` in front of a statement covers the statement,
+        // and the innermost word wins (`core-features.md`). The tier rides
+        // on the statement it covers, so MIR can put it on every site
+        // inside — losing it here would make a `nocheck` site checked and a
+        // `check` site silent, which is both tiers backwards.
+        if let ast::StmtKind::Tier { tier, stmt } = &s.kind {
+            let saved = ctx.tier;
+            ctx.tier = Some(*tier);
+            let inner = self.stmt(ctx, stmt)?;
+            ctx.tier = saved;
+            return Ok(inner);
+        }
         let tier = ctx.tier;
         let kind = self.stmt_kind(ctx, s)?;
         Ok(hir::Stmt { kind, span: s.span, tier })
@@ -69,14 +81,7 @@ impl Checker {
 
     fn stmt_kind(&mut self, ctx: &mut FnCtx, s: &ast::Stmt) -> Result<hir::StmtKind> {
         match &s.kind {
-            ast::StmtKind::Tier { tier, stmt } => {
-                let saved = ctx.tier;
-                ctx.tier = Some(*tier);
-                let inner = self.stmt(ctx, stmt)?;
-                ctx.tier = saved;
-                let _ = Tier::Check;
-                Ok(inner.kind)
-            }
+            ast::StmtKind::Tier { .. } => unreachable!("handled in stmt"),
             ast::StmtKind::Let { mutability, name, ty, shadow, value } => {
                 // Shadowing is never silent.
                 if let Some(prev) = ctx.in_current_scope(&name.name) {

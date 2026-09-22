@@ -261,6 +261,11 @@ pub struct Site {
     pub kind: SiteKind,
     /// `None` is the default tier: "I have no guardrails yet, help me".
     pub tier: Option<Tier>,
+    /// The type the value has to fit — the *result's*, which is not the
+    /// same as either operand's: `'total' x 'n'` with `'total'` an
+    /// `int32[0, 1000]` is computed as an `int32`, and the store into the
+    /// narrower type is its own site.
+    pub result_ty: Option<Ty>,
     pub span: SpanId,
     /// The values the check is about, for the counterexample.
     pub operands: Vec<Operand>,

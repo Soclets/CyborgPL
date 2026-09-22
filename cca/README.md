@@ -10,6 +10,7 @@ cargo build
 ./target/debug/cca parse ../examples/hello.cpls     # parse only; the first refusal, in the diagnostics.md shape
 ./target/debug/cca check ../examples/add.cpls       # parse and check
 ./target/debug/cca mir   ../examples/add.cpls       # check, then print the flow graph
+./target/debug/cca precog ../examples/scores.cpls   # …then prove, and print the report
 ```
 
 ## Layout

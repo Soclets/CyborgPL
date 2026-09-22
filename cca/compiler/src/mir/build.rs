@@ -155,13 +155,13 @@ impl<'a> FnBuilder<'a> {
                 _ => LocalKind::Plain,
             };
             let ty = resolved(&l.ty, &fb.arena.subst);
-            fb.locals.push(LocalDecl { name: Some(l.name.clone()), ty: ty.clone(), domain: Domain::of_ty(&ty), kind, span });
+            fb.locals.push(LocalDecl { name: Some(l.name.clone()), ty: ty.clone(), domain: Domain::of_ty(&ty, &fb.arena.items), kind, span });
         }
         if body.ret != Ty::Nothing {
             let span = fb.span_id(body.span);
             let id = LocalId(fb.locals.len() as u32);
             let ret = resolved(&body.ret, &fb.arena.subst);
-            fb.locals.push(LocalDecl { name: Some("the result".into()), ty: ret.clone(), domain: Domain::of_ty(&ret), kind: LocalKind::Return, span });
+            fb.locals.push(LocalDecl { name: Some("the result".into()), ty: ret.clone(), domain: Domain::of_ty(&ret, &fb.arena.items), kind: LocalKind::Return, span });
             fb.ret_local = Some(id);
         }
         fb
@@ -206,7 +206,7 @@ impl<'a> FnBuilder<'a> {
         let ty = &self.resolve_ty(ty);
         let kind = if ty.is_owned() { LocalKind::Owned } else { LocalKind::Temp };
         let id = LocalId(self.locals.len() as u32);
-        self.locals.push(LocalDecl { name: None, ty: ty.clone(), domain: Domain::of_ty(ty), kind, span });
+        self.locals.push(LocalDecl { name: None, ty: ty.clone(), domain: Domain::of_ty(ty, &self.arena.items), kind, span });
         // A temporary holding an owned value is dropped with its scope.
         if kind == LocalKind::Owned {
             self.scopes.last_mut().unwrap().push(id);
@@ -215,8 +215,13 @@ impl<'a> FnBuilder<'a> {
     }
 
     fn site(&mut self, kind: SiteKind, operands: Vec<Operand>, span: SpanId) -> SiteId {
+        self.site_of(kind, operands, None, span)
+    }
+
+    /// A site whose question is about a type: what the value has to fit.
+    fn site_of(&mut self, kind: SiteKind, operands: Vec<Operand>, result_ty: Option<Ty>, span: SpanId) -> SiteId {
         let id = SiteId(self.sites.len() as u32);
-        self.sites.push(Site { kind, tier: self.tier, span, operands, verdict: Verdict::Unproven });
+        self.sites.push(Site { kind, tier: self.tier, result_ty, span, operands, verdict: Verdict::Unproven });
         self.push(StmtKind::Site(id), span);
         id
     }
@@ -517,9 +522,14 @@ impl<'a> FnBuilder<'a> {
     fn for_range(&mut self, counter: hir::LocalId, start: &hir::Expr, stop: &hir::Expr, step: Option<&hir::Expr>, body: &hir::Block, perm: bool, _seq: bool, span: SpanId) {
         let c = LocalId(counter.0);
         let ty = self.locals[c.0 as usize].ty.clone();
+        // The counter holds every value the range names, so each end of the
+        // range is a value that has to fit its type (`control-flow.md`:
+        // "`'i': int32` → explicit, every value must fit").
         let s = self.eval(start, span);
+        self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![s.clone()], Some(ty.clone()), span);
         self.assign(Place::local(c), Rvalue::Use(s), span);
         let stop_v = self.eval(stop, span);
+        self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![stop_v.clone()], Some(ty.clone()), span);
         let stop_t = self.temp(&ty, span);
         self.assign(Place::local(stop_t), Rvalue::Use(stop_v), span);
         let step_v = match step {
@@ -599,7 +609,8 @@ impl<'a> FnBuilder<'a> {
         // A step that lands past the type's own end is still a site: with a
         // step of 3 an `int8` counter can reach 129, which is nobody's fault
         // but the program's.
-        self.site(SiteKind::Overflow(BinOp::Add), vec![Operand::Read(Place::local(c)), Operand::Read(Place::local(step_t))], span);
+        let cty = self.locals[c.0 as usize].ty.clone();
+        self.site_of(SiteKind::Overflow(BinOp::Add), vec![Operand::Read(Place::local(c)), Operand::Read(Place::local(step_t))], Some(cty), span);
         self.assign(
             Place::local(c),
             Rvalue::Binary { op: BinOp::Add, lhs: Operand::Read(Place::local(c)), rhs: Operand::Read(Place::local(step_t)) },
@@ -670,7 +681,8 @@ impl<'a> FnBuilder<'a> {
         self.loops.pop();
 
         self.cur = next;
-        self.site(SiteKind::Overflow(BinOp::Add), vec![Operand::Read(Place::local(i)), Operand::Const(Const::Int(1))], span);
+        let ity = self.locals[i.0 as usize].ty.clone();
+        self.site_of(SiteKind::Overflow(BinOp::Add), vec![Operand::Read(Place::local(i)), Operand::Const(Const::Int(1))], Some(ity), span);
         self.assign(
             Place::local(i),
             Rvalue::Binary { op: BinOp::Add, lhs: Operand::Read(Place::local(i)), rhs: Operand::Const(Const::Int(1)) },
@@ -783,13 +795,41 @@ impl<'a> FnBuilder<'a> {
             return;
         }
         let rv = self.rvalue(value, span);
-        if typed {
-            if let Some(op) = rvalue_operand(&rv) {
-                self.narrow_site(&op, target, &value.ty, span);
-            }
+        let from = self.resolve_ty(&value.ty);
+        let to = self.resolve_ty(target);
+        if typed && needs_narrow_check(&from, &to) && to.base().is_numeric() {
+            // The value has to fit where it is going, and the site is about
+            // the value, so it is asked before the store — of a temporary
+            // when the value is not already one, because an operation's
+            // result has nowhere else to be named.
+            let op = match rvalue_operand(&rv) {
+                Some(o) => {
+                    self.assign(place.clone(), rv, span);
+                    o
+                }
+                None => {
+                    let t = self.temp(&from, span);
+                    self.assign(Place::local(t), rv, span);
+                    self.assign(place.clone(), Rvalue::Use(Operand::Read(Place::local(t))), span);
+                    Operand::Read(Place::local(t))
+                }
+            };
+            self.site_of(SiteKind::Narrow { to: to.clone() }, vec![op], Some(to), span);
+            self.store_site(&place, target, typed, span);
+            return;
         }
         self.assign(place.clone(), rv, span);
         self.store_site(&place, target, typed, span);
+    }
+
+    /// A value going into a slot of its own: a field, an element, an
+    /// argument. The same question as a store, asked where the value is.
+    fn narrow_arg(&mut self, op: &Operand, from: &Ty, to: &Ty, span: SpanId) {
+        let from = self.resolve_ty(from);
+        let to = self.resolve_ty(to);
+        if needs_narrow_check(&from, &to) {
+            self.site_of(SiteKind::Narrow { to: to.clone() }, vec![op.clone()], Some(to), span);
+        }
     }
 
     /// After a store into a bounded collection, its bound is a check site.
@@ -873,14 +913,16 @@ impl<'a> FnBuilder<'a> {
             hir::ExprKind::Unary { op, expr } => {
                 let operand = self.eval(expr, span);
                 if *op == UnOp::Neg && self.resolve_ty(&expr.ty).is_int() {
-                    self.site(SiteKind::Overflow(BinOp::Sub), vec![operand.clone()], span);
+                    let ty = self.resolve_ty(&e.ty);
+                    self.site_of(SiteKind::Overflow(BinOp::Sub), vec![operand.clone()], Some(ty), span);
                 }
                 Rvalue::Unary { op: *op, operand }
             }
             hir::ExprKind::Binary { op, lhs, rhs, .. } => {
                 let l = self.eval(lhs, span);
                 let r = self.eval(rhs, span);
-                self.binary_sites(op, &l, &r, &lhs.ty, span);
+                let result = self.resolve_ty(&e.ty);
+                self.binary_sites(op, &l, &r, &result, span);
                 Rvalue::Binary { op: op.clone(), lhs: l, rhs: r }
             }
             hir::ExprKind::UserOp { inst, lhs, rhs } => {
@@ -905,7 +947,21 @@ impl<'a> FnBuilder<'a> {
             hir::ExprKind::ListEmpty => Rvalue::MakeList(Vec::new()),
             hir::ExprKind::MapEmpty => Rvalue::MakeMap(Vec::new()),
             hir::ExprKind::Construct { id, fields } => {
-                let ops = fields.iter().map(|a| self.arg_operand(a, span)).collect();
+                let info = self.arena.items.structs[id.0 as usize].clone();
+                let args: Vec<Ty> = match self.resolve_ty(&e.ty) {
+                    Ty::Struct { args, .. } => args,
+                    _ => Vec::new(),
+                };
+                let mut ops = Vec::new();
+                for (i, a) in fields.iter().enumerate() {
+                    let op = self.arg_operand(a, span);
+                    if let Some(fi) = info.fields.get(i) {
+                        let want = fi.ty.subst(&args);
+                        let have = self.arg_ty(a);
+                        self.narrow_arg(&op, &have, &want, span);
+                    }
+                    ops.push(op);
+                }
                 Rvalue::MakeStruct { id: *id, fields: ops }
             }
             hir::ExprKind::EnumCase { id, case, payload } => {
@@ -932,19 +988,19 @@ impl<'a> FnBuilder<'a> {
     }
 
     /// The check sites a binary operation carries (`precog.md`).
-    fn binary_sites(&mut self, op: &BinOp, l: &Operand, r: &Operand, lhs_ty: &Ty, span: SpanId) {
-        let ty = self.resolve_ty(lhs_ty);
+    fn binary_sites(&mut self, op: &BinOp, l: &Operand, r: &Operand, result_ty: &Ty, span: SpanId) {
+        let ty = self.resolve_ty(result_ty);
         let int = ty.is_int();
         match op {
             // Wrapping arithmetic is always defined: never a site.
             BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => {}
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow if int => {
-                self.site(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], span);
+                self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
             BinOp::Div if int => {
                 self.site(SiteKind::DivZero, vec![r.clone()], span);
                 // The one overflowing division: the lowest value by -1.
-                self.site(SiteKind::Overflow(BinOp::Div), vec![l.clone(), r.clone()], span);
+                self.site_of(SiteKind::Overflow(BinOp::Div), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
             BinOp::Mod if int => {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
@@ -1075,7 +1131,12 @@ impl<'a> FnBuilder<'a> {
                 let op = self.eval(expr, span);
                 let f: Vec<(String, Option<Ty>)> = fails.iter().map(|n| (n.clone(), None)).collect();
                 if f.is_empty() {
-                    // A conversion that cannot fail is an ordinary instruction.
+                    // A conversion that cannot fail is an ordinary
+                    // instruction — but a *narrowing* one is still a check
+                    // site (`conversion.md`): `to.int8['big']` asks whether
+                    // it fits, and only `check` makes the compiler say so.
+                    let from = self.resolve_ty(&expr.ty);
+                    self.narrow_arg(&op, &from, &self.resolve_ty(target), span);
                     let rv = Rvalue::Convert { to: target.clone(), operand: op };
                     match dest {
                         Some(p) => self.assign(p, rv, span),
@@ -1129,7 +1190,8 @@ impl<'a> FnBuilder<'a> {
             // Adding N lanes together can leave what one lane holds.
             Op::SimdSum => {
                 let v = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
-                self.site(SiteKind::Overflow(BinOp::Add), vec![v], span);
+                let lane = ty.clone();
+                self.site_of(SiteKind::Overflow(BinOp::Add), vec![v], Some(lane), span);
             }
             _ => {}
         }
@@ -1296,6 +1358,17 @@ fn arg_as_operand(a: &Arg) -> Operand {
         Arg::Lend { place, .. } | Arg::Copy(place) => Operand::Read(place.clone()),
         Arg::Give(place) => Operand::Move(place.clone()),
         Arg::Spread { place, .. } => Operand::Read(place.clone()),
+    }
+}
+
+impl<'a> FnBuilder<'a> {
+    /// The type a HIR argument has before it goes anywhere.
+    fn arg_ty(&self, a: &hir::Arg) -> Ty {
+        match a {
+            hir::Arg::Value(e) => self.resolve_ty(&e.ty),
+            hir::Arg::Lend { place, .. } | hir::Arg::Give(place) | hir::Arg::Copy(place) => self.resolve_ty(&place.ty),
+            hir::Arg::Spread { expr, .. } => self.arg_ty(expr),
+        }
     }
 }
 

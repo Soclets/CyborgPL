@@ -8,6 +8,7 @@ fn usage() -> ! {
     eprintln!("usage: cca parse <file.cpls>…      parse only, report the first refusal");
     eprintln!("       cca check <file.cpls | limb-dir>…   parse and check");
     eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
+    eprintln!("       cca precog <file.cpls | limb-dir>    check, lower, prove, and report");
     exit(2)
 }
 
@@ -51,8 +52,37 @@ fn main() {
                 exit(1);
             }
         }
+        "precog" => {
+            let mut failed = false;
+            for f in &args[1..] {
+                if let Err(d) = precog_one(Path::new(f)) {
+                    failed = true;
+                    eprint!("{}", d);
+                }
+            }
+            if failed {
+                exit(1);
+            }
+        }
         _ => usage(),
     }
+}
+
+fn precog_one(path: &Path) -> Result<(), String> {
+    let mut sources = SourceMap::default();
+    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = cca::check::Checker::new(items);
+    checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
+    let program = checker.check_program().map_err(|d| d.render(&sources))?;
+    let mut mir = cca::mir::build::build(program);
+    cca::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in CCA:\n  {}\n", p.join("\n  ")))?;
+    let analysis = cca::precog::analyse(&mut mir);
+    print!("{}", cca::precog::report::render(&analysis, &mir, &sources));
+    let refusals = cca::precog::refusals(&analysis, &mir, &sources);
+    if !refusals.is_empty() {
+        return Err(refusals.join(""));
+    }
+    Ok(())
 }
 
 fn mir_one(path: &Path) -> Result<(), String> {

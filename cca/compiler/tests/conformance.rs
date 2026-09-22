@@ -40,6 +40,42 @@ fn lower(path: &Path) -> Result<(), String> {
     cca::mir::verify::program(&mir).map_err(|p| p.join("\n"))
 }
 
+/// The whole pipeline, up to and including Precog.
+fn prove(path: &Path) -> Result<(), String> {
+    let mut sources = cca::source::SourceMap::default();
+    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = cca::check::Checker::new(items);
+    checker.std_stubs = true;
+    let program = checker.check_program().map_err(|d| d.render(&sources))?;
+    let mut mir = cca::mir::build::build(program);
+    cca::mir::verify::program(&mir).map_err(|p| p.join("\n"))?;
+    let analysis = cca::precog::analyse(&mut mir);
+    let refusals = cca::precog::refusals(&analysis, &mir, &sources);
+    if refusals.is_empty() {
+        Ok(())
+    } else {
+        Err(refusals.join(""))
+    }
+}
+
+/// No example may be refused by Precog: they are the language's own
+/// programs, and every one of them is meant to build.
+#[test]
+fn examples_are_not_refused_by_precog() {
+    let pending = load_pending();
+    let mut failures = Vec::new();
+    for src in targets(&repo().join("examples")) {
+        let name = name_of(&src);
+        if pending.contains_key(&name) {
+            continue;
+        }
+        if let Err(msg) = prove(&src) {
+            failures.push(format!("{}:\n{}", name, indent(&msg)));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
 #[test]
 fn examples_lower_to_a_well_formed_graph() {
     let pending = load_pending();
@@ -129,7 +165,7 @@ fn reject_programs_are_refused_in_ccas_own_words() {
             failures.push(format!("{}: no line in tests/reject_phrases.txt — add one saying what CCA should say", name));
             continue;
         };
-        let got = check(&src);
+        let got = check(&src).and_then(|()| prove(&src));
         if want == "!pending" {
             if got.is_err() {
                 failures.push(format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message:\n{}", name, indent(got.as_ref().unwrap_err())));

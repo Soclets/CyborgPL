@@ -16,3 +16,5 @@ pub mod types;
 pub mod load;
 
 pub mod mir;
+
+pub mod precog;

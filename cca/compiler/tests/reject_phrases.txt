@@ -13,7 +13,7 @@ append_as_value :: it changes the list in place
 append_to_array :: declare it a `list` to append
 append_without_mut :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
 append_wrong_type :: there is no implicit conversion between numeric families
-arith_overflow :: !pending
+arith_overflow :: `x` can leave what the type holds
 asm_bare_word :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
 asm_in_word :: the arrow is the direction
 asm_lowercase :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
@@ -24,7 +24,7 @@ asm_unknown_var :: 'zzz' is not declared
 asm_without_nocheck :: nothing inside it can be proven
 assign_counter :: the header alone says what it is on every pass
 assign_elem_immut :: 'xs' is `immut` and cannot be assigned to
-assign_elem_past_end :: !pending
+assign_elem_past_end :: the position can be past the end
 assign_immut :: 'x' is `immut` and cannot be assigned to
 assign_to_lent :: it belongs to whoever lent it
 assign_with_colon :: a declaration starts with `let`: `let 'x': int32 = …;`
@@ -43,10 +43,10 @@ bit_not_untyped :: `not.bit` only knows a declared width: it flips every bit, so
 bit_on_bin :: `xor` works on integers, and this is a `bin`
 bit_shl_overflow :: !pending
 bit_shl_too_far :: !pending
-bound_append_over :: !pending
+bound_append_over :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
 bound_backwards :: the low bound comes first: `[2, 5]`
 bound_on_array :: an `array` has one length, already known
-bound_too_short :: !pending
+bound_too_short :: this can take it outside the bound its type gives it (`list[int32][3, 5]`)
 call_main :: it is the program's one block
 call_without_bracket :: there is no `std` Limb for now
 callback_fails :: the `extern fn f` parameter 'cb' is not C-shaped
@@ -57,7 +57,7 @@ callback_wrong_shape :: `qsort`'s parameter 'cmp' wants a function taking 2 argu
 chained_cmp :: comparisons do not chain
 char_to_number :: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit)
 check_bare :: `check 'xs'[pos 'i'] = 1;`, `check { … }`
-check_fails :: !pending
+check_fails :: the position can be past the end
 check_in_value :: if half a statement needs it, split the statement
 check_nocheck :: `check` and `nocheck` cannot both cover it
 check_on_fn :: the tiers are never global
@@ -75,7 +75,7 @@ const_shadow :: 'max' is a const and cannot be shadowed
 const_verb :: it is a value known at compile time
 construct_quoted_field :: `x = …`, not `'x' = …`
 detached_lend :: no scope protects it, so 'x' could be gone while the task still looks at it
-div_zero :: !pending
+div_zero :: the divisor can be zero, and nothing can be divided by zero
 duration_negative :: !pending
 else_if_bare :: `else.if` became `else if`: two bare words
 empty_array :: an array is fixed at the size it was made with
@@ -165,13 +165,13 @@ iface_two_bounds :: `<T>` is already bound to `A`, and cannot also be `B`
 iface_unknown_in_bound :: there is no interface named `Nope`
 iface_unsatisfied_bound :: `str` is not `Ordered`: no `op <` for it
 iface_with_body :: end the signature with `;` and leave the body out
-index_past_end :: !pending
+index_past_end :: the position can be past the end
 index_without_pos :: `'xs'[…]` calls, `'xs'[pos …]` indexes
-index_zero :: !pending
+index_zero :: the position can be past the end
 inline_c :: only `inline.ASM` exists so far; `inline.C` is not offered yet
 input_unhandled :: `std::input.line` can fail (closed): say what happens
 input_with_args :: `std::input.line` takes no arguments
-int8_overflow :: !pending
+int8_overflow :: the value can be outside what a `int8` holds
 int_into_bin_var :: there is no implicit conversion between numeric families
 int_with_params :: `int32` takes no type parameters; a bracket after it is a range
 join_outside_bracket :: join text with `++`, separate values with `,`
@@ -184,7 +184,7 @@ leading_zero :: `007` starts with a zero, and leading zeros are illegal: write `
 lend_to_lent_mut :: `edit` may modify 'text' (it is `lent.mut`): write `lend.mut`
 lend_to_var_param :: write `give` (it moves) or `copy` (a second one)
 length_bare :: `list.length` takes a lend: write `lend 'xs'`
-length_is_uint64 :: !pending
+length_is_uint64 :: the value can be outside what a `uint64` holds
 let_chain :: `mut` / `immut` are bare words before the name
 let_top_level :: `const 'name' := …;` (`let` lives inside a body)
 limb_alone :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
@@ -270,15 +270,15 @@ pub_narrowing_bad :: the only narrowing of `pub` is `pub.limb` (this Limb only);
 quoted_func_name :: `fn add […]`, not `fn 'add'`
 quoted_main :: `fn main […]`, not `fn 'main'`
 range_as_value :: `range[…]` is only decided as what a `for` runs over; as a value on its own it is not
-range_assign_out :: !pending
+range_assign_out :: the value can be outside what a `int32[0, 100]` holds
 range_bin_bounds_on_int :: an integer's bounds are integers: `int32[0, 100]`
 range_bound_markers :: the bounds of a `range` are plain values: `range[0, 3]`
 range_bounds_order :: the low bound comes first: `[0, 100]`
 range_convert_arm_missing :: every reason needs an arm
 range_convert_unhandled :: `to.int32[0, 100]` can fail (not_a_number, out_of_range): say what happens
-range_field_out :: !pending
-range_overflows_type :: !pending
-range_reassign_out :: !pending
+range_field_out :: the value can be outside what a `uint8[0, 100]` holds
+range_overflows_type :: the value can be outside what a `int8` holds
+range_reassign_out :: the value can be outside what a `int32[0, 100]` holds
 range_to_c :: 'a' is written as the plain `int32`
 range_type_on_range :: int32 in range[0, 3]`
 return_in_main :: `MAIN` is a block, not a function: it has no `return`
@@ -291,7 +291,7 @@ shadow_immut :: 'k' is `immut` and cannot be shadowed
 shadow_nothing :: `$` shadows a visible 'y', and none is visible here: write `:=`
 simd_bad_element :: a `simd` holds plain numbers or bools
 simd_load_needs_pos :: says the position with `pos`, as every index does
-simd_load_past_end :: !pending
+simd_load_past_end :: the 16 lanes can run past the end
 simd_not_a_bool :: a vector is never a single answer
 simd_wrong_shape :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char :: 'a' is not declared
@@ -331,13 +331,13 @@ struct_wrong_field_type :: field `x` is an `int32` and this value is text: conve
 take_unhandled :: `channel.take` can fail (closed): say what happens
 temp_after_loop :: 'i' is not declared
 temp_after_name :: expected `in`; `temp` goes before the name
-text_bound_graphemes :: !pending
+text_bound_graphemes :: this can take it outside the bound its type gives it (`str.utf8[1, 2 graphemes]`)
 text_bound_no_unit :: a text's length bound must say which unit it counts
-text_bound_over :: !pending
+text_bound_over :: this can take it outside the bound its type gives it (`str.utf8[0, 20 bytes]`)
 text_to_char_unhandled :: `to.char.point` can fail (not_one_char): say what happens
 to_bool :: there is no truthiness
 to_list :: there is no conversion to a list
-to_narrowing_fails :: !pending
+to_narrowing_fails :: the value can be outside what a `int8` holds
 to_otherwise_on_safe :: `to.str.utf8` cannot fail here; drop the `otherwise`
 to_struct :: a struct or enum value is built by name
 to_unhandled :: `to.int32` can fail (not_a_number): say what happens
@@ -347,7 +347,7 @@ truthiness :: there is no truthiness
 two_bare_numbers :: join text with `++`, separate values with `,`
 two_points_as_point :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 type_before_name :: a type goes after the name: `let 'x': int32 = …;`
-uint_negative :: !pending
+uint_negative :: the value can be outside what a `uint8` holds
 unknown_std :: `std::println` does not exist
 use_after_give :: !pending
 var_keyword :: `var` became `let`: `let 'x' := …;`

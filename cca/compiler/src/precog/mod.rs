@@ -1,0 +1,1195 @@
+//! Precog — the whole program, run at compile time over sets of values.
+//!
+//! `design/precog.md`. Layer 1 executes what is known; layer 2 tracks what
+//! is not as a domain. They are one pass here, because they are one idea:
+//! a domain holding exactly one value *is* a known value, and following a
+//! loop trip by trip *is* executing it. The difference is only how much is
+//! left when the sets get too big to walk.
+//!
+//! At every check site the question is the same: is every value in the
+//! result's set legal? Yes → **proven**, and the check is not emitted. No
+//! value legal → a **certain failure**, and the program never builds,
+//! because it would fail there every time it ran. Otherwise → **unproven**,
+//! which layer 3 (the solver) would take, and which the tiers handle until
+//! it exists.
+//!
+//! Every limit here is a step count, never a clock
+//! (`reproducible-builds.md`): the same source gives the same answer on
+//! every machine, on every day.
+
+pub mod report;
+
+use std::collections::HashMap;
+
+use crate::ast::{BinOp, Tier, UnOp};
+use crate::mir::domain::{Class, Cmp, Domain, ISet, Lengths};
+use crate::mir::*;
+use crate::types::Ty;
+
+/// Provisional, from Kespar (`precog.md`, Open — to be measured):
+/// how many times one loop is followed trip by trip before widening.
+pub const TRIPS_PER_LOOP: u32 = 100_000;
+/// Provisional: trips across the whole program.
+pub const TRIPS_PER_PROGRAM: u64 = 2_000_000;
+/// Provisional: how deep a call chain is followed per call site.
+pub const CALL_DEPTH: u32 = 8;
+/// Provisional: one step per instruction interpreted.
+pub const STEP_BUDGET: u64 = 100_000_000;
+
+/// What the analysis concluded about one site, and why, in the words the
+/// report and any message will use.
+#[derive(Debug, Clone)]
+pub struct SiteResult {
+    pub function: usize,
+    pub site: SiteId,
+    pub verdict: Verdict,
+    /// "layer 1: ran it", "layer 2: 1 to 100" — what convinced it.
+    pub note: String,
+}
+
+pub struct Analysis {
+    pub sites: Vec<SiteResult>,
+    /// Sites that fail on every path that reaches them: the program never
+    /// builds, whatever the tier.
+    pub certain: Vec<usize>,
+    pub steps: u64,
+    /// The whole program ran at compile time: nothing came from outside.
+    pub whole_program: bool,
+}
+
+/// One local's value, as far as this path knows.
+type Env = HashMap<LocalId, Domain>;
+
+pub fn analyse(p: &mut Program) -> Analysis {
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), cache: HashMap::new(), reads_outside: false };
+    // A program is walked from `MAIN`, and every function it reaches is
+    // analysed **per call site**, with that call's argument domains
+    // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
+    // multiply, and nobody writes a contract on `square`. A Limb with no
+    // `MAIN` is a library — there is no call site to start from, so each
+    // function is taken on its own terms instead.
+    match p.main {
+        Some(m) => {
+            let entry = a.entry_env(m.0 as usize);
+            a.run_function(m.0 as usize, entry, 0);
+        }
+        None => {
+            for f in 0..p.functions.len() {
+                let entry = a.entry_env(f);
+                a.run_function(f, entry, 0);
+            }
+        }
+    }
+    let mut sites: Vec<SiteResult> = a
+        .results
+        .iter()
+        .map(|((f, s), v)| SiteResult { function: *f, site: SiteId(*s), verdict: v.clone(), note: note_of(v) })
+        .collect();
+    sites.sort_by_key(|r| (r.function, r.site.0));
+    let certain: Vec<usize> = sites.iter().enumerate().filter(|(_, r)| matches!(&r.verdict, Verdict::Fails { counterexample } if counterexample.starts_with("every"))).map(|(i, _)| i).collect();
+    // Write the verdicts back onto the graph: Precog is the last MIR pass,
+    // so what it decided is what the lowering below it sees.
+    for r in &sites {
+        let f = &mut p.functions[r.function];
+        f.sites[r.site.0 as usize].verdict = r.verdict.clone();
+    }
+    Analysis { sites, certain, steps: a.steps, whole_program: !a.reads_outside }
+}
+
+struct Precog {
+    /// The graph. Held raw so a call can read another function while this
+    /// one is being walked; nothing is written through it.
+    p: *mut Program,
+    steps: u64,
+    trips: u64,
+    /// One verdict per site, whatever it took to get there: a site reached
+    /// from several call sites has to survive all of them, so the worse
+    /// answer is the one kept.
+    results: HashMap<(usize, u32), Verdict>,
+    /// What a function returns, for one set of argument domains.
+    cache: HashMap<(usize, String), Domain>,
+    reads_outside: bool,
+}
+
+impl Precog {
+    fn prog(&self) -> &Program {
+        unsafe { &*self.p }
+    }
+
+    fn entry_env(&mut self, f: usize) -> Env {
+        let items = &self.prog().items;
+        let func = &self.prog().functions[f];
+        let mut env = Env::new();
+        for (i, l) in func.locals.iter().enumerate() {
+            // A parameter is whatever its type allows until a call says more.
+            env.insert(LocalId(i as u32), Domain::of_ty(&l.ty, &items));
+        }
+        env
+    }
+
+    /// Walk one function's graph to a fixpoint, recording every site.
+    fn run_function(&mut self, f: usize, entry: Env, depth: u32) -> Domain {
+        if depth > CALL_DEPTH {
+            let ret = self.prog().functions[f].ret.clone();
+            return Domain::of_ty(&ret, &self.prog().items);
+        }
+        let n_blocks = self.prog().functions[f].blocks.len();
+        let back = back_edges(&self.prog().functions[f]);
+        // What each back edge's loop is made of: a fresh trip starts the
+        // whole body again, not only its head, or the body's blocks would
+        // pile up every trip's values and the loop would be joined after all.
+        let loops: HashMap<(usize, usize), Vec<usize>> = back.iter().map(|(b, h)| ((*b, *h), natural_loop(&self.prog().functions[f], *h, *b))).collect();
+        let mut states: Vec<Option<Env>> = vec![None; n_blocks];
+        let mut visits: Vec<u32> = vec![0; n_blocks];
+        states[0] = Some(entry);
+        let mut work = vec![0usize];
+        let mut returned = Domain::Empty;
+        let mut sites_seen: HashMap<u32, Verdict> = HashMap::new();
+
+        while let Some(b) = work.pop() {
+            self.steps += 1;
+            if self.steps > STEP_BUDGET {
+                break;
+            }
+            let Some(mut env) = states[b].clone() else { continue };
+            visits[b] += 1;
+            let widening = visits[b] as u64 > 32 || self.trips > TRIPS_PER_PROGRAM;
+            // One block's statements.
+            let stmts = self.prog().functions[f].blocks[b].stmts.clone();
+            let mut facts: HashMap<LocalId, (Cmp, Operand, Operand)> = HashMap::new();
+            // Where a number came from, when it came from asking a value how
+            // long it is. A guardrail is written about the *length*
+            // (`if list.length[…] == 0 { … }`), so narrowing the number has
+            // to reach back to the list, or the next `list.length` of the
+            // same list would know nothing.
+            let mut lengths: HashMap<LocalId, (Op, Place)> = HashMap::new();
+            for s in &stmts {
+                self.steps += 1;
+                match &s.kind {
+                    StmtKind::Assign { place, rvalue } => {
+                        let d = self.eval_rvalue(f, rvalue, &env, &mut facts, place);
+                        self.store(f, &mut env, place, d);
+                        lengths.retain(|k, (_, p)| *k != place.local && p.local != place.local);
+                    }
+                    StmtKind::Op { dest, op, args } => {
+                        let d = self.eval_op(f, op, args, &env);
+                        if let Some(p) = dest {
+                            self.store(f, &mut env, p, d);
+                            if p.proj.is_empty() {
+                                match (op, args.first().and_then(|a| a.place())) {
+                                    (Op::ListLength | Op::ArrayLength | Op::MapLength | Op::StrBytes | Op::StrPoints | Op::StrGraphemes, Some(src)) => {
+                                        lengths.insert(p.local, (op.clone(), src.clone()));
+                                    }
+                                    _ => {
+                                        lengths.remove(&p.local);
+                                    }
+                                }
+                            }
+                        }
+                        // Anything that changes a value makes what was asked
+                        // about it a moment ago no longer news.
+                        if let Some(src) = args.first().and_then(|a| a.place()) {
+                            if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore) {
+                                lengths.retain(|_, (_, p)| p.local != src.local);
+                            }
+                        }
+                        // An operation that changes a collection forgets what
+                        // was known about its length unless the op says.
+                        self.apply_op_effect(f, &mut env, op, args);
+                    }
+                    StmtKind::Site(id) => {
+                        let v = self.judge(f, *id, &env);
+                        let prev = sites_seen.get(&id.0).cloned();
+                        let combined = match prev {
+                            None => v,
+                            Some(old) => worse(old, v),
+                        };
+                        sites_seen.insert(id.0, combined);
+                    }
+                    StmtKind::Drop(_) | StmtKind::EndLend(_) | StmtKind::Nop => {}
+                    StmtKind::Task { body, captures, .. } => {
+                        // A task runs with what it was given; its own sites are
+                        // recorded against its own function.
+                        let mut tenv = self.entry_env(body.0 as usize);
+                        let tf = &self.prog().functions[body.0 as usize];
+                        let params: Vec<LocalId> = tf.captures.clone();
+                        for (pl, (_, place)) in params.iter().zip(captures) {
+                            let d = self.read(f, &env, place);
+                            tenv.insert(*pl, d);
+                        }
+                        let idx = body.0 as usize;
+                        if depth < CALL_DEPTH {
+                            self.run_function(idx, tenv, depth + 1);
+                        }
+                    }
+                    StmtKind::Asm { outs, .. } => {
+                        // Nothing about assembly can be known.
+                        for (pl, _) in outs {
+                            let ty = self.place_ty(f, pl);
+                            self.store(f, &mut env, pl, Domain::of_ty(&ty, &self.prog().items));
+                        }
+                    }
+                }
+            }
+            // Where the block goes, and what each successor then knows.
+            let term = self.prog().functions[f].blocks[b].term.clone();
+            let go = |this: &mut Self, to: BlockId, e: Env, states: &mut Vec<Option<Env>>, work: &mut Vec<usize>| {
+                let i = to.0 as usize;
+                // A **back edge** is the loop going round again. The design
+                // follows a counted loop *trip by trip* rather than joining
+                // at its head (`precog.md`, layer 2), because a join cannot
+                // see that a counter and a sum move together: joining gives
+                // `count` every value from 0 upwards, and the sum overflows
+                // in the analysis though never in the program. So each trip
+                // replaces the head's state, and every trip's verdict is
+                // merged — the site has to hold on all of them.
+                let looping = back.contains(&(b, i));
+                let over_budget = visits[i] as u32 >= TRIPS_PER_LOOP || this.trips > TRIPS_PER_PROGRAM;
+                let merged = match &states[i] {
+                    None => e,
+                    Some(old) => {
+                        if looping && !over_budget {
+                            this.trips += 1;
+                            if same(old, &e) {
+                                // The trip changed nothing: the loop has
+                                // settled and going round again would say
+                                // the same thing.
+                                return;
+                            }
+                            if let Some(body) = loops.get(&(b, i)) {
+                                for x in body {
+                                    if *x != i {
+                                        states[*x] = None;
+                                    }
+                                }
+                            }
+                            e
+                        } else {
+                            let m = join(old, &e, widening || (looping && over_budget), unsafe { &(*this.p).items }, |l| this.local_ty(f, l));
+                            if same(old, &m) {
+                                return;
+                            }
+                            m
+                        }
+                    }
+                };
+                states[i] = Some(merged);
+                if !work.contains(&i) {
+                    work.push(i);
+                }
+            };
+            match &term {
+                Terminator::Goto(t) => go(self, *t, env, &mut states, &mut work),
+                Terminator::If { cond, then, else_ } => {
+                    self.trips += 1;
+                    let (can_true, can_false) = self.bool_of(f, cond, &env);
+                    if can_true {
+                        let e = self.narrow(f, &env, cond, &facts, &lengths, true);
+                        go(self, *then, e, &mut states, &mut work);
+                    }
+                    if can_false {
+                        let e = self.narrow(f, &env, cond, &facts, &lengths, false);
+                        go(self, *else_, e, &mut states, &mut work);
+                    }
+                }
+                Terminator::Switch { value, cases } => {
+                    let d = self.read_operand(f, &env, value);
+                    for (case, to) in cases {
+                        if let Domain::Enum(possible) = &d {
+                            if !possible.iter().any(|(c, _)| c == case) {
+                                continue;
+                            }
+                        }
+                        go(self, *to, env.clone(), &mut states, &mut work);
+                    }
+                }
+                Terminator::Call { callee, args, dest, ok, fail } => {
+                    let ret = self.call(f, callee, args, &env, depth);
+                    let mut e = env.clone();
+                    if let Some(p) = dest {
+                        self.store(f, &mut e, p, ret);
+                    }
+                    go(self, *ok, e, &mut states, &mut work);
+                    for arm in fail {
+                        let mut fe = env.clone();
+                        if let Some(p) = &arm.payload {
+                            let ty = self.place_ty(f, p);
+                            self.store(f, &mut fe, p, Domain::of_ty(&ty, &self.prog().items));
+                        }
+                        go(self, arm.block, fe, &mut states, &mut work);
+                    }
+                }
+                Terminator::Whichever { arms, closed } => {
+                    for arm in arms {
+                        let mut e = env.clone();
+                        let ty = self.place_ty(f, &arm.dest);
+                        self.store(f, &mut e, &arm.dest, Domain::of_ty(&ty, &self.prog().items));
+                        go(self, arm.block, e, &mut states, &mut work);
+                    }
+                    if let Some(c) = closed {
+                        go(self, *c, env.clone(), &mut states, &mut work);
+                    }
+                }
+                Terminator::Join { ok, fail } => {
+                    go(self, *ok, env.clone(), &mut states, &mut work);
+                    for arm in fail {
+                        go(self, arm.block, env.clone(), &mut states, &mut work);
+                    }
+                }
+                Terminator::Return => {
+                    if let Some(r) = self.prog().functions[f].ret_local {
+                        let d = env.get(&r).cloned().unwrap_or(Domain::Any);
+                        returned = returned.union(&d);
+                    }
+                }
+                Terminator::Fail { .. } | Terminator::Trap(_) | Terminator::Unreachable => {}
+            }
+
+        }
+        for (id, v) in sites_seen {
+            let key = (f, id);
+            let merged = match self.results.get(&key) {
+                Some(old) => worse(old.clone(), v),
+                None => v,
+            };
+            self.results.insert(key, merged);
+        }
+        returned
+    }
+
+    // ------------------------------------------------------------ reading
+
+    fn local_ty(&self, f: usize, l: LocalId) -> Ty {
+        self.prog().functions[f].locals[l.0 as usize].ty.clone()
+    }
+
+    fn place_ty(&self, f: usize, p: &Place) -> Ty {
+        let base = self.local_ty(f, p.local);
+        crate::mir::build::projected_ty(&base, &p.proj, &self.prog().items)
+    }
+
+    fn read(&mut self, f: usize, env: &Env, p: &Place) -> Domain {
+        if p.proj.is_empty() {
+            return env.get(&p.local).cloned().unwrap_or_else(|| Domain::of_ty(&self.local_ty(f, p.local), &self.prog().items));
+        }
+        // Reaching into a value: what is known about the part, when the
+        // whole says something about it.
+        let mut d = env.get(&p.local).cloned().unwrap_or_else(|| Domain::of_ty(&self.local_ty(f, p.local), &self.prog().items));
+        for pr in &p.proj {
+            d = match (pr, &d) {
+                (Proj::Field(i), Domain::Struct(fields)) => fields.get(*i).cloned().unwrap_or(Domain::Any),
+                (Proj::Index(_), Domain::Seq { elem, .. }) => (**elem).clone(),
+                _ => Domain::Any,
+            };
+        }
+        if matches!(d, Domain::Any) {
+            let ty = self.place_ty(f, p);
+            return Domain::of_ty(&ty, &self.prog().items);
+        }
+        d
+    }
+
+    fn read_operand(&mut self, f: usize, env: &Env, o: &Operand) -> Domain {
+        match o {
+            Operand::Const(c) => self.const_domain(f, c),
+            Operand::Read(p) | Operand::Move(p) => self.read(f, env, p),
+        }
+    }
+
+    fn const_domain(&mut self, f: usize, c: &Const) -> Domain {
+        match c {
+            Const::Int(v) => Domain::Ints(ISet::one(*v)),
+            Const::Bin(t) => {
+                let v = t.parse::<f64>().ok();
+                Domain::Bins { lo: v, hi: v }
+            }
+            Const::Str(s) => Domain::Text { len: Lengths::of(s), values: Some(vec![s.clone()]), classes: classes_of(s) },
+            Const::Char(c) => Domain::Chars { values: Some(vec![c.clone()]) },
+            Const::Bool(b) => Domain::Bools(*b, !*b),
+            Const::Duration(n) => Domain::Duration(ISet::one(*n)),
+            Const::Const(id) => {
+                let ty = self.prog().items.consts[id.0 as usize].ty.clone();
+                match ty {
+                    Some(t) => Domain::of_ty(&t, &self.prog().items),
+                    None => Domain::Any,
+                }
+            }
+            Const::SizeOf { .. } => Domain::Ints(ISet::Range { lo: 0, hi: 1 << 20 }),
+            Const::Nothing => Domain::Any,
+        }
+        .clone_with(f)
+    }
+
+    fn store(&mut self, f: usize, env: &mut Env, p: &Place, d: Domain) {
+        if p.proj.is_empty() {
+            env.insert(p.local, d);
+            return;
+        }
+        // Writing into a part changes that part, and nothing else: a list's
+        // length survives an element being written, and a struct's other
+        // fields survive one field being written.
+        let whole = self.read(f, env, &Place::local(p.local));
+        let updated = put(&whole, &p.proj, d);
+        env.insert(p.local, updated);
+    }
+
+    // ------------------------------------------------------------ operations
+
+    fn eval_rvalue(&mut self, f: usize, rv: &Rvalue, env: &Env, facts: &mut HashMap<LocalId, (Cmp, Operand, Operand)>, dest: &Place) -> Domain {
+        match rv {
+            Rvalue::Use(o) => self.read_operand(f, env, o),
+            Rvalue::Duplicate(p) => self.read(f, env, p),
+            Rvalue::Lend { place, .. } => self.read(f, env, place),
+            Rvalue::Unary { op, operand } => {
+                let d = self.read_operand(f, env, operand);
+                match (op, &d) {
+                    (UnOp::Neg, Domain::Ints(s)) => Domain::Ints(s.neg()),
+                    (UnOp::Not, Domain::Bools(t, fa)) => Domain::Bools(*fa, *t),
+                    _ => Domain::of_ty(&self.place_ty(f, dest), &self.prog().items),
+                }
+            }
+            Rvalue::Binary { op, lhs, rhs } => {
+                let a = self.read_operand(f, env, lhs);
+                let b = self.read_operand(f, env, rhs);
+                if let Some(cmp) = cmp_of(op) {
+                    if dest.proj.is_empty() {
+                        facts.insert(dest.local, (cmp, lhs.clone(), rhs.clone()));
+                    }
+                }
+                self.binary(f, op, &a, &b, dest)
+            }
+            Rvalue::Convert { to, operand } => {
+                let d = self.read_operand(f, env, operand);
+                self.convert(to, &d)
+            }
+            Rvalue::MakeList(items) => {
+                let mut elem = Domain::Empty;
+                for it in items {
+                    let d = self.read_operand(f, env, it);
+                    elem = elem.union(&d);
+                }
+                Domain::Seq { len: ISet::one(items.len() as i128), elem: Box::new(elem) }
+            }
+            Rvalue::MakeMap(pairs) => Domain::Map { len: ISet::one(pairs.len() as i128), key: Box::new(Domain::Any), val: Box::new(Domain::Any) },
+            Rvalue::MakeStruct { fields, .. } => {
+                let ds = fields.iter().map(|o| self.read_operand(f, env, o)).collect();
+                Domain::Struct(ds)
+            }
+            Rvalue::MakeEnum { case, payload, .. } => {
+                let d = payload.as_ref().map(|o| self.read_operand(f, env, o)).unwrap_or(Domain::Any);
+                Domain::Enum(vec![(*case, d)])
+            }
+            Rvalue::MakeChannel { .. } | Rvalue::FnRef(_) | Rvalue::Closure { .. } => Domain::Any,
+            Rvalue::ExternRead(_) => {
+                // C's memory: nothing about it can be known.
+                self.reads_outside = true;
+                Domain::of_ty(&self.place_ty(f, dest), &self.prog().items)
+            }
+        }
+    }
+
+    fn binary(&mut self, f: usize, op: &BinOp, a: &Domain, b: &Domain, dest: &Place) -> Domain {
+        let ty = self.place_ty(f, dest);
+        if let (Domain::Ints(x), Domain::Ints(y)) = (a, b) {
+            let s = match op {
+                BinOp::Add => x.add(y),
+                BinOp::Sub => x.sub(y),
+                BinOp::Mul => x.mul(y),
+                BinOp::Div => x.div_floor(y),
+                BinOp::Mod => x.mod_floor(y),
+                BinOp::Pow => x.pow(y),
+                // Wrapping arithmetic is exact modulo the width; the domain
+                // is only narrowed when the plain answer already fits.
+                BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => {
+                    let plain = match op {
+                        BinOp::WrapAdd => x.add(y),
+                        BinOp::WrapSub => x.sub(y),
+                        BinOp::WrapMul => x.mul(y),
+                        _ => x.pow(y),
+                    };
+                    match int_limits(&ty, &self.prog().items) {
+                        Some((lo, hi)) if plain.within(lo, hi) => plain,
+                        Some((lo, hi)) => ISet::range(lo, hi),
+                        None => return Domain::of_ty(&ty, &self.prog().items),
+                    }
+                }
+                BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => return Domain::of_ty(&ty, &self.prog().items),
+                _ => {
+                    let cmp = cmp_of(op);
+                    return match cmp {
+                        Some(c) => {
+                            let (t, fa) = x.compare(y, c);
+                            Domain::Bools(t, fa)
+                        }
+                        None => Domain::of_ty(&ty, &self.prog().items),
+                    };
+                }
+            };
+            if s.is_empty() {
+                // Nothing came back: every pair had no answer (a division by
+                // zero every time). The site says so; the value is nothing.
+                return Domain::Empty;
+            }
+            return Domain::Ints(s);
+        }
+        if let (Domain::Bools(t1, f1), Domain::Bools(t2, f2)) = (a, b) {
+            return match op {
+                BinOp::And => Domain::Bools(*t1 && *t2, *f1 || *f2),
+                BinOp::Or => Domain::Bools(*t1 || *t2, *f1 && *f2),
+                BinOp::Eq => Domain::Bools((*t1 && *t2) || (*f1 && *f2), (*t1 && *f2) || (*f1 && *t2)),
+                BinOp::Ne => Domain::Bools((*t1 && *f2) || (*f1 && *t2), (*t1 && *t2) || (*f1 && *f2)),
+                _ => Domain::of_ty(&ty, &self.prog().items),
+            };
+        }
+        // Text: a join's length is the sum of the two, and its value is
+        // known when both are.
+        if let (Domain::Text { len: l1, values: v1, classes: c1 }, Domain::Text { len: l2, values: v2, classes: c2 }) = (a, b) {
+            if *op == BinOp::Join {
+                let values = match (v1, v2) {
+                    (Some(x), Some(y)) if x.len() * y.len() <= 64 => {
+                        let mut out = Vec::new();
+                        for p in x {
+                            for q in y {
+                                out.push(format!("{}{}", p, q));
+                            }
+                        }
+                        out.sort();
+                        out.dedup();
+                        Some(out)
+                    }
+                    _ => None,
+                };
+                let classes: Vec<Class> = c1.iter().copied().filter(|c| c2.contains(c) && *c != Class::NonEmpty).collect();
+                return Domain::Text {
+                    len: Lengths { bytes: l1.bytes.add(&l2.bytes), points: l1.points.add(&l2.points), graphemes: l1.graphemes.add(&l2.graphemes) },
+                    values,
+                    classes,
+                };
+            }
+            if let Some(c) = cmp_of(op) {
+                if matches!(c, Cmp::Eq | Cmp::Ne) {
+                    if let (Some(x), Some(y)) = (v1, v2) {
+                        if x.len() == 1 && y.len() == 1 {
+                            let equal = x[0] == y[0];
+                            return match c {
+                                Cmp::Eq => Domain::Bools(equal, !equal),
+                                _ => Domain::Bools(!equal, equal),
+                            };
+                        }
+                    }
+                    // Lengths that cannot match rule equality out.
+                    let can_equal = !l1.bytes.meet(&l2.bytes).is_empty();
+                    return match c {
+                        Cmp::Eq => Domain::Bools(can_equal, true),
+                        _ => Domain::Bools(true, can_equal),
+                    };
+                }
+            }
+        }
+        if let (Domain::Chars { values: Some(x) }, Domain::Chars { values: Some(y) }) = (a, b) {
+            if let Some(c) = cmp_of(op) {
+                if matches!(c, Cmp::Eq | Cmp::Ne) && x.len() == 1 && y.len() == 1 {
+                    let equal = x[0] == y[0];
+                    return match c {
+                        Cmp::Eq => Domain::Bools(equal, !equal),
+                        _ => Domain::Bools(!equal, equal),
+                    };
+                }
+            }
+        }
+        Domain::of_ty(&ty, &self.prog().items)
+    }
+
+    fn convert(&mut self, to: &Ty, from: &Domain) -> Domain {
+        let top = Domain::of_ty(to, &self.prog().items);
+        match (from, &top) {
+            // Into a wider or equal integer: the same values.
+            (Domain::Ints(s), Domain::Ints(limit)) => {
+                let (Some((lo, hi)), Some((l2, h2))) = (s.bounds(), limit.bounds()) else { return top };
+                if lo >= l2 && hi <= h2 {
+                    Domain::Ints(s.clone())
+                } else {
+                    top
+                }
+            }
+            (Domain::Ints(s), Domain::Text { .. }) => {
+                // A number written out: its length follows from its digits.
+                let len = match s.bounds() {
+                    Some((lo, hi)) => {
+                        let d = |v: i128| v.to_string().len() as i128;
+                        ISet::range(d(lo).min(d(hi)).min(1), d(lo).max(d(hi)))
+                    }
+                    None => ISet::Range { lo: 1, hi: 40 },
+                };
+                Domain::Text { len: Lengths { bytes: len.clone(), points: len.clone(), graphemes: len }, values: None, classes: vec![Class::Ascii, Class::NoNewline, Class::NonEmpty] }
+            }
+            _ => top,
+        }
+    }
+
+    fn eval_op(&mut self, f: usize, op: &Op, args: &[Operand], env: &Env) -> Domain {
+        let arg = |this: &mut Self, i: usize| -> Domain { args.get(i).map(|a| this.read_operand(f, env, a)).unwrap_or(Domain::Any) };
+        match op {
+            Op::ListLength | Op::ArrayLength => match arg(self, 0) {
+                Domain::Seq { len, .. } => Domain::Ints(len),
+                _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
+            },
+            Op::MapLength => match arg(self, 0) {
+                Domain::Map { len, .. } => Domain::Ints(len),
+                _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
+            },
+            Op::StrBytes => match arg(self, 0) {
+                Domain::Text { len, .. } => Domain::Ints(len.bytes),
+                _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
+            },
+            Op::StrPoints => match arg(self, 0) {
+                Domain::Text { len, .. } => Domain::Ints(len.points),
+                _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
+            },
+            Op::StrGraphemes => match arg(self, 0) {
+                Domain::Text { len, .. } => Domain::Ints(len.graphemes),
+                _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
+            },
+            Op::StrEach(u) => {
+                let (len, elem) = match arg(self, 0) {
+                    Domain::Text { len, .. } => (len.get(*u).clone(), Domain::Any),
+                    _ => (ISet::Range { lo: 0, hi: i64::MAX as i128 }, Domain::Any),
+                };
+                Domain::Seq { len, elem: Box::new(elem) }
+            }
+            Op::MapKeys | Op::MapValues | Op::MapPairs => {
+                let len = match arg(self, 0) {
+                    Domain::Map { len, .. } => len,
+                    _ => ISet::Range { lo: 0, hi: i64::MAX as i128 },
+                };
+                Domain::Seq { len, elem: Box::new(Domain::Any) }
+            }
+            Op::MapHas | Op::PtrIsNull | Op::SimdAll | Op::SimdAny => Domain::Bools(true, true),
+            Op::CharCode => Domain::Ints(ISet::Range { lo: 0, hi: 0x10FFFF }),
+            Op::Std(name) => {
+                if name.starts_with("input") {
+                    self.reads_outside = true;
+                }
+                Domain::Any
+            }
+            _ => Domain::Any,
+        }
+    }
+
+    /// What an operation does to what was known about its arguments.
+    fn apply_op_effect(&mut self, f: usize, env: &mut Env, op: &Op, args: &[Operand]) {
+        let target = match args.first().and_then(|a| a.place()) {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        let before = self.read(f, env, &target);
+        let after = match (op, before) {
+            (Op::ListAppend, Domain::Seq { len, elem }) => {
+                let added = args.get(1).map(|a| self.read_operand(f, env, a)).unwrap_or(Domain::Any);
+                Domain::Seq { len: len.add(&ISet::one(1)), elem: Box::new(elem.union(&added)) }
+            }
+            (Op::ListRemove, Domain::Seq { len, elem }) => Domain::Seq { len: len.sub(&ISet::one(1)).clamp(0, i64::MAX as i128), elem },
+            (Op::MapSet, Domain::Map { len, key, val }) => Domain::Map { len: len.add(&ISet::range(0, 1)).clamp(0, i64::MAX as i128), key, val },
+            (Op::MapRemove, Domain::Map { len, key, val }) => Domain::Map { len: len.sub(&ISet::range(0, 1)).clamp(0, i64::MAX as i128), key, val },
+            (Op::SimdStore, d) => d,
+            _ => return,
+        };
+        env.insert(target.local, after);
+    }
+
+    fn call(&mut self, f: usize, callee: &Callee, args: &[Arg], env: &Env, depth: u32) -> Domain {
+        match callee {
+            Callee::Fn(idx) => {
+                let i = idx.0 as usize;
+                if i >= self.prog().functions.len() {
+                    return Domain::Any;
+                }
+                // Per call site, with these argument domains: the same
+                // machinery generics and variadics already use.
+                let mut callee_env = self.entry_env(i);
+                let params = self.prog().functions[i].params.clone();
+                let mut key = String::new();
+                for (p, a) in params.iter().zip(args) {
+                    let d = self.arg_domain(f, env, a);
+                    key.push_str(&d.describe());
+                    key.push(';');
+                    callee_env.insert(*p, d);
+                }
+                if let Some(cached) = self.cache.get(&(i, key.clone())) {
+                    return cached.clone();
+                }
+                if depth >= CALL_DEPTH {
+                    let ret = self.prog().functions[i].ret.clone();
+                    return Domain::of_ty(&ret, &self.prog().items);
+                }
+                // Mark it before walking, so a recursive call finds something.
+                let ret_ty = self.prog().functions[i].ret.clone();
+                self.cache.insert((i, key.clone()), Domain::of_ty(&ret_ty, &self.prog().items));
+                let d = self.run_function(i, callee_env, depth + 1);
+                let d = if matches!(d, Domain::Empty) { Domain::of_ty(&ret_ty, &self.prog().items) } else { d };
+                self.cache.insert((i, key), d.clone());
+                d
+            }
+            Callee::Extern(_) => {
+                self.reads_outside = true;
+                Domain::Any
+            }
+            Callee::Value(_) => Domain::Any,
+            Callee::Op(op) => {
+                let ops: Vec<Operand> = args.iter().map(arg_operand).collect();
+                self.eval_op(f, op, &ops, env)
+            }
+            Callee::Convert(to) => {
+                let d = args.first().map(|a| self.arg_domain(f, env, a)).unwrap_or(Domain::Any);
+                self.convert(to, &d)
+            }
+        }
+    }
+
+    fn arg_domain(&mut self, f: usize, env: &Env, a: &Arg) -> Domain {
+        match a {
+            Arg::Value(o) => self.read_operand(f, env, o),
+            Arg::Lend { place, .. } | Arg::Give(place) | Arg::Copy(place) => self.read(f, env, place),
+            Arg::Spread { place, .. } => self.read(f, env, place),
+        }
+    }
+
+    // ------------------------------------------------------------ branches
+
+    fn bool_of(&mut self, f: usize, cond: &Operand, env: &Env) -> (bool, bool) {
+        match self.read_operand(f, env, cond) {
+            Domain::Bools(t, fa) => (t, fa),
+            _ => (true, true),
+        }
+    }
+
+    /// What the program knows inside a branch: the condition assumed.
+    fn narrow(&mut self, f: usize, env: &Env, cond: &Operand, facts: &HashMap<LocalId, (Cmp, Operand, Operand)>, lengths: &HashMap<LocalId, (Op, Place)>, taken: bool) -> Env {
+        let mut out = env.clone();
+        let Some(place) = cond.place() else { return out };
+        if !place.proj.is_empty() {
+            return out;
+        }
+        out.insert(place.local, Domain::Bools(taken, !taken));
+        let Some((cmp, lhs, rhs)) = facts.get(&place.local) else { return out };
+        let cmp = if taken { *cmp } else { cmp.negate() };
+        let a = self.read_operand(f, env, lhs);
+        let b = self.read_operand(f, env, rhs);
+        if let (Domain::Ints(x), Domain::Ints(y)) = (&a, &b) {
+            if let Some(pl) = lhs.place().filter(|p| p.proj.is_empty()) {
+                let narrowed = x.assume(y, cmp);
+                out.insert(pl.local, Domain::Ints(narrowed.clone()));
+                self.narrow_source(f, &mut out, pl.local, &narrowed, lengths);
+            }
+            if let Some(pr) = rhs.place().filter(|p| p.proj.is_empty()) {
+                let narrowed = y.assume(x, cmp.flip());
+                out.insert(pr.local, Domain::Ints(narrowed.clone()));
+                self.narrow_source(f, &mut out, pr.local, &narrowed, lengths);
+            }
+        }
+        out
+    }
+
+    /// A number that is a value's length, narrowed: the value it came from
+    /// is narrowed too, so the next question about it knows the answer.
+    fn narrow_source(&mut self, f: usize, env: &mut Env, num: LocalId, narrowed: &ISet, lengths: &HashMap<LocalId, (Op, Place)>) {
+        let Some((op, src)) = lengths.get(&num) else { return };
+        let src = src.clone();
+        let op = op.clone();
+        let whole = self.read(f, env, &src);
+        let updated = match (&op, whole) {
+            (Op::ListLength | Op::ArrayLength, Domain::Seq { len, elem }) => Domain::Seq { len: len.meet(narrowed), elem },
+            (Op::MapLength, Domain::Map { len, key, val }) => Domain::Map { len: len.meet(narrowed), key, val },
+            (Op::StrBytes, Domain::Text { mut len, values, classes }) => {
+                len.bytes = len.bytes.meet(narrowed);
+                Domain::Text { len, values, classes }
+            }
+            (Op::StrPoints, Domain::Text { mut len, values, classes }) => {
+                len.points = len.points.meet(narrowed);
+                Domain::Text { len, values, classes }
+            }
+            (Op::StrGraphemes, Domain::Text { mut len, values, classes }) => {
+                len.graphemes = len.graphemes.meet(narrowed);
+                Domain::Text { len, values, classes }
+            }
+            _ => return,
+        };
+        // Through a field, too: `'s'.scores` narrows inside `'s'`.
+        let outer = self.read(f, env, &Place::local(src.local));
+        let merged = put(&outer, &src.proj, updated);
+        env.insert(src.local, merged);
+    }
+
+    // ------------------------------------------------------------ the question
+
+    /// Is every value reaching this site legal?
+    fn judge(&mut self, f: usize, id: SiteId, env: &Env) -> Verdict {
+        let site = self.prog().functions[f].sites[id.0 as usize].clone();
+        if site.tier == Some(Tier::Nocheck) {
+            return Verdict::Trusted;
+        }
+        let ds: Vec<Domain> = site.operands.iter().map(|o| self.read_operand(f, env, o)).collect();
+        let ty_of = |this: &Self, i: usize| -> Option<Ty> { site.operands.get(i).and_then(|o| o.place()).map(|p| this.place_ty(f, p)) };
+        match &site.kind {
+            SiteKind::Overflow(op) => {
+                let ty = match site.result_ty.clone().or_else(|| ty_of(self, 0)) {
+                    Some(t) => t,
+                    None => return Verdict::Unproven,
+                };
+                let Some((lo, hi)) = int_limits(&ty, &self.prog().items) else { return Verdict::Unproven };
+                let (Some(Domain::Ints(a)), b) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
+                let result = match (op, b) {
+                    (BinOp::Add, Some(Domain::Ints(y))) => a.add(y),
+                    (BinOp::Sub, Some(Domain::Ints(y))) => a.sub(y),
+                    (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
+                    (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
+                    (BinOp::Div, Some(Domain::Ints(y))) => a.div_floor(y),
+                    // A negation, or a fold whose shape is not two operands.
+                    (BinOp::Sub, None) => a.neg(),
+                    _ => return Verdict::Unproven,
+                };
+                self.fit(&result, lo, hi, &ty)
+            }
+            SiteKind::DivZero | SiteKind::ModZero => {
+                let Some(Domain::Ints(d)) = ds.first() else { return Verdict::Unproven };
+                if d.misses(0, 0) {
+                    Verdict::Proven { how: "the divisor is never zero" }
+                } else if d.single() == Some(0) {
+                    Verdict::Fails { counterexample: "every time: the divisor is always zero".into() }
+                } else {
+                    Verdict::Fails { counterexample: "the divisor can be 0".into() }
+                }
+            }
+            SiteKind::Bounds => {
+                let (Some(Domain::Ints(i)), Some(Domain::Ints(len))) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
+                // 1-based: legal is 1 ..= len.
+                let (Some((ilo, ihi)), Some((llo, lhi))) = (i.bounds(), len.bounds()) else { return Verdict::Unproven };
+                if ilo >= 1 && ihi <= llo {
+                    Verdict::Proven { how: "the position is always inside" }
+                } else if ihi < 1 || ilo > lhi {
+                    Verdict::Fails { counterexample: format!("every time: the position is {} and there {} {} element(s)", describe_ints(i), if lhi == 1 { "is" } else { "are" }, describe_ints(len)) }
+                } else {
+                    Verdict::Fails { counterexample: format!("the position can be {} when there are {} element(s)", ihi, llo) }
+                }
+            }
+            SiteKind::Narrow { to } => {
+                let Some(d) = ds.first() else { return Verdict::Unproven };
+                self.fits_type(d, to)
+            }
+            SiteKind::LengthBound { to } => {
+                let Some(d) = ds.first() else { return Verdict::Unproven };
+                self.fits_type(d, to)
+            }
+            SiteKind::ShiftWidth => Verdict::Unproven,
+            SiteKind::SimdRange { lanes } => {
+                let (Some(Domain::Ints(i)), Some(Domain::Seq { len, .. })) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
+                let last = i.add(&ISet::one(*lanes as i128 - 1));
+                let (Some((_, ihi)), Some((llo, lhi))) = (last.bounds(), len.bounds()) else { return Verdict::Unproven };
+                let ilo = i.bounds().map(|(l, _)| l).unwrap_or(0);
+                if ilo >= 1 && ihi <= llo {
+                    Verdict::Proven { how: "every lane is inside" }
+                } else if ilo > lhi || (*lanes as i128) > lhi {
+                    Verdict::Fails { counterexample: format!("every time: {} lanes from position {} and there are {} element(s)", lanes, ilo, lhi) }
+                } else {
+                    Verdict::Fails { counterexample: format!("the {} lanes can reach position {} when there are {} element(s)", lanes, ihi, llo) }
+                }
+            }
+            // The ones layer 3 and the verification session take.
+            SiteKind::KeyHashAgrees | SiteKind::LendOutlives | SiteKind::TaskLendOutlives | SiteKind::ChannelReachable | SiteKind::Deadlock => Verdict::Unproven,
+        }
+    }
+
+    fn fit(&self, s: &ISet, lo: i128, hi: i128, ty: &Ty) -> Verdict {
+        if s.is_empty() {
+            return Verdict::Unproven;
+        }
+        if s.within(lo, hi) {
+            return Verdict::Proven { how: "layer 2" };
+        }
+        if s.misses(lo, hi) {
+            let (slo, shi) = s.bounds().unwrap();
+            return Verdict::Fails { counterexample: format!("every time: the answer is {} and a `{}` holds {} to {}", if slo == shi { slo.to_string() } else { format!("{} to {}", slo, shi) }, self.spell(ty), lo, hi) };
+        }
+        let (slo, shi) = s.bounds().unwrap();
+        let bad = if shi > hi { shi } else { slo };
+        Verdict::Fails { counterexample: format!("the answer can be {}, and a `{}` holds {} to {}", bad, self.spell(ty), lo, hi) }
+    }
+
+    fn fits_type(&self, d: &Domain, to: &Ty) -> Verdict {
+        match (d, Domain::of_ty(to, &self.prog().items)) {
+            (Domain::Ints(s), Domain::Ints(limit)) => {
+                let Some((lo, hi)) = limit.bounds() else { return Verdict::Unproven };
+                self.fit(s, lo, hi, to)
+            }
+            (Domain::Seq { len, .. }, Domain::Seq { len: limit, .. }) => {
+                let (Some((a, b)), Some((lo, hi))) = (len.bounds(), limit.bounds()) else { return Verdict::Unproven };
+                if a >= lo && b <= hi {
+                    Verdict::Proven { how: "layer 2" }
+                } else if b < lo || a > hi {
+                    Verdict::Fails { counterexample: format!("every time: {} element(s), and its type holds {} to {}", describe_ints(len), lo, hi) }
+                } else {
+                    Verdict::Fails { counterexample: format!("it can hold {} element(s), and its type holds {} to {}", b, lo, hi) }
+                }
+            }
+            (Domain::Text { len, .. }, Domain::Text { len: limit, .. }) => {
+                for u in [crate::types::Unit::Byte, crate::types::Unit::Point, crate::types::Unit::Grapheme] {
+                    let (have, want) = (len.get(u), limit.get(u));
+                    let (Some((a, b)), Some((lo, hi))) = (have.bounds(), want.bounds()) else { continue };
+                    if lo == 0 && hi >= i64::MAX as i128 {
+                        continue;
+                    }
+                    if a >= lo && b <= hi {
+                        return Verdict::Proven { how: "layer 2" };
+                    }
+                    if b < lo || a > hi {
+                        return Verdict::Fails { counterexample: format!("every time: {} {}, and its type holds {} to {}", describe_ints(have), unit_word(u), lo, hi) };
+                    }
+                    return Verdict::Fails { counterexample: format!("it can be {} {}, and its type holds {} to {}", b, unit_word(u), lo, hi) };
+                }
+                Verdict::Unproven
+            }
+            (Domain::Map { len, .. }, Domain::Map { len: limit, .. }) => {
+                let (Some((a, b)), Some((lo, hi))) = (len.bounds(), limit.bounds()) else { return Verdict::Unproven };
+                if a >= lo && b <= hi {
+                    Verdict::Proven { how: "layer 2" }
+                } else if b < lo || a > hi {
+                    Verdict::Fails { counterexample: format!("every time: {} entries, and its type holds {} to {}", describe_ints(len), lo, hi) }
+                } else {
+                    Verdict::Fails { counterexample: format!("it can hold {} entries, and its type holds {} to {}", b, lo, hi) }
+                }
+            }
+            _ => Verdict::Unproven,
+        }
+    }
+
+    fn spell(&self, t: &Ty) -> String {
+        crate::types::TySpelling { ty: t, structs: &self.prog().items.structs, enums: &self.prog().items.enums }.to_string()
+    }
+}
+
+impl Domain {
+    fn clone_with(self, _f: usize) -> Domain {
+        self
+    }
+}
+
+/// The whole value, with one part replaced by what was written there.
+fn put(whole: &Domain, proj: &[Proj], d: Domain) -> Domain {
+    let Some((first, rest)) = proj.split_first() else { return d };
+    match (first, whole) {
+        (Proj::Field(i), Domain::Struct(fields)) => {
+            let mut out = fields.clone();
+            if *i < out.len() {
+                let inner = put(&out[*i], rest, d);
+                out[*i] = inner;
+            }
+            Domain::Struct(out)
+        }
+        // Which element was written is not tracked, so the element domain
+        // becomes "what was there, or what was just put there". The length
+        // is untouched: writing into a list never changes how long it is.
+        (Proj::Index(_), Domain::Seq { len, elem }) => {
+            let inner = put(elem, rest, d);
+            Domain::Seq { len: len.clone(), elem: Box::new(elem.union(&inner)) }
+        }
+        _ => whole.clone(),
+    }
+}
+
+fn arg_operand(a: &Arg) -> Operand {
+    match a {
+        Arg::Value(o) => o.clone(),
+        Arg::Lend { place, .. } | Arg::Copy(place) | Arg::Spread { place, .. } => Operand::Read(place.clone()),
+        Arg::Give(place) => Operand::Move(place.clone()),
+    }
+}
+
+fn cmp_of(op: &BinOp) -> Option<Cmp> {
+    match op {
+        BinOp::Lt => Some(Cmp::Lt),
+        BinOp::Le => Some(Cmp::Le),
+        BinOp::Gt => Some(Cmp::Gt),
+        BinOp::Ge => Some(Cmp::Ge),
+        BinOp::Eq => Some(Cmp::Eq),
+        BinOp::Ne => Some(Cmp::Ne),
+        _ => None,
+    }
+}
+
+fn int_limits(ty: &Ty, items: &crate::resolve::Items) -> Option<(i128, i128)> {
+    match Domain::of_ty(ty, items) {
+        Domain::Ints(s) => s.bounds(),
+        _ => None,
+    }
+}
+
+fn describe_ints(s: &ISet) -> String {
+    match s.bounds() {
+        Some((a, b)) if a == b => a.to_string(),
+        Some((a, b)) => format!("{} to {}", a, b),
+        None => "no value".into(),
+    }
+}
+
+fn unit_word(u: crate::types::Unit) -> &'static str {
+    match u {
+        crate::types::Unit::Byte => "bytes",
+        crate::types::Unit::Point => "code points",
+        _ => "graphemes",
+    }
+}
+
+fn classes_of(s: &str) -> Vec<Class> {
+    let mut v = Vec::new();
+    if !s.is_empty() && s.chars().all(|c| c.is_ascii_digit()) {
+        v.push(Class::AsciiDigits);
+    }
+    if s.is_ascii() {
+        v.push(Class::Ascii);
+    }
+    if !s.contains('\n') {
+        v.push(Class::NoNewline);
+    }
+    if !s.is_empty() {
+        v.push(Class::NonEmpty);
+    }
+    v
+}
+
+/// Two verdicts for one site, from two paths: the program has to survive
+/// both, so the worse one wins.
+fn worse(a: Verdict, b: Verdict) -> Verdict {
+    use Verdict::*;
+    match (&a, &b) {
+        (Trusted, _) | (_, Trusted) => Trusted,
+        (Fails { .. }, _) => a,
+        (_, Fails { .. }) => b,
+        (Unproven, _) | (_, Unproven) => Unproven,
+        _ => a,
+    }
+}
+
+fn note_of(v: &Verdict) -> String {
+    match v {
+        Verdict::Proven { how } => (*how).to_string(),
+        Verdict::Fails { counterexample } => counterexample.clone(),
+        Verdict::Trusted => "nocheck".into(),
+        Verdict::Unproven => "not proven here; layer 3 would take it".into(),
+    }
+}
+
+/// The edges that go round again: an edge to a block that is still on the
+/// path taken to reach it. Found once per function, by walking the graph.
+fn back_edges(f: &Function) -> std::collections::HashSet<(usize, usize)> {
+    let mut back = std::collections::HashSet::new();
+    let mut colour = vec![0u8; f.blocks.len()]; // 0 unseen, 1 on the path, 2 done
+    let mut stack: Vec<(usize, usize)> = vec![(0, 0)];
+    colour[0] = 1;
+    while let Some((b, next)) = stack.pop() {
+        let succs = crate::mir::verify::successors(&f.blocks[b].term);
+        if next >= succs.len() {
+            colour[b] = 2;
+            continue;
+        }
+        stack.push((b, next + 1));
+        let t = succs[next].0 as usize;
+        if t >= f.blocks.len() {
+            continue;
+        }
+        match colour[t] {
+            1 => {
+                back.insert((b, t));
+            }
+            0 => {
+                colour[t] = 1;
+                stack.push((t, 0));
+            }
+            _ => {}
+        }
+    }
+    back
+}
+
+/// The blocks of the loop that back edge `b -> h` closes: the head, and
+/// everything that reaches `b` without passing through the head again.
+fn natural_loop(f: &Function, h: usize, b: usize) -> Vec<usize> {
+    let mut preds: Vec<Vec<usize>> = vec![Vec::new(); f.blocks.len()];
+    for (i, blk) in f.blocks.iter().enumerate() {
+        for t in crate::mir::verify::successors(&blk.term) {
+            if (t.0 as usize) < preds.len() {
+                preds[t.0 as usize].push(i);
+            }
+        }
+    }
+    let mut body = vec![h];
+    let mut stack = vec![b];
+    if b != h {
+        body.push(b);
+    }
+    while let Some(x) = stack.pop() {
+        for p in &preds[x] {
+            if !body.contains(p) {
+                body.push(*p);
+                stack.push(*p);
+            }
+        }
+    }
+    body
+}
+
+fn same(a: &Env, b: &Env) -> bool {
+    a.len() == b.len() && a.iter().all(|(k, v)| b.get(k).map(|w| w == v).unwrap_or(false))
+}
+
+fn join(a: &Env, b: &Env, widening: bool, items: &crate::resolve::Items, ty: impl Fn(LocalId) -> Ty) -> Env {
+    let mut out = a.clone();
+    for (k, v) in b {
+        let merged = match a.get(k) {
+            None => v.clone(),
+            Some(old) => {
+                if widening {
+                    old.widen(v, &ty(*k), items)
+                } else {
+                    old.union(v)
+                }
+            }
+        };
+        out.insert(*k, merged);
+    }
+    out
+}
+
+/// What the build refuses. A site that fails on **every** path that
+/// reaches it would fail every time the program ran, so it never builds —
+/// whatever its tier (`precog.md`, layer 1: "a check that would fail on
+/// known values is a compile error at the line"). A site that fails only
+/// sometimes is the tiers' business: a runtime check in a working build,
+/// a refusal in a final one, and a refusal now when it is a `check`.
+pub fn refusals(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> Vec<String> {
+    let mut out = Vec::new();
+    for r in &a.sites {
+        let f = &p.functions[r.function];
+        let site = f.site(r.site);
+        let Verdict::Fails { counterexample } = &r.verdict else { continue };
+        let certain = counterexample.starts_with("every");
+        let checked = site.tier == Some(Tier::Check);
+        if !certain && !checked {
+            continue;
+        }
+        let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
+        let sentence = site.kind.sentence(&spell);
+        let mut d = crate::diag::Diagnostic::new(if certain { crate::diag::Kind::Error } else { crate::diag::Kind::Check }, sentence)
+            .at(f.span(site.span))
+            .when(counterexample.trim_start_matches("every time: ").to_string());
+        if !f.name.is_empty() && f.name != "MAIN" {
+            d = d.place(format!("in `{}`", f.name));
+        }
+        if certain {
+            d = d.why("this is what the program does every time it reaches here, so it cannot be right");
+        } else {
+            d = d.why("`check` asks whether the guardrail is enough, and this value gets past it");
+        }
+        out.push(d.render(sources));
+    }
+    out
+}
