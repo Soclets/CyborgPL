@@ -35,6 +35,17 @@ docs stand; Claude's example was wrong and is fixed (the value is a
 is what `core-features.md` meant). Crossing families stays
 `to.bin16[…] otherwise …`, which fails rather than rounds.
 
+### 2026-09-22 — SIMD operators are the ordinary ones, element-wise (owner: a)
+
+Proposed (a) every operator a plain `T` has, lane by lane, with
+comparisons giving a `simd[bool, N]` (so a vector is never a single
+`bool`), plus `[pos i]` for a lane, `simd.load` / `store` against an
+array, and the folds `all` `any` `max` `min` `sum` `fill`; (b) named
+operations only. Owner asked whether `or.bit` on vectors still means
+what it means — yes, the same bit-for-bit OR, N lanes at once — and
+chose a. `design/simd.md` written; open: more `T`, shuffles, masked
+load/store, `simd` in structs and lists.
+
 ### 2026-09-22 — `simd[T, N]` only where the target has that register (owner: b)
 
 Proposed (a) any plain numeric T and any power-of-two N, the compiler
@@ -1612,7 +1623,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
-- SIMD, the rest of the design (spelling decided: `simd[T, N]`): which T and N, operators, load/store against an `array`, one lane, Precog's per-lane domains, a target whose registers are narrower. (2026-09-22)
+- SIMD leftovers: more element types (`simd[bool, N]` written directly?), shuffles and lane-crossing, masked load/store for a short tail, `simd` as a struct field or list element. (2026-09-22, `design/simd.md`)
 
 
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
