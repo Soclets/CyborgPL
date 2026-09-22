@@ -172,6 +172,13 @@ fn reject_programs_are_refused_in_ccas_own_words() {
             }
             continue;
         }
+        if let Some(why) = want.strip_prefix("!by-design") {
+            // CCA is right to accept this one; refusing it would be the bug.
+            if got.is_err() {
+                failures.push(format!("{}: CCA refuses this, and it should build —{}\n{}", name, why, indent(got.as_ref().unwrap_err())));
+            }
+            continue;
+        }
         match got {
             Ok(()) => failures.push(format!("{}: accepted, and it must be refused (the oracle says: {})", name, oracle_err(&dir, &name))),
             Err(msg) => {

@@ -78,6 +78,9 @@ fn precog_one(path: &Path) -> Result<(), String> {
     cca::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in CCA:\n  {}\n", p.join("\n  ")))?;
     let analysis = cca::precog::analyse(&mut mir);
     print!("{}", cca::precog::report::render(&analysis, &mir, &sources));
+    for n in cca::precog::notes(&analysis, &mir, &sources) {
+        print!("\n{}", n);
+    }
     let refusals = cca::precog::refusals(&analysis, &mir, &sources);
     if !refusals.is_empty() {
         return Err(refusals.join(""));

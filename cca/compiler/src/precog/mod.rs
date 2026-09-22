@@ -49,6 +49,11 @@ pub struct SiteResult {
 
 pub struct Analysis {
     pub sites: Vec<SiteResult>,
+    /// `nocheck` sites that Precog's ordinary work happened to show fail on
+    /// every run (owner, 2026-09-22). A note, never a refusal: Precog does
+    /// not go looking, it only refuses to stay silent about what it could
+    /// not avoid noticing.
+    pub certain_under_nocheck: Vec<(usize, SiteId, String)>,
     /// Sites that fail on every path that reaches them: the program never
     /// builds, whatever the tier.
     pub certain: Vec<usize>,
@@ -61,7 +66,7 @@ pub struct Analysis {
 type Env = HashMap<LocalId, Domain>;
 
 pub fn analyse(p: &mut Program) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), cache: HashMap::new(), reads_outside: false };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), cache: HashMap::new(), reads_outside: false };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -93,7 +98,10 @@ pub fn analyse(p: &mut Program) -> Analysis {
         let f = &mut p.functions[r.function];
         f.sites[r.site.0 as usize].verdict = r.verdict.clone();
     }
-    Analysis { sites, certain, steps: a.steps, whole_program: !a.reads_outside }
+    let mut certain_under_nocheck = a.lies;
+    certain_under_nocheck.sort_by_key(|(f, s, _)| (*f, s.0));
+    certain_under_nocheck.dedup_by_key(|(f, s, _)| (*f, s.0));
+    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside }
 }
 
 struct Precog {
@@ -106,6 +114,7 @@ struct Precog {
     /// from several call sites has to survive all of them, so the worse
     /// answer is the one kept.
     results: HashMap<(usize, u32), Verdict>,
+    lies: Vec<(usize, SiteId, String)>,
     /// What a function returns, for one set of argument domains.
     cache: HashMap<(usize, String), Domain>,
     reads_outside: bool,
@@ -825,11 +834,24 @@ impl Precog {
     /// Is every value reaching this site legal?
     fn judge(&mut self, f: usize, id: SiteId, env: &Env) -> Verdict {
         let site = self.prog().functions[f].sites[id.0 as usize].clone();
-        if site.tier == Some(Tier::Nocheck) {
-            return Verdict::Trusted;
-        }
         let ds: Vec<Domain> = site.operands.iter().map(|o| self.read_operand(f, env, o)).collect();
         let ty_of = |this: &Self, i: usize| -> Option<Ty> { site.operands.get(i).and_then(|o| o.place()).map(|p| this.place_ty(f, p)) };
+        let verdict = self.judge_kind(f, &site, &ds, ty_of);
+        if site.tier == Some(Tier::Nocheck) {
+            // The check is removed on the writer's word. But the domains
+            // were computed anyway, and if they say this fails every time
+            // the build says so once and carries on.
+            if let Verdict::Fails { counterexample } = &verdict {
+                if counterexample.starts_with("every") {
+                    self.lies.push((f, id, counterexample.trim_start_matches("every time: ").to_string()));
+                }
+            }
+            return Verdict::Trusted;
+        }
+        verdict
+    }
+
+    fn judge_kind(&mut self, _f: usize, site: &Site, ds: &[Domain], ty_of: impl Fn(&Self, usize) -> Option<Ty>) -> Verdict {
         match &site.kind {
             SiteKind::Overflow(op) => {
                 let ty = match site.result_ty.clone().or_else(|| ty_of(self, 0)) {
@@ -1189,6 +1211,25 @@ pub fn refusals(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -
         } else {
             d = d.why("`check` asks whether the guardrail is enough, and this value gets past it");
         }
+        out.push(d.render(sources));
+    }
+    out
+}
+
+/// What the build says without refusing: the `note:` kind of
+/// `diagnostics.md`. Today that is the `nocheck` site Precog's ordinary
+/// work showed fails every run (owner, 2026-09-22).
+pub fn notes(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> Vec<String> {
+    let mut out = Vec::new();
+    for (f_idx, site_id, what) in &a.certain_under_nocheck {
+        let f = &p.functions[*f_idx];
+        let site = f.site(*site_id);
+        let d = crate::diag::Diagnostic::note("this `nocheck` covers something that fails every time it runs")
+            .at(f.span(site.span))
+            .when(what.clone())
+            .why("`nocheck` removes the check on your word, and the build keeps it removed")
+            .why("Precog was not looking; this is what it saw while working out everything else")
+            .fix(None, "remove the `nocheck`, or fix what it is covering");
         out.push(d.render(sources));
     }
     out

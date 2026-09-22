@@ -843,13 +843,6 @@ impl<'a> FnBuilder<'a> {
     }
 
     /// A value going into a narrower or bounded type.
-    fn narrow_site(&mut self, op: &Operand, target: &Ty, from: &Ty, span: SpanId) {
-        let target = self.resolve_ty(target);
-        let from = self.resolve_ty(from);
-        if needs_narrow_check(&from, &target) {
-            self.site(SiteKind::Narrow { to: target }, vec![op.clone()], span);
-        }
-    }
 
     fn resolve_ty(&self, t: &Ty) -> Ty {
         resolved(t, &self.arena.subst)

@@ -4,7 +4,9 @@
 # wording, not a template — design/compiler-session.md). `!pending` marks a
 # program CCA cannot refuse yet: it needs Precog, which decides values, not
 # spellings. The test insists a pending one is still accepted, so this file has
-# to be updated the moment it starts being refused.
+# to be updated the moment it starts being refused. `!by-design` marks one
+# CCA is *right* to accept: the oracle refuses it for a reason that is not a
+# rule, and the line says which. Those never move.
 
 amp_binary_undefined :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
 amp_mut_word :: `&'x'` or `&mut 'x'`; `&mutt` is neither
@@ -224,7 +226,7 @@ mut_after_name :: expected `:=` or `=`; `mut` goes before the name: `let mut 'x'
 ne :: `!=` is not an operator here: not-equal is `!==`
 no_precedence :: mathematics has no settled reading here (`6 / 2 x 3`)
 no_zero_value :: there is no implicit zero
-nocheck_lied :: !pending
+nocheck_lied :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp :: mathematics has no settled reading
 number_next_to_text :: join text with `++`, separate values with `,`
 number_to_char :: `char.point.from_code[…] otherwise …` builds one from a code
