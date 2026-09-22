@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Precog's text domain: length + exact values + character classes (owner: c)
+
+Proposed (a) a length interval only (Kespar), (b) plus an exact set of
+values while small so `'cmd' == "quit"` narrows, (c) plus character-class
+facts so a `to.int32` after a digits check is proven not to fail. Owner
+asked the b/c difference (conversions after validation come out proven
+vs keep a failure path) and chose c. Each text operation carries a rule
+for its result's class; no rule → "any text". The class list is open.
+
 ### 2026-09-22 — Loop invariants: Precog guesses from templates, else unproven (owner)
 
 For a loop Precog cannot run to the end: (a) guess invariants from a

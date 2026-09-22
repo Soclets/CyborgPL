@@ -56,8 +56,20 @@ every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
 - A set larger than **4096 values** (provisional) becomes an interval
   `[lo, hi]` — sound, less precise; an interval is spelled out as a set
   again only at **64** values or fewer (provisional).
-- Bins are intervals from the start. Text carries a length interval per
-  unit. A list carries a length interval and an element domain. A struct
+- Bins are intervals from the start. A list carries a length interval and
+  an element domain.
+- **Text** (decided 2026-09-22, owner: c) carries three things: a length
+  interval per unit; an **exact set of values** while small (a literal,
+  a literal list, `'cmd' == "quit"` narrowing to `{"quit"}` inside the
+  branch — the number rule applied to text, falling back past the set
+  cap); and **character-class facts** — "all ASCII digits", "no newline",
+  "ASCII only", "non-empty" — so that after a validation (`if
+  std::str.all_digits[lend 's']`) a `to.int32['s']` is proven not to fail
+  `not_a_number`, and with a length ≤ 9 not `out_of_range` either. Every
+  text operation (`++`, `slice`, `trim`, `split`, `replace`, `at`, …)
+  carries a rule for the class of its result; an operation with no rule
+  yields "any text", never a wrong class. Proposed as (a) length only,
+  (b) length + exact values, (c) b + classes; owner chose c. A struct
   carries a domain per field. An enum carries the set of possible cases,
   each with its payload's domain.
 - **Control flow**: at an `if`, the condition's set decides which branches
@@ -224,8 +236,8 @@ report to know which claims to attack.
 - Every provisional number: set cap 4096 / re-set at 64, trips 100k /
   2M, recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
   to be measured, not guessed.
-- What a text's domain is beyond a length interval (a set of literal
-  values? a character class?).
+- The character-class vocabulary for text (which classes; how each std
+  text operation maps them) — decided in principle (c), list open.
 - How `deci` and `uenr` are tracked (exact arithmetic on unbounded
   values: sets? intervals over rationals?).
 - Whether the solver is Z3 (Kespar) or CVC5 / Alt-Ergo / several; what
