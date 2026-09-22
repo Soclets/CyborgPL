@@ -1,4 +1,4 @@
-# Concurrency — `concur`, channels, `pick`
+# Concurrency — `concur`, channels, `whichever`
 
 Decided 2026-09-22, one question at a time. Not parallelism
 (`parallelism.md`: the same work on many pieces, Precog spreads a `for`
@@ -89,10 +89,10 @@ does at end of input. A `send` nobody will ever take is a check site
 (Precog sees every taker). Two tasks each waiting on the other is a
 check site too — a deadlock Precog can see.
 
-## `pick` — whichever comes first (owner: a)
+## `whichever` — whichever comes first (owner: a; the word, owner)
 
 ```
-pick {
+whichever {
     'msg' from lend 'inbox'     { handle[give 'msg']; }
     'why' from lend 'shutdown'  { return; }
 }
@@ -102,7 +102,10 @@ Waits until any listed channel has a value, takes from that one, runs
 its arm; each arm names its value. All arms `closed` fails `closed`.
 Proposed alternatives: a std operation returning a generic enum (ugly);
 merge channels into one of an enum by hand (what people would do
-without `pick`).
+without it). The word: first `pick`; owner asked why not `pick_first`
+(no other way to pick; no underscored keywords) and for other words —
+`whichever`, `await`, `select`, `wait`, `listen`, `first` — and chose
+**`whichever`**: the English for what it does.
 
 ## Time — std, with duration literals (owner)
 
@@ -112,7 +115,7 @@ Time is the outside world, so it is std's, like input:
 std::time.wait[5 seconds];
 let 'deadline' := std::time.after[500 millis];     # a channel that sends once
 let 'tick' := std::time.every[1 second];           # a channel that sends every second
-pick {
+whichever {
     'msg' from lend 'inbox'     { … }
     'now' from lend 'deadline'  { std::printu.stdout["timed out", \n]; }
 }
@@ -141,4 +144,4 @@ schedule (its README lists what it simplifies).
 
 - Cancellation beyond "a failing block cancels its tasks": can a task
   be cancelled by hand, and what does it see.
-- Whether `pick` may also `send` (Go's `select` can).
+- Whether `whichever` may also `send` (Go's `select` can).

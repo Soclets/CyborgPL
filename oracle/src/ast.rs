@@ -282,8 +282,8 @@ pub enum Stmt {
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
     /// `concur [with […]] { … }` / `concur f[…];` — start a task (design/concurrency.md, 2026-09-22)
     Concur { detached: bool, caps: Vec<(Verb, String)>, body: Vec<Stmt>, handler: Option<Handler>, line: usize },
-    /// `pick { 'v' from lend 'c' { … } … }` — wait on several channels, take from whichever first
-    Pick { arms: Vec<PickArm>, handler: Option<Handler>, line: usize },
+    /// `whichever { 'v' from lend 'c' { … } … }` — wait on several channels, take from whichever first
+    Whichever { arms: Vec<WhicheverArm>, handler: Option<Handler>, line: usize },
     /// `map.remove[…] otherwise …;` — a failing map operation as a statement, value dropped
     MapFailStmt { op: String, args: Bracket, handler: Option<Handler>, line: usize },
     /// `'f'[args];` — a function value called as a statement
@@ -291,7 +291,7 @@ pub enum Stmt {
 }
 
 #[derive(Debug, Clone)]
-pub struct PickArm { pub name: String, pub chan: Bracket, pub body: Vec<Stmt>, pub line: usize }
+pub struct WhicheverArm { pub name: String, pub chan: Bracket, pub body: Vec<Stmt>, pub line: usize }
 
 #[derive(Debug, Clone)]
 pub enum AsmBind {

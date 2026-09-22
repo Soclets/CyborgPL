@@ -93,7 +93,7 @@ pub struct Interp<'p> {
     /// `otherwise { … }` arm may fall through
     call_is_stmt: bool,
     /// tasks started by `concur` and not yet run (design/concurrency.md). The oracle's
-    /// schedule: a task runs when something waits on it (a `take`, a `pick`, a full
+    /// schedule: a task runs when something waits on it (a `take`, a `whichever`, a full
     /// `send`) or when the block that started it ends — in source order. One valid schedule.
     tasks: Vec<Task>,
     next_chan_id: usize,
@@ -675,10 +675,10 @@ impl<'p> Interp<'p> {
                 self.tasks.push(Task { body: body.clone(), captures, handler: handler.clone(), fails, module: self.module.clone(), depth: self.scopes.len(), detached: *detached, line: *line });
                 Ok(Flow::Normal)
             }
-            Stmt::Pick { arms, handler, line } => {
+            Stmt::Whichever { arms, handler, line } => {
                 let fails = vec![FailCase { name: "closed".into(), ty: None }];
                 self.call_is_stmt = true;
-                let ch = self.check_handler(handler.as_ref(), &fails, "pick", *line);
+                let ch = self.check_handler(handler.as_ref(), &fails, "whichever", *line);
                 self.call_is_stmt = false;
                 ch?;
                 // the channels, each lent
@@ -687,15 +687,15 @@ impl<'p> Interp<'p> {
                     let (v, prov) = self.single(&arm.chan, arm.line)?;
                     match (v, prov) {
                         (Value::Chan(c), Prov::Borrowed(..)) | (Value::Chan(c), Prov::Plain) | (Value::Chan(c), Prov::Fresh) => chans.push(c),
-                        (Value::Chan(_), Prov::Bare(n)) => return rt(arm.line, format!("a `pick` arm lends its channel: `from lend '{n}'`")),
-                        (other, _) => return rt(arm.line, format!("a `pick` arm waits on a channel, got {}", other.kind())),
+                        (Value::Chan(_), Prov::Bare(n)) => return rt(arm.line, format!("a `whichever` arm lends its channel: `from lend '{n}'`")),
+                        (other, _) => return rt(arm.line, format!("a `whichever` arm waits on a channel, got {}", other.kind())),
                     }
                 }
                 loop {
                     // a real value first, in arm order
                     for (i, c) in chans.iter().enumerate() {
                         if let Some(v) = self.chan_ready(c, false) {
-                            return self.run_pick_arm(&arms[i], v);
+                            return self.run_whichever_arm(&arms[i], v);
                         }
                     }
                     // nothing ready: let a task run
@@ -703,12 +703,12 @@ impl<'p> Interp<'p> {
                     // nothing can run: time may pass — a timer channel fires
                     for (i, c) in chans.iter().enumerate() {
                         if let Some(v) = self.chan_ready(c, true) {
-                            return self.run_pick_arm(&arms[i], v);
+                            return self.run_whichever_arm(&arms[i], v);
                         }
                     }
                     // every channel is closed
                     self.call_is_stmt = true;
-                    let r = self.handle_failure(handler.as_ref().unwrap(), *line, "pick", "closed".into(), None, false);
+                    let r = self.handle_failure(handler.as_ref().unwrap(), *line, "whichever", "closed".into(), None, false);
                     self.call_is_stmt = false;
                     return r.map(|_| Flow::Normal);
                 }
@@ -1862,7 +1862,7 @@ impl<'p> Interp<'p> {
         }
     }
 
-    fn run_pick_arm(&mut self, arm: &PickArm, v: Value) -> Result<Flow, RuntimeError> {
+    fn run_whichever_arm(&mut self, arm: &WhicheverArm, v: Value) -> Result<Flow, RuntimeError> {
         self.push();
         let owned = v.is_owned();
         let r = (|| {
@@ -2219,7 +2219,7 @@ impl<'p> Interp<'p> {
     fn check_handler(&self, handler: Option<&Handler>, fails: &[FailCase], name: &str, line: usize) -> Result<(), RuntimeError> {
         let list = || fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
         match (handler, fails.is_empty()) {
-            (None, false) => { let shape = if name == "concur" || name == "pick" { format!("{name} {{ … }}") } else { format!("{name}[…]") }; return rt(line, format!("`{name}` can fail ({}); say what happens: `{shape} otherwise …`", list())) }
+            (None, false) => { let shape = if name == "concur" || name == "whichever" { format!("{name} {{ … }}") } else { format!("{name}[…]") }; return rt(line, format!("`{name}` can fail ({}); say what happens: `{shape} otherwise …`", list())) }
             (Some(_), true) => return rt(line, format!("`{name}` cannot fail; drop the `otherwise`")),
             (Some(Handler::Arms(arms)), false) => {
                 for a in arms {

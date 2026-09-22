@@ -5,7 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-09-22 — Concurrency: `concur`, explicit captures, structured + `concur.detached`, `otherwise` on the task, bounded channels, `pick`, duration literals (owner)
+### 2026-09-22 — `whichever`, not `pick` (owner)
+
+Owner asked what `pick` is, why not `pick_first` (nothing else to
+pick; no underscored keywords — a variant would be `pick.all`), and
+for other words. Chose `whichever` over `pick`, `await`, `select`,
+`wait`, `listen`, `first`. Renamed throughout; the oracle, example and
+reject test follow.
+
+### 2026-09-22 — Concurrency: `concur`, explicit captures, structured + `concur.detached`, `otherwise` on the task, bounded channels, `whichever`, duration literals (owner)
 
 Eight questions. Model: tasks + channels with ownership (b) over
 Precog-automatic (a) and async/await (c). The word: `concur` (owner
@@ -17,13 +25,13 @@ what needs detaching — a task whose starter must return first
 (autosave from `setup`, a library's listener). A task's failure:
 `otherwise` on the `concur`, fired at the block's end (a). Channels:
 capacity by the bound rule, no bound = hand-off, unbounded refused
-(b). Several channels: `pick { 'v' from lend 'c' { … } … }` (a). Time:
+(b). Several channels: `whichever { 'v' from lend 'c' { … } … }` (a). Time:
 std, with duration literals — owner: `[1 seconds]` not `[1, seconds]`
 (the unit on the number, as a bound); units nanos…hours, more precise
 "down to what a clock measures"; singular and plural accepted.
 `design/concurrency.md`. Oracle: implemented the same day — a
 cooperative demand-driven schedule; `examples/concur.cpls`,
-`examples/pick.cpls`, seven reject tests.
+`examples/whichever.cpls`, seven reject tests.
 
 ### 2026-09-22 — Diagnostics: root cause first, Rust-helpful, human and IDE locations (owner)
 
@@ -801,7 +809,7 @@ site. Owner: "So, `check` & `nocheck` at the front?" — yes. Oracle enforces
 (`examples/check_tiers.cpls`, seven reject tests); the oracle cannot prove,
 so a firing `check` reports the counterexample value and a firing
 `nocheck` reports the lie. Only `nocheck` sites are listed in build output
-(Claude's pick, flagged).
+(Claude's whichever, flagged).
 
 ### 2026-09-19 — Modules (owner)
 
@@ -1486,7 +1494,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
-- Concurrency: cancellation by hand; `pick` with `send`; oracle support. (2026-09-22)
+- Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)

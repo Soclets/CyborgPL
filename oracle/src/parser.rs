@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "map", "channel", "concur", "pick", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
+    "temp", "perm", "range", "seq", "list", "array", "map", "channel", "concur", "whichever", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -867,25 +867,25 @@ impl Parser {
                     if *self.peek() == Tok::Semi { self.advance(); }
                     Ok(Stmt::Concur { detached, caps, body, handler, line })
                 }
-                "pick" => {
-                    // pick { 'v' from lend 'c' { … } … } [otherwise …];
+                "whichever" => {
+                    // whichever { 'v' from lend 'c' { … } … } [otherwise …];
                     self.advance();
-                    self.expect(Tok::LBrace, "`{` after `pick`")?;
+                    self.expect(Tok::LBrace, "`{` after `whichever`")?;
                     let mut arms = Vec::new();
                     while *self.peek() != Tok::RBrace {
                         let aline = self.line();
-                        let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("a `pick` arm names its value: `'msg' from lend 'inbox' {{ … }}`, found {other}")) };
+                        let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("a `whichever` arm names its value: `'msg' from lend 'inbox' {{ … }}`, found {other}")) };
                         if !self.is_word("from") { return self.err("after the arm's name comes `from`: `'msg' from lend 'inbox' { … }`"); }
                         self.advance();
                         let chan = Bracket { values: vec![self.value()?], line: aline, one_list: false };
                         let body = self.block()?;
-                        arms.push(PickArm { name, chan, body, line: aline });
+                        arms.push(WhicheverArm { name, chan, body, line: aline });
                     }
                     self.advance();
-                    if arms.is_empty() { return self.err("`pick` needs at least one arm"); }
+                    if arms.is_empty() { return self.err("`whichever` needs at least one arm"); }
                     let handler = if self.is_word("otherwise") { self.handler()? } else { None };
                     if *self.peek() == Tok::Semi { self.advance(); }
-                    Ok(Stmt::Pick { arms, handler, line })
+                    Ok(Stmt::Whichever { arms, handler, line })
                 }
                 "fail" => {
                     // fail name; | fail name[payload];   (decided 2026-09-19)
