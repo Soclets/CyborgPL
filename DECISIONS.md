@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — A `std::duration` is never negative (owner: a)
+
+The compiler session found `oracle/tests/reject/duration_negative.cpls`
+enforcing a rule that appears in no document — Claude had put it in the
+oracle when implementing durations and never asked. Proposed (a) a
+duration is a length and never negative, subtracting past zero refused;
+(b) signed, `5 seconds - 6 seconds` is `-1 second`; (c) no subtraction
+between durations. Owner: a. "How far past the deadline" is the
+difference of two instants, a type not designed.
+
 ### 2026-09-22 — A `nocheck` that certainly fails gets a note, not a refusal (owner: c)
 
 Asked by the compiler session, which had Precog layers 1 and 2 running

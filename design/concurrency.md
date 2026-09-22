@@ -131,6 +131,17 @@ Singular and plural both accepted (`1 second`, `2 seconds`) — English
 grammar, not an alias. One representation underneath (nanoseconds in
 an integer wide enough for centuries); `5 seconds == 5_000 millis`.
 
+**A duration is never negative** (owner, 2026-09-22): it is a length of
+time, and every use here is a wait, a timeout or a tick. `5 seconds -
+6 seconds` is refused — a check site like any narrowing past a bound,
+an error when Precog sees it is certain. Proposed alternatives: a
+signed duration (`-1 second`, which the integer underneath gives for
+free, and which would be the natural way to say "how far past the
+deadline" — but that is a difference of two *instants*, a type not
+designed); no subtraction between durations at all. The rule was in
+the oracle from the start and had never been asked; the compiler
+session found it missing from the record.
+
 ## Runtime
 
 Tasks run on the thread pool `parallelism.md` already has — as
