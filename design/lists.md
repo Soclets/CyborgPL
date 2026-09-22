@@ -20,6 +20,23 @@ With `:=`, Precog chooses: a sequence nothing ever appends to becomes an
 `array` — known length, provable indexes, placed wherever is fastest. The
 programmer only says which at a boundary.
 
+## Layout (owner, 2026-09-22)
+
+A **`list` is 24 bytes** — a pointer, a length and a capacity — because
+it is the thing that grows; an **`array` is 16** — a pointer and a
+length — because its length never changes; a `str` is 16 for the same
+reason (`types.md`). Each type is exactly as big as it needs to be,
+rather than one handle shape for all three (proposed, and declined: it
+would put 8 unused bytes on every text).
+
+Precog's part is the type itself, as it always was: a sequence nothing
+ever appends to becomes an `array`, so the capacity is gone before
+layout is asked. And **a `list` whose final size it can prove** — it
+grows to exactly N and stops — **needs no capacity field either**: the
+capacity is a constant the compiler holds, the allocation is fixed, and
+the handle is 16 bytes. Same shape as the text builder's hidden
+capacity in `types.md`.
+
 ## Literals (decided 2026-09-14)
 
 `[72, 95, 38]` — comma-separated values in a bracket. `[7,]` is a one-element

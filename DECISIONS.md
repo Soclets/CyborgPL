@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Layout: `list` 24 bytes, `array` and `str` 16; Precog drops a proven list's capacity (owner)
+
+The third layout question. Proposed (a) different shapes — each type as
+big as it needs; (b) one 24-byte handle for all, simpler in the
+compiler, 8 unused bytes on every text. Owner asked whether Precog
+helps here: less than in the previous two, because the type already
+says who grows — but it chooses the type (`:=` with no append becomes
+an `array`), and a `list` whose final size it proves needs no capacity
+field either, since the capacity is then a constant. Owner: a, plus
+that.
+
 ### 2026-09-22 — A constant text: Precog knows which memory, a sentinel only where it cannot (owner: c)
 
 The second layout question. A text handle can point at the binary's
