@@ -21,7 +21,9 @@ a backwards walk by position impossible since a position is a
 holds one; the step is an instruction, and every value the counter
 takes stays ≥ 0. Owner: a. Noted with it: the compiler must compare
 before stepping, or `range[3, 0, -1]` underflows at the bottom. The
-oracle is the one to fix.
+oracle was the one wrong and is fixed the same day (it was fitting
+every bound, step included, to the counter's type);
+`examples/countdown.cpls` covers all three shapes.
 
 ### 2026-09-23 — The verification session opens: "check claude" (owner)
 

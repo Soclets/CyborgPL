@@ -600,9 +600,11 @@ impl<'p> Interp<'p> {
             }
             Stmt::Range { name, perm, ty, bounds, body, line, .. } => {
                 let mut nums = Vec::new();
-                for v in &bounds.values {
+                for (k, v) in bounds.values.iter().enumerate() {
                     let (val, prov) = self.value(v)?;
-                    let val = self.fit(val, prov, ty.as_ref(), *line)?;
+                    // The step is its own signed number, not a value the counter takes
+                    // (owner, 2026-09-23): `for 'i': uint64 in range[3, 1, -1]` is legal.
+                    let val = if k < 2 { self.fit(val, prov, ty.as_ref(), *line)? } else { val };
                     match val {
                         Value::Int(i) => nums.push(i),
                         other => return rt(*line, format!("a range bound must be an integer, got {}", other.kind())),
