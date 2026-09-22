@@ -47,10 +47,24 @@ kind — a second interpreter would only be the same reading again:
    still mean the source". Checks the compiler's LLVM IR against the
    program (Alive2's territory), as above.
 
-Two of the three are mostly borrowed: translation validation feeds
-Alive2; the Precog oracle can sit on an SMT solver (Z3), asking the dumb
-literal question where Precog asks the clever one. The interpreter stays
-ours — it is the spec.
+Two of the three are mostly borrowed (owner, 2026-09-23: "Borrow it").
+Translation validation uses **Alive2** for the LLVM-IR half — ~37k lines
+of C++ (2026-09-21), of which ~20k is a formal semantics of LLVM IR kept
+in step with LLVM by people who work on LLVM, run in LLVM's own CI and
+credited with hundreds of LLVM bugs; its trust is that history, which a
+rewrite could not have. Ours is the Cyborg half: that MIR-with-proofs
+means what the source meant, and that the IR handed to LLVM matches
+MIR — a few hundred to a few thousand lines. The Precog oracle can sit
+on an SMT solver (Z3), asking the dumb literal question where Precog
+asks the clever one. The interpreter stays ours — it is the spec.
+
+**Sessions** (owner, 2026-09-23): (1) this one — design and the
+oracle, never a line of the compiler; (2) a fresh session — CCA
+(front end, checker, MIR, Precog, lowering, runtime) and JetPack,
+reading `design/` and the oracle's tests, never its source; (3) later,
+another fresh session — verification: the Precog oracle, translation
+validation, the generator, the differential harness, by a different
+author than Precog's.
 
 **4. Twin programs — other languages as oracles** (owner, 2026-09-21).
 A Cyborg program and the same algorithm in C, Rust, or Python, expected

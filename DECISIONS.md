@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Translation validation borrows Alive2; three sessions (owner)
+
+Owner asked whether the compiler is buildable (yes; the undecided
+items do not block it), which session does what (design + oracle
+here; CCA + JetPack in a fresh session; verification in a third,
+later), and about translation validation: why not written by us, and
+Alive2's size — 37k lines C++, counted from a temporary clone. Claude's
+"a year of expert work, less trusted" was an unsourced estimate and
+said so when asked; the trust argument (years of LLVM developers'
+use) stood. Owner: "Borrow it."
+
 ### 2026-09-22 — `std::printf`: C's print in full, checked (owner)
 
 A third print where the text is processed. Claude proposed escapes
