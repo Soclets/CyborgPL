@@ -9,3 +9,8 @@ pub mod lexer;
 pub mod names;
 pub mod parser;
 pub mod source;
+pub mod check;
+pub mod hir;
+pub mod resolve;
+pub mod types;
+pub mod load;

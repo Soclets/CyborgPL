@@ -42,8 +42,8 @@ pub struct Diagnostic {
     pub place: Option<String>,
     /// The counterexample, as a sentence.
     pub when: Option<String>,
-    /// The root of the chain, one fact per line.
-    pub why: Vec<String>,
+    /// The root of the chain, one fact per line, each with a place when it has one.
+    pub why: Vec<(String, Option<Span>)>,
     /// A command that reproduces it.
     pub try_: Option<String>,
     /// The edited line(s); alternatives after the first go under `or`.
@@ -76,7 +76,12 @@ impl Diagnostic {
         self
     }
     pub fn why(mut self, why: impl Into<String>) -> Diagnostic {
-        self.why.push(why.into());
+        self.why.push((why.into(), None));
+        self
+    }
+    /// A fact with a place: rendered with "— line N" after it.
+    pub fn why_at(mut self, span: Span, why: impl Into<String>) -> Diagnostic {
+        self.why.push((why.into(), Some(span)));
         self
     }
     pub fn try_(mut self, cmd: impl Into<String>) -> Diagnostic {
@@ -114,7 +119,16 @@ impl Diagnostic {
         }
         if !self.why.is_empty() {
             out.push('\n');
-            for (i, w) in self.why.iter().enumerate() {
+            for (i, (w, at)) in self.why.iter().enumerate() {
+                let w = match at {
+                    Some(sp) => {
+                        let f = sources.get(sp.file);
+                        let (line, _) = f.line_col(sp.start);
+                        format!("{} — line {}", w, line)
+                    }
+                    None => w.clone(),
+                };
+                let w = &w;
                 if i == 0 {
                     let _ = writeln!(out, "why:   {}", w);
                 } else {

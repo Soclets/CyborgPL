@@ -9,6 +9,9 @@ publish = false
 name = "cca_runtime"
 path = "src/lib.rs"
 crate-type = ["staticlib", "rlib"]
+test = false
+doctest = false
+bench = false
 
 [dependencies]
 

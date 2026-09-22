@@ -18,11 +18,18 @@ cargo build
 - `runtime/` — `cca-runtime`, the `no_std` Rust library linked into every
   CyborgPL binary.
 
+```
+cargo test        # every examples/*.cpls checks; every reject program is refused
+```
+
 ## Status
 
-- 2026-09-22: lexer and parser cover every decided spelling; every
-  `examples/*.cpls` parses; the syntax-level reject tests are refused with
-  a message that says what the `.err` says. No checker, no MIR, no LLVM yet.
+- 2026-09-22: lexer, parser, item resolution and the checker. Every
+  `examples/*.cpls` loads and checks; 38 of the 39 reject *programs* CCA
+  can decide are refused in CCA's own words (`compiler/tests/reject_phrases.txt`),
+  and the 38 that need Precog are marked `!pending` there — the test
+  insists they are still *accepted*, so the file has to be updated the day
+  each one starts being refused. No MIR, no Precog, no LLVM yet.
 
 ## Provisional — picks made to keep moving, not decisions
 
@@ -37,6 +44,27 @@ Dated, with the alternative, so each can become a question later.
   oracle accepts both; every other statement needs its `;` and there are
   no empty statements. Alternative: require it always (would break the
   examples) or never (would break them too).
+- **2026-09-22 — An integer-valued `:=` name may be stored into a `bin`
+  slot; a declared `int32` may not.** Two documents disagree:
+  `design/types.md` says "a *variable* never converts — `let 'b': bin64 =
+  'a';` with `'a'` an `int32` is an error", while
+  `design/core-features.md`'s guardrail example (and
+  `examples/check_tiers.cpls`) writes `let 'x' := 70000;` then
+  `check let 'y': bin16 = 'x';` and calls it a *fit* question with a
+  counterexample, not a family error. CCA reads `:=` as "Precog picks the
+  family too", so a name that has only held integers may land in a bin
+  slot (a check site); a *declared* integer still never converts, which is
+  what `types.md` refuses and the `int_into_bin_var` reject test expects.
+  Asked of the design session 2026-09-22. Alternative: refuse it and treat
+  `examples/check_tiers.cpls` as wrong.
+- **2026-09-22 — A testing-only `std::` stub table.** `std::` does not
+  exist (owner, 2026-09-22), but 55 of the 61 examples print with it. The
+  checker has a flag (off by default, on in `cargo test` and with
+  `CCA_STD_STUBS=1`) that gives the `std::` names the oracle emulates
+  their types and nothing else — no code is generated for them. It exists
+  so the front end can be tested against the examples today, and goes away
+  when std is written. Alternative: test only the six extern-based
+  examples until std exists.
 - **2026-09-22 — Reject-test matching.** CCA's messages are in CCA's
   words, so the `.err` substring is not matched literally; the harness
   (to come) records, per reject test, a phrase of CCA's own message that

@@ -478,7 +478,8 @@ impl<'a> Parser<'a> {
 
     fn param(&mut self, ctx: ParamContext) -> Result<Param> {
         let start = self.span();
-        let mut kind = ParamKind::Owned;
+        // An operator's operands are lent unless the op says `give`.
+        let mut kind = if ctx == ParamContext::Op { ParamKind::Lent } else { ParamKind::Owned };
         let mut amp = false;
         let mut mutability = None;
         let mut variadic = false;
@@ -923,7 +924,7 @@ impl<'a> Parser<'a> {
         let save = self.pos;
         let mut ok = false;
         if self.eat(&Tok::LBracket) {
-            if self.expr(0).is_ok() && self.eat(&Tok::Comma) && self.expr(0).is_ok() {
+            if self.bound_end() && self.eat(&Tok::Comma) && self.bound_end() {
                 if let Tok::Word(w) = self.peek().clone() {
                     if !is_keyword(&w) {
                         self.bump();
@@ -934,6 +935,19 @@ impl<'a> Parser<'a> {
         }
         self.pos = save;
         ok
+    }
+
+    /// One end of a bound: a number, possibly negative.
+    fn bound_end(&mut self) -> bool {
+        if self.is_op("-") {
+            self.bump();
+        }
+        if let Tok::Num { .. } = self.peek() {
+            self.bump();
+            true
+        } else {
+            false
+        }
     }
 
     // ------------------------------------------------------------ blocks and statements
@@ -1781,7 +1795,7 @@ impl<'a> Parser<'a> {
                 }
                 _ => {
                     let path = self.path()?;
-                    // a const by path: `a.'k'`, `std::'pi'`
+                    // a const by path: `a.'k'`, `std::'pi'`, `limb.'scale'`
                     if self.is(&Tok::Dot) {
                         if let Tok::Name(n) = self.peek_at(1).clone() {
                             self.bump();
@@ -1791,7 +1805,7 @@ impl<'a> Parser<'a> {
                             return self.postfix_on(e);
                         }
                     }
-                    if path.segs.len() == 1 && path.limb.is_none() && path.head() == "limb" {
+                    if path.segs.len() == 1 && path.limb.is_none() && path.head() == "limb" && !self.is(&Tok::Dot) {
                         return self.fail_at(path.span, "`limb` is followed by `.` and the root item it reaches: `limb.helper[…]`");
                     }
                     if self.is(&Tok::LBracket) {

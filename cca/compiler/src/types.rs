@@ -1,0 +1,386 @@
+//! Types as the checker sees them. A type here is a *family with slots*:
+//! a width, an encoding, a unit, a list-or-array choice may be **free**
+//! — Precog fills it from every value the binding ever holds
+//! (`core-features.md`: `:=` computes the best type). A free integer is
+//! exact: arithmetic on it never overflows, and the store into a typed
+//! slot is the check site. A declared width is a machine width, and each
+//! operation on it is an overflow check site.
+
+use std::fmt;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct InferId(pub u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StructId(pub u32);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct EnumId(pub u32);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct IfaceId(pub u32);
+
+/// An integer's width: declared, or free for Precog to choose.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum IntW {
+    Fixed { signed: bool, bits: u16 },
+    Free(InferId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BinW {
+    Fixed(u16),
+    Free(InferId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Enc {
+    Utf8,
+    Utf16,
+    Utf32,
+    Ascii,
+    Free(InferId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Unit {
+    Byte,
+    Point,
+    Grapheme,
+    Free(InferId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SeqKind {
+    List,
+    Array,
+    /// Never grown → array; Precog decides.
+    Free(InferId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MapOrder {
+    Ordered,
+    Unordered,
+    /// Precog picks: unordered when never walked.
+    Free(InferId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ParamKind {
+    Owned,
+    Lent,
+    LentMut,
+}
+
+impl ParamKind {
+    pub fn spelled(self) -> &'static str {
+        match self {
+            ParamKind::Owned => "",
+            ParamKind::Lent => "lent ",
+            ParamKind::LentMut => "lent.mut ",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FnTy {
+    pub params: Vec<(ParamKind, Ty)>,
+    pub ret: Ty,
+    pub fails: Vec<(String, Option<Ty>)>,
+}
+
+/// A bound written into a type: `int32[0, 100]`, `list[T][0, 10]`,
+/// `str.utf8[1, 40 graphemes]`, `map[K, V][0, 2]`, `channel[T][0, N]`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Bound {
+    /// A numeric range, both ends included, as exact integers.
+    Int { lo: i128, hi: i128 },
+    /// A bin range, as the literal's text (compared exactly by Precog).
+    Bin { lo: String, hi: String },
+    /// A length or count bound; `unit` only for text.
+    Len { lo: u64, hi: u64, unit: Option<Unit> },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Ty {
+    Int(IntW),
+    Bin(BinW),
+    Deci(u16),
+    Bool,
+    Str(Enc),
+    Char(Unit),
+    Seq { elem: Box<Ty>, kind: SeqKind },
+    Map { key: Box<Ty>, val: Box<Ty>, order: MapOrder },
+    Channel(Box<Ty>),
+    Struct { id: StructId, args: Vec<Ty> },
+    Enum { id: EnumId, args: Vec<Ty> },
+    Fn(Box<FnTy>),
+    Ptr { mutable: bool, elem: Box<Ty> },
+    Duration,
+    /// A heterogeneous variadic bundle: one type per argument.
+    Bundle(Vec<Ty>),
+    /// The type of a function with no return value.
+    Nothing,
+    /// A type not known yet: unified as the program is checked.
+    Infer(InferId),
+    /// A generic blank, in the abstract; instantiations substitute.
+    Var(u32),
+    Bounded { inner: Box<Ty>, bound: Bound },
+}
+
+impl Ty {
+    pub fn int(signed: bool, bits: u16) -> Ty {
+        Ty::Int(IntW::Fixed { signed, bits })
+    }
+    pub fn u64() -> Ty {
+        Ty::int(false, 64)
+    }
+    pub fn list(elem: Ty) -> Ty {
+        Ty::Seq { elem: Box::new(elem), kind: SeqKind::List }
+    }
+    pub fn utf8() -> Ty {
+        Ty::Str(Enc::Utf8)
+    }
+
+    /// The type under any bound.
+    pub fn base(&self) -> &Ty {
+        match self {
+            Ty::Bounded { inner, .. } => inner.base(),
+            t => t,
+        }
+    }
+    pub fn bound(&self) -> Option<&Bound> {
+        match self {
+            Ty::Bounded { bound, .. } => Some(bound),
+            _ => None,
+        }
+    }
+    pub fn is_int(&self) -> bool {
+        matches!(self.base(), Ty::Int(_))
+    }
+    pub fn is_bin(&self) -> bool {
+        matches!(self.base(), Ty::Bin(_))
+    }
+    pub fn is_numeric(&self) -> bool {
+        matches!(self.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_))
+    }
+    pub fn is_text(&self) -> bool {
+        matches!(self.base(), Ty::Str(_))
+    }
+    pub fn is_char(&self) -> bool {
+        matches!(self.base(), Ty::Char(_))
+    }
+    pub fn is_seq(&self) -> bool {
+        matches!(self.base(), Ty::Seq { .. })
+    }
+    pub fn is_infer(&self) -> bool {
+        matches!(self, Ty::Infer(_))
+    }
+
+    /// Owned values need the verbs; plain values copy by themselves.
+    /// A struct or enum is always owned (decided 2026-09-18, 2026-09-20).
+    pub fn is_owned(&self) -> bool {
+        match self.base() {
+            Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Struct { .. } | Ty::Enum { .. } | Ty::Channel(_) | Ty::Bundle(_) => true,
+            Ty::Char(Unit::Grapheme) => true,
+            Ty::Var(_) => true,
+            _ => false,
+        }
+    }
+
+    /// C-shaped: may cross to C (`ffi.md`).
+    pub fn is_c_shaped(&self, structs: &[StructInfo]) -> bool {
+        match self {
+            Ty::Int(IntW::Fixed { .. }) | Ty::Bin(BinW::Fixed(_)) | Ty::Bool | Ty::Ptr { .. } => true,
+            Ty::Char(Unit::Byte) | Ty::Char(Unit::Point) => true,
+            Ty::Struct { id, .. } => structs[id.0 as usize].layout_c,
+            Ty::Fn(f) => f.params.iter().all(|(k, t)| *k == ParamKind::Owned && t.is_c_shaped(structs)) && f.fails.is_empty() && (f.ret == Ty::Nothing || f.ret.is_c_shaped(structs)),
+            _ => false,
+        }
+    }
+
+    pub fn contains_var(&self) -> bool {
+        match self {
+            Ty::Var(_) => true,
+            Ty::Seq { elem, .. } | Ty::Channel(elem) | Ty::Ptr { elem, .. } => elem.contains_var(),
+            Ty::Map { key, val, .. } => key.contains_var() || val.contains_var(),
+            Ty::Struct { args, .. } | Ty::Enum { args, .. } => args.iter().any(|a| a.contains_var()),
+            Ty::Fn(f) => f.params.iter().any(|(_, t)| t.contains_var()) || f.ret.contains_var() || f.fails.iter().any(|(_, t)| t.as_ref().map(|t| t.contains_var()).unwrap_or(false)),
+            Ty::Bundle(ts) => ts.iter().any(|t| t.contains_var()),
+            Ty::Bounded { inner, .. } => inner.contains_var(),
+            _ => false,
+        }
+    }
+
+    /// Replace `Var(i)` by `args[i]`.
+    pub fn subst(&self, args: &[Ty]) -> Ty {
+        match self {
+            Ty::Var(i) => args.get(*i as usize).cloned().unwrap_or(Ty::Var(*i)),
+            Ty::Seq { elem, kind } => Ty::Seq { elem: Box::new(elem.subst(args)), kind: *kind },
+            Ty::Channel(e) => Ty::Channel(Box::new(e.subst(args))),
+            Ty::Ptr { mutable, elem } => Ty::Ptr { mutable: *mutable, elem: Box::new(elem.subst(args)) },
+            Ty::Map { key, val, order } => Ty::Map { key: Box::new(key.subst(args)), val: Box::new(val.subst(args)), order: *order },
+            Ty::Struct { id, args: a } => Ty::Struct { id: *id, args: a.iter().map(|t| t.subst(args)).collect() },
+            Ty::Enum { id, args: a } => Ty::Enum { id: *id, args: a.iter().map(|t| t.subst(args)).collect() },
+            Ty::Fn(f) => Ty::Fn(Box::new(FnTy {
+                params: f.params.iter().map(|(k, t)| (*k, t.subst(args))).collect(),
+                ret: f.ret.subst(args),
+                fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| t.subst(args)))).collect(),
+            })),
+            Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| t.subst(args)).collect()),
+            Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(inner.subst(args)), bound: bound.clone() },
+            t => t.clone(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------- declared shapes
+
+#[derive(Debug, Clone)]
+pub struct FieldInfo {
+    pub name: String,
+    pub immut: bool,
+    pub ty: Ty,
+}
+
+#[derive(Debug, Clone)]
+pub struct StructInfo {
+    pub name: String,
+    pub path: String,
+    pub layout_c: bool,
+    pub fields: Vec<FieldInfo>,
+    /// The generic blanks, in order of first appearance.
+    pub blanks: Vec<String>,
+    pub span: crate::source::Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct CaseInfo {
+    pub name: String,
+    pub payload: Option<Ty>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EnumInfo {
+    pub name: String,
+    pub path: String,
+    pub cases: Vec<CaseInfo>,
+    pub blanks: Vec<String>,
+    pub span: crate::source::Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct IfaceEntryInfo {
+    /// `fn show` or `op <`.
+    pub is_op: bool,
+    pub name: String,
+    pub params: Vec<(ParamKind, Ty)>,
+    pub ret: Ty,
+    pub fails: Vec<(String, Option<Ty>)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IfaceInfo {
+    pub name: String,
+    pub path: String,
+    pub entries: Vec<IfaceEntryInfo>,
+    pub span: crate::source::Span,
+}
+
+// ---------------------------------------------------------------- spelling
+
+/// How a type is written back to the writer.
+pub struct TySpelling<'a> {
+    pub ty: &'a Ty,
+    pub structs: &'a [StructInfo],
+    pub enums: &'a [EnumInfo],
+}
+
+impl<'a> fmt::Display for TySpelling<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let sp = |t: &'a Ty| TySpelling { ty: t, structs: self.structs, enums: self.enums };
+        match self.ty {
+            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "{}int{}", if *signed { "" } else { "u" }, bits),
+            Ty::Int(IntW::Free(_)) => write!(f, "integer"),
+            Ty::Bin(BinW::Fixed(b)) => write!(f, "bin{}", b),
+            Ty::Bin(BinW::Free(_)) => write!(f, "bin"),
+            Ty::Deci(b) => write!(f, "deci{}", b),
+            Ty::Bool => write!(f, "bool"),
+            Ty::Str(e) => match e {
+                Enc::Utf8 => write!(f, "str.utf8"),
+                Enc::Utf16 => write!(f, "str.utf16"),
+                Enc::Utf32 => write!(f, "str.utf32"),
+                Enc::Ascii => write!(f, "str.ascii"),
+                Enc::Free(_) => write!(f, "str"),
+            },
+            Ty::Char(u) => match u {
+                Unit::Byte => write!(f, "char.byte"),
+                Unit::Point => write!(f, "char.point"),
+                Unit::Grapheme => write!(f, "char.grapheme"),
+                Unit::Free(_) => write!(f, "char"),
+            },
+            Ty::Seq { elem, kind } => {
+                let k = match kind {
+                    SeqKind::List => "list",
+                    SeqKind::Array => "array",
+                    SeqKind::Free(_) => "list",
+                };
+                write!(f, "{}[{}]", k, sp(elem))
+            }
+            Ty::Map { key, val, order } => {
+                let o = match order {
+                    MapOrder::Ordered => "map.ordered",
+                    MapOrder::Unordered => "map.unordered",
+                    MapOrder::Free(_) => "map",
+                };
+                write!(f, "{}[{}, {}]", o, sp(key), sp(val))
+            }
+            Ty::Channel(e) => write!(f, "channel[{}]", sp(e)),
+            Ty::Struct { id, args } => {
+                write!(f, "{}", self.structs[id.0 as usize].name)?;
+                if !args.is_empty() {
+                    write!(f, "[{}]", args.iter().map(|a| sp(a).to_string()).collect::<Vec<_>>().join(", "))?;
+                }
+                Ok(())
+            }
+            Ty::Enum { id, args } => {
+                write!(f, "{}", self.enums[id.0 as usize].name)?;
+                if !args.is_empty() {
+                    write!(f, "[{}]", args.iter().map(|a| sp(a).to_string()).collect::<Vec<_>>().join(", "))?;
+                }
+                Ok(())
+            }
+            Ty::Fn(ft) => {
+                write!(f, "fn[{}]", ft.params.iter().map(|(k, t)| format!("{}{}", k.spelled(), sp(t))).collect::<Vec<_>>().join(", "))?;
+                if ft.ret != Ty::Nothing {
+                    write!(f, " -> {}", sp(&ft.ret))?;
+                }
+                if !ft.fails.is_empty() {
+                    write!(f, "{} fail[{}]", if ft.ret != Ty::Nothing { " or" } else { " ->" }, ft.fails.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>().join(", "))?;
+                }
+                Ok(())
+            }
+            Ty::Ptr { mutable, elem } => write!(f, "ptr{}[{}]", if *mutable { ".mut" } else { "" }, sp(elem)),
+            Ty::Duration => write!(f, "duration"),
+            Ty::Bundle(ts) => write!(f, "a bundle of {} value(s)", ts.len()),
+            Ty::Nothing => write!(f, "nothing"),
+            Ty::Infer(_) => write!(f, "(not yet known)"),
+            Ty::Var(i) => write!(f, "<blank {}>", i),
+            Ty::Bounded { inner, bound } => {
+                write!(f, "{}", sp(inner))?;
+                match bound {
+                    Bound::Int { lo, hi } => write!(f, "[{}, {}]", lo, hi),
+                    Bound::Bin { lo, hi } => write!(f, "[{}, {}]", lo, hi),
+                    Bound::Len { lo, hi, unit } => {
+                        let u = match unit {
+                            Some(Unit::Byte) => " bytes",
+                            Some(Unit::Point) => " points",
+                            Some(Unit::Grapheme) => " graphemes",
+                            _ => "",
+                        };
+                        write!(f, "[{}, {}{}]", lo, hi, u)
+                    }
+                }
+            }
+        }
+    }
+}
