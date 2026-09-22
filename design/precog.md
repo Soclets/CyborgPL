@@ -215,7 +215,11 @@ to c".
   its assumes for that reason); and through a custom pass in the C++
   wrapper for a kind of fact worth more than LLVM offers a home for.
   Removing the check is the win that needs nothing from LLVM; a fact
-  LLVM ignores costs speed, never correctness.
+  LLVM ignores costs speed, never correctness. **Measured by us, when
+  we build** (owner): the compiler's suite carries a bench that builds
+  the same programs with each kind of fact handed over and withheld,
+  results kept in the repo and re-run on every LLVM upgrade — our
+  numbers on our LLVM, not another compiler's findings on theirs.
 - **default, unproven** → working build: a checked instruction, trap on
   failure with the site named; final build: refused.
 - **`check`, unproven** → compile error with the counterexample, or
