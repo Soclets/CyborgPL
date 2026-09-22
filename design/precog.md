@@ -332,6 +332,16 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
   brought it to 2.6 s: no state clones to read a condition, loop-exit
   states joined in place, exact sets reference-counted, ranges not spelled
   out past 64 values. Trip-by-trip following is where compile time goes.
+- **Trip-by-trip is where the proofs come from, not only where the
+  compile time goes** (CCA, 2026-09-22). Joining at a loop head cannot
+  see that a counter and a sum move together, so it gives the counter
+  every value from 0 upwards and the sum overflows in the analysis
+  though never in the program. `examples/scores.cpls` went from 4 of 9
+  sites proven to 9 of 9 — and from 1675 steps to 170.
+- Narrowing must reach through operations and fields, not only names:
+  `if list.length[lend 's'.scores] > 0` has to teach the *list* its
+  length, so that a second `list.length` of it proves the divisor
+  non-zero (`examples/gradebook.cpls`'s comment, now true).
 - Z3 goes quadratic on nested loops past ~16 unrolls.
 - Big lists are carried as a summary (length interval + element domain),
   not a value per element.
