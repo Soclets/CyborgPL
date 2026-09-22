@@ -1,0 +1,56 @@
+# GPU offload
+
+Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
+`parallelism.md`'s, extended: the programmer writes `for`, Precog
+decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
+the loop body is compiled by LLVM for the GPU target and the runtime
+launches it and moves the data. This document is what Precog needs to
+decide, and what the runtime does.
+
+## What a body may contain — plain values, and failures (owner: b)
+
+A GPU runs thousands of copies of the body at once, each on its own
+slice of the range, with no operating system underneath. Precog may
+offload a loop whose body uses only:
+
+- plain values — `int`, `uint`, `bin`, `bool`, `char.byte` / `.point`
+  — and lists, arrays and structs of them, lent into the loop or built
+  inside it;
+- arithmetic, comparisons, `if`, nested `for` over known ranges,
+  indexing into the lent lists;
+- calls to functions whose bodies meet the same rule;
+- **`fail`**. A body may fail. A GPU cannot stop mid-launch, so an
+  iteration that fails records its index and reason (an atomic minimum,
+  so the *lowest* failing index wins — the same iteration that would
+  have failed first sequentially) and the launch runs to the end; the
+  runtime then raises that failure on the CPU exactly as if that
+  iteration had run there. Measured 2026-09-22 on the M5 (Metal, the
+  same numeric body with and without a `fail` path, 16M to 1G
+  iterations, 8.6 GB of buffers at the top): the cost is **0.0%** — the
+  branch is predicted away and the atomic runs only on failing
+  iterations. The GPU was 13–42× one CPU core across those sizes.
+
+Never offloadable: `extern` calls, `std::input` / `print`, `inline.ASM`,
+`nocheck` sites (nothing proven, nothing offloadable), text
+(allocation per `++` on a GPU is 10–100× slower than on the CPU; a
+text loop is never worth offloading), `std::uenr` and `deci` (software
+arithmetic with allocation). A loop that touches any of these stays on
+the CPU, silently — that is not an error, it is Precog deciding.
+
+Proposed: (a) plain values only; (b) a plus failures; (c) b plus text.
+Owner: b.
+
+## Open
+
+- How data crosses: copied per loop, or kept on the GPU across loops
+  (on unified memory — the M5 — there is no crossing; on a discrete GPU
+  there is a bus).
+- Which targets: Metal (Apple), CUDA / PTX (NVIDIA), Vulkan / SPIR-V
+  (everyone else) — LLVM has all three; which ship in v1.
+- The report: when Precog declines to offload a loop, it says why
+  (which rule the body broke, or the trip count too small to pay for
+  the launch).
+- Precog's offload threshold: how many iterations, of what body, before
+  the launch cost is worth it — a number for the bench.
+- A loop-nest model (the polyhedral kind) for tiling and fusion — a
+  fourth IR only if offload gets serious (`precog.md`, three IRs).

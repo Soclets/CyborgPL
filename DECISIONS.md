@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — GPU offload: a body may hold plain values and failures (owner: b)
+
+`design/gpu.md` opened. Proposed (a) plain values only, (b) plus
+`fail` — an iteration records its index and reason by atomic minimum,
+the runtime raises the lowest on the CPU after the launch, (c) plus
+text. Owner asked the performance difference, then to test it: Metal on
+the M5, same body with and without a fail path — within noise at 16M,
++0.0% at 64M, 256M and 1G iterations (8.6 GB of buffers), GPU 13–42×
+one CPU core. Owner: b. Open: data crossing, targets, the report, the
+threshold, a loop-nest model.
+
 ### 2026-09-22 — Map count bound `map[K, V][lo, hi]`; bounds inside compose (owner: yes)
 
 The list rule applied to maps. Owner asked about the things inside:
