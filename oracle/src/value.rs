@@ -12,6 +12,8 @@ pub enum Value {
     Str(String),
     Char(CharUnit, String),
     List(Vec<Value>),
+    /// a map, insertion-ordered (the oracle's order; the design leaves iteration open): (key, value) pairs
+    Map(Vec<(Value, Value)>),
     /// a struct value: blueprint name + fields in declaration order
     Struct(String, Vec<(String, Value)>),
     /// an enum value (design/enums.md): type name, case name, the case's data if any
@@ -55,7 +57,7 @@ impl Value {
     /// (design/ownership-syntax.md). Plain values copy silently.
     pub fn is_owned(&self) -> bool {
         match self {
-            Value::Str(_) | Value::List(_) | Value::Char(CharUnit::Grapheme, _) => true,
+            Value::Str(_) | Value::List(_) | Value::Map(_) | Value::Char(CharUnit::Grapheme, _) => true,
             // Decided 2026-09-18: a struct is always an owned value, even when every
             // field is plain — a struct owns its fields, so the verbs always apply.
             Value::Struct(..) => true,
@@ -73,6 +75,7 @@ impl Value {
             Value::Str(_) => "str",
             Value::Char(..) => "char",
             Value::List(_) => "list",
+            Value::Map(_) => "map",
             Value::Struct(..) => "struct",
             Value::Enum(..) => "enum",
             Value::Func(..) => "function",
@@ -90,6 +93,7 @@ impl Value {
             Value::Str(s) => s.clone(),
             Value::Char(_, c) => c.clone(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
+            Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_stored(), v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Ptr(p) => if p.cell.is_none() { "null".into() } else { format!("ptr+{}", p.index) },
             Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_stored()), None => format!("{t}.{c}") },
@@ -104,6 +108,7 @@ impl Value {
         match self {
             Value::Bin(b) => format!("{b}"),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
+            Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_useful(), v.show_useful())).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_useful())).collect::<Vec<_>>().join(", ")),
             Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_useful()), None => format!("{t}.{c}") },
             other => other.show_stored(),
@@ -147,6 +152,7 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
         Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
+        Ty::Map(k, v) => format!("map[{}, {}]", ty_name(k), ty_name(v)),
         Ty::TextRanged(e, lo, hi, u) => format!("{}[{}, {} {}]", ty_name(&Ty::Str(e.clone())), lo, hi, unit_word(u)),
         Ty::Fn(ps, r, fails) => {
             let ps: Vec<String> = ps.iter().map(|(k, t)| format!("{}{}", match k { crate::ast::ParamKind::Owned => "", crate::ast::ParamKind::Lent => "lent ", crate::ast::ParamKind::LentMut => "lent.mut " }, ty_name(t))).collect();

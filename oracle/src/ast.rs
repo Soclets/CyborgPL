@@ -27,6 +27,8 @@ pub enum Ty {
     Ranged(Box<Ty>, Bound, Bound),
     /// `str.utf8[1, 40 graphemes]` — a length bound on text, in a named unit (decided 2026-09-22)
     TextRanged(Encoding, i128, i128, CharUnit),
+    /// `map[K, V]` — a language collection (decided 2026-09-22)
+    Map(Box<Ty>, Box<Ty>),
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed
     Fn(Vec<(ParamKind, Ty)>, Option<Box<Ty>>, Vec<String>),
@@ -270,6 +272,8 @@ pub enum Stmt {
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
     /// `match v { case ['bind'] { … } … }` — every case covered (decided 2026-09-20)
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
+    /// `map.remove[…] otherwise …;` — a failing map operation as a statement, value dropped
+    MapFailStmt { op: String, args: Bracket, handler: Option<Handler>, line: usize },
     /// `'f'[args];` — a function value called as a statement
     CallValue { name: String, args: Bracket, handler: Option<Handler>, line: usize },
 }
@@ -355,6 +359,8 @@ pub enum Expr {
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
     FnRef(Vec<String>, Vec<String>, usize),
+    /// `map.get[lend 'm', k]` / `map.remove[lend.mut 'm', k]`: hand a value back or fail `missing` (decided 2026-09-22)
+    MapFail(String, Bracket, Option<Handler>, usize),
     /// `char.point.from_code[n]` / `char.byte.from_code[n]`: a number to a character, fails `not_a_char` (decided 2026-09-21)
     CharFromCode(CharUnit, Bracket, Option<Handler>, usize),
     /// `...'xs'` in a call: unpack the list into the variadic part (decided 2026-09-21)
@@ -389,7 +395,7 @@ impl Expr {
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
             Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
-            Expr::CharFromCode(_, _, _, l) => *l,
+            Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,
         }
     }

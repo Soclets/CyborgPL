@@ -28,6 +28,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `let 'x' := v;` / `let 'x': T = v;` — `:=` only without a type, `=` only with one; the typed form is fully explicit; `let mut` / `let immut` before the name (revised 2026-09-19; `var`, `func`, `loop.while`, `else.if`, `loop.temp.for` are refused with the new spelling)
 - `&'x'` / `&mut 'x'` are accepted wherever `lend 'x'` / `lend.mut 'x'` are (call site, `.field`, `[pos]`), and `&'x': T` / `&mut 'x': T` wherever `lent` / `lent.mut` are (parameters, `fn[…]` types) — the build then prints `What are you? Rust programmer or Claude?` on stdout once per `&`, then runs; `std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output` is `printu.stdout` (both 2026-09-21)
 - `fn name ['a': int32, lent 'b': str.utf8, lent.mut 'c': list[int32]] -> int32 { }`; an owning parameter has no keyword; the return type is `-> T` after the parameters; `...'rest'` (last only) collects the remaining arguments, each checked as if bound to that parameter (2026-09-19)
+- `map[K, V]` with `map.empty/length/has/get/set/remove` (`get`/`remove` fail `missing`, `otherwise` required; `set`/`remove` need `lend.mut`); keys by structure, or by a type's own `op ==`/`fn hash` — and then equal keys hashing differently is a check-site error on the comparison that exposes it; functions, pointers and maps refused as keys (2026-09-22)
 - `str.utf8[lo, hi bytes|points|graphemes]` — a length-bounded text; the unit is required; assignment and `++` are checked against it; `to.str.utf8[…bound…][v]` fails `out_of_range` (2026-09-22)
 - an `extern fn` with a ranged return (`-> uint64[0, 10]`) can fail `out_of_range` (an `otherwise` is required; `nocheck` does not remove it); a plain-return extern still cannot fail (2026-09-22)
 - `extern let ['mut'] 'x': T;` — a C global, C-shaped, no value; reads and writes are nocheck sites; a read-only one cannot be written; no verbs; emulated as zero until written (2026-09-21)
@@ -74,6 +75,8 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - a `[ ]` inside a `[ ]` is a value; `[1,]` is a one-element list
 
 ## Provisional picks — the design has not decided these
+
+- A map's iteration order (the oracle keeps insertion order; no `for` over a map yet); a map literal; a map length bound.
 
 - The oracle is not parameterised by target (pointer size, `bin128` in hardware or not); it behaves as one 64-bit machine. Cross-target proofs would need it to take those as inputs (noted 2026-09-21).
 

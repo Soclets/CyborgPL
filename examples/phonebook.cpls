@@ -1,0 +1,17 @@
+# map[K, V] — a language collection beside list and array (decided 2026-09-22).
+# A missing key is a failure, not a check site: `otherwise` says what happens.
+MAIN {
+    let mut 'phones': map[str.utf8, int32] = map.empty;
+    map.set[lend.mut 'phones', "ann", 5551];
+    map.set[lend.mut 'phones', "bob", 5552];
+    map.set[lend.mut 'phones', "ann", 5553];                          # same key: replaced
+    std::printu.stdout[map.length[lend 'phones'], " entries", \n];
+    let 'a' := map.get[lend 'phones', "ann"] otherwise 0;
+    let 'c' := map.get[lend 'phones', "cat"] otherwise 0;             # missing → 0
+    std::printu.stdout["ann ", 'a', ", cat ", 'c', \n];
+    if map.has[lend 'phones', "bob"] { std::printu.stdout["bob is in", \n]; }
+    let 'gone' := map.remove[lend.mut 'phones', "bob"] otherwise 0;   # hands the value back
+    std::printu.stdout["removed ", 'gone', ", ", map.length[lend 'phones'], " left", \n];
+    map.remove[lend.mut 'phones', "nobody"] otherwise { missing { std::printu.stdout["nobody to remove", \n]; } };
+    let 'who' := map.get[lend 'phones', "zed"] otherwise { missing { std::printu.stdout["no zed", \n]; std::exit[0]; } };
+}

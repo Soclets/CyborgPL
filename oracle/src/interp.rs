@@ -554,6 +554,10 @@ impl<'p> Interp<'p> {
                 r?;
                 Ok(Flow::Normal)
             }
+            Stmt::MapFailStmt { op, args, handler, line } => {
+                self.map_fail(op, args, handler.as_ref(), *line, false)?;
+                Ok(Flow::Normal)
+            }
             Stmt::CallValue { name, args, handler, line } => {
                 self.call_is_stmt = true;
                 let r = self.call_value(name, args, handler.as_ref(), *line);
@@ -706,6 +710,10 @@ impl<'p> Interp<'p> {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
             }
+            (Ty::Map(kt, vt), Value::Map(ps)) => {
+                for (k, v) in ps { self.check_type(k, kt, line)?; self.check_type(v, vt, line)?; }
+                Ok(())
+            }
             (Ty::TextRanged(enc, lo, hi, unit), Value::Str(s)) => {
                 self.check_type(v, &Ty::Str(enc.clone()), line)?;
                 let n = match unit { CharUnit::Byte => s.len(), CharUnit::Point => s.chars().count(), CharUnit::Grapheme => grapheme_count(s) } as i128;
@@ -852,6 +860,11 @@ impl<'p> Interp<'p> {
         let line = e.line();
         match e {
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
+            Expr::MapFail(op, args, handler, _) => {
+                let v = self.map_fail(op, args, handler.as_ref(), line, true)?;
+                let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                Ok((v, prov))
+            }
             Expr::CharFromCode(unit, b, handler, _) => {
                 let fails = vec![FailCase { name: "not_a_char".into(), ty: None }];
                 let uname = match unit { CharUnit::Point => "point", CharUnit::Byte => "byte", CharUnit::Grapheme => "grapheme" };
@@ -1387,6 +1400,7 @@ impl<'p> Interp<'p> {
                 _ => unreachable!(),
             });
         }
+        if head == "map" { return self.map_op(op, args, line); }
         if op == "empty" { return Ok(Value::List(Vec::new())); }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
         if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
@@ -1439,6 +1453,123 @@ impl<'p> Interp<'p> {
                 Ok(removed.unwrap_or(Value::Nothing))
             }
             _ => unreachable!(),
+        }
+    }
+
+    // ---- map (decided 2026-09-22) -------------------------------------------
+    // A language collection beside list and array. `map.get`/`map.remove` fail `missing`;
+    // keys compare by structure, or by a type's own `op ==` / `fn hash` when it satisfies
+    // `Key` — and then "equal keys hash the same" is a check site (the oracle tests it on
+    // every comparison it makes; Precog proves it).
+
+    fn key_ok(&self, k: &Value, line: usize) -> Result<(), RuntimeError> {
+        match k {
+            Value::Func(_) | Value::Ptr(_) | Value::Map(_) | Value::Nothing => rt(line, format!("a {} cannot be a map key", k.kind())),
+            Value::List(items) => { for it in items { self.key_ok(it, line)?; } Ok(()) }
+            _ => Ok(()),
+        }
+    }
+
+    /// Does this key's type bring its own `op ==` and `fn hash` (satisfies `Key`)?
+    fn custom_key(&self, k: &Value) -> bool {
+        let shape = shape_of(k);
+        matches!(k, Value::Struct(..) | Value::Enum(..))
+            && self.prog.funcs.iter().any(|f| f.is_op && f.name == "==" && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false))
+            && self.prog.funcs.iter().any(|f| !f.is_op && f.name == "hash" && f.params.len() == 1 && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false))
+    }
+
+    fn call_named(&mut self, name: &str, shape: &str, arg: Value, line: usize) -> Result<Value, RuntimeError> {
+        let def = self.prog.funcs.iter().find(|f| !f.is_op && f.name == name && f.params.len() == 1 && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false)).cloned().unwrap();
+        let kind = match def.params[0].kind { ParamKind::Owned => SlotKind::Owned, ParamKind::Lent => SlotKind::Lent, ParamKind::LentMut => SlotKind::LentMut };
+        let bound = vec![(def.params[0].name.clone(), Slot { cell: Rc::new(RefCell::new(arg)), ty: def.params[0].ty.clone(), kind, alive: true, immut: false, sized: false })];
+        match self.run_body(&def, bound)? { Flow::Return(v) => Ok(v), _ => rt(line, format!("`{name}` returned nothing")) }
+    }
+
+    fn keys_equal(&mut self, a: &Value, b: &Value, line: usize) -> Result<bool, RuntimeError> {
+        if !self.custom_key(a) { return Ok(a == b); }
+        let shape = shape_of(a);
+        // bind both keys as temporaries so the user's `op ==` can be applied to them
+        let mut scope = HashMap::new();
+        scope.insert("__key_b".to_string(), Slot { cell: Rc::new(RefCell::new(b.clone())), ty: None, kind: SlotKind::Owned, alive: true, immut: true, sized: false });
+        self.scopes.push(scope);
+        let ax = Expr::Var("__key_a".into(), line); let bx = Expr::Var("__key_b".into(), line);
+        let r = self.custom_op_with("==", (a.clone(), Prov::Plain), &ax, &bx, line);
+        self.scopes.pop();
+        let (eq, _) = r?;
+        let eq = match eq { Value::Bool(x) => x, other => return rt(line, format!("`op ==` for {shape} must return a bool, got {}", other.kind())) };
+        if eq {
+            // the consistency site: equal keys must hash the same (decided 2026-09-22)
+            let ha = self.call_named("hash", &shape, a.clone(), line)?;
+            let hb = self.call_named("hash", &shape, b.clone(), line)?;
+            if ha != hb { return site(line, format!("`op ==` says two {shape} keys are equal but `hash` gives {} and {}; a map cannot trust this key type (prove or `nocheck`)", ha.show_useful(), hb.show_useful())); }
+        }
+        Ok(eq)
+    }
+
+    fn map_arg(&mut self, args: &Bracket, want: usize, op: &str, line: usize) -> Result<(Rc<RefCell<Value>>, bool, Vec<Value>), RuntimeError> {
+        if args.values.len() != want { return rt(line, format!("`map.{op}` takes {want} argument(s), given {}", args.values.len())); }
+        let (v, prov) = self.value(&args.values[0])?;
+        let (cell, is_mut) = match prov {
+            Prov::Borrowed(cell, m) => (cell, m),
+            Prov::Bare(n) => return rt(line, format!("`map.{op}` takes the map by `lend '{n}'` (or `lend.mut` to change it)")),
+            _ => (Rc::new(RefCell::new(v.clone())), true),
+        };
+        if !matches!(&*cell.borrow(), Value::Map(_)) { return rt(line, format!("`map.{op}` needs a map, got {}", v.kind())); }
+        let mut rest = Vec::new();
+        for a in &args.values[1..] {
+            let (v, prov) = self.value(a)?;
+            match prov {
+                Prov::Bare(n) => return rt(line, format!("bare '{n}' into a map: say `give '{n}'` or `copy '{n}'`")),
+                Prov::Borrowed(..) => return rt(line, "a map owns its keys and values; store a `copy` or `give`, not a lend"),
+                _ => {}
+            }
+            rest.push(v);
+        }
+        Ok((cell, is_mut, rest))
+    }
+
+    fn map_op(&mut self, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        match op {
+            "empty" => Ok(Value::Map(Vec::new())),
+            "length" => { let (cell, _, _) = self.map_arg(args, 1, op, line)?; let n = match &*cell.borrow() { Value::Map(ps) => ps.len(), _ => 0 }; Ok(Value::Int(n as i128)) }
+            "has" => {
+                let (cell, _, rest) = self.map_arg(args, 2, op, line)?;
+                self.key_ok(&rest[0], line)?;
+                let pairs = match &*cell.borrow() { Value::Map(ps) => ps.clone(), _ => Vec::new() };
+                for (k, _) in &pairs { if self.keys_equal(k, &rest[0], line)? { return Ok(Value::Bool(true)); } }
+                Ok(Value::Bool(false))
+            }
+            "set" => {
+                let (cell, is_mut, rest) = self.map_arg(args, 3, op, line)?;
+                if !is_mut { return rt(line, "`map.set` changes the map: pass `lend.mut`"); }
+                self.key_ok(&rest[0], line)?;
+                let mut pairs = match &*cell.borrow() { Value::Map(ps) => ps.clone(), _ => Vec::new() };
+                let mut replaced = false;
+                for (k, v) in pairs.iter_mut() { if self.keys_equal(k, &rest[0], line)? { *v = rest[1].clone(); replaced = true; break; } }
+                if !replaced { pairs.push((rest[0].clone(), rest[1].clone())); }
+                *cell.borrow_mut() = Value::Map(pairs);
+                Ok(Value::Nothing)
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// `map.get` / `map.remove`: hand the value back, or fail `missing`.
+    fn map_fail(&mut self, op: &str, args: &Bracket, handler: Option<&Handler>, line: usize, value_used: bool) -> Result<Value, RuntimeError> {
+        let fails = vec![FailCase { name: "missing".into(), ty: None }];
+        self.check_handler(handler, &fails, &format!("map.{op}"), line)?;
+        let (cell, is_mut, rest) = self.map_arg(args, 2, op, line)?;
+        if op == "remove" && !is_mut { return rt(line, "`map.remove` changes the map: pass `lend.mut`"); }
+        self.key_ok(&rest[0], line)?;
+        let mut pairs = match &*cell.borrow() { Value::Map(ps) => ps.clone(), _ => Vec::new() };
+        let mut found = None;
+        for (i, (k, _)) in pairs.iter().enumerate() { if self.keys_equal(k, &rest[0], line)? { found = Some(i); break; } }
+        match found {
+            Some(i) => {
+                if op == "remove" { let (_, v) = pairs.remove(i); *cell.borrow_mut() = Value::Map(pairs); Ok(v) }
+                else { Ok(pairs[i].1.clone()) }
+            }
+            None => self.handle_failure(handler.unwrap(), line, &format!("map.{op}"), "missing".into(), None, value_used),
         }
     }
 
@@ -1954,6 +2085,7 @@ impl<'p> Interp<'p> {
             Ty::Var(n) => return rt(line, format!("`size.of[<{n}>]`: a type variable has no size until it is filled")),
             Ty::Ranged(b, _, _) => return self.size_align(b, line),
             Ty::TextRanged(e, _, _, _) => return self.size_align(&Ty::Str(e.clone()), line),
+            Ty::Map(..) => (24, 8),
             Ty::Fn(..) => (8, 8),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
@@ -2276,7 +2408,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Fn(..) => "function".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Fn(..) => "function".into(),
     }
 }
 

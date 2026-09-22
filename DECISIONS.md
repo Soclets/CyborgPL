@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Maps: a language type; missing key is a failure; keys by structure or a type's own `==`/`hash` with consistency proven (owner: a, a, c, yes)
+
+Three questions and a consequence. (1) Where: the language beside
+`list`/`array` (a), a std struct of lists (b), Rust's std-generic-with-
+compiler-hashing (c) — owner: a. (2) A missing key: a failure with
+`otherwise` (a), a check site guarded by `has` (b), a found/missing enum
+(c) — owner: a. (3) Keys: plain and text only (a), plus structs/enums/
+lists by structure (b), plus a type's own `op ==` and `fn hash` via a
+`Key` interface (c) — Claude recommended b (custom hashing's classic
+`==`/`hash` disagreement bug); owner asked b vs c, chose c. Consequence
+put to the owner: make "equal keys hash the same" a check site Precog
+proves — owner: yes. `design/maps.md`, `examples/phonebook.cpls`,
+`examples/keys.cpls`, four reject tests. Open: walking a map and its
+order, a literal, a length bound.
+
 ### 2026-09-22 — A length bound on text names its unit: `str.utf8[1, 40 graphemes]` (owner: c)
 
 Proposed (a) bytes, (b) graphemes, (c) the unit is part of the bound —

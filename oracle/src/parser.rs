@@ -12,7 +12,7 @@ use crate::value::ty_name;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
+    "temp", "perm", "range", "seq", "list", "array", "map", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -681,6 +681,14 @@ impl Parser {
                     u => return bad(self, format!("unknown character unit `{u}`")),
                 }))
             }
+            "map" => {
+                // map[K, V]  (decided 2026-09-22: a language collection beside list and array)
+                if segs.len() > 1 { return bad(self, format!("`map` takes its types in brackets: `map[{}]`", segs[1..].join("."))); }
+                if params.len() != 2 { return bad(self, "`map` takes a key type and a value type: `map[str.utf8, int32]`".into()); }
+                let v = params.pop().unwrap(); let k = params.pop().unwrap();
+                match &k { Ty::Fn(..) | Ty::Ptr(..) | Ty::Map(..) => return bad(self, format!("{} cannot be a map key; keys are plain values, text, chars, structs, enums and lists of those, or a type that satisfies `Key`", ty_name(&k))), _ => {} }
+                Ok(Ty::Map(Box::new(k), Box::new(v)))
+            }
             "list" | "array" => {
                 if segs.len() > 1 { return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`", segs[1..].join("."), segs.join("."))); }
                 if params.len() != 1 { return bad(self, format!("`{head}` takes exactly one type parameter: `{head}[int32]`, `{head}[str.utf8]`, `{head}[list[int32]]`")); }
@@ -777,8 +785,14 @@ impl Parser {
                     Ok(Stmt::Tier { tier, body: Box::new(body), line })
                 }
                 "give" | "copy" | "lend" => self.err(format!("`{w}` belongs inside a value: `'s' = {w} 't';`")),
-                "list" | "array" => {
+                "list" | "array" | "map" => {
                     let (head, op, args) = self.builtin()?;
+                    if head == "map" && (op == "get" || op == "remove") {
+                        // a call that can fail, as a statement: `map.remove[…] otherwise …;` (the value is dropped)
+                        let handler = if self.is_word("otherwise") { self.handler()? } else { None };
+                        self.expect(Tok::Semi, "`;`")?;
+                        return Ok(Stmt::MapFailStmt { op, args, handler, line });
+                    }
                     self.expect(Tok::Semi, "`;`")?;
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
                 }
@@ -1065,6 +1079,7 @@ impl Parser {
                 Expr::Call(c) => c.handler = self.handler()?,
                 Expr::Convert(_, _, h, _) => *h = self.handler()?,
                 Expr::CharFromCode(_, _, h, _) => *h = self.handler()?,
+                Expr::MapFail(_, _, h, _) => *h = self.handler()?,
                 Expr::CallValue(_, _, h, _) => *h = self.handler()?,
                 _ => return self.err("`otherwise` handles a call that can fail, and the call must be the whole value: put it in its own `let` first"),
             }
@@ -1294,10 +1309,11 @@ impl Parser {
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `{head}.`, found {other}")) };
         let ok = match (head.as_str(), op.as_str()) {
             ("list", "length" | "append" | "remove" | "empty") | ("array", "length") => true,
+            ("map", "empty" | "length" | "has" | "set" | "get" | "remove") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
-        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length")); }
+        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length, map has empty/length/has/get/set/remove")); }
         if op == "empty" {
             // `[list.empty]` — a value, not a call (decided 2026-09-17)
             let line = self.line();
@@ -1586,6 +1602,11 @@ impl Parser {
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
                 "check" | "nocheck" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "map" => {
+                    let (h, o, a) = self.builtin()?;
+                    if o == "get" || o == "remove" { return Ok(Expr::MapFail(o, a, None, line)); }   // can fail `missing`
+                    Ok(Expr::Builtin(h, o, a, line))
+                }
                 "ptr" => { let (h, o, a) = self.ptr_op()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "str" if matches!(self.peek_at(1), Tok::Dot) && !matches!(self.peek_at(2), Tok::Word(u) if u == "utf8" || u == "utf16" || u == "utf32" || u == "ascii") => {
                     // str.bytes[…] / str.points[…] / str.graphemes[…] / str.each.<unit>[…]  (decided 2026-09-20)
