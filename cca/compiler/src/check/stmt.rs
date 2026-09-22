@@ -300,6 +300,13 @@ impl Checker {
 
     pub fn expect_bool(&self, e: &hir::Expr, what: &str) -> Result<()> {
         let t = self.resolve(&e.ty);
+        if let Ty::Simd { elem, lanes } = t.base() {
+            let what_it_is = if elem.base() == &Ty::Bool { "one answer per lane".to_string() } else { format!("{} lanes of `{}`", lanes, self.spell(elem)) };
+            return err(Diagnostic::error(format!("{} must be a `bool`, and this is a `{}`: a vector is never a single answer — it is {}", what, self.spell(&t), what_it_is))
+                .at(e.span)
+                .fix(None, "simd.all[…]   # when every lane must hold")
+                .fix(None, "simd.any[…]   # when one lane is enough"));
+        }
         if t.base() != &Ty::Bool {
             return err(Diagnostic::error(format!("{} must be a `bool`, and this is a `{}`: there is no truthiness — compare it (`'n' !== 0`)", what, self.spell(&t))).at(e.span));
         }

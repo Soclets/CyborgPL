@@ -289,6 +289,11 @@ seq_after_perm :: `seq` goes first, then `temp` / `perm`, then the name
 shadow :: 'x' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`
 shadow_immut :: 'k' is `immut` and cannot be shadowed
 shadow_nothing :: `$` shadows a visible 'y', and none is visible here: write `:=`
+simd_bad_element :: a `simd` holds plain numbers or bools
+simd_load_needs_pos :: says the position with `pos`, as every index does
+simd_load_past_end :: !pending
+simd_not_a_bool :: a vector is never a single answer
+simd_wrong_shape :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char :: 'a' is not declared
 size_of_alone :: `size` is followed by `.of`: `size.of[int32]`
 spread_lent_no_verb :: `...` with no verb lends each element

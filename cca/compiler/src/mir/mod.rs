@@ -153,6 +153,14 @@ pub enum Op {
     PtrIsNull,
     ChannelSend,
     ChannelTake,
+    SimdFill,
+    SimdLoad,
+    SimdStore,
+    SimdAll,
+    SimdAny,
+    SimdMax,
+    SimdMin,
+    SimdSum,
     /// A std name, until the std Limb exists (owner, 2026-09-22).
     Std(String),
 }
@@ -197,6 +205,8 @@ pub enum SiteKind {
     LengthBound { to: Ty },
     /// `shl` past the width.
     ShiftWidth,
+    /// `simd.load` / `simd.store`: is `i + N - 1` still inside?
+    SimdRange { lanes: u32 },
     /// Equal keys must hash the same, for a type with its own `hash`.
     KeyHashAgrees,
     /// A lend that must not outlive its owner.
@@ -220,6 +230,7 @@ impl SiteKind {
             SiteKind::Narrow { to } => format!("the value can be outside what a `{}` holds", spell(to)),
             SiteKind::LengthBound { to } => format!("this can take it outside the bound its type gives it (`{}`)", spell(to)),
             SiteKind::ShiftWidth => "the shift can move every bit out".into(),
+            SiteKind::SimdRange { lanes } => format!("the {} lanes can run past the end", lanes),
             SiteKind::KeyHashAgrees => "two keys this says are equal can hash differently, and the map would hold both".into(),
             SiteKind::LendOutlives => "the borrow can outlive what it borrows".into(),
             SiteKind::TaskLendOutlives => "the task can outlive what it borrowed".into(),

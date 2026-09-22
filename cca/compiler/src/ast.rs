@@ -72,6 +72,9 @@ pub enum TypeKind {
     Var { name: Ident, bound: Option<Path> },
     /// `fn[lent T, T] -> R or fail[…]`.
     Fn { params: Vec<FnTypeParam>, ret: Option<Box<Type>>, fails: Vec<FailSpec> },
+    /// A plain number where a type parameter goes: the lane count of a
+    /// `simd[uint8, 16]`. Nothing else takes one.
+    Count(u32),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -288,6 +291,9 @@ pub enum ExprKind {
     Spread { verb: Option<Verb>, expr: Box<Expr> },
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
+    /// `pos i` where an argument goes: a position, not a value
+    /// (`simd.load[lend 'xs', pos 'i']`).
+    Pos(Box<Expr>),
     /// `range[start, stop, step]` — only what a `for` runs over.
     Range { start: Box<Expr>, stop: Box<Expr>, step: Option<Box<Expr>> },
 }

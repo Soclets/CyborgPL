@@ -111,6 +111,9 @@ pub enum Ty {
     Seq { elem: Box<Ty>, kind: SeqKind },
     Map { key: Box<Ty>, val: Box<Ty>, order: MapOrder },
     Channel(Box<Ty>),
+    /// `simd[T, N]` — N plain values in one register (`simd.md`). Legal
+    /// only in a shape the target actually has.
+    Simd { elem: Box<Ty>, lanes: u32 },
     Struct { id: StructId, args: Vec<Ty> },
     Enum { id: EnumId, args: Vec<Ty> },
     Fn(Box<FnTy>),
@@ -172,6 +175,16 @@ impl Ty {
     pub fn is_seq(&self) -> bool {
         matches!(self.base(), Ty::Seq { .. })
     }
+    pub fn is_simd(&self) -> bool {
+        matches!(self.base(), Ty::Simd { .. })
+    }
+    /// A vector's lane type, when it is one.
+    pub fn lane(&self) -> Option<&Ty> {
+        match self.base() {
+            Ty::Simd { elem, .. } => Some(elem),
+            _ => None,
+        }
+    }
     pub fn is_infer(&self) -> bool {
         matches!(self, Ty::Infer(_))
     }
@@ -201,7 +214,7 @@ impl Ty {
     pub fn contains_var(&self) -> bool {
         match self {
             Ty::Var(_) => true,
-            Ty::Seq { elem, .. } | Ty::Channel(elem) | Ty::Ptr { elem, .. } => elem.contains_var(),
+            Ty::Seq { elem, .. } | Ty::Channel(elem) | Ty::Ptr { elem, .. } | Ty::Simd { elem, .. } => elem.contains_var(),
             Ty::Map { key, val, .. } => key.contains_var() || val.contains_var(),
             Ty::Struct { args, .. } | Ty::Enum { args, .. } => args.iter().any(|a| a.contains_var()),
             Ty::Fn(f) => f.params.iter().any(|(_, t)| t.contains_var()) || f.ret.contains_var() || f.fails.iter().any(|(_, t)| t.as_ref().map(|t| t.contains_var()).unwrap_or(false)),
@@ -217,6 +230,7 @@ impl Ty {
             Ty::Var(i) => args.get(*i as usize).cloned().unwrap_or(Ty::Var(*i)),
             Ty::Seq { elem, kind } => Ty::Seq { elem: Box::new(elem.subst(args)), kind: *kind },
             Ty::Channel(e) => Ty::Channel(Box::new(e.subst(args))),
+            Ty::Simd { elem, lanes } => Ty::Simd { elem: Box::new(elem.subst(args)), lanes: *lanes },
             Ty::Ptr { mutable, elem } => Ty::Ptr { mutable: *mutable, elem: Box::new(elem.subst(args)) },
             Ty::Map { key, val, order } => Ty::Map { key: Box::new(key.subst(args)), val: Box::new(val.subst(args)), order: *order },
             Ty::Struct { id, args: a } => Ty::Struct { id: *id, args: a.iter().map(|t| t.subst(args)).collect() },
@@ -335,6 +349,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 write!(f, "{}[{}, {}]", o, sp(key), sp(val))
             }
             Ty::Channel(e) => write!(f, "channel[{}]", sp(e)),
+            Ty::Simd { elem, lanes } => write!(f, "simd[{}, {}]", sp(elem), lanes),
             Ty::Struct { id, args } => {
                 write!(f, "{}", self.structs[id.0 as usize].name)?;
                 if !args.is_empty() {
@@ -383,4 +398,34 @@ impl<'a> fmt::Display for TySpelling<'a> {
             }
         }
     }
+}
+
+/// The register shapes a target has (`simd.md`, owner: b — only the
+/// target's own). ARM64's 128-bit NEON, which is what the oracle fixed
+/// and what this Mac is; a real target description comes from
+/// `JetPack.toml` (`tooling.md`) and never from the host.
+pub const TARGET_SIMD_BITS: u32 = 128;
+
+/// Is `simd[elem, lanes]` a register this target has?
+pub fn simd_shape_ok(elem: &Ty, lanes: u32) -> bool {
+    match simd_lane_bits(elem) {
+        Some(bits) => bits * lanes == TARGET_SIMD_BITS,
+        None => false,
+    }
+}
+
+/// How wide one lane is, for a type that may be one.
+pub fn simd_lane_bits(elem: &Ty) -> Option<u32> {
+    match elem.base() {
+        Ty::Int(IntW::Fixed { bits, .. }) => Some(*bits as u32),
+        Ty::Bin(BinW::Fixed(b)) => Some(*b as u32),
+        // A lane of answers: one bit each, as wide as the vector it came from.
+        Ty::Bool => None,
+        _ => None,
+    }
+}
+
+/// Every shape this target has for a lane type, for the message that says so.
+pub fn simd_shapes_for(elem: &Ty) -> Option<u32> {
+    simd_lane_bits(elem).map(|bits| TARGET_SIMD_BITS / bits)
 }

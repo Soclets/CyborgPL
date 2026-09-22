@@ -48,6 +48,13 @@ Dated, with the alternative, so each can become a question later.
   oracle accepts both; every other statement needs its `;` and there are
   no empty statements. Alternative: require it always (would break the
   examples) or never (would break them too).
+- **2026-09-22 — The target's SIMD shapes are ARM64's 128 bits, in the
+  compiler.** `simd.md` says the shapes come from the target description
+  in `JetPack.toml`, and JetPack does not exist yet, so
+  `types::TARGET_SIMD_BITS` holds 128 — the oracle's fixed target and this
+  machine's. It moves into the target description the day there is one.
+  Alternative: refuse every `simd` until JetPack exists, which would leave
+  `examples/simd.cpls` unbuildable.
 - **2026-09-22 — A testing-only `std::` stub table.** `std::` does not
   exist (owner, 2026-09-22), but 55 of the 61 examples print with it. The
   checker has a flag (off by default, on in `cargo test` and with

@@ -23,6 +23,7 @@ pub fn type_spelling(t: &Type) -> String {
             s.push(']');
             s
         }
+        TypeKind::Count(n) => n.to_string(),
         TypeKind::Var { name, bound } => match bound {
             Some(b) => format!("<{}: {}>", name.name, b.spelled()),
             None => format!("<{}>", name.name),

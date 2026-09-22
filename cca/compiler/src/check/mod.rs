@@ -42,6 +42,10 @@ pub struct Instance {
 pub struct Program {
     pub items: Items,
     pub instances: Vec<Instance>,
+    /// What each inference variable turned out to be. MIR reads types
+    /// through it, so nothing downstream sees a type that is still a
+    /// question.
+    pub subst: HashMap<InferId, Ty>,
     pub main: Option<FnInst>,
     /// Consts, evaluated in order before MAIN.
     pub const_values: Vec<hir::Expr>,
@@ -153,6 +157,14 @@ impl Checker {
             },
             Ty::Seq { elem, kind } => Ty::Seq { elem: Box::new(self.resolve(elem)), kind: *kind },
             Ty::Channel(e) => Ty::Channel(Box::new(self.resolve(e))),
+            // A lane count of 0 means "the shape this target has for that
+            // lane type": there is only ever one (`simd.md`, owner: b), so
+            // the element type decides it and nothing has to be inferred.
+            Ty::Simd { elem, lanes } => {
+                let e = self.resolve(elem);
+                let n = if *lanes == 0 { crate::types::simd_shapes_for(&e).unwrap_or(0) } else { *lanes };
+                Ty::Simd { elem: Box::new(e), lanes: n }
+            }
             Ty::Ptr { mutable, elem } => Ty::Ptr { mutable: *mutable, elem: Box::new(self.resolve(elem)) },
             Ty::Map { key, val, order } => Ty::Map { key: Box::new(self.resolve(key)), val: Box::new(self.resolve(val)), order: *order },
             Ty::Struct { id, args } => Ty::Struct { id: *id, args: args.iter().map(|a| self.resolve(a)).collect() },
@@ -192,6 +204,7 @@ impl Checker {
             }
             (Ty::Map { key: k1, val: v1, .. }, Ty::Map { key: k2, val: v2, .. }) => self.unify(k1, k2) && self.unify(v1, v2),
             (Ty::Channel(x), Ty::Channel(y)) => self.unify(x, y),
+            (Ty::Simd { elem: e1, lanes: l1 }, Ty::Simd { elem: e2, lanes: l2 }) => (l1 == l2 || *l1 == 0 || *l2 == 0) && self.unify(e1, e2),
             (Ty::Ptr { mutable: m1, elem: e1 }, Ty::Ptr { mutable: m2, elem: e2 }) => (m1 == m2 || !*m1) && self.unify(e1, e2),
             (Ty::Struct { id: i1, args: a1 }, Ty::Struct { id: i2, args: a2 }) => i1 == i2 && a1.len() == a2.len() && a1.iter().zip(a2).all(|(x, y)| self.unify(x, y)),
             (Ty::Enum { id: i1, args: a1 }, Ty::Enum { id: i2, args: a2 }) => i1 == i2 && a1.len() == a2.len() && a1.iter().zip(a2).all(|(x, y)| self.unify(x, y)),
@@ -332,7 +345,7 @@ impl Checker {
             }
         }
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();
-        Ok(Program { items: self.items, instances: self.instances, main, const_values, notes: self.notes, amp_count: self.amp_count })
+        Ok(Program { items: self.items, instances: self.instances, subst: self.subst, main, const_values, notes: self.notes, amp_count: self.amp_count })
     }
 
     fn check_const_value(&self, e: &hir::Expr) -> Result<()> {

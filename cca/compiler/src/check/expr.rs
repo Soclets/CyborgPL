@@ -153,6 +153,7 @@ impl Checker {
                 Ok(Expr { kind: K::Channel { elem: et.clone(), capacity: cap }, ty: Ty::Channel(Box::new(et)), span })
             }
             AK::FnLit(lit) => self.fn_literal(ctx, lit, span),
+            AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one is only wanted where something is indexed or loaded: `'xs'[pos 3]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Spread { .. } => err(Diagnostic::error("`...` has no meaning here: it unpacks a list into a call's arguments — `sum[...'xs']`").at(span)),
             AK::SizeOf { align, ty } => {
                 let mut blanks = Vec::new();
@@ -300,6 +301,7 @@ impl Checker {
                 let bt = self.resolve(&p.ty);
                 let elem = match bt.base() {
                     Ty::Seq { elem, .. } => (**elem).clone(),
+                    Ty::Simd { elem, .. } => (**elem).clone(),
                     Ty::Str(_) => return err(Diagnostic::error("a text has no `[pos]`: it would not say which unit — the 3rd byte, point or grapheme? — use `std::str.at.<unit>` when std exists, or walk it with `str.each.<unit>`").at(e.span)),
                     Ty::Map { .. } => return err(Diagnostic::error("a map is looked up by key with `map.get[lend 'm', key] otherwise …`, not by position").at(e.span)),
                     Ty::Bundle(_) => return err(Diagnostic::error("a mixed bundle has no `[pos]`: walk it with `for`").at(e.span)),
@@ -610,6 +612,11 @@ impl Checker {
         let rt = self.resolve(&r.ty);
         let l = self.as_operand(ctx, l)?;
         let r = self.as_operand(ctx, r)?;
+        // Every operator a lane's type has works on a vector of them, lane by
+        // lane (`simd.md`, owner: a); a scalar stands for every lane.
+        if lt.is_simd() || rt.is_simd() {
+            return self.simd_binary(op, op_span, l, r, &lt, &rt, span);
+        }
         match op {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod => {
                 if lt.base() == &Ty::Duration || rt.base() == &Ty::Duration {
@@ -704,6 +711,46 @@ impl Checker {
             }
             BinOp::Custom(_) => unreachable!(),
         }
+    }
+
+    /// A lane-wise operator. The rule is the scalar rule, N times.
+    #[allow(clippy::too_many_arguments)]
+    fn simd_binary(&mut self, op: &BinOp, op_span: Span, l: Expr, r: Expr, lt: &Ty, rt: &Ty, span: Span) -> Result<Expr> {
+        let (lane, lanes) = match (lt.base(), rt.base()) {
+            (Ty::Simd { elem, lanes }, Ty::Simd { elem: e2, lanes: l2 }) => {
+                if !self.unify(elem, e2) {
+                    return err(Diagnostic::error(format!("`{}` works lane by lane, and these hold different lanes: `{}` and `{}`", op.spelled(), self.spell(elem), self.spell(e2))).at(op_span));
+                }
+                if lanes != l2 && *lanes != 0 && *l2 != 0 {
+                    return err(Diagnostic::error(format!("`{}` works lane by lane, and these are different lengths: {} and {}", op.spelled(), lanes, l2)).at(op_span));
+                }
+                ((**elem).clone(), (*lanes).max(*l2))
+            }
+            // A scalar broadcasts against a vector (the oracle's pick,
+            // 2026-09-22; `simd.md` records it as something it had to choose).
+            (Ty::Simd { elem, lanes }, scalar) | (scalar, Ty::Simd { elem, lanes }) => {
+                let scalar = scalar.clone();
+                if !self.unify(elem, &scalar) {
+                    return err(Diagnostic::error(format!("`{}` puts a `{}` beside lanes of `{}`: a single value stands for every lane, so it has to be one of them", op.spelled(), self.spell(&scalar), self.spell(elem))).at(op_span));
+                }
+                ((**elem).clone(), *lanes)
+            }
+            _ => unreachable!(),
+        };
+        let lane_r = self.resolve(&lane);
+        let ok = match op {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => lane_r.is_numeric(),
+            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => lane_r.is_numeric() || lane_r.base() == &Ty::Bool,
+            BinOp::And | BinOp::Or => lane_r.base() == &Ty::Bool,
+            _ => false,
+        };
+        if !ok {
+            return err(Diagnostic::error(format!("`{}` is not an operator a lane of `{}` has, so a vector of them does not have it either", op.spelled(), self.spell(&lane_r))).at(op_span));
+        }
+        // A comparison gives one answer per lane, never a single `bool`.
+        let ty = if op.is_comparison() { Ty::Simd { elem: Box::new(Ty::Bool), lanes } } else { Ty::Simd { elem: Box::new(lane), lanes } };
+        Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
     }
 
     /// An operand read: a bare owned name in an operator is a view of it.
@@ -1715,6 +1762,15 @@ impl Checker {
             ("ptr", ["at"]) => BuiltinHead::B(Builtin::PtrAt),
             ("ptr", ["is_null"]) => BuiltinHead::B(Builtin::PtrIsNull),
             ("ptr", [other]) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: a pointer has `read`, `write`, `at`, `is_null`", other)).at(span)),
+            ("simd", ["fill"]) => BuiltinHead::B(Builtin::SimdFill),
+            ("simd", ["load"]) => BuiltinHead::B(Builtin::SimdLoad),
+            ("simd", ["store"]) => BuiltinHead::B(Builtin::SimdStore),
+            ("simd", ["all"]) => BuiltinHead::B(Builtin::SimdAll),
+            ("simd", ["any"]) => BuiltinHead::B(Builtin::SimdAny),
+            ("simd", ["max"]) => BuiltinHead::B(Builtin::SimdMax),
+            ("simd", ["min"]) => BuiltinHead::B(Builtin::SimdMin),
+            ("simd", ["sum"]) => BuiltinHead::B(Builtin::SimdSum),
+            ("simd", [other]) => return err(Diagnostic::error(format!("`simd.{}` does not exist: a vector has `fill`, `load`, `store`, `all`, `any`, `max`, `min`, `sum`", other)).at(span)),
             ("channel", ["send"]) => BuiltinHead::B(Builtin::ChannelSend),
             ("channel", ["take"]) => BuiltinHead::B(Builtin::ChannelTake),
             ("channel", [other]) => return err(Diagnostic::error(format!("`channel.{}` does not exist: a channel has `send` and `take`", other)).at(span)),
@@ -1966,6 +2022,71 @@ impl Checker {
                 fails.push(("closed".into(), None));
                 (vec![a], elem)
             }
+            Builtin::SimdFill => {
+                arity(1, self)?;
+                let v = self.expr(ctx, positional[0])?;
+                // The lane type comes from where the vector is going.
+                let lane = self.fresh();
+                let v = self.expect_store(ctx, v, &lane, "every lane")?;
+                let ty = Ty::Simd { elem: Box::new(lane), lanes: 0 };
+                (vec![Arg::Value(v)], ty)
+            }
+            Builtin::SimdLoad => {
+                arity(2, self)?;
+                let a = self.lent_arg(ctx, positional[0], &name, false)?;
+                let at = self.resolve(&self.arg_type(&a));
+                let elem = match at.base() {
+                    Ty::Seq { elem, .. } => (**elem).clone(),
+                    other => return err(Diagnostic::error(format!("`simd.load` fills a vector from a list or an array, and {} is a `{}`", self.arg_name(ctx, &a), self.spell(other))).at(positional[0].span)),
+                };
+                let idx = self.pos_arg(ctx, positional[1], &name)?;
+                (vec![a, idx], Ty::Simd { elem: Box::new(elem), lanes: 0 })
+            }
+            Builtin::SimdStore => {
+                arity(3, self)?;
+                let a = self.lent_arg(ctx, positional[0], &name, true)?;
+                let at = self.resolve(&self.arg_type(&a));
+                let elem = match at.base() {
+                    Ty::Seq { elem, .. } => (**elem).clone(),
+                    other => return err(Diagnostic::error(format!("`simd.store` writes into a list or an array, and {} is a `{}`", self.arg_name(ctx, &a), self.spell(other))).at(positional[0].span)),
+                };
+                let idx = self.pos_arg(ctx, positional[1], &name)?;
+                let v = self.expr(ctx, positional[2])?;
+                let vt = self.resolve(&v.ty);
+                match vt.base() {
+                    Ty::Simd { elem: lane, .. } => {
+                        if !self.unify(lane, &elem) {
+                            return err(Diagnostic::error(format!("`simd.store` writes `{}` lanes into a list of `{}`", self.spell(lane), self.spell(&elem))).at(positional[2].span));
+                        }
+                    }
+                    other => return err(Diagnostic::error(format!("`simd.store` writes a vector, and this is a `{}`", self.spell(other))).at(positional[2].span)),
+                }
+                (vec![a, idx, Arg::Value(v)], Ty::Nothing)
+            }
+            Builtin::SimdAll | Builtin::SimdAny => {
+                arity(1, self)?;
+                let v = self.expr(ctx, positional[0])?;
+                let v = self.as_operand(ctx, v)?;
+                let vt = self.resolve(&v.ty);
+                match vt.base() {
+                    Ty::Simd { elem, .. } if elem.base() == &Ty::Bool => {}
+                    Ty::Simd { elem, .. } => return err(Diagnostic::error(format!("`{}` folds a vector of answers, and this holds `{}` lanes: a comparison gives one (`'a' < 'b'`)", name, self.spell(elem))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` folds a vector of answers, and this is a `{}`", name, self.spell(other))).at(positional[0].span)),
+                }
+                (vec![Arg::Value(v)], Ty::Bool)
+            }
+            Builtin::SimdMax | Builtin::SimdMin | Builtin::SimdSum => {
+                arity(1, self)?;
+                let v = self.expr(ctx, positional[0])?;
+                let v = self.as_operand(ctx, v)?;
+                let vt = self.resolve(&v.ty);
+                let lane = match vt.base() {
+                    Ty::Simd { elem, .. } if elem.is_numeric() => (**elem).clone(),
+                    Ty::Simd { elem, .. } => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this holds `{}` lanes", name, self.spell(elem))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this is a `{}`", name, self.spell(other))).at(positional[0].span)),
+                };
+                (vec![Arg::Value(v)], lane)
+            }
             Builtin::Std(_) => unreachable!(),
         };
         let ow = self.call_otherwise(ctx, otherwise, &fails, &ty, used, span, &name)?;
@@ -2037,6 +2158,19 @@ impl Checker {
         let v = self.as_operand(ctx, v)?;
         let v = self.expect_store(ctx, v, kt, "the key")?;
         Ok(self.value_arg(v))
+    }
+
+    /// `pos i` where a position is wanted.
+    fn pos_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str) -> Result<Arg> {
+        let AK::Pos(inner) = &e.kind else {
+            return err(Diagnostic::error(format!("`{}` says the position with `pos`, as every index does: `{}[…, pos 'i']`", name, name)).at(e.span));
+        };
+        let v = self.expr(ctx, inner)?;
+        let vt = self.resolve(&v.ty);
+        if !vt.is_int() {
+            return err(Diagnostic::error(format!("a position is a whole number, and this is a `{}`", self.spell(&vt))).at(e.span));
+        }
+        Ok(Arg::Value(v))
     }
 
     fn arg_name(&self, ctx: &FnCtx, a: &Arg) -> String {

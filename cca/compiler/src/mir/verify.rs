@@ -32,7 +32,7 @@ pub fn function(f: &Function, n_functions: usize) -> Result<(), Vec<String>> {
     let nl = f.locals.len();
     let ns = f.sites.len();
 
-    let mut check_place = |pl: &Place, where_: &str, p: &mut Vec<String>| {
+    let check_place = |pl: &Place, where_: &str, p: &mut Vec<String>| {
         if pl.local.0 as usize >= nl {
             p.push(format!("{}: local _{} is not declared", where_, pl.local.0));
         }

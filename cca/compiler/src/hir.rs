@@ -191,6 +191,14 @@ pub enum Builtin {
     PtrIsNull,
     ChannelSend,
     ChannelTake,
+    SimdFill,
+    SimdLoad,
+    SimdStore,
+    SimdAll,
+    SimdAny,
+    SimdMax,
+    SimdMin,
+    SimdSum,
     /// `std::…` — refused for now; kept so the checker names it.
     Std(String),
 }

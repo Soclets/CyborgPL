@@ -796,6 +796,16 @@ impl<'a> Parser<'a> {
     fn type_in(&mut self, conv: bool) -> Result<Type> {
         let start = self.span();
         let kind = match self.peek().clone() {
+            Tok::Num { text, bin } => {
+                let span = self.bump().span;
+                if bin {
+                    return self.fail_at(span, "a count is a whole number");
+                }
+                match text.parse::<u32>() {
+                    Ok(n) => TypeKind::Count(n),
+                    Err(_) => return self.fail_at(span, "this number is too large to be a count"),
+                }
+            }
             Tok::Op(o) if o == "<" => {
                 self.bump();
                 let name = match self.peek().clone() {
@@ -1988,6 +1998,18 @@ impl<'a> Parser<'a> {
                 if self.is_op_at(1, "=") {
                     return self.fail(format!("a field's name is bare in a construction: `{} = …`, not `'{}' = …`", n, n));
                 }
+            }
+            // `pos i` as an argument: `simd.load[lend 'xs', pos 'i']`.
+            if self.is_word("pos") {
+                let start = self.span();
+                self.bump();
+                let inner = self.expr(0)?;
+                let span = start.to(self.prev_span());
+                args.push(Arg::Positional(Expr { kind: ExprKind::Pos(Box::new(inner)), span }));
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+                continue;
             }
             let e = self.expr(0)?;
             if self.is(&Tok::Walrus) {

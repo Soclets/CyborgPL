@@ -13,7 +13,7 @@ use super::domain::Domain;
 use super::*;
 
 pub fn build(checked: Checked) -> Program {
-    let mut b = Arena { functions: Vec::new(), inst_idx: HashMap::new(), instances: checked.instances, items: checked.items };
+    let mut b = Arena { functions: Vec::new(), inst_idx: HashMap::new(), instances: checked.instances, items: checked.items, subst: checked.subst };
     // Every instance with a body gets its index first, so a call can name
     // one that has not been lowered yet.
     let mut order = Vec::new();
@@ -42,6 +42,38 @@ pub struct Arena {
     inst_idx: HashMap<FnInst, FnIdx>,
     pub instances: Vec<Instance>,
     pub items: crate::resolve::Items,
+    /// The checker's answers for the types it had to work out.
+    pub subst: HashMap<crate::types::InferId, Ty>,
+}
+
+/// A type as it finally is: inference filled in, a `simd`'s lane count
+/// taken from the target's shape for its lane type.
+pub fn resolved(t: &Ty, subst: &HashMap<crate::types::InferId, Ty>) -> Ty {
+    match t {
+        Ty::Infer(id) => match subst.get(id) {
+            Some(b) => resolved(b, subst),
+            None => t.clone(),
+        },
+        Ty::Seq { elem, kind } => Ty::Seq { elem: Box::new(resolved(elem, subst)), kind: *kind },
+        Ty::Channel(e) => Ty::Channel(Box::new(resolved(e, subst))),
+        Ty::Ptr { mutable, elem } => Ty::Ptr { mutable: *mutable, elem: Box::new(resolved(elem, subst)) },
+        Ty::Map { key, val, order } => Ty::Map { key: Box::new(resolved(key, subst)), val: Box::new(resolved(val, subst)), order: *order },
+        Ty::Simd { elem, lanes } => {
+            let e = resolved(elem, subst);
+            let n = if *lanes == 0 { crate::types::simd_shapes_for(&e).unwrap_or(0) } else { *lanes };
+            Ty::Simd { elem: Box::new(e), lanes: n }
+        }
+        Ty::Struct { id, args } => Ty::Struct { id: *id, args: args.iter().map(|a| resolved(a, subst)).collect() },
+        Ty::Enum { id, args } => Ty::Enum { id: *id, args: args.iter().map(|a| resolved(a, subst)).collect() },
+        Ty::Fn(f) => Ty::Fn(Box::new(crate::types::FnTy {
+            params: f.params.iter().map(|(k, t)| (*k, resolved(t, subst))).collect(),
+            ret: resolved(&f.ret, subst),
+            fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| resolved(t, subst)))).collect(),
+        })),
+        Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| resolved(t, subst)).collect()),
+        Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(resolved(inner, subst)), bound: bound.clone() },
+        t => t.clone(),
+    }
 }
 
 fn lower_instance(arena: &mut Arena, inst: FnInst) -> Function {
@@ -122,12 +154,14 @@ impl<'a> FnBuilder<'a> {
                 _ if l.ty.is_owned() => LocalKind::Owned,
                 _ => LocalKind::Plain,
             };
-            fb.locals.push(LocalDecl { name: Some(l.name.clone()), ty: l.ty.clone(), domain: Domain::of_ty(&l.ty), kind, span });
+            let ty = resolved(&l.ty, &fb.arena.subst);
+            fb.locals.push(LocalDecl { name: Some(l.name.clone()), ty: ty.clone(), domain: Domain::of_ty(&ty), kind, span });
         }
         if body.ret != Ty::Nothing {
             let span = fb.span_id(body.span);
             let id = LocalId(fb.locals.len() as u32);
-            fb.locals.push(LocalDecl { name: Some("the result".into()), ty: body.ret.clone(), domain: Domain::of_ty(&body.ret), kind: LocalKind::Return, span });
+            let ret = resolved(&body.ret, &fb.arena.subst);
+            fb.locals.push(LocalDecl { name: Some("the result".into()), ty: ret.clone(), domain: Domain::of_ty(&ret), kind: LocalKind::Return, span });
             fb.ret_local = Some(id);
         }
         fb
@@ -169,6 +203,7 @@ impl<'a> FnBuilder<'a> {
     }
 
     fn temp(&mut self, ty: &Ty, span: SpanId) -> LocalId {
+        let ty = &self.resolve_ty(ty);
         let kind = if ty.is_owned() { LocalKind::Owned } else { LocalKind::Temp };
         let id = LocalId(self.locals.len() as u32);
         self.locals.push(LocalDecl { name: None, ty: ty.clone(), domain: Domain::of_ty(ty), kind, span });
@@ -279,7 +314,7 @@ impl<'a> FnBuilder<'a> {
             params,
             locals: self.locals,
             blocks: self.blocks,
-            ret: body.ret.clone(),
+            ret: resolved(&body.ret, &self.arena.subst),
             ret_local: self.ret_local,
             fails: body.fails.clone(),
             sites: self.sites,
@@ -332,7 +367,7 @@ impl<'a> FnBuilder<'a> {
             }
             hir::StmtKind::Assign { place, value } => {
                 let p = self.place(place, span);
-                let ty = place.ty.clone();
+                let ty = self.resolve_ty(&place.ty);
                 self.store(p, value, &ty, true, span);
             }
             hir::StmtKind::Expr(e) => {
@@ -777,7 +812,7 @@ impl<'a> FnBuilder<'a> {
     }
 
     fn resolve_ty(&self, t: &Ty) -> Ty {
-        t.clone()
+        resolved(t, &self.arena.subst)
     }
 
     // ------------------------------------------------------------ expressions
@@ -805,7 +840,7 @@ impl<'a> FnBuilder<'a> {
                 Operand::Move(place)
             }
             hir::ExprKind::Call { .. } | hir::ExprKind::Conv { .. } => {
-                let ty = e.ty.clone();
+                let ty = self.resolve_ty(&e.ty);
                 if ty == Ty::Nothing {
                     self.call_into(None, e, span);
                     Operand::Const(Const::Nothing)
@@ -817,7 +852,7 @@ impl<'a> FnBuilder<'a> {
             }
             _ => {
                 let rv = self.rvalue(e, span);
-                let ty = e.ty.clone();
+                let ty = self.resolve_ty(&e.ty);
                 self.into_temp(rv, &ty, span)
             }
         }
@@ -851,7 +886,7 @@ impl<'a> FnBuilder<'a> {
             hir::ExprKind::UserOp { inst, lhs, rhs } => {
                 // An operator is a call under another spelling.
                 let args = vec![self.arg(lhs, span), self.arg(rhs, span)];
-                let ty = e.ty.clone();
+                let ty = self.resolve_ty(&e.ty);
                 let dest = self.temp(&ty, span);
                 let idx = self.fn_idx(*inst);
                 let ok = self.new_block();
@@ -929,11 +964,20 @@ impl<'a> FnBuilder<'a> {
                 hir::Proj::Index(e) => {
                     let idx = self.eval(e, span);
                     // Every index is a bounds site: 1-based, within the length.
-                    let len_ty = Ty::u64();
-                    let len = self.temp(&len_ty, span);
                     let base = Place { local: out.local, proj: out.proj.clone() };
-                    self.push(StmtKind::Op { dest: Some(Place::local(len)), op: Op::ListLength, args: vec![Operand::Read(base)] }, span);
-                    self.site(SiteKind::Bounds, vec![idx.clone(), Operand::Read(Place::local(len))], span);
+                    let base_ty = self.locals[out.local.0 as usize].ty.clone();
+                    let here = projected_ty(&base_ty, &out.proj, &self.arena.items);
+                    let len = match here.base() {
+                        // A vector's length is its shape: nothing to ask at run time.
+                        Ty::Simd { lanes, .. } => Operand::Const(Const::Int(*lanes as i128)),
+                        _ => {
+                            let len_ty = Ty::u64();
+                            let t = self.temp(&len_ty, span);
+                            self.push(StmtKind::Op { dest: Some(Place::local(t)), op: Op::ListLength, args: vec![Operand::Read(base)] }, span);
+                            Operand::Read(Place::local(t))
+                        }
+                    };
+                    self.site(SiteKind::Bounds, vec![idx.clone(), len], span);
                     out.proj.push(Proj::Index(idx));
                 }
             }
@@ -995,12 +1039,12 @@ impl<'a> FnBuilder<'a> {
             }
             hir::Arg::Copy(place) => {
                 let p = self.place(place, span);
-                let ty = place.ty.clone();
+                let ty = self.resolve_ty(&place.ty);
                 self.into_temp(Rvalue::Duplicate(p), &ty, span)
             }
             hir::Arg::Lend { place, mutable } => {
                 let p = self.place(place, span);
-                let ty = place.ty.clone();
+                let ty = self.resolve_ty(&place.ty);
                 self.into_temp(Rvalue::Lend { place: p, mutable: *mutable }, &ty, span)
             }
             hir::Arg::Spread { expr, .. } => self.arg_operand(expr, span),
@@ -1051,6 +1095,8 @@ impl<'a> FnBuilder<'a> {
             if let Callee::Op(op) = &callee {
                 let op = op.clone();
                 let ops: Vec<Operand> = args.iter().map(arg_as_operand).collect();
+                let result_ty = self.resolve_ty(&e.ty);
+                self.before_op_sites(&op, &args, &result_ty, span);
                 self.push(StmtKind::Op { dest: dest.clone(), op: op.clone(), args: ops }, span);
                 self.after_op_sites(&op, &args, span);
                 return;
@@ -1060,6 +1106,46 @@ impl<'a> FnBuilder<'a> {
         let fail_arms = self.fail_blocks_for_call(otherwise, &fails, dest.clone(), ok, span);
         self.terminate(Terminator::Call { callee, args, dest, ok, fail: fail_arms });
         self.cur = ok;
+    }
+
+    /// The sites an operation carries before it runs.
+    fn before_op_sites(&mut self, op: &Op, args: &[Arg], ty: &Ty, span: SpanId) {
+        match op {
+            // A load or a store touches N elements from the position: the
+            // question is whether `i + N - 1` is still inside (`simd.md`).
+            Op::SimdLoad | Op::SimdStore => {
+                let lanes = match op {
+                    Op::SimdLoad => ty.base().lane().and_then(|_| match ty.base() {
+                        Ty::Simd { lanes, .. } => Some(*lanes),
+                        _ => None,
+                    }),
+                    _ => args.get(2).map(|a| self.arg_ty_lanes(a)).unwrap_or(None),
+                }
+                .unwrap_or(0);
+                let idx = args.get(1).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(1)));
+                let list = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
+                self.site(SiteKind::SimdRange { lanes }, vec![idx, list], span);
+            }
+            // Adding N lanes together can leave what one lane holds.
+            Op::SimdSum => {
+                let v = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
+                self.site(SiteKind::Overflow(BinOp::Add), vec![v], span);
+            }
+            _ => {}
+        }
+    }
+
+    fn arg_ty_lanes(&self, a: &Arg) -> Option<u32> {
+        let p = match a {
+            Arg::Value(o) => o.place()?,
+            Arg::Lend { place, .. } | Arg::Give(place) | Arg::Copy(place) => place,
+            Arg::Spread { place, .. } => place,
+        };
+        let base = self.locals.get(p.local.0 as usize)?.ty.clone();
+        match projected_ty(&base, &p.proj, &self.arena.items).base() {
+            Ty::Simd { lanes, .. } => Some(*lanes),
+            _ => None,
+        }
     }
 
     /// A change to a bounded collection is checked after it happens.
@@ -1282,6 +1368,14 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::PtrIsNull => Op::PtrIsNull,
         Builtin::ChannelSend => Op::ChannelSend,
         Builtin::ChannelTake => Op::ChannelTake,
+        Builtin::SimdFill => Op::SimdFill,
+        Builtin::SimdLoad => Op::SimdLoad,
+        Builtin::SimdStore => Op::SimdStore,
+        Builtin::SimdAll => Op::SimdAll,
+        Builtin::SimdAny => Op::SimdAny,
+        Builtin::SimdMax => Op::SimdMax,
+        Builtin::SimdMin => Op::SimdMin,
+        Builtin::SimdSum => Op::SimdSum,
         Builtin::Std(n) => Op::Std(n.clone()),
     }
 }
