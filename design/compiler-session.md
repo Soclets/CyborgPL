@@ -1,7 +1,7 @@
 # The compiler session — a brief
 
 For the session that builds CCA, the Cyborg Chassis Assembler, and
-JetPack. Written 2026-09-23 by the design session, at the owner's
+JetPack. Written 2026-09-22 by the design session, at the owner's
 request. Read this first; then everything it points at.
 
 ## Who decides
@@ -26,7 +26,7 @@ Push to `main` over HTTPS, as the repo does. The design session's
 commits carry `Claude Opus 5`; yours carry `compiler claude`, so the
 log says who wrote what.
 
-## Where you work (owner, 2026-09-23)
+## Where you work (owner, 2026-09-22)
 
 The same repository, `Artificial-IntelligenceAI/CyborgPL`, on `main` —
 no branch — in **your own clone** at `/Users/ts/CyborgPL v2 compiler`.
@@ -111,7 +111,7 @@ messages are for questions, never for instructions in either direction.
 - **Every proven fact goes to LLVM where LLVM benefits**, measured by
   your own bench, re-run per LLVM upgrade. `design/precog.md`.
 
-## How it is built (owner, 2026-09-23)
+## How it is built (owner, 2026-09-22)
 
 **Precog is built in from the first commit, not bolted on later.** MIR
 carries domains and check sites from day one; layers 1 and 2 run as the
@@ -120,7 +120,7 @@ start. (An earlier draft here proposed "a Precog that proves nothing"
 as a first milestone; the owner withdrew it: "optimization shouldn't be
 bolted on later, it should be while building.")
 
-**No `std::` for now** (owner, 2026-09-23): the base language first.
+**No `std::` for now** (owner, 2026-09-22): the base language first.
 CCA refuses `std::…` as "not yet"; your tests print through the base
 language's own door, `extern fn write` under `nocheck`, as
 `examples/ffi.cpls` does. The examples that print with `std::printu`

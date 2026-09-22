@@ -5,10 +5,11 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-09-23 — No `std::` for now; Precog built in from the first commit (owner, in the compiler session; confirmed here)
+### 2026-09-22 — No `std::` for now; Precog built in from the first commit (owner, in the compiler session; confirmed here)
 
 Relayed by compiler claude on its first day, confirmed by the owner in
-the design session. (1) **No `std::` for now** — the base language
+the design session. (The design session first told it the date was the
+23rd; the compiler session had it right — the 22nd.) (1) **No `std::` for now** — the base language
 first (the 2026-09-19 focus). Compiler claude had asked whether the
 first milestone could treat `std::` names as compiler-known built-ins
 lowered to runtime calls, or std be written in CyborgPL from day one;
@@ -24,7 +25,7 @@ check sites from day one, layers 1 and 2 run as the pipeline grows. The
 brief's "a CCA whose Precog proves nothing" first milestone is
 withdrawn.
 
-### 2026-09-23 — The compiler session's brief; house name "compiler claude" (owner)
+### 2026-09-22 — The compiler session's brief; house name "compiler claude" (owner)
 
 Owner asked what the brief would include, approved it, and added: the
 design session's address (it is `SendMessage` to "CyborgPL language
@@ -37,7 +38,7 @@ in `cca/` and `jetpack/`; the compiler session never edits `design/`,
 `oracle/` or `examples/`. (Claude flipped this twice on the way; this
 is the settled form.)
 
-### 2026-09-23 — Translation validation borrows Alive2; three sessions (owner)
+### 2026-09-22 — Translation validation borrows Alive2; three sessions (owner)
 
 Owner asked whether the compiler is buildable (yes; the undecided
 items do not block it), which session does what (design + oracle

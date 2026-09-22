@@ -47,7 +47,7 @@ kind — a second interpreter would only be the same reading again:
    still mean the source". Checks the compiler's LLVM IR against the
    program (Alive2's territory), as above.
 
-Two of the three are mostly borrowed (owner, 2026-09-23: "Borrow it").
+Two of the three are mostly borrowed (owner, 2026-09-22: "Borrow it").
 Translation validation uses **Alive2** for the LLVM-IR half — ~37k lines
 of C++ (2026-09-21), of which ~20k is a formal semantics of LLVM IR kept
 in step with LLVM by people who work on LLVM, run in LLVM's own CI and
@@ -58,7 +58,7 @@ MIR — a few hundred to a few thousand lines. The Precog oracle can sit
 on an SMT solver (Z3), asking the dumb literal question where Precog
 asks the clever one. The interpreter stays ours — it is the spec.
 
-**Sessions** (owner, 2026-09-23): (1) this one — design and the
+**Sessions** (owner, 2026-09-22): (1) this one — design and the
 oracle, never a line of the compiler; (2) a fresh session — CCA
 (front end, checker, MIR, Precog, lowering, runtime) and JetPack,
 reading `design/` and the oracle's tests, never its source; (3) later,
