@@ -208,10 +208,6 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 continue;
             }
             let span = f.spans.first().copied();
-            if !f.fails.is_empty() {
-                self.cannot(format!("`{}` can fail, and a failure has no shape in the generated code yet", f.name), span);
-                continue;
-            }
             let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
             let mut ok = true;
             for p in &f.params {
@@ -230,12 +226,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if !ok {
                 continue;
             }
-            let fty = match f.ret {
-                Ty::Nothing => self.ctx.void_type().fn_type(&params, false),
-                ref r => match self.ty_or_complain(&r.clone(), span) {
+            // A function that can fail hands back the answer *or* a
+            // reason, which is one value with a tag on it.
+            let fty = if !f.fails.is_empty() {
+                match self.fail_shape(i) {
                     Some(t) => t.fn_type(&params, false),
-                    None => continue,
-                },
+                    None => {
+                        self.cannot(format!("`{}` fails with something the generated code has no shape for yet", f.name), span);
+                        continue;
+                    }
+                }
+            } else {
+                match f.ret {
+                    Ty::Nothing => self.ctx.void_type().fn_type(&params, false),
+                    ref r => match self.ty_or_complain(&r.clone(), span) {
+                        Some(t) => t.fn_type(&params, false),
+                        None => continue,
+                    },
+                }
             };
             let name = format!("cy_{}_{}", i, sanitise(&f.name));
             let v = self.module.add_function(&name, fty, None);
@@ -481,15 +489,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
             }
-            Terminator::Call { callee, args, dest, ok, fail } => {
-                if !fail.is_empty() {
-                    self.cannot("a call that can fail has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+            Terminator::Call { callee, args, dest, ok, fail } if !fail.is_empty() => {
+                if self.emit_failing_call(fi, callee, args, dest, *ok, fail, blocks, slots, func).is_none() {
+                    self.cannot("this call that can fail has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
                 }
+            }
+            Terminator::Call { callee, args, dest, ok, .. } => {
                 let v = self.call(fi, callee, args, slots);
                 if let (Some(d), Some(v)) = (dest, v) {
                     self.store_place(fi, d, v, slots);
                 }
                 let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+            }
+            Terminator::Return if !f.fails.is_empty() => {
+                if self.emit_ok_return(fi, slots).is_none() {
+                    self.cannot("this `return` from a function that can fail has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
+                }
             }
             Terminator::Return => {
                 match f.ret_local {
@@ -519,9 +536,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Terminator::Unreachable => {
                 let _ = self.builder.build_unreachable();
             }
-            Terminator::Fail { .. } => {
-                self.cannot("`fail` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
-                let _ = self.builder.build_unreachable();
+            Terminator::Fail { index, payload } => {
+                if self.emit_fail(fi, *index, payload, slots).is_none() {
+                    self.cannot("this `fail` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
+                }
             }
             Terminator::Switch { value, cases } => {
                 if self.emit_match(fi, value, cases, blocks, slots, func).is_none() {
@@ -613,7 +632,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // (`types.md`). Precog knows this memory is not the heap, so
                 // nothing frees it and no sentinel is paid.
                 let bytes = self.global_bytes(text);
-                let len = self.ctx.i64_type().const_int(text.len() as u64, false);
+                // The mark that says these bytes are the binary's own and
+                // must never be freed.
+                let len = self.ctx.i64_type().const_int(text.len() as u64 | (1u64 << 63), false);
                 let h = self.handle(2);
                 Some(h.const_named_struct(&[bytes.into(), len.into()]).into())
             }
@@ -651,6 +672,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Rvalue::Binary { op, lhs, rhs } => {
                 let a = self.operand(fi, lhs, slots)?;
                 let b = self.operand(fi, rhs, slots)?;
+                // `++` on text is an allocation, not an instruction.
+                if matches!(op, BinOp::Join) && matches!(a, BasicValueEnum::StructValue(_)) {
+                    let ty = want_ty.unwrap_or(Ty::Str(crate::types::Enc::Utf8));
+                    return self.str_concat(a, b, &ty);
+                }
                 self.binary(fi, op, a, b, site, func, blocks)
             }
             Rvalue::Convert { to, operand } => {
@@ -951,6 +977,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Op::StrBytes | Op::ListLength | Op::ArrayLength | Op::MapLength => {
                 let p = args.first()?.place()?;
                 let (slot, ty) = self.slot_of(fi, p, slots)?;
+                let text = matches!(ty.base(), Ty::Str(_));
                 let shape = self.ty(&ty)?;
                 let st = match shape {
                     BasicTypeEnum::StructType(s) => s,
@@ -958,6 +985,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 };
                 let field = self.builder.build_struct_gep(st, slot, 1, "len").ok()?;
                 let raw = self.builder.build_load(self.ctx.i64_type(), field, "n").ok()?;
+                // A text's length carries a mark saying which memory it is
+                // in; the count is the rest of it.
+                if text {
+                    let n = self.real_length(raw.into_int_value());
+                    return Some(Some(n.into()));
+                }
                 Some(Some(raw))
             }
             _ => None,

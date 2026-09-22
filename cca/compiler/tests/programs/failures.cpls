@@ -1,0 +1,16 @@
+extern fn exit ['code': int32];
+fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
+    if 'n' < 0 { fail negative['n']; }
+    if ('n' mod 2) == 1 { fail odd; }
+    return 'n' / 2;
+}
+MAIN {
+    let 'a' := half[10] otherwise 0;
+    let 'b' := half[7] otherwise 100;
+    let mut 'c': int32 = 0;
+    half[-4] otherwise {
+        odd          { 'c' = 1; }
+        negative 'v' { 'c' = 0 - 'v'; }
+    };
+    nocheck exit['a' + 'b' + 'c'];
+}

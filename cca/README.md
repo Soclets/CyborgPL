@@ -176,4 +176,21 @@ Dated, with the alternative, so each can become a question later.
   to keep the address it borrows, so its slot holds a pointer and reads
   go through it. Alternative: copy the borrowed value into the local,
   which is wrong the moment a `lend.mut` writes back.
+- **2026-09-22 — A function that can fail hands back a variant.** Case 0
+  is the answer, each later case is one of the reasons, and the caller
+  reads the tag: the same shape as an enum, because it is the same idea.
+  `failures.md` decided the model — "the failure is a value the caller
+  must handle" — and said nothing about the machine. Alternative: an
+  out-parameter for the answer and the reason in the return register,
+  which is smaller for a wide answer and worse for every other case.
+- **2026-09-22 — Every text handle carries the mark, for now.** The owner
+  decided (c): Precog knows which memory a text is in and a free is
+  emitted only where it can be the heap, with the sentinel — the high bit
+  of the length — as the fallback for a name that may hold either. Precog
+  does not carry that fact yet, so CCA pays the fallback everywhere: a
+  literal's length has the bit set, `str.bytes` masks it off, and the free
+  tests it. This is the decided mechanism at the decided fallback, not a
+  different design; what is missing is the analysis that would make it
+  free. Alternative: leak every text until the analysis exists, which is
+  what the previous commit did.
 

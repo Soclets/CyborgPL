@@ -34,6 +34,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_realloc" => p.fn_type(&[p.into(), w.into()], false),
             "cyborg_free" => self.ctx.void_type().fn_type(&[p.into()], false),
             "cyborg_copy" | "cyborg_move" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),
+            "cyborg_str_concat" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into(), p.into(), w.into()], false),
+            "cyborg_str_copy" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),
+            "cyborg_str_free" => self.ctx.void_type().fn_type(&[p.into(), w.into()], false),
             other => unreachable!("no runtime function named {}", other),
         };
         self.module.add_function(name, t, None)
@@ -71,11 +74,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     pub(super) fn owns_memory(&self, t: &Ty) -> bool {
         match t.base() {
             Ty::Seq { .. } | Ty::Map { .. } => true,
-            // A text may point at the binary's own bytes, and freeing
-            // those would crash. Which memory a text is in is Precog's to
-            // know (owner, 2026-09-22) — until that fact reaches here, a
-            // text is never freed. It leaks; it does not crash.
-            Ty::Str(_) => false,
+            // A text may point at the binary's own bytes. Which memory it
+            // is in is Precog's to know (owner, 2026-09-22); until that
+            // fact reaches here, the handle carries it — the high bit of
+            // the length — and the free tests it. That is the fallback
+            // the same decision names.
+            Ty::Str(_) => true,
             Ty::Struct { id, args } => {
                 let info = &self.p.items.structs[id.0 as usize];
                 info.fields.iter().any(|f| self.owns_memory(&f.ty.subst(args)))
@@ -140,6 +144,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     });
                 }
                 self.free_mem(data);
+            }
+            Ty::Str(_) => {
+                let shape = match self.ty(t) {
+                    Some(BasicTypeEnum::StructType(s)) => s,
+                    _ => return,
+                };
+                let ptr = self.load_field_ptr(shape, at, 0);
+                let len = self.load_field_int(shape, at, 1);
+                let f = self.rt("cyborg_str_free");
+                let _ = self.builder.build_call(f, &[ptr.into(), len.into()], "");
             }
             Ty::Struct { id, args } => {
                 let info = self.p.items.structs[id.0 as usize].clone();
@@ -219,6 +233,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 if shape.count_fields() > 2 {
                     self.store_field(shape, dst, 2, len.into());
                 }
+            }
+            Ty::Str(_) => {
+                let shape = match self.ty(t) {
+                    Some(BasicTypeEnum::StructType(s)) => s,
+                    _ => return,
+                };
+                let ptr = self.load_field_ptr(shape, src, 0);
+                let len = self.load_field_int(shape, src, 1);
+                let f = self.rt("cyborg_str_copy");
+                let _ = self.builder.build_call(f, &[dst.into(), ptr.into(), len.into()], "");
             }
             Ty::Struct { id, args } => {
                 let info = self.p.items.structs[id.0 as usize].clone();
@@ -481,13 +505,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// at an address it can actually be stored at.
     pub(super) fn enum_shape(&mut self, id: EnumId, args: &[Ty]) -> Option<inkwell::types::StructType<'ctx>> {
         let info = self.p.items.enums[id.0 as usize].clone();
-        let tag = self.enum_tag_type(info.cases.len());
+        let payloads: Vec<Option<Ty>> = info.cases.iter().map(|c| c.payload.as_ref().map(|t| t.subst(args))).collect();
+        self.variant_shape(&payloads)
+    }
+
+    /// One of several cases, each of which may carry something: an enum,
+    /// and equally what a function that can fail hands back.
+    pub(super) fn variant_shape(&mut self, payloads: &[Option<Ty>]) -> Option<inkwell::types::StructType<'ctx>> {
+        let tag = self.enum_tag_type(payloads.len());
         let mut size = 0u64;
         let mut align = 1u64;
-        for c in &info.cases {
-            let Some(pt) = &c.payload else { continue };
-            let pt = pt.subst(args);
-            let l = self.ty(&pt)?;
+        for pt in payloads.iter().flatten() {
+            let l = self.ty(pt)?;
             size = size.max(self.target.get_store_size(&l));
             align = align.max(self.target.get_abi_alignment(&l) as u64);
         }
@@ -593,3 +622,186 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 }
+
+// --------------------------------------------------------------- failures
+//
+// `failures.md`: "a function that can fail says so in its signature and
+// hands the failure back as a value". On the machine that is exactly a
+// variant — case 0 is the answer, each later case is one of the reasons —
+// so it is the enum shape again, and the caller reads the tag to know
+// which happened. The design decided the model and left the shape open.
+
+impl<'a, 'ctx> Cg<'a, 'ctx> {
+    /// What a function that can fail hands back: the answer, or one of
+    /// its reasons.
+    pub(super) fn fail_shape(&mut self, fi: usize) -> Option<inkwell::types::StructType<'ctx>> {
+        let f = &self.p.functions[fi];
+        let ret = f.ret.clone();
+        let fails = f.fails.clone();
+        let mut payloads: Vec<Option<Ty>> = Vec::with_capacity(fails.len() + 1);
+        payloads.push(if matches!(ret, Ty::Nothing) { None } else { Some(ret) });
+        for (_, t) in &fails {
+            payloads.push(t.clone());
+        }
+        self.variant_shape(&payloads)
+    }
+
+    /// Case 0 is the answer; reason `i` is case `i + 1`.
+    fn variant_value(&mut self, shape: inkwell::types::StructType<'ctx>, case: usize, cases: usize, payload: Option<BasicValueEnum<'ctx>>) -> Option<BasicValueEnum<'ctx>> {
+        let tmp = self.builder.build_alloca(shape, "outcome").ok()?;
+        let tag = self.enum_tag_type(cases);
+        self.store_field(shape, tmp, 0, tag.const_int(case as u64, false).into());
+        if let Some(v) = payload {
+            let at = self.builder.build_struct_gep(shape, tmp, 1, "carried").ok()?;
+            let _ = self.builder.build_store(at, v);
+        }
+        self.builder.build_load(shape, tmp, "gave").ok()
+    }
+
+    /// `fail name;` — leave, saying which reason and carrying what it
+    /// carries.
+    pub(super) fn emit_fail(&mut self, fi: usize, index: usize, payload: &Option<Operand>, slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+        let shape = self.fail_shape(fi)?;
+        let cases = self.p.functions[fi].fails.len() + 1;
+        let v = match payload {
+            Some(o) => {
+                let raw = self.operand(fi, o, slots)?;
+                let want = self.p.functions[fi].fails.get(index)?.1.clone().and_then(|t| self.ty(&t));
+                Some(match want {
+                    Some(t) => self.fit(raw, t),
+                    None => raw,
+                })
+            }
+            None => None,
+        };
+        let out = self.variant_value(shape, index + 1, cases, v)?;
+        let _ = self.builder.build_return(Some(&out));
+        Some(())
+    }
+
+    /// `return` from a function that can fail: case 0, the answer.
+    pub(super) fn emit_ok_return(&mut self, fi: usize, slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+        let shape = self.fail_shape(fi)?;
+        let f = &self.p.functions[fi];
+        let cases = f.fails.len() + 1;
+        let answer = match f.ret_local {
+            Some(r) if !matches!(f.locals[r.0 as usize].ty, Ty::Nothing) => {
+                let ty = f.locals[r.0 as usize].ty.clone();
+                let slot = slots[r.0 as usize]?;
+                let t = self.ty(&ty)?;
+                Some(self.builder.build_load(t, slot, "answer").ok()?)
+            }
+            _ => None,
+        };
+        let out = self.variant_value(shape, 0, cases, answer)?;
+        let _ = self.builder.build_return(Some(&out));
+        Some(())
+    }
+
+    /// A call that can fail: the caller must say what happens
+    /// (`failures.md`), and MIR has already turned each `otherwise` arm
+    /// into its own block. Read the tag and go where it says.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn emit_failing_call(&mut self, fi: usize, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let target = match callee {
+            Callee::Fn(idx) => idx.0 as usize,
+            _ => return None,
+        };
+        let outcome = self.call(fi, callee, args, slots)?;
+        let shape = self.fail_shape(target)?;
+        let cases = self.p.functions[target].fails.len() + 1;
+        let tmp = self.builder.build_alloca(shape, "outcome").ok()?;
+        let _ = self.builder.build_store(tmp, outcome);
+        let tag_ty = self.enum_tag_type(cases);
+        let p = self.builder.build_struct_gep(shape, tmp, 0, "which").ok()?;
+        let tag = self.builder.build_load(tag_ty, p, "tag").ok()?.into_int_value();
+        // Where the answer is unpacked, and one block per reason.
+        let good = self.ctx.append_basic_block(func, "gave");
+        let mut arms: Vec<(IntValue<'ctx>, LlBlock<'ctx>)> = vec![(tag_ty.const_zero(), good)];
+        let mut landings = Vec::new();
+        for arm in fail {
+            let land = self.ctx.append_basic_block(func, "failed");
+            arms.push((tag_ty.const_int(arm.index as u64 + 1, false), land));
+            landings.push((arm.clone(), land));
+        }
+        let unreached = self.ctx.append_basic_block(func, "no_such_outcome");
+        let _ = self.builder.build_switch(tag, unreached, &arms);
+        self.builder.position_at_end(unreached);
+        let _ = self.builder.build_unreachable();
+        // The answer.
+        self.builder.position_at_end(good);
+        if let Some(d) = dest {
+            let ret = self.p.functions[target].ret.clone();
+            if let Some(t) = self.ty(&ret) {
+                if let Ok(at) = self.builder.build_struct_gep(shape, tmp, 1, "answer") {
+                    if let Ok(v) = self.builder.build_load(t, at, "v") {
+                        self.store_place(fi, d, v, slots);
+                        if d.proj.is_empty() && self.owns_memory(&ret) {
+                            self.mark_alive(d.local, true);
+                        }
+                    }
+                }
+            }
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        // Each reason, with what it carried.
+        for (arm, land) in landings {
+            self.builder.position_at_end(land);
+            if let Some(place) = &arm.payload {
+                let carried = self.p.functions[target].fails.get(arm.index).and_then(|(_, t)| t.clone());
+                if let Some(ct) = carried.and_then(|t| self.ty(&t)) {
+                    if let Ok(at) = self.builder.build_struct_gep(shape, tmp, 1, "carried") {
+                        if let Ok(v) = self.builder.build_load(ct, at, "why") {
+                            self.store_place(fi, place, v, slots);
+                        }
+                    }
+                }
+            }
+            let _ = self.builder.build_unconditional_branch(blocks[arm.block.0 as usize]);
+        }
+        Some(())
+    }
+}
+
+// ------------------------------------------------------------------ text
+//
+// A text is a pointer and a length. The bytes are either the binary's own
+// — a literal needs no heap — or built at run time, and freeing the first
+// kind would crash. Which memory a text is in is Precog's to know (owner,
+// 2026-09-22); until Precog carries that fact, every handle says so
+// itself, in the high bit of the length. That is the fallback the same
+// decision names, paid everywhere rather than only where it is needed.
+
+impl<'a, 'ctx> Cg<'a, 'ctx> {
+    /// A length with the mark taken off: what the program means by it.
+    pub(super) fn real_length(&mut self, raw: IntValue<'ctx>) -> IntValue<'ctx> {
+        let mask = self.ctx.i64_type().const_int(!(1u64 << 63), false);
+        self.builder.build_and(raw, mask, "len").unwrap_or(raw)
+    }
+
+    /// `'a' ++ 'b'` — one new text holding the other two.
+    pub(super) fn str_concat(&mut self, a: BasicValueEnum<'ctx>, b: BasicValueEnum<'ctx>, ty: &Ty) -> Option<BasicValueEnum<'ctx>> {
+        let shape = match self.ty(ty)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        let (ap, alen) = self.text_parts(a)?;
+        let (bp, blen) = self.text_parts(b)?;
+        let out = self.builder.build_alloca(shape, "joined").ok()?;
+        let f = self.rt("cyborg_str_concat");
+        let _ = self.builder.build_call(f, &[out.into(), ap.into(), alen.into(), bp.into(), blen.into()], "");
+        self.builder.build_load(shape, out, "text").ok()
+    }
+
+    /// The pointer and the raw length out of a text value.
+    fn text_parts(&mut self, v: BasicValueEnum<'ctx>) -> Option<(PointerValue<'ctx>, IntValue<'ctx>)> {
+        let agg = match v {
+            BasicValueEnum::StructValue(s) => s,
+            _ => return None,
+        };
+        let p = self.builder.build_extract_value(agg, 0, "p").ok()?.into_pointer_value();
+        let n = self.builder.build_extract_value(agg, 1, "n").ok()?.into_int_value();
+        Some((p, n))
+    }
+}
+

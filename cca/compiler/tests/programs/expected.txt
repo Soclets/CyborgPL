@@ -19,3 +19,10 @@ enums 123
 # Two calls to one function with different arguments are two calls: the
 # answer to the first is not the answer to the second.
 two_calls 14
+# Failures as values: a fallback, arms with a payload, and one climbing
+# to the caller.
+failures 109
+failures_up 9
+# Text built at run time: `++` allocates, and a literal never does.
+text_join 17
+text_built 45
