@@ -53,10 +53,19 @@ liveness question ownership already mostly answers (who touches what,
 when). Proposed: (a) copy per loop — simple, twice the copies; (b)
 this; (c) a programmer hint — nothing else in Cyborg is a hint. Owner: b.
 
+## Targets in v1 — Metal and Vulkan (owner)
+
+Metal for Apple (the machine this is designed on; the benchmark's
+runtime), Vulkan / SPIR-V for everyone else — AMD, Intel, NVIDIA,
+phones — the portable one. CUDA / PTX is not in v1: NVIDIA runs Vulkan,
+and CUDA would need NVIDIA's driver found (never bundled) and hardware
+to test on. Precog's decisions are the same for any GPU; a target is a
+runtime module for launching and memory plus a `JetPack.toml` line, so
+CUDA later is an addition, not a change. Proposed: Metal only; Metal +
+CUDA; all three. Owner: Metal and Vulkan.
+
 ## Open
 
-- Which targets: Metal (Apple), CUDA / PTX (NVIDIA), Vulkan / SPIR-V
-  (everyone else) — LLVM has all three; which ship in v1.
 - The report: when Precog declines to offload a loop, it says why
   (which rule the body broke, or the trip count too small to pay for
   the launch).

@@ -5,6 +5,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — GPU targets in v1: Metal and Vulkan (owner)
+
+Proposed Metal only (testable here), Metal + CUDA, all three. Owner:
+Metal and Vulkan — Apple plus the portable one; NVIDIA through Vulkan;
+CUDA an addition later if wanted.
+
 ### 2026-09-22 — GPU data crossing: Precog keeps data on the GPU across loops (owner: b)
 
 Proposed (a) copy per offloaded loop, (b) Precog decides crossings
