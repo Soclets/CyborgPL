@@ -35,6 +35,20 @@ docs stand; Claude's example was wrong and is fixed (the value is a
 is what `core-features.md` meant). Crossing families stays
 `to.bin16[…] otherwise …`, which fails rather than rounds.
 
+### 2026-09-22 — `simd[T, N]` only where the target has that register (owner: b)
+
+Proposed (a) any plain numeric T and any power-of-two N, the compiler
+splitting or padding to fit the machine — hardware stays in
+`JetPack.toml`; (b) only what the target actually has. Owner: b —
+"shouldn't they just use the normal way?": a program reaching for
+`simd` is writing for a machine, and a type that pretends otherwise
+lies; anyone wanting portability writes the plain loop and lets Precog
+and LLVM vectorise it. So on ARM64 (128-bit NEON) `simd[uint8, 16]`,
+`simd[int32, 4]`, `simd[bin32, 4]`, `simd[bin64, 2]` and the like;
+`simd[uint8, 64]` is a compile error naming what the target has. A
+`simd` program built for another target fails to build rather than
+running slowly — the same honesty `inline.ASM` has.
+
 ### 2026-09-22 — SIMD types are spelled `simd[uint8, 16]` (owner)
 
 Proposed (a) `uint8x16` (Swift's and Rust's look, a naming convention
