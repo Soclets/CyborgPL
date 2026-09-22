@@ -142,6 +142,28 @@ designed); no subtraction between durations at all. The rule was in
 the oracle from the start and had never been asked; the compiler
 session found it missing from the record.
 
+## When a channel is closed (owner, 2026-09-23: c)
+
+`take` waits for a value; if nobody will ever send again, waiting for
+ever is a hang, so it fails `closed` instead. How that is known:
+
+**A channel counts the tasks that can reach it** — the one that made
+it, plus each task it was lent or given to — and a task drops out when
+it finishes. A `take` on an empty channel fails `closed` when every
+task still holding it is itself waiting to take from that same
+channel: nothing can arrive, so the answer is exact rather than a
+guess. Two counters per channel, updated as tasks start and end. The
+case it does not answer is a holder stuck waiting on something else,
+which keeps the channel open and the take waiting — that is a
+deadlock, already a check site above.
+
+**And Precog deletes the counting wherever it proves the last sender
+is done** — structured concurrency tells it when every task that could
+send has ended, so the close is emitted at that point and the counters
+are not built. Proposed alternatives: the counting alone; Precog alone
+(it will not prove every case, so something is still needed for the
+rest). Owner: both, the counting built first.
+
 ## A channel's layout (owner, 2026-09-23)
 
 A channel's capacity is always known when it is made — no bound is a

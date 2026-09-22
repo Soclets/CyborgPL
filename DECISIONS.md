@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — `closed` is counted at run time, and Precog deletes the counting where it proves it (owner: c)
+
+The last thing blocking `channel.take … otherwise` and `whichever`.
+Proposed by the compiler session: (a) a channel counts the tasks that
+can reach it and fails `closed` when every remaining holder is itself
+waiting to take from it — exact, two counters per channel; (b) Precog
+emits the close where structured concurrency proves the last sender is
+done — free where it works, not every case; (c) both, (a) built first.
+Compiler claude recommended c, Claude agreed, owner: c.
+
 ### 2026-09-23 — A channel's slots are inline; Precog stacks, shrinks or removes it (owner)
 
 The compiler session's remaining layout question, deferred until
