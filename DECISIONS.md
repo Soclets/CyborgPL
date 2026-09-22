@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — GPU data crossing: Precog keeps data on the GPU across loops (owner: b)
+
+Proposed (a) copy per offloaded loop, (b) Precog decides crossings
+from whole-program liveness — over once, back once, unless the CPU
+touches it between, (c) a programmer hint. Owner: b. On unified memory
+nothing crosses either way.
+
 ### 2026-09-22 — GPU offload: a body may hold plain values and failures (owner: b)
 
 `design/gpu.md` opened. Proposed (a) plain values only, (b) plus

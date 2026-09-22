@@ -40,11 +40,21 @@ the CPU, silently — that is not an error, it is Precog deciding.
 Proposed: (a) plain values only; (b) a plus failures; (c) b plus text.
 Owner: b.
 
+## How data crosses — Precog keeps it there (owner: b)
+
+On unified memory (the M5) a lent list is already where the GPU can
+see it; nothing moves. On a discrete GPU a list crosses a bus in and
+its changes cross back, and the copy can cost more than the loop.
+Precog decides the crossings the way it decides everything: it sees
+the whole program. A list used by three offloaded loops in a row, with
+no CPU access between them, goes over once and comes back once; a list
+the CPU reads between two loops comes back between them. This is a
+liveness question ownership already mostly answers (who touches what,
+when). Proposed: (a) copy per loop — simple, twice the copies; (b)
+this; (c) a programmer hint — nothing else in Cyborg is a hint. Owner: b.
+
 ## Open
 
-- How data crosses: copied per loop, or kept on the GPU across loops
-  (on unified memory — the M5 — there is no crossing; on a discrete GPU
-  there is a bus).
 - Which targets: Metal (Apple), CUDA / PTX (NVIDIA), Vulkan / SPIR-V
   (everyone else) — LLVM has all three; which ship in v1.
 - The report: when Precog declines to offload a loop, it says why
