@@ -50,8 +50,8 @@ A value from outside the program has a **domain**: what its type allows.
 `int32`; `to.int32[0, 100][…]` is `[0, 100]`; a `list[T][lo, hi]` has a
 length in `[lo, hi]`; an `extern` result is anything its C-shaped type
 holds — or, with a ranged return (`ffi.md`, 2026-09-22), the range,
-enforced at the door as a failure. Precog runs the program abstractly over those domains: each
-expression gets the set of values it can take, computed exactly through
+enforced at the door as a failure. Precog runs the program abstractly
+over those domains: each expression gets the set of values it can take, computed exactly through
 every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
 
 - A set larger than **4096 values** (provisional) becomes an interval
@@ -81,9 +81,9 @@ every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
   text operation (`++`, `slice`, `trim`, `split`, `replace`, `at`, …)
   carries a rule for the class of its result; an operation with no rule
   yields "any text", never a wrong class. Proposed as (a) length only,
-  (b) length + exact values, (c) b + classes; owner chose c. A struct
-  carries a domain per field. An enum carries the set of possible cases,
-  each with its payload's domain.
+  (b) length + exact values, (c) b + classes; owner chose c.
+- A struct carries a domain per field. An enum carries the set of
+  possible cases, each with its payload's domain.
 - **Control flow**: at an `if`, the condition's set decides which branches
   are possible, and each branch is analysed with the condition assumed —
   a guard `if 'n' <== 100 { … }` narrows `'n'` inside. `match` narrows the
@@ -128,6 +128,22 @@ catch); if both say `sat`, Z3's counterexample is the one reported (fixed
 order, so the same input on every machine); `unknown` from both is
 unproven. The doubling is paid in parallel across cores.
 
+The query encodes the path to the site — the domains, every assignment on
+the way, every branch taken, loops unrolled to **16 iterations per loop
+and 64 across the program** (provisional; deeper made Z3 quadratic on
+nested loops in Kespar) — as bit-vectors of the exact widths, and asks
+whether any input reaches the site with an illegal value.
+
+- `unsat` → **proven**. No check.
+- `sat` → a **counterexample**: concrete inputs that make the site fail.
+  Default tier, working build: the site keeps its runtime check. `check`
+  tier, or any tier in the final build: a compile error that prints the
+  counterexample.
+- unknown, or the solver's budget spent → **unproven**, treated as `sat`
+  without a counterexample. The budget is each solver's `rlimit` — a step count,
+  never a timeout — **10,000,000** per query (provisional), so the answer
+  is the same on every machine.
+
 **Disagreement** (`unsat` from one, `sat` from the other; decided
 2026-09-22, owner: c): something is wrong — a solver, or Precog's own
 translation of the program into the query, which both solvers received
@@ -143,22 +159,7 @@ issue tracker (never a solver's — the writer need not know what SMT is,
 and the diagnosis of which is at fault needs the Precog oracle's second
 encoding), and writes the query with both answers to a file to attach.
 Proposed alternatives: refuse the build; treat as unproven without
-running the counterexample. The
-query encodes the path to the site — the domains, every assignment on
-the way, every branch taken, loops unrolled to **16 iterations per loop
-and 64 across the program** (provisional; deeper made Z3 quadratic on
-nested loops in Kespar) — as bit-vectors of the exact widths, and asks
-whether any input reaches the site with an illegal value.
-
-- `unsat` → **proven**. No check.
-- `sat` → a **counterexample**: concrete inputs that make the site fail.
-  Default tier, working build: the site keeps its runtime check. `check`
-  tier, or any tier in the final build: a compile error that prints the
-  counterexample.
-- unknown, or the solver's budget spent → **unproven**, treated as `sat`
-  without a counterexample. The budget is Z3's `rlimit` — a step count,
-  never a timeout — **10,000,000** per query (provisional), so the answer
-  is the same on every machine.
+running the counterexample.
 
 Unrolling to a bound means a site inside a loop may be proven for the
 first 16 trips and unproven after. Kespar reported that honestly and
@@ -213,14 +214,14 @@ already specifies: write the type.
 `reproducible-builds.md`, restated for Precog:
 
 - No wall-clock anywhere; every limit is a count.
-- Z3 is called with a fixed configuration and `rlimit`; results do not
-  depend on thread scheduling.
+- Z3 and CVC5 are called with fixed configurations and step budgets
+  (`rlimit`); results do not depend on thread scheduling.
 - Sites are analysed and reported in source order.
 - Compile-time arithmetic is performed at the exact width the target uses;
   the target is a description in `JetPack.toml`, never the host.
 - Nothing is read at compile time except the source and the config: no
   files, clock, environment, network.
-- The compiler's and solver's versions are in the report header.
+- The compiler's and both solvers' versions are in the report header.
 
 ## Reuse and parallel work
 
