@@ -93,7 +93,17 @@ a step of 0 is a compile error. Start past stop with a positive step runs
 zero times.
 
 The counter is declared like a `let`: bare name → best type from the
-bounds; `'i': int32` → explicit, every value must fit. The bounds carry no
+bounds; `'i': int32` → explicit, every value must fit. **The step is not
+one of those values** (owner, 2026-09-23): it is its own signed number,
+an instruction to go up or down, so `for 'i': uint64 in range[3, 1, -1]`
+is legal — `'i'` is 3, 2, 1, every one a fine `uint64`. Counting down a
+list by position needs this, since a position is a `uint64`. Proposed
+alternative: the step must fit the counter's type too, which would make
+a backwards walk impossible to write without a signed counter and a
+conversion at every index. **The compiler compares before it steps**:
+`range[3, 0, -1]` ends at 0, and computing "next = 0 − 1" to test would
+underflow a `uint64` — an implementation rule the difference in
+behaviour would otherwise hide. The bounds carry no
 `:=`/`=` markers (they would say the same thing twice):
 
 ```

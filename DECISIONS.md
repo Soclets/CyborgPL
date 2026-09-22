@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A `for` range's step is its own signed number, not one of the counter's values (owner: a)
+
+The verification session's first finding, on its first day: for
+`for 'i': uint64 in range[3, 1, -1]` the oracle failed at run time
+("-1 does not fit uint64") while CCA proved all four sites and ran the
+loop. `design/control-flow.md` said "every value must fit" and that a
+negative step counts down, but never what type the step has — so
+neither was wrong, and check claude asked rather than filing a bug.
+Proposed (a) the step is its own signed value and only the counter's
+values must fit — CCA's reading, check claude's and Claude's
+recommendation; (b) the step must fit the counter's type, which makes
+a backwards walk by position impossible since a position is a
+`uint64`. Owner asked how a `uint` can use a minus at all — it never
+holds one; the step is an instruction, and every value the counter
+takes stays ≥ 0. Owner: a. Noted with it: the compiler must compare
+before stepping, or `range[3, 0, -1]` underflows at the bottom. The
+oracle is the one to fix.
+
 ### 2026-09-23 — The verification session opens: "check claude" (owner)
 
 Owner: "let's start the verification session". Its brief is
