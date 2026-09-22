@@ -181,3 +181,389 @@ pub unsafe extern "C" fn cyborg_str_free(ptr: *mut u8, len: u64) {
     }
 }
 
+
+// ------------------------------------------------------------------- maps
+//
+// `maps.md` (owner, 2026-09-22): "one flat table, open addressing, never
+// a linked bucket per entry". An unordered map's handle is three fields —
+// the table, a count, a capacity — and an ordered map's is four, the
+// fourth pointing at the insertion-order list. Entries come back in the
+// order they were `set`, and a replaced key keeps its place.
+//
+// The table is one allocation holding four runs, in this order:
+//
+//     hashes   u64 per slot     (first, so it is aligned)
+//     keys     ks  per slot
+//     values   vs  per slot
+//     states   u8  per slot
+//
+// The compiler passes the sizes, and the functions that hash, compare,
+// copy and drop one key or value — it knows the types; the runtime does
+// not.
+
+const EMPTY: u8 = 0;
+const FULL: u8 = 1;
+/// A slot something was removed from: it still has to be probed past.
+const DEAD: u8 = 2;
+
+type Hasher = unsafe extern "C" fn(*const u8) -> u64;
+type Same = unsafe extern "C" fn(*const u8, *const u8) -> bool;
+type OneWay = unsafe extern "C" fn(*mut u8);
+
+/// What the compiler knows about one map's types and the runtime does not.
+#[repr(C)]
+pub struct MapSpec {
+    pub key_size: u64,
+    pub val_size: u64,
+    pub hash: Hasher,
+    pub same: Same,
+    /// Giving back what a key or a value owns; null when it owns nothing.
+    pub drop_key: Option<OneWay>,
+    pub drop_val: Option<OneWay>,
+}
+
+#[repr(C)]
+pub struct Map {
+    pub table: *mut u8,
+    pub count: u64,
+    pub cap: u64,
+}
+
+unsafe fn slot_hashes(m: *const Map) -> *mut u64 {
+    (*m).table as *mut u64
+}
+unsafe fn slot_keys(m: *const Map) -> *mut u8 {
+    (*m).table.add(8 * (*m).cap as usize)
+}
+unsafe fn slot_vals(m: *const Map, s: *const MapSpec) -> *mut u8 {
+    slot_keys(m).add(((*s).key_size * (*m).cap) as usize)
+}
+unsafe fn slot_states(m: *const Map, s: *const MapSpec) -> *mut u8 {
+    slot_vals(m, s).add(((*s).val_size * (*m).cap) as usize)
+}
+fn block_bytes(cap: u64, s: *const MapSpec) -> u64 {
+    unsafe { cap * (8 + (*s).key_size + (*s).val_size + 1) }
+}
+
+/// Where this key is, or where it would go. `found` says which.
+unsafe fn probe(m: *const Map, s: *const MapSpec, key: *const u8, h: u64, found: *mut bool) -> u64 {
+    let cap = (*m).cap;
+    let mask = cap - 1;
+    let mut i = h & mask;
+    let mut free = cap; // the first slot this key could be put in
+    let states = slot_states(m, s);
+    let hashes = slot_hashes(m);
+    let keys = slot_keys(m);
+    loop {
+        match *states.add(i as usize) {
+            EMPTY => {
+                *found = false;
+                return if free == cap { i } else { free };
+            }
+            DEAD => {
+                if free == cap {
+                    free = i;
+                }
+            }
+            _ => {
+                if *hashes.add(i as usize) == h && ((*s).same)(keys.add((i * (*s).key_size) as usize), key) {
+                    *found = true;
+                    return i;
+                }
+            }
+        }
+        i = (i + 1) & mask;
+    }
+}
+
+/// A bigger table, with everything moved into it. An ordered map's list
+/// is rewritten as it goes, because every slot has changed.
+unsafe fn regrow(m: *mut Map, order: *mut *mut u64, s: *const MapSpec, want: u64) {
+    let mut cap = 8u64;
+    while cap < want * 2 {
+        cap *= 2;
+    }
+    let old = Map { table: (*m).table, count: (*m).count, cap: (*m).cap };
+    let fresh = cyborg_alloc(block_bytes(cap, s));
+    let mut i = 0;
+    while i < block_bytes(cap, s) {
+        *fresh.add(i as usize) = 0;
+        i += 1;
+    }
+    (*m).table = fresh;
+    (*m).cap = cap;
+    (*m).count = 0;
+    let old_order = if order.is_null() { core::ptr::null_mut() } else { *order };
+    let new_order = if order.is_null() { core::ptr::null_mut() } else { cyborg_alloc(cap * 8) as *mut u64 };
+    // In insertion order when there is one, so the order survives.
+    let moves = old.count;
+    let mut n = 0;
+    while n < moves {
+        let from = if old_order.is_null() { next_full(&old, s, n) } else { *old_order.add(n as usize) };
+        let k = slot_keys(&old).add((from * (*s).key_size) as usize);
+        let v = slot_vals(&old, s).add((from * (*s).val_size) as usize);
+        let h = *slot_hashes(&old).add(from as usize);
+        let mut found = false;
+        let to = probe(m, s, k, h, &mut found);
+        *slot_hashes(m).add(to as usize) = h;
+        *slot_states(m, s).add(to as usize) = FULL;
+        memcpy(slot_keys(m).add((to * (*s).key_size) as usize), k, (*s).key_size as usize);
+        memcpy(slot_vals(m, s).add((to * (*s).val_size) as usize), v, (*s).val_size as usize);
+        (*m).count += 1;
+        if !new_order.is_null() {
+            *new_order.add(n as usize) = to;
+        }
+        n += 1;
+    }
+    cyborg_free(old.table);
+    if !order.is_null() {
+        cyborg_free(old_order as *mut u8);
+        *order = new_order;
+    }
+}
+
+/// The `n`th full slot, for a map that keeps no order of its own.
+unsafe fn next_full(m: *const Map, s: *const MapSpec, n: u64) -> u64 {
+    let states = slot_states(m, s);
+    let mut seen = 0;
+    let mut i = 0;
+    while i < (*m).cap {
+        if *states.add(i as usize) == FULL {
+            if seen == n {
+                return i;
+            }
+            seen += 1;
+        }
+        i += 1;
+    }
+    0
+}
+
+/// `map.set` — add, or replace an existing key's value. A replaced key
+/// keeps its place in the order (`maps.md`).
+///
+/// # Safety
+/// `key` and `val` must point at one key and one value of this map's types.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_map_set(m: *mut Map, order: *mut *mut u64, s: *const MapSpec, key: *const u8, val: *const u8) {
+    if (*m).cap == 0 || ((*m).count + 1) * 4 >= (*m).cap * 3 {
+        regrow(m, order, s, (*m).count + 1);
+    }
+    let h = ((*s).hash)(key);
+    let mut found = false;
+    let at = probe(m, s, key, h, &mut found);
+    let kp = slot_keys(m).add((at * (*s).key_size) as usize);
+    let vp = slot_vals(m, s).add((at * (*s).val_size) as usize);
+    if found {
+        // The key that is already there stays; the value it had does not.
+        if let Some(d) = (*s).drop_val {
+            d(vp);
+        }
+        if let Some(d) = (*s).drop_key {
+            d(key as *mut u8);
+        }
+        memcpy(vp, val, (*s).val_size as usize);
+        return;
+    }
+    *slot_hashes(m).add(at as usize) = h;
+    *slot_states(m, s).add(at as usize) = FULL;
+    memcpy(kp, key, (*s).key_size as usize);
+    memcpy(vp, val, (*s).val_size as usize);
+    if !order.is_null() {
+        *(*order).add((*m).count as usize) = at;
+    }
+    (*m).count += 1;
+}
+
+/// `map.get` / `map.has`. True when the key is there; `out` is written
+/// only then, and only when it is not null.
+///
+/// # Safety
+/// `key` must point at one key of this map's type, `out` at room for one
+/// value or be null.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_map_get(m: *const Map, s: *const MapSpec, key: *const u8, out: *mut u8) -> bool {
+    if (*m).cap == 0 {
+        return false;
+    }
+    let h = ((*s).hash)(key);
+    let mut found = false;
+    let at = probe(m, s, key, h, &mut found);
+    if found && !out.is_null() {
+        memcpy(out, slot_vals(m, s).add((at * (*s).val_size) as usize), (*s).val_size as usize);
+    }
+    found
+}
+
+/// `map.remove` — hands the value back, like `list.remove`.
+///
+/// # Safety
+/// As `cyborg_map_get`.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_map_remove(m: *mut Map, order: *mut *mut u64, s: *const MapSpec, key: *const u8, out: *mut u8) -> bool {
+    if (*m).cap == 0 {
+        return false;
+    }
+    let h = ((*s).hash)(key);
+    let mut found = false;
+    let at = probe(m, s, key, h, &mut found);
+    if !found {
+        return false;
+    }
+    let vp = slot_vals(m, s).add((at * (*s).val_size) as usize);
+    if out.is_null() {
+        if let Some(d) = (*s).drop_val {
+            d(vp);
+        }
+    } else {
+        memcpy(out, vp, (*s).val_size as usize);
+    }
+    if let Some(d) = (*s).drop_key {
+        d(slot_keys(m).add((at * (*s).key_size) as usize));
+    }
+    *slot_states(m, s).add(at as usize) = DEAD;
+    if !order.is_null() {
+        let list = *order;
+        let mut i = 0;
+        while i < (*m).count {
+            if *list.add(i as usize) == at {
+                while i + 1 < (*m).count {
+                    *list.add(i as usize) = *list.add((i + 1) as usize);
+                    i += 1;
+                }
+                break;
+            }
+            i += 1;
+        }
+    }
+    (*m).count -= 1;
+    true
+}
+
+/// The slot the `n`th entry is in, in insertion order when the map keeps
+/// one. `map.keys`, `map.values` and `map.pairs` walk with this.
+///
+/// # Safety
+/// `n` must be below the map's count.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_map_slot(m: *const Map, s: *const MapSpec, order: *const u64, n: u64) -> u64 {
+    if order.is_null() {
+        next_full(m, s, n)
+    } else {
+        *order.add(n as usize)
+    }
+}
+
+/// Where one slot's key and value live.
+///
+/// # Safety
+/// `at` must be a slot this map has.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_map_key_at(m: *const Map, s: *const MapSpec, at: u64) -> *mut u8 {
+    slot_keys(m).add((at * (*s).key_size) as usize)
+}
+
+/// # Safety
+/// As `cyborg_map_key_at`.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_map_val_at(m: *const Map, s: *const MapSpec, at: u64) -> *mut u8 {
+    slot_vals(m, s).add((at * (*s).val_size) as usize)
+}
+
+/// Give the whole map back, and everything its keys and values own.
+///
+/// # Safety
+/// The map must not be used afterwards.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_map_free(m: *mut Map, order: *mut *mut u64, s: *const MapSpec) {
+    if (*m).cap != 0 && !(*m).table.is_null() {
+        let states = slot_states(m, s);
+        let mut i = 0;
+        while i < (*m).cap {
+            if *states.add(i as usize) == FULL {
+                if let Some(d) = (*s).drop_key {
+                    d(slot_keys(m).add((i * (*s).key_size) as usize));
+                }
+                if let Some(d) = (*s).drop_val {
+                    d(slot_vals(m, s).add((i * (*s).val_size) as usize));
+                }
+            }
+            i += 1;
+        }
+        cyborg_free((*m).table);
+    }
+    (*m).table = core::ptr::null_mut();
+    (*m).count = 0;
+    (*m).cap = 0;
+    if !order.is_null() {
+        cyborg_free(*order as *mut u8);
+        *order = core::ptr::null_mut();
+    }
+}
+
+// ---------------------------------------------------------------- hashing
+//
+// The compiler generates one hash function per key type — it knows the
+// shape; these are the pieces it builds them out of.
+
+/// One round of a bit mixer: the same value always gives the same answer,
+/// on every machine, which `reproducible-builds.md` asks of everything.
+#[no_mangle]
+pub extern "C" fn cyborg_hash_int(v: u64) -> u64 {
+    let mut x = v ^ 0x9e37_79b9_7f4a_7c15;
+    x = (x ^ (x >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    x = (x ^ (x >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    x ^ (x >> 31)
+}
+
+/// FNV-1a over the bytes: short, and the same everywhere.
+///
+/// # Safety
+/// `p` must point at `len` readable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_hash_bytes(p: *const u8, len: u64) -> u64 {
+    let len = len & !STATIC;
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut i = 0;
+    while i < len {
+        h ^= *p.add(i as usize) as u64;
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+        i += 1;
+    }
+    h
+}
+
+/// Two hashes into one, so a struct's is its fields' and a list's is its
+/// elements'.
+#[no_mangle]
+pub extern "C" fn cyborg_hash_mix(a: u64, b: u64) -> u64 {
+    cyborg_hash_int(a ^ b.rotate_left(17))
+}
+
+/// Do these bytes say the same thing? For keys that are plain values.
+///
+/// # Safety
+/// Both must point at `len` readable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_same_bytes(a: *const u8, b: *const u8, len: u64) -> bool {
+    let mut i = 0;
+    while i < len {
+        if *a.add(i as usize) != *b.add(i as usize) {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+/// Two texts saying the same thing. The mark on a length is not part of
+/// what a text *is*, so it is taken off first.
+///
+/// # Safety
+/// Each pointer must have as many readable bytes as its length says.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_same_text(ap: *const u8, alen: u64, bp: *const u8, blen: u64) -> bool {
+    let (alen, blen) = (alen & !STATIC, blen & !STATIC);
+    alen == blen && cyborg_same_bytes(ap, bp, alen)
+}
+

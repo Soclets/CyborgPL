@@ -1,0 +1,31 @@
+# Built and discarded over and over, inside a call, so anything not given
+# back becomes unreachable — which is what a leak checker can see. A
+# handle still sitting on the stack at exit looks reachable and would be
+# reported as no leak at all.
+extern fn exit ['code': int32];
+
+fn round ['n': int32] -> int32 {
+    let mut 'xs': list[int32] = [];
+    for 'i': int32 in range[1, 20] {
+        list.append[lend.mut 'xs', 'i' + 'n'];
+    }
+    let mut 'text': str.utf8 = "";
+    for 'j': int32 in range[1, 5] {
+        'text' = copy 'text' ++ "ab";
+    }
+    let mut 'm': map[str.utf8, list[int32]] = map.empty;
+    map.set[lend.mut 'm', copy 'text', copy 'xs'];
+    map.set[lend.mut 'm', "other", copy 'xs'];
+    let 'entries': int32 = map.length[lend 'm'];
+    let 'bytes': int32 = str.bytes[lend 'text'];
+    let 'count': int32 = list.length[lend 'xs'];
+    return 'entries' + 'bytes' + 'count';
+}
+
+MAIN {
+    let mut 'total': int32 = 0;
+    for 'k': int32 in range[1, 500] {
+        'total' = round['k'];
+    }
+    nocheck exit['total' - 32];
+}

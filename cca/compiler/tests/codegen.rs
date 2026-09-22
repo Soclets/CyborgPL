@@ -116,6 +116,51 @@ fn copying_a_list_copies_what_it_owns() {
     assert!(ir.contains("cy_copy_"), "`copy` of a list did not copy the buffer it owns:\n{}", ir);
 }
 
+/// Every program gives back everything it took.
+///
+/// This is the test that catches a heap bug. An exit code is happy to be
+/// right while a list's buffer, a map's table or a built text is never
+/// freed — or is freed twice, which is worse and usually still exits 0.
+/// macOS has `leaks`; where it does not exist the test says so rather
+/// than passing quietly.
+#[test]
+fn programs_give_back_what_they_took() {
+    if Command::new("leaks").arg("--help").output().map(|o| !o.status.success()).unwrap_or(true) {
+        eprintln!("note: no `leaks` on this machine, so nothing checked what the programs freed");
+        return;
+    }
+    assert!(runtime().is_some(), "the runtime is not built");
+    let expected = std::fs::read_to_string(dir().join("expected.txt")).unwrap();
+    let out_dir = std::env::temp_dir().join("cca-codegen-tests");
+    let _ = std::fs::create_dir_all(&out_dir);
+    let mut leaking = Vec::new();
+    for line in expected.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let (name, want) = line.split_once(' ').unwrap();
+        // A program that stops on a check never reaches the end, so what
+        // it was still holding is not a leak.
+        if want == "trap" {
+            continue;
+        }
+        let src = dir().join(format!("{}.cpls", name));
+        let bin = out_dir.join(name);
+        let build = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&bin).output().unwrap();
+        if !build.status.success() {
+            continue;
+        }
+        let r = Command::new("leaks").arg("--atExit").arg("--").arg(&bin).output().unwrap();
+        let text = String::from_utf8_lossy(&r.stdout).to_string();
+        if !text.contains("0 leaks for 0 total leaked bytes") {
+            let said = text.lines().filter(|l| l.contains("leak")).collect::<Vec<_>>().join("\n");
+            leaking.push(format!("{}: {}", name, said));
+        }
+    }
+    assert!(leaking.is_empty(), "these programs did not give back everything they took:\n{}", leaking.join("\n"));
+}
+
 fn ir_of(name: &str) -> String {
     let src = dir().join(format!("{}.cpls", name));
     let out = std::env::temp_dir().join(format!("cca-codegen-tests/ir-{}", name));

@@ -413,19 +413,28 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let site = pending_site.take();
                     // The shape of where it is going: a literal has no width
                     // of its own, and a struct is built at its declared one.
-                    // Taking a borrow *sets* the borrow; it does not
-                    // write through one. Everything else a lent local is
-                    // assigned goes through to what it borrows.
+                    // What a lent local holds is an address, so assigning
+                    // to one stores an address — whether it is a fresh
+                    // borrow (`_3 = lend 'xs'`) or another borrow passed
+                    // along (`_4 = _3`). Writing the borrowed *value*
+                    // there instead would write through a pointer that
+                    // has not been set yet.
                     let binds_borrow = place.proj.is_empty()
-                        && matches!(rvalue, Rvalue::Lend { .. })
                         && matches!(f.locals[place.local.0 as usize].kind, LocalKind::Lent { .. })
                         && !f.params.iter().any(|q| *q == place.local);
                     if binds_borrow {
-                        if let (Rvalue::Lend { place: src, .. }, Some(slot)) = (rvalue, slots[place.local.0 as usize]) {
-                            if let Some((addr, _)) = self.slot_of(fi, src, slots) {
+                        let src = match rvalue {
+                            Rvalue::Lend { place, .. } => Some(place.clone()),
+                            Rvalue::Use(o) => o.place().cloned(),
+                            _ => None,
+                        };
+                        if let (Some(src), Some(slot)) = (src, slots[place.local.0 as usize]) {
+                            if let Some((addr, _)) = self.slot_of(fi, &src, slots) {
                                 let _ = self.builder.build_store(slot, addr);
+                                continue;
                             }
                         }
+                        self.cannot("this borrow has no shape in the generated code yet", Some(f.span(s.span)));
                         continue;
                     }
                     let want_ty = self.slot_of(fi, place, slots).map(|(_, t)| t);
@@ -444,7 +453,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 StmtKind::Op { dest, op, args } => {
                     pending_site = None;
-                    match self.op(fi, op, args, slots, func) {
+                    let dest_ty = dest.as_ref().and_then(|d| self.slot_of(fi, d, slots)).map(|(_, t)| t);
+                    match self.op(fi, op, args, slots, func, dest_ty) {
                         Some(v) => {
                             if let (Some(d), Some(v)) = (dest, v) {
                                 self.store_place(fi, d, v, slots);
@@ -487,6 +497,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     _ => {
                         let _ = self.builder.build_unconditional_branch(blocks[then.0 as usize]);
                     }
+                }
+            }
+            // `map.get` and `map.remove` fail when the key is not there
+            // (`maps.md`), and that is the only reason either gives.
+            Terminator::Call { callee: Callee::Op(op @ (Op::MapGet | Op::MapRemove)), args, dest, ok, fail } if !fail.is_empty() => {
+                if self.map_lookup(fi, op, args, dest, *ok, fail, blocks, slots, func).is_none() {
+                    self.cannot("this map lookup has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
                 }
             }
             Terminator::Call { callee, args, dest, ok, fail } if !fail.is_empty() => {
@@ -729,6 +747,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let ty = want_ty?;
                 self.make_enum(fi, *id, *case, payload, &ty, slots)
             }
+            Rvalue::MakeMap(pairs) => {
+                let ty = want_ty?;
+                self.make_map(fi, pairs, &ty, slots)
+            }
             Rvalue::MakeList(ops) => {
                 let ty = want_ty?;
                 self.make_list(fi, ops, &ty, slots)
@@ -962,7 +984,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// The language's own operations. A length is a field of the handle,
     /// which is why the handle carries one.
-    fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<Option<BasicValueEnum<'ctx>>> {
+    fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>, dest_ty: Option<Ty>) -> Option<Option<BasicValueEnum<'ctx>>> {
         match op {
             // `list.append` hands nothing back (`lists.md`), so it is
             // handled and has no value — which is not the same as not
@@ -972,6 +994,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(None)
             }
             Op::ListRemove => Some(Some(self.list_remove(fi, args, slots)?)),
+            Op::MapSet => {
+                self.map_set(fi, args, slots)?;
+                Some(None)
+            }
+            Op::MapHas => Some(Some(self.map_has(fi, args, slots)?)),
+            Op::MapKeys | Op::MapValues | Op::MapPairs => {
+                let out = dest_ty?;
+                Some(Some(self.map_walk(fi, op, args, &out, slots, func)?))
+            }
             // Bytes is the length a `str` already carries; the other two
             // units have to walk the text, and that is std's to write.
             Op::StrBytes | Op::ListLength | Op::ArrayLength | Op::MapLength => {

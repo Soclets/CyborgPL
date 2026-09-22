@@ -26,3 +26,12 @@ failures_up 9
 # Text built at run time: `++` allocates, and a literal never does.
 text_join 17
 text_built 45
+# Maps: one flat table, open addressing, and entries walked in the order
+# they were put in.
+maps 124
+map_keys 28
+map_walk 109
+walk_list 15
+# Lists, text and maps built and discarded in a loop: a leak here is
+# unreachable memory, which is what `leaks` can actually see.
+heap_churn 0

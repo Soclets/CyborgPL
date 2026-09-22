@@ -38,7 +38,9 @@ cargo test        # every examples/*.cpls checks; every reject program is
 
 - 2026-09-22: the whole pipeline runs — lexer, parser, item resolution,
   the checker, HIR, MIR, the ownership walk, Precog (layers 1, 2 and 3)
-  and LLVM, out to an object file and a linked binary. Every
+  and LLVM, out to an object file and a linked binary. The heap is in:
+  lists, text built at run time, maps, enums and `match`, and failures as
+  values, all of them freeing what they take. Every
   `examples/*.cpls` loads, checks and lowers to a well-formed graph, and
   none is refused by Precog. Of the 358 reject programs, 344 are refused
   in CCA's own words (`compiler/tests/reject_phrases.txt`); 9 are marked
@@ -193,4 +195,20 @@ Dated, with the alternative, so each can become a question later.
   different design; what is missing is the analysis that would make it
   free. Alternative: leak every text until the analysis exists, which is
   what the previous commit did.
+- **2026-09-22 — A map's table is the runtime's; its types are the
+  compiler's.** `maps.md` decided the shape — one flat table, open
+  addressing, three handle fields unordered and four ordered, insertion
+  order for the walks — and the runtime implements exactly that, taking
+  the key and value sizes and the functions that hash, compare and drop
+  one of them. Those are generated per type, by structure, which is what
+  "`map[Point, str.utf8]` just works" asks for. `map.keys`/`values`/
+  `pairs` build an array of *copies*: the array owns what is in it and is
+  given back at the end of the walk, so it must not take the map's own
+  keys with it. Alternative: a cursor that borrows, which is cheaper and
+  needs a borrow that outlives the loop body to be proven safe.
+- **2026-09-22 — A key type with its own `hash` is refused.** `maps.md`
+  allows one, and makes "equal keys hash the same" a check site Precog
+  must prove or the final build refuses the map. Precog does not prove
+  that yet, so CCA says so rather than trusting it. Structural hashing —
+  plain values, text, chars, structs, enums and lists of them — works.
 

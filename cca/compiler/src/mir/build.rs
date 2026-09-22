@@ -243,6 +243,21 @@ impl<'a> FnBuilder<'a> {
     }
 
     fn assign(&mut self, place: Place, rvalue: Rvalue, span: SpanId) {
+        // Writing over a name that owns something gives the old value
+        // back first. `'text' = copy 'text' ++ "ab"` in a loop would
+        // otherwise leave every round's text behind — the right-hand side
+        // is already in a temporary of its own by the time this runs, so
+        // there is nothing here that still needs the old one.
+        //
+        // The first assignment to a name has nothing to give back; the
+        // lowering knows that from the flag it keeps per owning local,
+        // and the drop costs nothing where the answer never changes.
+        if place.proj.is_empty() && matches!(self.locals[place.local.0 as usize].kind, LocalKind::Owned) {
+            let ty = self.locals[place.local.0 as usize].ty.clone();
+            if ty.is_owned() {
+                self.push(StmtKind::Drop(place.clone()), span);
+            }
+        }
         self.push(StmtKind::Assign { place, rvalue }, span);
     }
 
@@ -1170,7 +1185,7 @@ impl<'a> FnBuilder<'a> {
         if fails.is_empty() {
             if let Callee::Op(op) = &callee {
                 let op = op.clone();
-                let ops: Vec<Operand> = args.iter().map(arg_as_operand).collect();
+                let ops: Vec<Operand> = args.iter().map(|a| self.owned_operand(a, span)).collect();
                 let result_ty = self.resolve_ty(&e.ty);
                 self.before_op_sites(&op, &args, &result_ty, span);
                 self.push(StmtKind::Op { dest: dest.clone(), op: op.clone(), args: ops }, span);
@@ -1424,6 +1439,30 @@ fn arg_as_operand(a: &Arg) -> Operand {
 }
 
 impl<'a> FnBuilder<'a> {
+    /// An argument to a language operation, with a `copy` made real.
+    ///
+    /// A collection owns what is put in it (`lists.md`: "a list owns its
+    /// elements: `append` takes a fresh value, a `copy`, or a `give` —
+    /// never a lend"), and `copy` is "a second, independent value; an
+    /// allocation" (`ownership-syntax.md`). Read as a plain operand, a
+    /// `copy` of a list or a text would put the *same* buffer in the
+    /// collection and leave the original owning it too — and both would
+    /// give it back. The duplicate is made here, where the IR can say so.
+    fn owned_operand(&mut self, a: &Arg, span: SpanId) -> Operand {
+        if let Arg::Copy(place) = a {
+            let base = self.locals[place.local.0 as usize].ty.clone();
+            let ty = projected_ty(&base, &place.proj, &self.arena.items);
+            if ty.is_owned() {
+                let t = self.into_temp(Rvalue::Duplicate(place.clone()), &ty, span);
+                return match t {
+                    Operand::Read(p) => Operand::Move(p),
+                    other => other,
+                };
+            }
+        }
+        arg_as_operand(a)
+    }
+
     /// The type a HIR argument has before it goes anywhere.
     fn arg_ty(&self, a: &hir::Arg) -> Ty {
         match a {
