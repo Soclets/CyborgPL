@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="brand/mark-white.svg">
-    <img src="brand/mark-black.svg" alt="" width="96">
-  </picture>
+  <img src="brand/logo.svg" alt="" width="96">
 </p>
 
 <h3 align="center">CyborgPL</h3>
