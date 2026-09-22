@@ -16,9 +16,10 @@
 //!   trusted site was never proven, and telling LLVM otherwise would turn
 //!   the writer's word into undefined behaviour.
 //!
-//! What is not lowered yet says so by name rather than by crashing: this
-//! is the base language without a heap, so `str`, `list` and `map` wait on
-//! the runtime layout, which is a question for the design session.
+//! What is not lowered yet says so by name rather than by crashing.
+//! The heap is here — a list is built, grown, indexed, copied and given
+//! back (`heap.rs`) — on the layouts the owner decided on 2026-09-22.
+//! Still waiting: maps, `concur`, and text built at run time.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -37,6 +38,8 @@ use crate::mir::*;
 use crate::source::SourceMap;
 use crate::types::{BinW, IntW, Ty};
 
+mod heap;
+
 /// Something the lowering cannot do yet, named so the writer knows what
 /// rather than seeing a crash.
 pub struct NotYet {
@@ -50,7 +53,18 @@ pub struct Lowered<'ctx> {
 
 pub fn lower<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &str) -> Result<Lowered<'ctx>, Vec<NotYet>> {
     let module = ctx.create_module(name);
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new() };
+    // The machine's own description, set before anything is lowered: the
+    // heap needs to know how big an element is, and only the target data
+    // knows that.
+    let target = match machine() {
+        Ok(m) => {
+            module.set_triple(&TargetMachine::get_default_triple());
+            module.set_data_layout(&m.get_target_data().get_data_layout());
+            m.get_target_data()
+        }
+        Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
+    };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new() };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -77,6 +91,19 @@ struct Cg<'a, 'ctx> {
     externs: HashMap<u32, FunctionValue<'ctx>>,
     problems: Vec<NotYet>,
     strings: HashMap<String, PointerValue<'ctx>>,
+    /// The machine this is being built for: how big a value is, and how
+    /// it is aligned.
+    target: inkwell::targets::TargetData,
+    /// Generated once per type and called wherever it is needed: dropping
+    /// a value, and copying one. Writing them inline would repeat a loop
+    /// at every use and could not recurse into a list of lists.
+    helpers: HashMap<String, FunctionValue<'ctx>>,
+    /// One per local that owns memory, in the function being lowered:
+    /// does it still hold a value? A value given away on one path and
+    /// kept on another cannot be dropped unconditionally, and cannot be
+    /// left undropped either. LLVM folds away the ones whose answer never
+    /// changes, which is nearly all of them.
+    cur_flags: Vec<Option<PointerValue<'ctx>>>,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -310,6 +337,20 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 None => slots.push(None),
             }
         }
+        // A flag per owning local, so a drop knows whether there is still
+        // anything to give back.
+        self.cur_flags = vec![None; f.locals.len()];
+        for (li, l) in f.locals.iter().enumerate() {
+            if lent[li] || !self.owns_memory(&l.ty) {
+                continue;
+            }
+            let flag = self.builder.build_alloca(self.ctx.bool_type(), "alive").unwrap();
+            // A parameter arrives holding its value; everything else does
+            // not hold one until something puts one there.
+            let start = self.ctx.bool_type().const_int(is_param[li] as u64, false);
+            let _ = self.builder.build_store(flag, start);
+            self.cur_flags[li] = Some(flag);
+        }
         if !self.problems.is_empty() {
             return;
         }
@@ -336,22 +377,47 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let mut pending_site: Option<SiteId> = None;
         for s in &stmts {
             match &s.kind {
-                StmtKind::Site(id) => pending_site = Some(*id),
+                StmtKind::Site(id) => {
+                    // A bounds check stands on its own — it guards the
+                    // index, not the instruction after it — so it is
+                    // emitted here rather than carried forward.
+                    if matches!(f.site(*id).kind, SiteKind::Bounds) {
+                        self.bounds_check(fi, *id, slots, func);
+                        pending_site = None;
+                    } else {
+                        pending_site = Some(*id);
+                    }
+                }
                 StmtKind::Assign { place, rvalue } => {
                     let site = pending_site.take();
                     // The shape of where it is going: a literal has no width
                     // of its own, and a struct is built at its declared one.
-                    let want = self.slot_of(fi, place, slots).and_then(|(_, t)| self.ty(&t));
-                    if let Some(v) = self.rvalue(fi, rvalue, slots, site, func, blocks, want) {
+                    let want_ty = self.slot_of(fi, place, slots).map(|(_, t)| t);
+                    let want = want_ty.clone().and_then(|t| self.ty(&t));
+                    if let Some(v) = self.rvalue(fi, rvalue, slots, site, func, blocks, want, want_ty.clone()) {
                         self.store_place(fi, place, v, slots);
+                        // The place now holds a value worth giving back.
+                        if place.proj.is_empty() {
+                            if let Some(t) = &want_ty {
+                                if self.owns_memory(t) {
+                                    self.mark_alive(place.local, true);
+                                }
+                            }
+                        }
                     }
                 }
                 StmtKind::Op { dest, op, args } => {
                     pending_site = None;
-                    match self.op(fi, op, args, slots) {
+                    match self.op(fi, op, args, slots, func) {
                         Some(v) => {
-                            if let Some(d) = dest {
+                            if let (Some(d), Some(v)) = (dest, v) {
                                 self.store_place(fi, d, v, slots);
+                                if d.proj.is_empty() {
+                                    let t = self.p.functions[fi].locals[d.local.0 as usize].ty.clone();
+                                    if self.owns_memory(&t) {
+                                        self.mark_alive(d.local, true);
+                                    }
+                                }
                             }
                         }
                         None => {
@@ -360,7 +426,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         }
                     }
                 }
-                StmtKind::Drop(_) | StmtKind::EndLend(_) | StmtKind::Nop => {}
+                StmtKind::Drop(pl) => {
+                    if let Some((slot, ty)) = self.slot_of(fi, pl, slots) {
+                        let flag = self.cur_flags.get(pl.local.0 as usize).copied().flatten();
+                        self.emit_drop(pl, slot, &ty, flag, func);
+                    }
+                }
+                StmtKind::EndLend(_) | StmtKind::Nop => {}
                 StmtKind::Task { .. } => self.cannot("starting a task has no shape in the generated code yet", Some(f.span(s.span))),
                 StmtKind::Asm { .. } => self.cannot("`inline.ASM` has no shape in the generated code yet", Some(f.span(s.span))),
             }
@@ -452,6 +524,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     slot = self.builder.build_struct_gep(sty, slot, *i as u32, "field").ok()?;
                     ty = crate::mir::build::projected_ty(&ty, std::slice::from_ref(pr), &self.p.items);
                 }
+                Proj::Index(o) => {
+                    let idx = self.operand(fi, &o.clone(), slots)?;
+                    let idx = match idx {
+                        BasicValueEnum::IntValue(i) => i,
+                        _ => return None,
+                    };
+                    let (next, elem) = self.index_slot(slot, &ty, idx)?;
+                    slot = next;
+                    ty = elem;
+                }
                 _ => return None,
             }
         }
@@ -464,7 +546,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Operand::Read(p) | Operand::Move(p) => {
                 let (slot, ty) = self.slot_of(fi, p, slots)?;
                 let t = self.ty(&ty)?;
-                self.builder.build_load(t, slot, "v").ok()
+                let v = self.builder.build_load(t, slot, "v").ok()?;
+                // What was given away is no longer here to give back.
+                if matches!(o, Operand::Move(_)) && p.proj.is_empty() {
+                    self.mark_alive(p.local, false);
+                }
+                Some(v)
             }
         }
     }
@@ -498,7 +585,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// A value, with the site that guards it — when there is one and it was
     /// not proven, the instruction is the checked one.
-    fn rvalue(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], site: Option<SiteId>, func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>) -> Option<BasicValueEnum<'ctx>> {
+    #[allow(clippy::too_many_arguments)]
+    fn rvalue(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], site: Option<SiteId>, func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>, want_ty: Option<Ty>) -> Option<BasicValueEnum<'ctx>> {
         match rv {
             Rvalue::Use(o) => {
                 let v = self.operand(fi, o, slots)?;
@@ -568,7 +656,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 Some(agg.into())
             }
-            Rvalue::Duplicate(p) => self.operand(fi, &Operand::Read(p.clone()), slots),
+            Rvalue::MakeList(ops) => {
+                let ty = want_ty?;
+                self.make_list(fi, ops, &ty, slots)
+            }
+            Rvalue::Duplicate(p) => {
+                // `copy` is a second, independent value — an allocation
+                // (`ownership-syntax.md`). Sharing one buffer between two
+                // owners would free it twice.
+                let (src, ty) = self.slot_of(fi, p, slots)?;
+                match self.copy_fn(&ty) {
+                    Some(copier) => {
+                        let shape = self.ty(&ty)?;
+                        let tmp = self.builder.build_alloca(shape, "copy").ok()?;
+                        let _ = self.builder.build_call(copier, &[tmp.into(), src.into()], "");
+                        self.builder.build_load(shape, tmp, "copied").ok()
+                    }
+                    None => self.operand(fi, &Operand::Read(p.clone()), slots),
+                }
+            }
             _ => {
                 self.cannot("this value has no shape in the generated code yet", None);
                 None
@@ -783,8 +889,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// The language's own operations. A length is a field of the handle,
     /// which is why the handle carries one.
-    fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<BasicValueEnum<'ctx>> {
+    fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<Option<BasicValueEnum<'ctx>>> {
         match op {
+            // `list.append` hands nothing back (`lists.md`), so it is
+            // handled and has no value — which is not the same as not
+            // being handled at all.
+            Op::ListAppend => {
+                self.list_append(fi, args, slots, func)?;
+                Some(None)
+            }
+            Op::ListRemove => Some(Some(self.list_remove(fi, args, slots)?)),
             // Bytes is the length a `str` already carries; the other two
             // units have to walk the text, and that is std's to write.
             Op::StrBytes | Op::ListLength | Op::ArrayLength | Op::MapLength => {
@@ -797,10 +911,41 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 };
                 let field = self.builder.build_struct_gep(st, slot, 1, "len").ok()?;
                 let raw = self.builder.build_load(self.ctx.i64_type(), field, "n").ok()?;
-                Some(raw)
+                Some(Some(raw))
             }
             _ => None,
         }
+    }
+
+    /// `'xs'[pos i]` must be within the list: 1-based, so 1 through the
+    /// length (`lists.md`). Proven sites carry no check; the rest trap
+    /// with the site's own words.
+    fn bounds_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
+        let site = self.p.functions[fi].site(id).clone();
+        if matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted) {
+            return;
+        }
+        // Reading, never moving: a check site looks at the value, it does
+        // not take it.
+        let read = |o: &Operand| match o.place() {
+            Some(p) => Operand::Read(p.clone()),
+            None => o.clone(),
+        };
+        let (Some(i), Some(n)) = (site.operands.first().map(read), site.operands.get(1).map(read)) else { return };
+        let (Some(i), Some(n)) = (self.operand(fi, &i, slots), self.operand(fi, &n, slots)) else { return };
+        let w = self.ctx.i64_type();
+        let i = self.fit(i, w.into()).into_int_value();
+        let n = self.fit(n, w.into()).into_int_value();
+        let one = w.const_int(1, false);
+        let Ok(too_low) = self.builder.build_int_compare(IntPredicate::SLT, i, one, "low") else { return };
+        let Ok(too_high) = self.builder.build_int_compare(IntPredicate::SGT, i, n, "high") else { return };
+        let Ok(bad) = self.builder.build_or(too_low, too_high, "outside") else { return };
+        let fail = self.ctx.append_basic_block(func, "index_outside");
+        let good = self.ctx.append_basic_block(func, "index_ok");
+        let _ = self.builder.build_conditional_branch(bad, fail, good);
+        self.builder.position_at_end(fail);
+        self.trap(fi, id);
+        self.builder.position_at_end(good);
     }
 
     fn store_place(&mut self, fi: usize, p: &Place, v: BasicValueEnum<'ctx>, slots: &[Option<PointerValue<'ctx>>]) {
@@ -854,14 +999,19 @@ fn readable_op(debug: &str) -> String {
 }
 
 /// Write the module as an object file for this machine.
-pub fn write_object(module: &Module, path: &Path) -> Result<(), String> {
+/// This machine, described: the triple, the CPU and what it can do.
+fn machine() -> Result<TargetMachine, String> {
     Target::initialize_native(&InitializationConfig::default()).map_err(|e| e.to_string())?;
     let triple = TargetMachine::get_default_triple();
     let target = Target::from_triple(&triple).map_err(|e| e.to_string())?;
-    let machine = target
+    target
         .create_target_machine(&triple, &TargetMachine::get_host_cpu_name().to_string(), &TargetMachine::get_host_cpu_features().to_string(), OptimizationLevel::Default, RelocMode::PIC, CodeModel::Default)
-        .ok_or("this machine has no target description")?;
-    module.set_triple(&triple);
+        .ok_or_else(|| "this machine has no target description".to_string())
+}
+
+pub fn write_object(module: &Module, path: &Path) -> Result<(), String> {
+    let machine = machine()?;
+    module.set_triple(&TargetMachine::get_default_triple());
     module.set_data_layout(&machine.get_target_data().get_data_layout());
     machine.write_to_file(module, FileType::Object, path).map_err(|e| e.to_string())
 }

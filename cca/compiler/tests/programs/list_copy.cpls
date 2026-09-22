@@ -1,0 +1,12 @@
+extern fn exit ['code': int32];
+MAIN {
+    let mut 'a': list[int32] = [1, 2, 3];
+    let mut 'b': list[int32] = copy 'a';
+    list.append[lend.mut 'b', 4];
+    'b'[pos 1] = 9;
+    let 'la': int32 = list.length[lend 'a'];
+    let 'lb': int32 = list.length[lend 'b'];
+    let 'a1': int32 = 'a'[pos 1];
+    let 'b1': int32 = 'b'[pos 1];
+    nocheck exit['la' x 1 + 'lb' x 10 + 'a1' x 100 + 'b1' x 1000];
+}

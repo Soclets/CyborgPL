@@ -8,3 +8,9 @@ recursion 55
 check_fires trap
 bin_guard 7
 proven_add 0
+# The heap: a list is built, grown, indexed, copied and given back.
+lists 26
+list_grow 3
+list_copy 183
+list_nested 13
+list_bounds trap

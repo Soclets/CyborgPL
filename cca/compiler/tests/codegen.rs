@@ -96,6 +96,26 @@ fn a_known_program_is_already_the_answer() {
     assert!(!ir.contains(" add ") && !ir.contains("add nsw"), "a known program still does its arithmetic at run time:\n{}", ir);
 }
 
+/// A list owns its buffer, so a list that goes out of scope gives it
+/// back. This is the one thing a leak check catches and a test of the
+/// exit code never would.
+#[test]
+fn a_list_gives_its_memory_back() {
+    let ir = ir_of("lists");
+    assert!(ir.contains("cyborg_alloc"), "a list literal reached LLVM without allocating:\n{}", ir);
+    assert!(ir.contains("cy_drop_"), "a list went out of scope and nothing gave its memory back:\n{}", ir);
+    assert!(ir.contains("cyborg_free"), "nothing in the generated code frees anything:\n{}", ir);
+}
+
+/// `copy` is "a second, independent value; an allocation"
+/// (`ownership-syntax.md`) — not a second handle onto one buffer, which
+/// would be freed twice.
+#[test]
+fn copying_a_list_copies_what_it_owns() {
+    let ir = ir_of("list_copy");
+    assert!(ir.contains("cy_copy_"), "`copy` of a list did not copy the buffer it owns:\n{}", ir);
+}
+
 fn ir_of(name: &str) -> String {
     let src = dir().join(format!("{}.cpls", name));
     let out = std::env::temp_dir().join(format!("cca-codegen-tests/ir-{}", name));

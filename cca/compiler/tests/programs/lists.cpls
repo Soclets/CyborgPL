@@ -1,0 +1,9 @@
+extern fn exit ['code': int32];
+MAIN {
+    let mut 'xs': list[int32] = [10, 20, 30];
+    list.append[lend.mut 'xs', 12];
+    let 'n': int32 = list.length[lend 'xs'];
+    let 'a': int32 = 'xs'[pos 1];
+    let 'd': int32 = 'xs'[pos 4];
+    nocheck exit['n' + 'a' + 'd'];
+}
