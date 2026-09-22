@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Layer 3 solver: a Z3 + CVC5 portfolio (owner: b)
+
+Proposed (a) Z3 only, pinned; (b) a portfolio of Z3 and CVC5, both to
+full budget, results combined; (c) Z3 behind an interface. Owner: b.
+Determinism kept: never first-to-answer; any `unsat` proves; both `sat`
+→ Z3's counterexample by fixed order; both `unknown` → unproven. A
+`sat`/`unsat` disagreement is a solver bug and open as to what the
+build does beyond reporting it.
+
 ### 2026-09-22 — Precog tracks `std::uenr` as exact rationals plus a digit-count bound (owner: b)
 
 Proposed (a) intervals over exact rationals, no overflow site, memory
