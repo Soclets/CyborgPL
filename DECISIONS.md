@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Map count bound `map[K, V][lo, hi]`; bounds inside compose (owner: yes)
+
+The list rule applied to maps. Owner asked about the things inside:
+K and V are ordinary types, so `map[str.utf8[1, 3 bytes], int32[0,
+10]][0, 2]` checks each bound where it applies. Oracle: `set` now
+checks key and value against K and V too. Example, two reject tests.
+
 ### 2026-09-22 — Map literal: `map["ann" = 5551, "bob" = 5552]` (owner: a)
 
 Proposed (a) `key = value`, the struct construction's spelling; (b) a

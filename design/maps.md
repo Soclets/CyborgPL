@@ -72,6 +72,19 @@ a compile error. Proposed alternatives: a list of two-element lists
 (`map[["ann", 5551], …]`, more brackets); an arrow (`->` already means
 "returns").
 
+## A count bound, and bounds inside (owner: yes)
+
+```
+let mut 'small': map[str.utf8[1, 3 bytes], int32[0, 10]][0, 2] = map.empty;
+```
+
+`map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`
+bounds a list: checked after every `set` and `remove`, and
+`map.length` of it is a `uint64[lo, hi]`. The key and value types are
+ordinary types, so their own bounds compose: the key's text length and
+the value's range above are checked on `set`. Nothing new — the pieces
+fitting together (owner asked "what about the things inside?").
+
 ## Walking a map — say which, in insertion order (owner: c, a)
 
 ```
@@ -111,5 +124,4 @@ different type, for later if wanted.
 
 ## Open
 
-- A length bound (`map[K, V][0, 100]`), by analogy with lists.
 - Precog's key and value domains in detail (`precog.md`).

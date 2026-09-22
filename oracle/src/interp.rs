@@ -731,6 +731,11 @@ impl<'p> Interp<'p> {
                         if !(*a <= n && n <= *b) { return site(line, format!("a list of {n} does not fit {name}")); }
                         true
                     }
+                    (Value::Map(ps), Bound::Int(a), Bound::Int(b)) => {
+                        let n = ps.len() as i128;
+                        if !(*a <= n && n <= *b) { return site(line, format!("a map of {n} does not fit {name}")); }
+                        true
+                    }
                     _ => true,
                 };
                 if inside { Ok(()) } else { site(line, format!("{} does not fit {name}", v.show_useful())) }
@@ -1373,7 +1378,7 @@ impl<'p> Interp<'p> {
 
     fn known_ty(&self, value: &Bracket) -> Option<Ty> {
         match value.values.as_slice() {
-            [crate::ast::Value::Expr(Expr::Builtin(head, op, args, _))] if (head == "list" || head == "array") && op == "length" => {
+            [crate::ast::Value::Expr(Expr::Builtin(head, op, args, _))] if (head == "list" || head == "array" || head == "map") && op == "length" => {
                 let u64 = Ty::Uint(crate::ast::IntWidth::W64);
                 // the length of a `list[T][lo, hi]` is a `uint64[lo, hi]`
                 if let Some(crate::ast::Value::Expr(Expr::Owned(_, n, _))) = args.values.first() {
@@ -1550,7 +1555,9 @@ impl<'p> Interp<'p> {
                 // (a struct with `key` and `value`), in insertion order; a `map.unordered` cannot be walked.
                 let (cell, _, _) = self.map_arg(args, 1, op, line)?;
                 if let crate::ast::Value::Expr(Expr::Owned(_, n, _)) = &args.values[0] {
-                    if let Some(Ty::Map(_, _, MapOrder::Unordered)) = self.lookup(n).and_then(|s| s.ty.clone()) {
+                    let t = self.lookup(n).and_then(|s| s.ty.clone());
+                    let t = match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t };
+                    if let Some(Ty::Map(_, _, MapOrder::Unordered)) = t {
                         return rt(line, format!("'{n}' is a `map.unordered`, which promises never to be walked; `map.{op}` needs a `map.ordered` (or a plain `map`, and Precog keeps the order)"));
                     }
                 }
@@ -1571,11 +1578,21 @@ impl<'p> Interp<'p> {
                 let (cell, is_mut, rest) = self.map_arg(args, 3, op, line)?;
                 if !is_mut { return rt(line, "`map.set` changes the map: pass `lend.mut`"); }
                 self.key_ok(&rest[0], line)?;
+                // the key and the value against the map's declared types (through a count bound)
+                if let crate::ast::Value::Expr(Expr::Owned(_, n, _)) = &args.values[0] {
+                    let t = self.lookup(n).and_then(|s| s.ty.clone());
+                    let t = match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t };
+                    if let Some(Ty::Map(kt, vt, _)) = t { self.check_type(&rest[0], &kt, line)?; self.check_type(&rest[1], &vt, line)?; }
+                }
                 let mut pairs = match &*cell.borrow() { Value::Map(ps) => ps.clone(), _ => Vec::new() };
                 let mut replaced = false;
                 for (k, v) in pairs.iter_mut() { if self.keys_equal(k, &rest[0], line)? { *v = rest[1].clone(); replaced = true; break; } }
                 if !replaced { pairs.push((rest[0].clone(), rest[1].clone())); }
-                *cell.borrow_mut() = Value::Map(pairs);
+                let new = Value::Map(pairs);
+                if let crate::ast::Value::Expr(Expr::Owned(_, n, _)) = &args.values[0] {
+                    if let Some(t @ Ty::Ranged(..)) = self.lookup(n).and_then(|s| s.ty.clone()) { self.check_type(&new, &t, line)?; }
+                }
+                *cell.borrow_mut() = new;
                 Ok(Value::Nothing)
             }
             _ => unreachable!(),
@@ -1594,7 +1611,14 @@ impl<'p> Interp<'p> {
         for (i, (k, _)) in pairs.iter().enumerate() { if self.keys_equal(k, &rest[0], line)? { found = Some(i); break; } }
         match found {
             Some(i) => {
-                if op == "remove" { let (_, v) = pairs.remove(i); *cell.borrow_mut() = Value::Map(pairs); Ok(v) }
+                if op == "remove" {
+                    let (_, v) = pairs.remove(i);
+                    let new = Value::Map(pairs);
+                    if let crate::ast::Value::Expr(Expr::Owned(_, n, _)) = &args.values[0] {
+                        if let Some(t @ Ty::Ranged(..)) = self.lookup(n).and_then(|s| s.ty.clone()) { self.check_type(&new, &t, line)?; }
+                    }
+                    *cell.borrow_mut() = new; Ok(v)
+                }
                 else { Ok(pairs[i].1.clone()) }
             }
             None => self.handle_failure(handler.unwrap(), line, &format!("map.{op}"), "missing".into(), None, value_used),

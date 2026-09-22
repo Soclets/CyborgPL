@@ -695,7 +695,20 @@ impl Parser {
                 if params.len() != 2 { return bad(self, "`map` takes a key type and a value type: `map[str.utf8, int32]`".into()); }
                 let v = params.pop().unwrap(); let k = params.pop().unwrap();
                 match &k { Ty::Fn(..) | Ty::Ptr(..) | Ty::Map(..) => return bad(self, format!("{} cannot be a map key; keys are plain values, text, chars, structs, enums and lists of those, or a type that satisfies `Key`", ty_name(&k))), _ => {} }
-                Ok(Ty::Map(Box::new(k), Box::new(v), order))
+                let base = Ty::Map(Box::new(k), Box::new(v), order);
+                // `map[K, V][0, 100]` — an entry-count bound, as a list's (decided 2026-09-22)
+                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_)) {
+                    self.advance();
+                    let lo = self.bound()?;
+                    self.expect(Tok::Comma, "`,` between the count bounds")?;
+                    let hi = self.bound()?;
+                    self.expect(Tok::RBracket, "`]` after the count bounds")?;
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a map's count bounds are whole numbers: `map[K, V][0, 100]`".to_string()) };
+                    if *a < 0 { return bad(self, "a count is never negative: the low bound is 0 or more".to_string()); }
+                    if a > b { return bad(self, "a range's low bound comes first: `map[K, V][0, 100]`".to_string()); }
+                    return Ok(Ty::Ranged(Box::new(base), lo, hi));
+                }
+                Ok(base)
             }
             "list" | "array" => {
                 if segs.len() > 1 { return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`", segs[1..].join("."), segs.join("."))); }
