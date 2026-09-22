@@ -14,6 +14,31 @@ and `\\`. A newline is written outside the quotes and joined:
 (Restated after Claude wrote `"hello\n"` in an example and the owner
 asked whether it works; it doesn't — the oracle stores the backslash.)
 
+## `std::printf` — C's print, in full (decided 2026-09-22)
+
+```
+std::printf.stdout["%s has %d items at $%.2f each\n", 'name', 'count', 'price'];
+std::printf.stdout["hex %x, padded %5d, %3d%%\n", 255, 42, 90];
+std::printf.stderr["error: %s\n", 'msg'];
+```
+
+A third print beside `print` (stored form) and `printu` (useful form):
+the format text *is* processed. Escapes — `\n \t \r \\ \" \' \0`,
+`\xHH`, `\uHHHH`, `\UHHHHHHHH` (not the museum pieces `\a \b \f \v`
+or octal) — and C's `%` formatting: `%d %i %x %X %o %f %e %g %s %c %%`,
+with `-` and `0` flags, a width, and `.precision`. Named `printf`
+because that is exactly what it is; the rules come from C and the name
+says so. What C leaves undefined is an error here: the format is a
+literal, so each `%` is checked against its argument's type and the
+count (`%d` given a text; a `%` without an argument; an argument
+without a `%`). `%u` is refused (`%d` prints any integer); `%p` and
+`%n` do not exist. A non-literal format cannot be checked and is a
+`nocheck` site. Owner: "adding another print version", then asked for
+C's list and "full-on"; chose escapes plus formatting over escapes
+only. `examples/printf.cpls`, five reject tests. The borrowed
+`std::c.printf` / `std::rs.println` of 2026-09-19 stay removed — this
+is Cyborg's own call with C's format language inside it.
+
 ## A length bound names its unit (decided 2026-09-22)
 
 ```

@@ -1,0 +1,1 @@
+MAIN { std::printf.stdout["%u\n", 1]; }

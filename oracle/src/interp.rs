@@ -2705,6 +2705,25 @@ impl<'p> Interp<'p> {
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
             }
+            "printf.stdout" | "printf.stderr" => {
+                // C's print, in full (owner, 2026-09-22): escapes and `%` formatting, checked
+                // against the arguments' types because the format is a literal — a
+                // non-literal format is a nocheck site.
+                if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes a format text first: `std::{path}[\"%d items\\n\", 'n']`")); }
+                let fmt = match &c.args.values[0] {
+                    crate::ast::Value::Expr(Expr::Text(t, _)) => t.clone(),
+                    _ => {
+                        if self.nocheck_depth == 0 { return rt(c.line, format!("std::{path}: the format is not a literal, so its `%`s cannot be checked against the arguments — that is a nocheck site: `nocheck std::{path}[…]`")); }
+                        match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("std::{path} takes a text as its format, got {}", other.kind())) }
+                    }
+                };
+                let mut vals = Vec::new();
+                for a in &c.args.values[1..] { vals.push(self.value(a)?.0); }
+                let text = c_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("std::{path}: {m}"), exit: None, site: false, leave: None })?;
+                if path.ends_with("stderr") { eprint!("{text}"); }
+                else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
+                Ok(Value::Nothing)
+            }
             "printc.stdout" | "printc.stderr" | "printrs.stdout" | "printrs.stderr" | "c.printf" | "c.fprintf.stderr"
             | "rs.print" | "rs.println" | "rs.eprint" | "rs.eprintln" =>
                 rt(c.line, format!("std::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use std::print / std::printu")),
@@ -2817,3 +2836,74 @@ fn grapheme_count(s: &str) -> usize {
     n
 }
 
+
+
+/// C's format language, as `std::printf` accepts it (design/strings.md, 2026-09-22): the
+/// escapes that mean a character, and `%` with flags `-`, `0`, a width, `.precision`, and the
+/// conversions d i s f x X c %. Every `%` is checked against its argument's type and the
+/// count — the mismatch C leaves undefined is an error here.
+fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
+    let chars: Vec<char> = fmt.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    let mut next = 0usize;
+    while i < chars.len() {
+        let ch = chars[i];
+        if ch == '\\' {
+            i += 1;
+            let e = *chars.get(i).ok_or("a `\\` at the end of the format escapes nothing")?;
+            match e {
+                'n' => out.push('\n'), 't' => out.push('\t'), 'r' => out.push('\r'), '\\' => out.push('\\'),
+                '"' => out.push('"'), '\'' => out.push('\''), '0' => out.push('\0'),
+                'x' => {
+                    let hex: String = chars[i + 1..].iter().take(2).collect();
+                    let b = u8::from_str_radix(&hex, 16).map_err(|_| format!("`\\x` needs two hex digits, found `\\x{hex}`"))?;
+                    out.push(b as char); i += hex.len();
+                }
+                'u' | 'U' => {
+                    let n = if e == 'u' { 4 } else { 8 };
+                    let hex: String = chars[i + 1..].iter().take(n).collect();
+                    let cp = u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32).ok_or_else(|| format!("`\\{e}` needs {n} hex digits naming a character, found `\\{e}{hex}`"))?;
+                    out.push(cp); i += n;
+                }
+                other => return Err(format!("`\\{other}` is not an escape (n t r \\\\ \\\" \\' 0 xHH uHHHH UHHHHHHHH are)")),
+            }
+            i += 1; continue;
+        }
+        if ch != '%' { out.push(ch); i += 1; continue; }
+        i += 1;
+        if chars.get(i) == Some(&'%') { out.push('%'); i += 1; continue; }
+        let mut left = false; let mut zero = false;
+        while let Some(&f) = chars.get(i) { match f { '-' => left = true, '0' => zero = true, '+' | ' ' | '#' => {}, _ => break } i += 1; }
+        let mut width = String::new(); while let Some(&d) = chars.get(i) { if d.is_ascii_digit() { width.push(d); i += 1; } else { break; } }
+        let mut prec: Option<usize> = None;
+        if chars.get(i) == Some(&'.') { i += 1; let mut p = String::new(); while let Some(&d) = chars.get(i) { if d.is_ascii_digit() { p.push(d); i += 1; } else { break; } } prec = Some(p.parse().unwrap_or(0)); }
+        while let Some(&l) = chars.get(i) { if l == 'l' || l == 'h' || l == 'z' { i += 1; } else { break; } }   // C's length modifiers: ignored, types are known
+        let conv = *chars.get(i).ok_or("a `%` at the end of the format converts nothing")?; i += 1;
+        let v = vals.get(next).ok_or_else(|| format!("the format has more `%`s than arguments (argument {} is missing)", next + 1))?; next += 1;
+        let body = match (conv, v) {
+            ('d' | 'i', Value::Int(n)) => n.to_string(),
+            ('u', _) => return Err("`%u` is refused; `%d` prints any integer, unsigned included".into()),
+            ('x', Value::Int(n)) => format!("{:x}", n), ('X', Value::Int(n)) => format!("{:X}", n), ('o', Value::Int(n)) => format!("{:o}", n),
+            ('f' | 'F', Value::Bin(b)) => format!("{:.*}", prec.unwrap_or(6), b),
+            ('e', Value::Bin(b)) => format!("{:.*e}", prec.unwrap_or(6), b),
+            ('g', Value::Bin(b)) => format!("{}", b),
+            ('s', Value::Str(t)) => match prec { Some(p) => t.chars().take(p).collect(), None => t.clone() },
+            ('s', Value::Char(_, t)) => t.clone(),
+            ('c', Value::Char(_, t)) => t.clone(),
+            ('c', Value::Int(n)) => char::from_u32(*n as u32).map(|c| c.to_string()).ok_or("`%c` of a number that is not a character")?,
+            ('p' | 'n', _) => return Err(format!("`%{conv}` does not exist here (no pointers to print, no `%n`)")),
+            (c, v) => return Err(format!("`%{c}` does not take a {} (argument {})", v.kind(), next)),
+        };
+        let w: usize = width.parse().unwrap_or(0);
+        if body.chars().count() >= w { out.push_str(&body); }
+        else if left { out.push_str(&body); out.push_str(&" ".repeat(w - body.chars().count())); }
+        else if zero && matches!(conv, 'd' | 'i' | 'x' | 'X' | 'f' | 'F' | 'o') {
+            let (sign, digits) = if let Some(rest) = body.strip_prefix('-') { ("-", rest.to_string()) } else { ("", body.clone()) };
+            out.push_str(sign); out.push_str(&"0".repeat(w - body.chars().count())); out.push_str(&digits);
+        }
+        else { out.push_str(&" ".repeat(w - body.chars().count())); out.push_str(&body); }
+    }
+    if next < vals.len() { return Err(format!("the format has fewer `%`s than arguments ({} argument(s) unused)", vals.len() - next)); }
+    Ok(out)
+}

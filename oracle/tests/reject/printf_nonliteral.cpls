@@ -1,0 +1,1 @@
+MAIN { let 'f' := "%d"; std::printf.stdout['f', 1]; }
