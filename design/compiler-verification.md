@@ -30,6 +30,20 @@ way it has been found. This runs continuously in the compiler's CI.
 - **Full formal verification** (CompCert-style, in a proof assistant) — the
   strongest guarantee and a decade of expert work. Ruled out for now.
 
+## Printing while there is no std (owner, 2026-09-23)
+
+A generated program must print something, or the harness has nothing to
+compare but the exit code. CCA refuses every `std::` call until std
+exists (owner, 2026-09-22), so **each generated program carries a small
+printer written in the base language**: the number turned into ASCII
+digits in a `list[uint8]`, handed to C's `write` under `nocheck`, as
+`examples/ffi.cpls` does. Both implementations already agree on it.
+The printer is ordinary CyborgPL, so a bug in *it* is a finding too.
+When std has a print, the generator switches to `std::printu` and the
+printer goes. Proposed alternative: wait for std, and compare only the
+exit code and where a check fired — which would delay every output bug
+until then.
+
 ## Three oracles (owner, 2026-09-21)
 
 The interpreter is one of three independent checks, each of a different

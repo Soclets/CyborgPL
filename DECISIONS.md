@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Generated programs carry a base-language printer (owner: a)
+
+Check claude's first generator question. With `std::` refused until std
+exists, a generated program has no way to print, so the harness could
+only compare exit codes. Proposed (a) each generated program carries a
+small printer written in the base language — ASCII digits into a
+`list[uint8]`, then C's `write` under `nocheck`, as `examples/ffi.cpls`
+does; check claude wrote one and the oracle and CCA printed `0`,
+`12345` and `-907` identically; (b) wait for std's print. Owner: a. The
+printer is ordinary CyborgPL, so a bug in it is itself a finding; when
+std has a print the generator switches to `std::printu`.
+
 ### 2026-09-23 — A `for` range's step is its own signed number, not one of the counter's values (owner: a)
 
 The verification session's first finding, on its first day: for
