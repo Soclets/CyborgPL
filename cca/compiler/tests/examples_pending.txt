@@ -1,0 +1,12 @@
+# Examples CCA cannot check yet, and why. `examples/` belongs to the design
+# session (design/compiler-session.md), so a wrong one is a question, never an
+# edit from here. The test insists each of these still fails, so the day one is
+# fixed the suite says so and the line goes.
+
+check_tiers :: line 22, `'xs'[pos 1] = 'x' / 2;` stores a `bin32` into a list of
+    integers. Since the owner's 2026-09-22 ruling that a name never changes
+    numeric family, that is a cross-family store like the one just fixed on
+    line 11. The oracle misses it only because the element type of
+    `let 'xs' := [1, 2, 3];` is never enforced on assignment. Asked of the
+    design session 2026-09-22; a fix keeping the output would be
+    `'xs'[pos 1] = to.int32['x' / 2] otherwise 0;`.

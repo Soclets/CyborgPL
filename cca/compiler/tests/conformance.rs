@@ -49,13 +49,44 @@ fn name_of(p: &Path) -> String {
 
 #[test]
 fn examples_load_and_check() {
+    let pending = load_pending();
     let mut failures = Vec::new();
     for src in targets(&repo().join("examples")) {
-        if let Err(msg) = check(&src) {
-            failures.push(format!("{}:\n{}", name_of(&src), indent(&msg)));
+        let name = name_of(&src);
+        let got = check(&src);
+        match (pending.get(&name), got) {
+            (None, Err(msg)) => failures.push(format!("{}:\n{}", name, indent(&msg))),
+            (None, Ok(())) => {}
+            (Some(_), Err(_)) => {}
+            (Some(why), Ok(())) => failures.push(format!(
+                "{}: checks now, and tests/examples_pending.txt still lists it — drop that line.\n  It said: {}",
+                name, why
+            )),
         }
     }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
+/// Examples CCA cannot check yet, with the reason. One entry per example,
+/// `name :: why`, continued on indented lines.
+fn load_pending() -> HashMap<String, String> {
+    let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/examples_pending.txt")).unwrap();
+    let mut out: HashMap<String, String> = HashMap::new();
+    let mut last: Option<String> = None;
+    for line in text.lines() {
+        if line.trim().is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((n, why)) = line.split_once(" :: ") {
+            last = Some(n.trim().to_string());
+            out.insert(n.trim().to_string(), why.trim().to_string());
+        } else if let Some(n) = &last {
+            let e = out.get_mut(n).unwrap();
+            e.push(' ');
+            e.push_str(line.trim());
+        }
+    }
+    out
 }
 
 #[test]

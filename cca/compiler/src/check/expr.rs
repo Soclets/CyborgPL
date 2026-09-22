@@ -504,15 +504,10 @@ impl Checker {
         let _ = ctx;
         let t = self.resolve(target);
         let vt = self.resolve(&v.ty);
-        // A value whose family Precog still chooses (a literal, or a `:=` name
-        // that has only held integers) may land in a bin slot: `:=` means the
-        // compiler picks the type, and picking `bin` makes the store honest.
-        // A *declared* `int32` never converts (`types.md`).
-        if matches!(t.base(), Ty::Bin(_)) && matches!(vt.base(), Ty::Int(IntW::Free(_))) {
-            let ty = t.base().clone();
-            return Ok(Expr { kind: v.kind, ty, span: v.span });
-        }
-        // A bare integer literal in a bin context.
+        // A bare integer literal takes its context's family; a *name* never
+        // does (owner, 2026-09-22): Precog's freedom is over representation —
+        // width, list or array, map order, which checks survive — never over
+        // meaning, and 70000 in a `bin16` would silently become 69984.
         if let (K::Int(i), Ty::Bin(_)) = (&v.kind, t.base()) {
             return Ok(Expr { kind: K::Bin(i.to_string()), ty: t.base().clone(), span: v.span });
         }

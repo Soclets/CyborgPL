@@ -25,7 +25,8 @@ cargo test        # every examples/*.cpls checks; every reject program is refuse
 ## Status
 
 - 2026-09-22: lexer, parser, item resolution and the checker. Every
-  `examples/*.cpls` loads and checks; 38 of the 39 reject *programs* CCA
+  `examples/*.cpls` loads and checks (except the one in
+  `compiler/tests/examples_pending.txt`, waiting on the design session); 38 of the 39 reject *programs* CCA
   can decide are refused in CCA's own words (`compiler/tests/reject_phrases.txt`),
   and the 38 that need Precog are marked `!pending` there — the test
   insists they are still *accepted*, so the file has to be updated the day
@@ -44,19 +45,6 @@ Dated, with the alternative, so each can become a question later.
   oracle accepts both; every other statement needs its `;` and there are
   no empty statements. Alternative: require it always (would break the
   examples) or never (would break them too).
-- **2026-09-22 — An integer-valued `:=` name may be stored into a `bin`
-  slot; a declared `int32` may not.** Two documents disagree:
-  `design/types.md` says "a *variable* never converts — `let 'b': bin64 =
-  'a';` with `'a'` an `int32` is an error", while
-  `design/core-features.md`'s guardrail example (and
-  `examples/check_tiers.cpls`) writes `let 'x' := 70000;` then
-  `check let 'y': bin16 = 'x';` and calls it a *fit* question with a
-  counterexample, not a family error. CCA reads `:=` as "Precog picks the
-  family too", so a name that has only held integers may land in a bin
-  slot (a check site); a *declared* integer still never converts, which is
-  what `types.md` refuses and the `int_into_bin_var` reject test expects.
-  Asked of the design session 2026-09-22. Alternative: refuse it and treat
-  `examples/check_tiers.cpls` as wrong.
 - **2026-09-22 — A testing-only `std::` stub table.** `std::` does not
   exist (owner, 2026-09-22), but 55 of the 61 examples print with it. The
   checker has a flag (off by default, on in `cargo test` and with
