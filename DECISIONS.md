@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The compiler session's brief; house name "compiler claude" (owner)
+
+Owner asked what the brief would include, approved it, and added: the
+design session's address (it is `SendMessage` to "CyborgPL language
+design"), a normal `Co-Authored-By` trailer in the house name
+**compiler claude**. `design/compiler-session.md`; `CLAUDE.md` lists
+the three sessions.
+
 ### 2026-09-23 — Translation validation borrows Alive2; three sessions (owner)
 
 Owner asked whether the compiler is buildable (yes; the undecided

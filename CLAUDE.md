@@ -21,6 +21,12 @@ the owner explicitly chooses it.
   like one. Estimates, hiring notes, and the review policy in `design/` are
   for if-and-when, not commitments. Do not push for schedules or scope.
 
+## Sessions
+
+- **Design session** (this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
+- **Compiler session** ("compiler claude"): CCA and JetPack. Its brief is `design/compiler-session.md`; it reads the oracle's tests, never `oracle/src`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
+- **Verification session** (later, a different author than Precog's): the Precog oracle, translation validation, the generator.
+
 ## Layout
 
 - `DECISIONS.md` — the running log of settled design decisions.
