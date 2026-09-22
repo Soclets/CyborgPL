@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — `design/precog.md` opened, ported from Kespar (owner: "Let's go")
+
+Kespar's three-layer method carried over as the starting point; every
+number Kespar marked provisional stays provisional and is listed under
+Open; what Kespar lacked (ownership as the parallel proof, failures as
+domains, range types and bounded lists as domains, the final build,
+LLVM range metadata, content-addressed reuse, the 32 GB / scaling
+requirement) added from this repo's decisions. Questions follow one at
+a time, starting with loop invariants.
+
 ### 2026-09-21 — Precog has a first design: Kespar (`~/Kespar`, 2026-09-16..19)
 
 Not a decision; a correction of the record. Claude had said all day that
