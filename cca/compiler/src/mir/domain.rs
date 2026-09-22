@@ -199,6 +199,24 @@ pub enum Class {
     NonEmpty,
 }
 
+/// See `Domain::key`: every value, exactly, never a summary.
+fn iset_key(s: &ISet, out: &mut String) {
+    use core::fmt::Write as _;
+    match s {
+        ISet::Empty => out.push_str("[]"),
+        ISet::Range { lo, hi } => {
+            let _ = write!(out, "[{}..{}]", lo, hi);
+        }
+        ISet::Exact(v) => {
+            out.push('[');
+            for x in v {
+                let _ = write!(out, "{},", x);
+            }
+            out.push(']');
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Domain {
     /// Nothing is known beyond the type (or the type says everything).
@@ -339,6 +357,97 @@ impl Domain {
     }
 
     /// How the report and a message describe it.
+    /// A faithful name for a domain: two domains share one only when they
+    /// are the same domain.
+    ///
+    /// This is what tells one call site from another when Precog runs a
+    /// function over its arguments. `describe` is prose for a reader and
+    /// says "anything its type allows" for a struct, an enum and a value
+    /// nothing is known about alike — so using it here meant
+    /// `get[P[x = 5]]` and `get[P[x = 9]]` looked like the same call, and
+    /// the first one's answer was handed to the second. A cache key has to
+    /// say everything the answer depends on.
+    pub fn key(&self) -> String {
+        let mut s = String::new();
+        self.write_key(&mut s);
+        s
+    }
+
+    fn write_key(&self, out: &mut String) {
+        use core::fmt::Write as _;
+        match self {
+            Domain::Any => out.push_str("any"),
+            Domain::Empty => out.push_str("none"),
+            Domain::Ints(s) => {
+                out.push('i');
+                iset_key(s, out);
+            }
+            Domain::Duration(s) => {
+                out.push('d');
+                iset_key(s, out);
+            }
+            Domain::Bins { lo, hi } => {
+                // By the bits, so that two different numbers never share a
+                // key however they would print.
+                let _ = write!(out, "b({:?},{:?})", lo.map(f64::to_bits), hi.map(f64::to_bits));
+            }
+            Domain::Bools(t, f) => {
+                let _ = write!(out, "l({},{})", t, f);
+            }
+            Domain::Text { len, values, classes } => {
+                out.push_str("t(");
+                iset_key(&len.bytes, out);
+                iset_key(&len.points, out);
+                iset_key(&len.graphemes, out);
+                match values {
+                    Some(v) => {
+                        for x in v {
+                            let _ = write!(out, "{:?}", x);
+                        }
+                    }
+                    None => out.push('*'),
+                }
+                let _ = write!(out, "{:?})", classes);
+            }
+            Domain::Chars { values } => match values {
+                Some(v) => {
+                    let _ = write!(out, "c{:?}", v);
+                }
+                None => out.push_str("c*"),
+            },
+            Domain::Seq { len, elem } => {
+                out.push_str("s(");
+                iset_key(len, out);
+                elem.write_key(out);
+                out.push(')');
+            }
+            Domain::Map { len, key, val } => {
+                out.push_str("m(");
+                iset_key(len, out);
+                key.write_key(out);
+                val.write_key(out);
+                out.push(')');
+            }
+            Domain::Struct(fs) => {
+                out.push_str("r(");
+                for f in fs {
+                    f.write_key(out);
+                    out.push(',');
+                }
+                out.push(')');
+            }
+            Domain::Enum(cases) => {
+                out.push_str("e(");
+                for (c, d) in cases {
+                    let _ = write!(out, "{}:", c);
+                    d.write_key(out);
+                    out.push(',');
+                }
+                out.push(')');
+            }
+        }
+    }
+
     pub fn describe(&self) -> String {
         match self {
             Domain::Ints(ISet::Exact(v)) if v.len() == 1 => format!("{}", v[0]),

@@ -856,7 +856,10 @@ impl Precog {
                 let mut key = String::new();
                 for (p, a) in params.iter().zip(args) {
                     let d = self.arg_domain(f, env, a);
-                    key.push_str(&d.describe());
+                    // `key`, never `describe`: a description is prose, and
+                    // two different arguments that read the same would
+                    // share one answer.
+                    key.push_str(&d.key());
                     key.push(';');
                     callee_env.insert(*p, d);
                 }

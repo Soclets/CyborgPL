@@ -162,6 +162,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 Some(self.ctx.struct_type(&fields, false).into())
             }
+            Ty::Enum { id, args } => {
+                let (id, args) = (*id, args.clone());
+                self.enum_shape(id, &args).map(|s| s.into())
+            }
             Ty::Simd { elem, lanes } => {
                 let e = self.ty(elem)?;
                 match e {
@@ -328,6 +332,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 slots.push(None);
                 continue;
             }
+            // A lent local that is not a parameter holds an address: it
+            // borrows something that lives elsewhere. Its slot is that
+            // address, not a second copy of the value.
+            if lent[li] {
+                let name = l.name.clone().unwrap_or_else(|| format!("t{}", li));
+                let slot = self.builder.build_alloca(self.ctx.ptr_type(AddressSpace::default()), &name).unwrap();
+                slots.push(Some(slot));
+                continue;
+            }
             match self.ty_or_complain(&l.ty.clone(), span) {
                 Some(t) => {
                     let name = l.name.clone().unwrap_or_else(|| format!("t{}", li));
@@ -392,6 +405,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let site = pending_site.take();
                     // The shape of where it is going: a literal has no width
                     // of its own, and a struct is built at its declared one.
+                    // Taking a borrow *sets* the borrow; it does not
+                    // write through one. Everything else a lent local is
+                    // assigned goes through to what it borrows.
+                    let binds_borrow = place.proj.is_empty()
+                        && matches!(rvalue, Rvalue::Lend { .. })
+                        && matches!(f.locals[place.local.0 as usize].kind, LocalKind::Lent { .. })
+                        && !f.params.iter().any(|q| *q == place.local);
+                    if binds_borrow {
+                        if let (Rvalue::Lend { place: src, .. }, Some(slot)) = (rvalue, slots[place.local.0 as usize]) {
+                            if let Some((addr, _)) = self.slot_of(fi, src, slots) {
+                                let _ = self.builder.build_store(slot, addr);
+                            }
+                        }
+                        continue;
+                    }
                     let want_ty = self.slot_of(fi, place, slots).map(|(_, t)| t);
                     let want = want_ty.clone().and_then(|t| self.ty(&t));
                     if let Some(v) = self.rvalue(fi, rvalue, slots, site, func, blocks, want, want_ty.clone()) {
@@ -495,9 +523,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 self.cannot("`fail` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
                 let _ = self.builder.build_unreachable();
             }
-            Terminator::Switch { .. } => {
-                self.cannot("`match` has no shape in the generated code yet: an enum's layout waits with the rest", Some(f.span(f.blocks[b].term_span)));
-                let _ = self.builder.build_unreachable();
+            Terminator::Switch { value, cases } => {
+                if self.emit_match(fi, value, cases, blocks, slots, func).is_none() {
+                    self.cannot("this `match` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
+                }
             }
             Terminator::Whichever { .. } | Terminator::Join { .. } => {
                 self.cannot("waiting on a task has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
@@ -513,9 +543,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let base_ty = f.locals[p.local.0 as usize].ty.clone();
         let mut slot = slots[p.local.0 as usize]?;
         let mut ty = base_ty;
+        // A lent local's slot holds the address it borrows; a lent
+        // parameter *is* that address already.
+        let borrowed = matches!(f.locals[p.local.0 as usize].kind, LocalKind::Lent { .. }) && !f.params.iter().any(|q| *q == p.local);
+        if borrowed {
+            slot = self.builder.build_load(self.ctx.ptr_type(AddressSpace::default()), slot, "borrowed").ok()?.into_pointer_value();
+        }
         for pr in &p.proj {
             match pr {
                 Proj::Field(i) => {
+                    if matches!(ty.base(), Ty::Enum { .. }) {
+                        // A field of an enum is one of its cases: what the
+                        // arm of a `match` binds.
+                        slot = self.case_slot(slot, &ty)?;
+                        ty = crate::mir::build::projected_ty(&ty, std::slice::from_ref(pr), &self.p.items);
+                        continue;
+                    }
                     let st = self.ty(&ty)?;
                     let sty = match st {
                         BasicTypeEnum::StructType(s) => s,
@@ -655,6 +698,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     agg = self.builder.build_insert_value(agg, v, i as u32, "f").ok()?.into_struct_value();
                 }
                 Some(agg.into())
+            }
+            Rvalue::MakeEnum { id, case, payload } => {
+                let ty = want_ty?;
+                self.make_enum(fi, *id, *case, payload, &ty, slots)
             }
             Rvalue::MakeList(ops) => {
                 let ty = want_ty?;

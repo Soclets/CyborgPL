@@ -1,0 +1,19 @@
+extern fn exit ['code': int32];
+enum Shape {
+    dot
+    line: int32
+    box: int32
+}
+fn measure ['s': Shape] -> int32 {
+    match 's' {
+        dot        { return 1; }
+        line 'n'   { return 'n' + 10; }
+        box 'n'    { return 'n' + 100; }
+    }
+}
+MAIN {
+    let 'a' := Shape.dot;
+    let 'b' := Shape.line[5];
+    let 'c' := Shape.box[7];
+    nocheck exit[measure[give 'a'] + measure[give 'b'] + measure[give 'c']];
+}

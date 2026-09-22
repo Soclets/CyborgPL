@@ -14,3 +14,8 @@ list_grow 3
 list_copy 183
 list_nested 13
 list_bounds trap
+# Enums: a tag, the detail beside it, and `match` on which case it is.
+enums 123
+# Two calls to one function with different arguments are two calls: the
+# answer to the first is not the answer to the second.
+two_calls 14

@@ -162,3 +162,18 @@ Dated, with the alternative, so each can become a question later.
   message instead of carrying them badly (it used to panic). Alternative:
   a wider value model throughout Precog's domains, which is real work for
   a width that may not survive the design.
+- **2026-09-22 — An enum is a tag and the room beside it.** The tag is the
+  smallest whole number that can name every case, so a three-case enum
+  pays one byte for it; the room is an array whose element type carries
+  the alignment the widest payload needs, which is what puts a payload at
+  an address it can be stored at. `enums.md` decided what an enum
+  *means* and left the shape open. Alternative: the payload as an LLVM
+  union-by-bitcast of the largest case's own type, which is the same size
+  and harder to read.
+- **2026-09-22 — A lent local that is not a parameter holds an address.**
+  A lent *parameter* already is one. Anything else — the name a `match`
+  arm binds a payload to, a `lend` held in a variable — needs somewhere
+  to keep the address it borrows, so its slot holds a pointer and reads
+  go through it. Alternative: copy the borrowed value into the local,
+  which is wrong the moment a `lend.mut` writes back.
+

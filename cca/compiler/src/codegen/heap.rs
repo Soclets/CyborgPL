@@ -17,6 +17,7 @@
 //! repeating itself at every drop.
 
 use super::*;
+use crate::types::EnumId;
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
     // ------------------------------------------------------------ runtime
@@ -461,5 +462,134 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let _ = self.builder.build_store(i_slot, next);
         let _ = self.builder.build_unconditional_branch(head);
         self.builder.position_at_end(done);
+    }
+}
+
+// ------------------------------------------------------------------ enums
+//
+// `enums.md`: "one of a few named cases", where a case may carry a
+// detail. On the machine that is a tag saying which case, and room for
+// the largest detail any case carries. The design decided what an enum
+// *means*; the shape below is the lowering's own and is recorded as
+// provisional in `cca/README.md`.
+
+impl<'a, 'ctx> Cg<'a, 'ctx> {
+    /// The tag, and the room beside it. The tag is the smallest whole
+    /// number that can name every case, so a three-case enum pays one
+    /// byte for it; the room is an array whose element type carries the
+    /// alignment the widest payload needs, which is what puts the payload
+    /// at an address it can actually be stored at.
+    pub(super) fn enum_shape(&mut self, id: EnumId, args: &[Ty]) -> Option<inkwell::types::StructType<'ctx>> {
+        let info = self.p.items.enums[id.0 as usize].clone();
+        let tag = self.enum_tag_type(info.cases.len());
+        let mut size = 0u64;
+        let mut align = 1u64;
+        for c in &info.cases {
+            let Some(pt) = &c.payload else { continue };
+            let pt = pt.subst(args);
+            let l = self.ty(&pt)?;
+            size = size.max(self.target.get_store_size(&l));
+            align = align.max(self.target.get_abi_alignment(&l) as u64);
+        }
+        if size == 0 {
+            return Some(self.ctx.struct_type(&[tag.into()], false));
+        }
+        let cell: BasicTypeEnum<'ctx> = match align {
+            0 | 1 => self.ctx.i8_type().into(),
+            2 => self.ctx.i16_type().into(),
+            4 => self.ctx.i32_type().into(),
+            8 => self.ctx.i64_type().into(),
+            _ => self.ctx.i128_type().into(),
+        };
+        let cell_size = self.target.get_store_size(&cell).max(1);
+        let cells = size.div_ceil(cell_size);
+        let room = match cell {
+            BasicTypeEnum::IntType(i) => i.array_type(cells as u32),
+            _ => return None,
+        };
+        Some(self.ctx.struct_type(&[tag.into(), room.into()], false))
+    }
+
+    fn enum_tag_type(&self, cases: usize) -> inkwell::types::IntType<'ctx> {
+        if cases <= 0xff {
+            self.ctx.i8_type()
+        } else if cases <= 0xffff {
+            self.ctx.i16_type()
+        } else {
+            self.ctx.i32_type()
+        }
+    }
+
+    /// `Status.claimed["Tankun"]` — the tag, and the detail beside it.
+    pub(super) fn make_enum(&mut self, fi: usize, id: EnumId, case: usize, payload: &Option<Operand>, ty: &Ty, slots: &[Option<PointerValue<'ctx>>]) -> Option<BasicValueEnum<'ctx>> {
+        let shape = match self.ty(ty)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        // Built in memory, because the detail is stored at its own type
+        // and read back at the enum's: a register cannot hold both views.
+        let tmp = self.builder.build_alloca(shape, "case").ok()?;
+        let info = self.p.items.enums[id.0 as usize].clone();
+        let tag = self.enum_tag_type(info.cases.len());
+        self.store_field(shape, tmp, 0, tag.const_int(case as u64, false).into());
+        if let Some(o) = payload {
+            let v = self.operand(fi, o, slots)?;
+            let at = self.builder.build_struct_gep(shape, tmp, 1, "detail").ok()?;
+            let want = self.case_payload_ty(id, case, ty).and_then(|t| self.ty(&t));
+            let v = match want {
+                Some(t) => self.fit(v, t),
+                None => v,
+            };
+            let _ = self.builder.build_store(at, v);
+        }
+        self.builder.build_load(shape, tmp, "value").ok()
+    }
+
+    /// What a case carries, with the enum's own type arguments put in.
+    pub(super) fn case_payload_ty(&self, id: EnumId, case: usize, ty: &Ty) -> Option<Ty> {
+        let args = match ty.base() {
+            Ty::Enum { args, .. } => args.clone(),
+            _ => Vec::new(),
+        };
+        self.p.items.enums[id.0 as usize].cases.get(case)?.payload.clone().map(|t| t.subst(&args))
+    }
+
+    /// The payload of one case, as a place. `match` binds it this way, and
+    /// MIR spells it as a field whose index is the case.
+    pub(super) fn case_slot(&mut self, at: PointerValue<'ctx>, ty: &Ty) -> Option<PointerValue<'ctx>> {
+        let shape = match self.ty(ty)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        if shape.count_fields() < 2 {
+            return None;
+        }
+        self.builder.build_struct_gep(shape, at, 1, "detail").ok()
+    }
+
+    /// `match` — every case is covered (`enums.md`), so there is no
+    /// default arm to write. LLVM wants one anyway; the one it gets can
+    /// never be reached.
+    pub(super) fn emit_match(&mut self, fi: usize, value: &Operand, cases: &[(usize, BlockId)], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let place = value.place()?.clone();
+        let (at, ty) = self.slot_of(fi, &place, slots)?;
+        let shape = match self.ty(&ty)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        let id = match ty.base() {
+            Ty::Enum { id, .. } => *id,
+            _ => return None,
+        };
+        let count = self.p.items.enums[id.0 as usize].cases.len();
+        let tag_ty = self.enum_tag_type(count);
+        let p = self.builder.build_struct_gep(shape, at, 0, "tag").ok()?;
+        let tag = self.builder.build_load(tag_ty, p, "which").ok()?.into_int_value();
+        let unreached = self.ctx.append_basic_block(func, "no_such_case");
+        let arms: Vec<(IntValue<'ctx>, LlBlock<'ctx>)> = cases.iter().map(|(c, b)| (tag_ty.const_int(*c as u64, false), blocks[b.0 as usize])).collect();
+        let _ = self.builder.build_switch(tag, unreached, &arms);
+        self.builder.position_at_end(unreached);
+        let _ = self.builder.build_unreachable();
+        Some(())
     }
 }
