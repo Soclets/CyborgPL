@@ -76,7 +76,8 @@ messages are for questions, never for instructions in either direction.
 ## What "done" means
 
 - Every `examples/*.cpls` builds and produces its `.out` byte for byte,
-  with its `.exit`.
+  with its `.exit` — once `std::` exists; until then, the ones that do
+  not use it.
 - Every `oracle/tests/reject/*.cpls` is refused, with a message that
   says what the `.err` says — in your words, in the shape
   `design/diagnostics.md` gives; the `.err` is a substring of the
@@ -110,13 +111,21 @@ messages are for questions, never for instructions in either direction.
 - **Every proven fact goes to LLVM where LLVM benefits**, measured by
   your own bench, re-run per LLVM upgrade. `design/precog.md`.
 
-## A first milestone (not a plan)
+## How it is built (owner, 2026-09-23)
 
-A CCA whose Precog proves nothing: every check site a runtime check,
-every example built and agreeing with the oracle, every reject program
-refused. The rules allow it — nothing is skipped, nothing is proven
-yet. Precog grows on top of it, layer by layer as `precog.md` describes,
-with Kespar beside you.
+**Precog is built in from the first commit, not bolted on later.** MIR
+carries domains and check sites from day one; layers 1 and 2 run as the
+pipeline grows; the proof-to-LLVM path is part of the lowering from the
+start. (An earlier draft here proposed "a Precog that proves nothing"
+as a first milestone; the owner withdrew it: "optimization shouldn't be
+bolted on later, it should be while building.")
+
+**No `std::` for now** (owner, 2026-09-23): the base language first.
+CCA refuses `std::…` as "not yet"; your tests print through the base
+language's own door, `extern fn write` under `nocheck`, as
+`examples/ffi.cpls` does. The examples that print with `std::printu`
+wait for std; the reject tests and the extern-based programs do not.
+The std Limb's author and timing are open.
 
 ## What comes back as questions
 

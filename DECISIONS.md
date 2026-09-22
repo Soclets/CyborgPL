@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — No `std::` for now; Precog built in from the first commit (owner, in the compiler session; confirmed here)
+
+Relayed by compiler claude on its first day, confirmed by the owner in
+the design session. (1) **No `std::` for now** — the base language
+first (the 2026-09-19 focus). Compiler claude had asked whether the
+first milestone could treat `std::` names as compiler-known built-ins
+lowered to runtime calls, or std be written in CyborgPL from day one;
+owner: neither, yet. CCA refuses `std::…` as "not yet"; its own tests
+print through `extern fn write` under `nocheck`, as `examples/ffi.cpls`
+does. Consequence noted here: every example prints with `std::printu`,
+so the differential test against the examples waits until some print
+exists — the base-language-first order accepts that. The std Limb's
+author and timing stay open. (2) **"Optimization shouldn't be bolted
+on later, it should be while building"** — Precog and the proof-to-LLVM
+path are designed in from the first commit: MIR carries domains and
+check sites from day one, layers 1 and 2 run as the pipeline grows. The
+brief's "a CCA whose Precog proves nothing" first milestone is
+withdrawn.
+
 ### 2026-09-23 — The compiler session's brief; house name "compiler claude" (owner)
 
 Owner asked what the brief would include, approved it, and added: the
