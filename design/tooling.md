@@ -58,6 +58,12 @@ harness go through it. (Cargo's `runner`.) Spelling open until JetPack is
 designed. Also noted: the oracle should take the target's widths and
 pointer size as parameters (it does not yet).
 
+## `jetpack run … --input "…"` (proposed 2026-09-22)
+
+Feeds the given text to the program as its input, so a diagnostic's
+`try:` line reproduces a counterexample with one paste. Spelling open
+with the rest of JetPack.
+
 ## Open
 
 - Whether `JetPack.toml` is also the name of the CLI (`jetpack add …`).

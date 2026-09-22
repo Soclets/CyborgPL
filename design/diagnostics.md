@@ -5,45 +5,69 @@ it should be helpful like Rust's, there should be a human-readable
 location and an IDE-readable location." The oracle's one-line messages
 are a test tool's; CCA's are these.
 
-## The shape
+## The shape — plain text is the message (owner, 2026-09-22)
+
+A drawing with carets under the source breaks in a proportional font,
+a log, a chat paste, a narrow terminal, and under Thai (`เกี่ยว` is
+six code points and two graphemes; a `^^^^^` lands wrong in half the
+terminals). So the **plain-text form is the message**; a source excerpt
+with carets is optional decoration a terminal may add when it knows
+the font is monospace and the line is ASCII-safe, computed from the
+same spans the JSON carries, and never carries anything the text does
+not. One fact per line, a label per line, blank lines between parts,
+indentation by spaces only:
+
+```
+check: 'k' can be past the end of 'xs'
+where: shop.cpls, line 31, column 20 — in `pick`, called from MAIN at line 48
+code:  'xs'[pos 'k']
+when:  'k' is 101 and 'xs' has 100 elements — there is no element to take
+
+why:   'k' comes from 'n'
+       'n' is read from the user at line 4, with no limit
+
+try:   jetpack run shop.cpls --input "101"
+
+fix:   limit the number where it is read — line 4:
+       let 'n' := to.int32[1, 99][std::input.line[] otherwise ""] otherwise 0;
+
+   or  check 'k' before using it — line 31:
+       if 'k' <== list.length[lend 'xs'] { let 'x' := 'xs'[pos 'k']; … }
+```
 
 ```
 error: 'xs' is an `array`, which cannot grow or shrink
-  --> shop.cpls:12:5   (in `restock`, the loop starting at line 9)
-   |
-10 |     let 'xs': array[int32] = [1, 2, 3];
-   |               ------------ declared an array here
-11 |
-12 |     list.append[lend.mut 'xs', 4];
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ appended to here
-   |
-help: declare it a `list`:
-   |
-10 |     let 'xs': list[int32] = [1, 2, 3];
-   |               ~~~~~~~~~~~
+where: shop.cpls, line 12, column 5 — in `restock`
+code:  list.append[lend.mut 'xs', 4]
+
+why:   'xs' was declared an array at line 10
+
+fix:   declare it a list — line 10:
+       let 'xs': list[int32] = [1, 2, 3];
 ```
 
 ```
-check: line 31 can fail — 'k' can be past the end of 'xs'
-  --> shop.cpls:31:20   (in `pick`, called from MAIN at line 48)
-   |
-31 |         let 'x' := 'xs'[pos 'k'];
-   |                    ^^^^^^^^^^^^^ if 'k' is 101 and 'xs' has 100 elements, there is no element to take
-   |
-why:    'k' comes from 'n', and 'n' is read from the user at line 4 with no limit — it can be anything
-try it: jetpack run shop.cpls --input "101"
-help:   either limit the number where it is read:
-   |
- 4 |     let 'n' := to.int32[1, 99][std::input.line[] otherwise ""] otherwise 0;
-   |                        ~~~~~~~
-        or check 'k' before using it:
-   |
-31 |         if 'k' <== list.length[lend 'xs'] { let 'x' := 'xs'[pos 'k']; … }
+note:  the `for` at line 9 runs on the GPU
+why:   3,000,000 iterations; the body is proven independent
+
+note:  the `for` at line 22 stays sequential
+why:   its body calls `write` (extern) at line 24
 ```
 
-(The first draft said "can go out of bounds", "started at:", and put
-`=` before the extra lines as rustc does; the owner could not read it.
-The rule that came out of it is 8 below.)
+The labels, always in this order: the kind (`error` / `check` /
+`note`) with the sentence; `where` (file, line, column, and the
+human-readable place: which function, called from where); `code` (the
+piece, quoted); `when` (the counterexample, as a sentence); then
+`why` (the root of the chain, one fact per line); `try` (a command
+that reproduces it — `jetpack run … --input "…"`, a proposed JetPack
+flag that feeds the counterexample as the program's input); `fix` (the
+edited line, whole, with "line N:" before it; alternatives under
+`or`). An error has no `when` / `try`. A reader learns the shape once.
+
+Earlier drafts, for the record: one-liners (owner: "less useful than
+C's"); rustc's caret drawing with `= note:` furniture (owner could not
+read it); the same as dense prose (owner: "a blob"). This shape is
+what came out.
 
 ## The rules
 
@@ -55,10 +79,10 @@ The rule that came out of it is 8 below.)
    Precog knows the chain because it built it: the unproven domain at
    the root is the same domain object at every site downstream.
 2. **Helpful like Rust's.** Every message has: the sentence (what was
-   found, why it matters, what to write instead); the source lines with
-   the exact spans underlined; a second span when the problem is between
-   two places (declared here / used there); `help:` with the **fix as
-   edited code**, never a description of one; for a check, the
+   found, why it matters, what to write instead); the code quoted; a
+   second place named when the problem is between two (declared here /
+   used there); `fix:` with the **fix as edited code**, never a
+   description of one; for a check, the
    counterexample as real input values and the exact command that
    reproduces it.
 3. **Two locations, always.** A human-readable one — *where in the
@@ -83,12 +107,14 @@ The rule that came out of it is 8 below.)
 7. **Colour** in a terminal, plain text in a file, JSON when asked.
 8. **Say what would happen, and no borrowed furniture.** "'k' can be
    past the end of 'xs'", not "out of bounds"; "there is no element to
-   take", not "index error". The extra lines are labelled with plain
-   words at the margin — `why:`, `try it:`, `help:` — never rustc's
-   `= note:` (`=` means assignment here). Every mark on the screen means
-   something in Cyborg. Fixes are shown as the edited source line, not
-   as fragments. The test of a message is whether the owner can read
-   it cold.
+   take", not "index error". Labels are plain words at the margin —
+   never rustc's `= note:` (`=` means assignment here). Every mark on
+   the screen means something in Cyborg. Fixes are shown as the edited
+   source line, whole, not as fragments. The test of a message is
+   whether the owner can read it cold.
+9. **Nothing depends on alignment.** The message must say everything
+   as text that survives any font, width, or paste. Carets are optional
+   decoration; JSON is the machine form.
 
 ## The report
 
