@@ -24,7 +24,7 @@ the owner explicitly chooses it.
 ## Sessions
 
 - **Design session** (this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`.
-- **Compiler session** ("compiler claude"): CCA and JetPack. Its brief is `design/compiler-session.md`; it works in its own clone at `/Users/ts/CyborgPL v2 compiler`, in `cca/` and `jetpack/`; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
+- **Compiler session** ("compiler claude"): CCA and JetPack. Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL v2 compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/` and `jetpack/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Verification session** (later, a different author than Precog's): the Precog oracle, translation validation, the generator.
 
 ## Layout

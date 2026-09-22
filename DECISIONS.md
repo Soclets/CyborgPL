@@ -11,10 +11,12 @@ Owner asked what the brief would include, approved it, and added: the
 design session's address (it is `SendMessage` to "CyborgPL language
 design"), a normal `Co-Authored-By` trailer in the house name
 **compiler claude**. `design/compiler-session.md`; `CLAUDE.md` lists
-the three sessions. Where: the same repo (owner: "I honestly want same
-repo"), a second clone at `/Users/ts/CyborgPL v2 compiler`, code in
-`cca/` and `jetpack/`; the compiler session never edits `design/`,
-`oracle/` or `examples/`.
+the three sessions. Where: the same repo, on `main` with no branch, in a second clone at
+`/Users/ts/CyborgPL v2 compiler` — owner: "two local folders, because
+same folder would share memory" (Claude's memory is per folder); code
+in `cca/` and `jetpack/`; the compiler session never edits `design/`,
+`oracle/` or `examples/`. (Claude flipped this twice on the way; this
+is the settled form.)
 
 ### 2026-09-23 — Translation validation borrows Alive2; three sessions (owner)
 
