@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — A constant text: Precog knows which memory, a sentinel only where it cannot (owner: c)
+
+The second layout question. A text handle can point at the binary's
+read-only data or at the heap, and freeing the first would crash.
+Proposed (a) a sentinel in the handle — the high bit of the length —
+tested at every drop; (b) copy every constant to the heap on first
+use; (c) Precog decides: a free is emitted only where the value can be
+heap, with (a) as the fallback for a name that may hold either. Owner:
+c.
+
 ### 2026-09-22 — `str` is a 16-byte handle; Precog adds a capacity where a builder is proven (owner: c)
 
 The compiler session's first layout question (it blocks about three

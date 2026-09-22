@@ -44,7 +44,16 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   16 bytes. (Proposed: 16 bytes always; 24 bytes always; owner: both,
   Precog deciding — the same trick as `list` vs `array` and a map's
   order list.) Known-at-compile-time texts need no heap: Precog bakes
-  them into the binary as constant data.
+  them into the binary as constant data. **Which memory a text points
+  at is Precog's to know, not the value's to carry** (owner,
+  2026-09-22): it emits a free only where the value can actually be on
+  the heap — a name that only ever holds constants is never freed, and
+  no runtime test is paid. Where a name may hold either (a constant in
+  one branch, a built text in the other) the handle carries a sentinel
+  — the high bit of the length — and the free tests it. (Proposed: the
+  sentinel always, one test per drop; copying every constant to the
+  heap on first use, which allocates in exactly the programs that wrote
+  a literal to avoid allocating.)
 - **`str` encoding is part of the chain** (`str.utf8`), same shape as a
   numeric width. Encodings: `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best from use;
   in the typed form the encoding is mandatory (decided 2026-09-14).
