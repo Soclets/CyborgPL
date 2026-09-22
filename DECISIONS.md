@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Cold read of `precog.md`: reuse key corrected; proofs-as-assertions mode (owner: yes)
+
+A fresh chat read the Precog document. Decided already: `rlimit` not
+timeouts and pinned solvers (Determinism); generics proven after
+monomorphisation (per-shape); a failed runtime check traps with the
+site named. Real gaps: (1) the reuse key hashed raw MIR bytes — spans
+shift on any comment — and the function alone, though per-call-site
+analysis proves callees inside callers; corrected to canonical MIR +
+Merkle hash of reachable functions + argument domains + target + Precog
+and solver versions and configs. (2) `nsw`/`nuw`/`!range` make Precog
+part of the trusted base — a wrong proof is silent UB; owner asked who
+a proofs-as-assertions mode is for (authors, never writers) and said
+yes: the Precog oracle's fourth attack. Still to settle from the read:
+Precog as the last MIR pass; LLVM's narrow fact vocabulary.
+
 ### 2026-09-22 — Three IRs: AST, MIR, LLVM (owner: b)
 
 Proposed (a) none of ours beyond the tree, AST to LLVM (Kespar); (b)

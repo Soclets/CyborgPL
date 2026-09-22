@@ -35,8 +35,7 @@ sets and its SMT encoding, the parallel-loop proof, the lowering — reads
 MIR, so the flow graph is derived once. **MIR carries proofs**: a
 temporary's type includes its proven domain, and a proof made in Precog
 rides the instruction to LLVM as `nsw` / `nuw` / `!range`. Proof reuse
-keys on a function's MIR bytes, not its source bytes — a comment change
-invalidates nothing.
+keys on canonical MIR (see Reuse), never on source bytes.
 
 `jetpack build` runs everything and inserts a runtime check at every
 unproven site; `jetpack final` runs the same Precog and refuses the
@@ -241,11 +240,19 @@ already specifies: write the type.
 
 Precog's own work splits: sites are independent questions, call-site
 specialisations are independent jobs, layer-3 queries run across all
-cores. Results are **content-addressed**: a function's analysis is keyed
-by (its MIR bytes, its argument domains, the target), so an unchanged function
-with unchanged inputs is not re-proven — reused, never skipped
+cores. Results are **content-addressed**. The key for a function's analysis is
+the hash of: its MIR in **canonical form** (spans live in a side table
+and are not hashed — a comment shifts every span and must invalidate
+nothing); the canonical MIR of **everything it reaches** through calls
+(a Merkle hash over the call graph — with per-call-site analysis the
+callee is proven *inside* the caller's proof, so a callee change must
+invalidate the caller); its argument domains; the target description;
+the Precog version; the pinned solver versions and configurations.
+Tiers are MIR instructions, so they are in the hash already. An entry
+whose key matches is reused, never re-proven; nothing is ever skipped
 (`core-features.md`, 2026-09-16). A shared cache of those keys is what a
-team's build farm serves. Memory: must run a large program in 32 GB and
+team's build farm serves. (Cold read of this document, 2026-09-22: the
+first draft hashed raw MIR bytes and the function alone — both wrong.) Memory: must run a large program in 32 GB and
 scale near-linearly with cores and memory on independent units (owner,
 2026-09-21). GPU offload (`parallelism.md`) is a decision Precog makes
 from the same independence proof.
@@ -288,6 +295,18 @@ code. Three attacks, one per way Precog can be wrong:
   second, independently written program-to-query translation. Attacks
   layer 3's encoding with the part of Precog least likely to be wrong,
   the solvers themselves.
+- **d. Proofs as assertions** (decided 2026-09-22, owner: yes; from the
+  cold read of this document). A proven fact handed to LLVM as `nsw` /
+  `nuw` / `!range` is a *promise*: if Precog was wrong, the result is
+  silent undefined behaviour, not a missed check. So the compiler has an
+  authors-only mode that emits every proven fact as a **runtime
+  assertion** instead of a promise — same Precog, same proofs, nothing
+  trusted — and the differential harness runs the examples, the twin
+  programs and the generated programs through it. An assertion that
+  trips is a wrong proof, caught before any writer's binary is built.
+  Not a user build: `jetpack build` and `jetpack final` are unchanged,
+  and the no-development-mode rule is untouched — this mode proves
+  exactly as much, it only refuses to believe itself.
 
 Owner chose b + c on top of a after asking the difference: c alone
 leaves layer-2 proofs covered only by testing; b covers them by analysis.
