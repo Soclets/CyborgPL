@@ -50,7 +50,7 @@ The rule that came out of it is 8 below.)
 1. **The root, first.** When one thing causes a chain — an unbounded
    read at line 4 makes a narrowing at line 20 unproven which makes an
    index at line 31 unproven — the message is about the *root*, names
-   it (`started at:`), and lists what it drags along, once. Never twenty
+   it (`why:`), and lists what it drags along, once. Never twenty
    messages from one cause; never the last link without the first.
    Precog knows the chain because it built it: the unproven domain at
    the root is the same domain object at every site downstream.
