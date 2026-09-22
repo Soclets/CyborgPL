@@ -95,6 +95,16 @@ proofs rather than skipping them — never by doing less.
 - **`nocheck`** — "Okay, I'm sure this is correct." Check removed, no
   verification. The one place the final product's safety rests on the
   programmer alone. The build output lists every `nocheck` site.
+  **A certain failure gets a note, never a refusal** (owner,
+  2026-09-22): when Precog's ordinary work happens to show that a
+  `nocheck` site fails on *every* run — `nocheck let 'q' := 1 / 'z';`
+  with `'z'` proven to be 0 — the build says so (`note:`, the third
+  kind in `diagnostics.md`) and builds anyway. Precog never goes
+  looking; it only refuses to stay silent about what it could not
+  avoid noticing. A `nocheck` that fails on *some* inputs ships with
+  nothing said, so "no verification" holds everywhere it matters.
+  Proposed alternatives: say nothing at all; refuse the certain case
+  (which would make `nocheck` not quite mean what it says).
 
 **Spelling** (owner, 2026-09-19: "`check` & `nocheck` at the front"): a bare
 word in front of a statement, covering every check site inside it. A `{ }`

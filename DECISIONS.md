@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — A `nocheck` that certainly fails gets a note, not a refusal (owner: c)
+
+Asked by the compiler session, which had Precog layers 1 and 2 running
+and found that `nocheck let 'q' := 1 / 'z';` with `'z'` proven `{0}`
+leaves the compiler knowingly emitting a program that is undefined
+every run. Proposed (a) leave it — `nocheck` is "on my word" and the
+site is already listed; (b) refuse when the failure is certain; (c) a
+`note:` and build anyway. Compiler claude leaned c over b; Claude
+agreed; owner: c. Precog never goes looking — it reports only what its
+ordinary work already showed, and a `nocheck` that fails on some
+inputs still ships silently.
+
+### 2026-09-22 — Precog layers 1 and 2 in CCA (compiler session)
+
+296 of the 337 check sites in `examples/` proven away; 19 reject
+programs now refused with a counterexample; `examples/pi.cpls` runs
+its 60-digit spigot at compile time and proves all 43 sites. Two
+findings worth the record: `gradebook.cpls`'s comment ("the if above
+proves the divisor is not 0") required narrowing to reach back through
+`list.length[…]` and a struct field — the example had been asserting a
+capability that is now real; and trip-by-trip loop following is not
+only where compile time goes (Kespar's note) but where the proofs come
+from — joining at the loop head cannot see a counter and a sum move
+together, so `scores.cpls` went from 4 of 9 sites proven to 9 of 9,
+and from 1675 steps to 170.
+
 ### 2026-09-22 — The same fault twice, and a hole in the oracle (compiler session)
 
 After the ruling below, the compiler session found `check_tiers.cpls`
