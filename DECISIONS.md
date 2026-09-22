@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Diagnostics: root cause first, Rust-helpful, human and IDE locations (owner)
+
+Owner: the report has a line per `for` (yes); and asked how error
+messages should be. Claude's first draft was one-liners (the oracle's
+style) — owner: "less useful than C's". Redone in rustc's shape: the
+sentence, source lines with spans, a second span, `help:` with the fix
+as code, counterexample as input values plus the reproducing command.
+Owner added the rules: say what started the fail chain; be helpful
+like Rust's; a human-readable location and an IDE-readable one.
+`design/diagnostics.md`: root first, three kinds (error / check /
+note, no warnings), plain words, dry errors and notes with
+personality, JSON for editors.
+
 ### 2026-09-22 — GPU targets in v1: Metal and Vulkan (owner)
 
 Proposed Metal only (testable here), Metal + CUDA, all three. Owner:

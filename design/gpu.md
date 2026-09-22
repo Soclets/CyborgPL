@@ -64,11 +64,13 @@ runtime module for launching and memory plus a `JetPack.toml` line, so
 CUDA later is an addition, not a change. Proposed: Metal only; Metal +
 CUDA; all three. Owner: Metal and Vulkan.
 
+## The report (owner: yes)
+
+A line per `for` Precog considered — offloaded, parallel on cores,
+sequential and why (`diagnostics.md`).
+
 ## Open
 
-- The report: when Precog declines to offload a loop, it says why
-  (which rule the body broke, or the trip count too small to pay for
-  the launch).
 - Precog's offload threshold: how many iterations, of what body, before
   the launch cost is worth it — a number for the bench.
 - A loop-nest model (the polyhedral kind) for tiling and fusion — a
