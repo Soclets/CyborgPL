@@ -12,7 +12,8 @@ not Precog's business; (b) a plus a digit-count bound carried through
 arithmetic, with a warning (never an error or a check site) when it
 grows past a threshold; (c) opaque. Owner asked the a/b difference
 (silence vs an early "this will eat memory" note on `'x' = 'x' x 'x'`
-in a loop) and chose b. Owner's correction: it is `std::uenr`. `deci`
+in a loop) and chose b. (Claude wrote bare `uenr` in the question; the
+name has been `std::uenr` since 2026-09-19 — owner reminded.) `deci`
 is an integer-like domain at its fixed digit count.
 
 ### 2026-09-22 — Precog's text domain: length + exact values + character classes (owner: c)
