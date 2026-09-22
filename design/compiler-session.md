@@ -23,8 +23,9 @@ Co-Authored-By: compiler claude <noreply@anthropic.com>
 ```
 
 Push to `main` over HTTPS, as the repo does. The design session's
-commits carry `Claude Opus 5`; yours carry `compiler claude`, so the
-log says who wrote what.
+commits carry `design claude`; yours carry `compiler claude`, so the
+log says who wrote what — a house name, not a model name, so it stays
+put when the model changes.
 
 ## Where you work (owner, 2026-09-22)
 

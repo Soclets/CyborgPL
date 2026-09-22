@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — This session signs as `design claude` (owner)
+
+The trailer named the model (`Claude Opus 5`), which goes stale the
+moment the model changes — as it was about to, with Opus 5.5 out.
+Owner: "yours should be `design claude`", matching the compiler
+session's `compiler claude`. A house name says which *session* wrote a
+commit, which is the thing the log is for; the model is not in it.
+Earlier commits keep the old trailer as a record of what wrote them.
+
 ### 2026-09-22 — Map layout: two shapes, ordered and unordered (owner: b)
 
 The fourth layout question. Open addressing was already decided; the
