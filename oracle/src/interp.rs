@@ -710,7 +710,7 @@ impl<'p> Interp<'p> {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
             }
-            (Ty::Map(kt, vt), Value::Map(ps)) => {
+            (Ty::Map(kt, vt, _), Value::Map(ps)) => {
                 for (k, v) in ps { self.check_type(k, kt, line)?; self.check_type(v, vt, line)?; }
                 Ok(())
             }
@@ -1532,6 +1532,21 @@ impl<'p> Interp<'p> {
         match op {
             "empty" => Ok(Value::Map(Vec::new())),
             "length" => { let (cell, _, _) = self.map_arg(args, 1, op, line)?; let n = match &*cell.borrow() { Value::Map(ps) => ps.len(), _ => 0 }; Ok(Value::Int(n as i128)) }
+            "keys" | "values" | "pairs" => {
+                // walking a map says which of the three (decided 2026-09-22): keys, values, or pairs
+                // (a struct with `key` and `value`), in insertion order; a `map.unordered` cannot be walked.
+                let (cell, _, _) = self.map_arg(args, 1, op, line)?;
+                if let crate::ast::Value::Expr(Expr::Owned(_, n, _)) = &args.values[0] {
+                    if let Some(Ty::Map(_, _, MapOrder::Unordered)) = self.lookup(n).and_then(|s| s.ty.clone()) {
+                        return rt(line, format!("'{n}' is a `map.unordered`, which promises never to be walked; `map.{op}` needs a `map.ordered` (or a plain `map`, and Precog keeps the order)"));
+                    }
+                }
+                let pairs = match &*cell.borrow() { Value::Map(ps) => ps.clone(), _ => Vec::new() };
+                Ok(Value::List(pairs.into_iter().map(|(k, v)| match op {
+                    "keys" => k, "values" => v,
+                    _ => Value::Struct("map.pair".into(), vec![("key".into(), k), ("value".into(), v)]),
+                }).collect()))
+            }
             "has" => {
                 let (cell, _, rest) = self.map_arg(args, 2, op, line)?;
                 self.key_ok(&rest[0], line)?;

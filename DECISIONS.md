@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Walking a map: `map.keys/values/pairs`, insertion order; the variant is Precog's or chosen (`map.ordered` / `map.unordered`) (owner)
+
+What a walk yields: key / pair / say which — owner: c. Order:
+insertion (a), unspecified-but-deterministic (b), sorted (c); owner
+asked the a/b difference and the runtime cost — measured (Rust
+`HashMap` vs `IndexMap`, 5M entries): 13% slower lookups, +11 B/entry,
+13× faster walks. Owner asked why not two types like Rust; Claude: an
+unordered-but-walkable type has unspecified output (a hole in
+differential testing); instead Precog drops the order list for a map
+never walked, as with `list`/`array` — owner: yes, "but it should also
+be choose-able" (list/array already are). Spelling: `map.ordered` /
+`map.unordered` by the dot rule (a) over a second noun (b) — owner: a.
+A `map.unordered` cannot be walked. Oracle: keys/values/pairs, the
+variants, two reject tests.
+
 ### 2026-09-22 — Maps: a language type; missing key is a failure; keys by structure or a type's own `==`/`hash` with consistency proven (owner: a, a, c, yes)
 
 Three questions and a consequence. (1) Where: the language beside

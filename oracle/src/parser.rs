@@ -683,11 +683,17 @@ impl Parser {
             }
             "map" => {
                 // map[K, V]  (decided 2026-09-22: a language collection beside list and array)
-                if segs.len() > 1 { return bad(self, format!("`map` takes its types in brackets: `map[{}]`", segs[1..].join("."))); }
+                // `map.ordered` / `map.unordered` — the variant, when the writer chooses (owner, 2026-09-22)
+                let order = match segs.len() {
+                    1 => MapOrder::Any,
+                    2 if segs[1] == "ordered" => MapOrder::Ordered,
+                    2 if segs[1] == "unordered" => MapOrder::Unordered,
+                    _ => return bad(self, format!("`map` is `map[K, V]`, `map.ordered[K, V]`, or `map.unordered[K, V]`; `map.{}` is not a variant", segs[1..].join("."))),
+                };
                 if params.len() != 2 { return bad(self, "`map` takes a key type and a value type: `map[str.utf8, int32]`".into()); }
                 let v = params.pop().unwrap(); let k = params.pop().unwrap();
                 match &k { Ty::Fn(..) | Ty::Ptr(..) | Ty::Map(..) => return bad(self, format!("{} cannot be a map key; keys are plain values, text, chars, structs, enums and lists of those, or a type that satisfies `Key`", ty_name(&k))), _ => {} }
-                Ok(Ty::Map(Box::new(k), Box::new(v)))
+                Ok(Ty::Map(Box::new(k), Box::new(v), order))
             }
             "list" | "array" => {
                 if segs.len() > 1 { return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`", segs[1..].join("."), segs.join("."))); }
@@ -1309,11 +1315,11 @@ impl Parser {
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `{head}.`, found {other}")) };
         let ok = match (head.as_str(), op.as_str()) {
             ("list", "length" | "append" | "remove" | "empty") | ("array", "length") => true,
-            ("map", "empty" | "length" | "has" | "set" | "get" | "remove") => true,
+            ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
-        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length, map has empty/length/has/get/set/remove")); }
+        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length, map has empty/length/has/get/set/remove/keys/values/pairs")); }
         if op == "empty" {
             // `[list.empty]` — a value, not a call (decided 2026-09-17)
             let line = self.line();

@@ -13,5 +13,13 @@ MAIN {
     let 'gone' := map.remove[lend.mut 'phones', "bob"] otherwise 0;   # hands the value back
     std::printu.stdout["removed ", 'gone', ", ", map.length[lend 'phones'], " left", \n];
     map.remove[lend.mut 'phones', "nobody"] otherwise { missing { std::printu.stdout["nobody to remove", \n]; } };
+    map.set[lend.mut 'phones', "cat", 5554];
+    for 'k' in map.keys[lend 'phones'] { std::printu.stdout['k', " "]; }        # insertion order: ann cat
+    std::print.stdout[\n];
+    for 'e' in map.pairs[lend 'phones'] { std::printu.stdout['e'.key, "=", 'e'.value, " "]; }
+    std::print.stdout[\n];
+    let mut 'fast': map.unordered[str.utf8, int32] = map.empty;                     # chosen: never walked
+    map.set[lend.mut 'fast', "x", 1];
+    std::printu.stdout[map.has[lend 'fast', "x"], \n];
     let 'who' := map.get[lend 'phones', "zed"] otherwise { missing { std::printu.stdout["no zed", \n]; std::exit[0]; } };
 }

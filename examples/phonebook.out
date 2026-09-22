@@ -3,4 +3,7 @@ ann 5553, cat 0
 bob is in
 removed 5552, 1 left
 nobody to remove
+ann cat 
+ann=5553 cat=5554 
+true
 no zed

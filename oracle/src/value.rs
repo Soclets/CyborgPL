@@ -152,7 +152,7 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
         Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
-        Ty::Map(k, v) => format!("map[{}, {}]", ty_name(k), ty_name(v)),
+        Ty::Map(k, v, o) => format!("map{}[{}, {}]", match o { crate::ast::MapOrder::Any => "", crate::ast::MapOrder::Ordered => ".ordered", crate::ast::MapOrder::Unordered => ".unordered" }, ty_name(k), ty_name(v)),
         Ty::TextRanged(e, lo, hi, u) => format!("{}[{}, {} {}]", ty_name(&Ty::Str(e.clone())), lo, hi, unit_word(u)),
         Ty::Fn(ps, r, fails) => {
             let ps: Vec<String> = ps.iter().map(|(k, t)| format!("{}{}", match k { crate::ast::ParamKind::Owned => "", crate::ast::ParamKind::Lent => "lent ", crate::ast::ParamKind::LentMut => "lent.mut " }, ty_name(t))).collect();

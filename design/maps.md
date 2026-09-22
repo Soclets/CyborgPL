@@ -57,10 +57,45 @@ check site guarded by `has`; a found/missing enum to `match`.
 A map owns its keys and values: `set` takes a fresh value, a `copy`, or
 a `give` — never a lend.
 
+## Walking a map — say which, in insertion order (owner: c, a)
+
+```
+for 'k' in map.keys[lend 'phones'] { … }
+for 'v' in map.values[lend 'phones'] { … }
+for 'e' in map.pairs[lend 'phones'] { … 'e'.key … 'e'.value … }
+```
+
+A map has no single walk, so the walk says which — like `str.each.point`
+says its unit. Proposed alternatives: the key alone; the pair alone.
+
+The order is **insertion order**: entries come back as they were `set`
+(a replaced key keeps its place). Measured 2026-09-22 (Rust `HashMap`
+vs `IndexMap`, 5M `int64` entries): insertion-ordered is 13% slower on
+lookups and 11 bytes/entry larger, slightly faster on inserts, and 13×
+faster to walk. Proposed alternatives: an unspecified-but-deterministic
+order (unspecified output punches a hole in differential testing — the
+oracle and the compiler would be allowed to disagree); sorted by key
+(a sort per walk; structs have no `<`).
+
+## The variant is Precog's to pick, or the writer's (owner: yes, a)
+
+The order costs only the list that serves the walks. Precog sees the
+whole program: a map that is never walked gets the unordered
+representation — the 13% and the bytes back, automatically — the same
+trick as `list` vs `array`. And the writer may say, by the dot rule:
+
+- `map[K, V]` — Precog decides.
+- `map.ordered[K, V]` — always insertion-ordered, walkable.
+- `map.unordered[K, V]` — never keeps order and **cannot be walked**:
+  `map.keys` on it is a compile error. Choosing it *is* the promise, so
+  no unspecified order ever reaches a program.
+
+Proposed alternative: two words like `list`/`array`; there is no honest
+second noun. A sorted map (Rust's `BTreeMap`) would be a genuinely
+different type, for later if wanted.
+
 ## Open
 
-- Walking a map (`for` over its keys, its pairs?) and in what order —
-  the oracle keeps insertion order; the language has not said.
 - A literal map (`map[…]` with pairs written out) — today `map.empty` +
   `set`.
 - A length bound (`map[K, V][0, 100]`), by analogy with lists.

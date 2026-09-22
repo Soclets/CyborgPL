@@ -27,8 +27,9 @@ pub enum Ty {
     Ranged(Box<Ty>, Bound, Bound),
     /// `str.utf8[1, 40 graphemes]` — a length bound on text, in a named unit (decided 2026-09-22)
     TextRanged(Encoding, i128, i128, CharUnit),
-    /// `map[K, V]` — a language collection (decided 2026-09-22)
-    Map(Box<Ty>, Box<Ty>),
+    /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is Precog's
+    /// to pick unless written: `map.ordered` keeps insertion order, `map.unordered` cannot be walked
+    Map(Box<Ty>, Box<Ty>, MapOrder),
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed
     Fn(Vec<(ParamKind, Ty)>, Option<Box<Ty>>, Vec<String>),
@@ -37,6 +38,9 @@ pub enum Ty {
 /// A range type's bound: a numeric literal.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Bound { Int(i128), Bin(f64) }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MapOrder { Any, Ordered, Unordered }
 
 impl Ty {
     /// The type variables mentioned, in order of first appearance — a generic
