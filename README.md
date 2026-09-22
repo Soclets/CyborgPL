@@ -1,4 +1,7 @@
-<img src="brand/logo.svg" alt="CyborgPL" width="96" align="right">
+<picture align="right">
+  <source media="(prefers-color-scheme: dark)" srcset="brand/mark-white.svg">
+  <img src="brand/mark-black.svg" alt="CyborgPL" width="88" align="right">
+</picture>
 
 # CyborgPL
 
