@@ -35,6 +35,15 @@ docs stand; Claude's example was wrong and is fixed (the value is a
 is what `core-features.md` meant). Crossing families stays
 `to.bin16[…] otherwise …`, which fails rather than rounds.
 
+### 2026-09-22 — SIMD in the oracle (Claude, per the decisions above)
+
+`simd[T, N]` with the target's shapes enforced, lane-wise operators
+and bitwise, comparisons giving `simd[bool, N]` (refused as a
+condition), `fill`/`load`/`store`/`all`/`any`/`max`/`min`/`sum`,
+`fill` taking its lane count from the declared type.
+`examples/simd.cpls`, five reject tests. Two provisional picks listed
+in the oracle's README: scalar broadcasting, and `sum` as a check site.
+
 ### 2026-09-22 — SIMD operators are the ordinary ones, element-wise (owner: a)
 
 Proposed (a) every operator a plain `T` has, lane by lane, with

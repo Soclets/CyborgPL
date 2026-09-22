@@ -18,6 +18,8 @@ pub enum Value {
     Duration(i128),
     /// a channel (design/concurrency.md): shared between tasks
     Chan(Rc<RefCell<Chan>>),
+    /// a vector: N plain values side by side, all of one type (design/simd.md)
+    Simd(Vec<Value>),
     /// a map, insertion-ordered (the oracle's order; the design leaves iteration open): (key, value) pairs
     Map(Vec<(Value, Value)>),
     /// a struct value: blueprint name + fields in declaration order
@@ -82,6 +84,7 @@ impl Value {
             Value::Char(..) => "char",
             Value::List(_) => "list",
             Value::Map(_) => "map",
+            Value::Simd(_) => "simd",
             Value::Duration(_) => "duration",
             Value::Chan(_) => "channel",
             Value::Struct(..) => "struct",
@@ -102,6 +105,7 @@ impl Value {
             Value::Char(_, c) => c.clone(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
             Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_stored(), v.show_stored())).collect::<Vec<_>>().join(", ")),
+            Value::Simd(lanes) => format!("simd[{}]", lanes.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
             Value::Duration(n) => show_duration(*n),
             Value::Chan(_) => "channel".into(),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
@@ -178,6 +182,7 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
         Ty::Channel(t) => format!("channel[{}]", ty_name(t)),
         Ty::Duration => "std::duration".into(),
+        Ty::Simd(t, n) => format!("simd[{}, {n}]", ty_name(t)),
         Ty::Map(k, v, o) => format!("map{}[{}, {}]", match o { crate::ast::MapOrder::Any => "", crate::ast::MapOrder::Ordered => ".ordered", crate::ast::MapOrder::Unordered => ".unordered" }, ty_name(k), ty_name(v)),
         Ty::TextRanged(e, lo, hi, u) => format!("{}[{}, {} {}]", ty_name(&Ty::Str(e.clone())), lo, hi, unit_word(u)),
         Ty::Fn(ps, r, fails) => {

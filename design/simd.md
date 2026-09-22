@@ -73,6 +73,17 @@ whose index is proven inside the array needs no check; `simd.sum` whose
 lanes are proven small needs no overflow check. Nothing about SIMD is
 special to Precog — it is N of what it already does.
 
+## In the oracle (2026-09-22)
+
+All of the above, with the oracle's target fixed as ARM64's 128 bits.
+`examples/simd.cpls` is the `is_ascii` program plus arithmetic,
+comparisons, folds and a store; five reject tests cover a shape the
+target does not have, a vector used as a condition, a load past the
+end, a bad element type, and a position without `pos`. Two things the
+oracle had to pick and this document has not said: a scalar broadcasts
+against a vector (`'v' + 1`), and `simd.sum` is a check site while
+`max`/`min` are not.
+
 ## Open
 
 - Which `T` beyond the integers and bins: `bool` exists as a

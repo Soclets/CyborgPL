@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "map", "channel", "concur", "whichever", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
+    "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -632,6 +632,25 @@ impl Parser {
         }
         let mut params = Vec::new();
         // `[` followed by a number is a bound (`str.utf8[1, 40 graphemes]`), not type parameters
+        // `simd[T, N]` — a type and a count, not two types (design/simd.md, 2026-09-22)
+        if segs[0] == "simd" {
+            if segs.len() > 1 { return self.err("`simd` takes its type and count in brackets: `simd[uint8, 16]`"); }
+            if *self.peek() != Tok::LBracket { return self.err("`simd` says what and how many: `simd[uint8, 16]`"); }
+            self.advance();
+            let t = self.ty()?;
+            self.expect(Tok::Comma, "`,` between a simd's type and its lane count")?;
+            let n = match self.advance().tok { Tok::Int(i) if i > 0 => i as usize, other => return self.err(format!("a simd's lane count is a whole number: `simd[uint8, 16]`, found {other}")) };
+            self.expect(Tok::RBracket, "`]` after the lane count")?;
+            if !matches!(t, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Bool) { return self.err(format!("a simd holds plain numbers or bools, not {}", ty_name(&t))); }
+            // Only the target's own register shapes. The oracle's target is the owner's
+            // machine: ARM64, 128-bit NEON (design/simd.md; a real target list is the compiler's).
+            let bits = match &t { Ty::Int(w) | Ty::Uint(w) => match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, Ty::Bin(w) => *w as usize, Ty::Bool => 8, _ => 0 };
+            if bits * n != 128 {
+                let fits = 128 / bits.max(1);
+                return self.err(format!("this target's vector registers are 128 bits, so a `simd[{}, …]` holds {fits} lanes, not {n}", ty_name(&t)));
+            }
+            return Ok(Ty::Simd(Box::new(t), n));
+        }
         if *self.peek() == Tok::LBracket && !self.to_target && !matches!(self.peek_at(1), Tok::Int(_)) {
             self.advance();
             loop {
@@ -828,7 +847,7 @@ impl Parser {
                     Ok(Stmt::Tier { tier, body: Box::new(body), line })
                 }
                 "give" | "copy" | "lend" => self.err(format!("`{w}` belongs inside a value: `'s' = {w} 't';`")),
-                "list" | "array" | "map" => {
+                "list" | "array" | "map" | "simd" => {
                     let (head, op, args) = self.builtin()?;
                     if head == "map" && (op == "get" || op == "remove") {
                         // a call that can fail, as a statement: `map.remove[…] otherwise …;` (the value is dropped)
@@ -1408,16 +1427,30 @@ impl Parser {
             ("list", "length" | "append" | "remove" | "empty") | ("array", "length") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
             ("channel", "send" | "take") => true,
+            ("simd", "fill" | "load" | "store" | "all" | "any" | "max" | "min" | "sum") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
-        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length, map has empty/length/has/get/set/remove/keys/values/pairs")); }
+        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length, map has empty/length/has/get/set/remove/keys/values/pairs, simd has fill/load/store/all/any/max/min/sum")); }
         if op == "empty" {
             // `[list.empty]` — a value, not a call (decided 2026-09-17)
             let line = self.line();
             return Ok((head, op, Bracket { values: Vec::new(), line, one_list: false }));
         }
         if *self.peek() != Tok::LBracket { return self.err(format!("`{head}.{op}` is a call and needs `[…]`")); }
+        // `simd.load[lend 'xs', pos 'i']` — the position says `pos`, as every index does
+        if head == "simd" && (op == "load" || op == "store") {
+            let line = self.line();
+            self.advance();
+            let mut values = vec![self.value()?];
+            self.expect(Tok::Comma, "`,` after the list")?;
+            if !self.is_word("pos") { return self.err(format!("`simd.{op}` says the position with `pos`: `simd.{op}[lend 'xs', pos 'i'{}]`", if op == "store" { ", 'v'" } else { "" })); }
+            self.advance();
+            values.push(self.value()?);
+            if *self.peek() == Tok::Comma { self.advance(); values.push(self.value()?); }
+            self.expect(Tok::RBracket, "`]`")?;
+            return Ok((head, op, Bracket { values, line, one_list: false }));
+        }
         let args = self.bracket()?;
         Ok((head, op, args))
     }
@@ -1729,6 +1762,7 @@ impl Parser {
                     if o == "take" { return Ok(Expr::MapFail("take".into(), a, None, line)); }   // can fail `closed`
                     Ok(Expr::Builtin(h, o, a, line))
                 }
+                "simd" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "map" if *self.peek_at(1) == Tok::LBracket => {
                     // map["ann" = 5551, "bob" = 5552]  (decided 2026-09-22): `key = value`, the struct's spelling
                     self.advance(); self.advance();

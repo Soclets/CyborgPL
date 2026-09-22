@@ -847,6 +847,8 @@ impl<'p> Interp<'p> {
             (Ty::Ranged(b, _, _), Value::Int(i), Prov::Literal) if matches!(**b, Ty::Bin(_)) => Value::Bin(*i as f64),
             // a char literal takes the declared unit (`let 'g': char.grapheme = `é`;` is a grapheme, not a point)
             (Ty::Char(unit), Value::Char(_, c), Prov::Plain | Prov::Fresh) => Value::Char(unit.clone(), c.clone()),
+            // `simd.fill[0]` takes its lane count from the declared type (design/simd.md)
+            (Ty::Simd(_, n), Value::Simd(lanes), _) if lanes.len() != *n && lanes.iter().all(|l| *l == lanes[0]) => Value::Simd(vec![lanes[0].clone(); *n]),
             _ => v,
         };
         self.check_type(&v, t, line)?;
@@ -884,6 +886,11 @@ impl<'p> Interp<'p> {
             }
             (Ty::Duration, Value::Duration(_)) => Ok(()),
             (Ty::Channel(_), Value::Chan(_)) => Ok(()),
+            (Ty::Simd(t, n), Value::Simd(lanes)) => {
+                if lanes.len() != *n { return rt(line, format!("a {} has {n} lanes, this one has {}", name, lanes.len())); }
+                for l in lanes { self.check_type(l, t, line)?; }
+                Ok(())
+            }
             (Ty::Map(kt, vt, _), Value::Map(ps)) => {
                 for (k, v) in ps { self.check_type(k, kt, line)?; self.check_type(v, vt, line)?; }
                 Ok(())
@@ -1441,6 +1448,11 @@ impl<'p> Interp<'p> {
             Expr::Binary(op, l, r, _) if matches!(op.as_str(), "and.bit" | "or.bit" | "xor" | "shl" | "shr") => {
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
+                // a vector is N of the same operation, lane by lane (design/simd.md)
+                if matches!(a, Value::Simd(_)) || matches!(b, Value::Simd(_)) {
+                    let v = self.simd_bitwise(op, a, b, line)?;
+                    return Ok((v, Prov::Plain));
+                }
                 let (x, y) = match (a, b) { (Value::Int(x), Value::Int(y)) => (x, y), (a, b) => return rt(line, format!("`{op}` works on integers, got {} and {}", a.kind(), b.kind())) };
                 let v = match op.as_str() {
                     "and.bit" => x & y,
@@ -1498,6 +1510,27 @@ impl<'p> Interp<'p> {
     }
 
     fn binary(&self, op: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
+        // A vector is N of what the operator already does (design/simd.md, 2026-09-22):
+        // lane by lane, the scalar rule. A comparison gives a simd of bools, never one bool.
+        match (&a, &b) {
+            (Value::Simd(x), Value::Simd(y)) => {
+                if x.len() != y.len() { return rt(line, format!("`{op}` between a simd of {} lanes and one of {}", x.len(), y.len())); }
+                let mut out = Vec::with_capacity(x.len());
+                for (l, r) in x.iter().zip(y) { out.push(self.binary(op, l.clone(), r.clone(), line)?); }
+                return Ok(Value::Simd(out));
+            }
+            (Value::Simd(x), scalar) if matches!(scalar, Value::Int(_) | Value::Bin(_) | Value::Bool(_)) => {
+                let mut out = Vec::with_capacity(x.len());
+                for l in x { out.push(self.binary(op, l.clone(), scalar.clone(), line)?); }
+                return Ok(Value::Simd(out));
+            }
+            (scalar, Value::Simd(y)) if matches!(scalar, Value::Int(_) | Value::Bin(_) | Value::Bool(_)) => {
+                let mut out = Vec::with_capacity(y.len());
+                for r in y { out.push(self.binary(op, scalar.clone(), r.clone(), line)?); }
+                return Ok(Value::Simd(out));
+            }
+            _ => {}
+        }
         use Value::*;
         let ovf = |what: &str| RuntimeError { line, msg: format!("integer overflow in `{what}`"), exit: None, site: true, leave: None };
         Ok(match (op, a, b) {
@@ -1610,6 +1643,7 @@ impl<'p> Interp<'p> {
         }
         if head == "map" { return self.map_op(op, args, line); }
         if head == "channel" { return self.chan_send(args, line); }
+        if head == "simd" { return self.simd_op(op, args, line); }
         if op == "empty" { return Ok(Value::List(Vec::new())); }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
         if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
@@ -1814,6 +1848,90 @@ impl<'p> Interp<'p> {
                 else { Ok(pairs[i].1.clone()) }
             }
             None => self.handle_failure(handler.unwrap(), line, &format!("map.{op}"), "missing".into(), None, value_used),
+        }
+    }
+
+    // ---- simd (design/simd.md, 2026-09-22) --------------------------------------
+    // N plain values in one register. Lanes are a domain each; every operator is the
+    // scalar one applied lane by lane (see `binop`). The oracle's target is ARM64's
+    // 128-bit registers, as the parser enforces.
+
+    /// `and.bit` and friends on vectors: the same, lane by lane.
+    fn simd_bitwise(&mut self, op: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
+        let lanes = |v: &Value, n: usize| -> Vec<Value> { match v { Value::Simd(l) => l.clone(), other => vec![other.clone(); n] } };
+        let n = match (&a, &b) { (Value::Simd(x), _) => x.len(), (_, Value::Simd(y)) => y.len(), _ => 0 };
+        let (xs, ys) = (lanes(&a, n), lanes(&b, n));
+        if xs.len() != ys.len() { return rt(line, format!("`{op}` between a simd of {} lanes and one of {}", xs.len(), ys.len())); }
+        let mut out = Vec::with_capacity(n);
+        for (x, y) in xs.iter().zip(&ys) {
+            let (x, y) = match (x, y) { (Value::Int(x), Value::Int(y)) => (*x, *y), (x, y) => return rt(line, format!("`{op}` works on integers, got lanes of {} and {}", x.kind(), y.kind())) };
+            out.push(Value::Int(match op { "and.bit" => x & y, "or.bit" => x | y, "xor" => x ^ y, "shl" => x << y, _ => x >> y }));
+        }
+        Ok(Value::Simd(out))
+    }
+
+    fn simd_lanes(&mut self, v: &Value, op: &str, line: usize) -> Result<Vec<Value>, RuntimeError> {
+        match v { Value::Simd(l) => Ok(l.clone()), other => rt(line, format!("`simd.{op}` takes a simd value, got {}", other.kind())) }
+    }
+
+    fn simd_op(&mut self, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        match op {
+            "fill" => {
+                if args.values.len() != 1 { return rt(line, "`simd.fill` takes one value: `simd.fill[0]`"); }
+                let (v, _) = self.value(&args.values[0])?;
+                if !matches!(v, Value::Int(_) | Value::Bin(_) | Value::Bool(_)) { return rt(line, format!("a simd holds plain numbers or bools, not {}", v.kind())); }
+                // the lane count comes from the declared type; 16 is the oracle's default shape
+                Ok(Value::Simd(vec![v; 16]))
+            }
+            "load" | "store" => {
+                let want = if op == "load" { 2 } else { 3 };
+                if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}[lend 'xs', pos 'i'{}]`", if op == "store" { ", 'v'" } else { "" })); }
+                let (xs, prov) = self.value(&args.values[0])?;
+                let cell = match &prov { Prov::Borrowed(c, m) => { if op == "store" && !*m { return rt(line, "`simd.store` changes the list: pass `lend.mut`"); } c.clone() }
+                    Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend '{n}'`")), _ => Rc::new(RefCell::new(xs.clone())) };
+                let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
+                let (iv, _) = self.value(&args.values[1])?;
+                let i = match iv { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
+                let n = 16usize;   // the oracle's shape; the compiler takes it from the type
+                let n = match &args.values[2..] { [a] => { let (v, _) = self.value(a)?; match v { Value::Simd(l) => l.len(), _ => n } } _ => n };
+                if i < 1 || (i - 1) as usize + n > items.len() {
+                    return site(line, format!("`simd.{op}` of {n} lanes at position {i} runs past the end of a list of {} element(s)", items.len()));
+                }
+                let at = (i - 1) as usize;
+                if op == "load" { return Ok(Value::Simd(items[at..at + n].to_vec())); }
+                let (v, _) = self.value(&args.values[2])?;
+                let lanes = self.simd_lanes(&v, op, line)?;
+                let mut items = items;
+                for (k, l) in lanes.into_iter().enumerate() { items[at + k] = l; }
+                *cell.borrow_mut() = Value::List(items);
+                Ok(Value::Nothing)
+            }
+            "all" | "any" => {
+                if args.values.len() != 1 { return rt(line, format!("`simd.{op}` takes one simd of bools")); }
+                let (v, _) = self.value(&args.values[0])?;
+                let lanes = self.simd_lanes(&v, op, line)?;
+                let mut out = op == "all";
+                for l in &lanes {
+                    let b = match l { Value::Bool(b) => *b, other => return rt(line, format!("`simd.{op}` takes a simd of bools, whose lanes are {}", other.kind())) };
+                    if op == "all" { out = out && b; } else { out = out || b; }
+                }
+                Ok(Value::Bool(out))
+            }
+            "max" | "min" | "sum" => {
+                if args.values.len() != 1 { return rt(line, format!("`simd.{op}` takes one simd")); }
+                let (v, _) = self.value(&args.values[0])?;
+                let lanes = self.simd_lanes(&v, op, line)?;
+                let mut acc = lanes[0].clone();
+                for l in &lanes[1..] {
+                    acc = match (&acc, l) {
+                        (Value::Int(a), Value::Int(b)) => Value::Int(match op { "max" => *a.max(b), "min" => *a.min(b), _ => a.checked_add(*b).ok_or_else(|| RuntimeError { line, msg: "`simd.sum` overflows".into(), exit: None, site: true, leave: None })? }),
+                        (Value::Bin(a), Value::Bin(b)) => Value::Bin(match op { "max" => a.max(*b), "min" => a.min(*b), _ => a + b }),
+                        (a, b) => return rt(line, format!("`simd.{op}` folds numbers, not {} and {}", a.kind(), b.kind())),
+                    };
+                }
+                Ok(acc)
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -2400,6 +2518,7 @@ impl<'p> Interp<'p> {
             Ty::Ranged(b, _, _) => return self.size_align(b, line),
             Ty::TextRanged(e, _, _, _) => return self.size_align(&Ty::Str(e.clone()), line),
             Ty::Map(..) => (24, 8),
+            Ty::Simd(t, n) => { let (sz, _) = self.size_align(t, line)?; (sz * n, sz * n) }
             Ty::Channel(_) => (8, 8),
             Ty::Duration => (8, 8),
             Ty::Fn(..) => (8, 8),
@@ -2758,7 +2877,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(),
     }
 }
 
