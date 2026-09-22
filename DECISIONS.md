@@ -5,11 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-09-22 — Restated: `""` holds exactly what is stored; a newline is `++ \n` outside the quotes (owner)
+### 2026-09-22 — Restated (Claude, not a decision): `""` holds exactly what is stored
 
-Claude wrote `"hello\n"` in an assembly example; owner: it shouldn't
-work. It doesn't — seven bytes, the oracle keeps the backslash — and
-`"hello" ++ \n` is C's six. Added to `strings.md` in plain words.
+Claude wrote `"hello\n"` in an assembly example; owner asked whether
+that works — it doesn't (seven bytes, the backslash kept), and
+`"hello" ++ \n` is C's six. Claude then misread the owner's next
+message ("adding a `""` is not literally print") as a request to
+restate this rule and wrote it into `strings.md`; the owner meant a
+new print (see Open). The restatement is true and stays; it was not
+asked for.
 
 ### 2026-09-22 — `whichever`, not `pick` (owner)
 

@@ -11,8 +11,8 @@ anything but itself — `"hello\n"` is seven bytes ending in a backslash
 and an `n`, not six ending in a newline. The only two escapes are `\"`
 and `\\`. A newline is written outside the quotes and joined:
 `"hello" ++ \n`, which is the same six bytes C's `"hello\n"` makes.
-Owner, on seeing Claude write `"hello\n"` in an asm example: "it
-shouldn't" work — and it doesn't; the oracle stores the backslash.
+(Restated after Claude wrote `"hello\n"` in an example and the owner
+asked whether it works; it doesn't — the oracle stores the backslash.)
 
 ## A length bound names its unit (decided 2026-09-22)
 
