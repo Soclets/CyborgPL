@@ -6,3 +6,4 @@ loops 58
 structs 42
 recursion 55
 check_fires trap
+bin_guard 7

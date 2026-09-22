@@ -453,6 +453,9 @@ impl Precog {
                 let d = self.read_operand(f, env, operand);
                 match (op, &d) {
                     (UnOp::Neg, Domain::Ints(s)) => Domain::Ints(s.neg()),
+                    // Negating a bin flips the interval; it never rounds, so
+                    // the answer is exact whatever the width.
+                    (UnOp::Neg, Domain::Bins { lo, hi }) => Domain::Bins { lo: hi.map(|x| -x), hi: lo.map(|x| -x) },
                     (UnOp::Not, Domain::Bools(t, fa)) => Domain::Bools(*fa, *t),
                     _ => Domain::of_ty(&self.place_ty(f, dest), &self.prog().items),
                 }
@@ -540,6 +543,17 @@ impl Precog {
                 return Domain::Empty;
             }
             return Domain::Ints(s);
+        }
+        if let (Domain::Bins { .. }, Domain::Bins { .. }) = (a, b) {
+            if let Some(c) = cmp_of(op) {
+                let (t, fa) = a.compare_bin(b, c);
+                return Domain::Bools(t, fa);
+            }
+            // Bin arithmetic rounds, and rounding is the target's business
+            // (`reproducible-builds.md`), so the result is what its own type
+            // holds and nothing narrower. A known value stays known only
+            // where it was written.
+            return Domain::of_ty(&ty, &self.prog().items);
         }
         if let (Domain::Bools(t1, f1), Domain::Bools(t2, f2)) = (a, b) {
             return match op {
@@ -739,9 +753,13 @@ impl Precog {
                 self.cache.insert((i, key), d.clone());
                 d
             }
-            Callee::Extern(_) => {
+            Callee::Extern(id) => {
+                // "An `extern` result is anything its C-shaped type holds"
+                // (`precog.md`) — or, with a ranged return, the range, which
+                // the door already enforced as a failure.
                 self.reads_outside = true;
-                Domain::Any
+                let ret = self.prog().items.externs[id.0 as usize].ret.clone();
+                Domain::of_ty(&ret, &self.prog().items)
             }
             Callee::Value(_) => Domain::Any,
             Callee::Op(op) => {
@@ -784,6 +802,15 @@ impl Precog {
         let cmp = if taken { *cmp } else { cmp.negate() };
         let a = self.read_operand(f, env, lhs);
         let b = self.read_operand(f, env, rhs);
+        if let (Domain::Bins { .. }, Domain::Bins { .. }) = (&a, &b) {
+            if let Some(pl) = lhs.place().filter(|p| p.proj.is_empty()) {
+                out.insert(pl.local, a.assume_bin(&b, cmp));
+            }
+            if let Some(pr) = rhs.place().filter(|p| p.proj.is_empty()) {
+                out.insert(pr.local, b.assume_bin(&a, cmp.flip()));
+            }
+            return out;
+        }
         if let (Domain::Ints(x), Domain::Ints(y)) = (&a, &b) {
             if let Some(pl) = lhs.place().filter(|p| p.proj.is_empty()) {
                 let narrowed = x.assume(y, cmp);
@@ -965,6 +992,17 @@ impl Precog {
                 let Some((lo, hi)) = limit.bounds() else { return Verdict::Unproven };
                 self.fit(s, lo, hi, to)
             }
+            (Domain::Bins { lo, hi }, Domain::Bins { lo: llo, hi: lhi }) => {
+                let (Some(a), Some(b)) = (lo, hi) else { return Verdict::Unproven };
+                let (Some(x), Some(y)) = (llo, lhi) else { return Verdict::Proven { how: "layer 2" } };
+                if *a >= x && *b <= y {
+                    Verdict::Proven { how: "layer 2" }
+                } else if *b < x || *a > y {
+                    Verdict::Fails { counterexample: format!("every time: the value is {} and a `{}` holds {} to {}", show_bin(*a, *b), self.spell(to), x, y) }
+                } else {
+                    Verdict::Fails { counterexample: format!("the value can be {}, and a `{}` holds {} to {}", if *b > y { *b } else { *a }, self.spell(to), x, y) }
+                }
+            }
             (Domain::Seq { len, .. }, Domain::Seq { len: limit, .. }) => {
                 let (Some((a, b)), Some((lo, hi))) = (len.bounds(), limit.bounds()) else { return Verdict::Unproven };
                 if a >= lo && b <= hi {
@@ -1064,6 +1102,14 @@ fn int_limits(ty: &Ty, items: &crate::resolve::Items) -> Option<(i128, i128)> {
     match Domain::of_ty(ty, items) {
         Domain::Ints(s) => s.bounds(),
         _ => None,
+    }
+}
+
+fn show_bin(a: f64, b: f64) -> String {
+    if a == b {
+        format!("{}", a)
+    } else {
+        format!("{} to {}", a, b)
     }
 }
 
@@ -1214,9 +1260,26 @@ pub fn refusals(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -
     for r in &a.sites {
         let f = &p.functions[r.function];
         let site = f.site(r.site);
+        let checked = site.tier == Some(Tier::Check);
+        // `check` is "I built a guardrail, tell me whether it is enough", so
+        // *not knowing* is an answer it has to hear (`core-features.md`:
+        // "not proven → compile error naming the counterexample or the
+        // missing fact"). Saying nothing would make `check` mean nothing.
+        if checked && matches!(r.verdict, Verdict::Unproven) {
+            let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
+            let mut d = crate::diag::Diagnostic::new(crate::diag::Kind::Check, site.kind.sentence(&spell))
+                .at(f.span(site.span))
+                .why("`check` asks whether the guardrail is enough, and this one could not be shown to be")
+                .why("no counterexample either: the guardrail may well be enough, and nothing here could prove it")
+                .fix(None, "narrow what reaches here — a bound on the type, or an `if` in front of it");
+            if !f.name.is_empty() && f.name != "MAIN" {
+                d = d.place(format!("in `{}`", f.name));
+            }
+            out.push(d.render(sources));
+            continue;
+        }
         let Verdict::Fails { counterexample } = &r.verdict else { continue };
         let certain = counterexample.starts_with("every");
-        let checked = site.tier == Some(Tier::Check);
         if !certain && !checked {
             continue;
         }

@@ -537,6 +537,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let trusted = matches!(verdict, Some(Verdict::Trusted));
         let needs_check = site.is_some() && !proven && !trusted;
         let (a, b) = match (a, b) {
+            // A bin literal has no width of its own either: it takes the
+            // other side's, the same rule as an integer literal.
+            (BasicValueEnum::FloatValue(x), BasicValueEnum::FloatValue(y)) if x.get_type() != y.get_type() => {
+                match (a, b) {
+                    (_, _) if is_double(y.get_type(), self.ctx) => (a, self.fit(b, x.get_type().into())),
+                    _ => (self.fit(a, y.get_type().into()), b),
+                }
+            }
             (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) if x.get_type().get_bit_width() != y.get_type().get_bit_width() => {
                 // One side is a literal, which has no width of its own: it
                 // takes the other's.
@@ -736,6 +744,12 @@ fn basic_result(call: inkwell::values::CallSiteValue<'_>) -> Option<BasicValueEn
         inkwell::values::ValueKind::Basic(v) => Some(v),
         _ => None,
     }
+}
+
+/// A bin constant is built at 64 bits until something says otherwise, so
+/// that is the side to move when two widths meet.
+fn is_double(t: inkwell::types::FloatType<'_>, ctx: &Context) -> bool {
+    t == ctx.f64_type()
 }
 
 fn sanitise(name: &str) -> String {

@@ -259,7 +259,12 @@ impl Domain {
             // A width Precog has not chosen yet: the value decides the width,
             // so nothing is ruled out until it does.
             Ty::Int(IntW::Free(_)) => Domain::Ints(ISet::Range { lo: i64::MIN as i128, hi: i64::MAX as i128 }),
-            Ty::Bin(_) => Domain::Bins { lo: None, hi: None },
+            // Each width holds a finite range, and that range is a fact
+            // about the type as much as `int8`'s is.
+            Ty::Bin(w) => {
+                let m = bin_max(*w);
+                Domain::Bins { lo: m.map(|x| -x), hi: m }
+            }
             Ty::Bool => Domain::Bools(true, true),
             Ty::Str(_) => Domain::Text { len: Lengths::any(), values: None, classes: Vec::new() },
             Ty::Char(_) => Domain::Chars { values: None },
@@ -405,6 +410,31 @@ pub fn enc_of(ty: &Ty) -> Option<Enc> {
     match ty.base() {
         Ty::Str(e) => Some(*e),
         _ => None,
+    }
+}
+
+/// The largest finite value each binary float width holds. `bin16` is
+/// IEEE 754 half precision, whose largest is 65504.
+pub fn bin_max(w: BinW) -> Option<f64> {
+    match w {
+        BinW::Fixed(16) => Some(65504.0),
+        BinW::Fixed(32) => Some(f32::MAX as f64),
+        BinW::Fixed(64) | BinW::Free(_) => Some(f64::MAX),
+        // Software arithmetic, and wider than anything this analysis
+        // carries: nothing is ruled out.
+        BinW::Fixed(128) => None,
+        _ => None,
+    }
+}
+
+/// A constant as the target actually stores it
+/// (`reproducible-builds.md`: compile-time arithmetic matches the target).
+/// `bin16` and `bin128` are not modelled: the value is kept as written and
+/// only ever used to answer range questions, never folded into the binary.
+pub fn bin_at_width(v: f64, w: BinW) -> f64 {
+    match w {
+        BinW::Fixed(32) => v as f32 as f64,
+        _ => v,
     }
 }
 
@@ -594,6 +624,44 @@ impl ISet {
                 None => self.clone(),
             },
         }
+    }
+}
+
+impl Domain {
+    /// What a bin can be, given a comparison held.
+    pub fn assume_bin(&self, other: &Domain, op: Cmp) -> Domain {
+        let (Domain::Bins { lo: a1, hi: a2 }, Domain::Bins { lo: b1, hi: b2 }) = (self, other) else { return self.clone() };
+        let tighten_hi = |cur: Option<f64>, limit: Option<f64>| match (cur, limit) {
+            (Some(c), Some(l)) => Some(c.min(l)),
+            (None, l) => l,
+            (c, None) => c,
+        };
+        let tighten_lo = |cur: Option<f64>, limit: Option<f64>| match (cur, limit) {
+            (Some(c), Some(l)) => Some(c.max(l)),
+            (None, l) => l,
+            (c, None) => c,
+        };
+        match op {
+            Cmp::Lt | Cmp::Le => Domain::Bins { lo: *a1, hi: tighten_hi(*a2, *b2) },
+            Cmp::Gt | Cmp::Ge => Domain::Bins { lo: tighten_lo(*a1, *b1), hi: *a2 },
+            Cmp::Eq => Domain::Bins { lo: tighten_lo(*a1, *b1), hi: tighten_hi(*a2, *b2) },
+            Cmp::Ne => self.clone(),
+        }
+    }
+
+    /// Can a bin comparison be true? Can it be false?
+    pub fn compare_bin(&self, other: &Domain, op: Cmp) -> (bool, bool) {
+        let (Domain::Bins { lo: a1, hi: a2 }, Domain::Bins { lo: b1, hi: b2 }) = (self, other) else { return (true, true) };
+        let (Some(a1), Some(a2), Some(b1), Some(b2)) = (*a1, *a2, *b1, *b2) else { return (true, true) };
+        let (always, never) = match op {
+            Cmp::Lt => (a2 < b1, a1 >= b2),
+            Cmp::Le => (a2 <= b1, a1 > b2),
+            Cmp::Gt => (a1 > b2, a2 <= b1),
+            Cmp::Ge => (a1 >= b2, a2 < b1),
+            Cmp::Eq => (a1 == a2 && b1 == b2 && a1 == b1, a2 < b1 || b2 < a1),
+            Cmp::Ne => (a2 < b1 || b2 < a1, a1 == a2 && b1 == b2 && a1 == b1),
+        };
+        (!never, !always)
     }
 }
 

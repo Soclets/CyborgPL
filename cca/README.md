@@ -63,6 +63,15 @@ Dated, with the alternative, so each can become a question later.
   machine's. It moves into the target description the day there is one.
   Alternative: refuse every `simd` until JetPack exists, which would leave
   `examples/simd.cpls` unbuildable.
+- **2026-09-22 — `bin16` and `bin128` constants are not rounded to their
+  width at compile time.** A `bin32` constant is rounded exactly (through
+  `f32`) and a `bin64` needs none, so both meet
+  `reproducible-builds.md`'s "compile-time arithmetic matches the target".
+  The other two widths keep the value as written, and it is only ever used
+  to answer range questions — never folded into a binary — so nothing is
+  wrong today. It has to be real arithmetic before either width ships.
+  Alternative: refuse a `bin16` or `bin128` constant until then, which
+  would make `examples/print_vs_printu.cpls` unbuildable for no gain.
 - **2026-09-22 — `cca/.cargo/config.toml` points at Homebrew's LLVM 22.**
   The compiler's own dependency has to be found somewhere, and JetPack does
   not exist to say where. This is not the *target* being sniffed from the
