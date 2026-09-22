@@ -142,6 +142,35 @@ designed); no subtraction between durations at all. The rule was in
 the oracle from the start and had never been asked; the compiler
 session found it missing from the record.
 
+## A channel's layout (owner, 2026-09-23)
+
+A channel's capacity is always known when it is made — no bound is a
+hand-off with no slots at all, `[0, N]` is exactly N, and unbounded is
+refused — so **a channel never grows**, and its **slots sit inline**:
+one block holding the bookkeeping and then N slots of `T`. One
+allocation, not two. (Measured on an M5, C, with barriers: reading a
+slot inline versus through a pointer is 2.44 ns against 2.47 ns —
+nothing. The reason to choose inline is the allocation count, not the
+access.)
+
+**Precog's three parts**, each the usual "pay for what you use":
+
+- **The stack, not the heap.** A structured task cannot outlive the
+  block that started it, and a detached one cannot *lend* anything
+  (it takes only `give` / `copy`) — so a channel lent only to ordinary
+  `concur` tasks provably dies with its block and lives in the stack
+  frame. Measured: creating and destroying a channel costs 13–19 ns on
+  the heap against 0.9 ns on the stack, which is worth most where
+  channels are made in a loop (one per connection).
+- **Fewer slots than the type allows.** `[0, 100]` is the writer's
+  ceiling, not a measurement; where Precog proves the channel never
+  holds more than 3 at once, it allocates 3.
+- **No channel at all.** One sender, one taker, one value, all inside
+  one block: the hand-off becomes a plain variable the task writes
+  into. Worth more than the 2.7× a microbenchmark shows, because it
+  also removes the atomics and the scheduler round trip that a real
+  send and take involve.
+
 ## Runtime
 
 Tasks run on the thread pool `parallelism.md` already has — as

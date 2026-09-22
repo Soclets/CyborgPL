@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A channel's slots are inline; Precog stacks, shrinks or removes it (owner)
+
+The compiler session's remaining layout question, deferred until
+`concur` generated code. Proposed (a) slots inline in one block, since
+the capacity is always known when the channel is made; (b) a separate
+heap buffer behind a pointer. Owner asked whether Precog helps, then
+for the performance difference; measured on the M5 in C with
+optimisation barriers: inline versus pointer access is 2.44 ns against
+2.47 ns (nothing — the reason for inline is one allocation instead of
+two), heap creation is 13–19 ns against 0.9 ns on the stack, and
+removing the channel entirely is 2.7× on the operation and more in
+reality, since a real send and take also pay atomics and a scheduler
+round trip. Owner: a plus Precog — inline slots, and Precog puts the
+channel on the stack when structured concurrency proves it dies with
+its block, allocates only the slots it proves are needed, or removes
+a one-value hand-off altogether.
+
 ### 2026-09-23 — This session signs as `design claude` (owner)
 
 The trailer named the model (`Claude Opus 5`), which goes stale the
