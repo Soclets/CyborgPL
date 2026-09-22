@@ -5,6 +5,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Restated: `""` holds exactly what is stored; a newline is `++ \n` outside the quotes (owner)
+
+Claude wrote `"hello\n"` in an assembly example; owner: it shouldn't
+work. It doesn't — seven bytes, the oracle keeps the backslash — and
+`"hello" ++ \n` is C's six. Added to `strings.md` in plain words.
+
 ### 2026-09-22 — `whichever`, not `pick` (owner)
 
 Owner asked what `pick` is, why not `pick_first` (nothing else to

@@ -4,6 +4,16 @@ Decided 2026-09-20, one question at a time. A `str` is an owned value
 (`str.utf8` / `utf16` / `utf32` / `ascii`, `types.md`); this file is what
 you can *do* with one.
 
+## What is inside `""` is exactly what is stored (restated 2026-09-22)
+
+The quotes are not part of the text, and nothing inside them means
+anything but itself — `"hello\n"` is seven bytes ending in a backslash
+and an `n`, not six ending in a newline. The only two escapes are `\"`
+and `\\`. A newline is written outside the quotes and joined:
+`"hello" ++ \n`, which is the same six bytes C's `"hello\n"` makes.
+Owner, on seeing Claude write `"hello\n"` in an asm example: "it
+shouldn't" work — and it doesn't; the oracle stores the backslash.
+
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
