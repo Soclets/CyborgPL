@@ -56,6 +56,14 @@ Dated, with the alternative, so each can become a question later.
   machine's. It moves into the target description the day there is one.
   Alternative: refuse every `simd` until JetPack exists, which would leave
   `examples/simd.cpls` unbuildable.
+- **2026-09-22 — A drop whose value is gone on *some* paths keeps its
+  `Drop`.** MIR emits a drop per owned local at its scope's end; the
+  ownership walk removes the ones definitely already given away, and
+  counts the rest (`CCA_DROPS=1` prints both numbers). A conditional one
+  needs a flag at run time saying whether the value is still there —
+  nothing generates code yet, so nothing is wrong today, but the lowering
+  must carry that flag when it arrives. Alternative: split the block so
+  each path drops what it owns, which trades a flag for more blocks.
 - **2026-09-22 — A testing-only `std::` stub table.** `std::` does not
   exist (owner, 2026-09-22), but 55 of the 61 examples print with it. The
   checker has a flag (off by default, on in `cargo test` and with

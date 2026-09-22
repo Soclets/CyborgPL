@@ -133,7 +133,7 @@ fail_quoted_name :: a failure's name is bare
 fail_unhandled :: `f` can fail (oops): say what happens
 fnval_call_not_function :: `'f'[…]` calls a held function, and `[pos …]` indexes a list
 fnval_capture_without_verb :: say how 'limit' comes in
-fnval_give_captured_used :: !pending
+fnval_give_captured_used :: was given away and no longer owns anything
 fnval_op_as_value :: an operator sits between two values
 fnval_silent_capture :: it sees nothing of the surrounding scope unless `with [lend 'limit']` (or `copy` / `give`) says so
 fnval_type_with_names :: a function type has no parameter names: `fn[int32] -> bool`, not `fn['a': int32]`
@@ -156,7 +156,7 @@ generic_to_c :: a blank `<T>` cannot appear here
 generic_wrong_return :: the return type is an `integer` and this value is text: convert it first
 give_plain :: a `integer` is a plain value that owns nothing (no allocation behind it), so it copies by itself
 give_to_lent_param :: `look` only looks at 'text' (it is `lent`); you tried to give it away
-give_twice :: !pending
+give_twice :: was already given away, so there is nothing left to give
 grapheme_from_code :: `char.point.from_code[…]` or `char.byte.from_code[…]`
 grapheme_ok_point_bad :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 gte :: greater-or-equal is `>==`
@@ -318,7 +318,7 @@ struct_bare_owned_field :: say what happens to it
 struct_field_no_colon :: a field's type follows its name after `:`
 struct_field_unbracketed :: a field is written name first, then its type: `x: int32`
 struct_field_walrus :: the blueprint fixed the types
-struct_give_field_kills :: !pending
+struct_give_field_kills :: was given away and no longer owns anything
 struct_immut_chain :: `immut` is a bare word before the field's name: `immut number: int32`
 struct_immut_field_write :: `id` is an `immut` field of `P` and cannot be written
 struct_keyword_field :: `return` is a keyword and cannot name a field
@@ -351,7 +351,7 @@ two_points_as_point :: it is 2 code points, so it fits `char.grapheme`, not `cha
 type_before_name :: a type goes after the name: `let 'x': int32 = …;`
 uint_negative :: the value can be outside what a `uint8` holds
 unknown_std :: `std::println` does not exist
-use_after_give :: !pending
+use_after_give :: was given away and no longer owns anything
 var_keyword :: `var` became `let`: `let 'x' := …;`
 variadic_ellipsis_after_name :: the dots go before the name
 variadic_not_last :: the rest of the arguments go to it

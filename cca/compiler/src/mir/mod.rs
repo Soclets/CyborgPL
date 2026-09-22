@@ -17,6 +17,7 @@
 
 pub mod build;
 pub mod domain;
+pub mod ownership;
 pub mod print;
 pub mod verify;
 
@@ -363,6 +364,10 @@ pub enum Arg {
 pub struct BasicBlock {
     pub stmts: Vec<Statement>,
     pub term: Terminator,
+    /// Where the block leaves from: a call's own place in the source, so a
+    /// message about an argument points at the call and not at whatever
+    /// happened to be first in the span table.
+    pub term_span: SpanId,
 }
 
 #[derive(Debug, Clone)]

@@ -49,6 +49,10 @@ fn prove(path: &Path) -> Result<(), String> {
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
     let mut mir = cca::mir::build::build(program);
     cca::mir::verify::program(&mir).map_err(|p| p.join("\n"))?;
+    let owned = cca::mir::ownership::check(&mut mir, &sources);
+    if !owned.problems.is_empty() {
+        return Err(owned.problems.join(""));
+    }
     let analysis = cca::precog::analyse(&mut mir);
     let refusals = cca::precog::refusals(&analysis, &mir, &sources);
     if refusals.is_empty() {

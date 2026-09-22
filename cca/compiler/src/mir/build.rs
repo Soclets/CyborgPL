@@ -114,6 +114,9 @@ struct FnBuilder<'a> {
     task_after: Vec<Vec<BlockId>>,
     /// The slot a `return` fills.
     ret_local: Option<LocalId>,
+    /// The span of the instruction most recently lowered, for a terminator
+    /// that has no span of its own.
+    last_span: SpanId,
 }
 
 #[derive(Clone, Copy)]
@@ -129,7 +132,7 @@ impl<'a> FnBuilder<'a> {
             arena,
             inst,
             locals: Vec::new(),
-            blocks: vec![BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable }],
+            blocks: vec![BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable, term_span: SpanId(0) }],
             sites: Vec::new(),
             spans: Vec::new(),
             span_index: HashMap::new(),
@@ -144,6 +147,7 @@ impl<'a> FnBuilder<'a> {
             task_fails: vec![Vec::new()],
             task_after: vec![Vec::new()],
             ret_local: None,
+            last_span: SpanId(0),
         };
         // One MIR local per HIR local, in the same order, so indices line up.
         for l in &body.locals {
@@ -182,18 +186,30 @@ impl<'a> FnBuilder<'a> {
 
     fn new_block(&mut self) -> BlockId {
         let id = BlockId(self.blocks.len() as u32);
-        self.blocks.push(BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable });
+        self.blocks.push(BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable, term_span: SpanId(0) });
         id
     }
 
     fn push(&mut self, kind: StmtKind, span: SpanId) {
+        self.last_span = span;
         self.blocks[self.cur.0 as usize].stmts.push(Statement { kind, span });
     }
 
     fn terminate(&mut self, term: Terminator) {
+        let span = self.last_span;
         let b = &mut self.blocks[self.cur.0 as usize];
         if matches!(b.term, Terminator::Unreachable) {
             b.term = term;
+            b.term_span = span;
+        }
+    }
+
+    /// Terminate with the span this instruction came from.
+    fn terminate_at(&mut self, term: Terminator, span: SpanId) {
+        let b = &mut self.blocks[self.cur.0 as usize];
+        if matches!(b.term, Terminator::Unreachable) {
+            b.term = term;
+            b.term_span = span;
         }
     }
 
@@ -925,7 +941,7 @@ impl<'a> FnBuilder<'a> {
                 let dest = self.temp(&ty, span);
                 let idx = self.fn_idx(*inst);
                 let ok = self.new_block();
-                self.terminate(Terminator::Call { callee: Callee::Fn(idx), args, dest: Some(Place::local(dest)), ok, fail: Vec::new() });
+                self.terminate_at(Terminator::Call { callee: Callee::Fn(idx), args, dest: Some(Place::local(dest)), ok, fail: Vec::new() }, span);
                 self.cur = ok;
                 Rvalue::Use(Operand::Read(Place::local(dest)))
             }
@@ -1158,7 +1174,7 @@ impl<'a> FnBuilder<'a> {
         }
         let ok = self.new_block();
         let fail_arms = self.fail_blocks_for_call(otherwise, &fails, dest.clone(), ok, span);
-        self.terminate(Terminator::Call { callee, args, dest, ok, fail: fail_arms });
+        self.terminate_at(Terminator::Call { callee, args, dest, ok, fail: fail_arms }, span);
         self.cur = ok;
     }
 
@@ -1333,7 +1349,7 @@ fn placeholder(body: &hir::Body) -> Function {
         inst: None,
         params: Vec::new(),
         locals: Vec::new(),
-        blocks: vec![BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable }],
+        blocks: vec![BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable, term_span: SpanId(0) }],
         ret: Ty::Nothing,
         ret_local: None,
         fails: Vec::new(),

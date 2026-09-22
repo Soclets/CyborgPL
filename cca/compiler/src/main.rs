@@ -76,6 +76,13 @@ fn precog_one(path: &Path) -> Result<(), String> {
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
     let mut mir = cca::mir::build::build(program);
     cca::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in CCA:\n  {}\n", p.join("\n  ")))?;
+    let owned = cca::mir::ownership::check(&mut mir, &sources);
+    if !owned.problems.is_empty() {
+        return Err(owned.problems.join(""));
+    }
+    if std::env::var("CCA_DROPS").is_ok() {
+        eprintln!("drops: {} removed as already given away, {} left on some paths only", owned.drops_removed, owned.conditional_drops);
+    }
     let analysis = cca::precog::analyse(&mut mir);
     print!("{}", cca::precog::report::render(&analysis, &mir, &sources));
     for n in cca::precog::notes(&analysis, &mir, &sources) {
