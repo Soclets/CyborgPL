@@ -35,6 +35,7 @@ bare_int :: the typed form is always fully explicit
 bare_list_type :: `list` takes exactly one type parameter, the element type: `list[int32]`
 bare_owned_assign :: say what happens to it
 bare_str :: `str` is never bare: say the encoding
+bin_into_untyped_int_list :: there is no implicit conversion between numeric families
 bin_to_int_unhandled :: `to.int32` can fail (not_whole): say what happens
 bit_ampersand :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
 bit_mixed_needs_parens :: a bitwise operator has no precedence

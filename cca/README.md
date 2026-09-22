@@ -25,8 +25,7 @@ cargo test        # every examples/*.cpls checks; every reject program is refuse
 ## Status
 
 - 2026-09-22: lexer, parser, item resolution and the checker. Every
-  `examples/*.cpls` loads and checks (except the one in
-  `compiler/tests/examples_pending.txt`, waiting on the design session); 38 of the 39 reject *programs* CCA
+  `examples/*.cpls` loads and checks; 38 of the 39 reject *programs* CCA
   can decide are refused in CCA's own words (`compiler/tests/reject_phrases.txt`),
   and the 38 that need Precog are marked `!pending` there — the test
   insists they are still *accepted*, so the file has to be updated the day

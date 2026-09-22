@@ -536,10 +536,13 @@ impl Checker {
         }
         // Say it in the writer's terms.
         let msg = match (vt.base(), t.base()) {
-            (Ty::Int(_), Ty::Bin(_)) | (Ty::Bin(_), Ty::Int(_)) | (Ty::Int(_), Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Int(_)) | (Ty::Deci(_), Ty::Bin(_)) => {
-                format!("{} is {} and this value is {}: there is no implicit conversion between numeric families — write `to.{}[…]`", what, article(&self.spell(&t)), article(&self.spell(&vt)), self.spell(t.base()))
+            (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) => {
+                format!("{} is {} and this value is {}: there is no implicit conversion between numeric families — write `to.{}[…] otherwise …`, which fails `not_whole` rather than dropping the fraction", what, article(&self.spell(&t)), article(&self.spell(&vt)), conv_spelling(&self.spell(t.base())))
             }
-            (Ty::Str(_), Ty::Int(_) | Ty::Bin(_)) => format!("{} is {} and this value is text: convert it first — `to.{}[…] otherwise …` (it can fail with `not_a_number`)", what, article(&self.spell(&t)), self.spell(t.base())),
+            (Ty::Int(_), Ty::Bin(_)) | (Ty::Int(_), Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => {
+                format!("{} is {} and this value is {}: there is no implicit conversion between numeric families — write `to.{}[…]`", what, article(&self.spell(&t)), article(&self.spell(&vt)), conv_spelling(&self.spell(t.base())))
+            }
+            (Ty::Str(_), Ty::Int(_) | Ty::Bin(_)) => format!("{} is {} and this value is text: convert it first — `to.{}[…] otherwise …` (it can fail with `not_a_number`)", what, article(&self.spell(&t)), conv_spelling(&self.spell(t.base()))),
             (Ty::Int(_) | Ty::Bin(_), Ty::Str(_)) => format!("{} is text and this value is a `{}`: convert it first with `to.str.utf8[…]`", what, self.spell(&vt)),
             (Ty::Seq { .. }, Ty::Int(_)) if matches!(v.kind, K::List(ref l) if l.is_empty()) => format!("`[]` is an empty list, but {} is a `{}`", what, self.spell(&t)),
             (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) => format!("{} is an `array` and this is a `list`", what),
@@ -2084,6 +2087,17 @@ pub fn join_bin(a: BinW, b: BinW) -> BinW {
     match (a, b) {
         (BinW::Free(_), _) | (_, BinW::Free(_)) => BinW::Free(InferId(0)),
         (BinW::Fixed(x), BinW::Fixed(y)) => BinW::Fixed(x.max(y)),
+    }
+}
+
+/// A type as it is written in a `to.…[…]`. A width Precog has not chosen yet
+/// has no spelling, so the message names one and says the choice is the
+/// writer's.
+fn conv_spelling(spelled: &str) -> String {
+    match spelled {
+        "integer" => "int32".to_string(),
+        "bin" => "bin64".to_string(),
+        other => other.to_string(),
     }
 }
 

@@ -168,7 +168,8 @@ impl Checker {
                 let place = self.place(ctx, target, PlaceUse::Write)?;
                 let v = self.expr_top(ctx, value, true)?;
                 let pt = self.resolve(&place.ty);
-                let v = self.expect_store(ctx, v, &pt, "what it holds")?;
+                let what = self.place_name(ctx, &place);
+                let v = self.expect_store(ctx, v, &pt, &what)?;
                 self.check_stored_value(ctx, &v, &pt)?;
                 Ok(hir::StmtKind::Assign { place, value: v })
             }
