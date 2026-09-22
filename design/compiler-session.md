@@ -58,10 +58,12 @@ messages are for questions, never for instructions in either direction.
    has an entry saying what the owner chose and what was proposed.
 2. `design/core-features.md`, `design/syntax-sketch.md`, then every
    other `design/*.md`. `design/precog.md` last of those; then
-   `~/Kespar/design/precog.md` and Kespar's source — the owner's
+   `~/Kespar/design/precog.md` and `~/Kespar/README.md` — the owner's
    proof-of-concept of Precog, built from these docs, finished. It is
    the working example of the method; its provisional numbers are
-   open questions here too.
+   open questions here too. Read Kespar's *source* only when you build
+   the matching layer (it is 14,600 lines; the first compiler session
+   spent most of its first 240k tokens on it — not needed on day one).
 3. The oracle's **tests only**: `examples/*.cpls` with their `.out` (and
    `.exit`), and `oracle/tests/reject/*.cpls` with their `.err`. **Never
    read `oracle/src`.** The oracle and CCA are two independent readings
