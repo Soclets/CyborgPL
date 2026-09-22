@@ -1,0 +1,11 @@
+extern fn exit ['code': int32];
+
+MAIN {
+    let mut 'total': int32 = 0;
+    for 'i' in range[1, 10] {
+        'total' = 'total' + 'i';
+    }
+    let mut 'n': int32 = 0;
+    while 'n' < 3 { 'n' = 'n' + 1; }
+    nocheck exit['total' + 'n'];                      # 55 + 3 = 58
+}

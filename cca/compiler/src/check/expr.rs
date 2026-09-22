@@ -753,12 +753,19 @@ impl Checker {
         Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
     }
 
-    /// An operand read: a bare owned name in an operator is a view of it.
+    /// An operand read. A bare *owned* name in an operator is a view of it
+    /// — nothing is handed over by comparing two texts. A plain value is
+    /// simply read: it owns nothing, and a verb on one is an error
+    /// everywhere else in the language, so it would be strange here.
     fn as_operand(&mut self, _ctx: &mut FnCtx, e: Expr) -> Result<Expr> {
         match e.kind {
             K::Read(place) => {
                 let ty = e.ty;
-                Ok(Expr { kind: K::Lend { place, mutable: false }, ty, span: e.span })
+                if self.resolve(&ty).is_owned() {
+                    Ok(Expr { kind: K::Lend { place, mutable: false }, ty, span: e.span })
+                } else {
+                    Ok(Expr { kind: K::Read(place), ty, span: e.span })
+                }
             }
             _ => Ok(e),
         }

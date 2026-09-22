@@ -1,0 +1,8 @@
+# What each program's binary must exit with. `trap` means the check fired:
+# exit 101, with the site named on stderr.
+arithmetic 42
+branches 123
+loops 58
+structs 42
+recursion 55
+check_fires trap

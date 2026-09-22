@@ -14,3 +14,4 @@ name = "cca"
 path = "src/main.rs"
 
 [dependencies]
+inkwell = { version = "0.10", features = ["llvm22-1"] }

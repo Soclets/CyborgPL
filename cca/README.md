@@ -23,8 +23,15 @@ cargo build
 - `runtime/` — `cca-runtime`, the `no_std` Rust library linked into every
   CyborgPL binary.
 
+./target/debug/cca build ../examples/… -o prog       # …then generate, link, and run
 ```
-cargo test        # every examples/*.cpls checks; every reject program is refused
+
+The build needs LLVM 22 where `cca/.cargo/config.toml` says it is, and the
+runtime linked into every binary: `cargo build -p cca-runtime`.
+
+```
+cargo test        # every examples/*.cpls checks; every reject program is
+                  # refused; CCA's own programs build, run and exit right
 ```
 
 ## Status
@@ -56,6 +63,18 @@ Dated, with the alternative, so each can become a question later.
   machine's. It moves into the target description the day there is one.
   Alternative: refuse every `simd` until JetPack exists, which would leave
   `examples/simd.cpls` unbuildable.
+- **2026-09-22 — `cca/.cargo/config.toml` points at Homebrew's LLVM 22.**
+  The compiler's own dependency has to be found somewhere, and JetPack does
+  not exist to say where. This is not the *target* being sniffed from the
+  host (`tooling.md` forbids that, and nothing here reads it): it is where
+  the build gets LLVM, as Kespar's config points at Z3. Alternative: an
+  environment variable every build has to set.
+- **2026-09-22 — A `lent` parameter crosses as a pointer.** A borrow is
+  temporary access without ownership, and an address is what that is on
+  the machine. `ownership-syntax.md` says what a lend *means* and not what
+  it is made of, so this is a pick. Alternative: pass small lent values by
+  copy and rely on Precog to prove nothing observes the difference — which
+  is true today and stops being true the moment a `lend.mut` writes back.
 - **2026-09-22 — A drop whose value is gone on *some* paths keeps its
   `Drop`.** MIR emits a drop per owned local at its scope's end; the
   ownership walk removes the ones definitely already given away, and

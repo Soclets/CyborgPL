@@ -1,0 +1,10 @@
+extern fn exit ['code': int32];
+
+struct Point { x: int32  y: int32 }
+
+fn area [lent 'p': Point] -> int32 { return 'p'.x x 'p'.y; }
+
+MAIN {
+    let 'p' := Point[x = 6, y = 7];
+    nocheck exit[area[lend 'p']];                     # 42
+}

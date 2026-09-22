@@ -1,0 +1,11 @@
+# LLVM lives where Homebrew puts it on this machine. `design/tooling.md`
+# says the *target* is a description in JetPack.toml and never sniffed from
+# the host; this is not that — it is where the compiler's own dependency
+# is installed, the way Kespar's config points at Z3. It moves into
+# JetPack's own build setup when JetPack exists.
+#
+# The version follows inkwell (design/implementation-languages.md): inkwell
+# 0.10 builds against LLVM 22.1, and LLVM 23 is installed here too but
+# inkwell 0.10 has no feature for it.
+[env]
+LLVM_SYS_221_PREFIX = "/opt/homebrew/opt/llvm@22"
