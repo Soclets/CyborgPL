@@ -113,8 +113,30 @@ whether any input reaches the site with an illegal value.
 
 Unrolling to a bound means a site inside a loop may be proven for the
 first 16 trips and unproven after. Kespar reported that honestly and
-named the missing piece: **loop invariants** found by Precog (sums,
-counters, monotone indices, proven inductively). Open, below.
+named the missing piece, decided here:
+
+## Loop invariants — templates first, then unproven (decided 2026-09-22)
+
+A loop Precog cannot run to the end (its trip count depends on input and
+is too big or unbounded to follow) needs a fact that holds on every trip,
+checked once — an invariant. Nobody writes one. Precog **guesses from a
+fixed list of shapes** and keeps each guess the solver confirms
+inductively (true before the first trip; true after a trip if true before
+it): a counter stays within the range's ends; a sum is bounded by trips
+times the largest element; an index never decreases and never passes the
+length; a running max/min stays within the elements' domain; a count
+never exceeds the trips so far. A confirmed guess is a proof, never an
+assumption. If no shape fits or none is confirmed, the loop's sites are
+**unproven** — working build checks them, final build asks for a guard or
+`nocheck` — exactly as if no guessing existed. Guessing only adds proofs.
+
+The programmer's way to supply a fact is the one the language already
+has: a **guardrail** inside the loop (`if 'total' > 1_000_000 { fail
+too_big; }`), which Precog reads on every trip; `check` in front makes
+the compiler say whether it was enough. No invariant syntax. The
+template list is provisional and grows by measurement (Kespar's bench,
+the generator), not by guessing what programs do. Owner: "a and fallback
+to c".
 
 ## The tiers, as emitted
 
@@ -197,8 +219,8 @@ report to know which claims to attack.
 
 ## Open
 
-- Loop invariants: how Precog finds them (templates? inductive proof?)
-  and what it does when it cannot — Kespar's stated missing piece.
+- The invariant template list: which shapes, measured against real
+  programs.
 - Every provisional number: set cap 4096 / re-set at 64, trips 100k /
   2M, recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
   to be measured, not guessed.

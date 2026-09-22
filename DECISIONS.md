@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Loop invariants: Precog guesses from templates, else unproven (owner)
+
+For a loop Precog cannot run to the end: (a) guess invariants from a
+fixed list of shapes (counter, sum, monotone index, max/min, count) and
+keep those the solver confirms inductively; (b) a plus a programmer
+hint — which Claude then withdrew, since a guardrail `if` inside the
+loop is already the language's way to state a fact Precog reads; (c)
+none — trip-by-trip and widening only (Kespar). Owner asked what
+guessing changes: how many ordinary loops the final build refuses.
+Owner: "a and fallback to c" — templates first; no fit or no
+confirmation → unproven, as if guessing did not exist. The template
+list is provisional, grown by measurement. `design/precog.md`.
+
 ### 2026-09-22 — `design/precog.md` opened, ported from Kespar (owner: "Let's go")
 
 Kespar's three-layer method carried over as the starting point; every
