@@ -58,6 +58,17 @@ every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
   again only at **64** values or fewer (provisional).
 - Bins are intervals from the start. A list carries a length interval and
   an element domain.
+- **`deci`** is tracked like an integer with its own bounds: sets, then
+  intervals, at its fixed digit count. **`std::uenr`** (unbounded exact;
+  decided 2026-09-22, owner: b) is tracked as an **interval over exact
+  rationals** — no width, so no overflow site; its check sites are
+  division by zero and narrowing out of it (`to.int64[…]` fails
+  `out_of_range`) — **plus a digit-count bound** carried through
+  arithmetic (`+` keeps the larger, `x` adds, `xx` multiplies). A
+  computation whose digit count grows past a bound (provisional: 10⁶
+  digits) gets a **warning** naming the line — not an error, not a check
+  site: no value is wrong, and memory is the program's business. Proposed
+  (a) rationals only, (b) plus the digit bound, (c) opaque; owner chose b.
 - **Text** (decided 2026-09-22, owner: c) carries three things: a length
   interval per unit; an **exact set of values** while small (a literal,
   a literal list, `'cmd' == "quit"` narrowing to `{"quit"}` inside the
@@ -238,8 +249,7 @@ report to know which claims to attack.
   to be measured, not guessed.
 - The character-class vocabulary for text (which classes; how each std
   text operation maps them) — decided in principle (c), list open.
-- How `deci` and `uenr` are tracked (exact arithmetic on unbounded
-  values: sets? intervals over rationals?).
+- The `std::uenr` digit-count warning threshold (provisional 10⁶).
 - Whether the solver is Z3 (Kespar) or CVC5 / Alt-Ergo / several; what
   "fixed configuration" pins.
 - The Precog oracle's shape (brute force over domains; how far).
