@@ -75,7 +75,7 @@ fn a_query_can_always_be_satisfied_by_something() {
         let p = build(src);
         for (fi, f) in p.functions.iter().enumerate() {
             for (si, _) in f.sites.iter().enumerate() {
-                let Some(q) = smt::encode(&p, fi, cca::mir::SiteId(si as u32)) else { continue };
+                let Some(q) = smt::encode(&p, fi, cca::mir::SiteId(si as u32), &Default::default()) else { continue };
                 asked += 1;
                 assert_eq!(
                     portfolio.ask_text(&q.assumptions),

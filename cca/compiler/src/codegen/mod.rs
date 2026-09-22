@@ -39,6 +39,7 @@ use crate::source::SourceMap;
 use crate::types::{BinW, IntW, Ty};
 
 mod heap;
+mod tasks;
 
 /// Something the lowering cannot do yet, named so the writer knows what
 /// rather than seeing a crash.
@@ -64,7 +65,7 @@ pub fn lower<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new() };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new() };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -104,6 +105,10 @@ struct Cg<'a, 'ctx> {
     /// left undropped either. LLVM folds away the ones whose answer never
     /// changes, which is nearly all of them.
     cur_flags: Vec<Option<PointerValue<'ctx>>>,
+    /// In the function being lowered: one group per block that starts
+    /// tasks, and where each task that can fail leaves its outcome.
+    cur_groups: Vec<PointerValue<'ctx>>,
+    cur_outcomes: HashMap<u32, PointerValue<'ctx>>,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -307,7 +312,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Some(v) => v,
             None => self.module.add_function(&name, self.ctx.void_type().fn_type(&[], false), None),
         };
-        let _ = self.builder.build_call(body, &[], "");
+        if self.uses_tasks() {
+            // MAIN runs as a task, so it can wait like one.
+            let run = self.module.get_function("cyborg_run").unwrap_or_else(|| {
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                self.module.add_function("cyborg_run", self.ctx.void_type().fn_type(&[p.into()], false), None)
+            });
+            let _ = self.builder.build_call(run, &[body.as_global_value().as_pointer_value().into()], "");
+        } else {
+            let _ = self.builder.build_call(body, &[], "");
+        }
         let _ = self.builder.build_return(Some(&i32t.const_zero()));
     }
 
@@ -327,10 +341,6 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 None => return,
             }
         };
-        if f.is_task {
-            self.cannot("a `concur` task has no shape in the generated code yet: it needs the runtime's scheduler", f.spans.first().copied());
-            return;
-        }
         let entry = self.ctx.append_basic_block(func, "entry");
         // One LLVM block per MIR block, made first so an edge can name one
         // that has not been filled in.
@@ -381,6 +391,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let _ = self.builder.build_store(flag, start);
             self.cur_flags[li] = Some(flag);
         }
+        self.task_frame(i);
         if !self.problems.is_empty() {
             return;
         }
@@ -411,11 +422,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     // A bounds check stands on its own — it guards the
                     // index, not the instruction after it — so it is
                     // emitted here rather than carried forward.
-                    if matches!(f.site(*id).kind, SiteKind::Bounds) {
-                        self.bounds_check(fi, *id, slots, func);
-                        pending_site = None;
-                    } else {
-                        pending_site = Some(*id);
+                    // Only an arithmetic guard belongs to the instruction
+                    // after it; any other site carried forward would put its
+                    // check on something it never guarded.
+                    match f.site(*id).kind {
+                        SiteKind::Bounds => {
+                            self.bounds_check(fi, *id, slots, func);
+                            pending_site = None;
+                        }
+                        SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::Narrow { .. } | SiteKind::ShiftWidth | SiteKind::LengthBound { .. } => pending_site = Some(*id),
+                        _ => pending_site = None,
                     }
                 }
                 StmtKind::Assign { place, rvalue } => {
@@ -488,7 +504,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
                 StmtKind::EndLend(_) | StmtKind::Nop => {}
-                StmtKind::Task { .. } => self.cannot("starting a task has no shape in the generated code yet", Some(f.span(s.span))),
+                StmtKind::Task { detached, body, captures, group, id } => {
+                    let span = Some(f.span(s.span));
+                    if self.emit_task(fi, *detached, *body, captures, *group, *id, slots, span).is_none() {
+                        self.cannot("this task has no shape in the generated code yet", span);
+                    }
+                }
                 StmtKind::Asm { .. } => self.cannot("`inline.ASM` has no shape in the generated code yet", Some(f.span(s.span))),
             }
         }
@@ -575,7 +596,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let _ = self.builder.build_unreachable();
                 }
             }
-            Terminator::Whichever { .. } | Terminator::Join { .. } => {
+            Terminator::Join { group, ok } => {
+                if self.emit_join(*group).is_none() {
+                    self.cannot("this wait for tasks has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                }
+                let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+            }
+            Terminator::TaskOutcome { id, body, ok, fail } => {
+                if self.emit_task_outcome(fi, *id, *body, *ok, fail, blocks, slots, func).is_none() {
+                    self.cannot("this task's failure has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
+                }
+            }
+            Terminator::Whichever { .. } => {
                 self.cannot("waiting on a task has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
                 let _ = self.builder.build_unreachable();
             }

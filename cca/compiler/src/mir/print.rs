@@ -46,7 +46,7 @@ fn stmt(k: &StmtKind, f: &Function, spell: &dyn Fn(&Ty) -> String) -> String {
         }
         StmtKind::Drop(p) => format!("drop {}", place_s(p, f)),
         StmtKind::EndLend(p) => format!("end lend {}", place_s(p, f)),
-        StmtKind::Task { detached, body, captures } => format!(
+        StmtKind::Task { detached, body, captures, .. } => format!(
             "task{} f{} with [{}]",
             if *detached { ".detached" } else { "" },
             body.0,
@@ -73,7 +73,8 @@ fn term(t: &Terminator, f: &Function, spell: &dyn Fn(&Ty) -> String) -> String {
             arms.iter().map(|a| format!("{} from {} -> b{}", place_s(&a.dest, f), operand_s(&a.channel, f), a.block.0)).collect::<Vec<_>>().join(", "),
             closed.map(|c| format!(" closed -> b{}", c.0)).unwrap_or_default()
         ),
-        Terminator::Join { ok, fail } => format!("join tasks -> b{}{}", ok.0, if fail.is_empty() { String::new() } else { format!(" fail [{}]", fail.iter().map(|x| format!("{} -> b{}", x.index, x.block.0)).collect::<Vec<_>>().join(", ")) }),
+        Terminator::Join { group, ok } => format!("join group {} -> b{}", group, ok.0),
+        Terminator::TaskOutcome { id, ok, fail, .. } => format!("outcome of task {} -> b{} fail [{}]", id, ok.0, fail.iter().map(|x| format!("{} -> b{}", x.index, x.block.0)).collect::<Vec<_>>().join(", ")),
         Terminator::Return => match f.ret_local {
             Some(r) => format!("return {}", place_s(&Place::local(r), f)),
             None => "return".into(),

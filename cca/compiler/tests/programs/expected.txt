@@ -35,3 +35,13 @@ walk_list 15
 # Lists, text and maps built and discarded in a loop: a leak here is
 # unreachable memory, which is what `leaks` can actually see.
 heap_churn 0
+# `concur`: green tasks on one worker per core. Captures by every verb, a
+# task that starts tasks, and two failing tasks in one block — both
+# handlers run, each where its own `concur` said.
+tasks_lend 35
+tasks_fail 14
+tasks_nested 12
+# A call that borrows mutably may change what it borrowed: Precog must
+# forget what it knew, or a correct program is refused (and a wrong one
+# proven).
+lend_mut_call 7

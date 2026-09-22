@@ -546,7 +546,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(self.ctx.struct_type(&[tag.into(), room.into()], false))
     }
 
-    fn enum_tag_type(&self, cases: usize) -> inkwell::types::IntType<'ctx> {
+    pub(super) fn enum_tag_type(&self, cases: usize) -> inkwell::types::IntType<'ctx> {
         if cases <= 0xff {
             self.ctx.i8_type()
         } else if cases <= 0xffff {

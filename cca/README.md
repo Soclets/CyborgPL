@@ -211,4 +211,41 @@ Dated, with the alternative, so each can become a question later.
   must prove or the final build refuses the map. Precog does not prove
   that yet, so CCA says so rather than trusting it. Structural hashing —
   plain values, text, chars, structs, enums and lists of them — works.
+- **2026-09-23 — Tasks are green, on one worker thread per core.**
+  `concurrency.md` says tasks are "lighter tasks multiplexed over" the
+  pool, so a task is a stack of its own and a saved stack pointer, and a
+  task that waits is parked rather than blocking a thread
+  (`runtime/src/tasks.rs`, with the context switch in assembly for
+  arm64 and x86-64, both tested — x86-64 under Rosetta). A program with
+  no `concur` starts no threads at all. The picks inside it:
+  one run queue under one lock (not work stealing); **256 KiB of stack
+  per task** and 8 MiB for MAIN when it runs as one, virtual, with a
+  64 KiB guard below that stops a runaway recursion instead of letting it
+  write over the next thing; the worker count is the number of online
+  cores. Alternatives: an OS thread per task (simple, and exactly what the
+  design ruled out); stackless tasks through LLVM's coroutine lowering
+  (no stack per task, but every function a task might wait in would
+  have to be compiled twice).
+- **2026-09-23 — A block that leaves early waits for its tasks; it does
+  not yet cancel them.** `concurrency.md`: "a block that fails cancels
+  the tasks it still has running". Cancelling a task mid-body needs points
+  where it can stop and the drops that run when it does, and what a
+  cancelled task *sees* is open in the design. Until then an early
+  `return`, `fail` or `break` waits for the block's tasks exactly as the
+  block's end does — the same result whenever the tasks would have
+  finished anyway, and a hang where one would have waited forever.
+- **2026-09-23 — A `concur.detached` task that can fail is refused.**
+  Nothing waits for it, so its failure has nowhere to land, and the
+  design does not say where it should go. A question for the design
+  session.
+- **2026-09-23 — Layer 3 stands in for the trips it did not unroll.** At
+  the last level a loop head is copied at, everything the loop writes is
+  forgotten and everything it leaves alone is kept, and layer 2's facts
+  for that head (the join of every state it ever saw arrive, over every
+  trip and call) narrow what was forgotten. That copy is every later trip
+  at once, so a loop no longer makes an `unsat` into a proof about a
+  prefix; `UNROLL_TOTAL` running out still does. The facts are used only
+  when layer 2 followed every call (the same `gave_up` gate as layer-1
+  folding). Alternative: loop invariants found by induction, which would
+  also prove what gradebook needs (`examples_unproven.txt`).
 

@@ -341,10 +341,19 @@ pub struct Input {
 
 /// Build the exact question for one site: *can any input reach here with a
 /// value this instruction cannot take?*
-pub fn encode(p: &Program, f: usize, site: SiteId) -> Option<Query> {
-    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new() };
+pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts) -> Option<Query> {
+    let mut aliased = std::collections::HashSet::new();
+    for b in &p.functions[f].blocks {
+        for s in &b.stmts {
+            if let StmtKind::Assign { rvalue: Rvalue::Lend { place, mutable: true }, .. } = &s.kind {
+                aliased.insert(place.local);
+            }
+        }
+    }
+    let borrows = shared_borrows(&p.functions[f]);
+    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows };
     e.build(site)?;
-    if e.reached.is_empty() {
+    if e.reached.is_empty() || e.unexpressible {
         return None;
     }
     let mut text = String::new();
@@ -388,9 +397,37 @@ struct Enc<'a> {
     /// One term per copy of the site: it is reached *and* the value is bad.
     reached: Vec<String>,
     inputs: Vec<Input>,
+    /// Locals something in this function takes a mutable borrow of into a
+    /// name: a write through that name changes them without saying so, so
+    /// nothing about them is trusted past a call, a task or an operation.
+    aliased: std::collections::HashSet<LocalId>,
+    /// Some copy of the site could not be asked about: the query proves
+    /// nothing.
+    unexpressible: bool,
+    /// Layer 2's invariants, per block.
+    facts: &'a crate::precog::Facts,
+    /// Locals that are nothing but a shared borrow of one place, reached by
+    /// fields alone, bound once in the whole function.
+    borrows: HashMap<LocalId, Place>,
 }
 
-type Env = HashMap<LocalId, Val>;
+/// What the query knows at one point: the value of each whole-number
+/// local, and the length of each list, text or map it has looked at.
+///
+/// A length is part of a collection's value. Reading `list.length` twice
+/// with nothing in between that could change the list must give the same
+/// number both times — a fresh unknown for each read would let a guard on
+/// the first read say nothing about the second, and the example of that is
+/// `if list.length[…] == 0 { fail … }` followed by a division by it.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+enum Key {
+    Local(LocalId),
+    /// A length of a place: its local, then its field path and which
+    /// length (bytes, points, elements…), spelled out.
+    Len(LocalId, String),
+}
+
+type Env = HashMap<Key, Val>;
 
 impl<'a> Enc<'a> {
     /// A value the query knows nothing about. It is declared under a plain
@@ -454,7 +491,7 @@ impl<'a> Enc<'a> {
             if let Some((bits, signed)) = int_shape(&ty) {
                 let v = self.fresh("in", bits, signed, self.p.functions[self.f].locals[l.0 as usize].name.clone().unwrap_or_else(|| "a parameter".to_string()));
                 self.constrain_range(&v, &ty);
-                env0.insert(*l, v);
+                env0.insert(Key::Local(*l), v);
             }
         }
         incoming.insert((0, 0), vec![("true".to_string(), env0)]);
@@ -476,9 +513,16 @@ impl<'a> Enc<'a> {
                 }
                 let is_back = back.contains(&(b, ti));
                 let next_level = if is_back { level + 1 } else { level };
-                if is_back && (next_level > UNROLL_PER_LOOP || unrollings >= UNROLL_TOTAL) {
-                    // The path is cut here: an `unsat` would only be about
-                    // the trips we did look at.
+                if is_back && next_level > UNROLL_PER_LOOP {
+                    // Not cut: the head at the last level already stands for
+                    // every later trip (see `last_trip`), so nothing is lost
+                    // by not going round again.
+                    continue;
+                }
+                if is_back && unrollings >= UNROLL_TOTAL {
+                    // Cut: the whole query ran out of room before this loop
+                    // reached its last level, so an `unsat` would only be
+                    // about the trips we did look at.
                     self.truncated = true;
                     continue;
                 }
@@ -488,6 +532,16 @@ impl<'a> Enc<'a> {
                 if !seen.contains(&(ti, next_level)) && !queue.contains(&(ti, next_level)) {
                     queue.push((ti, next_level));
                 }
+            }
+        }
+
+        // For each loop head, everything any loop through it may write.
+        let mut last_trip: HashMap<usize, std::collections::HashSet<LocalId>> = HashMap::new();
+        for (from, head) in back.iter() {
+            let body = crate::precog::natural_loop(f, *head, *from);
+            let entry = last_trip.entry(*head).or_default();
+            for blk in body {
+                written_in(&f.blocks[blk], entry);
             }
         }
 
@@ -505,15 +559,47 @@ impl<'a> Enc<'a> {
                         self.assign(&mut env, place, v);
                     }
                     StmtKind::Op { dest, op, args } => {
-                        let v = self.op(op, args, &env);
+                        let v = match op {
+                            Op::ListLength | Op::ArrayLength | Op::MapLength | Op::StrBytes | Op::StrPoints | Op::StrGraphemes => self.length(op, args, &mut env),
+                            _ => self.op(op, args, &env),
+                        };
+                        // An operation that changes a collection's size.
+                        if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore) {
+                            if let Some(p) = args.first().and_then(|a| a.place()) {
+                                self.forget(&mut env, p.local);
+                            }
+                            self.forget_aliased(&mut env);
+                        }
                         if let Some(d) = dest {
                             self.assign(&mut env, d, v);
                         }
                     }
+                    StmtKind::Task { captures, .. } => {
+                        // A task lent something mutably may change it at any
+                        // moment until its block ends.
+                        for (verb, p) in captures {
+                            if matches!(verb, crate::ast::Verb::LendMut | crate::ast::Verb::Give) {
+                                self.forget(&mut env, p.local);
+                            }
+                        }
+                        self.forget_aliased(&mut env);
+                    }
+                    StmtKind::Asm { outs, .. } => {
+                        for (p, _) in outs {
+                            self.forget(&mut env, p.local);
+                        }
+                    }
                     StmtKind::Site(id) if *id == site => {
-                        if let Some(bad) = self.bad_value(*id, &env) {
-                            let both = self.define_bool(&format!("(and {} {})", guard, bad));
-                            self.reached.push(both);
+                        match self.bad_value(*id, &env) {
+                            Some(bad) => {
+                                let both = self.define_bool(&format!("(and {} {})", guard, bad));
+                                self.reached.push(both);
+                            }
+                            // A copy of the site the query cannot put into
+                            // words. Leaving it out would ask only about the
+                            // copies it can, and an `unsat` about some of the
+                            // ways to reach a site is not a proof about it.
+                            None => self.unexpressible = true,
                         }
                     }
                     _ => {}
@@ -521,10 +607,28 @@ impl<'a> Enc<'a> {
             }
             // Where it goes, and what each successor then knows.
             let term = self.func().blocks[b].term.clone();
-            let mut send = |this: &mut Self, to: BlockId, g: String, e: Env| {
+            let mut send = |this: &mut Self, to: BlockId, g: String, mut e: Env| {
                 let ti = to.0 as usize;
                 let is_back = crate::precog::back_edges(this.func()).contains(&(b, ti));
                 let lvl = if is_back { level + 1 } else { level };
+                // The last level a loop head is copied at stands for that
+                // trip *and every one after it*: what the loop writes is
+                // forgotten, what it leaves alone is kept. Any later trip
+                // starts in a state that is one instance of this, so a site
+                // proven here is proven for them too — and the back edge out
+                // of this copy need not be followed at all.
+                if lvl == UNROLL_PER_LOOP {
+                    if let Some(written) = last_trip.get(&ti) {
+                        for l in written {
+                            this.forget(&mut e, *l);
+                            // What layer 2 knows holds on every trip through
+                            // this head: `'i'` counts up from 1, so it is
+                            // never below 1, whichever trip this stands for.
+                            this.assume_fact(&mut e, ti, *l);
+                        }
+                        this.forget_aliased(&mut e);
+                    }
+                }
                 if seen.contains(&(ti, lvl)) || incoming.contains_key(&(ti, lvl)) {
                     incoming.entry((ti, lvl)).or_default().push((g, e));
                 }
@@ -547,8 +651,19 @@ impl<'a> Enc<'a> {
                         }
                     }
                 }
-                Terminator::Call { callee, dest, ok, fail, .. } => {
-                    let mut e = env.clone();
+                Terminator::Call { callee, args, dest, ok, fail } => {
+                    // What the call may have written: everything lent to it
+                    // mutably, everything given away, and anything reachable
+                    // through a borrow this function holds.
+                    let mut after = env.clone();
+                    for a in args {
+                        match a {
+                            Arg::Lend { place, mutable: true } | Arg::Give(place) => self.forget(&mut after, place.local),
+                            _ => {}
+                        }
+                    }
+                    self.forget_aliased(&mut after);
+                    let mut e = after.clone();
                     if let Some(d) = dest {
                         // What a call gives back is not followed here; its
                         // type is all the query knows about it.
@@ -562,7 +677,31 @@ impl<'a> Enc<'a> {
                     }
                     send(self, *ok, guard.clone(), e);
                     for arm in fail {
-                        send(self, arm.block, guard.clone(), env.clone());
+                        let mut fe = after.clone();
+                        if let Some(p) = &arm.payload {
+                            self.forget(&mut fe, p.local);
+                        }
+                        send(self, arm.block, guard.clone(), fe);
+                    }
+                }
+                Terminator::TaskOutcome { ok, fail, .. } => {
+                    send(self, *ok, guard.clone(), env.clone());
+                    for arm in fail {
+                        let mut fe = env.clone();
+                        if let Some(p) = &arm.payload {
+                            self.forget(&mut fe, p.local);
+                        }
+                        send(self, arm.block, guard.clone(), fe);
+                    }
+                }
+                Terminator::Whichever { arms, closed } => {
+                    for arm in arms {
+                        let mut ae = env.clone();
+                        self.forget(&mut ae, arm.dest.local);
+                        send(self, arm.block, guard.clone(), ae);
+                    }
+                    if let Some(c) = closed {
+                        send(self, *c, guard.clone(), env.clone());
                     }
                 }
                 other => {
@@ -583,7 +722,7 @@ impl<'a> Enc<'a> {
         }
         let guard = self.define_bool(&format!("(or {})", arrivals.iter().map(|(g, _)| g.clone()).collect::<Vec<_>>().join(" ")));
         let mut env = Env::new();
-        let mut names: Vec<LocalId> = arrivals.iter().flat_map(|(_, e)| e.keys().copied()).collect();
+        let mut names: Vec<Key> = arrivals.iter().flat_map(|(_, e)| e.keys().cloned()).collect();
         names.sort();
         names.dedup();
         for l in names {
@@ -612,19 +751,113 @@ impl<'a> Enc<'a> {
     }
 
     fn assign(&mut self, env: &mut Env, place: &Place, v: Option<Val>) {
+        // Whatever is written, every length known of this local is stale.
+        self.forget_lengths(env, place.local);
         if !place.proj.is_empty() {
             // Part of a value: what the whole holds is no longer described.
-            env.remove(&place.local);
+            env.remove(&Key::Local(place.local));
             return;
         }
-        match v {
+        match v.or_else(|| self.unknown_of(place.local)) {
             Some(v) => {
-                env.insert(place.local, v);
+                env.insert(Key::Local(place.local), v);
             }
             None => {
-                env.remove(&place.local);
+                env.remove(&Key::Local(place.local));
             }
         }
+    }
+
+    /// Nothing is known of this local any more: its value and every length
+    /// of it. What a call wrote through a mutable lend, what a task holds,
+    /// what assembly produced.
+    fn forget(&mut self, env: &mut Env, l: LocalId) {
+        self.forget_lengths(env, l);
+        // Not removed: one unknown of its type, the same one for every read
+        // that follows, so a later test of it (a loop's `'i' <== n`) still
+        // constrains the value the site sees.
+        match self.unknown_of(l) {
+            Some(v) => {
+                env.insert(Key::Local(l), v);
+            }
+            None => {
+                env.remove(&Key::Local(l));
+            }
+        }
+    }
+
+    /// Narrow an unknown by what layer 2 proved about it at this block.
+    fn assume_fact(&mut self, env: &mut Env, block: usize, l: LocalId) {
+        let Some(crate::mir::domain::Domain::Ints(set)) = self.facts.get(&(self.f, block)).and_then(|m| m.get(&l)).cloned() else { return };
+        let Some((lo, hi)) = set.bounds() else { return };
+        let Some(v) = env.get(&Key::Local(l)).cloned() else { return };
+        if let (Some(a), Some(b)) = (self.cmp_const(&v, "bvsge", lo), self.cmp_const(&v, "bvsle", hi)) {
+            self.defs.push(format!("(assert (and {} {}))", a, b));
+        }
+    }
+
+    /// A place, seen through the shared borrows that name it. A `for` over
+    /// `lend 's'.scores` walks a temporary holding that borrow, and the
+    /// temporary's length *is* the list's: the same list, not a second one
+    /// that merely happens to be as long.
+    fn through_borrows(&self, p: &Place) -> Place {
+        let mut p = p.clone();
+        for _ in 0..8 {
+            let Some(target) = self.borrows.get(&p.local) else { break };
+            let mut next = target.clone();
+            next.proj.extend(p.proj.iter().cloned());
+            p = next;
+        }
+        p
+    }
+
+    /// Anything a whole-number local's type allows, named after it.
+    fn unknown_of(&mut self, l: LocalId) -> Option<Val> {
+        let decl = &self.func().locals[l.0 as usize];
+        let ty = decl.ty.clone();
+        let name = decl.name.clone().unwrap_or_else(|| "a value".to_string());
+        let (bits, signed) = int_shape(&ty)?;
+        let v = self.fresh("in", bits, signed, name);
+        self.constrain_range(&v, &ty);
+        Some(v)
+    }
+
+    fn forget_lengths(&mut self, env: &mut Env, l: LocalId) {
+        env.retain(|k, _| !matches!(k, Key::Len(x, _) if *x == l));
+    }
+
+    /// Everything that can be reached through a borrow held somewhere in
+    /// this function may have changed behind the query's back.
+    fn forget_aliased(&mut self, env: &mut Env) {
+        for l in self.aliased.clone() {
+            self.forget(env, l);
+        }
+    }
+
+    /// A length, the same one each time it is read until something could
+    /// have changed it. Only a place reached by fields alone is remembered:
+    /// `'xs'[pos 'i']` names a different element each time `'i'` moves.
+    fn length(&mut self, op: &Op, args: &[Operand], env: &mut Env) -> Option<Val> {
+        let key = args.first().and_then(|a| a.place()).map(|p| self.through_borrows(p)).and_then(|p| {
+            let p = &p;
+            let fields_only = p.proj.iter().all(|x| matches!(x, Proj::Field(_)));
+            if fields_only && !self.aliased.contains(&p.local) {
+                Some(Key::Len(p.local, format!("{:?}{:?}", p.proj, op)))
+            } else {
+                None
+            }
+        });
+        if let Some(k) = &key {
+            if let Some(v) = env.get(k) {
+                return Some(v.clone());
+            }
+        }
+        let v = self.fresh("len", 64, false, length_word(op).to_string());
+        self.defs.push(format!("(assert (bvsge {} (_ bv0 64)))", v.term));
+        if let Some(k) = key {
+            env.insert(k, v.clone());
+        }
+        Some(v)
     }
 
     fn place_ty(&self, p: &Place) -> Ty {
@@ -645,7 +878,7 @@ impl<'a> Enc<'a> {
                 if !p.proj.is_empty() {
                     return None;
                 }
-                env.get(&p.local).cloned()
+                env.get(&Key::Local(p.local)).cloned()
             }
         }
     }
@@ -698,13 +931,10 @@ impl<'a> Enc<'a> {
         match op {
             // A length is never negative, and that is worth telling the
             // solver even when nothing else about it is known.
-            Op::ListLength | Op::ArrayLength | Op::MapLength | Op::StrBytes | Op::StrPoints | Op::StrGraphemes => {
+            _ => {
                 let _ = (args, env);
-                let v = self.fresh("len", 64, false, length_word(op).to_string());
-                self.defs.push(format!("(assert (bvsge {} (_ bv0 64)))", v.term));
-                Some(v)
+                None
             }
-            _ => None,
         }
     }
 
@@ -794,7 +1024,24 @@ impl<'a> Enc<'a> {
         let site = self.func().sites[id.0 as usize].clone();
         let mut ops = Vec::new();
         for o in &site.operands {
-            ops.push(self.operand(o, env));
+            let v = match self.operand(o, env) {
+                Some(v) => Some(v),
+                // A whole number the query knows nothing about here is still
+                // a whole number of its type: anything that type allows.
+                None => match o.place() {
+                    Some(p) if p.proj.is_empty() => {
+                        let ty = self.place_ty(p);
+                        int_shape(&ty).map(|(bits, signed)| {
+                            let name = self.func().locals[p.local.0 as usize].name.clone().unwrap_or_else(|| "a value".to_string());
+                            let v = self.fresh("in", bits, signed, name);
+                            self.constrain_range(&v, &ty);
+                            v
+                        })
+                    }
+                    _ => None,
+                },
+            };
+            ops.push(v);
         }
         match &site.kind {
             SiteKind::Overflow(op) => {
@@ -864,6 +1111,106 @@ fn compare(op: &BinOp, signed: bool, a: &str, b: &str) -> String {
         BinOp::Gt => format!("({} {} {})", p("bvsgt", "bvugt"), a, b),
         BinOp::Ge => format!("({} {} {})", p("bvsge", "bvuge"), a, b),
         _ => "false".to_string(),
+    }
+}
+
+/// Locals bound exactly once, to a shared borrow of a place reached by
+/// fields alone, or to another such local. Anything bound twice may name a
+/// different place the second time, so it is left out.
+fn shared_borrows(f: &Function) -> HashMap<LocalId, Place> {
+    let mut count: HashMap<LocalId, u32> = HashMap::new();
+    let mut target: HashMap<LocalId, Place> = HashMap::new();
+    for b in &f.blocks {
+        for s in &b.stmts {
+            let (place, src) = match &s.kind {
+                StmtKind::Assign { place, rvalue } => (place, match rvalue {
+                    Rvalue::Lend { place: src, mutable: false } => Some(src.clone()),
+                    Rvalue::Use(Operand::Read(src)) if src.proj.is_empty() && matches!(f.locals[src.local.0 as usize].kind, LocalKind::Lent { mutable: false }) => Some(src.clone()),
+                    _ => None,
+                }),
+                StmtKind::Op { dest: Some(place), .. } => (place, None),
+                _ => continue,
+            };
+            *count.entry(place.local).or_default() += 1;
+            if let Some(src) = src {
+                if place.proj.is_empty() && src.proj.iter().all(|x| matches!(x, Proj::Field(_))) {
+                    target.insert(place.local, src);
+                }
+            }
+        }
+    }
+    target.retain(|l, _| count.get(l) == Some(&1) && matches!(f.locals[l.0 as usize].kind, LocalKind::Lent { mutable: false }));
+    target
+}
+
+/// Every local one block may write, by any means: assignment, an
+/// operation's result or its target, a call's result or what it was lent
+/// mutably or given, a task's captures, assembly, what a channel or a
+/// failure hands over.
+fn written_in(b: &BasicBlock, out: &mut std::collections::HashSet<LocalId>) {
+    for s in &b.stmts {
+        match &s.kind {
+            StmtKind::Assign { place, .. } => {
+                out.insert(place.local);
+            }
+            StmtKind::Op { dest, op, args } => {
+                if let Some(d) = dest {
+                    out.insert(d.local);
+                }
+                // The operations that change the collection they are handed
+                // — the same list the walk itself forgets on. Reading a
+                // list, printing one, measuring one changes nothing.
+                if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore) {
+                    if let Some(p) = args.first().and_then(|a| a.place()) {
+                        out.insert(p.local);
+                    }
+                }
+            }
+            StmtKind::Task { captures, .. } => {
+                for (_, p) in captures {
+                    out.insert(p.local);
+                }
+            }
+            StmtKind::Asm { outs, .. } => {
+                for (p, _) in outs {
+                    out.insert(p.local);
+                }
+            }
+            _ => {}
+        }
+    }
+    match &b.term {
+        Terminator::Call { args, dest, fail, .. } => {
+            if let Some(d) = dest {
+                out.insert(d.local);
+            }
+            for a in args {
+                match a {
+                    Arg::Lend { place, mutable: true } | Arg::Give(place) => {
+                        out.insert(place.local);
+                    }
+                    _ => {}
+                }
+            }
+            for arm in fail {
+                if let Some(p) = &arm.payload {
+                    out.insert(p.local);
+                }
+            }
+        }
+        Terminator::TaskOutcome { fail, .. } => {
+            for arm in fail {
+                if let Some(p) = &arm.payload {
+                    out.insert(p.local);
+                }
+            }
+        }
+        Terminator::Whichever { arms, .. } => {
+            for arm in arms {
+                out.insert(arm.dest.local);
+            }
+        }
+        _ => {}
     }
 }
 

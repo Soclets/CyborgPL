@@ -76,7 +76,7 @@ pub struct Analysis {
 type Env = HashMap<LocalId, Domain>;
 
 pub fn analyse(p: &mut Program) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new() };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -124,6 +124,10 @@ pub fn analyse(p: &mut Program) -> Analysis {
     certain_under_nocheck.sort_by_key(|(f, s, _)| (*f, s.0));
     certain_under_nocheck.dedup_by_key(|(f, s, _)| (*f, s.0));
     // Layer 3: what is left after layer 2 is asked exactly.
+    // Layer 2's joined block states, as facts layer 3 may lean on — only if
+    // layer 2 followed every call and every trip it needed to. If it gave
+    // up anywhere, a state it never saw could be a real one.
+    let facts: Facts = if a.gave_up { HashMap::new() } else { a.block_facts.clone() };
     let portfolio = smt::Portfolio::find();
     let mut solved = 0usize;
     let mut disagreements = Vec::new();
@@ -137,7 +141,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
             if !ask {
                 continue;
             }
-            let Some(q) = smt::encode(p, r.function, r.site) else {
+            let Some(q) = smt::encode(p, r.function, r.site, &facts) else {
                 // A site whose values bit-vectors do not describe — what a
                 // task computes, a horizontal sum across lanes. Layer 3
                 // ran; it had nothing it could ask.
@@ -207,7 +211,14 @@ struct Precog {
     /// What a function returns, for one set of argument domains.
     cache: HashMap<(usize, String), Domain>,
     reads_outside: bool,
+    /// Everything layer 2 ever saw arrive at each block, joined: every trip
+    /// of every loop, every call site. A sound invariant for the block —
+    /// provided nothing was skipped, which `gave_up` says.
+    block_facts: HashMap<(usize, usize), Env>,
 }
+
+/// What layer 3 may assume at the head of a loop, per function and block.
+pub type Facts = HashMap<(usize, usize), HashMap<LocalId, Domain>>;
 
 impl Precog {
     fn prog(&self) -> &Program {
@@ -253,6 +264,22 @@ impl Precog {
             }
             let Some(mut env) = states[b].clone() else { continue };
             visits[b] += 1;
+            // Remember what arrived here, joined with everything that ever
+            // did. A local missing from either side is unknown in the join.
+            match self.block_facts.get_mut(&(f, b)) {
+                None => {
+                    self.block_facts.insert((f, b), env.clone());
+                }
+                Some(seen) => {
+                    seen.retain(|l, d| match env.get(l) {
+                        Some(now) => {
+                            *d = d.union(now);
+                            true
+                        }
+                        None => false,
+                    });
+                }
+            }
             let widening = visits[b] as u64 > 32 || self.trips > TRIPS_PER_PROGRAM;
             // One block's statements.
             let stmts = self.prog().functions[f].blocks[b].stmts.clone();
@@ -339,6 +366,10 @@ impl Precog {
                         if depth < CALL_DEPTH {
                             self.run_function(idx, tenv, depth + 1);
                         }
+                        // A task lent something mutably may change it at any
+                        // moment until its block ends.
+                        let lent: Vec<Place> = captures.iter().filter(|(v, _)| *v == crate::ast::Verb::LendMut).map(|(_, p)| p.clone()).collect();
+                        self.forget_mutable_lends(f, &mut env, lent.into_iter());
                     }
                     StmtKind::Asm { outs, .. } => {
                         // Nothing about assembly can be known.
@@ -423,13 +454,27 @@ impl Precog {
                 }
                 Terminator::Call { callee, args, dest, ok, fail } => {
                     let ret = self.call(f, callee, args, &env, depth);
-                    let mut e = env.clone();
+                    // What the call may have changed. A language operation
+                    // says exactly how; anything else lent mutably is now
+                    // whatever its type allows.
+                    let mut after = env.clone();
+                    match callee {
+                        Callee::Op(op) => {
+                            let ops: Vec<Operand> = args.iter().map(arg_operand).collect();
+                            self.apply_op_effect(f, &mut after, op, &ops);
+                        }
+                        _ => self.forget_mutable_lends(f, &mut after, args.iter().filter_map(|a| match a {
+                            Arg::Lend { place, mutable: true } => Some(place.clone()),
+                            _ => None,
+                        })),
+                    }
+                    let mut e = after.clone();
                     if let Some(p) = dest {
                         self.store(f, &mut e, p, ret);
                     }
                     go(self, *ok, e, &mut states, &mut work);
                     for arm in fail {
-                        let mut fe = env.clone();
+                        let mut fe = after.clone();
                         if let Some(p) = &arm.payload {
                             let ty = self.place_ty(f, p);
                             self.store(f, &mut fe, p, Domain::of_ty(&ty, &self.prog().items));
@@ -448,10 +493,18 @@ impl Precog {
                         go(self, *c, env.clone(), &mut states, &mut work);
                     }
                 }
-                Terminator::Join { ok, fail } => {
+                Terminator::Join { ok, .. } => {
+                    go(self, *ok, env.clone(), &mut states, &mut work);
+                }
+                Terminator::TaskOutcome { ok, fail, .. } => {
                     go(self, *ok, env.clone(), &mut states, &mut work);
                     for arm in fail {
-                        go(self, arm.block, env.clone(), &mut states, &mut work);
+                        let mut fe = env.clone();
+                        if let Some(p) = &arm.payload {
+                            let ty = self.place_ty(f, p);
+                            self.store(f, &mut fe, p, Domain::of_ty(&ty, &self.prog().items));
+                        }
+                        go(self, arm.block, fe, &mut states, &mut work);
                     }
                 }
                 Terminator::Return => {
@@ -903,6 +956,18 @@ impl Precog {
         }
     }
 
+    /// A value lent mutably to code Precog did not follow step by step — a
+    /// function's body, a task running alongside, C — may come back as
+    /// anything its type allows. Keeping what was known before would make a
+    /// check look proven after a call that emptied the list it guards.
+    fn forget_mutable_lends(&mut self, f: usize, env: &mut Env, places: impl Iterator<Item = Place>) {
+        for place in places {
+            let ty = self.place_ty(f, &place);
+            let d = Domain::of_ty(&ty, &self.prog().items);
+            self.store(f, env, &place, d);
+        }
+    }
+
     fn arg_domain(&mut self, f: usize, env: &Env, a: &Arg) -> Domain {
         match a {
             Arg::Value(o) => self.read_operand(f, env, o),
@@ -1101,8 +1166,16 @@ impl Precog {
                     Verdict::Fails { counterexample: format!("the {} lanes can reach position {} when there are {} element(s)", lanes, ihi, llo) }
                 }
             }
+            // A lend into a task is only ever into a structured one (the
+            // checker refuses a lend into `concur.detached`), and a block
+            // waits for the tasks it started before it gives back anything
+            // it owns, on every way out — the end, `return`, `break`, `fail`
+            // (`mir::build::pop_scope` and `unwind_to` join first, then
+            // drop). So what a task borrowed is still there when it ends:
+            // "structured tasks make that provable" (`concurrency.md`).
+            SiteKind::TaskLendOutlives => Verdict::Proven { how: "structured: the block waits for its tasks before it lets go of anything" },
             // The ones layer 3 and the verification session take.
-            SiteKind::KeyHashAgrees | SiteKind::LendOutlives | SiteKind::TaskLendOutlives | SiteKind::ChannelReachable | SiteKind::Deadlock => Verdict::Unproven,
+            SiteKind::KeyHashAgrees | SiteKind::LendOutlives | SiteKind::ChannelReachable | SiteKind::Deadlock => Verdict::Unproven,
         }
     }
 
@@ -1369,7 +1442,7 @@ pub fn back_edges(f: &Function) -> std::collections::HashSet<(usize, usize)> {
 
 /// The blocks of the loop that back edge `b -> h` closes: the head, and
 /// everything that reaches `b` without passing through the head again.
-fn natural_loop(f: &Function, h: usize, b: usize) -> Vec<usize> {
+pub fn natural_loop(f: &Function, h: usize, b: usize) -> Vec<usize> {
     let mut preds: Vec<Vec<usize>> = vec![Vec::new(); f.blocks.len()];
     for (i, blk) in f.blocks.iter().enumerate() {
         for t in crate::mir::verify::successors(&blk.term) {

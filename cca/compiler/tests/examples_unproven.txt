@@ -1,0 +1,13 @@
+# Examples Precog refuses because a `check` in them asks for a proof Precog
+# cannot make yet — not because the program is wrong. `examples/` is the
+# design session's, so each is reported there as a question. The test insists
+# each of these is still refused, so the day Precog proves one the suite says
+# so and the line goes.
+
+gradebook :: line 12, `check return 'total' / list.length[lend 's'.scores]`.
+    The divisor is proven (the `if` above it). The `check` also covers the
+    narrowing of the average to `int32`, which needs "the sum of n int32s is
+    between n x min and n x max" — a relational loop invariant that neither
+    interval domains nor unrolling finds. It passed before 2026-09-23 only
+    because Precog did not forget a list after `record[lend.mut 'a', ...]`
+    changed it, and so believed Ann's scores were still exactly empty.

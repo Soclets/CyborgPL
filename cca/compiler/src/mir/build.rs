@@ -106,12 +106,15 @@ struct FnBuilder<'a> {
     captures: Vec<LocalId>,
     /// The checker's local table: a task's body shares its parent's.
     hir_locals: Vec<hir::Local>,
-    /// Per scope: where a task started in it lands when it fails.
-    task_fails: Vec<Vec<FailArm>>,
-    /// Per scope: the block each task handler falls out of. It cannot know
-    /// where to go until the wait it belongs to exists, so it is patched
-    /// when the block ends.
-    task_after: Vec<Vec<BlockId>>,
+    /// Per scope, for each task started in it that can fail: which task,
+    /// its body, the arms of its `otherwise`, and the block its handler
+    /// falls out of — which cannot know where to go until the wait it
+    /// belongs to exists, so it is patched when the block ends.
+    task_fails: Vec<Vec<(u32, FnIdx, Vec<FailArm>, BlockId)>>,
+    /// Per scope: the group its tasks join, made when the first one starts.
+    task_group: Vec<Option<u32>>,
+    next_group: u32,
+    next_task: u32,
     /// The slot a `return` fills.
     ret_local: Option<LocalId>,
     /// The span of the instruction most recently lowered, for a terminator
@@ -145,7 +148,9 @@ impl<'a> FnBuilder<'a> {
             captures: Vec::new(),
             hir_locals: body.locals.clone(),
             task_fails: vec![Vec::new()],
-            task_after: vec![Vec::new()],
+            task_group: vec![None],
+            next_group: 0,
+            next_task: 0,
             ret_local: None,
             last_span: SpanId(0),
         };
@@ -276,28 +281,36 @@ impl<'a> FnBuilder<'a> {
         self.scopes.push(Vec::new());
         self.tasks_in_scope.push(0);
         self.task_fails.push(Vec::new());
-        self.task_after.push(Vec::new());
+        self.task_group.push(None);
     }
 
     /// Drop this scope's owned values, newest first, and wait for its tasks.
     fn pop_scope(&mut self, span: SpanId) {
         let tasks = self.tasks_in_scope.pop().unwrap_or(0);
         let fails = self.task_fails.pop().unwrap_or_default();
-        let after = self.task_after.pop().unwrap_or_default();
+        let group = self.task_group.pop().flatten();
         let locals = self.scopes.pop().unwrap_or_default();
         if !self.closed() {
-            if tasks > 0 {
-                // The block waits for what it started; a task's failure is an
-                // edge out of the wait, and its handler rejoins here.
-                let ok = self.new_block();
-                self.terminate(Terminator::Join { ok, fail: fails });
-                for b in after {
-                    self.blocks[b.0 as usize].term = Terminator::Goto(ok);
-                }
-                self.cur = ok;
+            if let (true, Some(g)) = (tasks > 0, group) {
+                self.join(g, fails);
             }
             self.drop_locals(&locals, span);
         }
+    }
+
+    /// The block waits for everything it started, then asks each task that
+    /// could fail how it ended, one after another — so when two fail, both
+    /// handlers run, each where its `concur` said.
+    fn join(&mut self, group: u32, fails: Vec<(u32, FnIdx, Vec<FailArm>, BlockId)>) {
+        let mut next = self.new_block();
+        self.terminate(Terminator::Join { group, ok: next });
+        for (id, body, arms, after) in fails {
+            self.cur = next;
+            next = self.new_block();
+            self.terminate(Terminator::TaskOutcome { id, body, ok: next, fail: arms });
+            self.blocks[after.0 as usize].term = Terminator::Goto(next);
+        }
+        self.cur = next;
     }
 
     fn drop_locals(&mut self, locals: &[LocalId], span: SpanId) {
@@ -316,14 +329,9 @@ impl<'a> FnBuilder<'a> {
         let mut i = self.scopes.len();
         while i > depth {
             i -= 1;
-            if self.tasks_in_scope.get(i).copied().unwrap_or(0) > 0 {
-                let ok = self.new_block();
+            if let (true, Some(g)) = (self.tasks_in_scope.get(i).copied().unwrap_or(0) > 0, self.task_group.get(i).copied().flatten()) {
                 let fails = self.task_fails.get(i).cloned().unwrap_or_default();
-                self.terminate(Terminator::Join { ok, fail: fails });
-                for b in self.task_after.get(i).cloned().unwrap_or_default() {
-                    self.blocks[b.0 as usize].term = Terminator::Goto(ok);
-                }
-                self.cur = ok;
+                self.join(g, fails);
             }
             let locals = self.scopes[i].clone();
             self.drop_locals(&locals, span);
@@ -757,15 +765,29 @@ impl<'a> FnBuilder<'a> {
                 self.site(SiteKind::TaskLendOutlives, vec![Operand::Read(place.clone())], span);
             }
         }
-        self.push(StmtKind::Task { detached, body: idx, captures: caps }, span);
+        let id = self.next_task;
+        self.next_task += 1;
+        let group = if detached {
+            u32::MAX
+        } else {
+            match *self.task_group.last().unwrap() {
+                Some(g) => g,
+                None => {
+                    let g = self.next_group;
+                    self.next_group += 1;
+                    *self.task_group.last_mut().unwrap() = Some(g);
+                    g
+                }
+            }
+        };
+        self.push(StmtKind::Task { detached, body: idx, captures: caps, group, id }, span);
         if !detached {
             *self.tasks_in_scope.last_mut().unwrap() += 1;
         }
         if let Some(o) = otherwise {
             // The handler runs where the block waits, not here.
             let (arms, after) = self.fail_blocks(o, fails, None, span);
-            self.task_fails.last_mut().unwrap().extend(arms);
-            self.task_after.last_mut().unwrap().push(after);
+            self.task_fails.last_mut().unwrap().push((id, idx, arms, after));
         }
     }
 

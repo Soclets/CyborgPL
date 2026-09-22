@@ -8,6 +8,8 @@
 //! trap at run time names the site").
 #![no_std]
 
+pub mod tasks;
+
 extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;
     fn exit(code: i32) -> !;

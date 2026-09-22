@@ -287,7 +287,10 @@ pub enum StmtKind {
     /// or (for a mutable lend) read it — what the borrow checker walks.
     EndLend(Place),
     /// A task: its body is its own MIR function, with what it captured.
-    Task { detached: bool, body: FnIdx, captures: Vec<(crate::ast::Verb, Place)> },
+    /// `concur`: start `body` with these captures. A structured task joins
+    /// `group` — one per block that starts tasks — and `id` names it for
+    /// its outcome check; a detached one belongs to no group.
+    Task { detached: bool, body: FnIdx, captures: Vec<(crate::ast::Verb, Place)>, group: u32, id: u32 },
     Asm { text: String, ins: Vec<(Place, String)>, outs: Vec<(Place, String)>, clobbers: Vec<String> },
     Nop,
 }
@@ -334,7 +337,13 @@ pub enum Terminator {
     /// The end of a block that started tasks: it waits for them here, and a
     /// task's failure is an edge out of the wait (`concurrency.md`: the
     /// handler runs when the enclosing block ends).
-    Join { ok: BlockId, fail: Vec<FailArm> },
+    Join { group: u32, ok: BlockId },
+    /// After the wait: did task `id` (whose body is `body`) fail, and how?
+    /// One check per task that can fail, chained, because two tasks in one
+    /// block can both fail and each has its own handler (`concurrency.md`:
+    /// the handler runs when the enclosing block ends). `ok` is the next
+    /// check, or the rest of the block.
+    TaskOutcome { id: u32, body: FnIdx, ok: BlockId, fail: Vec<FailArm> },
     Return,
     Fail { index: usize, payload: Option<Operand> },
     /// A check that fired. The working build traps here with the site

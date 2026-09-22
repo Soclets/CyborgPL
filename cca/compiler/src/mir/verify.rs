@@ -153,7 +153,8 @@ pub fn successors(t: &Terminator) -> Vec<BlockId> {
             v.extend(closed);
             v
         }
-        Terminator::Join { ok, fail } => {
+        Terminator::Join { ok, .. } => vec![*ok],
+        Terminator::TaskOutcome { ok, fail, .. } => {
             let mut v = vec![*ok];
             v.extend(fail.iter().map(|f| f.block));
             v

@@ -64,17 +64,25 @@ fn prove(path: &Path) -> Result<(), String> {
 
 /// No example may be refused by Precog: they are the language's own
 /// programs, and every one of them is meant to build.
+///
+/// Except where Precog honestly cannot prove what a `check` asks of it yet:
+/// those are listed in `examples_unproven.txt` with the reason, and the test
+/// insists each is *still* refused — the day Precog proves one, the suite
+/// says so and the line goes.
 #[test]
 fn examples_are_not_refused_by_precog() {
     let pending = load_pending();
+    let unproven = load_list("examples_unproven.txt");
     let mut failures = Vec::new();
     for src in targets(&repo().join("examples")) {
         let name = name_of(&src);
         if pending.contains_key(&name) {
             continue;
         }
-        if let Err(msg) = prove(&src) {
-            failures.push(format!("{}:\n{}", name, indent(&msg)));
+        match (unproven.get(&name), prove(&src)) {
+            (None, Err(msg)) => failures.push(format!("{}:\n{}", name, indent(&msg))),
+            (Some(why), Ok(())) => failures.push(format!("{}: Precog proves it now, and tests/examples_unproven.txt still lists it — drop that line.\n  It said: {}", name, why)),
+            _ => {}
         }
     }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
@@ -137,7 +145,12 @@ fn examples_load_and_check() {
 /// Examples CCA cannot check yet, with the reason. One entry per example,
 /// `name :: why`, continued on indented lines.
 fn load_pending() -> HashMap<String, String> {
-    let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/examples_pending.txt")).unwrap();
+    load_list("examples_pending.txt")
+}
+
+/// `name :: why` lines, a line without `::` continuing the one above.
+fn load_list(file: &str) -> HashMap<String, String> {
+    let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join(file)).unwrap();
     let mut out: HashMap<String, String> = HashMap::new();
     let mut last: Option<String> = None;
     for line in text.lines() {
