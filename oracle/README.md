@@ -98,6 +98,10 @@ had to make to run at all; none is a decision.
 
 
 
+## Not implemented yet
+
+- `concur`, `concur.detached`, `channel[T]`, `channel.send/take`, `pick`, duration literals (`5 seconds`), `std::time.*` — designed 2026-09-22 (`design/concurrency.md`), not in the oracle yet.
+
 ## Not implemented because not designed
 
 String iteration,

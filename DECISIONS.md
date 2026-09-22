@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Concurrency: `concur`, explicit captures, structured + `concur.detached`, `otherwise` on the task, bounded channels, `pick`, duration literals (owner)
+
+Eight questions. Model: tasks + channels with ownership (b) over
+Precog-automatic (a) and async/await (c). The word: `concur` (owner
+asked for it over `task`, weighed "agree", chose it; `concurrent` has
+no standard abbreviation). Captures: explicit `with […]`, all verbs,
+lend a check site (a) over give/copy only (b). Lifetime: structured
+with `concur.detached` for program-lifetime work (c); owner asked
+what needs detaching — a task whose starter must return first
+(autosave from `setup`, a library's listener). A task's failure:
+`otherwise` on the `concur`, fired at the block's end (a). Channels:
+capacity by the bound rule, no bound = hand-off, unbounded refused
+(b). Several channels: `pick { 'v' from lend 'c' { … } … }` (a). Time:
+std, with duration literals — owner: `[1 seconds]` not `[1, seconds]`
+(the unit on the number, as a bound); units nanos…hours, more precise
+"down to what a clock measures"; singular and plural accepted.
+`design/concurrency.md`. Oracle: not yet.
+
 ### 2026-09-22 — Diagnostics: root cause first, Rust-helpful, human and IDE locations (owner)
 
 Owner: the report has a line per `for` (yes); and asked how error
@@ -1466,7 +1484,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
-- Concurrency (async, channels, shared mutable state) — not designed; parallelism is decided separately. (Claude, 2026-09-14)
+- Concurrency: cancellation by hand; `pick` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)

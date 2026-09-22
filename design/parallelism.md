@@ -1,8 +1,7 @@
 # Parallelism
 
-Decided 2026-09-14. Concurrency (tasks that pause, resume, and share state —
-async, channels) is a separate, undesigned topic; see `DECISIONS.md` open
-questions.
+Decided 2026-09-14. Concurrency (tasks that wait on the outside world —
+`concur`, channels, `pick`) is `concurrency.md`, decided 2026-09-22.
 
 ## Automatic
 
