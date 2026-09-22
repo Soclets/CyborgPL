@@ -24,18 +24,26 @@ help: declare it a `list`:
 ```
 
 ```
-check: `'xs'[pos 'k']` can go out of bounds
+check: line 31 can fail — 'k' can be past the end of 'xs'
   --> shop.cpls:31:20   (in `pick`, called from MAIN at line 48)
    |
 31 |         let 'x' := 'xs'[pos 'k'];
-   |                    ^^^^^^^^^^^^^ 'k' can be 100 when 'xs' has 100 elements
+   |                    ^^^^^^^^^^^^^ if 'k' is 101 and 'xs' has 100 elements, there is no element to take
    |
-   = started at: line 4, `to.int32[std::input.line[] …]` — 'n' has no upper bound there
-   = fails for: 'n' = 100
-   = run it:    jetpack run shop.cpls --input "100"
-help: bound it at the source: `to.int32[1, 99][…]` at line 4
-      or guard it here: `if 'k' <== list.length[lend 'xs'] { … }`
+why:    'k' comes from 'n', and 'n' is read from the user at line 4 with no limit — it can be anything
+try it: jetpack run shop.cpls --input "101"
+help:   either limit the number where it is read:
+   |
+ 4 |     let 'n' := to.int32[1, 99][std::input.line[] otherwise ""] otherwise 0;
+   |                        ~~~~~~~
+        or check 'k' before using it:
+   |
+31 |         if 'k' <== list.length[lend 'xs'] { let 'x' := 'xs'[pos 'k']; … }
 ```
+
+(The first draft said "can go out of bounds", "started at:", and put
+`=` before the extra lines as rustc does; the owner could not read it.
+The rule that came out of it is 8 below.)
 
 ## The rules
 
@@ -73,6 +81,14 @@ help: bound it at the source: `to.int32[1, 99][…]` at line 4
    Notes may carry the language's personality (the `&` remark, the long
    `printu` name).
 7. **Colour** in a terminal, plain text in a file, JSON when asked.
+8. **Say what would happen, and no borrowed furniture.** "'k' can be
+   past the end of 'xs'", not "out of bounds"; "there is no element to
+   take", not "index error". The extra lines are labelled with plain
+   words at the margin — `why:`, `try it:`, `help:` — never rustc's
+   `= note:` (`=` means assignment here). Every mark on the screen means
+   something in Cyborg. Fixes are shown as the edited source line, not
+   as fragments. The test of a message is whether the owner can read
+   it cold.
 
 ## The report
 
