@@ -234,6 +234,31 @@ default sites still checked (working build only; a final build has none).
 decided it. The Precog oracle (`compiler-verification.md`) reads this
 report to know which claims to attack.
 
+## The Precog oracle (decided 2026-09-22, owner: a + b + c)
+
+The second of the three oracles in `compiler-verification.md`, attacking
+every claim in the report, by a different author than Precog, no shared
+code. Three attacks, one per way Precog can be wrong:
+
+- **a. Exhaustive and random execution.** For every site Precog calls
+  proven, run the program through the interpreter oracle over every input
+  when the domains are small (all of `int8`, every list to length 4),
+  and over random plus edge values (0, −1, min, max, empty, one past the
+  bound) when they are not. A check that fires is a Precog bug. Kespar's
+  generator did this and found three layer-2 bugs in one commit.
+- **b. An independent interval analysis** — deliberately simple,
+  separately written — recomputing each site's range. A site where
+  Precog claims a range the simple analysis cannot justify is flagged.
+  Attacks layer 2, which is where Kespar's bugs were.
+- **c. The negation, re-encoded.** For every solver-proven site, a fresh
+  solver instance is asked "find an input that fails here" through a
+  second, independently written program-to-query translation. Attacks
+  layer 3's encoding with the part of Precog least likely to be wrong,
+  the solvers themselves.
+
+Owner chose b + c on top of a after asking the difference: c alone
+leaves layer-2 proofs covered only by testing; b covers them by analysis.
+
 ## What Kespar learned (2026-09-16..19)
 
 - The sieve took 14.7 s of compile time until four engineering fixes
@@ -261,6 +286,5 @@ report to know which claims to attack.
 - The pinned solver versions and configurations; what disagreement
   between Z3 and CVC5 (`sat` vs `unsat` on one query) does beyond being
   reported — it should never happen, and the build should say so loudly.
-- The Precog oracle's shape (brute force over domains; how far).
 - Interaction with `extern`: a C result's domain is its type's full range;
   is there ever a way to say more (a contract on an extern)? Today: no.

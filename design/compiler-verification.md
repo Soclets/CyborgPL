@@ -38,12 +38,11 @@ kind — a second interpreter would only be the same reading again:
 1. **The interpreter oracle** (exists, `oracle/`) — answers "what does this
    program *do*". Differential testing against the compiler on the
    examples and on generated programs.
-2. **The Precog oracle** — answers "what can be *proven*". A small, slow,
-   brute-force analyser: run a check site over every value its range type
-   allows, every input up to a size, and say "safe" or show the
-   counterexample. The real Precog is clever and fast; this one is dumb and
-   exhaustive, and a disagreement is a Precog bug. It comes with the Precog
-   design, which is not yet written.
+2. **The Precog oracle** — answers "what can be *proven*". Three attacks
+   on every claim in Precog's report (decided 2026-09-22, `precog.md`):
+   exhaustive/random execution over the domains; an independent simple
+   interval analysis; and the negation of every solver-proven site,
+   re-encoded by a second author. A disagreement is a Precog bug.
 3. **The translation-validation oracle** — answers "does the machine code
    still mean the source". Checks the compiler's LLVM IR against the
    program (Alive2's territory), as above.

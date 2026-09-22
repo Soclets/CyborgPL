@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — The Precog oracle: exhaustive execution + independent interval analysis + re-encoded negation (owner: b + c)
+
+Proposed (a) exhaustive/random execution over small domains (Kespar's
+generator); (b) a plus an independent simple interval analysis
+(attacks layer 2); (c) a plus the negation of each solver-proven site
+through a second encoding (attacks layer 3). Claude first recommended
+c; owner asked c vs b + c; given Kespar's bugs were all layer 2, Claude
+shifted to b + c. Owner: b + c. Different author than Precog, no shared
+code.
+
 ### 2026-09-22 — Layer 3 solver: a Z3 + CVC5 portfolio (owner: b)
 
 Proposed (a) Z3 only, pinned; (b) a portfolio of Z3 and CVC5, both to
