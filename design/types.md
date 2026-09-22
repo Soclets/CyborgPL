@@ -33,9 +33,18 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
   and software everywhere else. LLVM IR has no decimal type, so the hardware
   path must go through target intrinsics or inline asm rather than a plain IR
   op.
-- **`str` layout:** a fixed 24-byte handle (pointer, length, capacity) plus
-  a heap buffer sized by the encoding. Known-at-compile-time strings need no
-  heap — Precog bakes them into the binary as constant data.
+- **`str` layout** (owner, 2026-09-22): a **16-byte handle — a pointer
+  and a length** — plus the bytes it points at. No capacity field: a
+  text is never grown in place, since `++` makes a new one, so a third
+  number would be dead weight in every list, struct and array of texts.
+  **Where Precog proves a text is built by repeated `++`** — the
+  builder pattern, a loop appending to the same name — *that* text
+  gets a hidden capacity and grows in place, one allocation instead of
+  N. The field exists only in the values that earn it; the type stays
+  16 bytes. (Proposed: 16 bytes always; 24 bytes always; owner: both,
+  Precog deciding — the same trick as `list` vs `array` and a map's
+  order list.) Known-at-compile-time texts need no heap: Precog bakes
+  them into the binary as constant data.
 - **`str` encoding is part of the chain** (`str.utf8`), same shape as a
   numeric width. Encodings: `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best from use;
   in the typed form the encoding is mandatory (decided 2026-09-14).

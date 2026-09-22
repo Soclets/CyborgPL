@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — `str` is a 16-byte handle; Precog adds a capacity where a builder is proven (owner: c)
+
+The compiler session's first layout question (it blocks about three
+quarters of `examples/` from reaching machine code). Proposed (a)
+pointer + length, 16 bytes — nothing grows a text in place, so a
+capacity is dead weight everywhere; (b) pointer + length + capacity,
+24 bytes. Owner asked the difference and whether Precog could help,
+then chose **c**, which that question produced: the type is 16 bytes,
+and where Precog proves a text is built by repeated `++` in a loop
+that text grows in place with a hidden capacity — one allocation
+instead of N, paid only by the values that earn it. Replaces Claude's
+2026-09-14 note in `design/types.md` (24 bytes), which was never a
+decision.
+
 ### 2026-09-22 — A `std::duration` is never negative (owner: a)
 
 The compiler session found `oracle/tests/reject/duration_negative.cpls`
