@@ -5,17 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-09-22 — No explicit SIMD types for now; plain loops, Precog, LLVM's vectoriser (owner: a)
+### 2026-09-22 — Explicit SIMD types: language types like `uint8x16` (owner: b)
 
-Raised by Swift's `SIMD16<UInt8>` example. Proposed (a) none: a plain
-`for` over an `array[uint8]` with its checks proven away is what
-LLVM's vectoriser wants; measure once the compiler exists; (b)
-language vector types (`uint8x16`) with element-wise operators; (c) a
-std Limb over intrinsics. Owner: a. Revisit only if measured plain
-loops come out slow. Same day: Swift 6.4 `-O` measured at 1.4–3.3×
-C on the seven benchmarks (overflow and bounds checks it cannot prove
-away; refcounts; COW) and 0.9× on strings — the working-build cost
-Precog exists to remove.
+Raised by Swift's `SIMD16<UInt8>` example. Proposed (a) none — the
+plain loop with its checks proven away is what LLVM's vectoriser
+wants, measure first; (b) language vector types (`uint8x16`,
+`bin32x4`) with element-wise operators; (c) a std Limb over
+intrinsics. Claude recommended a; owner chose **b** (first said a by
+misreading, corrected at once). To design: the spelling and which
+widths, the operators, how a vector is loaded from and stored to an
+`array`, one lane (`[pos i]`), what Precog tracks per lane, and what
+happens on a target whose registers are narrower. Plain loops still
+auto-vectorise; the types are for when that is not enough. Same day:
+Swift 6.4 `-O` measured at 1.4–3.3× C on the seven benchmarks
+(overflow and bounds checks it cannot prove away; refcounts; COW) and
+0.9× on strings — the working-build cost Precog exists to remove.
 
 ### 2026-09-22 — No `std::` for now; Precog built in from the first commit (owner, in the compiler session; confirmed here)
 
@@ -1557,7 +1561,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
-- Explicit SIMD types (`uint8x16`) — only if measured plain loops vectorise poorly after Precog. (owner: none for now, 2026-09-22)
+- Explicit SIMD types: the design (owner chose to have them, 2026-09-22) — spelling, widths, operators, load/store, lanes, Precog's per-lane domains, narrower targets.
 
 
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
