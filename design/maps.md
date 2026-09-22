@@ -122,6 +122,17 @@ Proposed alternative: two words like `list`/`array`; there is no honest
 second noun. A sorted map (Rust's `BTreeMap`) would be a genuinely
 different type, for later if wanted.
 
+## Layout (owner, 2026-09-22)
+
+One flat table, open addressing (never a linked bucket per entry). An
+**unordered map's handle is three fields** — a pointer to the table, a
+count, a capacity (24 bytes) — and an **ordered map's is four**, the
+fourth pointing at the insertion-order list. Two shapes, not one with a
+null pointer (proposed, and declined: a map that is never walked would
+carry 8 bytes for a list it does not have). Precog already knows which
+a given map is, since it chose the variant; a `map.unordered` written
+by hand is always the small one.
+
 ## Open
 
 - Precog's key and value domains in detail (`precog.md`).

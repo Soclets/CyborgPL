@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Map layout: two shapes, ordered and unordered (owner: b)
+
+The fourth layout question. Open addressing was already decided; the
+open part was the order list. Proposed (a) one four-field handle with
+a null order pointer for unordered maps; (b) two shapes — three fields
+unordered, four ordered — since Precog chose the variant and knows
+which each map is. Owner: b.
+
 ### 2026-09-22 — Layout: `list` 24 bytes, `array` and `str` 16; Precog drops a proven list's capacity (owner)
 
 The third layout question. Proposed (a) different shapes — each type as
