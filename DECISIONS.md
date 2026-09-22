@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — The same fault twice, and a hole in the oracle (compiler session)
+
+After the ruling below, the compiler session found `check_tiers.cpls`
+line 22 doing the same thing (`'xs'[pos 1] = 'x' / 2` — a bin into an
+integer list) and diagnosed why the oracle had not caught it: element
+assignment enforced the element type only when the list was
+*declared*, never when it was `:=`. Both fixed: the oracle now takes an
+untyped list's element family from what is in it (reject test
+`bin_into_untyped_int_list`), and the example spells the crossing —
+`to.int32['x' / 2.0] otherwise 0` — which keeps the output byte for
+byte and demonstrates the rule the example is now about. Two
+independent readings of one spec, working as intended.
+
 ### 2026-09-22 — A name never changes numeric family; `examples/check_tiers.cpls` was wrong (owner)
 
 The compiler session, building its checker, found `design/types.md`

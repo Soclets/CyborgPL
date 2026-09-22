@@ -19,6 +19,7 @@ MAIN {
     }
     std::print.stdout[\n];
     nocheck 'xs'[pos 2] = 9;
-    check if 'x' > 0 { 'xs'[pos 1] = 'x' / 2; }
+    # crossing families is spelled, and it fails rather than rounds (`types.md`)
+    check if 'x' > 0.0 { 'xs'[pos 1] = to.int32['x' / 2.0] otherwise 0; }
     std::printu.stdout['xs', \n];
 }
