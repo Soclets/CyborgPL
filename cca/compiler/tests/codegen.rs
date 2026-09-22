@@ -131,7 +131,10 @@ fn programs_give_back_what_they_took() {
     }
     assert!(runtime().is_some(), "the runtime is not built");
     let expected = std::fs::read_to_string(dir().join("expected.txt")).unwrap();
-    let out_dir = std::env::temp_dir().join("cca-codegen-tests");
+    // Its own directory: the tests run at the same time, and two of them
+    // building and running one path means one replaces the binary the
+    // other is about to start.
+    let out_dir = std::env::temp_dir().join("cca-leak-tests");
     let _ = std::fs::create_dir_all(&out_dir);
     let mut leaking = Vec::new();
     for line in expected.lines() {

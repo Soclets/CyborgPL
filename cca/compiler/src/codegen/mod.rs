@@ -195,7 +195,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let r = self.ty(t);
         if r.is_none() {
             let name = crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
-            self.cannot(format!("a `{}` has no shape in the generated code yet: the runtime's layout for text, lists and maps is not decided", name), span);
+            // Text, lists and maps do have a shape now; what is left is
+            // what the design has not settled or the lowering has not
+            // reached, so the message says which.
+            let why = match t.base() {
+                Ty::Channel(_) => ": a channel's layout waits for `concur` to generate code",
+                Ty::Fn(_) => ": a function held as a value has no shape yet",
+                Ty::Char(crate::types::Unit::Grapheme) => ": a grapheme is a text of its own and waits with the rest of `char`",
+                _ => "",
+            };
+            self.cannot(format!("a `{}` has no shape in the generated code yet{}", name, why), span);
         }
         r
     }
