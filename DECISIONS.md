@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-22 — Map literal: `map["ann" = 5551, "bob" = 5552]` (owner: a)
+
+Proposed (a) `key = value`, the struct construction's spelling; (b) a
+list of pairs `map[["ann", 5551], …]`; (c) `->`. Owner: a. `map[]`
+refused in favour of `map.empty`; a key twice in a literal is an
+error. Three reject tests.
+
 ### 2026-09-22 — Walking a map: `map.keys/values/pairs`, insertion order; the variant is Precog's or chosen (`map.ordered` / `map.unordered`) (owner)
 
 What a walk yields: key / pair / say which — owner: c. Order:

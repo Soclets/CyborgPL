@@ -57,6 +57,21 @@ check site guarded by `has`; a found/missing enum to `match`.
 A map owns its keys and values: `set` takes a fresh value, a `copy`, or
 a `give` — never a lend.
 
+## A literal — `key = value` (owner: a)
+
+```
+let 'phones' := map["ann" = 5551, "bob" = 5552];
+let 'grid' := map[[1, 2] = "tree", [3, 4] = "rock"];
+let 'one' := map["cat" = 1,];
+```
+
+`key = value`, the spelling a struct construction uses for `field =
+value`; keys are any expression, values any value. The empty map stays
+`map.empty` (`map[]` is refused). A key written twice in one literal is
+a compile error. Proposed alternatives: a list of two-element lists
+(`map[["ann", 5551], …]`, more brackets); an arrow (`->` already means
+"returns").
+
 ## Walking a map — say which, in insertion order (owner: c, a)
 
 ```
@@ -96,7 +111,5 @@ different type, for later if wanted.
 
 ## Open
 
-- A literal map (`map[…]` with pairs written out) — today `map.empty` +
-  `set`.
 - A length bound (`map[K, V][0, 100]`), by analogy with lists.
 - Precog's key and value domains in detail (`precog.md`).

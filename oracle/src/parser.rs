@@ -45,6 +45,8 @@ pub struct Parser {
     /// set while parsing the type in `to.<type>[…]`: the bracket belongs to the
     /// conversion, not to the type
     to_target: bool,
+    /// set while parsing a map literal's key: the `=` after it pairs, it is not an assignment
+    in_map_key: bool,
     /// set while parsing an extern signature or a layout.c struct: `ptr[T]` is allowed
     at_boundary: bool,
     /// set while parsing an interface's entries: signatures end with `;`, no body
@@ -58,9 +60,9 @@ pub struct Parser {
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -1429,7 +1431,7 @@ impl Parser {
         let mut lhs = self.unary()?;
         loop {
             let Some(op) = self.binop() else { break };
-            if op == "=" { return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
+            if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
             if Parser::is_custom_op(&op) {
                 // A custom operator has no precedence (decided 2026-09-20): it may not
                 // sit next to another operator without parentheses. Bitwise operators
@@ -1608,6 +1610,26 @@ impl Parser {
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
                 "check" | "nocheck" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "map" if *self.peek_at(1) == Tok::LBracket => {
+                    // map["ann" = 5551, "bob" = 5552]  (decided 2026-09-22): `key = value`, the struct's spelling
+                    self.advance(); self.advance();
+                    if *self.peek() == Tok::RBracket { return self.err("an empty map is `map.empty`, not `map[]`"); }
+                    let mut pairs = Vec::new();
+                    loop {
+                        self.in_map_key = true;
+                        let k = self.expr();
+                        self.in_map_key = false;
+                        let k = k?;
+                        if *self.peek() != Tok::Eq { return self.err("a map literal pairs each key with a value: `map[\"ann\" = 5551, …]`"); }
+                        self.advance();
+                        let v = self.value()?;
+                        pairs.push((k, Bracket { values: vec![v], line, one_list: false }));
+                        if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
+                        break;
+                    }
+                    self.expect(Tok::RBracket, "`]` to close the map")?;
+                    Ok(Expr::MapLit(pairs, line))
+                }
                 "map" => {
                     let (h, o, a) = self.builtin()?;
                     if o == "get" || o == "remove" { return Ok(Expr::MapFail(o, a, None, line)); }   // can fail `missing`

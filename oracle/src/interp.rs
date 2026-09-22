@@ -860,6 +860,19 @@ impl<'p> Interp<'p> {
         let line = e.line();
         match e {
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
+            Expr::MapLit(pairs, _) => {
+                let mut out: Vec<(Value, Value)> = Vec::new();
+                for (ke, vb) in pairs {
+                    let (k, kp) = self.eval(ke)?;
+                    match kp { Prov::Bare(n) => return rt(line, format!("bare '{n}' as a map key: say `give '{n}'` or `copy '{n}'`")), Prov::Borrowed(..) => return rt(line, "a map owns its keys; a lend cannot be one (`copy` or `give`)"), _ => {} }
+                    self.key_ok(&k, line)?;
+                    let (v, vp) = self.bracket(vb, line)?;
+                    match vp { Prov::Bare(n) => return rt(line, format!("bare '{n}' as a map value: say `give '{n}'` or `copy '{n}'`")), Prov::Borrowed(..) => return rt(line, "a map owns its values; a lend cannot be one (`copy` or `give`)"), _ => {} }
+                    for (k2, _) in &out { if self.keys_equal(k2, &k, line)? { return rt(line, format!("the key {} is written twice in this map literal", k.show_useful())); } }
+                    out.push((k, v));
+                }
+                Ok((Value::Map(out), Prov::Fresh))
+            }
             Expr::MapFail(op, args, handler, _) => {
                 let v = self.map_fail(op, args, handler.as_ref(), line, true)?;
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };

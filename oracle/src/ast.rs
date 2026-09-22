@@ -363,6 +363,8 @@ pub enum Expr {
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
     FnRef(Vec<String>, Vec<String>, usize),
+    /// `map["ann" = 5551, "bob" = 5552]` — a map literal (decided 2026-09-22): key = value pairs
+    MapLit(Vec<(Expr, Bracket)>, usize),
     /// `map.get[lend 'm', k]` / `map.remove[lend.mut 'm', k]`: hand a value back or fail `missing` (decided 2026-09-22)
     MapFail(String, Bracket, Option<Handler>, usize),
     /// `char.point.from_code[n]` / `char.byte.from_code[n]`: a number to a character, fails `not_a_char` (decided 2026-09-21)
@@ -399,7 +401,7 @@ impl Expr {
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
             Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
-            Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) => *l,
+            Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) | Expr::MapLit(_, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,
         }
     }
