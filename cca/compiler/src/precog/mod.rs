@@ -34,6 +34,9 @@ pub const TRIPS_PER_LOOP: u32 = 100_000;
 pub const TRIPS_PER_PROGRAM: u64 = 2_000_000;
 /// Provisional: how deep a call chain is followed per call site.
 pub const CALL_DEPTH: u32 = 8;
+/// Provisional: the most argument tuples a recursive function is proven
+/// over by induction, one analysis of its body each.
+pub const INDUCTION_CAP: usize = 4096;
 /// Provisional: one step per instruction interpreted.
 pub const STEP_BUDGET: u64 = 100_000_000;
 
@@ -86,7 +89,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -242,6 +245,18 @@ struct Precog {
     loop_entry: HashMap<(usize, usize), Env>,
     loop_bound: HashMap<(usize, usize), i128>,
     acc_step: HashMap<(usize, usize, usize), ISet>,
+    /// Recursive functions summed up by induction on their arguments: for
+    /// each function, the return found for each argument tuple, and whether
+    /// its table is being filled right now (so a recursive call reads it).
+    induction: HashMap<usize, (HashMap<Vec<i128>, Domain>, bool)>,
+    /// Tuples a recursive call reached that were not in its table, and
+    /// whether one reached more than can be listed.
+    induction_missing: HashMap<usize, std::collections::BTreeSet<Vec<i128>>>,
+    induction_wide: bool,
+    /// A dry run finds which tuples a recursion reaches, and records
+    /// nothing: no verdict, fold, range, fact, edge or cached answer.
+    dry: bool,
+    dry_cache: Vec<(usize, String)>,
     lies: Vec<(usize, SiteId, String)>,
     /// What layer 1 worked out for an instruction, where it worked out the
     /// same answer every time it went past. `None` poisons it: the
@@ -283,6 +298,160 @@ impl Precog {
     }
 
     /// Walk one function's graph to a fixpoint, recording every site.
+    /// Cache an answer; in a dry run, remember to forget it afterwards.
+    fn remember(&mut self, i: usize, key: String, d: Domain) {
+        if self.dry {
+            self.dry_cache.push((i, key.clone()));
+        }
+        self.cache.insert((i, key), d);
+    }
+
+    /// Every tuple of values the parameters can take, when they are whole
+    /// numbers with few enough of them, smallest first. For the table, each
+    /// parameter runs from its type's lowest value up to the highest this
+    /// call can pass (`from_type_floor`): a call with 10 also needs 9, 8, …
+    /// on the way down, and those are what induction starts from.
+    fn arg_tuples(&self, params: &[LocalId], env: &Env) -> Option<Vec<Vec<i128>>> {
+        self.arg_tuples_opts(params, env, None)
+    }
+
+    fn arg_tuples_opts(&self, params: &[LocalId], env: &Env, from_type_floor: Option<usize>) -> Option<Vec<Vec<i128>>> {
+        let mut out: Vec<Vec<i128>> = vec![Vec::new()];
+        for p in params {
+            let Some(Domain::Ints(s)) = env.get(p) else { return None };
+            let vals = match (from_type_floor, s.bounds(), int_limits(&self.local_ty(from_type_floor.unwrap_or(0), *p), &self.prog().items)) {
+                (Some(_), Some((_, hi)), Some((lo, _))) if hi >= lo && hi - lo < INDUCTION_CAP as i128 => (lo..=hi).collect(),
+                _ => s.values()?,
+            };
+            if out.len().saturating_mul(vals.len()) > INDUCTION_CAP {
+                return None;
+            }
+            out = out.into_iter().flat_map(|t| vals.iter().map(move |v| {
+                let mut t = t.clone();
+                t.push(*v);
+                t
+            })).collect();
+        }
+        out.sort();
+        Some(out)
+    }
+
+    /// While `i`'s table is being filled, a call to it is the union of the
+    /// table's answers for every tuple its arguments can be. A tuple not in
+    /// the table yet — the call is not to a smaller argument — is anything
+    /// the return type holds: sound, only less precise.
+    fn filling(&mut self, i: usize, params: &[LocalId], env: &Env) -> Option<Domain> {
+        let active = matches!(self.induction.get(&i), Some((_, true)));
+        if !active {
+            return None;
+        }
+        let ret_ty = self.prog().functions[i].ret.clone();
+        let whole = Domain::of_ty(&ret_ty, &self.prog().items);
+        let Some(tuples) = self.arg_tuples(params, env) else {
+            self.induction_wide = true;
+            return Some(whole);
+        };
+        let mut out = Domain::Empty;
+        let mut missing = Vec::new();
+        for t in &tuples {
+            match self.induction[&i].0.get(t) {
+                Some(d) => out = out.union(d),
+                None => missing.push(t.clone()),
+            }
+        }
+        if !missing.is_empty() {
+            self.induction_missing.entry(i).or_default().extend(missing);
+            return Some(whole);
+        }
+        Some(out)
+    }
+
+    /// Induction on the arguments (owner, 2026-09-23, "teach Precog to prove
+    /// bounds on recursive functions by induction"). For a function that
+    /// calls itself, with whole-number parameters of few values, the body is
+    /// analysed once per argument tuple, smallest first; a recursive call
+    /// inside is answered from the answers for the tuples before it. Every
+    /// run of the body has one of these tuples, and its calls were to tuples
+    /// already done (or were given the return type's whole range), so every
+    /// site's verdict, merged over the tuples, holds for every call. `fib`
+    /// on `int64[0, 92]` proves `fib['n' - 1] + fib['n' - 2]` fits.
+    fn by_induction(&mut self, i: usize, params: &[LocalId], env: &Env, depth: u32) -> Option<Domain> {
+        let func = &self.prog().functions[i];
+        let calls_itself = func.blocks.iter().any(|b| matches!(&b.term, Terminator::Call { callee: Callee::Fn(idx), .. } if idx.0 as usize == i));
+        if !calls_itself || params.is_empty() || matches!(self.induction.get(&i), Some((_, true))) {
+            return None;
+        }
+        // Every tuple the recursion can reach must have its body analysed —
+        // a body analysed only for 10 folded `'n' < 2` to false and never
+        // stopped. So first a dry run finds them: analyse, collect the
+        // tuples recursive calls reached that are not in the table, add
+        // them, until none are new. Then the real run, smallest first, so a
+        // call on a smaller tuple reads its answer. Too many: the old way.
+        let asked = self.arg_tuples(params, env)?;
+        let mut needed: std::collections::BTreeSet<Vec<i128>> = asked.iter().cloned().collect();
+        if let Some(from_floor) = self.arg_tuples_opts(params, env, Some(i)) {
+            needed.extend(from_floor);
+        }
+        let run_all = |this: &mut Self, needed: &std::collections::BTreeSet<Vec<i128>>| {
+            for t in needed {
+                if this.induction[&i].0.contains_key(t) {
+                    continue;
+                }
+                let mut e = env.clone();
+                for (p, v) in params.iter().zip(t) {
+                    e.insert(*p, Domain::Ints(ISet::one(*v)));
+                }
+                let d = this.run_function(i, e, depth + 1);
+                this.induction.get_mut(&i).unwrap().0.insert(t.clone(), d);
+            }
+        };
+        let was_dry = self.dry;
+        self.induction.insert(i, (HashMap::new(), true));
+        self.dry = true;
+        let mut complete = false;
+        while needed.len() <= INDUCTION_CAP {
+            self.induction_missing.remove(&i);
+            self.induction_wide = false;
+            run_all(self, &needed);
+            if self.induction_wide {
+                break;
+            }
+            let new: Vec<Vec<i128>> = self.induction_missing.get(&i).map(|m| m.iter().filter(|t| !needed.contains(*t)).cloned().collect()).unwrap_or_default();
+            if new.is_empty() {
+                complete = true;
+                break;
+            }
+            needed.extend(new);
+        }
+        self.dry = was_dry;
+        if !was_dry {
+            // What the dry run cached was worked out without its verdicts
+            // recorded: the real run works it out again.
+            for k in std::mem::take(&mut self.dry_cache) {
+                self.cache.remove(&k);
+            }
+        }
+        if !complete {
+            self.induction.remove(&i);
+            return None;
+        }
+        self.induction.insert(i, (HashMap::new(), true));
+        run_all(self, &needed);
+        self.induction.get_mut(&i).unwrap().1 = false;
+        let table = &self.induction[&i].0;
+        let mut out = Domain::Empty;
+        for t in &asked {
+            if let Some(d) = table.get(t) {
+                out = out.union(d);
+            }
+        }
+        if matches!(out, Domain::Empty) {
+            let ret_ty = self.prog().functions[i].ret.clone();
+            out = Domain::of_ty(&ret_ty, &self.prog().items);
+        }
+        Some(out)
+    }
+
     /// How many times a counted loop's body can run: from the counter's
     /// lowest value on entry to the bound's highest, a step at a time.
     fn trips_of(&self, f: usize, head: usize, c: &Counted) -> Option<i128> {
@@ -333,10 +502,11 @@ impl Precog {
         // Counted loops, and where each accumulator's step is computed.
         let mut counted: HashMap<usize, Counted> = HashMap::new();
         for (h, body) in &head_body {
-            let latches = back.iter().filter(|(_, hh)| hh == h).count();
-            let nested = back.iter().any(|(fr, hh)| hh != h && body.contains(hh) && body.contains(fr));
-            if latches == 1 {
-                if let Some(c) = counted_loop(&self.prog().functions[f], *h, body, nested) {
+            let latches: Vec<usize> = back.iter().filter(|(_, hh)| hh == h).map(|(fr, _)| *fr).collect();
+            // Every block of a loop nested in this one.
+            let inner: std::collections::HashSet<usize> = head_body.iter().filter(|(hh, _)| *hh != h && body.contains(hh)).flat_map(|(_, bd)| bd.iter().copied()).collect();
+            if let [latch] = latches.as_slice() {
+                if let Some(c) = counted_loop(&self.prog().functions[f], *h, *latch, body, &inner) {
                     counted.insert(*h, c);
                 }
             }
@@ -415,6 +585,7 @@ impl Precog {
             // Remember what arrived here, joined with everything that ever
             // did. A local missing from either side is unknown in the join.
             match self.block_facts.get_mut(&(f, b)) {
+                _ if self.dry => {}
                 None => {
                     self.block_facts.insert((f, b), env.clone());
                 }
@@ -475,14 +646,16 @@ impl Precog {
                                     (Some(Some((a, z))), Some((c, y))) => Some((*a.min(&c), *z.max(&y))),
                                     (None, h) => h,
                                 };
-                                self.ranges.insert(key, merged);
+                                if !self.dry {
+                                    self.ranges.insert(key, merged);
+                                }
                             }
                         }
                         // Layer 1: "everything that does not depend on the
                         // outside world is known… the result is folded in".
                         // An instruction that comes out the same every time
                         // it is reached becomes that answer.
-                        if foldable(rvalue) {
+                        if foldable(rvalue) && !self.dry {
                             let known = known_const(&d);
                             let key = (f, b, si);
                             match self.folds.get(&key) {
@@ -569,7 +742,9 @@ impl Precog {
                 let i = to.0 as usize;
                 // This edge can be taken: what "reached on every run" is
                 // worked out from.
-                this.edges.insert((f, b, i));
+                if !this.dry {
+                    this.edges.insert((f, b, i));
+                }
                 // A **back edge** is the loop going round again. The design
                 // follows a counted loop *trip by trip* rather than joining
                 // at its head (`precog.md`, layer 2), because a join cannot
@@ -756,6 +931,9 @@ impl Precog {
 
         }
         for (id, v) in sites_seen {
+            if self.dry {
+                break;
+            }
             let key = (f, id);
             let merged = match self.results.get(&key) {
                 Some(old) => worse(old.clone(), v),
@@ -1206,8 +1384,21 @@ impl Precog {
                     key.push(';');
                     callee_env.insert(*p, d);
                 }
+                // A recursive call while this function's table is being
+                // filled: answered from the table, for every tuple the
+                // arguments can be.
+                if let Some(tuples) = self.filling(i, &params, &callee_env) {
+                    return tuples;
+                }
                 if let Some(cached) = self.cache.get(&(i, key.clone())) {
                     return cached.clone();
+                }
+                // A function that calls itself, on arguments with few
+                // enough values: proven by induction instead of followed
+                // until the depth runs out.
+                if let Some(d) = self.by_induction(i, &params, &callee_env, depth) {
+                    self.remember(i, key, d.clone());
+                    return d;
                 }
                 if depth >= CALL_DEPTH {
                     self.gave_up = true;
@@ -1216,10 +1407,10 @@ impl Precog {
                 }
                 // Mark it before walking, so a recursive call finds something.
                 let ret_ty = self.prog().functions[i].ret.clone();
-                self.cache.insert((i, key.clone()), Domain::of_ty(&ret_ty, &self.prog().items));
+                self.remember(i, key.clone(), Domain::of_ty(&ret_ty, &self.prog().items));
                 let d = self.run_function(i, callee_env, depth + 1);
                 let d = if matches!(d, Domain::Empty) { Domain::of_ty(&ret_ty, &self.prog().items) } else { d };
-                self.cache.insert((i, key), d.clone());
+                self.remember(i, key, d.clone());
                 d
             }
             Callee::Extern(id) => {
@@ -1354,7 +1545,7 @@ impl Precog {
             // were computed anyway, and if they say this fails every time
             // the build says so once and carries on.
             if let Verdict::Fails { counterexample } = &verdict {
-                if counterexample.starts_with("every") {
+                if counterexample.starts_with("every") && !self.dry {
                     self.lies.push((f, id, counterexample.trim_start_matches("every time: ").to_string()));
                 }
             }
@@ -1802,10 +1993,9 @@ struct Counted {
     grows: Vec<LocalId>,
 }
 
-fn counted_loop(f: &crate::mir::Function, head: usize, body: &[usize], nested: bool) -> Option<Counted> {
-    if nested {
-        return None;
-    }
+/// `inner` is every block of a loop nested inside this one: a write there
+/// can happen many times a trip, so nothing written there is counted.
+fn counted_loop(f: &crate::mir::Function, head: usize, latch: usize, body: &[usize], inner: &std::collections::HashSet<usize>) -> Option<Counted> {
     let inside = |b: usize| body.contains(&b);
     // The head tests `c <= bound` and goes into the loop when it holds.
     let hb = &f.blocks[head];
@@ -1841,17 +2031,31 @@ fn counted_loop(f: &crate::mir::Function, head: usize, body: &[usize], nested: b
             }
         }
     }
-    // Straight through: every body block but the head has one way on
-    // inside the loop, so each trip runs every statement once.
-    for &b in body {
-        if b == head {
-            continue;
+    // Does every way round the loop pass `b`? From the head, avoiding `b`,
+    // the latch cannot be reached.
+    let on_every_trip = |b: usize| -> bool {
+        if b == head || b == latch {
+            return true;
         }
-        let succ = crate::mir::verify::successors(&f.blocks[b].term);
-        if succ.iter().filter(|t| inside(t.0 as usize)).count() != 1 {
-            return None;
+        let mut seen = std::collections::HashSet::new();
+        let mut stack = vec![head];
+        while let Some(x) = stack.pop() {
+            if x == b || !seen.insert(x) {
+                continue;
+            }
+            if x == latch {
+                return false;
+            }
+            for t in crate::mir::verify::successors(&f.blocks[x].term) {
+                let t = t.0 as usize;
+                if inside(t) && t != head {
+                    stack.push(t);
+                }
+            }
         }
-    }
+        true
+    };
+    let mut counter_block: Option<usize> = None;
     let mut appends: HashMap<LocalId, usize> = HashMap::new();
     let mut plus: HashMap<LocalId, (LocalId, Operand, (usize, usize))> = HashMap::new(); // temp -> (x, e, where)
     let mut writes: HashMap<LocalId, Vec<Option<(LocalId, Operand, (usize, usize))>>> = HashMap::new();
@@ -1870,15 +2074,21 @@ fn counted_loop(f: &crate::mir::Function, head: usize, body: &[usize], nested: b
                             plus.insert(place.local, (x, e, (b, si)));
                         }
                     }
+                    // Inside a loop nested in this one, a write can happen
+                    // many times a trip: never counted.
                     let w = match rvalue {
-                        Rvalue::Use(Operand::Read(t) | Operand::Move(t)) if t.proj.is_empty() => plus.get(&t.local).filter(|(x, _, _)| *x == place.local).cloned(),
+                        Rvalue::Use(Operand::Read(t) | Operand::Move(t)) if t.proj.is_empty() && !inner.contains(&b) => plus.get(&t.local).filter(|(x, _, _)| *x == place.local).cloned(),
                         _ => None,
                     };
+                    if w.is_some() && place.local == counter {
+                        counter_block = Some(b);
+                    }
                     writes.entry(place.local).or_default().push(w);
                 }
                 StmtKind::Op { op: Op::ListAppend, args, dest: None } if args.first().and_then(|a| a.place()).map_or(false, |p| p.proj.is_empty()) => {
                     let l = args[0].place().unwrap().local;
-                    *appends.entry(l).or_default() += 1;
+                    // Two for one inside an inner loop: never counted.
+                    *appends.entry(l).or_default() += if inner.contains(&b) { 2 } else { 1 };
                     writes.entry(l).or_default().push(None);
                 }
                 _ => {
@@ -1898,10 +2108,11 @@ fn counted_loop(f: &crate::mir::Function, head: usize, body: &[usize], nested: b
             writes.entry(l).or_default().push(None);
         }
     }
-    // The counter: one write, `c = c + k` with k a positive constant.
+    // The counter: one write, `c = c + k` with k a positive constant, on
+    // every way round — so the trips are bounded by how far it can go.
     let cw = writes.get(&counter)?;
     let [Some((_, Operand::Const(Const::Int(k)), _))] = cw.as_slice() else { return None };
-    if *k <= 0 {
+    if *k <= 0 || !counter_block.map_or(false, on_every_trip) {
         return None;
     }
     if let Some(src) = bound_src {

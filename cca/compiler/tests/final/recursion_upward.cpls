@@ -1,0 +1,24 @@
+# A function that calls itself on a larger argument is not proven by
+# induction on the arguments: that call is to a tuple not yet done, which
+# can be anything the return type holds. up(98) is past an int64 in truth.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn atoll ['s': ptr[uint8]] -> int64[0, 100];
+fn up ['n': int64[0, 100]] -> int64 {
+    if 'n' >== 100 { return 1; }
+    return up['n' + 1] + 9_000_000_000_000_000_000;
+}
+fn read_n ['text': ptr[uint8]] -> int64[0, 100] or fail[missing, out_of_range] {
+    if ptr.is_null['text'] { fail missing; }
+    nocheck let 'n' := atoll['text'] otherwise fail;
+    return 'n';
+}
+fn run [] -> int32 or fail[missing, out_of_range] {
+    let 'key' := "N";
+    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    return to.int32[up['n'] mod 256];
+}
+MAIN {
+    let 'code' := run[] otherwise 2;
+    nocheck exit['code'];
+}

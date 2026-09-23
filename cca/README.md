@@ -303,3 +303,13 @@ Dated, with the alternative, so each can become a question later.
   take the one size an exact answer's typed operands share; mixed sizes,
   a `:=` name holding an exact answer, and any shift of one say not yet,
   since none of those was asked.
+- **2026-09-24 — Induction on arguments covers at most 4096 tuples.** A
+  recursive function is proven by induction on its arguments (owner:
+  "teach Precog to prove bounds on recursive functions by induction"): its
+  body is analysed once per argument tuple, from each parameter type's
+  lowest value up to the highest the call can pass, and a recursive call
+  reads the answers for the tuples before it. `INDUCTION_CAP` bounds how
+  many tuples, since each is one analysis of the body. Past it, recursion
+  is followed eight calls deep as before. Alternative: a larger cap (slower
+  builds on wide ranges), or symbolic summaries (a formula in the argument
+  rather than a table), which is a bigger piece of work.

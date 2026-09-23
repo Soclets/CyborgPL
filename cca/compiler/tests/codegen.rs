@@ -198,17 +198,27 @@ fn final_build(path: &Path) -> std::process::Output {
 /// The final build accepts loops whose facts are counted (owner,
 /// 2026-09-23): a running sum is at most its trips times its largest step
 /// (`bench/lists.cpls`), and a list appended once a trip is as long as the
-/// counter has come (`bench/sieve.cpls`). And it still refuses where the
-/// count does not fit, or where the appends are not one a trip.
+/// counter has come (`bench/sieve.cpls`) — and recursion proven by
+/// induction on its arguments (`bench/fib.cpls`). And it still refuses
+/// where the count does not fit, where the appends are not one a trip,
+/// where fib goes one past what fits, where a function recurses upward,
+/// and where the counter may not move on a trip.
 #[test]
 fn final_build_proves_counted_loops_and_no_more() {
     let bench = Path::new(env!("CARGO_MANIFEST_DIR")).join("../bench");
-    for name in ["lists", "sieve"] {
+    for name in ["lists", "sieve", "fib"] {
         let r = final_build(&bench.join(format!("{}.cpls", name)));
         assert!(r.status.success(), "the final build refused bench/{}.cpls:\n{}", name, String::from_utf8_lossy(&r.stderr));
     }
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
-    for (name, phrase) in [("acc_overflows", "can be outside what a `int64` holds"), ("append_on_a_branch", "the position can be past the end")] {
+    // Where each must be refused: the line that really can go wrong.
+    for (name, phrase) in [
+        ("acc_overflows", "acc_overflows.cpls, line 12"),
+        ("append_on_a_branch", "append_on_a_branch.cpls, line 18"),
+        ("fib_93", "fib_93.cpls, line 8"),
+        ("recursion_upward", "recursion_upward.cpls, line 9"),
+        ("counter_on_a_branch", "counter_on_a_branch.cpls, line 19"),
+    ] {
         let r = final_build(&tests.join(format!("{}.cpls", name)));
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(phrase), "{}: the final build should refuse it ({}), and said:\n{}", name, phrase, err);
