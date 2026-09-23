@@ -1,1 +1,0 @@
-MAIN { let 'x': int32[min, max] = 5; }

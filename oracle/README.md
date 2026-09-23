@@ -110,7 +110,6 @@ had to make to run at all; none is a decision.
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |
 | A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.limb`; open in `design/limbs.md` |
 | `pub bare` is accepted before anything `pub` is, and changes nothing (one Limb: every name is bare where it can be seen) | `parser.rs` top level | Which items may be bare, and bare across a Limb's own modules, are open in `design/limbs.md` |
-| `int32[min, max]` is refused as the plain type written long; `uint8[0, 255]`, the same range in numbers, is accepted | `parser.rs` range types | Whether a whole-type range is refused at all is open (never ruled; `DECISIONS.md`) |
 
 
 

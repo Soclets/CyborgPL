@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A whole-type range is allowed: `int32[min, max]`, `uint8[0, 255]` (owner: b)
+
+Both mean the plain type. The oracle had refused `int32[min, max]` as
+"`int32` written the long way". That was design claude's suggestion,
+recorded as a ruling without the owner ever answering it (corrected in
+eab52cc). It also accepted `uint8[0, 255]`, the same range in numbers.
+Proposed (a) refuse both, since a range should say what the type does
+not (recommended); (b) allow both. Owner: "they're harmless. So, no
+problem." The refusal and its reject test are gone, and
+`examples/one_ended.cpls` stores through both.
+
 ### 2026-09-23 — A range's bounds must fit its type: `uint8[0, 300]` is an error (owner)
 
 The oracle accepted `uint8[0, 300]`: `input.md` said bounds are
@@ -2158,7 +2169,6 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
-- Is a whole-type range refused? `int32[min, max]` and `uint8[0, 255]` both mean the plain type. The oracle refuses the first (design claude's pick, never ruled) and accepts the second. (2026-09-23)
 - SIMD leftovers: more element types (`simd[bool, N]` written directly?), shuffles and lane-crossing, masked load/store for a short tail, `simd` as a struct field or list element. (2026-09-22, `design/simd.md`)
 
 

@@ -649,8 +649,8 @@ impl Parser {
                 }
                 let ok = match (&rlo, &rhi) { (Bound::Int(a), Bound::Int(b)) => a <= b, (Bound::Bin(a), Bound::Bin(b)) => a <= b, _ => true };
                 if !ok { return self.err("a range's low bound comes first: `int32[0, 100]`"); }
-                // `int32[min, max]` is `int32` written the long way (2026-09-23)
-                if matches!((&lo, &hi), (Bound::Min, Bound::Max)) { return self.err(format!("`{}[min, max]` is just `{}`: a range says what the type does not", head, head)); }
+                // `int32[min, max]` and `uint8[0, 255]` are the plain type written long: harmless,
+                // so allowed (owner, 2026-09-23: "they're harmless. So, no problem")
                 return Ok(Ty::Ranged(Box::new(base), lo, hi));
             }
         }
