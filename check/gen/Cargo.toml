@@ -1,0 +1,7 @@
+[package]
+name = "check-gen"
+version = "0.1.0"
+edition = "2021"
+description = "Random valid CyborgPL programs, from a seed (check claude)"
+
+[dependencies]

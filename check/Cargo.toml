@@ -1,0 +1,6 @@
+[workspace]
+members = ["gen", "harness"]
+resolver = "2"
+
+[profile.release]
+debug = false

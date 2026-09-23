@@ -1,0 +1,8 @@
+# Finding 2026-09-23 (check claude, by hand): as range-overshoot-uint8-down, upwards.
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+MAIN {
+    let 'dot' := ".";
+    for 'i': uint8 in range[250, 255, 3] {
+        nocheck write[1, lend 'dot', 1];
+    }
+}

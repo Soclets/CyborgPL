@@ -1,0 +1,12 @@
+[package]
+name = "check-harness"
+version = "0.1.0"
+edition = "2021"
+description = "Differential harness: the oracle against CCA (check claude)"
+
+[[bin]]
+name = "check"
+path = "src/main.rs"
+
+[dependencies]
+check-gen = { path = "../gen" }

@@ -1,0 +1,183 @@
+//! Running the two engines from the outside: the oracle binary and
+//! `cca build` + the binary it writes. Nothing here reads either engine's
+//! source; only their output, exit codes and messages.
+
+use std::fs::{self, File};
+use std::path::{Path, PathBuf};
+use std::os::unix::process::CommandExt;
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
+
+pub struct Tools {
+    pub oracle: PathBuf,
+    pub cca: PathBuf,
+}
+
+impl Tools {
+    /// The binaries built in this repository (`cargo build --release` in
+    /// `oracle/` and `cca/`).
+    pub fn find(repo: &Path) -> Result<Tools, String> {
+        let oracle = repo.join("oracle/target/release/oracle");
+        let cca = repo.join("cca/target/release/cca");
+        for (p, dir) in [(&oracle, "oracle"), (&cca, "cca")] {
+            if !p.exists() {
+                return Err(format!("{} not found; run `cargo build --release` in {dir}/", p.display()));
+            }
+        }
+        Ok(Tools { oracle, cca })
+    }
+}
+
+/// Wall-clock limits — a safety net against a hang, never a verdict of
+/// agreement (provisional; see check/README.md). A build may legitimately be
+/// slow (compile time is not a concern, design/core-features.md), so it gets
+/// longer and running past it is counted, not reported as a finding.
+pub const RUN_LIMIT: Duration = Duration::from_secs(20);
+pub const BUILD_LIMIT: Duration = Duration::from_secs(120);
+
+pub struct Run {
+    pub stdout: Vec<u8>,
+    pub stderr: String,
+    /// None: killed at the time limit, or ended by a signal.
+    pub code: Option<i32>,
+    pub timed_out: bool,
+}
+
+static SERIAL: AtomicU64 = AtomicU64::new(0);
+
+/// Runs `cmd` in a process group of its own. A program run (`clean`) sees
+/// only the harness's own variables, so a seed replays exactly whatever the
+/// shell has set; a build keeps the environment (it needs the linker on PATH).
+///
+/// Each run writes to fresh files, and the whole group is killed when the
+/// run ends: `cca build` starts solver processes, and one left behind (say by
+/// a build stopped at its limit) once kept writing into the next run's
+/// stdout, which showed up as NUL bytes and a false "output" finding.
+pub fn run(cmd: &mut Command, dir: &Path, env: &[(String, String)], clean: bool, limit: Duration) -> Run {
+    let n = SERIAL.fetch_add(1, Ordering::SeqCst);
+    let out_path = dir.join(format!("stdout.{n}"));
+    let err_path = dir.join(format!("stderr.{n}"));
+    let out = File::create(&out_path).expect("stdout file");
+    let err = File::create(&err_path).expect("stderr file");
+    if clean {
+        cmd.env_clear();
+    }
+    for (k, v) in env {
+        cmd.env(k, v);
+    }
+    let mut child = cmd.process_group(0).stdin(Stdio::null()).stdout(out).stderr(err).spawn().expect("spawn");
+    let pgid = child.id();
+    let start = Instant::now();
+    let mut timed_out = false;
+    let status = loop {
+        if let Some(s) = child.try_wait().expect("wait") {
+            break Some(s);
+        }
+        if start.elapsed() > limit {
+            timed_out = true;
+            break None;
+        }
+        std::thread::sleep(Duration::from_millis(2));
+    };
+    // Whatever is left of the group — the child itself on a timeout, or
+    // anything it started — goes now.
+    let _ = Command::new("/bin/kill").args(["-9", "--", &format!("-{pgid}")]).stdout(Stdio::null()).stderr(Stdio::null()).status();
+    if timed_out {
+        let _ = child.wait();
+    }
+    let r = Run {
+        stdout: fs::read(&out_path).unwrap_or_default(),
+        stderr: String::from_utf8_lossy(&fs::read(&err_path).unwrap_or_default()).into_owned(),
+        code: status.and_then(|s| s.code()),
+        timed_out,
+    };
+    let _ = fs::remove_file(&out_path);
+    let _ = fs::remove_file(&err_path);
+    r
+}
+
+/// The first `line N` in a message.
+pub fn line_of(msg: &str) -> Option<u32> {
+    let i = msg.find("line ")?;
+    let digits: String = msg[i + 5..].chars().take_while(|c| c.is_ascii_digit()).collect();
+    digits.parse().ok()
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Oracle {
+    Ran { out: Vec<u8> },
+    /// Refused or stopped at a failing check: the oracle does not say which,
+    /// so the harness never relies on the difference.
+    Stopped { out: Vec<u8>, line: Option<u32>, msg: String },
+    Timeout,
+}
+
+pub fn oracle(t: &Tools, file: &Path, dir: &Path, env: &[(String, String)]) -> Oracle {
+    let r = run(Command::new(&t.oracle).arg(file), dir, env, true, RUN_LIMIT);
+    if r.timed_out {
+        return Oracle::Timeout;
+    }
+    match r.code {
+        Some(0) => Oracle::Ran { out: r.stdout },
+        _ => {
+            let first = r.stderr.lines().next().unwrap_or("").to_string();
+            // drop the file name the oracle puts in front
+            let msg = first.split_once(": ").map(|(_, m)| m.to_string()).unwrap_or(first.clone());
+            Oracle::Stopped { out: r.stdout, line: line_of(&first), msg }
+        }
+    }
+}
+
+/// Messages by which CCA says a construct is not built yet: coverage, not a finding.
+const NOT_YET: [&str; 4] = ["not yet", "is not available yet", "CCA carries whole numbers up to", "has no shape in the generated code"];
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Build {
+    Built(PathBuf),
+    NotYet { msg: String },
+    Refused { line: Option<u32>, msg: String },
+    Timeout,
+}
+
+pub fn cca_build(t: &Tools, file: &Path, dir: &Path) -> Build {
+    let bin = dir.join("prog");
+    let _ = fs::remove_file(&bin);
+    let r = run(Command::new(&t.cca).arg("build").arg(file).arg("-o").arg(&bin), dir, &[], false, BUILD_LIMIT);
+    if r.timed_out {
+        return Build::Timeout;
+    }
+    if r.code == Some(0) && bin.exists() {
+        return Build::Built(bin);
+    }
+    let text = r.stderr.clone();
+    if NOT_YET.iter().any(|m| text.contains(m)) {
+        let first = text.lines().find(|l| NOT_YET.iter().any(|m| l.contains(m))).unwrap_or("").to_string();
+        return Build::NotYet { msg: first };
+    }
+    let msg = text.lines().find(|l| l.starts_with("error") || l.starts_with("check")).unwrap_or(text.lines().next().unwrap_or("")).to_string();
+    let line = text.lines().find(|l| l.starts_with("where:")).and_then(line_of);
+    Build::Refused { line, msg }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Exec {
+    Ran { out: Vec<u8> },
+    /// Exited non-zero: a runtime check fired (exit 101 with `check:` and
+    /// `where: …, line N`), or something else went wrong.
+    Stopped { out: Vec<u8>, code: Option<i32>, line: Option<u32>, msg: String },
+    Timeout,
+}
+
+pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
+    let r = run(&mut Command::new(bin), dir, env, true, RUN_LIMIT);
+    if r.timed_out {
+        return Exec::Timeout;
+    }
+    if r.code == Some(0) {
+        return Exec::Ran { out: r.stdout };
+    }
+    let line = r.stderr.lines().find(|l| l.starts_with("where:")).and_then(line_of);
+    let msg = r.stderr.lines().next().unwrap_or("").to_string();
+    Exec::Stopped { out: r.stdout, code: r.code, line, msg }
+}
