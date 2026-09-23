@@ -357,6 +357,11 @@ impl<'p> Interp<'p> {
         let saved_module = std::mem::replace(&mut self.module, task.module.clone());
         let saved_fails = std::mem::replace(&mut self.fails, task.fails.clone());
         let saved_stmt = self.call_is_stmt;
+        // A task's body has its own scope stack, so the tasks waiting in the *outer* one
+        // are not its to run: their handlers belong to the scope their `concur` was
+        // written in, and running them here would look that scope up in this stack.
+        // (Found by the compiler session, 2026-09-23: two failing tasks in one block.)
+        let saved_tasks = std::mem::take(&mut self.tasks);
         let flow = (|| {
             for (n, cell, mutable) in &task.captures {
                 self.declare(n, Slot { cell: cell.clone(), ty: None, kind: if *mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false }, task.line)?;
@@ -364,6 +369,8 @@ impl<'p> Interp<'p> {
             self.block(&task.body)
         })();
         self.scopes = saved; self.module = saved_module; self.fails = saved_fails; self.call_is_stmt = saved_stmt;
+        let mut leftover = std::mem::replace(&mut self.tasks, saved_tasks);   // detached ones the task started
+        self.tasks.append(&mut leftover);
         match flow {
             Ok(Flow::Fail(name, payload)) => {
                 // the task's failure lands where its `concur` was written (owner, 2026-09-22)

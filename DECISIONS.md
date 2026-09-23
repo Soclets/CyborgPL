@@ -5,6 +5,33 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Oracle bug: two failing tasks in one block (compiler session)
+
+Compiler claude, building `concur`: two `concur` statements in one
+block, both failing, lost the enclosing scope when the second handler
+ran ("'seen' is not declared"); one failing task was fine. Cause: a
+task's body runs on its own scope stack, but the tasks waiting in the
+*outer* stack were still in the same pending list, so the first task's
+block drained the second and ran its handler against the wrong stack.
+Fixed: a task's body starts with an empty pending list and gives back
+whatever detached tasks it left. `examples/two_tasks_fail.cpls` (exit
+11). CCA had it right; it found the same shape in its own MIR while
+fixing it.
+
+### 2026-09-23 — `examples/gradebook.cpls` stands; the sum template is Precog's job (Claude, from the record)
+
+Compiler claude asked whether to narrow the `check` on `return 'total'
+/ list.length[…]` or to treat sum/count invariants as Precog's work.
+Answered from the record rather than the owner: the template list
+decided 2026-09-22 already includes "a sum is bounded by trips times
+the largest element", and that is exactly what makes an average fit its
+element type — a sum bounded by n × max, divided by n, is at most max.
+So the example is right and CCA has work to do; it stays in
+`cca/compiler/tests/examples_unproven.txt` until the template lands.
+Noted in `design/precog.md` beside the template. (The example had been
+passing only because of a Precog bug CCA has since fixed, 61a8554: it
+never forgot a list after `record[lend.mut …]`.)
+
 ### 2026-09-23 — A shift's width comes from any operand whose type is known (owner: a)
 
 The generator's first-run finding, and two-thirds of its early
