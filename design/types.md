@@ -15,6 +15,14 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
 
+## A declaration always has a value (owner, 2026-09-23)
+
+`let 'n': int32;` is refused — write the `0`. There is no implicit
+zero, for any type: nothing is ever silently `0`, `false`, `""` or an
+empty list, so no value ever appears from nowhere and `:=` always has
+something to infer from. Go, C# and Java fill zeroes in for fields;
+this does not.
+
 ## Notes (Claude, 2026-09-14)
 
 - **Four numeric families, no implicit conversion between them.** `int32`

@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — No implicit zero: a declaration always has a value (owner: a)
+
+Open since 2026-09-14 as Claude's recommendation, never put to the
+owner. `let 'n': int32;` is refused; write the `0`. Proposed
+alternative: fill in a zero by type (`0`, `0.0`, `false`, `""`, an
+empty list), as Go, C# and Java do for fields. Owner: "just write
+`0`, bruh". It also keeps `:=` honest — `let 'n';` would say nothing
+at all — and leaves no place where a value appears from nowhere for
+Precog to reason about. The oracle already enforced it.
+
 ### 2026-09-23 — Still no `std::`: finish the base first (owner)
 
 Raised because thirteen examples print with `std::printu` and so cannot
@@ -1986,7 +1996,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - One-ended ranges (`int32[0, …]`). (2026-09-20)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
-- Zero values: a value is required at declaration; decide explicitly — Claude recommends no implicit zero (the oracle enforces it). (Claude, 2026-09-14)
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
