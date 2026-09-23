@@ -13,6 +13,8 @@
 //! 2026-09-22). The checker has a testing-only stub table for them so the
 //! front end can be tested now; nothing is generated for a `std::` call.
 
+mod common;
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -73,34 +75,36 @@ fn prove(path: &Path) -> Result<(), String> {
 fn examples_are_not_refused_by_precog() {
     let pending = load_pending();
     let unproven = load_list("examples_unproven.txt");
-    let mut failures = Vec::new();
-    for src in targets(&repo().join("examples")) {
-        let name = name_of(&src);
+    let failures: Vec<String> = common::par_map(&targets(&repo().join("examples")), |src| {
+        let name = name_of(src);
         if pending.contains_key(&name) {
-            continue;
+            return None;
         }
-        match (unproven.get(&name), prove(&src)) {
-            (None, Err(msg)) => failures.push(format!("{}:\n{}", name, indent(&msg))),
-            (Some(why), Ok(())) => failures.push(format!("{}: Precog proves it now, and tests/examples_unproven.txt still lists it — drop that line.\n  It said: {}", name, why)),
-            _ => {}
+        match (unproven.get(&name), prove(src)) {
+            (None, Err(msg)) => Some(format!("{}:\n{}", name, indent(&msg))),
+            (Some(why), Ok(())) => Some(format!("{}: Precog proves it now, and tests/examples_unproven.txt still lists it — drop that line.\n  It said: {}", name, why)),
+            _ => None,
         }
-    }
+    })
+    .into_iter()
+    .flatten()
+    .collect();
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
 #[test]
 fn examples_lower_to_a_well_formed_graph() {
     let pending = load_pending();
-    let mut failures = Vec::new();
-    for src in targets(&repo().join("examples")) {
-        let name = name_of(&src);
+    let failures: Vec<String> = common::par_map(&targets(&repo().join("examples")), |src| {
+        let name = name_of(src);
         if pending.contains_key(&name) {
-            continue;
+            return None;
         }
-        if let Err(msg) = lower(&src) {
-            failures.push(format!("{}:\n{}", name, indent(&msg)));
-        }
-    }
+        lower(src).err().map(|msg| format!("{}:\n{}", name, indent(&msg)))
+    })
+    .into_iter()
+    .flatten()
+    .collect();
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
@@ -125,20 +129,20 @@ fn name_of(p: &Path) -> String {
 #[test]
 fn examples_load_and_check() {
     let pending = load_pending();
-    let mut failures = Vec::new();
-    for src in targets(&repo().join("examples")) {
-        let name = name_of(&src);
-        let got = check(&src);
-        match (pending.get(&name), got) {
-            (None, Err(msg)) => failures.push(format!("{}:\n{}", name, indent(&msg))),
-            (None, Ok(())) => {}
-            (Some(_), Err(_)) => {}
-            (Some(why), Ok(())) => failures.push(format!(
+    let failures: Vec<String> = common::par_map(&targets(&repo().join("examples")), |src| {
+        let name = name_of(src);
+        match (pending.get(&name), check(src)) {
+            (None, Err(msg)) => Some(format!("{}:\n{}", name, indent(&msg))),
+            (Some(why), Ok(())) => Some(format!(
                 "{}: checks now, and tests/examples_pending.txt still lists it — drop that line.\n  It said: {}",
                 name, why
             )),
+            _ => None,
         }
-    }
+    })
+    .into_iter()
+    .flatten()
+    .collect();
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
@@ -173,39 +177,32 @@ fn load_list(file: &str) -> HashMap<String, String> {
 fn reject_programs_are_refused_in_ccas_own_words() {
     let phrases = load_phrases();
     let dir = repo().join("oracle/tests/reject");
-    let mut failures = Vec::new();
-    let mut seen = Vec::new();
-    for src in targets(&dir) {
-        let name = name_of(&src);
-        seen.push(name.clone());
+    let all = targets(&dir);
+    let seen: Vec<String> = all.iter().map(|p| name_of(p)).collect();
+    let mut failures: Vec<String> = common::par_map(&all, |src| -> Option<String> {
+        let name = name_of(src);
         let Some(want) = phrases.get(&name) else {
-            failures.push(format!("{}: no line in tests/reject_phrases.txt — add one saying what CCA should say", name));
-            continue;
+            return Some(format!("{}: no line in tests/reject_phrases.txt — add one saying what CCA should say", name));
         };
-        let got = check(&src).and_then(|()| prove(&src));
+        let got = check(src).and_then(|()| prove(src));
         if let Some(why) = want.strip_prefix("!pending") {
-            if got.is_err() {
-                failures.push(format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message.{}\n{}", name, if why.trim().is_empty() { String::new() } else { format!(" It said:{}", why) }, indent(got.as_ref().unwrap_err())));
-            }
-            continue;
+            return got.as_ref().err().map(|e| format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message.{}\n{}", name, if why.trim().is_empty() { String::new() } else { format!(" It said:{}", why) }, indent(e)));
         }
         if let Some(why) = want.strip_prefix("!by-design") {
             // CCA is right to accept this one; refusing it would be the bug.
-            if got.is_err() {
-                failures.push(format!("{}: CCA refuses this, and it should build —{}\n{}", name, why, indent(got.as_ref().unwrap_err())));
-            }
-            continue;
+            return got.as_ref().err().map(|e| format!("{}: CCA refuses this, and it should build —{}\n{}", name, why, indent(e)));
         }
         match got {
-            Ok(()) => failures.push(format!("{}: accepted, and it must be refused (the oracle says: {})", name, oracle_err(&dir, &name))),
+            Ok(()) => Some(format!("{}: accepted, and it must be refused (the oracle says: {})", name, oracle_err(&dir, &name))),
             Err(msg) => {
                 let first = msg.lines().next().unwrap_or("").trim_start_matches("error: ").to_string();
-                if !first.contains(want.as_str()) {
-                    failures.push(format!("{}: expected a message containing\n    {}\n  got\n{}", name, want, indent(&msg)));
-                }
+                (!first.contains(want.as_str())).then(|| format!("{}: expected a message containing\n    {}\n  got\n{}", name, want, indent(&msg)))
             }
         }
-    }
+    })
+    .into_iter()
+    .flatten()
+    .collect();
     for name in phrases.keys() {
         if !seen.contains(name) {
             failures.push(format!("{}: listed in tests/reject_phrases.txt, but there is no such reject test", name));

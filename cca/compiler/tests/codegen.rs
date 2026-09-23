@@ -7,6 +7,8 @@
 //! exactly what the generated code covers today, so the test says what is
 //! true rather than what is hoped.
 
+mod common;
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -37,30 +39,54 @@ fn runtime() -> Option<PathBuf> {
     None
 }
 
-#[test]
-fn programs_build_and_run() {
-    assert!(runtime().is_some(), "the runtime is not built — run `cargo build -p cca-runtime` first; the linker needs libcca_runtime.a");
+/// `name want` lines of `expected.txt`.
+fn programs() -> Vec<(String, String)> {
     let expected = std::fs::read_to_string(dir().join("expected.txt")).unwrap();
+    expected
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .map(|l| {
+            let (n, w) = l.split_once(' ').unwrap();
+            (n.to_string(), w.trim().to_string())
+        })
+        .collect()
+}
+
+fn have_leaks() -> bool {
+    Command::new("leaks").arg("--help").output().map(|o| o.status.success()).unwrap_or(false)
+}
+
+/// Every program builds, exits as `expected.txt` says, and gives back
+/// everything it took.
+///
+/// The last is the test that catches a heap bug. An exit code is happy to
+/// be right while a list's buffer, a map's table or a built text is never
+/// freed — or is freed twice, which is worse and usually still exits 0.
+/// macOS has `leaks`; where it does not exist the test says so rather
+/// than passing quietly. One build serves both: they used to be two tests
+/// each building every program.
+#[test]
+fn programs_build_run_and_give_back() {
+    assert!(runtime().is_some(), "the runtime is not built — run `cargo build -p cca-runtime` first; the linker needs libcca_runtime.a");
+    let leaks = have_leaks();
+    if !leaks {
+        eprintln!("note: no `leaks` on this machine, so nothing checked what the programs freed");
+    }
     let out_dir = std::env::temp_dir().join("cca-codegen-tests");
     let _ = std::fs::create_dir_all(&out_dir);
-    let mut failures = Vec::new();
-    for line in expected.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let (name, want) = line.split_once(' ').unwrap();
+    let results = common::par_map(&programs(), |(name, want)| -> Vec<String> {
+        let mut failures = Vec::new();
         let src = dir().join(format!("{}.cpls", name));
         let bin = out_dir.join(name);
         let build = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&bin).output().unwrap();
         if !build.status.success() {
-            failures.push(format!("{}: would not build:\n{}", name, indent(&String::from_utf8_lossy(&build.stderr))));
-            continue;
+            return vec![format!("{}: would not build:\n{}", name, indent(&String::from_utf8_lossy(&build.stderr)))];
         }
         let run = Command::new(&bin).output().unwrap();
         let code = run.status.code().unwrap_or(-1);
         let stderr = String::from_utf8_lossy(&run.stderr).to_string();
-        match want {
+        match want.as_str() {
             "trap" => {
                 if code != 101 {
                     failures.push(format!("{}: a check should have fired (exit 101), and it exited {}", name, code));
@@ -75,7 +101,19 @@ fn programs_build_and_run() {
                 }
             }
         }
-    }
+        // A program that stops on a check never reaches the end, so what
+        // it was still holding is not a leak.
+        if leaks && want != "trap" {
+            let r = Command::new("leaks").arg("--atExit").arg("--").arg(&bin).output().unwrap();
+            let text = String::from_utf8_lossy(&r.stdout).to_string();
+            if !text.contains("0 leaks for 0 total leaked bytes") {
+                let said = text.lines().filter(|l| l.contains("leak")).collect::<Vec<_>>().join("\n");
+                failures.push(format!("{}: did not give back everything it took: {}", name, said));
+            }
+        }
+        failures
+    });
+    let failures: Vec<String> = results.into_iter().flatten().collect();
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
@@ -124,78 +162,21 @@ fn copying_a_list_copies_what_it_owns() {
 #[test]
 fn programs_run_the_same_with_proofs_asserted() {
     assert!(runtime().is_some(), "the runtime is not built");
-    let expected = std::fs::read_to_string(dir().join("expected.txt")).unwrap();
     let out_dir = std::env::temp_dir().join("cca-asserted-tests");
     let _ = std::fs::create_dir_all(&out_dir);
-    let mut failures = Vec::new();
-    for line in expected.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let (name, want) = line.split_once(' ').unwrap();
+    let results = common::par_map(&programs(), |(name, want)| -> Option<String> {
         let bin = out_dir.join(name);
         let build = Command::new(cca()).arg("build").arg("--assert-proofs").arg(dir().join(format!("{}.cpls", name))).arg("-o").arg(&bin).output().unwrap();
         if !build.status.success() {
-            failures.push(format!("{}: would not build with proofs asserted:\n{}", name, indent(&String::from_utf8_lossy(&build.stderr))));
-            continue;
+            return Some(format!("{}: would not build with proofs asserted:\n{}", name, indent(&String::from_utf8_lossy(&build.stderr))));
         }
         let run = Command::new(&bin).output().unwrap();
         let code = run.status.code().unwrap_or(-1);
         let want_code = if want == "trap" { 101 } else { want.parse().unwrap() };
-        if code != want_code {
-            failures.push(format!("{}: exited {} with proofs asserted, and {} without\n{}", name, code, want_code, indent(&String::from_utf8_lossy(&run.stderr))));
-        }
-    }
+        (code != want_code).then(|| format!("{}: exited {} with proofs asserted, and {} without\n{}", name, code, want_code, indent(&String::from_utf8_lossy(&run.stderr))))
+    });
+    let failures: Vec<String> = results.into_iter().flatten().collect();
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
-}
-
-/// Every program gives back everything it took.
-///
-/// This is the test that catches a heap bug. An exit code is happy to be
-/// right while a list's buffer, a map's table or a built text is never
-/// freed — or is freed twice, which is worse and usually still exits 0.
-/// macOS has `leaks`; where it does not exist the test says so rather
-/// than passing quietly.
-#[test]
-fn programs_give_back_what_they_took() {
-    if Command::new("leaks").arg("--help").output().map(|o| !o.status.success()).unwrap_or(true) {
-        eprintln!("note: no `leaks` on this machine, so nothing checked what the programs freed");
-        return;
-    }
-    assert!(runtime().is_some(), "the runtime is not built");
-    let expected = std::fs::read_to_string(dir().join("expected.txt")).unwrap();
-    // Its own directory: the tests run at the same time, and two of them
-    // building and running one path means one replaces the binary the
-    // other is about to start.
-    let out_dir = std::env::temp_dir().join("cca-leak-tests");
-    let _ = std::fs::create_dir_all(&out_dir);
-    let mut leaking = Vec::new();
-    for line in expected.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let (name, want) = line.split_once(' ').unwrap();
-        // A program that stops on a check never reaches the end, so what
-        // it was still holding is not a leak.
-        if want == "trap" {
-            continue;
-        }
-        let src = dir().join(format!("{}.cpls", name));
-        let bin = out_dir.join(name);
-        let build = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&bin).output().unwrap();
-        if !build.status.success() {
-            continue;
-        }
-        let r = Command::new("leaks").arg("--atExit").arg("--").arg(&bin).output().unwrap();
-        let text = String::from_utf8_lossy(&r.stdout).to_string();
-        if !text.contains("0 leaks for 0 total leaked bytes") {
-            let said = text.lines().filter(|l| l.contains("leak")).collect::<Vec<_>>().join("\n");
-            leaking.push(format!("{}: {}", name, said));
-        }
-    }
-    assert!(leaking.is_empty(), "these programs did not give back everything they took:\n{}", leaking.join("\n"));
 }
 
 /// An unproven narrowing is a check in the working build, not a silent
