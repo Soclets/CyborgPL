@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Precog proves recursive functions by induction (owner: c)
+
+The benchmarks were rewritten in proper CyborgPL, each stating its input
+range where the input comes in. The final build then proved every site
+in sum, lists and sieve, and refused fib's `fib['n' - 1] + fib['n' - 2]`
+although `'n'` in `[0, 92]` makes it correct (fib(92) fits `int64`).
+Proving it needs induction over the recursion, and Precog follows calls
+a few levels deep. Proposed by compiler claude: (a) `nocheck` on that
+line with a comment (recommended for now, by compiler claude and design
+claude); (b) leave fib in the working build as a known limit; (c) teach
+Precog to bound recursive functions by induction. Owner: c, "I can
+wait". A Precog feature, `precog.md`'s calls rule.
+
 ### 2026-09-23 — The website's text is CC BY 4.0 (owner)
 
 The owner chose it with the website session, which explained it

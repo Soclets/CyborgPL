@@ -114,7 +114,10 @@ every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
   then widened.
 - **Calls** are analysed per call site with the arguments' domains — the
   same per-shape specialisation generics and variadics already use —
-  recursion depth-limited at **8** (provisional). So `square['i']` with
+  recursion depth-limited at **8** (provisional). Past that, a recursive
+  function's result is bounded **by induction** (owner, 2026-09-23: c):
+  assume the bound for smaller arguments and prove it for this one, so
+  `fib` on `[0, 92]` is proven without `nocheck`. So `square['i']` with
   `'i'` in `[1, 1000]` proves its own multiply, without a contract on
   `square`.
 - **Ownership** is what Kespar lacked: every value has exactly one owner

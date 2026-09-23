@@ -3,26 +3,85 @@
   "name": "cyborgpl",
   "displayName": "CyborgPL",
   "scopeName": "source.cyborgpl",
-  "fileTypes": ["cpls"],
-  "aliases": ["cpls"],
+  "fileTypes": [
+    "cpls"
+  ],
+  "aliases": [
+    "cpls"
+  ],
   "patterns": [
-    { "include": "#comment" },
-    { "include": "#asm-block" },
-    { "include": "#text" },
-    { "include": "#character" },
-    { "include": "#variable" },
-    { "include": "#newline-piece" },
-    { "include": "#number" },
-    { "include": "#declaration" },
-    { "include": "#failure-name" },
-    { "include": "#generic" },
-    { "include": "#type" },
-    { "include": "#field" },
-    { "include": "#struct-name" },
-    { "include": "#keyword" },
-    { "include": "#call" },
-    { "include": "#operator" },
-    { "include": "#punctuation" }
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#asm-block"
+    },
+    {
+      "include": "#text"
+    },
+    {
+      "include": "#character"
+    },
+    {
+      "include": "#variable"
+    },
+    {
+      "include": "#newline-piece"
+    },
+    {
+      "include": "#unit"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "include": "#enum-body"
+    },
+    {
+      "include": "#declaration"
+    },
+    {
+      "include": "#failure-name"
+    },
+    {
+      "include": "#generic"
+    },
+    {
+      "include": "#bound"
+    },
+    {
+      "include": "#type"
+    },
+    {
+      "include": "#field"
+    },
+    {
+      "include": "#struct-name"
+    },
+    {
+      "include": "#keyword"
+    },
+    {
+      "include": "#case-arm"
+    },
+    {
+      "include": "#call"
+    },
+    {
+      "include": "#operator"
+    },
+    {
+      "include": "#module-path"
+    },
+    {
+      "include": "#word-operator"
+    },
+    {
+      "include": "#function-ref"
+    },
+    {
+      "include": "#punctuation"
+    }
   ],
   "repository": {
     "comment": {
@@ -41,60 +100,93 @@
           "name": "comment.line.number-sign.cyborgpl",
           "begin": "#",
           "end": "$",
-          "beginCaptures": { "0": { "name": "punctuation.definition.comment.cyborgpl" } }
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.cyborgpl"
+            }
+          }
         }
       ]
     },
-
     "asm-block": {
       "comment": "inline.ASM { … } is taken verbatim to the matching brace.",
       "name": "meta.embedded.asm.cyborgpl",
       "begin": "\\b(inline)(\\.)(ASM)\\s*(\\{)",
       "end": "\\}",
       "beginCaptures": {
-        "1": { "name": "keyword.other.inline.cyborgpl" },
-        "2": { "name": "punctuation.accessor.cyborgpl" },
-        "3": { "name": "keyword.other.asm.cyborgpl" },
-        "4": { "name": "punctuation.section.braces.begin.cyborgpl" }
+        "1": {
+          "name": "keyword.other.inline.cyborgpl"
+        },
+        "2": {
+          "name": "punctuation.accessor.cyborgpl"
+        },
+        "3": {
+          "name": "keyword.other.asm.cyborgpl"
+        },
+        "4": {
+          "name": "punctuation.section.braces.begin.cyborgpl"
+        }
       },
-      "endCaptures": { "0": { "name": "punctuation.section.braces.end.cyborgpl" } },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.braces.end.cyborgpl"
+        }
+      },
       "contentName": "meta.embedded.block.asm"
     },
-
     "text": {
       "comment": "A text literal is exactly its characters; only \\\" and \\\\ escape. A backslash before anything else is literal.",
       "name": "string.quoted.double.cyborgpl",
       "begin": "\"",
       "end": "\"",
-      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.cyborgpl" } },
-      "endCaptures": { "0": { "name": "punctuation.definition.string.end.cyborgpl" } },
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.cyborgpl"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.cyborgpl"
+        }
+      },
       "patterns": [
-        { "name": "constant.character.escape.cyborgpl", "match": "\\\\[\"\\\\]" }
+        {
+          "name": "constant.character.escape.cyborgpl",
+          "match": "\\\\[\"\\\\]"
+        }
       ]
     },
-
     "character": {
       "comment": "`c` — one character.",
       "name": "string.quoted.other.character.cyborgpl",
       "begin": "`",
       "end": "`",
-      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.cyborgpl" } },
-      "endCaptures": { "0": { "name": "punctuation.definition.string.end.cyborgpl" } }
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.cyborgpl"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.cyborgpl"
+        }
+      }
     },
-
     "variable": {
       "comment": "Every variable name is quoted: 'x'. It cannot span lines.",
       "name": "variable.other.cyborgpl",
       "match": "'[^'\\n]+'",
-      "captures": { "0": { "name": "variable.other.cyborgpl" } }
+      "captures": {
+        "0": {
+          "name": "variable.other.cyborgpl"
+        }
+      }
     },
-
     "newline-piece": {
       "comment": "The newline is a bare \\n outside any string — a value, not an escape.",
       "name": "constant.character.newline.cyborgpl",
       "match": "\\\\n"
     },
-
     "number": {
       "patterns": [
         {
@@ -108,23 +200,42 @@
         }
       ]
     },
-
     "declaration": {
       "patterns": [
+        {
+          "comment": "A custom operator: `op dot [...]`, `op <+> [...]`.",
+          "match": "\\b(op)\\s+([A-Za-z_][A-Za-z0-9_]*|[!%&*+\\-/<>=?@^|~]+)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.operator.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.function.operator.cyborgpl"
+            }
+          }
+        },
         {
           "comment": "fn name [params] -> type",
           "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "keyword.declaration.function.cyborgpl" },
-            "2": { "name": "entity.name.function.cyborgpl" }
+            "1": {
+              "name": "keyword.declaration.function.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.function.cyborgpl"
+            }
           }
         },
         {
           "comment": "struct / enum / interface / module / limb declare a bare name.",
           "match": "\\b(struct|enum|interface|module|limb)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "keyword.declaration.cyborgpl" },
-            "2": { "name": "entity.name.type.cyborgpl" }
+            "1": {
+              "name": "keyword.declaration.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.type.cyborgpl"
+            }
           }
         },
         {
@@ -134,45 +245,65 @@
         }
       ]
     },
-
     "failure-name": {
       "comment": "A failure is named after `fail`, both in a signature (`-> T or fail[empty]`) and where it is raised (`fail empty;`).",
       "patterns": [
         {
           "match": "\\b(fail)\\s*(\\[)([^\\]]*)(\\])",
           "captures": {
-            "1": { "name": "keyword.control.failure.cyborgpl" },
-            "2": { "name": "punctuation.section.brackets.cyborgpl" },
-            "3": { "name": "entity.name.tag.failure.cyborgpl" },
-            "4": { "name": "punctuation.section.brackets.cyborgpl" }
+            "1": {
+              "name": "keyword.control.failure.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.section.brackets.cyborgpl"
+            },
+            "3": {
+              "name": "entity.name.tag.failure.cyborgpl"
+            },
+            "4": {
+              "name": "punctuation.section.brackets.cyborgpl"
+            }
           }
         },
         {
           "match": "\\b(fail)\\s+([a-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "keyword.control.failure.cyborgpl" },
-            "2": { "name": "entity.name.tag.failure.cyborgpl" }
+            "1": {
+              "name": "keyword.control.failure.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.tag.failure.cyborgpl"
+            }
           }
         }
       ]
     },
-
     "generic": {
-      "comment": "A generic blank is written in angle brackets: <T>, filled per use by the compiler.",
-      "match": "(<)([A-Za-z_][A-Za-z0-9_]*)(>)",
+      "comment": "A generic blank in angle brackets, optionally constrained by an interface: `<T>`, `<T: Ordered>`.",
+      "match": "(<)([A-Za-z_][A-Za-z0-9_]*)(?:\\s*(:)\\s*([A-Za-z_][A-Za-z0-9_]*))?(>)",
       "captures": {
-        "1": { "name": "punctuation.definition.generic.begin.cyborgpl" },
-        "2": { "name": "entity.name.type.generic.cyborgpl" },
-        "3": { "name": "punctuation.definition.generic.end.cyborgpl" }
+        "1": {
+          "name": "punctuation.definition.generic.begin.cyborgpl"
+        },
+        "2": {
+          "name": "entity.name.type.generic.cyborgpl"
+        },
+        "3": {
+          "name": "punctuation.separator.type.cyborgpl"
+        },
+        "4": {
+          "name": "entity.name.type.interface.cyborgpl"
+        },
+        "5": {
+          "name": "punctuation.definition.generic.end.cyborgpl"
+        }
       }
     },
-
     "struct-name": {
       "comment": "Structs, enums and interfaces are named in PascalCase in the examples; functions are snake_case. A bare capitalised word is therefore a type — including where one is built (`Locker[…]`) or narrowed (`Status.empty`).",
       "name": "entity.name.type.cyborgpl",
       "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
     },
-
     "field": {
       "comment": "A struct field or enum case names itself with a bare word before `:`; variables are quoted, so there is no clash.",
       "patterns": [
@@ -180,21 +311,28 @@
           "comment": "A struct field or enum case names itself with a bare word before `:`; variables are quoted, so there is no clash.",
           "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?!:)",
           "captures": {
-            "1": { "name": "variable.other.member.declaration.cyborgpl" },
-            "2": { "name": "punctuation.separator.type.cyborgpl" }
+            "1": {
+              "name": "variable.other.member.declaration.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.separator.type.cyborgpl"
+            }
           }
         },
         {
           "comment": "A field label when a struct is built: `Locker[number = 1]`. A bare word before a single `=`; assignments name a quoted variable instead.",
           "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(=)(?![=>])",
           "captures": {
-            "1": { "name": "variable.other.member.cyborgpl" },
-            "2": { "name": "keyword.operator.assignment.cyborgpl" }
+            "1": {
+              "name": "variable.other.member.cyborgpl"
+            },
+            "2": {
+              "name": "keyword.operator.assignment.cyborgpl"
+            }
           }
         }
       ]
     },
-
     "type": {
       "patterns": [
         {
@@ -206,33 +344,57 @@
           "comment": "Text and character types are never bare: str.utf8, char.point.",
           "match": "\\b(str)(\\.)(utf8|utf16|utf32|ascii)\\b",
           "captures": {
-            "1": { "name": "support.type.cyborgpl" },
-            "2": { "name": "punctuation.accessor.cyborgpl" },
-            "3": { "name": "support.type.narrowing.cyborgpl" }
+            "1": {
+              "name": "support.type.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "support.type.narrowing.cyborgpl"
+            }
           }
         },
         {
           "match": "\\b(char)(\\.)(point|grapheme|byte)\\b",
           "captures": {
-            "1": { "name": "support.type.cyborgpl" },
-            "2": { "name": "punctuation.accessor.cyborgpl" },
-            "3": { "name": "support.type.narrowing.cyborgpl" }
+            "1": {
+              "name": "support.type.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "support.type.narrowing.cyborgpl"
+            }
           }
         },
         {
           "match": "\\b(map)(\\.)(ordered|unordered)\\b",
           "captures": {
-            "1": { "name": "support.type.cyborgpl" },
-            "2": { "name": "punctuation.accessor.cyborgpl" },
-            "3": { "name": "support.type.narrowing.cyborgpl" }
+            "1": {
+              "name": "support.type.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "support.type.narrowing.cyborgpl"
+            }
           }
         },
         {
           "match": "\\b(ptr)(\\.)(mut)\\b",
           "captures": {
-            "1": { "name": "support.type.cyborgpl" },
-            "2": { "name": "punctuation.accessor.cyborgpl" },
-            "3": { "name": "support.type.narrowing.cyborgpl" }
+            "1": {
+              "name": "support.type.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "support.type.narrowing.cyborgpl"
+            }
           }
         },
         {
@@ -243,14 +405,19 @@
           "comment": "A type written after `:` or `->` that is none of the above is a struct in this module.",
           "match": "(?:(:)|(->))\\s*([A-Z][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "punctuation.separator.type.cyborgpl" },
-            "2": { "name": "keyword.operator.arrow.cyborgpl" },
-            "3": { "name": "entity.name.type.cyborgpl" }
+            "1": {
+              "name": "punctuation.separator.type.cyborgpl"
+            },
+            "2": {
+              "name": "keyword.operator.arrow.cyborgpl"
+            },
+            "3": {
+              "name": "entity.name.type.cyborgpl"
+            }
           }
         }
       ]
     },
-
     "keyword": {
       "patterns": [
         {
@@ -300,43 +467,85 @@
         }
       ]
     },
-
     "call": {
       "patterns": [
+        {
+          "comment": "A capitalised name reached through a module is a type: `counter.Count`, `counter.Count[n = 1]`.",
+          "match": "(\\.)([A-Z][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.type.cyborgpl"
+            }
+          }
+        },
         {
           "comment": "Limb path: std::print.stdout[…]. The :: is a Limb boundary.",
           "match": "\\b([A-Za-z_][A-Za-z0-9_]*)(::)((?:[A-Za-z_][A-Za-z0-9_]*)(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)",
           "captures": {
-            "1": { "name": "entity.name.namespace.cyborgpl" },
-            "2": { "name": "punctuation.separator.namespace.cyborgpl" },
-            "3": { "name": "entity.name.function.cyborgpl" }
+            "1": {
+              "name": "entity.name.namespace.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.separator.namespace.cyborgpl"
+            },
+            "3": {
+              "name": "entity.name.function.cyborgpl"
+            }
           }
         },
         {
           "comment": "A conversion: to.int32[…], to.str.utf8[…].",
           "match": "\\b(to)(\\.)((?:[A-Za-z_][A-Za-z0-9_]*)(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)",
           "captures": {
-            "1": { "name": "keyword.other.conversion.cyborgpl" },
-            "2": { "name": "punctuation.accessor.cyborgpl" },
-            "3": { "name": "support.type.cyborgpl" }
+            "1": {
+              "name": "keyword.other.conversion.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "support.type.cyborgpl"
+            }
           }
         },
         {
           "comment": "Calls use brackets, never parentheses: add[1, 2].",
           "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\[)",
-          "captures": { "1": { "name": "entity.name.function.cyborgpl" } }
+          "captures": {
+            "1": {
+              "name": "entity.name.function.cyborgpl"
+            }
+          }
+        },
+        {
+          "comment": "A dotted name called with brackets is a function: `counter.bump[…]`, `map.remove[…]`.",
+          "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\[)",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.function.cyborgpl"
+            }
+          }
         },
         {
           "comment": "A dot narrows: 'xs'.length, str.utf8, lend.mut.",
           "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "punctuation.accessor.cyborgpl" },
-            "2": { "name": "variable.other.member.cyborgpl" }
+            "1": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "2": {
+              "name": "variable.other.member.cyborgpl"
+            }
           }
         }
       ]
     },
-
     "operator": {
       "patterns": [
         {
@@ -393,18 +602,159 @@
         }
       ]
     },
-
     "punctuation": {
       "patterns": [
-        { "name": "punctuation.separator.namespace.cyborgpl", "match": "::" },
-        { "name": "punctuation.separator.type.cyborgpl", "match": ":" },
-        { "name": "punctuation.terminator.cyborgpl", "match": ";" },
-        { "name": "punctuation.separator.comma.cyborgpl", "match": "," },
-        { "name": "punctuation.accessor.cyborgpl", "match": "\\." },
-        { "name": "punctuation.section.brackets.cyborgpl", "match": "[\\[\\]]" },
-        { "name": "punctuation.section.braces.cyborgpl", "match": "[{}]" },
-        { "name": "punctuation.section.parens.cyborgpl", "match": "[()]" }
+        {
+          "name": "punctuation.separator.namespace.cyborgpl",
+          "match": "::"
+        },
+        {
+          "name": "punctuation.separator.type.cyborgpl",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.terminator.cyborgpl",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.comma.cyborgpl",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.cyborgpl",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.section.brackets.cyborgpl",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.section.braces.cyborgpl",
+          "match": "[{}]"
+        },
+        {
+          "name": "punctuation.section.parens.cyborgpl",
+          "match": "[()]"
+        }
       ]
+    },
+    "enum-body": {
+      "comment": "Inside `enum Name { … }` every bare word is a case; a case with a payload is written `some: <T>`.",
+      "begin": "\\b(enum)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration.cyborgpl"
+        },
+        "2": {
+          "name": "entity.name.type.enum.cyborgpl"
+        },
+        "3": {
+          "name": "punctuation.section.braces.begin.cyborgpl"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.braces.end.cyborgpl"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#generic"
+        },
+        {
+          "include": "#type"
+        },
+        {
+          "include": "#struct-name"
+        },
+        {
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?!:)",
+          "captures": {
+            "1": {
+              "name": "variable.other.enummember.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.separator.type.cyborgpl"
+            }
+          }
+        },
+        {
+          "name": "variable.other.enummember.cyborgpl",
+          "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "case-arm": {
+      "comment": "An arm of `match` or of an `otherwise { … }` handler names an enum case or a failure: a bare word, optionally binding a quoted variable, before `{`. Keywords that open a block (`else`, `loop`, `concur`…) are matched earlier and win. A word straight after a value is an operator position (`'a' and 'b' {`), never an arm, so that position is excluded.",
+      "match": "(?<!['\\)\\]\\d] )\\b(?!(?:x|xx|mod|and|or|not|xor|shl|shr)\\b)([a-z_][A-Za-z0-9_]*)(?:\\s+('[^'\\n]+'))?\\s*(?=\\{)",
+      "captures": {
+        "1": {
+          "name": "variable.other.enummember.cyborgpl"
+        },
+        "2": {
+          "name": "variable.other.cyborgpl"
+        }
+      }
+    },
+    "unit": {
+      "comment": "A unit after a number: durations (`5 seconds`, `1500 millis`) and a text bound's unit (`[1, 40 graphemes]`). Lists are oracle/src/parser.rs DURATION_UNITS and the text-bound units.",
+      "match": "(?<=\\d)\\s+(nanos?|micros?|millis?|seconds?|minutes?|hours?|bytes|points|graphemes)\\b",
+      "captures": {
+        "1": {
+          "name": "keyword.other.unit.cyborgpl"
+        }
+      }
+    },
+    "bound": {
+      "comment": "`min` / `max` as an open end of a ranged type: `int32[1, max]`, `int32[min, 100]`.",
+      "patterns": [
+        {
+          "match": "(?<=\\[)\\s*(min)\\b(?=\\s*,)",
+          "captures": {
+            "1": {
+              "name": "constant.language.bound.cyborgpl"
+            }
+          }
+        },
+        {
+          "match": "(?<=,)\\s*(max)\\b(?=\\s*\\])",
+          "captures": {
+            "1": {
+              "name": "constant.language.bound.cyborgpl"
+            }
+          }
+        }
+      ]
+    },
+    "word-operator": {
+      "comment": "A bare word between two values is a custom infix operator: `'u' dot 'v'`. Keywords at the same place (`in`) are matched earlier and win.",
+      "match": "(?<=['\\)\\]\\d] )([a-z_][A-Za-z0-9_]*)(?=\\s+['\\(\\d\\[])",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.word.custom.cyborgpl"
+        }
+      }
+    },
+    "module-path": {
+      "comment": "A lowercase bare word before `.` is a module: `counter.Count`, `counter.inner.twice`. The parser enforces lowercase module names. Built-in types before a dot (`str.utf8`, `map.remove`) are matched earlier.",
+      "match": "\\b([a-z_][A-Za-z0-9_]*)(?=\\.[A-Za-z_'])",
+      "captures": {
+        "1": {
+          "name": "entity.name.namespace.cyborgpl"
+        }
+      }
+    },
+    "function-ref": {
+      "comment": "Variables are always quoted, so a bare lowercase word left over is a function named as a value: `first_by[…, by_number]`, `let 'f' := by_number;`.",
+      "name": "entity.name.function.reference.cyborgpl",
+      "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
     }
   }
 }
