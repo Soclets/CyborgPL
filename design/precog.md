@@ -379,7 +379,8 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
 - The invariant template list: which shapes, measured against real
   programs.
 - Every provisional number: set cap 4096 / re-set at 64, trips 2M
-  across the program (100k per loop is ruled), recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
+  across the program (100k per loop is ruled), induction over at most
+  4,096 argument tuples per recursive function (CCA's pick, 59c3f56), recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
   to be measured, not guessed.
 - The character-class vocabulary for text (which classes; how each std
   text operation maps them) — decided in principle (c), list open.
