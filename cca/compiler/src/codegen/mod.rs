@@ -1241,6 +1241,29 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(None)
             }
             Op::ListRemove => Some(Some(self.list_remove(fi, args, slots)?)),
+            // A list is a pointer, a length and a capacity, an array the
+            // first two (`lists.md`, layout): the elements stay where they
+            // are, and only the handle changes. A list's spare capacity is
+            // still one allocation, freed whole.
+            Op::ToList | Op::ToArray => {
+                let out = dest_ty?;
+                let shape = match self.ty(&out)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let v = self.operand(fi, args.first()?, slots)?.into_struct_value();
+                let p = self.builder.build_extract_value(v, 0, "p").ok()?;
+                let n = self.builder.build_extract_value(v, 1, "n").ok()?;
+                let mut agg = shape.get_undef();
+                agg = self.builder.build_insert_value(agg, p, 0, "p").ok()?.into_struct_value();
+                agg = self.builder.build_insert_value(agg, n, 1, "n").ok()?.into_struct_value();
+                if shape.count_fields() > 2 {
+                    // An array's capacity is its length; a list keeps its own.
+                    let c = if v.get_type().count_fields() > 2 { self.builder.build_extract_value(v, 2, "c").ok()? } else { n };
+                    agg = self.builder.build_insert_value(agg, c, 2, "c").ok()?.into_struct_value();
+                }
+                Some(Some(agg.into()))
+            }
             Op::ListSlice => {
                 let out = dest_ty?;
                 Some(Some(self.list_slice(fi, args, &out, slots, func)?))

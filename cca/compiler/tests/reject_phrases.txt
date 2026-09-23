@@ -16,6 +16,8 @@ append_to_array :: declare it a `list` to append
 append_without_mut :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
 append_wrong_type :: there is no implicit conversion between numeric families
 arith_overflow :: `x` can leave what the type holds
+array_into_list :: is a `list[int32]`, and 'f' is a `array[int32]`
+array_slice_is_list :: the declared type is an `array` and this is a `list`
 asm_bare_word :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
 asm_in_word :: the arrow is the direction
 asm_lowercase :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
@@ -198,6 +200,7 @@ let_chain :: `mut` / `immut` are bare words before the name
 let_top_level :: `const 'name' := …;` (`let` lives inside a body)
 limb_alone :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
 list_dot_type :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
+list_into_array :: the declared type is an `array` and this is a `list`
 list_mixed_types :: the list's element type is an `integer` and this value is text: convert it first
 list_two_params :: `list` takes exactly one type parameter, the element type: `list[int32]`
 main_as_func :: write `MAIN { … }` with no `fn`, no return type, no `return`
@@ -354,8 +357,9 @@ text_bound_graphemes :: this can take it outside the bound its type gives it (`s
 text_bound_no_unit :: a text's length bound must say which unit it counts
 text_bound_over :: this can take it outside the bound its type gives it (`str.utf8[0, 20 bytes]`)
 text_to_char_unhandled :: `to.char.point` can fail (not_one_char): say what happens
+to_array_bare :: converting bare 'l' would copy it without saying so
 to_bool :: there is no truthiness
-to_list :: there is no conversion to a list
+to_list :: keeps the element type, so it is not written
 to_narrowing_fails :: the value can be outside what a `int8` holds
 to_otherwise_on_safe :: `to.str.utf8` cannot fail here; drop the `otherwise`
 to_struct :: a struct or enum value is built by name

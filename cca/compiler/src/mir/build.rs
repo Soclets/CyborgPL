@@ -1634,6 +1634,8 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::ListLength => Op::ListLength,
         Builtin::ListAppend => Op::ListAppend,
         Builtin::ListSlice | Builtin::ArraySlice => Op::ListSlice,
+        Builtin::ToList => Op::ToList,
+        Builtin::ToArray => Op::ToArray,
         Builtin::ListRemove => Op::ListRemove,
         Builtin::ArrayLength => Op::ArrayLength,
         Builtin::MapLength => Op::MapLength,

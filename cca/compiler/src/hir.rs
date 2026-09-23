@@ -175,6 +175,9 @@ pub enum Builtin {
     ListSlice,
     /// `array.slice`: a `list[T]` too (owner; `lists.md`).
     ArraySlice,
+    /// `to.list[give 'a']` / `to.array[copy 'l']` (owner, 2026-09-23).
+    ToList,
+    ToArray,
     ArrayLength,
     MapLength,
     MapHas,

@@ -135,6 +135,10 @@ pub enum Op {
     ListAppend,
     ListRemove,
     ListSlice,
+    /// The same elements, as the other kind of sequence: a list's length
+    /// frozen, or an array allowed to grow.
+    ToList,
+    ToArray,
     ArrayLength,
     MapLength,
     MapHas,

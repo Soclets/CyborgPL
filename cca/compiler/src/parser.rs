@@ -2067,6 +2067,24 @@ impl<'a> Parser<'a> {
             return self.fail("the target type follows `to` after a dot: `to.int32[…]`, `to.str.utf8[…]`");
         }
         self.bump();
+        // `to.list[give 'a']`, `to.array[copy 'l']`: the element type stays,
+        // so it is not written and the bracket is the value (`lists.md`).
+        // They take ownership like a call, so they are parsed as one.
+        if let Tok::Word(w) = self.peek().clone() {
+            if (w == "list" || w == "array") && matches!(self.peek_at(1), Tok::LBracket) {
+                let wspan = self.bump().span;
+                self.bump();
+                let args = self.args()?;
+                let path = Path { limb: None, segs: vec![Ident { name: "to".into(), span: start }, Ident { name: w, span: wspan }], span: start.to(wspan) };
+                if self.is(&Tok::LBracket) && !self.bracket_is_bound() {
+                    let what = path.spelled();
+                    return self.fail(format!("`{}` keeps the element type, so it is not written: `{}[copy 'a']`", what, what));
+                }
+                let span = start.to(self.prev_span());
+                let e = Expr { kind: ExprKind::Call { path, args, otherwise: None }, span };
+                return self.postfix_on(e);
+            }
+        }
         let target = self.type_in(true)?;
         if !self.is(&Tok::LBracket) {
             return self.fail(format!("`to.{}` takes the value to convert in brackets: `to.{}[…]`", crate::names::type_spelling(&target), crate::names::type_spelling(&target)));

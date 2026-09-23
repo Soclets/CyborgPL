@@ -885,6 +885,11 @@ impl Precog {
                 Domain::Seq { len, .. } => Domain::Ints(len),
                 _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
             },
+            // The same elements, the same count: only whether it can grow.
+            Op::ToList | Op::ToArray => match arg(self, 0) {
+                d @ Domain::Seq { .. } => d,
+                _ => Domain::Seq { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, elem: Box::new(Domain::Any) },
+            },
             // As long as its positions say, and never longer than the list;
             // its elements are the list's.
             Op::ListSlice => {

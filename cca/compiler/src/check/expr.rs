@@ -1808,6 +1808,8 @@ impl Checker {
             ("array", ["length"]) => BuiltinHead::B(Builtin::ArrayLength),
             ("array", ["slice"]) => BuiltinHead::B(Builtin::ArraySlice),
             ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` and `slice`", other)).at(span)),
+            ("to", ["list"]) => BuiltinHead::B(Builtin::ToList),
+            ("to", ["array"]) => BuiltinHead::B(Builtin::ToArray),
             ("map", ["length"]) => BuiltinHead::B(Builtin::MapLength),
             ("map", ["has"]) => BuiltinHead::B(Builtin::MapHas),
             ("map", ["get"]) => BuiltinHead::B(Builtin::MapGet),
@@ -1973,6 +1975,30 @@ impl Checker {
                 // A slice owns its elements, and is a list whichever it came
                 // from (`lists.md`); Precog may lower it to an array.
                 (vec![a, first, last], Ty::Seq { elem: Box::new(elem), kind: SeqKind::List })
+            }
+            Builtin::ToList | Builtin::ToArray => {
+                arity(1, self)?;
+                let e = positional[0];
+                // It takes the collection, so it says how (`lists.md`): a
+                // bare name or a lend would copy without saying so.
+                match &e.kind {
+                    AK::Name(n) => return err(Diagnostic::error(format!("converting bare '{}' would copy it without saying so: `give '{}'` hands it over, `copy '{}'` keeps it", n.name, n.name, n.name)).at(e.span)),
+                    AK::Verb { verb: Verb::Lend | Verb::LendMut, .. } => return err(Diagnostic::error("converting a lend would copy it without saying so: `copy` it or `give` it").at(e.span)),
+                    AK::Path(p) if p.limb.is_none() && p.segs.len() == 1 && (crate::resolve::primitive(p.head()).is_some() || matches!(p.head(), "list" | "array" | "map")) => {
+                        return err(Diagnostic::error(format!("`{}` keeps the element type, so it is not written: `{}[copy 'a']`", name, name)).at(e.span));
+                    }
+                    _ => {}
+                }
+                let elem = self.fresh();
+                let any = Ty::Seq { elem: Box::new(elem), kind: SeqKind::Free(InferId(0)) };
+                let a = self.one_argument(ctx, e, ParamKind::Owned, &any, &name, "the list or array")?;
+                let at = self.resolve(&self.arg_type(&a));
+                let elem = match at.base() {
+                    Ty::Seq { elem, .. } => (**elem).clone(),
+                    other => return err(Diagnostic::error(format!("`to.list` / `to.array` take a list or an array, and this is a `{}`", self.spell(other))).at(e.span)),
+                };
+                let kind = if b == Builtin::ToList { SeqKind::List } else { SeqKind::Array };
+                (vec![a], Ty::Seq { elem: Box::new(elem), kind })
             }
             Builtin::MapHas | Builtin::MapGet | Builtin::MapRemove => {
                 arity(2, self)?;

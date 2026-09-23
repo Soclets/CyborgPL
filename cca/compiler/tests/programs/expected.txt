@@ -80,3 +80,6 @@ mod_all_ones 126
 # Slices: 1-based, inclusive, owning copies; a slice past the end stops.
 slicing 146
 slice_unknown trap
+
+# to.array / to.list: the elements stay, only the handle changes.
+list_array 104
