@@ -945,6 +945,17 @@ impl Domain {
     /// keeps growing (`precog.md`, layer 2). Never narrower than the union,
     /// so it stays sound; it only gives up precision.
     pub fn widen(&self, next: &Domain, ty: &Ty, items: &crate::resolve::Items) -> Domain {
+        self.widen_to(next, ty, items, &[])
+    }
+
+    /// Widening *with thresholds*: a bound still moving jumps to the next
+    /// constant the function mentions (sorted in `steps`), and to the
+    /// type's limit only past the last. Jumping straight to the limit lost
+    /// every invariant a loop keeps below one: `'acc' = (… ) mod 1000000007`
+    /// grows by a few each trip, widened to `int64`'s top, and the `+` in
+    /// front of the `mod` could no longer be proven. It stays finite — a
+    /// bound only ever moves up the list.
+    pub fn widen_to(&self, next: &Domain, ty: &Ty, items: &crate::resolve::Items, steps: &[i128]) -> Domain {
         let joined = self.union(next);
         match (&joined, self) {
             (Domain::Ints(new), Domain::Ints(old)) => {
@@ -953,8 +964,8 @@ impl Domain {
                     Domain::Ints(s) => s.bounds().unwrap_or((i64::MIN as i128, i64::MAX as i128)),
                     _ => (i64::MIN as i128, i64::MAX as i128),
                 };
-                let lo = if n1 < o1 { top.0 } else { n1 };
-                let hi = if n2 > o2 { top.1 } else { n2 };
+                let lo = if n1 < o1 { steps.iter().rev().copied().find(|t| *t <= n1 && *t >= top.0).unwrap_or(top.0) } else { n1 };
+                let hi = if n2 > o2 { steps.iter().copied().find(|t| *t >= n2 && *t <= top.1).unwrap_or(top.1) } else { n2 };
                 Domain::Ints(ISet::range(lo, hi))
             }
             (Domain::Seq { len, elem }, Domain::Seq { len: old, .. }) => {

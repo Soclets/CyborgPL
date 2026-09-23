@@ -69,10 +69,15 @@ fn main() {
             let mut files = Vec::new();
             let mut out = None;
             let mut assert_proofs = false;
+            let mut final_build = false;
             let mut i = 1;
             while i < args.len() {
                 if args[i] == "--assert-proofs" {
                     assert_proofs = true;
+                    i += 1;
+                } else if args[i] == "--final" {
+                    // `synthia final` (core-features.md): no run-time checks.
+                    final_build = true;
                     i += 1;
                 } else if args[i] == "-o" && i + 1 < args.len() {
                     out = Some(args[i + 1].clone());
@@ -85,7 +90,7 @@ fn main() {
             let mut failed = false;
             for f in &files {
                 let dest = out.clone().unwrap_or_else(|| Path::new(f).file_stem().unwrap().to_string_lossy().to_string());
-                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs) {
+                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs, final_build) {
                     failed = true;
                     eprint!("{}", d);
                 }
@@ -98,7 +103,7 @@ fn main() {
     }
 }
 
-fn build_one(path: &Path, out: &Path, assert_proofs: bool) -> Result<(), String> {
+fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool) -> Result<(), String> {
     let mut sources = SourceMap::default();
     let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = cca::check::Checker::new(items);
@@ -114,7 +119,7 @@ fn build_one(path: &Path, out: &Path, assert_proofs: bool) -> Result<(), String>
     for n in cca::precog::notes(&analysis, &mir, &sources) {
         print!("\n{}", n);
     }
-    let refusals = cca::precog::refusals(&analysis, &mir, &sources);
+    let refusals = cca::precog::refusals_opts(&analysis, &mir, &sources, final_build);
     if !refusals.is_empty() {
         return Err(refusals.join(""));
     }

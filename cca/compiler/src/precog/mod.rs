@@ -293,6 +293,7 @@ impl Precog {
         // was never analysed when the `else` side got round first, and a
         // value layer 1 saw only on the other call was folded into both.
         let mut pending_trip: HashMap<usize, Env> = HashMap::new();
+        let steps = thresholds(&self.prog().functions[f]);
         let mut head_body: HashMap<usize, Vec<usize>> = HashMap::new();
         for ((_, h), body) in &loops {
             head_body.entry(*h).or_default().extend(body.iter().copied());
@@ -477,7 +478,7 @@ impl Precog {
                             pending_trip.insert(i, joined);
                             return;
                         } else {
-                            let m = join(old, &e, widening || (looping && over_budget), unsafe { &(*this.p).items }, |l| this.local_ty(f, l));
+                            let m = join_to(old, &e, widening || (looping && over_budget), unsafe { &(*this.p).items }, |l| this.local_ty(f, l), &steps);
                             if same(old, &m) {
                                 return;
                             }
@@ -1583,14 +1584,53 @@ fn same(a: &Env, b: &Env) -> bool {
     a.len() == b.len() && a.iter().all(|(k, v)| b.get(k).map(|w| w == v).unwrap_or(false))
 }
 
+/// The constants a function mentions, each with its neighbours, and below a
+/// `mod` by one its largest remainder: where a widened bound may stop.
+fn thresholds(f: &crate::mir::Function) -> Vec<i128> {
+    let mut out: Vec<i128> = Vec::new();
+    let mut add = |o: &Operand, out: &mut Vec<i128>| {
+        if let Operand::Const(Const::Int(v)) = o {
+            out.extend([v.saturating_sub(1), *v, v.saturating_add(1)]);
+        }
+    };
+    for blk in &f.blocks {
+        for s in &blk.stmts {
+            match &s.kind {
+                StmtKind::Assign { rvalue, .. } => match rvalue {
+                    Rvalue::Use(o) | Rvalue::Unary { operand: o, .. } | Rvalue::Convert { operand: o, .. } => add(o, &mut out),
+                    Rvalue::Binary { op, lhs, rhs } => {
+                        add(lhs, &mut out);
+                        add(rhs, &mut out);
+                        if let (BinOp::Mod, Operand::Const(Const::Int(d))) = (op, rhs) {
+                            out.extend([d.saturating_sub(1).abs(), -(d.saturating_sub(1).abs())]);
+                        }
+                    }
+                    Rvalue::MakeList(os) => os.iter().for_each(|o| add(o, &mut out)),
+                    _ => {}
+                },
+                StmtKind::Op { args, .. } => args.iter().for_each(|o| add(o, &mut out)),
+                _ => {}
+            }
+        }
+    }
+    out.push(0);
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
 fn join(a: &Env, b: &Env, widening: bool, items: &crate::resolve::Items, ty: impl Fn(LocalId) -> Ty) -> Env {
+    join_to(a, b, widening, items, ty, &[])
+}
+
+fn join_to(a: &Env, b: &Env, widening: bool, items: &crate::resolve::Items, ty: impl Fn(LocalId) -> Ty, steps: &[i128]) -> Env {
     let mut out = a.clone();
     for (k, v) in b {
         let merged = match a.get(k) {
             None => v.clone(),
             Some(old) => {
                 if widening {
-                    old.widen(v, &ty(*k), items)
+                    old.widen_to(v, &ty(*k), items, steps)
                 } else {
                     old.union(v)
                 }
@@ -1608,11 +1648,19 @@ fn join(a: &Env, b: &Env, widening: bool, items: &crate::resolve::Items, ty: imp
 /// sometimes is the tiers' business: a runtime check in a working build,
 /// a refusal in a final one, and a refusal now when it is a `check`.
 pub fn refusals(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> Vec<String> {
+    refusals_opts(a, p, sources, false)
+}
+
+/// The same, for the final build when `final_build`: there the default tier
+/// behaves as `check` (`core-features.md`, owner 2026-09-20), so a site
+/// Precog could not prove is a compile error, and the product carries no
+/// run-time checks — every site proven, `check`-confirmed, or `nocheck`.
+pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceMap, final_build: bool) -> Vec<String> {
     let mut out = Vec::new();
     for r in &a.sites {
         let f = &p.functions[r.function];
         let site = f.site(r.site);
-        let checked = site.tier == Some(Tier::Check);
+        let checked = site.tier == Some(Tier::Check) || (final_build && site.tier.is_none());
         // `check` is "I built a guardrail, tell me whether it is enough", so
         // *not knowing* is an answer it has to hear (`core-features.md`:
         // "not proven → compile error naming the counterexample or the
