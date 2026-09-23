@@ -43,7 +43,7 @@ pub enum Ty {
 
 /// A range type's bound: a numeric literal.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Bound { Int(i128), Bin(f64) }
+pub enum Bound { Int(i128), Bin(f64), Min, Max }   // `int32[1, max]` — the type's own limit (2026-09-23)
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MapOrder { Any, Ordered, Unordered }

@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Oracle bug: the context type leaked into a call's arguments (verification session)
+
+Generator seed 41, shrunk: `let 'v': uint8 = g[0 > (-1) - 'x'];` with
+`'x'` an `int64` was refused by the oracle ("-1 does not fit uint8")
+and built by CCA, which was right. Introduced that morning with
+cc04fb9: the type a value is stored into was being carried into every
+nested expression, including a call's argument list, where the
+*result's* type says nothing about the arithmetic in the arguments.
+Fixed: the context stops at a call, a conversion, a construction, a
+lambda or a map/enum/channel literal. Recorded in `operators.md` beside
+the width rule; `examples/context_stops_at_a_call.cpls` pins both
+halves — the argument that must not inherit, and the literal that must.
+
 ### 2026-09-23 — Widths confirmed, minus `bin128` (owner: b)
 
 Marked "proposed by Claude; owner to confirm" since 2026-09-14 and

@@ -925,6 +925,9 @@ impl<'p> Interp<'p> {
             }
             (Ty::Ranged(base, lo, hi), v) => {
                 self.check_type(v, base, line)?;
+                // `min` / `max` mean the base type's own limit (owner, 2026-09-23)
+                let lo = &resolve_bound(base, lo, false);
+                let hi = &resolve_bound(base, hi, true);
                 let inside = match (v, lo, hi) {
                     (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b,
                     (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b,
@@ -1083,6 +1086,23 @@ impl<'p> Interp<'p> {
     }
 
     fn eval(&mut self, e: &Expr) -> Result<(Value, Prov), RuntimeError> {
+        // The type a value is stored into reaches the arithmetic that produces it, so a
+        // bare literal can take its width from context — but it stops at a call, a
+        // conversion or a construction: what `g[…]` *returns* says nothing about the
+        // arithmetic in its arguments (found by the verification session, 2026-09-23).
+        let fresh = matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
+            | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
+            | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..));
+        if fresh && self.expected.is_some() {
+            let saved = self.expected.take();
+            let r = self.eval_inner(e);
+            self.expected = saved;
+            return r;
+        }
+        self.eval_inner(e)
+    }
+
+    fn eval_inner(&mut self, e: &Expr) -> Result<(Value, Prov), RuntimeError> {
         let line = e.line();
         match e {
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
@@ -2955,6 +2975,26 @@ fn subst(ty: &Ty, map: &HashMap<String, Ty>) -> Ty {
 fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 127 } }
 
 fn kind_word(k: ParamKind) -> &'static str { match k { ParamKind::Owned => "owning", ParamKind::Lent => "lent", ParamKind::LentMut => "lent.mut" } }
+
+/// `min` / `max` in a range type are the base type's own limits (owner, 2026-09-23):
+/// `int32[1, max]` is "at least 1", and stays right if the width changes.
+fn resolve_bound(base: &Ty, b: &Bound, high: bool) -> Bound {
+    match b {
+        Bound::Min | Bound::Max => match base {
+            Ty::Int(_) | Ty::Uint(_) => {
+                let (lo, hi) = crate::value::int_range(base).unwrap_or((i128::MIN, i128::MAX));
+                Bound::Int(if high { hi } else { lo })
+            }
+            Ty::Bin(w) => {
+                let m = match w { 16 => 65504.0, 32 => f32::MAX as f64, _ => f64::MAX };
+                Bound::Bin(if high { m } else { -m })
+            }
+            // a list's, a map's or a channel's count: never negative, no natural ceiling
+            _ => Bound::Int(if high { i128::MAX } else { 0 }),
+        },
+        other => other.clone(),
+    }
+}
 
 fn const_key(module: &[String], name: &str) -> String { format!("{}/{name}", module.join(".")) }
 fn join_path(module: &[String], name: &str) -> String { if module.is_empty() { name.to_string() } else { format!("{}.{name}", module.join(".")) } }

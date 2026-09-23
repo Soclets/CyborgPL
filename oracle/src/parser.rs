@@ -612,7 +612,9 @@ impl Parser {
         {
             let head = segs[0].as_str();
             let numeric = ["int", "uint", "bin", "deci"].iter().any(|p| head.strip_prefix(p).map(|w| w.parse::<u32>().is_ok()).unwrap_or(false));
-            let range_ahead = *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_)) || matches!(self.peek_at(1), Tok::Op(o) if o == "-"));
+            let range_ahead = *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_))
+                || matches!(self.peek_at(1), Tok::Op(o) if o == "-")
+                || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max"));
             if numeric && range_ahead && (!self.to_target || self.bracket_then_bracket()) {
                 self.advance();
                 let lo = self.bound()?;
@@ -627,6 +629,8 @@ impl Parser {
                 }
                 let ok = match (&lo, &hi) { (Bound::Int(a), Bound::Int(b)) => a <= b, (Bound::Bin(a), Bound::Bin(b)) => a <= b, _ => true };
                 if !ok { return self.err("a range's low bound comes first: `int32[0, 100]`"); }
+                // `int32[min, max]` is `int32` written the long way (2026-09-23)
+                if matches!((&lo, &hi), (Bound::Min, Bound::Max)) { return self.err(format!("`{}[min, max]` is just `{}`: a range says what the type does not", head, head)); }
                 return Ok(Ty::Ranged(Box::new(base), lo, hi));
             }
         }
@@ -1232,11 +1236,18 @@ impl Parser {
 
     /// A range type's bound: a numeric literal, possibly negated.
     fn bound(&mut self) -> PResult<Bound> {
+        // `min` / `max` are the type's own limits: `int32[1, max]` is "at least 1"
+        // (owner, 2026-09-23), so a one-ended range never writes a number that goes
+        // stale when the width changes.
+        if let Tok::Word(w) = self.peek().clone() {
+            if w == "min" { self.advance(); return Ok(Bound::Min); }
+            if w == "max" { self.advance(); return Ok(Bound::Max); }
+        }
         let neg = if matches!(self.peek(), Tok::Op(o) if o == "-") { self.advance(); true } else { false };
         match self.advance().tok {
             Tok::Int(i) => Ok(Bound::Int(if neg { -i } else { i })),
             Tok::Bin(b) => Ok(Bound::Bin(if neg { -b } else { b })),
-            other => self.err(format!("a range's bounds are numeric literals, found {other}")),
+            other => self.err(format!("a range's bounds are numeric literals, or `min` / `max` for the type's own limit, found {other}")),
         }
     }
 

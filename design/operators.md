@@ -99,6 +99,13 @@ operand must be a name or a `to.T[…]`, so the width is always visible
 in the operation itself; or that rule for bare literals only. Owner:
 the compiler can work it out, so it should.
 
+**Context stops at a call** (2026-09-23): the type a value is stored
+into reaches the arithmetic that produces it, but not through a call, a
+conversion or a construction — what `g[…]` *returns* says nothing about
+the arithmetic inside its arguments. So `let 'v': uint8 = g[0 > (-1) -
+'x'];` is fine when `'x'` is an `int64`, while `let 'w': uint32 = 2 shl
+3;` still takes its width from the declaration.
+
 The sentence above — "the compiler knows every width; the oracle needs
 the left operand declared" — was always about the oracle's limit, not
 the language's rule. CCA had read it as a rule and refused both lines;
