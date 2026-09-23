@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A bare name is `pub bare fn pow […]` (owner: a)
+
+The spelling of the Limb author's choice, open since 2026-09-19 (the
+author decides whether users may write `pow[…]` without
+`mathstuff::`). Design claude first proposed `pub.bare`, `pub bare` and
+a list in `limb.cpls`, and recommended `pub.bare` to match `pub.limb`.
+The owner asked whether bare is really a narrowing of `pub`. It is not:
+`pub.limb` changes *who* can see a name, while bare changes *how* they
+write it and leaves the audience as it was. A dot picks one variant
+from several, and bare sits on top of visibility instead. `pub.bare`
+was withdrawn. The two left were a separate word on the item, `pub
+bare fn pow […]`, and a list at the Limb's front door, `bare pow,
+sqrt;` in `limb.cpls`. Recommended the word on the item, so the reader
+sees how `pow` is reached where `pow` is written. Owner: a. `bare`
+without `pub` is refused, since a private name is already bare where
+it can be seen. `pub.limb bare` is refused as undecided. `bare` is not
+a keyword: it means this only right after `pub`. The word was once
+floated for a shelved variadic parameter flag (2026-09-19), which would
+need another name if it came back. `examples/bare.cpls`, three reject
+tests.
+
 ### 2026-09-23 — Oracle bug: `min`/`max` read by side, not by word (compiler session)
 
 `let 'v': int32[max, 5] = 5;` ran, and so did `int32[max, max] = 5`

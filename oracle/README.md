@@ -109,6 +109,7 @@ had to make to run at all; none is a decision.
 | `deci`, `bin128`, `uint128`'s top half, `std::uenr` | — | Parsed, refused at run time as not implemented |
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |
 | A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.limb`; open in `design/limbs.md` |
+| `pub bare` is accepted before anything `pub` is, and changes nothing (one Limb: every name is bare where it can be seen) | `parser.rs` top level | Which items may be bare, and bare across a Limb's own modules, are open in `design/limbs.md` |
 
 
 

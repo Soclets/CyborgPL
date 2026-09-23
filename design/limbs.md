@@ -1,7 +1,7 @@
 # Limbs — reaching into one
 
-Decided 2026-09-19. The module-system pieces settled so far; the rest
-(`pub`, the spelling of the author's choice) is open.
+Decided 2026-09-19 onward. The module-system pieces settled so far; what
+is still open is listed at the end.
 
 ## No `import`, no `use`
 
@@ -32,6 +32,24 @@ Consequences:
 - The std Limb's items are reached `std::…` unless std's own source says
   otherwise. Whether std exports anything bare is std's decision, made
   when std is written.
+
+### How the author says so — `pub bare` (owner, 2026-09-23: a)
+
+```
+pub bare fn pow ['base': int64, 'exp': uint8] -> int64 { … }
+```
+
+`pub` says who can see it, and `bare` says how they write it: a user
+of `mathstuff` may call `pow[2, 10]` as well as `mathstuff::pow[2, 10]`.
+It is a separate word, not `pub.bare`, because a dot picks one variant
+of a thing (`pub` or `pub.limb`, never both), and bare changes the
+spelling without changing the audience. It is written on the item, so
+the reader sees how `pow` is reached where `pow` is. The proposed
+alternative was a list in `limb.cpls` (`bare pow, sqrt;`).
+
+- `bare` without `pub` is refused: a private name is already bare where
+  it can be seen.
+- `bare` is not a keyword. It means this only right after `pub`.
 
 ## A keyword may name a function — reached by path, never bare (decided 2026-09-19)
 
@@ -177,7 +195,12 @@ would give the name two places to disagree.
 
 ## Open
 
-- The spelling of the author's "reachable bare" / re-export choice — a
-  flag beside or on `pub`; with modules it is also how `shapes.circle.area`
-  becomes `geometry::area` for users. Undecided.
+- What `pub bare` may stand on: functions only, or also structs, enums,
+  interfaces, consts, modules (the oracle accepts it wherever `pub` goes).
+- `pub.limb bare`: whether a name can be bare across its own Limb's
+  modules (refused as undecided).
+- `pub bare` inside a module, not the root: is `shapes.circle`'s bare
+  `area` reached as `area` by users? That is the re-export question:
+  how `shapes.circle.area` becomes `geometry::area`.
+- A user's own `pow` beside a Limb's bare `pow`.
 - A file module's own visibility (provisionally public).
