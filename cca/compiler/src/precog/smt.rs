@@ -860,6 +860,14 @@ impl<'a> Enc<'a> {
             env.remove(&Key::Local(place.local));
             return;
         }
+        // A value is held at its local's width: a sum asked at its true
+        // value lands in an `int64` as the machine stores it. One that does
+        // not fit stopped at the landing's own site, so nothing after it
+        // sees the difference.
+        let v = v.map(|v| match int_shape(&self.func().locals[place.local.0 as usize].ty.clone()) {
+            Some((bits, signed)) if bits != v.bits => self.resize(v, bits, signed),
+            _ => v,
+        });
         match v.or_else(|| self.unknown_of(place.local)) {
             Some(v) => {
                 env.insert(Key::Local(place.local), v);
@@ -1010,15 +1018,58 @@ impl<'a> Enc<'a> {
             Rvalue::Binary { op, lhs, rhs } => {
                 let a = self.operand(lhs, env)?;
                 let b = self.operand(rhs, env)?;
+                // Plain math is exact (owner, 2026-09-23), `/` floors and
+                // `mod` takes the divisor's sign (`operators.md`), and a
+                // comparison is of the two numbers: all of them are asked
+                // at the true values — each operand widened by its own
+                // sign, wide enough that nothing wraps. Asked at the
+                // operands' width, `up[…] + 9e18` wrapped into a small
+                // number and a landing that overflows read as proven.
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
+                    // Two bits past the wider operand: every answer that some
+                    // 64-bit type holds is exact there, sums and products
+                    // alike. A product past that wraps — but it is past the
+                    // window too, and the program stops at that site before
+                    // any later one sees it. (Twice the width was exact
+                    // everywhere and sent the solvers into minutes of work.)
+                    let widest = a.bits.max(b.bits);
+                    let w = widest + 2;
+                    if w > 256 {
+                        return None;
+                    }
+                    let x = self.resize(a, w, true);
+                    let y = self.resize(b, w, true);
+                    let body = match op {
+                        BinOp::Add => format!("(bvadd {} {})", x.term, y.term),
+                        BinOp::Sub => format!("(bvsub {} {})", x.term, y.term),
+                        BinOp::Mul => format!("(bvmul {} {})", x.term, y.term),
+                        BinOp::Div | BinOp::Mod => {
+                            // Truncated, then moved by one step when the
+                            // remainder's sign is not the divisor's.
+                            let zero = bv(0, w);
+                            let q = format!("(bvsdiv {} {})", x.term, y.term);
+                            let r = format!("(bvsrem {} {})", x.term, y.term);
+                            let fix = format!("(and (not (= {r} {zero})) (not (= (bvslt {r} {zero}) (bvslt {} {zero}))))", y.term, r = r, zero = zero);
+                            if *op == BinOp::Div {
+                                format!("(ite {} (bvsub {} {}) {})", fix, q, bv(1, w), q)
+                            } else {
+                                format!("(ite {} (bvadd {} {}) {})", fix, r, y.term, r)
+                            }
+                        }
+                        _ => {
+                            let pred = compare(op, true, &x.term, &y.term);
+                            return Some(self.define(1, &format!("(ite {} (_ bv1 1) (_ bv0 1))", pred), false));
+                        }
+                    };
+                    return Some(self.define(w, &body, true));
+                }
                 let (a, b) = self.same_width(a, b);
                 let signed = a.signed || b.signed;
                 let w = a.bits;
                 let body = match op {
-                    BinOp::Add | BinOp::WrapAdd => format!("(bvadd {} {})", a.term, b.term),
-                    BinOp::Sub | BinOp::WrapSub => format!("(bvsub {} {})", a.term, b.term),
-                    BinOp::Mul | BinOp::WrapMul => format!("(bvmul {} {})", a.term, b.term),
-                    BinOp::Div => format!("({} {} {})", if signed { "bvsdiv" } else { "bvudiv" }, a.term, b.term),
-                    BinOp::Mod => format!("({} {} {})", if signed { "bvsrem" } else { "bvurem" }, a.term, b.term),
+                    BinOp::WrapAdd => format!("(bvadd {} {})", a.term, b.term),
+                    BinOp::WrapSub => format!("(bvsub {} {})", a.term, b.term),
+                    BinOp::WrapMul => format!("(bvmul {} {})", a.term, b.term),
                     BinOp::AndBit | BinOp::And => format!("(bvand {} {})", a.term, b.term),
                     BinOp::OrBit | BinOp::Or => format!("(bvor {} {})", a.term, b.term),
                     BinOp::Xor => format!("(bvxor {} {})", a.term, b.term),
@@ -1205,24 +1256,25 @@ impl<'a> Enc<'a> {
                         Some(format!("({} {} {})", pred, a.term, b.term))
                     }
                     BinOp::Add | BinOp::Sub | BinOp::Mul => {
-                        let b = ops.get(1).cloned().flatten()?;
                         // Compute wide enough that the true answer fits, then
-                        // ask whether it is outside what the type holds.
-                        // Wide enough for the true answer of these operands,
-                        // whatever their own widths.
-                        // One bit more than the wider operand holds a sum of
-                        // either signedness; twice that holds a product.
-                        let widest = a.bits.max(ops.get(1).cloned().flatten().map(|b| b.bits).unwrap_or(0)) + 1;
-                        let wide = if *op == BinOp::Mul { widest * 2 } else { (widest + 1).max(bits + 1) };
-                        let a = self.resize(a, wide, signed);
-                        let b = self.resize(b, wide, signed);
+                        // ask whether it is outside what the type holds. Two
+                        // bits more than the wider operand holds a sum of
+                        // either signedness, and every product inside the
+                        // question's range; a product past it is caught by the
+                        // solvers' own overflow test at that width, which they
+                        // answer quickly (a product at twice the width did not).
+                        let b0 = ops.get(1).cloned().flatten()?;
+                        let wide = a.bits.max(b0.bits).max(bits) + 2;
+                        let a = self.resize(a, wide, true);
+                        let b = self.resize(b0, wide, true);
                         let body = match op {
                             BinOp::Add => format!("(bvadd {} {})", a.term, b.term),
                             BinOp::Sub => format!("(bvsub {} {})", a.term, b.term),
                             _ => format!("(bvmul {} {})", a.term, b.term),
                         };
-                        let r = self.define(wide, &body, signed);
-                        Some(format!("(or {} {})", self.cmp_const(&r, "bvsgt", hi)?, self.cmp_const(&r, "bvslt", lo)?))
+                        let r = self.define(wide, &body, true);
+                        let past = if *op == BinOp::Mul { format!(" (bvsmulo {} {})", a.term, b.term) } else { String::new() };
+                        Some(format!("(or {} {}{})", self.cmp_const(&r, "bvsgt", hi)?, self.cmp_const(&r, "bvslt", lo)?, past))
                     }
                     BinOp::Div => {
                         // The one division that leaves the type: the lowest

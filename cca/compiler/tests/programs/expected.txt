@@ -104,3 +104,6 @@ exact_at_64 21
 
 # not.bit on an exact answer, at the size of its values.
 not_bit_exact 96
+
+# Layer 3 asks a sum at its true value, not wrapped at 64 bits.
+layer3_true_sum trap
