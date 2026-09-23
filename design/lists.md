@@ -46,6 +46,14 @@ it is a language operation — `std::str.slice.grapheme` fails instead
 because everything in std fails. `array` gets it too (owner): slicing
 reads, so the reason an array has no `append` does not apply.
 
+**Either way, a slice is a `list[T]`** (owner, 2026-09-23, as part of
+the same answer): `array.slice` gives a list too, and Precog makes it an
+array wherever it proves the length, which it usually can, the way any
+list nobody appends to becomes one. So `list.append` onto a slice of an
+array is allowed. (Written down late: the answer was given with the
+question and left out of the first record. Compiler claude asked again,
+recommending an array from an array.)
+
 ## Layout (owner, 2026-09-22)
 
 A **`list` is 24 bytes** — a pointer, a length and a capacity — because

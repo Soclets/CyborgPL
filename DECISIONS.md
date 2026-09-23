@@ -150,7 +150,11 @@ tell, giving (b)'s machine code for the common read-and-drop, while (b)
 would add a third category beside owned and lent and refuse programs
 that escape a view. Owner: a. Second question, whether `array` gets it
 too: yes (owner) — slicing reads, so the reason an array has no
-`append` does not apply. 1-based, inclusive, positions say `pos`, a
+`append` does not apply. The option the owner picked read "both,
+each giving a `list[T]` (or an `array[T]` where Precog proves the
+length)", so **an array's slice is a list**. That half was left out of
+this entry and added the same day, after compiler claude asked the
+question again. 1-based, inclusive, positions say `pos`, a
 check site rather than a failure since it is a language operation.
 `examples/slicing.cpls`, two reject tests.
 
