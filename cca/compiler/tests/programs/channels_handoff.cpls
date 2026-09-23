@@ -1,0 +1,15 @@
+extern fn exit ['code': int32];
+fn fetch [lent 'url': str.utf8] -> str.utf8 { return "page of " ++ 'url'; }
+MAIN {
+    let 'results' := channel[str.utf8];
+    let 'a' := "a.com";
+    concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }
+    concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
+    let mut 'total': int32 = 0;
+    for 'i' in range[1, 2] {
+        let 'page' := channel.take[lend 'results'] otherwise "";
+        'total' = 'total' + str.bytes[lend 'page'];
+    }
+    let 'extra' := channel.take[lend 'results'] otherwise "closed!";
+    nocheck exit['total' + str.bytes[lend 'extra']];
+}

@@ -50,3 +50,7 @@ lend_mut_call 7
 floor_div 42
 unsigned_high 211
 range_steps 11
+# Channels: a hand-off, a take that fails `closed` once nothing can
+# arrive, a buffered channel moving lists between tasks, and `whichever`.
+channels_handoff 33
+channels_whichever 117

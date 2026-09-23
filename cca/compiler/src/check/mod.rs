@@ -72,6 +72,11 @@ pub struct Checker {
     /// checker can be run over the examples before std exists. Off by default;
     /// nothing is generated for them.
     pub std_stubs: bool,
+    /// A shift, `not.bit` or wrapping operator whose operands are all bare
+    /// literals takes its width from where the value goes (owner,
+    /// 2026-09-23). Each one's width is a variable a typed place binds;
+    /// any still unbound when checking ends had no context at all.
+    pub widths_pending: Vec<(Ty, crate::source::Span, String)>,
 }
 
 /// The state while checking one body.
@@ -134,7 +139,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), amp_count: 0, literal_fns: Vec::new(), std_stubs: false }
+        Checker { items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), amp_count: 0, literal_fns: Vec::new(), std_stubs: false, widths_pending: Vec::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {
@@ -342,6 +347,14 @@ impl Checker {
                 while let Some(inst) = self.pending.pop() {
                     self.check_instance(inst)?;
                 }
+            }
+        }
+        // "Only a bare literal with no context has no width" (`operators.md`).
+        for (t, span, what) in std::mem::take(&mut self.widths_pending) {
+            if matches!(self.resolve(&t), Ty::Infer(_)) {
+                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what))
+                    .at(span)
+                    .try_(format!("give the result a type (`let 'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));
             }
         }
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();

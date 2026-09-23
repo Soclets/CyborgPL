@@ -95,9 +95,9 @@ extern "C" {
 
 // ------------------------------------------------------------ tasks
 
-const RUNNING: u32 = 0;
+pub(crate) const RUNNING: u32 = 0;
 /// Asked to wait, and not yet off its worker.
-const PARKING: u32 = 1;
+pub(crate) const PARKING: u32 = 1;
 /// Off its worker, waiting for someone to put it back.
 const PARKED: u32 = 2;
 /// Put back, or about to be.
@@ -110,7 +110,7 @@ pub struct Task {
     sp: *mut u8,
     /// Where the worker running it saved *its* stack pointer: the way back.
     back: *mut *mut u8,
-    state: AtomicU32,
+    pub(crate) state: AtomicU32,
     map: *mut u8,
     map_len: usize,
     entry: unsafe extern "C" fn(*mut u8),
@@ -136,7 +136,7 @@ const _: () = assert!(core::mem::size_of::<Group>() <= GROUP_BYTES);
 /// A lock for a few instructions' worth of work: a group's count, a
 /// channel's queue. A worker never sleeps holding one.
 #[repr(C)]
-pub struct Spin(AtomicBool);
+pub struct Spin(pub(crate) AtomicBool);
 
 impl Spin {
     pub fn lock(&self) {
@@ -246,19 +246,19 @@ extern "C" fn worker(_: *mut u8) -> *mut u8 {
 }
 
 /// The task the calling worker is running.
-unsafe fn current() -> *mut Task {
+pub(crate) unsafe fn current() -> *mut Task {
     pthread_getspecific((*sched()).key) as *mut Task
 }
 
 /// Stop running this task until `unpark` puts it back. The caller has
 /// already set `PARKING` and made itself findable, under whatever lock the
 /// waker takes.
-unsafe fn park(t: *mut Task) {
+pub(crate) unsafe fn park(t: *mut Task) {
     cyborg_switch(&mut (*t).sp, *(*t).back);
 }
 
 /// Put a parked (or parking) task back.
-unsafe fn unpark(t: *mut Task) {
+pub(crate) unsafe fn unpark(t: *mut Task) {
     if (*t).state.swap(READY, Ordering::AcqRel) == PARKED {
         push(t);
     }

@@ -9,6 +9,7 @@
 #![no_std]
 
 pub mod tasks;
+pub mod channels;
 
 extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;

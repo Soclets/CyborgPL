@@ -41,7 +41,7 @@ bin_into_untyped_int_list :: there is no implicit conversion between numeric fam
 bin_to_int_unhandled :: `to.int32` can fail (not_whole): say what happens
 bit_ampersand :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
 bit_mixed_needs_parens :: a bitwise operator has no precedence
-bit_not_untyped :: `not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let 'x': uint8 = …`)
+bit_not_untyped :: `not.bit` needs a width, and nothing here gives one
 bit_on_bin :: `xor` works on integers, and this is a `bin`
 bit_shl_overflow :: the shift can move every bit out
 bit_shl_too_far :: the shift can move every bit out
@@ -364,7 +364,7 @@ wl_removes_code :: 'b' is not declared
 wrap_amp_form :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
 wrap_on_bin :: it only knows a declared integer width
 wrap_percent_form :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
-wrap_untyped_left :: `+~` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let 'x':
+wrap_untyped_left :: `+~` needs a width, and nothing here gives one
 wrong_arg_count :: `one` takes 1 argument, and 2 were given
 dir_badname :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
 dir_device_name :: is a reserved device name on Windows and cannot name a module

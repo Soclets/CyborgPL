@@ -586,6 +586,11 @@ impl Checker {
             UnOp::NotBit => {
                 match vt.base() {
                     Ty::Int(IntW::Fixed { .. }) => {}
+                    Ty::Int(IntW::Free(_)) if literal_only(&v) => {
+                        let t = self.fresh();
+                        self.widths_pending.push((t.clone(), span, "not.bit".to_string()));
+                        return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: t, span });
+                    }
                     Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let 'x': uint8 = …`)").at(span)),
                     other => return err(Diagnostic::error(format!("`not.bit` works on integers, and this is a `{}`", self.spell(other))).at(span)),
                 }
@@ -652,6 +657,18 @@ impl Checker {
                 // The width is the left operand's declared type.
                 match lt.base() {
                     Ty::Int(IntW::Fixed { .. }) => {}
+                    // The width from the other side, or from where the
+                    // value goes when both are bare numbers (owner,
+                    // 2026-09-23).
+                    Ty::Int(IntW::Free(_)) if matches!(rt.base(), Ty::Int(IntW::Fixed { .. })) => {
+                        let ty = rt.base().clone();
+                        return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
+                    }
+                    Ty::Int(IntW::Free(_)) if literal_only(&l) && literal_only(&r) => {
+                        let t = self.fresh();
+                        self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
+                        return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
+                    }
                     Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let 'x': uint32 = …`)", op.spelled())).at(op_span)),
                     other => return err(Diagnostic::error(format!("`{}` wraps an integer, and this is a `{}`: it only knows a declared integer width", op.spelled(), self.spell(other))).at(op_span)),
                 }
@@ -711,9 +728,18 @@ impl Checker {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is a `{}`", op.spelled(), self.spell(bad))).at(op_span));
                 }
+                // `shl` can push bits off the end, so it needs a width —
+                // from any operand whose type is known, or, when every
+                // operand is a bare number, from where the value goes
+                // (owner, 2026-09-23).
                 if matches!(op, BinOp::Shl) {
-                    if let Ty::Int(IntW::Free(_)) = lt.base() {
-                        return err(Diagnostic::error("`shl` only knows a declared width: shifting left can lose bits, so the left operand needs a type").at(op_span));
+                    if let (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Free(_))) = (lt.base(), rt.base()) {
+                        if literal_only(&l) && literal_only(&r) {
+                            let t = self.fresh();
+                            self.widths_pending.push((t.clone(), op_span, "shl".to_string()));
+                            return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
+                        }
+                        return err(Diagnostic::error("`shl` only knows a declared width: shifting left can lose bits, so an operand needs a type").at(op_span));
                     }
                 }
                 let ty = if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) { lt.base().clone() } else { rt.base().clone() };

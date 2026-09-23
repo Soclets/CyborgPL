@@ -234,10 +234,6 @@ Dated, with the alternative, so each can become a question later.
   `return`, `fail` or `break` waits for the block's tasks exactly as the
   block's end does — the same result whenever the tasks would have
   finished anyway, and a hang where one would have waited forever.
-- **2026-09-23 — A `concur.detached` task that can fail is refused.**
-  Nothing waits for it, so its failure has nowhere to land, and the
-  design does not say where it should go. A question for the design
-  session.
 - **2026-09-23 — Layer 3 stands in for the trips it did not unroll.** At
   the last level a loop head is copied at, everything the loop writes is
   forgotten and everything it leaves alone is kept, and layer 2's facts
@@ -248,4 +244,32 @@ Dated, with the alternative, so each can become a question later.
   when layer 2 followed every call (the same `gave_up` gate as layer-1
   folding). Alternative: loop invariants found by induction, which would
   also prove what gradebook needs (`examples_unproven.txt`).
+- **2026-09-23 — Channels: the counting, none of Precog's three parts yet.**
+  The layout is the owner's (one block, slots inline, never growing; the
+  program holds a pointer to it) and so is `closed` (count the tasks that
+  can reach it; a `take` on an empty channel fails `closed` when every
+  holder is itself waiting to take from it). What is built is the plain
+  form: every channel on the heap, every slot the type allows, and the
+  counting everywhere. Precog's parts — the stack when a channel dies
+  with its block, fewer slots than the bound, no channel at all for one
+  hand-off, and emitting the close where it proves the last sender done
+  instead of counting — are additions, not requirements, and none is
+  built. `whichever` tries its arms in the order written, so of several
+  ready at once the first wins and a run is reproducible.
+
+## Waiting on the owner
+
+- **A `concur.detached` task that can fail.** Nothing waits for it, so
+  its `otherwise` has no "when the enclosing block ends". CCA refuses one
+  with a message saying the failure has nowhere to land (2026-09-23; with
+  the owner via the design session).
+- **A holder waiting on a join keeps a channel open.** MAIN makes a
+  channel and lends it to a producer and a consumer, then waits at the
+  block's end: MAIN still holds the channel but is waiting on the join,
+  not on a `take`, so when the producer is done the consumer's next
+  `take` never sees `closed` and the program waits for ever. The oracle
+  says `closed` there (105 where CCA hangs). The owner's decision names
+  this — "a holder stuck waiting on something else keeps the channel
+  open" — and its Precog half (emit the close where the last sender is
+  proven done) is what would answer it; that half is not built.
 

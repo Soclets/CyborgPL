@@ -74,7 +74,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// nothing; a list owns its buffer and everything in it.
     pub(super) fn owns_memory(&self, t: &Ty) -> bool {
         match t.base() {
-            Ty::Seq { .. } | Ty::Map { .. } => true,
+            Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => true,
             // A text may point at the binary's own bytes. Which memory it
             // is in is Precog's to know (owner, 2026-09-22); until that
             // fact reaches here, the handle carries it — the high bit of
@@ -148,6 +148,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Ty::Map { .. } => {
                 let _ = self.emit_map_drop(t, at);
+            }
+            Ty::Channel(elem) => {
+                // What is still in it goes too.
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                let ch = self.builder.build_load(p, at, "ch").unwrap().into_pointer_value();
+                let dropper = self.drop_fn(&elem).map(|f| f.as_global_value().as_pointer_value()).unwrap_or_else(|| p.const_null());
+                let f = self.rt_chan_drop();
+                let _ = self.builder.build_call(f, &[ch.into(), dropper.into()], "");
             }
             Ty::Str(_) => {
                 let shape = match self.ty(t) {
@@ -240,6 +248,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Ty::Map { .. } => {
                 let _ = self.emit_map_copy(t, dst, src, func);
+            }
+            Ty::Channel(_) => {
+                // Two channels would be a new channel, not a second way to
+                // reach this one; the design does not say which `copy` means.
+                self.cannot("a `copy` of a channel: the design does not say whether that is a second channel or a second way to reach this one", None);
             }
             Ty::Str(_) => {
                 let shape = match self.ty(t) {

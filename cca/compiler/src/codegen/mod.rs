@@ -136,6 +136,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Ty::Bin(BinW::Fixed(64)) | Ty::Bin(BinW::Free(_)) => Some(self.ctx.f64_type().into()),
             Ty::Bin(BinW::Fixed(128)) => Some(self.ctx.f128_type().into()),
             Ty::Ptr { .. } => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
+            // One block the runtime owns; the program holds a pointer to it.
+            Ty::Channel(_) => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             Ty::Char(crate::types::Unit::Byte) => Some(self.ctx.i8_type().into()),
             Ty::Char(crate::types::Unit::Point) => Some(self.ctx.i32_type().into()),
             // The handles the owner decided on 2026-09-22 (`types.md`,
@@ -528,6 +530,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // `map.get` and `map.remove` fail when the key is not there
             // (`maps.md`), and that is the only reason either gives.
+            Terminator::Call { callee: Callee::Op(Op::ChannelTake), args, dest, ok, fail } if !fail.is_empty() => {
+                if self.chan_take(fi, args, dest, *ok, fail, blocks, slots, func).is_none() {
+                    self.cannot("this `channel.take` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
+                }
+            }
             Terminator::Call { callee: Callee::Op(op @ (Op::MapGet | Op::MapRemove)), args, dest, ok, fail } if !fail.is_empty() => {
                 if self.map_lookup(fi, op, args, dest, *ok, fail, blocks, slots, func).is_none() {
                     self.cannot("this map lookup has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
@@ -605,9 +613,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let _ = self.builder.build_unreachable();
                 }
             }
-            Terminator::Whichever { .. } => {
-                self.cannot("waiting on a task has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
-                let _ = self.builder.build_unreachable();
+            Terminator::Whichever { arms, closed } => {
+                if self.emit_whichever(fi, arms, *closed, blocks, slots, func).is_none() {
+                    self.cannot("this `whichever` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
+                }
             }
         }
     }
@@ -802,6 +812,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let ty = want_ty?;
                 self.make_enum(fi, *id, *case, payload, &ty, slots)
             }
+            Rvalue::MakeChannel { elem, capacity } => self.make_channel(elem, *capacity),
             Rvalue::MakeMap(pairs) => {
                 let ty = want_ty?;
                 self.make_map(fi, pairs, &ty, slots)
@@ -1154,6 +1165,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // Each argument at the width the callee declared.
         let want = f.get_type().get_param_types();
         for (i, w) in want.iter().enumerate() {
+            // A value handed to a `lent` parameter — a literal, or what
+            // another call gave back — has no place of its own for the
+            // address to point at, so it gets one for the call.
+            if let (Some(slot), Ok(BasicTypeEnum::PointerType(_))) = (vals.get(i).copied(), BasicTypeEnum::try_from(*w)) {
+                if let Ok(v) = BasicValueEnum::try_from(slot) {
+                    if !v.is_pointer_value() {
+                        let tmp = self.builder.build_alloca(v.get_type(), "lent_value").ok()?;
+                        let _ = self.builder.build_store(tmp, v);
+                        vals[i] = tmp.into();
+                        continue;
+                    }
+                }
+            }
             if let Some(slot) = vals.get_mut(i) {
                 if let (Ok(v), Ok(t)) = (BasicValueEnum::try_from(*slot), BasicTypeEnum::try_from(*w)) {
                     let signed = signs.get(i).copied().unwrap_or(true);
@@ -1182,6 +1206,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(None)
             }
             Op::MapHas => Some(Some(self.map_has(fi, args, slots)?)),
+            Op::ChannelSend => {
+                self.chan_send(fi, args, slots)?;
+                Some(None)
+            }
             Op::MapKeys | Op::MapValues | Op::MapPairs => {
                 let out = dest_ty?;
                 Some(Some(self.map_walk(fi, op, args, &out, slots, func)?))
