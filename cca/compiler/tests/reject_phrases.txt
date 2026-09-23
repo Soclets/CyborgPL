@@ -186,7 +186,7 @@ leading_zero :: `007` starts with a zero, and leading zeros are illegal: write `
 lend_to_lent_mut :: `edit` may modify 'text' (it is `lent.mut`): write `lend.mut`
 lend_to_var_param :: write `give` (it moves) or `copy` (a second one)
 length_bare :: `list.length` takes a lend: write `lend 'xs'`
-length_is_uint64 :: the value can be outside what a `uint64` holds
+length_is_uint64 :: `-` can leave what the type holds
 let_chain :: `mut` / `immut` are bare words before the name
 let_top_level :: `const 'name' := …;` (`let` lives inside a body)
 limb_alone :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
@@ -349,7 +349,7 @@ truthiness :: there is no truthiness
 two_bare_numbers :: join text with `++`, separate values with `,`
 two_points_as_point :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 type_before_name :: a type goes after the name: `let 'x': int32 = …;`
-uint_negative :: the value can be outside what a `uint8` holds
+uint_negative :: `-` can leave what the type holds
 unknown_std :: `std::println` does not exist
 use_after_give :: was given away and no longer owns anything
 var_keyword :: `var` became `let`: `let 'x' := …;`

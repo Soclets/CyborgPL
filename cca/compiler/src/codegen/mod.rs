@@ -415,27 +415,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn block(&mut self, fi: usize, b: usize, blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
         let f = &self.p.functions[fi];
         let stmts = f.blocks[b].stmts.clone();
-        let mut pending_site: Option<SiteId> = None;
+        // The arithmetic guards on the next instruction — all of them: a
+        // division is guarded twice, once against a zero divisor and once
+        // against the lowest value divided by -1, and keeping only the last
+        // site read dropped the first check.
+        let mut pending: Vec<SiteId> = Vec::new();
         for s in &stmts {
             match &s.kind {
-                StmtKind::Site(id) => {
-                    // A bounds check stands on its own — it guards the
-                    // index, not the instruction after it — so it is
-                    // emitted here rather than carried forward.
-                    // Only an arithmetic guard belongs to the instruction
-                    // after it; any other site carried forward would put its
-                    // check on something it never guarded.
-                    match f.site(*id).kind {
-                        SiteKind::Bounds => {
-                            self.bounds_check(fi, *id, slots, func);
-                            pending_site = None;
-                        }
-                        SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::Narrow { .. } | SiteKind::ShiftWidth | SiteKind::LengthBound { .. } => pending_site = Some(*id),
-                        _ => pending_site = None,
-                    }
-                }
+                StmtKind::Site(id) => match f.site(*id).kind {
+                    // These stand on their own: they guard a value that is
+                    // already there, not the instruction after them.
+                    SiteKind::Bounds => self.bounds_check(fi, *id, slots, func),
+                    SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
+                    SiteKind::LengthBound { .. } => self.length_check(fi, *id, slots, func),
+                    SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::ShiftWidth => pending.push(*id),
+                    _ => {}
+                },
                 StmtKind::Assign { place, rvalue } => {
-                    let site = pending_site.take();
+                    let sites = std::mem::take(&mut pending);
                     // The shape of where it is going: a literal has no width
                     // of its own, and a struct is built at its declared one.
                     // What a lent local holds is an address, so assigning
@@ -464,7 +461,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                     let want_ty = self.slot_of(fi, place, slots).map(|(_, t)| t);
                     let want = want_ty.clone().and_then(|t| self.ty(&t));
-                    if let Some(v) = self.rvalue(fi, rvalue, slots, site, func, blocks, want, want_ty.clone()) {
+                    if let Some(v) = self.rvalue(fi, rvalue, slots, &sites, func, blocks, want, want_ty.clone()) {
                         self.store_place(fi, place, v, slots);
                         // The place now holds a value worth giving back.
                         if place.proj.is_empty() {
@@ -477,7 +474,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
                 StmtKind::Op { dest, op, args } => {
-                    pending_site = None;
+                    pending.clear();
                     let dest_ty = dest.as_ref().and_then(|d| self.slot_of(fi, d, slots)).map(|(_, t)| t);
                     match self.op(fi, op, args, slots, func, dest_ty) {
                         Some(v) => {
@@ -680,6 +677,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     fn constant(&mut self, fi: usize, c: &Const) -> Option<BasicValueEnum<'ctx>> {
         match c {
+            // A literal is built at 64 bits, or at 128 when 64 cannot hold
+            // it signed — `10000000000000000000` is a fine `uint64`, and
+            // built at 64 bits and then widened it would read as negative.
+            Const::Int(v) if *v > i64::MAX as i128 || *v < i64::MIN as i128 => {
+                let t = self.ctx.i128_type();
+                let lo = *v as u128 as u64;
+                let hi = ((*v as u128) >> 64) as u64;
+                Some(t.const_int_arbitrary_precision(&[lo, hi]).into())
+            }
             Const::Int(v) => Some(self.ctx.i64_type().const_int(*v as u64, true).into()),
             Const::Bool(b) => Some(self.ctx.bool_type().const_int(*b as u64, false).into()),
             Const::Bin(t) => Some(self.ctx.f64_type().const_float(t.parse().unwrap_or(0.0)).into()),
@@ -710,12 +716,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// A value, with the site that guards it — when there is one and it was
     /// not proven, the instruction is the checked one.
     #[allow(clippy::too_many_arguments)]
-    fn rvalue(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], site: Option<SiteId>, func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>, want_ty: Option<Ty>) -> Option<BasicValueEnum<'ctx>> {
+    fn rvalue(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], sites: &[SiteId], func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>, want_ty: Option<Ty>) -> Option<BasicValueEnum<'ctx>> {
         match rv {
             Rvalue::Use(o) => {
                 let v = self.operand(fi, o, slots)?;
+                let signed = self.operand_signed(fi, o).or_else(|| want_ty.as_ref().and_then(int_signed)).unwrap_or(true);
                 Some(match want {
-                    Some(t) => self.fit(v, t),
+                    Some(t) => self.fit_as(v, t, signed),
                     None => v,
                 })
             }
@@ -737,16 +744,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let ty = want_ty.unwrap_or(Ty::Str(crate::types::Enc::Utf8));
                     return self.str_concat(a, b, &ty);
                 }
-                self.binary(fi, op, a, b, site, func, blocks)
+                // LLVM's integers carry no sign; the Cyborg type does. A
+                // literal takes its context's family (`types.md`), so the
+                // side that is a place decides.
+                let signed = self.operand_signed(fi, lhs).or_else(|| self.operand_signed(fi, rhs)).unwrap_or(true);
+                self.binary(fi, op, a, b, sites, func, blocks, signed)
             }
             Rvalue::Convert { to, operand } => {
                 let v = self.operand(fi, operand, slots)?;
                 let t = self.ty(&to.clone())?;
+                // Widening extends by what the value *is*, not by what it
+                // becomes: a `uint8` of 250 widened to 128 bits is 250, and
+                // sign-extending it made it -6.
+                let from_signed = self.operand_signed(fi, operand).unwrap_or(true);
                 match (v, t) {
-                    (BasicValueEnum::IntValue(i), BasicTypeEnum::IntType(it)) => {
-                        let signed = matches!(to.base(), Ty::Int(IntW::Fixed { signed: true, .. }) | Ty::Int(IntW::Free(_)));
-                        Some(self.builder.build_int_cast_sign_flag(i, it, signed, "conv").ok()?.into())
-                    }
+                    (BasicValueEnum::IntValue(i), BasicTypeEnum::IntType(it)) => Some(self.builder.build_int_cast_sign_flag(i, it, from_signed, "conv").ok()?.into()),
+                    (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) if !from_signed => Some(self.builder.build_unsigned_int_to_float(i, ft, "conv").ok()?.into()),
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) => Some(self.builder.build_signed_int_to_float(i, ft, "conv").ok()?.into()),
                     (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(ft)) => Some(self.builder.build_float_cast(x, ft, "conv").ok()?.into()),
                     _ => {
@@ -819,11 +832,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
-    fn binary(&mut self, fi: usize, op: &BinOp, a: BasicValueEnum<'ctx>, b: BasicValueEnum<'ctx>, site: Option<SiteId>, func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>]) -> Option<BasicValueEnum<'ctx>> {
-        let verdict = site.map(|s| self.p.functions[fi].site(s).verdict.clone());
-        let proven = matches!(verdict, Some(Verdict::Proven { .. }));
-        let trusted = matches!(verdict, Some(Verdict::Trusted));
-        let needs_check = site.is_some() && !proven && !trusted;
+    #[allow(clippy::too_many_arguments)]
+    fn binary(&mut self, fi: usize, op: &BinOp, a: BasicValueEnum<'ctx>, b: BasicValueEnum<'ctx>, sites: &[SiteId], func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], signed: bool) -> Option<BasicValueEnum<'ctx>> {
+        // The guard of each kind that still needs its check: not proven,
+        // not trusted.
+        let open = |this: &Self, want: &dyn Fn(&SiteKind) -> bool| -> Option<SiteId> {
+            sites.iter().copied().find(|s| {
+                let site = this.p.functions[fi].site(*s);
+                want(&site.kind) && !matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted)
+            })
+        };
+        let overflow = open(self, &|k| matches!(k, SiteKind::Overflow(_)));
+        let divzero = open(self, &|k| matches!(k, SiteKind::DivZero | SiteKind::ModZero));
+        let shift = open(self, &|k| matches!(k, SiteKind::ShiftWidth));
+        let needs_check = overflow.is_some();
+        let site = overflow;
         let (a, b) = match (a, b) {
             // A bin literal has no width of its own either: it takes the
             // other side's, the same rule as an integer literal.
@@ -836,46 +859,113 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) if x.get_type().get_bit_width() != y.get_type().get_bit_width() => {
                 // One side is a literal, which has no width of its own: it
                 // takes the other's.
-                if x.get_type().get_bit_width() > y.get_type().get_bit_width() {
-                    (a, self.fit(b, x.get_type().into()))
+                // The literal is the one that moves, whichever is wider: a
+                // `uint64` times 10^19 is a `uint64` multiply, and the
+                // literal's 128-bit form is only how it was written down.
+                // Widening the other side instead checked the product at
+                // 128 bits, where it never overflows, and then truncated it.
+                if y.is_const() && !x.is_const() {
+                    (a, self.fit_as(b, x.get_type().into(), signed))
+                } else if x.is_const() && !y.is_const() {
+                    (self.fit_as(a, y.get_type().into(), signed), b)
+                } else if x.get_type().get_bit_width() > y.get_type().get_bit_width() {
+                    (a, self.fit_as(b, x.get_type().into(), signed))
                 } else {
-                    (self.fit(a, y.get_type().into()), b)
+                    (self.fit_as(a, y.get_type().into(), signed), b)
                 }
             }
             _ => (a, b),
         };
         if let (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) = (a, b) {
-            let signed = true;
+            let (lt, le, gt, ge) = if signed {
+                (IntPredicate::SLT, IntPredicate::SLE, IntPredicate::SGT, IntPredicate::SGE)
+            } else {
+                (IntPredicate::ULT, IntPredicate::ULE, IntPredicate::UGT, IntPredicate::UGE)
+            };
             let r = match op {
                 BinOp::Add | BinOp::Sub | BinOp::Mul if needs_check => {
-                    let name = match op {
-                        BinOp::Add => "llvm.sadd.with.overflow",
-                        BinOp::Sub => "llvm.ssub.with.overflow",
-                        _ => "llvm.smul.with.overflow",
+                    let name = match (op, signed) {
+                        (BinOp::Add, true) => "llvm.sadd.with.overflow",
+                        (BinOp::Sub, true) => "llvm.ssub.with.overflow",
+                        (_, true) => "llvm.smul.with.overflow",
+                        (BinOp::Add, false) => "llvm.uadd.with.overflow",
+                        (BinOp::Sub, false) => "llvm.usub.with.overflow",
+                        (_, false) => "llvm.umul.with.overflow",
                     };
                     return self.checked(fi, name, x, y, site.unwrap(), func, blocks);
                 }
                 // Proven not to wrap: the fact goes to LLVM, which is the
-                // whole point of proving it (`precog.md`).
-                BinOp::Add => self.builder.build_int_nsw_add(x, y, "add").ok()?,
-                BinOp::Sub => self.builder.build_int_nsw_sub(x, y, "sub").ok()?,
-                BinOp::Mul => self.builder.build_int_nsw_mul(x, y, "mul").ok()?,
+                // whole point of proving it (`precog.md`) — `nsw` for a
+                // signed type, `nuw` for an unsigned one. Telling LLVM
+                // "no signed wrap" about unsigned arithmetic is a promise
+                // about the wrong thing.
+                BinOp::Add if signed => self.builder.build_int_nsw_add(x, y, "add").ok()?,
+                BinOp::Sub if signed => self.builder.build_int_nsw_sub(x, y, "sub").ok()?,
+                BinOp::Mul if signed => self.builder.build_int_nsw_mul(x, y, "mul").ok()?,
+                BinOp::Add => self.builder.build_int_nuw_add(x, y, "add").ok()?,
+                BinOp::Sub => self.builder.build_int_nuw_sub(x, y, "sub").ok()?,
+                BinOp::Mul => self.builder.build_int_nuw_mul(x, y, "mul").ok()?,
                 BinOp::WrapAdd => self.builder.build_int_add(x, y, "wadd").ok()?,
                 BinOp::WrapSub => self.builder.build_int_sub(x, y, "wsub").ok()?,
                 BinOp::WrapMul => self.builder.build_int_mul(x, y, "wmul").ok()?,
-                BinOp::Div => self.builder.build_int_signed_div(x, y, "div").ok()?,
-                BinOp::Mod => self.builder.build_int_signed_rem(x, y, "rem").ok()?,
+                // `/` floors and `mod` takes the divisor's sign
+                // (`operators.md`): `-7 / 2 = -4`, `-7 mod 2 = 1`. Unsigned,
+                // the hardware's answer already is that.
+                BinOp::Div | BinOp::Mod => {
+                    // A zero divisor, and the lowest signed value divided by
+                    // -1, are both undefined to LLVM: checked before the
+                    // divide, never after.
+                    if let Some(s) = divzero {
+                        let zero = self.builder.build_int_compare(IntPredicate::EQ, y, y.get_type().const_zero(), "by_zero").ok()?;
+                        self.guard(fi, s, zero, func)?;
+                    }
+                    if let (true, Some(s)) = (signed, site) {
+                        let bits = x.get_type().get_bit_width();
+                        let min = x.get_type().const_int(1u64 << (bits.min(64) - 1), false);
+                        let min = if bits > 64 { x.get_type().const_int_arbitrary_precision(&[0, 1u64 << 63]) } else { min };
+                        let is_min = self.builder.build_int_compare(IntPredicate::EQ, x, min, "is_min").ok()?;
+                        let by_m1 = self.builder.build_int_compare(IntPredicate::EQ, y, y.get_type().const_all_ones(), "by_m1").ok()?;
+                        let both = self.builder.build_and(is_min, by_m1, "min_by_m1").ok()?;
+                        self.guard(fi, s, both, func)?;
+                    }
+                    match (op, signed) {
+                        (BinOp::Div, false) => self.builder.build_int_unsigned_div(x, y, "div").ok()?,
+                        (_, false) => self.builder.build_int_unsigned_rem(x, y, "rem").ok()?,
+                        (BinOp::Div, true) => self.floor_div(x, y, false)?,
+                        _ => self.floor_div(x, y, true)?,
+                    }
+                }
                 BinOp::AndBit | BinOp::And => self.builder.build_and(x, y, "and").ok()?,
                 BinOp::OrBit | BinOp::Or => self.builder.build_or(x, y, "or").ok()?,
                 BinOp::Xor => self.builder.build_xor(x, y, "xor").ok()?,
-                BinOp::Shl => self.builder.build_left_shift(x, y, "shl").ok()?,
-                BinOp::Shr => self.builder.build_right_shift(x, y, signed, "shr").ok()?,
+                BinOp::Shl | BinOp::Shr => {
+                    // Shifting by the width or more is poison to LLVM.
+                    if let Some(s) = shift {
+                        let width = y.get_type().const_int(x.get_type().get_bit_width() as u64, false);
+                        let past = self.builder.build_int_compare(IntPredicate::UGE, y, width, "past_width").ok()?;
+                        self.guard(fi, s, past, func)?;
+                    }
+                    if *op == BinOp::Shl {
+                        let out = self.builder.build_left_shift(x, y, "shl").ok()?;
+                        // "`shl` past the width or into overflow is a check
+                        // site" (`operators.md`): a bit shifted out is lost,
+                        // and shifting back does not give the value again.
+                        if let Some(s) = shift {
+                            let back = self.builder.build_right_shift(out, y, signed, "back").ok()?;
+                            let lost = self.builder.build_int_compare(IntPredicate::NE, back, x, "bits_lost").ok()?;
+                            self.guard(fi, s, lost, func)?;
+                        }
+                        out
+                    } else {
+                        self.builder.build_right_shift(x, y, signed, "shr").ok()?
+                    }
+                }
                 BinOp::Eq => self.builder.build_int_compare(IntPredicate::EQ, x, y, "eq").ok()?,
                 BinOp::Ne => self.builder.build_int_compare(IntPredicate::NE, x, y, "ne").ok()?,
-                BinOp::Lt => self.builder.build_int_compare(IntPredicate::SLT, x, y, "lt").ok()?,
-                BinOp::Le => self.builder.build_int_compare(IntPredicate::SLE, x, y, "le").ok()?,
-                BinOp::Gt => self.builder.build_int_compare(IntPredicate::SGT, x, y, "gt").ok()?,
-                BinOp::Ge => self.builder.build_int_compare(IntPredicate::SGE, x, y, "ge").ok()?,
+                BinOp::Lt => self.builder.build_int_compare(lt, x, y, "lt").ok()?,
+                BinOp::Le => self.builder.build_int_compare(le, x, y, "le").ok()?,
+                BinOp::Gt => self.builder.build_int_compare(gt, x, y, "gt").ok()?,
+                BinOp::Ge => self.builder.build_int_compare(ge, x, y, "ge").ok()?,
                 _ => {
                     self.cannot(format!("`{}` has no shape in the generated code yet", op.spelled()), None);
                     return None;
@@ -960,11 +1050,52 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     /// A value at the width the place it is going has. A literal has no
-    /// width of its own until it lands somewhere (`types.md`).
+    /// width of its own until it lands somewhere (`types.md`). This one
+    /// assumes a signed value — right for a literal, which is built signed;
+    /// anything else says which it is through `fit_as`.
     fn fit(&mut self, v: BasicValueEnum<'ctx>, want: BasicTypeEnum<'ctx>) -> BasicValueEnum<'ctx> {
+        self.fit_as(v, want, true)
+    }
+
+    /// Floor division and the mathematician's `mod`, from the hardware's
+    /// truncating pair: when the remainder is not zero and its sign differs
+    /// from the divisor's, the quotient is one lower and the remainder moves
+    /// by the divisor. A few one-cycle instructions beside the divide
+    /// (`operators.md`: "the fix-up is the operator's meaning").
+    fn floor_div(&mut self, x: IntValue<'ctx>, y: IntValue<'ctx>, want_mod: bool) -> Option<IntValue<'ctx>> {
+        let q = self.builder.build_int_signed_div(x, y, "q").ok()?;
+        let r = self.builder.build_int_signed_rem(x, y, "r").ok()?;
+        let zero = x.get_type().const_zero();
+        let nonzero = self.builder.build_int_compare(IntPredicate::NE, r, zero, "inexact").ok()?;
+        let r_neg = self.builder.build_int_compare(IntPredicate::SLT, r, zero, "rneg").ok()?;
+        let y_neg = self.builder.build_int_compare(IntPredicate::SLT, y, zero, "yneg").ok()?;
+        let differ = self.builder.build_xor(r_neg, y_neg, "differ").ok()?;
+        let fix = self.builder.build_and(nonzero, differ, "fix").ok()?;
+        if want_mod {
+            let moved = self.builder.build_int_add(r, y, "moved").ok()?;
+            Some(self.builder.build_select(fix, moved, r, "mod").ok()?.into_int_value())
+        } else {
+            let one = x.get_type().const_int(1, false);
+            let lower = self.builder.build_int_sub(q, one, "lower").ok()?;
+            Some(self.builder.build_select(fix, lower, q, "div").ok()?.into_int_value())
+        }
+    }
+
+    /// Is the value of this operand a signed number? `None` for a literal,
+    /// which has no family of its own.
+    fn operand_signed(&mut self, fi: usize, o: &Operand) -> Option<bool> {
+        let p = o.place()?;
+        let f = &self.p.functions[fi];
+        let base = f.locals[p.local.0 as usize].ty.clone();
+        let t = crate::mir::build::projected_ty(&base, &p.proj, &self.p.items);
+        int_signed(&t)
+    }
+
+    /// A value at another width, extended by the sign it has.
+    fn fit_as(&mut self, v: BasicValueEnum<'ctx>, want: BasicTypeEnum<'ctx>, signed: bool) -> BasicValueEnum<'ctx> {
         match (v, want) {
             (BasicValueEnum::IntValue(i), BasicTypeEnum::IntType(t)) if i.get_type().get_bit_width() != t.get_bit_width() => {
-                self.builder.build_int_cast_sign_flag(i, t, true, "fit").map(|x| x.into()).unwrap_or(v)
+                self.builder.build_int_cast_sign_flag(i, t, signed, "fit").map(|x| x.into()).unwrap_or(v)
             }
             (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(t)) => self.builder.build_signed_int_to_float(i, t, "fit").map(|x| x.into()).unwrap_or(v),
             (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(t)) if x.get_type() != t => self.builder.build_float_cast(x, t, "fit").map(|y| y.into()).unwrap_or(v),
@@ -974,6 +1105,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     fn call(&mut self, fi: usize, callee: &Callee, args: &[Arg], slots: &[Option<PointerValue<'ctx>>]) -> Option<BasicValueEnum<'ctx>> {
         let mut vals: Vec<BasicMetadataValueEnum> = Vec::new();
+        // Each argument's own sign, for widening it to the parameter.
+        let signs: Vec<bool> = args
+            .iter()
+            .map(|a| match a {
+                Arg::Value(o) => self.operand_signed(fi, o).unwrap_or(true),
+                Arg::Copy(p) | Arg::Give(p) => self.operand_signed(fi, &Operand::Read(p.clone())).unwrap_or(true),
+                _ => true,
+            })
+            .collect();
         for a in args {
             let v = match a {
                 Arg::Value(o) => self.operand(fi, o, slots)?,
@@ -1016,7 +1156,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         for (i, w) in want.iter().enumerate() {
             if let Some(slot) = vals.get_mut(i) {
                 if let (Ok(v), Ok(t)) = (BasicValueEnum::try_from(*slot), BasicTypeEnum::try_from(*w)) {
-                    *slot = self.fit(v, t).into();
+                    let signed = signs.get(i).copied().unwrap_or(true);
+                    *slot = self.fit_as(v, t, signed).into();
                 }
             }
         }
@@ -1070,6 +1211,83 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
+    /// Trap at `site` when `bad` holds; carry on otherwise.
+    fn guard(&mut self, fi: usize, site: SiteId, bad: IntValue<'ctx>, func: FunctionValue<'ctx>) -> Option<()> {
+        let fail = self.ctx.append_basic_block(func, "check_failed");
+        let good = self.ctx.append_basic_block(func, "checked");
+        let _ = self.builder.build_conditional_branch(bad, fail, good);
+        self.builder.position_at_end(fail);
+        self.trap(fi, site);
+        self.builder.position_at_end(good);
+        Some(())
+    }
+
+    /// Into a narrower type, or a range type: the value has to be one the
+    /// target holds (`conversion.md`: "a runtime check unless Precog proves
+    /// the fit"). Compared in 128 bits, the value extended by its own sign,
+    /// so no comparison can itself wrap.
+    fn narrow_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
+        let site = self.p.functions[fi].site(id).clone();
+        if matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted) {
+            return;
+        }
+        let SiteKind::Narrow { to } = &site.kind else { return };
+        let Some((lo, hi)) = crate::precog::smt::int_bounds(to) else { return };
+        let Some(o) = site.operands.first() else { return };
+        let o = match o.place() {
+            Some(p) => Operand::Read(p.clone()),
+            None => o.clone(),
+        };
+        let signed = self.operand_signed(fi, &o).unwrap_or(true);
+        let Some(BasicValueEnum::IntValue(v)) = self.operand(fi, &o, slots) else { return };
+        let w = self.ctx.i128_type();
+        let x = self.fit_as(v.into(), w.into(), signed).into_int_value();
+        let (Ok(below), Ok(above)) = (
+            self.builder.build_int_compare(IntPredicate::SLT, x, const_i128(w, lo), "below"),
+            self.builder.build_int_compare(IntPredicate::SGT, x, const_i128(w, hi), "above"),
+        ) else { return };
+        let Ok(bad) = self.builder.build_or(below, above, "outside") else { return };
+        let _ = self.guard(fi, id, bad, func);
+    }
+
+    /// A bounded list, map or text after a change: its length has to be
+    /// inside the bound.
+    fn length_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
+        let site = self.p.functions[fi].site(id).clone();
+        if matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted) {
+            return;
+        }
+        let SiteKind::LengthBound { to } = &site.kind else { return };
+        let (lo, hi, unit) = match to {
+            Ty::Bounded { bound: crate::types::Bound::Len { lo, hi, unit }, .. } => (*lo as i128, *hi as i128, *unit),
+            _ => return,
+        };
+        let span = Some(self.p.functions[fi].span(site.span));
+        // A text bound counted in code points or characters has to walk the
+        // text, and that walk is std's to write.
+        if matches!(unit, Some(crate::types::Unit::Point) | Some(crate::types::Unit::Grapheme)) {
+            self.cannot("a text bound counted in code points or characters has no run-time check yet", span);
+            return;
+        }
+        let Some(p) = site.operands.first().and_then(|o| o.place()).cloned() else { return };
+        let Some((slot, ty)) = self.slot_of(fi, &p, slots) else { return };
+        let Some(BasicTypeEnum::StructType(st)) = self.ty(&ty) else { return };
+        let Ok(field) = self.builder.build_struct_gep(st, slot, 1, "len") else { return };
+        let Ok(raw) = self.builder.build_load(self.ctx.i64_type(), field, "n") else { return };
+        let mut n = raw.into_int_value();
+        if matches!(ty.base(), Ty::Str(_)) {
+            n = self.real_length(n);
+        }
+        let w = self.ctx.i128_type();
+        let Ok(n) = self.builder.build_int_z_extend(n, w, "n128") else { return };
+        let (Ok(below), Ok(above)) = (
+            self.builder.build_int_compare(IntPredicate::SLT, n, const_i128(w, lo), "below"),
+            self.builder.build_int_compare(IntPredicate::SGT, n, const_i128(w, hi), "above"),
+        ) else { return };
+        let Ok(bad) = self.builder.build_or(below, above, "outside") else { return };
+        let _ = self.guard(fi, id, bad, func);
+    }
+
     /// `'xs'[pos i]` must be within the list: 1-based, so 1 through the
     /// length (`lists.md`). Proven sites carry no check; the rest trap
     /// with the site's own words.
@@ -1086,9 +1304,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let (Some(i), Some(n)) = (site.operands.first().map(read), site.operands.get(1).map(read)) else { return };
         let (Some(i), Some(n)) = (self.operand(fi, &i, slots), self.operand(fi, &n, slots)) else { return };
-        let w = self.ctx.i64_type();
-        let i = self.fit(i, w.into()).into_int_value();
-        let n = self.fit(n, w.into()).into_int_value();
+        // In 128 bits, each extended by its own sign, so a `uint64`
+        // position past 2^63 is a big number and not a negative one.
+        let w = self.ctx.i128_type();
+        let si = site.operands.first().and_then(|o| self.operand_signed(fi, o)).unwrap_or(true);
+        let sn = site.operands.get(1).and_then(|o| self.operand_signed(fi, o)).unwrap_or(false);
+        let i = self.fit_as(i, w.into(), si).into_int_value();
+        let n = self.fit_as(n, w.into(), sn).into_int_value();
         let one = w.const_int(1, false);
         let Ok(too_low) = self.builder.build_int_compare(IntPredicate::SLT, i, one, "low") else { return };
         let Ok(too_high) = self.builder.build_int_compare(IntPredicate::SGT, i, n, "high") else { return };
@@ -1108,7 +1330,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // site already asked about.
             let want = self.ty(&ty);
             let v = match (v, want) {
-                (BasicValueEnum::IntValue(i), Some(BasicTypeEnum::IntType(t))) if i.get_type().get_bit_width() != t.get_bit_width() => self.builder.build_int_cast_sign_flag(i, t, true, "fit").unwrap().into(),
+                (BasicValueEnum::IntValue(i), Some(BasicTypeEnum::IntType(t))) if i.get_type().get_bit_width() != t.get_bit_width() => {
+                    let signed = int_signed(&ty).unwrap_or(true);
+                    self.builder.build_int_cast_sign_flag(i, t, signed, "fit").unwrap().into()
+                }
                 _ => v,
             };
             let _ = self.builder.build_store(slot, v);
@@ -1128,6 +1353,22 @@ fn basic_result(call: inkwell::values::CallSiteValue<'_>) -> Option<BasicValueEn
 /// that is the side to move when two widths meet.
 fn is_double(t: inkwell::types::FloatType<'_>, ctx: &Context) -> bool {
     t == ctx.f64_type()
+}
+
+/// A 128-bit constant from a Rust `i128`.
+fn const_i128<'ctx>(t: inkwell::types::IntType<'ctx>, v: i128) -> IntValue<'ctx> {
+    let bits = v as u128;
+    t.const_int_arbitrary_precision(&[bits as u64, (bits >> 64) as u64])
+}
+
+/// Whether a whole-number type is signed: `None` for anything else.
+fn int_signed(t: &Ty) -> Option<bool> {
+    match t.base() {
+        Ty::Int(IntW::Fixed { signed, .. }) => Some(*signed),
+        Ty::Int(IntW::Free(_)) | Ty::Duration => Some(true),
+        Ty::Bool | Ty::Char(_) => Some(false),
+        _ => None,
+    }
 }
 
 /// A value the runtime holds behind a handle.

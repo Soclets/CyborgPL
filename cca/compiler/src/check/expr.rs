@@ -533,6 +533,16 @@ impl Checker {
                 return err(Diagnostic::error(format!("`{}` is not one {}: it is {} {}, so it fits `char.{}`, not `{}`", c, match u { Unit::Byte => "byte", Unit::Point => "code point", _ => "grapheme" }, n, what, match need { Unit::Byte => "byte", Unit::Point => "point", _ => "grapheme" }, self.spell(&t))).at(v.span));
             }
         }
+        // Arithmetic made only of literals has no family either, so in a
+        // typed place it takes the place's: `let 'm': uint64 =
+        // 9223372036854775807 + 1` is a `uint64` sum, 2^63, not an
+        // `integer` one that overflows.
+        let mut v = v;
+        if let (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Fixed { .. })) = (vt.base(), t.base()) {
+            if literal_only(&v) {
+                retype_literal_arith(&mut v, t.base());
+            }
+        }
         if self.unify(&vt, &t) {
             return Ok(v);
         }
@@ -786,8 +796,30 @@ impl Checker {
             }
             _ => (l, r),
         };
+        // A bare whole-number literal takes the family of the other side
+        // (`types.md`: "a bare numeric literal has no family of its own: it
+        // takes the family of its context"). `'n' + 1` with `'n'` a `uint64`
+        // is a `uint64` sum; joining the two made it an `integer`, which
+        // cannot hold the upper half of a `uint64` and read it as negative.
+        // A `:=` name whose width is still open is not a literal: that
+        // choice stays Precog's.
         let lt = self.resolve(&l.ty);
         let rt = self.resolve(&r.ty);
+        let adopt: Option<Ty> = match (lt.base(), rt.base()) {
+            (Ty::Int(IntW::Free(_)), Ty::Int(w @ IntW::Fixed { .. })) if is_int_literal(&l) => Some(Ty::Int(*w)),
+            (Ty::Int(w @ IntW::Fixed { .. }), Ty::Int(IntW::Free(_))) if is_int_literal(&r) => Some(Ty::Int(*w)),
+            _ => None,
+        };
+        // The literal keeps its value — a literal too big for the family is
+        // then a narrowing Precog refuses as certain, like any other — but a
+        // negative one cannot join an unsigned family at all.
+        if let Some(Ty::Int(IntW::Fixed { signed: false, .. })) = &adopt {
+            let lit = if is_int_literal(&l) { &l } else { &r };
+            if matches!(lit.kind, K::Unary { op: crate::ast::UnOp::Neg, .. }) || matches!(lit.kind, K::Int(v) if v < 0) {
+                let fam = adopt.as_ref().map(|t| self.spell(t)).unwrap_or_default();
+                return err(Diagnostic::error(format!("a negative number beside a `{}`: an unsigned number is never negative, and a bare number takes the family of the other side", fam)).at(lit.span));
+            }
+        }
         if !lt.is_numeric() {
             return err(Diagnostic::error(format!("`{}` works on numbers, and its left side is a `{}`", op.spelled(), self.spell(&lt))).at(l.span));
         }
@@ -795,6 +827,7 @@ impl Checker {
             return err(Diagnostic::error(format!("`{}` works on numbers, and its right side is a `{}`", op.spelled(), self.spell(&rt))).at(r.span));
         }
         let ty = match (lt.base(), rt.base()) {
+            _ if adopt.is_some() => adopt.clone().unwrap(),
             (Ty::Int(a), Ty::Int(b)) => Ty::Int(join_int(*a, *b)),
             (Ty::Bin(a), Ty::Bin(b)) => Ty::Bin(join_bin(*a, *b)),
             (Ty::Deci(a), Ty::Deci(b)) => Ty::Deci((*a).max(*b)),
@@ -2206,6 +2239,45 @@ fn builtin_subject(b: &Builtin) -> &'static str {
         Builtin::MapLength | Builtin::MapHas | Builtin::MapGet | Builtin::MapSet | Builtin::MapRemove | Builtin::MapKeys | Builtin::MapValues | Builtin::MapPairs => "map",
         Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes | Builtin::StrEach(_) => "text",
         _ => "value",
+    }
+}
+
+/// Every leaf a literal, every node arithmetic.
+fn literal_only(e: &Expr) -> bool {
+    match &e.kind {
+        K::Int(_) => true,
+        K::Unary { op: crate::ast::UnOp::Neg, expr } => literal_only(expr),
+        K::Binary { op, lhs, rhs, .. } => {
+            matches!(op, crate::ast::BinOp::Add | crate::ast::BinOp::Sub | crate::ast::BinOp::Mul | crate::ast::BinOp::Pow | crate::ast::BinOp::Div | crate::ast::BinOp::Mod) && literal_only(lhs) && literal_only(rhs)
+        }
+        _ => false,
+    }
+}
+
+/// Give every arithmetic node of a literal-only expression the place's type.
+/// The leaves keep their values; a leaf the type cannot hold is then a
+/// narrowing Precog refuses as certain.
+fn retype_literal_arith(e: &mut Expr, t: &Ty) {
+    match &mut e.kind {
+        K::Binary { lhs, rhs, .. } => {
+            retype_literal_arith(lhs, t);
+            retype_literal_arith(rhs, t);
+            e.ty = t.clone();
+        }
+        K::Unary { expr, .. } => {
+            retype_literal_arith(expr, t);
+            e.ty = t.clone();
+        }
+        _ => {}
+    }
+}
+
+/// A whole number written out: `7`, or `-7`.
+fn is_int_literal(e: &Expr) -> bool {
+    match &e.kind {
+        K::Int(_) => true,
+        K::Unary { op: crate::ast::UnOp::Neg, expr } => matches!(expr.kind, K::Int(_)),
+        _ => false,
     }
 }
 

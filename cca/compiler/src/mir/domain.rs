@@ -30,7 +30,7 @@ impl ISet {
     pub fn range(lo: i128, hi: i128) -> ISet {
         if lo > hi {
             ISet::Empty
-        } else if (hi - lo) < SET_REOPEN as i128 {
+        } else if hi.checked_sub(lo).map(|d| d < SET_REOPEN as i128).unwrap_or(false) {
             ISet::Exact((lo..=hi).collect())
         } else {
             ISet::Range { lo, hi }
@@ -49,7 +49,7 @@ impl ISet {
     pub fn count(&self) -> Option<u64> {
         match self {
             ISet::Exact(v) => Some(v.len() as u64),
-            ISet::Range { lo, hi } => u64::try_from(hi - lo + 1).ok(),
+            ISet::Range { lo, hi } => hi.checked_sub(*lo).and_then(|d| d.checked_add(1)).and_then(|n| u64::try_from(n).ok()),
             ISet::Empty => Some(0),
         }
     }
@@ -131,7 +131,7 @@ impl ISet {
     pub fn values(&self) -> Option<Vec<i128>> {
         match self {
             ISet::Exact(v) => Some(v.clone()),
-            ISet::Range { lo, hi } if (hi - lo) < SET_CAP as i128 => Some((*lo..=*hi).collect()),
+            ISet::Range { lo, hi } if hi.checked_sub(*lo).map(|d| d < SET_CAP as i128).unwrap_or(false) => Some((*lo..=*hi).collect()),
             ISet::Range { .. } => None,
             ISet::Empty => Some(Vec::new()),
         }
@@ -605,19 +605,38 @@ fn corners(a: &ISet, b: &ISet, f: impl Fn(i128, i128) -> Option<i128>) -> ISet {
 }
 
 impl ISet {
+    // An answer too big for 128 bits is *saturated*, never dropped. It was
+    // dropped, and `'n' x 10000000000000000000` with `'n'` anything a
+    // `uint64` holds came out as exactly 0 — the corner that overflowed was
+    // the one that mattered — and the multiply was "proven" to fit. A
+    // saturated end is outside every type a program can write, so the site
+    // that computed it can never be proven by it.
     pub fn add(&self, o: &ISet) -> ISet {
-        self.arith(o, |x, y| x.checked_add(y), true)
+        self.arith(o, |x, y| Some(x.saturating_add(y)), true)
     }
     pub fn sub(&self, o: &ISet) -> ISet {
-        self.arith(o, |x, y| x.checked_sub(y), true)
+        self.arith(o, |x, y| Some(x.saturating_sub(y)), true)
     }
     pub fn mul(&self, o: &ISet) -> ISet {
-        self.arith(o, |x, y| x.checked_mul(y), true)
+        self.arith(o, |x, y| Some(x.saturating_mul(y)), true)
     }
     /// Floor division, the language's `/` (`operators.md`). Division by
     /// zero has no answer and simply is not in the result.
     pub fn div_floor(&self, o: &ISet) -> ISet {
-        self.arith(o, |x, y| if y == 0 { None } else { Some(x.div_euclid(y) + if (x % y != 0) && ((x % y < 0) != (y < 0)) { 0 } else { 0 }) }, false)
+        // Floor, not Euclid: they agree for a positive divisor and differ
+        // for a negative one (`7 / -2` floors to -4; Euclid says -3).
+        self.arith(
+            o,
+            |x, y| {
+                if y == 0 {
+                    return None;
+                }
+                let q = x.checked_div(y).unwrap_or(i128::MAX);
+                let r = x.checked_rem(y).unwrap_or(0);
+                Some(if r != 0 && ((r < 0) != (y < 0)) { q.saturating_sub(1) } else { q })
+            },
+            false,
+        )
     }
     /// The mathematician's `mod`: the result has the divisor's sign.
     pub fn mod_floor(&self, o: &ISet) -> ISet {
@@ -627,12 +646,29 @@ impl ISet {
         self.arith(
             o,
             |x, y| {
-                if !(0..=127).contains(&y) {
+                if y < 0 {
                     return None;
                 }
+                // Saturated, like the others: a power too big to write down
+                // is still a power too big for the type.
                 let mut acc: i128 = 1;
-                for _ in 0..y {
-                    acc = acc.checked_mul(x)?;
+                let mut i = 0;
+                while i < y {
+                    let next = acc.saturating_mul(x);
+                    if next == acc && (acc == i128::MAX || acc == i128::MIN) {
+                        break;
+                    }
+                    acc = next;
+                    if acc == 0 || acc == 1 {
+                        break;
+                    }
+                    i += 1;
+                    if i > 256 {
+                        break;
+                    }
+                }
+                if acc == 1 && x == -1 && y % 2 == 1 {
+                    acc = -1;
                 }
                 Some(acc)
             },
@@ -643,11 +679,12 @@ impl ISet {
         match self {
             ISet::Empty => ISet::Empty,
             ISet::Exact(v) => {
-                let mut out: Vec<i128> = v.iter().filter_map(|x| x.checked_neg()).collect();
+                let mut out: Vec<i128> = v.iter().map(|x| x.saturating_neg()).collect();
                 out.sort_unstable();
+                out.dedup();
                 ISet::Exact(out)
             }
-            ISet::Range { lo, hi } => ISet::Range { lo: -hi, hi: -lo },
+            ISet::Range { lo, hi } => ISet::Range { lo: hi.saturating_neg(), hi: lo.saturating_neg() },
         }
     }
 

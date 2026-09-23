@@ -107,35 +107,34 @@ impl Portfolio {
 }
 
 fn run(s: &Solver, q: &Query) -> Answer {
-    let dir = std::env::temp_dir().join("cca-smt");
-    let _ = std::fs::create_dir_all(&dir);
-    // One file per query, not one per process: queries are asked from
-    // more than one thread, and two of them sharing a name means a
-    // solver answering a question that was never put to it.
-    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let path = dir.join(format!("q{}-{}-{}.smt2", std::process::id(), n, s.name));
-    if std::fs::write(&path, &q.text).is_err() {
-        return Answer::Unknown;
+    // The query goes in on stdin, so no file is left behind — a build that
+    // is stopped halfway used to leave its queries in the temp directory,
+    // some of them megabytes. `CCA_KEEP_SMT=1` still writes each one out,
+    // for reading. The step budget rides in the query itself
+    // (`set-option :rlimit`), so every member is held to the same one.
+    if std::env::var("CCA_KEEP_SMT").is_ok() {
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir = std::env::temp_dir().join("cca-smt");
+        let _ = std::fs::create_dir_all(&dir);
+        let _ = std::fs::write(dir.join(format!("q{}-{}-{}.smt2", std::process::id(), n, s.name)), &q.text);
     }
-    // The step budget rides in the query itself (`set-option :rlimit`), so
-    // every member is held to the same one and no member is given a
-    // budget on the command line that the others did not get.
     let mut cmd = std::process::Command::new(s.program);
     match s.name {
         "Z3" => {
-            cmd.arg("-smt2").arg(&path);
+            cmd.arg("-smt2").arg("-in");
         }
         _ => {
-            cmd.arg("--lang=smt2").arg(&path);
+            cmd.arg("--lang=smt2");
         }
     }
-    let out = cmd.output();
-    // The query is kept only when someone asked to see it.
-    if std::env::var("CCA_KEEP_SMT").is_err() {
-        let _ = std::fs::remove_file(&path);
+    cmd.stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null());
+    let Ok(mut child) = cmd.spawn() else { return Answer::Unknown };
+    if let Some(mut input) = child.stdin.take() {
+        use std::io::Write as _;
+        let _ = input.write_all(q.text.as_bytes());
     }
-    let Ok(out) = out else { return Answer::Unknown };
+    let Ok(out) = child.wait_with_output() else { return Answer::Unknown };
     let text = String::from_utf8_lossy(&out.stdout).to_string();
     // Not the first line: a solver may print `unsupported`, a warning, or
     // an echo before it answers. The answer is the first line that is one.
@@ -1043,6 +1042,21 @@ impl<'a> Enc<'a> {
             };
             ops.push(v);
         }
+        // A literal takes its context's family here as everywhere: at the
+        // result's width and sign, when the result's type can hold it.
+        if let Some((bits, signed)) = site.result_ty.as_ref().and_then(int_shape) {
+            let (lo, hi) = site.result_ty.as_ref().and_then(int_bounds).unwrap_or((i128::MIN, i128::MAX));
+            for (i, o) in site.operands.iter().enumerate() {
+                if let Operand::Const(Const::Int(v)) = o {
+                    if *v >= lo && *v <= hi {
+                        let lit = self.define(bits, &bv(*v, bits), signed);
+                        if let Some(slot) = ops.get_mut(i) {
+                            *slot = Some(lit);
+                        }
+                    }
+                }
+            }
+        }
         match &site.kind {
             SiteKind::Overflow(op) => {
                 let ty = site.result_ty.clone()?;
@@ -1050,6 +1064,29 @@ impl<'a> Enc<'a> {
                 let (lo, hi) = int_bounds(&ty)?;
                 let a = ops.first().cloned().flatten()?;
                 match op {
+                    // When both operands are the result's own type — the usual
+                    // case, a literal having taken its family — the solvers'
+                    // own overflow predicates ask exactly the question, at the
+                    // type's width. Widening a 64-bit multiply to 128 bits to
+                    // ask it instead sent CVC5 into minutes of work its step
+                    // budget did not count.
+                    BinOp::Add | BinOp::Sub | BinOp::Mul if {
+                        let b = ops.get(1).cloned().flatten();
+                        let full = crate::resolve::int_range(signed, bits as u16) == (lo, hi);
+                        full && a.bits == bits && a.signed == signed && b.as_ref().map(|b| b.bits == bits && b.signed == signed).unwrap_or(false)
+                    } =>
+                    {
+                        let b = ops.get(1).cloned().flatten()?;
+                        let pred = match (op, signed) {
+                            (BinOp::Add, true) => "bvsaddo",
+                            (BinOp::Add, false) => "bvuaddo",
+                            (BinOp::Sub, true) => "bvssubo",
+                            (BinOp::Sub, false) => "bvusubo",
+                            (_, true) => "bvsmulo",
+                            (_, false) => "bvumulo",
+                        };
+                        Some(format!("({} {} {})", pred, a.term, b.term))
+                    }
                     BinOp::Add | BinOp::Sub | BinOp::Mul => {
                         let b = ops.get(1).cloned().flatten()?;
                         // Compute wide enough that the true answer fits, then

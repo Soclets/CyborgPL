@@ -94,14 +94,16 @@ fn a_query_can_always_be_satisfied_by_something() {
 fn a_full_width_unsigned_value_is_not_proven_safe() {
     assert!(have_a_solver(), "no solver on this machine, so layer 3 cannot be tested at all");
     let p = build(
-        "extern fn getpid [] -> int32;\n\
+        // A `uint32` straight from C, so every value the type holds is
+        // possible — `to.uint32[getpid[]]` would not do: Precog knows that
+        // one is at most 2^31 - 1, and then `'x' + 1` really is safe.
+        "extern fn getuid [] -> uint32;\n\
          fn bump ['x': uint32] -> uint32 {\n\
          \x20   let 'y': uint32 = 'x' + 1;\n\
          \x20   return 'y';\n\
          }\n\
          MAIN {\n\
-         \x20   nocheck let 'p' := getpid[];\n\
-         \x20   nocheck let 'u': uint32 = to.uint32['p'];\n\
+         \x20   nocheck let 'u' := getuid[];\n\
          \x20   let 'r' := bump['u'];\n\
          }\n",
     );

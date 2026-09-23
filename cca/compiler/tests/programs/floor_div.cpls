@@ -1,0 +1,12 @@
+# `/` floors and `mod` takes the divisor's sign (operators.md). The values
+# come from C so that the division happens at run time, not in Precog.
+extern fn exit ['code': int32];
+extern fn abs ['v': int32] -> int32;
+MAIN {
+    nocheck let 'seven': int32 = abs[-7];
+    let 'a': int32 = (0 - 'seven') / 2;       # -4
+    let 'b': int32 = (0 - 'seven') mod 2;     # 1
+    let 'c': int32 = 'seven' / -2;            # -4
+    let 'd': int32 = 'seven' mod -2;          # -1
+    nocheck exit[('a' + 4) x 1000 + ('b' - 1) x 100 + ('c' + 4) x 10 + ('d' + 1) + 42];
+}

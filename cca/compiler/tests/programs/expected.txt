@@ -45,3 +45,8 @@ tasks_nested 12
 # forget what it knew, or a correct program is refused (and a wrong one
 # proven).
 lend_mut_call 7
+# Integer semantics: floor division, unsigned values above 2^(n-1), and a
+# range step that is its own signed number.
+floor_div 42
+unsigned_high 211
+range_steps 11

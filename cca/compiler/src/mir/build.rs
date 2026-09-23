@@ -571,11 +571,17 @@ impl<'a> FnBuilder<'a> {
         self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![stop_v.clone()], Some(ty.clone()), span);
         let stop_t = self.temp(&ty, span);
         self.assign(Place::local(stop_t), Rvalue::Use(stop_v), span);
+        // "The step is not one of those values" (owner, 2026-09-23): it is
+        // its own signed number, so a `uint64` counter can count down by
+        // -1. It lives in a signed 64-bit temporary, not in the counter's
+        // type, where -1 would read as the type's largest value.
         let step_v = match step {
             Some(e) => self.eval(e, span),
             None => Operand::Const(Const::Int(1)),
         };
-        let step_t = self.temp(&ty, span);
+        let step_ty = Ty::int(true, 64);
+        self.site_of(SiteKind::Narrow { to: step_ty.clone() }, vec![step_v.clone()], Some(step_ty.clone()), span);
+        let step_t = self.temp(&step_ty, span);
         self.assign(Place::local(step_t), Rvalue::Use(step_v.clone()), span);
 
         let head = self.new_block();
@@ -615,46 +621,45 @@ impl<'a> FnBuilder<'a> {
         self.terminate(Terminator::Goto(next));
         self.loops.pop();
 
-        // The step is taken only when there is another trip to make. The
-        // counter must hold every value it takes, and the *stop* is one of
-        // them: `for 'b': int8 in range[126, 127]` ends at 127 without ever
-        // computing 128, so an inclusive loop over a type's last value is
-        // not an overflow.
+        // "The compiler compares before it steps" (owner, 2026-09-23): the
+        // step is taken only when there is room for it — `stop - 'i'` is at
+        // least the step going up, at most it going down. The difference is
+        // taken in 128 bits, where two 64-bit values always fit, so the test
+        // itself can never overflow whatever the counter's type; and the step
+        // past the last value — `range[250, 255, 3]` would reach 256 — is
+        // never computed, because the program never needs it.
         self.cur = next;
+        let wide = Ty::int(true, 128);
+        let rem = self.into_temp(
+            Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(stop_t)) },
+            &wide,
+            span,
+        );
+        let at = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(c)) }, &wide, span);
+        let rem = self.into_temp(Rvalue::Binary { op: BinOp::Sub, lhs: rem, rhs: at.clone() }, &wide, span);
+        let by = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(step_t)) }, &wide, span);
         let up2 = self.into_temp(
             Rvalue::Binary { op: BinOp::Ge, lhs: Operand::Read(Place::local(step_t)), rhs: Operand::Const(Const::Int(0)) },
             &Ty::Bool,
             span,
         );
-        let at_end_up = self.new_block();
-        let at_end_down = self.new_block();
+        let room_up = self.new_block();
+        let room_down = self.new_block();
         let step_b = self.new_block();
-        self.terminate(Terminator::If { cond: up2, then: at_end_up, else_: at_end_down });
-        self.cur = at_end_up;
-        let done_up = self.into_temp(
-            Rvalue::Binary { op: BinOp::Ge, lhs: Operand::Read(Place::local(c)), rhs: Operand::Read(Place::local(stop_t)) },
-            &Ty::Bool,
-            span,
-        );
-        self.terminate(Terminator::If { cond: done_up, then: exit, else_: step_b });
-        self.cur = at_end_down;
-        let done_down = self.into_temp(
-            Rvalue::Binary { op: BinOp::Le, lhs: Operand::Read(Place::local(c)), rhs: Operand::Read(Place::local(stop_t)) },
-            &Ty::Bool,
-            span,
-        );
-        self.terminate(Terminator::If { cond: done_down, then: exit, else_: step_b });
+        self.terminate(Terminator::If { cond: up2, then: room_up, else_: room_down });
+        self.cur = room_up;
+        let more_up = self.into_temp(Rvalue::Binary { op: BinOp::Ge, lhs: rem.clone(), rhs: by.clone() }, &Ty::Bool, span);
+        self.terminate(Terminator::If { cond: more_up, then: step_b, else_: exit });
+        self.cur = room_down;
+        let more_down = self.into_temp(Rvalue::Binary { op: BinOp::Le, lhs: rem, rhs: by.clone() }, &Ty::Bool, span);
+        self.terminate(Terminator::If { cond: more_down, then: step_b, else_: exit });
         self.cur = step_b;
-        // A step that lands past the type's own end is still a site: with a
-        // step of 3 an `int8` counter can reach 129, which is nobody's fault
-        // but the program's.
+        // The next value, in 128 bits, then into the counter — a narrowing
+        // Precog proves from the test just made: there was room.
         let cty = self.locals[c.0 as usize].ty.clone();
-        self.site_of(SiteKind::Overflow(BinOp::Add), vec![Operand::Read(Place::local(c)), Operand::Read(Place::local(step_t))], Some(cty), span);
-        self.assign(
-            Place::local(c),
-            Rvalue::Binary { op: BinOp::Add, lhs: Operand::Read(Place::local(c)), rhs: Operand::Read(Place::local(step_t)) },
-            span,
-        );
+        let next_v = self.into_temp(Rvalue::Binary { op: BinOp::Add, lhs: at, rhs: by }, &wide, span);
+        self.site_of(SiteKind::Narrow { to: cty.clone() }, vec![next_v.clone()], Some(cty.clone()), span);
+        self.assign(Place::local(c), Rvalue::Convert { to: cty, operand: next_v }, span);
         self.terminate(Terminator::Goto(head));
 
         self.cur = exit;
@@ -1093,6 +1098,18 @@ impl<'a> FnBuilder<'a> {
         out
     }
 
+    /// What each parameter of a callee holds, where that is known.
+    fn param_tys(&self, callee: &hir::Callee) -> Vec<Ty> {
+        match callee {
+            hir::Callee::Fn(inst) => match self.arena.instances[inst.0 as usize].body.as_ref() {
+                Some(b) => b.params.iter().map(|p| self.resolve_ty(&b.locals[p.0 as usize].ty)).collect(),
+                None => Vec::new(),
+            },
+            hir::Callee::Extern(id) => self.arena.items.externs[id.0 as usize].params.iter().map(|(_, t)| self.resolve_ty(t)).collect(),
+            _ => Vec::new(),
+        }
+    }
+
     fn fn_idx(&mut self, inst: FnInst) -> FnIdx {
         match self.arena.inst_idx.get(&inst) {
             Some(i) => *i,
@@ -1177,6 +1194,19 @@ impl<'a> FnBuilder<'a> {
                     hir::Callee::Builtin(b) => Callee::Op(builtin_op(b)),
                 };
                 let margs: Vec<Arg> = args.iter().map(|a| self.arg(a, span)).collect();
+                // Into a parameter is a store like any other: a `uint64`
+                // handed to a `uint8` parameter is a narrowing, and a
+                // narrowing is a check site (`conversion.md`). It was not one.
+                let wants = self.param_tys(callee);
+                for (i, (a, m)) in args.iter().zip(&margs).enumerate() {
+                    let Some(want) = wants.get(i) else { break };
+                    if matches!(m, Arg::Lend { .. } | Arg::Spread { .. }) {
+                        continue;
+                    }
+                    let have = self.arg_ty(a);
+                    let op = arg_as_operand(m);
+                    self.narrow_arg(&op, &have, want, span);
+                }
                 (c, margs, otherwise.as_deref(), fails.clone())
             }
             hir::ExprKind::Conv { target, expr, otherwise, fails } => {

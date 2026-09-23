@@ -801,14 +801,15 @@ impl Precog {
     fn convert(&mut self, to: &Ty, from: &Domain) -> Domain {
         let top = Domain::of_ty(to, &self.prog().items);
         match (from, &top) {
-            // Into a wider or equal integer: the same values.
+            // Into a wider or equal integer: the same values. Into a narrower
+            // one: a narrowing is a check site, and past it the value is one
+            // the target holds — or the program stopped there. So it is the
+            // values it had, clipped to the target's, not "anything the target
+            // allows": a loop counter stepped through 128 bits and narrowed
+            // back is still at least 1.
             (Domain::Ints(s), Domain::Ints(limit)) => {
-                let (Some((lo, hi)), Some((l2, h2))) = (s.bounds(), limit.bounds()) else { return top };
-                if lo >= l2 && hi <= h2 {
-                    Domain::Ints(s.clone())
-                } else {
-                    top
-                }
+                let (Some(_), Some((l2, h2))) = (s.bounds(), limit.bounds()) else { return top };
+                Domain::Ints(s.clamp(l2, h2))
             }
             (Domain::Ints(s), Domain::Text { .. }) => {
                 // A number written out: its length follows from its digits.

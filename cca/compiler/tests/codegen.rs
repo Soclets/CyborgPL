@@ -164,6 +164,15 @@ fn programs_give_back_what_they_took() {
     assert!(leaking.is_empty(), "these programs did not give back everything they took:\n{}", leaking.join("\n"));
 }
 
+/// An unproven narrowing is a check in the working build, not a silent
+/// truncation (`conversion.md`: "a runtime check unless Precog proves the
+/// fit"). It used to be neither checked nor counted.
+#[test]
+fn an_unproven_narrowing_is_checked() {
+    let ir = ir_of("narrow_checked");
+    assert!(ir.contains("the value can be outside what a `uint8` holds"), "a narrowing Precog did not prove reached the binary with no check:\n{}", ir);
+}
+
 fn ir_of(name: &str) -> String {
     let src = dir().join(format!("{}.cpls", name));
     let out = std::env::temp_dir().join(format!("cca-codegen-tests/ir-{}", name));

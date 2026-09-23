@@ -368,7 +368,12 @@ impl Checker {
                 let st = match step {
                     Some(st) => {
                         let v = self.expr(ctx, st)?;
-                        let v = self.expect_store(ctx, v, &counter_ty, "the step")?;
+                        // "The step is not one of those values" (owner,
+                        // 2026-09-23): it is its own signed number, an
+                        // instruction to go up or down, so it is checked as
+                        // an `int64`, never as the counter's type — `-1` is a
+                        // fine step for a `uint64` counter.
+                        let v = self.expect_store(ctx, v, &crate::types::Ty::int(true, 64), "the step")?;
                         if let hir::ExprKind::Int(0) = v.kind {
                             return err(Diagnostic::error("a step of 0 would never end: the counter must move").at(st.span));
                         }
