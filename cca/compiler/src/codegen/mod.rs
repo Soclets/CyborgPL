@@ -777,6 +777,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // multiply; checked as signed, 2 x 7726793855274730819 was
                 // an overflow that never happens. (The ordinary build folds
                 // it to its answer; `--assert-proofs` computes it.)
+                // A comparison is of the two numbers, whatever their types:
+                // each side is extended by its *own* sign, one bit wider
+                // when the signs differ, and compared signed. Extending both
+                // by the left side's sign made a `uint8` of 201 into -55,
+                // and `198 > 201` came out true (check claude, seed 77).
+                if op.is_comparison() {
+                    if let (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y), Some(sa), Some(sb)) = (a, b, self.operand_signed(fi, lhs), self.operand_signed(fi, rhs)) {
+                        let (xw, yw) = (x.get_type().get_bit_width(), y.get_type().get_bit_width());
+                        if sa != sb || xw != yw {
+                            let w = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(xw.max(yw) + u32::from(sa != sb))?).ok()?;
+                            let x = self.builder.build_int_cast_sign_flag(x, w, sa, "cmpl").ok()?;
+                            let y = self.builder.build_int_cast_sign_flag(y, w, sb, "cmpr").ok()?;
+                            return self.binary(fi, op, x.into(), y.into(), sites, func, blocks, sa || sb);
+                        }
+                    }
+                }
                 let signed = self.operand_signed(fi, lhs).or_else(|| self.operand_signed(fi, rhs)).or_else(|| want_ty.as_ref().and_then(int_signed)).unwrap_or(true);
                 let (a, b) = match (a, b, want) {
                     (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y), Some(t @ BasicTypeEnum::IntType(_))) if x.is_const() && y.is_const() && !op.is_comparison() => (self.fit_as(a, t, signed), self.fit_as(b, t, signed)),

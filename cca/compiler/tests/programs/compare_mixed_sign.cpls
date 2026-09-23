@@ -1,0 +1,21 @@
+# A comparison is of the two numbers: each side is extended by its own
+# sign. Both used to take the left side's, so a `uint8` of 201 beside an
+# `int64` became -55 and `198 > 201` was true (check claude, seed 77).
+# `strlen` is extern, so nothing here is known before it runs; 'n' is 63.
+extern fn exit ['code': int32];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+MAIN {
+    let 's' := "three hundred characters are too many to type, so this is fewer";
+    nocheck let 'n': uint64 = strlen[lend 's'];
+    let 'x': int64 = to.int64['n'] + 135;
+    let 'u': uint8 = to.uint8['n'] + 138;
+    let 'big': uint64 = 'n' + 18446744073709551000;
+    let 'neg': int64 = to.int64['n'] - 100;
+    let mut 'got': int32 = 0;
+    if 'x' > 'u' { 'got' = 'got' + 1; }
+    if 'u' > 'x' { 'got' = 'got' + 2; }
+    if 'big' > 'neg' { 'got' = 'got' + 4; }
+    if 'neg' < 'big' { 'got' = 'got' + 8; }
+    if 'neg' == 'u' { 'got' = 'got' + 16; }
+    nocheck exit['got'];
+}

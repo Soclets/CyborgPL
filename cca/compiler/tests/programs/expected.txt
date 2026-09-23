@@ -83,3 +83,6 @@ slice_unknown trap
 
 # to.array / to.list: the elements stay, only the handle changes.
 list_array 104
+
+# A comparison extends each side by its own sign.
+compare_mixed_sign 14
