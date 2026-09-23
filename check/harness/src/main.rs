@@ -267,13 +267,13 @@ fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir:
                         let d = dir.join(format!("w{k}"));
                         let envs = &envs;
                         let modes = &modes;
-                        s.spawn(move || match compare::check_modes(t, &c.render(), &d, envs, modes) {
+                        big_stack().spawn_scoped(s, move || match compare::check_modes(t, &c.render(), &d, envs, modes) {
                             Verdict::Finding(f) if f.sig == sig => Some(f.detail),
                             _ => None,
                         })
                     })
                     .collect();
-                hs.into_iter().map(|h| h.join().unwrap()).collect()
+                hs.into_iter().map(|h| h.expect("spawn").join().unwrap()).collect()
             });
             // Earliest success first; each is confirmed alone before it is kept.
             for (k, detail) in results.iter().enumerate().filter_map(|(k, r)| r.as_ref().map(|d| (k, d))) {
@@ -298,6 +298,13 @@ fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir:
             }
         }
     }
+}
+
+/// Worker threads get a big stack: generating, rendering and dropping a deep
+/// program recurses, and the 2 MiB default once overflowed and took the
+/// whole harness down (seeds 301–600, 2026-09-23).
+fn big_stack() -> std::thread::Builder {
+    std::thread::Builder::new().stack_size(64 << 20)
 }
 
 /// A program whose verdict changed between two runs: kept for a look.
@@ -333,7 +340,7 @@ fn run(t: &Tools, a: &Args) {
     std::thread::scope(|s| {
         for w in 0..jobs {
             let (next, stop, done, tally, cfg) = (&next, &stop, &done, &tally, &cfg);
-            s.spawn(move || {
+            big_stack().spawn_scoped(s, move || {
                 let dir = work().join(format!("w{w}"));
                 loop {
                     if stop.load(Ordering::SeqCst) {
@@ -374,7 +381,8 @@ fn run(t: &Tools, a: &Args) {
                         eprintln!("… {n} cases");
                     }
                 }
-            });
+            })
+            .expect("spawn");
         }
     });
     let mut tl = tally.into_inner().unwrap();
