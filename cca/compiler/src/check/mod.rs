@@ -351,7 +351,14 @@ impl Checker {
         }
         // "Only a bare literal with no context has no width" (`operators.md`).
         for (t, span, what) in std::mem::take(&mut self.widths_pending) {
-            if matches!(self.resolve(&t), Ty::Infer(_)) {
+            let got = self.resolve(&t);
+            // Bound, but to something that is not a whole number: an integer
+            // operation stored into a `bool` is a mistake, as `let 'a': bool
+            // = 5` is.
+            if !matches!(got, Ty::Infer(_)) && !got.is_int() {
+                return err(Diagnostic::error(format!("expected a value of the declared type ({}), found a whole number: `{}` works on integers", self.spell(&got), what)).at(span));
+            }
+            if matches!(got, Ty::Infer(_)) {
                 return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what))
                     .at(span)
                     .try_(format!("give the result a type (`let 'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));

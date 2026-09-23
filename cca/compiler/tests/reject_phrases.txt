@@ -372,3 +372,6 @@ dir_file_and_block :: a module cannot be both
 dir_main_in_module :: `MAIN` lives at the root of the Limb (`limb.cpls`), not in a module
 dir_no_root :: is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there
 dir_private_across_files :: it is visible there and in the modules nested inside it
+overflow_below_zero :: `-` can leave what the type holds
+overflow_in_comparison :: `+` can leave what the type holds
+wrap_into_bool :: expected a value of the declared type (bool), found a whole number

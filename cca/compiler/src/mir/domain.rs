@@ -640,7 +640,21 @@ impl ISet {
     }
     /// The mathematician's `mod`: the result has the divisor's sign.
     pub fn mod_floor(&self, o: &ISet) -> ISet {
-        self.arith(o, |x, y| if y == 0 { None } else { Some(x.rem_euclid(y.abs()) * if y < 0 { -1 } else { 1 }) }, false)
+        // The mathematician's `mod`: the remainder takes the divisor's sign,
+        // and `a == (a / b) x b + (a mod b)` with `/` flooring
+        // (`operators.md`). `1 mod -3` is -2, not -1: the truncated
+        // remainder moves by the divisor when its sign is the wrong one.
+        self.arith(
+            o,
+            |x, y| {
+                if y == 0 {
+                    return None;
+                }
+                let r = x.checked_rem(y).unwrap_or(0);
+                Some(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r })
+            },
+            false,
+        )
     }
     pub fn pow(&self, o: &ISet) -> ISet {
         self.arith(

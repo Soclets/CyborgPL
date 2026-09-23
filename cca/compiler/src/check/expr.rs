@@ -538,7 +538,10 @@ impl Checker {
         // 9223372036854775807 + 1` is a `uint64` sum, 2^63, not an
         // `integer` one that overflows.
         let mut v = v;
-        if let (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Fixed { .. })) = (vt.base(), t.base()) {
+        // `Ty::Infer` too: a shift, `not.bit` or wrapping operator of bare
+        // numbers waits for its width from here (owner, 2026-09-23), and so
+        // does every literal group inside it.
+        if let (Ty::Int(IntW::Free(_)) | Ty::Infer(_), Ty::Int(IntW::Fixed { .. })) = (vt.base(), t.base()) {
             if literal_only(&v) {
                 retype_literal_arith(&mut v, t.base());
             }
@@ -2283,9 +2286,13 @@ fn literal_only(e: &Expr) -> bool {
     match &e.kind {
         K::Int(_) => true,
         K::Unary { op: crate::ast::UnOp::Neg, expr } => literal_only(expr),
+        // Every operator that gives a whole number of its operands' width:
+        // arithmetic, shifts, bitwise, wrapping.
         K::Binary { op, lhs, rhs, .. } => {
-            matches!(op, crate::ast::BinOp::Add | crate::ast::BinOp::Sub | crate::ast::BinOp::Mul | crate::ast::BinOp::Pow | crate::ast::BinOp::Div | crate::ast::BinOp::Mod) && literal_only(lhs) && literal_only(rhs)
+            use crate::ast::BinOp as B;
+            matches!(op, B::Add | B::Sub | B::Mul | B::Pow | B::Div | B::Mod | B::Shl | B::Shr | B::AndBit | B::OrBit | B::Xor | B::WrapAdd | B::WrapSub | B::WrapMul | B::WrapPow) && literal_only(lhs) && literal_only(rhs)
         }
+        K::Unary { op: crate::ast::UnOp::NotBit, expr } => literal_only(expr),
         _ => false,
     }
 }
