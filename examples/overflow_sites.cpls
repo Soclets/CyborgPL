@@ -1,11 +1,18 @@
-# Arithmetic is checked where it happens, not only where it is stored (2026-09-23).
-# These all fit; `+~` never checks. See tests/reject/overflow_in_comparison.cpls for one that does not.
+# Plain math (+ - x xx) is exact, and checked where the value lands: a typed `let`, an
+# assignment, an argument, a return (owner, 2026-09-23). In between, the one limit is
+# the machine's 64 bits. Wrapping (+~ -~ x~ xx~) wraps at the size of its values.
+# tests/reject/overflow_lands.cpls and overflow_past_64_bits.cpls are the two that fail.
 MAIN {
-    let 'v': int8 = 100;
-    let 'big': int64 = 4000000000;
-    std::printu.stdout['v' + 20, " ", 'big' + 'big', " ", 2 x 3, \n];     # all fit
-    let 'w': uint8 = 200;
-    std::printu.stdout['w' - 100, \n];
-    let 'wrapped': int8 = 'v' +~ 100;                                     # wrapping is never a site
-    std::printu.stdout['wrapped', \n];
+    let 'small': int16 = 5;
+    let 'big': int64 = (20000 + 20000) + 'small';    # 40005: the true answer, and it fits int64
+    let 's': int16 = 30000;
+    let 'twice': int64 = 's' + 's';                   # 60000, though no int16 holds it
+    let 'tiny': int8 = (100 + 100) - 150;             # 50: the 200 in between is fine
+    let 'v': int8 = 112;
+    std::printu.stdout['big', " ", 'twice', " ", 'tiny', " ", 'v' > ('v' + 'v'), \n];   # 224 compared as 224
+    let 'u': uint8 = 5;
+    let 'below' := 'u' - 10;                          # -5: `:=` takes a type that holds it
+    let 'x': uint32 = 4000000000;
+    let 'h': uint64 = 'x' +~ 'x';                     # wraps at uint32, 'x''s size: 3705032704
+    std::printu.stdout['below', " ", 'h', \n];
 }

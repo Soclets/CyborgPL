@@ -1,5 +1,0 @@
-MAIN {
-    let 'v': int8 = 112;
-    if 'v' > ('v' + 'v') { std::print.stdout["in", \n]; }
-    std::print.stdout["end", \n];
-}

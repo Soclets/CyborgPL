@@ -59,7 +59,7 @@ Tightest to loosest:
 | 7 | `and` | ∧ before ∨, as in logic |
 | 8 | `or` | |
 
-**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `nocheck`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked. Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`/` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 / 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a / b) x b + (a mod b)` holds. Hardware truncation (`-7 / 2 = -3`, `-7 mod 2 = -1`) is std's, by name — `std::div.trunc[a, b]`, `std::mod.trunc[a, b]` — for matching a C library bit for bit. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where Precog cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `nocheck`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and not ('a' == 'b')` reads as expected, and `6 / 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
+**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `nocheck`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked, exact and checked where they land (2026-09-23, below). Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`/` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 / 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a / b) x b + (a mod b)` holds. Hardware truncation (`-7 / 2 = -3`, `-7 mod 2 = -1`) is std's, by name — `std::div.trunc[a, b]`, `std::mod.trunc[a, b]` — for matching a C library bit for bit. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where Precog cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `nocheck`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and not ('a' == 'b')` reads as expected, and `6 / 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
 
 ## A shift's count (owner, 2026-09-23: a)
 
@@ -119,6 +119,45 @@ the language's rule. CCA had read it as a rule and refused both lines;
 it is the one that changes. Found by the generator on its first run: it
 was two-thirds of every disagreement until check claude steered around
 it.
+
+## Plain math is exact; it is checked where it lands (owner, 2026-09-23)
+
+```
+let 'small': int16 = 5;
+let 'big': int64 = (20000 + 20000) + 'small';   # 40005: fits int64, fine
+let 'tiny': int8 = (100 + 100) - 150;           # 50: the 200 in between is fine
+let 'bad': int8 = 100 + 100;                    # 200 does not fit int8: error
+```
+
+`+ - x xx` on integers give the true answer, and the check is where the
+value lands: a typed `let`, an assignment, an argument (the parameter's
+type), a return (the return type). A comparison compares true values,
+and a `:=` takes a type that holds its true value. You never get a
+wrong number, and never an error for an answer that fits where it is
+going. In between, the one limit is the machine's 64 bits: a value no
+64-bit type holds is a check site (`'a' x 'a'` on two huge `int64`s),
+which Precog removes wherever it proves the values smaller. Bare
+numbers alone are worked out exactly at compile time. Precog still uses
+narrow sizes where it proves they fit, for SIMD especially, since the
+answer is the same.
+
+**Wrapping is the exception**: `+~ -~ x~ xx~` wrap at the size of their
+values, never at where the result goes, so a hash gives the same number
+on any line (`'x' +~ 'x'` on a `uint32` wraps at 32 bits even when
+stored into a `uint64`).
+
+How it was reached: check claude asked which size a group of bare
+numbers takes when the name beside it (`int16`) and the place it is
+stored (`int64`) disagree. Proposed: (a) the name beside decides; (b)
+the stored size decides; (c) split, plain by the stored size, wrapping
+by the values; (d) bare numbers exact, a mix of sizes done at the
+bigger. The owner first reasoned "the math is done inside `'big'`" (b),
+then asked what is best for performance and safety. The answer was
+this: every option before it either errors on answers that fit (a, and
+b in the middle of a narrower line) or can move a wrap (b). On today's
+processors a 16-bit and a 64-bit add cost the same, and the checks are
+what cost, and this has the fewest. Owner: "yes, that one". It also
+answers mixed sizes (`int16 + int64`), which nothing had decided.
 
 ## Not yet listed (open)
 

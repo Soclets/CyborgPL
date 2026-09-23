@@ -5,6 +5,35 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Plain math is exact and checked where it lands; wrapping wraps at its values' size (owner)
+
+Check claude's question (generator seed 90's neighbour): in `let 'big':
+int64 = (20000 + 20000) + 'small';` with `'small'` an `int16`, which
+size does the bare-number group take? The oracle used the stored size
+and ran it, and CCA used the name beside and refused it (40000 does not
+fit `int16`). Proposed (a) the name beside decides (check claude's and
+design claude's recommendation); (b) the stored size decides; (c)
+neither, refuse until `to.int64[…]` says. The owner said "the math was
+done inside `'big'`", so b. Design claude pointed out b would move
+wrapping too (`'x' +~ 'x'` on a `uint32` gives 3,705,032,704 at 32
+bits, 8,000,000,000 at 64). Further proposed: (c) split, plain math by
+the stored size and wrapping by the values; (d) bare numbers exact like
+`:=`, a mix of sizes at the bigger. The owner asked whether Precog
+helps: it removes (a)'s checks where it proves fits, but cannot choose
+the meaning. The owner then asked "What has the best perf & safety".
+Answer: plain `+ - x xx` exact, checked where the value lands (a typed
+`let`, assignment, argument, return), with the machine's 64 bits the
+only limit in between, and wrapping at its values' size. It is never a
+wrong number, never an error for an answer that fits, and has the
+fewest checks, since 16- and 64-bit adds cost the same. Owner: "yes,
+that one". This reverses the seed-23 fix below ("checked where it
+happens", a reading, never ruled): `'v' > ('v' + 'v')` now compares
+true values, and `'u' - 10` under `:=` is -5. It also settles mixed
+sizes. `operators.md`, "Plain math is exact". `examples/overflow_sites.cpls`
+rewritten. The reject tests overflow_in_comparison and
+overflow_below_zero are gone, replaced by overflow_lands and
+overflow_past_64_bits.
+
 ### 2026-09-23 — The shorter-name line may stand in any module (owner)
 
 Second of the three leftovers. Proposed (a) only in `limb.cpls`, so
@@ -405,7 +434,7 @@ need not credit CyborgPL in its docs or version output. No `LICENSE`
 file yet; the text is still counsel's, and nothing is urgent while the
 repo is private.
 
-### 2026-09-23 — Oracle bug: arithmetic was checked only where it was stored (verification session)
+### 2026-09-23 — Oracle bug: arithmetic was checked only where it was stored (verification session) — reversed the same day: plain math is exact, checked where it lands (owner)
 
 Generator seed 23, shrunk: `if 'v' > ('v' + 'v')` on an `int8` of 112
 ran in the oracle (it computed 224 and compared it) and was refused by

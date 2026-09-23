@@ -141,8 +141,9 @@ programmer's error. Proposed alternatives: refuse any such site,
 reached or not (what this document said before); the same without the
 note.
 
-Check sites are: integer overflow (plain operators; `+~` etc. are never
-sites), division and `mod` by zero, `[pos]` bounds, narrowing (`uint64`
+Check sites are: integer overflow (plain operators, which are exact
+and checked where the value lands, or past 64 bits in between — owner,
+2026-09-23, `operators.md`; `+~` etc. are never sites), division and `mod` by zero, `[pos]` bounds, narrowing (`uint64`
 into `int32`, a value into a range type), a length bound on a bounded
 list after every change, `to.…` conversions that are not failures, and
 the "must leave" rules the checker already enforces. Failures (`fail`) are

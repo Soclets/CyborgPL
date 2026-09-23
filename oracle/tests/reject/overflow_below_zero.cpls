@@ -1,1 +1,0 @@
-MAIN { let 'u': uint8 = 5; let 'x' := 'u' - 10; }

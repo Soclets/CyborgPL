@@ -34,7 +34,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - an untyped list still has an element family (what is in it): storing a bin into a list of integers is refused, as into a declared `list[int32]` (hole found by the compiler session, 2026-09-22)
 - `list.slice` / `array.slice` with `pos` positions, 1-based and inclusive, owning the elements; out of range and a backwards span are check sites (2026-09-23)
 - `bin` is 16/32/64 — `bin128` is refused by name (2026-09-23); `deci` and `std::uenr` remain unimplemented
-- integer arithmetic is a check site **where it happens**, not only where it is stored: `'v' > ('v' + 'v')` on an `int8` fails at the `+`, and `'u' - 10` on a `uint8` fails below zero (2026-09-23, found by the verification session; the oracle had checked only on a store)
+- plain integer math (`+ - x xx`) is **exact, and checked where the value lands**: a typed `let`, an assignment, an argument, a return (owner, 2026-09-23). `'v' > ('v' + 'v')` on an `int8` of 112 compares 112 with 224. In between, a value no 64-bit type holds (below `int64`'s minimum or above `uint64`'s maximum) is a check site; bare numbers alone are worked out exactly. This reverses the morning's "checked where it happens" (seed 23), which was a reading, never a ruling
 - a shift's, `not.bit`'s and a wrapping operator's width comes from any operand whose type is known — a declared name, a `to.T[…]`, either side of an operator, or the type the value is being stored into; only a bare literal with no context has none (2026-09-23)
 - a `for` range's step is its own signed number: `for 'i': uint64 in range[3, 1, -1]` is legal, and `range[3, 0, -1]` stops at 0 without underflowing (2026-09-23, fixed after the verification session found the oracle refusing it)
 - `simd[T, N]`: the target's shapes only (the oracle's target is ARM64's 128-bit registers, so `simd[uint8, 16]`, `simd[int32, 4]`, `simd[bin64, 2]`, …); ordinary operators lane by lane, scalar-with-vector broadcasting, comparisons giving `simd[bool, N]` (and so refused as a condition); `simd.fill` (lane count from the declared type) / `load` / `store` (both say `pos`, both check the bounds) / `all` / `any` / `max` / `min` / `sum` (2026-09-22)
@@ -61,7 +61,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `give` / `copy` / `lend` / `lend.mut` at the call, nothing / `lent` /
   `lent.mut` at the parameter, and they must agree; a bare owned variable
   cannot be stored; a given variable is dead until reassigned
-- the default check tier: every integer operation is overflow-checked and
+- the default check tier: every landing and every 64-bit limit is checked, and
   every division zero-checked, because there is no Precog here to remove them
 - `check <stmt>` / `nocheck <stmt>` / `check { … }` (2026-09-19): the oracle runs the check anyway; a `check` whose site fires reports the counterexample value, a `nocheck` whose site fires reports the lie; refused on a fn/struct/const/module, inside a value, at the top level, or doubled
 - `print` shows the stored value (full binary expansion), `printu` the useful one (the borrowed C/Rust prints of 2026-09-19 were removed 2026-09-20 and are refused by name)
@@ -109,6 +109,7 @@ had to make to run at all; none is a decision.
 | `deci`, `bin128`, `uint128`'s top half, `std::uenr` | — | Parsed, refused at run time as not implemented |
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |
 | A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.limb`; open in `design/limbs.md` |
+| Wrapping (and `shl`) on an exact plain sum takes the left operand's declared type, e.g. `('a8' + 'b16') +~ 1` wraps at 8 bits | `interp.rs` wrapping branch | "Wrapping wraps at the size of its values" does not say which size a mixed plain sum has |
 | A list/array mismatch is caught where the source's type is declared (a variable, a call's return, a slice, a conversion); a field read is not traced | `interp.rs` `coll_kind` | The oracle's limit, not the rule |
 
 
