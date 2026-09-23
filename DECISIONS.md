@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Operators from another Limb: found by type, a clash is an error (owner: a)
+
+Left open when bare names were dropped. An operator has no place for a
+path, so `'u' dot 'v'` finds the `dot` written for its operand types,
+with nothing written. The question was what happens when two Limbs
+share the same operator for the same types, for example `<+>` on two
+`int32`s. Proposed (a) allow any Limb to share an operator for any
+types, and make a clash a compile error; (b) only the Limb that owns
+one of the operand types may share an operator, as in Rust, so a clash
+cannot happen. Design claude recommended b. The owner asked what a
+custom operator on the language's own types is for: `~=` for decimals
+equal within a margin, saturating `+|`, `rotl`, path joining `</>`,
+`divup`. Under b a Limb could share those only as functions with a
+path. Owner: "shouldn't two meanings of `~=` just err?", then a. With
+no path to pick one, the fix for a clash is dropping a Limb or copying
+the operator into your own code. `operators.md`, "From another Limb".
+
 ### 2026-09-23 — Three cores per session, one for the desktop (owner)
 
 The owner asked how many cores the machine has, and said "Split it

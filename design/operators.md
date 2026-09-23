@@ -174,6 +174,21 @@ for a user type** (`op + ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
 interfaces) but never changed for the language's own types. Prefix (one-operand) custom
 operators are not offered.
 
-Oracle: `examples/operators.cpls`, thirteen reject tests. It resolves an
-operator by name across the whole program (visibility not modelled for
-operators — open).
+### From another Limb (owner, 2026-09-23: a)
+
+A `pub op` is usable by every Limb that depends on the one that wrote
+it, with nothing written: an operator has no place for a path, so
+`'u' dot 'v'` finds the `dot` written for what `'u'` and `'v'` are. Any
+Limb may share an operator for any types, the language's own included
+(`op ~= ['a': bin64, 'b': bin64] -> bool` for "equal within a margin").
+**Two meanings of one operator for the same types is a compile error**
+(owner: "shouldn't two meanings of `~=` just err?"), whether they come
+from two Limbs or from a Limb and your own code. With no path to pick
+one, the fix is to drop a Limb, or copy one operator into your own
+code and edit it. Proposed alternative (design claude's
+recommendation): only the Limb that owns one of the operand types may
+share an operator, as in Rust, so two can never clash. That would stop
+a Limb from sharing `~=` or `+|` for the language's own types.
+
+Oracle: `examples/operators.cpls`, thirteen reject tests. It runs one
+Limb, so an operator is found by name across the whole program.

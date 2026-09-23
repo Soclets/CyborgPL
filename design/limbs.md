@@ -25,7 +25,9 @@ one.
 
 Operators are the one thing that comes bare, because there is nowhere
 to put a path in `'u' dot 'v'`. An operator is written for its operand
-types, so which `dot` is meant follows from what `'u'` is.
+types, so which `dot` is meant follows from what `'u'` is. Two meanings
+of one operator for the same types is a compile error (owner,
+2026-09-23; `operators.md`, "From another Limb").
 
 History: on 2026-09-19 the owner made bare reach the Limb author's
 choice, stated in the Limb's source. Earlier on 2026-09-23 its spelling
@@ -181,8 +183,6 @@ would give the name two places to disagree.
 
 ## Open
 
-- How an operator from another Limb is found: by its operand types,
-  with nothing written, is the natural answer. Not yet asked.
 - Re-export: whether a Limb can make `shapes.circle.area` reachable as
   `geometry::area` for its users. The path stays, only shorter.
 - A file module's own visibility (provisionally public).
