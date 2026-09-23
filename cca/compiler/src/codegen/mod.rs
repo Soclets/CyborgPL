@@ -770,7 +770,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // LLVM's integers carry no sign; the Cyborg type does. A
                 // literal takes its context's family (`types.md`), so the
                 // side that is a place decides.
-                let signed = self.operand_signed(fi, lhs).or_else(|| self.operand_signed(fi, rhs)).unwrap_or(true);
+                // Both sides literals: neither has a family, so the result's
+                // type says it — sign and width both. A product of two bare
+                // numbers going into a `uint64` is an unsigned 64-bit
+                // multiply; checked as signed, 2 x 7726793855274730819 was
+                // an overflow that never happens. (The ordinary build folds
+                // it to its answer; `--assert-proofs` computes it.)
+                let signed = self.operand_signed(fi, lhs).or_else(|| self.operand_signed(fi, rhs)).or_else(|| want_ty.as_ref().and_then(int_signed)).unwrap_or(true);
+                let (a, b) = match (a, b, want) {
+                    (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y), Some(t @ BasicTypeEnum::IntType(_))) if x.is_const() && y.is_const() && !op.is_comparison() => (self.fit_as(a, t, signed), self.fit_as(b, t, signed)),
+                    _ => (a, b),
+                };
                 self.binary(fi, op, a, b, sites, func, blocks, signed)
             }
             Rvalue::Convert { to, operand } => {

@@ -116,6 +116,40 @@ fn copying_a_list_copies_what_it_owns() {
     assert!(ir.contains("cy_copy_"), "`copy` of a list did not copy the buffer it owns:\n{}", ir);
 }
 
+/// With proofs asserted, every program does exactly what it does without:
+/// an assertion that trips on a correct proof is a false alarm of the most
+/// expensive kind — the verification session treats every `proof failed`
+/// as a wrong proof. Nothing here is folded and nothing is promised, so
+/// this also runs what the ordinary build worked out at compile time.
+#[test]
+fn programs_run_the_same_with_proofs_asserted() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let expected = std::fs::read_to_string(dir().join("expected.txt")).unwrap();
+    let out_dir = std::env::temp_dir().join("cca-asserted-tests");
+    let _ = std::fs::create_dir_all(&out_dir);
+    let mut failures = Vec::new();
+    for line in expected.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let (name, want) = line.split_once(' ').unwrap();
+        let bin = out_dir.join(name);
+        let build = Command::new(cca()).arg("build").arg("--assert-proofs").arg(dir().join(format!("{}.cpls", name))).arg("-o").arg(&bin).output().unwrap();
+        if !build.status.success() {
+            failures.push(format!("{}: would not build with proofs asserted:\n{}", name, indent(&String::from_utf8_lossy(&build.stderr))));
+            continue;
+        }
+        let run = Command::new(&bin).output().unwrap();
+        let code = run.status.code().unwrap_or(-1);
+        let want_code = if want == "trap" { 101 } else { want.parse().unwrap() };
+        if code != want_code {
+            failures.push(format!("{}: exited {} with proofs asserted, and {} without\n{}", name, code, want_code, indent(&String::from_utf8_lossy(&run.stderr))));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
 /// Every program gives back everything it took.
 ///
 /// This is the test that catches a heap bug. An exit code is happy to be

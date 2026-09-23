@@ -67,3 +67,6 @@ floor_mod 42
 # consumer's second take fails `closed` (as the oracle says) instead of
 # waiting for ever.
 channels_released 105
+
+# A product of two literals takes its sign from where it goes.
+literal_product 7
