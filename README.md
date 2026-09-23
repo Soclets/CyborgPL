@@ -15,5 +15,5 @@ Very slow at the development, fast &amp; safe at the final product.</p>
 - [`brand/`](brand/) — the mark (a circular C wrapping `:=`). On a pure white or pure black background use the single-colour versions, never the purple one.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 
-Copyright 2026 Tankun Sriket and the CyborgPL contributors.
+Copyright 2026 Tankun Sriket.
 CyborgPL, Precog, Limb and JetPack are names of this project.
