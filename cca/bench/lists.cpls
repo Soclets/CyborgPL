@@ -1,0 +1,24 @@
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn atoi ['s': ptr[uint8]] -> int32;
+MAIN {
+    let 'k' := "N";
+    nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
+    let mut 'xs': list[int64] = [];
+    let mut 'i': int64 = 1;
+    while 'i' <== 'n' {
+        list.append[lend.mut 'xs', 'i' mod 1000];
+        'i' = 'i' + 1;
+    }
+    let mut 'acc': int64 = 0;
+    let mut 'r': int64 = 0;
+    while 'r' < 10 {
+        let mut 'j': uint64 = 1;
+        while 'j' <== list.length[lend 'xs'] {
+            'acc' = 'acc' + 'xs'[pos 'j'];
+            'j' = 'j' + 1;
+        }
+        'r' = 'r' + 1;
+    }
+    nocheck exit[to.int32['acc' mod 256]];
+}

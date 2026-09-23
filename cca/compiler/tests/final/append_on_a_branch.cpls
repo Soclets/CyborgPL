@@ -1,0 +1,22 @@
+# A list appended to on only some trips is not in lock-step with the
+# counter: its length is not n + 1, and indexing up to n must stay unproven.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn atoi ['s': ptr[uint8]] -> int32;
+MAIN {
+    let 'k' := "N";
+    nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
+    let mut 'xs': list[bool] = [];
+    let mut 'i': int64 = 0;
+    while 'i' <== 'n' {
+        if ('i' mod 2) == 0 { list.append[lend.mut 'xs', true]; }
+        'i' = 'i' + 1;
+    }
+    let mut 'p': int64 = 1;
+    let mut 'c': int64 = 0;
+    while 'p' <== 'n' {
+        if 'xs'[pos to.uint64['p']] { 'c' = 'c' + 1; }
+        'p' = 'p' + 1;
+    }
+    nocheck exit[to.int32['c' mod 256]];
+}

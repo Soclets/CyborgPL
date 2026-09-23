@@ -189,6 +189,32 @@ fn programs_run_the_same_with_proofs_asserted() {
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
+fn final_build(path: &Path) -> std::process::Output {
+    let out = std::env::temp_dir().join(format!("cca-final-tests/{}", path.file_stem().unwrap().to_string_lossy()));
+    let _ = std::fs::create_dir_all(out.parent().unwrap());
+    Command::new(cca()).arg("build").arg("--final").arg(path).arg("-o").arg(&out).output().unwrap()
+}
+
+/// The final build accepts loops whose facts are counted (owner,
+/// 2026-09-23): a running sum is at most its trips times its largest step
+/// (`bench/lists.cpls`), and a list appended once a trip is as long as the
+/// counter has come (`bench/sieve.cpls`). And it still refuses where the
+/// count does not fit, or where the appends are not one a trip.
+#[test]
+fn final_build_proves_counted_loops_and_no_more() {
+    let bench = Path::new(env!("CARGO_MANIFEST_DIR")).join("../bench");
+    for name in ["lists", "sieve"] {
+        let r = final_build(&bench.join(format!("{}.cpls", name)));
+        assert!(r.status.success(), "the final build refused bench/{}.cpls:\n{}", name, String::from_utf8_lossy(&r.stderr));
+    }
+    let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
+    for (name, phrase) in [("acc_overflows", "can be outside what a `int64` holds"), ("append_on_a_branch", "the position can be past the end")] {
+        let r = final_build(&tests.join(format!("{}.cpls", name)));
+        let err = String::from_utf8_lossy(&r.stderr);
+        assert!(!r.status.success() && err.contains(phrase), "{}: the final build should refuse it ({}), and said:\n{}", name, phrase, err);
+    }
+}
+
 /// An unproven narrowing is a check in the working build, not a silent
 /// truncation (`conversion.md`: "a runtime check unless Precog proves the
 /// fit"). It used to be neither checked nor counted.

@@ -350,7 +350,7 @@ pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts)
         }
     }
     let borrows = shared_borrows(&p.functions[f]);
-    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows };
+    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new() };
     e.build(site)?;
     if e.reached.is_empty() || e.unexpressible {
         return None;
@@ -408,6 +408,8 @@ struct Enc<'a> {
     /// Locals that are nothing but a shared borrow of one place, reached by
     /// fields alone, bound once in the whole function.
     borrows: HashMap<LocalId, Place>,
+    /// Per loop head, the states it was entered with from outside it.
+    entries: HashMap<usize, Vec<Env>>,
 }
 
 /// What the query knows at one point: the value of each whole-number
@@ -572,13 +574,32 @@ impl<'a> Enc<'a> {
             sorted
         };
 
-        // For each loop head, everything any loop through it may write.
+        // For each loop head, everything any loop through it may write, and
+        // what it may resize (an element store resizes nothing).
         let mut last_trip: HashMap<usize, std::collections::HashSet<LocalId>> = HashMap::new();
+        let mut resized: HashMap<usize, std::collections::HashSet<LocalId>> = HashMap::new();
+        let mut bodies: HashMap<usize, std::collections::HashSet<usize>> = HashMap::new();
+        let mut latches: HashMap<usize, usize> = HashMap::new();
         for (from, head) in back.iter() {
             let body = crate::precog::natural_loop(f, *head, *from);
+            *latches.entry(*head).or_default() += 1;
             let entry = last_trip.entry(*head).or_default();
-            for blk in body {
-                written_in(&f.blocks[blk], entry);
+            let grows = resized.entry(*head).or_default();
+            for blk in &body {
+                written_in(&f.blocks[*blk], entry);
+                resized_in(&f.blocks[*blk], grows);
+            }
+            bodies.entry(*head).or_default().extend(body);
+        }
+        // Lock-step pairs, for a loop with one way round and no loop inside.
+        let mut lockstep: HashMap<usize, Vec<(LocalId, LocalId)>> = HashMap::new();
+        for (head, body) in &bodies {
+            let nested = back.iter().any(|(fr, h)| h != head && body.contains(h) && body.contains(fr));
+            if latches.get(head) == Some(&1) && !nested {
+                let pairs = lockstep_pairs(f, *head, body);
+                if !pairs.is_empty() {
+                    lockstep.insert(*head, pairs);
+                }
             }
         }
 
@@ -603,7 +624,16 @@ impl<'a> Enc<'a> {
                         // An operation that changes a collection's size.
                         if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore) {
                             if let Some(p) = args.first().and_then(|a| a.place()) {
+                                // An append makes the list one longer, a
+                                // removal one shorter: said, not forgotten.
+                                let key = Key::Len(p.local, format!("{:?}{:?}", Vec::<Proj>::new(), Op::ListLength));
+                                let before = if p.proj.is_empty() && !self.aliased.contains(&p.local) { env.get(&key).cloned() } else { None };
                                 self.forget(&mut env, p.local);
+                                if let (Some(old), Op::ListAppend | Op::ListRemove) = (before, op) {
+                                    let f = if *op == Op::ListAppend { "bvadd" } else { "bvsub" };
+                                    let v = self.define(old.bits, &format!("({} {} {})", f, old.term, bv(1, old.bits)), false);
+                                    env.insert(key, v);
+                                }
                             }
                             self.forget_aliased(&mut env);
                         }
@@ -654,16 +684,47 @@ impl<'a> Enc<'a> {
                 // starts in a state that is one instance of this, so a site
                 // proven here is proven for them too — and the back edge out
                 // of this copy need not be followed at all.
+                // Entered from outside the loop: remembered, with the length
+                // of each list that moves in lock-step, so the last trip can
+                // be tied back to it.
+                if !is_back && bodies.get(&ti).map_or(false, |body| !body.contains(&b)) {
+                    for (list, _) in lockstep.get(&ti).cloned().unwrap_or_default() {
+                        let _ = this.length(&Op::ListLength, &[Operand::Read(Place::local(list))], &mut e);
+                    }
+                    this.entries.entry(ti).or_default().push(e.clone());
+                }
                 if lvl == UNROLL_PER_LOOP {
                     if let Some(written) = last_trip.get(&ti) {
+                        let grows = resized.get(&ti).cloned().unwrap_or_default();
                         for l in written {
-                            this.forget(&mut e, *l);
+                            if grows.contains(l) {
+                                this.forget(&mut e, *l);
+                            } else {
+                                // Written only element by element: every
+                                // length the query knows of it stays.
+                                this.forget_value(&mut e, *l);
+                            }
                             // What layer 2 knows holds on every trip through
                             // this head: `'i'` counts up from 1, so it is
                             // never below 1, whichever trip this stands for.
                             this.assume_fact(&mut e, ti, *l);
                         }
                         this.forget_aliased(&mut e);
+                        // Lock-step: the length is the entry's length plus
+                        // how far the counter has come since. Only for a
+                        // loop entered from one place, so "entry" is one
+                        // state.
+                        if let (Some(pairs), Some([entry])) = (lockstep.get(&ti), this.entries.get(&ti).map(|v| v.as_slice())) {
+                            let entry = entry.clone();
+                            for (list, c) in pairs {
+                                let key = Key::Len(*list, format!("{:?}{:?}", Vec::<Proj>::new(), Op::ListLength));
+                                let (Some(len0), Some(c0), Some(ch)) = (entry.get(&key).cloned(), entry.get(&Key::Local(*c)).cloned(), e.get(&Key::Local(*c)).cloned()) else { continue };
+                                let Some(lenh) = this.length(&Op::ListLength, &[Operand::Read(Place::local(*list))], &mut e) else { continue };
+                                let w = 130;
+                                let (l0, lh, c0, ch) = (this.resize(len0, w, true), this.resize(lenh, w, true), this.resize(c0, w, true), this.resize(ch, w, true));
+                                this.defs.push(format!("(assert (= {} (bvadd {} (bvsub {} {}))))", lh.term, l0.term, ch.term, c0.term));
+                            }
+                        }
                     }
                 }
                 if seen.contains(&(ti, lvl)) || incoming.contains_key(&(ti, lvl)) {
@@ -788,8 +849,12 @@ impl<'a> Enc<'a> {
     }
 
     fn assign(&mut self, env: &mut Env, place: &Place, v: Option<Val>) {
-        // Whatever is written, every length known of this local is stale.
-        self.forget_lengths(env, place.local);
+        // Whatever is written, every length known of this local is stale —
+        // except for a store into one element: `'xs'[pos i] = v` leaves
+        // every length the query tracks (fields only) as it was.
+        if !place.proj.iter().any(|p| matches!(p, Proj::Index(_))) {
+            self.forget_lengths(env, place.local);
+        }
         if !place.proj.is_empty() {
             // Part of a value: what the whole holds is no longer described.
             env.remove(&Key::Local(place.local));
@@ -801,6 +866,18 @@ impl<'a> Enc<'a> {
             }
             None => {
                 env.remove(&Key::Local(place.local));
+            }
+        }
+    }
+
+    /// The local's value is unknown now, but not its lengths.
+    fn forget_value(&mut self, env: &mut Env, l: LocalId) {
+        match self.unknown_of(l) {
+            Some(v) => {
+                env.insert(Key::Local(l), v);
+            }
+            None => {
+                env.remove(&Key::Local(l));
             }
         }
     }
@@ -1242,6 +1319,104 @@ fn shared_borrows(f: &Function) -> HashMap<LocalId, Place> {
 /// operation's result or its target, a call's result or what it was lent
 /// mutably or given, a task's captures, assembly, what a channel or a
 /// failure hands over.
+/// What a block may *resize*: `written_in` without the stores into one
+/// element, which change no length the query tracks.
+fn resized_in(b: &BasicBlock, out: &mut std::collections::HashSet<LocalId>) {
+    let mut only = b.clone();
+    only.stmts.retain(|s| !matches!(&s.kind, StmtKind::Assign { place, .. } if place.proj.iter().any(|p| matches!(p, Proj::Index(_)))));
+    written_in(&only, out);
+}
+
+/// Lists and counters that move in lock-step round one loop: the body is
+/// straight (no branch, no loop inside), and on each trip appends to the
+/// list exactly once and adds 1 to the counter exactly once, with nothing
+/// else resizing the list or writing the counter. Then the length minus the
+/// counter never changes: `length = length on entry + (counter - counter on
+/// entry)` at the head, on every trip. `while 'i' <== 'n' { list.append[…];
+/// 'i' = 'i' + 1; }` builds a list of exactly n + 1.
+fn lockstep_pairs(f: &Function, head: usize, body: &std::collections::HashSet<usize>) -> Vec<(LocalId, LocalId)> {
+    let inside = |t: &BlockId| body.contains(&(t.0 as usize));
+    for &b in body {
+        let succ = crate::mir::verify::successors(&f.blocks[b].term);
+        let n_in = succ.iter().filter(|t| inside(t)).count();
+        if b != head && n_in != 1 {
+            return Vec::new();
+        }
+        if b != head && succ.iter().any(|t| t.0 as usize == head) && succ.len() != 1 {
+            return Vec::new();
+        }
+    }
+    let mut appends: HashMap<LocalId, usize> = HashMap::new();
+    let mut steps: HashMap<LocalId, usize> = HashMap::new();
+    let mut plus_one: HashMap<LocalId, LocalId> = HashMap::new(); // temp -> counter
+    let mut other_writes: std::collections::HashSet<LocalId> = std::collections::HashSet::new();
+    for &b in body {
+        if b == head {
+            let mut w = std::collections::HashSet::new();
+            written_in(&f.blocks[b], &mut w);
+            other_writes.extend(w);
+            continue;
+        }
+        let blk = &f.blocks[b];
+        for s in &blk.stmts {
+            match &s.kind {
+                StmtKind::Assign { place, rvalue } if place.proj.is_empty() => match rvalue {
+                    Rvalue::Binary { op: BinOp::Add, lhs: Operand::Read(c), rhs: Operand::Const(Const::Int(1)) } if c.proj.is_empty() => {
+                        plus_one.insert(place.local, c.local);
+                    }
+                    Rvalue::Use(Operand::Read(t) | Operand::Move(t)) if t.proj.is_empty() && plus_one.get(&t.local) == Some(&place.local) => {
+                        *steps.entry(place.local).or_default() += 1;
+                    }
+                    _ => {
+                        other_writes.insert(place.local);
+                    }
+                },
+                StmtKind::Op { op: Op::ListAppend, args, dest } => {
+                    if let Some(d) = dest {
+                        other_writes.insert(d.local);
+                    }
+                    match args.first().and_then(|a| a.place()) {
+                        Some(p) if p.proj.is_empty() => *appends.entry(p.local).or_default() += 1,
+                        Some(p) => {
+                            other_writes.insert(p.local);
+                        }
+                        None => {}
+                    }
+                }
+                _ => {
+                    let mut w = std::collections::HashSet::new();
+                    let one = BasicBlock { stmts: vec![s.clone()], term: Terminator::Unreachable, ..blk.clone() };
+                    written_in(&one, &mut w);
+                    other_writes.extend(w);
+                }
+            }
+        }
+        let mut w = std::collections::HashSet::new();
+        let term_only = BasicBlock { stmts: Vec::new(), ..blk.clone() };
+        written_in(&term_only, &mut w);
+        other_writes.extend(w);
+    }
+    let mut out = Vec::new();
+    for (list, n) in &appends {
+        if *n != 1 || other_writes.contains(list) {
+            continue;
+        }
+        for (c, k) in &steps {
+            // The temporary holding `c + 1` is written too; only `c` itself
+            // must have no other write.
+            if *k == 1 && !other_writes.contains(c) && !appends.contains_key(c) {
+                out.push((*list, *c));
+            }
+        }
+    }
+    out
+}
+
+/// Everything a block may write, for layer 2's loop shapes.
+pub(crate) fn written_in_pub(b: &BasicBlock, out: &mut std::collections::HashSet<LocalId>) {
+    written_in(b, out)
+}
+
 fn written_in(b: &BasicBlock, out: &mut std::collections::HashSet<LocalId>) {
     for s in &b.stmts {
         match &s.kind {

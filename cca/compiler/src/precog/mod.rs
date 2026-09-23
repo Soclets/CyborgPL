@@ -86,7 +86,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -236,6 +236,12 @@ struct Precog {
     results: HashMap<(usize, u32), Verdict>,
     /// Exact instructions' value ranges, `None` once one visit could not say.
     ranges: HashMap<(usize, usize, usize), Option<(i128, i128)>>,
+    /// Counted loops: the state each head was entered with from outside
+    /// (joined), the largest value its bound took, and the range of what
+    /// each accumulator adds per trip (joined over every visit).
+    loop_entry: HashMap<(usize, usize), Env>,
+    loop_bound: HashMap<(usize, usize), i128>,
+    acc_step: HashMap<(usize, usize, usize), ISet>,
     lies: Vec<(usize, SiteId, String)>,
     /// What layer 1 worked out for an instruction, where it worked out the
     /// same answer every time it went past. `None` poisons it: the
@@ -277,6 +283,20 @@ impl Precog {
     }
 
     /// Walk one function's graph to a fixpoint, recording every site.
+    /// How many times a counted loop's body can run: from the counter's
+    /// lowest value on entry to the bound's highest, a step at a time.
+    fn trips_of(&self, f: usize, head: usize, c: &Counted) -> Option<i128> {
+        let entry = self.loop_entry.get(&(f, head))?;
+        let Some(Domain::Ints(c0)) = entry.get(&c.counter) else { return None };
+        let (lo, _) = c0.bounds()?;
+        let hi = *self.loop_bound.get(&(f, head))?;
+        let last = if c.strict { hi.saturating_sub(1) } else { hi };
+        if last < lo {
+            return Some(0);
+        }
+        Some((last.saturating_sub(lo)) / c.step + 1)
+    }
+
     fn run_function(&mut self, f: usize, entry: Env, depth: u32) -> Domain {
         if depth > CALL_DEPTH {
             self.gave_up = true;
@@ -310,6 +330,53 @@ impl Precog {
         for ((_, h), body) in &loops {
             head_body.entry(*h).or_default().extend(body.iter().copied());
         }
+        // Counted loops, and where each accumulator's step is computed.
+        let mut counted: HashMap<usize, Counted> = HashMap::new();
+        for (h, body) in &head_body {
+            let latches = back.iter().filter(|(_, hh)| hh == h).count();
+            let nested = back.iter().any(|(fr, hh)| hh != h && body.contains(hh) && body.contains(fr));
+            if latches == 1 {
+                if let Some(c) = counted_loop(&self.prog().functions[f], *h, body, nested) {
+                    counted.insert(*h, c);
+                }
+            }
+        }
+        // Program order (reverse postorder): the worklist always takes the
+        // earliest block, so a loop finishes all its trips before what
+        // follows it is walked, once, with the loop's final way out. Taking
+        // the newest instead walked everything after a loop again after
+        // every trip, until the program's budget ran out.
+        let order = {
+            let func = &self.prog().functions[f];
+            let n = func.blocks.len();
+            let mut seen = vec![false; n];
+            let mut post: Vec<usize> = Vec::with_capacity(n);
+            let mut stack: Vec<(usize, usize)> = vec![(0, 0)];
+            seen[0] = true;
+            // A successor that stays inside a loop around `b` is explored
+            // last, so it comes first: a loop's body before its way out.
+            let stays = |b: usize, t: usize| head_body.values().any(|body| body.contains(&b) && body.contains(&t));
+            while let Some((b, k)) = stack.pop() {
+                let mut succ = crate::mir::verify::successors(&func.blocks[b].term);
+                succ.sort_by_key(|t| stays(b, t.0 as usize));
+                if k < succ.len() {
+                    stack.push((b, k + 1));
+                    let t = succ[k].0 as usize;
+                    if t < n && !seen[t] {
+                        seen[t] = true;
+                        stack.push((t, 0));
+                    }
+                } else {
+                    post.push(b);
+                }
+            }
+            let mut rank = vec![usize::MAX; n];
+            for (i, b) in post.iter().rev().enumerate() {
+                rank[*b] = i;
+            }
+            rank
+        };
+        let acc_sites: std::collections::HashSet<(usize, usize)> = counted.values().flat_map(|c| c.accs.iter().map(|(_, at)| *at)).collect();
 
         loop {
             if let Some(h) = pending_trip.keys().copied().find(|h| !head_body.get(h).map(|bd| bd.iter().any(|x| x != h && work.contains(x))).unwrap_or(false)) {
@@ -330,7 +397,8 @@ impl Precog {
                     }
                 }
             }
-            let Some(b) = work.pop() else {
+            let next = work.iter().enumerate().min_by_key(|(_, b)| order.get(**b).copied().unwrap_or(usize::MAX)).map(|(i, _)| i);
+            let Some(b) = next.map(|i| work.swap_remove(i)) else {
                 if pending_trip.is_empty() {
                     break;
                 }
@@ -374,6 +442,23 @@ impl Precog {
                 match &s.kind {
                     StmtKind::Assign { place, rvalue } => {
                         let d = self.eval_rvalue(f, rvalue, &env, &mut facts, place);
+                        if acc_sites.contains(&(b, si)) {
+                            if let Rvalue::Binary { lhs, rhs, .. } = rvalue {
+                                // The step is the operand that is not the
+                                // accumulator being written two lines on.
+                                let x = counted.values().flat_map(|c| c.accs.iter()).find(|(_, at)| *at == (b, si)).map(|(x, _)| *x);
+                                let e = if lhs.place().map(|p| Some(p.local) == x).unwrap_or(false) { rhs } else { lhs };
+                                let step = match self.read_operand(f, &env, e) {
+                                    Domain::Ints(s) => s,
+                                    _ => ISet::Range { lo: i128::MIN / 4, hi: i128::MAX / 4 },
+                                };
+                                let joined = match self.acc_step.get(&(f, b, si)) {
+                                    Some(old) => old.union(&step),
+                                    None => step,
+                                };
+                                self.acc_step.insert((f, b, si), joined);
+                            }
+                        }
                         // Every value an exact instruction's operands and
                         // answer take here, joined over every visit: what
                         // lets codegen work at 64 bits.
@@ -493,6 +578,19 @@ impl Precog {
                 // replaces the head's state, and every trip's verdict is
                 // merged — the site has to hold on all of them.
                 let looping = back.contains(&(b, i));
+                // Entered from outside: the state a counted loop's bound
+                // starts from.
+                if heads.contains(&i) && !head_body.get(&i).map_or(false, |bd| bd.contains(&b)) {
+                    let joined = match this.loop_entry.get(&(f, i)) {
+                        Some(old) => join(old, &e, false, unsafe { &(*this.p).items }, |l| this.local_ty(f, l)),
+                        None => e.clone(),
+                    };
+                    this.loop_entry.insert((f, i), joined);
+                }
+                // A loop is followed up to 100 000 trips before its head
+                // widens (owner, 2026-09-23: "keep it at 100k"); a counted
+                // loop's bounds apply when it does.
+                let trips_bound = counted.get(&i).and_then(|c| this.trips_of(f, i, c));
                 let over_budget = visits[i] as u32 >= TRIPS_PER_LOOP || this.trips > TRIPS_PER_PROGRAM;
                 let merged = match &states[i] {
                     None => e,
@@ -517,7 +615,35 @@ impl Precog {
                             // lost an interval across nested loops (check
                             // claude, seed 316).
                             let at_head = heads.contains(&i);
-                            let m = join_to(old, &e, (widening && at_head) || (looping && over_budget), unsafe { &(*this.p).items }, |l| this.local_ty(f, l), &steps);
+                            // Only on the way round: arrivals from outside
+                            // are bounded by whatever produces them (a loop
+                            // before this one, walked trip by trip, widens
+                            // itself), and widening on them threw away a
+                            // list's counted length before the next loop saw it.
+                            let widen_now = (widening && at_head && looping) || (looping && over_budget);
+                            let mut m = join_to(old, &e, widen_now, unsafe { &(*this.p).items }, |l| this.local_ty(f, l), &steps);
+                            // A counted loop's accumulators: at most the
+                            // entry plus trips times the largest step.
+                            if widen_now {
+                                if let (Some(c), Some(t)) = (counted.get(&i), trips_bound) {
+                                    for (x, at) in &c.accs {
+                                        let (Some(Domain::Ints(xe)), Some(step)) = (this.loop_entry.get(&(f, i)).and_then(|en| en.get(x)).cloned(), this.acc_step.get(&(f, at.0, at.1)).cloned()) else { continue };
+                                        let (Some((e1, e2)), Some((s1, s2))) = (xe.bounds(), step.bounds()) else { continue };
+                                        let lo = e1.saturating_add(t.saturating_mul(s1.min(0)));
+                                        let hi = e2.saturating_add(t.saturating_mul(s2.max(0)));
+                                        if let Some(Domain::Ints(_)) = m.get(x) {
+                                            m.insert(*x, Domain::Ints(ISet::range(lo, hi)));
+                                        }
+                                    }
+                                    for l in &c.grows {
+                                        let Some(Domain::Seq { len: len0, .. }) = this.loop_entry.get(&(f, i)).and_then(|en| en.get(l)).cloned() else { continue };
+                                        let Some((a, z)) = len0.bounds() else { continue };
+                                        if let Some(Domain::Seq { elem, .. }) = m.get(l).cloned() {
+                                            m.insert(*l, Domain::Seq { len: ISet::range(a, z.saturating_add(t)), elem });
+                                        }
+                                    }
+                                }
+                            }
                             if same(old, &m) {
                                 return;
                             }
@@ -534,6 +660,14 @@ impl Precog {
                 Terminator::Goto(t) => go(self, *t, env, &mut states, &mut work),
                 Terminator::If { cond, then, else_ } => {
                     self.trips += 1;
+                    if let Some(c) = counted.get(&b) {
+                        let hi = match self.read_operand(f, &env, &c.bound) {
+                            Domain::Ints(s) => s.bounds().map(|(_, h)| h).unwrap_or(i128::MAX / 4),
+                            _ => i128::MAX / 4,
+                        };
+                        let prev = self.loop_bound.get(&(f, b)).copied().unwrap_or(i128::MIN);
+                        self.loop_bound.insert((f, b), prev.max(hi));
+                    }
                     let (can_true, can_false) = self.bool_of(f, cond, &env);
                     if can_true {
                         let e = self.narrow(f, &env, cond, &facts, &lengths, true);
@@ -1647,6 +1781,144 @@ pub fn natural_loop(f: &Function, h: usize, b: usize) -> Vec<usize> {
 
 fn same(a: &Env, b: &Env) -> bool {
     a.len() == b.len() && a.iter().all(|(k, v)| b.get(k).map(|w| w == v).unwrap_or(false))
+}
+
+/// A loop that counts: `c` goes up by `step` exactly once a trip toward a
+/// bound that does not change inside the loop, and each accumulator's only
+/// write adds something that is not itself.
+#[derive(Clone, Debug)]
+struct Counted {
+    counter: LocalId,
+    step: i128,
+    /// The head's test: `c <= bound` (or `<` when `strict`), and where the
+    /// bound's value is computed in the head, if it is.
+    bound: Operand,
+    strict: bool,
+    /// Accumulators: the local, and (block, statement) of its `t = x + e`.
+    accs: Vec<(LocalId, (usize, usize))>,
+    /// Lists appended to exactly once a trip, and changed no other way: a
+    /// length is an accumulator of ones.
+    grows: Vec<LocalId>,
+}
+
+fn counted_loop(f: &crate::mir::Function, head: usize, body: &[usize], nested: bool) -> Option<Counted> {
+    if nested {
+        return None;
+    }
+    let inside = |b: usize| body.contains(&b);
+    // The head tests `c <= bound` and goes into the loop when it holds.
+    let hb = &f.blocks[head];
+    let Terminator::If { cond: Operand::Read(cv), then, else_ } = &hb.term else { return None };
+    if !cv.proj.is_empty() || !inside(then.0 as usize) || inside(else_.0 as usize) {
+        return None;
+    }
+    let mut test = None;
+    for (si, s) in hb.stmts.iter().enumerate() {
+        if let StmtKind::Assign { place, rvalue: Rvalue::Binary { op, lhs: Operand::Read(c), rhs } } = &s.kind {
+            if place.local == cv.local && place.proj.is_empty() && c.proj.is_empty() && matches!(op, BinOp::Le | BinOp::Lt) {
+                test = Some((c.local, rhs.clone(), *op == BinOp::Lt, si));
+            }
+        }
+    }
+    let (counter, bound, strict, _) = test?;
+    // Where the bound comes from, if the head computes it, and that nothing
+    // in the body can change it.
+    let mut bound_src: Option<LocalId> = None;
+    if let Operand::Read(bp) = &bound {
+        if !bp.proj.is_empty() {
+            return None;
+        }
+        bound_src = Some(bp.local);
+        for s in &hb.stmts {
+            match &s.kind {
+                StmtKind::Op { dest: Some(d), op: Op::ListLength | Op::ArrayLength, args } if d.local == bp.local => {
+                    bound_src = args.first().and_then(|a| a.place()).filter(|p| p.proj.is_empty()).map(|p| p.local);
+                    bound_src?;
+                }
+                StmtKind::Assign { place, .. } if place.local == bp.local => return None,
+                _ => {}
+            }
+        }
+    }
+    // Straight through: every body block but the head has one way on
+    // inside the loop, so each trip runs every statement once.
+    for &b in body {
+        if b == head {
+            continue;
+        }
+        let succ = crate::mir::verify::successors(&f.blocks[b].term);
+        if succ.iter().filter(|t| inside(t.0 as usize)).count() != 1 {
+            return None;
+        }
+    }
+    let mut appends: HashMap<LocalId, usize> = HashMap::new();
+    let mut plus: HashMap<LocalId, (LocalId, Operand, (usize, usize))> = HashMap::new(); // temp -> (x, e, where)
+    let mut writes: HashMap<LocalId, Vec<Option<(LocalId, Operand, (usize, usize))>>> = HashMap::new();
+    for &b in body {
+        let blk = &f.blocks[b];
+        for (si, s) in blk.stmts.iter().enumerate() {
+            match &s.kind {
+                StmtKind::Assign { place, rvalue } if place.proj.is_empty() => {
+                    if let Rvalue::Binary { op: BinOp::Add, lhs, rhs } = rvalue {
+                        let (x, e) = match (lhs, rhs) {
+                            (Operand::Read(x), e) if x.proj.is_empty() && e.place().map_or(true, |p| p.local != x.local) => (Some(x.local), e.clone()),
+                            (e, Operand::Read(x)) if x.proj.is_empty() && e.place().map_or(true, |p| p.local != x.local) => (Some(x.local), e.clone()),
+                            _ => (None, Operand::Const(Const::Nothing)),
+                        };
+                        if let Some(x) = x {
+                            plus.insert(place.local, (x, e, (b, si)));
+                        }
+                    }
+                    let w = match rvalue {
+                        Rvalue::Use(Operand::Read(t) | Operand::Move(t)) if t.proj.is_empty() => plus.get(&t.local).filter(|(x, _, _)| *x == place.local).cloned(),
+                        _ => None,
+                    };
+                    writes.entry(place.local).or_default().push(w);
+                }
+                StmtKind::Op { op: Op::ListAppend, args, dest: None } if args.first().and_then(|a| a.place()).map_or(false, |p| p.proj.is_empty()) => {
+                    let l = args[0].place().unwrap().local;
+                    *appends.entry(l).or_default() += 1;
+                    writes.entry(l).or_default().push(None);
+                }
+                _ => {
+                    let mut w = std::collections::HashSet::new();
+                    let one = crate::mir::BasicBlock { stmts: vec![s.clone()], term: Terminator::Unreachable, ..blk.clone() };
+                    crate::precog::smt::written_in_pub(&one, &mut w);
+                    for l in w {
+                        writes.entry(l).or_default().push(None);
+                    }
+                }
+            }
+        }
+        let mut w = std::collections::HashSet::new();
+        let term_only = crate::mir::BasicBlock { stmts: Vec::new(), ..blk.clone() };
+        crate::precog::smt::written_in_pub(&term_only, &mut w);
+        for l in w {
+            writes.entry(l).or_default().push(None);
+        }
+    }
+    // The counter: one write, `c = c + k` with k a positive constant.
+    let cw = writes.get(&counter)?;
+    let [Some((_, Operand::Const(Const::Int(k)), _))] = cw.as_slice() else { return None };
+    if *k <= 0 {
+        return None;
+    }
+    if let Some(src) = bound_src {
+        if writes.contains_key(&src) {
+            return None;
+        }
+    }
+    let accs = writes
+        .iter()
+        .filter(|(l, _)| **l != counter)
+        .filter_map(|(l, w)| match w.as_slice() {
+            [Some((_, _, at))] => Some((*l, *at)),
+            _ => None,
+        })
+        .collect();
+    // One append a trip and no other change: the list's only write is it.
+    let grows = appends.iter().filter(|(l, n)| **n == 1 && writes.get(*l).map_or(false, |w| w.len() == 1)).map(|(l, _)| *l).collect();
+    Some(Counted { counter, step: *k, bound, strict, accs, grows })
 }
 
 /// The constants a function mentions, each with its neighbours, and below a

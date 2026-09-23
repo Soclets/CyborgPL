@@ -1,0 +1,12 @@
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn atoi ['s': ptr[uint8]] -> int32;
+fn fib ['n': int64] -> int64 {
+    if 'n' < 2 { return 'n'; }
+    return fib['n' - 1] + fib['n' - 2];
+}
+MAIN {
+    let 'k' := "N";
+    nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
+    nocheck exit[to.int32[fib['n'] mod 256]];
+}
