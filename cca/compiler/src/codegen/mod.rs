@@ -75,7 +75,7 @@ pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, na
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0) };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -121,6 +121,9 @@ struct Cg<'a, 'ctx> {
     cur_outcomes: HashMap<u32, PointerValue<'ctx>>,
     /// `--assert-proofs`: proven sites are checked too.
     assert_proofs: bool,
+    /// The statement being lowered, (block, index): where Precog's ranges
+    /// for it are kept.
+    here: (u32, u32),
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -435,7 +438,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // against the lowest value divided by -1, and keeping only the last
         // site read dropped the first check.
         let mut pending: Vec<SiteId> = Vec::new();
-        for s in &stmts {
+        for (si, s) in stmts.iter().enumerate() {
+            self.here = (b as u32, si as u32);
             match &s.kind {
                 StmtKind::Site(id) => match f.site(*id).kind {
                     // These stand on their own: they guard a value that is
@@ -777,19 +781,90 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // multiply; checked as signed, 2 x 7726793855274730819 was
                 // an overflow that never happens. (The ordinary build folds
                 // it to its answer; `--assert-proofs` computes it.)
+                // Plain math is exact (owner, 2026-09-23): each operand is
+                // taken at its true value, by its own sign — a literal by its
+                // written one — and `+ - x` are done in 128 bits, where no
+                // two values of 65 bits can overflow an add and the site
+                // asks the only question left: is the answer still one some
+                // 64-bit type holds? `/` and `mod` cannot leave that range,
+                // so they are done at the exact width itself.
+                if want_ty.as_ref().map_or(false, |t| t.is_exact()) && !op.is_comparison() && !matches!(op, BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow) {
+                    if let (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) = (a, b) {
+                        // Where every value the operands and the answer
+                        // take fits 64 bits, that is the width it is done
+                        // at: the same answer, and a 65-bit `mod` is a
+                        // library call.
+                        let range = if self.assert_proofs { None } else { self.p.functions[fi].ranges.get(&self.here).copied() };
+                        if let Some((lo, hi)) = range {
+                            let unsigned = lo >= 0 && hi <= u64::MAX as i128;
+                            if unsigned || (lo >= i64::MIN as i128 && hi <= i64::MAX as i128) {
+                                let w = self.ctx.i64_type();
+                                let at64 = |this: &mut Self, o: &Operand, v: IntValue<'ctx>| -> Option<IntValue<'ctx>> {
+                                    if let Operand::Const(Const::Int(c)) = o {
+                                        return Some(const_i128(w, *c));
+                                    }
+                                    let s = this.operand_signed(fi, o).unwrap_or(true);
+                                    this.builder.build_int_cast_sign_flag(v, w, s, "at64").ok()
+                                };
+                                let x = at64(self, lhs, x)?;
+                                let y = at64(self, rhs, y)?;
+                                let r = match op {
+                                    BinOp::Add if unsigned => self.builder.build_int_nuw_add(x, y, "add").ok()?,
+                                    BinOp::Add => self.builder.build_int_nsw_add(x, y, "add").ok()?,
+                                    BinOp::Sub if unsigned => self.builder.build_int_nuw_sub(x, y, "sub").ok()?,
+                                    BinOp::Sub => self.builder.build_int_nsw_sub(x, y, "sub").ok()?,
+                                    BinOp::Mul if unsigned => self.builder.build_int_nuw_mul(x, y, "mul").ok()?,
+                                    BinOp::Mul => self.builder.build_int_nsw_mul(x, y, "mul").ok()?,
+                                    // A divisor that can be zero is still
+                                    // its own site; `binary` guards it.
+                                    _ => self.binary(fi, op, x.into(), y.into(), sites, func, blocks, !unsigned)?.into_int_value(),
+                                };
+                                let t = self.ty(want_ty.as_ref()?)?.into_int_type();
+                                return Some(self.builder.build_int_cast_sign_flag(r, t, !unsigned, "exact").ok()?.into());
+                            }
+                        }
+                        let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow);
+                        let work = if plain { self.ctx.i128_type() } else { self.ctx.custom_width_int_type(std::num::NonZeroU32::new(crate::types::EXACT_BITS as u32)?).ok()? };
+                        let at_true = |this: &mut Self, o: &Operand, v: IntValue<'ctx>| -> Option<IntValue<'ctx>> {
+                            if let Operand::Const(Const::Int(c)) = o {
+                                return Some(const_i128(work, *c));
+                            }
+                            let s = this.operand_signed(fi, o).unwrap_or(true);
+                            if v.get_type().get_bit_width() == work.get_bit_width() {
+                                return Some(v);
+                            }
+                            this.builder.build_int_cast_sign_flag(v, work, s, "exact").ok()
+                        };
+                        let x = at_true(self, lhs, x)?;
+                        let y = at_true(self, rhs, y)?;
+                        let r = self.binary(fi, op, x.into(), y.into(), sites, func, blocks, true)?.into_int_value();
+                        if plain {
+                            self.past_64_bits(fi, r, sites, func);
+                        }
+                        let t = self.ty(want_ty.as_ref()?)?.into_int_type();
+                        return Some(if r.get_type().get_bit_width() == t.get_bit_width() { r.into() } else { self.builder.build_int_truncate(r, t, "exact").ok()?.into() });
+                    }
+                }
                 // A comparison is of the two numbers, whatever their types:
                 // each side is extended by its *own* sign, one bit wider
                 // when the signs differ, and compared signed. Extending both
                 // by the left side's sign made a `uint8` of 201 into -55,
                 // and `198 > 201` came out true (check claude, seed 77).
                 if op.is_comparison() {
-                    if let (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y), Some(sa), Some(sb)) = (a, b, self.operand_signed(fi, lhs), self.operand_signed(fi, rhs)) {
+                    if let (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) = (a, b) {
+                        // A literal is compared at its written value, never
+                        // squeezed into the other side's width: `'v' > 200`
+                        // on an `int8` is false, not a comparison with -56.
+                        let lit = |o: &Operand| if let Operand::Const(Const::Int(c)) = o { Some(*c) } else { None };
+                        let (la, lb) = (lit(lhs), lit(rhs));
+                        let (sa, sb) = (self.operand_signed(fi, lhs), self.operand_signed(fi, rhs));
                         let (xw, yw) = (x.get_type().get_bit_width(), y.get_type().get_bit_width());
-                        if sa != sb || xw != yw {
-                            let w = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(xw.max(yw) + u32::from(sa != sb))?).ok()?;
-                            let x = self.builder.build_int_cast_sign_flag(x, w, sa, "cmpl").ok()?;
-                            let y = self.builder.build_int_cast_sign_flag(y, w, sb, "cmpr").ok()?;
-                            return self.binary(fi, op, x.into(), y.into(), sites, func, blocks, sa || sb);
+                        let mixed = matches!((sa, sb), (Some(p), Some(q)) if p != q || xw != yw);
+                        if (la.is_some() != lb.is_some() || mixed) && xw.max(yw) <= 127 {
+                            let w = self.ctx.i128_type();
+                            let x = match la { Some(c) => const_i128(w, c), None => self.builder.build_int_cast_sign_flag(x, w, sa.unwrap_or(true), "cmpl").ok()? };
+                            let y = match lb { Some(c) => const_i128(w, c), None => self.builder.build_int_cast_sign_flag(y, w, sb.unwrap_or(true), "cmpr").ok()? };
+                            return self.binary(fi, op, x.into(), y.into(), sites, func, blocks, true);
                         }
                     }
                 }
@@ -984,8 +1059,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                     if let (true, Some(s)) = (signed, site) {
                         let bits = x.get_type().get_bit_width();
-                        let min = x.get_type().const_int(1u64 << (bits.min(64) - 1), false);
-                        let min = if bits > 64 { x.get_type().const_int_arbitrary_precision(&[0, 1u64 << 63]) } else { min };
+                        // The lowest value at this width, any width.
+                        let min = const_i128(x.get_type(), if bits >= 128 { i128::MIN } else { -(1i128 << (bits - 1)) });
                         let is_min = self.builder.build_int_compare(IntPredicate::EQ, x, min, "is_min").ok()?;
                         let by_m1 = self.builder.build_int_compare(IntPredicate::EQ, y, y.get_type().const_all_ones(), "by_m1").ok()?;
                         let both = self.builder.build_and(is_min, by_m1, "min_by_m1").ok()?;
@@ -1096,7 +1171,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // does, it is Precog that was wrong, not the program.
         let proof = matches!(s.verdict, Verdict::Proven { .. });
         let (head, handler) = if proof { ("proof failed", "cyborg_proof_failed") } else { ("check", "cyborg_check_failed") };
-        let msg = format!("{}: {}\nwhere: {}, line {}, column {}\n", head, s.kind.sentence(&spell), file.display_name(), line, col);
+        let msg = format!("{}: {}\nwhere: {}, line {}, column {}\n", head, s.sentence(&spell), file.display_name(), line, col);
         let ptr = self.global_bytes(&msg);
         let len = self.ctx.i64_type().const_int(msg.len() as u64, false);
         if let Some(handler) = self.module.get_function(handler) {
@@ -1129,6 +1204,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// from the divisor's, the quotient is one lower and the remainder moves
     /// by the divisor. A few one-cycle instructions beside the divide
     /// (`operators.md`: "the fix-up is the operator's meaning").
+    /// "In between, the one limit is the machine's 64 bits" (`operators.md`):
+    /// an exact answer below `int64`'s lowest or above `uint64`'s highest
+    /// stops here, unless Precog proved it never is.
+    fn past_64_bits(&mut self, fi: usize, r: IntValue<'ctx>, sites: &[SiteId], func: FunctionValue<'ctx>) {
+        let open = sites.iter().copied().find(|s| {
+            let site = self.p.functions[fi].site(*s);
+            matches!(site.kind, SiteKind::Overflow(_)) && self.gets_check(&site.verdict)
+        });
+        let Some(s) = open else { return };
+        let t = r.get_type();
+        let (Ok(low), Ok(high)) = (
+            self.builder.build_int_compare(IntPredicate::SLT, r, const_i128(t, i64::MIN as i128), "below"),
+            self.builder.build_int_compare(IntPredicate::SGT, r, const_i128(t, u64::MAX as i128), "above"),
+        ) else { return };
+        let Ok(out) = self.builder.build_or(low, high, "past_64") else { return };
+        let _ = self.guard(fi, s, out, func);
+    }
+
     fn floor_div(&mut self, x: IntValue<'ctx>, y: IntValue<'ctx>, want_mod: bool) -> Option<IntValue<'ctx>> {
         let q = self.builder.build_int_signed_div(x, y, "q").ok()?;
         let r = self.builder.build_int_signed_rem(x, y, "r").ok()?;

@@ -122,7 +122,8 @@ fn programs_build_run_and_give_back() {
 fn a_proven_site_hands_its_fact_to_llvm() {
     let ir = ir_of("proven_add");
     assert!(!ir.contains("with.overflow"), "a site Precog proved still carries a run-time check:\n{}", ir);
-    assert!(ir.contains("nsw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
+    // `nsw`, or `nuw` where Precog also proved the answer is never negative.
+    assert!(ir.contains("nsw") || ir.contains("nuw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
 }
 
 /// A program whose values are all known has the answers in it, not the

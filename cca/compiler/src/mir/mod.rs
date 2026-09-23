@@ -291,6 +291,18 @@ pub struct Site {
     pub verdict: Verdict,
 }
 
+impl Site {
+    /// What the message calls it. Plain math on integers is exact (owner,
+    /// 2026-09-23), so its one question in between is the 64-bit window —
+    /// the oracle's words, "goes past 64 bits in between".
+    pub fn sentence(&self, spell: &dyn Fn(&Ty) -> String) -> String {
+        match (&self.kind, &self.result_ty) {
+            (SiteKind::Overflow(op), Some(t)) if t.is_exact() => format!("`{}` goes past 64 bits in between", op.spelled()),
+            _ => self.kind.sentence(spell),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum StmtKind {
     Assign { place: Place, rvalue: Rvalue },
@@ -419,6 +431,11 @@ pub struct Function {
     pub is_task: bool,
     /// A task body's captures, in the order its parent passes them.
     pub captures: Vec<LocalId>,
+    /// For an exact instruction, keyed by (block, statement): every value
+    /// its operands and its answer take on every run, from Precog. Plain
+    /// math is exact, and "Precog still uses narrow sizes where it proves
+    /// they fit" (`operators.md`): inside 64 bits, codegen works at 64.
+    pub ranges: std::collections::HashMap<(u32, u32), (i128, i128)>,
 }
 
 impl Function {

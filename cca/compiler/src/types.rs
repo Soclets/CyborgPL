@@ -130,12 +130,26 @@ pub enum Ty {
     Bounded { inner: Box<Ty>, bound: Bound },
 }
 
+/// The width that stands for [`Ty::exact`].
+pub const EXACT_BITS: u16 = 65;
+
 impl Ty {
     pub fn int(signed: bool, bits: u16) -> Ty {
         Ty::Int(IntW::Fixed { signed, bits })
     }
     pub fn u64() -> Ty {
         Ty::int(false, 64)
+    }
+    /// The true answer of plain integer math (`+ - x xx`, owner 2026-09-23,
+    /// `operators.md`): exact, checked where it lands, and in between held
+    /// to what some 64-bit type holds — `int64`'s lowest to `uint64`'s
+    /// highest. Not a type anyone writes: 65 bits carry that range, and
+    /// `resolve::int_range` gives it exactly.
+    pub fn exact() -> Ty {
+        Ty::int(true, EXACT_BITS)
+    }
+    pub fn is_exact(&self) -> bool {
+        matches!(self.base(), Ty::Int(IntW::Fixed { signed: true, bits: EXACT_BITS }))
     }
     pub fn list(elem: Ty) -> Ty {
         Ty::Seq { elem: Box::new(elem), kind: SeqKind::List }
@@ -313,6 +327,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let sp = |t: &'a Ty| TySpelling { ty: t, structs: self.structs, enums: self.enums };
         match self.ty {
+            Ty::Int(IntW::Fixed { signed: true, bits: EXACT_BITS }) => write!(f, "integer"),
             Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "{}int{}", if *signed { "" } else { "u" }, bits),
             Ty::Int(IntW::Free(_)) => write!(f, "integer"),
             Ty::Bin(BinW::Fixed(b)) => write!(f, "bin{}", b),

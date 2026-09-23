@@ -86,7 +86,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -110,6 +110,15 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     // limit means `'n' < 2` looked false on every trip the analysis took
     // and true on the one it never reached, and folding that would be a
     // program that never stops.
+    // The ranges go to codegen on the same terms as the folds: only when
+    // layer 1 settled everything, and never in a build checking the proofs.
+    if !a.gave_up && fold {
+        for ((f, b, si), r) in &a.ranges {
+            if let (Some(r), Some(func)) = (r, p.functions.get_mut(*f)) {
+                func.ranges.insert((*b as u32, *si as u32), *r);
+            }
+        }
+    }
     let mut folded = 0usize;
     let folds: Vec<((usize, usize, usize), Option<Const>)> = if a.gave_up || !fold { Vec::new() } else { a.folds.iter().map(|(k, v)| (*k, v.clone())).collect() };
     for ((f, b, si), known) in &folds {
@@ -225,6 +234,8 @@ struct Precog {
     /// from several call sites has to survive all of them, so the worse
     /// answer is the one kept.
     results: HashMap<(usize, u32), Verdict>,
+    /// Exact instructions' value ranges, `None` once one visit could not say.
+    ranges: HashMap<(usize, usize, usize), Option<(i128, i128)>>,
     lies: Vec<(usize, SiteId, String)>,
     /// What layer 1 worked out for an instruction, where it worked out the
     /// same answer every time it went past. `None` poisons it: the
@@ -362,6 +373,24 @@ impl Precog {
                 match &s.kind {
                     StmtKind::Assign { place, rvalue } => {
                         let d = self.eval_rvalue(f, rvalue, &env, &mut facts, place);
+                        // Every value an exact instruction's operands and
+                        // answer take here, joined over every visit: what
+                        // lets codegen work at 64 bits.
+                        if let Rvalue::Binary { lhs, rhs, .. } = rvalue {
+                            if self.place_ty(f, place).is_exact() {
+                                let key = (f, b, si);
+                                let hull = [self.read_operand(f, &env, lhs), self.read_operand(f, &env, rhs), d.clone()].iter().try_fold((i128::MAX, i128::MIN), |(lo, hi), x| match x {
+                                    Domain::Ints(s) => s.bounds().map(|(a, z)| (lo.min(a), hi.max(z))),
+                                    _ => None,
+                                });
+                                let merged = match (self.ranges.get(&key), hull) {
+                                    (Some(None), _) | (_, None) => None,
+                                    (Some(Some((a, z))), Some((c, y))) => Some((*a.min(&c), *z.max(&y))),
+                                    (None, h) => h,
+                                };
+                                self.ranges.insert(key, merged);
+                            }
+                        }
                         // Layer 1: "everything that does not depend on the
                         // outside world is known… the result is folded in".
                         // An instruction that comes out the same every time
@@ -1588,7 +1617,7 @@ fn same(a: &Env, b: &Env) -> bool {
 /// `mod` by one its largest remainder: where a widened bound may stop.
 fn thresholds(f: &crate::mir::Function) -> Vec<i128> {
     let mut out: Vec<i128> = Vec::new();
-    let mut add = |o: &Operand, out: &mut Vec<i128>| {
+    let add = |o: &Operand, out: &mut Vec<i128>| {
         if let Operand::Const(Const::Int(v)) = o {
             out.extend([v.saturating_sub(1), *v, v.saturating_add(1)]);
         }
@@ -1667,7 +1696,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
         // missing fact"). Saying nothing would make `check` mean nothing.
         if checked && matches!(r.verdict, Verdict::Unproven) {
             let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
-            let mut d = crate::diag::Diagnostic::new(crate::diag::Kind::Check, site.kind.sentence(&spell))
+            let mut d = crate::diag::Diagnostic::new(crate::diag::Kind::Check, site.sentence(&spell))
                 .at(f.span(site.span))
                 .why("`check` asks whether the guardrail is enough, and this one could not be shown to be")
                 .why("no counterexample either: the guardrail may well be enough, and nothing here could prove it")
@@ -1687,7 +1716,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
             continue;
         }
         let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
-        let sentence = site.kind.sentence(&spell);
+        let sentence = site.sentence(&spell);
         let mut d = crate::diag::Diagnostic::new(if certain { crate::diag::Kind::Error } else { crate::diag::Kind::Check }, sentence)
             .at(f.span(site.span))
             .when(counterexample.trim_start_matches("every time: ").to_string());
@@ -1755,7 +1784,7 @@ fn describe_disagreement(p: &Program, r: &SiteResult, each: &[(&'static str, smt
     let said = each.iter().map(|(n, a)| format!("{} said {}", n, match a { smt::Answer::Unsat => "it cannot happen", smt::Answer::Sat(_) => "it can", smt::Answer::Unknown => "it could not tell" })).collect::<Vec<_>>().join(", and ");
     format!(
         "the solvers disagree about `{}` in `{}`: {}.\n  This is a bug in one of them, or in the question CCA asked them — both of them received the same question — and never in the program.\n  The question is written out in {} ; please open an issue at Cyborg's tracker with it attached.\n  The build carries on with the safe answer: the site keeps its check.",
-        site.kind.sentence(&spell),
+        site.sentence(&spell),
         f.name,
         said,
         path.display()

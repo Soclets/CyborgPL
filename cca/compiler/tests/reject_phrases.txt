@@ -15,7 +15,7 @@ append_as_value :: it changes the list in place
 append_to_array :: declare it a `list` to append
 append_without_mut :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
 append_wrong_type :: there is no implicit conversion between numeric families
-arith_overflow :: `x` can leave what the type holds
+arith_overflow :: the value can be outside what a `int32` holds
 array_into_list :: is a `list[int32]`, and 'f' is a `array[int32]`
 array_slice_is_list :: the declared type is an `array` and this is a `list`
 asm_bare_word :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
@@ -195,7 +195,7 @@ leading_zero :: `007` starts with a zero, and leading zeros are illegal: write `
 lend_to_lent_mut :: `edit` may modify 'text' (it is `lent.mut`): write `lend.mut`
 lend_to_var_param :: write `give` (it moves) or `copy` (a second one)
 length_bare :: `list.length` takes a lend: write `lend 'xs'`
-length_is_uint64 :: `-` can leave what the type holds
+length_is_uint64 :: the value can be outside what a `uint64` holds
 let_chain :: `mut` / `immut` are bare words before the name
 let_top_level :: `const 'name' := …;` (`let` lives inside a body)
 limb_alone :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
@@ -258,8 +258,8 @@ op_star_undefined :: `*` is not an operator here: multiply is `x`
 op_three_operands :: an operator takes exactly two operands; `<+>` is declared with 3
 op_word_undefined :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
 other_limb :: a Limb is a dependency listed in `Synthia.cplm`, and none is
-overflow_below_zero :: `-` can leave what the type holds
-overflow_in_comparison :: `+` can leave what the type holds
+overflow_lands :: the value can be outside what a `int8` holds
+overflow_past_64_bits :: goes past 64 bits in between
 param_lent_chain :: `lent` (looks at it) or `lent.mut` (may modify it)
 param_type_first :: a parameter is written name first, then its type: `'a': int32`
 param_var :: an owning parameter is bare
@@ -371,7 +371,7 @@ truthiness :: there is no truthiness
 two_bare_numbers :: join text with `++`, separate values with `,`
 two_points_as_point :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 type_before_name :: a type goes after the name: `let 'x': int32 = …;`
-uint_negative :: `-` can leave what the type holds
+uint_negative :: the value can be outside what a `uint8` holds
 unknown_std :: `std::println` does not exist
 use_after_give :: was given away and no longer owns anything
 var_keyword :: `var` became `let`: `let 'x' := …;`

@@ -29,7 +29,7 @@ pub fn render(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
         };
         let what = crate::types::TySpelling { ty: &crate::types::Ty::Nothing, structs: &p.items.structs, enums: &p.items.enums };
         let _ = what;
-        let kind = site.kind.sentence(&|t| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string());
+        let kind = site.sentence(&|t| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string());
         lines.push((span.file.0, line, format!("line {:<4} {:<34} {:<9} ({})", line, truncate(&code, 34), word, if r.note.is_empty() { kind } else { r.note.clone() })));
         let _ = col;
     }

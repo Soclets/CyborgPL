@@ -89,3 +89,6 @@ compare_mixed_sign 14
 
 # Layer 3 walks an unrolled graph with every arrival before its block.
 two_loops_in_a_row trap
+
+# Plain math is exact; wrapping keeps its own width when stored wider.
+exact_math 127

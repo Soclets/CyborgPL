@@ -376,6 +376,7 @@ impl<'a> FnBuilder<'a> {
             is_main: body.is_main,
             is_task: self.is_task,
             captures: self.captures,
+            ranges: Default::default(),
         }
     }
 
@@ -903,6 +904,28 @@ impl<'a> FnBuilder<'a> {
         let rv = self.rvalue(value, span);
         let from = self.resolve_ty(&value.ty);
         let to = self.resolve_ty(target);
+        // An operator whose answer has its own width — wrapping, and the
+        // bitwise ones — keeps it until the answer exists: `'x' +~ 'x'` on
+        // a `uint32` wraps at 32 bits even stored into a `uint64`
+        // (`operators.md`). Assigned straight into the wider place, the
+        // place's width was the only one left, and layer 1 folded
+        // 8000000000 where the program computes 3705032704.
+        if let Rvalue::Binary { op, .. } = &rv {
+            let own_width = matches!(op, BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow | BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr);
+            if own_width && from.base() != to.base() && from.is_int() && to.is_int() {
+                let t = self.temp(&from, span);
+                self.assign(Place::local(t), rv, span);
+                let rv = Rvalue::Use(Operand::Read(Place::local(t)));
+                if typed && needs_narrow_check(&from, &to) && to.base().is_numeric() {
+                    self.assign(place.clone(), rv, span);
+                    self.site_of(SiteKind::Narrow { to: to.clone() }, vec![Operand::Read(Place::local(t))], Some(to), span);
+                } else {
+                    self.assign(place.clone(), rv, span);
+                }
+                self.store_site(&place, target, typed, span);
+                return;
+            }
+        }
         if typed && needs_narrow_check(&from, &to) && to.base().is_numeric() {
             // The value has to fit where it is going, and the site is about
             // the value, so it is asked before the store — of a temporary
@@ -1539,6 +1562,7 @@ fn placeholder(body: &hir::Body) -> Function {
         is_main: body.is_main,
         is_task: false,
         captures: Vec::new(),
+        ranges: Default::default(),
     }
 }
 

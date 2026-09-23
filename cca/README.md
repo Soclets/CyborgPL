@@ -284,3 +284,23 @@ Dated, with the alternative, so each can become a question later.
   exists it is the language's own way out, CCA knows it ends the program
   without a list, and these names stop carrying any weight — not a
   permanent rule about C.
+- **2026-09-23 — The exact answer is a 65-bit value.** Plain math is
+  exact and checked where it lands (owner, `operators.md`); CCA types
+  every `+ - x xx` on integers as one internal type whose range is
+  `int64`'s lowest to `uint64`'s highest (spelled `integer`), holds it
+  in 65 bits, and computes `+ - x` in 128 so the only question in
+  between is that window. Alternative: the narrowest type Precog proves
+  (`operators.md` allows it, "especially for SIMD"); later, as an
+  optimisation, since the answer is the same.
+- **2026-09-23 — `:=` of an exact answer keeps the exact type.** "A `:=`
+  takes a type that holds its true value": the exact type holds every
+  value that can get that far, so the name is checked where it lands
+  next. Alternative: `int64`, or `uint64` when the value can pass
+  `int64`'s top — a choice of type the ruling does not make.
+- **2026-09-23 — Wrapping and bitwise operators on an exact answer.**
+  "Wrapping wraps at the size of its values": when every typed operand
+  inside the exact answer has one type, that is the size; when they
+  differ, or none are left to see (a `:=` name holding one), and for any
+  shift of one, CCA says not yet. The oracle takes the left operand's
+  declared type (its README lists it as its own pick). Asked of the
+  design session.

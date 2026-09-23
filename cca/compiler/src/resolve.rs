@@ -1014,6 +1014,10 @@ pub fn primitive(head: &str) -> Option<Ty> {
 /// `i128`, so 128 bits is the ceiling and the widths above it are not
 /// carried — `resolve_type_path` refuses them before anything asks.
 pub fn int_range(signed: bool, bits: u16) -> (i128, i128) {
+    // The exact type: what some 64-bit type holds (`Ty::exact`).
+    if signed && bits == crate::types::EXACT_BITS {
+        return (i64::MIN as i128, u64::MAX as i128);
+    }
     if signed {
         if bits >= 128 {
             return (i128::MIN, i128::MAX);

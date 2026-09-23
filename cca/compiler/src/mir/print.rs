@@ -42,7 +42,7 @@ fn stmt(k: &StmtKind, f: &Function, spell: &dyn Fn(&Ty) -> String) -> String {
                 Some(crate::ast::Tier::Nocheck) => " nocheck",
                 None => "",
             };
-            format!("site s{}{}: {}", id.0, tier, s.kind.sentence(spell))
+            format!("site s{}{}: {}", id.0, tier, s.sentence(spell))
         }
         StmtKind::Drop(p) => format!("drop {}", place_s(p, f)),
         StmtKind::EndLend(p) => format!("end lend {}", place_s(p, f)),

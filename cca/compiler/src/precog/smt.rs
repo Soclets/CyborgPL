@@ -374,7 +374,7 @@ fn describe_site(p: &Program, f: usize, site: SiteId) -> String {
     let func = &p.functions[f];
     let s = func.site(site);
     let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
-    format!("in {}: {}", func.name, s.kind.sentence(&spell))
+    format!("in {}: {}", func.name, s.sentence(&spell))
 }
 
 /// A term, and the width it is held at. `None` means the value is not
@@ -1025,7 +1025,7 @@ impl<'a> Enc<'a> {
     /// safe, and an impossible query reads as a proof. Widen first.
     fn cmp_const(&mut self, v: &Val, op: &str, bound: i128) -> Option<String> {
         let w = Self::signed_width(v).max(signed_bits(bound));
-        if w > 128 {
+        if w > 256 {
             // Wider than the query can write a literal for. Nothing is
             // claimed rather than something unchecked.
             return None;
@@ -1037,7 +1037,7 @@ impl<'a> Enc<'a> {
     /// The same, between two values.
     fn cmp_vals(&mut self, a: &Val, op: &str, b: &Val) -> Option<String> {
         let w = Self::signed_width(a).max(Self::signed_width(b));
-        if w > 128 {
+        if w > 256 {
             return None;
         }
         let x = self.resize(a.clone(), w, true);
@@ -1110,7 +1110,9 @@ impl<'a> Enc<'a> {
                     // budget did not count.
                     BinOp::Add | BinOp::Sub | BinOp::Mul if {
                         let b = ops.get(1).cloned().flatten();
-                        let full = crate::resolve::int_range(signed, bits as u16) == (lo, hi);
+                        // The exact type's range is not its width's: its
+                        // question is the 64-bit window, asked the long way.
+                        let full = !ty.is_exact() && crate::resolve::int_range(signed, bits as u16) == (lo, hi);
                         full && a.bits == bits && a.signed == signed && b.as_ref().map(|b| b.bits == bits && b.signed == signed).unwrap_or(false)
                     } =>
                     {
@@ -1129,7 +1131,12 @@ impl<'a> Enc<'a> {
                         let b = ops.get(1).cloned().flatten()?;
                         // Compute wide enough that the true answer fits, then
                         // ask whether it is outside what the type holds.
-                        let wide = if *op == BinOp::Mul { bits * 2 } else { bits + 1 };
+                        // Wide enough for the true answer of these operands,
+                        // whatever their own widths.
+                        // One bit more than the wider operand holds a sum of
+                        // either signedness; twice that holds a product.
+                        let widest = a.bits.max(ops.get(1).cloned().flatten().map(|b| b.bits).unwrap_or(0)) + 1;
+                        let wide = if *op == BinOp::Mul { widest * 2 } else { (widest + 1).max(bits + 1) };
                         let a = self.resize(a, wide, signed);
                         let b = self.resize(b, wide, signed);
                         let body = match op {
@@ -1318,6 +1325,11 @@ fn signed_bits(v: i128) -> u32 {
 
 /// A bit-vector literal, two's complement at `bits`.
 fn bv(v: i128, bits: u32) -> String {
+    // Past 128 bits a negative literal is its 128-bit self, sign-extended:
+    // the true product of two 64-bit values needs 129.
+    if bits > 128 {
+        return if v < 0 { format!("((_ sign_extend {}) (_ bv{} 128))", bits - 128, v as u128) } else { format!("(_ bv{} {})", v, bits) };
+    }
     let mask: u128 = if bits >= 128 { u128::MAX } else { (1u128 << bits) - 1 };
     let raw = (v as u128) & mask;
     format!("(_ bv{} {})", raw, bits)

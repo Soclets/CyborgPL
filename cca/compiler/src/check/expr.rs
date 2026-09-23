@@ -543,7 +543,13 @@ impl Checker {
         // does every literal group inside it.
         if let (Ty::Int(IntW::Free(_)) | Ty::Infer(_), Ty::Int(IntW::Fixed { .. })) = (vt.base(), t.base()) {
             if literal_only(&v) {
-                retype_literal_arith(&mut v, t.base());
+                // Bare numbers with only plain math between them are worked
+                // out exactly and checked where they land (owner,
+                // 2026-09-23): `let 'tiny': int8 = (100 + 100) - 150;` is
+                // 50, and the 200 in between is fine. A shift, `not.bit` or
+                // wrapping operator still takes its width from here.
+                let to = if plain_group(&v) { Ty::exact() } else { t.base().clone() };
+                retype_literal_arith(&mut v, &to);
             }
         }
         if self.unify(&vt, &t) {
@@ -657,6 +663,20 @@ impl Checker {
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
             }
             BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => {
+                // An exact answer wraps at the size of its values: working
+                // at full width and keeping the low bits is the same
+                // answer, so only the type has to say the size.
+                if lt.is_exact() || rt.is_exact() {
+                    let from = if lt.is_exact() { &l } else { &r };
+                    let size = self.size_of_values(from).ok_or_else(|| self.open_size(op, op_span))?;
+                    let other = if lt.is_exact() { &rt } else { &lt };
+                    let ty = match other.base() {
+                        Ty::Int(IntW::Fixed { .. }) if !other.is_exact() && lt.is_exact() => size,
+                        Ty::Int(IntW::Fixed { .. }) if !other.is_exact() => other.base().clone(),
+                        _ => size,
+                    };
+                    return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
+                }
                 // The width is the left operand's declared type.
                 match lt.base() {
                     Ty::Int(IntW::Fixed { .. }) => {}
@@ -731,6 +751,28 @@ impl Checker {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is a `{}`", op.spelled(), self.spell(bad))).at(op_span));
                 }
+                if lt.is_exact() || rt.is_exact() {
+                    // A shift is not the same on the low bits alone (`shr`
+                    // brings the high ones down), so it waits for the ruling.
+                    if matches!(op, BinOp::Shl | BinOp::Shr) {
+                        return Err(self.open_size(op, op_span));
+                    }
+                    let ty = match (lt.is_exact(), rt.is_exact()) {
+                        (true, true) => {
+                            let a = self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?;
+                            let b = self.size_of_values(&r).ok_or_else(|| self.open_size(op, op_span))?;
+                            if a != b {
+                                return Err(self.open_size(op, op_span));
+                            }
+                            a
+                        }
+                        (true, false) if matches!(rt.base(), Ty::Int(IntW::Fixed { .. })) => rt.base().clone(),
+                        (false, true) if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) => lt.base().clone(),
+                        (true, false) => self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?,
+                        _ => self.size_of_values(&r).ok_or_else(|| self.open_size(op, op_span))?,
+                    };
+                    return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
+                }
                 // `shl` can push bits off the end, so it needs a width —
                 // from any operand whose type is known, or, when every
                 // operand is a bare number, from where the value goes
@@ -750,6 +792,50 @@ impl Checker {
             }
             BinOp::Custom(_) => unreachable!(),
         }
+    }
+
+    /// "Wrapping wraps at the size of its values" (`operators.md`): for an
+    /// exact sum, the one type its typed operands share. `None` when they
+    /// differ, or when there are none left to see (a `:=` name holding an
+    /// exact answer) — which size then is open (asked 2026-09-23).
+    fn size_of_values(&self, e: &Expr) -> Option<Ty> {
+        let t = self.resolve(&e.ty);
+        if !t.is_exact() {
+            return match t.base() {
+                Ty::Int(IntW::Fixed { .. }) => Some(t.base().clone()),
+                _ => None,
+            };
+        }
+        let mut sizes: Vec<Ty> = Vec::new();
+        fn walk(this: &Checker, e: &Expr, sizes: &mut Vec<Ty>) -> bool {
+            let t = this.resolve(&e.ty);
+            if literal_only(e) {
+                return true;
+            }
+            if !t.is_exact() {
+                if let Ty::Int(IntW::Fixed { .. }) = t.base() {
+                    sizes.push(t.base().clone());
+                    return true;
+                }
+                return false;
+            }
+            match &e.kind {
+                K::Binary { lhs, rhs, .. } => walk(this, lhs, sizes) && walk(this, rhs, sizes),
+                _ => false,
+            }
+        }
+        if !walk(self, e, &mut sizes) {
+            return None;
+        }
+        sizes.dedup();
+        match sizes.as_slice() {
+            [one] => Some(one.clone()),
+            _ => None,
+        }
+    }
+
+    fn open_size(&self, op: &BinOp, op_span: Span) -> Box<Diagnostic> {
+        Box::new(Diagnostic::error(format!("not yet: `{}` on an exact answer whose operands have different sizes (or none left to see) — which size it works at is open", op.spelled())).at(op_span))
     }
 
     /// A lane-wise operator. The rule is the scalar rule, N times.
@@ -834,6 +920,30 @@ impl Checker {
         // choice stays Precog's.
         let lt = self.resolve(&l.ty);
         let rt = self.resolve(&r.ty);
+        // Plain math is exact, and checked where it lands (owner,
+        // 2026-09-23, `operators.md`): `+ - x xx` give the true answer, and a
+        // comparison compares true values. So a bare number beside a typed
+        // one keeps its value rather than taking the other's width —
+        // `(20000 + 20000) + 'small'` is 40005 whatever 'small' is — and the
+        // answer is the exact type, checked when it is stored, passed or
+        // returned. Only bare numbers alone stay without a type: they are
+        // worked out at compile time.
+        let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow) || op.is_comparison();
+        if plain {
+            if let (Ty::Int(a), Ty::Int(b)) = (lt.base(), rt.base()) {
+                if matches!(a, IntW::Fixed { .. }) || matches!(b, IntW::Fixed { .. }) {
+                    let (mut l, mut r) = (l, r);
+                    let exact = Ty::exact();
+                    if literal_only(&l) && matches!(a, IntW::Free(_)) {
+                        retype_literal_arith(&mut l, &exact);
+                    }
+                    if literal_only(&r) && matches!(b, IntW::Free(_)) {
+                        retype_literal_arith(&mut r, &exact);
+                    }
+                    return Ok((l, r, exact));
+                }
+            }
+        }
         // A parenthesised group of literals — `(0 + 10702988103728947458)` —
         // has no family either, so it takes the other side's the same way,
         // every step of it.
@@ -2324,6 +2434,16 @@ fn builtin_subject(b: &Builtin) -> &'static str {
         Builtin::MapLength | Builtin::MapHas | Builtin::MapGet | Builtin::MapSet | Builtin::MapRemove | Builtin::MapKeys | Builtin::MapValues | Builtin::MapPairs => "map",
         Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes | Builtin::StrEach(_) => "text",
         _ => "value",
+    }
+}
+
+/// Bare numbers joined only by plain math (`+ - x xx`), which is exact.
+fn plain_group(e: &Expr) -> bool {
+    match &e.kind {
+        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow) && plain_group(lhs) && plain_group(rhs),
+        K::Unary { op: UnOp::Neg, expr } => plain_group(expr),
+        K::Int(_) => true,
+        _ => false,
     }
 }
 
