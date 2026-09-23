@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Licence: Apache-2.0 WITH LLVM-exception throughout, plus trademark (owner: b)
+
+The 2026-09-14 intent — free to use with no credit, credit everywhere
+for a modified compiler — had proposed a non-standard "Apache plus a
+CyborgPL attribution term" for the compiler. Proposed now: (a) that
+term, which says literally what the intent asked but is not
+OSI-approvable, is rejected on sight by many corporate legal
+departments, and repeats the BSD advertising clause; (b) plain
+Apache-2.0 WITH LLVM-exception everywhere, with trademark on the names
+doing the work — Apache already requires credit in the source, and a
+fork may not call itself CyborgPL or Precog. Owner: b — "not what I
+originally wanted, but it's reconsidered". The cost accepted: a fork
+need not credit CyborgPL in its docs or version output. No `LICENSE`
+file yet; the text is still counsel's, and nothing is urgent while the
+repo is private.
+
 ### 2026-09-23 — Oracle bug: arithmetic was checked only where it was stored (verification session)
 
 Generator seed 23, shrunk: `if 'v' > ('v' + 'v')` on an `int8` of 112

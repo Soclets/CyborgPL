@@ -15,7 +15,32 @@ counsel to draft; this records what they must achieve.
    A fork must say it is derived from CyborgPL in every place a person would
    look.
 
-## Proposed mapping (Claude, for counsel)
+## Decided 2026-09-23 (owner): one standard licence, plus trademark
+
+**Apache-2.0 WITH LLVM-exception for everything that is code** — the
+runtime, the standard Limb, the compiler, Precog, JetPack, the oracle
+and the verification tools. **Trademark on the names** — CyborgPL,
+Precog, Limb, JetPack — as the instrument for "credit everywhere".
+
+What that achieves against the intent above: a user of the language
+owes nothing, because the exception waives notice for compiled output
+(intent 1, unchanged); a fork of the compiler must keep the Apache
+notices in the source, and may not call itself CyborgPL or Precog,
+because the names are not licensed with the code.
+
+What it gives up, and the owner weighed it: a fork need not credit
+CyborgPL in its *documentation or version output* — only in the source
+and by not using the name. The attribution term that would have
+required that (below) was the owner's original intent, reconsidered on
+2026-09-23: a non-standard licence is rejected on sight by many
+corporate legal departments, is not OSI-approvable as written, and
+repeats the old BSD advertising clause the industry dropped for
+compatibility. The names are the stronger lever and cost nothing.
+Rust's arrangement is the same shape.
+
+The trademark flags below still stand and are the thing to act on.
+
+## The original mapping (Claude, 2026-09-14 — superseded above)
 
 | Piece | Licence | Effect |
 |---|---|---|
