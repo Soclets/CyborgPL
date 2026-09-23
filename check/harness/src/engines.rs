@@ -140,10 +140,24 @@ pub enum Build {
     Timeout,
 }
 
-pub fn cca_build(t: &Tools, file: &Path, dir: &Path) -> Build {
-    let bin = dir.join("prog");
+/// `Asserted` is `cca build --assert-proofs` (design/precog.md attack (d)):
+/// every proven site keeps a run-time check that exits 104 with
+/// `proof failed:` if the proof was wrong.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Mode {
+    Normal,
+    Asserted,
+}
+
+pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
+    let bin = dir.join(if mode == Mode::Asserted { "prog-asserted" } else { "prog" });
     let _ = fs::remove_file(&bin);
-    let r = run(Command::new(&t.cca).arg("build").arg(file).arg("-o").arg(&bin), dir, &[], false, BUILD_LIMIT);
+    let mut cmd = Command::new(&t.cca);
+    cmd.arg("build");
+    if mode == Mode::Asserted {
+        cmd.arg("--assert-proofs");
+    }
+    let r = run(cmd.arg(file).arg("-o").arg(&bin), dir, &[], false, BUILD_LIMIT);
     if r.timed_out {
         return Build::Timeout;
     }

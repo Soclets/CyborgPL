@@ -131,7 +131,7 @@ fn main() {
             match check(&t, &p.render(), &dir.join("0"), &envs(&p)) {
                 Verdict::Finding(f) => {
                     let small = shrink(&t, p, f.kind, &f.env, &dir, a.num("jobs", default_jobs()) as usize);
-                    print!("{}", small.render());
+                    print!("{}{}", env_header(&f.env), small.render());
                 }
                 v => {
                     println!("seed {} has no finding", a.num("seed", 1));
@@ -153,6 +153,11 @@ fn main() {
             std::process::exit(2)
         }
     }
+}
+
+/// `# env NAME LENGTH` lines, the corpus's way of recording an input set.
+fn env_header(env: &Env) -> String {
+    env.iter().map(|(k, v)| format!("# env {k} {}\n", v.len())).collect()
 }
 
 fn default_jobs() -> u64 {
@@ -390,7 +395,7 @@ fn run(t: &Tools, a: &Args) {
             let p = generate(seed, &cfg);
             let small = shrink(t, p, k, &f.env, &work().join("shrink"), jobs as usize);
             let fd = work().join("findings").join(seed.to_string());
-            std::fs::write(fd.join("shrunk.cpls"), small.render()).unwrap();
+            std::fs::write(fd.join("shrunk.cpls"), format!("{}{}", env_header(&f.env), small.render())).unwrap();
             let v = check(t, &small.render(), &fd.join("shrunk"), &if f.env.is_empty() { vec![] } else { vec![f.env.clone()] });
             println!("\n=== {k}, seed {seed}, shrunk to {}:", fd.join("shrunk.cpls").display());
             report(&v);
