@@ -34,7 +34,8 @@ Rivet, Ratchet, Chassis) and withdrew them — all crowded, and `Socket`
 is a package-security company. Owner proposed **Synthia**; checked
 free on crates.io and as a GitHub org. Its neighbours are SYNTHIA®
 (Merck KGaA, chemistry software — registered) and Synthesia (AI video);
-neither is in this lane. So: `Synthia.toml`, `synthia build`,
+neither is in this lane. So: `Synthia.cplm` (see the entry above),
+`synthia build`,
 `synthia final`, `synthia run`, `synthia test`. Every design document
 renamed; the entries above this one keep the old name as the record of
 what was decided then.
