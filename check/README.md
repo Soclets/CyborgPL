@@ -87,6 +87,12 @@ straight at them. Default: `ranges`.
 
 ## Harness hygiene
 
+**Three cores** (owner, 2026-09-23): the machine's ten cores are split
+between the three heavy sessions, three each, one left for the desktop.
+`check` runs at most three jobs at a time (`--jobs` can only lower it),
+counting every `cca build` and oracle run; `check/.cargo/config.toml` builds
+with three jobs, and `oracle/` and `cca/` are built here with `-j 3`.
+
 Each engine run gets its own process group and its own output files, and
 the group is killed when the run ends. (Before this, a `cca build` stopped
 at its limit left a solver running that wrote into the next run's stdout —

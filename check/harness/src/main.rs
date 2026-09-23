@@ -132,7 +132,7 @@ fn main() {
             let dir = work().join("shrink");
             match check(&t, &p.render(), &dir.join("0"), &envs(&p)) {
                 Verdict::Finding(f) => {
-                    let small = shrink(&t, p, f.kind, f.mode, &f.env, &dir, a.num("jobs", default_jobs()) as usize);
+                    let small = shrink(&t, p, f.kind, f.mode, &f.env, &dir, a.num("jobs", default_jobs()).min(JOBS_CAP) as usize);
                     print!("{}{}", env_header(&f.env), small.render());
                 }
                 v => {
@@ -162,8 +162,13 @@ fn env_header(env: &Env) -> String {
     env.iter().map(|(k, v)| format!("# env {k} {}\n", v.len())).collect()
 }
 
+/// This session's share of the machine: 3 cores (owner, 2026-09-23 — ten
+/// cores split three ways between the heavy sessions, one for the desktop).
+/// Every `cca build` and oracle run counts; `--jobs` may lower it.
+const JOBS_CAP: u64 = 3;
+
 fn default_jobs() -> u64 {
-    std::thread::available_parallelism().map(|n| n.get() as u64).unwrap_or(4)
+    JOBS_CAP
 }
 
 fn report(v: &Verdict) {
@@ -305,7 +310,7 @@ fn run(t: &Tools, a: &Args) {
     let cfg = a.config();
     let cases = a.num("cases", 100);
     let from = a.num("from", 1);
-    let jobs = a.num("jobs", default_jobs());
+    let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
     let keep_going = a.has("keep-going");
     let next = AtomicU64::new(from);
     let stop = AtomicBool::new(false);
