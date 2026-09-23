@@ -13,3 +13,4 @@ Very slow at the development, fast &amp; safe at the final product.</p>
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
 - [`cca/`](cca/) — the compiler.
 - [`brand/`](brand/) — the mark (a circular C wrapping `:=`). On a pure white or pure black background use the single-colour versions, never the purple one.
+- [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
