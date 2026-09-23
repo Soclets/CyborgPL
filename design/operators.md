@@ -61,6 +61,32 @@ Tightest to loosest:
 
 **Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `nocheck`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked. Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type (the compiler knows every width; the oracle needs the left operand declared, e.g. `'h': uint32`). **`/` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 / 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a / b) x b + (a mod b)` holds. Hardware truncation (`-7 / 2 = -3`, `-7 mod 2 = -1`) is std's, by name — `std::div.trunc[a, b]`, `std::mod.trunc[a, b]` — for matching a C library bit for bit. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where Precog cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `nocheck`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and not ('a' == 'b')` reads as expected, and `6 / 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
 
+## Where a shift's width comes from (owner, 2026-09-23: a)
+
+`shl` can push bits off the left-hand end, so the compiler must know
+how wide the number is. **Any operand whose type it can work out is
+enough** — it does not have to be a declared name:
+
+```
+let 'v': uint32 = 3;
+let 'a': uint32 = 2 shl 3;              # 16 — the literal takes the uint32 of its context
+let 'b': uint32 = ('v' mod 16) shl 2;   # 12 — the expression is plainly a uint32
+```
+
+Same for `not.bit` and the wrapping operators. A literal takes its
+width from its context, as a literal takes its type from its context
+everywhere else in the language. Proposed alternatives: the left
+operand must be a name or a `to.T[…]`, so the width is always visible
+in the operation itself; or that rule for bare literals only. Owner:
+the compiler can work it out, so it should.
+
+The sentence above — "the compiler knows every width; the oracle needs
+the left operand declared" — was always about the oracle's limit, not
+the language's rule. CCA had read it as a rule and refused both lines;
+it is the one that changes. Found by the generator on its first run: it
+was two-thirds of every disagreement until check claude steered around
+it.
+
 ## Not yet listed (open)
 
 - Integer division vs. `/` on `int` (truncate? error on inexact?).

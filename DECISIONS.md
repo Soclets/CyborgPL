@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A shift's width comes from any operand whose type is known (owner: a)
+
+The generator's first-run finding, and two-thirds of its early
+disagreements. `let 'a': uint32 = 2 shl 3;` and
+`let 'b': uint32 = ('v' mod 16) shl 2;` ran in the oracle and were
+refused by CCA ("`shl` only knows a declared width"). Proposed (a) any
+operand whose type the compiler can work out is enough, a literal
+taking its width from its context as literals do everywhere else; (b)
+the left operand must be a name or a `to.T[…]`, so the width is visible
+in the operation; (c) (b) for bare literals only. Owner asked what
+`shl` is, had the two lines worked out (16 and 12), and asked why (a)
+would not be possible — it is: the obstacle was never technical.
+Owner: a. `operators.md`'s "the compiler knows every width; the oracle
+needs the left operand declared" was always about the oracle's limit;
+CCA had read it as a rule and is the one to change.
+
 ### 2026-09-23 — Generated programs read input as an environment variable's length (owner: a)
 
 Check claude's second generator question, the same shape as the
