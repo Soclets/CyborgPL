@@ -44,6 +44,7 @@ the owner explicitly chooses it.
 - Branch: `main`. Author: `Tankun Sriket <tankunsriket63741ecff056.invalid>`
   (repo-local config, already set).
 - Every commit ends with the trailer in the session's house name — `Co-Authored-By: design claude <noreply@anthropic.com>` from this session, `compiler claude` from the compiler session. A house name says which session wrote it and stays put when the model changes (owner, 2026-09-23).
+- Commit subjects are `kind.folder.narrowing: sentence` (owner, 2026-09-23). Kinds: `decision`, `design`, `feature`, `fix`, `test`, `house`. The second word is the folder (`cca`, `synthia`, `oracle`, `check`, `examples`), or the topic for `decision`/`design` and for `house` (`house.license`, `house.readme`, `house.brand`). The third word is optional, and there is never a fourth. E.g. `fix.oracle.width: the context type leaked into a call's arguments`. `DECISIONS.md` has the full entry.
 
 ## Related
 

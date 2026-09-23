@@ -27,6 +27,13 @@ A house name, not a model name, so it stays put when the model changes.
 The design session signs `design claude`, the compiler session
 `compiler claude`; the log says which session wrote what.
 
+Commit subjects follow the house shape (owner, 2026-09-23):
+`kind.folder.narrowing: sentence`. The kinds are `decision`, `design`,
+`feature`, `fix`, `test` and `house`, and the third word is optional.
+Yours will mostly be `test.check: seed 23, …` for a corpus case
+and `feature.check.shrink: …` / `fix.check: …` for the tools.
+The full rule is in `CLAUDE.md` and `DECISIONS.md`.
+
 ## Why you exist, and the rule that makes it work
 
 The compiler cannot check its own work. **You are a different author

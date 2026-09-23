@@ -27,6 +27,13 @@ commits carry `design claude`; yours carry `compiler claude`, so the
 log says who wrote what — a house name, not a model name, so it stays
 put when the model changes.
 
+Commit subjects follow the house shape (owner, 2026-09-23):
+`kind.folder.narrowing: sentence`. The kinds are `decision`, `design`,
+`feature`, `fix`, `test` and `house`, and the third word is optional.
+Yours will mostly be `feature.cca.precog: layers 1 and 2`,
+`fix.cca: …`, `feature.synthia.run: …`.
+The full rule is in `CLAUDE.md` and `DECISIONS.md`.
+
 ## Where you work (owner, 2026-09-22)
 
 The same repository, `Artificial-IntelligenceAI/CyborgPL`, on `main` —

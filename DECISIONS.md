@@ -5,6 +5,40 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Commit subjects: `kind.folder.narrowing: sentence` (owner)
+
+Every commit's first line says what kind of change it is, then where,
+then optionally something narrower, with dots, as the language narrows
+(`str.each.point`, `lend.mut`), and never more than three words deep:
+
+```
+decision.slicing: list.slice / array.slice, owning its elements
+design.precog: the proof cache key, written down
+feature.oracle.map: map.keys / map.values / map.pairs
+fix.cca.precog: the interval for a widening loop
+test.check: seed 23, arithmetic unchecked in a comparison
+house.license: Apache-2.0 WITH LLVM-exception
+```
+
+The kinds: `decision`, `design`, `feature`, `fix`, `test`, `house`.
+The second word is the **folder** (`cca`, `synthia`, `oracle`, `check`,
+`examples`) for code and tests, and the **topic** for `decision` and
+`design` (they all live in `design/` and `DECISIONS.md`, so the folder
+would say nothing) and for `house` (`house.license`, `house.readme`,
+`house.brand`, which covers the logo, names and trademark).
+
+Owner asked for organised categories like `<category>:`. Proposed first
+were plain prose, Conventional Commits (`feat(scope):`), and one word
+per repo area (`oracle:`, `cca:`). The owner suggested narrowing with
+`.`, then kind first (`feature.compiler.precog`, `fix.compiler.precog`).
+Design claude proposed `decision` as its own kind rather than
+`feature.decision`. For upkeep the owner wanted a word other than
+`repo`; the proposals were `house`, `meta`, `project`, `chore`, `brand`,
+and the owner chose `house`. For the second word, folder names over
+plain words (`compiler`, `build`) (owner), and `house.brand` over
+`house.logo` (owner). The trailer still says which session wrote the
+commit. Earlier commits keep their prose subjects.
+
 ### 2026-09-23 — List slicing: `list.slice` / `array.slice`, owning its elements (owner: a, a)
 
 Surfaced by the `range`-as-a-value question: text had
