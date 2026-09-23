@@ -1,0 +1,18 @@
+# Powers at run time: by squaring, each multiply checked only when the
+# answer needs it; xx~ wraps at its values' size. Each true case adds a bit.
+extern fn exit ['code': int32];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+MAIN {
+    let 's' := "ab";
+    nocheck let 'two': int64 = to.int64[strlen[lend 's']];
+    let mut 'got': int64 = 0;
+    if 'two' xx 10 == 1024 { 'got' = 'got' + 1; }
+    if ('two' + 1) xx 0 == 1 { 'got' = 'got' + 2; }
+    if (0 - 'two') xx 3 == -8 { 'got' = 'got' + 4; }
+    let 'w': uint8 = to.uint8['two' + 1];
+    let 'e5': uint8 = to.uint8['two' + 3];
+    if 'w' xx~ 'e5' == 243 { 'got' = 'got' + 8; }
+    let 'e6': uint8 = to.uint8['two' + 4];
+    if 'w' xx~ 'e6' == 217 { 'got' = 'got' + 16; }
+    nocheck exit[to.int32['got']];
+}

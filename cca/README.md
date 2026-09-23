@@ -313,3 +313,10 @@ Dated, with the alternative, so each can become a question later.
   is followed eight calls deep as before. Alternative: a larger cap (slower
   builds on wide ranges), or symbolic summaries (a formula in the argument
   rather than a table), which is a bigger piece of work.
+- **2026-09-24 — A negative exponent stops `xx~` as well as `xx`.** For
+  `xx` it follows from the rules: a negative exponent makes a fraction,
+  which no integer holds. For the wrapping power the design says
+  wrapping is "never a check", which is about overflow; the oracle
+  refuses a negative exponent there too, and CCA does the same.
+  Alternative: `xx~` with a negative exponent defined as something (0, or
+  an error at compile time only). Asked of the design session.

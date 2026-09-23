@@ -1357,7 +1357,11 @@ impl Precog {
             (Op::ListRemove, Domain::Seq { len, elem }) => Domain::Seq { len: len.sub(&ISet::one(1)).clamp(0, i64::MAX as i128), elem },
             (Op::MapSet, Domain::Map { len, key, val }) => Domain::Map { len: len.add(&ISet::range(0, 1)).clamp(0, i64::MAX as i128), key, val },
             (Op::MapRemove, Domain::Map { len, key, val }) => Domain::Map { len: len.sub(&ISet::range(0, 1)).clamp(0, i64::MAX as i128), key, val },
-            (Op::SimdStore, d) => d,
+            // A store writes N elements whose lanes Precog does not follow
+            // (`simd.md`, a domain per lane, is not built yet): the length
+            // stays, the elements become anything. Keeping them as they
+            // were folded an `if` about a stored element to false.
+            (Op::SimdStore, Domain::Seq { len, .. }) => Domain::Seq { len, elem: Box::new(Domain::Any) },
             _ => return,
         };
         env.insert(target.local, after);
@@ -1643,6 +1647,17 @@ impl Precog {
                 }
                 let shifted = a.mul(&ISet::range(1 << blo.max(0), 1 << bhi.max(0)));
                 self.fit(&shifted, lo, hi, &ty)
+            }
+            SiteKind::NegativeExponent => {
+                let Some(Domain::Ints(e)) = ds.first() else { return Verdict::Unproven };
+                let Some((lo, hi)) = e.bounds() else { return Verdict::Unproven };
+                if lo >= 0 {
+                    Verdict::Proven { how: "the exponent is never negative" }
+                } else if hi < 0 {
+                    Verdict::Fails { counterexample: format!("every time: the exponent is {}", describe_ints(e)) }
+                } else {
+                    Verdict::Fails { counterexample: format!("the exponent can be {}", lo) }
+                }
             }
             SiteKind::SliceRange => {
                 let (Some(Domain::Ints(a)), Some(Domain::Ints(b)), Some(Domain::Ints(n))) = (ds.first(), ds.get(1), ds.get(2)) else { return Verdict::Unproven };

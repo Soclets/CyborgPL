@@ -1112,11 +1112,26 @@ impl<'a> FnBuilder<'a> {
     /// The check sites a binary operation carries (`precog.md`).
     fn binary_sites(&mut self, op: &BinOp, l: &Operand, r: &Operand, result_ty: &Ty, span: SpanId) {
         let ty = self.resolve_ty(result_ty);
+        // A vector's operators are the lane's, N times (`simd.md`): the same
+        // sites, about every lane, at the lane's type. A comparison's
+        // answer is a vector of `bool`s and has none.
+        let ty = match ty.base() {
+            Ty::Simd { elem, .. } if !op.is_comparison() => (**elem).clone(),
+            _ => ty,
+        };
         let int = ty.is_int();
         match op {
+            // A negative exponent is a fraction, for the wrapping power too
+            // (the oracle's reading; the design is silent — cca/README.md).
+            BinOp::WrapPow if int => {
+                self.site(SiteKind::NegativeExponent, vec![r.clone()], span);
+            }
             // Wrapping arithmetic is always defined: never a site.
             BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => {}
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow if int => {
+                if *op == BinOp::Pow {
+                    self.site(SiteKind::NegativeExponent, vec![r.clone()], span);
+                }
                 self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
             BinOp::Div if int => {

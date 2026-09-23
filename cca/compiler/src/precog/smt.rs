@@ -1296,6 +1296,10 @@ impl<'a> Enc<'a> {
                 // 1-based: legal is 1 ..= len.
                 Some(format!("(not (and {} {}))", self.cmp_const(&i, "bvsge", 1)?, self.cmp_vals(&i, "bvsle", &len)?))
             }
+            SiteKind::NegativeExponent => {
+                let e = ops.first().cloned().flatten()?;
+                self.cmp_const(&e, "bvslt", 0)
+            }
             SiteKind::SliceRange => {
                 let a = ops.first().cloned().flatten()?;
                 let b = ops.get(1).cloned().flatten()?;
