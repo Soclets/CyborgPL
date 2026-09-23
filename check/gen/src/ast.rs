@@ -21,6 +21,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 /// to mishandle (finding sent 2026-09-23). Only the generator's own view.
 pub static NARROW_64: AtomicBool = AtomicBool::new(false);
 
+/// While set, a printed value is passed as `to.int64[…]` / `to.uint64[…]`,
+/// so no literal group in it can take the printer parameter's width instead
+/// of its neighbour's — a question open with the owner (2026-09-23).
+pub static PRINT_THROUGH_TO: AtomicBool = AtomicBool::new(false);
+
 pub const INTS: [Ty; 8] = [Ty::I8, Ty::I16, Ty::I32, Ty::I64, Ty::U8, Ty::U16, Ty::U32, Ty::U64];
 
 impl Ty {
@@ -438,8 +443,14 @@ fn render_stmt(out: &mut String, s: &Stmt, indent: usize, loose: bool) {
         Stmt::Break => out.push_str(&format!("{pad}break;\n")),
         Stmt::Continue => out.push_str(&format!("{pad}continue;\n")),
         Stmt::Print { signed, value } => {
-            let f = if *signed { "put_i" } else { "put_u" };
-            out.push_str(&format!("{pad}{f}[{}];\n", ex(value)));
+            let (f, to) = if *signed { ("put_i", "int64") } else { ("put_u", "uint64") };
+            if PRINT_THROUGH_TO.load(Ordering::Relaxed) {
+                // The value's own width decides its arithmetic; the
+                // conversion stops the parameter's width reaching in.
+                out.push_str(&format!("{pad}{f}[to.{to}[{}]];\n", ex(value)));
+            } else {
+                out.push_str(&format!("{pad}{f}[{}];\n", ex(value)));
+            }
         }
         Stmt::Return(e) => out.push_str(&format!("{pad}return {};\n", ex(e))),
     }

@@ -3,6 +3,17 @@
 //! so a candidate that breaks the program is simply not kept.
 
 use crate::ast::*;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Only remove or unwrap statements and functions; never touch an
+/// expression, a type or a tier. For a `check` CCA could not prove: the
+/// generator's clamps are what make it provable, and simplifying an
+/// expression can remove one and make the refusal right (seed 58, twice).
+pub static STRUCTURAL_ONLY: AtomicBool = AtomicBool::new(false);
+
+fn structural() -> bool {
+    STRUCTURAL_ONLY.load(Ordering::Relaxed)
+}
 
 pub fn candidates(p: &Program) -> Vec<Program> {
     let mut out = vec![];
@@ -21,7 +32,7 @@ pub fn candidates(p: &Program) -> Vec<Program> {
             out.push(q);
         }
     }
-    if p.loose {
+    if p.loose && !structural() {
         out.push(Program { loose: false, ..p.clone() });
     }
     // Statement removals first: they shrink fastest.
@@ -89,6 +100,7 @@ fn block_variants_from(b: &[Stmt], keep: usize) -> Vec<Vec<Stmt>> {
 fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
     let mut out: Vec<Vec<Stmt>> = vec![];
     match s {
+        Stmt::Let { .. } | Stmt::Assign { .. } if structural() => {}
         Stmt::Let { tier, name, mutability, ty, value } => {
             if *tier != Tier::Default {
                 out.push(vec![Stmt::Let { tier: Tier::Default, name: name.clone(), mutability: *mutability, ty: *ty, value: value.clone() }]);
@@ -179,7 +191,7 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
         }
         Stmt::Block { tier, body } => {
             out.push(body.clone());
-            if *tier != Tier::Default {
+            if *tier != Tier::Default && !structural() {
                 out.push(vec![Stmt::Block { tier: Tier::Default, body: body.clone() }]);
             }
             for b in block_variants(body) {
@@ -195,6 +207,9 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
 /// literals, and every simplification of a part.
 fn expr_variants(e: &Expr) -> Vec<Expr> {
     let mut out = vec![];
+    if structural() {
+        return out;
+    }
     match e {
         Expr::Lit(v) => {
             if *v != 0 {

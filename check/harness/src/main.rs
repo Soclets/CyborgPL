@@ -67,8 +67,9 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or(String::new());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("mixed-width".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
+        check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
             size: self.num("size", 3) as u32,
             inputs: self.num("inputs", 0) as u32,
@@ -235,6 +236,7 @@ fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir:
     let kind = sig.split(':').next().unwrap_or("");
     engines::set_shrinking(true);
     let modes = [mode];
+    check_gen::shrink::STRUCTURAL_ONLY.store(sig.contains("cca build: check:"), std::sync::atomic::Ordering::Relaxed);
     let envs: Vec<Env> = if env.is_empty() { vec![] } else { vec![env.clone()] };
     let oracle_class = |src: &str, d: &Path| -> bool {
         std::fs::create_dir_all(d).unwrap();
