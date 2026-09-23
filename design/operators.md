@@ -109,7 +109,9 @@ the arithmetic inside its arguments. So `let 'v': uint8 = g[0 > (-1) -
 It stops at a **comparison** as well: a `bool` holds the comparison's
 answer, never its operands, which take their width from each other by
 the rule above. So `let 'b': bool = (5 -~ 'w') > 1;` is a `uint32`
-subtraction when `'w'` is a `uint32`.
+subtraction when `'w'` is a `uint32`. And the other side does size it: in
+`'n' > (0 -~ 1)` with `'n'` a `uint64`, the literal group wraps in
+`uint64`.
 
 The sentence above — "the compiler knows every width; the oracle needs
 the left operand declared" — was always about the oracle's limit, not

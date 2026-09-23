@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Oracle bug: a comparison's typed side did not size a literal group on the other (verification session)
+
+Generator seed 90: `let 'b': bool = 'n' > (0 -~ 1);` with `'n'` a
+`uint64` was refused by the oracle ("`-~` wraps modulo a type's size,
+so it needs to know which") and built by CCA, which was right. The fix
+for seed 93 had stopped the stored `bool` at the comparison, but the
+width did not then pass from one side of the comparison to the other,
+as the rule says it does (88da73f: "any operand whose type the compiler
+can work out"). Fixed. `examples/context_stops_at_a_comparison.cpls`
+pins it.
+
 ### 2026-09-23 — The shorter name may differ: `pub fn new_circle = shapes.circle.new;` (owner: a)
 
 First of the three leftovers from `pub fn area = shapes.circle.area;`.

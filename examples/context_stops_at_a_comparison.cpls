@@ -4,5 +4,7 @@ MAIN {
     let 'w': uint32 = 3;
     let 'b': bool = (5 -~ 'w') > 1;          # a uint32 subtraction, 'w' says so, not a bool one
     let 'c': bool = 1 < (0 -~ 'w');          # wraps to 4294967293
-    std::printu.stdout['b', " ", 'c', " ", 0 -~ 'w', \n];
+    let 'n': uint64 = 5;
+    let 'd': bool = 'n' > (0 -~ 1);          # but the other side sizes it: 0 -~ 1 wraps in uint64
+    std::printu.stdout['b', " ", 'c', " ", 0 -~ 'w', " ", 'd', \n];
 }

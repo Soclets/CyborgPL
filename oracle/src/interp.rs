@@ -1590,7 +1590,15 @@ impl<'p> Interp<'p> {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(op, l, r, _) => {
-                let (a, pa) = self.eval(l)?;
+                // A comparison's operands take their width from each other (2026-09-23): the
+                // stored `bool` says nothing, but a typed side sizes a literal group on the other
+                // (`'n' > (0 -~ 1)` wraps in uint64; verification session, seed 90).
+                let cmp = matches!(op.as_str(), "==" | "!==" | "<" | ">" | "<==" | ">==");
+                let saved_expected = self.expected.clone();
+                if cmp { self.expected = None; let other = self.expr_ty(r); self.expected = other; }
+                let r_a = self.eval(l);
+                if cmp { self.expected = saved_expected.clone(); }
+                let (a, pa) = r_a?;
                 // the language's operator, defined for a user type (2026-09-20)
                 if matches!(a, Value::Struct(..) | Value::Enum(..)) {
                     let shape = shape_of(&a);
@@ -1598,7 +1606,10 @@ impl<'p> Interp<'p> {
                         return self.custom_op_with(op, (a, pa), l, r, line);
                     }
                 }
-                let (b, pb) = self.eval(r)?;
+                if cmp { self.expected = None; let other = self.expr_ty(l); self.expected = other; }
+                let r_b = self.eval(r);
+                if cmp { self.expected = saved_expected; }
+                let (b, pb) = r_b?;
                 // A bare literal adopts the other side's family.
                 let (a, b) = match (&a, &b, &pa, &pb) {
                     (Value::Bin(_), Value::Int(i), _, Prov::Literal) => (a.clone(), Value::Bin(*i as f64)),
