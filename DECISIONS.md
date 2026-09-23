@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A shift's count must be 0 to width − 1 (owner: a)
+
+Found by the generator. `let 'a': int8 = 'v' shr 8;` and `'v' shr (-1)`
+were errors in the oracle and proven-safe zeroes in CCA. Proposed (a)
+any count outside 0..width−1 is a check site for both directions; (b)
+`shr` by the width or more is defined as 0, only a negative count
+checked; (c) (a) for `shl`, (b) for `shr`. Owner: "why don't they just
+use minus?" — which is the case for (a): `shr (-1)` means `shl 1`, so a
+negative count is never deliberate, and shifting every bit out is never
+how anyone asks for 0. Owner: a. Recorded with it, unwritten until now
+though both engines agreed: `shr` on a signed value is arithmetic and
+keeps the sign.
+
 ### 2026-09-23 — Oracle bug: two failing tasks in one block (compiler session)
 
 Compiler claude, building `concur`: two `concur` statements in one
