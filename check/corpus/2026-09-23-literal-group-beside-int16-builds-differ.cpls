@@ -1,6 +1,5 @@
-# Finding 2026-09-23 (generator seed 25, shrunk): CCA's normal build runs this, its
-# --assert-proofs build stops with exit 101; which width the literal group takes is
-# also asked of the design session.
+# Finding 2026-09-23 (generator seed 25, shrunk). Owner, dc83c05: plain math is
+# exact until it lands, so the literal group is -51967 and put_i prints 8..0.
 # env CHK_IN1 0
 # env CHK_IN2 0
 # check claude generator, seed 25

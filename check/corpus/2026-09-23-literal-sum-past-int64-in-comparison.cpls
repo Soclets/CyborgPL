@@ -1,0 +1,49 @@
+# Finding 2026-09-23 (generator seed 439, shrunk): CCA traps on a literal sum of
+# 1.17e19 in a comparison. Owner, dc83c05: plain math is exact up to 64 bits, so
+# this compares true values and runs.
+# env CHK_IN1 0
+# env CHK_IN2 0
+# check claude generator, seed 439
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    let mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
+    while 'v' / 'p' >== 10 {
+        'p' = 'p' x 10;
+    }
+    loop {
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' / 'p')]];
+        'v' = 'v' mod 'p';
+        if 'p' == 1 { break; }
+        'p' = 'p' / 10;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' < 0 {
+        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+    } else {
+        emit[to.uint64['n'], false];
+    }
+}
+
+MAIN {
+    let 'in1_key' := "CHK_IN1";
+    nocheck let 'in1': uint64 = strlen[getenv[lend 'in1_key']];
+    let 'in2_key' := "CHK_IN2";
+    nocheck let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
+    if 'in2' == 1 {
+    } else if 3876992840477302775 + 7782534087963747351 > 0 {
+    }
+}
