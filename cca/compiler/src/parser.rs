@@ -214,6 +214,9 @@ impl<'a> Parser<'a> {
             } else {
                 vis = Vis::Pub;
             }
+            if self.is_word("bare") {
+                return self.fail("there are no bare names from another Limb: what a Limb makes `pub` is reached by its path, and only operators come bare (owner, 2026-09-23)");
+            }
             if self.is_word("MAIN") {
                 return self.fail("`MAIN` is never `pub`: it is the program's block, not something another Limb can reach");
             }
@@ -909,9 +912,9 @@ impl<'a> Parser<'a> {
         while self.is(&Tok::LBracket) && self.bracket_is_bound() {
             let bstart = self.span();
             self.bump();
-            let lo = self.expr(0)?;
+            let lo = self.bound_value()?;
             self.expect(&Tok::Comma, "`,` between the bounds")?;
-            let hi = self.expr(0)?;
+            let hi = self.bound_value()?;
             let unit = if let Tok::Word(w) = self.peek().clone() {
                 if !is_keyword(&w) && w != "x" {
                     Some(self.ident("a unit")?)
@@ -947,8 +950,27 @@ impl<'a> Parser<'a> {
         ok
     }
 
-    /// One end of a bound: a number, possibly negative.
+    /// One end of a bound as written: `min` or `max`, the base type's own
+    /// limit (`int32[1, max]`), or a value.
+    fn bound_value(&mut self) -> Result<Expr> {
+        if let Tok::Word(w) = self.peek().clone() {
+            if w == "min" || w == "max" {
+                let span = self.bump().span;
+                let path = Path { limb: None, segs: vec![Ident { name: w, span }], span };
+                return Ok(Expr { kind: ExprKind::Path(path), span });
+            }
+        }
+        self.expr(0)
+    }
+
+    /// One end of a bound: a number, possibly negative, or `min` / `max`.
     fn bound_end(&mut self) -> bool {
+        if let Tok::Word(w) = self.peek() {
+            if w == "min" || w == "max" {
+                self.bump();
+                return true;
+            }
+        }
         if self.is_op("-") {
             self.bump();
         }

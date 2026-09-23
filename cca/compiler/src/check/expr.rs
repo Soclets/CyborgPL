@@ -1802,10 +1802,12 @@ impl Checker {
             ("list", ["length"]) => BuiltinHead::B(Builtin::ListLength),
             ("list", ["append"]) => BuiltinHead::B(Builtin::ListAppend),
             ("list", ["remove"]) => BuiltinHead::B(Builtin::ListRemove),
+            ("list", ["slice"]) => BuiltinHead::B(Builtin::ListSlice),
             ("list", ["empty"]) => return err(Diagnostic::error("`list.empty` is a value, not a call: write it without brackets").at(span)),
-            ("list", [other]) => return err(Diagnostic::error(format!("`list.{}` does not exist: a list has `length`, `append`, `remove`", other)).at(span)),
+            ("list", [other]) => return err(Diagnostic::error(format!("`list.{}` does not exist: a list has `length`, `append`, `remove`, `slice`", other)).at(span)),
             ("array", ["length"]) => BuiltinHead::B(Builtin::ArrayLength),
-            ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` only", other)).at(span)),
+            ("array", ["slice"]) => BuiltinHead::B(Builtin::ArraySlice),
+            ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` and `slice`", other)).at(span)),
             ("map", ["length"]) => BuiltinHead::B(Builtin::MapLength),
             ("map", ["has"]) => BuiltinHead::B(Builtin::MapHas),
             ("map", ["get"]) => BuiltinHead::B(Builtin::MapGet),
@@ -1953,6 +1955,24 @@ impl Checker {
                     return err(Diagnostic::error("`list.remove` takes a 1-based position").at(positional[1].span));
                 }
                 (vec![a, Arg::Value(i)], elem)
+            }
+            Builtin::ListSlice | Builtin::ArraySlice => {
+                arity(3, self)?;
+                let a = self.lent_arg(ctx, positional[0], &name, false)?;
+                let at = self.resolve(&self.arg_type(&a));
+                let elem = match (&b, at.base()) {
+                    (Builtin::ListSlice, Ty::Seq { elem, kind: SeqKind::List }) | (Builtin::ArraySlice, Ty::Seq { elem, kind: SeqKind::Array }) => (**elem).clone(),
+                    // A `:=` collection is neither yet, and slicing only reads.
+                    (_, Ty::Seq { elem, kind: SeqKind::Free(_) }) => (**elem).clone(),
+                    (Builtin::ListSlice, Ty::Seq { kind: SeqKind::Array, .. }) => return err(Diagnostic::error(format!("{} is an `array`: its slice is `array.slice[…]`", self.arg_name(ctx, &a))).at(span)),
+                    (_, Ty::Seq { kind: SeqKind::List, .. }) => return err(Diagnostic::error(format!("{} is a `list`: its slice is `list.slice[…]`", self.arg_name(ctx, &a))).at(span)),
+                    (_, other) => return err(Diagnostic::error(format!("`{}` takes a {}, and {} is a `{}`", name, builtin_subject(&b), self.arg_name(ctx, &a), self.spell(other))).at(positional[0].span)),
+                };
+                let first = self.pos_arg(ctx, positional[1], &name)?;
+                let last = self.pos_arg(ctx, positional[2], &name)?;
+                // A slice owns its elements, and is a list whichever it came
+                // from (`lists.md`); Precog may lower it to an array.
+                (vec![a, first, last], Ty::Seq { elem: Box::new(elem), kind: SeqKind::List })
             }
             Builtin::MapHas | Builtin::MapGet | Builtin::MapRemove => {
                 arity(2, self)?;
@@ -2273,8 +2293,8 @@ pub enum FlatArg {
 
 fn builtin_subject(b: &Builtin) -> &'static str {
     match b {
-        Builtin::ListLength | Builtin::ListAppend | Builtin::ListRemove => "list",
-        Builtin::ArrayLength => "array",
+        Builtin::ListLength | Builtin::ListAppend | Builtin::ListRemove | Builtin::ListSlice => "list",
+        Builtin::ArrayLength | Builtin::ArraySlice => "array",
         Builtin::MapLength | Builtin::MapHas | Builtin::MapGet | Builtin::MapSet | Builtin::MapRemove | Builtin::MapKeys | Builtin::MapValues | Builtin::MapPairs => "map",
         Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes | Builtin::StrEach(_) => "text",
         _ => "value",

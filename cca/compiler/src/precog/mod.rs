@@ -885,6 +885,21 @@ impl Precog {
                 Domain::Seq { len, .. } => Domain::Ints(len),
                 _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
             },
+            // As long as its positions say, and never longer than the list;
+            // its elements are the list's.
+            Op::ListSlice => {
+                let (len, elem) = match arg(self, 0) {
+                    Domain::Seq { len, elem } => (len, elem),
+                    _ => (ISet::Range { lo: 0, hi: i64::MAX as i128 }, Box::new(Domain::Any)),
+                };
+                let (a, b) = (arg(self, 1), arg(self, 2));
+                let n = match (a, b) {
+                    (Domain::Ints(a), Domain::Ints(b)) => b.sub(&a).add(&ISet::one(1)),
+                    _ => ISet::Range { lo: 0, hi: i64::MAX as i128 },
+                };
+                let top = len.bounds().map(|(_, h)| h).unwrap_or(i64::MAX as i128);
+                Domain::Seq { len: n.clamp(0, top), elem }
+            }
             Op::MapLength => match arg(self, 0) {
                 Domain::Map { len, .. } => Domain::Ints(len),
                 _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
@@ -1215,6 +1230,19 @@ impl Precog {
                 }
                 let shifted = a.mul(&ISet::range(1 << blo.max(0), 1 << bhi.max(0)));
                 self.fit(&shifted, lo, hi, &ty)
+            }
+            SiteKind::SliceRange => {
+                let (Some(Domain::Ints(a)), Some(Domain::Ints(b)), Some(Domain::Ints(n))) = (ds.first(), ds.get(1), ds.get(2)) else { return Verdict::Unproven };
+                let (Some((alo, ahi)), Some((blo, bhi)), Some((nlo, nhi))) = (a.bounds(), b.bounds(), n.bounds()) else { return Verdict::Unproven };
+                if alo >= 1 && ahi <= blo.saturating_add(1) && bhi <= nlo {
+                    Verdict::Proven { how: "the slice is always inside" }
+                } else if ahi < 1 || blo > nhi {
+                    Verdict::Fails { counterexample: format!("every time: the slice from {} to {} runs outside a list of {} element(s)", describe_ints(a), describe_ints(b), describe_ints(n)) }
+                } else if alo > bhi.saturating_add(1) {
+                    Verdict::Fails { counterexample: format!("every time: the slice from {} to {} runs backwards; an empty slice is `pos n, pos n - 1`", describe_ints(a), describe_ints(b)) }
+                } else {
+                    Verdict::Fails { counterexample: format!("the slice can be from {} to {} when there are {} element(s)", alo.min(ahi), bhi, nlo) }
+                }
             }
             SiteKind::SimdRange { lanes } => {
                 let (Some(Domain::Ints(i)), Some(Domain::Seq { len, .. })) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };

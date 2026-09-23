@@ -170,6 +170,11 @@ pub enum Builtin {
     ListLength,
     ListAppend,
     ListRemove,
+    /// `list.slice[lend 'xs', pos a, pos b]`: a new list owning copies of
+    /// elements a to b (`lists.md`, owner 2026-09-23).
+    ListSlice,
+    /// `array.slice`: a `list[T]` too (owner; `lists.md`).
+    ArraySlice,
     ArrayLength,
     MapLength,
     MapHas,

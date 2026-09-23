@@ -76,3 +76,7 @@ loop_second_path 40
 
 # A remainder by 2^k - 1 is not folded from the ends of the range.
 mod_all_ones 126
+
+# Slices: 1-based, inclusive, owning copies; a slice past the end stops.
+slicing 146
+slice_unknown trap

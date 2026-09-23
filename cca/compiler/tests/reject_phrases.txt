@@ -33,6 +33,7 @@ assign_with_colon :: a declaration starts with `let`: `let 'x': int32 = …;`
 bad_comment_form :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bad_comment_suffix :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char :: `char` is never bare: say the unit
+bare_dropped :: there are no bare names from another Limb
 bare_int :: the typed form is always fully explicit
 bare_list_type :: `list` takes exactly one type parameter, the element type: `list[int32]`
 bare_owned_assign :: say what happens to it
@@ -77,6 +78,12 @@ const_shadow :: 'max' is a const and cannot be shadowed
 const_verb :: it is a value known at compile time
 construct_quoted_field :: `x = …`, not `'x' = …`
 detached_lend :: no scope protects it, so 'x' could be gone while the task still looks at it
+dir_badname :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
+dir_device_name :: is a reserved device name on Windows and cannot name a module
+dir_file_and_block :: a module cannot be both
+dir_main_in_module :: `MAIN` lives at the root of the Limb (`limb.cpls`), not in a module
+dir_no_root :: is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there
+dir_private_across_files :: it is visible there and in the modules nested inside it
 div_zero :: the divisor can be zero, and nothing can be divided by zero
 duration_negative :: a duration is a length of time, and this can take it below zero
 else_if_bare :: `else.if` became `else if`: two bare words
@@ -224,12 +231,14 @@ module_type_clash :: a module and a type cannot share a name
 module_uppercase :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
 mut_after_name :: expected `:=` or `=`; `mut` goes before the name: `let mut 'x' := …`
 ne :: `!=` is not an operator here: not-equal is `!==`
+no_bin128 :: there is no `bin128`
 no_precedence :: mathematics has no settled reading here (`6 / 2 x 3`)
 no_zero_value :: there is no implicit zero
 nocheck_lied :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp :: mathematics has no settled reading
 number_next_to_text :: join text with `++`, separate values with `,`
 number_to_char :: `char.point.from_code[…] otherwise …` builds one from a code
+one_ended_below :: the value can be outside what a `int8[1, 127]` holds
 op_builtin_for_int :: a struct or enum may define `op +` for itself, `int32` may not
 op_builtin_for_struct_ok_then_misuse :: expected a value of the operand (V), found an `integer`
 op_called_as_fn :: `'a' dot 'b'`, never `dot[…]`
@@ -246,6 +255,8 @@ op_star_undefined :: `*` is not an operator here: multiply is `x`
 op_three_operands :: an operator takes exactly two operands; `<+>` is declared with 3
 op_word_undefined :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
 other_limb :: a Limb is a dependency listed in `Synthia.cplm`, and none is
+overflow_below_zero :: `-` can leave what the type holds
+overflow_in_comparison :: `+` can leave what the type holds
 param_lent_chain :: `lent` (looks at it) or `lent.mut` (may modify it)
 param_type_first :: a parameter is written name first, then its type: `'a': int32`
 param_var :: an owning parameter is bare
@@ -273,12 +284,16 @@ quoted_func_name :: `fn add […]`, not `fn 'add'`
 quoted_main :: `fn main […]`, not `fn 'main'`
 range_as_value :: `range[…]` is only decided as what a `for` runs over; as a value on its own it is not
 range_assign_out :: the value can be outside what a `int32[0, 100]` holds
-range_bin_bounds_on_int :: an integer's bounds are integers: `int32[0, 100]`
+range_bin_bounds_on_int :: an integer's bounds are integers
+range_bound_below_unsigned :: -1 does not fit uint8
 range_bound_markers :: the bounds of a `range` are plain values: `range[0, 3]`
+range_bound_outside_type :: 300 does not fit uint8
 range_bounds_order :: the low bound comes first: `[0, 100]`
 range_convert_arm_missing :: every reason needs an arm
 range_convert_unhandled :: `to.int32[0, 100]` can fail (not_a_number, out_of_range): say what happens
 range_field_out :: the value can be outside what a `uint8[0, 100]` holds
+range_max_max :: the value can be outside what a `int32[2147483647, 2147483647]` holds
+range_max_on_low_side :: the low bound comes first
 range_overflows_type :: the value can be outside what a `int8` holds
 range_reassign_out :: the value can be outside what a `int32[0, 100]` holds
 range_to_c :: 'a' is written as the plain `int32`
@@ -298,6 +313,8 @@ simd_not_a_bool :: a vector is never a single answer
 simd_wrong_shape :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char :: 'a' is not declared
 size_of_alone :: `size` is followed by `.of`: `size.of[int32]`
+slice_needs_pos :: says the position with `pos`
+slice_past_end :: the slice can run outside the list
 spread_lent_no_verb :: `...` with no verb lends each element
 spread_lent_unbounded :: a call's shape is fixed per call
 spread_not_variadic :: the values would land on a fixed parameter
@@ -362,16 +379,8 @@ whichever_unhandled :: `whichever` can fail (closed) when every channel is close
 while_keyword :: `while 'x' < 3 { … }`
 wl_removes_code :: 'b' is not declared
 wrap_amp_form :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
+wrap_into_bool :: expected a value of the declared type (bool), found a whole number
 wrap_on_bin :: it only knows a declared integer width
 wrap_percent_form :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
 wrap_untyped_left :: `+~` needs a width, and nothing here gives one
 wrong_arg_count :: `one` takes 1 argument, and 2 were given
-dir_badname :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
-dir_device_name :: is a reserved device name on Windows and cannot name a module
-dir_file_and_block :: a module cannot be both
-dir_main_in_module :: `MAIN` lives at the root of the Limb (`limb.cpls`), not in a module
-dir_no_root :: is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there
-dir_private_across_files :: it is visible there and in the modules nested inside it
-overflow_below_zero :: `-` can leave what the type holds
-overflow_in_comparison :: `+` can leave what the type holds
-wrap_into_bool :: expected a value of the declared type (bool), found a whole number

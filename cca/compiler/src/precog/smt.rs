@@ -1122,6 +1122,19 @@ impl<'a> Enc<'a> {
                 // 1-based: legal is 1 ..= len.
                 Some(format!("(not (and {} {}))", self.cmp_const(&i, "bvsge", 1)?, self.cmp_vals(&i, "bvsle", &len)?))
             }
+            SiteKind::SliceRange => {
+                let a = ops.first().cloned().flatten()?;
+                let b = ops.get(1).cloned().flatten()?;
+                let n = ops.get(2).cloned().flatten()?;
+                // `a <= b + 1` one bit wider, so the + 1 cannot wrap.
+                let w = Self::signed_width(&a).max(Self::signed_width(&b)) + 1;
+                if w > 128 {
+                    return None;
+                }
+                let (x, y) = (self.resize(a.clone(), w, true), self.resize(b.clone(), w, true));
+                let not_backwards = format!("(bvsle {} (bvadd {} {}))", x.term, y.term, bv(1, w));
+                Some(format!("(not (and {} {} {}))", self.cmp_const(&a, "bvsge", 1)?, not_backwards, self.cmp_vals(&b, "bvsle", &n)?))
+            }
             SiteKind::Narrow { to } | SiteKind::LengthBound { to } => {
                 let v = ops.first().cloned().flatten()?;
                 let (lo, hi) = int_bounds(to)?;

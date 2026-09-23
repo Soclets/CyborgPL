@@ -396,6 +396,55 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 
+    /// `list.slice[lend 'xs', pos a, pos b]` — a new list owning copies of
+    /// elements a to b (`lists.md`). The positions were checked at their
+    /// own site: `1 <= a <= b + 1 <= length + 1`, so the count is never
+    /// negative and the copy never leaves the list. Always a copy for now;
+    /// eliding it where nobody can tell is Precog's, later.
+    pub(super) fn list_slice(&mut self, fi: usize, args: &[Operand], out: &Ty, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<BasicValueEnum<'ctx>> {
+        let place = args.first()?.place()?.clone();
+        let (at, ty) = self.slot_of(fi, &place, slots)?;
+        let elem = Self::elem_of(&ty)?;
+        let from = match self.ty(&ty)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        let shape = match self.ty(out)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        let esize = self.size_of_ty(&elem)?;
+        let w = self.ctx.i64_type();
+        let a = self.operand(fi, args.get(1)?, slots)?;
+        let a = self.fit(a, w.into()).into_int_value();
+        let b = self.operand(fi, args.get(2)?, slots)?;
+        let b = self.fit(b, w.into()).into_int_value();
+        let n = self.builder.build_int_sub(b, a, "span").ok()?;
+        let n = self.builder.build_int_add(n, w.const_int(1, false), "count").ok()?;
+        let bytes = self.builder.build_int_mul(n, w.const_int(esize, false), "bytes").ok()?;
+        let data = self.load_field_ptr(from, at, 0);
+        let skip = self.builder.build_int_sub(a, w.const_int(1, false), "zb").ok()?;
+        let skip = self.builder.build_int_mul(skip, w.const_int(esize, false), "skip").ok()?;
+        let src = unsafe { self.builder.build_gep(self.ctx.i8_type(), data, &[skip], "from").ok()? };
+        let fresh = self.alloc(bytes);
+        let cp = self.rt("cyborg_copy");
+        let _ = self.builder.build_call(cp, &[fresh.into(), src.into(), bytes.into()], "");
+        // As in a whole list's copy: an owning element is copied over its
+        // own shallow twin, or two lists would free one buffer twice.
+        if let Some(inner) = self.copy_fn(&elem) {
+            self.each_element(fresh, n, esize, func, move |cg, slot| {
+                let _ = cg.builder.build_call(inner, &[slot.into(), slot.into()], "");
+            });
+        }
+        let mut agg = shape.get_undef();
+        agg = self.builder.build_insert_value(agg, fresh, 0, "p").ok()?.into_struct_value();
+        agg = self.builder.build_insert_value(agg, n, 1, "n").ok()?.into_struct_value();
+        if shape.count_fields() > 2 {
+            agg = self.builder.build_insert_value(agg, n, 2, "c").ok()?.into_struct_value();
+        }
+        Some(agg.into())
+    }
+
     /// `list.remove[lend.mut 'xs', pos]` — hands the element back (decided
     /// 2026-09-21), so the list stops owning it and the caller starts.
     /// What followed it slides down; the order is the list's meaning.

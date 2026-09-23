@@ -441,6 +441,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     // These stand on their own: they guard a value that is
                     // already there, not the instruction after them.
                     SiteKind::Bounds => self.bounds_check(fi, *id, slots, func),
+                    SiteKind::SliceRange => self.slice_check(fi, *id, slots, func),
                     SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
                     SiteKind::LengthBound { .. } => self.length_check(fi, *id, slots, func),
                     SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::ShiftWidth | SiteKind::ShiftCount => pending.push(*id),
@@ -1240,6 +1241,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(None)
             }
             Op::ListRemove => Some(Some(self.list_remove(fi, args, slots)?)),
+            Op::ListSlice => {
+                let out = dest_ty?;
+                Some(Some(self.list_slice(fi, args, &out, slots, func)?))
+            }
             Op::MapSet => {
                 self.map_set(fi, args, slots)?;
                 Some(None)
@@ -1398,6 +1403,39 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let Ok(bad) = self.builder.build_or(too_low, too_high, "outside") else { return };
         let fail = self.ctx.append_basic_block(func, "index_outside");
         let good = self.ctx.append_basic_block(func, "index_ok");
+        let _ = self.builder.build_conditional_branch(bad, fail, good);
+        self.builder.position_at_end(fail);
+        self.trap(fi, id);
+        self.builder.position_at_end(good);
+    }
+
+    /// `1 <= a <= b + 1 <= length + 1`, in 128 bits so no `+ 1` wraps.
+    fn slice_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
+        let site = self.p.functions[fi].site(id).clone();
+        if !self.gets_check(&site.verdict) {
+            return;
+        }
+        let w = self.ctx.i128_type();
+        let mut v = Vec::new();
+        for (k, o) in site.operands.iter().enumerate().take(3) {
+            let read = match o.place() {
+                Some(p) => Operand::Read(p.clone()),
+                None => o.clone(),
+            };
+            let Some(x) = self.operand(fi, &read, slots) else { return };
+            let signed = self.operand_signed(fi, o).unwrap_or(k < 2);
+            v.push(self.fit_as(x, w.into(), signed).into_int_value());
+        }
+        let [a, b, n] = [v[0], v[1], v[2]];
+        let one = w.const_int(1, false);
+        let Ok(b1) = self.builder.build_int_add(b, one, "b1") else { return };
+        let Ok(low) = self.builder.build_int_compare(IntPredicate::SLT, a, one, "low") else { return };
+        let Ok(back) = self.builder.build_int_compare(IntPredicate::SGT, a, b1, "backwards") else { return };
+        let Ok(high) = self.builder.build_int_compare(IntPredicate::SGT, b, n, "high") else { return };
+        let Ok(bad) = self.builder.build_or(low, back, "bad") else { return };
+        let Ok(bad) = self.builder.build_or(bad, high, "outside") else { return };
+        let fail = self.ctx.append_basic_block(func, "slice_outside");
+        let good = self.ctx.append_basic_block(func, "slice_ok");
         let _ = self.builder.build_conditional_branch(bad, fail, good);
         self.builder.position_at_end(fail);
         self.trap(fi, id);

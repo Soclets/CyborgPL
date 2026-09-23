@@ -1322,6 +1322,15 @@ impl<'a> FnBuilder<'a> {
                 let list = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
                 self.site(SiteKind::SimdRange { lanes }, vec![idx, list], span);
             }
+            // 1 <= first <= last + 1 <= length + 1 (`lists.md`).
+            Op::ListSlice => {
+                let Some(Arg::Lend { place, .. }) = args.first() else { return };
+                let t = self.temp(&Ty::u64(), span);
+                self.push(StmtKind::Op { dest: Some(Place::local(t)), op: Op::ListLength, args: vec![Operand::Read(place.clone())] }, span);
+                let first = args.get(1).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(1)));
+                let last = args.get(2).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(0)));
+                self.site(SiteKind::SliceRange, vec![first, last, Operand::Read(Place::local(t))], span);
+            }
             // A value going into a collection has to fit what the
             // collection holds, as a store into a variable does.
             Op::ListAppend | Op::MapSet => {
@@ -1624,6 +1633,7 @@ fn builtin_op(b: &Builtin) -> Op {
     match b {
         Builtin::ListLength => Op::ListLength,
         Builtin::ListAppend => Op::ListAppend,
+        Builtin::ListSlice | Builtin::ArraySlice => Op::ListSlice,
         Builtin::ListRemove => Op::ListRemove,
         Builtin::ArrayLength => Op::ArrayLength,
         Builtin::MapLength => Op::MapLength,

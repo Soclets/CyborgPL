@@ -663,15 +663,38 @@ impl Items {
                 if let Some(u) = unit {
                     return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
                 }
-                let l = int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("an integer's bounds are integers: `int32[0, 100]`").at(lo.span)))?;
-                let h = int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("an integer's bounds are integers: `int32[0, 100]`").at(hi.span)))?;
+                // `min` and `max` are the base type's own limits
+                // (`input.md`, one-ended ranges): `int8[1, max]` is 1 to 127.
+                let limits = match &base {
+                    Ty::Int(IntW::Fixed { signed, bits }) => Some(int_range(*signed, *bits)),
+                    _ => None,
+                };
+                let end = |e: &ast::Expr| -> Result<i128> {
+                    if let Some(v) = int_literal(e) {
+                        return Ok(v);
+                    }
+                    if let ast::ExprKind::Path(p) = &e.kind {
+                        if p.is(&["min"]) || p.is(&["max"]) {
+                            let Some((min, max)) = limits else {
+                                return err(Diagnostic::error(format!("`{}` is the type's own limit, and this integer's width is not known yet", p.head())).at(e.span));
+                            };
+                            return Ok(if p.is(&["min"]) { min } else { max });
+                        }
+                    }
+                    err(Diagnostic::error("an integer's bounds are integers, or `min` / `max`: `int32[0, 100]`, `int32[1, max]`").at(e.span))
+                };
+                let (l, h) = (end(lo)?, end(hi)?);
                 if l > h {
                     return err(Diagnostic::error(format!("the low bound comes first: `[{}, {}]`", h, l)).at(span));
                 }
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
                     let (min, max) = int_range(*signed, *bits);
-                    if l < min || h > max {
-                        return err(Diagnostic::error(format!("the bound [{}, {}] does not fit {} (range {} to {})", l, h, spell(&base, self), min, max)).at(span));
+                    // A bound is a value of its type (owner, 2026-09-23):
+                    // no `uint8` is 300, and none is -1.
+                    for (v, e) in [(l, lo), (h, hi)] {
+                        if v < min || v > max {
+                            return err(Diagnostic::error(format!("{} does not fit {} ({} to {}): a range's bounds are values of its type", v, spell(&base, self), min, max)).at(e.span));
+                        }
                     }
                 }
                 Bound::Int { lo: l, hi: h }
@@ -680,8 +703,31 @@ impl Items {
                 if let Some(u) = unit {
                     return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
                 }
+                for e in [lo, hi] {
+                    if let ast::ExprKind::Path(p) = &e.kind {
+                        if p.is(&["min"]) || p.is(&["max"]) {
+                            return err(Diagnostic::error(format!("not yet: `{}` on a bin's range — CCA takes one-ended ranges on integers so far", p.head())).at(e.span));
+                        }
+                    }
+                }
                 let l = bin_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[0.0, 1.0]` — an integer's bounds are integers, and the two do not mix").at(lo.span)))?;
                 let h = bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[0.0, 1.0]`").at(hi.span)))?;
+                // The largest finite value of each width; a bound past it
+                // is no value of the type (owner, 2026-09-23).
+                let top = match &base {
+                    Ty::Bin(BinW::Fixed(16)) => Some(65504.0),
+                    Ty::Bin(BinW::Fixed(32)) => Some(f32::MAX as f64),
+                    Ty::Bin(BinW::Fixed(64)) => Some(f64::MAX),
+                    _ => None,
+                };
+                if let Some(top) = top {
+                    for (t, e) in [(&l, lo), (&h, hi)] {
+                        let v = t.parse::<f64>().unwrap_or(f64::INFINITY);
+                        if !(v.abs() <= top) {
+                            return err(Diagnostic::error(format!("{} does not fit {}: a range's bounds are values of its type", t, spell(&base, self))).at(e.span));
+                        }
+                    }
+                }
                 if l.parse::<f64>().unwrap_or(0.0) > h.parse::<f64>().unwrap_or(0.0) {
                     return err(Diagnostic::error(format!("the low bound comes first: `[{}, {}]`", h, l)).at(span));
                 }
@@ -723,6 +769,9 @@ impl Items {
             }
             Ok(())
         };
+        if path.limb.is_none() && head == "bin128" {
+            return err(Diagnostic::error("there is no `bin128`: quad precision is software arithmetic on every machine — `bin64`, or `deci128` for more digits (owner, 2026-09-23)").at(span));
+        }
         if path.limb.is_none() {
             if let Some(t) = primitive(head) {
                 if let Ty::Int(IntW::Fixed { bits: 128, .. }) = t {
@@ -938,7 +987,9 @@ pub fn primitive(head: &str) -> Option<Ty> {
     }
     let (signed, prefix) = if head.starts_with("uint") { (false, 4) } else if head.starts_with("int") { (true, 3) } else if head.starts_with("bin") {
         let bits: u16 = head[3..].parse().ok()?;
-        if matches!(bits, 16 | 32 | 64 | 128) {
+        // No `bin128` (owner, 2026-09-23): refused by name in
+        // `resolve_type_path`.
+        if matches!(bits, 16 | 32 | 64) {
             return Some(Ty::Bin(BinW::Fixed(bits)));
         }
         return None;

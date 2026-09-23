@@ -134,6 +134,7 @@ pub enum Op {
     ListLength,
     ListAppend,
     ListRemove,
+    ListSlice,
     ArrayLength,
     MapLength,
     MapHas,
@@ -213,6 +214,9 @@ pub enum SiteKind {
     /// `shr`: the count must be 0 to width - 1 (owner, 2026-09-23). A
     /// right shift cannot overflow, so the count is all there is to ask.
     ShiftCount,
+    /// `list.slice[…, pos a, pos b]`: `1 <= a <= b + 1 <= length + 1` —
+    /// inside the list, and not backwards; `pos n, pos n - 1` is empty.
+    SliceRange,
     /// `simd.load` / `simd.store`: is `i + N - 1` still inside?
     SimdRange { lanes: u32 },
     /// Equal keys must hash the same, for a type with its own `hash`.
@@ -240,6 +244,7 @@ impl SiteKind {
             SiteKind::LengthBound { to } => format!("this can take it outside the bound its type gives it (`{}`)", spell(to)),
             SiteKind::ShiftWidth => "the shift can move every bit out".into(),
             SiteKind::ShiftCount => "the shift count can be outside 0 to the width - 1".into(),
+            SiteKind::SliceRange => "the slice can run outside the list, or backwards".into(),
             SiteKind::SimdRange { lanes } => format!("the {} lanes can run past the end", lanes),
             SiteKind::KeyHashAgrees => "two keys this says are equal can hash differently, and the map would hold both".into(),
             SiteKind::LendOutlives => "the borrow can outlive what it borrows".into(),
