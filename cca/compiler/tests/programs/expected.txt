@@ -70,3 +70,9 @@ channels_released 105
 
 # A product of two literals takes its sign from where it goes.
 literal_product 7
+
+# Every path of a loop's trip is analysed, not only the first round.
+loop_second_path 40
+
+# A remainder by 2^k - 1 is not folded from the ends of the range.
+mod_all_ones 126

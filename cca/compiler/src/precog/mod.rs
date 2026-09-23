@@ -268,8 +268,45 @@ impl Precog {
         let mut work = vec![0usize];
         let mut returned = Domain::Empty;
         let mut sites_seen: HashMap<u32, Verdict> = HashMap::new();
+        // A trip ends when *every* path through it has come round, not when
+        // the first one does. A back edge therefore does not start the next
+        // trip itself: what it brings is joined into the loop's pending
+        // trip, and the trip starts once no block of that loop is waiting
+        // any more. Starting it at the first arrival wiped the states of the
+        // paths still on their way — `if 'b' { put_i[0]; }` inside a loop
+        // was never analysed when the `else` side got round first, and a
+        // value layer 1 saw only on the other call was folded into both.
+        let mut pending_trip: HashMap<usize, Env> = HashMap::new();
+        let mut head_body: HashMap<usize, Vec<usize>> = HashMap::new();
+        for ((_, h), body) in &loops {
+            head_body.entry(*h).or_default().extend(body.iter().copied());
+        }
 
-        while let Some(b) = work.pop() {
+        loop {
+            if let Some(h) = pending_trip.keys().copied().find(|h| !head_body.get(h).map(|bd| bd.iter().any(|x| x != h && work.contains(x))).unwrap_or(false)) {
+                let e = pending_trip.remove(&h).unwrap();
+                self.trips += 1;
+                let settled = matches!(&states[h], Some(old) if same(old, &e));
+                if !settled {
+                    if let Some(body) = head_body.get(&h) {
+                        for x in body {
+                            if *x != h {
+                                states[*x] = None;
+                            }
+                        }
+                    }
+                    states[h] = Some(e);
+                    if !work.contains(&h) {
+                        work.push(h);
+                    }
+                }
+            }
+            let Some(b) = work.pop() else {
+                if pending_trip.is_empty() {
+                    break;
+                }
+                continue;
+            };
             self.steps += 1;
             if self.steps > STEP_BUDGET {
                 self.gave_up = true;
@@ -395,7 +432,7 @@ impl Precog {
             }
             // Where the block goes, and what each successor then knows.
             let term = self.prog().functions[f].blocks[b].term.clone();
-            let go = |this: &mut Self, to: BlockId, e: Env, states: &mut Vec<Option<Env>>, work: &mut Vec<usize>| {
+            let mut go = |this: &mut Self, to: BlockId, e: Env, states: &mut Vec<Option<Env>>, work: &mut Vec<usize>| {
                 let i = to.0 as usize;
                 // This edge can be taken: what "reached on every run" is
                 // worked out from.
@@ -414,21 +451,15 @@ impl Precog {
                     None => e,
                     Some(old) => {
                         if looping && !over_budget {
-                            this.trips += 1;
-                            if same(old, &e) {
-                                // The trip changed nothing: the loop has
-                                // settled and going round again would say
-                                // the same thing.
-                                return;
-                            }
-                            if let Some(body) = loops.get(&(b, i)) {
-                                for x in body {
-                                    if *x != i {
-                                        states[*x] = None;
-                                    }
-                                }
-                            }
-                            e
+                            // Wait for the rest of this trip (above). If the
+                            // trip changes nothing, the loop has settled and
+                            // going round again would say the same thing.
+                            let joined = match pending_trip.remove(&i) {
+                                None => e,
+                                Some(p) => join(&p, &e, false, unsafe { &(*this.p).items }, |l| this.local_ty(f, l)),
+                            };
+                            pending_trip.insert(i, joined);
+                            return;
                         } else {
                             let m = join(old, &e, widening || (looping && over_budget), unsafe { &(*this.p).items }, |l| this.local_ty(f, l));
                             if same(old, &m) {
@@ -703,7 +734,12 @@ impl Precog {
                         None => return Domain::of_ty(&ty, &self.prog().items),
                     }
                 }
-                BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => return Domain::of_ty(&ty, &self.prog().items),
+                // Known values are executed outright (`precog.md`, layer 1):
+                // `5 and.bit 0` is 0, not "anything a `uint8` holds".
+                BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => match x.bitwise(y, op) {
+                    Some(s) => s,
+                    None => return Domain::of_ty(&ty, &self.prog().items),
+                },
                 _ => {
                     let cmp = cmp_of(op);
                     return match cmp {

@@ -605,6 +605,41 @@ fn corners(a: &ISet, b: &ISet, f: impl Fn(i128, i128) -> Option<i128>) -> ISet {
 }
 
 impl ISet {
+    /// A bitwise operator: exact for known values (two's complement in 128
+    /// bits agrees with every narrower width, sign-extended), and a safe
+    /// range otherwise; `None` when nothing short of the type can be said.
+    pub fn bitwise(&self, o: &ISet, op: &crate::ast::BinOp) -> Option<ISet> {
+        use crate::ast::BinOp as B;
+        let f = |x: i128, y: i128| -> Option<i128> {
+            match op {
+                B::AndBit => Some(x & y),
+                B::OrBit => Some(x | y),
+                B::Xor => Some(x ^ y),
+                // A count outside 0 to width - 1 is its own check site; it
+                // has no answer here.
+                B::Shl if (0..127).contains(&y) => Some(x.saturating_mul(1i128 << y)),
+                B::Shr if (0..127).contains(&y) => Some(x >> y),
+                _ => None,
+            }
+        };
+        let exact = pointwise(self, o, f);
+        if !exact.is_empty() {
+            return Some(exact);
+        }
+        let ((a1, a2), (b1, b2)) = (self.bounds()?, o.bounds()?);
+        if a1 < 0 || b1 < 0 {
+            return None;
+        }
+        let spread = |v: i128| -> i128 { if v <= 0 { 0 } else { (1i128 << (128 - v.leading_zeros()).min(126)) - 1 } };
+        match op {
+            B::AndBit => Some(ISet::range(0, a2.min(b2))),
+            B::OrBit | B::Xor => Some(ISet::range(0, spread(a2.max(b2)))),
+            B::Shr => Some(ISet::range(a1 >> b2.min(126), a2 >> b1.min(126))),
+            B::Shl if b2 < 126 => Some(ISet::range(a1.saturating_mul(1i128 << b1), a2.saturating_mul(1i128 << b2))),
+            _ => None,
+        }
+    }
+
     // An answer too big for 128 bits is *saturated*, never dropped. It was
     // dropped, and `'n' x 10000000000000000000` with `'n'` anything a
     // `uint64` holds came out as exactly 0 — the corner that overflowed was
@@ -642,52 +677,91 @@ impl ISet {
     pub fn mod_floor(&self, o: &ISet) -> ISet {
         // The mathematician's `mod`: the remainder takes the divisor's sign,
         // and `a == (a / b) x b + (a mod b)` with `/` flooring
-        // (`operators.md`). `1 mod -3` is -2, not -1: the truncated
-        // remainder moves by the divisor when its sign is the wrong one.
-        self.arith(
-            o,
-            |x, y| {
-                if y == 0 {
-                    return None;
-                }
-                let r = x.checked_rem(y).unwrap_or(0);
-                Some(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r })
-            },
-            false,
-        )
+        // (`operators.md`). `1 mod -3` is -2, not -1.
+        let f = |x: i128, y: i128| -> Option<i128> {
+            if y == 0 {
+                return None;
+            }
+            let r = x.checked_rem(y).unwrap_or(0);
+            Some(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r })
+        };
+        if self.is_empty() || o.is_empty() {
+            return ISet::Empty;
+        }
+        let exact = pointwise(self, o, f);
+        if !exact.is_empty() {
+            return exact;
+        }
+        // Not from the ends of the dividend's range: a remainder is not
+        // monotone. Both ends of `uint64` leave 0 when divided by 255 —
+        // 2^64 - 1 is a multiple of it — and "always 0" was folded into
+        // the binary. What is always true is the divisor's bound.
+        let (Some((a1, a2)), Some((b1, b2))) = (self.bounds(), o.bounds()) else { return ISet::Empty };
+        if b1 > 0 {
+            // 0 to b - 1; a non-negative dividend below the divisor is itself.
+            let hi = (b2 - 1).min(if a1 >= 0 { a2 } else { i128::MAX });
+            ISet::range(0, hi)
+        } else if b2 < 0 {
+            let lo = (b1 + 1).max(if a2 <= 0 { a1 } else { i128::MIN });
+            ISet::range(lo, 0)
+        } else {
+            // A divisor of either sign, or 0 and one sign: `x mod 1` is 0.
+            ISet::range(b1.saturating_add(1).min(0), b2.saturating_sub(1).max(0))
+        }
     }
     pub fn pow(&self, o: &ISet) -> ISet {
-        self.arith(
-            o,
-            |x, y| {
-                if y < 0 {
-                    return None;
+        let f = |x: i128, y: i128| -> Option<i128> {
+            if y < 0 {
+                return None;
+            }
+            // Saturated, like the others: a power too big to write down
+            // is still a power too big for the type.
+            let mut acc: i128 = 1;
+            let mut i = 0;
+            while i < y {
+                let next = acc.saturating_mul(x);
+                if next == acc && (acc == i128::MAX || acc == i128::MIN) {
+                    break;
                 }
-                // Saturated, like the others: a power too big to write down
-                // is still a power too big for the type.
-                let mut acc: i128 = 1;
-                let mut i = 0;
-                while i < y {
-                    let next = acc.saturating_mul(x);
-                    if next == acc && (acc == i128::MAX || acc == i128::MIN) {
-                        break;
-                    }
-                    acc = next;
-                    if acc == 0 || acc == 1 {
-                        break;
-                    }
-                    i += 1;
-                    if i > 256 {
-                        break;
-                    }
+                acc = next;
+                if acc == 0 || acc == 1 {
+                    break;
                 }
-                if acc == 1 && x == -1 && y % 2 == 1 {
-                    acc = -1;
+                i += 1;
+                if i > 256 {
+                    break;
                 }
-                Some(acc)
-            },
-            false,
-        )
+            }
+            if acc == 1 && x == -1 && y % 2 == 1 {
+                acc = -1;
+            }
+            Some(acc)
+        };
+        if self.is_empty() || o.is_empty() {
+            return ISet::Empty;
+        }
+        let exact = pointwise(self, o, f);
+        if !exact.is_empty() {
+            return exact;
+        }
+        let (Some((a1, a2)), Some((b1, b2))) = (self.bounds(), o.bounds()) else { return ISet::Empty };
+        let b1 = b1.max(0);
+        if b2 < 0 {
+            return ISet::Empty;
+        }
+        if a1 >= 0 {
+            // Non-negative base, non-negative power: monotone in the base,
+            // and at either end of the powers for a fixed one (0 and 1 are
+            // the bases that are not increasing).
+            let at = |x: i128, y: i128| f(x, y).unwrap_or(i128::MAX);
+            return ISet::range(at(a1, b1).min(at(a1, b2)), at(a2, b1).max(at(a2, b2)));
+        }
+        // A negative base: the sign flips with the power, and a zero in the
+        // range is a value too. Only the size is bounded.
+        let m = a1.saturating_abs().max(a2.saturating_abs());
+        let top = f(m, b2).unwrap_or(i128::MAX);
+        // Saturated, an odd power of a negative base is MIN, one past -MAX.
+        ISet::range(if top == i128::MAX { i128::MIN } else { -top }, top)
     }
     pub fn neg(&self) -> ISet {
         match self {
@@ -713,8 +787,10 @@ impl ISet {
         if monotone {
             corners(self, o, f)
         } else {
-            // Not monotone (division, mod, powers): the only sound answer
-            // without walking is "anything the divisor's shape allows".
+            // Division: monotone in the dividend for a divisor of one sign,
+            // and in the divisor for a dividend of one sign, so the ends
+            // and the divisors nearest zero (-1 and 1) are the extremes.
+            // `mod` and powers are not like this and have their own.
             match (self.bounds(), o.bounds()) {
                 (Some((a1, a2)), Some((b1, b2))) => {
                     let mut lo: Option<i128> = None;
@@ -729,7 +805,6 @@ impl ISet {
                             hi = Some(hi.map_or(v, |h| h.max(v)));
                         }
                     }
-                    // A remainder is bounded by its divisor whatever else is true.
                     match (lo, hi) {
                         (Some(l), Some(h)) => ISet::Range { lo: l, hi: h },
                         _ => ISet::Empty,
