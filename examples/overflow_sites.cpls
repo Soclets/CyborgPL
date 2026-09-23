@@ -1,0 +1,11 @@
+# Arithmetic is checked where it happens, not only where it is stored (2026-09-23).
+# These all fit; `+~` never checks. See tests/reject/overflow_in_comparison.cpls for one that does not.
+MAIN {
+    let 'v': int8 = 100;
+    let 'big': int64 = 4000000000;
+    std::printu.stdout['v' + 20, " ", 'big' + 'big', " ", 2 x 3, \n];     # all fit
+    let 'w': uint8 = 200;
+    std::printu.stdout['w' - 100, \n];
+    let 'wrapped': int8 = 'v' +~ 100;                                     # wrapping is never a site
+    std::printu.stdout['wrapped', \n];
+}

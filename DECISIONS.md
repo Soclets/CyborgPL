@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Oracle bug: arithmetic was checked only where it was stored (verification session)
+
+Generator seed 23, shrunk: `if 'v' > ('v' + 'v')` on an `int8` of 112
+ran in the oracle (it computed 224 and compared it) and was refused by
+CCA, correctly — `'v' + 'v'` is an `int8` addition wherever it stands,
+and `precog.md` lists integer overflow as a check site. The oracle had
+been checking width only on a store (a `let`, an assignment, an
+argument), so the same sum inside a comparison went unchecked. Fixed:
+`+ - x xx` on integers check their result against the operand's type
+where the operation happens. It also catches `'u' - 10` on a `uint8`
+going below zero, which was never caught before.
+`examples/overflow_sites.cpls`, two reject tests.
+
 ### 2026-09-23 — A detached task's failure is handled inside the task (owner: a)
 
 Compiler claude's gap: a normal task's `otherwise` runs when the block

@@ -1540,7 +1540,22 @@ impl<'p> Interp<'p> {
                     return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));
                 }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
-                self.binary(op, a, b, line).map(|v| (v, if both_lit { Prov::Literal } else { Prov::Plain }))
+                let v = self.binary(op, a, b, line)?;
+                // Arithmetic is checked where it happens, not only where it is stored: an
+                // `int8` sum that leaves `int8` is a check site wherever it stands, including
+                // inside a comparison (found by the verification session, 2026-09-23).
+                if matches!(op.as_str(), "+" | "-" | "x" | "xx") && !both_lit {
+                    if let Value::Int(n) = v {
+                        if let Some(t) = self.expr_ty(l).or_else(|| self.expr_ty(r)) {
+                            if let Some((lo, hi)) = crate::value::int_range(&t) {
+                                if n < lo || n > hi {
+                                    return site(line, format!("{n} does not fit {} — `{op}` leaves what the type holds", ty_name(&t)));
+                                }
+                            }
+                        }
+                    }
+                }
+                Ok((v, if both_lit { Prov::Literal } else { Prov::Plain }))
             }
         }
     }
