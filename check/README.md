@@ -71,15 +71,13 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `mixed-width`.
+straight at them. Default: none.
 
-- `mixed-width`: which width a literal group takes when the operand beside
-  it and the place it goes disagree, and mixed widths in one operation, are
-  open with the owner (2026-09-23). The generator never mixes widths in an
-  operation (it converts with `to.T[…]`), and with this on it prints
-  through `to.int64[…]` / `to.uint64[…]`, so no printed expression's
-  literals can take the printer parameter's width.
-
+- `mixed-width`: print through `to.int64[…]` / `to.uint64[…]`. Needed
+  only while mixed widths were open; settled by the owner (dc83c05: plain
+  math is exact, checked where it lands). The generator never mixes widths
+  in one operation, so the provisional wrapping-on-mixed-sizes pick never
+  arises.
 - `ranges`: no range types (CCA took them in f23f299).
 
 - `shl-width`: `shl`, `not.bit` and the wrapping operators only on names
