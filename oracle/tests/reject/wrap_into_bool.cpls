@@ -1,0 +1,1 @@
+MAIN { let 'a': bool = 0 -~ 0; }

@@ -1464,7 +1464,10 @@ impl<'p> Interp<'p> {
                 let (bits, signed) = match width {
                     Some(Ty::Int(w)) => (int_bits(&w), true),
                     Some(Ty::Uint(w)) => (int_bits(&w), false),
-                    _ => return rt(line, format!("`{op}` wraps modulo a type's size, and the oracle only knows a declared one: put the left operand in a variable declared `: int32` / `: uint64` (the compiler knows every width)")),
+                    // the width can come from a name, a conversion, either side, or the type
+                    // stored into (2026-09-23); a bare literal with none of those has no size to wrap in
+                    Some(t) => return rt(line, format!("`{op}` wraps modulo an integer's size, and {} is not an integer", ty_name(&t))),
+                    None => return rt(line, format!("`{op}` wraps modulo a type's size, so it needs to know which: give a side a type, or say it in the declaration (`let 'x': uint64 = 'a' {op} 'b';`)")),
                 };
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
