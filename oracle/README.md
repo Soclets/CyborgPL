@@ -87,7 +87,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 ## Provisional picks — the design has not decided these
 
-- **SIMD**: the oracle's target is fixed as ARM64 128-bit (the real one comes from `Synthia.toml`); a bare `simd.fill[0]` with no declared type is 16 lanes; `simd.sum` overflow is a check site but `max`/`min` are not; broadcasting a scalar against a vector (`'v' + 1`) is allowed, which `design/simd.md` does not mention either way.
+- **SIMD**: the oracle's target is fixed as ARM64 128-bit (the real one comes from `Synthia.cplm`); a bare `simd.fill[0]` with no declared type is 16 lanes; `simd.sum` overflow is a check site but `max`/`min` are not; broadcasting a scalar against a vector (`'v' + 1`) is allowed, which `design/simd.md` does not mention either way.
 
 - **The oracle's task schedule**: a task runs when something waits on it (a `take`, a `whichever`) or when its block ends, in source order; a sender never waits (the oracle cannot suspend a task mid-body, so a hand-off or a full bounded channel just queues — the waiting is unobservable in output); time never passes unless nothing else can run, and then a timer channel fires at once. One valid schedule of the design's, chosen for determinism, not the only one.
 

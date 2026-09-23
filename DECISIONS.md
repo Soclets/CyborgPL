@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The manifest is `Synthia.cplm`, TOML inside (owner)
+
+`.toml` had ridden in with the JetPack sketch on 2026-09-14 and was
+never put to the owner. Proposed: `Synthia.toml`; `Synthia.cplm`
+(*CyborgPL Manifest*, matching `.cpls` and `.limb`); the manifest
+written in CyborgPL itself. The owner asked whether `.cpm` was taken —
+its uses are all outside developer tooling (Corel, Cisco, Adobe
+Captivate, Turbo Pascal), though the *name* CPM belongs to CPM.cmake —
+then chose `.cplm`, which turns up nothing at all and keeps the
+three-letter family. Contents stay TOML: the extension says whose the
+file is, the format stays standard. Also recorded: **Synthia because it
+synthesises everything** (owner), replacing Claude's "Jet = fast, Pack
+= package" gloss, which had outlived the name it explained.
+
 ### 2026-09-23 — The build tool is **Synthia**, not JetPack (owner)
 
 Renamed because JetPack is already a software trademark twice —

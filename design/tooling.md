@@ -22,12 +22,22 @@ Owner, 2026-09-14.
   every library or program is a Limb, Synthia installs Limbs, and the standard
   library is one Limb among them, reached as `std.` in a chain. (A cyborg has
   limbs.)
-- **Synthia** — the package manager. *Jet* = fast, *Pack* = package: a fast
-  package. Its manifest file is `Synthia.toml`.
+- **Synthia** — the package manager and build tool: it *synthesises*
+  everything (owner, 2026-09-23, on renaming from JetPack). Its manifest
+  is **`Synthia.cplm`** — *CyborgPL Manifest*, the family's third
+  extension beside `.cpls` and `.limb`, and unclaimed anywhere. The
+  file's contents are **TOML**: a manifest is data, TOML needs no parser
+  of ours and every editor highlights it, so the extension says whose
+  the file is while the format stays standard. Proposed alternatives:
+  `Synthia.toml` (Cargo's furniture); `.cpm`, which drops the family's
+  `l` and brushes against CPM.cmake's world; the manifest written in
+  CyborgPL itself as `pub const`s — the strongest "one language" story
+  and the most work, kept in mind if configuration ever needs to compute
+  anything.
 
 - **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
   deliberately avoided.
-- **`.limb`** — a *published* Limb: the Limb's directory (`Synthia.toml` +
+- **`.limb`** — a *published* Limb: the Limb's directory (`Synthia.cplm` +
   `.cpls` files) packaged as one file for Synthia to upload, download, and
   checksum. Same relationship as a Rust crate folder to its `.crate` tarball.
   Checked 2026-09-14: no existing `.limb` format is registered.
@@ -40,7 +50,7 @@ Owner, 2026-09-14.
 ## Cross-compiling, running elsewhere (discussed 2026-09-21, proposal)
 
 CCA compiles and stops; it never executes what it built. The target is
-declared in `Synthia.toml`, never sniffed from the host; the host is
+declared in `Synthia.cplm`, never sniffed from the host; the host is
 looked at only for cores and memory (speed), never for meaning — the same
 program with the same config gives the same proofs and the same binary on
 a laptop or a farm. Proof-cache entries are keyed by (function bytes,
@@ -66,4 +76,4 @@ with the rest of Synthia.
 
 ## Open
 
-- Whether `Synthia.toml` is also the name of the CLI (`synthia add …`).
+- Whether `Synthia.cplm` is also the name of the CLI (`synthia add …`).

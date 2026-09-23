@@ -5,7 +5,7 @@ Decided 2026-09-19. The module-system pieces settled so far; the rest
 
 ## No `import`, no `use`
 
-- **Dependencies are declared in `Synthia.toml`**, never in source. A source
+- **Dependencies are declared in `Synthia.cplm`**, never in source. A source
   file has no statement that loads a Limb.
 - **Every item is reached by its full path**: `std::printu.stdout[…]`,
   `mathstuff::pow[2, 64]`, `'r': std::uenr`, `crate_x::Locker[…]`. `::`
@@ -172,5 +172,5 @@ refusal: nothing to disambiguate, for the reader or for Precog.
   flag beside or on `pub`; with modules it is also how `shapes.circle.area`
   becomes `geometry::area` for users. Undecided.
 - A file module's own visibility (provisionally public).
-- Limb name declared in source, or only in `Synthia.toml`? (Claude,
+- Limb name declared in source, or only in `Synthia.cplm`? (Claude,
   2026-09-14.)
