@@ -144,7 +144,13 @@ answer is the same.
 **Wrapping is the exception**: `+~ -~ x~ xx~` wrap at the size of their
 values, never at where the result goes, so a hash gives the same number
 on any line (`'x' +~ 'x'` on a `uint32` wraps at 32 bits even when
-stored into a `uint64`).
+stored into a `uint64`). **When the values mix sizes, you say which**
+(owner, 2026-09-23: b): `('a' + 'b') +~ 1` with an `int8` and an
+`int16` is an error until written `to.int16['a' + 'b'] +~ 1`, and so is
+`'a' +~ 'b'`. Wrapping exists for hashes and counters, where the size
+is the algorithm, so it is written and never guessed. Proposed
+alternatives: the bigger size; the left operand's (the oracle's old
+placeholder).
 
 How it was reached: check claude asked which size a group of bare
 numbers takes when the name beside it (`int16`) and the place it is

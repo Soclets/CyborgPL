@@ -14,5 +14,8 @@ MAIN {
     let 'below' := 'u' - 10;                          # -5: `:=` takes a type that holds it
     let 'x': uint32 = 4000000000;
     let 'h': uint64 = 'x' +~ 'x';                     # wraps at uint32, 'x''s size: 3705032704
-    std::printu.stdout['below', " ", 'h', \n];
+    let 'a': int8 = 100;
+    let 'b': int16 = 1000;
+    let 'w' := to.int16['a' + 'b'] +~ 1;            # a mix of sizes wraps where you say: 1101
+    std::printu.stdout['below', " ", 'h', " ", 'w', \n];
 }

@@ -1136,6 +1136,24 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// The one integer size an expression's plain math is at, by its declared names and
+    /// conversions: `Err` names two sizes it mixes; `Ok(None)` when nothing states one.
+    fn plain_size(&self, e: &Expr) -> Result<Option<Ty>, String> {
+        let base = |t: Ty| match t { Ty::Ranged(b, _, _) => *b, t => t };
+        match e {
+            Expr::Var(n, _) | Expr::Owned(_, n, _) => Ok(self.lookup(n).and_then(|s| s.ty.clone()).map(base)),
+            Expr::Convert(t, ..) => Ok(Some(base(t.clone()))),
+            Expr::Paren(inner, _) | Expr::Unary(_, inner, _) => self.plain_size(inner),
+            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+" | "-" | "x" | "xx" | "/" | "mod") => {
+                match (self.plain_size(l)?, self.plain_size(r)?) {
+                    (Some(a), Some(b)) if ty_name(&a) != ty_name(&b) => Err(format!("{} and {}", ty_name(&a), ty_name(&b))),
+                    (a, b) => Ok(a.or(b)),
+                }
+            }
+            _ => Ok(None),
+        }
+    }
+
     fn kind_clash(&self, have: Option<bool>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
         let want = match want { Ty::Ranged(b, _, _) => &**b, t => t };
         match (have, want) {
@@ -1534,6 +1552,15 @@ impl<'p> Interp<'p> {
             // modulo the type's size. The oracle wraps at the left operand's declared
             // integer width (Precog knows every width; the oracle only knows declared ones).
             Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+~" | "-~" | "x~" | "xx~") => {
+                // Wrapping is at one size, and it is always written, never guessed: operands of two
+                // sizes, or an exact sum that mixes them, need `to.int16[…]` (owner, 2026-09-23: b)
+                let (sl, sr) = (self.plain_size(l), self.plain_size(r));
+                let mixed = match (&sl, &sr) {
+                    (Err(m), _) | (_, Err(m)) => Some(m.clone()),
+                    (Ok(Some(a)), Ok(Some(b))) if ty_name(a) != ty_name(b) => Some(format!("{} and {}", ty_name(a), ty_name(b))),
+                    _ => None,
+                };
+                if let Some(m) = mixed { return rt(line, format!("`{op}` wraps at one size, and this mixes {m}: say which, `to.int16[…]` around a side")); }
                 let width = self.expr_ty(l).or_else(|| self.expr_ty(r));
                 let (bits, signed) = match width {
                     Some(Ty::Int(w)) => (int_bits(&w), true),

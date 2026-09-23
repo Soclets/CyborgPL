@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Wrapping on mixed sizes: say which (owner: b)
+
+From compiler claude, implementing exact math: `('a' + 'b') +~ 1` with
+an `int8` and an `int16` is exact 1100, but wrapping needs one size.
+Proposed (a) the bigger; (b) an error until written, `to.int16['a' +
+'b'] +~ 1`; (c) the left operand's, the oracle's placeholder. Design
+claude recommended b, since wrapping exists for hashes and counters,
+where the size is the algorithm. CCA already did b. Owner: b. The
+oracle applies it to `'a' +~ 'b'` of two sizes too. Shifts of a mixed
+exact sum were not asked, and stay a provisional oracle pick. Asked in
+the same message, the type of `let 'x' := 'u' - 10` was already in the
+record (`precog.md`, "`:=` widths"): the narrowest type holding every
+value (-10 to 245, `int16`), adjusted for speed, so a lone scalar at
+the machine's width and a list element or field narrow.
+
 ### 2026-09-23 — Plain math is exact and checked where it lands; wrapping wraps at its values' size (owner)
 
 Check claude's question (generator seed 90's neighbour): in `let 'big':
