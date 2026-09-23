@@ -49,7 +49,8 @@ variables are always quoted, and module names are always lowercase.
 
 One it cannot: **a bare capitalised word is treated as a type.** Every type in
 the examples is capitalised and every function is not, but the language does
-not require it. A function named `Shuffle` would be coloured as a type.
+not require it, and the owner decided on 2026-09-24 that it won't. A function
+named `Shuffle` would be coloured as a type.
 
 ## Checking it
 
