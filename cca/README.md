@@ -257,12 +257,18 @@ Dated, with the alternative, so each can become a question later.
   built. `whichever` tries its arms in the order written, so of several
   ready at once the first wins and a run is reproducible.
 
+- **2026-09-23 — Which C calls end the program, for "reached on every
+  run".** A certain failure is an error only where it runs on every run
+  (owner, 2026-09-23). A call into C normally returns, but `exit`,
+  `_exit`, `_Exit`, `abort` and `quick_exit` do not, so a line after one
+  is not reached on every run: those five names are treated as ways out.
+  C does not say which functions return, so this is a list by name.
+  Alternative: treat every call into C as one that might not return,
+  which would turn nearly every certain failure after a `write` into a
+  note.
+
 ## Waiting on the owner
 
-- **A `concur.detached` task that can fail.** Nothing waits for it, so
-  its `otherwise` has no "when the enclosing block ends". CCA refuses one
-  with a message saying the failure has nowhere to land (2026-09-23; with
-  the owner via the design session).
 - **A holder waiting on a join keeps a channel open.** MAIN makes a
   channel and lends it to a producer and a consumer, then waits at the
   block's end: MAIN still holds the channel but is waiting on the join,
