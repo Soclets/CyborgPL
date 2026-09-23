@@ -117,6 +117,10 @@ struct FnBuilder<'a> {
     next_task: u32,
     /// The slot a `return` fills.
     ret_local: Option<LocalId>,
+    /// A detached task's `otherwise`, to be built inside the task.
+    catch_otherwise: Option<(hir::Otherwise, Vec<(String, Option<Ty>)>)>,
+    /// Where a failure goes instead of out, once that handler is built.
+    catch: Option<Vec<FailArm>>,
     /// The span of the instruction most recently lowered, for a terminator
     /// that has no span of its own.
     last_span: SpanId,
@@ -152,6 +156,8 @@ impl<'a> FnBuilder<'a> {
             next_group: 0,
             next_task: 0,
             ret_local: None,
+            catch_otherwise: None,
+            catch: None,
             last_span: SpanId(0),
         };
         // One MIR local per HIR local, in the same order, so indices line up.
@@ -372,7 +378,38 @@ impl<'a> FnBuilder<'a> {
     // ------------------------------------------------------------ statements
 
     fn lower_body(&mut self, body: &hir::Body) {
+        // A detached task handles its own failure, in the task, the moment
+        // it fails (owner, 2026-09-23): the handler is built here, beside the
+        // body, at the depth where the captures still live, so a retry can
+        // use them; when it is done the task ends.
+        if let Some((o, fails)) = self.catch_otherwise.take() {
+            let span = self.span_id(body.span);
+            let (arms, after) = self.fail_blocks(&o, &fails, None, span);
+            let saved = self.cur;
+            self.cur = after;
+            self.unwind_to(0, span);
+            self.terminate(Terminator::Return);
+            self.cur = saved;
+            self.catch = Some(arms);
+        }
         self.block(&body.block);
+    }
+
+    /// Leave by failing: out to the caller, or — in a detached task, which
+    /// has no caller to hear it — into the task's own handler.
+    fn leave_failing(&mut self, index: usize, payload: Option<Operand>, span: SpanId) {
+        if let Some(arm) = self.catch.as_ref().and_then(|arms| arms.iter().find(|a| a.index == index)).cloned() {
+            // Everything the body opened goes; the captures stay for the
+            // handler.
+            self.unwind_to(1, span);
+            if let (Some(place), Some(p)) = (&arm.payload, payload) {
+                self.assign(place.clone(), Rvalue::Use(p), span);
+            }
+            self.terminate(Terminator::Goto(arm.block));
+            return;
+        }
+        self.unwind_to(0, span);
+        self.terminate(Terminator::Fail { index, payload });
     }
 
     fn block(&mut self, b: &hir::Block) {
@@ -483,8 +520,7 @@ impl<'a> FnBuilder<'a> {
             }
             hir::StmtKind::Fail { index, payload, .. } => {
                 let p = payload.as_ref().map(|e| self.eval(e, span));
-                self.unwind_to(0, span);
-                self.terminate(Terminator::Fail { index: *index, payload: p });
+                self.leave_failing(*index, p, span);
             }
             hir::StmtKind::Break => {
                 if let Some(t) = self.loops.last().copied() {
@@ -758,8 +794,16 @@ impl<'a> FnBuilder<'a> {
         self.arena.functions.push(placeholder(&task_body));
         let mut fb = FnBuilder::new(self.arena, None, &task_body, true);
         fb.captures = captures.iter().map(|c| LocalId(c.inner.0)).collect();
+        let handled_inside = detached && otherwise.is_some();
+        if handled_inside {
+            fb.catch_otherwise = otherwise.map(|o| (o.clone(), fails.to_vec()));
+        }
         fb.lower_body(&task_body);
-        let f = fb.finish(&task_body);
+        let mut f = fb.finish(&task_body);
+        if handled_inside {
+            // Every failure lands in the task's own handler: nothing leaves.
+            f.fails.clear();
+        }
         self.arena.functions[idx.0 as usize] = f;
 
         let caps: Vec<(Verb, Place)> = captures.iter().map(|c| (c.verb, Place::local(LocalId(c.outer.0)))).collect();
@@ -789,7 +833,7 @@ impl<'a> FnBuilder<'a> {
         if !detached {
             *self.tasks_in_scope.last_mut().unwrap() += 1;
         }
-        if let Some(o) = otherwise {
+        if let (false, Some(o)) = (detached, otherwise) {
             // The handler runs where the block waits, not here.
             let (arms, after) = self.fail_blocks(o, fails, None, span);
             self.task_fails.last_mut().unwrap().push((id, idx, arms, after));
@@ -1064,6 +1108,11 @@ impl<'a> FnBuilder<'a> {
             }
             BinOp::Shl => {
                 self.site_of(SiteKind::ShiftWidth, vec![l.clone(), r.clone()], Some(ty.clone()), span);
+            }
+            // "The count must be 0 to width - 1, for `shl` and `shr` alike"
+            // (owner, 2026-09-23).
+            BinOp::Shr => {
+                self.site_of(SiteKind::ShiftCount, vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
             _ => {}
         }
@@ -1409,8 +1458,7 @@ impl<'a> FnBuilder<'a> {
                         let p = self.temp(t, span);
                         Place::local(p)
                     });
-                    self.unwind_to(0, span);
-                    self.terminate(Terminator::Fail { index, payload: payload.clone().map(Operand::Move) });
+                    self.leave_failing(index, payload.clone().map(Operand::Move), span);
                     out.push(FailArm { index: i, payload, block: b });
                 }
                 out

@@ -70,13 +70,16 @@ pub struct Analysis {
     pub whole_program: bool,
     /// How many instructions layer 1 replaced by their answer.
     pub folded: usize,
+    /// Sites reached on every run of the program (owner, 2026-09-23): only
+    /// there is a certain failure a compile error.
+    pub always_reached: std::collections::HashSet<(usize, u32)>,
 }
 
 /// One local's value, as far as this path knows.
 type Env = HashMap<LocalId, Domain>;
 
 pub fn analyse(p: &mut Program) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -185,7 +188,8 @@ pub fn analyse(p: &mut Program) -> Analysis {
         let f = &mut p.functions[r.function];
         f.sites[r.site.0 as usize].verdict = r.verdict.clone();
     }
-    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements }
+    let always_reached = if a.gave_up { std::collections::HashSet::new() } else { reached_every_run(p, &a.edges) };
+    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached }
 }
 
 struct Precog {
@@ -215,6 +219,8 @@ struct Precog {
     /// of every loop, every call site. A sound invariant for the block —
     /// provided nothing was skipped, which `gave_up` says.
     block_facts: HashMap<(usize, usize), Env>,
+    /// Every edge layer 2 found some run could take: (function, from, to).
+    edges: std::collections::HashSet<(usize, usize, usize)>,
 }
 
 /// What layer 3 may assume at the head of a loop, per function and block.
@@ -384,6 +390,9 @@ impl Precog {
             let term = self.prog().functions[f].blocks[b].term.clone();
             let go = |this: &mut Self, to: BlockId, e: Env, states: &mut Vec<Option<Env>>, work: &mut Vec<usize>| {
                 let i = to.0 as usize;
+                // This edge can be taken: what "reached on every run" is
+                // worked out from.
+                this.edges.insert((f, b, i));
                 // A **back edge** is the loop going round again. The design
                 // follows a counted loop *trip by trip* rather than joining
                 // at its head (`precog.md`, layer 2), because a join cannot
@@ -1131,9 +1140,10 @@ impl Precog {
                 let Some(d) = ds.first() else { return Verdict::Unproven };
                 self.fits_type(d, to)
             }
-            SiteKind::ShiftWidth => {
-                // Two ways a shift goes wrong: it moves every bit out of the
-                // type, or the answer no longer fits it.
+            SiteKind::ShiftWidth | SiteKind::ShiftCount => {
+                // A count outside 0 to width - 1, for `shl` and `shr` alike
+                // (owner, 2026-09-23); and for `shl`, an answer that no
+                // longer fits the type.
                 let ty = match site.result_ty.clone().or_else(|| ty_of(self, 0)) {
                     Some(t) => t,
                     None => return Verdict::Unproven,
@@ -1148,8 +1158,17 @@ impl Precog {
                 if blo >= width {
                     return Verdict::Fails { counterexample: format!("every time: a shift of {} moves every bit out of a `{}`, which is {} bits wide", blo, self.spell(&ty), width) };
                 }
+                if bhi < 0 {
+                    return Verdict::Fails { counterexample: format!("every time: a shift of {} — a count is never negative; the other direction is the other word", bhi) };
+                }
                 if bhi >= width {
                     return Verdict::Fails { counterexample: format!("a shift of {} would move every bit out of a `{}`, which is {} bits wide", bhi, self.spell(&ty), width) };
+                }
+                if blo < 0 {
+                    return Verdict::Fails { counterexample: format!("the count can be {}, and a count is never negative", blo) };
+                }
+                if matches!(site.kind, SiteKind::ShiftCount) {
+                    return Verdict::Proven { how: "layer 2" };
                 }
                 let shifted = a.mul(&ISet::range(1 << blo.max(0), 1 << bhi.max(0)));
                 self.fit(&shifted, lo, hi, &ty)
@@ -1520,7 +1539,10 @@ pub fn refusals(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -
             continue;
         }
         let Verdict::Fails { counterexample } = &r.verdict else { continue };
-        let certain = counterexample.starts_with("every");
+        // "A site where no value is legal is a compile error only when it
+        // is reached on every run" (owner, 2026-09-23). One that may never
+        // run stays a check, with a note (see `notes`).
+        let certain = counterexample.starts_with("every") && a.always_reached.contains(&(r.function, r.site.0));
         if !certain && !checked {
             continue;
         }
@@ -1547,6 +1569,27 @@ pub fn refusals(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -
 /// work showed fails every run (owner, 2026-09-22).
 pub fn notes(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> Vec<String> {
     let mut out = Vec::new();
+    // A line that fails whenever it runs, but may never run: a check, and
+    // the writer is told (owner, 2026-09-23).
+    for r in &a.sites {
+        let Verdict::Fails { counterexample } = &r.verdict else { continue };
+        if !counterexample.starts_with("every") || a.always_reached.contains(&(r.function, r.site.0)) {
+            continue;
+        }
+        let f = &p.functions[r.function];
+        let site = f.site(r.site);
+        if site.tier == Some(Tier::Check) {
+            continue;
+        }
+        let mut d = crate::diag::Diagnostic::note("this line fails whenever it runs")
+            .at(f.span(site.span))
+            .when(counterexample.trim_start_matches("every time: ").to_string())
+            .why("it may never run, so it is a check here rather than an error; the final build refuses it");
+        if !f.name.is_empty() && f.name != "MAIN" {
+            d = d.place(format!("in `{}`", f.name));
+        }
+        out.push(d.render(sources));
+    }
     for (f_idx, site_id, what) in &a.certain_under_nocheck {
         let f = &p.functions[*f_idx];
         let site = f.site(*site_id);
@@ -1577,4 +1620,103 @@ fn describe_disagreement(p: &Program, r: &SiteResult, each: &[(&'static str, smt
         said,
         path.display()
     )
+}
+
+
+/// Which sites are reached on every run of the program.
+///
+/// Within a function, a block is reached on every run of it when no path
+/// layer 2 found possible leads from the entry to a way out without passing
+/// through it. A function runs on every run of the program when MAIN does
+/// — MAIN always does — or when it is called, or started as a structured
+/// task, from a block reached on every run of a function that does. A
+/// detached task may not have run before the program ends, so it never
+/// counts. A call to C's `exit` or `abort` is a way out.
+fn reached_every_run(p: &Program, edges: &std::collections::HashSet<(usize, usize, usize)>) -> std::collections::HashSet<(usize, u32)> {
+    use std::collections::HashSet;
+    let ends = |f: &Function, b: usize| -> bool {
+        match &f.blocks[b].term {
+            Terminator::Return | Terminator::Fail { .. } | Terminator::Trap(_) | Terminator::Unreachable => true,
+            Terminator::Call { callee: Callee::Extern(id), .. } => {
+                matches!(p.items.externs[id.0 as usize].name.as_str(), "exit" | "_exit" | "_Exit" | "abort" | "quick_exit")
+            }
+            _ => false,
+        }
+    };
+    let mut always_blocks: Vec<HashSet<usize>> = vec![HashSet::new(); p.functions.len()];
+    for (fi, f) in p.functions.iter().enumerate() {
+        let mut succ: Vec<Vec<usize>> = vec![Vec::new(); f.blocks.len()];
+        for &(g, from, to) in edges {
+            if g == fi && from < succ.len() {
+                succ[from].push(to);
+            }
+        }
+        // Reached at all.
+        let mut seen = vec![false; f.blocks.len()];
+        let mut stack = vec![0usize];
+        while let Some(x) = stack.pop() {
+            if x >= seen.len() || seen[x] {
+                continue;
+            }
+            seen[x] = true;
+            stack.extend(succ[x].iter().copied());
+        }
+        for b in 0..f.blocks.len() {
+            if !seen[b] {
+                continue;
+            }
+            // Can the function end without passing b? A block with nowhere
+            // left to go counts as an end: nothing says the run continues.
+            let mut avoid = vec![false; f.blocks.len()];
+            let mut stack = if b == 0 { Vec::new() } else { vec![0usize] };
+            let mut escapes = false;
+            while let Some(x) = stack.pop() {
+                if x == b || avoid[x] {
+                    continue;
+                }
+                avoid[x] = true;
+                if ends(f, x) || succ[x].is_empty() {
+                    escapes = true;
+                    break;
+                }
+                stack.extend(succ[x].iter().copied());
+            }
+            if !escapes {
+                always_blocks[fi].insert(b);
+            }
+        }
+    }
+    // Which functions run on every run.
+    let mut runs: HashSet<usize> = p.functions.iter().enumerate().filter(|(_, f)| f.is_main).map(|(i, _)| i).collect();
+    let mut work: Vec<usize> = runs.iter().copied().collect();
+    while let Some(fi) = work.pop() {
+        let f = &p.functions[fi];
+        for &b in &always_blocks[fi] {
+            let mut starts: Vec<usize> = Vec::new();
+            if let Terminator::Call { callee: Callee::Fn(g), .. } = &f.blocks[b].term {
+                starts.push(g.0 as usize);
+            }
+            for s in &f.blocks[b].stmts {
+                if let StmtKind::Task { detached: false, body, .. } = &s.kind {
+                    starts.push(body.0 as usize);
+                }
+            }
+            for g in starts {
+                if g < p.functions.len() && runs.insert(g) {
+                    work.push(g);
+                }
+            }
+        }
+    }
+    let mut out = HashSet::new();
+    for &fi in &runs {
+        for &b in &always_blocks[fi] {
+            for s in &p.functions[fi].blocks[b].stmts {
+                if let StmtKind::Site(id) = s.kind {
+                    out.insert((fi, id.0));
+                }
+            }
+        }
+    }
+    out
 }

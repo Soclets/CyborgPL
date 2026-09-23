@@ -1127,11 +1127,11 @@ impl<'a> Enc<'a> {
                 let (lo, hi) = int_bounds(to)?;
                 Some(format!("(or {} {})", self.cmp_const(&v, "bvsgt", hi)?, self.cmp_const(&v, "bvslt", lo)?))
             }
-            SiteKind::ShiftWidth => {
+            SiteKind::ShiftWidth | SiteKind::ShiftCount => {
                 let a = ops.first().cloned().flatten()?;
                 let b = ops.get(1).cloned().flatten()?;
                 let width = a.bits as i128;
-                self.cmp_const(&b, "bvsge", width)
+                Some(format!("(or {} {})", self.cmp_const(&b, "bvsge", width)?, self.cmp_const(&b, "bvslt", 0)?))
             }
             _ => None,
         }

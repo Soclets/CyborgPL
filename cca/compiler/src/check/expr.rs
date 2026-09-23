@@ -831,17 +831,27 @@ impl Checker {
         // choice stays Precog's.
         let lt = self.resolve(&l.ty);
         let rt = self.resolve(&r.ty);
+        // A parenthesised group of literals — `(0 + 10702988103728947458)` —
+        // has no family either, so it takes the other side's the same way,
+        // every step of it.
+        let (mut l, mut r) = (l, r);
         let adopt: Option<Ty> = match (lt.base(), rt.base()) {
-            (Ty::Int(IntW::Free(_)), Ty::Int(w @ IntW::Fixed { .. })) if is_int_literal(&l) => Some(Ty::Int(*w)),
-            (Ty::Int(w @ IntW::Fixed { .. }), Ty::Int(IntW::Free(_))) if is_int_literal(&r) => Some(Ty::Int(*w)),
+            (Ty::Int(IntW::Free(_)), Ty::Int(w @ IntW::Fixed { .. })) if literal_only(&l) => {
+                retype_literal_arith(&mut l, &Ty::Int(*w));
+                Some(Ty::Int(*w))
+            }
+            (Ty::Int(w @ IntW::Fixed { .. }), Ty::Int(IntW::Free(_))) if literal_only(&r) => {
+                retype_literal_arith(&mut r, &Ty::Int(*w));
+                Some(Ty::Int(*w))
+            }
             _ => None,
         };
         // The literal keeps its value — a literal too big for the family is
         // then a narrowing Precog refuses as certain, like any other — but a
         // negative one cannot join an unsigned family at all.
         if let Some(Ty::Int(IntW::Fixed { signed: false, .. })) = &adopt {
-            let lit = if is_int_literal(&l) { &l } else { &r };
-            if matches!(lit.kind, K::Unary { op: crate::ast::UnOp::Neg, .. }) || matches!(lit.kind, K::Int(v) if v < 0) {
+            let lit = if literal_only(&l) && matches!(lt.base(), Ty::Int(IntW::Free(_))) { &l } else { &r };
+            if is_int_literal(lit) && (matches!(lit.kind, K::Unary { op: crate::ast::UnOp::Neg, .. }) || matches!(lit.kind, K::Int(v) if v < 0)) {
                 let fam = adopt.as_ref().map(|t| self.spell(t)).unwrap_or_default();
                 return err(Diagnostic::error(format!("a negative number beside a `{}`: an unsigned number is never negative, and a bare number takes the family of the other side", fam)).at(lit.span));
             }

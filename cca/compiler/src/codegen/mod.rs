@@ -430,7 +430,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     SiteKind::Bounds => self.bounds_check(fi, *id, slots, func),
                     SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
                     SiteKind::LengthBound { .. } => self.length_check(fi, *id, slots, func),
-                    SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::ShiftWidth => pending.push(*id),
+                    SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::ShiftWidth | SiteKind::ShiftCount => pending.push(*id),
                     _ => {}
                 },
                 StmtKind::Assign { place, rvalue } => {
@@ -855,7 +855,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let overflow = open(self, &|k| matches!(k, SiteKind::Overflow(_)));
         let divzero = open(self, &|k| matches!(k, SiteKind::DivZero | SiteKind::ModZero));
-        let shift = open(self, &|k| matches!(k, SiteKind::ShiftWidth));
+        let shift = open(self, &|k| matches!(k, SiteKind::ShiftWidth | SiteKind::ShiftCount));
         let needs_check = overflow.is_some();
         let site = overflow;
         let (a, b) = match (a, b) {
