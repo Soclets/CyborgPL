@@ -309,6 +309,7 @@ seq_after_perm :: `seq` goes first, then `temp` / `perm`, then the name
 shadow :: 'x' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`
 shadow_immut :: 'k' is `immut` and cannot be shadowed
 shadow_nothing :: `$` shadows a visible 'y', and none is visible here: write `:=`
+short_name_one_limb :: gives other Limbs a shorter name
 simd_bad_element :: a `simd` holds plain numbers or bools
 simd_load_needs_pos :: says the position with `pos`, as every index does
 simd_load_past_end :: the 16 lanes can run past the end

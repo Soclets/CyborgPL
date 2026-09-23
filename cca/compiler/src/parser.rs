@@ -457,6 +457,9 @@ impl<'a> Parser<'a> {
 
     fn params(&mut self, ctx: ParamContext) -> Result<Vec<Param>> {
         if !self.is(&Tok::LBracket) {
+            if ctx == ParamContext::Fn && self.is_op("=") {
+                return self.fail("not yet: `pub fn short = module.name;` gives other Limbs a shorter name (owner, 2026-09-23), and CCA builds one Limb so far");
+            }
             return self.fail(format!("expected `[` starting the parameters, found {}", self.peek().describe()));
         }
         self.bump();
