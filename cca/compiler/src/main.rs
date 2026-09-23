@@ -144,7 +144,15 @@ fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool) ->
     cca::codegen::write_object(&lowered.module, &obj).map_err(|e| format!("error: {}\n", e))?;
     cca::codegen::link(&obj, out).map_err(|e| format!("error: {}\n", e))?;
     let _ = std::fs::remove_file(&obj);
-    println!("{} sites: {} proven, {} checked at run time", analysis.sites.len(), analysis.sites.iter().filter(|r| matches!(r.verdict, cca::mir::Verdict::Proven { .. })).count(), analysis.sites.iter().filter(|r| !matches!(r.verdict, cca::mir::Verdict::Proven { .. })).count());
+    // `nocheck` sites carry no check: counted apart, not as "checked".
+    let proven = analysis.sites.iter().filter(|r| matches!(r.verdict, cca::mir::Verdict::Proven { .. })).count();
+    let trusted = analysis.sites.iter().filter(|r| matches!(r.verdict, cca::mir::Verdict::Trusted)).count();
+    let checked = analysis.sites.len() - proven - trusted;
+    if trusted > 0 {
+        println!("{} sites: {} proven, {} checked at run time, {} nocheck", analysis.sites.len(), proven, checked, trusted);
+    } else {
+        println!("{} sites: {} proven, {} checked at run time", analysis.sites.len(), proven, checked);
+    }
     println!("wrote {}", out.display());
     Ok(())
 }
