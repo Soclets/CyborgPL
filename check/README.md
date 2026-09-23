@@ -71,10 +71,9 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `ranges`.
+straight at them. Default: none.
 
-- `ranges`: CCA does not accept range types yet (c845110, told
-  2026-09-23); the generator writes no range types.
+- `ranges`: no range types (CCA took them in f23f299).
 
 - `shl-width`: `shl`, `not.bit` and the wrapping operators only on names
   and `to.T[…]` — no longer needed (CCA takes the 88da73f rule since

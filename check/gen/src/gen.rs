@@ -236,6 +236,12 @@ impl Gen {
             let v = if g.rng.chance(50) { edge } else { g.rng.range(r.lo.max(-200), r.hi.min(200)) };
             v.clamp(r.lo, r.hi)
         };
+        // The whole type written long is allowed (owner, 2026-09-23): rarely.
+        if self.rng.chance(5) {
+            let lo = if self.rng.chance(50) { None } else { Some(r.lo) };
+            let hi = if self.rng.chance(50) { None } else { Some(r.hi) };
+            return (TyR { base: t, range: Some((lo, hi)) }, Some(r));
+        }
         let (lo, hi) = match self.rng.below(3) {
             0 => {
                 let e1 = if self.rng.chance(50) { 0 } else { 1 };
@@ -247,7 +253,7 @@ impl Gen {
             1 => (Some(near(self, 1).max(r.lo + 1)), None),
             _ => (None, Some(near(self, 100).min(r.hi - 1))),
         };
-        if lo.is_none() && hi.is_none() || (lo == Some(r.lo) && hi == Some(r.hi)) {
+        if lo.is_none() && hi.is_none() {
             return (t.into(), None);
         }
         let iv = Iv::new(lo.unwrap_or(r.lo), hi.unwrap_or(r.hi));

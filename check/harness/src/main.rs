@@ -67,7 +67,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("ranges".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or(String::new());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         Config {
             size: self.num("size", 3) as u32,
