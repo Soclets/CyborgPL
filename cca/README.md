@@ -265,7 +265,10 @@ Dated, with the alternative, so each can become a question later.
   C does not say which functions return, so this is a list by name.
   Alternative: treat every call into C as one that might not return,
   which would turn nearly every certain failure after a `write` into a
-  note.
+  note. This is a stopgap for the time before std: once `std::exit`
+  exists it is the language's own way out, CCA knows it ends the program
+  without a list, and these names stop carrying any weight — not a
+  permanent rule about C.
 
 ## Waiting on the owner
 
