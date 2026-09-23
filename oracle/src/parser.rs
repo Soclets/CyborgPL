@@ -789,7 +789,12 @@ impl Parser {
                 }
                 if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }
                 if let Some(n) = width(head, "uint") { return int_w(n).map(Ty::Uint).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; uint is 8/16/32/64/128"))); }
-                if let Some(n) = width(head, "bin") { return if [16, 32, 64, 128].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64/128")) }; }
+                // bin128 was dropped (owner, 2026-09-23): no hardware anywhere, and `std::uenr`
+                // answers "more precision than 64 bits" by being exact rather than wider.
+                if let Some(n) = width(head, "bin") {
+                    if n == 128 { return bad(self, "there is no `bin128`: quad precision has no hardware, and `std::uenr` is exact rather than merely wider".into()); }
+                    return if [16, 32, 64].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64")) };
+                }
                 if let Some(n) = width(head, "deci") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; deci is 32/64/128 (IEEE 754 defines only these)")) }; }
                 // anything else is a struct name in this module; the interpreter checks it was declared
                 Ok(Ty::Struct(self.canonical(&segs)))

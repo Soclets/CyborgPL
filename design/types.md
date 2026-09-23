@@ -5,15 +5,31 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 
 | Chain name | Meaning | Widths |
 |---|---|---|
-| `bin` | IEEE 754 binary floating point | 16, 32, 64, 128 (proposed by Claude; owner to confirm) |
+| `bin` | IEEE 754 binary floating point | 16, 32, 64 (owner, 2026-09-23: **no `bin128`** — see below) |
 | `deci` | IEEE 754 decimal floating point | 32, 64, 128 (IEEE 754-2008 defines only these three) |
-| `int` | signed integer, two's complement | 8, 16, 32, 64, 128 (proposed) |
-| `uint` | unsigned integer | 8, 16, 32, 64, 128 (proposed) |
+| `int` | signed integer, two's complement | 8, 16, 32, 64, 128 (confirmed 2026-09-23) |
+| `uint` | unsigned integer | 8, 16, 32, 64, 128 (confirmed 2026-09-23) |
 | `str` | text, narrowed by encoding: `'s': str.utf8` (decided 2026-09-14) | `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best encoding from use |
 | `bool` | boolean; what comparisons and `and`/`or`/`not` produce; literals `true` / `false` (decided 2026-09-14): `let 'correct?': bool = true;` | — |
 | `char` | one character, narrowed by *unit*: `char.point`, `char.grapheme`, `char.byte` (decided 2026-09-14) | see below |
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
+
+**No `bin128`** (owner, 2026-09-23). Quad precision has essentially no
+hardware anywhere — it is software arithmetic, and slow — and the thing
+people reach for it for is "64 bits is not enough precision", which
+`std::uenr` answers properly by being exact rather than merely wider.
+`deci128` stays, because IEEE 754 defines exactly three decimal widths
+and dropping the largest would leave a gap in a standard rather than
+remove a redundancy. `int128` and `uint128` stay: no CPU has 128-bit
+registers either, but they are built from two 64s cheaply, they are
+what hashes and big counters want, and `std::uenr` is built on them.
+
+Owner's condition, recorded as a requirement rather than a wish:
+**`std::uenr` had better be optimised.** It is now the only answer for
+precision beyond 64 bits, so its performance is not a nice-to-have —
+see `implementation-languages.md`, where the runtime is `no_std` Rust
+and `deci`/`uenr` are ours to write rather than vendored.
 
 ## A declaration always has a value (owner, 2026-09-23)
 
@@ -35,8 +51,8 @@ this does not.
 - **Width in the typed form is mandatory** (`int32`, never `int`) —
   decided 2026-09-14; see "typed form is always fully explicit" below.
 - **Hardware reality**, for the LLVM backend: `bin16/32/64` are native on
-  current targets; `bin128` is software (legacy CyborgPL had a from-scratch
-  quad implementation). `deci*` is hardware on IBM POWER and z/Architecture
+  current targets — which is the whole of `bin` now that `bin128` is gone.
+  `deci*` is hardware on IBM POWER and z/Architecture
   (the owner's other language, Xag, already lowers to those DFP instructions)
   and software everywhere else. LLVM IR has no decimal type, so the hardware
   path must go through target intrinsics or inline asm rather than a plain IR

@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Widths confirmed, minus `bin128` (owner: b)
+
+Marked "proposed by Claude; owner to confirm" since 2026-09-14 and
+built on ever since. Confirmed: `bin` 16, 32, 64; `deci` 32, 64, 128
+(the standard defines only those three); `int`/`uint` 8, 16, 32, 64,
+128. Proposed (a) confirm all including `bin128`; (b) drop `bin128` —
+the one with essentially no hardware anywhere, entirely software and
+slow, and whose use case `std::uenr` answers by being exact rather than
+wider. Owner: b, "but `std::uenr` better be fucking optimised" —
+recorded in `types.md` as a requirement, since `uenr` is now the only
+answer above 64 bits. `int128`/`uint128` stay: no hardware either, but
+cheap from two 64s, and `uenr` is built on them.
+
 ### 2026-09-23 — No implicit zero: a declaration always has a value (owner: a)
 
 Open since 2026-09-14 as Claude's recommendation, never put to the
@@ -1999,7 +2012,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
-- Type widths to confirm: `bin16/32/64/128`, `deci32/64/128`, `int`/`uint` 8–128. (Claude, 2026-09-14)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
 - The Limb author's "reachable bare" flag — spelling, beside or on `pub`. (`design/limbs.md`, 2026-09-19)
 - `range[…]` as a standalone value (not only after `for … in`). (Claude, 2026-09-19)
