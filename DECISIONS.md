@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Generated programs read input as an environment variable's length (owner: a)
+
+Check claude's second generator question, the same shape as the
+printer. Without input, every generated program is fully known and
+Precog runs it to the end at compile time, so nothing tests the machine
+code or layers 2 and 3. Proposed (a) `extern fn getenv` + `strlen`,
+with the harness setting the variable's length and the program building
+its values from it, switching to `std::input` when std has one; (b)
+wait for std. Owner: a. Probing this by hand had already found three
+CCA bugs that day, including a wrong proof (`'n' x
+10000000000000000000` into a `uint64` reported proven; the binary
+overflows at n = 2 where the oracle stops) — the silent-miscompile
+class, and the argument for the whole session.
+
 ### 2026-09-23 — Generated programs carry a base-language printer (owner: a)
 
 Check claude's first generator question. With `std::` refused until std

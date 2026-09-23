@@ -44,6 +44,28 @@ printer goes. Proposed alternative: wait for std, and compare only the
 exit code and where a check fired — which would delay every output bug
 until then.
 
+## Input while there is no std (owner, 2026-09-23)
+
+A program that reads nothing is run to the end at compile time
+(`precog.md`, layer 1), so its binary is only its output: testing it
+exercises Precog's compile-time execution and nothing else — not the
+machine code, not the runtime checks, not layers 2 and 3. Generated
+programs therefore need a value the compiler cannot see, and until std
+has input they get it as **the length of an environment variable**,
+through `extern fn getenv` and `strlen`, which both implementations
+already run. The harness sets the variable to N characters; the program
+builds whatever value it wants from N, bounded by a range type or a
+conversion. It switches to `std::input` when std has one. Proposed
+alternative: wait for std, and test only what a fully known program
+tests.
+
+This channel found three CCA bugs on the day it was proposed, probed by
+hand — the worst a **wrong proof**: `'n' x 10000000000000000000` into a
+`uint64` reported proven, with the binary silently overflowing at n = 2
+where the oracle stops. That is the class of bug the proofs-as-
+assertions mode exists for, and the reason the verification session
+does not read `cca/`.
+
 ## Three oracles (owner, 2026-09-21)
 
 The interpreter is one of three independent checks, each of a different
