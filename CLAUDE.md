@@ -35,6 +35,8 @@ the owner explicitly chooses it.
 - `design/` — design documents, one topic per file, as they are written.
 - `examples/` — `.cpls` programs using settled syntax only, each with its
   expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
+- `website/` — the open-source CyborgPL website (owner, 2026-09-23), built by
+  the website session, which updates it only when the owner says so.
 - `oracle/` — the reference interpreter (Rust): the executable spec. It
   implements only what `design/` decides and refuses the rest. When a note
   and the oracle disagree, fix whichever is wrong and add a test. Its

@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The website lives in `website/` in this repo (owner)
+
+The website session is building a new open-source site inside the
+language repo, and asked where. Proposed: `website/`, `www/`, `docs/`,
+`site/`. Design claude recommended `website/`, which says what it is and
+leaves `docs/` for language documentation. Owner: `website/`. The site
+is updated only when the owner asks the website session to. It becomes
+public when the repo does. Open: the site's text licence (the website
+session has CC BY 4.0, and this log has Apache-2.0 WITH LLVM-exception
+throughout).
+
 ### 2026-09-23 — Precog follows a loop up to 100,000 trips (owner)
 
 Kespar's provisional number, asked by compiler claude once it cost
