@@ -27,6 +27,12 @@ the owner explicitly chooses it.
 - **Compiler session** ("compiler claude"): CCA and Synthia. Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL v2 compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/` and `synthia/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Verification session** ("check claude"): the program generator, the differential harness, the Precog oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/CyborgPL v2 verification`, in `check/`. It reads `design/` and the tests, and **never `cca/` or `oracle/src`** — it is a different author from Precog's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
+- **Reaching another session** (owner, 2026-09-24: "find a way to be always messageable"): send by its permanent session id, never its display name. A name only reaches a session that is running right now, and an id goes through the desktop app:
+  - design claude: `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`
+  - compiler claude: `local_bd7d62d4-5ac0-4ce0-8f9a-174b30357045`
+  - check claude: `local_ef7a2c2e-a6ee-44b5-a0bd-b5c9a62174ec`
+  - website session: `local_c5cfe29e-4c8b-43d5-b06c-a1b7e2c93b90`
+
 - **Cores** (owner, 2026-09-23: "How many cores do I have? Split it evenly"): the machine has 10 (4 performance, 6 efficiency). Each of the three sessions uses at most **3** at once, for builds, tests and any runs it starts, and 1 is left for the desktop. `oracle/.cargo/config.toml` holds this for the oracle, and each session holds it for its own work.
 
 ## Layout

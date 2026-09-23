@@ -52,9 +52,11 @@ the design session.
 
 ## How to reach the design session
 
-The design session is another Claude session on this machine, listed
-by `ListAgents` as **"CyborgPL language design"** (the name may carry a
-`[ref]`; use it if two rows share the name). Send it a design question
+The design session is another Claude session on this machine. Reach it
+by its session id, `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`, which
+works even when it is not running, rather than by its name ("CyborgPL
+language design"), which reaches it only while it runs. CLAUDE.md lists
+every session's id. Send it a design question
 with `SendMessage` — it asks the owner and answers you, or answers from
 the record when the record already says. If it is not running, ask the
 owner directly. Everything the design session knows is in this repo;

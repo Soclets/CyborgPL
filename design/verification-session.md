@@ -68,7 +68,9 @@ question to the design session, or to compiler claude for `cca/`.
 
 ## How to reach the other sessions
 
-Both are Claude sessions on this machine, listed by `ListAgents`:
+Both are Claude sessions on this machine. Reach them by session id
+(CLAUDE.md lists them), which works even when they are not running; a
+name reaches a session only while it runs:
 
 - **"CyborgPL language design"** — design questions, and anything the
   specification does not say. It asks the owner and answers you, or
