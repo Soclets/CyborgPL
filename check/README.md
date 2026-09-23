@@ -71,12 +71,14 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `shl-width`.
+straight at them. Default: `ranges`.
 
-- `shl-width`: the owner ruled (88da73f) that `shl`, `not.bit` and the
-  wrapping operators take their width from any typed operand or from the
-  type stored into; CCA still refuses anything but a name or `to.T[…]`
-  (queued by compiler claude). The generator keeps to names and `to.T[…]`.
+- `ranges`: CCA does not accept range types yet (c845110, told
+  2026-09-23); the generator writes no range types.
+
+- `shl-width`: `shl`, `not.bit` and the wrapping operators only on names
+  and `to.T[…]` — no longer needed (CCA takes the 88da73f rule since
+  f40f659), kept as an option.
 - `u64-high` (uint64 values ≥ 2^63 handled as int64) and `range-edge` (a
   `for` whose last step passes the counter type's edge) — both fixed in
   CCA c36cfce; still available as `--avoid` items.
