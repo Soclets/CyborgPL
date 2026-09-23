@@ -60,13 +60,20 @@ fn expr_size(e: &Expr) -> usize {
 }
 
 fn block_variants(b: &[Stmt]) -> Vec<Vec<Stmt>> {
+    block_variants_from(b, 0)
+}
+
+/// Variants that leave the first `keep` statements alone: a generated
+/// `while` starts with its counter's decrement and a `loop` with its break
+/// test and decrement, and changing those can make the loop endless.
+fn block_variants_from(b: &[Stmt], keep: usize) -> Vec<Vec<Stmt>> {
     let mut out = vec![];
-    for i in 0..b.len() {
+    for i in keep.min(b.len())..b.len() {
         let mut v = b.to_vec();
         v.remove(i);
         out.push(v);
     }
-    for i in 0..b.len() {
+    for i in keep.min(b.len())..b.len() {
         for rep in stmt_variants(&b[i]) {
             let mut v = b[..i].to_vec();
             v.extend(rep);
@@ -161,15 +168,12 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
             }
         }
         Stmt::While { cond, body } => {
-            for c in expr_variants(cond) {
-                out.push(vec![Stmt::While { cond: c, body: body.clone() }]);
-            }
-            for b in block_variants(body) {
+            for b in block_variants_from(body, 1) {
                 out.push(vec![Stmt::While { cond: cond.clone(), body: b }]);
             }
         }
         Stmt::Loop { body } => {
-            for b in block_variants(body) {
+            for b in block_variants_from(body, 2) {
                 out.push(vec![Stmt::Loop { body: b }]);
             }
         }

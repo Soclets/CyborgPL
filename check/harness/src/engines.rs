@@ -84,6 +84,10 @@ pub fn run(cmd: &mut Command, dir: &Path, env: &[(String, String)], clean: bool,
     }
     let mut child = cmd.process_group(0).stdin(Stdio::null()).stdout(out).stderr(err).spawn().expect("spawn");
     let pgid = child.id();
+    // Note the group, so a harness that is itself killed does not leave it
+    // running: the next harness start kills whatever is listed.
+    let mark = live_dir().join(pgid.to_string());
+    let _ = fs::write(&mark, std::process::id().to_string());
     let start = Instant::now();
     let mut timed_out = false;
     let status = loop {
@@ -98,7 +102,8 @@ pub fn run(cmd: &mut Command, dir: &Path, env: &[(String, String)], clean: bool,
     };
     // Whatever is left of the group — the child itself on a timeout, or
     // anything it started — goes now.
-    let _ = Command::new("/bin/kill").args(["-9", "--", &format!("-{pgid}")]).stdout(Stdio::null()).stderr(Stdio::null()).status();
+    kill_group(pgid);
+    let _ = fs::remove_file(&mark);
     if timed_out {
         let _ = child.wait();
     }
@@ -111,6 +116,34 @@ pub fn run(cmd: &mut Command, dir: &Path, env: &[(String, String)], clean: bool,
     let _ = fs::remove_file(&out_path);
     let _ = fs::remove_file(&err_path);
     r
+}
+
+fn live_dir() -> std::path::PathBuf {
+    let d = Path::new(env!("CARGO_MANIFEST_DIR")).join("../work/live");
+    let _ = fs::create_dir_all(&d);
+    d
+}
+
+fn kill_group(pgid: u32) {
+    let _ = Command::new("/bin/kill").args(["-9", "--", &format!("-{pgid}")]).stdout(Stdio::null()).stderr(Stdio::null()).status();
+}
+
+/// Kill every engine process group whose harness is gone (stopped before it
+/// could clean up). Groups of a harness still running are left alone.
+pub fn reap_leftovers() {
+    let Ok(rd) = fs::read_dir(live_dir()) else { return };
+    for e in rd.flatten() {
+        let owner = fs::read_to_string(e.path()).unwrap_or_default();
+        let alive = !owner.is_empty()
+            && Command::new("/bin/kill").args(["-0", owner.trim()]).stdout(Stdio::null()).stderr(Stdio::null()).status().map_or(false, |s| s.success());
+        if alive {
+            continue;
+        }
+        if let Ok(pgid) = e.file_name().to_string_lossy().parse::<u32>() {
+            kill_group(pgid);
+        }
+        let _ = fs::remove_file(e.path());
+    }
 }
 
 /// The first `line N` in a message.

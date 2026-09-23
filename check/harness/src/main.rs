@@ -110,6 +110,7 @@ fn envs(p: &Program) -> Vec<Env> {
 }
 
 fn main() {
+    engines::reap_leftovers();
     let a = parse();
     let tools = || Tools::find(&repo()).unwrap_or_else(|e| die(&e));
     match a.cmd.as_str() {
