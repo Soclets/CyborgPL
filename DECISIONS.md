@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — `range[…]` stays part of `for`; it is not a value (owner: a)
+
+Open since 2026-09-19. Owner asked what a range value is even for, and
+whether there are alternatives: elsewhere it serves slicing, passing
+bounds, looping twice, and iterator chains — and here those are
+`list.slice` / `std::str.slice` with `pos` arguments, two parameters or
+a writer's own `struct Span`, writing the loop twice, and nothing,
+since there are no iterator chains. A range value would also drag in
+questions (a type parameter? lendable? what is its length?) for a
+feature nothing has asked for. Owner: a. The exercise surfaced a real
+gap instead: **list slicing does not exist**, where text has
+`std::str.slice.grapheme`. Taken next at the owner's direction.
+
 ### 2026-09-23 — One-ended ranges: `int32[1, max]`, `int32[min, 100]` (owner: a, words)
 
 Open since 2026-09-20. Today a one-ended bound had to be written with
@@ -2042,7 +2055,6 @@ for JetPack, always containing analysable source, never an opaque binary
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
 - Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
 - The Limb author's "reachable bare" flag — spelling, beside or on `pub`. (`design/limbs.md`, 2026-09-19)
-- `range[…]` as a standalone value (not only after `for … in`). (Claude, 2026-09-19)
 
 **Precog**
 - Non-terminating compile-time code: with step budgets now required, the budget's size and the error it produces. (Claude, 2026-09-14)

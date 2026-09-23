@@ -111,7 +111,17 @@ for 'i' in range[0, 9] { }                 # like  let 'i' := 0;
 for 'i': int8 in range[0, 9] { }           # like  let 'i': int8 = 0;
 ```
 
-`range[…]` is only decided as what a `for` runs over; as a standalone value
+**`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a
+value, cannot be stored, passed or returned. The four things a
+first-class range is used for elsewhere are answered otherwise here —
+slicing by `list.slice` / `std::str.slice` with `pos` arguments like
+every other operation; bounds passed to a function as two parameters or
+a three-line `struct Span { from: int32  to: int32 }` the writer owns;
+looping twice by writing the loop twice; and chaining, which needs
+iterators the language does not have. Nothing had asked for it since it
+was opened on 2026-09-19.
+
+Historic note: `range[…]` is only decided as what a `for` runs over; as a standalone value
 it is undecided and the oracle refuses it.
 
 **The body cannot assign to the counter** (or to a list loop's element): it
