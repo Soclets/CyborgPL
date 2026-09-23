@@ -1417,12 +1417,22 @@ impl<'p> Interp<'p> {
                 if ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
                 let ty = base;
                 self.check_handler(handler.as_ref(), &fails, &format!("to.{target}"), line)?;
+                // Into a range type, a value that does not even fit the base type is out of the range
+                // too: a failure the writer handles, never a crash (input.md, decided 2026-09-20).
+                macro_rules! fit_base { ($v:expr) => {
+                    if let Err(e) = self.check_type(&$v, ty, line) {
+                        if !ranged { return Err(e); }
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "out_of_range".into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        return Ok((v, prov));
+                    }
+                } }
                 let out = match (ty, &v) {
                     (Ty::Str(_), Value::Nothing) => return rt(line, "a call that returns nothing has no text"),
                     (Ty::Str(_), other) => Value::Str(other.show_stored()),
-                    (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { self.check_type(&Value::Int(*i), ty, line)?; Value::Int(*i) }
-                    (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); self.check_type(&b, ty, line)?; b }
-                    (Ty::Bin(_), Value::Bin(x)) => { self.check_type(&Value::Bin(*x), ty, line)?; Value::Bin(*x) }
+                    (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
+                    (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }
+                    (Ty::Bin(_), Value::Bin(x)) => { fit_base!(Value::Bin(*x)); Value::Bin(*x) }
                     (Ty::Int(_) | Ty::Uint(_), Value::Bin(x)) => {
                         if !x.is_finite() || x.fract() != 0.0 {
                             let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_whole".into(), None, true)?;
@@ -1430,13 +1440,13 @@ impl<'p> Interp<'p> {
                             return Ok((v, prov));
                         }
                         let i = Value::Int(*x as i128);
-                        self.check_type(&i, ty, line)?;
+                        fit_base!(i.clone());
                         i
                     }
                     (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_), Value::Str(s)) => {
                         let parsed = if matches!(ty, Ty::Bin(_)) { s.parse::<f64>().ok().map(Value::Bin) } else { s.parse::<i128>().ok().map(Value::Int) };
                         match parsed {
-                            Some(p) => { self.check_type(&p, ty, line)?; p }
+                            Some(p) => { fit_base!(p.clone()); p }
                             None => {
                                 let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_a_number".into(), None, true)?;
                                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };

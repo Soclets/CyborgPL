@@ -17,7 +17,8 @@ MAIN {
     }
     let 'r' := to.uint8[0, 100]["42"] otherwise 0;          # into a range type: fails, does not check
     let 'bad' := to.uint8[0, 100]["142"] otherwise 0;
-    std::printu.stdout['r', " ", 'bad', \n];
+    let 'huge' := to.uint8[0, 100]["99999999999"] otherwise 0;   # not even a uint8: still out of range, not a crash
+    std::printu.stdout['r', " ", 'bad', " ", 'huge', \n];
     let 'unit': bin64[0.0, 1.0] = 0.25;
     std::printu.stdout['unit', \n];
 }

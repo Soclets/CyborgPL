@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Oracle bug: text too big for a range type's base crashed instead of failing (design session)
+
+Found while checking a question from compiler claude. `input.md` says a
+conversion into a range type fails `out_of_range`, "so a bad outside
+value is a failure you handle, never a crash". But
+`to.uint8[0, 100]["99999999999"] otherwise 0` crashed with "does not fit
+uint8", because the base type was checked before the range. Fixed: into
+a range type, a value that does not fit the base type fails
+`out_of_range` too. `examples/ranges.cpls` pins it. Plain
+`to.int32["99999999999"]`, with no range, is a separate question put to
+the owner.
+
 ### 2026-09-24 — Type names need not be capitalised (owner)
 
 Asked by the website session, whose syntax colouring treats a
