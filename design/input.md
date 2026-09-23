@@ -62,7 +62,9 @@ let 'unit': bin64[0.0, 1.0] = 0.25;
 ```
 
 - Bounds are numeric literals of the base type's family (`int32[0.0,
-  1.0]` and `bin64[0, 1]` are errors); low first.
+  1.0]` and `bin64[0, 1]` are errors); low first. Each bound is a value the base type
+  can hold: `uint8[0, 300]` and `uint8[-1, 5]` are errors (owner,
+  2026-09-23: "does `uint8` hold 300?").
 - **Two ways in.** *Assignment* — `let 'n': int32[0, 100] = 'raw';` — is a
   check site like any typed assignment: proven by a guardrail `if` (or by
   the value's own range), a runtime check while building, an error in the

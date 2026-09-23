@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A range's bounds must fit its type: `uint8[0, 300]` is an error (owner)
+
+The oracle accepted `uint8[0, 300]`: `input.md` said bounds are
+literals of the base type's *family*, which rules out `int32[0.0, 1.0]`
+but not 300 on a `uint8`. Proposed (a) an error; (b) allowed, the same
+as `uint8[0, max]` since the type caps it anyway. Design claude
+recommended a. Owner: "does `uint8` hold 300?", which was taken as a.
+Each bound is now a value the base type can hold: `uint8[0, 300]`,
+`uint8[-1, 5]` and `bin16[0.0, 70000.0]` are refused with "300 does not
+fit uint8". Two reject tests.
+
 ### 2026-09-23 — A bare name is `pub bare fn pow […]` (owner: a)
 
 The spelling of the Limb author's choice, open since 2026-09-19 (the

@@ -637,6 +637,16 @@ impl Parser {
                 }
                 // `min` / `max` are the base type's limits, so they order like any number
                 let (rlo, rhi) = (crate::interp::resolve_bound(&base, &lo), crate::interp::resolve_bound(&base, &hi));
+                // a bound the type cannot hold says nothing, or is a mistake (owner, 2026-09-23)
+                let (tlo, thi) = (crate::interp::resolve_bound(&base, &Bound::Min), crate::interp::resolve_bound(&base, &Bound::Max));
+                for b in [&rlo, &rhi] {
+                    let fits = match (b, &tlo, &thi) {
+                        (Bound::Int(v), Bound::Int(a), Bound::Int(z)) => a <= v && v <= z,
+                        (Bound::Bin(v), Bound::Bin(a), Bound::Bin(z)) => a <= v && v <= z,
+                        _ => true,
+                    };
+                    if !fits { return self.err(format!("{} does not fit {head}: a range's bounds are values of its type", crate::value::bound_name(b))); }
+                }
                 let ok = match (&rlo, &rhi) { (Bound::Int(a), Bound::Int(b)) => a <= b, (Bound::Bin(a), Bound::Bin(b)) => a <= b, _ => true };
                 if !ok { return self.err("a range's low bound comes first: `int32[0, 100]`"); }
                 // `int32[min, max]` is `int32` written the long way (2026-09-23)
