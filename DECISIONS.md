@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Three cores per session, one for the desktop (owner)
+
+The owner asked how many cores the machine has, and said "Split it
+evenly". Compiler claude proposed 3 each for the three sessions that do
+heavy work, plus 1 spare, and relayed it. The owner confirmed it here
+directly ("i did"). `oracle/.cargo/config.toml` sets `jobs = 3` and
+`RUST_TEST_THREADS = 3`, and `CLAUDE.md` states it for every session.
+The 10 are 4 performance and 6 efficiency cores, and macOS picks which
+runs where, so this caps how many jobs a session runs at once. It does
+not give each session an equal share of the fast cores.
+
 ### 2026-09-23 — `to.array[…]` / `to.list[…]`; a list never becomes an array by itself (owner)
 
 The oracle let a list be given into an `array` variable and back, and
