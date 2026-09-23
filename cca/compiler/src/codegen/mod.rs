@@ -1239,6 +1239,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 self.chan_send(fi, args, slots)?;
                 Some(None)
             }
+            Op::ChannelRelease => {
+                self.chan_release(fi, args, slots)?;
+                Some(None)
+            }
             Op::MapKeys | Op::MapValues | Op::MapPairs => {
                 let out = dest_ty?;
                 Some(Some(self.map_walk(fi, op, args, &out, slots, func)?))

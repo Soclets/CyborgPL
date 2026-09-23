@@ -61,3 +61,9 @@ literal_group 9
 
 # The mathematician's mod, in Precog as in the binary.
 floor_mod 42
+
+# MAIN lends one channel to a producer and a consumer and waits at the
+# block's end: it lets go where it never names the channel again, so the
+# consumer's second take fails `closed` (as the oracle says) instead of
+# waiting for ever.
+channels_released 105

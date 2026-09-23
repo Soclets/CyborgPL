@@ -34,7 +34,11 @@ pub fn build(checked: Checked) -> Program {
         b.functions[idx.0 as usize] = f;
     }
     let main = checked.main.and_then(|m| b.inst_idx.get(&m).copied());
-    Program { functions: b.functions, main, items: b.items, instances: b.instances }
+    let mut p = Program { functions: b.functions, main, items: b.items, instances: b.instances };
+    // Precog's half of `closed` (owner, 2026-09-23): the maker lets go of a
+    // channel where it provably never names it again.
+    crate::mir::channels::release_early(&mut p);
+    p
 }
 
 pub struct Arena {

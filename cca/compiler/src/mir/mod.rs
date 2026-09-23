@@ -16,6 +16,7 @@
 //! without a comment invalidating every proof.
 
 pub mod build;
+pub mod channels;
 pub mod domain;
 pub mod ownership;
 pub mod print;
@@ -154,6 +155,9 @@ pub enum Op {
     PtrIsNull,
     ChannelSend,
     ChannelTake,
+    /// The task that made this channel will never name it again: it stops
+    /// counting as one that might send (`mir::channels`).
+    ChannelRelease,
     SimdFill,
     SimdLoad,
     SimdStore,

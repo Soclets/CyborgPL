@@ -314,6 +314,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some((ch, elem))
     }
 
+    /// The maker will never name this channel again (`mir::channels`): it
+    /// stops counting as someone who might send.
+    pub(super) fn chan_release(&mut self, fi: usize, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+        let (ch, _) = self.chan_of(fi, args.first()?, slots)?;
+        let f = self.rt_chan("cyborg_chan_release");
+        let _ = self.builder.build_call(f, &[ch.into()], "");
+        Some(())
+    }
+
     /// `channel.send[lend 'c', v]` — the value is given: it is the
     /// channel's (and then a taker's) from here on.
     pub(super) fn chan_send(&mut self, fi: usize, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {

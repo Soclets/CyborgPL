@@ -259,11 +259,17 @@ Dated, with the alternative, so each can become a question later.
   can reach it; a `take` on an empty channel fails `closed` when every
   holder is itself waiting to take from it). What is built is the plain
   form: every channel on the heap, every slot the type allows, and the
-  counting everywhere. Precog's parts — the stack when a channel dies
-  with its block, fewer slots than the bound, no channel at all for one
-  hand-off, and emitting the close where it proves the last sender done
-  instead of counting — are additions, not requirements, and none is
-  built. `whichever` tries its arms in the order written, so of several
+  counting everywhere. Of Precog's half of `closed`, one part is built
+  (2026-09-23, `mir/channels.rs`): the task that made a channel lets go
+  of it where it provably never names it again — directly or through a
+  borrow held in another name — rather than at the end of its block, so
+  MAIN lending one channel to a producer and a consumer no longer keeps
+  the consumer's last `take` waiting for ever (the oracle says `closed`,
+  and so does CCA now). A channel ever given away, or a name assigned
+  twice, is left to the counting. Still not built: deleting the counting
+  where the close is proven, and the three layout parts — the stack, fewer
+  slots than the bound, no channel at all for one hand-off. Those are
+  additions, not requirements. `whichever` tries its arms in the order written, so of several
   ready at once the first wins and a run is reproducible.
 
 - **2026-09-23 — Which C calls end the program, for "reached on every
@@ -278,16 +284,3 @@ Dated, with the alternative, so each can become a question later.
   exists it is the language's own way out, CCA knows it ends the program
   without a list, and these names stop carrying any weight — not a
   permanent rule about C.
-
-## Waiting on the owner
-
-- **A holder waiting on a join keeps a channel open.** MAIN makes a
-  channel and lends it to a producer and a consumer, then waits at the
-  block's end: MAIN still holds the channel but is waiting on the join,
-  not on a `take`, so when the producer is done the consumer's next
-  `take` never sees `closed` and the program waits for ever. The oracle
-  says `closed` there (105 where CCA hangs). The owner's decision names
-  this — "a holder stuck waiting on something else keeps the channel
-  open" — and its Precog half (emit the close where the last sender is
-  proven done) is what would answer it; that half is not built.
-
