@@ -71,7 +71,11 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: none.
+straight at them. Default: `exact-bits`.
+
+- `exact-bits`: CCA says "not yet" to a shift, bitwise or wrapping operator
+  on an exact answer whose operands differ in size (2026-09-23); the
+  generator gives such an operand a size with `to.T[…]`.
 
 - `mixed-width`: print through `to.int64[…]` / `to.uint64[…]`. Needed
   only while mixed widths were open; settled by the owner (dc83c05: plain

@@ -31,11 +31,19 @@ pub struct Config {
     pub width_from_context: bool,
     /// Give some names, parameters and returns a range type.
     pub ranges: bool,
+    /// Aim at the 64-bit edges: mostly int64/uint64, edge literals, call
+    /// results known only by their type, comparisons across types
+    /// (layer 3's wrong-proof family, compiler claude 2026-09-23).
+    pub edge: bool,
+    /// Give the operands of shifts, bitwise and wrapping operators a size
+    /// with `to.T[…]` unless they are names or literals: CCA says "not yet"
+    /// to them on an exact answer (2026-09-23).
+    pub sized_bits: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true }
     }
 }
 
@@ -201,12 +209,18 @@ impl Gen {
     }
 
     fn int_ty(&mut self) -> Ty {
+        if self.cfg.edge && self.rng.chance(70) {
+            return if self.rng.chance(50) { Ty::I64 } else { Ty::U64 };
+        }
         *self.rng.pick(&INTS)
     }
 
     /// A sub-interval of `t` to promise for a name, or the whole type.
     fn ghost(&mut self, t: Ty) -> Iv {
         let r = t.range();
+        if self.cfg.edge && self.rng.chance(60) {
+            return r;
+        }
         match self.rng.below(4) {
             0 => r,
             1 => {
@@ -628,9 +642,10 @@ impl Gen {
 
     fn literal(&mut self, t: Ty) -> (Expr, Iv) {
         let r = t.range();
-        let v = match self.rng.below(3) {
+        let pick = if self.cfg.edge && self.rng.chance(60) { 0 } else { self.rng.below(3) };
+        let v = match pick {
             0 => {
-                let edges = [r.lo, r.lo + 1, -1, 0, 1, 2, r.hi - 1, r.hi];
+                let edges = [r.lo, r.lo + 1, -1, 0, 1, 2, r.hi - 1, r.hi, r.hi / 2, r.hi / 2 + 1, r.lo / 2];
                 let ok: Vec<i128> = edges.into_iter().filter(|v| r.has(*v)).collect();
                 *self.rng.pick(&ok)
             }
@@ -711,7 +726,8 @@ impl Gen {
             // not.bit: of a name, or of any typed operand once the width may
             // come from context
             let (a, ia) = if self.cfg.width_from_context && self.rng.chance(50) {
-                self.int_expr_typed(t)
+                let (e, iv) = self.int_expr_typed(t);
+                (if self.cfg.sized_bits && !matches!(e, Expr::Var(_) | Expr::To(..)) { Expr::To(t, Box::new(e)) } else { e }, iv)
             } else {
                 let vs = self.vars_of(t);
                 let v = self.rng.pick(&vs).clone();
@@ -754,6 +770,14 @@ impl Gen {
 
     fn binary(&mut self, t: Ty, op: BinOp, a: Expr, ia: Iv, b: Expr, ib: Iv) -> (Expr, Iv) {
         use BinOp::*;
+        let bitty = matches!(op, AndBit | OrBit | Xor | Shl | Shr | WAdd | WSub | WMul);
+        let size = |e: Expr| -> Expr {
+            match e {
+                Expr::Var(_) | Expr::To(..) | Expr::Lit(_) => e,
+                e => Expr::To(t, Box::new(e)),
+            }
+        };
+        let (a, b) = if bitty && self.cfg.sized_bits { (size(a), size(b)) } else { (a, b) };
         let r = t.range();
         let bits = t.bits() as i128;
         let risk = self.take_risk();
@@ -903,7 +927,10 @@ impl Gen {
         let op = *self.rng.pick(&[CmpOp::Eq, CmpOp::Ne, CmpOp::Lt, CmpOp::Gt, CmpOp::Le, CmpOp::Ge]);
         let d = self.expr_depth().min(2);
         let (a, _) = self.int_expr(t, d);
-        let (b, _) = self.int_expr(t, d);
+        // A comparison compares true values (owner, dc83c05), so its sides
+        // may differ in type; in edge mode they often do.
+        let tb = if self.cfg.edge && self.rng.chance(40) { self.int_ty() } else { t };
+        let (b, _) = self.int_expr(tb, d);
         if is_literal_only(&a) && is_literal_only(&b) {
             match self.typed_leaf(t) {
                 Some((v, _)) => return Expr::Cmp(op, Box::new(v), Box::new(b)),

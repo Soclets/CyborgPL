@@ -43,7 +43,7 @@ fn parse() -> Args {
     let mut i = 0;
     while i < v.len() {
         if let Some(f) = v[i].strip_prefix("--") {
-            if matches!(f, "keep-going" | "no-shrink" | "pow") {
+            if matches!(f, "keep-going" | "no-shrink" | "pow" | "edge") {
                 flags.insert(f.to_string(), "1".into());
             } else {
                 flags.insert(f.to_string(), v.get(i + 1).cloned().unwrap_or_default());
@@ -67,7 +67,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or(String::new());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -78,6 +78,8 @@ impl Args {
             range_edge: !avoid.contains("range-edge"),
             width_from_context: !avoid.contains("shl-width"),
             ranges: !avoid.contains("ranges"),
+            edge: self.has("edge"),
+            sized_bits: avoid.contains("exact-bits"),
         }
     }
 }
