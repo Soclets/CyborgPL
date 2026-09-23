@@ -1,9 +1,21 @@
+# The primes up to N, by the sieve of Eratosthenes; the exit code is their
+# count's low byte. N comes from the environment and must be 0 to
+# 200_000_000; anything else ends the program with exit code 2, as does no N at all.
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern fn atoi ['s': ptr[uint8]] -> int32;
-MAIN {
-    let 'k' := "N";
-    nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
+extern fn atoll ['s': ptr[uint8]] -> int64[0, 200_000_000];
+
+# N, from the text in the environment: missing when there is none, and out
+# of range when it is not a number this program takes.
+fn read_n ['text': ptr[uint8]] -> int64[0, 200_000_000] or fail[missing, out_of_range] {
+    if ptr.is_null['text'] { fail missing; }
+    nocheck let 'n' := atoll['text'] otherwise fail;
+    return 'n';
+}
+
+fn run [] -> int32 or fail[missing, out_of_range] {
+    let 'key' := "N";
+    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     let mut 'comp': list[bool] = [];
     let mut 'i': int64 = 0;
     while 'i' <== 'n' {
@@ -23,5 +35,10 @@ MAIN {
         }
         'p' = 'p' + 1;
     }
-    nocheck exit[to.int32['count' mod 256]];
+    return to.int32['count' mod 256];
+}
+
+MAIN {
+    let 'code' := run[] otherwise 2;
+    nocheck exit['code'];
 }

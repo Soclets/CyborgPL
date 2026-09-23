@@ -353,9 +353,10 @@ impl Precog {
             let mut post: Vec<usize> = Vec::with_capacity(n);
             let mut stack: Vec<(usize, usize)> = vec![(0, 0)];
             seen[0] = true;
-            // A successor that stays inside a loop around `b` is explored
-            // last, so it comes first: a loop's body before its way out.
-            let stays = |b: usize, t: usize| head_body.values().any(|body| body.contains(&b) && body.contains(&t));
+            // A successor that stays inside more of the loops around `b` is
+            // explored later, so it comes first: an inner loop's body before
+            // its way out, which is still inside the outer loop.
+            let stays = |b: usize, t: usize| head_body.values().filter(|body| body.contains(&b) && body.contains(&t)).count();
             while let Some((b, k)) = stack.pop() {
                 let mut succ = crate::mir::verify::successors(&func.blocks[b].term);
                 succ.sort_by_key(|t| stays(b, t.0 as usize));

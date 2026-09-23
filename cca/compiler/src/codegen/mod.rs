@@ -1350,6 +1350,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(None)
             }
             Op::ListRemove => Some(Some(self.list_remove(fi, args, slots)?)),
+            // C's null (`ffi.md`): a pointer compared with nothing.
+            Op::PtrIsNull => {
+                let v = self.operand(fi, args.first()?, slots)?.into_pointer_value();
+                Some(Some(self.builder.build_is_null(v, "is_null").ok()?.into()))
+            }
             // A list is a pointer, a length and a capacity, an array the
             // first two (`lists.md`, layout): the elements stay where they
             // are, and only the handle changes. A list's spare capacity is

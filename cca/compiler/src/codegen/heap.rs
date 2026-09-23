@@ -771,7 +771,40 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// (`failures.md`), and MIR has already turned each `otherwise` arm
     /// into its own block. Read the tag and go where it says.
     #[allow(clippy::too_many_arguments)]
+    /// An extern whose return is a range type (`ffi.md`, "A ranged return —
+    /// C's contract, checked at the door"): C's answer is compared with the
+    /// range, and outside it the call fails `out_of_range`, which the caller
+    /// handles. A failure, not a check: the final build keeps it.
+    #[allow(clippy::too_many_arguments)]
+    fn emit_ranged_extern(&mut self, fi: usize, id: crate::hir::ExternId, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let ret = self.p.items.externs[id.0 as usize].ret.clone();
+        let Some(crate::types::Bound::Int { lo, hi }) = ret.bound().cloned() else { return None };
+        let signed = matches!(ret.base(), Ty::Int(crate::types::IntW::Fixed { signed: true, .. }));
+        let v = self.call(fi, callee, args, slots)?.into_int_value();
+        let t = v.get_type();
+        let (below, above) = if signed {
+            (self.builder.build_int_compare(IntPredicate::SLT, v, super::const_i128(t, lo), "below").ok()?, self.builder.build_int_compare(IntPredicate::SGT, v, super::const_i128(t, hi), "above").ok()?)
+        } else {
+            (self.builder.build_int_compare(IntPredicate::ULT, v, super::const_i128(t, lo), "below").ok()?, self.builder.build_int_compare(IntPredicate::UGT, v, super::const_i128(t, hi), "above").ok()?)
+        };
+        let outside = self.builder.build_or(below, above, "out_of_range").ok()?;
+        let inside = self.ctx.append_basic_block(func, "in_range");
+        // `out_of_range` is the one reason; an arm for it, or none when the
+        // caller's `otherwise` gives a value or leaves the same way for all.
+        let out = fail.first().map(|a| blocks[a.block.0 as usize])?;
+        let _ = self.builder.build_conditional_branch(outside, out, inside);
+        self.builder.position_at_end(inside);
+        if let Some(d) = dest {
+            self.store_place(fi, d, v.into(), slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
     pub(super) fn emit_failing_call(&mut self, fi: usize, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        if let Callee::Extern(id) = callee {
+            return self.emit_ranged_extern(fi, *id, callee, args, dest, ok, fail, blocks, slots, func);
+        }
         let target = match callee {
             Callee::Fn(idx) => idx.0 as usize,
             _ => return None,
