@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Still no `std::`: finish the base first (owner)
+
+Raised because thirteen examples print with `std::printu` and so cannot
+reach machine code, leaving the differential harness comparing a
+fraction of the corpus; the narrow unblocking version would have been
+`print`, `printu` and `exit` written in CyborgPL on top of `extern fn
+write`. The owner asked what was left in the base — two confirmations
+never actually put to him (no implicit zero value; the exact width
+list), two small additions (one-ended ranges; `range[…]` as a
+standalone value), and two Limb questions (whether a Limb declares its
+own name in source; the spelling of the author's "reachable bare"
+flag) — and answered: **finish the base first.** The 2026-09-22 rule
+stands unchanged until those are closed.
+
 ### 2026-09-23 — The manifest is `Synthia.cplm`, TOML inside (owner)
 
 `.toml` had ridden in with the JetPack sketch on 2026-09-14 and was
