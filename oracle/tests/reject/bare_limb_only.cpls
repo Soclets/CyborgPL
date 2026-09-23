@@ -1,4 +1,0 @@
-# whether a name can be bare inside its own Limb is not decided (2026-09-23)
-pub.limb bare fn pow ['a': int32] -> int32 { return 'a'; }
-MAIN {
-}

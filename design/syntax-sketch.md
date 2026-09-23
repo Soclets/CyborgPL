@@ -145,7 +145,6 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 ## Open
 
 - Explicit conversion spelling.
-- The Limb author's "reachable bare" flag (`limbs.md`).
 
 Closed 2026-09-14: the typed form is always fully explicit (no bare
 `int`/`str`/`char`); character literals are backticked.

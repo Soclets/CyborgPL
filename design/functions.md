@@ -72,7 +72,8 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
 
 A function is a member of a Limb. In the Limb where it is defined it is
 called **bare**: `add[10, 20]`. From any other Limb it is reached through
-the boundary: `mathstuff::pow[2, 64]`, `std::print.stdout[…]`.
+the boundary: `mathstuff::pow[2, 64]`, `std::print.stdout[…]`, and
+never bare (owner, 2026-09-23: no Limb can offer a shortcut).
 
 **Function names are bare at the definition too**: quotes mean *variable*,
 and a function is not one. A function name is a plain identifier — no

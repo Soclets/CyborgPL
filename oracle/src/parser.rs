@@ -122,16 +122,12 @@ impl Parser {
                     self.advance();
                     match self.advance().tok {
                         Tok::Word(w) if w == "limb" => vis = Vis::Limb,
-                        Tok::Word(w) if w == "bare" => return self.err("`bare` is not a narrowing of `pub`: it says how a name is written, not who sees it — `pub bare fn …`"),
+                        Tok::Word(w) if w == "bare" => return self.err("there are no bare names from another Limb: users write the path, `mathstuff::pow[…]`, and only operators come bare"),
                         other => return self.err(format!("the only narrowing of `pub` is `pub.limb` (visible in this Limb only), found {other}")),
                     }
                 }
-                // `pub bare fn pow […]` — other Limbs may write `pow[…]` without `mathstuff::`
-                // (owner, 2026-09-23). The oracle runs one Limb, so here it changes nothing.
-                if self.is_word("bare") {
-                    if vis == Vis::Limb { return self.err("`pub.limb bare` is not decided: `bare` goes with `pub`, for other Limbs"); }
-                    self.advance();
-                }
+                // `pub bare` was chosen and dropped the same day (owner, 2026-09-23)
+                if self.is_word("bare") { return self.err("there are no bare names from another Limb: users write the path, `mathstuff::pow[…]`, and only operators come bare"); }
                 match self.peek().clone() {
                     Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
@@ -288,7 +284,7 @@ impl Parser {
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
                 Tok::Word(w) if w == "check" || w == "nocheck" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Limb-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
-                Tok::Word(w) if w == "bare" => return self.err("`bare` comes after `pub`: `pub bare fn …` — a private name is already bare where it can be seen"),
+                Tok::Word(w) if w == "bare" => return self.err("there are no bare names from another Limb: users write the path, `mathstuff::pow[…]`, and only operators come bare"),
                 other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
             }
         }

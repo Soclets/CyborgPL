@@ -15,41 +15,27 @@ is still open is listed at the end.
 - **There is no user-side alias.** Nothing like Rust's
   `use mathstuff::pow;` exists for the *user* of a Limb.
 
-## The Limb maker decides (owner, 2026-09-19)
+## No bare reach from another Limb (owner, 2026-09-23)
 
-Whether an item may be reached **bare** — `pow[2, 64]` with no `mathstuff::`
-— is the Limb author's call, stated in the Limb's own source, per item or
-per Limb. A user cannot override it from their side. "If you want to
-override that, you edit the source code yourself" — which is always
-possible: a `.limb` is analysable source, and the licence allows it. Forking
-the Limb is the override.
+Everything from another Limb is written with its path, always:
+`mathstuff::pow[2, 64]`, `crate_x::Locker[…]`, `std::printu.stdout[…]`.
+No Limb can offer a shortcut, so a bare name like `pow[…]` always
+means something in your own module, and two Limbs can never clash over
+one.
 
-Consequences:
-- Two Limbs that both export a bare `pow` collide in the user's program;
-  that is a compile error naming both, and the user's fix is to drop one
-  Limb, fork one, or (if the author allowed both forms) write the full path
-  for one of them.
-- The std Limb's items are reached `std::…` unless std's own source says
-  otherwise. Whether std exports anything bare is std's decision, made
-  when std is written.
+Operators are the one thing that comes bare, because there is nowhere
+to put a path in `'u' dot 'v'`. An operator is written for its operand
+types, so which `dot` is meant follows from what `'u'` is.
 
-### How the author says so — `pub bare` (owner, 2026-09-23: a)
-
-```
-pub bare fn pow ['base': int64, 'exp': uint8] -> int64 { … }
-```
-
-`pub` says who can see it, and `bare` says how they write it: a user
-of `mathstuff` may call `pow[2, 10]` as well as `mathstuff::pow[2, 10]`.
-It is a separate word, not `pub.bare`, because a dot picks one variant
-of a thing (`pub` or `pub.limb`, never both), and bare changes the
-spelling without changing the audience. It is written on the item, so
-the reader sees how `pow` is reached where `pow` is. The proposed
-alternative was a list in `limb.cpls` (`bare pow, sqrt;`).
-
-- `bare` without `pub` is refused: a private name is already bare where
-  it can be seen.
-- `bare` is not a keyword. It means this only right after `pub`.
+History: on 2026-09-19 the owner made bare reach the Limb author's
+choice, stated in the Limb's source. Earlier on 2026-09-23 its spelling
+was chosen as `pub bare fn pow […]`, a separate word rather than
+`pub.bare`, since bare changes how a name is written and not who sees
+it. The owner then asked why anything but operators would need to be
+bare. Operators already cover two-operand calls, and bare would have
+been the only break in "the reader always sees where a thing comes
+from" (2026-09-14). Owner: "`mathstuff::pow` is fine", then "drop
+bare".
 
 ## A keyword may name a function — reached by path, never bare (decided 2026-09-19)
 
@@ -195,12 +181,8 @@ would give the name two places to disagree.
 
 ## Open
 
-- What `pub bare` may stand on: functions only, or also structs, enums,
-  interfaces, consts, modules (the oracle accepts it wherever `pub` goes).
-- `pub.limb bare`: whether a name can be bare across its own Limb's
-  modules (refused as undecided).
-- `pub bare` inside a module, not the root: is `shapes.circle`'s bare
-  `area` reached as `area` by users? That is the re-export question:
-  how `shapes.circle.area` becomes `geometry::area`.
-- A user's own `pow` beside a Limb's bare `pow`.
+- How an operator from another Limb is found: by its operand types,
+  with nothing written, is the natural answer. Not yet asked.
+- Re-export: whether a Limb can make `shapes.circle.area` reachable as
+  `geometry::area` for its users. The path stays, only shorter.
 - A file module's own visibility (provisionally public).

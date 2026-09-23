@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — No bare names from another Limb; `pub bare` is dropped (owner)
+
+Straight after `pub bare` was chosen, the owner asked why anything
+needs to be bare when writer-made operators already are. Design claude
+checked: an operator is always written bare (there is nowhere to put a
+path in `'u' dot 'v'`) and is picked by its operand types, so a Limb
+already has short syntax for two-operand work on its own types. Bare
+would have added single-argument and many-argument calls, structs and
+consts, at the cost of the only break in "the reader always sees where
+a thing comes from" (2026-09-14), clashes between Limbs, and four open
+follow-ups. Proposed (a) keep `pub bare`; (b) drop bare, so everything
+from another Limb carries its path and only operators come bare.
+Recommended b. Owner: "`mathstuff::pow` is fine", and when asked to
+confirm, "drop bare". This reverses 2026-09-19's "the Limb maker
+decides bare reachability" and the `pub bare` entry below. The oracle
+refuses `bare` after `pub` with a message saying so.
+`examples/bare.cpls` is gone, and one reject test replaces three. Left
+open: how an operator from another Limb is found (by operand types, not
+yet asked), and re-export.
+
 ### 2026-09-23 — A whole-type range is allowed: `int32[min, max]`, `uint8[0, 255]` (owner: b)
 
 Both mean the plain type. The oracle had refused `int32[min, max]` as
@@ -27,7 +47,7 @@ Each bound is now a value the base type can hold: `uint8[0, 300]`,
 `uint8[-1, 5]` and `bin16[0.0, 70000.0]` are refused with "300 does not
 fit uint8". Two reject tests.
 
-### 2026-09-23 — A bare name is `pub bare fn pow […]` (owner: a)
+### 2026-09-23 — A bare name is `pub bare fn pow […]` (owner: a) — dropped the same day, see above
 
 The spelling of the Limb author's choice, open since 2026-09-19 (the
 author decides whether users may write `pow[…]` without
@@ -1542,7 +1562,7 @@ value), mutable program state (conflicts with ownership). Owner: "So, it's
 in `design/limbs.md`; oracle enforces (`examples/consts.cpls`, twelve
 reject tests). The author's "reachable bare" flag stays open.
 
-### 2026-09-19 — No `import`/`use`; the Limb maker decides bare reachability (owner)
+### 2026-09-19 — No `import`/`use`; the Limb maker decides bare reachability (owner) — bare dropped 2026-09-23
 
 Asked the difference between `import` and Rust's `use`; Claude: `import`
 loads and binds, `use` only shortens a path that already works — and Cyborg
