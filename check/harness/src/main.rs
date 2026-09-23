@@ -132,7 +132,7 @@ fn main() {
             let dir = work().join("shrink");
             match check(&t, &p.render(), &dir.join("0"), &envs(&p)) {
                 Verdict::Finding(f) => {
-                    let small = shrink(&t, p, f.kind, f.mode, &f.env, &dir, a.num("jobs", default_jobs()).min(JOBS_CAP) as usize);
+                    let small = shrink(&t, p, &f.sig, f.mode, &f.env, &dir, a.num("jobs", default_jobs()).min(JOBS_CAP) as usize);
                     print!("{}{}", env_header(&f.env), small.render());
                 }
                 v => {
@@ -229,7 +229,10 @@ fn corpus(t: &Tools) {
 /// (ran, or stopped) — both cheap — before CCA builds it. Survivors are tried
 /// `jobs` at a time; the earliest success wins, so the result does not depend
 /// on which thread finished first.
-fn shrink(t: &Tools, p: Program, kind: &str, mode: engines::Mode, env: &Env, dir: &Path, jobs: usize) -> Program {
+/// A step is kept only if it shows the same finding: the same kind and the
+/// same messages from both engines (numbers aside), not merely the same kind.
+fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir: &Path, jobs: usize) -> Program {
+    let kind = sig.split(':').next().unwrap_or("");
     engines::set_shrinking(true);
     let modes = [mode];
     let envs: Vec<Env> = if env.is_empty() { vec![] } else { vec![env.clone()] };
@@ -263,7 +266,7 @@ fn shrink(t: &Tools, p: Program, kind: &str, mode: engines::Mode, env: &Env, dir
                         let envs = &envs;
                         let modes = &modes;
                         s.spawn(move || match compare::check_modes(t, &c.render(), &d, envs, modes) {
-                            Verdict::Finding(f) if f.kind == kind => Some(f.detail),
+                            Verdict::Finding(f) if f.sig == sig => Some(f.detail),
                             _ => None,
                         })
                     })
@@ -274,7 +277,7 @@ fn shrink(t: &Tools, p: Program, kind: &str, mode: engines::Mode, env: &Env, dir
             for (k, detail) in results.iter().enumerate().filter_map(|(k, r)| r.as_ref().map(|d| (k, d))) {
                 let d = dir.join("confirm");
                 let again = compare::check_modes(t, &batch[k].render(), &d, &envs, &modes);
-                if matches!(&again, Verdict::Finding(f) if f.kind == kind) {
+                if matches!(&again, Verdict::Finding(f) if f.sig == sig) {
                     next = Some(batch[k].clone());
                     break;
                 }
@@ -406,7 +409,7 @@ fn run(t: &Tools, a: &Args) {
             let seed = seeds[0];
             let (_, f) = tl.findings.iter().find(|x| x.0 == seed).unwrap();
             let p = generate(seed, &cfg);
-            let small = shrink(t, p, k, f.mode, &f.env, &work().join("shrink"), jobs as usize);
+            let small = shrink(t, p, &f.sig, f.mode, &f.env, &work().join("shrink"), jobs as usize);
             let fd = work().join("findings").join(seed.to_string());
             std::fs::write(fd.join("shrunk.cpls"), format!("{}{}", env_header(&f.env), small.render())).unwrap();
             let v = check(t, &small.render(), &fd.join("shrunk"), &if f.env.is_empty() { vec![] } else { vec![f.env.clone()] });

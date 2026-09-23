@@ -1,0 +1,55 @@
+# Finding 2026-09-23 (generator seed 25, shrunk): CCA's normal build runs this, its
+# --assert-proofs build stops with exit 101; which width the literal group takes is
+# also asked of the design session.
+# env CHK_IN1 0
+# env CHK_IN2 0
+# check claude generator, seed 25
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    let mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
+    while 'v' / 'p' >== 10 {
+        'p' = 'p' x 10;
+    }
+    loop {
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' / 'p')]];
+        'v' = 'v' mod 'p';
+        if 'p' == 1 { break; }
+        'p' = 'p' / 10;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' >== 0 {
+        emit[to.uint64['n'], false];
+    } else {
+        let 'up': int64 = -('n' + 1);
+        emit[to.uint64['up'] + 1, true];
+    }
+}
+
+MAIN {
+    let 'in1_key' := "CHK_IN1";
+    nocheck let 'in1': uint64 = strlen[getenv[lend 'in1_key']];
+    let 'in2_key' := "CHK_IN2";
+    nocheck let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
+    let 'w7': int32 = 9;
+    loop {
+        if 'w7' == 0 {
+            break;
+        }
+        'w7' = 'w7' - 1;
+        put_i[(((-28014) + (-23953)) mod 1) + to.int16['w7']];
+    }
+}
