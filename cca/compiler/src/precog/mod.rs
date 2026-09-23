@@ -79,6 +79,13 @@ pub struct Analysis {
 type Env = HashMap<LocalId, Domain>;
 
 pub fn analyse(p: &mut Program) -> Analysis {
+    analyse_opts(p, true)
+}
+
+/// `fold: false` leaves every instruction in the binary, even one layer 1
+/// worked out: a proof-checking build (`--assert-proofs`) has to compute
+/// what Precog claimed, not be handed the claim.
+pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
@@ -104,7 +111,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
     // and true on the one it never reached, and folding that would be a
     // program that never stops.
     let mut folded = 0usize;
-    let folds: Vec<((usize, usize, usize), Option<Const>)> = if a.gave_up { Vec::new() } else { a.folds.iter().map(|(k, v)| (*k, v.clone())).collect() };
+    let folds: Vec<((usize, usize, usize), Option<Const>)> = if a.gave_up || !fold { Vec::new() } else { a.folds.iter().map(|(k, v)| (*k, v.clone())).collect() };
     for ((f, b, si), known) in &folds {
         let Some(c) = known else { continue };
         if let Some(st) = p.functions.get_mut(*f).and_then(|f| f.blocks.get_mut(*b)).and_then(|blk| blk.stmts.get_mut(*si)) {

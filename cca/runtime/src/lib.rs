@@ -33,6 +33,18 @@ pub unsafe extern "C" fn cyborg_check_failed(msg: *const u8, len: usize) -> ! {
     exit(101)
 }
 
+/// A proven site failed in the proof-checking build (`--assert-proofs`):
+/// Precog claimed something that was not true. Its own exit code, so a
+/// harness can tell a wrong proof from an ordinary check.
+///
+/// # Safety
+/// As `cyborg_check_failed`.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_proof_failed(msg: *const u8, len: usize) -> ! {
+    write(2, msg, len);
+    exit(104)
+}
+
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {

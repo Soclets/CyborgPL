@@ -173,6 +173,21 @@ fn an_unproven_narrowing_is_checked() {
     assert!(ir.contains("the value can be outside what a `uint8` holds"), "a narrowing Precog did not prove reached the binary with no check:\n{}", ir);
 }
 
+/// `--assert-proofs` (`precog.md`, attack (d)): every proof becomes a run-
+/// time assertion, and none is promised to LLVM, so a wrong proof is a
+/// `proof failed:` exit 104 rather than silent undefined behaviour.
+#[test]
+fn proofs_can_be_asserted() {
+    let src = dir().join("proven_add.cpls");
+    let out = std::env::temp_dir().join("cca-codegen-tests/ir-asserted");
+    let _ = std::fs::create_dir_all(out.parent().unwrap());
+    let r = Command::new(cca()).arg("build").arg("--assert-proofs").arg(&src).arg("-o").arg(&out).env("CCA_IR", "1").output().unwrap();
+    assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+    let ir = String::from_utf8_lossy(&r.stdout).to_string();
+    assert!(!ir.contains(" nsw") && !ir.contains(" nuw"), "a proof was promised to LLVM in the proof-checking build:\n{}", ir);
+    assert!(ir.contains("proof failed:"), "a proven site was not asserted:\n{}", ir);
+}
+
 fn ir_of(name: &str) -> String {
     let src = dir().join(format!("{}.cpls", name));
     let out = std::env::temp_dir().join(format!("cca-codegen-tests/ir-{}", name));

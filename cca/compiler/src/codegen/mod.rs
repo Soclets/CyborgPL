@@ -53,6 +53,16 @@ pub struct Lowered<'ctx> {
 }
 
 pub fn lower<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &str) -> Result<Lowered<'ctx>, Vec<NotYet>> {
+    lower_opts(ctx, p, sources, name, false)
+}
+
+/// `assert_proofs`: the build that checks Precog (`precog.md`, attack
+/// (d)). Every site Precog proved keeps a run-time check anyway, and
+/// nothing proven is promised to LLVM — no `nsw`, no `nuw` — so a wrong
+/// proof shows up as `proof failed:` and exit 104 instead of as silent
+/// undefined behaviour. A `nocheck` site proved nothing and is not
+/// asserted.
+pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &str, assert_proofs: bool) -> Result<Lowered<'ctx>, Vec<NotYet>> {
     let module = ctx.create_module(name);
     // The machine's own description, set before anything is lowered: the
     // heap needs to know how big an element is, and only the target data
@@ -65,7 +75,7 @@ pub fn lower<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new() };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -109,6 +119,8 @@ struct Cg<'a, 'ctx> {
     /// tasks, and where each task that can fail leaves its outcome.
     cur_groups: Vec<PointerValue<'ctx>>,
     cur_outcomes: HashMap<u32, PointerValue<'ctx>>,
+    /// `--assert-proofs`: proven sites are checked too.
+    assert_proofs: bool,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -299,6 +311,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let p = self.ctx.ptr_type(AddressSpace::default());
         let i64t = self.ctx.i64_type();
         self.module.add_function("cyborg_check_failed", void.fn_type(&[p.into(), i64t.into()], false), Some(Linkage::External));
+        self.module.add_function("cyborg_proof_failed", void.fn_type(&[p.into(), i64t.into()], false), Some(Linkage::External));
     }
 
     /// `MAIN` becomes C's `main`: the block runs, and its end is exit 0
@@ -850,7 +863,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let open = |this: &Self, want: &dyn Fn(&SiteKind) -> bool| -> Option<SiteId> {
             sites.iter().copied().find(|s| {
                 let site = this.p.functions[fi].site(*s);
-                want(&site.kind) && !matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted)
+                want(&site.kind) && this.gets_check(&site.verdict)
             })
         };
         let overflow = open(self, &|k| matches!(k, SiteKind::Overflow(_)));
@@ -858,6 +871,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let shift = open(self, &|k| matches!(k, SiteKind::ShiftWidth | SiteKind::ShiftCount));
         let needs_check = overflow.is_some();
         let site = overflow;
+        // A promise to LLVM only where Precog proved it, and not when the
+        // proofs are being checked. A `nocheck` site proved nothing: the
+        // writer's word is not a fact to hand the optimiser (the module
+        // comment above), and giving it `nsw` made a lie undefined.
+        let promise = !self.assert_proofs
+            && sites.iter().any(|s| {
+                let st = self.p.functions[fi].site(*s);
+                matches!(st.kind, SiteKind::Overflow(_)) && matches!(st.verdict, Verdict::Proven { .. })
+            });
         let (a, b) = match (a, b) {
             // A bin literal has no width of its own either: it takes the
             // other side's, the same rule as an integer literal.
@@ -910,6 +932,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // signed type, `nuw` for an unsigned one. Telling LLVM
                 // "no signed wrap" about unsigned arithmetic is a promise
                 // about the wrong thing.
+                BinOp::Add if !promise => self.builder.build_int_add(x, y, "add").ok()?,
+                BinOp::Sub if !promise => self.builder.build_int_sub(x, y, "sub").ok()?,
+                BinOp::Mul if !promise => self.builder.build_int_mul(x, y, "mul").ok()?,
                 BinOp::Add if signed => self.builder.build_int_nsw_add(x, y, "add").ok()?,
                 BinOp::Sub if signed => self.builder.build_int_nsw_sub(x, y, "sub").ok()?,
                 BinOp::Mul if signed => self.builder.build_int_nsw_mul(x, y, "mul").ok()?,
@@ -1040,10 +1065,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let file = self.sources.get(span.file);
         let (line, col) = file.line_col(span.start);
         let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
-        let msg = format!("check: {}\nwhere: {}, line {}, column {}\n", s.kind.sentence(&spell), file.display_name(), line, col);
+        // A proven site only traps in the proof-checking build, and when it
+        // does, it is Precog that was wrong, not the program.
+        let proof = matches!(s.verdict, Verdict::Proven { .. });
+        let (head, handler) = if proof { ("proof failed", "cyborg_proof_failed") } else { ("check", "cyborg_check_failed") };
+        let msg = format!("{}: {}\nwhere: {}, line {}, column {}\n", head, s.kind.sentence(&spell), file.display_name(), line, col);
         let ptr = self.global_bytes(&msg);
         let len = self.ctx.i64_type().const_int(msg.len() as u64, false);
-        if let Some(handler) = self.module.get_function("cyborg_check_failed") {
+        if let Some(handler) = self.module.get_function(handler) {
             let args: Vec<BasicMetadataValueEnum> = vec![ptr.into(), len.into()];
             let _ = self.builder.build_call(handler, &args, "");
         }
@@ -1239,6 +1268,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
+    /// Does this site get a run-time check? Unproven ones do; a `nocheck`
+    /// one never does; a proven one only in the proof-checking build.
+    fn gets_check(&self, v: &Verdict) -> bool {
+        match v {
+            Verdict::Trusted => false,
+            Verdict::Proven { .. } => self.assert_proofs,
+            _ => true,
+        }
+    }
+
     /// Trap at `site` when `bad` holds; carry on otherwise.
     fn guard(&mut self, fi: usize, site: SiteId, bad: IntValue<'ctx>, func: FunctionValue<'ctx>) -> Option<()> {
         let fail = self.ctx.append_basic_block(func, "check_failed");
@@ -1256,7 +1295,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// so no comparison can itself wrap.
     fn narrow_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
         let site = self.p.functions[fi].site(id).clone();
-        if matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted) {
+        if !self.gets_check(&site.verdict) {
             return;
         }
         let SiteKind::Narrow { to } = &site.kind else { return };
@@ -1282,7 +1321,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// inside the bound.
     fn length_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
         let site = self.p.functions[fi].site(id).clone();
-        if matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted) {
+        if !self.gets_check(&site.verdict) {
             return;
         }
         let SiteKind::LengthBound { to } = &site.kind else { return };
@@ -1321,7 +1360,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// with the site's own words.
     fn bounds_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
         let site = self.p.functions[fi].site(id).clone();
-        if matches!(site.verdict, Verdict::Proven { .. } | Verdict::Trusted) {
+        if !self.gets_check(&site.verdict) {
             return;
         }
         // Reading, never moving: a check site looks at the value, it does

@@ -55,6 +55,15 @@ cargo test        # every examples/*.cpls checks; every reject program is
   CCA checks, proves and reports those programs; it refuses to write
   machine code for them rather than writing something wrong.
 
+- `cca build --assert-proofs file.cpls -o out` (2026-09-23): the build that
+  checks Precog (`precog.md`, attack (d)). Every site Precog proved keeps
+  a run-time check, nothing proven is promised to LLVM, and layer 1's
+  folded answers are computed at run time instead. A wrong proof prints
+  `proof failed: <the site's sentence>` and `where: file, line N, column
+  M`, and exits **104** (an ordinary check that fires exits 101). `nocheck`
+  sites proved nothing and are not asserted. The verification session's
+  harness runs every generated program this way.
+
 ## Provisional — picks made to keep moving, not decisions
 
 Dated, with the alternative, so each can become a question later.

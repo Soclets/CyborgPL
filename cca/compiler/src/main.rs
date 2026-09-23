@@ -68,9 +68,13 @@ fn main() {
         "build" => {
             let mut files = Vec::new();
             let mut out = None;
+            let mut assert_proofs = false;
             let mut i = 1;
             while i < args.len() {
-                if args[i] == "-o" && i + 1 < args.len() {
+                if args[i] == "--assert-proofs" {
+                    assert_proofs = true;
+                    i += 1;
+                } else if args[i] == "-o" && i + 1 < args.len() {
                     out = Some(args[i + 1].clone());
                     i += 2;
                 } else {
@@ -81,7 +85,7 @@ fn main() {
             let mut failed = false;
             for f in &files {
                 let dest = out.clone().unwrap_or_else(|| Path::new(f).file_stem().unwrap().to_string_lossy().to_string());
-                if let Err(d) = build_one(Path::new(f), Path::new(&dest)) {
+                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs) {
                     failed = true;
                     eprint!("{}", d);
                 }
@@ -94,7 +98,7 @@ fn main() {
     }
 }
 
-fn build_one(path: &Path, out: &Path) -> Result<(), String> {
+fn build_one(path: &Path, out: &Path, assert_proofs: bool) -> Result<(), String> {
     let mut sources = SourceMap::default();
     let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = cca::check::Checker::new(items);
@@ -106,7 +110,7 @@ fn build_one(path: &Path, out: &Path) -> Result<(), String> {
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
     }
-    let analysis = cca::precog::analyse(&mut mir);
+    let analysis = cca::precog::analyse_opts(&mut mir, !assert_proofs);
     for n in cca::precog::notes(&analysis, &mir, &sources) {
         print!("\n{}", n);
     }
@@ -116,7 +120,7 @@ fn build_one(path: &Path, out: &Path) -> Result<(), String> {
     }
     let ctx = cca::codegen::inkwell::context::Context::create();
     let name = path.file_stem().unwrap().to_string_lossy().to_string();
-    let lowered = cca::codegen::lower(&ctx, &mir, &sources, &name).map_err(|problems| {
+    let lowered = cca::codegen::lower_opts(&ctx, &mir, &sources, &name, assert_proofs).map_err(|problems| {
         let mut s = String::new();
         for p in problems {
             let mut d = cca::diag::Diagnostic::error(format!("not yet: {}", p.what));
