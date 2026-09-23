@@ -1557,7 +1557,7 @@ fn machine() -> Result<TargetMachine, String> {
     let triple = TargetMachine::get_default_triple();
     let target = Target::from_triple(&triple).map_err(|e| e.to_string())?;
     target
-        .create_target_machine(&triple, &TargetMachine::get_host_cpu_name().to_string(), &TargetMachine::get_host_cpu_features().to_string(), OptimizationLevel::Default, RelocMode::PIC, CodeModel::Default)
+        .create_target_machine(&triple, &TargetMachine::get_host_cpu_name().to_string(), &TargetMachine::get_host_cpu_features().to_string(), OptimizationLevel::Aggressive, RelocMode::PIC, CodeModel::Default)
         .ok_or_else(|| "this machine has no target description".to_string())
 }
 
@@ -1565,6 +1565,14 @@ pub fn write_object(module: &Module, path: &Path) -> Result<(), String> {
     let machine = machine()?;
     module.set_triple(&TargetMachine::get_default_triple());
     module.set_data_layout(&machine.get_target_data().get_data_layout());
+    // LLVM's whole pipeline, as clang -O3 runs it (owner: optimised
+    // everywhere). Without it the module went to the backend as written —
+    // every local in memory, nothing inlined, no loop touched — and ran at
+    // up to 5.6x C's time. Precog's proofs reach it as `nsw`/`nuw` and as
+    // checks that are simply not there.
+    module
+        .run_passes("default<O3>", &machine, inkwell::passes::PassBuilderOptions::create())
+        .map_err(|e| e.to_string())?;
     machine.write_to_file(module, FileType::Object, path).map_err(|e| e.to_string())
 }
 
