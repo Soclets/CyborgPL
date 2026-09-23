@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A detached task's failure is handled inside the task (owner: a)
+
+Compiler claude's gap: a normal task's `otherwise` runs when the block
+that started it ends, and `concur.detached` has no such block. Proposed
+(a) the handler runs inside the task the moment it fails — it can
+print, log or retry, but cannot return or fail outward; (b) a detached
+task may not fail at all; (c) its failure ends the program with the
+reason named. Owner: a. The autosave that could not write is the reason
+detached tasks exist, so it should be able to say so while the program
+carries on.
+
 ### 2026-09-23 — A certain failure is an error only if the site is always reached (owner: c)
 
 Found by the generator (seed 59): a program with no input at all, where

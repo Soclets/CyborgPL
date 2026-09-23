@@ -72,6 +72,23 @@ call; the handler runs **when the enclosing block ends**, the point at
 which the task's result is known. Proposed alternatives: `otherwise` on
 the block; tasks cannot fail (plumb it through a channel by hand).
 
+**A detached task has no such block**, so its handler runs **inside the
+task, the moment it fails** (owner, 2026-09-23):
+
+```
+fn setup [give 'doc': Document] {
+    concur.detached with [give 'doc'] { save[lend 'doc'] otherwise fail; }
+        otherwise { disk_full { … } };        # runs here, in the task, at once
+}
+```
+
+It can print, log, or retry; it cannot `return` or fail outward, since
+there is nobody left to return to. Proposed alternatives: a detached
+task may not fail at all (the checker refuses `fail` inside one); its
+failure ends the program with the reason named. The autosave that could
+not write is why detached tasks exist, and it should be able to say so
+while the program carries on.
+
 ## Channels
 
 ```
