@@ -126,6 +126,15 @@ fn a_proven_site_hands_its_fact_to_llvm() {
     assert!(ir.contains("nsw") || ir.contains("nuw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
 }
 
+/// Exact math at the machine's width where Precog proves it fits: no
+/// 128-bit multiply, no 65-bit remainder (a library call) in the loop.
+#[test]
+fn exact_math_works_at_64_bits_where_it_fits() {
+    let ir = ir_of("exact_at_64");
+    assert!(!ir.contains("mul nsw i128") && !ir.contains("mul i128"), "a proven 64-bit product was done at 128 bits:\n{}", ir);
+    assert!(!ir.contains("rem i65") && !ir.contains("rem i128"), "a proven 64-bit remainder was done wider:\n{}", ir);
+}
+
 /// A program whose values are all known has the answers in it, not the
 /// working: layer 1 ran it (`precog.md`).
 #[test]

@@ -1,0 +1,11 @@
+# not.bit on an exact answer flips at the size of its values: 'v' + 1 with
+# 'v' a uint32 flips 32 bits (examples/widths.cpls), 4294967291. On an int8
+# it is -x - 1, which layer 2 now knows as a range.
+extern fn exit ['code': int32];
+MAIN {
+    let 'v': uint32 = 3;
+    let 'c': uint32 = not.bit ('v' + 1);
+    let 'x': int8 = -102;
+    let 'y': int8 = not.bit 'x';
+    nocheck exit[to.int32[('c' mod 256) + to.uint32['y']]];
+}

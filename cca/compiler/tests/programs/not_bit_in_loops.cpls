@@ -1,0 +1,19 @@
+# A `check` that holds, inside two loops (check claude, seed 316): 'v2' is
+# -102 to -96 on every trip, so `not.bit 'v2'` is 95 to 101 and never zero.
+# Layer 2 had no range for `not.bit`, and widened at every busy block, so
+# the loops lost the interval and the build refused the `check`.
+extern fn exit ['code': int32];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+MAIN {
+    let 's' := "seven!!";
+    nocheck let 'n': uint64 = strlen[lend 's'];
+    let mut 'v2': int8 = (to.int8['n' mod 100] mod 7) - 102;
+    let mut 'w3': int16 = 7;
+    while 'w3' > 0 {
+        'w3' = 'w3' - 1;
+        for 'i4': uint16 in range[29, 3, -3] {
+            check 'v2' = ((((126 or.bit 'v2') / (not.bit 'v2')) shl 6) mod 7) - 102;
+        }
+    }
+    nocheck exit[to.int32[0 - 'v2']];
+}

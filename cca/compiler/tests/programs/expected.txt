@@ -95,3 +95,12 @@ exact_math 127
 
 # Bare numbers alone are exact when compared or converted.
 bare_numbers_exact 3
+
+# not.bit keeps a range, and loops keep an interval across trips.
+not_bit_in_loops 96
+
+# Exact math at 64 bits where Precog proves it fits.
+exact_at_64 21
+
+# not.bit on an exact answer, at the size of its values.
+not_bit_exact 96

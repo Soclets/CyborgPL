@@ -305,6 +305,7 @@ impl Precog {
         // value layer 1 saw only on the other call was folded into both.
         let mut pending_trip: HashMap<usize, Env> = HashMap::new();
         let steps = thresholds(&self.prog().functions[f]);
+        let heads: std::collections::HashSet<usize> = back.iter().map(|(_, h)| *h).collect();
         let mut head_body: HashMap<usize, Vec<usize>> = HashMap::new();
         for ((_, h), body) in &loops {
             head_body.entry(*h).or_default().extend(body.iter().copied());
@@ -507,7 +508,16 @@ impl Precog {
                             pending_trip.insert(i, joined);
                             return;
                         } else {
-                            let m = join_to(old, &e, widening || (looping && over_budget), unsafe { &(*this.p).items }, |l| this.local_ty(f, l), &steps);
+                            // Widening happens at a loop's head and nowhere
+                            // else: every cycle passes one, so it still ends,
+                            // and a block inside the loop keeps what its
+                            // condition just established. Widening at any
+                            // busy block threw `'i' <== 'n'` away in the
+                            // body — `'i'` went back to `int64`'s top — and
+                            // lost an interval across nested loops (check
+                            // claude, seed 316).
+                            let at_head = heads.contains(&i);
+                            let m = join_to(old, &e, (widening && at_head) || (looping && over_budget), unsafe { &(*this.p).items }, |l| this.local_ty(f, l), &steps);
                             if same(old, &m) {
                                 return;
                             }
@@ -712,6 +722,32 @@ impl Precog {
                     // the answer is exact whatever the width.
                     (UnOp::Neg, Domain::Bins { lo, hi }) => Domain::Bins { lo: hi.map(|x| -x), hi: lo.map(|x| -x) },
                     (UnOp::Not, Domain::Bools(t, fa)) => Domain::Bools(*fa, *t),
+                    // `not.bit x` is `-x - 1` for a signed value, and
+                    // `max - x` for an unsigned one: a range stays a range.
+                    // Without it `not.bit 'v2'` could be anything, 0 too,
+                    // and a divisor by it was refused (check claude, seed 316).
+                    (UnOp::NotBit, Domain::Ints(s)) => {
+                        let ty = self.place_ty(f, dest);
+                        // Only for a value inside the type: the low bits of a
+                        // larger one (an exact answer) can be anything.
+                        match (int_limits(&ty, &self.prog().items), s.bounds()) {
+                            (Some((lo, hi)), Some((a, z))) if lo < 0 && a >= lo && z <= hi => Domain::Ints(ISet::range(-z - 1, -a - 1)),
+                            (Some((0, hi)), Some((a, z))) if a >= 0 && z <= hi => Domain::Ints(ISet::range(hi - z, hi - a)),
+                            _ => match s.single() {
+                                // One known value: its low bits, flipped.
+                                Some(v) => match int_limits(&ty, &self.prog().items) {
+                                    Some((lo, hi)) => {
+                                        let span = hi - lo + 1;
+                                        let flipped = (!v).rem_euclid(span) + lo;
+                                        let flipped = if lo < 0 && flipped > hi { flipped - span } else { flipped };
+                                        Domain::Ints(ISet::one(flipped))
+                                    }
+                                    None => Domain::of_ty(&ty, &self.prog().items),
+                                },
+                                None => Domain::of_ty(&ty, &self.prog().items),
+                            },
+                        }
+                    }
                     _ => Domain::of_ty(&self.place_ty(f, dest), &self.prog().items),
                 }
             }

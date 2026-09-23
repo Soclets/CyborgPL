@@ -593,6 +593,13 @@ impl Checker {
                 Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: Ty::Bool, span })
             }
             UnOp::NotBit => {
+                // On an exact answer, at the size of its values: `not.bit
+                // ('v' + 1)` with 'v' a `uint32` flips 32 bits
+                // (`widths.cpls`), not 65.
+                if vt.is_exact() {
+                    let ty = self.size_of_values(&v).ok_or_else(|| Box::new(Diagnostic::error("not yet: `not.bit` on an exact answer whose operands have different sizes (or none left to see) — which size it flips is open").at(span)))?;
+                    return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span });
+                }
                 match vt.base() {
                     Ty::Int(IntW::Fixed { .. }) => {}
                     Ty::Int(IntW::Free(_)) if literal_only(&v) => {
