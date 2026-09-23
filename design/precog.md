@@ -108,8 +108,10 @@ every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
   domain on one side, each failure's on the other.
 - **Loops** iterate the analysis to a fixpoint, widening to intervals when
   a set keeps growing. A counted loop is followed **trip by trip** up to
-  **100,000 trips per loop** and **2,000,000 across the program**
-  (provisional; nested loops multiply), then widened.
+  **100,000 trips per loop** (owner, 2026-09-23: "keep it at 100k", with
+  builds of 7 s to 4.5 min measured on 30-line programs) and
+  **2,000,000 across the program** (provisional; nested loops multiply),
+  then widened.
 - **Calls** are analysed per call site with the arguments' domains — the
   same per-shape specialisation generics and variadics already use —
   recursion depth-limited at **8** (provisional). So `square['i']` with
@@ -373,8 +375,8 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
 
 - The invariant template list: which shapes, measured against real
   programs.
-- Every provisional number: set cap 4096 / re-set at 64, trips 100k /
-  2M, recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
+- Every provisional number: set cap 4096 / re-set at 64, trips 2M
+  across the program (100k per loop is ruled), recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
   to be measured, not guessed.
 - The character-class vocabulary for text (which classes; how each std
   text operation maps them) — decided in principle (c), list open.

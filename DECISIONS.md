@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Precog follows a loop up to 100,000 trips (owner)
+
+Kespar's provisional number, asked by compiler claude once it cost
+something. CCA now follows loops bounded by an outside value trip by
+trip up to 100,000 before widening. That made builds slower (the list
+benchmark about 4.5 minutes, the sieve about 1.5, the sum 7 seconds, on
+programs of 12 to 30 lines), and lowering the number would speed builds
+at the cost of exactness on long loops. Design claude recommended
+keeping it, since the owner had said slow compiles are fine and only
+the final program's speed matters. Owner: "keep it at 100k". The
+2,000,000-across-the-program budget stays provisional.
+
 ### 2026-09-23 — Wrapping on mixed sizes: say which (owner: b)
 
 From compiler claude, implementing exact math: `('a' + 'b') +~ 1` with
