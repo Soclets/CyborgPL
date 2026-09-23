@@ -79,7 +79,7 @@ Dated, with the alternative, so each can become a question later.
   examples) or never (would break them too).
 - **2026-09-22 — The target's SIMD shapes are ARM64's 128 bits, in the
   compiler.** `simd.md` says the shapes come from the target description
-  in `Synthia.toml`, and Synthia does not exist yet, so
+  in `Synthia.cplm`, and Synthia does not exist yet, so
   `types::TARGET_SIMD_BITS` holds 128 — the oracle's fixed target and this
   machine's. It moves into the target description the day there is one.
   Alternative: refuse every `simd` until Synthia exists, which would leave

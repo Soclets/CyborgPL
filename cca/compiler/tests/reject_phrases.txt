@@ -245,7 +245,7 @@ op_run_no_space :: an operator between two values is one the language owns (`+`,
 op_star_undefined :: `*` is not an operator here: multiply is `x`
 op_three_operands :: an operator takes exactly two operands; `<+>` is declared with 3
 op_word_undefined :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
-other_limb :: a Limb is a dependency listed in `Synthia.toml`, and none is
+other_limb :: a Limb is a dependency listed in `Synthia.cplm`, and none is
 param_lent_chain :: `lent` (looks at it) or `lent.mut` (may modify it)
 param_type_first :: a parameter is written name first, then its type: `'a': int32`
 param_var :: an owning parameter is bare

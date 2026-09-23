@@ -1,5 +1,5 @@
 # LLVM lives where Homebrew puts it on this machine. `design/tooling.md`
-# says the *target* is a description in Synthia.toml and never sniffed from
+# says the *target* is a description in Synthia.cplm and never sniffed from
 # the host; this is not that — it is where the compiler's own dependency
 # is installed, the way Kespar's config points at Z3. It moves into
 # Synthia's own build setup when Synthia exists.
