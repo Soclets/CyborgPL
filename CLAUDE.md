@@ -27,6 +27,7 @@ the owner explicitly chooses it.
 - **Compiler session** ("compiler claude"): CCA and Synthia. Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL v2 compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/` and `synthia/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Verification session** ("check claude"): the program generator, the differential harness, the Precog oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/CyborgPL v2 verification`, in `check/`. It reads `design/` and the tests, and **never `cca/` or `oracle/src`** — it is a different author from Precog's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
+- **Website session** ("website claude", owner, 2026-09-24): the open-source site. It works in its own clone at `/Users/ts/CyborgPL v2 website`, in `website/`, and updates the site only when the owner says so. Commits carry `Co-Authored-By: website claude <noreply@anthropic.com>`.
 - **Reaching another session** (owner, 2026-09-24: "find a way to be always messageable"): send by its permanent session id, never its display name. A name only reaches a session that is running right now, and an id goes through the desktop app:
   - design claude: `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`
   - compiler claude: `local_bd7d62d4-5ac0-4ce0-8f9a-174b30357045`
@@ -58,5 +59,6 @@ the owner explicitly chooses it.
 
 ## Related
 
-- Website: `/Users/ts/CyborgPL v2 website` (`CyborgPL-v2-website`, private).
-  Its docs/examples are placeholders to be filled in as decisions land here.
+- The old private website, `CyborgPL-v2-website` on GitHub, is history. It
+  used to be checked out at `/Users/ts/CyborgPL v2 website`, which now holds
+  the website session's clone of this repo.

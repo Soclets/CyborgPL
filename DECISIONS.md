@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Type names need not be capitalised (owner)
+
+Asked by the website session, whose syntax colouring treats a
+capitalised bare word as a type: should type names be required to be
+capitalised, as module names are required to be lowercase? Owner: no.
+Nothing ever required it (`struct locker { … }` and `enum status { … }`
+run in the oracle); this records that it was asked and answered, so
+capitalised types stay a convention, not a rule.
+
 ### 2026-09-23 — Precog proves recursive functions by induction (owner: c)
 
 The benchmarks were rewritten in proper CyborgPL, each stating its input
