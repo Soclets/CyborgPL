@@ -1894,11 +1894,24 @@ impl Parser {
                     // to.<type>[value]   (decided 2026-09-19)
                     self.advance();
                     self.expect(Tok::Dot, "`.` after `to` (`to.int32[…]`, `to.str.utf8[…]`)")?;
+                    // `to.array[give 'l']` / `to.list[give 'a']` (owner, 2026-09-23): the element type
+                    // does not change, so it is not written
+                    if let Tok::Word(k) = self.peek().clone() {
+                        if (k == "list" || k == "array") && matches!(self.peek_at(1), Tok::LBracket) {
+                            self.advance();
+                            let b = self.bracket()?;
+                            if b.values.len() != 1 { return self.err(format!("`to.{k}[…]` converts exactly one value")); }
+                            if *self.peek() == Tok::LBracket { return self.err(format!("`to.{k}[…]` keeps the element type, so it is not written: `to.{k}[give 'x']`")); }
+                            let blank = Box::new(Ty::Var(String::new()));
+                            return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, line));
+                        }
+                    }
                     self.to_target = true;
                     let ty = self.ty();
                     self.to_target = false;
                     let ty = ty?;
-                    if matches!(ty, Ty::List(_) | Ty::Array(_) | Ty::Struct(_) | Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers and text", ty_name(&ty))); }
+                    if matches!(ty, Ty::List(_) | Ty::Array(_)) { return self.err("`to.list[…]` / `to.array[…]` keep the element type, so it is not written: `to.array[give 'l']`"); }
+                    if matches!(ty, Ty::Struct(_) | Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
                     if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     let b = self.bracket()?;

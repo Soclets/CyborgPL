@@ -22,6 +22,9 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } }
   (`failures.md`). A narrowing conversion is not a failure but a **check
   site**: `to.int8['big']` carries a runtime check unless Precog proves the
   fit, and `check to.int8[…]` asks for the proof.
+- **Between `list` and `array`**: `to.array[give 'l']`, `to.list[copy
+  'a']`, and the element type is not written (owner, 2026-09-23;
+  `lists.md`).
 - **`++` takes text on both sides.** This closes the language's last
   implicit conversion (two cold readers flagged it): `"n=" ++ 'n'` is an
   error pointing at `to.str.utf8`. `print`/`printu` still render any value

@@ -109,6 +109,8 @@ had to make to run at all; none is a decision.
 | `deci`, `bin128`, `uint128`'s top half, `std::uenr` | — | Parsed, refused at run time as not implemented |
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |
 | A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.limb`; open in `design/limbs.md` |
+| `to.array[…]` / `to.list[…]` take `give` or `copy`; a bare name or a `lend` is refused | `interp.rs` `Expr::Convert` | Could be a quiet copy instead; never ruled |
+| A list/array mismatch is caught where the source's type is declared (a variable, a call's return, a slice, a conversion); a field read is not traced | `interp.rs` `coll_kind` | The oracle's limit, not the rule |
 
 
 

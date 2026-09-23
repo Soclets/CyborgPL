@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — `to.array[…]` / `to.list[…]`; a list never becomes an array by itself (owner)
+
+The oracle let a list be given into an `array` variable and back, and
+the record said nothing about it. The owner asked "don't we usually
+have converters for these?" Yes: "nothing converts by itself"
+(2026-09-19) already covered it, so the oracle was wrong. The only new
+part was the spelling, and design claude proposed `to.array[give 'l']`
+and `to.list[give 'a']` with the element type left unwritten, since it
+does not change. `give` hands the elements over with no copy, and
+`copy` keeps the original. Owner: "that looks right". The oracle now
+refuses a list where an array is declared (a store, an argument, a
+return) and the reverse, including an array's slice stored as an array.
+A literal or a `:=` collection is neither yet, so it still goes either
+way. Oracle picks, listed as provisional: a bare name or a `lend` in
+`to.array[…]` is refused, as a copy nobody said. `examples/list_array.cpls`,
+four reject tests.
+
 ### 2026-09-23 — No bare names from another Limb; `pub bare` is dropped (owner)
 
 Straight after `pub bare` was chosen, the owner asked why anything

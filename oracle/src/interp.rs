@@ -95,6 +95,11 @@ pub struct Interp<'p> {
     /// the type the value being evaluated is being stored into, when there is one:
     /// a bare literal takes its width from its context (owner, 2026-09-23)
     expected: Option<Ty>,
+    /// whether the last value evaluated is statically a list (false) or an array (true), and
+    /// the same for the value a `return` handed back: a list never becomes an array by itself
+    /// ("nothing converts by itself", 2026-09-19; owner, 2026-09-23: `to.array[…]`, `to.list[…]`)
+    last_kind: Option<bool>,
+    ret_kind: Option<bool>,
     /// tasks started by `concur` and not yet run (design/concurrency.md). The oracle's
     /// schedule: a task runs when something waits on it (a `take`, a `whichever`, a full
     /// `send`) or when the block that started it ends — in source order. One valid schedule.
@@ -116,7 +121,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, ret_kind: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -666,6 +671,7 @@ impl<'p> Interp<'p> {
                     None => Value::Nothing,
                     Some(b) => {
                         let (v, prov) = self.bracket(b, *line)?;
+                        self.ret_kind = self.last_kind.take();
                         match prov {
                             Prov::Bare(n) => return rt(*line, format!("returning bare '{n}', which owns a {}: say `give '{n}'` (or `copy`)", v.kind())),
                             Prov::Borrowed(..) => return rt(*line, "returning a lend: the oracle does not model lifetimes, so a function cannot return a borrow"),
@@ -862,8 +868,10 @@ impl<'p> Interp<'p> {
 
     /// Fit a value into a declared type (or leave it as is for `:=`).
     /// A bare numeric literal adopts the family of the declared type.
-    fn fit(&self, v: Value, prov: Prov, ty: Option<&Ty>, line: usize) -> Result<Value, RuntimeError> {
+    fn fit(&mut self, v: Value, prov: Prov, ty: Option<&Ty>, line: usize) -> Result<Value, RuntimeError> {
+        let have = self.last_kind.take();
         let Some(t) = ty else { return Ok(v) };
+        if matches!(prov, Prov::Given | Prov::Copied | Prov::Fresh) { self.kind_clash(have, t, line)?; }
         let v = match (t, &v, &prov) {
             (Ty::Bin(_), Value::Int(i), Prov::Literal) => Value::Bin(*i as f64),
             (Ty::Ranged(b, _, _), Value::Int(i), Prov::Literal) if matches!(**b, Ty::Bin(_)) => Value::Bin(*i as f64),
@@ -967,6 +975,8 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::Fn(..), v) => rt(line, format!("expected {name}, got {}", v.kind())),
+            // the element type of `to.array[…]` whose source's type the oracle did not know: unchecked
+            (Ty::Var(n), _) if n.is_empty() => Ok(()),
             (Ty::Var(n), v) => {
                 // a blank: bound by the first value that reaches it, checked by every later one
                 let shape = shape_of(v);
@@ -1096,13 +1106,43 @@ impl<'p> Interp<'p> {
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
             | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
             || matches!(e, Expr::Binary(op, ..) if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "<==" | ">=="));
-        if fresh && self.expected.is_some() {
+        let r = if fresh && self.expected.is_some() {
             let saved = self.expected.take();
             let r = self.eval_inner(e);
             self.expected = saved;
-            return r;
+            r
+        } else {
+            self.eval_inner(e)
+        };
+        self.last_kind = if r.is_ok() { self.coll_kind(e) } else { None };
+        r
+    }
+
+    /// Is this expression, by its declared type, a `list` (false) or an `array` (true)?
+    /// `None` when it is neither, or when nothing fixes it (a literal, a `:=` Precog picks).
+    fn coll_kind(&self, e: &Expr) -> Option<bool> {
+        let kind = |t: &Ty| match t { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), Ty::Ranged(b, _, _) => match &**b { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), _ => None }, _ => None };
+        match e {
+            Expr::Var(n, _) | Expr::Owned(_, n, _) => self.lookup(n).and_then(|s| s.ty.as_ref().and_then(kind)),
+            Expr::Paren(inner, _) => self.coll_kind(inner),
+            Expr::Convert(t, ..) => kind(t),
+            // a slice is a list, of an array too (owner, 2026-09-23)
+            Expr::Builtin(h, op, ..) if (h == "list" || h == "array") && op == "slice" => Some(false),
+            Expr::Call(c) if c.limb.is_none() => {
+                let (module, name) = c.path.split_at(c.path.len() - 1);
+                self.prog.funcs.iter().find(|f| f.module == module && f.name == name[0]).and_then(|f| f.ret.as_ref().and_then(kind))
+            }
+            _ => None,
         }
-        self.eval_inner(e)
+    }
+
+    fn kind_clash(&self, have: Option<bool>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
+        let want = match want { Ty::Ranged(b, _, _) => &**b, t => t };
+        match (have, want) {
+            (Some(false), Ty::Array(_)) => rt(line, "a list where an array is wanted: nothing converts by itself — `to.array[give …]`"),
+            (Some(true), Ty::List(_)) => rt(line, "an array where a list is wanted: nothing converts by itself — `to.list[give …]`"),
+            _ => Ok(()),
+        }
     }
 
     fn eval_inner(&mut self, e: &Expr) -> Result<(Value, Prov), RuntimeError> {
@@ -1316,6 +1356,17 @@ impl<'p> Interp<'p> {
                 let v = self.consts[&const_key(module, name)].cell.borrow().clone();
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((v, prov))
+            }
+            // `to.array[give 'l']` / `to.list[give 'a']` (owner, 2026-09-23): the elements are
+            // handed over as they are; only whether it can grow changes
+            Expr::Convert(Ty::List(_) | Ty::Array(_), b, _, _) => {
+                let (v, prov) = self.single(b, line)?;
+                match (&v, &prov) {
+                    (_, Prov::Bare(n)) => rt(line, format!("converting bare '{n}': say `give '{n}'` (no copy) or `copy '{n}'` (keeps '{n}')")),
+                    (_, Prov::Borrowed(..)) => rt(line, "converting a lend would copy it without saying so: `copy` it or `give` it"),
+                    (Value::List(_), _) => Ok((v, Prov::Fresh)),
+                    (other, _) => rt(line, format!("`to.list` / `to.array` take a list or an array, got {}", other.kind())),
+                }
             }
             Expr::Convert(ty, b, handler, _) => {
                 let (v, _) = self.single(b, line)?;
@@ -1685,6 +1736,19 @@ impl<'p> Interp<'p> {
                     if let Some(Ty::Ranged(_, lo, hi)) = self.lookup(n).and_then(|s| s.ty.clone()) { return Some(Ty::Ranged(Box::new(u64), lo, hi)); }
                 }
                 Some(u64)
+            }
+            // `let 'a' := to.array[give 'l']` is an array of what 'l' held
+            [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::List(_) | Ty::Array(_)), b, _, _))] => {
+                let elem = match b.values.first() {
+                    Some(crate::ast::Value::Expr(Expr::Owned(_, n, _) | Expr::Var(n, _))) => match self.lookup(n).and_then(|s| s.ty.clone()) {
+                        Some(Ty::List(e) | Ty::Array(e)) => Some(e),
+                        Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(e) | Ty::Array(e) => Some(e), _ => None },
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                let elem = elem.unwrap_or_else(|| Box::new(Ty::Var(String::new())));
+                Some(if matches!(t, Ty::Array(_)) { Ty::Array(elem) } else { Ty::List(elem) })
             }
             _ => None,
         }
@@ -2288,8 +2352,8 @@ impl<'p> Interp<'p> {
         };
         match (&func.ret, &result) {
             (Some(t), Value::Nothing) => rt(c.line, format!("`{name}` is declared `-> {}` but returned nothing", ty_name(t))),
-            (Some(t), v) => { self.check_type(v, t, c.line)?; Ok(result) }
-            (None, _) => Ok(result),
+            (Some(t), v) => { let k = self.ret_kind.take(); self.kind_clash(k, t, c.line)?; self.check_type(v, t, c.line)?; Ok(result) }
+            (None, _) => { self.ret_kind = None; Ok(result) }
         }
     }
 
@@ -2435,7 +2499,8 @@ impl<'p> Interp<'p> {
             Flow::Break | Flow::Continue => return rt(def.line, "`break`/`continue` outside a loop"),
             Flow::Fail(..) => return rt(line, "an operator cannot fail"),
         };
-        if let Some(t) = &def.ret { self.check_type(&result, t, line)?; }
+        let k = self.ret_kind.take();
+        if let Some(t) = &def.ret { self.kind_clash(k, t, line)?; self.check_type(&result, t, line)?; }
         let prov = if result.is_owned() { Prov::Fresh } else { Prov::Plain };
         Ok((result, prov))
     }

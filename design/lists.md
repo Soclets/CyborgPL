@@ -54,6 +54,24 @@ array is allowed. (Written down late: the answer was given with the
 question and left out of the first record. Compiler claude asked again,
 recommending an array from an array.)
 
+## Between the two — `to.array[…]`, `to.list[…]` (owner, 2026-09-23)
+
+```
+let 'a' := to.array[give 'l'];     # a list's length frozen: it cannot grow now
+let 'm' := to.list[copy 'a'];      # an array that can grow; 'a' is still here
+```
+
+A `list` and an `array` are different types, and nothing converts by
+itself (2026-09-19): a list given to an array variable, passed for an
+array parameter or returned as an array is refused, and the other way
+round too. A literal and a `:=` collection are neither yet, so they go
+either way, as before. The element type does not change, so it is not
+written (`to.array[int32][…]` is refused). `give` hands the elements
+over without a copy, and `copy` keeps the original. A bare name or a
+`lend` is refused, since either would copy without saying so. The owner
+asked "don't we usually have converters for these?", which was the
+2026-09-19 rule, so the only new part was the spelling.
+
 ## Layout (owner, 2026-09-22)
 
 A **`list` is 24 bytes** — a pointer, a length and a capacity — because
