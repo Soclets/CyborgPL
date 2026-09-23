@@ -126,6 +126,12 @@ impl Parser {
                         other => return self.err(format!("the only narrowing of `pub` is `pub.limb` (visible in this Limb only), found {other}")),
                     }
                 }
+                // `pub fn area = shapes.circle.area;` — a shorter name for other Limbs (owner,
+                // 2026-09-23). The oracle runs one Limb, where it has no outside to serve.
+                if matches!(self.peek(), Tok::Word(k) if ["fn", "struct", "enum", "interface", "const", "module"].contains(&k.as_str()))
+                    && matches!(self.peek_at(1), Tok::Word(_) | Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
+                    return self.err("`pub fn area = shapes.circle.area;` gives other Limbs a shorter name; the oracle runs one Limb, so it is not in the oracle yet");
+                }
                 // `pub bare` was chosen and dropped the same day (owner, 2026-09-23)
                 if self.is_word("bare") { return self.err("there are no bare names from another Limb: users write the path, `mathstuff::pow[…]`, and only operators come bare"); }
                 match self.peek().clone() {

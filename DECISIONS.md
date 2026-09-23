@@ -5,6 +5,35 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A shorter name for users: `pub fn area = shapes.circle.area;` (owner: b, then a, then a)
+
+Re-export, left open when bare names were dropped: can the author of
+`geometry` let users write `geometry::area` for the `area` written in
+`shapes/circle.cpls`? Proposed (a) no: the path follows the folders,
+and an author wanting a short name puts the item in `limb.cpls` or
+writes a forwarding function that Precog removes; (b) yes, with a line
+in `limb.cpls`. Design claude recommended a, for one name per thing and
+because a shortcut can be added later but not taken away. The owner
+asked "Doesn't the Limb maker say what goes after `::`?". Both options
+let the author decide; a ties it to the folders and b frees it. The
+owner asked how b would look. The first spelling, `pub
+shapes.circle.area;`, the owner refused: "I don't think that makes
+sense, the syntax". Proposed next: (a) `pub fn area =
+shapes.circle.area;`, the kind, the name users get, and where it is
+written; (b) `pub fn area from shapes.circle;`. Design claude
+recommended b. Owner: a. The owner then said the path "doesn't seem
+like it's referencing a file". It is the ordinary module path, the one
+a call already uses (`shapes.circle.area[2.0]`), and source never
+writes a file name since a module can be a block. Proposed (a) keep
+the module path, (b) a file path, `"shapes/circle.cpls".area`. Owner:
+a. The line adds a name only (no copy, the same item), and an original
+marked `pub.limb` is reachable from outside only by the short name.
+Not ruled: a different name from the original's, whether the line may
+stand outside `limb.cpls`, and which kinds beyond `fn` and `struct`.
+`limbs.md`, "A shorter name for users". The oracle refuses the line as
+"not yet": it runs one Limb, where the short name has no outside to
+serve.
+
 ### 2026-09-23 — Operators from another Limb: found by type, a clash is an error (owner: a)
 
 Left open when bare names were dropped. An operator has no place for a
@@ -71,7 +100,7 @@ decides bare reachability" and the `pub bare` entry below. The oracle
 refuses `bare` after `pub` with a message saying so.
 `examples/bare.cpls` is gone, and one reject test replaces three. Left
 open: how an operator from another Limb is found (by operand types, not
-yet asked), and re-export.
+yet asked), and re-export (both since decided, above).
 
 ### 2026-09-23 — A whole-type range is allowed: `int32[min, max]`, `uint8[0, 255]` (owner: b)
 

@@ -172,6 +172,49 @@ alternative: allow it and tell them apart by what follows the dot
 (`shapes.'pi'` the module, `shapes.claimed` the type). Owner chose the
 refusal: nothing to disambiguate, for the reader or for Precog.
 
+## A shorter name for users — `pub fn area = shapes.circle.area;` (owner, 2026-09-23)
+
+```
+# geometry/shapes/circle.cpls
+pub.limb fn area ['r': bin64] -> bin64 { … }
+pub.limb struct Circle { r: bin64 }
+
+# geometry/limb.cpls
+pub fn area = shapes.circle.area;          # users write geometry::area[…]
+pub struct Circle = shapes.circle.Circle;  # users write geometry::Circle[…]
+```
+
+Read it as: other Limbs get a function called `area`, and it is the one
+written in `shapes/circle.cpls`. The Limb's author decides what comes
+after `geometry::`, whatever the folders look like inside (owner:
+"Doesn't the Limb maker say what goes after `::`?"). The line reads as
+a declaration: the kind, the name users get, and `=` the path to where
+it is written. That path is the ordinary one inside a Limb, relative to
+the module the line is in (2026-09-19): `shapes.circle` is how the file
+`shapes/circle.cpls` is named everywhere, and source never writes a
+file name, since a module may also be a `module` block with no file.
+The line adds a name only: no code is copied, and it is the same
+`area`. If the original is `pub.limb`, only the short name exists
+outside, so the folder layout stays private. If it is `pub`, both
+paths work.
+
+Proposed alternatives: none, where the path follows the folders and an
+author wanting `geometry::area` puts it in `limb.cpls` or writes a
+forwarding function (design claude's first recommendation, for one name
+per thing); `pub shapes.circle.area;`, refused by the owner ("I don't
+think that makes sense, the syntax") because the new name is only
+implied; `pub fn area from shapes.circle;`, English-like but unable to
+give a different name; a file path, `"shapes/circle.cpls".area`, after
+the owner said the module path "doesn't seem like it's referencing a
+file". It would be the only file name in source, and it could not
+reach a `module` block.
+
+Not yet ruled: whether the name may differ from the original's
+(`pub fn size = shapes.circle.area;`, which the spelling allows);
+whether the line may stand in any module or only in `limb.cpls`; and
+which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
+`const`, `module`).
+
 ## A Limb's name (owner, 2026-09-23: a)
 
 The name lives in **`Synthia.cplm`**, beside the version and the
@@ -183,6 +226,4 @@ would give the name two places to disagree.
 
 ## Open
 
-- Re-export: whether a Limb can make `shapes.circle.area` reachable as
-  `geometry::area` for its users. The path stays, only shorter.
 - A file module's own visibility (provisionally public).
