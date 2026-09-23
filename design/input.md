@@ -3,6 +3,24 @@
 Decided 2026-09-20. The last pillar-level hole: the language had no way to
 take a value from outside, and no way to say what that value could be.
 
+## One-ended ranges — `min` and `max` (owner, 2026-09-23)
+
+```
+let 'pos': int32[1, max] = 1;         # at least 1; the ceiling is int32's own
+let 'score': int32[min, 100] = 50;    # at most 100
+```
+
+`min` and `max` stand for the base type's own limits, so a one-ended
+range never writes a number that goes stale when the width changes —
+`int8[1, max]` is 1 to 127 and `int32[1, max]` is 1 to 2,147,483,647,
+from the same line. A position is naturally `int32[1, max]`, since
+indexing is 1-based. `int32[min, max]` is refused: that is `int32`
+written the long way, and a range says what the type does not.
+Proposed alternatives: `…` and `...`, both out — `...` is the variadic
+and the spread (owner spotted it), and the single-character ellipsis
+cannot be typed; `*`, which says "something" where `max` says *which*
+limit. Owner chose words, as with `x`, `mod`, `and`, `shl`.
+
 ## Reading — a boundary in std
 
 ```

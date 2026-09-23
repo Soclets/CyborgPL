@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — One-ended ranges: `int32[1, max]`, `int32[min, 100]` (owner: a, words)
+
+Open since 2026-09-20. Today a one-ended bound had to be written with
+the type's own limit as the other end (`int32[0, 2_147_483_647]`),
+which is noise and silently wrong if the width changes. Proposed (a)
+add them; (b) leave it, since `uint32` already says "not negative".
+Owner: a. The spelling: `…`/`...` were proposed and withdrawn — the
+owner pointed out `...` is the variadic and the spread, and the
+one-character ellipsis cannot be typed — then `*` against words;
+owner chose **words**, matching `x`, `mod`, `and`, `shl`. `min` and
+`max` are the base type's own limits, so `int8[1, max]` and
+`int32[1, max]` differ correctly from one line. `int32[min, max]` is
+refused as `int32` written the long way. In the oracle the same day;
+`min`/`max` survive into messages, so a refusal reads "0 does not fit
+int8[1, max]".
+
 ### 2026-09-23 — Oracle bug: the context type leaked into a call's arguments (verification session)
 
 Generator seed 41, shrunk: `let 'v': uint8 = g[0 > (-1) - 'x'];` with
@@ -2019,7 +2035,6 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
-- One-ended ranges (`int32[0, …]`). (2026-09-20)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
