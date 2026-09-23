@@ -92,6 +92,9 @@ pub struct Interp<'p> {
     /// the call being evaluated is a statement (its value is unused), so an
     /// `otherwise { … }` arm may fall through
     call_is_stmt: bool,
+    /// the type the value being evaluated is being stored into, when there is one:
+    /// a bare literal takes its width from its context (owner, 2026-09-23)
+    expected: Option<Ty>,
     /// tasks started by `concur` and not yet run (design/concurrency.md). The oracle's
     /// schedule: a task runs when something waits on it (a `take`, a `whichever`, a full
     /// `send`) or when the block that started it ends — in source order. One valid schedule.
@@ -113,7 +116,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -438,7 +441,12 @@ impl<'p> Interp<'p> {
                         Some(t) => return rt(*line, format!("`[]` is an empty list, but '{name}' is {}", ty_name(t))),
                         None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `list.empty`")),
                     }
-                } else { self.bracket(value, *line)? };
+                } else {
+                    let saved = std::mem::replace(&mut self.expected, ty.clone());
+                    let r = self.bracket(value, *line);
+                    self.expected = saved;
+                    r?
+                };
                 let immut = *mutability == Some(Mutability::Immut);
                 let slot = match prov {
                     Prov::Bare(n) => return rt(*line, format!("declaring '{name}' from bare '{n}', which owns a {}: say `give '{n}'`, `copy '{n}'`, or `lend '{n}'`", v.kind())),
@@ -469,7 +477,12 @@ impl<'p> Interp<'p> {
                 if kind == SlotKind::ExternMut && self.nocheck_depth == 0 { return rt(*line, format!("'{name}' is extern: writing C's variable is a nocheck site: `nocheck '{name}' = …;`")); }
                 if immut { return rt(*line, format!("'{name}' cannot be assigned to: it is `immut` (a loop's counter or element belongs to the loop)")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
-                let (v, prov) = self.bracket(value, *line)?;
+                let (v, prov) = {
+                    let saved = std::mem::replace(&mut self.expected, ty.clone());
+                    let r = self.bracket(value, *line);
+                    self.expected = saved;
+                    r?
+                };
                 match prov {
                     Prov::Bare(n) => return rt(*line, format!("assigning bare '{n}' to '{name}': '{n}' owns a {} — say `give '{n}'`, `copy '{n}'`, or `lend '{n}'`", v.kind())),
                     Prov::Borrowed(..) => return rt(*line, format!("assigning a lend to '{name}': a lend is temporary and cannot be stored in an owned variable (`copy` it or `give` it)")),
@@ -1035,6 +1048,23 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// The type of an expression where it can be worked out — a declared name, a
+    /// conversion, either side of an operator — falling back to the type the value is
+    /// being stored into. A shift's width comes from any of these (owner, 2026-09-23);
+    /// only a bare literal with no context has none.
+    fn expr_ty(&self, e: &Expr) -> Option<Ty> {
+        let t = match e {
+            Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
+            Expr::Paren(inner, _) => self.expr_ty(inner),
+            Expr::Convert(t, _, _, _) => Some(t.clone()),
+            Expr::Unary(_, inner, _) => self.expr_ty(inner),
+            Expr::Binary(_, l, r, _) => self.expr_ty(l).or_else(|| self.expr_ty(r)),
+            _ => None,
+        };
+        let t = t.or_else(|| self.expected.clone());
+        match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t }
+    }
+
     fn read_var(&self, name: &str, line: usize) -> Result<Value, RuntimeError> {
         match self.lookup(name) {
             None => rt(line, format!("'{name}' is not declared")),
@@ -1402,8 +1432,8 @@ impl<'p> Interp<'p> {
                 let keep = if matches!(prov, Prov::Literal) { Prov::Literal } else { Prov::Plain };
                 if op == "not.bit" {
                     // flip every bit, at the operand's declared width (the oracle needs a typed variable)
-                    let width = match inner.as_ref() { Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()), _ => None };
-                    let (bits, signed) = match width { Some(Ty::Int(w)) => (int_bits(&w), true), Some(Ty::Uint(w)) => (int_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, and the oracle only knows a declared width: put the operand in a variable declared `: uint32` / `: int8`") };
+                    let width = self.expr_ty(inner);
+                    let (bits, signed) = match width { Some(Ty::Int(w)) => (int_bits(&w), true), Some(Ty::Uint(w)) => (int_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, so it needs to know how many: give the value a type, or say it in the declaration (`let 'x': uint32 = not.bit 'v';`)") };
                     let x = match v { Value::Int(x) => x, o => return rt(line, format!("`not.bit` is integer arithmetic, got {}", o.kind())) };
                     let m: i128 = 1i128 << bits;
                     let mut r = (!x).rem_euclid(m);
@@ -1423,10 +1453,7 @@ impl<'p> Interp<'p> {
             // modulo the type's size. The oracle wraps at the left operand's declared
             // integer width (Precog knows every width; the oracle only knows declared ones).
             Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+~" | "-~" | "x~" | "xx~") => {
-                let width = match l.as_ref() {
-                    Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
-                    _ => None,
-                };
+                let width = self.expr_ty(l).or_else(|| self.expr_ty(r));
                 let (bits, signed) = match width {
                     Some(Ty::Int(w)) => (int_bits(&w), true),
                     Some(Ty::Uint(w)) => (int_bits(&w), false),
@@ -1462,7 +1489,7 @@ impl<'p> Interp<'p> {
                     "xor" => x ^ y,
                     "shl" | "shr" => {
                         if y < 0 { return rt(line, format!("`{op}` by a negative count")); }
-                        let width_ty = match l.as_ref() { Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()), _ => None };
+                        let width_ty = self.expr_ty(l);
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
                         if y as u32 >= bits { return site(line, format!("`{op}` by {y} on a {bits}-bit value: every bit is lost")); }
                         if op == "shl" {

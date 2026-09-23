@@ -19,7 +19,11 @@ in the operation; (c) (b) for bare literals only. Owner asked what
 would not be possible — it is: the obstacle was never technical.
 Owner: a. `operators.md`'s "the compiler knows every width; the oracle
 needs the left operand declared" was always about the oracle's limit;
-CCA had read it as a rule and is the one to change.
+CCA had read it as a rule and is the one to change. The oracle also
+stopped being the limit the same day: it now works the width out from
+a name, a conversion, either side of an operator, or the type the value
+is stored into, for `shl`/`shr`, `not.bit` and the wrapping forms.
+`examples/widths.cpls`.
 
 ### 2026-09-23 — Generated programs read input as an environment variable's length (owner: a)
 
