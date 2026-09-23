@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The shorter-name line may stand in any module (owner)
+
+Second of the three leftovers. Proposed (a) only in `limb.cpls`, so
+every short name a Limb offers is in one file; (b) any module, where it
+adds the name to that module (`pub fn split = split.split;` in
+`str.cpls` gives `std::str.split`). Design claude recommended b. The
+owner asked why. Under a, every short name is one level deep, and
+keeping a grouping like `std::str.…` would force the real code into
+`str.cpls`, which ties the file layout to the names again. Owner: "in
+any file". Left: which kinds beyond `fn` and `struct`.
+
 ### 2026-09-23 — Oracle bug: a comparison's typed side did not size a literal group on the other (verification session)
 
 Generator seed 90: `let 'b': bool = 'n' > (0 -~ 1);` with `'n'` a

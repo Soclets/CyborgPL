@@ -222,8 +222,21 @@ line spells out both names, so searching for `new_circle` finds where
 it really is. Proposed alternative: the name must match the original,
 so the author renames inside their own files first.
 
-Not yet ruled: whether the line may stand in any module or only in
-`limb.cpls`; and
+**It may stand in any module** (owner, 2026-09-23: "in any file"), and
+adds the name to that module:
+
+```
+# std/str.cpls
+pub fn split = split.split;      # users write std::str.split[…]
+```
+
+So a big Limb keeps its grouping (`std::str.…`) while the code behind
+it lives in whatever files suit it. Proposed alternative: only in
+`limb.cpls`, so a Limb's whole outside face is in one file; but then
+every short name would sit one level deep, and keeping
+`std::str.split` would mean the real function has to live in `str.cpls`.
+
+Not yet ruled:
 which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
 `const`, `module`).
 
