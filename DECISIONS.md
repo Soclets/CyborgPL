@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — A certain failure is an error only if the site is always reached (owner: c)
+
+Found by the generator (seed 59): a program with no input at all, where
+CCA refused a line inside an `else` the oracle shows is never taken —
+Precog's sets had widened across nested calls. `precog.md` said "no
+value legal → a compile error"; the tiers said the working build "never
+refuses to compile". Proposed (a) refuse, reached or not; (b) refuse
+only when the site is reached on every run, otherwise treat it as any
+unproven site; (c) b plus a `note:` in the working build. Owner asked
+why not (a), and whether the options really differ — they reduce to two:
+refuse to build, or build and say something. The deciding argument:
+under (a) the analyser's imprecision becomes the programmer's error,
+and it bites exactly on programs big enough for Precog to widen. Owner:
+c. Both builds stay safe — the final build refuses either way.
+
 ### 2026-09-23 — A shift's count must be 0 to width − 1 (owner: a)
 
 Found by the generator. `let 'a': int8 = 'v' shr 8;` and `'v' shr (-1)`

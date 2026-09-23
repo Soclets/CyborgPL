@@ -122,8 +122,24 @@ every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
   same value — and it is a fact about the program, not a domain.
 
 At each check site Precog asks: is every value in the result's set legal?
-Yes → **proven**, no check. No value legal → a **certain failure**, a
-compile error. Otherwise → **unproven**, on to layer 3.
+Yes → **proven**, no check. No value legal → see below. Otherwise →
+**unproven**, on to layer 3.
+
+**A site where no value is legal** (owner, 2026-09-23) is a compile
+error only when it is **reached on every run** — layer 1's case, where
+the program would always fail there and so never builds. A site that
+fails whenever it runs but *may not run* is **unproven**, like any
+other: a runtime check in the working build with a `note:` saying the
+line fails whenever it runs, and a compile error with the
+counterexample in the final build. The working build never refuses to
+compile (2026-09-14), and this is why it matters: Precog's sets widen,
+so it sometimes believes values reach a line that never do. The
+generator found exactly that — a program with no input at all where CCA
+refused a line inside an `else` the oracle shows is never taken. Under
+the stricter reading, the analyser's imprecision becomes the
+programmer's error. Proposed alternatives: refuse any such site,
+reached or not (what this document said before); the same without the
+note.
 
 Check sites are: integer overflow (plain operators; `+~` etc. are never
 sites), division and `mod` by zero, `[pos]` bounds, narrowing (`uint64`
