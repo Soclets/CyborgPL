@@ -1,0 +1,410 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "cyborgpl",
+  "displayName": "CyborgPL",
+  "scopeName": "source.cyborgpl",
+  "fileTypes": ["cpls"],
+  "aliases": ["cpls"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#asm-block" },
+    { "include": "#text" },
+    { "include": "#character" },
+    { "include": "#variable" },
+    { "include": "#newline-piece" },
+    { "include": "#number" },
+    { "include": "#declaration" },
+    { "include": "#failure-name" },
+    { "include": "#generic" },
+    { "include": "#type" },
+    { "include": "#field" },
+    { "include": "#struct-name" },
+    { "include": "#keyword" },
+    { "include": "#call" },
+    { "include": "#operator" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "comment": "#wl comments out the whole line, code before it included.",
+          "name": "comment.line.number-sign.whole-line.cyborgpl",
+          "match": "^.*?#wl.*$"
+        },
+        {
+          "comment": "#Nl covers N lines counting this one; #Nld this line plus N more. Only the opening line can be matched line-wise.",
+          "name": "comment.line.number-sign.multi.cyborgpl",
+          "match": "#\\d+ld?\\b.*$"
+        },
+        {
+          "name": "comment.line.number-sign.cyborgpl",
+          "begin": "#",
+          "end": "$",
+          "beginCaptures": { "0": { "name": "punctuation.definition.comment.cyborgpl" } }
+        }
+      ]
+    },
+
+    "asm-block": {
+      "comment": "inline.ASM { … } is taken verbatim to the matching brace.",
+      "name": "meta.embedded.asm.cyborgpl",
+      "begin": "\\b(inline)(\\.)(ASM)\\s*(\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.inline.cyborgpl" },
+        "2": { "name": "punctuation.accessor.cyborgpl" },
+        "3": { "name": "keyword.other.asm.cyborgpl" },
+        "4": { "name": "punctuation.section.braces.begin.cyborgpl" }
+      },
+      "endCaptures": { "0": { "name": "punctuation.section.braces.end.cyborgpl" } },
+      "contentName": "meta.embedded.block.asm"
+    },
+
+    "text": {
+      "comment": "A text literal is exactly its characters; only \\\" and \\\\ escape. A backslash before anything else is literal.",
+      "name": "string.quoted.double.cyborgpl",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.cyborgpl" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.cyborgpl" } },
+      "patterns": [
+        { "name": "constant.character.escape.cyborgpl", "match": "\\\\[\"\\\\]" }
+      ]
+    },
+
+    "character": {
+      "comment": "`c` — one character.",
+      "name": "string.quoted.other.character.cyborgpl",
+      "begin": "`",
+      "end": "`",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.cyborgpl" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.cyborgpl" } }
+    },
+
+    "variable": {
+      "comment": "Every variable name is quoted: 'x'. It cannot span lines.",
+      "name": "variable.other.cyborgpl",
+      "match": "'[^'\\n]+'",
+      "captures": { "0": { "name": "variable.other.cyborgpl" } }
+    },
+
+    "newline-piece": {
+      "comment": "The newline is a bare \\n outside any string — a value, not an escape.",
+      "name": "constant.character.newline.cyborgpl",
+      "match": "\\\\n"
+    },
+
+    "number": {
+      "patterns": [
+        {
+          "comment": "_ groups digits; , never does. A fraction needs a digit on both sides.",
+          "name": "constant.numeric.decimal.cyborgpl",
+          "match": "\\b\\d[\\d_]*\\.\\d[\\d_]*\\b"
+        },
+        {
+          "name": "constant.numeric.integer.cyborgpl",
+          "match": "\\b\\d[\\d_]*\\b"
+        }
+      ]
+    },
+
+    "declaration": {
+      "patterns": [
+        {
+          "comment": "fn name [params] -> type",
+          "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.function.cyborgpl" },
+            "2": { "name": "entity.name.function.cyborgpl" }
+          }
+        },
+        {
+          "comment": "struct / enum / interface / module / limb declare a bare name.",
+          "match": "\\b(struct|enum|interface|module|limb)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.cyborgpl" },
+            "2": { "name": "entity.name.type.cyborgpl" }
+          }
+        },
+        {
+          "comment": "MAIN is the entry point.",
+          "name": "entity.name.function.main.cyborgpl",
+          "match": "\\bMAIN\\b"
+        }
+      ]
+    },
+
+    "failure-name": {
+      "comment": "A failure is named after `fail`, both in a signature (`-> T or fail[empty]`) and where it is raised (`fail empty;`).",
+      "patterns": [
+        {
+          "match": "\\b(fail)\\s*(\\[)([^\\]]*)(\\])",
+          "captures": {
+            "1": { "name": "keyword.control.failure.cyborgpl" },
+            "2": { "name": "punctuation.section.brackets.cyborgpl" },
+            "3": { "name": "entity.name.tag.failure.cyborgpl" },
+            "4": { "name": "punctuation.section.brackets.cyborgpl" }
+          }
+        },
+        {
+          "match": "\\b(fail)\\s+([a-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.control.failure.cyborgpl" },
+            "2": { "name": "entity.name.tag.failure.cyborgpl" }
+          }
+        }
+      ]
+    },
+
+    "generic": {
+      "comment": "A generic blank is written in angle brackets: <T>, filled per use by the compiler.",
+      "match": "(<)([A-Za-z_][A-Za-z0-9_]*)(>)",
+      "captures": {
+        "1": { "name": "punctuation.definition.generic.begin.cyborgpl" },
+        "2": { "name": "entity.name.type.generic.cyborgpl" },
+        "3": { "name": "punctuation.definition.generic.end.cyborgpl" }
+      }
+    },
+
+    "struct-name": {
+      "comment": "Structs, enums and interfaces are named in PascalCase in the examples; functions are snake_case. A bare capitalised word is therefore a type — including where one is built (`Locker[…]`) or narrowed (`Status.empty`).",
+      "name": "entity.name.type.cyborgpl",
+      "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+    },
+
+    "field": {
+      "comment": "A struct field or enum case names itself with a bare word before `:`; variables are quoted, so there is no clash.",
+      "patterns": [
+        {
+          "comment": "A struct field or enum case names itself with a bare word before `:`; variables are quoted, so there is no clash.",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(:)(?!:)",
+          "captures": {
+            "1": { "name": "variable.other.member.declaration.cyborgpl" },
+            "2": { "name": "punctuation.separator.type.cyborgpl" }
+          }
+        },
+        {
+          "comment": "A field label when a struct is built: `Locker[number = 1]`. A bare word before a single `=`; assignments name a quoted variable instead.",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(=)(?![=>])",
+          "captures": {
+            "1": { "name": "variable.other.member.cyborgpl" },
+            "2": { "name": "keyword.operator.assignment.cyborgpl" }
+          }
+        }
+      ]
+    },
+
+    "type": {
+      "patterns": [
+        {
+          "comment": "Widths are explicit: int/uint 8–128, bin 16–64, deci 32–128.",
+          "name": "support.type.numeric.cyborgpl",
+          "match": "\\b(?:u?int(?:8|16|32|64|128)|bin(?:16|32|64)|deci(?:32|64|128))\\b"
+        },
+        {
+          "comment": "Text and character types are never bare: str.utf8, char.point.",
+          "match": "\\b(str)(\\.)(utf8|utf16|utf32|ascii)\\b",
+          "captures": {
+            "1": { "name": "support.type.cyborgpl" },
+            "2": { "name": "punctuation.accessor.cyborgpl" },
+            "3": { "name": "support.type.narrowing.cyborgpl" }
+          }
+        },
+        {
+          "match": "\\b(char)(\\.)(point|grapheme|byte)\\b",
+          "captures": {
+            "1": { "name": "support.type.cyborgpl" },
+            "2": { "name": "punctuation.accessor.cyborgpl" },
+            "3": { "name": "support.type.narrowing.cyborgpl" }
+          }
+        },
+        {
+          "match": "\\b(map)(\\.)(ordered|unordered)\\b",
+          "captures": {
+            "1": { "name": "support.type.cyborgpl" },
+            "2": { "name": "punctuation.accessor.cyborgpl" },
+            "3": { "name": "support.type.narrowing.cyborgpl" }
+          }
+        },
+        {
+          "match": "\\b(ptr)(\\.)(mut)\\b",
+          "captures": {
+            "1": { "name": "support.type.cyborgpl" },
+            "2": { "name": "punctuation.accessor.cyborgpl" },
+            "3": { "name": "support.type.narrowing.cyborgpl" }
+          }
+        },
+        {
+          "name": "support.type.cyborgpl",
+          "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr)\\b"
+        },
+        {
+          "comment": "A type written after `:` or `->` that is none of the above is a struct in this module.",
+          "match": "(?:(:)|(->))\\s*([A-Z][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "punctuation.separator.type.cyborgpl" },
+            "2": { "name": "keyword.operator.arrow.cyborgpl" },
+            "3": { "name": "entity.name.type.cyborgpl" }
+          }
+        }
+      ]
+    },
+
+    "keyword": {
+      "patterns": [
+        {
+          "comment": "Ownership verbs, at the call site.",
+          "name": "keyword.other.ownership.cyborgpl",
+          "match": "\\b(?:give|copy|lend|lent)(?:\\.mut)?\\b"
+        },
+        {
+          "comment": "Failures in signatures, handled with `otherwise`.",
+          "name": "keyword.control.failure.cyborgpl",
+          "match": "\\b(?:fail|otherwise)\\b"
+        },
+        {
+          "name": "keyword.control.cyborgpl",
+          "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|match|whichever|concur)\\b"
+        },
+        {
+          "comment": "The check tiers.",
+          "name": "keyword.other.check.cyborgpl",
+          "match": "\\b(?:check|nocheck)\\b"
+        },
+        {
+          "name": "keyword.declaration.cyborgpl",
+          "match": "\\b(?:let|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b"
+        },
+        {
+          "name": "storage.modifier.cyborgpl",
+          "match": "\\b(?:mut|immut|temp|perm|satisfies|from|to|with|size|align)\\b"
+        },
+        {
+          "comment": "`pos` marks a 1-based index: 'xs'[pos 1].",
+          "name": "keyword.other.position.cyborgpl",
+          "match": "\\bpos\\b"
+        },
+        {
+          "name": "keyword.other.range.cyborgpl",
+          "match": "\\brange\\b"
+        },
+        {
+          "name": "constant.language.boolean.cyborgpl",
+          "match": "\\b(?:true|false)\\b"
+        },
+        {
+          "comment": "Retired on 2026-09-19, still reserved so the error can point at the new spelling.",
+          "name": "invalid.deprecated.cyborgpl",
+          "match": "\\b(?:var|func)\\b"
+        }
+      ]
+    },
+
+    "call": {
+      "patterns": [
+        {
+          "comment": "Limb path: std::print.stdout[…]. The :: is a Limb boundary.",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)(::)((?:[A-Za-z_][A-Za-z0-9_]*)(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)",
+          "captures": {
+            "1": { "name": "entity.name.namespace.cyborgpl" },
+            "2": { "name": "punctuation.separator.namespace.cyborgpl" },
+            "3": { "name": "entity.name.function.cyborgpl" }
+          }
+        },
+        {
+          "comment": "A conversion: to.int32[…], to.str.utf8[…].",
+          "match": "\\b(to)(\\.)((?:[A-Za-z_][A-Za-z0-9_]*)(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)",
+          "captures": {
+            "1": { "name": "keyword.other.conversion.cyborgpl" },
+            "2": { "name": "punctuation.accessor.cyborgpl" },
+            "3": { "name": "support.type.cyborgpl" }
+          }
+        },
+        {
+          "comment": "Calls use brackets, never parentheses: add[1, 2].",
+          "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\[)",
+          "captures": { "1": { "name": "entity.name.function.cyborgpl" } }
+        },
+        {
+          "comment": "A dot narrows: 'xs'.length, str.utf8, lend.mut.",
+          "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "punctuation.accessor.cyborgpl" },
+            "2": { "name": "variable.other.member.cyborgpl" }
+          }
+        }
+      ]
+    },
+
+    "operator": {
+      "patterns": [
+        {
+          "comment": "Bitwise: the boolean words narrowed with .bit, plus xor/shl/shr. No precedence — parenthesise.",
+          "name": "keyword.operator.bitwise.cyborgpl",
+          "match": "\\b(?:and\\.bit|or\\.bit|xor|shl|shr|not\\.bit)\\b"
+        },
+        {
+          "comment": "Word operators. `x` multiplies and `xx` raises; the ~ suffix wraps.",
+          "name": "keyword.operator.word.cyborgpl",
+          "match": "\\b(?:xx~|x~|xx|x|mod|and|or|not)\\b"
+        },
+        {
+          "comment": "$ marks a shadowing declaration and sits on the operator.",
+          "name": "keyword.operator.assignment.shadow.cyborgpl",
+          "match": "\\$(?::=|=)"
+        },
+        {
+          "comment": ":= infers the best type; = needs the type written.",
+          "name": "keyword.operator.assignment.infer.cyborgpl",
+          "match": ":="
+        },
+        {
+          "name": "keyword.operator.arrow.cyborgpl",
+          "match": "->|<->|<-"
+        },
+        {
+          "comment": "++ joins text.",
+          "name": "keyword.operator.join.cyborgpl",
+          "match": "\\+\\+"
+        },
+        {
+          "comment": "Comparison is doubled: !== <== >==.",
+          "name": "keyword.operator.comparison.cyborgpl",
+          "match": "!==|<==|>==|==|<|>"
+        },
+        {
+          "name": "keyword.operator.arithmetic.cyborgpl",
+          "match": "[+\\-/]"
+        },
+        {
+          "comment": "A maximal run of operator characters is one operator: the language's own, or a custom `op`.",
+          "name": "keyword.operator.custom.cyborgpl",
+          "match": "[!%&*+\\-/<>=?@^|~]+"
+        },
+        {
+          "name": "keyword.operator.assignment.cyborgpl",
+          "match": "="
+        },
+        {
+          "comment": "A variadic parameter.",
+          "name": "keyword.operator.variadic.cyborgpl",
+          "match": "\\.\\.\\."
+        }
+      ]
+    },
+
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.separator.namespace.cyborgpl", "match": "::" },
+        { "name": "punctuation.separator.type.cyborgpl", "match": ":" },
+        { "name": "punctuation.terminator.cyborgpl", "match": ";" },
+        { "name": "punctuation.separator.comma.cyborgpl", "match": "," },
+        { "name": "punctuation.accessor.cyborgpl", "match": "\\." },
+        { "name": "punctuation.section.brackets.cyborgpl", "match": "[\\[\\]]" },
+        { "name": "punctuation.section.braces.cyborgpl", "match": "[{}]" },
+        { "name": "punctuation.section.parens.cyborgpl", "match": "[()]" }
+      ]
+    }
+  }
+}

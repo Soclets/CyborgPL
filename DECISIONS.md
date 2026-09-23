@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The website's text is CC BY 4.0 (owner)
+
+The owner chose it with the website session, which explained it
+(attribution-only, commercial use allowed, irrevocable, no trademark or
+patent rights) and relayed the choice. The owner confirmed it here:
+"yeah, CC BY 4.0 for the text". `website/` code stays Apache-2.0 WITH
+LLVM-exception, and the name and logo stay reserved. The licence entry
+below had covered "everything that is code" and left prose unaddressed.
+Only the website's text is ruled; `design/` and `DECISIONS.md` stay
+under the repo's licence. `licensing.md` says so. This closes the open
+line in the `website/` entry above.
+
 ### 2026-09-23 — The website lives in `website/` in this repo (owner)
 
 The website session is building a new open-source site inside the
@@ -12,9 +24,8 @@ language repo, and asked where. Proposed: `website/`, `www/`, `docs/`,
 `site/`. Design claude recommended `website/`, which says what it is and
 leaves `docs/` for language documentation. Owner: `website/`. The site
 is updated only when the owner asks the website session to. It becomes
-public when the repo does. Open: the site's text licence (the website
-session has CC BY 4.0, and this log has Apache-2.0 WITH LLVM-exception
-throughout).
+public when the repo does. The site's text licence was open here, and
+is ruled above: CC BY 4.0.
 
 ### 2026-09-23 — Precog follows a loop up to 100,000 trips (owner)
 

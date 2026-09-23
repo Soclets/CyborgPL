@@ -38,6 +38,18 @@ repeats the old BSD advertising clause the industry dropped for
 compatibility. The names are the stronger lever and cost nothing.
 Rust's arrangement is the same shape.
 
+**The website's text is CC BY 4.0** (owner, 2026-09-23, asked through
+the website session and confirmed here). `website/` splits three ways:
+its code (the generator, TypeScript, CSS) is Apache-2.0 WITH
+LLVM-exception like the rest of the repo; its text (copy, documentation
+prose) is CC BY 4.0, so anyone may copy, translate, republish or
+remix it, commercially too, with credit, a link to the licence, and a
+note of changes; and the CyborgPL name and logo are reserved, since
+neither licence grants trademark rights. The code-only wording above
+had left prose unaddressed. The rest of the repo's prose (`design/`,
+`DECISIONS.md`, this file) has no separate ruling and stays under the
+repo's licence.
+
 The trademark flags below still stand and are the thing to act on.
 
 ## The original mapping (Claude, 2026-09-14 — superseded above)
