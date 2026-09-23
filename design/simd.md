@@ -38,7 +38,7 @@ owner: "shouldn't they just use the normal way?" A program reaching for
 lies; portability is the plain loop. A `simd` program built for another
 target fails to build rather than running slowly — the honesty
 `inline.ASM` already has. The shapes come from the target description
-in `JetPack.toml`, never from the host.
+in `Synthia.toml`, never from the host.
 
 ## The operators, element-wise (owner: a)
 

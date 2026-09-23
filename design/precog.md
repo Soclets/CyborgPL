@@ -41,8 +41,8 @@ lowered as is. Any MIR-level optimisation runs before Precog, so Precog
 proves exactly what is emitted, and no later pass can change an
 instruction out from under its proof.
 
-`jetpack build` runs everything and inserts a runtime check at every
-unproven site; `jetpack final` runs the same Precog and refuses the
+`synthia build` runs everything and inserts a runtime check at every
+unproven site; `synthia final` runs the same Precog and refuses the
 program if any default-tier site is unproven (`core-features.md`). Both
 run Precog in full — there is no build that skips it.
 
@@ -264,7 +264,7 @@ already specifies: write the type.
   (`rlimit`); results do not depend on thread scheduling.
 - Sites are analysed and reported in source order.
 - Compile-time arithmetic is performed at the exact width the target uses;
-  the target is a description in `JetPack.toml`, never the host.
+  the target is a description in `Synthia.toml`, never the host.
 - Nothing is read at compile time except the source and the config: no
   files, clock, environment, network.
 - The compiler's and both solvers' versions are in the report header.
@@ -337,7 +337,7 @@ code. Three attacks, one per way Precog can be wrong:
   trusted — and the differential harness runs the examples, the twin
   programs and the generated programs through it. An assertion that
   trips is a wrong proof, caught before any writer's binary is built.
-  Not a user build: `jetpack build` and `jetpack final` are unchanged,
+  Not a user build: `synthia build` and `synthia final` are unchanged,
   and the no-development-mode rule is untouched — this mode proves
   exactly as much, it only refuses to believe itself.
 

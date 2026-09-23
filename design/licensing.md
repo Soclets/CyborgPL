@@ -18,9 +18,9 @@ counsel to draft; this records what they must achieve.
 ## Decided 2026-09-23 (owner): one standard licence, plus trademark
 
 **Apache-2.0 WITH LLVM-exception for everything that is code** — the
-runtime, the standard Limb, the compiler, Precog, JetPack, the oracle
+runtime, the standard Limb, the compiler, Precog, Synthia, the oracle
 and the verification tools. **Trademark on the names** — CyborgPL,
-Precog, Limb, JetPack — as the instrument for "credit everywhere".
+Precog, Limb, Synthia — as the instrument for "credit everywhere".
 
 What that achieves against the intent above: a user of the language
 owes nothing, because the exception waives notice for compiled output
@@ -45,9 +45,9 @@ The trademark flags below still stand and are the thing to act on.
 | Piece | Licence | Effect |
 |---|---|---|
 | Runtime, standard Limb | Apache-2.0 WITH LLVM-exception | The exception waives notice requirements for compiled binaries — users owe nothing. Same licence LLVM uses and Xag used. |
-| Compiler, Precog, JetPack | Apache-2.0 **plus a CyborgPL attribution term** | Apache alone requires credit in source (licence, copyright, `NOTICE`, marking of changed files). The additional term extends it to user-visible places. |
+| Compiler, Precog, Synthia | Apache-2.0 **plus a CyborgPL attribution term** | Apache alone requires credit in source (licence, copyright, `NOTICE`, marking of changed files). The additional term extends it to user-visible places. |
 | Spec, docs, decision log | CC BY 4.0 | Anyone may implement the language; the text is credited. |
-| Names — CyborgPL, Precog, Limb, JetPack | Trademark (separate from copyright) | A fork credits CyborgPL but may not call itself CyborgPL. The stronger tool for "credit everywhere". |
+| Names — CyborgPL, Precog, Limb, Synthia | Trademark (separate from copyright) | A fork credits CyborgPL but may not call itself CyborgPL. The stronger tool for "credit everywhere". |
 
 ## Known consequences of the attribution term (for counsel to weigh)
 
@@ -62,9 +62,14 @@ The trademark flags below still stand and are the thing to act on.
 
 ## Flags for counsel
 
-- **JetPack** is already a software trademark twice: Google's Android
-  Jetpack and Automattic's Jetpack (WordPress). Check before the name is
-  public.
+- **Synthia** replaced JetPack on 2026-09-23 for exactly this reason:
+  JetPack was already a software trademark twice, Google's Android
+  Jetpack and Automattic's Jetpack (WordPress), both close enough to a
+  developer tool to matter. Synthia's near neighbours are **SYNTHIA®**
+  (Merck KGaA's retrosynthesis software — registered, but chemistry
+  rather than programming) and **Synthesia** (the AI video company —
+  a different word, close enough to be misheard). Judged acceptable:
+  neither is in this lane.
 - **Precog** is used by unrelated companies (an AI platform; a
   vulnerability scanner). Lower risk, still worth a look.
 - Dependencies (LLVM: Apache-2.0 + LLVM exception; Z3: MIT; Rust crates:

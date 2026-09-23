@@ -96,7 +96,7 @@ asks the clever one. The interpreter stays ours — it is the spec.
 
 **Sessions** (owner, 2026-09-22): (1) this one — design and the
 oracle, never a line of the compiler; (2) a fresh session — CCA
-(front end, checker, MIR, Precog, lowering, runtime) and JetPack,
+(front end, checker, MIR, Precog, lowering, runtime) and Synthia,
 reading `design/` and the oracle's tests, never its source; (3) later,
 another fresh session — verification: the Precog oracle, translation
 validation, the generator, the differential harness, by a different

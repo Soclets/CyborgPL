@@ -5,7 +5,7 @@ Decided 2026-09-19. The module-system pieces settled so far; the rest
 
 ## No `import`, no `use`
 
-- **Dependencies are declared in `JetPack.toml`**, never in source. A source
+- **Dependencies are declared in `Synthia.toml`**, never in source. A source
   file has no statement that loads a Limb.
 - **Every item is reached by its full path**: `std::printu.stdout[…]`,
   `mathstuff::pow[2, 64]`, `'r': std::uenr`, `crate_x::Locker[…]`. `::`
@@ -91,7 +91,7 @@ file-only / block-only / both.
 
 - **Every `.cpls` file in the Limb is a module named after the file**:
   `shapes.cpls` → `shapes`; a directory nests: `shapes/circle.cpls` →
-  `shapes.circle`. Nothing declares it — JetPack knows the files, and `ls`
+  `shapes.circle`. Nothing declares it — Synthia knows the files, and `ls`
   shows the tree.
 - **`module name { … }` inside a file** nests one more module that has no
   file of its own — for a private helper namespace or tests beside the code.
@@ -172,5 +172,5 @@ refusal: nothing to disambiguate, for the reader or for Precog.
   flag beside or on `pub`; with modules it is also how `shapes.circle.area`
   becomes `geometry::area` for users. Undecided.
 - A file module's own visibility (provisionally public).
-- Limb name declared in source, or only in `JetPack.toml`? (Claude,
+- Limb name declared in source, or only in `Synthia.toml`? (Claude,
   2026-09-14.)

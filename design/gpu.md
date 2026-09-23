@@ -60,7 +60,7 @@ runtime), Vulkan / SPIR-V for everyone else — AMD, Intel, NVIDIA,
 phones — the portable one. CUDA / PTX is not in v1: NVIDIA runs Vulkan,
 and CUDA would need NVIDIA's driver found (never bundled) and hardware
 to test on. Precog's decisions are the same for any GPU; a target is a
-runtime module for launching and memory plus a `JetPack.toml` line, so
+runtime module for launching and memory plus a `Synthia.toml` line, so
 CUDA later is an addition, not a change. Proposed: Metal only; Metal +
 CUDA; all three. Owner: Metal and Vulkan.
 

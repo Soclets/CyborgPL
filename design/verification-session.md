@@ -147,7 +147,7 @@ Record every pick you *had* to make in your own `check/README.md` under
 
 ## Not your job
 
-- The compiler and JetPack — compiler claude's.
+- The compiler and Synthia — compiler claude's.
 - The design, the oracle, the examples — the design session's.
 - Fixing what you find. You report; the session that owns the code
   fixes it.

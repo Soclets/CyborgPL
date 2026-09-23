@@ -9,7 +9,7 @@ writing most code, nobody who reviews C or OCaml.
 | LLVM wrapper | **C++** | The only non-Rust code. A small file exposing, as C functions, whatever the LLVM C API lacks (custom passes, pass-manager internals, new APIs). The rustc model (`RustWrapper.cpp`). Kept minimal. |
 | Runtime — linked into every user binary (`deci`/`bin128` software arithmetic, `str`/list memory and drop glue, number↔text, check-failure handler, program entry, OS edge) | **`no_std` Rust** | `deci` written in Rust, not vendored from a C library. No C anywhere. |
 | Standard Limb | **CyborgPL** | Not a choice: a Limb must be analysable source for Precog. Sits on a small intrinsic layer over the runtime — the one boundary Precog cannot see through, so each intrinsic declares its contract by hand. |
-| JetPack | **Rust** | |
+| Synthia | **Rust** | |
 | Program generator and test/translation-validation harness | **Rust** | Shares the compiler's AST so generated programs are valid by construction. |
 | Oracle interpreter | **Rust**, by a *different AI model* than the compiler, no shared code | Author independence in place of language independence. OCaml was considered and rejected — nobody on the team would review it. |
 

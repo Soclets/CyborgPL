@@ -24,7 +24,7 @@ the owner explicitly chooses it.
 ## Sessions
 
 - **Design session** ("design claude", this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: design claude <noreply@anthropic.com>`.
-- **Compiler session** ("compiler claude"): CCA and JetPack. Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL v2 compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/` and `jetpack/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
+- **Compiler session** ("compiler claude"): CCA and Synthia. Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL v2 compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/` and `synthia/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Verification session** ("check claude"): the program generator, the differential harness, the Precog oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/CyborgPL v2 verification`, in `check/`. It reads `design/` and the tests, and **never `cca/` or `oracle/src`** — it is a different author from Precog's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
 ## Layout

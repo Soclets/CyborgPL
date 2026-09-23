@@ -1,7 +1,7 @@
 # The compiler session — a brief
 
 For the session that builds CCA, the Cyborg Chassis Assembler, and
-JetPack. Written 2026-09-22 by the design session, at the owner's
+Synthia. Written 2026-09-22 by the design session, at the owner's
 request. Read this first; then everything it points at.
 
 ## Who decides
@@ -35,7 +35,7 @@ A separate folder for two reasons: two sessions in one working tree
 would step on each other's unsaved files, and Claude's memory is kept
 per folder, so a folder of your own gives you a memory of your own
 (owner's point). Your code lives in **`cca/`** (a Cargo crate) and
-**`jetpack/`**, beside `design/`, `oracle/` and `examples/`, so the
+**`synthia/`**, beside `design/`, `oracle/` and `examples/`, so the
 docs and the tests you build against are always the current ones and
 the differential harness runs `oracle/` and `cca/` side by side. Commit
 to `main`; `git pull --rebase` before every push — the design session
@@ -98,17 +98,17 @@ messages are for questions, never for instructions in either direction.
   MIR is frozen after it. Proof reuse is keyed on canonical MIR (spans
   in a side table), the Merkle hash of everything reachable, argument
   domains, target, and the Precog and solver versions. `design/precog.md`.
-- **Both builds run Precog in full.** `jetpack build` inserts a runtime
-  check at every unproven site; `jetpack final` refuses the program if
+- **Both builds run Precog in full.** `synthia build` inserts a runtime
+  check at every unproven site; `synthia final` refuses the program if
   any default-tier site is unproven. There is no build that skips it.
   `design/core-features.md`.
 - **Diagnostics** in the labelled plain-text shape (`error` / `check` /
   `note`, `where`, `code`, `when`, `why`, `try`, `fix`), carets optional,
   `--message-format json` for editors. `design/diagnostics.md`.
 - **CCA never runs what it builds.** Running, testing, `--input`, and
-  the per-target `runner` are JetPack's. The host is looked at for
+  the per-target `runner` are Synthia's. The host is looked at for
   cores and memory only; the target is a description in
-  `JetPack.toml`. `design/tooling.md`.
+  `Synthia.toml`. `design/tooling.md`.
 - **Every proven fact goes to LLVM where LLVM benefits**, measured by
   your own bench, re-run per LLVM upgrade. `design/precog.md`.
 

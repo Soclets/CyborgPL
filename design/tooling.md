@@ -19,16 +19,16 @@ Owner, 2026-09-14.
   Precog", not "Precog".
 
 - **Limb** — the unit of code distribution, exactly like Rust's *crate*:
-  every library or program is a Limb, JetPack installs Limbs, and the standard
+  every library or program is a Limb, Synthia installs Limbs, and the standard
   library is one Limb among them, reached as `std.` in a chain. (A cyborg has
   limbs.)
-- **JetPack** — the package manager. *Jet* = fast, *Pack* = package: a fast
-  package. Its manifest file is `JetPack.toml`.
+- **Synthia** — the package manager. *Jet* = fast, *Pack* = package: a fast
+  package. Its manifest file is `Synthia.toml`.
 
 - **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
   deliberately avoided.
-- **`.limb`** — a *published* Limb: the Limb's directory (`JetPack.toml` +
-  `.cpls` files) packaged as one file for JetPack to upload, download, and
+- **`.limb`** — a *published* Limb: the Limb's directory (`Synthia.toml` +
+  `.cpls` files) packaged as one file for Synthia to upload, download, and
   checksum. Same relationship as a Rust crate folder to its `.crate` tarball.
   Checked 2026-09-14: no existing `.limb` format is registered.
 
@@ -40,11 +40,11 @@ Owner, 2026-09-14.
 ## Cross-compiling, running elsewhere (discussed 2026-09-21, proposal)
 
 CCA compiles and stops; it never executes what it built. The target is
-declared in `JetPack.toml`, never sniffed from the host; the host is
+declared in `Synthia.toml`, never sniffed from the host; the host is
 looked at only for cores and memory (speed), never for meaning — the same
 program with the same config gives the same proofs and the same binary on
 a laptop or a farm. Proof-cache entries are keyed by (function bytes,
-inputs, target). Running a binary for another target is JetPack's:
+inputs, target). Running a binary for another target is Synthia's:
 
 ```
 [target.aarch64-linux]
@@ -53,17 +53,17 @@ runner = "qemu-aarch64"          # an emulator
 runner = "ssh board-3 --"        # a real device
 ```
 
-Native: no `runner`. `jetpack test` / `jetpack run` / the differential
-harness go through it. (Cargo's `runner`.) Spelling open until JetPack is
+Native: no `runner`. `synthia test` / `synthia run` / the differential
+harness go through it. (Cargo's `runner`.) Spelling open until Synthia is
 designed. Also noted: the oracle should take the target's widths and
 pointer size as parameters (it does not yet).
 
-## `jetpack run … --input "…"` (proposed 2026-09-22)
+## `synthia run … --input "…"` (proposed 2026-09-22)
 
 Feeds the given text to the program as its input, so a diagnostic's
 `try:` line reproduces a counterexample with one paste. Spelling open
-with the rest of JetPack.
+with the rest of Synthia.
 
 ## Open
 
-- Whether `JetPack.toml` is also the name of the CLI (`jetpack add …`).
+- Whether `Synthia.toml` is also the name of the CLI (`synthia add …`).

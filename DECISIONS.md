@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The build tool is **Synthia**, not JetPack (owner)
+
+Renamed because JetPack is already a software trademark twice —
+Google's Android Jetpack and Automattic's Jetpack for WordPress — and
+both are developer-facing software, close enough that an application
+would likely be refused and a rename could be forced later, when the
+name is in every doc, URL and config file. Owner asked whether a narrow
+registration ("package manager for CyborgPL, nothing else") would help:
+no, because examiners compare goods rather than audiences, and the
+publication step is what puts a name in front of the other owner's
+counsel. Claude then offered workshop words (Bolt, Socket, Torque,
+Rivet, Ratchet, Chassis) and withdrew them — all crowded, and `Socket`
+is a package-security company. Owner proposed **Synthia**; checked
+free on crates.io and as a GitHub org. Its neighbours are SYNTHIA®
+(Merck KGaA, chemistry software — registered) and Synthesia (AI video);
+neither is in this lane. So: `Synthia.toml`, `synthia build`,
+`synthia final`, `synthia run`, `synthia test`. Every design document
+renamed; the entries above this one keep the old name as the record of
+what was decided then.
+
+Owner's position on marks, from the same conversation: **™ now, ® never
+unless something changes** — ™ is free and asserts the claim,
+registration is for enforcement a hobby language will not need.
+
 ### 2026-09-23 — Licence: Apache-2.0 WITH LLVM-exception throughout, plus trademark (owner: b)
 
 The 2026-09-14 intent — free to use with no credit, credit everywhere

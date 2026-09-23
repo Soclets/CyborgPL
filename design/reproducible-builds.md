@@ -23,7 +23,7 @@ and "compile for the exact machine" makes the target part of the input.
    clock, or environment variable at compile time. Those are bounded values
    with explicit types like any other input. (Closes the earlier open
    question.)
-4. **The target is an explicit, recorded input** — in `JetPack.toml` or the
+4. **The target is an explicit, recorded input** — in `Synthia.toml` or the
    lock file — never sniffed from the host. "Native" is a convenience that
    resolves to a named target and writes it down.
 5. **Deterministic ordering** across Limbs and within the analysis: parallel
@@ -34,7 +34,7 @@ and "compile for the exact machine" makes the target part of the input.
 
 ## Making it observable
 
-JetPack records a **proof summary** in the lock file: for every check site,
+Synthia records a **proof summary** in the lock file: for every check site,
 proven / checked / nocheck. A rebuild whose summary differs is flagged
 before anyone wonders why the binary changed. Determinism you cannot observe
 is determinism you will not notice losing.

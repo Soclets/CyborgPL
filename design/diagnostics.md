@@ -26,7 +26,7 @@ when:  'k' is 101 and 'xs' has 100 elements — there is no element to take
 why:   'k' comes from 'n'
        'n' is read from the user at line 4, with no limit
 
-try:   jetpack run shop.cpls --input "101"
+try:   synthia run shop.cpls --input "101"
 
 fix:   limit the number where it is read — line 4:
        let 'n' := to.int32[1, 99][std::input.line[] otherwise ""] otherwise 0;
@@ -59,7 +59,7 @@ The labels, always in this order: the kind (`error` / `check` /
 human-readable place: which function, called from where); `code` (the
 piece, quoted); `when` (the counterexample, as a sentence); then
 `why` (the root of the chain, one fact per line); `try` (a command
-that reproduces it — `jetpack run … --input "…"`, a proposed JetPack
+that reproduces it — `synthia run … --input "…"`, a proposed Synthia
 flag that feeds the counterexample as the program's input); `fix` (the
 edited line, whole, with "line N:" before it; alternatives under
 `or`). An error has no `when` / `try`. A reader learns the shape once.

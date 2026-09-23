@@ -86,7 +86,7 @@ proofs rather than skipping them — never by doing less.
   Precog in full; the final build is stricter, never looser, so this is
   not the rejected development mode. The final product contains no
   runtime checks: every site is proven, `check`-confirmed, or `nocheck`.
-  Proposed: `jetpack build` / `jetpack final`, JetPack's, so no file-wide
+  Proposed: `synthia build` / `synthia final`, Synthia's, so no file-wide
   switch enters the language.
 - **`check`** — "I've built a guardrail, could you help me verify it?" The
   compiler proves the guardrail exactly; proven → check removed, otherwise a

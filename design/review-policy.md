@@ -22,7 +22,7 @@ Bugs here are ordinary: visible, reproducible, caught by the oracle or tests.
 - Front end (lexer, parser, name resolution).
 - Runtime arithmetic (`deci`, `bin128`) — algorithms reviewed, lines trusted
   to a large test corpus.
-- JetPack, the program generator, the test harness.
+- Synthia, the program generator, the test harness.
 - The oracle interpreter — its correctness comes from disagreement-hunting
   against the compiler, not from reading.
 
