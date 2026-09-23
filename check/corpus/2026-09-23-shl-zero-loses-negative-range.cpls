@@ -1,0 +1,12 @@
+# env CHK_A 5
+# Finding 2026-09-23 (generator seed 58, shrunk structurally then by hand):
+# Precog loses the interval of a negative value through `shl 0`, so a check
+# that 1 + 'v' fits int16 is refused; without the shl it is proven.
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+MAIN {
+    let 'k' := "CHK_A";
+    nocheck let 'n': uint64 = strlen[getenv[lend 'k']];
+    let 'v': int16[min, -91] = (to.int16['n' mod 32768] mod 32677) - 32767;
+    check let 'a': int16 = 1 + ('v' shl 0);
+}
