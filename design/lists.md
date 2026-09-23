@@ -67,8 +67,11 @@ array parameter or returned as an array is refused, and the other way
 round too. A literal and a `:=` collection are neither yet, so they go
 either way, as before. The element type does not change, so it is not
 written (`to.array[int32][…]` is refused). `give` hands the elements
-over without a copy, and `copy` keeps the original. A bare name or a
-`lend` is refused, since either would copy without saying so. The owner
+over without a copy, and `copy` keeps the original. **A bare name is
+refused** (owner: a): `to.array['l']` says neither, and a list always
+says `give`, `copy` or `lend`, so a copy is never made quietly. The
+alternative was a quiet copy. A `lend` is refused too, for the same
+reason, but that is the oracle's pick and not ruled. The owner
 asked "don't we usually have converters for these?", which was the
 2026-09-19 rule, so the only new part was the spelling.
 

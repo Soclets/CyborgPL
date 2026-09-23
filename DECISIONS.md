@@ -29,8 +29,10 @@ does not change. `give` hands the elements over with no copy, and
 refuses a list where an array is declared (a store, an argument, a
 return) and the reverse, including an array's slice stored as an array.
 A literal or a `:=` collection is neither yet, so it still goes either
-way. Oracle picks, listed as provisional: a bare name or a `lend` in
-`to.array[…]` is refused, as a copy nobody said. `examples/list_array.cpls`,
+way. Asked next: `to.array['l']` with neither `give` nor `copy`, an
+error or a quiet copy? Owner: a, an error ("say `give 'l'` or `copy
+'l'`"). A `lend` inside is refused the same way, as the oracle's pick,
+provisional. `examples/list_array.cpls`,
 four reject tests.
 
 ### 2026-09-23 — No bare names from another Limb; `pub bare` is dropped (owner)
