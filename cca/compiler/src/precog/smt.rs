@@ -482,6 +482,7 @@ impl<'a> Enc<'a> {
         let mut incoming: HashMap<(usize, u32), Vec<(String, Env)>> = HashMap::new();
         let mut order: Vec<(usize, u32)> = Vec::new();
         let mut seen: Vec<(usize, u32)> = Vec::new();
+        let mut edges: Vec<((usize, u32), (usize, u32))> = Vec::new();
 
         // The entry: parameters are whatever their type allows.
         let mut env0: Env = Env::new();
@@ -528,11 +529,48 @@ impl<'a> Enc<'a> {
                 if is_back {
                     unrollings += 1;
                 }
+                edges.push((node, (ti, next_level)));
                 if !seen.contains(&(ti, next_level)) && !queue.contains(&(ti, next_level)) {
                     queue.push((ti, next_level));
                 }
             }
         }
+
+        // Walked in an order where every node comes after everything that
+        // arrives at it. The order of discovery is not that: two loops in a
+        // row share the levels, so the second loop's head at the last level
+        // was reached by its own unrolling from the first loop's first trip
+        // — where the first loop has not ended — and emitted before the
+        // first loop's real way out at that level arrived. That arrival was
+        // dropped, the site was asked only on a path that cannot happen,
+        // and `unsat` said proven (check claude, seed 133).
+        let order = {
+            let mut preds: HashMap<(usize, u32), usize> = order.iter().map(|n| (*n, 0)).collect();
+            for (_, to) in &edges {
+                *preds.entry(*to).or_default() += 1;
+            }
+            let mut ready: Vec<(usize, u32)> = order.iter().copied().filter(|n| preds[n] == 0).collect();
+            let mut sorted = Vec::with_capacity(order.len());
+            while !ready.is_empty() {
+                let n = ready.remove(0);
+                sorted.push(n);
+                for (from, to) in &edges {
+                    if *from == n {
+                        let p = preds.get_mut(to).unwrap();
+                        *p -= 1;
+                        if *p == 0 {
+                            ready.push(*to);
+                        }
+                    }
+                }
+            }
+            // A cycle left over means the graph was not what an unrolling
+            // makes (an irreducible loop): nothing is claimed about it.
+            if sorted.len() != order.len() {
+                return None;
+            }
+            sorted
+        };
 
         // For each loop head, everything any loop through it may write.
         let mut last_trip: HashMap<usize, std::collections::HashSet<LocalId>> = HashMap::new();

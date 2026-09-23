@@ -627,6 +627,13 @@ impl ISet {
             return Some(exact);
         }
         let ((a1, a2), (b1, b2)) = (self.bounds()?, o.bounds()?);
+        // A shift by a count inside the width is `x x 2^k` or `x / 2^k`
+        // floored, monotone in each argument whatever the sign: the corners
+        // bound it. Negative values shifted used to widen to the whole type
+        // (check claude, seed 58).
+        if matches!(op, B::Shl | B::Shr) && b1 >= 0 && b2 < 127 {
+            return Some(corners(self, o, f));
+        }
         if a1 < 0 || b1 < 0 {
             return None;
         }

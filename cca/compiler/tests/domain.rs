@@ -105,8 +105,10 @@ fn a_bitwise_answer_is_in_the_set() {
         (BinOp::Shr, |x, y| if (0..127).contains(&y) { Some(x >> y) } else { None }),
     ];
     for (op, truth) in ops {
-        for a in [(0, 300), (5, 900), (1000, 1300)] {
-            for b in [(0, 40), (3, 60), (200, 260)] {
+        let shift = matches!(op, BinOp::Shl | BinOp::Shr);
+        let values: &[(i128, i128)] = if shift { &[(0, 300), (5, 900), (1000, 1300), (-900, -91), (-400, 300), (-32767, -32000)] } else { &[(0, 300), (5, 900), (1000, 1300)] };
+        for &a in values {
+            for b in [(0, 40), (3, 60), (200, 260), (0, 0)] {
                 let Some(got) = ISet::range(a.0, a.1).bitwise(&ISet::range(b.0, b.1), &op) else { continue };
                 check(&format!("{:?}", op), a, b, &got, truth);
             }

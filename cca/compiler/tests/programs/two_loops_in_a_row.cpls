@@ -1,0 +1,18 @@
+# Layer 3 walked its unrolled loops in the order it found them. With two
+# loops in a row, the second loop's last trip was written down before the
+# first loop's way out had arrived there, so the site in it was asked only
+# on a path that cannot happen, and "proven" came back (check claude,
+# seed 133). `0 - 'n'` with 'n' = 2 is below any `uint64`: this must stop.
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+MAIN {
+    let 's' := "ab";
+    nocheck let 'n': uint64 = strlen[lend 's'];
+    for 'i': int16 in range[37, 40] {
+    }
+    let mut 'w': uint16 = 4;
+    loop {
+        if 'w' <== 0 { break; }
+        'w' = 'w' - 1;
+        let 'v': bool = 0 - 'n' >== 0;
+    }
+}

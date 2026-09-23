@@ -114,6 +114,22 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     let folds: Vec<((usize, usize, usize), Option<Const>)> = if a.gave_up || !fold { Vec::new() } else { a.folds.iter().map(|(k, v)| (*k, v.clone())).collect() };
     for ((f, b, si), known) in &folds {
         let Some(c) = known else { continue };
+        // The check sites guarding an instruction are the ones just before
+        // it. Folding one that is not proven would take its check with it:
+        // layer 1's answer is the mathematician's, worked out in 128 bits,
+        // and the instruction may not be able to give it. `(-28014) +
+        // (-23953)` at `int16` fails every time, and the ordinary build
+        // printed the folded answer while `--assert-proofs` stopped (check
+        // claude, seed 25).
+        let guarded_by_open_site = p.functions.get(*f).and_then(|func| func.blocks.get(*b)).map_or(false, |blk| {
+            blk.stmts[..*si].iter().rev().map_while(|s| match &s.kind {
+                StmtKind::Site(id) => Some(*id),
+                _ => None,
+            }).any(|id| !matches!(a.results.get(&(*f, id.0)), Some(Verdict::Proven { .. })))
+        });
+        if guarded_by_open_site {
+            continue;
+        }
         if let Some(st) = p.functions.get_mut(*f).and_then(|f| f.blocks.get_mut(*b)).and_then(|blk| blk.stmts.get_mut(*si)) {
             if let StmtKind::Assign { place, rvalue } = &st.kind {
                 if !matches!(rvalue, Rvalue::Use(Operand::Const(_))) {
