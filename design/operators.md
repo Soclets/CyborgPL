@@ -106,6 +106,11 @@ the arithmetic inside its arguments. So `let 'v': uint8 = g[0 > (-1) -
 'x'];` is fine when `'x'` is an `int64`, while `let 'w': uint32 = 2 shl
 3;` still takes its width from the declaration.
 
+It stops at a **comparison** as well: a `bool` holds the comparison's
+answer, never its operands, which take their width from each other by
+the rule above. So `let 'b': bool = (5 -~ 'w') > 1;` is a `uint32`
+subtraction when `'w'` is a `uint32`.
+
 The sentence above — "the compiler knows every width; the oracle needs
 the left operand declared" — was always about the oracle's limit, not
 the language's rule. CCA had read it as a rule and refused both lines;

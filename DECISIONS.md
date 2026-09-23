@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Oracle bug: the context type leaked into a comparison's operands (verification session)
+
+Generator seed 93, shrunk by hand: `let 'b': bool = (5 -~ 'w') > 1;`
+with `'w'` a `uint32` was refused by the oracle ("`-~` wraps modulo an
+integer's size, and bool is not an integer") and built by CCA, which
+was right. This is the family of seed 41, reached through a comparison
+this time rather than a call. The rule was already there: the width
+comes from either side of an operator, and the `bool` holds only the
+answer. Fixed: the context stops at a comparison too. `operators.md`
+says so beside the call rule, and
+`examples/context_stops_at_a_comparison.cpls` pins it. The seed-23
+check (an `int8` sum overflowing inside a comparison) still fires.
+
 ### 2026-09-23 — Commit subjects: `kind.folder.narrowing: sentence` (owner)
 
 Every commit's first line says what kind of change it is, then where,

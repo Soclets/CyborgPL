@@ -1090,9 +1090,12 @@ impl<'p> Interp<'p> {
         // bare literal can take its width from context — but it stops at a call, a
         // conversion or a construction: what `g[…]` *returns* says nothing about the
         // arithmetic in its arguments (found by the verification session, 2026-09-23).
+        // It stops at a comparison too: a `bool` holds the comparison's answer, never its
+        // operands, which take their width from each other (verification session, seed 93).
         let fresh = matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
-            | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..));
+            | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
+            || matches!(e, Expr::Binary(op, ..) if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "<==" | ">=="));
         if fresh && self.expected.is_some() {
             let saved = self.expected.take();
             let r = self.eval_inner(e);

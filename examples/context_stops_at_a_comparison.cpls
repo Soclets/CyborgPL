@@ -1,0 +1,8 @@
+# The type a value is stored into stops at a comparison, as it stops at a call: a `bool`
+# holds the comparison's answer, and its operands take their width from each other (2026-09-23).
+MAIN {
+    let 'w': uint32 = 3;
+    let 'b': bool = (5 -~ 'w') > 1;          # a uint32 subtraction, 'w' says so, not a bool one
+    let 'c': bool = 1 < (0 -~ 'w');          # wraps to 4294967293
+    std::printu.stdout['b', " ", 'c', " ", 0 -~ 'w', \n];
+}
