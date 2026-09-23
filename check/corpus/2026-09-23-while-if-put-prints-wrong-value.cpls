@@ -1,0 +1,49 @@
+# Finding 2026-09-23 (generator seed 2 with inputs, shrunk): put_i[0] inside an if
+# inside a one-trip while prints 1 in CCA's binary; the oracle prints 0.
+# env CHK_IN2 7745
+# check claude generator, seed 2
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    let mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
+    while 'v' / 'p' >== 10 {
+        'p' = 'p' x 10;
+    }
+    loop {
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' / 'p')]];
+        'v' = 'v' mod 'p';
+        if 'p' == 1 { break; }
+        'p' = 'p' / 10;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' < 0 {
+        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+    } else {
+        emit[to.uint64['n'], false];
+    }
+}
+
+MAIN {
+    let 'k' := "CHK_IN2";
+    nocheck let 'n': uint64 = strlen[getenv[lend 'k']];
+    let 'b': bool = 'n' > 0;
+    let 'w': int64 = 1;
+    while 'w' > 0 {
+        'w' = 0;
+        if 'b' { put_i[0]; }
+    }
+    put_i[1];
+}

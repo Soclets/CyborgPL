@@ -18,6 +18,8 @@ pub type Env = Vec<(String, String)>;
 #[derive(Clone, Debug)]
 pub struct Finding {
     pub kind: &'static str,
+    /// Which build showed it.
+    pub mode: Mode,
     /// The kind plus both engines' messages with numbers removed: what
     /// findings are grouped by, so one root cause shows as one line.
     pub sig: String,
@@ -100,7 +102,7 @@ fn compare_one(o: &Oracle, build: &Build, mode: Mode, dir: &Path, env: &Env) -> 
                 format!("{who}: {}", crate::normalise(what.split("; stdout").next().unwrap_or("")))
             })
             .collect();
-        Some(Finding { kind, sig: format!("{kind}: {}", msgs.join(" | ")), env: env.clone(), detail: d })
+        Some(Finding { kind, mode, sig: format!("{kind}: {}", msgs.join(" | ")), env: env.clone(), detail: d })
     };
     match build {
         Build::NotYet { .. } | Build::Timeout => unreachable!(),

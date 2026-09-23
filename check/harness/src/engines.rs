@@ -35,6 +35,22 @@ impl Tools {
 /// longer and running past it is counted, not reported as a finding.
 pub const RUN_LIMIT: Duration = Duration::from_secs(20);
 pub const BUILD_LIMIT: Duration = Duration::from_secs(120);
+/// While shrinking, a candidate slower than this is simply not kept.
+pub const SHRINK_BUILD_LIMIT: Duration = Duration::from_secs(30);
+
+static SHRINKING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_shrinking(on: bool) {
+    SHRINKING.store(on, Ordering::SeqCst);
+}
+
+fn build_limit() -> Duration {
+    if SHRINKING.load(Ordering::SeqCst) {
+        SHRINK_BUILD_LIMIT
+    } else {
+        BUILD_LIMIT
+    }
+}
 
 pub struct Run {
     pub stdout: Vec<u8>,
@@ -157,7 +173,7 @@ pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
     if mode == Mode::Asserted {
         cmd.arg("--assert-proofs");
     }
-    let r = run(cmd.arg(file).arg("-o").arg(&bin), dir, &[], false, BUILD_LIMIT);
+    let r = run(cmd.arg(file).arg("-o").arg(&bin), dir, &[], false, build_limit());
     if r.timed_out {
         return Build::Timeout;
     }
