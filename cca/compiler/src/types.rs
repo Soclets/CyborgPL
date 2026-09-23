@@ -403,7 +403,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
 /// The register shapes a target has (`simd.md`, owner: b — only the
 /// target's own). ARM64's 128-bit NEON, which is what the oracle fixed
 /// and what this Mac is; a real target description comes from
-/// `JetPack.toml` (`tooling.md`) and never from the host.
+/// `Synthia.toml` (`tooling.md`) and never from the host.
 pub const TARGET_SIMD_BITS: u32 = 128;
 
 /// Is `simd[elem, lanes]` a register this target has?

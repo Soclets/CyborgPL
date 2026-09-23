@@ -497,7 +497,7 @@ impl Items {
             if limb.name == "std" {
                 return err(Diagnostic::error(format!("`{}` is not available yet: there is no `std` Limb for now — the base language comes first", path.spelled())).at(path.span));
             }
-            return err(Diagnostic::error(format!("there is no Limb named `{}`: a Limb is a dependency listed in `JetPack.toml`, and none is", limb.name)).at(limb.span));
+            return err(Diagnostic::error(format!("there is no Limb named `{}`: a Limb is a dependency listed in `Synthia.toml`, and none is", limb.name)).at(limb.span));
         }
         let mut cur = m;
         let mut segs = path.segs.iter().peekable();

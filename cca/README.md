@@ -79,10 +79,10 @@ Dated, with the alternative, so each can become a question later.
   examples) or never (would break them too).
 - **2026-09-22 — The target's SIMD shapes are ARM64's 128 bits, in the
   compiler.** `simd.md` says the shapes come from the target description
-  in `JetPack.toml`, and JetPack does not exist yet, so
+  in `Synthia.toml`, and Synthia does not exist yet, so
   `types::TARGET_SIMD_BITS` holds 128 — the oracle's fixed target and this
   machine's. It moves into the target description the day there is one.
-  Alternative: refuse every `simd` until JetPack exists, which would leave
+  Alternative: refuse every `simd` until Synthia exists, which would leave
   `examples/simd.cpls` unbuildable.
 - **2026-09-22 — a `list` is 24 bytes even where Precog could prove it
   smaller.** `lists.md` says a sequence nothing appends to becomes an
@@ -107,7 +107,7 @@ Dated, with the alternative, so each can become a question later.
   Alternative: refuse a `bin16` or `bin128` constant until then, which
   would make `examples/print_vs_printu.cpls` unbuildable for no gain.
 - **2026-09-22 — `cca/.cargo/config.toml` points at Homebrew's LLVM 22.**
-  The compiler's own dependency has to be found somewhere, and JetPack does
+  The compiler's own dependency has to be found somewhere, and Synthia does
   not exist to say where. This is not the *target* being sniffed from the
   host (`tooling.md` forbids that, and nothing here reads it): it is where
   the build gets LLVM, as Kespar's config points at Z3. Alternative: an
