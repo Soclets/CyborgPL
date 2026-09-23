@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — The shorter name may differ: `pub fn new_circle = shapes.circle.new;` (owner: a)
+
+First of the three leftovers from `pub fn area = shapes.circle.area;`.
+Proposed (a) the name before `=` is free; (b) it must match the
+original's, so `pub fn size = shapes.circle.area;` is an error and an
+author with two `new`s renames them in their own files first. Design
+claude recommended a: the line shows both names, and the author owns
+both sides anyway. Owner: a. Still open: whether the line may stand
+outside `limb.cpls`, and which kinds beyond `fn` and `struct`.
+
 ### 2026-09-23 — A shorter name for users: `pub fn area = shapes.circle.area;` (owner: b, then a, then a)
 
 Re-export, left open when bare names were dropped: can the author of
@@ -28,8 +38,9 @@ writes a file name since a module can be a block. Proposed (a) keep
 the module path, (b) a file path, `"shapes/circle.cpls".area`. Owner:
 a. The line adds a name only (no copy, the same item), and an original
 marked `pub.limb` is reachable from outside only by the short name.
-Not ruled: a different name from the original's, whether the line may
-stand outside `limb.cpls`, and which kinds beyond `fn` and `struct`.
+Not ruled: a different name from the original's (since ruled: a, above),
+whether the line may stand outside `limb.cpls`, and which kinds beyond
+`fn` and `struct`.
 `limbs.md`, "A shorter name for users". The oracle refuses the line as
 "not yet": it runs one Limb, where the short name has no outside to
 serve.

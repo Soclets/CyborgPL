@@ -209,9 +209,21 @@ the owner said the module path "doesn't seem like it's referencing a
 file". It would be the only file name in source, and it could not
 reach a `module` block.
 
-Not yet ruled: whether the name may differ from the original's
-(`pub fn size = shapes.circle.area;`, which the spelling allows);
-whether the line may stand in any module or only in `limb.cpls`; and
+**The name may differ from the original's** (owner, 2026-09-23: a). The
+name before `=` is whatever users should type:
+
+```
+pub fn new_circle = shapes.circle.new;
+pub fn new_square = shapes.square.new;
+```
+
+Two files that each have a `new` can both be offered at the root. The
+line spells out both names, so searching for `new_circle` finds where
+it really is. Proposed alternative: the name must match the original,
+so the author renames inside their own files first.
+
+Not yet ruled: whether the line may stand in any module or only in
+`limb.cpls`; and
 which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
 `const`, `module`).
 
