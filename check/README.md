@@ -27,8 +27,10 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   `check` / `nocheck` on statements and blocks, functions with typed
   parameters and returns calling one another, `+ - x / mod xx`, unary `-`,
   bitwise `and.bit or.bit xor not.bit shl shr`, wrapping `+~ -~ x~`,
-  comparisons, `and or not`, `to.<int>[…]` narrowing and widening, and both
-  parenthesised and "loose" spellings of the precedence rules.
+  comparisons, `and or not`, `to.<int>[…]` narrowing and widening, range
+  types on names, parameters and returns (`int32[0, 100]`, `int32[1, max]`,
+  `int32[min, 100]`), and both parenthesised and "loose" spellings of the
+  precedence rules.
 - **Printing** (owner, 2026-09-23): every program carries its own printer in
   the base language — digits into a `list[uint8]`, then C's `write` under
   `nocheck` — varied by seed, compared like everything else.
@@ -49,18 +51,21 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   removed, so one root cause shows as one line. Each group's first seed is
   shrunk (remove statements and functions, replace expressions with their
   parts or small literals), keeping a step only if the same kind of finding
-  survives.
+  survives in the build that showed it. A candidate must first be well
+  scoped and make the oracle behave as before (both cheap); its CCA build
+  gets 30 s. A shrunk program carries its inputs as `# env` lines.
 - **`corpus/`** — every past finding, re-run for ever by `check corpus`.
   A `# env NAME LENGTH` line gives an input set.
 
 ## Which build a run uses
 
-`cca build` — the working build: unproven sites keep a runtime check. Not
-the final build, and not the proofs-as-assertions mode of
-`design/precog.md` attack (d). CCA does not offer that yet (2026-09-23;
-compiler claude plans `cca build --assert-proofs`, exit 104 with
-`proof failed:` and `where:`), so a green run here says nothing about
-sites CCA called proven that no input reached.
+Every program is built twice: `cca build` (the working build: unproven
+sites keep a runtime check) and `cca build --assert-proofs`
+(`design/precog.md` attack (d): every proven site keeps a run-time check
+that exits 104 with `proof failed:`). Both are compared with the oracle;
+an exit 104 is a finding of its own kind, `proof-failed`, the most
+serious. Not the final build. A green run says nothing about sites that
+no input reached — that is what attacks (a)–(c) are for.
 
 ## Known bugs steered around
 

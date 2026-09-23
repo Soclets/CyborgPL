@@ -74,6 +74,34 @@ impl Ty {
     }
 }
 
+/// A declared type: a base type, and for a range type its bounds
+/// (`int32[0, 100]`, `int32[1, max]`, `int32[min, 100]`; design/input.md).
+/// `None` in a bound is the base type's own `min` / `max`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct TyR {
+    pub base: Ty,
+    pub range: Option<(Option<i128>, Option<i128>)>,
+}
+
+impl From<Ty> for TyR {
+    fn from(base: Ty) -> TyR {
+        TyR { base, range: None }
+    }
+}
+
+impl TyR {
+    pub fn text(self) -> String {
+        match self.range {
+            None => self.base.name().to_string(),
+            Some((lo, hi)) => {
+                let lo = lo.map(|v| v.to_string()).unwrap_or("min".into());
+                let hi = hi.map(|v| v.to_string()).unwrap_or("max".into());
+                format!("{}[{lo}, {hi}]", self.base.name())
+            }
+        }
+    }
+}
+
 /// A closed interval of integers. The generator's own bookkeeping of what a
 /// value can be — never shown to either engine.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -204,7 +232,7 @@ pub enum Mutability {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Stmt {
-    Let { tier: Tier, name: String, mutability: Mutability, ty: Ty, value: Expr },
+    Let { tier: Tier, name: String, mutability: Mutability, ty: TyR, value: Expr },
     Assign { tier: Tier, name: String, value: Expr },
     If { arms: Vec<(Expr, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>> },
     For { perm: bool, name: String, ty: Ty, start: Expr, stop: Expr, step: Option<i128>, body: Vec<Stmt> },
@@ -221,14 +249,14 @@ pub enum Stmt {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Param {
     pub name: String,
-    pub ty: Ty,
+    pub ty: TyR,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Func {
     pub name: String,
     pub params: Vec<Param>,
-    pub ret: Ty,
+    pub ret: TyR,
     pub body: Vec<Stmt>,
 }
 
@@ -359,7 +387,7 @@ fn render_stmt(out: &mut String, s: &Stmt, indent: usize, loose: bool) {
                 Mutability::Mut => "mut ",
                 Mutability::Immut => "immut ",
             };
-            out.push_str(&format!("{pad}{}let {m}{}: {} = {};\n", tier_prefix(*tier), q(name), ty.name(), ex(value)));
+            out.push_str(&format!("{pad}{}let {m}{}: {} = {};\n", tier_prefix(*tier), q(name), ty.text(), ex(value)));
         }
         Stmt::Assign { tier, name, value } => {
             out.push_str(&format!("{pad}{}{} = {};\n", tier_prefix(*tier), q(name), ex(value)));
@@ -429,8 +457,8 @@ impl Program {
         out.push('\n');
         out.push_str(&self.printer);
         for f in &self.funcs {
-            let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.name())).collect();
-            out.push_str(&format!("\nfn {} [{}] -> {} {{\n", f.name, params.join(", "), f.ret.name()));
+            let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.text())).collect();
+            out.push_str(&format!("\nfn {} [{}] -> {} {{\n", f.name, params.join(", "), f.ret.text()));
             render_block(&mut out, &f.body, 1, self.loose);
             out.push_str("}\n");
         }

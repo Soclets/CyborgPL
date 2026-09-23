@@ -29,11 +29,13 @@ pub struct Config {
     /// `shl`, `not.bit` and the wrapping operators on any typed operand, not
     /// only a name (owner, 2026-09-23, 88da73f; CCA refuses it as of 61a8554).
     pub width_from_context: bool,
+    /// Give some names, parameters and returns a range type.
+    pub ranges: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true }
     }
 }
 
@@ -224,19 +226,51 @@ impl Gen {
         }
     }
 
+    /// Maybe a range type over `t`, and the interval it allows.
+    fn maybe_range(&mut self, t: Ty) -> (TyR, Option<Iv>) {
+        if t == Ty::Bool || !self.cfg.ranges || !self.rng.chance(20) {
+            return (t.into(), None);
+        }
+        let r = t.range();
+        let near = |g: &mut Gen, edge: i128| -> i128 {
+            let v = if g.rng.chance(50) { edge } else { g.rng.range(r.lo.max(-200), r.hi.min(200)) };
+            v.clamp(r.lo, r.hi)
+        };
+        let (lo, hi) = match self.rng.below(3) {
+            0 => {
+                let e1 = if self.rng.chance(50) { 0 } else { 1 };
+                let a = near(self, e1);
+                let e2 = if self.rng.chance(50) { 100 } else { r.hi };
+                let b = near(self, e2);
+                (Some(a.min(b)), Some(a.max(b)))
+            }
+            1 => (Some(near(self, 1).max(r.lo + 1)), None),
+            _ => (None, Some(near(self, 100).min(r.hi - 1))),
+        };
+        if lo.is_none() && hi.is_none() || (lo == Some(r.lo) && hi == Some(r.hi)) {
+            return (t.into(), None);
+        }
+        let iv = Iv::new(lo.unwrap_or(r.lo), hi.unwrap_or(r.hi));
+        (TyR { base: t, range: Some((lo, hi)) }, Some(iv))
+    }
+
     // ------------------------------------------------------------ functions
 
     fn function(&mut self, index: usize) -> Func {
         let name = format!("f{}", index + 1);
         let nparams = self.rng.below(4) as usize;
         let mut params = vec![];
+        let mut param_tys = vec![];
         for k in 0..nparams {
             let t = if self.rng.chance(10) { Ty::Bool } else { self.int_ty() };
-            let iv = if t == Ty::Bool { Iv::new(0, 1) } else { self.ghost(t) };
+            let (tr, rng_iv) = self.maybe_range(t);
+            let iv = if t == Ty::Bool { Iv::new(0, 1) } else { rng_iv.unwrap_or_else(|| self.ghost(t)) };
             params.push((format!("p{}", k + 1), t, iv));
+            param_tys.push(tr);
         }
         let ret = if self.rng.chance(10) { Ty::Bool } else { self.int_ty() };
-        let ret_iv = if ret == Ty::Bool { Iv::new(0, 1) } else { self.ghost(ret) };
+        let (ret_tr, ret_range) = self.maybe_range(ret);
+        let ret_iv = if ret == Ty::Bool { Iv::new(0, 1) } else { ret_range.unwrap_or_else(|| self.ghost(ret)) };
         self.callable = index;
         self.in_fn = Some((ret, ret_iv));
         self.budget = FN_BUDGET;
@@ -251,7 +285,7 @@ impl Gen {
         let (e, _) = self.value_in(ret, ret_iv);
         body.push(Stmt::Return(e));
         self.sigs.push(Sig { name: name.clone(), params: params.clone(), ret, ret_iv, cost: self.spent.max(1) });
-        Func { name, params: params.into_iter().map(|(name, ty, _)| Param { name, ty }).collect(), ret, body }
+        Func { name, params: params.into_iter().zip(param_tys).map(|((name, _, _), ty)| Param { name, ty }).collect(), ret: ret_tr, body }
     }
 
     // ------------------------------------------------------------ statements
@@ -323,8 +357,14 @@ impl Gen {
         self.risky = false;
         // `promise` covers every value the name will ever hold: each later
         // assignment is fitted into it too.
+        let (tr, range) = self.maybe_range(t);
         let (value, promise) = if t == Ty::Bool {
-            ({ let d = self.expr_depth(); self.bool_expr(d) }, Iv::new(0, 1))
+            let d = self.expr_depth();
+            (self.bool_expr(d), Iv::new(0, 1))
+        } else if let Some(r) = range {
+            // A range type: every value it holds is within it.
+            let (e, iv) = self.value_in(t, r);
+            (e, if assignable { r } else { iv })
         } else if assignable {
             let g = self.ghost(t);
             let (e, _) = self.value_in(t, g);
@@ -335,7 +375,7 @@ impl Gen {
         let tier = self.tier(self.risky);
         let name = self.name("v");
         self.declare(name.clone(), t, promise, assignable);
-        Stmt::Let { tier, name, mutability, ty: t, value }
+        Stmt::Let { tier, name, mutability, ty: tr, value }
     }
 
     fn assign_stmt(&mut self) -> Stmt {
@@ -449,7 +489,7 @@ impl Gen {
         let t = self.int_ty();
         let k = self.rng.below(self.trips_allowed() + 1).min(t.max() as u64) as i128;
         let name = self.name("w");
-        let counter = Stmt::Let { tier: Tier::Default, name: name.clone(), mutability: Mutability::Mut, ty: t, value: Expr::Lit(k) };
+        let counter = Stmt::Let { tier: Tier::Default, name: name.clone(), mutability: Mutability::Mut, ty: t.into(), value: Expr::Lit(k) };
         let dec = Stmt::Assign { tier: Tier::Default, name: name.clone(), value: Expr::Bin(BinOp::Sub, Box::new(Expr::Var(name.clone())), Box::new(Expr::Lit(1))) };
         self.scopes.push(vec![]);
         self.declare(name.clone(), t, Iv::new(0, k), false);

@@ -76,6 +76,7 @@ impl Args {
             pow: self.has("pow"),
             range_edge: !avoid.contains("range-edge"),
             width_from_context: !avoid.contains("shl-width"),
+            ranges: !avoid.contains("ranges"),
         }
     }
 }

@@ -1,0 +1,53 @@
+# Finding 2026-09-23 (generator seed 106 with inputs, shrunk): 'in1' mod 255 and
+# 'in1' mod 65535 give 0 in CCA's binary (c845110) when 'in1' is 27796; other divisors are right.
+# env CHK_IN1 27796
+# check claude generator, seed 106
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    let mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    let mut 'v': uint64 = 'm';
+    let mut 'ds': list[uint8] = [];
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+    'v' = 'v' / 10;
+    while 'v' > 0 {
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+        'v' = 'v' / 10;
+    }
+    let mut 'k': uint64 = list.length[lend 'ds'];
+    while 'k' >== 1 {
+        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        'k' = 'k' - 1;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' < 0 {
+        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+    } else {
+        emit[to.uint64['n'], false];
+    }
+}
+
+MAIN {
+    let 'k' := "CHK_IN1";
+    nocheck let 'in1': uint64 = strlen[getenv[lend 'k']];
+    put_u['in1' mod 100];
+    put_u['in1' mod 255];
+    put_u['in1' mod 256];
+    put_u['in1' mod 1000];
+    put_u['in1' mod 30000];
+    put_u['in1' mod 27797];
+    put_u['in1' mod 65535];
+    put_u['in1' mod 65536];
+    put_u['in1' mod 100000];
+}

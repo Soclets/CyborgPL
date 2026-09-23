@@ -86,6 +86,9 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
             if *tier != Tier::Default {
                 out.push(vec![Stmt::Let { tier: Tier::Default, name: name.clone(), mutability: *mutability, ty: *ty, value: value.clone() }]);
             }
+            if ty.range.is_some() {
+                out.push(vec![Stmt::Let { tier: *tier, name: name.clone(), mutability: *mutability, ty: ty.base.into(), value: value.clone() }]);
+            }
             if *mutability != Mutability::Plain {
                 out.push(vec![Stmt::Let { tier: *tier, name: name.clone(), mutability: Mutability::Plain, ty: *ty, value: value.clone() }]);
             }
