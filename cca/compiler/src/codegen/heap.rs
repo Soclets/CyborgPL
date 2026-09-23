@@ -1084,7 +1084,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     /// `cy_same_T(a, b) -> bool`, by structure.
-    fn same_fn(&mut self, t: &Ty) -> Option<FunctionValue<'ctx>> {
+    pub(super) fn same_fn(&mut self, t: &Ty) -> Option<FunctionValue<'ctx>> {
         let name = format!("cy_same_{}", self.type_key(t));
         if let Some(f) = self.helpers.get(&name) {
             return Some(*f);
@@ -1171,6 +1171,53 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 });
                 let _ = w;
+                self.builder.build_load(self.ctx.bool_type(), acc, "answer").ok().map(|v| v.into_int_value())
+            }
+            Ty::Bin(_) => {
+                let l = self.ty(t)?;
+                let x = self.builder.build_load(l, a, "a").ok()?.into_float_value();
+                let y = self.builder.build_load(l, b, "b").ok()?.into_float_value();
+                self.builder.build_float_compare(inkwell::FloatPredicate::OEQ, x, y, "same").ok()
+            }
+            // The same case, and for a case that carries something, the
+            // same thing carried.
+            Ty::Enum { id, .. } => {
+                let id = *id;
+                let shape = match self.ty(t)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let cases = self.p.items.enums[id.0 as usize].cases.len();
+                let tag_ty = self.enum_tag_type(cases);
+                let ta = self.builder.build_struct_gep(shape, a, 0, "ta").ok()?;
+                let tb = self.builder.build_struct_gep(shape, b, 0, "tb").ok()?;
+                let ta = self.builder.build_load(tag_ty, ta, "tag_a").ok()?.into_int_value();
+                let tb = self.builder.build_load(tag_ty, tb, "tag_b").ok()?.into_int_value();
+                let same_tag = self.builder.build_int_compare(IntPredicate::EQ, ta, tb, "same_tag").ok()?;
+                let carried: Vec<(usize, Ty)> = (0..cases).filter_map(|c| self.case_payload_ty(id, c, t).map(|p| (c, p))).collect();
+                if carried.is_empty() {
+                    return Some(same_tag);
+                }
+                let acc = self.builder.build_alloca(self.ctx.bool_type(), "same").ok()?;
+                let _ = self.builder.build_store(acc, same_tag);
+                let done = self.ctx.append_basic_block(func, "same_done");
+                let check = self.ctx.append_basic_block(func, "same_case");
+                let _ = self.builder.build_conditional_branch(same_tag, check, done);
+                self.builder.position_at_end(check);
+                let mut arms = Vec::new();
+                for (c, _) in &carried {
+                    arms.push((tag_ty.const_int(*c as u64, false), self.ctx.append_basic_block(func, "same_payload")));
+                }
+                let _ = self.builder.build_switch(ta, done, &arms);
+                for ((_, pt), (_, blk)) in carried.iter().zip(arms.iter()) {
+                    self.builder.position_at_end(*blk);
+                    let pa = self.case_slot(a, t)?;
+                    let pb = self.case_slot(b, t)?;
+                    let s = self.emit_same(pt, pa, pb, func)?;
+                    let _ = self.builder.build_store(acc, s);
+                    let _ = self.builder.build_unconditional_branch(done);
+                }
+                self.builder.position_at_end(done);
                 self.builder.build_load(self.ctx.bool_type(), acc, "answer").ok().map(|v| v.into_int_value())
             }
             _ => None,

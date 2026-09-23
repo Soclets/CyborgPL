@@ -119,3 +119,6 @@ simd_ops 127
 powers 31
 power_overflows trap
 power_negative trap
+
+# Structural equality: enums, structs, text.
+equality 63

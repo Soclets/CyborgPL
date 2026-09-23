@@ -782,6 +782,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let lane = self.operand_lane(fi, lhs).or_else(|| self.operand_lane(fi, rhs));
                     return self.vector_binary(fi, op, a, b, lane, sites, func);
                 }
+                // `==` on an enum, a struct, a text, a list: the same shape
+                // all the way down (`enums.md`: "== works on a case").
+                if matches!(op, BinOp::Eq | BinOp::Ne) && a.is_struct_value() && b.is_struct_value() {
+                    let ty = self.operand_cy_ty(fi, lhs).or_else(|| self.operand_cy_ty(fi, rhs))?;
+                    let f = self.same_fn(&ty)?;
+                    let pa = self.builder.build_alloca(a.get_type(), "eq_a").ok()?;
+                    let pb = self.builder.build_alloca(b.get_type(), "eq_b").ok()?;
+                    let _ = self.builder.build_store(pa, a);
+                    let _ = self.builder.build_store(pb, b);
+                    let same = basic_result(self.builder.build_call(f, &[pa.into(), pb.into()], "same").ok()?)?.into_int_value();
+                    return Some(if *op == BinOp::Eq { same.into() } else { self.builder.build_not(same, "differ").ok()?.into() });
+                }
                 // `++` on text is an allocation, not an instruction.
                 if matches!(op, BinOp::Join) && matches!(a, BasicValueEnum::StructValue(_)) {
                     let ty = want_ty.unwrap_or(Ty::Str(crate::types::Enc::Utf8));
@@ -1452,6 +1464,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
         };
         Some(r)
+    }
+
+    /// The Cyborg type of an operand held in a place.
+    fn operand_cy_ty(&mut self, fi: usize, o: &Operand) -> Option<Ty> {
+        let p = o.place()?;
+        let f = &self.p.functions[fi];
+        let base = f.locals[p.local.0 as usize].ty.clone();
+        Some(crate::mir::build::projected_ty(&base, &p.proj, &self.p.items))
     }
 
     /// The lane type of a `simd[T, N]` operand.
