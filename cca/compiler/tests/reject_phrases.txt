@@ -385,6 +385,7 @@ while_keyword :: `while 'x' < 3 { … }`
 wl_removes_code :: 'b' is not declared
 wrap_amp_form :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
 wrap_into_bool :: expected a value of the declared type (bool), found a whole number
+wrap_mixed_sizes :: wraps at one size, and this mixes int8 and int16
 wrap_on_bin :: it only knows a declared integer width
 wrap_percent_form :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
 wrap_untyped_left :: `+~` needs a width, and nothing here gives one

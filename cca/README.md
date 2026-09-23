@@ -292,15 +292,14 @@ Dated, with the alternative, so each can become a question later.
   between is that window. Alternative: the narrowest type Precog proves
   (`operators.md` allows it, "especially for SIMD"); later, as an
   optimisation, since the answer is the same.
-- **2026-09-23 — `:=` of an exact answer keeps the exact type.** "A `:=`
-  takes a type that holds its true value": the exact type holds every
-  value that can get that far, so the name is checked where it lands
-  next. Alternative: `int64`, or `uint64` when the value can pass
-  `int64`'s top — a choice of type the ruling does not make.
-- **2026-09-23 — Wrapping and bitwise operators on an exact answer.**
-  "Wrapping wraps at the size of its values": when every typed operand
-  inside the exact answer has one type, that is the size; when they
-  differ, or none are left to see (a `:=` name holding one), and for any
-  shift of one, CCA says not yet. The oracle takes the left operand's
-  declared type (its README lists it as its own pick). Asked of the
-  design session.
+- **2026-09-23 — `:=` of an exact answer keeps the exact type, for now.**
+  The width is decided (`precog.md`, "`:=` widths"): Precog picks the
+  narrowest type holding every value the name can have, then adjusts for
+  speed. CCA does not choose it yet; it holds the exact type, which holds
+  the same values, so only the representation differs.
+- **2026-09-23 — Bitwise operators and shifts on an exact answer.**
+  Wrapping on mixed sizes is decided (owner, b): an error until written
+  `to.int16['a' + 'b'] +~ 1`, and CCA refuses it. The bitwise operators
+  take the one size an exact answer's typed operands share; mixed sizes,
+  a `:=` name holding an exact answer, and any shift of one say not yet,
+  since none of those was asked.

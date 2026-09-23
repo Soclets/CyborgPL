@@ -92,3 +92,6 @@ two_loops_in_a_row trap
 
 # Plain math is exact; wrapping keeps its own width when stored wider.
 exact_math 127
+
+# Bare numbers alone are exact when compared or converted.
+bare_numbers_exact 3

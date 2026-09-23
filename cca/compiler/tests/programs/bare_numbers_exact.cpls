@@ -1,0 +1,14 @@
+# Bare numbers alone are worked out exactly (owner, 2026-09-23), whatever
+# is between them and wherever they stand. A sum past `int64` compared with
+# 0 is just true: it stopped at run time (check claude, seed 439). A
+# division by a group whose big number fits only a `uint64` divides by 1:
+# the build asserting its proofs read the big number as negative, divided
+# by 0, and said a proof had failed (seed 371).
+extern fn exit ['code': int32];
+MAIN {
+    let mut 'got': int32 = 0;
+    if 3876992840477302775 + 7782534087963747351 > 0 { 'got' = 'got' + 1; }
+    let 'q': uint64 = to.uint64[0 / ((2 / 10047273927188643194) + 1)];
+    if 'q' == 0 { 'got' = 'got' + 2; }
+    nocheck exit['got'];
+}

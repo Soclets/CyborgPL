@@ -633,9 +633,25 @@ impl Checker {
             return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} ['a': {}, 'b': {}] -> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).at(op_span));
         }
         let r = self.expr(ctx, rhs)?;
-        let rt = self.resolve(&r.ty);
-        let l = self.as_operand(ctx, l)?;
-        let r = self.as_operand(ctx, r)?;
+        let mut rt = self.resolve(&r.ty);
+        let mut l = self.as_operand(ctx, l)?;
+        let mut r = self.as_operand(ctx, r)?;
+        // A comparison compares true values (owner, 2026-09-23), so a group
+        // of bare numbers on either side is worked out exactly — not held at
+        // `int64` beside another bare number (seed 439), nor squeezed into
+        // the other side's width.
+        let mut lt = lt;
+        if op.is_comparison() && lt.is_int() && rt.is_int() {
+            let exact = Ty::exact();
+            if literal_only(&l) && matches!(lt.base(), Ty::Int(IntW::Free(_))) && matches!(l.kind, K::Binary { .. } | K::Unary { .. }) {
+                retype_literal_arith(&mut l, &exact);
+                lt = exact.clone();
+            }
+            if literal_only(&r) && matches!(rt.base(), Ty::Int(IntW::Free(_))) && matches!(r.kind, K::Binary { .. } | K::Unary { .. }) {
+                retype_literal_arith(&mut r, &exact);
+                rt = exact;
+            }
+        }
         // Every operator a lane's type has works on a vector of them, lane by
         // lane (`simd.md`, owner: a); a scalar stands for every lane.
         if lt.is_simd() || rt.is_simd() {
@@ -666,15 +682,9 @@ impl Checker {
                 // An exact answer wraps at the size of its values: working
                 // at full width and keeping the low bits is the same
                 // answer, so only the type has to say the size.
-                if lt.is_exact() || rt.is_exact() {
-                    let from = if lt.is_exact() { &l } else { &r };
-                    let size = self.size_of_values(from).ok_or_else(|| self.open_size(op, op_span))?;
-                    let other = if lt.is_exact() { &rt } else { &lt };
-                    let ty = match other.base() {
-                        Ty::Int(IntW::Fixed { .. }) if !other.is_exact() && lt.is_exact() => size,
-                        Ty::Int(IntW::Fixed { .. }) if !other.is_exact() => other.base().clone(),
-                        _ => size,
-                    };
+                let typed = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { .. }));
+                if lt.is_exact() || rt.is_exact() || (typed(&lt) && typed(&rt) && lt.base() != rt.base()) {
+                    let ty = self.wrap_size(op, op_span, &[&l, &r])?;
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
                 }
                 // The width is the left operand's declared type.
@@ -799,10 +809,19 @@ impl Checker {
     /// differ, or when there are none left to see (a `:=` name holding an
     /// exact answer) — which size then is open (asked 2026-09-23).
     fn size_of_values(&self, e: &Expr) -> Option<Ty> {
+        match self.sizes_of_values(e)?.as_slice() {
+            [one] => Some(one.clone()),
+            _ => None,
+        }
+    }
+
+    /// Every size among an exact answer's typed operands; `None` when one
+    /// has no size to see.
+    fn sizes_of_values(&self, e: &Expr) -> Option<Vec<Ty>> {
         let t = self.resolve(&e.ty);
         if !t.is_exact() {
             return match t.base() {
-                Ty::Int(IntW::Fixed { .. }) => Some(t.base().clone()),
+                Ty::Int(IntW::Fixed { .. }) => Some(vec![t.base().clone()]),
                 _ => None,
             };
         }
@@ -827,10 +846,43 @@ impl Checker {
         if !walk(self, e, &mut sizes) {
             return None;
         }
-        sizes.dedup();
-        match sizes.as_slice() {
-            [one] => Some(one.clone()),
-            _ => None,
+        let mut out: Vec<Ty> = Vec::new();
+        for s in sizes {
+            if !out.contains(&s) {
+                out.push(s);
+            }
+        }
+        Some(out)
+    }
+
+    /// Wrapping is at one size, always written (owner, 2026-09-23: b): a
+    /// sum of `int8` and `int16` says which with `to.int16[…]` first.
+    fn wrap_size(&self, op: &BinOp, op_span: Span, sides: &[&Expr]) -> Result<Ty> {
+        let mut all: Vec<Ty> = Vec::new();
+        for e in sides {
+            let t = self.resolve(&e.ty);
+            if literal_only(e) && !t.is_exact() {
+                continue;
+            }
+            match self.sizes_of_values(e) {
+                Some(v) => {
+                    for s in v {
+                        if !all.contains(&s) {
+                            all.push(s);
+                        }
+                    }
+                }
+                None => return Err(self.open_size(op, op_span)),
+            }
+        }
+        match all.as_slice() {
+            [one] => Ok(one.clone()),
+            [] => Err(self.open_size(op, op_span)),
+            many => {
+                let names: Vec<String> = many.iter().map(|t| self.spell(t)).collect();
+                let last = names.last().cloned().unwrap_or_default();
+                err(Diagnostic::error(format!("`{}` wraps at one size, and this mixes {}: say which with `to.{}[…]` first", op.spelled(), names.join(" and "), last)).at(op_span))
+            }
         }
     }
 
@@ -929,6 +981,20 @@ impl Checker {
         // returned. Only bare numbers alone stay without a type: they are
         // worked out at compile time.
         let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow) || op.is_comparison();
+        // Bare numbers compared with bare numbers are worked out exactly
+        // too: `3876992840477302775 + 7782534087963747351 > 0` is true — the
+        // sum is one some 64-bit type holds — not a sum held at `int64`
+        // that stops (check claude, seed 439).
+        if op.is_comparison() {
+            if let (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Free(_))) = (lt.base(), rt.base()) {
+                if literal_only(&l) && literal_only(&r) {
+                    let (mut l, mut r) = (l, r);
+                    retype_literal_arith(&mut l, &Ty::exact());
+                    retype_literal_arith(&mut r, &Ty::exact());
+                    return Ok((l, r, Ty::exact()));
+                }
+            }
+        }
         if plain {
             if let (Ty::Int(a), Ty::Int(b)) = (lt.base(), rt.base()) {
                 if matches!(a, IntW::Fixed { .. }) || matches!(b, IntW::Fixed { .. }) {
@@ -1851,7 +1917,13 @@ impl Checker {
     fn conversion(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let mut blanks = Vec::new();
         let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
-        let v = self.expr(ctx, operand)?;
+        let mut v = self.expr(ctx, operand)?;
+        // Bare numbers alone are worked out exactly, whatever is between
+        // them: `to.uint64[0 / ((2 / 10047273927188643194) + 1)]` divides by
+        // 1. Held at `int64`, the big one read as negative (seed 371).
+        if literal_only(&v) && matches!(self.resolve(&v.ty).base(), Ty::Int(IntW::Free(_))) && matches!(t.base(), Ty::Int(_)) {
+            retype_literal_arith(&mut v, &Ty::exact());
+        }
         let v = self.as_operand(ctx, v)?;
         let vt = self.resolve(&v.ty);
         let target_spelling = self.spell(&t);
