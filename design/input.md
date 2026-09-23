@@ -14,8 +14,9 @@ let 'score': int32[min, 100] = 50;    # at most 100
 range never writes a number that goes stale when the width changes —
 `int8[1, max]` is 1 to 127 and `int32[1, max]` is 1 to 2,147,483,647,
 from the same line. A position is naturally `int32[1, max]`, since
-indexing is 1-based. `int32[min, max]` is refused: that is `int32`
-written the long way, and a range says what the type does not.
+indexing is 1-based. `int32[min, max]` is refused by the oracle as
+`int32` written the long way. That is design claude's pick and not yet
+ruled: see "whole-type range" in `DECISIONS.md` under Open.
 Proposed alternatives: `…` and `...`, both out — `...` is the variadic
 and the spread (owner spotted it), and the single-character ellipsis
 cannot be typed; `*`, which says "something" where `max` says *which*

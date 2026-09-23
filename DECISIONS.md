@@ -148,7 +148,10 @@ one-character ellipsis cannot be typed — then `*` against words;
 owner chose **words**, matching `x`, `mod`, `and`, `shl`. `min` and
 `max` are the base type's own limits, so `int8[1, max]` and
 `int32[1, max]` differ correctly from one line. `int32[min, max]` is
-refused as `int32` written the long way. In the oracle the same day;
+refused as `int32` written the long way. That refusal was design
+claude's, suggested beside the question and never put to the owner.
+It was recorded here as if ruled, and corrected the same day (see
+"Is a whole-type range refused?" under Open). In the oracle the same day;
 `min`/`max` survive into messages, so a refusal reads "0 does not fit
 int8[1, max]".
 
@@ -2155,6 +2158,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
+- Is a whole-type range refused? `int32[min, max]` and `uint8[0, 255]` both mean the plain type. The oracle refuses the first (design claude's pick, never ruled) and accepts the second. (2026-09-23)
 - SIMD leftovers: more element types (`simd[bool, N]` written directly?), shuffles and lane-crossing, masked load/store for a short tail, `simd` as a struct field or list element. (2026-09-22, `design/simd.md`)
 
 
