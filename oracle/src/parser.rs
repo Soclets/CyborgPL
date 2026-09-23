@@ -627,7 +627,9 @@ impl Parser {
                     (Ty::Bin(_) | Ty::Deci(_), Bound::Int(_), _) | (Ty::Bin(_) | Ty::Deci(_), _, Bound::Int(_)) => return self.err("a bin's bounds are written as bins: `bin64[0.0, 1.0]`"),
                     _ => {}
                 }
-                let ok = match (&lo, &hi) { (Bound::Int(a), Bound::Int(b)) => a <= b, (Bound::Bin(a), Bound::Bin(b)) => a <= b, _ => true };
+                // `min` / `max` are the base type's limits, so they order like any number
+                let (rlo, rhi) = (crate::interp::resolve_bound(&base, &lo), crate::interp::resolve_bound(&base, &hi));
+                let ok = match (&rlo, &rhi) { (Bound::Int(a), Bound::Int(b)) => a <= b, (Bound::Bin(a), Bound::Bin(b)) => a <= b, _ => true };
                 if !ok { return self.err("a range's low bound comes first: `int32[0, 100]`"); }
                 // `int32[min, max]` is `int32` written the long way (2026-09-23)
                 if matches!((&lo, &hi), (Bound::Min, Bound::Max)) { return self.err(format!("`{}[min, max]` is just `{}`: a range says what the type does not", head, head)); }

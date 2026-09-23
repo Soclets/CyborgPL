@@ -166,11 +166,18 @@ alternative: allow it and tell them apart by what follows the dot
 (`shapes.'pi'` the module, `shapes.claimed` the type). Owner chose the
 refusal: nothing to disambiguate, for the reader or for Precog.
 
+## A Limb's name (owner, 2026-09-23: a)
+
+The name lives in **`Synthia.cplm`**, beside the version and the
+dependencies, and nowhere in source. Synthia reads it and hands it to
+CCA with the rest of what it is building. Renaming the directory changes
+nothing, and a Limb's own code never names itself: it says `limb.`.
+Proposed alternative: `limb mathstuff;` at the top of `limb.cpls`, which
+would give the name two places to disagree.
+
 ## Open
 
 - The spelling of the author's "reachable bare" / re-export choice — a
   flag beside or on `pub`; with modules it is also how `shapes.circle.area`
   becomes `geometry::area` for users. Undecided.
 - A file module's own visibility (provisionally public).
-- Limb name declared in source, or only in `Synthia.cplm`? (Claude,
-  2026-09-14.)

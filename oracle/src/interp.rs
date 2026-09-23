@@ -926,8 +926,8 @@ impl<'p> Interp<'p> {
             (Ty::Ranged(base, lo, hi), v) => {
                 self.check_type(v, base, line)?;
                 // `min` / `max` mean the base type's own limit (owner, 2026-09-23)
-                let lo = &resolve_bound(base, lo, false);
-                let hi = &resolve_bound(base, hi, true);
+                let lo = &resolve_bound(base, lo);
+                let hi = &resolve_bound(base, hi);
                 let inside = match (v, lo, hi) {
                     (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b,
                     (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b,
@@ -2999,8 +2999,11 @@ fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::W8 => 8, IntWidth::W16 =>
 fn kind_word(k: ParamKind) -> &'static str { match k { ParamKind::Owned => "owning", ParamKind::Lent => "lent", ParamKind::LentMut => "lent.mut" } }
 
 /// `min` / `max` in a range type are the base type's own limits (owner, 2026-09-23):
-/// `int32[1, max]` is "at least 1", and stays right if the width changes.
-fn resolve_bound(base: &Ty, b: &Bound, high: bool) -> Bound {
+/// `int32[1, max]` is "at least 1", and stays right if the width changes. The word says
+/// which limit, not the side it is written on: `int32[max, 5]` is not "up to 5" (compiler
+/// session, 2026-09-23 — the side had been read instead of the word).
+pub fn resolve_bound(base: &Ty, b: &Bound) -> Bound {
+    let high = matches!(b, Bound::Max);
     match b {
         Bound::Min | Bound::Max => match base {
             Ty::Int(_) | Ty::Uint(_) => {

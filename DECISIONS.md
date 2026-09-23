@@ -5,6 +5,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — Oracle bug: `min`/`max` read by side, not by word (compiler session)
+
+`let 'v': int32[max, 5] = 5;` ran, and so did `int32[max, max] = 5`
+and `int8[min, min] = 5`. The oracle took a bound word on the low side
+to mean the type's bottom whatever it said, and one on the high side
+to mean the top, so `[max, 5]` became `[min, 5]`. The owner's rule is
+that `min` and `max` are the base type's own limits, so the word says
+which one. Fixed: `int32[max, 5]` is refused as low-first, and
+`int32[max, max]` holds only 2147483647. Two reject tests. CCA already
+read it this way.
+
+### 2026-09-23 — A Limb's name lives in `Synthia.cplm`, not in source (owner: a)
+
+Open since 2026-09-14. Proposed (a) the manifest carries the name,
+beside the version and the dependencies, as Cargo does; (b) `limb
+mathstuff;` at the top of `limb.cpls`, so the compiler knows the name
+without a build tool. Design claude recommended a: one place for the
+identity, and nothing in source to disagree with it. Owner: a. The
+owner asked who reads it: **Synthia** reads the manifest and hands the
+name to CCA when it calls it, as it hands over the target. CCA never
+reads configuration, and a Limb's source never depends on its own name
+(`limb.` already means "my own Limb", 2026-09-19).
+
 ### 2026-09-23 — Oracle bug: the context type leaked into a comparison's operands (verification session)
 
 Generator seed 93, shrunk by hand: `let 'b': bool = (5 -~ 'w') > 1;`
