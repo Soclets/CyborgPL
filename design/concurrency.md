@@ -83,7 +83,9 @@ fn setup [give 'doc': Document] {
 ```
 
 It can print, log, or retry; it cannot `return` or fail outward, since
-there is nobody left to return to. Proposed alternatives: a detached
+there is nobody left to return to. The body's own work is unwound
+first, but **the captures are still alive while the handler runs**, so
+a retry has what it was given (CCA, 2026-09-23). Proposed alternatives: a detached
 task may not fail at all (the checker refuses `fail` inside one); its
 failure ends the program with the reason named. The autosave that could
 not write is why detached tasks exist, and it should be able to say so
