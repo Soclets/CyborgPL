@@ -1719,6 +1719,25 @@ impl<'p> Interp<'p> {
         if head == "channel" { return self.chan_send(args, line); }
         if head == "simd" { return self.simd_op(op, args, line); }
         if op == "empty" { return Ok(Value::List(Vec::new())); }
+        if op == "slice" {
+            // A slice owns its elements, as a list always does (owner, 2026-09-23): the copy is
+            // the meaning, and Precog elides it where nobody can tell. 1-based and inclusive,
+            // like `[pos i]` and `range[…]`; a check site, like every language operation.
+            if args.values.len() != 3 { return rt(line, format!("`{head}.slice` takes a list and two positions: `{head}.slice[lend 'xs', pos 2, pos 4]`")); }
+            let (v, prov) = self.value(&args.values[0])?;
+            let items = match &v { Value::List(i) => i.clone(), other => return rt(line, format!("`{head}.slice` needs a list or array, got {}", other.kind())) };
+            if let Prov::Bare(n) = &prov { return rt(line, format!("`{head}.slice` takes the list by `lend '{n}'`")); }
+            let mut ends = Vec::new();
+            for a in &args.values[1..] {
+                match self.value(a)?.0 { Value::Int(i) => ends.push(i), other => return rt(line, format!("a position is an integer, got {}", other.kind())) }
+            }
+            let (from, to) = (ends[0], ends[1]);
+            if from < 1 || to > items.len() as i128 {
+                return site(line, format!("`{head}.slice` from {from} to {to} runs outside a {} of {} element(s) (1 to {})", head, items.len(), items.len()));
+            }
+            if to < from - 1 { return site(line, format!("`{head}.slice` from {from} to {to} runs backwards; an empty slice is `pos n, pos n - 1`")); }
+            return Ok(Value::List(items[(from - 1) as usize..to as usize].to_vec()));
+        }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
         if args.values.len() != want { return rt(line, format!("`{head}.{op}` takes {want} argument(s), given {}", args.values.len())); }
         let (v, prov) = self.value(&args.values[0])?;

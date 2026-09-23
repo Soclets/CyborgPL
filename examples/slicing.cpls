@@ -1,0 +1,11 @@
+# list.slice / array.slice (2026-09-23): 1-based and inclusive, like [pos i] and range[…].
+# A slice owns its elements; Precog elides the copy where nobody can tell.
+MAIN {
+    let 'xs' := [10, 20, 30, 40, 50];
+    let 'mid' := list.slice[lend 'xs', pos 2, pos 4];
+    std::printu.stdout['mid', " ", list.length[lend 'mid'], \n];
+    let 'fixed': array[int32] = [1, 2, 3];
+    std::printu.stdout[array.slice[lend 'fixed', pos 1, pos 2], \n];
+    let 'none' := list.slice[lend 'xs', pos 3, pos 2];
+    std::printu.stdout['none', " ", 'xs', \n];
+}

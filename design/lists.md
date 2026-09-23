@@ -20,6 +20,32 @@ With `:=`, Precog chooses: a sequence nothing ever appends to becomes an
 `array` — known length, provable indexes, placed wherever is fastest. The
 programmer only says which at a boundary.
 
+## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
+
+```
+let 'mid' := list.slice[lend 'xs', pos 2, pos 4];      # elements 2, 3 and 4
+let 'head' := array.slice[lend 'fixed', pos 1, pos 2];
+let 'none' := list.slice[lend 'xs', pos 3, pos 2];     # empty: last is first - 1
+```
+
+**A slice owns its elements**, like any list: the copy is the meaning.
+Precog elides it wherever nobody can tell — a slice that is read and
+dropped while the original is untouched becomes a pointer and a length,
+the same machine code a borrowed view would give. The copy appears only
+where it must: when the slice outlives the original, or when either is
+written to. Proposed alternative: a borrowed view, as Rust's `&[T]` and
+Go's slices are — faster always, but a third category beside owned and
+lent, needing its own type everywhere and refusing programs that escape
+it. The owner asked whether Precog could help, and it is what decides
+this: **(a) always compiles and sometimes copies; (b) never copies and
+sometimes refuses.**
+
+1-based and inclusive, like `[pos i]` and `range[…]`, and the positions
+say `pos` as every index does. A **check site**, not a failure, because
+it is a language operation — `std::str.slice.grapheme` fails instead
+because everything in std fails. `array` gets it too (owner): slicing
+reads, so the reason an array has no `append` does not apply.
+
 ## Layout (owner, 2026-09-22)
 
 A **`list` is 24 bytes** — a pointer, a length and a capacity — because

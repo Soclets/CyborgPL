@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-23 — List slicing: `list.slice` / `array.slice`, owning its elements (owner: a, a)
+
+Surfaced by the `range`-as-a-value question: text had
+`std::str.slice.grapheme` and lists had nothing, so taking part of a
+list meant a loop and appends. Proposed (a) a slice is a new list
+owning copies; (b) a borrowed view, as Rust's `&[T]` and Go's slices.
+Owner asked whether Precog could help — it is exactly what decides it:
+under (a) the copy is the meaning but is elided wherever nobody can
+tell, giving (b)'s machine code for the common read-and-drop, while (b)
+would add a third category beside owned and lent and refuse programs
+that escape a view. Owner: a. Second question, whether `array` gets it
+too: yes (owner) — slicing reads, so the reason an array has no
+`append` does not apply. 1-based, inclusive, positions say `pos`, a
+check site rather than a failure since it is a language operation.
+`examples/slicing.cpls`, two reject tests.
+
 ### 2026-09-23 — `range[…]` stays part of `for`; it is not a value (owner: a)
 
 Open since 2026-09-19. Owner asked what a range value is even for, and

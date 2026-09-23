@@ -1440,14 +1440,14 @@ impl Parser {
         self.expect(Tok::Dot, &format!("`.` after `{head}` (`{head}.length[…]`)"))?;
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `{head}.`, found {other}")) };
         let ok = match (head.as_str(), op.as_str()) {
-            ("list", "length" | "append" | "remove" | "empty") | ("array", "length") => true,
+            ("list", "length" | "append" | "remove" | "empty" | "slice") | ("array", "length" | "slice") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
             ("channel", "send" | "take") => true,
             ("simd", "fill" | "load" | "store" | "all" | "any" | "max" | "min" | "sum") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
-        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty, array has length, map has empty/length/has/get/set/remove/keys/values/pairs, simd has fill/load/store/all/any/max/min/sum")); }
+        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty/slice, array has length/slice, map has empty/length/has/get/set/remove/keys/values/pairs, simd has fill/load/store/all/any/max/min/sum")); }
         if op == "empty" {
             // `[list.empty]` — a value, not a call (decided 2026-09-17)
             let line = self.line();
@@ -1455,6 +1455,20 @@ impl Parser {
         }
         if *self.peek() != Tok::LBracket { return self.err(format!("`{head}.{op}` is a call and needs `[…]`")); }
         // `simd.load[lend 'xs', pos 'i']` — the position says `pos`, as every index does
+        if (head == "list" || head == "array") && op == "slice" {
+            // `list.slice[lend 'xs', pos 2, pos 4]` — positions say `pos`, as every index does
+            let line = self.line();
+            self.advance();
+            let mut values = vec![self.value()?];
+            for which in ["first", "last"] {
+                self.expect(Tok::Comma, &format!("`,` before the {which} position"))?;
+                if !self.is_word("pos") { return self.err(format!("`{head}.slice` says its positions with `pos`: `{head}.slice[lend 'xs', pos 2, pos 4]`")); }
+                self.advance();
+                values.push(self.value()?);
+            }
+            self.expect(Tok::RBracket, "`]`")?;
+            return Ok((head, op, Bracket { values, line, one_list: false }));
+        }
         if head == "simd" && (op == "load" || op == "store") {
             let line = self.line();
             self.advance();
