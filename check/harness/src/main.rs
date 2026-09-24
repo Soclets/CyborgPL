@@ -217,7 +217,7 @@ fn main() {
                 Err(e) => println!("seed {}: {e}", p.seed),
                 Ok(o) => {
                     println!(
-                        "seed {}: {} proven claims: {} with nothing to ask (literals, the printer), {} matched to my tree, {} not; {} justified by the simple intervals (b){}; {} solver questions (c), {} unanswered",
+                        "seed {}: {} proven claims: {} with nothing to ask (literals, the printer), {} matched to my tree, {} not; {} justified by the simple intervals (b){}; {} solver questions (c), {} given up, {} not reached",
                         p.seed,
                         o.proven,
                         o.literal,
@@ -226,7 +226,8 @@ fn main() {
                         o.justified,
                         if o.intervals_complete { "" } else { " — (b) could not follow the whole program" },
                         o.asked,
-                        o.unknown
+                        o.unknown,
+                        o.unasked
                     );
                     for c in o.unmatched.iter().take(5) {
                         println!("  unmatched: line {}:{}..{} {} {}", c.line, c.col, c.end_col, c.kind, c.construct);
@@ -551,6 +552,7 @@ fn claims_run(t: &Tools, a: &Args) {
         justified: usize,
         asked: usize,
         unknown: usize,
+        unasked: usize,
         refuted: usize,
         incomplete_b: u64,
     }
@@ -581,6 +583,7 @@ fn claims_run(t: &Tools, a: &Args) {
                         tl.justified += o.justified;
                         tl.asked += o.asked;
                         tl.unknown += o.unknown;
+                        tl.unasked += o.unasked;
                         tl.refuted += o.refuted.len();
                         tl.incomplete_b += (!o.intervals_complete) as u64;
                         drop(tl);
@@ -611,8 +614,8 @@ fn claims_run(t: &Tools, a: &Args) {
     });
     let tl = tally.into_inner().unwrap();
     println!(
-        "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched, {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions, {} unanswered; REFUTED {}",
-        tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.unknown, tl.refuted
+        "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched, {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions: {} answered, {} given up by Z3, {} not reached in time; REFUTED {}",
+        tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.asked - tl.unknown - tl.unasked, tl.unknown, tl.unasked, tl.refuted
     );
 }
 

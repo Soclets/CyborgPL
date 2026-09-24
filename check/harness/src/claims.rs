@@ -26,6 +26,8 @@ pub struct Claim {
     pub function: String,
     /// The value Precog claims: a set, an interval, or nothing to compare.
     pub value: Value,
+    /// For a landing: the type it must fit — base name and range.
+    pub fits: Option<(String, i128, i128)>,
 }
 
 #[derive(Clone, Debug)]
@@ -53,7 +55,15 @@ pub fn read_claims(text: &str) -> Vec<Claim> {
             },
             _ => Value::Other,
         };
+        let fits = match (j.get("fits").and_then(J::str), j.get("range")) {
+            (Some(f), Some(r)) => match (r.get("lo").and_then(J::int), r.get("hi").and_then(J::int)) {
+                (Some(lo), Some(hi)) => Some((f.split('[').next().unwrap_or(f).to_string(), lo, hi)),
+                _ => None,
+            },
+            _ => None,
+        };
         out.push(Claim {
+            fits,
             line,
             col,
             end_line,
@@ -82,6 +92,12 @@ pub fn matches(c: &Claim, e: &Encoded, spans: &Spans) -> Vec<usize> {
         .iter()
         .enumerate()
         .filter(|(_, s)| kind_ok(s.kind))
+        // a landing must be into the same type (CCA gives every argument of a
+        // call the call's span, so the type is what tells them apart)
+        .filter(|(_, s)| match (&c.fits, s.fits) {
+            (Some((cb, clo, chi)), Some((sb, slo, shi))) if c.kind == "narrowing" => cb == sb && *clo == slo && *chi == shi,
+            _ => true,
+        })
         .filter(|(_, s)| {
             let hit = |sp: Option<&(u32, u32, u32)>| sp.map_or(false, |&(l, a, b)| l == c.line && a == c.col && b == c.end_col);
             // the expression itself, or (an argument) the call it is passed to
@@ -109,7 +125,10 @@ pub struct Outcome {
     /// Whether attack (b) followed the whole program (else it justifies nothing).
     pub intervals_complete: bool,
     pub asked: usize,
+    /// Z3 gave up on the question within its budget.
     pub unknown: usize,
+    /// Z3 was stopped at the time limit before reaching the question.
+    pub unasked: usize,
     pub refuted: Vec<Refuted>,
     pub unmatched: Vec<Claim>,
     /// Claims with nothing to ask: a negative number's minus, a `for`
@@ -133,7 +152,7 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
     let mut questions = vec![];
     let mut about = vec![];
     let ranges = check_gen::intervals::analyse(p, u64::MAX as u128);
-    let mut out = Outcome { proven: 0, matched: 0, justified: 0, intervals_complete: ranges.is_some(), asked: 0, unknown: 0, refuted: vec![], unmatched: vec![], literal: 0 };
+    let mut out = Outcome { proven: 0, matched: 0, justified: 0, intervals_complete: ranges.is_some(), asked: 0, unknown: 0, unasked: 0, refuted: vec![], unmatched: vec![], literal: 0 };
     let lines: Vec<&str> = text.lines().collect();
     // The text a claim's span covers.
     let span_text = |c: &Claim| -> String {
@@ -178,21 +197,28 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
             out.justified += 1;
             continue;
         }
-        // One question per claim and test, about every instance at once.
-        let first = ks[0];
-        questions.push((ks.clone(), Test::Fails));
-        about.push((c.clone(), "can fail", first));
+        // One question per claim, about every instance at once. A claimed
+        // set or interval lies inside what the site must fit, so "can the
+        // value fall outside the claim" covers "can it fail"; only a claim
+        // without one (layer 3, "solver") is asked whether it can fail.
         // `shift_width`'s value means something else in CCA than in my
-        // translation (the shifted result), so only "can it fail" is asked.
+        // translation (the shifted result), so it is only asked "can it fail".
+        let first = ks[0];
         let t = match &c.value {
             _ if c.kind == "shift_width" || c.kind == "overflow" && c.construct == "shl" => None,
             Value::Set(v) if !v.is_empty() => Some(Test::OutsideSet(v.clone())),
             Value::Interval(lo, hi) => Some(Test::OutsideInterval(*lo, *hi)),
             _ => None,
         };
-        if let Some(t) = t {
-            questions.push((ks, t));
-            about.push((c.clone(), "value outside the claim", first));
+        match t {
+            Some(t) => {
+                questions.push((ks, t));
+                about.push((c.clone(), "value outside the claim", first));
+            }
+            None => {
+                questions.push((ks, Test::Fails));
+                about.push((c.clone(), "can fail", first));
+            }
         }
     }
     out.asked = questions.len();
@@ -201,7 +227,7 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
     }
     let f = dir.join("claims.smt2");
     std::fs::write(&f, enc.claim_script(&questions)).map_err(|e| e.to_string())?;
-    let z = engines::run(Command::new("z3").arg("-smt2").arg(&f), dir, &[("PATH".into(), "/opt/homebrew/bin:/usr/bin:/bin".into())], false, engines::BUILD_LIMIT);
+    let z = engines::run(Command::new("z3").arg("-smt2").arg(&f), dir, &[("PATH".into(), "/opt/homebrew/bin:/usr/bin:/bin".into())], false, engines::CLAIM_LIMIT);
     let answers = parse_answers(&String::from_utf8_lossy(&z.stdout), questions.len(), enc.inputs.len());
     for (k, a) in answers.iter().enumerate() {
         match a {
@@ -213,6 +239,6 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
             Answer::Never => {}
         }
     }
-    out.unknown += questions.len().saturating_sub(answers.len());
+    out.unasked += questions.len().saturating_sub(answers.len());
     Ok(out)
 }

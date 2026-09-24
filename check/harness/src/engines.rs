@@ -35,6 +35,9 @@ impl Tools {
 /// longer and running past it is counted, not reported as a finding.
 pub const RUN_LIMIT: Duration = Duration::from_secs(20);
 pub const BUILD_LIMIT: Duration = Duration::from_secs(120);
+/// Z3 on one program's claims (the Precog oracle, attack (c)): it runs in
+/// the background, so it gets longer than a build.
+pub const CLAIM_LIMIT: Duration = Duration::from_secs(600);
 /// While shrinking, a candidate slower than this is simply not kept.
 pub const SHRINK_BUILD_LIMIT: Duration = Duration::from_secs(30);
 

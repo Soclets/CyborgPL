@@ -45,6 +45,8 @@ pub struct Site {
     /// and for a landing the simple statement it is in (0 if none).
     pub node: usize,
     pub stmt: usize,
+    /// For a landing: the type it must fit — base name and range.
+    pub fits: Option<(&'static str, i128, i128)>,
 }
 
 /// The script, and the sites in the order their `check-sat`s appear.
@@ -64,6 +66,7 @@ struct SiteRaw {
     stmt: usize,
     value: String,
     width: u32,
+    fits: Option<(&'static str, i128, i128)>,
 }
 
 #[derive(Clone)]
@@ -158,7 +161,7 @@ impl<'a> Enc<'a> {
 
     fn site(&mut self, ctx: &Ctx, fail: String, what: String, kind: &'static str, value: &str, width: u32) {
         let f = self.boolean(fail);
-        self.sites.push(SiteRaw { reach: ctx.pc.clone(), fail: f, what, kind, node: self.node, stmt: self.stmt, value: value.to_string(), width });
+        self.sites.push(SiteRaw { reach: ctx.pc.clone(), fail: f, what, kind, node: self.node, stmt: self.stmt, value: value.to_string(), width, fits: None });
     }
 
     fn in_range(&self, v: &str, lo: i128, hi: i128) -> String {
@@ -173,6 +176,7 @@ impl<'a> Enc<'a> {
         let (lo, hi) = range_of(t);
         let fail = format!("(not {})", self.in_range(v, lo, hi));
         self.site(ctx, fail, format!("{what} into {}", t.text()), "narrowing", v, W);
+        self.sites.last_mut().unwrap().fits = Some((t.base.name(), lo, hi));
     }
 
     /// Plain exact maths: a result no 64-bit type holds is a site.
@@ -619,7 +623,7 @@ pub fn encode_with(p: &Program, input_max: u128) -> Option<Encoded> {
     head.push_str("(set-logic QF_BV)\n(set-option :produce-models true)\n(set-option :rlimit 1500000)\n");
     head.push_str(&decls);
     head.push_str(&e.defs);
-    let sites = e.sites.iter().map(|r| Site { what: r.what.clone(), kind: r.kind, node: r.node, stmt: r.stmt }).collect();
+    let sites = e.sites.iter().map(|r| Site { what: r.what.clone(), kind: r.kind, node: r.node, stmt: r.stmt, fits: r.fits }).collect();
     Some(Encoded { head, raw: e.sites, sites, inputs })
 }
 
