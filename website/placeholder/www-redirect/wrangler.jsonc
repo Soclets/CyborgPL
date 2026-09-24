@@ -1,0 +1,8 @@
+// www.cyborgpl.dev → cyborgpl.dev, path and query kept. A separate Worker so the
+// main site stays static-only (free and unlimited); only www visits run code.
+{
+  "name": "cyborgpl-www-redirect",
+  "main": "index.js",
+  "compatibility_date": "2026-09-01",
+  "routes": [{ "pattern": "www.cyborgpl.dev", "custom_domain": true }]
+}

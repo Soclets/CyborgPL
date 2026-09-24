@@ -1,0 +1,9 @@
+// cyborgpl.dev — static files only, so every request is free and unlimited on
+// Cloudflare's free plan. `npx wrangler deploy` from this folder publishes public/
+// and keeps cyborgpl.dev (DNS record + certificate) pointed at it.
+{
+  "name": "cyborgpl-website",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "cyborgpl.dev", "custom_domain": true }]
+}
