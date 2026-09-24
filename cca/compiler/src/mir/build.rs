@@ -344,6 +344,32 @@ impl<'a> FnBuilder<'a> {
     }
 
     fn assign(&mut self, place: Place, rvalue: Rvalue, span: SpanId) {
+        // A list or map written out in full: each element going into the
+        // element type is a store like any other, so a narrower one is a
+        // check site (as a struct's fields are). Without it
+        // `let 'xs': list[int8] = [1, 300];` kept 44.
+        let dest_ty = {
+            let base = self.locals[place.local.0 as usize].ty.clone();
+            self.resolve_ty(&projected_ty(&base, &place.proj, &self.arena.items))
+        };
+        match (&rvalue, dest_ty.base()) {
+            (Rvalue::MakeList(ops), Ty::Seq { elem, .. }) => {
+                let elem = (**elem).clone();
+                for op in ops.clone() {
+                    let have = self.operand_ty(&op);
+                    self.narrow_arg(&op, &have, &elem, span);
+                }
+            }
+            (Rvalue::MakeMap(pairs), Ty::Map { key, val, .. }) => {
+                let (key, val) = ((**key).clone(), (**val).clone());
+                for (k, v) in pairs.clone() {
+                    let (hk, hv) = (self.operand_ty(&k), self.operand_ty(&v));
+                    self.narrow_arg(&k, &hk, &key, span);
+                    self.narrow_arg(&v, &hv, &val, span);
+                }
+            }
+            _ => {}
+        }
         // Writing over a name that owns something gives the old value
         // back first. `'text' = copy 'text' ++ "ab"` in a loop would
         // otherwise leave every round's text behind — the right-hand side
@@ -1061,6 +1087,21 @@ impl<'a> FnBuilder<'a> {
 
     fn resolve_ty(&self, t: &Ty) -> Ty {
         resolved(t, &self.arena.subst)
+    }
+
+    /// An operand's type: a bare number has no width of its own yet.
+    fn operand_ty(&self, o: &Operand) -> Ty {
+        match o {
+            Operand::Const(Const::Int(_)) => Ty::Int(IntW::Free(crate::types::InferId(0))),
+            Operand::Const(Const::Bin(_)) => Ty::Bin(crate::types::BinW::Free(crate::types::InferId(0))),
+            Operand::Const(Const::Bool(_)) => Ty::Bool,
+            Operand::Const(Const::Str(_)) => Ty::Str(crate::types::Enc::Utf8),
+            Operand::Const(_) => Ty::Nothing,
+            Operand::Read(p) | Operand::Move(p) => {
+                let base = self.locals[p.local.0 as usize].ty.clone();
+                self.resolve_ty(&projected_ty(&base, &p.proj, &self.arena.items))
+            }
+        }
     }
 
     // ------------------------------------------------------------ expressions
