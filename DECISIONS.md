@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Oracle bug: text into a bin16/bin32 was still rounded twice (compiler session)
+
+8705014 fixed literals, but `to.bin16["…"]` and `to.bin32["…"]` still read
+text at 64 bits first. `"65519.99999999999999999"` into bin16 failed
+`out_of_range` (correct: 65504), and three more cases were one step off.
+Fixed: text is rounded once from its digits, with an exponent spelled out
+before an exact halfway point is decided. `examples/bin_widths.cpls`.
+
 ### 2026-09-24 — Which text is a bin: digits, fraction, exponent; no `inf`/`nan` (owner: b)
 
 From compiler claude: the oracle took whatever Rust's float parser takes

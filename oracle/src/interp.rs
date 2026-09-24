@@ -1494,7 +1494,12 @@ impl<'p> Interp<'p> {
                             digits(int) && frac.map_or(true, digits)
                                 && exp.map_or(true, |e| digits(e.strip_prefix(['-', '+']).unwrap_or(e)))
                         };
-                        let parsed = if matches!(ty, Ty::Bin(_)) { if bin_text(s) { s.parse::<f64>().ok().map(Value::Bin) } else { None } } else { s.parse::<i128>().ok().map(Value::Int) };
+                        // rounded once, from the digits, straight to the width (never 64 bits first)
+                        let parsed = match ty {
+                            Ty::Bin(w @ (16 | 32)) if bin_text(s) => Some(Value::Bin(round_decimal(&plain_decimal(s), *w))),
+                            Ty::Bin(_) => if bin_text(s) { s.parse::<f64>().ok().map(Value::Bin) } else { None },
+                            _ => s.parse::<i128>().ok().map(Value::Int),
+                        };
                         // a well-formed number past what the oracle can hold is still a number: too big
                         let digits = s.strip_prefix(['-', '+']).unwrap_or(s);
                         let huge = parsed.is_none() && !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit());
@@ -3231,6 +3236,19 @@ fn lit_digits(e: &Expr) -> Option<String> {
 }
 
 fn bin_w(t: &Ty) -> Option<u8> { match t { Ty::Bin(w) => Some(*w), Ty::Ranged(b, _, _) => bin_w(b), _ => None } }
+
+/// A decimal with an optional exponent (`2.5e-3`), written out plainly (`0.0025`).
+fn plain_decimal(t: &str) -> String {
+    let (sign, t) = match t.strip_prefix('-') { Some(r) => ("-", r), None => ("", t.strip_prefix('+').unwrap_or(t)) };
+    let (mant, exp) = match t.find(['e', 'E']) { Some(i) => (&t[..i], t[i + 1..].parse::<i64>().unwrap_or(0)), None => (t, 0) };
+    let (int, frac) = mant.split_once('.').unwrap_or((mant, ""));
+    let digits = format!("{int}{frac}");
+    let point = int.len() as i64 + exp;               // where the decimal point falls in `digits`
+    let body = if point <= 0 { format!("0.{}{digits}", "0".repeat((-point) as usize)) }
+        else if point as usize >= digits.len() { format!("{digits}{}", "0".repeat(point as usize - digits.len())) }
+        else { format!("{}.{}", &digits[..point as usize], &digits[point as usize..]) };
+    format!("{sign}{body}")
+}
 
 /// Compare two plain decimals (digits, one optional `.`) by magnitude.
 fn cmp_decimal(a: &str, b: &str) -> std::cmp::Ordering {
