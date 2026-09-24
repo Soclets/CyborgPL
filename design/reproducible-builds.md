@@ -31,6 +31,13 @@ and "compile for the exact machine" makes the target part of the input.
    finishes first.
 6. **Compile-time arithmetic matches the target.** A `bin16` folded at
    compile time rounds exactly as the target's `bin16` would.
+7. **The Unicode version is pinned** (owner, 2026-09-24: "Pin it, but we
+   should update when we should update"). Grapheme boundaries, case
+   mapping and every other Unicode table come from one recorded version,
+   written in the lock file beside the compiler version, so the same
+   program counts the same text the same way on every build. Moving to a
+   newer Unicode is a deliberate update, like a compiler upgrade, and it
+   is made when a new version is worth adopting, not left to stall.
 
 ## Making it observable
 

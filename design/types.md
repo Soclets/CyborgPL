@@ -92,7 +92,8 @@ this does not.
     เ | กี่ | ย | ว (UAX #29; corrected 2026-09-24, it said two).
     Variable size — small inline buffer with heap fallback, so it is an
     *owned* value like `str`; needs Unicode segmentation tables in the
-    binary; boundaries can shift with Unicode versions. The correct
+    binary; boundaries can shift with Unicode versions, so the version is
+    pinned per build and updated deliberately (`reproducible-builds.md`). The correct
     user-facing unit.
   A character literal is written in **backticks**: `` let 'c' := `1`; ``
   (decided 2026-09-14). Three quote styles, three token classes: `"…"` text,
