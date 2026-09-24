@@ -690,6 +690,13 @@ impl Checker {
                 // at full width and keeping the low bits is the same
                 // answer, so only the type has to say the size.
                 let typed = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { .. }));
+                // `xx~` wraps at the base's size alone: its exponent is a
+                // count, like a shift's, not a value being wrapped (the
+                // oracle's reading, `operators.md`; not ruled).
+                if *op == BinOp::WrapPow && (typed(&lt) || lt.is_exact()) {
+                    let ty = if lt.is_exact() { self.wrap_size(op, op_span, &[&l])? } else { lt.base().clone() };
+                    return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
+                }
                 if lt.is_exact() || rt.is_exact() || (typed(&lt) && typed(&rt) && lt.base() != rt.base()) {
                     let ty = self.wrap_size(op, op_span, &[&l, &r])?;
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });

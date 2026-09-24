@@ -1,0 +1,17 @@
+# `xx~` wraps at the base's size alone: the exponent is a count, like a
+# shift's, so a uint32 base with an int32 exponent is not mixing sizes
+# (operators.md, the oracle's reading). The exponent is known only at run
+# time: whether an unset variable is there.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+MAIN {
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'n': int32 = 26;
+    if 'there' { 'n' = 25; }
+    let 'h': uint32 = 3;
+    let 'p' := 'h' xx~ 'n';
+    let 'q': uint8 = 7;
+    let 'r' := 'q' xx~ 'n';
+    nocheck exit[to.int32[('p' mod 256) + ('r' mod 8)]];
+}

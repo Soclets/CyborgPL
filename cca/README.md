@@ -313,13 +313,13 @@ Dated, with the alternative, so each can become a question later.
   is followed eight calls deep as before. Alternative: a larger cap (slower
   builds on wide ranges), or symbolic summaries (a formula in the argument
   rather than a table), which is a bigger piece of work.
-- **2026-09-24 — A negative exponent stops `xx~` as well as `xx`.** For
-  `xx` it follows from the rules: a negative exponent makes a fraction,
-  which no integer holds. For the wrapping power the design says
-  wrapping is "never a check", which is about overflow; the oracle
-  refuses a negative exponent there too, and CCA does the same.
-  Alternative: `xx~` with a negative exponent defined as something (0, or
-  an error at compile time only). Asked of the design session.
+- **2026-09-24 — `xx~` wraps at the base's size alone.** Its exponent is
+  a count, like a shift's, not a value being wrapped, so a `uint32` base
+  with an `int32` exponent is not mixing sizes. The oracle's reading
+  (`operators.md`), not ruled. Alternative: the mixed-size rule for
+  wrapping covers the exponent too, and `to.…` says which. (A negative
+  exponent being a check site for `xx` and `xx~` was provisional here; the
+  owner decided it, 2026-09-24: a.)
 - **2026-09-24 — A bin operation rounds at its own width, every step.**
   `precog.md` ("IEEE bins at their width") and `reproducible-builds.md`
   (a folded `bin16` "rounds exactly as the target's `bin16` would") read
