@@ -320,3 +320,20 @@ Dated, with the alternative, so each can become a question later.
   refuses a negative exponent there too, and CCA does the same.
   Alternative: `xx~` with a negative exponent defined as something (0, or
   an error at compile time only). Asked of the design session.
+- **2026-09-24 — Text holding a number too big for 128 bits fails
+  `not_a_number`.** `conversion.md` makes text → number fail
+  `not_a_number` and makes a number that does not fit its type a narrowing
+  site; it does not say which one a number past every type is. The oracle
+  fails `not_a_number` past 128 bits (and traps as a narrowing site between
+  the target and 128 bits); CCA does the same so the two agree.
+  Alternative: every well-formed number is a number, and one too big for
+  the target is always the narrowing site (a trap), with no 128-bit edge.
+- **2026-09-24 — A bin operation rounds at its own width, every step.**
+  `precog.md` ("IEEE bins at their width") and `reproducible-builds.md`
+  (a folded `bin16` "rounds exactly as the target's `bin16` would") read
+  as that, and it is what the hardware does. The oracle instead works a
+  bin32 expression in 64 bits and rounds once, where it is stored:
+  `'x' + 'one' + 'one'` with `'x'` at 2^24 is 2^24 + 2 there, 2^24 here.
+  A bin with a bare literal is a width not chosen yet, which both work at
+  64 bits. Alternative: 64-bit intermediates, rounded on store. Asked of
+  the design session.

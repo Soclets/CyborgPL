@@ -37,6 +37,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_str_concat" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into(), p.into(), w.into()], false),
             "cyborg_str_copy" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_str_free" => self.ctx.void_type().fn_type(&[p.into(), w.into()], false),
+            "cyborg_parse_int" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), p.into()], false),
             // The map and hashing side keeps its own list.
             other => return self.rt_map(other),
         };
@@ -801,9 +802,147 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 
+    /// A conversion that can fail (`conversion.md`). Its reasons are the
+    /// checker's, in its order: `not_a_number` (from text) or `not_whole`
+    /// (from a bin) first, then `out_of_range` for a range type. Into the
+    /// exact type (a plain whole-number target, whose landing is its own
+    /// site) a value past the 64-bit window becomes one no 64-bit type holds,
+    /// so that site always catches it. Text whose digits do not fit in 128
+    /// bits is `not_a_number`, as in the oracle (`cca/README.md`).
+    #[allow(clippy::too_many_arguments)]
+    fn emit_failing_convert(&mut self, fi: usize, to: &Ty, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let arg = args.first()?;
+        let from = match arg {
+            Arg::Value(o) => o.place().map(|p| {
+                let base = self.p.functions[fi].locals[p.local.0 as usize].ty.clone();
+                crate::mir::build::projected_ty(&base, &p.proj, &self.p.items)
+            }),
+            Arg::Lend { place, .. } | Arg::Copy(place) | Arg::Give(place) => {
+                let base = self.p.functions[fi].locals[place.local.0 as usize].ty.clone();
+                Some(crate::mir::build::projected_ty(&base, &place.proj, &self.p.items))
+            }
+            _ => None,
+        };
+        let from = match (from, arg) {
+            (Some(t), _) => t,
+            (None, Arg::Value(Operand::Const(Const::Str(_)))) => Ty::utf8(),
+            (None, Arg::Value(Operand::Const(Const::Bin(_)))) => Ty::Bin(crate::types::BinW::Fixed(64)),
+            (None, Arg::Value(Operand::Const(Const::Int(_)))) => Ty::exact(),
+            _ => return None,
+        };
+        let Ty::Int(crate::types::IntW::Fixed { .. }) = to.base() else { return None };
+        let w = self.ctx.i128_type();
+        // Which arm each reason takes: its index in the reason list.
+        let first_reason = match from.base() {
+            Ty::Str(_) | Ty::Bin(_) => true,
+            _ => false,
+        };
+        let arm = |index: usize| fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize]);
+        let range_index = if first_reason { 1 } else { 0 };
+        let v = match arg {
+            Arg::Value(o) => self.operand(fi, o, slots)?,
+            Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => self.operand(fi, &Operand::Read(p.clone()), slots)?,
+            _ => return None,
+        };
+        // The true value, in 128 bits.
+        let (value, too_big): (IntValue<'ctx>, Option<IntValue<'ctx>>) = match from.base() {
+            Ty::Str(_) => {
+                let s = v.into_struct_value();
+                let ptr = self.builder.build_extract_value(s, 0, "p").ok()?;
+                let raw = self.builder.build_extract_value(s, 1, "n").ok()?.into_int_value();
+                let len = self.real_length(raw);
+                let out = self.builder.build_alloca(w, "parsed").ok()?;
+                let f = self.rt("cyborg_parse_int");
+                let status = basic_result(self.builder.build_call(f, &[ptr.into(), len.into(), out.into()], "status").ok()?)?.into_int_value();
+                // Digits past 128 bits fail `not_a_number` too, as the
+                // oracle has it (README, provisional).
+                let bad = self.builder.build_int_compare(IntPredicate::NE, status, self.ctx.i8_type().const_zero(), "not_a_number").ok()?;
+                let next = self.ctx.append_basic_block(func, "is_number");
+                let _ = self.builder.build_conditional_branch(bad, arm(0)?, next);
+                self.builder.position_at_end(next);
+                (self.builder.build_load(w, out, "value").ok()?.into_int_value(), None)
+            }
+            Ty::Bin(_) => {
+                // Whole, or it fails `not_whole`: x equals its own floor and
+                // is finite (x - x is 0 only for a finite x).
+                let x = v.into_float_value();
+                let ft = x.get_type();
+                let id = inkwell::intrinsics::Intrinsic::find("llvm.floor")?;
+                let floor = id.get_declaration(self.module, &[ft.into()])?;
+                let fl = basic_result(self.builder.build_call(floor, &[x.into()], "floor").ok()?)?.into_float_value();
+                let whole = self.builder.build_float_compare(inkwell::FloatPredicate::OEQ, fl, x, "whole").ok()?;
+                let zero = self.builder.build_float_sub(x, x, "zero").ok()?;
+                let finite = self.builder.build_float_compare(inkwell::FloatPredicate::OEQ, zero, ft.const_zero(), "finite").ok()?;
+                let good = self.builder.build_and(whole, finite, "is_whole").ok()?;
+                let next = self.ctx.append_basic_block(func, "is_whole");
+                let _ = self.builder.build_conditional_branch(good, next, arm(0)?);
+                self.builder.position_at_end(next);
+                // Past 2^126 either way is past every 64-bit type too.
+                let lim = ft.const_float(2f64.powi(126));
+                let big = self.builder.build_float_compare(inkwell::FloatPredicate::OGE, x, lim, "big").ok()?;
+                let neg_lim = ft.const_float(-(2f64.powi(126)));
+                let small = self.builder.build_float_compare(inkwell::FloatPredicate::OLE, x, neg_lim, "small").ok()?;
+                let too = self.builder.build_or(big, small, "too_big").ok()?;
+                let safe = self.builder.build_select(too, ft.const_zero(), x, "safe").ok()?.into_float_value();
+                (self.builder.build_float_to_signed_int(safe, w, "value").ok()?, Some(too))
+            }
+            Ty::Int(_) => {
+                let signed = match arg {
+                    Arg::Value(o) => self.operand_signed(fi, o).unwrap_or(true),
+                    _ => true,
+                };
+                (self.builder.build_int_cast_sign_flag(v.into_int_value(), w, signed, "value").ok()?, None)
+            }
+            _ => return None,
+        };
+        let out_t = self.ty(to)?.into_int_type();
+        let result = if to.is_exact() {
+            // Outside the window (or too big to have been read): a value
+            // no 64-bit type holds, for the landing site to stop.
+            let (lo, hi) = crate::resolve::int_range(true, crate::types::EXACT_BITS);
+            let below = self.builder.build_int_compare(IntPredicate::SLT, value, super::const_i128(w, lo), "below").ok()?;
+            let above = self.builder.build_int_compare(IntPredicate::SGT, value, super::const_i128(w, hi), "above").ok()?;
+            let mut out = self.builder.build_or(below, above, "outside").ok()?;
+            if let Some(t) = too_big {
+                out = self.builder.build_or(out, t, "outside").ok()?;
+            }
+            let marker = super::const_i128(w, i64::MIN as i128 - 1);
+            let v = self.builder.build_select(out, marker, value, "landed").ok()?.into_int_value();
+            self.builder.build_int_truncate(v, out_t, "exact").ok()?
+        } else {
+            // A range type (or a plain one reached from a whole number):
+            // outside it, the call fails `out_of_range`.
+            let (lo, hi) = match to.bound() {
+                Some(crate::types::Bound::Int { lo, hi }) => (*lo, *hi),
+                _ => match to.base() {
+                    Ty::Int(crate::types::IntW::Fixed { signed, bits }) => crate::resolve::int_range(*signed, *bits),
+                    _ => return None,
+                },
+            };
+            let below = self.builder.build_int_compare(IntPredicate::SLT, value, super::const_i128(w, lo), "below").ok()?;
+            let above = self.builder.build_int_compare(IntPredicate::SGT, value, super::const_i128(w, hi), "above").ok()?;
+            let mut out = self.builder.build_or(below, above, "out_of_range").ok()?;
+            if let Some(t) = too_big {
+                out = self.builder.build_or(out, t, "out_of_range").ok()?;
+            }
+            let inside = self.ctx.append_basic_block(func, "in_range");
+            let _ = self.builder.build_conditional_branch(out, arm(range_index)?, inside);
+            self.builder.position_at_end(inside);
+            self.builder.build_int_truncate(value, out_t, "value").ok()?
+        };
+        if let Some(d) = dest {
+            self.store_place(fi, d, result.into(), slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
     pub(super) fn emit_failing_call(&mut self, fi: usize, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         if let Callee::Extern(id) = callee {
             return self.emit_ranged_extern(fi, *id, callee, args, dest, ok, fail, blocks, slots, func);
+        }
+        if let Callee::Convert(to) = callee {
+            return self.emit_failing_convert(fi, to, args, dest, ok, fail, blocks, slots, func);
         }
         let target = match callee {
             Callee::Fn(idx) => idx.0 as usize,

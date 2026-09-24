@@ -115,3 +115,50 @@ fn a_bitwise_answer_is_in_the_set() {
         }
     }
 }
+
+/// Bin intervals (`precog.md`: "Bins are intervals from the start"): every
+/// answer the target's IEEE arithmetic gives for operands in the two
+/// intervals, at 32 and at 64 bits, is inside what Precog says.
+#[test]
+fn a_bin_answer_is_in_the_interval() {
+    use cca::mir::domain::Domain;
+    let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
+    let mut next = move || {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        seed
+    };
+    let mut unit = move || (next() >> 11) as f64 / (1u64 << 53) as f64;
+    let ops = [BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div];
+    for round in 0..4000 {
+        let scale = [1e-40, 1e-3, 1.0, 3e3, 1.6e7, 1e30][round % 6];
+        let mut pick = |u: &mut dyn FnMut() -> f64| {
+            let a = (u() - 0.5) * scale;
+            let b = a + u() * scale;
+            (a, b)
+        };
+        let (a, b) = (pick(&mut unit), pick(&mut unit));
+        for op in &ops {
+            for bits in [32u16, 64] {
+                // The endpoints as the width holds them.
+                let at = |v: f64| if bits == 32 { v as f32 as f64 } else { v };
+                let (a, b) = ((at(a.0), at(a.1)), (at(b.0), at(b.1)));
+                let Some(Domain::Bins { lo: Some(lo), hi: Some(hi) }) = cca::precog::bin_interval(op, a, b, bits) else { continue };
+                for i in 0..=8 {
+                    for j in 0..=8 {
+                        let x = at(a.0 + (a.1 - a.0) * i as f64 / 8.0);
+                        let y = at(b.0 + (b.1 - b.0) * j as f64 / 8.0);
+                        let v = if bits == 32 {
+                            let (x, y) = (x as f32, y as f32);
+                            (match op { BinOp::Add => x + y, BinOp::Sub => x - y, BinOp::Mul => x * y, _ => x / y }) as f64
+                        } else {
+                            match op { BinOp::Add => x + y, BinOp::Sub => x - y, BinOp::Mul => x * y, _ => x / y }
+                        };
+                        assert!(lo <= v && v <= hi, "{:?} at {} bits of {:?} and {:?}: {} {:?} {} is {}, not in {}..{}", op, bits, a, b, x, op, y, v, lo, hi);
+                    }
+                }
+            }
+        }
+    }
+}

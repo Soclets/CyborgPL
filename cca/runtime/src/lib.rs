@@ -582,3 +582,34 @@ pub unsafe extern "C" fn cyborg_same_text(ap: *const u8, alen: u64, bp: *const u
     alen == blen && cyborg_same_bytes(ap, bp, alen)
 }
 
+
+/// Text to a whole number (`conversion.md`), as the oracle reads it: an
+/// optional `+` or `-`, then one or more ASCII digits and nothing else — no
+/// spaces, no `_`, no decimals, no other scripts' digits. 0 and the value in
+/// `out`; 1 when the text is not a number; 2 when it is one too big for 128
+/// bits, with `out` saturated in its direction.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_parse_int(p: *const u8, len: u64, out: *mut i128) -> u8 {
+    let bytes = if len == 0 { &[][..] } else { core::slice::from_raw_parts(p, len as usize) };
+    let (neg, digits) = match bytes.first() {
+        Some(b'-') => (true, &bytes[1..]),
+        Some(b'+') => (false, &bytes[1..]),
+        _ => (false, bytes),
+    };
+    if digits.is_empty() || !digits.iter().all(|c| c.is_ascii_digit()) {
+        return 1;
+    }
+    let mut v: i128 = 0;
+    for c in digits {
+        let d = (c - b'0') as i128;
+        match v.checked_mul(10).and_then(|x| if neg { x.checked_sub(d) } else { x.checked_add(d) }) {
+            Some(x) => v = x,
+            None => {
+                *out = if neg { i128::MIN } else { i128::MAX };
+                return 2;
+            }
+        }
+    }
+    *out = v;
+    0
+}

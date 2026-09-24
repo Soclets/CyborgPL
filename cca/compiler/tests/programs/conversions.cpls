@@ -1,0 +1,34 @@
+# Conversions that can fail: text into a whole number (not_a_number), a bin
+# into one (not_whole), and anything into a range type (out_of_range).
+extern fn exit ['code': int32];
+fn read ['t': str.utf8] -> int32 {
+    let 'v' := to.int32['t'] otherwise { not_a_number { return -1; } };
+    return 'v';
+}
+fn percent ['t': str.utf8] -> int32 {
+    let 'v' := to.int32[0, 100]['t'] otherwise {
+        not_a_number { return -1; }
+        out_of_range { return -2; }
+    };
+    return 'v';
+}
+fn whole ['x': bin64] -> int32 {
+    let 'v' := to.int32['x'] otherwise { not_whole { return -1; } };
+    return 'v';
+}
+MAIN {
+    let mut 'got': int32 = 0;
+    if read["42"] == 42 { 'got' = 'got' + 1; }
+    let 'b' := to.int64["-7"] otherwise -1;
+    if 'b' == -7 { 'got' = 'got' + 2; }
+    if read["4x2"] == -1 and read[""] == -1 and read["-"] == -1 { 'got' = 'got' + 4; }
+    if percent["150"] == -2 and percent["-1"] == -2 and percent["x"] == -1 { 'got' = 'got' + 8; }
+    if percent["+99"] == 99 and percent["0"] == 0 { 'got' = 'got' + 16; }
+    if whole[2.0] == 2 and whole[2.7] == -1 and whole[-3.0] == -3 { 'got' = 'got' + 32; }
+    let 'n': int64 = 150;
+    let 'h' := to.int32[0, 100]['n'] otherwise 7;
+    if 'h' == 7 { 'got' = 'got' + 64; }
+    let 'i' := to.uint8[" 1"] otherwise 3;
+    if 'i' == 3 { 'got' = 'got' + 128; }
+    nocheck exit['got' mod 256];
+}

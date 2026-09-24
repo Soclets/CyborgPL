@@ -1,0 +1,26 @@
+# Consts, worked out once at compile time to the literal each is: integers,
+# text, bin64 and powers, used in a struct, a call, a loop's bound.
+extern fn exit ['code': int32];
+extern fn strlen ['s': ptr[uint8]] -> uint64;
+pub const 'max' := 8;
+const 'pi': bin64 = 3.141_592_653_589_793;
+const 'twice_max' := 'max' x 2;
+const 'greeting' := "hello " ++ "world";
+const 'big': int64 = 'max' xx 20;
+pub struct P { x: int32 }
+pub fn area ['r': bin64] -> bin64 { return 'pi' x 'r' x 'r'; }
+MAIN {
+    let mut 'got': int32 = 0;
+    if 'twice_max' == 16 { 'got' = 'got' + 1; }
+    let 's' := 'greeting';
+    nocheck if strlen[lend 's'] == 11 { 'got' = 'got' + 2; }
+    let 'p' := P[x = 'max'];
+    if 'p'.x == 8 { 'got' = 'got' + 4; }
+    let 'a' := area[2.0];
+    if 'a' > 12.56 and 'a' < 12.57 { 'got' = 'got' + 8; }
+    let mut 'n': int32 = 0;
+    for 'i' in range[1, 'max', 4] { 'n' = 'n' + 1; }
+    if 'n' == 2 { 'got' = 'got' + 16; }
+    if 'big' == 1152921504606846976 { 'got' = 'got' + 32; }
+    nocheck exit['got'];
+}

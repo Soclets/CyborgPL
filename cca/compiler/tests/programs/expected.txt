@@ -122,3 +122,8 @@ power_negative trap
 
 # Structural equality: enums, structs, text.
 equality 63
+
+# Consts folded to their literals.
+consts 63
+conversions 255
+text_too_big trap

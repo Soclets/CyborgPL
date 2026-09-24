@@ -1171,10 +1171,24 @@ impl Precog {
                 let (t, fa) = a.compare_bin(b, c);
                 return Domain::Bools(t, fa);
             }
-            // Bin arithmetic rounds, and rounding is the target's business
-            // (`reproducible-builds.md`), so the result is what its own type
-            // holds and nothing narrower. A known value stays known only
-            // where it was written.
+            // "Bins are intervals from the start" (`precog.md`). IEEE
+            // rounding is monotone, so over a box the answers lie between the
+            // corners' answers; each corner is worked out in 64 bits and
+            // widened a unit in the last place at the result's own width,
+            // which covers the rounding (and a double rounding) either way.
+            // A divisor that can be 0, or an answer that can leave the
+            // type's finite range, gives the type's range and no narrower.
+            // A width not chosen yet is worked at 64 bits, as codegen does.
+            let bits = match ty.base() {
+                Ty::Bin(crate::types::BinW::Fixed(b)) => Some(*b),
+                Ty::Bin(crate::types::BinW::Free(_)) => Some(64),
+                _ => None,
+            };
+            if let (Some(bits), Domain::Bins { lo: Some(a1), hi: Some(a2) }, Domain::Bins { lo: Some(b1), hi: Some(b2) }) = (bits, a, b) {
+                if let Some(d) = bin_interval(op, (*a1, *a2), (*b1, *b2), bits) {
+                    return d;
+                }
+            }
             return Domain::of_ty(&ty, &self.prog().items);
         }
         if let (Domain::Bools(t1, f1), Domain::Bools(t2, f2)) = (a, b) {
@@ -1269,8 +1283,48 @@ impl Precog {
                 };
                 Domain::Text { len: Lengths { bytes: len.clone(), points: len.clone(), graphemes: len }, values: None, classes: vec![Class::Ascii, Class::NoNewline, Class::NonEmpty] }
             }
+            // A bin into a whole number: past the call it was whole, so it is
+            // one of the whole values in its interval. Into the exact type a
+            // value past 64 bits lands as one no 64-bit type holds (codegen),
+            // which the set has to leave room for.
+            (Domain::Bins { lo: Some(lo), hi: Some(hi) }, Domain::Ints(limit)) => {
+                let (Some((l2, h2)), true) = (limit.bounds(), lo.ceil() <= hi.floor()) else { return top };
+                let (l, h) = (lo.ceil().max(-1e38) as i128, hi.floor().min(1e38) as i128);
+                self.whole_into(to, l, h, l2, h2)
+            }
+            // Text whose values are all known: their numbers.
+            (Domain::Text { values: Some(vs), .. }, Domain::Ints(limit)) => {
+                let Some((l2, h2)) = limit.bounds() else { return top };
+                let nums: Vec<i128> = vs.iter().filter_map(|v| v.parse::<i128>().ok()).collect();
+                if nums.is_empty() {
+                    // None of them is a number: the call always fails.
+                    return Domain::Empty;
+                }
+                let (l, h) = (*nums.iter().min().unwrap(), *nums.iter().max().unwrap());
+                self.whole_into(to, l, h, l2, h2)
+            }
+            (_, Domain::Ints(_)) if to.is_exact() && !matches!(from, Domain::Ints(_)) => {
+                Domain::Ints(ISet::Range { lo: i64::MIN as i128 - 1, hi: u64::MAX as i128 })
+            }
             _ => top,
         }
+    }
+
+    /// Whole values `l..=h` converted into `to`, whose range is `l2..=h2`.
+    /// A range type fails `out_of_range` outside it, so the values are
+    /// clipped; the exact type holds past-64-bit values as its marker.
+    fn whole_into(&self, to: &Ty, l: i128, h: i128, l2: i128, h2: i128) -> Domain {
+        if to.is_exact() {
+            let lo = if l < l2 || h < l2 { i64::MIN as i128 - 1 } else { l };
+            let hi = if h > h2 { h2 } else { h };
+            let lo = if h > h2 { lo.min(i64::MIN as i128 - 1) } else { lo };
+            return Domain::Ints(ISet::range(lo.min(hi), hi.max(lo)));
+        }
+        let (lo, hi) = (l.max(l2), h.min(h2));
+        if lo > hi {
+            return Domain::Empty;
+        }
+        Domain::Ints(ISet::range(lo, hi))
     }
 
     fn eval_op(&mut self, f: usize, op: &Op, args: &[Operand], env: &Env) -> Domain {
@@ -2423,4 +2477,46 @@ fn reached_every_run(p: &Program, edges: &std::collections::HashSet<(usize, usiz
         }
     }
     out
+}
+
+/// Bin `+ - x /` over two intervals at a width of `bits`, or `None` when the
+/// answer is not a finite interval Precog can stand behind.
+pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Option<Domain> {
+    let corners = [(a.0, b.0), (a.0, b.1), (a.1, b.0), (a.1, b.1)];
+    let f = |x: f64, y: f64| -> f64 {
+        match op {
+            BinOp::Add => x + y,
+            BinOp::Sub => x - y,
+            BinOp::Mul => x * y,
+            BinOp::Div => x / y,
+            _ => f64::NAN,
+        }
+    };
+    if matches!(op, BinOp::Div) && b.0 <= 0.0 && b.1 >= 0.0 {
+        return None;
+    }
+    let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+    for (x, y) in corners {
+        let v = f(x, y);
+        if !v.is_finite() {
+            return None;
+        }
+        lo = lo.min(v);
+        hi = hi.max(v);
+    }
+    // One unit in the last place at the width, and the smallest step the
+    // width has near 0, so a subnormal answer is covered too.
+    let (mantissa, tiny) = match bits {
+        16 => (10, 2f64.powi(-24)),
+        32 => (23, 2f64.powi(-149)),
+        64 => (52, f64::from_bits(1)),
+        _ => return None,
+    };
+    let widen = |v: f64| v.abs() * 2f64.powi(-mantissa) + tiny;
+    let (lo, hi) = (lo - widen(lo), hi + widen(hi));
+    let max = crate::mir::domain::bin_max(crate::types::BinW::Fixed(bits))?;
+    if lo < -max || hi > max {
+        return None;
+    }
+    Some(Domain::Bins { lo: Some(lo), hi: Some(hi) })
 }

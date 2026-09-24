@@ -13,7 +13,14 @@ use super::domain::Domain;
 use super::*;
 
 pub fn build(checked: Checked) -> Program {
-    let mut b = Arena { functions: Vec::new(), inst_idx: HashMap::new(), instances: checked.instances, items: checked.items, subst: checked.subst };
+    // Every const worked out once, in order, to the literal it is — so each
+    // use is that literal, and Precog knows it exactly.
+    let mut consts: Vec<Option<Const>> = Vec::new();
+    for v in &checked.const_values {
+        let c = const_eval(v, &consts, &checked.items);
+        consts.push(c);
+    }
+    let mut b = Arena { functions: Vec::new(), inst_idx: HashMap::new(), instances: checked.instances, items: checked.items, subst: checked.subst, consts };
     // Every instance with a body gets its index first, so a call can name
     // one that has not been lowered yet.
     let mut order = Vec::new();
@@ -48,6 +55,85 @@ pub struct Arena {
     pub items: crate::resolve::Items,
     /// The checker's answers for the types it had to work out.
     pub subst: HashMap<crate::types::InferId, Ty>,
+    /// Each const's value, when it is a literal the program can hold.
+    pub consts: Vec<Option<Const>>,
+}
+
+/// A const's value at compile time (`functions.md`, consts): literals,
+/// exact whole-number arithmetic (`/` floored, `mod` the divisor's sign),
+/// comparisons, `bin64` arithmetic, joined texts, and earlier consts. Any
+/// other shape (a list, a call) stays a reference.
+fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Items) -> Option<Const> {
+    use crate::ast::{BinOp as B, UnOp as U};
+    let _ = items;
+    let bin64 = |e: &hir::Expr| matches!(e.ty.base(), Ty::Bin(crate::types::BinW::Fixed(64)));
+    match &e.kind {
+        hir::ExprKind::Int(v) => Some(Const::Int(*v)),
+        hir::ExprKind::Bin(s) => Some(Const::Bin(s.clone())),
+        hir::ExprKind::Str(s) => Some(Const::Str(s.clone())),
+        hir::ExprKind::Char(c) => Some(Const::Char(c.clone())),
+        hir::ExprKind::Bool(b) => Some(Const::Bool(*b)),
+        hir::ExprKind::Duration(n) => Some(Const::Duration(*n)),
+        hir::ExprKind::Const(id) => done.get(id.0 as usize).cloned().flatten(),
+        hir::ExprKind::Unary { op, expr } => match (op, const_eval(expr, done, items)?) {
+            (U::Neg, Const::Int(v)) => Some(Const::Int(v.checked_neg()?)),
+            (U::Neg, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()?))),
+            (U::Not, Const::Bool(b)) => Some(Const::Bool(!b)),
+            _ => None,
+        },
+        hir::ExprKind::Binary { op, lhs, rhs, .. } => {
+            let (a, b) = (const_eval(lhs, done, items)?, const_eval(rhs, done, items)?);
+            match (a, b) {
+                (Const::Int(x), Const::Int(y)) => {
+                    let floor = |x: i128, y: i128| -> Option<(i128, i128)> {
+                        if y == 0 {
+                            return None;
+                        }
+                        let (q, r) = (x.checked_div(y)?, x.checked_rem(y)?);
+                        Some(if r != 0 && ((r < 0) != (y < 0)) { (q - 1, r + y) } else { (q, r) })
+                    };
+                    Some(match op {
+                        B::Add => Const::Int(x.checked_add(y)?),
+                        B::Sub => Const::Int(x.checked_sub(y)?),
+                        B::Mul => Const::Int(x.checked_mul(y)?),
+                        B::Div => Const::Int(floor(x, y)?.0),
+                        B::Mod => Const::Int(floor(x, y)?.1),
+                        B::Pow if y >= 0 => Const::Int(x.checked_pow(u32::try_from(y).ok()?)?),
+                        B::Eq => Const::Bool(x == y),
+                        B::Ne => Const::Bool(x != y),
+                        B::Lt => Const::Bool(x < y),
+                        B::Le => Const::Bool(x <= y),
+                        B::Gt => Const::Bool(x > y),
+                        B::Ge => Const::Bool(x >= y),
+                        _ => return None,
+                    })
+                }
+                // Only at `bin64`, where the host's double is the target's
+                // (`reproducible-builds.md`: never round at the host's width).
+                (Const::Bin(x), Const::Bin(y)) if bin64(e) => {
+                    let (x, y) = (x.replace('_', "").parse::<f64>().ok()?, y.replace('_', "").parse::<f64>().ok()?);
+                    let v = match op {
+                        B::Add => x + y,
+                        B::Sub => x - y,
+                        B::Mul => x * y,
+                        B::Div => x / y,
+                        _ => return None,
+                    };
+                    Some(Const::Bin(format!("{:?}", v)))
+                }
+                (Const::Str(x), Const::Str(y)) if *op == B::Join => Some(Const::Str(x + &y)),
+                (Const::Bool(x), Const::Bool(y)) => match op {
+                    B::And => Some(Const::Bool(x && y)),
+                    B::Or => Some(Const::Bool(x || y)),
+                    B::Eq => Some(Const::Bool(x == y)),
+                    B::Ne => Some(Const::Bool(x != y)),
+                    _ => None,
+                },
+                _ => None,
+            }
+        }
+        _ => None,
+    }
 }
 
 /// A type as it finally is: inference filled in, a `simd`'s lane count
@@ -989,7 +1075,10 @@ impl<'a> FnBuilder<'a> {
             hir::ExprKind::Char(c) => Operand::Const(Const::Char(c.clone())),
             hir::ExprKind::Bool(b) => Operand::Const(Const::Bool(*b)),
             hir::ExprKind::Duration(n) => Operand::Const(Const::Duration(*n)),
-            hir::ExprKind::Const(c) => Operand::Const(Const::Const(*c)),
+            hir::ExprKind::Const(c) => match self.arena.consts.get(c.0 as usize).cloned().flatten() {
+                Some(v) => Operand::Const(v),
+                None => Operand::Const(Const::Const(*c)),
+            },
             hir::ExprKind::SizeOf { align, ty } => Operand::Const(Const::SizeOf { align: *align, ty: ty.clone() }),
             hir::ExprKind::Nothing => Operand::Const(Const::Nothing),
             hir::ExprKind::Local(l) => Operand::Read(Place::local(LocalId(l.0))),
@@ -1318,6 +1407,29 @@ impl<'a> FnBuilder<'a> {
                             let _ = self.into_temp(rv, &ty, span);
                         }
                     }
+                    return;
+                }
+                // Text or a bin into a plain whole-number type: parsed to its
+                // true value, then landed like any store — a narrowing site
+                // (`conversion.md`: "narrowing is a check site"; the oracle's
+                // "99999999999 does not fit int32"). A range type instead
+                // fails `out_of_range`, one of its listed reasons.
+                let from = self.resolve_ty(&expr.ty);
+                let to = self.resolve_ty(target);
+                let plain_int = matches!(to, Ty::Int(IntW::Fixed { .. })) && !to.is_exact();
+                if plain_int && matches!(from.base(), Ty::Str(_) | Ty::Bin(_)) {
+                    let t = self.temp(&Ty::exact(), span);
+                    let parsed = self.new_block();
+                    let join = self.new_block();
+                    let fail_arms = self.fail_blocks_for_call(otherwise.as_deref(), &f, dest.clone(), join, span);
+                    self.terminate_at(Terminator::Call { callee: Callee::Convert(Ty::exact()), args: vec![Arg::Value(op)], dest: Some(Place::local(t)), ok: parsed, fail: fail_arms }, span);
+                    self.cur = parsed;
+                    self.site_of(SiteKind::Narrow { to: to.clone() }, vec![Operand::Read(Place::local(t))], Some(to.clone()), span);
+                    if let Some(p) = dest {
+                        self.assign(p, Rvalue::Use(Operand::Read(Place::local(t))), span);
+                    }
+                    self.terminate_at(Terminator::Goto(join), span);
+                    self.cur = join;
                     return;
                 }
                 (Callee::Convert(target.clone()), vec![Arg::Value(op)], otherwise.as_deref(), f)
