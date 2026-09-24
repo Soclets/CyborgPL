@@ -44,6 +44,8 @@ the owner explicitly chooses it.
   expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
 - `website/` — the open-source CyborgPL website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.
+  cyborgpl.dev is live as a one-line placeholder (`website/placeholder/`,
+  Cloudflare); the real site is not being built for now (owner, 2026-09-24).
 - `oracle/` — the reference interpreter (Rust): the executable spec. It
   implements only what `design/` decides and refuses the rest. When a note
   and the oracle disagree, fix whichever is wrong and add a test. Its

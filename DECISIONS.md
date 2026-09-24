@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — cyborgpl.dev is live, as a placeholder; the real site waits (owner)
+
+The owner had the website session put up cyborgpl.dev: one plain page,
+"CyborgPL is under development.", linking to the GitHub repo. The repo is
+still private, so the link fails for visitors, and the owner knows. The
+owner's choices, relayed by the website session and confirmed here:
+hosted on Cloudflare's free tier, as Workers with static assets (the
+website session recommended them over Pages: the domain lives in config,
+and nothing deploys on push); `www.cyborgpl.dev` redirects to
+`cyborgpl.dev`, keeping path and query; the Workers are named
+`cyborgpl-website` and `cyborgpl-www-redirect`; and the real website is
+"not building the website for now". Deploys are manual and happen only
+when the owner asks. The config and the page are in
+`website/placeholder/` (aac7f14).
+
 ### 2026-09-24 — A lend's sizes must match the parameter's (owner: a)
 
 From compiler claude: `total[lend 'big']` with `'big'` a `list[int64]` and
@@ -204,7 +219,8 @@ language repo, and asked where. Proposed: `website/`, `www/`, `docs/`,
 `site/`. Design claude recommended `website/`, which says what it is and
 leaves `docs/` for language documentation. Owner: `website/`. The site
 is updated only when the owner asks the website session to. It becomes
-public when the repo does. The site's text licence was open here, and
+public when the repo does (overtaken 2026-09-24: cyborgpl.dev is live, above).
+The site's text licence was open here, and
 is ruled above: CC BY 4.0.
 
 ### 2026-09-23 — Precog follows a loop up to 100,000 trips (owner)
