@@ -20,7 +20,8 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   folds an operand into range with `lo + (e mod w)` — a plain CyborgPL
   guardrail — where it could overflow. A few operations per thousand are
   left unguarded on purpose (`--risk`, per mille), so the engines are also
-  compared on checks that fire. It writes: `int8`…`int64`, `uint8`…`uint64`,
+  compared on checks that fire — never inside a `check` block or on a
+  `check` statement, since CCA must refuse a `check` it cannot prove. It writes: `int8`…`int64`, `uint8`…`uint64`,
   `bool`; `let` (plain / `mut` / `immut`), assignment, `if` / `else if` /
   `else`, `for` over `range` with every step sign (and `perm`), `while` and
   `loop` with counters, `break` / `continue` / early `return`, blocks,
@@ -90,8 +91,10 @@ straight at them. Default: `exact-bits`.
 - `u64-high` (uint64 values ≥ 2^63 handled as int64) and `range-edge` (a
   `for` whose last step passes the counter type's edge) — both fixed in
   CCA c36cfce; still available as `--avoid` items.
-- `xx` is not generated unless `--pow`: CCA does not generate code for it
-  yet.
+- Always (no switch): a shift, bitwise or wrapping operator never has bare
+  numbers on both sides — with no width anywhere its meaning has no ruling
+  yet (design claude, 2026-09-24).
+- `pow`: no `xx` (CCA generates it since d549b34; on by default).
 
 ## Harness hygiene
 

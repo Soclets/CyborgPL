@@ -74,12 +74,13 @@ impl Args {
             size: self.num("size", 3) as u32,
             inputs: self.num("inputs", 0) as u32,
             risk: self.num("risk", 5),
-            pow: self.has("pow"),
+            pow: !avoid.contains("pow"),
             range_edge: !avoid.contains("range-edge"),
             width_from_context: !avoid.contains("shl-width"),
             ranges: !avoid.contains("ranges"),
             edge: self.has("edge"),
             sized_bits: avoid.contains("exact-bits"),
+            recursion: !avoid.contains("recursion"),
         }
     }
 }

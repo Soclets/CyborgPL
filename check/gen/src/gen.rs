@@ -39,11 +39,14 @@ pub struct Config {
     /// with `to.T[…]` unless they are names or literals: CCA says "not yet"
     /// to them on an exact answer (2026-09-23).
     pub sized_bits: bool,
+    /// Write recursive functions: a range-typed counter parameter that
+    /// counts down to 0 (or up to its top) on every call.
+    pub recursion: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true }
     }
 }
 
@@ -85,6 +88,9 @@ struct Gen {
     budget: u64,
     spent: u64,
     risky: bool,
+    /// Inside a `check` block: no operation is left unguarded here, since
+    /// CCA must (rightly) refuse a `check` it cannot prove.
+    in_check: u32,
 }
 
 const MAIN_BUDGET: u64 = 20_000;
@@ -108,6 +114,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         budget: 0,
         spent: 0,
         risky: false,
+        in_check: 0,
     };
     let nfns = g.rng.below(cfg.size as u64 + 1) as usize;
     let mut funcs = vec![];
@@ -288,6 +295,20 @@ impl Gen {
             params.push((format!("p{}", k + 1), t, iv));
             param_tys.push(tr);
         }
+        // A recursive function: its first parameter is a range-typed counter
+        // that every self-call moves one step toward the base case, so each
+        // call ends. Downward to 0, or upward to the top — the upward shape is
+        // one CCA's induction must not prove by mistake (compiler claude).
+        let rec = if self.cfg.recursion && self.rng.chance(30) {
+            let top = self.rng.range(1, 10);
+            let up = self.rng.chance(30);
+            let ct = *self.rng.pick(&[Ty::I32, Ty::I64, Ty::U8, Ty::U32]);
+            params.insert(0, ("pr".to_string(), ct, Iv::new(0, top)));
+            param_tys.insert(0, TyR { base: ct, range: Some((Some(0), Some(top))) });
+            Some((ct, top, up))
+        } else {
+            None
+        };
         let ret = if self.rng.chance(10) { Ty::Bool } else { self.int_ty() };
         let (ret_tr, ret_range) = self.maybe_range(ret);
         let ret_iv = if ret == Ty::Bool { Iv::new(0, 1) } else { ret_range.unwrap_or_else(|| self.ghost(ret)) };
@@ -300,11 +321,33 @@ impl Gen {
         for (n, t, iv) in &params {
             self.declare(n.clone(), *t, *iv, false);
         }
+        let mut body = vec![];
+        if let Some((_, top, up)) = rec {
+            let pr = || Box::new(Expr::Var("pr".into()));
+            let (base_cond, step) = if up {
+                (Expr::Cmp(CmpOp::Ge, pr(), Box::new(Expr::Lit(top))), BinOp::Add)
+            } else {
+                (Expr::Cmp(CmpOp::Eq, pr(), Box::new(Expr::Lit(0))), BinOp::Sub)
+            };
+            let (base, _) = self.value_in(ret, ret_iv);
+            body.push(Stmt::If { arms: vec![(base_cond, vec![Stmt::Return(base)])], otherwise: None });
+            // The self-call, its value kept in a name the rest may use.
+            let mut args = vec![Expr::Bin(step, pr(), Box::new(Expr::Lit(1)))];
+            for (_, pt, piv) in params.iter().skip(1) {
+                let (a, _) = if *pt == Ty::Bool { (self.bool_expr(1), Iv::new(0, 1)) } else { self.value_in(*pt, *piv) };
+                args.push(a);
+            }
+            let rname = self.name("r");
+            body.push(Stmt::Let { tier: Tier::Default, name: rname.clone(), mutability: Mutability::Plain, ty: ret.into(), value: Expr::Call(name.clone(), args) });
+            self.declare(rname, ret, ret_iv, false);
+        }
         let n = self.stmt_count() / 2 + 1;
-        let mut body = self.stmts(n, self.depth().saturating_sub(1).max(1));
+        body.extend(self.stmts(n, self.depth().saturating_sub(1).max(1)));
         let (e, _) = self.value_in(ret, ret_iv);
         body.push(Stmt::Return(e));
-        self.sigs.push(Sig { name: name.clone(), params: params.clone(), ret, ret_iv, cost: self.spent.max(1) });
+        // A recursive function runs its body once per step of its counter.
+        let calls = rec.map_or(1, |(_, top, _)| top as u64 + 1);
+        self.sigs.push(Sig { name: name.clone(), params: params.clone(), ret, ret_iv, cost: self.spent.max(1).saturating_mul(calls) });
         Func { name, params: params.into_iter().zip(param_tys).map(|((name, _, _), ty)| Param { name, ty }).collect(), ret: ret_tr, body }
     }
 
@@ -357,14 +400,21 @@ impl Gen {
             _ => {
                 let tier = if self.rng.chance(50) { Tier::Check } else { Tier::Default };
                 let n = self.stmt_count() / 2 + 1;
-                Stmt::Block { tier, body: self.block(n, depth - 1) }
+                if tier == Tier::Check {
+                    self.in_check += 1;
+                }
+                let body = self.block(n, depth - 1);
+                if tier == Tier::Check {
+                    self.in_check -= 1;
+                }
+                Stmt::Block { tier, body }
             }
         }
     }
 
     fn tier(&mut self, risky: bool) -> Tier {
         match self.rng.below(20) {
-            0 | 1 => Tier::Check,
+            0 | 1 if !risky => Tier::Check,
             2 if !risky => Tier::Nocheck,
             _ => Tier::Default,
         }
@@ -599,6 +649,9 @@ impl Gen {
     }
 
     fn take_risk(&mut self) -> bool {
+        if self.in_check > 0 {
+            return false;
+        }
         let r = self.rng.below(1000) < self.cfg.risk;
         if r {
             self.risky = true;
@@ -778,6 +831,17 @@ impl Gen {
             }
         };
         let (a, b) = if bitty && self.cfg.sized_bits { (size(a), size(b)) } else { (a, b) };
+        // Bare numbers on both sides leave the operator no width at all: no
+        // ruling yet on what that means (design claude, 2026-09-24), so one
+        // side becomes a typed name.
+        let (a, ia) = if bitty && is_literal_only(&a) && is_literal_only(&b) {
+            match self.typed_leaf(t) {
+                Some((v, iv)) => (v, iv),
+                None => (a, ia),
+            }
+        } else {
+            (a, ia)
+        };
         let r = t.range();
         let bits = t.bits() as i128;
         let risk = self.take_risk();

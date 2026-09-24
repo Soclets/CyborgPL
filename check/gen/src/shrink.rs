@@ -26,7 +26,10 @@ pub fn candidates(p: &Program) -> Vec<Program> {
         out.push(Program { main: v, ..p.clone() });
     }
     for (i, f) in p.funcs.iter().enumerate() {
-        for v in block_variants(&f.body) {
+        // A recursive function starts with its base case and its self-call;
+        // changing either can make it endless.
+        let keep = if calls_itself(f) { 2 } else { 0 };
+        for v in block_variants_from(&f.body, keep) {
             let mut q = p.clone();
             q.funcs[i].body = v;
             out.push(q);
@@ -279,10 +282,10 @@ pub fn well_scoped(p: &Program) -> bool {
     let mut arity: Vec<(String, usize)> = vec![("put_i".into(), 1), ("put_u".into(), 1)];
     for f in &p.funcs {
         let mut scopes = vec![f.params.iter().map(|x| x.name.clone()).collect::<Vec<_>>()];
+        arity.push((f.name.clone(), f.params.len()));
         if !block_ok(&f.body, &mut scopes, &arity) {
             return false;
         }
-        arity.push((f.name.clone(), f.params.len()));
     }
     let mut scopes = vec![p.inputs.iter().map(|i| i.name.clone()).collect::<Vec<_>>()];
     block_ok(&p.main, &mut scopes, &arity)
@@ -338,4 +341,16 @@ fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bo
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_ok(a, scopes, arity),
         Expr::Call(f, args) => arity.iter().any(|(n, k)| n == f && *k == args.len()) && args.iter().all(|a| expr_ok(a, scopes, arity)),
     }
+}
+
+fn calls_itself(f: &Func) -> bool {
+    fn in_expr(e: &Expr, n: &str) -> bool {
+        match e {
+            Expr::Call(g, args) => g == n || args.iter().any(|a| in_expr(a, n)),
+            Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => in_expr(a, n) || in_expr(b, n),
+            Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => in_expr(a, n),
+            _ => false,
+        }
+    }
+    f.body.iter().any(|s| matches!(s, Stmt::Let { value, .. } if in_expr(value, &f.name)))
 }
