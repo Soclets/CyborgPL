@@ -342,8 +342,9 @@ Dated, with the alternative, so each can become a question later.
   laid out. Alternatives: always an env parameter (C callbacks then need a
   second entry per function); defunctionalising — every function value's
   possible targets are known to Precog, so a tag and a switch, no indirect
-  call. A literal that owns what it captured (`copy`, `give`) waits on how
-  such a value is owned (can it be copied?), asked.
+  call. The block begins with how to give it back and how to copy it
+  (null for one that only lends): a function carrying a `copy`/`give`
+  capture is owned (owner, 2026-09-24: a), and its block is on the heap.
 - **2026-09-24 — A list lent to a parameter of other widths is not built.**
   A `:=` list of bare numbers takes its width from use (`types.md`: Precog
   picks), but a `list[int64]` lent to a `list[int32]` is refused by CCA as
