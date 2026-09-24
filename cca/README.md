@@ -352,3 +352,10 @@ Dated, with the alternative, so each can become a question later.
   compiler version, moved on deliberately ("we should update when we should
   update"; reproducible-builds.md, item 7). No lock file exists yet
   (Synthia's); `cca version` prints both, for it to carry.
+- **2026-09-24 — `inline.ASM` says memory and the flags are written.**
+  `ffi.md` has the bindings and the clobbers a program writes; CCA adds
+  `memory` and `cc` to every block, since a syscall may write through a
+  pointer it was handed and the braces are not read. That costs LLVM some
+  freedom around the block, never correctness. A binding uses the whole
+  register (`xN` 64 bits, `wN` 32), the value widened by its own sign.
+  Alternative: a `clobber memory` word the programmer writes.

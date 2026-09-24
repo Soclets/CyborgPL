@@ -617,7 +617,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         self.cannot("this task has no shape in the generated code yet", span);
                     }
                 }
-                StmtKind::Asm { .. } => self.cannot("`inline.ASM` has no shape in the generated code yet", Some(f.span(s.span))),
+                StmtKind::Asm { text, ins, outs, clobbers } => {
+                    if self.inline_asm(fi, text, ins, outs, clobbers, slots).is_none() {
+                        self.cannot("this `inline.ASM` has no shape in the generated code yet", Some(f.span(s.span)));
+                    }
+                }
             }
         }
         // The sites guarding a call that ends the block (`map.get`'s).
@@ -1847,6 +1851,80 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             None => self.operand(fi, &Operand::Read(p.clone()), slots),
         }
+    }
+
+    /// `nocheck inline.ASM { … } with [ … ]` (`ffi.md`): the text verbatim
+    /// for LLVM's assembler, each `->` binding copied into its register
+    /// before, each `<-` stored from its register after, each `clobber`
+    /// said. x29 and x30 are spelled `fp` and `lr` in what LLVM gets (the
+    /// compiler rule of 2026-09-21: LLVM 22 ignores their `xN` clobbers).
+    /// Memory and the flags are always marked written — a syscall may write
+    /// through a pointer it was handed — which costs optimisation, never
+    /// correctness. Whole registers: a value goes in widened to 64 bits by
+    /// its own sign, and comes out narrowed to its place.
+    fn inline_asm(&mut self, fi: usize, text: &str, ins: &[(Place, String)], outs: &[(Place, String)], clobbers: &[String], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+        let abi = |r: &str| -> String {
+            match r {
+                "x29" | "w29" => "fp".into(),
+                "x30" | "w30" => "lr".into(),
+                other => other.to_string(),
+            }
+        };
+        let reg_ty = |this: &Self, r: &str| -> BasicTypeEnum<'ctx> {
+            if r.starts_with('w') { this.ctx.i32_type().into() } else { this.ctx.i64_type().into() }
+        };
+        let mut constraints: Vec<String> = Vec::new();
+        let mut out_tys: Vec<BasicTypeEnum> = Vec::new();
+        for (_, r) in outs {
+            constraints.push(format!("={{{}}}", abi(r)));
+            out_tys.push(reg_ty(self, r));
+        }
+        let mut args: Vec<BasicMetadataValueEnum> = Vec::new();
+        let mut arg_tys: Vec<BasicMetadataTypeEnum> = Vec::new();
+        for (p, r) in ins {
+            constraints.push(format!("{{{}}}", abi(r)));
+            let v = self.operand(fi, &Operand::Read(p.clone()), slots)?;
+            let signed = self.operand_signed(fi, &Operand::Read(p.clone())).unwrap_or(true);
+            let t = reg_ty(self, r);
+            let v = match v {
+                BasicValueEnum::PointerValue(pv) if t.is_int_type() => self.builder.build_ptr_to_int(pv, t.into_int_type(), "addr").ok()?.into(),
+                other => self.fit_as(other, t, signed),
+            };
+            args.push(v.into());
+            arg_tys.push(t.into());
+        }
+        for c in clobbers {
+            constraints.push(format!("~{{{}}}", abi(c)));
+        }
+        constraints.push("~{memory}".into());
+        constraints.push("~{cc}".into());
+        let ret: Option<BasicTypeEnum> = match out_tys.len() {
+            0 => None,
+            1 => Some(out_tys[0]),
+            _ => Some(self.ctx.struct_type(&out_tys, false).into()),
+        };
+        let fty = match ret {
+            Some(r) => r.fn_type(&arg_tys, false),
+            None => self.ctx.void_type().fn_type(&arg_tys, false),
+        };
+        let asm = self.ctx.create_inline_asm(fty, text.replace('$', "$$"), constraints.join(","), true, false, None, false);
+        let call = self.builder.build_indirect_call(fty, asm, &args, "asm").ok()?;
+        let result = basic_result(call);
+        for (i, (p, _)) in outs.iter().enumerate() {
+            let v = match (&result, out_tys.len()) {
+                (Some(v), 1) => *v,
+                (Some(BasicValueEnum::StructValue(s)), _) => self.builder.build_extract_value(*s, i as u32, "out").ok()?,
+                _ => return None,
+            };
+            let (_, ty) = self.slot_of(fi, p, slots)?;
+            let want = self.ty(&ty)?;
+            let v = match want {
+                BasicTypeEnum::PointerType(pt) => self.builder.build_int_to_ptr(v.into_int_value(), pt, "ptr").ok()?.into(),
+                other => self.fit_as(v, other, true),
+            };
+            self.store_place(fi, p, v, slots);
+        }
+        Some(())
     }
 
     /// A function value: code and captures (null for none).
