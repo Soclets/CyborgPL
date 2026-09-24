@@ -1397,7 +1397,10 @@ impl<'p> Interp<'p> {
                     t => (t, false),
                 };
                 let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_));
-                let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }] } else { Vec::new() };
+                // text → number fails `not_a_number`, and a real number too big for the type fails
+                // `out_of_range`: text comes from outside, so it is a failure, not a check (owner, 2026-09-24: c)
+                let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }, FailCase { name: "out_of_range".into(), ty: None }] } else { Vec::new() };
+                let from_text = can_fail;
                 // bin → int fails unless the bin is whole (decided 2026-09-21): rounding is said first, in std
                 if matches!(v, Value::Bin(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
                 // text → char fails unless the text is exactly one unit; char → a smaller unit fails
@@ -1414,14 +1417,14 @@ impl<'p> Interp<'p> {
                     }
                 }
                 // into a range type, a value out of range is a failure, not a check (decided 2026-09-20)
-                if ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
+                if ranged && !from_text { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
                 let ty = base;
                 self.check_handler(handler.as_ref(), &fails, &format!("to.{target}"), line)?;
                 // Into a range type, a value that does not even fit the base type is out of the range
                 // too: a failure the writer handles, never a crash (input.md, decided 2026-09-20).
                 macro_rules! fit_base { ($v:expr) => {
                     if let Err(e) = self.check_type(&$v, ty, line) {
-                        if !ranged { return Err(e); }
+                        if !ranged && !from_text { return Err(e); }
                         let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "out_of_range".into(), None, true)?;
                         let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                         return Ok((v, prov));
@@ -1445,6 +1448,15 @@ impl<'p> Interp<'p> {
                     }
                     (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_), Value::Str(s)) => {
                         let parsed = if matches!(ty, Ty::Bin(_)) { s.parse::<f64>().ok().map(Value::Bin) } else { s.parse::<i128>().ok().map(Value::Int) };
+                        // a well-formed number past what the oracle can hold is still a number: too big
+                        let digits = s.strip_prefix(['-', '+']).unwrap_or(s);
+                        let huge = parsed.is_none() && !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit());
+                        let infinite = matches!(parsed, Some(Value::Bin(x)) if x.is_infinite()) && s.bytes().any(|b| b.is_ascii_digit());
+                        if huge || infinite {
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "out_of_range".into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
                         match parsed {
                             Some(p) => { fit_base!(p.clone()); p }
                             None => {

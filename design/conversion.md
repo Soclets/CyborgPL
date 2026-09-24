@@ -7,8 +7,8 @@ Decided 2026-09-19. Nothing converts by itself; a conversion is spelled as
 to.str.utf8['avg']                 # number → text, in its stored form; never fails
 to.bin64['n']                      # int → bin, widening; never fails
 to.int8['big']                     # narrowing: a check site (does it fit?), like a typed assignment
-to.int32["42"] otherwise 0         # text → number: can fail with `not_a_number`
-to.int32["7"] otherwise { not_a_number { std::exit[2]; } }
+to.int32["42"] otherwise 0         # text → number: can fail with `not_a_number` or `out_of_range`
+to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exit[3]; } }
 ```
 
 - **`to`** is a keyword and the head of the chain, like `list` in
@@ -17,8 +17,15 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } }
   spelling, over `int32[…]` (types-as-calls) and `std::to.int32[…]` (a
   library job): the compiler owns conversion — Precog has to know exactly
   what int→bin does to prove ranges — and a bare head reads as what it is.
+- **Text that is a real number too big for the type fails `out_of_range`**
+  (owner, 2026-09-24: c): `to.int32["99999999999"] otherwise …`, however
+  many digits, and `to.uint8["-1"]` likewise. Text comes from outside, so a
+  number that does not fit is bad input to handle, never a crash and never
+  a check site, which the final build could not prove about outside text.
+  Proposed alternatives: a check site like any narrowing; `not_a_number`
+  past some size (the oracle's accidental 2^127 edge).
 - **A conversion that can fail fails the normal way**: text → number is
-  `-> … or fail[not_a_number]` and takes `otherwise` like any call
+  `-> … or fail[not_a_number, out_of_range]` and takes `otherwise` like any call
   (`failures.md`). A narrowing conversion is not a failure but a **check
   site**: `to.int8['big']` carries a runtime check unless Precog proves the
   fit, and `check to.int8[…]` asks for the proof.

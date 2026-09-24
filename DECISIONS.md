@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Text too big for its number type fails `out_of_range` (owner: c)
+
+From compiler claude: `conversion.md` did not say what a well-formed number
+too big for its type does. The oracle trapped it as a narrowing site, and
+past 2^127 it failed `not_a_number`, an edge nobody chose. Proposed by
+compiler claude: (a) keep that; (b) always a narrowing site. Design claude
+added (c) fail `out_of_range`, as a conversion into a range type already
+does, and recommended it. Under (b) the final build could never accept a
+program converting outside text, since a check site on outside text can't
+be proven, and `input.md`'s rule is "a failure you handle, never a crash".
+Owner: c. So text → number is `or fail[not_a_number, out_of_range]`, however
+many digits, and a handler that lists reasons must list both. The owner
+asked what happens with no `otherwise`: a compile error, as for every
+failing call. Even passing it up is written, `otherwise fail`.
+`examples/text_to_number.cpls`. The reject test to_unhandled now names
+both reasons.
+
 ### 2026-09-24 — A negative exponent is a check site, for `xx` and `xx~` (owner: a)
 
 From compiler claude, building powers at run time. `2 xx~ 'n'` with `'n'`
