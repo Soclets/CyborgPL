@@ -320,12 +320,3 @@ Dated, with the alternative, so each can become a question later.
   wrapping covers the exponent too, and `to.…` says which. (A negative
   exponent being a check site for `xx` and `xx~` was provisional here; the
   owner decided it, 2026-09-24: a.)
-- **2026-09-24 — A bin operation rounds at its own width, every step.**
-  `precog.md` ("IEEE bins at their width") and `reproducible-builds.md`
-  (a folded `bin16` "rounds exactly as the target's `bin16` would") read
-  as that, and it is what the hardware does. The oracle instead works a
-  bin32 expression in 64 bits and rounds once, where it is stored:
-  `'x' + 'one' + 'one'` with `'x'` at 2^24 is 2^24 + 2 there, 2^24 here.
-  A bin with a bare literal is a width not chosen yet, which both work at
-  64 bits. Alternative: 64-bit intermediates, rounded on store. Asked of
-  the design session.

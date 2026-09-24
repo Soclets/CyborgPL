@@ -1,17 +1,19 @@
-# A bin operation is done at its answer's width: a bin32 with a bare literal
-# is a free-width bin, 64 bits, and an `fadd float` stored into its `double`
-# left half of it garbage. A bare literal stays 64 bits in a comparison too:
-# a bin32 0.1 is a little more than the literal 0.1.
+# bin16/bin32 math rounds after every step, and a bare literal takes the
+# typed side's width (owner, 2026-09-24: a): 2^24 + 1.0 at bin32 is 2^24.
+# With a bin64 it is done at the wider (the oracle's pick). A literal in a
+# comparison stays at 64 bits: a bin32 0.1 is a little more than 0.1.
 extern fn exit ['code': int32];
 MAIN {
     let 'x': bin32 = 16777216.0;
     let mut 'got': int32 = 0;
     let 'a' := 'x' + 1.0;
     let 'na' := to.int32['a' - 16777216.0] otherwise 99;
-    if 'na' == 1 { 'got' = 'got' + 1; }
+    if 'na' == 0 { 'got' = 'got' + 1; }
     let 'b': bin32 = 'x' + 1.0 + 1.0;
     let 'nb' := to.int32['b' - 16777216.0] otherwise 99;
-    if 'nb' == 2 { 'got' = 'got' + 2; }
+    let 'w': bin64 = 1.0;
+    let 'nw' := to.int32['x' + 'w' - 16777216.0] otherwise 99;
+    if 'nb' == 0 and 'nw' == 1 { 'got' = 'got' + 2; }
     let 'c': bin32 = 0.1;
     if 'c' > 0.1 and not ('c' == 0.1) { 'got' = 'got' + 4; }
     let 'd' := 'c' x 10.0;

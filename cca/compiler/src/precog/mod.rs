@@ -1670,6 +1670,15 @@ impl Precog {
                     let (Some(Domain::Duration(a)), Some(Domain::Duration(b))) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
                     return self.fits_type(&Domain::Duration(a.sub(b)), to);
                 }
+                // A literal into a plain bin16 or bin32 is decided from its
+                // written digits, rounded once as codegen writes it: read at
+                // 64 bits first, `…568447.0` landed on bin32's limit and was
+                // refused, though it rounds to bin32's largest.
+                if let (Some(Operand::Const(Const::Bin(text))), None) = (site.operands.first(), to.bound()) {
+                    if let Some(fits) = literal_fits_bin(text, to) {
+                        return if fits { Verdict::Proven { how: "layer 2" } } else { Verdict::Fails { counterexample: format!("every time: {} rounds past the largest `{}`", text, self.spell(to)) } };
+                    }
+                }
                 let Some(d) = ds.first() else { return Verdict::Unproven };
                 self.fits_type(d, to)
             }
@@ -2556,9 +2565,13 @@ fn round_out(x: f64, bits: u16, up: bool) -> f64 {
         return x;
     }
     if bits == 32 {
-        let r = x as f32;
+        // Past the largest at 64 bits, but a literal's digits can still be
+        // below the limit (its own site decides, from them): what landed is
+        // then the largest. Keeping the 64-bit value folded `'a' == max`
+        // to false.
+        let mut r = x as f32;
         if !r.is_finite() {
-            return x;
+            r = f32::MAX.copysign(x as f32);
         }
         let b = r.to_bits();
         // One step toward the side asked for, over zero too.
@@ -2585,4 +2598,26 @@ fn bin_round_limit(to: &Ty) -> Option<f64> {
         Ty::Bin(crate::types::BinW::Fixed(32)) => Some(2f64.powi(128) - 2f64.powi(103)),
         _ => None,
     }
+}
+
+/// Whether a bin literal, as written, rounds to a finite plain bin16 or
+/// bin32: its magnitude below the rounding limit (65520, or 2^128 - 2^103;
+/// the limit itself ties, and the tie goes to infinity). Both limits are
+/// whole, so the integer digits decide: below the limit's, it fits; the
+/// limit's own or more, it does not. None when it is not that kind of
+/// question.
+fn literal_fits_bin(text: &str, to: &Ty) -> Option<bool> {
+    let limit = match to.base() {
+        Ty::Bin(crate::types::BinW::Fixed(16)) => "65520",
+        Ty::Bin(crate::types::BinW::Fixed(32)) => "340282356779733661637539395458142568448",
+        _ => return None,
+    };
+    let t: String = text.chars().filter(|c| *c != '_').collect();
+    let t = t.trim_start_matches(['-', '+']);
+    let whole = t.split('.').next().unwrap_or("");
+    if whole.is_empty() || !whole.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let whole = whole.trim_start_matches('0');
+    Some(whole.len() < limit.len() || (whole.len() == limit.len() && whole < limit))
 }

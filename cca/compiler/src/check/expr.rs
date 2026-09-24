@@ -2592,9 +2592,14 @@ pub fn join_int(a: IntW, b: IntW) -> IntW {
     }
 }
 
+/// A bin with no width yet (a bare literal, a `:=` of one) takes the width
+/// of the typed value beside it, and the answer is at that width (owner,
+/// 2026-09-24: a; `operators.md`): `'x' + 1.0` on a bin32 is bin32 math.
+/// Two widths: the wider (the oracle's pick, provisional).
 pub fn join_bin(a: BinW, b: BinW) -> BinW {
     match (a, b) {
-        (BinW::Free(_), _) | (_, BinW::Free(_)) => BinW::Free(InferId(0)),
+        (BinW::Free(_), BinW::Fixed(x)) | (BinW::Fixed(x), BinW::Free(_)) => BinW::Fixed(x),
+        (BinW::Free(_), BinW::Free(_)) => BinW::Free(InferId(0)),
         (BinW::Fixed(x), BinW::Fixed(y)) => BinW::Fixed(x.max(y)),
     }
 }

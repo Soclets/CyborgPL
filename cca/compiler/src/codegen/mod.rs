@@ -916,10 +916,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // comparison at the wider side's), each operand brought to
                 // it and a literal written straight at it. An `fadd float`
                 // stored into a free-width `bin`'s `double` left half of it
-                // garbage. A bare literal is a width not chosen yet, 64 bits,
-                // in a comparison as in arithmetic: `'f' > 0.1` with a bin32
-                // 0.1 is true, as in the oracle — rounding the literal to the
-                // place's width made it false.
+                // garbage. In arithmetic a bare literal has the typed side's
+                // width (owner, 2026-09-24: a); in a comparison it stays at
+                // 64 bits, as in the oracle: `'f' > 0.1` with a bin32 0.1 is
+                // true.
                 if let (BasicValueEnum::FloatValue(x), BasicValueEnum::FloatValue(y)) = (a, b) {
                     let at = if op.is_comparison() {
                         let (xt, yt) = (x.get_type(), y.get_type());
@@ -1924,8 +1924,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Some(p) => Operand::Read(p.clone()),
             None => o.clone(),
         };
-        let Some(BasicValueEnum::FloatValue(x)) = self.operand(fi, &o, slots) else { return };
         let target = if bits == 16 { self.ctx.f16_type() } else { self.ctx.f32_type() };
+        // A literal is checked as it is written: rounded once from its
+        // digits at the width. Read at 64 bits first, `…568447.0` was the
+        // limit, and the asserted proof fired on a value that fits.
+        if let Operand::Const(Const::Bin(text)) = &o {
+            let r = unsafe { target.const_float_from_string(&text.replace('_', "")) };
+            let Ok(rz) = self.builder.build_float_sub(r, r, "rz") else { return };
+            let Ok(went) = self.builder.build_float_compare(inkwell::FloatPredicate::UNE, rz, target.const_zero(), "rounds_past") else { return };
+            let _ = self.guard(fi, id, went, func);
+            return;
+        }
+        let Some(BasicValueEnum::FloatValue(x)) = self.operand(fi, &o, slots) else { return };
         if x.get_type() == target {
             return;
         }

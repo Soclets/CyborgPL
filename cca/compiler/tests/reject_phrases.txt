@@ -41,6 +41,7 @@ bare_list_type :: `list` takes exactly one type parameter, the element type: `li
 bare_owned_assign :: say what happens to it
 bare_str :: `str` is never bare: say the encoding
 bin16_rounds_past :: the value can be outside what a `bin16` holds
+bin32_literal_past :: the value can be outside what a `bin32` holds
 bin_into_untyped_int_list :: there is no implicit conversion between numeric families
 bin_to_int_unhandled :: `to.int32` can fail (not_whole): say what happens
 bit_ampersand :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
