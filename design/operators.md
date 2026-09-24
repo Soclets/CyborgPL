@@ -175,6 +175,24 @@ processors a 16-bit and a 64-bit add cost the same, and the checks are
 what cost, and this has the fewest. Owner: "yes, that one". It also
 answers mixed sizes (`int16 + int64`), which nothing had decided.
 
+## `bin16` / `bin32` math rounds after every step (owner, 2026-09-24: a)
+
+```
+let 'x': bin32 = 16777216.0;
+let 'y': bin32 = 'x' + 1.0 + 1.0;      # 16777216: each + rounds back at bin32
+```
+
+Each operation on `bin16` or `bin32` values gives the IEEE result at their
+width (nearest-even), as C and the processor do. A bare literal takes the
+width of the typed value beside it, and the place a result is stored never
+changes it. A result that rounds past the largest is a check site. Anyone
+who needs the exact sum chooses a bigger or exact type (`bin64`, an
+integer, `std::uenr`): "the programmer could've chose a better one". This is
+the opposite of plain integer math, which is exact because there 16- and
+64-bit cost the same. For bins, 64-bit intermediates would halve SIMD lanes
+and could not run on Metal, which has no 64-bit float. Proposed
+alternative: 64-bit intermediates rounded once where stored.
+
 ## Not yet listed (open)
 
 - Integer division vs. `/` on `int` (truncate? error on inexact?).

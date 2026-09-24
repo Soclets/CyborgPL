@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — `bin16`/`bin32` math rounds after every step (owner: a)
+
+From compiler claude: `'x' + 'one' + 'one'` on `bin32` values of
+16777216 and 1 gives 16777216 when rounded after each operation (IEEE at
+the type's width, like C on ARM64), or 16777218 when done at 64 bits and
+rounded once where stored (what the oracle did). `precog.md` ("IEEE bins
+at their width") and `reproducible-builds.md` already leaned towards the
+first. Proposed (a) round after every operation; (b) 64-bit intermediates.
+Design claude recommended a: for bins, unlike integers, the wide
+intermediate costs half the SIMD lanes and cannot run on Metal (no 64-bit
+float), and bin16/bin32 are chosen for exactly that speed. The owner asked
+whether a different type avoids it: yes, bin64 (exact to 2^53), an
+integer, or `std::uenr`. Owner: a, "the programmer could've chose a better
+one". A bare literal takes the width of the typed value beside it, the
+destination never changes it, and a result rounding past the largest is a
+check site. The oracle's pick for mixed bin widths (the wider) is
+provisional. `examples/bin_widths.cpls` shows both sums; `operators.md`
+has the rule.
+
 ### 2026-09-24 — Oracle bug: bin16 and bin32 were kept at 64 bits (compiler session)
 
 `let 'f': bin32 = 0.1;` printed the 64-bit 0.1

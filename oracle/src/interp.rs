@@ -1161,6 +1161,23 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// The bin width an expression's math is at, from its declared names and conversions
+    /// (never from where it is stored); `None` for bare literals alone.
+    fn bin_width(&self, e: &Expr) -> Option<u8> {
+        let w = |t: Option<Ty>| match t { Some(Ty::Bin(w)) => Some(w), Some(Ty::Ranged(b, _, _)) => match *b { Ty::Bin(w) => Some(w), _ => None }, _ => None };
+        match e {
+            Expr::Var(n, _) | Expr::Owned(_, n, _) => w(self.lookup(n).and_then(|s| s.ty.clone())),
+            Expr::Convert(t, ..) => w(Some(t.clone())),
+            Expr::Paren(inner, _) | Expr::Unary(_, inner, _) => self.bin_width(inner),
+            Expr::Binary(_, l, r, _) => match (self.bin_width(l), self.bin_width(r)) { (Some(a), Some(b)) => Some(a.max(b)), (a, b) => a.or(b) },
+            Expr::Call(c) if c.limb.is_none() => {
+                let (module, name) = c.path.split_at(c.path.len() - 1);
+                w(self.prog.funcs.iter().find(|f| f.module == module && f.name == name[0]).and_then(|f| f.ret.clone()))
+            }
+            _ => None,
+        }
+    }
+
     fn kind_clash(&self, have: Option<bool>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
         let want = match want { Ty::Ranged(b, _, _) => &**b, t => t };
         match (have, want) {
@@ -1702,6 +1719,21 @@ impl<'p> Interp<'p> {
                 }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
                 let v = self.binary(op, a, b, line)?;
+                // bin16/bin32 math rounds after every operation, at its values' width, as the
+                // hardware does (owner, 2026-09-24: a — "the programmer could've chose a better one")
+                if let Value::Bin(x) = v {
+                    let w = match (self.bin_width(l), self.bin_width(r)) {
+                        (Some(a), Some(b)) => Some(a.max(b)),
+                        (a, b) => a.or(b).or_else(|| match &self.expected { Some(Ty::Bin(w)) => Some(*w), Some(Ty::Ranged(b, _, _)) => match **b { Ty::Bin(w) => Some(w), _ => None }, _ => None }),
+                    };
+                    if let Some(w @ (16 | 32)) = w {
+                        let r = round_to_width(&Ty::Bin(w), Value::Bin(x));
+                        if let Value::Bin(y) = r {
+                            if x.is_finite() && y.is_infinite() { return site(line, format!("{x} does not fit bin{w}: `{op}` rounds past the largest value")); }
+                        }
+                        return Ok((r, Prov::Plain));
+                    }
+                }
                 // Plain integer math is exact, and checked where the value lands — a typed `let`,
                 // an assignment, an argument, a return (owner, 2026-09-23: "the best perf &
                 // safety"). In between, the one limit is the machine's 64 bits: a value no 64-bit

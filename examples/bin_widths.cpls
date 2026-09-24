@@ -12,4 +12,11 @@ MAIN {
     let 'big': bin16 = 65519.0;                          # rounds down to bin16's largest, 65504
     let 'g' := to.bin32["0.1"] otherwise 0.0;            # a conversion lands at bin32 too
     std::print.stdout['big', " ", 'g', \n];
+    # bin32 math rounds after every step, as the hardware does (owner, 2026-09-24: a):
+    # 16777216 + 1 rounds back to 16777216 at bin32, while bin64 holds 16777218
+    let 'x': bin32 = 16777216.0;
+    let 'y': bin32 = 'x' + 1.0 + 1.0;
+    let 'x64': bin64 = 16777216.0;
+    let 'y64': bin64 = 'x64' + 1.0 + 1.0;
+    std::printu.stdout['y', " ", 'y64', \n];
 }
