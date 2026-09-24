@@ -223,10 +223,10 @@ impl Checker {
                 if !decl.blanks.is_empty() || decl.params.iter().any(|p| p.ty.is_none() || p.variadic) {
                     return err(Diagnostic::error(format!("`{}` has blanks, so it has no single type to hold: pass it where the blanks are filled, or write a version with the types", decl.name)).at(span));
                 }
-                let key = InstKey { fn_id: id, blanks: Vec::new(), bundle: None };
+                let key = InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
                 let inst = self.instance(key);
                 let sig = self.instances[inst.0 as usize].sig.clone();
-                let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails }));
+                let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
                 Ok(Expr { kind: K::FnRef(inst), ty, span })
             }
             Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `nocheck`), and is not a value to hold", path.spelled())).at(span)),
@@ -1106,7 +1106,7 @@ impl Checker {
     /// A user `op` applied: operands lent by default, `give` when the op says so.
     fn user_op_call(&mut self, ctx: &mut FnCtx, fn_id: FnId, spelling: &str, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
         let decl = self.items.fns[fn_id.0 as usize].clone();
-        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None };
+        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
         let inst = self.instance(key);
         let sig = self.instances[inst.0 as usize].sig.clone();
         let mut operands = Vec::new();
@@ -1447,7 +1447,10 @@ impl Checker {
             let r = self.resolve(t);
             blank_tys.push(r);
         }
-        let key = InstKey { fn_id: id, blanks: blank_tys, bundle: if has_variadic { Some(bundle_tys) } else { None } };
+        // A parameter handed a function that carries what it captured owns
+        // it in this instance, and gives it back at the end.
+        let owning: Vec<usize> = hargs.iter().enumerate().filter(|(i, a)| *i < fixed && matches!(self.resolve(&self.arg_type(a)).base(), Ty::Fn(f) if f.owning)).map(|(i, _)| i).collect();
+        let key = InstKey { fn_id: id, blanks: blank_tys, bundle: if has_variadic { Some(bundle_tys) } else { None }, owning };
         let inst = self.instance(key);
         let sig = self.instances[inst.0 as usize].sig.clone();
         let _ = path;
@@ -1928,7 +1931,7 @@ impl Checker {
             inst_caps.push((c.name.name.clone(), c.verb, ty));
             caps.push((outer, c.verb));
         }
-        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None };
+        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
         let inst = self.instance(key);
         self.instances[inst.0 as usize].captures = inst_caps;
         // The literal's body sees the enclosing names only through `with`: check it now
@@ -1936,7 +1939,8 @@ impl Checker {
         let outer_names: Vec<(String, Verb, Ty, hir::LocalId)> = ctx.locals.iter().enumerate().map(|(i, l)| (l.name.clone(), Verb::Lend, l.ty.clone(), hir::LocalId(i as u32))).collect();
         self.check_literal_now(inst, outer_names)?;
         let sig = self.instances[inst.0 as usize].sig.clone();
-        let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails }));
+        let owning = caps.iter().any(|(_, v)| matches!(v, Verb::Copy | Verb::Give));
+        let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning }));
         let captures = caps.into_iter().map(|(outer, verb)| hir::CaptureBinding { verb, outer, inner: hir::LocalId(0) }).collect();
         Ok(Expr { kind: K::FnLit { inst, captures }, ty, span })
     }

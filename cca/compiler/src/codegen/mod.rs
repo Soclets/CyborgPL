@@ -467,20 +467,23 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // addresses it borrowed, one per capture, and its captures are its
         // first locals (`check_instance` declares them before the
         // parameters). Each lent capture's slot holds the address.
+        // A lent capture's slot holds the address it borrows; an owned one
+        // (`copy`, `give`) lives in the block itself, which is its slot.
         let skip = match self.env_fns.get(&i).copied() {
             Some(n) => {
                 let env = func.get_nth_param(0).map(|v| v.into_pointer_value());
                 let p = self.ctx.ptr_type(AddressSpace::default());
-                let arr = p.array_type(n as u32);
+                let Some(st) = self.env_shape(i, n) else { return };
                 for c in 0..n {
-                    let (Some(env), Some(slot)) = (env, slots[c]) else { continue };
-                    if !lent[c] {
-                        self.cannot("a function literal that owns what it captured (`copy`, `give`) has no shape in the generated code yet".to_string(), Some(f.span(f.locals[c].span)));
-                        continue;
+                    let Some(env) = env else { continue };
+                    let Ok(at) = self.builder.build_struct_gep(st, env, 2 + c as u32, "capture") else { continue };
+                    if lent[c] {
+                        let Some(slot) = slots[c] else { continue };
+                        let addr = self.builder.build_load(p, at, "captured").unwrap();
+                        let _ = self.builder.build_store(slot, addr);
+                    } else {
+                        slots[c] = Some(at);
                     }
-                    let at = unsafe { self.builder.build_gep(arr, env, &[self.ctx.i32_type().const_zero(), self.ctx.i32_type().const_int(c as u64, false)], "capture") }.unwrap();
-                    let addr = self.builder.build_load(p, at, "captured").unwrap();
-                    let _ = self.builder.build_store(slot, addr);
                 }
                 1
             }
@@ -1091,22 +1094,60 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // addresses it borrowed. A lend cannot outlive what it borrows,
             // so the block lives in this function's frame, made once at its
             // entry (not once per trip of a loop).
+            // A block of captures begins with how to give it back and how to
+            // copy it — null for one that only borrows. One that owns what it
+            // captured (`copy`, `give`: owner, 2026-09-24: a) is on the
+            // heap, the function value's to free; one that only lends
+            // lives in this frame.
             Rvalue::Closure { body, captures } => {
-                let f = *self.fns.get(&(body.0 as usize))?;
+                let bi = body.0 as usize;
+                let f = *self.fns.get(&bi)?;
                 if captures.is_empty() {
                     return Some(self.fn_value(f.as_global_value().as_pointer_value(), None));
                 }
                 let p = self.ctx.ptr_type(AddressSpace::default());
-                let arr = p.array_type(captures.len() as u32);
-                let env = self.entry_alloca(func, arr.into(), "captures")?;
+                let st = self.env_shape(bi, captures.len())?;
+                let owns = captures.iter().any(|(v, _)| matches!(v, crate::ast::Verb::Copy | crate::ast::Verb::Give));
+                let env = if owns {
+                    let size = self.target.get_abi_size(&st);
+                    self.alloc(self.ctx.i64_type().const_int(size, false))
+                } else {
+                    self.entry_alloca(func, st.into(), "captures")?
+                };
+                let (dropper, copier) = if owns {
+                    let (d, c) = self.env_helpers(bi, captures.len())?;
+                    (d.as_global_value().as_pointer_value(), c.as_global_value().as_pointer_value())
+                } else {
+                    (p.const_null(), p.const_null())
+                };
+                let _ = self.builder.build_store(self.builder.build_struct_gep(st, env, 0, "drop").ok()?, dropper);
+                let _ = self.builder.build_store(self.builder.build_struct_gep(st, env, 1, "copy").ok()?, copier);
                 for (c, (verb, place)) in captures.iter().enumerate() {
-                    if !matches!(verb, crate::ast::Verb::Lend | crate::ast::Verb::LendMut) {
-                        self.cannot("a function literal that owns what it captured (`copy`, `give`) has no shape in the generated code yet", None);
-                        return None;
+                    let at = self.builder.build_struct_gep(st, env, 2 + c as u32, "capture").ok()?;
+                    let (addr, ty) = self.slot_of(fi, place, slots)?;
+                    match verb {
+                        crate::ast::Verb::Lend | crate::ast::Verb::LendMut => {
+                            let _ = self.builder.build_store(at, addr);
+                        }
+                        crate::ast::Verb::Copy => match self.copy_fn(&ty) {
+                            Some(cf) => {
+                                let _ = self.builder.build_call(cf, &[at.into(), addr.into()], "");
+                            }
+                            None => {
+                                let lt = self.ty(&ty)?;
+                            let v = self.builder.build_load(lt, addr, "v").ok()?;
+                                let _ = self.builder.build_store(at, v);
+                            }
+                        },
+                        crate::ast::Verb::Give => {
+                            let lt = self.ty(&ty)?;
+                            let v = self.builder.build_load(lt, addr, "v").ok()?;
+                            let _ = self.builder.build_store(at, v);
+                            if place.proj.is_empty() {
+                                self.mark_alive(place.local, false);
+                            }
+                        }
                     }
-                    let (addr, _) = self.slot_of(fi, place, slots)?;
-                    let at = unsafe { self.builder.build_gep(arr, env, &[self.ctx.i32_type().const_zero(), self.ctx.i32_type().const_int(c as u64, false)], "capture") }.ok()?;
-                    let _ = self.builder.build_store(at, addr);
                 }
                 Some(self.fn_value(f.as_global_value().as_pointer_value(), Some(env)))
             }
@@ -1671,6 +1712,106 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
+    /// The block a literal's captures live in: how to give it back, how to
+    /// copy it, then each capture — a lent one's address, an owned one's
+    /// value. The literal's first locals are its captures, in order.
+    fn env_shape(&mut self, body: usize, n: usize) -> Option<inkwell::types::StructType<'ctx>> {
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let mut fields: Vec<BasicTypeEnum> = vec![p.into(), p.into()];
+        for c in 0..n {
+            let l = self.p.functions[body].locals.get(c)?.clone();
+            if matches!(l.kind, LocalKind::Lent { .. }) {
+                fields.push(p.into());
+            } else {
+                fields.push(self.ty(&l.ty)?);
+            }
+        }
+        Some(self.ctx.struct_type(&fields, false))
+    }
+
+    /// How a block of owned captures is given back and copied: each owned
+    /// capture by its own type's way, lends as the addresses they are.
+    fn env_helpers(&mut self, body: usize, n: usize) -> Option<(FunctionValue<'ctx>, FunctionValue<'ctx>)> {
+        let dname = format!("cy_env_drop_{}", body);
+        let cname = format!("cy_env_copy_{}", body);
+        if let (Some(d), Some(c)) = (self.helpers.get(&dname).copied(), self.helpers.get(&cname).copied()) {
+            return Some((d, c));
+        }
+        let st = self.env_shape(body, n)?;
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let tys: Vec<(bool, Ty)> = (0..n).map(|c| {
+            let l = &self.p.functions[body].locals[c];
+            (matches!(l.kind, LocalKind::Lent { .. }), l.ty.clone())
+        }).collect();
+        let here = self.builder.get_insert_block();
+        let d = self.module.add_function(&dname, self.ctx.void_type().fn_type(&[p.into()], false), Some(inkwell::module::Linkage::Internal));
+        let c = self.module.add_function(&cname, p.fn_type(&[p.into()], false), Some(inkwell::module::Linkage::Internal));
+        self.helpers.insert(dname, d);
+        self.helpers.insert(cname, c);
+        // Give back: each owned capture, then the block.
+        let entry = self.ctx.append_basic_block(d, "entry");
+        self.builder.position_at_end(entry);
+        let env = d.get_nth_param(0)?.into_pointer_value();
+        for (k, (lent, ty)) in tys.iter().enumerate() {
+            if *lent {
+                continue;
+            }
+            if let Some(inner) = self.drop_fn(ty) {
+                let at = self.builder.build_struct_gep(st, env, 2 + k as u32, "capture").ok()?;
+                let _ = self.builder.build_call(inner, &[at.into()], "");
+            }
+        }
+        let free = self.rt("cyborg_free");
+        let _ = self.builder.build_call(free, &[env.into()], "");
+        let _ = self.builder.build_return(None);
+        // Copy: a new block, each owned capture a second value of its own.
+        let entry = self.ctx.append_basic_block(c, "entry");
+        self.builder.position_at_end(entry);
+        let src = c.get_nth_param(0)?.into_pointer_value();
+        let size = self.target.get_abi_size(&st);
+        let dst = self.alloc(self.ctx.i64_type().const_int(size, false));
+        for k in 0..2 {
+            let s = self.builder.build_struct_gep(st, src, k, "h").ok()?;
+            let v = self.builder.build_load(p, s, "h").ok()?;
+            let _ = self.builder.build_store(self.builder.build_struct_gep(st, dst, k, "h").ok()?, v);
+        }
+        for (k, (lent, ty)) in tys.iter().enumerate() {
+            let s = self.builder.build_struct_gep(st, src, 2 + k as u32, "s").ok()?;
+            let t = self.builder.build_struct_gep(st, dst, 2 + k as u32, "d").ok()?;
+            match (lent, self.copy_fn(ty)) {
+                (false, Some(cf)) => {
+                    let _ = self.builder.build_call(cf, &[t.into(), s.into()], "");
+                }
+                _ => {
+                    let lt: BasicTypeEnum = if *lent { p.into() } else { self.ty(ty)? };
+                    let v = self.builder.build_load(lt, s, "v").ok()?;
+                    let _ = self.builder.build_store(t, v);
+                }
+            }
+        }
+        let _ = self.builder.build_return(Some(&dst));
+        if let Some(b) = here {
+            self.builder.position_at_end(b);
+        }
+        Some((d, c))
+    }
+
+    /// `copy 'x'` handed to a call: a second, independent value — the
+    /// callee owns it and gives it back. Read as the same bytes, the callee
+    /// freed the caller's own list.
+    pub(super) fn copied(&mut self, fi: usize, p: &Place, slots: &[Option<PointerValue<'ctx>>]) -> Option<BasicValueEnum<'ctx>> {
+        let (src, ty) = self.slot_of(fi, p, slots)?;
+        match self.copy_fn(&ty) {
+            Some(copier) => {
+                let shape = self.ty(&ty)?;
+                let tmp = self.builder.build_alloca(shape, "copy").ok()?;
+                let _ = self.builder.build_call(copier, &[tmp.into(), src.into()], "");
+                self.builder.build_load(shape, tmp, "copied").ok()
+            }
+            None => self.operand(fi, &Operand::Read(p.clone()), slots),
+        }
+    }
+
     /// A function value: code and captures (null for none).
     fn fn_value(&mut self, code: PointerValue<'ctx>, env: Option<PointerValue<'ctx>>) -> BasicValueEnum<'ctx> {
         let p = self.ctx.ptr_type(AddressSpace::default());
@@ -1833,6 +1974,36 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 _ => true,
             })
             .collect();
+        // A function that carries what it captured, handed over whole: the
+        // parameter owns it in the callee's instance (owner, 2026-09-24: a)
+        // and gives it back. Anywhere else — a held function's parameter, a
+        // bundle — it is not built yet. A lend is fine: nothing changes hands.
+        let owning_params: Vec<bool> = match callee {
+            Callee::Fn(idx) => {
+                let cf = &self.p.functions[idx.0 as usize];
+                cf.params.iter().map(|p| matches!(cf.locals[p.0 as usize].ty.base(), Ty::Fn(f) if f.owning)).collect()
+            }
+            _ => Vec::new(),
+        };
+        for (ai, a) in args.iter().enumerate() {
+            if owning_params.get(ai).copied().unwrap_or(false) {
+                continue;
+            }
+            let place = match a {
+                Arg::Give(p) | Arg::Copy(p) => p,
+                Arg::Value(o) => match o.place() {
+                    Some(p) => p,
+                    None => continue,
+                },
+                _ => continue,
+            };
+            if let Some((_, t)) = self.slot_of(fi, place, slots) {
+                if matches!(t.base(), Ty::Fn(f) if f.owning) {
+                    self.cannot("handing a function that carries what it captured (`copy`, `give`) to a parameter has no shape in the generated code yet: whether the parameter owns it is asked", None);
+                    return None;
+                }
+            }
+        }
         let variadic = match callee {
             Callee::Fn(idx) if self.p.functions[idx.0 as usize].variadic => Some(idx.0 as usize),
             _ => None,
@@ -1846,7 +2017,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         for a in args.iter().filter(|_| variadic.is_none()) {
             let v = match a {
                 Arg::Value(o) => self.operand(fi, o, slots)?,
-                Arg::Copy(p) => self.operand(fi, &Operand::Read(p.clone()), slots)?,
+                Arg::Copy(p) => self.copied(fi, p, slots)?,
                 Arg::Give(p) => self.operand(fi, &Operand::Move(p.clone()), slots)?,
                 Arg::Lend { place, .. } => {
                     let (slot, ty) = self.slot_of(fi, place, slots)?;

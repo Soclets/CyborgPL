@@ -263,6 +263,7 @@ op_word_undefined :: an operator between two values is one the language owns (`+
 other_limb :: a Limb is a dependency listed in `Synthia.cplm`, and none is
 overflow_lands :: the value can be outside what a `int8` holds
 overflow_past_64_bits :: goes past 64 bits in between
+owning_function_bare :: is an owned `fn[] -> uint64`: say what happens to it
 param_lent_chain :: `lent` (looks at it) or `lent.mut` (may modify it)
 param_type_first :: a parameter is written name first, then its type: `'a': int32`
 param_var :: an owning parameter is bare

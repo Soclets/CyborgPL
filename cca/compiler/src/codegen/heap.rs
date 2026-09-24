@@ -92,6 +92,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 info.fields.iter().any(|f| self.owns_memory(&f.ty.subst(args)))
             }
             Ty::Bundle(ts) => ts.iter().any(|t| self.owns_memory(t)),
+            Ty::Fn(f) => f.owning,
             _ => false,
         }
     }
@@ -188,6 +189,31 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         }
                     }
                 }
+            }
+            // A function carrying what it captured: its block says how it is
+            // given back (null when there is nothing to give).
+            Ty::Fn(_) => {
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                let st = self.ctx.struct_type(&[p.into(), p.into()], false);
+                let Ok(envp) = self.builder.build_struct_gep(st, at, 1, "env") else { return };
+                let Ok(env) = self.builder.build_load(p, envp, "env") else { return };
+                let env = env.into_pointer_value();
+                let head = self.ctx.struct_type(&[p.into(), p.into()], false);
+                let has = self.ctx.append_basic_block(func, "has_env");
+                let ask = self.ctx.append_basic_block(func, "ask");
+                let done = self.ctx.append_basic_block(func, "given_back");
+                let Ok(none) = self.builder.build_is_null(env, "none") else { return };
+                let _ = self.builder.build_conditional_branch(none, done, has);
+                self.builder.position_at_end(has);
+                let Ok(dp) = self.builder.build_struct_gep(head, env, 0, "dropp") else { return };
+                let Ok(d) = self.builder.build_load(p, dp, "drop") else { return };
+                let d = d.into_pointer_value();
+                let Ok(nod) = self.builder.build_is_null(d, "nodrop") else { return };
+                let _ = self.builder.build_conditional_branch(nod, done, ask);
+                self.builder.position_at_end(ask);
+                let _ = self.builder.build_indirect_call(self.ctx.void_type().fn_type(&[p.into()], false), d, &[env.into()], "");
+                let _ = self.builder.build_unconditional_branch(done);
+                self.builder.position_at_end(done);
             }
             // A bundle is its values side by side: each gives back its own.
             Ty::Bundle(ts) => {
@@ -308,6 +334,37 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
             }
+            // A copy of a function carrying what it captured: the same code,
+            // and its block copied by the block's own way.
+            Ty::Fn(_) => {
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                let st = self.ctx.struct_type(&[p.into(), p.into()], false);
+                let (Ok(scp), Ok(sep)) = (self.builder.build_struct_gep(st, src, 0, "code"), self.builder.build_struct_gep(st, src, 1, "env")) else { return };
+                let (Ok(dcp), Ok(dep)) = (self.builder.build_struct_gep(st, dst, 0, "code"), self.builder.build_struct_gep(st, dst, 1, "env")) else { return };
+                let (Ok(code), Ok(env)) = (self.builder.build_load(p, scp, "code"), self.builder.build_load(p, sep, "env")) else { return };
+                let _ = self.builder.build_store(dcp, code);
+                let _ = self.builder.build_store(dep, env);
+                let env = env.into_pointer_value();
+                let has = self.ctx.append_basic_block(func, "has_env");
+                let ask = self.ctx.append_basic_block(func, "ask");
+                let done = self.ctx.append_basic_block(func, "copied");
+                let Ok(none) = self.builder.build_is_null(env, "none") else { return };
+                let _ = self.builder.build_conditional_branch(none, done, has);
+                self.builder.position_at_end(has);
+                let Ok(cp) = self.builder.build_struct_gep(st, env, 1, "copyp") else { return };
+                let Ok(c) = self.builder.build_load(p, cp, "copy") else { return };
+                let c = c.into_pointer_value();
+                let Ok(noc) = self.builder.build_is_null(c, "nocopy") else { return };
+                let _ = self.builder.build_conditional_branch(noc, done, ask);
+                self.builder.position_at_end(ask);
+                if let Ok(r) = self.builder.build_indirect_call(p.fn_type(&[p.into()], false), c, &[env.into()], "copied") {
+                    if let Some(v) = basic_result(r) {
+                        let _ = self.builder.build_store(dep, v);
+                    }
+                }
+                let _ = self.builder.build_unconditional_branch(done);
+                self.builder.position_at_end(done);
+            }
             Ty::Bundle(ts) => {
                 let shape = match self.ty(t) {
                     Some(BasicTypeEnum::StructType(s)) => s,
@@ -389,7 +446,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         for a in &args[..fixed.min(args.len())] {
             let v = match a {
                 Arg::Value(o) => self.operand(fi, o, slots)?,
-                Arg::Copy(p) => self.operand(fi, &Operand::Read(p.clone()), slots)?,
+                Arg::Copy(p) => self.copied(fi, p, slots)?,
                 Arg::Give(p) => self.operand(fi, &Operand::Move(p.clone()), slots)?,
                 Arg::Lend { place, .. } => self.slot_of(fi, place, slots)?.0.into(),
                 Arg::Spread { .. } => return None,

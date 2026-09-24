@@ -142,3 +142,5 @@ lend_width 79
 list_literal_narrow trap
 variadics 127
 owned_param_freed 0
+owning_function 15
+copy_arg 6

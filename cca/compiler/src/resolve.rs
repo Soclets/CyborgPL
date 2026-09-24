@@ -643,7 +643,7 @@ impl Items {
                     };
                     fs.push((f.name.name.clone(), payload));
                 }
-                Ok(Ty::Fn(Box::new(FnTy { params: ps, ret: r, fails: fs })))
+                Ok(Ty::Fn(Box::new(FnTy { params: ps, ret: r, fails: fs, owning: false })))
             }
             ast::TypeKind::Bound { inner, lo, hi, unit, span } => {
                 let base = self.resolve_type(inner, m, blanks, allow_blanks)?;

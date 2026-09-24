@@ -159,6 +159,7 @@ pub fn resolved(t: &Ty, subst: &HashMap<crate::types::InferId, Ty>) -> Ty {
             params: f.params.iter().map(|(k, t)| (*k, resolved(t, subst))).collect(),
             ret: resolved(&f.ret, subst),
             fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| resolved(t, subst)))).collect(),
+            owning: f.owning,
         })),
         Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| resolved(t, subst)).collect()),
         Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(resolved(inner, subst)), bound: bound.clone() },

@@ -86,6 +86,10 @@ pub struct FnTy {
     pub params: Vec<(ParamKind, Ty)>,
     pub ret: Ty,
     pub fails: Vec<(String, Option<Ty>)>,
+    /// It carries what it captured by `copy` or `give`, so it is owned
+    /// like a list (owner, 2026-09-24: a). Not part of what a `fn[…]` type
+    /// says: a value's, known where the literal is written.
+    pub owning: bool,
 }
 
 /// A bound written into a type: `int32[0, 100]`, `list[T][0, 10]`,
@@ -209,6 +213,7 @@ impl Ty {
         match self.base() {
             Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Struct { .. } | Ty::Enum { .. } | Ty::Channel(_) | Ty::Bundle(_) => true,
             Ty::Char(Unit::Grapheme) => true,
+            Ty::Fn(f) => f.owning,
             Ty::Var(_) => true,
             _ => false,
         }
@@ -253,6 +258,7 @@ impl Ty {
                 params: f.params.iter().map(|(k, t)| (*k, t.subst(args))).collect(),
                 ret: f.ret.subst(args),
                 fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| t.subst(args)))).collect(),
+                owning: f.owning,
             })),
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| t.subst(args)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(inner.subst(args)), bound: bound.clone() },

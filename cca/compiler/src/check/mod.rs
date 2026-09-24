@@ -27,6 +27,10 @@ pub struct InstKey {
     pub blanks: Vec<Ty>,
     /// The variadic bundle's element types, if the function has one.
     pub bundle: Option<Vec<Ty>>,
+    /// The parameters handed a function that carries what it captured
+    /// (`copy`/`give`): in this instance they own it, and give it back
+    /// (owner, 2026-09-24: a — `run[give 'count']`).
+    pub owning: Vec<usize>,
 }
 
 #[derive(Debug, Clone)]
@@ -178,6 +182,7 @@ impl Checker {
                 params: f.params.iter().map(|(k, t)| (*k, self.resolve(t))).collect(),
                 ret: self.resolve(&f.ret),
                 fails: f.fails.iter().map(|(n, t)| (n.clone(), t.as_ref().map(|t| self.resolve(t)))).collect(),
+                owning: f.owning,
             })),
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| self.resolve(t)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(self.resolve(inner)), bound: bound.clone() },
@@ -272,6 +277,13 @@ impl Checker {
                     t
                 }
             };
+            let ty = match ty {
+                Ty::Fn(mut f) if key.owning.contains(&params.len()) => {
+                    f.owning = true;
+                    Ty::Fn(f)
+                }
+                t => t,
+            };
             params.push((p.kind, ty));
         }
         let ret = decl.ret.subst(&key.blanks);
@@ -320,7 +332,7 @@ impl Checker {
         let main = match self.items.main.clone() {
             Some((block, module, span)) => {
                 let inst = FnInst(self.instances.len() as u32);
-                let key = InstKey { fn_id: FnId(u32::MAX), blanks: Vec::new(), bundle: None };
+                let key = InstKey { fn_id: FnId(u32::MAX), blanks: Vec::new(), bundle: None, owning: Vec::new() };
                 self.instances.push(Instance { key, sig: hir::Signature { params: Vec::new(), ret: Ty::Nothing, fails: Vec::new() }, body: None, captures: Vec::new() });
                 let mut ctx = self.new_ctx(inst, module, "MAIN".to_string(), Ty::Nothing, Vec::new(), true);
                 let body = self.block(&mut ctx, &block)?;
@@ -341,7 +353,7 @@ impl Checker {
             if f.is_literal || !f.blanks.is_empty() || f.params.iter().any(|p| p.variadic || p.ty.is_none()) {
                 continue;
             }
-            let key = InstKey { fn_id: FnId(i as u32), blanks: Vec::new(), bundle: None };
+            let key = InstKey { fn_id: FnId(i as u32), blanks: Vec::new(), bundle: None, owning: Vec::new() };
             if !self.inst_index.contains_key(&key) {
                 self.instance(key);
                 while let Some(inst) = self.pending.pop() {
