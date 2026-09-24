@@ -1,1 +1,1 @@
-expected `;`
+bare `true` is the boolean, so `true[…]` is no call

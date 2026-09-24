@@ -1426,6 +1426,8 @@ impl Parser {
         if *self.peek() != Tok::LBracket {
             let shown = match &limb { Some(l) => format!("{l}::{}", path.join(".")), None => path.join(".") };
             if limb.is_none() && path.len() >= 2 { return self.err(format!("`{shown}`: a call needs `[…]`; an enum case with no data is written bare (`Status.empty`) — is `{}` an enum?", path[path.len() - 2])); }
+            // `lang:let` is the 2026-09-14 spelling: say that, not "a call needs […]"
+            if limb.is_none() && shown == "lang" && *self.peek() == Tok::Colon { return self.err("`lang:` was removed (2026-09-14): keywords are bare — `let`, not `lang:let`"); }
             return self.err(format!("`{shown}` is followed by {}; a call needs `[…]`", self.peek()));
         }
         let args = self.bracket()?;
@@ -1924,6 +1926,9 @@ impl Parser {
                     if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
                     Ok(Expr::Convert(ty, b, None, line))
                 }
+                // bare `true[…]` is the boolean followed by a bracket; a function named `true` is
+                // legal and reached by path (keywords may name functions, 2026-09-19)
+                "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}[…]` is no call; a function named `{w}` is reached by path: `limb.{w}[…]`")),
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 "limb" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`limb` is the root of this Limb and is followed by `.`: `limb.helper[]`, `limb.'pi'`"),

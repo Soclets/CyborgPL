@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Oracle messages: two told the wrong story (compiler session's phrase review)
+
+Compiler claude re-reviewed every CCA reject phrase against its `.err`,
+after the owner's re-review rule. Two oracle messages turned out to be
+parser accidents, not the rule. `lang:let` said "a call needs `[…]`", and
+now says `lang:` was removed (2026-09-14) and keywords are bare. `true[]`
+said "expected `;`", and now says bare `true` is the boolean, and that a
+function named `true` is reached by path, `limb.true[…]`, per 2026-09-19's
+rule that a keyword may name a function. CCA's phrase for the second
+("`true` … cannot name a function") contradicts that rule, since
+`fn true` is legal. Reported to compiler claude. `examples/keyword_fn.cpls`
+now shows `limb.true[]`.
+
 ### 2026-09-24 — The Unicode version is pinned, and updated deliberately (owner)
 
 From compiler claude: grapheme boundaries shift between Unicode versions,
