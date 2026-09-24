@@ -1483,7 +1483,18 @@ impl<'p> Interp<'p> {
                         i
                     }
                     (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_), Value::Str(s)) => {
-                        let parsed = if matches!(ty, Ty::Bin(_)) { s.parse::<f64>().ok().map(Value::Bin) } else { s.parse::<i128>().ok().map(Value::Int) };
+                        // text that is a bin: an optional sign, digits, an optional `.` and digits, and an
+                        // optional exponent `e`/`E` (owner, 2026-09-24: b). No `inf`, no `nan`, nothing
+                        // else: those fail `not_a_number` and land in the writer's `otherwise`.
+                        let bin_text = |t: &str| {
+                            let t = t.strip_prefix(['-', '+']).unwrap_or(t);
+                            let (mant, exp) = match t.find(['e', 'E']) { Some(i) => (&t[..i], Some(&t[i + 1..])), None => (t, None) };
+                            let (int, frac) = match mant.split_once('.') { Some((a, b)) => (a, Some(b)), None => (mant, None) };
+                            let digits = |d: &str| !d.is_empty() && d.bytes().all(|b| b.is_ascii_digit());
+                            digits(int) && frac.map_or(true, digits)
+                                && exp.map_or(true, |e| digits(e.strip_prefix(['-', '+']).unwrap_or(e)))
+                        };
+                        let parsed = if matches!(ty, Ty::Bin(_)) { if bin_text(s) { s.parse::<f64>().ok().map(Value::Bin) } else { None } } else { s.parse::<i128>().ok().map(Value::Int) };
                         // a well-formed number past what the oracle can hold is still a number: too big
                         let digits = s.strip_prefix(['-', '+']).unwrap_or(s);
                         let huge = parsed.is_none() && !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit());

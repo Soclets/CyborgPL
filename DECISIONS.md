@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Which text is a bin: digits, fraction, exponent; no `inf`/`nan` (owner: b)
+
+From compiler claude: the oracle took whatever Rust's float parser takes
+(`1e3`, `.5`, `inf`, `infinity`, `nan`), and nothing had chosen it.
+Proposed (a) the source grammar of a bin literal; (b) that plus `e`
+exponents, common in data files; (c) the oracle's behaviour. The owner
+asked whether it needs `otherwise` (yes, always: it can fail
+`not_a_number` or `out_of_range`), then whether to accept c too. Design
+claude advised against it: `nan` is not equal to itself and would break
+comparisons, sorting and map keys, and source code cannot write either.
+Also offered (d), recognising them to fail with the right reason. The
+owner asked what happens when a data file just contains `nan`: it lands
+in the `otherwise`, which says what "missing" means there, and no NaN
+ever reaches a sum. Owner: b. Too big (`"1e400"`) fails `out_of_range`,
+per the ruling earlier today. The oracle's picks for a leading `+`, `_`,
+`.5`/`5.` and spaces are provisional. `examples/text_to_number.cpls`.
+
 ### 2026-09-24 — Oracle bug: a bin literal was rounded twice (compiler session)
 
 `let 'x': bin32 = 340282356779733661637539395458142568447.0;`, just

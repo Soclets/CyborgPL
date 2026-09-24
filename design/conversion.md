@@ -24,6 +24,15 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   a check site, which the final build could not prove about outside text.
   Proposed alternatives: a check site like any narrowing; `not_a_number`
   past some size (the oracle's accidental 2^127 edge).
+- **Which text is a bin** (owner, 2026-09-24: b): an optional sign,
+  digits, an optional `.` and digits, and an optional exponent `e`/`E`
+  with its own sign: `"3.14"`, `"-2"`, `"2.5e3"`. Anything else fails
+  `not_a_number`, `"inf"` and `"nan"` included, so neither value ever
+  enters a program from text. A data file's `nan` ("missing") lands in the
+  writer's `otherwise`, which says what it means there. Proposed
+  alternatives: the source grammar only, without exponents; whatever
+  Rust's parser takes (the oracle's accident, with `inf`, `infinity`,
+  `nan`); recognising `inf`/`nan` to fail `out_of_range`/`not_a_number`.
 - **A conversion that can fail fails the normal way**: text → number is
   `-> … or fail[not_a_number, out_of_range]` and takes `otherwise` like any call
   (`failures.md`). A narrowing conversion is not a failure but a **check
