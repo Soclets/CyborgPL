@@ -54,6 +54,13 @@ silently, which is where "why is this borrowed" bugs come from.
 
 - A captured `lend` is visible inside as a lent variable, a `copy`/`give`
   as an owned one; a capture and a parameter cannot share a name.
+- **A function carrying a `copy`/`give` capture is an owned value**
+  (owner, 2026-09-24: a): `let 'g' := 'f'` is refused, as for a list, and
+  `copy 'f'` copies what it carries while `give 'f'` hands it on. Dropping
+  it frees what it owns. A function carrying nothing, or only `lend`s,
+  copies by itself like a number. Proposed alternatives: every function
+  value takes a verb; no `copy`/`give` captures at all, which would undo
+  2026-09-21.
 - `lend 'xs'[pos i]` / `copy 'xs'[pos i]` — a verb on an element — is now
   spelled (needed to pass elements to a `lent` parameter); `give` of an
   element is refused (it would leave a hole; `list.remove` hands the element

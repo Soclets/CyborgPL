@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — A function carrying a `copy`/`give` capture is owned (owner: a)
+
+From compiler claude, building functions as values: can
+`fn […] with [copy 'xs']` be copied by `let 'g' := 'f'`, and who frees
+the captured list? Proposed (a) a function that captured by `copy`/`give`
+is owned and takes verbs like a list, freeing its captures when dropped,
+while one carrying nothing, or only lends, stays plain; (b) every function
+value takes verbs; (c) refuse `copy`/`give` captures, undoing 2026-09-21.
+The owner asked what c does: only borrowing functions, none that outlives
+its data. Design claude recommended a. Owner: a. The oracle had let `'f'`
+copy itself silently, sharing the captured list. It now refuses the bare
+form, and `copy 'f'` copies owned captures and keeps lends as lends.
+`examples/owning_function.cpls`, reject test owning_function_bare.
+Compiler claude's provisional layout (two pointers, code and captures)
+is its own pick.
+
 ### 2026-09-24 — Oracle bug: text into a bin16/bin32 was still rounded twice (compiler session)
 
 8705014 fixed literals, but `to.bin16["…"]` and `to.bin32["…"]` still read

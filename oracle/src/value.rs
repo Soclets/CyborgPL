@@ -39,6 +39,8 @@ pub enum Value {
 pub struct FuncVal {
     pub def: std::rc::Rc<crate::ast::Func>,
     pub captures: Vec<(String, std::rc::Rc<std::cell::RefCell<Value>>, bool)>,
+    /// which captures the function owns (`copy`/`give`), beside the ones it borrows (`lend`)
+    pub owned: Vec<bool>,
 }
 impl PartialEq for FuncVal { fn eq(&self, o: &FuncVal) -> bool { std::rc::Rc::ptr_eq(&self.def, &o.def) } }
 impl std::fmt::Debug for FuncVal { fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "fn {}", self.def.name) } }
@@ -71,6 +73,9 @@ impl Value {
             Value::Struct(..) => true,
             // Decided 2026-09-20: an enum is always owned, like a struct — one rule.
             Value::Enum(..) => true,
+            // Decided 2026-09-24 (owner: a): a function value that carries a `copy`/`give` capture
+            // owns it, and takes the verbs like a list; one carrying nothing, or only lends, is plain.
+            Value::Func(f) => f.owned.iter().any(|o| *o),
             _ => false,
         }
     }

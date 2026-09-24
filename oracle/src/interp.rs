@@ -1284,7 +1284,14 @@ impl<'p> Interp<'p> {
                         self.lookup_mut(name).unwrap().alive = false;
                         Ok((v, Prov::Given))
                     }
-                    Verb::Copy => Ok((v, Prov::Copied)),
+                    // copying a function that owns captures copies what it owns; its lends stay lends
+                    Verb::Copy => Ok((match v {
+                        Value::Func(f) => Value::Func(FuncVal {
+                            captures: f.captures.iter().zip(&f.owned).map(|((n, c, m), o)| (n.clone(), if *o { Rc::new(RefCell::new(c.borrow().clone())) } else { c.clone() }, *m)).collect(),
+                            def: f.def, owned: f.owned,
+                        }),
+                        v => v,
+                    }, Prov::Copied)),
                     Verb::Lend => Ok((v, Prov::Borrowed(cell, false))),
                     Verb::LendMut => {
                         if kind == SlotKind::Lent { return rt(line, format!("'{name}' is lent (shared); it cannot be lent mutably")); }
@@ -1574,14 +1581,16 @@ impl<'p> Interp<'p> {
                 if !self.reachable(from, &f.module, f.vis) { return rt(line, format!("`{name}` is private to `{}`", root_or(&f.module))); }
                 if f.is_op { return rt(line, format!("`{name}` is an operator; it is not a value")); }
                 if f.is_extern { return rt(line, format!("`{name}` is extern; a C function as a value is not decided")); }
-                Ok((Value::Func(FuncVal { def: Rc::new(f.clone()), captures: Vec::new() }), Prov::Plain))
+                Ok((Value::Func(FuncVal { def: Rc::new(f.clone()), captures: Vec::new(), owned: Vec::new() }), Prov::Plain))
             }
             Expr::Lambda(def, caps, _) => {
                 // captures are taken now, each with its verb; nothing else from this scope is visible inside
                 let mut captures = Vec::new();
+                let mut owned = Vec::new();
                 for (verb, v) in caps {
                     let (kind, alive, cell, val) = match self.lookup(v) { Some(s) => (s.kind, s.alive, s.cell.clone(), s.cell.borrow().clone()), None => return rt(line, format!("'{v}' is not declared")) };
                     if !alive { return rt(line, format!("'{v}' was already given away")); }
+                    owned.push(matches!(verb, Verb::Copy | Verb::Give));
                     match verb {
                         Verb::Lend => captures.push((v.clone(), cell, false)),
                         Verb::LendMut => { if kind == SlotKind::Lent { return rt(line, format!("'{v}' is lent (shared); it cannot be lent mutably")); } captures.push((v.clone(), cell, true)); }
@@ -1593,7 +1602,9 @@ impl<'p> Interp<'p> {
                         }
                     }
                 }
-                Ok((Value::Func(FuncVal { def: def.clone(), captures }), Prov::Plain))
+                let v = Value::Func(FuncVal { def: def.clone(), captures, owned });
+                let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                Ok((v, prov))
             }
             Expr::CallValue(name, args, handler, _) => {
                 let v = self.call_value(name, args, handler.as_ref(), line)?;
