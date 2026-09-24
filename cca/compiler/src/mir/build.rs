@@ -362,6 +362,8 @@ impl<'a> FnBuilder<'a> {
             self.resolve_ty(&projected_ty(&base, &place.proj, &self.arena.items))
         };
         match (&rvalue, dest_ty.base()) {
+            // A width not written (a `:=` list of bare numbers) holds them all.
+            (Rvalue::MakeList(_), Ty::Seq { elem, .. }) if matches!(elem.base(), Ty::Int(IntW::Free(_))) || elem.is_exact() => {}
             (Rvalue::MakeList(ops), Ty::Seq { elem, .. }) => {
                 let elem = (**elem).clone();
                 for op in ops.clone() {
