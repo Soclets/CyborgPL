@@ -129,3 +129,4 @@ conversions 255
 text_too_big 127
 bin_widths 31
 wrap_power_base 170
+big_literal_compare 24

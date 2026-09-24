@@ -887,7 +887,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         let (sa, sb) = (self.operand_signed(fi, lhs), self.operand_signed(fi, rhs));
                         let (xw, yw) = (x.get_type().get_bit_width(), y.get_type().get_bit_width());
                         let mixed = matches!((sa, sb), (Some(p), Some(q)) if p != q || xw != yw);
-                        if (la.is_some() != lb.is_some() || mixed) && xw.max(yw) <= 127 {
+                        // Only a place's width limits this: a literal is
+                        // written at its value whatever width it was built
+                        // at, and 2^63 is built at 128 bits — counted, it
+                        // sent `2^63 <== 'v1'` to a 16-bit compare with 0
+                        // (check claude, seed 1086).
+                        let widest = match (la, lb) {
+                            (Some(_), None) => yw,
+                            (None, Some(_)) => xw,
+                            _ => xw.max(yw),
+                        };
+                        if (la.is_some() != lb.is_some() || mixed) && widest <= 127 {
                             let w = self.ctx.i128_type();
                             let x = match la { Some(c) => const_i128(w, c), None => self.builder.build_int_cast_sign_flag(x, w, sa.unwrap_or(true), "cmpl").ok()? };
                             let y = match lb { Some(c) => const_i128(w, c), None => self.builder.build_int_cast_sign_flag(y, w, sb.unwrap_or(true), "cmpr").ok()? };

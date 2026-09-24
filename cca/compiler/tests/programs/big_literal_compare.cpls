@@ -1,0 +1,16 @@
+# A literal past 64 bits' signed range against a narrow place: compared at
+# its value. Built at 128 bits, it counted toward the widest side, and
+# `2^63 <== 'v1'` became a 16-bit compare with 0 under --assert-proofs
+# (check claude, seed 1086).
+extern fn exit ['code': int32];
+MAIN {
+    let 'v1': uint16 = 0;
+    let 'w': int8 = -1;
+    let mut 'got': int32 = 0;
+    if 9223372036854775808 <== 'v1' { 'got' = 'got' + 1; }
+    if 'v1' >== 18446744073709551615 { 'got' = 'got' + 2; }
+    if 'w' == 18446744073709551615 { 'got' = 'got' + 4; }
+    if 'v1' < 9223372036854775808 { 'got' = 'got' + 8; }
+    if 'w' < 18446744073709551615 { 'got' = 'got' + 16; }
+    nocheck exit['got'];
+}
