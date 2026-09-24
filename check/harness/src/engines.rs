@@ -146,6 +146,21 @@ pub fn reap_leftovers() {
     }
 }
 
+/// Attack (c): ask Z3 about every site of a program (check_gen::solve).
+/// Returns, per site, a failing input when Z3 found one. `None` overall when
+/// the program is too big to translate or Z3 did not answer.
+pub fn aim(p: &check_gen::Program, dir: &Path) -> Option<(Vec<check_gen::solve::Site>, Vec<check_gen::solve::Answer>)> {
+    let q = check_gen::solve::encode(p)?;
+    fs::create_dir_all(dir).ok()?;
+    let f = dir.join("aim.smt2");
+    fs::write(&f, &q.script).ok()?;
+    let r = run(Command::new("z3").arg("-smt2").arg(&f), dir, &[("PATH".into(), "/opt/homebrew/bin:/usr/bin:/bin".into())], false, BUILD_LIMIT);
+    // On a time-out, the answers given so far still count.
+    let out = String::from_utf8_lossy(&r.stdout).into_owned();
+    let answers = check_gen::solve::parse_answers(&out, q.sites.len(), q.inputs.len());
+    Some((q.sites, answers))
+}
+
 /// The first `line N` in a message.
 pub fn line_of(msg: &str) -> Option<u32> {
     let i = msg.find("line ")?;

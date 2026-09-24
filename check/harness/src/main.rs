@@ -7,8 +7,10 @@
 //!   check file   <prog.cpls>                              compare one hand-written program
 //!   check corpus                                          re-run every past finding in check/corpus/
 
+mod claims;
 mod compare;
 mod engines;
+mod json;
 
 use check_gen::rng::Rng;
 use check_gen::shrink::{candidates, well_scoped};
@@ -43,7 +45,7 @@ fn parse() -> Args {
     let mut i = 0;
     while i < v.len() {
         if let Some(f) = v[i].strip_prefix("--") {
-            if matches!(f, "keep-going" | "no-shrink" | "pow" | "edge") {
+            if matches!(f, "keep-going" | "no-shrink" | "pow" | "edge" | "exhaust" | "target") {
                 flags.insert(f.to_string(), "1".into());
             } else {
                 flags.insert(f.to_string(), v.get(i + 1).cloned().unwrap_or_default());
@@ -72,7 +74,7 @@ impl Args {
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
             size: self.num("size", 3) as u32,
-            inputs: self.num("inputs", 0) as u32,
+            inputs: self.num("inputs", if self.has("exhaust") { 2 } else { 0 }) as u32,
             risk: self.num("risk", 5),
             pow: !avoid.contains("pow"),
             range_edge: !avoid.contains("range-edge"),
@@ -81,6 +83,7 @@ impl Args {
             edge: self.has("edge"),
             sized_bits: avoid.contains("exact-bits"),
             recursion: !avoid.contains("recursion"),
+            exhaust: if self.has("exhaust") { self.num("domain", EXHAUST_CAP).max(2) } else { 0 },
         }
     }
 }
@@ -90,11 +93,28 @@ fn die(m: &str) -> ! {
     std::process::exit(2)
 }
 
-/// Input sets for a program: environment-variable lengths, chosen from the
-/// seed — edges first, then random (provisional; see README).
+/// Attack (a): at most this many input combinations per program
+/// (provisional, Kespar's number; `--domain N` changes it).
+const EXHAUST_CAP: u64 = 4096;
+
+/// Input sets for a program: environment-variable lengths. In exhaustive
+/// mode every combination of every input's domain; otherwise chosen from
+/// the seed — edges first, then random (provisional; see README).
 fn envs(p: &Program) -> Vec<Env> {
     if p.inputs.is_empty() {
         return vec![];
+    }
+    if p.inputs.iter().all(|i| i.domain.is_some()) {
+        let mut sets: Vec<Env> = vec![vec![]];
+        for i in &p.inputs {
+            let m = i.domain.unwrap() as usize;
+            sets = sets.into_iter().flat_map(|e| (0..m).map(move |n| {
+                let mut e = e.clone();
+                e.push((i.var.clone(), "a".repeat(n)));
+                e
+            })).collect();
+        }
+        return sets;
     }
     const EDGES: [usize; 14] = [0, 1, 2, 3, 7, 10, 127, 128, 255, 256, 1000, 32767, 32768, 65536];
     let mut rng = Rng::new(p.seed ^ 0x1D5E_7C0D_E5E7_0000);
@@ -111,6 +131,25 @@ fn envs(p: &Program) -> Vec<Env> {
         sets.push(env);
     }
     sets
+}
+
+/// Input sets aimed by Z3 at the program's sites (attack (c)): every
+/// distinct failing input it found, at most `cap`, after the usual ones.
+fn aimed_envs(p: &Program, dir: &Path, cap: usize) -> (Vec<Env>, usize, usize) {
+    let mut sets = envs(p);
+    let Some((sites, answers)) = engines::aim(p, dir) else { return (sets, 0, 0) };
+    let found = answers.iter().filter(|a| matches!(a, check_gen::solve::Answer::Fails(_))).count();
+    let mut seen = std::collections::BTreeSet::new();
+    for a in answers.into_iter().filter_map(|a| if let check_gen::solve::Answer::Fails(v) = a { Some(v) } else { None }) {
+        if a.len() != p.inputs.len() || !seen.insert(a.clone()) {
+            continue;
+        }
+        if seen.len() > cap {
+            break;
+        }
+        sets.push(p.inputs.iter().zip(&a).map(|(i, n)| (i.var.clone(), "a".repeat(*n as usize))).collect());
+    }
+    (sets, sites.len(), found)
 }
 
 fn main() {
@@ -152,6 +191,65 @@ fn main() {
             let v = check(&t, &src, &work().join("file"), &env);
             report(&v);
         }
+        "aim" => {
+            let p = generate(a.num("seed", 1), &a.config());
+            match engines::aim(&p, &work().join("aim")) {
+                None => println!("too big to translate, or Z3 gave no answer"),
+                Some((sites, answers)) => {
+                    use check_gen::solve::Answer;
+                    for (k, s) in sites.iter().enumerate() {
+                        match answers.get(k) {
+                            Some(Answer::Fails(v)) => println!("FAILS    {:?}  {}", v, s.what),
+                            Some(Answer::Never) => println!("never    {}", s.what),
+                            Some(Answer::Unknown) => println!("unknown  {}", s.what),
+                            None => println!("unasked  {}", s.what),
+                        }
+                    }
+                    println!("{} sites; script at {}", sites.len(), work().join("aim/aim.smt2").display());
+                }
+            }
+        }
+        "claims" => {
+            let t = tools();
+            let p = generate(a.num("seed", 1), &a.config());
+            let dir = work().join("claims");
+            match claims::check_claims(&t, &p, &dir) {
+                Err(e) => println!("seed {}: {e}", p.seed),
+                Ok(o) => {
+                    println!(
+                        "seed {}: {} proven claims: {} with nothing to ask (literals, the printer), {} matched to my tree, {} not; {} justified by the simple intervals (b){}; {} solver questions (c), {} unanswered",
+                        p.seed,
+                        o.proven,
+                        o.literal,
+                        o.matched,
+                        o.unmatched.len(),
+                        o.justified,
+                        if o.intervals_complete { "" } else { " — (b) could not follow the whole program" },
+                        o.asked,
+                        o.unknown
+                    );
+                    for c in o.unmatched.iter().take(5) {
+                        println!("  unmatched: line {}:{}..{} {} {}", c.line, c.col, c.end_col, c.kind, c.construct);
+                    }
+                    for r in &o.refuted {
+                        let c = &r.claim;
+                        println!(
+                            "REFUTED  line {}:{}..{} {} `{}` (layer {}, in {}): {} — inputs {:?}  [{}]",
+                            c.line, c.col, c.end_col, c.kind, c.construct, c.layer, c.function, r.test, r.inputs, r.site
+                        );
+                        if r.inputs.iter().all(|v| *v <= check_gen::solve::INPUT_MAX) {
+                            let env: Env = p.inputs.iter().zip(&r.inputs).map(|(i, n)| (i.var.clone(), "a".repeat(*n as usize))).collect();
+                            let v = check(&t, &p.render(), &dir.join("run"), &[env]);
+                            print!("    run on that input: ");
+                            report(&v);
+                        } else {
+                            println!("    that input is too long to set as an environment variable; the claim stands refuted by the solver only");
+                        }
+                    }
+                }
+            }
+        }
+        "claims-run" => claims_run(&tools(), &a),
         "corpus" => corpus(&tools()),
         "run" => run(&tools(), &a),
         _ => {
@@ -327,6 +425,7 @@ fn run(t: &Tools, a: &Args) {
     let from = a.num("from", 1);
     let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
     let keep_going = a.has("keep-going");
+    let target = a.has("target");
     let next = AtomicU64::new(from);
     let stop = AtomicBool::new(false);
     let done = AtomicU64::new(0);
@@ -354,7 +453,8 @@ fn run(t: &Tools, a: &Args) {
                         return;
                     }
                     let p = generate(seed, cfg);
-                    let v = check(t, &p.render(), &dir, &envs(&p));
+                    let sets = if target { aimed_envs(&p, &dir, 32).0 } else { envs(&p) };
+                    let v = check(t, &p.render(), &dir, &sets);
                     let mut tl = tally.lock().unwrap();
                     match v {
                         Verdict::Agree { oracle_stopped } => {
@@ -430,6 +530,90 @@ fn run(t: &Tools, a: &Args) {
             report(&v);
         }
     }
+}
+
+/// The Precog oracle's claim check over many programs: every proven claim,
+/// (b) first, then (c); every refuted claim printed as it is found.
+fn claims_run(t: &Tools, a: &Args) {
+    let cfg = a.config();
+    let cases = a.num("cases", 20);
+    let from = a.num("from", 1);
+    let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
+    let next = AtomicU64::new(from);
+    #[derive(Default)]
+    struct T {
+        programs: u64,
+        failed: u64,
+        proven: usize,
+        nothing: usize,
+        matched: usize,
+        unmatched: usize,
+        justified: usize,
+        asked: usize,
+        unknown: usize,
+        refuted: usize,
+        incomplete_b: u64,
+    }
+    let tally = Mutex::new(T::default());
+    std::thread::scope(|s| {
+        for w in 0..jobs {
+            let (next, tally, cfg) = (&next, &tally, &cfg);
+            big_stack()
+                .spawn_scoped(s, move || {
+                    let dir = work().join(format!("cw{w}"));
+                    loop {
+                        let seed = next.fetch_add(1, Ordering::SeqCst);
+                        if seed >= from + cases {
+                            return;
+                        }
+                        let p = generate(seed, cfg);
+                        let r = claims::check_claims(t, &p, &dir);
+                        let mut tl = tally.lock().unwrap();
+                        tl.programs += 1;
+                        let Ok(o) = r else {
+                            tl.failed += 1;
+                            continue;
+                        };
+                        tl.proven += o.proven;
+                        tl.nothing += o.literal;
+                        tl.matched += o.matched;
+                        tl.unmatched += o.unmatched.len();
+                        tl.justified += o.justified;
+                        tl.asked += o.asked;
+                        tl.unknown += o.unknown;
+                        tl.refuted += o.refuted.len();
+                        tl.incomplete_b += (!o.intervals_complete) as u64;
+                        drop(tl);
+                        for r in &o.refuted {
+                            let c = &r.claim;
+                            let mut line = format!(
+                                "seed {seed}: REFUTED line {}:{}..{} {} `{}` (layer {}, in {}): {} — inputs {:?} [{}]",
+                                c.line, c.col, c.end_col, c.kind, c.construct, c.layer, c.function, r.test, r.inputs, r.site
+                            );
+                            if r.inputs.iter().all(|v| *v <= check_gen::solve::INPUT_MAX) {
+                                let env: Env = p.inputs.iter().zip(&r.inputs).map(|(i, n)| (i.var.clone(), "a".repeat(*n as usize))).collect();
+                                let v = check(t, &p.render(), &dir.join("run"), &[env]);
+                                line += &format!("\n    run on that input: {}", match v {
+                                    Verdict::Finding(f) => format!("FINDING ({})\n{}", f.kind, f.detail),
+                                    Verdict::Agree { .. } => "both engines agree".into(),
+                                    Verdict::NotYet(m) => format!("not yet: {m}"),
+                                    Verdict::SlowBuild => "build too slow".into(),
+                                });
+                            } else {
+                                line += "\n    input too long to set; refuted by the solver only";
+                            }
+                            println!("{line}");
+                        }
+                    }
+                })
+                .expect("spawn");
+        }
+    });
+    let tl = tally.into_inner().unwrap();
+    println!(
+        "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched, {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions, {} unanswered; REFUTED {}",
+        tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.unknown, tl.refuted
+    );
 }
 
 fn top(m: &BTreeMap<String, u64>, n: usize) -> Vec<(String, u64)> {

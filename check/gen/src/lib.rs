@@ -3,9 +3,11 @@
 
 pub mod ast;
 pub mod gen;
+pub mod intervals;
 pub mod printer;
 pub mod rng;
 pub mod shrink;
+pub mod solve;
 
 pub use ast::Program;
 pub use gen::{generate, Config};

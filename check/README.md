@@ -58,6 +58,40 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
 - **`corpus/`** — every past finding, re-run for ever by `check corpus`.
   A `# env NAME LENGTH` line gives an input set.
 
+## The Precog oracle (design/precog.md, attacks a–d)
+
+What CCA claims to have *proven* is attacked four ways, none sharing code
+or reasoning with CCA:
+
+- **(a) Every input.** `check run --exhaust` narrows each input at the door
+  of MAIN into a small typed value — an `int8` or `uint8` (256 values), a
+  `bool`, or a small range type like `int16[-5, 20]` — so the rest of the
+  program, and Precog, see exactly that domain; the raw inputs are never
+  used again. Every combination (at most `--domain`, default 4,096) is run
+  through the oracle and both CCA builds, so a proven site reached by any
+  input in the domain is checked by the `--assert-proofs` build.
+- **(b) A simple interval analysis** (`gen/src/intervals.rs`), written
+  separately from everything else: one interval per name, loops trip by
+  trip, calls followed, joins at merges, bare-number groups folded exactly.
+  A claim whose value (b) keeps inside what CCA claims is justified; if (b)
+  cannot follow the whole program (a loop past 14 trips, a call past depth
+  12) it justifies nothing.
+- **(c) The negation, re-encoded** (`gen/src/solve.rs`): check claude's own
+  translation of the program into Z3 questions, following design/ (exact
+  maths checked where it lands, floored `/` and `mod`, bitwise at the
+  operands' width, shift counts 0..width−1). `check claims` reads
+  `cca precog --json`, matches each proven claim to the generator's tree by
+  its span, lets (b) justify what it can, and asks Z3 of the rest, over
+  every input Precog considers (any `uint64` length): can the site fail,
+  and can its value fall outside the set or interval CCA claimed? A "yes"
+  is a refuted claim with the input; if the input is short enough to set,
+  it is also run through both engines. `check claims-run --cases N` does it
+  over many programs. `check aim --seed N` shows every site of one program
+  and a failing input where Z3 finds one; `check run --target` adds those
+  inputs to each program's input sets.
+- **(d) Proofs as assertions**: every program is also built with
+  `cca build --assert-proofs` (see below).
+
 ## Which build a run uses
 
 Every program is built twice: `cca build` (the working build: unproven
@@ -133,6 +167,18 @@ decision; dated, with the alternative.
 - **Input sets**: four per program, lengths from 0, 1, 2, 3, 7, 10, 127,
   128, 255, 256, 1000, 32767, 32768, 65536 or random below 70,000
   (2026-09-23). Alternative: exhaustive over small domains (attack (a)).
+- **The Precog oracle's numbers** (2026-09-24): at most 4,096 input
+  combinations for (a) (Kespar's number); inputs of at most 200,000
+  characters when an input must be run (the environment's practical limit);
+  Z3 at `rlimit` 1,500,000 per question and 120 s per program; loops
+  unrolled to 14 trips, calls inlined to depth 12, translations cut at
+  60,000 definitions (calls stop being inlined at 20,000); powers unrolled
+  to exponent 16. Alternatives: bigger bounds, at more time per program.
+- **Claims with nothing to ask** (2026-09-24): a negative literal's minus,
+  a `for` counter over literal bounds, and any claim inside the program's
+  own printer are counted, not checked. A call's result landing in the
+  callee's return type is not matched (the translation checks it at the
+  `return` instead).
 - **Generator sizes and weights** (statement counts, depth, how often each
   construct appears, the work budget of 20,000 statement-trips for MAIN and
   400 per function) are guesses (2026-09-23), to be tuned by what finds bugs.

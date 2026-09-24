@@ -42,11 +42,15 @@ pub struct Config {
     /// Write recursive functions: a range-typed counter parameter that
     /// counts down to 0 (or up to its top) on every call.
     pub recursion: bool,
+    /// Attack (a) of the Precog oracle: narrow every input at the door of
+    /// MAIN into a small typed value, so that the whole input domain (at most
+    /// this many combinations) can be run. 0 = off.
+    pub exhaust: u64,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0 }
     }
 }
 
@@ -129,12 +133,21 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     g.mult = 1;
     g.scopes = vec![vec![]];
     let mut inputs = vec![];
+    let mut main = vec![];
+    let mut room = cfg.exhaust;
     for k in 0..cfg.inputs {
         let name = format!("in{}", k + 1);
-        inputs.push(Input { name: name.clone(), var: format!("CHK_IN{}", k + 1) });
-        g.declare(name, Ty::U64, Ty::U64.range(), false);
+        if cfg.exhaust > 0 {
+            // The raw input is never visible: only its narrowed door value.
+            let (door, domain) = g.door(&name, room);
+            room /= domain;
+            inputs.push(Input { name: name.clone(), var: format!("CHK_IN{}", k + 1), domain: Some(domain) });
+            main.push(door);
+        } else {
+            inputs.push(Input { name: name.clone(), var: format!("CHK_IN{}", k + 1), domain: None });
+            g.declare(name, Ty::U64, Ty::U64.range(), false);
+        }
     }
-    let mut main = vec![];
     // A few typed names first, so comparisons always have something typed.
     for _ in 0..1 + g.rng.below(3) {
         main.push(g.let_stmt());
@@ -279,6 +292,44 @@ impl Gen {
         }
         let iv = Iv::new(lo.unwrap_or(r.lo), hi.unwrap_or(r.hi));
         (TyR { base: t, range: Some((lo, hi)) }, Some(iv))
+    }
+
+    /// A door: `in` narrowed into a small typed value whose every value is
+    /// reached by some length 0..domain-1, with domain <= room. Returns the
+    /// `let` and the domain.
+    fn door(&mut self, input: &str, room: u64) -> (Stmt, u64) {
+        let name = self.name("d");
+        let inp = || Box::new(Expr::Var(input.to_string()));
+        let modulo = |m: i128| Expr::Bin(BinOp::Mod, inp(), Box::new(Expr::Lit(m)));
+        let kind = if room >= 256 { self.rng.below(4) } else { 2 + self.rng.below(2) };
+        let (ty, value, iv, m): (TyR, Expr, Iv, u64) = match kind {
+            0 => (
+                Ty::I8.into(),
+                Expr::To(Ty::I8, Box::new(Expr::Bin(BinOp::Sub, Box::new(Expr::To(Ty::I16, Box::new(modulo(256)))), Box::new(Expr::Lit(128))))),
+                Ty::I8.range(),
+                256,
+            ),
+            1 => (Ty::U8.into(), Expr::To(Ty::U8, Box::new(modulo(256))), Ty::U8.range(), 256),
+            2 if room >= 2 => {
+                // a small range type, anywhere in its base type
+                let t = self.int_ty();
+                let m = self.rng.range(2, (room.min(40)) as i128);
+                let r = t.range();
+                let lo = if self.rng.chance(40) { self.rng.range(r.lo, r.hi - (m - 1)) } else { self.rng.range(r.lo.max(-60), (r.hi - (m - 1)).min(60)) };
+                let base = Expr::To(t, Box::new(modulo(m)));
+                let value = if lo == 0 {
+                    base
+                } else if lo > 0 {
+                    Expr::Bin(BinOp::Add, Box::new(base), Box::new(Expr::Lit(lo)))
+                } else {
+                    Expr::Bin(BinOp::Sub, Box::new(base), Box::new(Expr::Lit(-lo)))
+                };
+                (TyR { base: t, range: Some((Some(lo), Some(lo + m - 1))) }, value, Iv::new(lo, lo + m - 1), m as u64)
+            }
+            _ => (Ty::Bool.into(), Expr::Cmp(CmpOp::Eq, Box::new(modulo(2)), Box::new(Expr::Lit(1))), Iv::new(0, 1), 2),
+        };
+        self.declare(name.clone(), ty.base, iv, false);
+        (Stmt::Let { tier: Tier::Default, name, mutability: Mutability::Plain, ty, value }, m)
     }
 
     // ------------------------------------------------------------ functions

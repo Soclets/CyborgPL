@@ -1,0 +1,218 @@
+//! The Precog oracle's claim check (design/precog.md, attacks (b) and (c)):
+//! read every site CCA calls proven (`cca precog --json`), find it in the
+//! generator's own tree by its span, and ask a fresh Z3 — through check
+//! claude's own translation (check_gen::solve), over every input Precog
+//! considers — whether it can fail, and whether its value can fall outside
+//! the set or interval Precog claimed for it. A "yes" is a refuted claim,
+//! with the input that refutes it.
+
+use crate::engines::{self, Tools};
+use crate::json::{self, J};
+use check_gen::ast::{Program, Spans};
+use check_gen::solve::{encode_with, parse_answers, Answer, Encoded, Test};
+use std::path::Path;
+use std::process::Command;
+
+#[derive(Clone, Debug)]
+pub struct Claim {
+    pub line: u32,
+    pub col: u32,
+    pub end_line: u32,
+    pub end_col: u32,
+    pub kind: String,
+    pub construct: String,
+    pub verdict: String,
+    pub layer: String,
+    pub function: String,
+    /// The value Precog claims: a set, an interval, or nothing to compare.
+    pub value: Value,
+}
+
+#[derive(Clone, Debug)]
+pub enum Value {
+    Set(Vec<i128>),
+    Interval(i128, i128),
+    Other,
+}
+
+pub fn read_claims(text: &str) -> Vec<Claim> {
+    let mut out = vec![];
+    for l in text.lines() {
+        let Some(j) = json::parse(l.trim()) else { continue };
+        let pos = |k: &str| -> Option<(u32, u32)> {
+            let a = j.get(k)?.arr()?;
+            Some((a.first()?.int()? as u32, a.get(1)?.int()? as u32))
+        };
+        let (Some((line, col)), Some((end_line, end_col))) = (pos("start"), pos("end")) else { continue };
+        let s = |k: &str| j.get(k).and_then(J::str).unwrap_or("").to_string();
+        let value = match j.get("value") {
+            Some(v) if v.get("values").is_some() => Value::Set(v.get("values").and_then(J::arr).unwrap_or(&[]).iter().filter_map(J::int).collect()),
+            Some(v) if v.get("lo").is_some() => match (v.get("lo").and_then(J::int), v.get("hi").and_then(J::int)) {
+                (Some(lo), Some(hi)) => Value::Interval(lo, hi),
+                _ => Value::Other,
+            },
+            _ => Value::Other,
+        };
+        out.push(Claim {
+            line,
+            col,
+            end_line,
+            end_col,
+            kind: s("kind"),
+            construct: s("construct"),
+            verdict: s("verdict"),
+            layer: s("layer"),
+            function: s("function"),
+            value,
+        });
+    }
+    out
+}
+
+/// My sites a claim can be about: same kind (allowing the few names that
+/// differ), and the same span as the site's expression or statement.
+pub fn matches(c: &Claim, e: &Encoded, spans: &Spans) -> Vec<usize> {
+    if c.line != c.end_line {
+        return vec![];
+    }
+    // CCA's `overflow` on an operator is my check on that operator (mine
+    // asks the weaker "past 64 bits", so it can never refute falsely).
+    let kind_ok = |k: &str| k == c.kind || (c.kind == "overflow" && matches!(k, "shift_width" | "past_64_bits"));
+    e.sites
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| kind_ok(s.kind))
+        .filter(|(_, s)| {
+            let hit = |sp: Option<&(u32, u32, u32)>| sp.map_or(false, |&(l, a, b)| l == c.line && a == c.col && b == c.end_col);
+            // the expression itself, or (an argument) the call it is passed to
+            let by_expr = hit(spans.expr.get(&s.node)) || hit(spans.expr.get(&s.stmt));
+            // a statement: with or without its tier word, with or without its `;`
+            let by_stmt = spans.stmt.get(&s.stmt).map_or(false, |&(l, a0, a1, b)| l == c.line && (a0 == c.col || a1 == c.col) && (b == c.end_col || b - 1 == c.end_col));
+            by_expr || by_stmt
+        })
+        .map(|(k, _)| k)
+        .collect()
+}
+
+pub struct Refuted {
+    pub claim: Claim,
+    pub test: &'static str,
+    pub inputs: Vec<u64>,
+    pub site: String,
+}
+
+pub struct Outcome {
+    pub proven: usize,
+    pub matched: usize,
+    /// Claims attack (b)'s simple intervals already justify: not asked.
+    pub justified: usize,
+    /// Whether attack (b) followed the whole program (else it justifies nothing).
+    pub intervals_complete: bool,
+    pub asked: usize,
+    pub unknown: usize,
+    pub refuted: Vec<Refuted>,
+    pub unmatched: Vec<Claim>,
+    /// Claims with nothing to ask: a negative number's minus, a `for`
+    /// counter over literal bounds, the program's own printer.
+    pub literal: usize,
+}
+
+/// Ask CCA for its claims on `p`, and Z3 whether each proven one holds.
+pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, String> {
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    let (text, spans) = p.render_spans();
+    let file = dir.join("prog.cpls");
+    std::fs::write(&file, &text).map_err(|e| e.to_string())?;
+    let r = engines::run(Command::new(&t.cca).arg("precog").arg("--json").arg(&file), dir, &[], false, engines::BUILD_LIMIT);
+    if r.timed_out {
+        return Err("cca precog ran past its limit".into());
+    }
+    let claims = read_claims(&String::from_utf8_lossy(&r.stdout));
+    // Every input Precog considers: any length a uint64 holds.
+    let enc = encode_with(p, u64::MAX as u128).ok_or("too big to translate")?;
+    let mut questions = vec![];
+    let mut about = vec![];
+    let ranges = check_gen::intervals::analyse(p, u64::MAX as u128);
+    let mut out = Outcome { proven: 0, matched: 0, justified: 0, intervals_complete: ranges.is_some(), asked: 0, unknown: 0, refuted: vec![], unmatched: vec![], literal: 0 };
+    let lines: Vec<&str> = text.lines().collect();
+    // The text a claim's span covers.
+    let span_text = |c: &Claim| -> String {
+        lines.get(c.line as usize - 1).and_then(|l| l.get(c.col as usize - 1..(c.end_col as usize - 1).min(l.len()))).unwrap_or("").to_string()
+    };
+    for c in claims.iter().filter(|c| c.verdict == "proven") {
+        out.proven += 1;
+        let ks = matches(c, &enc, &spans);
+        if ks.is_empty() {
+            // A negative literal (CCA sees a minus on a number; my tree holds
+            // the number) or a `for` counter (literal bounds): nothing to ask.
+            let t = span_text(c);
+            let t = t.trim_matches(|ch| ch == '(' || ch == ')');
+            let neg_lit = t.starts_with('-') && t[1..].chars().all(|ch| ch.is_ascii_digit()) && t.len() > 1;
+            let for_counter = lines.get(c.line as usize - 1).map_or(false, |l| l.trim_start().starts_with("for ")) && c.end_col == c.col + 1;
+            // The program's own printer comes before the generated code.
+            let in_printer = lines.iter().position(|l| l.starts_with("fn f") || l.starts_with("MAIN")).map_or(false, |first| (c.line as usize) <= first);
+            if neg_lit || for_counter || in_printer {
+                out.literal += 1;
+            } else {
+                out.unmatched.push(c.clone());
+            }
+            continue;
+        }
+        out.matched += 1;
+        // Attack (b): does the simple analysis keep every instance's value
+        // inside what Precog claims? Then the claim is justified.
+        let inside = |k: usize| -> bool {
+            let Some(rs) = &ranges else { return false };
+            let s = &enc.sites[k];
+            if !matches!(s.kind, "narrowing" | "past_64_bits" | "division_by_zero" | "modulo_by_zero" | "shift_count" | "negative_exponent") {
+                return false;
+            }
+            let Some(&(lo, hi)) = rs.get(&(s.node, s.stmt, s.kind)) else { return false };
+            match &c.value {
+                Value::Interval(a, b) => *a <= lo && hi <= *b,
+                Value::Set(vs) => hi - lo < 4096 && (lo..=hi).all(|v| vs.binary_search(&v).is_ok() || vs.contains(&v)),
+                Value::Other => false,
+            }
+        };
+        if ks.iter().all(|k| inside(*k)) {
+            out.justified += 1;
+            continue;
+        }
+        // One question per claim and test, about every instance at once.
+        let first = ks[0];
+        questions.push((ks.clone(), Test::Fails));
+        about.push((c.clone(), "can fail", first));
+        // `shift_width`'s value means something else in CCA than in my
+        // translation (the shifted result), so only "can it fail" is asked.
+        let t = match &c.value {
+            _ if c.kind == "shift_width" || c.kind == "overflow" && c.construct == "shl" => None,
+            Value::Set(v) if !v.is_empty() => Some(Test::OutsideSet(v.clone())),
+            Value::Interval(lo, hi) => Some(Test::OutsideInterval(*lo, *hi)),
+            _ => None,
+        };
+        if let Some(t) = t {
+            questions.push((ks, t));
+            about.push((c.clone(), "value outside the claim", first));
+        }
+    }
+    out.asked = questions.len();
+    if questions.is_empty() {
+        return Ok(out);
+    }
+    let f = dir.join("claims.smt2");
+    std::fs::write(&f, enc.claim_script(&questions)).map_err(|e| e.to_string())?;
+    let z = engines::run(Command::new("z3").arg("-smt2").arg(&f), dir, &[("PATH".into(), "/opt/homebrew/bin:/usr/bin:/bin".into())], false, engines::BUILD_LIMIT);
+    let answers = parse_answers(&String::from_utf8_lossy(&z.stdout), questions.len(), enc.inputs.len());
+    for (k, a) in answers.iter().enumerate() {
+        match a {
+            Answer::Fails(v) => {
+                let (claim, test, site) = &about[k];
+                out.refuted.push(Refuted { claim: claim.clone(), test, inputs: v.clone(), site: enc.sites[*site].what.clone() });
+            }
+            Answer::Unknown => out.unknown += 1,
+            Answer::Never => {}
+        }
+    }
+    out.unknown += questions.len().saturating_sub(answers.len());
+    Ok(out)
+}

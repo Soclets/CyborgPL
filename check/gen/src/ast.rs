@@ -270,6 +270,9 @@ pub struct Func {
 pub struct Input {
     pub name: String,
     pub var: String,
+    /// In exhaustive mode: the input is only ever used as `'in' mod domain`,
+    /// so lengths 0..domain-1 are every value the program can see.
+    pub domain: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -482,5 +485,286 @@ impl Program {
         render_block(&mut out, &self.main, 1, self.loose);
         out.push_str("}\n");
         out
+    }
+}
+
+// ---------------------------------------------------------------- spans
+
+/// Where every expression and simple statement sits in the rendered text,
+/// keyed by the node's address (stable while the program is not changed):
+/// 1-based line, 1-based start column, end column one past the last
+/// character — the convention of `cca precog --json`. An expression's span
+/// includes the parentheses its parent put around it. A statement has two
+/// starts: with its `check`/`nocheck` word and without it.
+#[derive(Default, Debug)]
+pub struct Spans {
+    pub expr: std::collections::HashMap<usize, (u32, u32, u32)>,
+    pub stmt: std::collections::HashMap<usize, (u32, u32, u32, u32)>,
+}
+
+pub fn addr<T>(x: &T) -> usize {
+    x as *const T as usize
+}
+
+struct Wr<'a> {
+    out: String,
+    loose: bool,
+    /// byte offsets while writing
+    expr: Vec<(usize, usize, usize)>,
+    stmt: Vec<(usize, usize, usize, usize)>,
+    _p: std::marker::PhantomData<&'a ()>,
+}
+
+impl<'a> Wr<'a> {
+    fn e(&mut self, e: &Expr) {
+        let start = self.out.len();
+        self.inner(e);
+        self.expr.push((addr(e), start, self.out.len()));
+    }
+    fn operand(&mut self, parent: &Expr, child: &Expr, left: bool) {
+        let bare = level(child) == Some(0) || (self.loose && bare_ok(parent, child, left));
+        if bare {
+            self.e(child);
+        } else {
+            let s = self.out.len();
+            self.out.push('(');
+            self.e(child);
+            self.out.push(')');
+            // the parentheses belong to the child's span
+            self.expr.push((addr(child), s, self.out.len()));
+        }
+    }
+    fn inner(&mut self, e: &Expr) {
+        match e {
+            Expr::Lit(v) => self.out.push_str(&v.to_string()),
+            Expr::Bool(b) => self.out.push_str(&b.to_string()),
+            Expr::Var(n) => self.out.push_str(&q(n)),
+            Expr::Bin(op, a, b) => {
+                self.operand(e, a, true);
+                self.out.push_str(&format!(" {} ", op.text()));
+                self.operand(e, b, false);
+            }
+            Expr::Neg(a) => {
+                self.out.push('-');
+                self.operand(e, a, false);
+            }
+            Expr::NotBit(a) => {
+                self.out.push_str("not.bit ");
+                self.operand(e, a, false);
+            }
+            Expr::Not(a) => {
+                self.out.push_str("not ");
+                self.operand(e, a, false);
+            }
+            Expr::Cmp(op, a, b) => {
+                self.operand(e, a, true);
+                self.out.push_str(&format!(" {} ", op.text()));
+                self.operand(e, b, false);
+            }
+            Expr::And(a, b) => {
+                self.operand(e, a, true);
+                self.out.push_str(" and ");
+                self.operand(e, b, false);
+            }
+            Expr::Or(a, b) => {
+                self.operand(e, a, true);
+                self.out.push_str(" or ");
+                self.operand(e, b, false);
+            }
+            Expr::To(t, a) => {
+                self.out.push_str(&format!("to.{}[", t.name()));
+                self.e(a);
+                self.out.push(']');
+            }
+            Expr::Call(f, args) => {
+                self.out.push_str(f);
+                self.out.push('[');
+                for (i, a) in args.iter().enumerate() {
+                    if i > 0 {
+                        self.out.push_str(", ");
+                    }
+                    self.e(a);
+                }
+                self.out.push(']');
+            }
+        }
+    }
+    fn block(&mut self, body: &[Stmt], indent: usize) {
+        for s in body {
+            self.s(s, indent);
+        }
+    }
+    /// A simple statement: `head`, then the expression, then `tail`.
+    fn simple(&mut self, s: &Stmt, pad: &str, tier: Tier, head: &str, e: &Expr, tail: &str) {
+        self.out.push_str(pad);
+        let s0 = self.out.len();
+        self.out.push_str(tier_prefix(tier));
+        let s1 = self.out.len();
+        self.out.push_str(head);
+        self.e(e);
+        self.out.push_str(tail);
+        self.stmt.push((addr(s), s0, s1, self.out.len()));
+        self.out.push('\n');
+    }
+    fn s(&mut self, s: &Stmt, indent: usize) {
+        let pad = "    ".repeat(indent);
+        match s {
+            Stmt::Let { tier, name, mutability, ty, value } => {
+                let m = match mutability {
+                    Mutability::Plain => "",
+                    Mutability::Mut => "mut ",
+                    Mutability::Immut => "immut ",
+                };
+                let head = format!("let {m}{}: {} = ", q(name), ty.text());
+                self.simple(s, &pad, *tier, &head, value, ";");
+            }
+            Stmt::Assign { tier, name, value } => {
+                let head = format!("{} = ", q(name));
+                self.simple(s, &pad, *tier, &head, value, ";");
+            }
+            Stmt::If { arms, otherwise } => {
+                for (i, (c, body)) in arms.iter().enumerate() {
+                    self.out.push_str(&pad);
+                    self.out.push_str(if i == 0 { "if " } else { "} else if " });
+                    self.e(c);
+                    self.out.push_str(" {\n");
+                    self.block(body, indent + 1);
+                }
+                if let Some(body) = otherwise {
+                    self.out.push_str(&format!("{pad}}} else {{\n"));
+                    self.block(body, indent + 1);
+                }
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
+            Stmt::For { perm, name, ty, start, stop, step, body } => {
+                let perm = if *perm { "perm " } else { "" };
+                self.out.push_str(&format!("{pad}for {perm}{}: {} in range[", q(name), ty.name()));
+                self.e(start);
+                self.out.push_str(", ");
+                self.e(stop);
+                if let Some(st) = step {
+                    self.out.push_str(&format!(", {st}"));
+                }
+                self.out.push_str("] {\n");
+                self.block(body, indent + 1);
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
+            Stmt::While { cond, body } => {
+                self.out.push_str(&format!("{pad}while "));
+                self.e(cond);
+                self.out.push_str(" {\n");
+                self.block(body, indent + 1);
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
+            Stmt::Loop { body } => {
+                self.out.push_str(&format!("{pad}loop {{\n"));
+                self.block(body, indent + 1);
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
+            Stmt::Block { tier, body } => {
+                self.out.push_str(&format!("{pad}{}{{\n", tier_prefix(*tier)));
+                self.block(body, indent + 1);
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
+            Stmt::Break => self.out.push_str(&format!("{pad}break;\n")),
+            Stmt::Continue => self.out.push_str(&format!("{pad}continue;\n")),
+            Stmt::Print { signed, value } => {
+                let (f, to) = if *signed { ("put_i", "int64") } else { ("put_u", "uint64") };
+                if PRINT_THROUGH_TO.load(Ordering::Relaxed) {
+                    self.simple(s, &pad, Tier::Default, &format!("{f}[to.{to}["), value, "]];");
+                } else {
+                    self.simple(s, &pad, Tier::Default, &format!("{f}["), value, "];");
+                }
+            }
+            Stmt::Return(e) => self.simple(s, &pad, Tier::Default, "return ", e, ";"),
+        }
+    }
+}
+
+impl Program {
+    /// The same text as `render`, with every node's place in it.
+    pub fn render_spans(&self) -> (String, Spans) {
+        let mut w = Wr { out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], _p: std::marker::PhantomData };
+        w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
+        w.out.push_str("extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n");
+        if !self.inputs.is_empty() {
+            w.out.push_str("extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];\n");
+            w.out.push_str("extern fn strlen ['s': ptr[uint8]] -> uint64;\n");
+        }
+        w.out.push('\n');
+        w.out.push_str(&self.printer);
+        for f in &self.funcs {
+            let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.text())).collect();
+            w.out.push_str(&format!("\nfn {} [{}] -> {} {{\n", f.name, params.join(", "), f.ret.text()));
+            w.block(&f.body, 1);
+            w.out.push_str("}\n");
+        }
+        w.out.push_str("\nMAIN {\n");
+        for i in &self.inputs {
+            let key = format!("{}_key", i.name);
+            w.out.push_str(&format!("    let {} := \"{}\";\n", q(&key), i.var));
+            w.out.push_str(&format!("    nocheck let {}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
+        }
+        w.block(&self.main, 1);
+        w.out.push_str("}\n");
+        // byte offsets to (line, column)
+        let starts: Vec<usize> = std::iter::once(0).chain(w.out.match_indices('\n').map(|(i, _)| i + 1)).collect();
+        let at = |off: usize| -> (u32, u32) {
+            let line = starts.partition_point(|&s| s <= off);
+            (line as u32, (off - starts[line - 1] + 1) as u32)
+        };
+        let mut spans = Spans::default();
+        for (a, s, e) in &w.expr {
+            let (l, c) = at(*s);
+            let (_, ce) = at(*e);
+            spans.expr.insert(*a, (l, c, ce));
+        }
+        for (a, s0, s1, e) in &w.stmt {
+            let (l, c0) = at(*s0);
+            let (_, c1) = at(*s1);
+            let (_, ce) = at(*e);
+            spans.stmt.insert(*a, (l, c0, c1, ce));
+        }
+        (w.out, spans)
+    }
+}
+
+/// The exact value of an expression made of bare numbers alone, worked out
+/// as design/operators.md says ("bare numbers alone are worked out exactly
+/// at compile time"): no width in between, `/` floors, `mod` takes the
+/// divisor's sign. None if it is not bare numbers alone, or cannot be done
+/// (division by zero, a negative exponent, past i128).
+pub fn fold_bare(e: &Expr) -> Option<i128> {
+    match e {
+        Expr::Lit(v) => Some(*v),
+        Expr::Neg(a) => fold_bare(a)?.checked_neg(),
+        Expr::Bin(op, a, b) => {
+            let (x, y) = (fold_bare(a)?, fold_bare(b)?);
+            match op {
+                BinOp::Add => x.checked_add(y),
+                BinOp::Sub => x.checked_sub(y),
+                BinOp::Mul => x.checked_mul(y),
+                BinOp::Div | BinOp::Mod => {
+                    if y == 0 {
+                        return None;
+                    }
+                    let q = x.checked_div(y)?;
+                    let q = if x % y != 0 && ((x < 0) != (y < 0)) { q - 1 } else { q };
+                    if *op == BinOp::Div {
+                        Some(q)
+                    } else {
+                        x.checked_sub(q.checked_mul(y)?)
+                    }
+                }
+                BinOp::Pow => {
+                    if y < 0 || y > 200 {
+                        return None;
+                    }
+                    x.checked_pow(y as u32)
+                }
+                _ => None,
+            }
+        }
+        _ => None,
     }
 }
