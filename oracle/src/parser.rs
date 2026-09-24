@@ -622,7 +622,7 @@ impl Parser {
         {
             let head = segs[0].as_str();
             let numeric = ["int", "uint", "bin", "deci"].iter().any(|p| head.strip_prefix(p).map(|w| w.parse::<u32>().is_ok()).unwrap_or(false));
-            let range_ahead = *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_))
+            let range_ahead = *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..))
                 || matches!(self.peek_at(1), Tok::Op(o) if o == "-")
                 || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max"));
             if numeric && range_ahead && (!self.to_target || self.bracket_then_bracket()) {
@@ -764,7 +764,7 @@ impl Parser {
                 match &k { Ty::Fn(..) | Ty::Ptr(..) | Ty::Map(..) => return bad(self, format!("{} cannot be a map key; keys are plain values, text, chars, structs, enums and lists of those, or a type that satisfies `Key`", ty_name(&k))), _ => {} }
                 let base = Ty::Map(Box::new(k), Box::new(v), order);
                 // `map[K, V][0, 100]` — an entry-count bound, as a list's (decided 2026-09-22)
-                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_)) {
+                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) {
                     self.advance();
                     let lo = self.bound()?;
                     self.expect(Tok::Comma, "`,` between the count bounds")?;
@@ -783,7 +783,7 @@ impl Parser {
                 let inner = params.pop().unwrap();
                 let base = if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) };
                 // `list[int32][0, 1000]` — a length bound, the thing then its bounds like `int32[0, 100]` (decided 2026-09-21)
-                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(_)) {
+                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) {
                     if head == "array" { return bad(self, "an `array` has one fixed length, so a bound on it says nothing; a length bound belongs on a `list`".to_string()); }
                     self.advance();
                     let lo = self.bound()?;
@@ -1268,7 +1268,7 @@ impl Parser {
         let neg = if matches!(self.peek(), Tok::Op(o) if o == "-") { self.advance(); true } else { false };
         match self.advance().tok {
             Tok::Int(i) => Ok(Bound::Int(if neg { -i } else { i })),
-            Tok::Bin(b) => Ok(Bound::Bin(if neg { -b } else { b })),
+            Tok::Bin(b, _) => Ok(Bound::Bin(if neg { -b } else { b })),
             other => self.err(format!("a range's bounds are numeric literals, or `min` / `max` for the type's own limit, found {other}")),
         }
     }
@@ -1544,7 +1544,7 @@ impl Parser {
 
     fn starts_primary(&self) -> bool {
         match self.peek() {
-            Tok::Int(_) | Tok::Bin(_) | Tok::Text(_) | Tok::Char(_) | Tok::Newline | Tok::Var(_) | Tok::LParen => true,
+            Tok::Int(_) | Tok::Bin(..) | Tok::Text(_) | Tok::Char(_) | Tok::Newline | Tok::Var(_) | Tok::LParen => true,
             Tok::Word(w) => !OP_WORDS.contains(&w.as_str()) && w != "not" && w != "otherwise",
             _ => false,
         }
@@ -1697,7 +1697,7 @@ impl Parser {
                 }
                 Ok(Expr::Int(i, line))
             }
-            Tok::Bin(b) => { self.advance(); Ok(Expr::Bin(b, line)) }
+            Tok::Bin(b, t) => { self.advance(); Ok(Expr::Bin(b, t, line)) }
             Tok::Text(t) => { self.advance(); Ok(Expr::Text(t, line)) }
             Tok::Char(c) => { self.advance(); Ok(Expr::Char(c, line)) }
             Tok::Newline => { self.advance(); Ok(Expr::Newline(line)) }

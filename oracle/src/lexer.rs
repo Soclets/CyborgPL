@@ -19,7 +19,7 @@ pub enum Tok {
     Text(String),   // "…"
     Char(String),   // `…`
     Int(i128),
-    Bin(f64),
+    Bin(f64, String),   // the value, and its digits as written (to round once, at a narrower width)
     Newline,        // bare \n
     LBracket, RBracket,
     LBrace, RBrace,
@@ -50,7 +50,7 @@ impl fmt::Display for Tok {
             Tok::Text(t) => write!(f, "\"{t}\""),
             Tok::Char(c) => write!(f, "`{c}`"),
             Tok::Int(i) => write!(f, "{i}"),
-            Tok::Bin(b) => write!(f, "{b}"),
+            Tok::Bin(b, _) => write!(f, "{b}"),
             Tok::Newline => write!(f, "\\n"),
             Tok::LBracket => write!(f, "["),
             Tok::RBracket => write!(f, "]"),
@@ -204,7 +204,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             }
             if is_bin {
                 let v: f64 = s.parse().map_err(|_| LexError { line: tl, col: tc, msg: format!("bad number `{s}`") })?;
-                push(Tok::Bin(v), &mut toks);
+                push(Tok::Bin(v, s.clone()), &mut toks);
             } else {
                 let v: i128 = s.parse().map_err(|_| LexError { line: tl, col: tc, msg: format!("integer literal `{s}` does not fit even an int128") })?;
                 push(Tok::Int(v), &mut toks);

@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Oracle bug: a bin literal was rounded twice (compiler session)
+
+`let 'x': bin32 = 340282356779733661637539395458142568447.0;`, just
+under bin32's rounding limit (2^128 − 2^103), was refused. The oracle
+read every literal at 64 bits first, which landed exactly on the limit
+(a tie, rounding to infinity), and then rounded again. The same double
+rounding can move an ordinary literal one step near a halfway point. CCA
+rounds once, from the digits (LLVM's APFloat), as C compilers do. Fixed:
+a literal landing in a bin16/bin32, or meeting a bin16/bin32 value in
+arithmetic, is rounded once from its written digits (bin32 by a correctly
+rounded parse, and bin16 with the digits deciding an exact halfway
+point). A literal in a comparison is left at 64 bits, as before and as in
+CCA. `examples/bin_widths.cpls`, reject test bin32_literal_past.
+
 ### 2026-09-24 — `bin16`/`bin32` math rounds after every step (owner: a)
 
 From compiler claude: `'x' + 'one' + 'one'` on `bin32` values of

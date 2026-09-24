@@ -342,7 +342,7 @@ pub enum Value {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i128, usize),
-    Bin(f64, usize),
+    Bin(f64, String, usize),   // value, digits as written, line
     Bool(bool, usize),
     Text(String, usize),
     Char(String, usize),
@@ -402,7 +402,7 @@ pub enum Expr {
 impl Expr {
     pub fn line(&self) -> usize {
         match self {
-            Expr::Int(_, l) | Expr::Bin(_, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
+            Expr::Int(_, l) | Expr::Bin(_, _, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
             | Expr::Newline(l) | Expr::Var(_, l) | Expr::Owned(_, _, l)
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,

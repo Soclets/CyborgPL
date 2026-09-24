@@ -99,6 +99,9 @@ pub struct Interp<'p> {
     /// the same for the value a `return` handed back: a list never becomes an array by itself
     /// ("nothing converts by itself", 2026-09-19; owner, 2026-09-23: `to.array[…]`, `to.list[…]`)
     last_kind: Option<bool>,
+    /// the digits of the last value evaluated, when it was a bin literal: a literal is rounded
+    /// once, from its digits, to a bin16/bin32 (compiler session, 2026-09-24)
+    last_lit: Option<String>,
     ret_kind: Option<bool>,
     /// tasks started by `concur` and not yet run (design/concurrency.md). The oracle's
     /// schedule: a task runs when something waits on it (a `take`, a `whichever`, a full
@@ -121,7 +124,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, ret_kind: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -870,7 +873,15 @@ impl<'p> Interp<'p> {
     /// A bare numeric literal adopts the family of the declared type.
     fn fit(&mut self, v: Value, prov: Prov, ty: Option<&Ty>, line: usize) -> Result<Value, RuntimeError> {
         let have = self.last_kind.take();
+        let lit = self.last_lit.take();
         let Some(t) = ty else { return Ok(v) };
+        let written = v.clone();
+        // a bin literal landing in a bin16/bin32 is rounded once, from its digits
+        let v = match (&v, &prov, &lit, bin_w(t)) {
+            (Value::Bin(_), Prov::Literal, Some(d), Some(w @ (16 | 32))) => Value::Bin(round_decimal(d, w)),
+            _ => v,
+        };
+        let shown = |a: f64| lit.clone().filter(|_| matches!(prov, Prov::Literal)).unwrap_or_else(|| format!("{a}"));
         if matches!(prov, Prov::Given | Prov::Copied | Prov::Fresh) { self.kind_clash(have, t, line)?; }
         let v = match (t, &v, &prov) {
             (Ty::Bin(_), Value::Int(i), Prov::Literal) => Value::Bin(*i as f64),
@@ -883,10 +894,10 @@ impl<'p> Interp<'p> {
         };
         // A bin16/bin32 holds what its width holds: the value is rounded to it where it lands
         // (DECISIONS 2026-09-14: a bin32 0.1 is 0.100000001490116119384765625).
-        let before = v.clone();
+        let before = written;
         let v = round_to_width(t, v);
         if let (Value::Bin(a), Value::Bin(b)) = (&before, &v) {
-            if a.is_finite() && b.is_infinite() { return site(line, format!("{a} does not fit {}: it rounds past the largest value", ty_name(t))); }
+            if a.is_finite() && b.is_infinite() { return site(line, format!("{} does not fit {}: it rounds past the largest value", shown(*a), ty_name(t))); }
         }
         self.check_type(&v, t, line)?;
         Ok(v)
@@ -1122,6 +1133,7 @@ impl<'p> Interp<'p> {
             self.eval_inner(e)
         };
         self.last_kind = if r.is_ok() { self.coll_kind(e) } else { None };
+        self.last_lit = lit_digits(e);
         r
     }
 
@@ -1230,7 +1242,7 @@ impl<'p> Interp<'p> {
                 }
             }
             Expr::Spread(n, _, _) => rt(line, format!("`...'{n}'` unpacks a list into a call's variadic arguments; it has no meaning here")),
-            Expr::Bin(b, _) => Ok((Value::Bin(*b), Prov::Literal)),
+            Expr::Bin(b, _, _) => Ok((Value::Bin(*b), Prov::Literal)),
             Expr::Bool(b, _) => Ok((Value::Bool(*b), Prov::Plain)),
             Expr::Text(t, _) => Ok((Value::Str(t.clone()), Prov::Fresh)),
             Expr::Newline(_) => Ok((Value::Str("\n".into()), Prov::Fresh)),
@@ -1687,6 +1699,7 @@ impl<'p> Interp<'p> {
                 let saved_expected = self.expected.clone();
                 if cmp { self.expected = None; let other = self.expr_ty(r); self.expected = other; }
                 let r_a = self.eval(l);
+                let la = self.last_lit.take();
                 if cmp { self.expected = saved_expected.clone(); }
                 let (a, pa) = r_a?;
                 // the language's operator, defined for a user type (2026-09-20)
@@ -1698,8 +1711,16 @@ impl<'p> Interp<'p> {
                 }
                 if cmp { self.expected = None; let other = self.expr_ty(l); self.expected = other; }
                 let r_b = self.eval(r);
+                let lb = self.last_lit.take();
                 if cmp { self.expected = saved_expected; }
                 let (b, pb) = r_b?;
+                // a bin literal meeting a bin16/bin32 value in arithmetic is at that width, rounded
+                // once from its digits (owner, 2026-09-24: bin math at its values' width)
+                let (a, b) = if cmp || op == "++" { (a, b) } else {
+                    let a = match (&a, &pa, &la, self.bin_width(r)) { (Value::Bin(_), Prov::Literal, Some(d), Some(w @ (16 | 32))) => Value::Bin(round_decimal(d, w)), _ => a };
+                    let b = match (&b, &pb, &lb, self.bin_width(l)) { (Value::Bin(_), Prov::Literal, Some(d), Some(w @ (16 | 32))) => Value::Bin(round_decimal(d, w)), _ => b };
+                    (a, b)
+                };
                 // A bare literal adopts the other side's family.
                 let (a, b) = match (&a, &b, &pa, &pb) {
                     (Value::Bin(_), Value::Int(i), _, Prov::Literal) => (a.clone(), Value::Bin(*i as f64)),
@@ -3186,6 +3207,55 @@ fn round_f16(x: f64) -> f64 {
     let r = (a / ulp).round_ties_even() * ulp;
     let r = if r > 65504.0 { f64::INFINITY } else { r };
     r.copysign(x)
+}
+
+/// The digits of a bin literal as written (with a leading `-`), looking through parentheses.
+fn lit_digits(e: &Expr) -> Option<String> {
+    match e {
+        Expr::Bin(_, t, _) => Some(t.clone()),
+        Expr::Paren(inner, _) => lit_digits(inner),
+        Expr::Unary(op, inner, _) if op == "-" => lit_digits(inner).map(|t| match t.strip_prefix('-') { Some(p) => p.to_string(), None => format!("-{t}") }),
+        _ => None,
+    }
+}
+
+fn bin_w(t: &Ty) -> Option<u8> { match t { Ty::Bin(w) => Some(*w), Ty::Ranged(b, _, _) => bin_w(b), _ => None } }
+
+/// Compare two plain decimals (digits, one optional `.`) by magnitude.
+fn cmp_decimal(a: &str, b: &str) -> std::cmp::Ordering {
+    let split = |x: &str| { let x = x.trim_start_matches('-'); let (i, f) = x.split_once('.').unwrap_or((x, "")); (i.trim_start_matches('0').to_string(), f.trim_end_matches('0').to_string()) };
+    let ((ai, af), (bi, bf)) = (split(a), split(b));
+    ai.len().cmp(&bi.len()).then_with(|| ai.cmp(&bi)).then_with(|| af.cmp(&bf))
+}
+
+/// A decimal written in source, rounded once to a bin of width `w` (IEEE nearest-even), not
+/// first to 64 bits and then again: the two roundings can land one step apart.
+fn round_decimal(d: &str, w: u8) -> f64 {
+    let x: f64 = d.parse().unwrap_or(f64::NAN);
+    match w {
+        32 => d.parse::<f32>().map(|f| f as f64).unwrap_or(x),
+        16 if x.is_finite() && x != 0.0 => {
+            // reading at 64 bits first misleads only when it lands exactly halfway between two
+            // bin16 values; then the written digits decide which way
+            let a = x.abs();
+            let e = ((a.to_bits() >> 52) & 0x7ff) as i32 - 1023;
+            let ulp = if a >= 2f64.powi(-14) { 2f64.powi(e - 10) } else { 2f64.powi(-24) };
+            let q = a / ulp;
+            if q.fract() == 0.5 {
+                let exact = Value::Bin(a).show_stored();
+                let r = match cmp_decimal(d, &exact) {
+                    std::cmp::Ordering::Greater => (q.floor() + 1.0) * ulp,
+                    std::cmp::Ordering::Less => q.floor() * ulp,
+                    std::cmp::Ordering::Equal => q.round_ties_even() * ulp,
+                };
+                let r = if r > 65504.0 { f64::INFINITY } else { r };
+                return r.copysign(x);
+            }
+            round_f16(x)
+        }
+        16 => x,
+        _ => x,
+    }
 }
 
 /// The useful form of a value whose static type is known: a bin16/bin32 is the shortest decimal
