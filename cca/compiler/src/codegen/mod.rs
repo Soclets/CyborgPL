@@ -156,7 +156,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // One block the runtime owns; the program holds a pointer to it.
             Ty::Channel(_) => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             Ty::Char(crate::types::Unit::Byte) => Some(self.ctx.i8_type().into()),
-            Ty::Char(crate::types::Unit::Point) => Some(self.ctx.i32_type().into()),
+            // A unit not written is Precog's to pick (`types.md`: "from the
+            // content and its use"); one code point is the flat, fast unit.
+            // A literal of several points is a grapheme, and waits.
+            Ty::Char(crate::types::Unit::Point) | Ty::Char(crate::types::Unit::Free(_)) => Some(self.ctx.i32_type().into()),
             // The handles the owner decided on 2026-09-22 (`types.md`,
             // `lists.md`, `maps.md`). Each type is exactly as big as it
             // needs to be: a text and an array never grow, so they carry no
@@ -730,7 +733,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Const::Bin(t) => Some(self.ctx.f64_type().const_float(t.parse().unwrap_or(0.0)).into()),
             Const::Duration(n) => Some(self.ctx.i64_type().const_int(*n as u64, true).into()),
             Const::SizeOf { .. } => Some(self.ctx.i64_type().const_int(8, false).into()),
-            Const::Char(s) => Some(self.ctx.i32_type().const_int(s.chars().next().map(|c| c as u64).unwrap_or(0), false).into()),
+            Const::Char(s) => {
+                if s.chars().count() != 1 {
+                    self.cannot(format!("the character `{}` is more than one code point, a grapheme, which waits with the rest of `char`", s), None);
+                    return None;
+                }
+                Some(self.ctx.i32_type().const_int(s.chars().next().map(|c| c as u64).unwrap_or(0), false).into())
+            }
             Const::Str(text) => {
                 // Known at compile time, so it needs no heap: the bytes go
                 // into the binary and the handle points at them
@@ -801,10 +810,27 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let same = basic_result(self.builder.build_call(f, &[pa.into(), pb.into()], "same").ok()?)?.into_int_value();
                     return Some(if *op == BinOp::Eq { same.into() } else { self.builder.build_not(same, "differ").ok()?.into() });
                 }
-                // `++` on text is an allocation, not an instruction.
-                if matches!(op, BinOp::Join) && matches!(a, BasicValueEnum::StructValue(_)) {
-                    let ty = want_ty.unwrap_or(Ty::Str(crate::types::Enc::Utf8));
-                    return self.str_concat(a, b, &ty);
+                // `++` on text is an allocation, not an instruction. A
+                // character beside text is its text first (`` `é` ++ "!" ``);
+                // the one made for it is given back once joined.
+                if matches!(op, BinOp::Join) {
+                    let ty = want_ty.clone().unwrap_or(Ty::Str(crate::types::Enc::Utf8));
+                    let mut made = Vec::new();
+                    let mut as_text = |this: &mut Self, o: &Operand, v: BasicValueEnum<'ctx>| -> Option<BasicValueEnum<'ctx>> {
+                        if v.is_struct_value() {
+                            return Some(v);
+                        }
+                        let t = this.to_text(fi, o, v, &ty)?;
+                        made.push(t);
+                        Some(t)
+                    };
+                    let a = as_text(self, lhs, a)?;
+                    let b = as_text(self, rhs, b)?;
+                    let joined = self.str_concat(a, b, &ty)?;
+                    for t in made {
+                        self.free_text(t);
+                    }
+                    return Some(joined);
                 }
                 // LLVM's integers carry no sign; the Cyborg type does. A
                 // literal takes its context's family (`types.md`), so the
@@ -1782,6 +1808,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let signed = self.operand_signed(fi, args.get(1)?).unwrap_or(true);
                 let i = self.builder.build_int_cast_sign_flag(i, self.ctx.i64_type(), signed, "idx").ok()?;
                 Some(Some(unsafe { self.builder.build_gep(t, p, &[i], "at").ok()? }.into()))
+            }
+            // The number under a character (`conversion.md`): a byte's is a
+            // `uint8`, a point's a `uint32`, and the char already is it.
+            Op::CharCode => {
+                let v = self.operand(fi, args.first()?, slots)?.into_int_value();
+                let want = match dest_ty.as_ref().and_then(|t| self.ty(t)) {
+                    Some(BasicTypeEnum::IntType(t)) => t,
+                    _ => v.get_type(),
+                };
+                Some(Some(self.builder.build_int_z_extend_or_bit_cast(v, want, "code").ok()?.into()))
             }
             // C's null (`ffi.md`): a pointer compared with nothing.
             Op::PtrIsNull => {

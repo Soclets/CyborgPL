@@ -39,6 +39,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_str_free" => self.ctx.void_type().fn_type(&[p.into(), w.into()], false),
             "cyborg_parse_int" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_int_to_text" => self.ctx.void_type().fn_type(&[p.into(), w.into(), w.into()], false),
+            "cyborg_parse_bin" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), self.ctx.i32_type().into(), p.into()], false),
+            "cyborg_char_to_text" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.i32_type().into()], false),
+            "cyborg_text_one_point" => w.fn_type(&[p.into(), w.into()], false),
             "cyborg_bin_to_text" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.f64_type().into()], false),
             // The map and hashing side keeps its own list.
             other => return self.rt_map(other),
@@ -837,6 +840,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if let Ty::Str(_) = to.base() {
             return self.emit_bounded_text(fi, &from, to, arg, dest, ok, fail, blocks, slots, func);
         }
+        if let Ty::Char(unit) = to.base() {
+            return self.into_char(fi, &from, *unit, arg, dest, ok, fail, blocks, slots, func);
+        }
+        if let (Ty::Bin(crate::types::BinW::Fixed(bits)), Ty::Str(_)) = (to.base(), from.base()) {
+            return self.text_into_bin(fi, *bits, to, arg, dest, ok, fail, blocks, slots, func);
+        }
         let Ty::Int(crate::types::IntW::Fixed { .. }) = to.base() else { return None };
         let w = self.ctx.i128_type();
         // Which arm each reason takes: its index in the reason list.
@@ -946,6 +955,162 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 
+    /// `char.point.from_code[…]` / `char.byte.from_code[…]`: the character
+    /// with that code, failing `not_a_char` for one that is not — a point
+    /// is a Unicode scalar (0 to 0x10FFFF, not a surrogate), a byte 0 to
+    /// 255, as the oracle has them.
+    #[allow(clippy::too_many_arguments)]
+    fn char_from_code(&mut self, fi: usize, unit: crate::types::Unit, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let o = match args.first()? {
+            Arg::Value(o) => o.clone(),
+            Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => Operand::Read(p.clone()),
+            _ => return None,
+        };
+        let v = self.operand(fi, &o, slots)?.into_int_value();
+        let signed = match &o {
+            Operand::Const(Const::Int(c)) => *c < 0 || v.get_type().get_bit_width() > 64,
+            _ => self.operand_signed(fi, &o).unwrap_or(true),
+        };
+        let w = self.ctx.i128_type();
+        let x = self.builder.build_int_cast_sign_flag(v, w, signed, "code").ok()?;
+        let c = |n: u64| w.const_int(n, false);
+        let lt = |this: &mut Self, a, b, name| this.builder.build_int_compare(IntPredicate::SLT, a, b, name).ok();
+        let gt = |this: &mut Self, a, b, name| this.builder.build_int_compare(IntPredicate::SGT, a, b, name).ok();
+        let below = lt(self, x, c(0), "below")?;
+        let bad = match unit {
+            crate::types::Unit::Byte => {
+                let above = gt(self, x, c(255), "above")?;
+                self.builder.build_or(below, above, "not_a_char").ok()?
+            }
+            _ => {
+                let above = gt(self, x, c(0x10FFFF), "above")?;
+                let lo = self.builder.build_int_compare(IntPredicate::SGE, x, c(0xD800), "surrogate_lo").ok()?;
+                let hi = self.builder.build_int_compare(IntPredicate::SLE, x, c(0xDFFF), "surrogate_hi").ok()?;
+                let surrogate = self.builder.build_and(lo, hi, "surrogate").ok()?;
+                let out = self.builder.build_or(below, above, "outside").ok()?;
+                self.builder.build_or(out, surrogate, "not_a_char").ok()?
+            }
+        };
+        let arm = fail.iter().find(|a| a.index == 0).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])?;
+        let good = self.ctx.append_basic_block(func, "is_a_char");
+        let _ = self.builder.build_conditional_branch(bad, arm, good);
+        self.builder.position_at_end(good);
+        let t = if unit == crate::types::Unit::Byte { self.ctx.i8_type() } else { self.ctx.i32_type() };
+        let ch = self.builder.build_int_truncate(x, t, "char").ok()?;
+        if let Some(d) = dest {
+            self.store_place(fi, d, ch.into(), slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
+    /// Into a character, where that can fail (`conversion.md`): text of
+    /// exactly one point (`not_one_char`), text of exactly one byte, or a
+    /// point whose UTF-8 is one byte — below 128 (`not_one_byte`: `é` is
+    /// two). A grapheme waits with the rest of `char`.
+    #[allow(clippy::too_many_arguments)]
+    fn into_char(&mut self, fi: usize, from: &Ty, unit: crate::types::Unit, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        use crate::types::Unit;
+        let o = match arg {
+            Arg::Value(o) => o.clone(),
+            Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => Operand::Read(p.clone()),
+            _ => return None,
+        };
+        let v = self.operand(fi, &o, slots)?;
+        let i64t = self.ctx.i64_type();
+        let (code, bad) = match (from.base(), unit) {
+            (Ty::Str(_), Unit::Point | Unit::Free(_)) => {
+                let (p, n) = self.text_parts(v)?;
+                let f = self.rt("cyborg_text_one_point");
+                let code = basic_result(self.builder.build_call(f, &[p.into(), n.into()], "point").ok()?)?.into_int_value();
+                let bad = self.builder.build_int_compare(IntPredicate::SLT, code, i64t.const_zero(), "not_one_char").ok()?;
+                (code, bad)
+            }
+            (Ty::Str(_), Unit::Byte) => {
+                // One byte of UTF-8 text is an ASCII one. The byte is read
+                // only once there is one to read.
+                let (p, raw) = self.text_parts(v)?;
+                let n = self.real_length(raw);
+                let bad = self.builder.build_int_compare(IntPredicate::NE, n, i64t.const_int(1, false), "not_one_char").ok()?;
+                let arm = fail.iter().find(|a| a.index == 0).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])?;
+                let one = self.ctx.append_basic_block(func, "one_byte");
+                let _ = self.builder.build_conditional_branch(bad, arm, one);
+                self.builder.position_at_end(one);
+                let b = self.builder.build_load(self.ctx.i8_type(), p, "byte").ok()?.into_int_value();
+                (self.builder.build_int_z_extend(b, i64t, "code").ok()?, self.ctx.bool_type().const_zero())
+            }
+            (Ty::Char(_), Unit::Byte) => {
+                let c = self.builder.build_int_z_extend_or_bit_cast(v.into_int_value(), i64t, "code").ok()?;
+                let bad = self.builder.build_int_compare(IntPredicate::UGE, c, i64t.const_int(128, false), "not_one_byte").ok()?;
+                (c, bad)
+            }
+            _ => {
+                self.cannot(format!("a conversion into a `{}` has no shape in the generated code yet", crate::types::TySpelling { ty: &Ty::Char(unit), structs: &self.p.items.structs, enums: &self.p.items.enums }), None);
+                return None;
+            }
+        };
+        let arm = fail.iter().find(|a| a.index == 0).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])?;
+        let good = self.ctx.append_basic_block(func, "one_char");
+        let _ = self.builder.build_conditional_branch(bad, arm, good);
+        self.builder.position_at_end(good);
+        let t = if unit == Unit::Byte { self.ctx.i8_type() } else { self.ctx.i32_type() };
+        let ch = self.builder.build_int_truncate(code, t, "char").ok()?;
+        if let Some(d) = dest {
+            self.store_place(fi, d, ch.into(), slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
+    /// Text into a bin (owner, 2026-09-24: b): the runtime reads the
+    /// grammar and rounds once from the digits to the width; `not_a_number`
+    /// is reason 0, `out_of_range` (past the largest, or outside a range
+    /// type's bounds) reason 1.
+    #[allow(clippy::too_many_arguments)]
+    fn text_into_bin(&mut self, fi: usize, bits: u16, to: &Ty, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let o = match arg {
+            Arg::Value(o) => o.clone(),
+            Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => Operand::Read(p.clone()),
+            _ => return None,
+        };
+        let v = self.operand(fi, &o, slots)?;
+        let (p, n) = self.text_parts(v)?;
+        let f64t = self.ctx.f64_type();
+        let out = self.builder.build_alloca(f64t, "parsed").ok()?;
+        let f = self.rt("cyborg_parse_bin");
+        let w = self.ctx.i32_type().const_int(bits as u64, false);
+        let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), w.into(), out.into()], "status").ok()?)?.into_int_value();
+        let arm = |index: usize| fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize]);
+        let i8t = self.ctx.i8_type();
+        let nan = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(1, false), "not_a_number").ok()?;
+        let number = self.ctx.append_basic_block(func, "is_number");
+        let _ = self.builder.build_conditional_branch(nan, arm(0)?, number);
+        self.builder.position_at_end(number);
+        let past = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "past").ok()?;
+        let x = self.builder.build_load(f64t, out, "value").ok()?.into_float_value();
+        let mut outside = past;
+        if let Some(crate::types::Bound::Bin { lo, hi }) = to.bound() {
+            let (Ok(lo), Ok(hi)) = (lo.replace('_', "").parse::<f64>(), hi.replace('_', "").parse::<f64>()) else { return None };
+            let below = self.builder.build_float_compare(inkwell::FloatPredicate::OLT, x, f64t.const_float(lo), "below").ok()?;
+            let above = self.builder.build_float_compare(inkwell::FloatPredicate::OGT, x, f64t.const_float(hi), "above").ok()?;
+            let b = self.builder.build_or(below, above, "outside").ok()?;
+            outside = self.builder.build_or(outside, b, "out_of_range").ok()?;
+        }
+        let fits = self.ctx.append_basic_block(func, "in_range");
+        let _ = self.builder.build_conditional_branch(outside, arm(1)?, fits);
+        self.builder.position_at_end(fits);
+        let t = match self.ty(to)? {
+            BasicTypeEnum::FloatType(t) => t,
+            _ => return None,
+        };
+        let r = if t == f64t { x } else { self.builder.build_float_trunc(x, t, "at_width").ok()? };
+        if let Some(d) = dest {
+            self.store_place(fi, d, r.into(), slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
     /// Into a bounded text (`input.md`): the text, then its length against
     /// the bound, failing `out_of_range` outside it — and the text just
     /// made is given back on that path. A number or a bool is ASCII, so its
@@ -993,6 +1158,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         if let Callee::Convert(to) = callee {
             return self.emit_failing_convert(fi, to, args, dest, ok, fail, blocks, slots, func);
+        }
+        if let Callee::Op(Op::CharFromCode(unit)) = callee {
+            return self.char_from_code(fi, *unit, args, dest, ok, fail, blocks, slots, func);
         }
         let target = match callee {
             Callee::Fn(idx) => idx.0 as usize,
@@ -1094,6 +1262,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Operand::Const(Const::Bool(_)) => Ty::Bool,
             Operand::Const(Const::Bin(_)) => Ty::Bin(crate::types::BinW::Fixed(64)),
             Operand::Const(Const::Str(_)) => Ty::Str(crate::types::Enc::Utf8),
+            Operand::Const(Const::Char(_)) => Ty::Char(crate::types::Unit::Point),
             _ => self.operand_cy_ty(fi, operand)?,
         };
         let shape = match self.ty(to)? {
@@ -1110,6 +1279,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let out = self.builder.build_alloca(shape, "text").ok()?;
         let i64t = self.ctx.i64_type();
         match (from.base(), v) {
+            (Ty::Char(_), BasicValueEnum::IntValue(c)) => {
+                let code = self.builder.build_int_z_extend_or_bit_cast(c, self.ctx.i32_type(), "code").ok()?;
+                let f = self.rt("cyborg_char_to_text");
+                let _ = self.builder.build_call(f, &[out.into(), code.into()], "");
+            }
             (Ty::Bool, BasicValueEnum::IntValue(b)) => {
                 // Two constants: the binary's own bytes, marked so.
                 let yes = self.const_text("true");
@@ -1136,6 +1310,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
         }
         self.builder.build_load(shape, out, "text").ok()
+    }
+
+    /// Give back a text made on the way (a character's, before a join).
+    pub(super) fn free_text(&mut self, t: BasicValueEnum<'ctx>) {
+        if let Some((p, n)) = self.text_parts(t) {
+            let f = self.rt("cyborg_str_free");
+            let _ = self.builder.build_call(f, &[p.into(), n.into()], "");
+        }
     }
 
     /// A text known at compile time: the binary's own bytes, marked so.

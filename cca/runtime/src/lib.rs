@@ -723,13 +723,22 @@ impl Big {
 /// `out` must be writable.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_bin_to_text(out: *mut Text, x: f64) {
+    // The longest is the smallest subnormal: "-0." and 1074 digits.
+    let mut buf = [0u8; 1080];
+    let n = expand(x, &mut buf);
+    text_of(out, &buf[..n]);
+}
+
+/// The exact decimal expansion of `x` into `buf`; how many bytes.
+fn expand(x: f64, buf: &mut [u8; 1080]) -> usize {
     let bits = x.to_bits();
     let neg = bits >> 63 != 0;
     let exp = ((bits >> 52) & 0x7ff) as i32;
     let frac = bits & ((1 << 52) - 1);
     if exp == 0x7ff {
         let s: &[u8] = if frac != 0 { b"NaN" } else if neg { b"-infinity" } else { b"infinity" };
-        return text_of(out, s);
+        buf[..s.len()].copy_from_slice(s);
+        return s.len();
     }
     // x = m x 2^e, with m odd (or 0).
     let (mut m, mut e) = if exp == 0 { (frac, -1074) } else { (frac | 1 << 52, exp - 1075) };
@@ -737,8 +746,6 @@ pub unsafe extern "C" fn cyborg_bin_to_text(out: *mut Text, x: f64) {
         m >>= 1;
         e += 1;
     }
-    // The longest is the smallest subnormal: "-0." and 1074 digits.
-    let mut buf = [0u8; 1080];
     let mut n = 0;
     if neg {
         buf[0] = b'-';
@@ -754,7 +761,7 @@ pub unsafe extern "C" fn cyborg_bin_to_text(out: *mut Text, x: f64) {
             k -= s;
         }
         n += big.write(&mut buf[n..]);
-        return text_of(out, &buf[..n]);
+        return n;
     }
     // m / 2^k is m x 5^k / 10^k: the digits of m x 5^k, with the point k
     // from the right. m is odd, so the last digit is 5 — nothing to trim.
@@ -782,6 +789,266 @@ pub unsafe extern "C" fn cyborg_bin_to_text(out: *mut Text, x: f64) {
     }
     let from = d.saturating_sub(k);
     buf[n..n + (d - from)].copy_from_slice(&digits[from..d]);
-    n += d - from;
+    n + (d - from)
+}
+
+/// A character as text: the UTF-8 of its code. A `char.byte` is read as
+/// the code point of that number, so byte 200 is two bytes of text — the
+/// oracle's reading (`cca/README.md`, provisional).
+///
+/// # Safety
+/// `out` must be writable.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_char_to_text(out: *mut Text, code: u32) {
+    let mut buf = [0u8; 4];
+    let n = match code {
+        0..=0x7f => {
+            buf[0] = code as u8;
+            1
+        }
+        0x80..=0x7ff => {
+            buf[0] = 0xc0 | (code >> 6) as u8;
+            buf[1] = 0x80 | (code & 0x3f) as u8;
+            2
+        }
+        0x800..=0xffff => {
+            buf[0] = 0xe0 | (code >> 12) as u8;
+            buf[1] = 0x80 | ((code >> 6) & 0x3f) as u8;
+            buf[2] = 0x80 | (code & 0x3f) as u8;
+            3
+        }
+        _ => {
+            buf[0] = 0xf0 | (code >> 18) as u8;
+            buf[1] = 0x80 | ((code >> 12) & 0x3f) as u8;
+            buf[2] = 0x80 | ((code >> 6) & 0x3f) as u8;
+            buf[3] = 0x80 | (code & 0x3f) as u8;
+            4
+        }
+    };
     text_of(out, &buf[..n]);
+}
+
+/// The one code point a text holds, or -1 when it holds none or more than
+/// one (`to.char.point[…]` fails `not_one_char`). Text is UTF-8, so the
+/// first byte says how long its point is, and that has to be all of it.
+///
+/// # Safety
+/// `p` must have `len` readable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_text_one_point(p: *const u8, len: u64) -> i64 {
+    let len = len & !STATIC;
+    if len == 0 || len > 4 {
+        return -1;
+    }
+    let b = core::slice::from_raw_parts(p, len as usize);
+    let (want, first) = match b[0] {
+        0x00..=0x7f => (1, b[0] as u32),
+        0xc0..=0xdf => (2, (b[0] & 0x1f) as u32),
+        0xe0..=0xef => (3, (b[0] & 0x0f) as u32),
+        0xf0..=0xf7 => (4, (b[0] & 0x07) as u32),
+        _ => return -1,
+    };
+    if want != b.len() {
+        return -1;
+    }
+    let mut code = first;
+    for &c in &b[1..] {
+        code = code << 6 | (c & 0x3f) as u32;
+    }
+    code as i64
+}
+
+/// Text to a bin (`conversion.md`, owner 2026-09-24: b): an optional sign,
+/// digits, an optional `.` and digits, an optional `e`/`E` exponent with
+/// its own sign — and nothing else, so `inf`, `nan`, `_`, `.5`, `5.` and
+/// spaces are not numbers. The value is rounded once, from the digits, to
+/// the target's width (`bits`): 0 and the value in `out`; 1 when the text
+/// is not a number; 2 when it rounds past the largest (`out_of_range`).
+///
+/// # Safety
+/// `p` must have `len` readable bytes, and `out` must be writable.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_parse_bin(p: *const u8, len: u64, bits: u32, out: *mut f64) -> u8 {
+    let len = len & !STATIC;
+    let b = if len == 0 { &[][..] } else { core::slice::from_raw_parts(p, len as usize) };
+    let Some(parts) = bin_grammar(b) else { return 1 };
+    let Ok(s) = core::str::from_utf8(b) else { return 1 };
+    let v = match bits {
+        64 => s.parse::<f64>().ok(),
+        32 => s.parse::<f32>().ok().map(|x| x as f64),
+        16 => s.parse::<f64>().ok().map(|x| round_to_half(x, &parts)),
+        _ => None,
+    };
+    match v {
+        Some(x) if x.is_finite() => {
+            *out = x;
+            0
+        }
+        Some(_) => 2,
+        None => 1,
+    }
+}
+
+/// A number's written digits, as the grammar found them.
+struct Written<'a> {
+    neg: bool,
+    int: &'a [u8],
+    frac: &'a [u8],
+    exp: i64,
+}
+
+fn bin_grammar(b: &[u8]) -> Option<Written<'_>> {
+    let mut i = 0;
+    let neg = match b.first() {
+        Some(b'-') => {
+            i = 1;
+            true
+        }
+        Some(b'+') => {
+            i = 1;
+            false
+        }
+        _ => false,
+    };
+    let digits = |from: usize| from + b[from..].iter().take_while(|c| c.is_ascii_digit()).count();
+    let int_end = digits(i);
+    if int_end == i {
+        return None;
+    }
+    let int = &b[i..int_end];
+    i = int_end;
+    let mut frac: &[u8] = &[];
+    if b.get(i) == Some(&b'.') {
+        let end = digits(i + 1);
+        if end == i + 1 {
+            return None;
+        }
+        frac = &b[i + 1..end];
+        i = end;
+    }
+    let mut exp: i64 = 0;
+    if matches!(b.get(i), Some(b'e') | Some(b'E')) {
+        i += 1;
+        let eneg = match b.get(i) {
+            Some(b'-') => {
+                i += 1;
+                true
+            }
+            Some(b'+') => {
+                i += 1;
+                false
+            }
+            _ => false,
+        };
+        let end = digits(i);
+        if end == i {
+            return None;
+        }
+        for &c in &b[i..end] {
+            // Past a million the value is 0 or past every width anyway.
+            exp = (exp * 10 + (c - b'0') as i64).min(1_000_000);
+        }
+        if eneg {
+            exp = -exp;
+        }
+        i = end;
+    }
+    if i != b.len() {
+        return None;
+    }
+    Some(Written { neg, int, frac, exp })
+}
+
+/// `x` (the digits read at 64 bits) rounded to a bin16, returned as the
+/// 64-bit value it is. 64 bits hold more than twice a bin16's precision,
+/// so rounding twice goes wrong only when `x` lands exactly halfway
+/// between two bin16 values; there the written digits decide.
+fn round_to_half(x: f64, w: &Written) -> f64 {
+    let a = x.abs();
+    let exp = ((a.to_bits() >> 52) & 0x7ff) as i32 - 1023;
+    // The step between bin16 values here: 2^-24 below the smallest normal.
+    let two = |e: i32| f64::from_bits(((e + 1023) as u64) << 52);
+    let q = if a < two(-14) { two(-24) } else { two(exp - 10) };
+    let n = a / q;
+    let lower = floor(n);
+    let frac = n - lower;
+    let up = if frac > 0.5 {
+        true
+    } else if frac < 0.5 {
+        false
+    } else {
+        // Halfway at 64 bits: is the written number above it, below it,
+        // or on it (then to even)?
+        let mut buf = [0u8; 1080];
+        let len = expand(a, &mut buf);
+        match compare_written(w, &buf[..len]) {
+            core::cmp::Ordering::Greater => true,
+            core::cmp::Ordering::Less => false,
+            core::cmp::Ordering::Equal => (lower as u64) % 2 == 1,
+        }
+    };
+    let r = (if up { lower + 1.0 } else { lower }) * q;
+    let r = if r > 65504.0 { f64::INFINITY } else { r };
+    if w.neg { -r } else { r }
+}
+
+/// `floor` without std.
+fn floor(x: f64) -> f64 {
+    let t = x as i64 as f64;
+    if t > x { t - 1.0 } else { t }
+}
+
+/// The written number's magnitude against an exact expansion ("123.45").
+fn compare_written(w: &Written, expansion: &[u8]) -> core::cmp::Ordering {
+    // Each as significant digits and where the point goes after them.
+    let (eint, efrac) = match expansion.iter().position(|&c| c == b'.') {
+        Some(p) => (&expansion[..p], &expansion[p + 1..]),
+        None => (expansion, &[][..]),
+    };
+    let a = Norm::of(w.int, w.frac, w.exp);
+    let b = Norm::of(eint, efrac, 0);
+    a.cmp(&b)
+}
+
+/// A positive decimal as 0.DIGITS x 10^point, no leading or trailing zeros.
+struct Norm {
+    digits: [u8; 1200],
+    len: usize,
+    point: i64,
+}
+
+impl Norm {
+    fn of(int: &[u8], frac: &[u8], exp: i64) -> Norm {
+        let mut n = Norm { digits: [0; 1200], len: 0, point: int.len() as i64 + exp };
+        let mut leading = true;
+        for &c in int.iter().chain(frac.iter()) {
+            if leading && c == b'0' {
+                n.point -= 1;
+                continue;
+            }
+            leading = false;
+            if n.len < n.digits.len() {
+                n.digits[n.len] = c;
+                n.len += 1;
+            }
+        }
+        while n.len > 0 && n.digits[n.len - 1] == b'0' {
+            n.len -= 1;
+        }
+        n
+    }
+
+    fn cmp(&self, o: &Norm) -> core::cmp::Ordering {
+        use core::cmp::Ordering::*;
+        match (self.len == 0, o.len == 0) {
+            (true, true) => return Equal,
+            (true, false) => return Less,
+            (false, true) => return Greater,
+            _ => {}
+        }
+        if self.point != o.point {
+            return self.point.cmp(&o.point);
+        }
+        self.digits[..self.len].cmp(&o.digits[..o.len])
+    }
 }

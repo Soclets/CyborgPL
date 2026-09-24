@@ -320,3 +320,15 @@ Dated, with the alternative, so each can become a question later.
   wrapping covers the exponent too, and `to.…` says which. (A negative
   exponent being a check site for `xx` and `xx~` was provisional here; the
   owner decided it, 2026-09-24: a.)
+- **2026-09-24 — A `char.byte` as text is the code point of its number.**
+  `to.str.utf8[…]` of byte 200 is two bytes of UTF-8 (U+00C8), as the
+  oracle has it, while a point converts to a byte only below 128 and text
+  of one byte must be ASCII. Nothing decides what a byte past 127 is as
+  text. Alternatives: the raw byte (text that is not UTF-8), or refusing
+  it (`not_utf8`).
+- **2026-09-24 — A character whose unit is not written is a point.**
+  `types.md` leaves the unit to Precog "from the content and its use";
+  CCA picks `char.point` (flat, 32 bits) when the content is one code
+  point, and a literal of several points (a grapheme) waits with the rest
+  of `char.grapheme`. Not a semantic choice: the unit changes no value a
+  program can see, only its size.

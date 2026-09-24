@@ -759,7 +759,12 @@ impl Checker {
                 if lt.is_text() {
                     return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is std's — compare lengths or use a std function", op.spelled())).at(op_span));
                 }
-                if !lt.is_numeric() && lt.base() != &Ty::Duration && !lt.is_char() {
+                // Characters compare by content (`==`); an order between
+                // them was never decided, and the oracle refuses one.
+                if lt.is_char() {
+                    return err(Diagnostic::error(format!("`{}` on characters has no meaning yet: `==` compares them, and `char.code[…]` gives the number under one", op.spelled())).at(op_span));
+                }
+                if !lt.is_numeric() && lt.base() != &Ty::Duration {
                     return err(Diagnostic::error(format!("`{}` compares numbers, and this is a `{}`", op.spelled(), self.spell(&lt))).at(op_span));
                 }
                 let r = self.expect_operand(ctx, r, &lt, op, op_span)?;

@@ -134,3 +134,5 @@ to_text 127
 bin16_fits 3
 bin16_rounds_past trap
 bin_literal_edges 15
+chars 127
+text_to_bin 127
