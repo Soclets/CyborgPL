@@ -1183,6 +1183,16 @@ impl<'a> FnBuilder<'a> {
                 Rvalue::Unary { op: *op, operand }
             }
             hir::ExprKind::Binary { op, lhs, rhs, .. } => {
+                // "Bare numbers alone are worked out exactly at compile
+                // time" (`operators.md`): no 64-bit window in between, only
+                // the landing. `(2^64 - 1 + 1) mod 1` is 0 (check claude,
+                // attack a); lowered as instructions, the 2^64 was a
+                // "past 64 bits" stop.
+                if self.resolve_ty(&e.ty).is_exact() {
+                    if let Some(Const::Int(v)) = const_eval(e, &self.arena.consts, &self.arena.items) {
+                        return Rvalue::Use(Operand::Const(Const::Int(v)));
+                    }
+                }
                 let l = self.eval(lhs, span);
                 let r = self.eval(rhs, span);
                 let result = self.resolve_ty(&e.ty);

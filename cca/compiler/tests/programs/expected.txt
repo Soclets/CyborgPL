@@ -149,3 +149,4 @@ user_keys_disagree trap
 big_literal_list 1
 durations 7
 duration_negative trap
+bare_group_exact 255

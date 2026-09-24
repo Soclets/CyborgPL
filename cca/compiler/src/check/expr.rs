@@ -2593,9 +2593,14 @@ fn builtin_subject(b: &Builtin) -> &'static str {
 }
 
 /// Bare numbers joined only by plain math (`+ - x xx`), which is exact.
+/// Bare numbers with only plain math between them: `+ - x xx`, and `/` and
+/// `mod`, which on true values give true values — "bare numbers alone are
+/// worked out exactly" (`operators.md`). `(2^64 - 1 + 1) mod 1` is 0; with
+/// `mod` left out it was worked at the place's width and refused (check
+/// claude, attack a). Shifts, bitwise and wrapping take the place's width.
 fn plain_group(e: &Expr) -> bool {
     match &e.kind {
-        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow) && plain_group(lhs) && plain_group(rhs),
+        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod) && plain_group(lhs) && plain_group(rhs),
         K::Unary { op: UnOp::Neg, expr } => plain_group(expr),
         K::Int(_) => true,
         _ => false,
