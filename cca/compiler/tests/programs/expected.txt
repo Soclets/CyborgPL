@@ -153,3 +153,4 @@ bare_group_exact 255
 graphemes 31
 text_walk 7
 keyword_fn 51
+grapheme_literal 3

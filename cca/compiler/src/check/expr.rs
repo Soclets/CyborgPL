@@ -47,9 +47,13 @@ impl Checker {
             AK::Str(s) => Ok(Expr { kind: K::Str(s.clone()), ty: Ty::Str(Enc::Free(InferId(0))), span }),
             AK::Newline => Ok(Expr { kind: K::Str("\n".into()), ty: Ty::Str(Enc::Free(InferId(0))), span }),
             AK::Char(c) => {
-                let unit = narrowest_unit(c);
-                let _ = unit;
-                Ok(Expr { kind: K::Char(c.clone()), ty: Ty::Char(Unit::Free(InferId(0))), span })
+                // Several code points can only be a grapheme (`types.md`: "`เกี่ยว`
+                // can only be `grapheme`"); one leaves the unit to its use.
+                let unit = match narrowest_unit(c) {
+                    Unit::Grapheme => Unit::Grapheme,
+                    _ => Unit::Free(InferId(0)),
+                };
+                Ok(Expr { kind: K::Char(c.clone()), ty: Ty::Char(unit), span })
             }
             AK::Bool(b) => Ok(Expr { kind: K::Bool(*b), ty: Ty::Bool, span }),
             AK::Duration { value, unit } => {

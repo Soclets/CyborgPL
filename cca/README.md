@@ -92,20 +92,6 @@ Dated, with the alternative, so each can become a question later.
   `map`: `MapOrder::Free` is lowered as the ordered shape. Alternative:
   refuse to lower until Precog settles the variant, which would block
   programs for a size question.
-- **2026-09-22 — nothing frees a text yet.** Every text a program can build
-  today is a constant, so nothing is on the heap and `Drop` emits nothing.
-  The sentinel `types.md` describes — the high bit of the length, tested by
-  the free where a name may hold either — is not written, because no name
-  can yet hold a built text. It arrives with `++` at run time.
-- **2026-09-22 — `bin16` and `bin128` constants are not rounded to their
-  width at compile time.** A `bin32` constant is rounded exactly (through
-  `f32`) and a `bin64` needs none, so both meet
-  `reproducible-builds.md`'s "compile-time arithmetic matches the target".
-  The other two widths keep the value as written, and it is only ever used
-  to answer range questions — never folded into a binary — so nothing is
-  wrong today. It has to be real arithmetic before either width ships.
-  Alternative: refuse a `bin16` or `bin128` constant until then, which
-  would make `examples/print_vs_printu.cpls` unbuildable for no gain.
 - **2026-09-22 — `cca/.cargo/config.toml` points at Homebrew's LLVM 22.**
   The compiler's own dependency has to be found somewhere, and Synthia does
   not exist to say where. This is not the *target* being sniffed from the
@@ -118,16 +104,15 @@ Dated, with the alternative, so each can become a question later.
   it is made of, so this is a pick. Alternative: pass small lent values by
   copy and rely on Precog to prove nothing observes the difference — which
   is true today and stops being true the moment a `lend.mut` writes back.
-- **2026-09-22 — A drop whose value is gone on *some* paths keeps its
-  `Drop`.** MIR emits a drop per owned local at its scope's end; the
-  ownership walk removes the ones definitely already given away, and
-  counts the rest (`CCA_DROPS=1` prints both numbers). A conditional one
-  needs a flag at run time saying whether the value is still there —
-  nothing generates code yet, so nothing is wrong today, but the lowering
-  must carry that flag when it arrives. Alternative: split the block so
-  each path drops what it owns, which trades a flag for more blocks.
+- **2026-09-22 — A drop whose value is gone on *some* paths asks a flag.**
+  MIR emits a drop per owned local at its scope's end; the ownership walk
+  removes the ones definitely already given away (`CCA_DROPS=1` counts
+  both). Where a value is gone on some paths only, each owning local has an
+  "alive" flag at run time — set when it gets a value, cleared when it is
+  given away — and the drop tests it. Alternative: split the block so each
+  path drops what it owns, which trades a flag for more blocks.
 - **2026-09-22 — A testing-only `std::` stub table.** `std::` does not
-  exist (owner, 2026-09-22), but 55 of the 61 examples print with it. The
+  exist (owner, 2026-09-22), but 69 of the 74 examples use it. The
   checker has a flag (off by default, on in `cargo test` and with
   `CCA_STD_STUBS=1`) that gives the `std::` names the oracle emulates
   their types and nothing else — no code is generated for them. It exists
@@ -135,11 +120,14 @@ Dated, with the alternative, so each can become a question later.
   when std is written. Alternative: test only the six extern-based
   examples until std exists.
 - **2026-09-22 — Reject-test matching.** CCA's messages are in CCA's
-  words, so the `.err` substring is not matched literally; the harness
-  (to come) records, per reject test, a phrase of CCA's own message that
-  was reviewed once against the `.err`, and fails when that phrase
-  disappears. Alternative: match the oracle's substring literally, which
-  would make the oracle's wording the template the brief says it is not.
+  words, so the `.err` substring is not matched literally:
+  `compiler/tests/reject_phrases.txt` records, per reject test, a phrase
+  of CCA's own message, reviewed against the `.err`, and the test fails
+  when that phrase disappears — and, since 2026-09-24 (owner), when the
+  `.err` is no longer the one it was reviewed against (an FNV-1a
+  fingerprint beside each phrase). Alternative: match the oracle's
+  substring literally, which would make the oracle's wording the template
+  the brief says it is not.
 - **2026-09-22 — Layer 3's unrolling bounds.** One loop is unrolled 16
   times into a query and a whole query holds 64 unrollings
   (`UNROLL_PER_LOOP`, `UNROLL_TOTAL` in `compiler/src/precog/smt.rs`).
@@ -215,11 +203,6 @@ Dated, with the alternative, so each can become a question later.
   given back at the end of the walk, so it must not take the map's own
   keys with it. Alternative: a cursor that borrows, which is cheaper and
   needs a borrow that outlives the loop body to be proven safe.
-- **2026-09-22 — A key type with its own `hash` is refused.** `maps.md`
-  allows one, and makes "equal keys hash the same" a check site Precog
-  must prove or the final build refuses the map. Precog does not prove
-  that yet, so CCA says so rather than trusting it. Structural hashing —
-  plain values, text, chars, structs, enums and lists of them — works.
 - **2026-09-23 — Tasks are green, on one worker thread per core.**
   `concurrency.md` says tasks are "lighter tasks multiplexed over" the
   pool, so a task is a stack of its own and a saved stack pointer, and a
@@ -251,8 +234,9 @@ Dated, with the alternative, so each can become a question later.
   at once, so a loop no longer makes an `unsat` into a proof about a
   prefix; `UNROLL_TOTAL` running out still does. The facts are used only
   when layer 2 followed every call (the same `gave_up` gate as layer-1
-  folding). Alternative: loop invariants found by induction, which would
-  also prove what gradebook needs (`examples_unproven.txt`).
+  folding). Alternative: loop invariants found by induction for every
+  loop, not only the template shapes (the sum-over-length one proves
+  gradebook since 2026-09-24).
 - **2026-09-23 — Channels: the counting, none of Precog's three parts yet.**
   The layout is the owner's (one block, slots inline, never growing; the
   program holds a pointer to it) and so is `closed` (count the tasks that
@@ -329,9 +313,9 @@ Dated, with the alternative, so each can become a question later.
 - **2026-09-24 — A character whose unit is not written is a point.**
   `types.md` leaves the unit to Precog "from the content and its use";
   CCA picks `char.point` (flat, 32 bits) when the content is one code
-  point, and a literal of several points (a grapheme) waits with the rest
-  of `char.grapheme`. Not a semantic choice: the unit changes no value a
-  program can see, only its size.
+  point; a literal of several points can only be a `char.grapheme`, and
+  is one. Not a semantic choice: the unit changes no value a program can
+  see, only its size.
 - **2026-09-24 — A function value is its code and a block of what it
   captured.** Two pointers: the code, and the captures — null for a named
   function or a literal that captured nothing, whose code is then the
