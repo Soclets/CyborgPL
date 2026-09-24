@@ -8,7 +8,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 ### 2026-09-24 — The Unicode version is pinned, and updated deliberately (owner)
 
 From compiler claude: grapheme boundaries shift between Unicode versions,
-and CCA had pinned one (Unicode 16, unicode-segmentation 1.13.3) without a
+and CCA had pinned one (Unicode 17.0.0, unicode-segmentation 1.13.3) without a
 ruling. Proposed (a) pin it per build, recorded in the lock file; (b) follow
 whatever the compiler ships. Design claude recommended a, per
 `reproducible-builds.md`. Owner: "Pin it, but we should update when we
