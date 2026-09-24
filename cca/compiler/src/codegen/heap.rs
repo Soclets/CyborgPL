@@ -807,8 +807,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// (from a bin) first, then `out_of_range` for a range type. Into the
     /// exact type (a plain whole-number target, whose landing is its own
     /// site) a value past the 64-bit window becomes one no 64-bit type holds,
-    /// so that site always catches it. Text whose digits do not fit in 128
-    /// bits is `not_a_number`, as in the oracle (`cca/README.md`).
+    /// so that site always catches it. Text is never a site: a number it
+    /// holds that the type cannot is `out_of_range`, however many digits
+    /// (owner, 2026-09-24: c).
     #[allow(clippy::too_many_arguments)]
     fn emit_failing_convert(&mut self, fi: usize, to: &Ty, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         let arg = args.first()?;
@@ -839,6 +840,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let arm = |index: usize| fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize]);
         let range_index = if first_reason { 1 } else { 0 };
+        let from_text = matches!(from.base(), Ty::Str(_));
         let v = match arg {
             Arg::Value(o) => self.operand(fi, o, slots)?,
             Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => self.operand(fi, &Operand::Read(p.clone()), slots)?,
@@ -854,13 +856,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let out = self.builder.build_alloca(w, "parsed").ok()?;
                 let f = self.rt("cyborg_parse_int");
                 let status = basic_result(self.builder.build_call(f, &[ptr.into(), len.into(), out.into()], "status").ok()?)?.into_int_value();
-                // Digits past 128 bits fail `not_a_number` too, as the
-                // oracle has it (README, provisional).
-                let bad = self.builder.build_int_compare(IntPredicate::NE, status, self.ctx.i8_type().const_zero(), "not_a_number").ok()?;
+                // A number too big even for 128 bits is `out_of_range` like
+                // any other that does not fit (owner, 2026-09-24: c).
+                let bad = self.builder.build_int_compare(IntPredicate::EQ, status, self.ctx.i8_type().const_int(1, false), "not_a_number").ok()?;
                 let next = self.ctx.append_basic_block(func, "is_number");
                 let _ = self.builder.build_conditional_branch(bad, arm(0)?, next);
                 self.builder.position_at_end(next);
-                (self.builder.build_load(w, out, "value").ok()?.into_int_value(), None)
+                let too = self.builder.build_int_compare(IntPredicate::EQ, status, self.ctx.i8_type().const_int(2, false), "too_big").ok()?;
+                (self.builder.build_load(w, out, "value").ok()?.into_int_value(), Some(too))
             }
             Ty::Bin(_) => {
                 // Whole, or it fails `not_whole`: x equals its own floor and
@@ -896,7 +899,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             _ => return None,
         };
         let out_t = self.ty(to)?.into_int_type();
-        let result = if to.is_exact() {
+        let result = if to.is_exact() && !from_text {
             // Outside the window (or too big to have been read): a value
             // no 64-bit type holds, for the landing site to stop.
             let (lo, hi) = crate::resolve::int_range(true, crate::types::EXACT_BITS);

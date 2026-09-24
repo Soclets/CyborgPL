@@ -234,6 +234,7 @@ module_type_clash :: a module and a type cannot share a name
 module_uppercase :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
 mut_after_name :: expected `:=` or `=`; `mut` goes before the name: `let mut 'x' := …`
 ne :: `!=` is not an operator here: not-equal is `!==`
+negative_exponent :: a negative exponent on integers would produce a fraction
 no_bin128 :: there is no `bin128`
 no_precedence :: mathematics has no settled reading here (`6 / 2 x 3`)
 no_zero_value :: there is no implicit zero
@@ -364,7 +365,7 @@ to_list :: keeps the element type, so it is not written
 to_narrowing_fails :: the value can be outside what a `int8` holds
 to_otherwise_on_safe :: `to.str.utf8` cannot fail here; drop the `otherwise`
 to_struct :: a struct or enum value is built by name
-to_unhandled :: `to.int32` can fail (not_a_number): say what happens
+to_unhandled :: `to.int32` can fail (not_a_number, out_of_range): say what happens
 to_without_dot :: `to.int32[…]`, `to.str.utf8[…]`
 true_as_func :: `true` is a boolean literal and cannot name a function
 truthiness :: there is no truthiness

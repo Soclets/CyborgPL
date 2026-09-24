@@ -1941,7 +1941,9 @@ impl Checker {
             (Ty::Bin(_), Ty::Int(_)) => fails.push("not_whole"),
             (Ty::Bin(_), Ty::Bin(_)) => {}
             (Ty::Int(_) | Ty::Bin(_) | Ty::Bool | Ty::Char(_), Ty::Str(_)) => {}
-            (Ty::Str(_), Ty::Int(_) | Ty::Bin(_)) => fails.push("not_a_number"),
+            // Not a number, or a number the type cannot hold however many
+            // digits it has (owner, 2026-09-24: c). Never a check site.
+            (Ty::Str(_), Ty::Int(_) | Ty::Bin(_)) => fails.extend(["not_a_number", "out_of_range"]),
             (Ty::Str(_), Ty::Str(_)) => {}
             (Ty::Str(_), Ty::Char(_)) => fails.push("not_one_char"),
             (Ty::Char(from), Ty::Char(to)) => {
@@ -1959,8 +1961,7 @@ impl Checker {
             _ => return err(Diagnostic::error(format!("there is no conversion from `{}` to `{}`", self.spell(&vt), target_spelling)).at(span)),
         }
         // Into a range type: fails out_of_range (never a check site).
-        if let Some(b) = t.bound() {
-            let _ = b;
+        if t.bound().is_some() && !fails.contains(&"out_of_range") {
             fails.push("out_of_range");
         }
         let fail_list: Vec<(String, Option<Ty>)> = fails.iter().map(|f| (f.to_string(), None)).collect();

@@ -2,7 +2,10 @@
 # into one (not_whole), and anything into a range type (out_of_range).
 extern fn exit ['code': int32];
 fn read ['t': str.utf8] -> int32 {
-    let 'v' := to.int32['t'] otherwise { not_a_number { return -1; } };
+    let 'v' := to.int32['t'] otherwise {
+        not_a_number { return -1; }
+        out_of_range { return -3; }
+    };
     return 'v';
 }
 fn percent ['t': str.utf8] -> int32 {

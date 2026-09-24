@@ -126,5 +126,5 @@ equality 63
 # Consts folded to their literals.
 consts 63
 conversions 255
-text_too_big trap
+text_too_big 127
 bin_widths 31

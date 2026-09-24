@@ -1409,15 +1409,15 @@ impl<'a> FnBuilder<'a> {
                     }
                     return;
                 }
-                // Text or a bin into a plain whole-number type: parsed to its
-                // true value, then landed like any store — a narrowing site
-                // (`conversion.md`: "narrowing is a check site"; the oracle's
-                // "99999999999 does not fit int32"). A range type instead
-                // fails `out_of_range`, one of its listed reasons.
+                // A bin into a plain whole-number type: its whole value, then
+                // landed like any store — a narrowing site (`conversion.md`:
+                // "narrowing is a check site"). A range type instead fails
+                // `out_of_range`, one of its listed reasons, and so does text,
+                // however big its number (owner, 2026-09-24: c).
                 let from = self.resolve_ty(&expr.ty);
                 let to = self.resolve_ty(target);
                 let plain_int = matches!(to, Ty::Int(IntW::Fixed { .. })) && !to.is_exact();
-                if plain_int && matches!(from.base(), Ty::Str(_) | Ty::Bin(_)) {
+                if plain_int && matches!(from.base(), Ty::Bin(_)) {
                     let t = self.temp(&Ty::exact(), span);
                     let parsed = self.new_block();
                     let join = self.new_block();
