@@ -1715,6 +1715,19 @@ impl Checker {
                         ctx.locals[place.base.0 as usize].ty = adopted;
                     }
                 }
+                // "A lend hands over the value where it is, so the sizes
+                // must match" (owner, 2026-09-24: a; `ownership-syntax.md`):
+                // a `list[int64]` lent to a `list[int32]`. Bounds change no
+                // layout; a width not written and a blank `<T>` are not
+                // compared.
+                if matches!(verb, Verb::Lend | Verb::LendMut) {
+                    let have = self.resolve(&ctx.locals[place.base.0 as usize].ty);
+                    let have = if place.proj.is_empty() { have } else { pt.clone() };
+                    let want = self.resolve(pty);
+                    if !sizes_match(&have, &want) {
+                        return err(Diagnostic::error(format!("{} is a `{}`, and {} is a `{}`: a lend hands over the value where it is, so the sizes must match", what, self.spell(&want), name, self.spell(&have))).at(e.span));
+                    }
+                }
                 Ok(match verb {
                     Verb::Give => Arg::Give(place),
                     Verb::Copy => Arg::Copy(place),
@@ -2841,4 +2854,20 @@ pub fn adopt_widths(have: &Ty, want: &Ty) -> Option<Ty> {
     let mut changed = false;
     let t = go(have, want.base(), &mut changed);
     changed.then_some(t)
+}
+
+/// Two types that are the same memory: every number the same width, all
+/// the way down. Bounds change no layout; a width not written yet and a
+/// blank `<T>` match anything.
+pub fn sizes_match(a: &Ty, b: &Ty) -> bool {
+    match (a.base(), b.base()) {
+        (Ty::Int(IntW::Free(_)), Ty::Int(_)) | (Ty::Int(_), Ty::Int(IntW::Free(_))) => true,
+        (Ty::Int(x), Ty::Int(y)) => x == y,
+        (Ty::Bin(crate::types::BinW::Free(_)), Ty::Bin(_)) | (Ty::Bin(_), Ty::Bin(crate::types::BinW::Free(_))) => true,
+        (Ty::Bin(x), Ty::Bin(y)) => x == y,
+        (Ty::Seq { elem: x, .. }, Ty::Seq { elem: y, .. }) | (Ty::Channel(x), Ty::Channel(y)) | (Ty::Ptr { elem: x, .. }, Ty::Ptr { elem: y, .. }) => sizes_match(x, y),
+        (Ty::Map { key: k1, val: v1, .. }, Ty::Map { key: k2, val: v2, .. }) => sizes_match(k1, k2) && sizes_match(v1, v2),
+        (Ty::Struct { args: x, .. }, Ty::Struct { args: y, .. }) | (Ty::Enum { args: x, .. }, Ty::Enum { args: y, .. }) => x.len() != y.len() || x.iter().zip(y).all(|(p, q)| sizes_match(p, q)),
+        _ => true,
+    }
 }

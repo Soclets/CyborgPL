@@ -196,6 +196,7 @@ layout_not_c :: the only layout is `layout.c`, C's shape; `layout.rust` does not
 leading_zero :: `007` starts with a zero, and leading zeros are illegal: write `7`
 lend_to_lent_mut :: `edit` may modify 'text' (it is `lent.mut`): write `lend.mut`
 lend_to_var_param :: write `give` (it moves) or `copy` (a second one)
+lend_width_mismatch :: a lend hands over the value where it is, so the sizes must match
 length_bare :: `list.length` takes a lend: write `lend 'xs'`
 length_is_uint64 :: the value can be outside what a `uint64` holds
 let_chain :: `mut` / `immut` are bare words before the name

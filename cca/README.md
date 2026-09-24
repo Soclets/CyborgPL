@@ -345,9 +345,9 @@ Dated, with the alternative, so each can become a question later.
   call. The block begins with how to give it back and how to copy it
   (null for one that only lends): a function carrying a `copy`/`give`
   capture is owned (owner, 2026-09-24: a), and its block is on the heap.
-- **2026-09-24 — A list lent to a parameter of other widths is not built.**
-  A `:=` list of bare numbers takes its width from use (`types.md`: Precog
-  picks), but a `list[int64]` lent to a `list[int32]` is refused by CCA as
-  not yet: the callee would read the wrong layout. The oracle accepts it
-  (it does not model widths). Alternatives: a converted copy (each element
-  a narrowing site, written back for `lend.mut`), or a type error. Asked.
+- **2026-09-24 — A `:=` list lent across takes the parameter's widths.**
+  `types.md` leaves a `:=` collection's width to Precog, from use; CCA
+  gives a list of bare numbers the width of the parameter it is lent,
+  given, or unpacked into. (A lend whose written widths differ is a type
+  error, owner 2026-09-24: a — "a lend hands over the value where it is, so
+  the sizes must match".)
