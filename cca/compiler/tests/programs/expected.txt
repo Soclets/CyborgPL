@@ -144,3 +144,5 @@ variadics 127
 owned_param_freed 0
 owning_function 15
 copy_arg 6
+user_keys 129
+user_keys_disagree trap

@@ -75,7 +75,7 @@ pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, na
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), op_sites: Vec::new() };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), cur_fi: 0, op_sites: Vec::new() };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -127,6 +127,8 @@ struct Cg<'a, 'ctx> {
     /// The statement being lowered, (block, index): where Precog's ranges
     /// for it are kept.
     here: (u32, u32),
+    /// The function being written.
+    cur_fi: usize,
     /// The check sites guarding the operation being lowered.
     op_sites: Vec<SiteId>,
 }
@@ -448,6 +450,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // A flag per owning local, so a drop knows whether there is still
         // anything to give back.
         self.cur_flags = vec![None; f.locals.len()];
+        self.cur_fi = i;
         for (li, l) in f.locals.iter().enumerate() {
             if lent[li] || !self.owns_memory(&l.ty) {
                 continue;
@@ -527,6 +530,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
                     SiteKind::LengthBound { .. } => self.length_check(fi, *id, slots, func),
                     SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::ShiftWidth | SiteKind::ShiftCount => pending.push(*id),
+                    // Checked inside the map, by the use that follows.
+                    SiteKind::KeyHashAgrees => pending.push(*id),
                     _ => {}
                 },
                 StmtKind::Assign { place, rvalue } => {
@@ -609,6 +614,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 StmtKind::Asm { .. } => self.cannot("`inline.ASM` has no shape in the generated code yet", Some(f.span(s.span))),
             }
         }
+        // The sites guarding a call that ends the block (`map.get`'s).
+        self.op_sites = std::mem::take(&mut pending);
         let term = f.blocks[b].term.clone();
         match &term {
             Terminator::Goto(t) => {
@@ -1429,6 +1436,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// Stop the program where a check fired, naming the site
     /// (`diagnostics.md`: "the trap at run time names the site").
     fn trap(&mut self, fi: usize, site: SiteId) {
+        let (msg, handler) = self.site_message(fi, site);
+        let ptr = self.global_bytes(&msg);
+        let len = self.ctx.i64_type().const_int(msg.len() as u64, false);
+        if let Some(handler) = self.module.get_function(handler) {
+            let args: Vec<BasicMetadataValueEnum> = vec![ptr.into(), len.into()];
+            let _ = self.builder.build_call(handler, &args, "");
+        }
+        let _ = self.builder.build_unreachable();
+    }
+
+    /// What a trap at this site says, and which runtime entry says it.
+    pub(super) fn site_message(&self, fi: usize, site: SiteId) -> (String, &'static str) {
         let f = &self.p.functions[fi];
         let s = f.site(site);
         let span = f.span(s.span);
@@ -1439,17 +1458,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // does, it is Precog that was wrong, not the program.
         let proof = matches!(s.verdict, Verdict::Proven { .. });
         let (head, handler) = if proof { ("proof failed", "cyborg_proof_failed") } else { ("check", "cyborg_check_failed") };
-        let msg = format!("{}: {}\nwhere: {}, line {}, column {}\n", head, s.sentence(&spell), file.display_name(), line, col);
-        let ptr = self.global_bytes(&msg);
-        let len = self.ctx.i64_type().const_int(msg.len() as u64, false);
-        if let Some(handler) = self.module.get_function(handler) {
-            let args: Vec<BasicMetadataValueEnum> = vec![ptr.into(), len.into()];
-            let _ = self.builder.build_call(handler, &args, "");
-        }
-        let _ = self.builder.build_unreachable();
+        (format!("{}: {}\nwhere: {}, line {}, column {}\n", head, s.sentence(&spell), file.display_name(), line, col), handler)
     }
 
-    fn global_bytes(&mut self, s: &str) -> PointerValue<'ctx> {
+    pub(super) fn global_bytes(&mut self, s: &str) -> PointerValue<'ctx> {
         if let Some(p) = self.strings.get(s) {
             return *p;
         }

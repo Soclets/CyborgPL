@@ -1517,6 +1517,12 @@ impl<'a> FnBuilder<'a> {
                 return;
             }
         }
+        // A failing operation (`map.get`) carries its sites too.
+        if let Callee::Op(op) = &callee {
+            let op = op.clone();
+            let result_ty = self.resolve_ty(&e.ty);
+            self.before_op_sites(&op, &args, &result_ty, span);
+        }
         let ok = self.new_block();
         let fail_arms = self.fail_blocks_for_call(otherwise, &fails, dest.clone(), ok, span);
         self.terminate_at(Terminator::Call { callee, args, dest, ok, fail: fail_arms }, span);
@@ -1525,6 +1531,19 @@ impl<'a> FnBuilder<'a> {
 
     /// The sites an operation carries before it runs.
     fn before_op_sites(&mut self, op: &Op, args: &[Arg], ty: &Ty, span: SpanId) {
+        // A key type with its own `hash` and `op ==`: "equal keys hash the
+        // same" is a check site on every use of the map (`maps.md`).
+        if matches!(op, Op::MapHas | Op::MapGet | Op::MapSet | Op::MapRemove) {
+            if let Some(Arg::Lend { place, .. }) = args.first() {
+                let base = self.locals[place.local.0 as usize].ty.clone();
+                let mt = self.resolve_ty(&projected_ty(&base, &place.proj, &self.arena.items));
+                if let Ty::Map { key, .. } = mt.base() {
+                    if key_has_own_hash(&self.arena.items, key) {
+                        self.site(SiteKind::KeyHashAgrees, vec![Operand::Read(place.clone())], span);
+                    }
+                }
+            }
+        }
         match op {
             // A load or a store touches N elements from the position: the
             // question is whether `i + N - 1` is still inside (`simd.md`).
@@ -1920,4 +1939,15 @@ impl ParamKind {
     pub fn is_lent(self) -> bool {
         matches!(self, ParamKind::Lent | ParamKind::LentMut)
     }
+}
+
+/// Does this type bring its own `hash`? The interface is
+/// `fn hash [lent 'v': <T>] -> uint64` (`maps.md`).
+pub fn key_has_own_hash(items: &crate::resolve::Items, t: &Ty) -> bool {
+    let name = crate::types::TySpelling { ty: t, structs: &items.structs, enums: &items.enums }.to_string();
+    items.fns.iter().any(|f| {
+        f.name == "hash"
+            && f.params.len() == 1
+            && f.params[0].ty.as_ref().map(|t| crate::types::TySpelling { ty: t, structs: &items.structs, enums: &items.enums }.to_string() == name).unwrap_or(false)
+    })
 }

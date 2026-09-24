@@ -1704,29 +1704,41 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// constant it can be handed.
     pub(super) fn map_spec(&mut self, t: &Ty) -> Option<PointerValue<'ctx>> {
         let (k, v) = Self::map_key_val(t)?;
-        let name = format!("cy_mapspec_{}_{}", self.type_key(&k), self.type_key(&v));
+        // `maps.md` lets a key type bring its own `hash` and `op ==`, and
+        // makes "equal keys hash the same" a check site: where it is not
+        // proven or trusted, every comparison that finds two keys equal
+        // asks whether they hash the same (as the oracle does), and a map
+        // made where no site says otherwise asks too.
+        let own = crate::mir::build::key_has_own_hash(&self.p.items, &k);
+        let fi = self.cur_fi;
+        let sites: Vec<SiteId> = if own { self.op_sites.iter().copied().filter(|s| matches!(self.p.functions.get(fi).map(|f| &f.site(*s).kind), Some(SiteKind::KeyHashAgrees))).collect() } else { Vec::new() };
+        let open = sites.iter().copied().find(|s| self.gets_check(&self.p.functions[fi].site(*s).verdict.clone()));
+        let checked = own && (sites.is_empty() || open.is_some());
+        // The comparison that finds the fault runs inside the map, shared by
+        // every use of it: this use says which site it is, beforehand.
+        if let Some(s) = open {
+            let (msg, _) = self.site_message(fi, s);
+            let text = self.global_bytes(&msg);
+            let (mg, lg) = self.key_site_globals();
+            let _ = self.builder.build_store(mg, text);
+            let _ = self.builder.build_store(lg, self.ctx.i64_type().const_int(msg.len() as u64, false));
+        }
+        let name = format!("cy_mapspec_{}_{}{}", self.type_key(&k), self.type_key(&v), if checked { "_checked" } else { "" });
         if let Some(g) = self.module.get_global(&name) {
             return Some(g.as_pointer_value());
         }
         let w = self.ctx.i64_type();
         let p = self.ctx.ptr_type(AddressSpace::default());
-        // `maps.md` lets a key type bring its own `hash` and `op ==`, and
-        // makes "equal keys hash the same" a check site Precog must prove
-        // or the final build refuses the map. Precog does not prove that
-        // yet, so a key with its own rule is refused rather than quietly
-        // hashed by structure — which would put two keys the program
-        // calls equal in two different slots.
-        if let Some(own) = self.own_hash(&k) {
-            self.cannot(format!("`{}` has its own `hash`, and a map keyed by it waits on the check that equal keys hash the same", own), None);
-            return None;
-        }
         let ks = self.size_of_ty(&k)?;
         let vs = self.size_of_ty(&v)?;
-        let hash = self.hash_fn(&k)?;
-        let same = self.same_fn(&k)?;
+        let (hash, same) = if own {
+            self.own_key_fns(&k, checked)?
+        } else {
+            (self.hash_fn(&k)?, self.same_fn(&k)?)
+        };
         let drop_k = self.drop_fn(&k).map(|f| f.as_global_value().as_pointer_value()).unwrap_or_else(|| p.const_null());
         let drop_v = self.drop_fn(&v).map(|f| f.as_global_value().as_pointer_value()).unwrap_or_else(|| p.const_null());
-        let shape = self.ctx.struct_type(&[w.into(), w.into(), p.into(), p.into(), p.into(), p.into()], false);
+        let shape = self.ctx.struct_type(&[w.into(), w.into(), p.into(), p.into(), p.into(), p.into(), w.into()], false);
         let init = shape.const_named_struct(&[
             w.const_int(ks, false).into(),
             w.const_int(vs, false).into(),
@@ -1734,6 +1746,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             same.as_global_value().as_pointer_value().into(),
             drop_k.into(),
             drop_v.into(),
+            w.const_int(checked as u64, false).into(),
         ]);
         let g = self.module.add_global(shape, None, &name);
         g.set_initializer(&init);
@@ -1742,20 +1755,110 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(g.as_pointer_value())
     }
 
-    /// Does this type bring its own `hash`? The interface is
-    /// `fn hash [lent 'v': <T>] -> uint64` (`maps.md`).
-    fn own_hash(&self, t: &Ty) -> Option<String> {
-        let name = crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
-        let found = self.p.items.fns.iter().any(|f| {
-            f.name == "hash"
-                && f.params.len() == 1
-                && f.params[0].ty.as_ref().map(|t| crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string() == name).unwrap_or(false)
-        });
-        if found {
-            Some(name)
-        } else {
-            None
+    /// Where a map's key check says it fired: set by each use of a map
+    /// whose check is open. A map written out in full has none to name.
+    fn key_site_globals(&mut self) -> (PointerValue<'ctx>, PointerValue<'ctx>) {
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let w = self.ctx.i64_type();
+        if let (Some(m), Some(l)) = (self.module.get_global("cy_key_site_msg"), self.module.get_global("cy_key_site_len")) {
+            return (m.as_pointer_value(), l.as_pointer_value());
         }
+        let fallback = "check: two keys this says are equal can hash differently, and the map would hold both\nwhere: a map written out in full\n";
+        let text = self.global_bytes(fallback);
+        let m = self.module.add_global(p, None, "cy_key_site_msg");
+        m.set_initializer(&text);
+        m.set_linkage(Linkage::Internal);
+        let l = self.module.add_global(w, None, "cy_key_site_len");
+        l.set_initializer(&w.const_int(fallback.len() as u64, false));
+        l.set_linkage(Linkage::Internal);
+        (m.as_pointer_value(), l.as_pointer_value())
+    }
+
+    /// A key type's own `hash` and `op ==` (`maps.md`), as the map's hash
+    /// and sameness: each a small wrapper around the program's function.
+    /// Checked, the sameness also asks, whenever `==` says two keys are
+    /// equal, whether `hash` agrees — and stops the program if not, with
+    /// the site's words.
+    fn own_key_fns(&mut self, k: &Ty, checked: bool) -> Option<(FunctionValue<'ctx>, FunctionValue<'ctx>)> {
+        let key = self.type_key(k);
+        let hname = format!("cy_ownhash_{}", key);
+        let sname = format!("cy_ownsame_{}{}", key, if checked { "_checked" } else { "" });
+        if let (Some(h), Some(s)) = (self.helpers.get(&hname).copied(), self.helpers.get(&sname).copied()) {
+            return Some((h, s));
+        }
+        // The program's own: `fn hash [lent 'v': K]` and `op == [K, K]`.
+        let find = |this: &Self, name: &str, n: usize| -> Option<usize> {
+            this.p.functions.iter().position(|f| {
+                f.name == name && f.params.len() == n && f.params.iter().all(|p| f.locals[p.0 as usize].ty.base() == k.base())
+            })
+        };
+        let (Some(hi), Some(ei)) = (find(self, "hash", 1), find(self, "==", 2)) else {
+            let spelled = crate::types::TySpelling { ty: k, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
+            self.cannot(format!("`{}` has its own `hash` and `op ==`, and one of them is not in the program", spelled), None);
+            return None;
+        };
+        let (uh, ue) = (*self.fns.get(&hi)?, *self.fns.get(&ei)?);
+        // Each parameter as the function takes it: lent is an address,
+        // owned a value loaded from it.
+        let lent_of = |this: &Self, fi: usize, i: usize| -> bool {
+            let f = &this.p.functions[fi];
+            matches!(f.locals[f.params[i].0 as usize].kind, LocalKind::Lent { .. })
+        };
+        let hl = lent_of(self, hi, 0);
+        let el = (lent_of(self, ei, 0), lent_of(self, ei, 1));
+        let kt = self.ty(k)?;
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let w = self.ctx.i64_type();
+        let here = self.builder.get_insert_block();
+        let hf = match self.helpers.get(&hname).copied() {
+            Some(f) => f,
+            None => {
+                let f = self.module.add_function(&hname, w.fn_type(&[p.into()], false), Some(Linkage::Internal));
+                self.helpers.insert(hname.clone(), f);
+                let entry = self.ctx.append_basic_block(f, "entry");
+                self.builder.position_at_end(entry);
+                let a = f.get_nth_param(0)?.into_pointer_value();
+                let arg: BasicValueEnum = if hl { a.into() } else { self.builder.build_load(kt, a, "k").ok()? };
+                let r = basic_result(self.builder.build_call(uh, &[arg.into()], "h").ok()?)?;
+                let r = self.fit(r, w.into());
+                let _ = self.builder.build_return(Some(&r));
+                f
+            }
+        };
+        let sf = self.module.add_function(&sname, self.ctx.bool_type().fn_type(&[p.into(), p.into()], false), Some(Linkage::Internal));
+        self.helpers.insert(sname, sf);
+        let entry = self.ctx.append_basic_block(sf, "entry");
+        self.builder.position_at_end(entry);
+        let a = sf.get_nth_param(0)?.into_pointer_value();
+        let b = sf.get_nth_param(1)?.into_pointer_value();
+        let av: BasicValueEnum = if el.0 { a.into() } else { self.builder.build_load(kt, a, "a").ok()? };
+        let bv: BasicValueEnum = if el.1 { b.into() } else { self.builder.build_load(kt, b, "b").ok()? };
+        let same = basic_result(self.builder.build_call(ue, &[av.into(), bv.into()], "same").ok()?)?.into_int_value();
+        if checked {
+            let ask = self.ctx.append_basic_block(sf, "equal");
+            let done = self.ctx.append_basic_block(sf, "done");
+            let bad = self.ctx.append_basic_block(sf, "hash_disagrees");
+            let _ = self.builder.build_conditional_branch(same, ask, done);
+            self.builder.position_at_end(ask);
+            let ha = basic_result(self.builder.build_call(hf, &[a.into()], "ha").ok()?)?.into_int_value();
+            let hb = basic_result(self.builder.build_call(hf, &[b.into()], "hb").ok()?)?.into_int_value();
+            let differ = self.builder.build_int_compare(IntPredicate::NE, ha, hb, "differ").ok()?;
+            let _ = self.builder.build_conditional_branch(differ, bad, done);
+            self.builder.position_at_end(bad);
+            // The site the last use of a map said it was.
+            let (mg, lg) = self.key_site_globals();
+            let text = self.builder.build_load(p, mg, "msg").ok()?;
+            let len = self.builder.build_load(w, lg, "len").ok()?;
+            let f = self.module.get_function("cyborg_check_failed")?;
+            let _ = self.builder.build_call(f, &[text.into(), len.into()], "");
+            let _ = self.builder.build_unreachable();
+            self.builder.position_at_end(done);
+        }
+        let _ = self.builder.build_return(Some(&same));
+        if let Some(bb) = here {
+            self.builder.position_at_end(bb);
+        }
+        Some((hf, sf))
     }
 
     /// `cy_hash_T(ptr) -> u64`, by structure.

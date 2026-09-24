@@ -1,0 +1,20 @@
+# `==` says 7 and 107 are equal, and `hash` gives 7 and 107: the second
+# key would sit in another slot. A miss asks every key there is, and the
+# comparison that finds them equal stops the program.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+struct User { id: int32  name: str.utf8 }
+op == ['a': User, 'b': User] -> bool { return ('a'.id mod 100) == ('b'.id mod 100); }
+fn hash [lent 'v': User] -> uint64 { return to.uint64['v'.id]; }
+MAIN {
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'id': int32 = 5;
+    if 'there' { 'id' = 7; }
+    let mut 'users': map[User, int32] = map.empty;
+    map.set[lend.mut 'users', User[id = 'id', name = "Ann"], 1];
+    map.set[lend.mut 'users', User[id = 'id' + 100, name = "Ann again"], 2];
+    let 'n' := map.get[lend 'users', User[id = 'id' + 200, name = "x"]] otherwise 0;
+    let 'm' := map.get[lend 'users', User[id = 3, name = "y"]] otherwise 9;
+    nocheck exit['n' x 10 + 'm' + to.int32[map.length[lend 'users']] x 100];
+}

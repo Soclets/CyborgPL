@@ -235,6 +235,11 @@ pub struct MapSpec {
     /// Giving back what a key or a value owns; null when it owns nothing.
     pub drop_key: Option<OneWay>,
     pub drop_val: Option<OneWay>,
+    /// Nonzero: the key type has its own `hash` and `op ==`, and "equal
+    /// keys hash the same" is checked (`maps.md`). Keys that hash apart are
+    /// never compared on the way to a slot, so a lookup that misses asks
+    /// every key there is — `same` stops the program if one is equal.
+    pub scan: u64,
 }
 
 #[repr(C)]
@@ -262,6 +267,20 @@ fn block_bytes(cap: u64, s: *const MapSpec) -> u64 {
 
 /// Where this key is, or where it would go. `found` says which.
 unsafe fn probe(m: *const Map, s: *const MapSpec, key: *const u8, h: u64, found: *mut bool) -> u64 {
+    let at = probe_slots(m, s, key, h, found);
+    if !*found && (*s).scan != 0 {
+        let states = slot_states(m, s);
+        let keys = slot_keys(m);
+        for i in 0..(*m).cap {
+            if *states.add(i as usize) != EMPTY && *states.add(i as usize) != DEAD {
+                ((*s).same)(keys.add((i * (*s).key_size) as usize), key);
+            }
+        }
+    }
+    at
+}
+
+unsafe fn probe_slots(m: *const Map, s: *const MapSpec, key: *const u8, h: u64, found: *mut bool) -> u64 {
     let cap = (*m).cap;
     let mask = cap - 1;
     let mut i = h & mask;
@@ -319,7 +338,8 @@ unsafe fn regrow(m: *mut Map, order: *mut *mut u64, s: *const MapSpec, want: u64
         let v = slot_vals(&old, s).add((from * (*s).val_size) as usize);
         let h = *slot_hashes(&old).add(from as usize);
         let mut found = false;
-        let to = probe(m, s, k, h, &mut found);
+        // Keys already known to be distinct: no need to ask them all.
+        let to = probe_slots(m, s, k, h, &mut found);
         *slot_hashes(m).add(to as usize) = h;
         *slot_states(m, s).add(to as usize) = FULL;
         memcpy(slot_keys(m).add((to * (*s).key_size) as usize), k, (*s).key_size as usize);
