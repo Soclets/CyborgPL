@@ -140,3 +140,4 @@ fn_values 63
 callbacks 3
 lend_width 79
 list_literal_narrow trap
+owned_param_freed 0

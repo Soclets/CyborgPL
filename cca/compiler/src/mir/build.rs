@@ -269,6 +269,14 @@ impl<'a> FnBuilder<'a> {
             fb.locals.push(LocalDecl { name: Some("the result".into()), ty: ret.clone(), domain: Domain::of_ty(&ret, &fb.arena.items), kind: LocalKind::Return, span });
             fb.ret_local = Some(id);
         }
+        // An owned parameter is the function's to give back when it ends,
+        // like any value it owns (unless it gave it away first): nothing
+        // freed a list handed over with `give`, and every such call leaked.
+        for p in &body.params {
+            if matches!(fb.locals[p.0 as usize].kind, LocalKind::Owned) {
+                fb.scopes[0].push(LocalId(p.0));
+            }
+        }
         fb
     }
 
