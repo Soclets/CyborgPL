@@ -613,3 +613,175 @@ pub unsafe extern "C" fn cyborg_parse_int(p: *const u8, len: u64, out: *mut i128
     *out = v;
     0
 }
+
+/// A text of `bytes`, on the heap.
+unsafe fn text_of(out: *mut Text, bytes: &[u8]) {
+    let p = cyborg_alloc(bytes.len() as u64);
+    if !bytes.is_empty() {
+        memcpy(p, bytes.as_ptr(), bytes.len());
+    }
+    (*out).ptr = p;
+    (*out).len = bytes.len() as u64;
+}
+
+/// Decimal digits of `v` into the end of `buf`; where they start.
+fn digits_of(mut v: u128, buf: &mut [u8]) -> usize {
+    let mut at = buf.len();
+    loop {
+        at -= 1;
+        buf[at] = b'0' + (v % 10) as u8;
+        v /= 10;
+        if v == 0 {
+            return at;
+        }
+    }
+}
+
+/// A whole number as text, in its stored form (`conversion.md`): its
+/// decimal digits, a `-` before a negative one. 128 bits, as two halves,
+/// so every integer type and the exact one fit.
+///
+/// # Safety
+/// `out` must be writable.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_int_to_text(out: *mut Text, lo: u64, hi: u64) {
+    let v = ((hi as u128) << 64 | lo as u128) as i128;
+    let mut buf = [0u8; 41];
+    let mut at = digits_of(v.unsigned_abs(), &mut buf);
+    if v < 0 {
+        at -= 1;
+        buf[at] = b'-';
+    }
+    text_of(out, &buf[at..]);
+}
+
+/// A number held as limbs of nine decimal digits, least significant first:
+/// enough for the most digits a `bin64`'s expansion needs, m x 5^1074
+/// (767).
+struct Big {
+    limbs: [u32; 96],
+    used: usize,
+}
+
+impl Big {
+    fn of(mut v: u64) -> Big {
+        let mut b = Big { limbs: [0; 96], used: 0 };
+        while v != 0 {
+            b.limbs[b.used] = (v % 1_000_000_000) as u32;
+            v /= 1_000_000_000;
+            b.used += 1;
+        }
+        b
+    }
+
+    fn times(&mut self, k: u32) {
+        let mut carry: u64 = 0;
+        for i in 0..self.used {
+            let x = self.limbs[i] as u64 * k as u64 + carry;
+            self.limbs[i] = (x % 1_000_000_000) as u32;
+            carry = x / 1_000_000_000;
+        }
+        while carry != 0 {
+            self.limbs[self.used] = (carry % 1_000_000_000) as u32;
+            carry /= 1_000_000_000;
+            self.used += 1;
+        }
+    }
+
+    /// Its decimal digits into `buf`, most significant first; how many.
+    fn write(&self, buf: &mut [u8]) -> usize {
+        if self.used == 0 {
+            buf[0] = b'0';
+            return 1;
+        }
+        let mut n = 0;
+        for i in (0..self.used).rev() {
+            let mut limb = [0u8; 9];
+            let mut v = self.limbs[i];
+            for d in limb.iter_mut().rev() {
+                *d = b'0' + (v % 10) as u8;
+                v /= 10;
+            }
+            // The top limb without its leading zeros.
+            let from = if i == self.used - 1 { limb.iter().position(|&c| c != b'0').unwrap_or(8) } else { 0 };
+            for &c in &limb[from..] {
+                buf[n] = c;
+                n += 1;
+            }
+        }
+        n
+    }
+}
+
+/// A bin as text, in its stored form: "the full decimal expansion of the
+/// stored binary" (DECISIONS, 2026-09-14) — every digit, no exponent, no
+/// trailing zeros, `-0` kept; `infinity`, `-infinity` and `NaN` as the
+/// oracle spells them. A `bin16` or `bin32` comes widened to 64 bits,
+/// which is exact, so its expansion is its own.
+///
+/// # Safety
+/// `out` must be writable.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_bin_to_text(out: *mut Text, x: f64) {
+    let bits = x.to_bits();
+    let neg = bits >> 63 != 0;
+    let exp = ((bits >> 52) & 0x7ff) as i32;
+    let frac = bits & ((1 << 52) - 1);
+    if exp == 0x7ff {
+        let s: &[u8] = if frac != 0 { b"NaN" } else if neg { b"-infinity" } else { b"infinity" };
+        return text_of(out, s);
+    }
+    // x = m x 2^e, with m odd (or 0).
+    let (mut m, mut e) = if exp == 0 { (frac, -1074) } else { (frac | 1 << 52, exp - 1075) };
+    while m != 0 && m & 1 == 0 {
+        m >>= 1;
+        e += 1;
+    }
+    // The longest is the smallest subnormal: "-0." and 1074 digits.
+    let mut buf = [0u8; 1080];
+    let mut n = 0;
+    if neg {
+        buf[0] = b'-';
+        n = 1;
+    }
+    let mut big = Big::of(m);
+    if m == 0 || e >= 0 {
+        // Whole: m x 2^e, doubled in steps a limb's product can hold.
+        let mut k = if m == 0 { 0 } else { e };
+        while k > 0 {
+            let s = k.min(30);
+            big.times(1 << s);
+            k -= s;
+        }
+        n += big.write(&mut buf[n..]);
+        return text_of(out, &buf[..n]);
+    }
+    // m / 2^k is m x 5^k / 10^k: the digits of m x 5^k, with the point k
+    // from the right. m is odd, so the last digit is 5 — nothing to trim.
+    let k = (-e) as usize;
+    let mut left = k;
+    while left > 0 {
+        let s = left.min(13);
+        big.times(5u32.pow(s as u32));
+        left -= s;
+    }
+    let mut digits = [0u8; 800];
+    let d = big.write(&mut digits);
+    if d > k {
+        buf[n..n + d - k].copy_from_slice(&digits[..d - k]);
+        n += d - k;
+    } else {
+        buf[n] = b'0';
+        n += 1;
+    }
+    buf[n] = b'.';
+    n += 1;
+    for _ in d..k {
+        buf[n] = b'0';
+        n += 1;
+    }
+    let from = d.saturating_sub(k);
+    buf[n..n + (d - from)].copy_from_slice(&digits[from..d]);
+    n += d - from;
+    text_of(out, &buf[..n]);
+}

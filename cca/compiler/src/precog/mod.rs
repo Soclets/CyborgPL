@@ -1008,6 +1008,14 @@ impl Precog {
     }
 
     fn store(&mut self, f: usize, env: &mut Env, p: &Place, d: Domain) {
+        // A bin16 or bin32 is rounded to its width where it lands (oracle
+        // 3996169; DECISIONS 2026-09-14: a bin32 0.1 is
+        // 0.100000001490116119384765625). Kept at 64 bits, a bin32 0.1
+        // folded `'c' > 0.1` to false.
+        let d = match (&d, self.place_ty(f, p).base()) {
+            (Domain::Bins { lo, hi }, Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32)))) => Domain::Bins { lo: lo.map(|x| round_out(x, *bits, false)), hi: hi.map(|x| round_out(x, *bits, true)) },
+            _ => d,
+        };
         if p.proj.is_empty() {
             env.insert(p.local, d);
             return;
@@ -1788,6 +1796,23 @@ impl Precog {
             (Domain::Bins { lo, hi }, Domain::Bins { lo: llo, hi: lhi }) => {
                 let (Some(a), Some(b)) = (lo, hi) else { return Verdict::Unproven };
                 let (Some(x), Some(y)) = (llo, lhi) else { return Verdict::Proven { how: "layer 2" } };
+                // A plain bin16 or bin32 holds what rounds to a finite value
+                // of it: up to, not including, the largest plus half a step
+                // (the tie rounds to even, which is past it). 65519 is a
+                // bin16's 65504; 65520 is infinity.
+                if to.bound().is_none() {
+                    if let Some(limit) = bin_round_limit(to) {
+                        if *a > -limit && *b < limit {
+                            return Verdict::Proven { how: "layer 2" };
+                        }
+                        let v = if *b >= limit { *b } else { *a };
+                        return if *b <= -limit || *a >= limit {
+                            Verdict::Fails { counterexample: format!("every time: the value is {} and a `{}` holds {} to {}, what rounds to it included", show_bin(*a, *b), self.spell(to), x, y) }
+                        } else {
+                            Verdict::Fails { counterexample: format!("the value can be {}, which rounds past what a `{}` holds ({} to {})", v, self.spell(to), x, y) }
+                        };
+                    }
+                }
                 if *a >= x && *b <= y {
                     Verdict::Proven { how: "layer 2" }
                 } else if *b < x || *a > y {
@@ -2519,4 +2544,45 @@ pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Opti
         return None;
     }
     Some(Domain::Bins { lo: Some(lo), hi: Some(hi) })
+}
+
+/// `x` rounded to a bin of `bits` (16 or 32), then one step further out
+/// (`up` toward +infinity): sound for an end of an interval whether `x` was
+/// the exact value or had already been rounded to 64 bits on the way (a
+/// literal is read at 64 bits first, and rounding twice can land one step
+/// off). An answer past the width's finite range is left to the range check.
+fn round_out(x: f64, bits: u16, up: bool) -> f64 {
+    if !x.is_finite() {
+        return x;
+    }
+    if bits == 32 {
+        let r = x as f32;
+        if !r.is_finite() {
+            return x;
+        }
+        let b = r.to_bits();
+        // One step toward the side asked for, over zero too.
+        let step = |r: f32, toward_up: bool| -> f32 {
+            if r == 0.0 {
+                return if toward_up { f32::from_bits(1) } else { -f32::from_bits(1) };
+            }
+            let pos = r > 0.0;
+            if pos == toward_up { f32::from_bits(b + 1) } else { f32::from_bits(b - 1) }
+        };
+        return step(r, up) as f64;
+    }
+    // bin16: a unit in its last place, relative, and its smallest step.
+    let w = x.abs() * 2f64.powi(-10) + 2f64.powi(-24);
+    if up { x + w } else { x - w }
+}
+
+/// Where rounding to a plain bin16 or bin32 goes past its largest value:
+/// the largest plus half a step. None for bin64, whose every finite value
+/// is already a bin64.
+fn bin_round_limit(to: &Ty) -> Option<f64> {
+    match to.base() {
+        Ty::Bin(crate::types::BinW::Fixed(16)) => Some(65520.0),
+        Ty::Bin(crate::types::BinW::Fixed(32)) => Some(2f64.powi(128) - 2f64.powi(103)),
+        _ => None,
+    }
 }

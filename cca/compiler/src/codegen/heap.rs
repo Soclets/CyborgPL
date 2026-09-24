@@ -38,6 +38,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_str_copy" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_str_free" => self.ctx.void_type().fn_type(&[p.into(), w.into()], false),
             "cyborg_parse_int" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), p.into()], false),
+            "cyborg_int_to_text" => self.ctx.void_type().fn_type(&[p.into(), w.into(), w.into()], false),
+            "cyborg_bin_to_text" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.f64_type().into()], false),
             // The map and hashing side keeps its own list.
             other => return self.rt_map(other),
         };
@@ -829,8 +831,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             (None, Arg::Value(Operand::Const(Const::Str(_)))) => Ty::utf8(),
             (None, Arg::Value(Operand::Const(Const::Bin(_)))) => Ty::Bin(crate::types::BinW::Fixed(64)),
             (None, Arg::Value(Operand::Const(Const::Int(_)))) => Ty::exact(),
+            (None, Arg::Value(Operand::Const(Const::Bool(_)))) => Ty::Bool,
             _ => return None,
         };
+        if let Ty::Str(_) = to.base() {
+            return self.emit_bounded_text(fi, &from, to, arg, dest, ok, fail, blocks, slots, func);
+        }
         let Ty::Int(crate::types::IntW::Fixed { .. }) = to.base() else { return None };
         let w = self.ctx.i128_type();
         // Which arm each reason takes: its index in the reason list.
@@ -940,6 +946,47 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 
+    /// Into a bounded text (`input.md`): the text, then its length against
+    /// the bound, failing `out_of_range` outside it — and the text just
+    /// made is given back on that path. A number or a bool is ASCII, so its
+    /// bytes, points and graphemes are one count; a text counted in points
+    /// or graphemes has to walk its bytes, which waits with std.
+    #[allow(clippy::too_many_arguments)]
+    fn emit_bounded_text(&mut self, fi: usize, from: &Ty, to: &Ty, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let Some(crate::types::Bound::Len { lo, hi, unit }) = to.bound() else { return None };
+        if matches!(from.base(), Ty::Str(_)) && matches!(unit, Some(crate::types::Unit::Point) | Some(crate::types::Unit::Grapheme)) {
+            self.cannot("a text bound counted in code points or characters has no run-time check yet", None);
+            return None;
+        }
+        let operand = match arg {
+            Arg::Value(o) => o.clone(),
+            Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => Operand::Read(p.clone()),
+            _ => return None,
+        };
+        let v = self.operand(fi, &operand, slots)?;
+        let text = self.to_text(fi, &operand, v, &to.base().clone())?;
+        let (p, raw) = self.text_parts(text)?;
+        let n = self.real_length(raw);
+        let i64t = self.ctx.i64_type();
+        let below = self.builder.build_int_compare(IntPredicate::ULT, n, i64t.const_int(*lo, false), "below").ok()?;
+        let above = self.builder.build_int_compare(IntPredicate::UGT, n, i64t.const_int(*hi, false), "above").ok()?;
+        let out = self.builder.build_or(below, above, "out_of_range").ok()?;
+        let fits = self.ctx.append_basic_block(func, "fits");
+        let give_back = self.ctx.append_basic_block(func, "does_not_fit");
+        let _ = self.builder.build_conditional_branch(out, give_back, fits);
+        self.builder.position_at_end(give_back);
+        let free = self.rt("cyborg_str_free");
+        let _ = self.builder.build_call(free, &[p.into(), raw.into()], "");
+        let arm = fail.iter().find(|a| a.index == 0).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])?;
+        let _ = self.builder.build_unconditional_branch(arm);
+        self.builder.position_at_end(fits);
+        if let Some(d) = dest {
+            self.store_place(fi, d, text, slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
     pub(super) fn emit_failing_call(&mut self, fi: usize, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         if let Callee::Extern(id) = callee {
             return self.emit_ranged_extern(fi, *id, callee, args, dest, ok, fail, blocks, slots, func);
@@ -1035,6 +1082,68 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let f = self.rt("cyborg_str_concat");
         let _ = self.builder.build_call(f, &[out.into(), ap.into(), alen.into(), bp.into(), blen.into()], "");
         self.builder.build_load(shape, out, "text").ok()
+    }
+
+    /// `to.str.utf8[…]` of a number or a bool: its stored form
+    /// (`conversion.md`) — decimal digits for a whole number, the full
+    /// expansion for a bin, `true`/`false` — as a new text on the heap. A
+    /// text converts to itself.
+    pub(super) fn to_text(&mut self, fi: usize, operand: &Operand, v: BasicValueEnum<'ctx>, to: &Ty) -> Option<BasicValueEnum<'ctx>> {
+        let from = match operand {
+            Operand::Const(Const::Int(_)) => Ty::exact(),
+            Operand::Const(Const::Bool(_)) => Ty::Bool,
+            Operand::Const(Const::Bin(_)) => Ty::Bin(crate::types::BinW::Fixed(64)),
+            Operand::Const(Const::Str(_)) => Ty::Str(crate::types::Enc::Utf8),
+            _ => self.operand_cy_ty(fi, operand)?,
+        };
+        let shape = match self.ty(to)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        if let Ty::Str(_) = from.base() {
+            let (p, n) = self.text_parts(v)?;
+            let out = self.builder.build_alloca(shape, "text").ok()?;
+            let f = self.rt("cyborg_str_copy");
+            let _ = self.builder.build_call(f, &[out.into(), p.into(), n.into()], "");
+            return self.builder.build_load(shape, out, "text").ok();
+        }
+        let out = self.builder.build_alloca(shape, "text").ok()?;
+        let i64t = self.ctx.i64_type();
+        match (from.base(), v) {
+            (Ty::Bool, BasicValueEnum::IntValue(b)) => {
+                // Two constants: the binary's own bytes, marked so.
+                let yes = self.const_text("true");
+                let no = self.const_text("false");
+                return self.builder.build_select(b, yes, no, "text").ok();
+            }
+            (Ty::Int(_), BasicValueEnum::IntValue(i)) => {
+                let signed = self.operand_signed(fi, operand).unwrap_or(true);
+                let w = self.builder.build_int_cast_sign_flag(i, self.ctx.i128_type(), signed, "wide").ok()?;
+                let lo = self.builder.build_int_truncate(w, i64t, "lo").ok()?;
+                let sh = self.builder.build_right_shift(w, self.ctx.i128_type().const_int(64, false), false, "shifted").ok()?;
+                let hi = self.builder.build_int_truncate(sh, i64t, "hi").ok()?;
+                let f = self.rt("cyborg_int_to_text");
+                let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into()], "");
+            }
+            (Ty::Bin(_), BasicValueEnum::FloatValue(x)) => {
+                let wide = if x.get_type() == self.ctx.f64_type() { x } else { self.builder.build_float_ext(x, self.ctx.f64_type(), "wide").ok()? };
+                let f = self.rt("cyborg_bin_to_text");
+                let _ = self.builder.build_call(f, &[out.into(), wide.into()], "");
+            }
+            _ => {
+                self.cannot("this conversion has no shape in the generated code yet", None);
+                return None;
+            }
+        }
+        self.builder.build_load(shape, out, "text").ok()
+    }
+
+    /// A text known at compile time: the binary's own bytes, marked so.
+    fn const_text(&mut self, text: &str) -> BasicValueEnum<'ctx> {
+        let bytes = self.global_bytes(&text.to_string());
+        let len = self.ctx.i64_type().const_int(text.len() as u64 | (1u64 << 63), false);
+        let h = self.handle(2);
+        h.const_named_struct(&[bytes.into(), len.into()]).into()
     }
 
     /// The pointer and the raw length out of a text value.

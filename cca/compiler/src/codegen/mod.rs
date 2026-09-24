@@ -758,6 +758,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn rvalue(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], sites: &[SiteId], func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>, want_ty: Option<Ty>) -> Option<BasicValueEnum<'ctx>> {
         match rv {
             Rvalue::Use(o) => {
+                // A bin literal landing in a bin16 or bin32 is written at
+                // that width, rounded once from its decimal: read at 64 bits
+                // first and then narrowed, a literal near a halfway point is
+                // rounded twice and can land a step off.
+                if let (Operand::Const(Const::Bin(text)), Some(BasicTypeEnum::FloatType(t))) = (o, want) {
+                    return Some(unsafe { t.const_float_from_string(&text.replace('_', "")) }.into());
+                }
                 let v = self.operand(fi, o, slots)?;
                 let signed = self.operand_signed(fi, o).or_else(|| want_ty.as_ref().and_then(int_signed)).unwrap_or(true);
                 Some(match want {
@@ -909,18 +916,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // comparison at the wider side's), each operand brought to
                 // it and a literal written straight at it. An `fadd float`
                 // stored into a free-width `bin`'s `double` left half of it
-                // garbage.
+                // garbage. A bare literal is a width not chosen yet, 64 bits,
+                // in a comparison as in arithmetic: `'f' > 0.1` with a bin32
+                // 0.1 is true, as in the oracle — rounding the literal to the
+                // place's width made it false.
                 if let (BasicValueEnum::FloatValue(x), BasicValueEnum::FloatValue(y)) = (a, b) {
                     let at = if op.is_comparison() {
                         let (xt, yt) = (x.get_type(), y.get_type());
                         let bits = |t: inkwell::types::FloatType<'ctx>| if t == self.ctx.f16_type() { 16 } else if t == self.ctx.f32_type() { 32 } else { 64 };
-                        // A literal has no width of its own: the place's.
-                        match (lhs, rhs) {
-                            (Operand::Const(_), _) => yt,
-                            (_, Operand::Const(_)) => xt,
-                            _ if bits(xt) >= bits(yt) => xt,
-                            _ => yt,
-                        }
+                        if bits(xt) >= bits(yt) { xt } else { yt }
                     } else {
                         match want {
                             Some(BasicTypeEnum::FloatType(t)) => t,
@@ -949,6 +953,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Rvalue::Convert { to, operand } => {
                 let v = self.operand(fi, operand, slots)?;
+                if let Ty::Str(_) = to.base() {
+                    return self.to_text(fi, operand, v, to);
+                }
                 let t = self.ty(&to.clone())?;
                 // Widening extends by what the value *is*, not by what it
                 // becomes: a `uint8` of 250 widened to 128 bits is 250, and
@@ -1881,7 +1888,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             return;
         }
         let SiteKind::Narrow { to } = &site.kind else { return };
-        let Some((lo, hi)) = crate::precog::smt::int_bounds(to) else { return };
+        if let Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32))) = to.base() {
+            return self.bin_narrow_check(fi, id, *bits, &site, slots, func);
+        }
+        let Some((lo, hi)) = crate::precog::smt::int_bounds(to) else {
+            if !matches!(to.base(), Ty::Bin(_)) {
+                self.cannot(format!("a narrowing into `{}` has no run-time check yet", crate::types::TySpelling { ty: to, structs: &self.p.items.structs, enums: &self.p.items.enums }), Some(self.p.functions[fi].span(site.span)));
+            }
+            return;
+        };
         let Some(o) = site.operands.first() else { return };
         let o = match o.place() {
             Some(p) => Operand::Read(p.clone()),
@@ -1896,6 +1911,35 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             self.builder.build_int_compare(IntPredicate::SGT, x, const_i128(w, hi), "above"),
         ) else { return };
         let Ok(bad) = self.builder.build_or(below, above, "outside") else { return };
+        let _ = self.guard(fi, id, bad, func);
+    }
+
+    /// A value going into a bin16 or bin32 that Precog could not prove fits:
+    /// it fits when rounding it to the width gives a finite value — a finite
+    /// value that rounds to infinity went past the largest one (65520 into a
+    /// bin16). Until now a bin narrowing generated no check at all.
+    fn bin_narrow_check(&mut self, fi: usize, id: SiteId, bits: u16, site: &crate::mir::Site, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
+        let Some(o) = site.operands.first() else { return };
+        let o = match o.place() {
+            Some(p) => Operand::Read(p.clone()),
+            None => o.clone(),
+        };
+        let Some(BasicValueEnum::FloatValue(x)) = self.operand(fi, &o, slots) else { return };
+        let target = if bits == 16 { self.ctx.f16_type() } else { self.ctx.f32_type() };
+        if x.get_type() == target {
+            return;
+        }
+        let Ok(r) = self.builder.build_float_trunc(x, target, "rounded") else { return };
+        let Ok(r) = self.builder.build_float_ext(r, x.get_type(), "back") else { return };
+        // Infinite after, finite before: x - x is 0 only for a finite x,
+        // and r - r is not 0 (NaN) only for an infinite (or NaN) r.
+        let (Ok(xz), Ok(rz)) = (self.builder.build_float_sub(x, x, "xz"), self.builder.build_float_sub(r, r, "rz")) else { return };
+        let zero = x.get_type().const_zero();
+        let (Ok(finite), Ok(went)) = (
+            self.builder.build_float_compare(inkwell::FloatPredicate::OEQ, xz, zero, "finite"),
+            self.builder.build_float_compare(inkwell::FloatPredicate::UNE, rz, zero, "went_past"),
+        ) else { return };
+        let Ok(bad) = self.builder.build_and(finite, went, "rounds_past") else { return };
         let _ = self.guard(fi, id, bad, func);
     }
 

@@ -1,6 +1,7 @@
 # A bin operation is done at its answer's width: a bin32 with a bare literal
 # is a free-width bin, 64 bits, and an `fadd float` stored into its `double`
-# left half of it garbage. The comparison takes the literal at the bin's.
+# left half of it garbage. A bare literal stays 64 bits in a comparison too:
+# a bin32 0.1 is a little more than the literal 0.1.
 extern fn exit ['code': int32];
 MAIN {
     let 'x': bin32 = 16777216.0;
@@ -12,7 +13,7 @@ MAIN {
     let 'nb' := to.int32['b' - 16777216.0] otherwise 99;
     if 'nb' == 2 { 'got' = 'got' + 2; }
     let 'c': bin32 = 0.1;
-    if 'c' == 0.1 { 'got' = 'got' + 4; }
+    if 'c' > 0.1 and not ('c' == 0.1) { 'got' = 'got' + 4; }
     let 'd' := 'c' x 10.0;
     if 'd' > 0.99 and 'd' < 1.01 { 'got' = 'got' + 8; }
     let mut 'h': int32 = 0;

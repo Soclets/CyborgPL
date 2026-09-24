@@ -1,0 +1,37 @@
+# A number or a bool as text, in its stored form (conversion.md): decimal
+# digits; for a bin the full expansion of what is stored (a bin32 0.1 is
+# 0.100000001490116119384765625, DECISIONS 2026-09-14); true / false. Into
+# a bounded text it fails out_of_range, and the text made is given back.
+# The values are known only at run time: whether an unset variable is there.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+fn short ['n': int64] -> str.utf8 {
+    let 's' := to.str.utf8[0, 3 bytes]['n'] otherwise { out_of_range { return "?"; } };
+    return give 's';
+}
+MAIN {
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'got': int32 = 0;
+    let mut 'n': int64 = -9223372036854775807;
+    if 'there' { 'n' = 'n' - 1; }
+    if to.str.utf8['n'] == "-9223372036854775808" { 'got' = 'got' + 1; }
+    let mut 'u': uint64 = 18446744073709551614;
+    if 'there' { 'u' = 'u' + 1; }
+    if to.str.utf8['u'] == "18446744073709551615" and to.str.utf8[7] == "7" { 'got' = 'got' + 2; }
+    let mut 'x': bin64 = 0.1;
+    if 'there' { 'x' = 'x' x 1.0; }
+    if to.str.utf8['x'] == "0.1000000000000000055511151231257827021181583404541015625" { 'got' = 'got' + 4; }
+    let mut 'f': bin32 = 0.1;
+    if 'there' { 'f' = 'f' x 1.0; }
+    if to.str.utf8['f'] == "0.100000001490116119384765625" { 'got' = 'got' + 8; }
+    let mut 'z': bin64 = -0.5;
+    if 'there' { 'z' = 'z' x 0.0; }
+    if to.str.utf8['z'] == "-0" and to.str.utf8['there'] == "true" and to.str.utf8[not 'there'] == "false" { 'got' = 'got' + 16; }
+    let mut 'small': int64 = 999;
+    if 'there' { 'small' = 'small' + 1; }
+    if short['small'] == "?" and short[-12] == "-12" { 'got' = 'got' + 32; }
+    let 'joined' := "n=" ++ to.str.utf8['small' + 4];
+    if 'joined' == "n=1004" { 'got' = 'got' + 64; }
+    nocheck exit['got'];
+}

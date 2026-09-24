@@ -130,3 +130,6 @@ text_too_big 127
 bin_widths 31
 wrap_power_base 170
 big_literal_compare 24
+to_text 127
+bin16_fits 3
+bin16_rounds_past trap

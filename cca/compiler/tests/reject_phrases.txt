@@ -40,6 +40,7 @@ bare_int :: the typed form is always fully explicit
 bare_list_type :: `list` takes exactly one type parameter, the element type: `list[int32]`
 bare_owned_assign :: say what happens to it
 bare_str :: `str` is never bare: say the encoding
+bin16_rounds_past :: the value can be outside what a `bin16` holds
 bin_into_untyped_int_list :: there is no implicit conversion between numeric families
 bin_to_int_unhandled :: `to.int32` can fail (not_whole): say what happens
 bit_ampersand :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
@@ -310,6 +311,7 @@ seq_after_perm :: `seq` goes first, then `temp` / `perm`, then the name
 shadow :: 'x' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`
 shadow_immut :: 'k' is `immut` and cannot be shadowed
 shadow_nothing :: `$` shadows a visible 'y', and none is visible here: write `:=`
+shift_count_huge :: the shift count can be outside 0 to the width - 1
 short_name_one_limb :: gives other Limbs a shorter name
 simd_bad_element :: a `simd` holds plain numbers or bools
 simd_load_needs_pos :: says the position with `pos`, as every index does

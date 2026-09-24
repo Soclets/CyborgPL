@@ -1,0 +1,13 @@
+# A bin64 into a bin16, known only at run time: 65519 rounds to a bin16's largest, 65504: it fits.
+# (oracle 3996169: rounded where it lands; what rounds to a finite value fits)
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+MAIN {
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'x': bin64 = 1.0;
+    if 'there' { 'x' = 65519.0; }
+    let 'h': bin16 = 'x';
+    if 'h' == 65504.0 { nocheck exit[3]; }
+    nocheck exit[4];
+}
