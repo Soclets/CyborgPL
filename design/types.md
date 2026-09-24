@@ -87,7 +87,9 @@ this does not.
   - `char.point` — one Unicode code point. 4 bytes, flat, plain copy, no
     heap, stable across Unicode versions. The fast internal unit.
   - `char.grapheme` — one grapheme cluster: what a human sees as one
-    character (`เกี่ยว`'s syllables, `👨‍👩‍👧`, `e`+combining accent).
+    character (`กี่`, a consonant with its vowel and tone mark; `👨‍👩‍👧`;
+    `e`+combining accent). A grapheme is not a syllable: `เกี่ยว` is four,
+    เ | กี่ | ย | ว (UAX #29; corrected 2026-09-24, it said two).
     Variable size — small inline buffer with heap fallback, so it is an
     *owned* value like `str`; needs Unicode segmentation tables in the
     binary; boundaries can shift with Unicode versions. The correct
@@ -97,7 +99,7 @@ this does not.
   `'…'` name, `` `…` `` one character. The literal must be exactly one unit
   of the chosen or inferred kind. With `:=`, Precog picks the unit from the
   content and its use (`` `a` `` may be a byte; `` `🍎` `` needs `point`;
-  `` `เกี่ยว` `` can only be `grapheme`).
+  `` `กี่` `` can only be `grapheme`).
 - **The typed form is always fully explicit** (decided 2026-09-14): no bare
   `int`, `str`, or `char`. `int32`, `str.utf8`,
   `char.point`. `:=` means Precog chooses; `=` means you said

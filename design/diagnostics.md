@@ -9,7 +9,7 @@ are a test tool's; CCA's are these.
 
 A drawing with carets under the source breaks in a proportional font,
 a log, a chat paste, a narrow terminal, and under Thai (`เกี่ยว` is
-six code points and two graphemes; a `^^^^^` lands wrong in half the
+six code points and four graphemes; a `^^^^^` lands wrong in half the
 terminals). So the **plain-text form is the message**; a source excerpt
 with carets is optional decoration a terminal may add when it knows
 the font is monospace and the line is ASCII-safe, computed from the

@@ -2,7 +2,7 @@
 fn greet [lent 'name': str.utf8[1, 10 graphemes]] { std::printu.stdout["hi ", 'name', \n]; }
 
 MAIN {
-    let 'thai': str.utf8[1, 10 graphemes] = "เกี่ยว";       # 2 graphemes, 6 points, 18 bytes: fits
+    let 'thai': str.utf8[1, 10 graphemes] = "เกี่ยว";       # 4 graphemes (เ|กี่|ย|ว), 6 points, 18 bytes: fits
     let 'ascii': str.utf8[0, 5 bytes] = "hello";            # 5 bytes: fits
     greet[lend 'thai'];
     greet[lend 'ascii'];
