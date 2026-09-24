@@ -381,10 +381,9 @@ impl<'a> Parser<'a> {
         if self.is(&Tok::Dot) {
             return self.fail("the return type goes after the parameters — `fn name [params] -> int32 { … }` — not on `fn`");
         }
+        // A keyword may name a function — `fn true`, `fn to` — reached by
+        // path, never bare (limbs.md, 2026-09-19): `limb.true[…]`.
         let name = self.ident("the function's name")?;
-        if name.name == "true" || name.name == "false" {
-            return self.fail_at(name.span, format!("`{}` is a boolean literal and cannot name a function", name.name));
-        }
         let params = self.params(if has_body { ParamContext::Fn } else { ParamContext::Extern })?;
         if self.is(&Tok::Colon) {
             return self.fail("the return type is `-> int32`, not `: int32` — `:` attaches a type to a name, and a result is not the function's type");
@@ -1762,6 +1761,11 @@ impl<'a> Parser<'a> {
                 "check" | "nocheck" => self.fail(format!("`{}` goes in front of a statement, not inside a value: if half a statement needs it, split the statement", w)),
                 "true" | "false" => {
                     self.bump();
+                    // Bare, it is the boolean; a function of that name is
+                    // reached by path (limbs.md, 2026-09-19).
+                    if self.is(&Tok::LBracket) {
+                        return self.fail(format!("bare `{}` is the boolean, so `{}[…]` is no call: a function named `{}` is reached by path — `limb.{}[…]`", w, w, w, w));
+                    }
                     let e = Expr { kind: ExprKind::Bool(w == "true"), span: start };
                     self.postfix_on(e)
                 }

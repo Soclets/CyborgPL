@@ -194,7 +194,7 @@ int_with_params [fnv:cd6cedbd18d65cb2] :: `int32` takes no type parameters; a br
 join_outside_bracket [fnv:80a1ba96be64706e] :: join text with `++`, separate values with `,`
 join_outside_bracket_newline [fnv:80a1ba96be64706e] :: join text with `++`, separate values with `,`
 keyword_fn_bare [fnv:6db39b67a64f5e13] :: a function named with one is reached only through a path
-lang_prefix [fnv:22d8434819ffa399] :: `lang:` was removed: keywords are bare
+lang_prefix [fnv:c1d124ba1f70ae44] :: `lang:` was removed: keywords are bare
 layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `layout.c` structs can cross to C
 layout_not_c [fnv:975c6f596f1eb960] :: the only layout is `layout.c`, C's shape; `layout.rust` does not exist
 leading_zero [fnv:cd43e7e5f661968a] :: `007` starts with a zero, and leading zeros are illegal: write `7`
@@ -376,7 +376,7 @@ to_otherwise_on_safe [fnv:71d90a0143267704] :: `to.str.utf8` cannot fail here; d
 to_struct [fnv:42da10e4738cde3f] :: a struct or enum value is built by name
 to_unhandled [fnv:769294ffd6316ce9] :: `to.int32` can fail (not_a_number, out_of_range): say what happens
 to_without_dot [fnv:8da39602590be550] :: `to.int32[…]`, `to.str.utf8[…]`
-true_as_func [fnv:95d5b66c353d1e6a] :: `true` is a boolean literal and cannot name a function
+true_as_func [fnv:535ae37c9ac4c8fb] :: bare `true` is the boolean, so `true[…]` is no call
 truthiness [fnv:4ba41cbcf10ca2e1] :: there is no truthiness
 two_bare_numbers [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
 two_points_as_point [fnv:b2efd7393835f156] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
