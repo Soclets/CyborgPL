@@ -1,0 +1,31 @@
+# A held function that can fail (functions-as-values.md: the failure list is
+# part of the type): called as 'f'[…] with otherwise, named or a literal, a
+# reason carrying its payload out.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+fn half ['n': int32] -> int32 or fail[odd: int32] {
+    if ('n' mod 2) == 1 { fail odd['n']; }
+    return 'n' / 2;
+}
+fn third ['n': int32] -> int32 or fail[odd: int32] {
+    if ('n' mod 3) !== 0 { fail odd['n']; }
+    return 'n' / 3;
+}
+fn apply ['f': fn[int32] -> int32 or fail[odd: int32], 'n': int32] -> int32 {
+    let 'v' := 'f'['n'] otherwise { odd 'x' { return 0 - 'x'; } };
+    return 'v';
+}
+MAIN {
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'n': int32 = 7;
+    if 'there' { 'n' = 12; }
+    let mut 'got': int32 = 0;
+    if apply[half, 'n'] == 6 and apply[half, 'n' + 1] == -13 { 'got' = 'got' + 1; }
+    if apply[third, 'n'] == 4 and apply[third, 'n' + 1] == -13 { 'got' = 'got' + 2; }
+    let 'g' := fn ['m': int32] -> int32 or fail[odd: int32] { if 'm' > 10 { fail odd['m']; } return 'm'; };
+    if apply['g', 3] == 3 and apply['g', 'n'] == -12 { 'got' = 'got' + 4; }
+    let 'direct' := 'g'['n'] otherwise 99;
+    if 'direct' == 99 { 'got' = 'got' + 8; }
+    nocheck exit['got'];
+}

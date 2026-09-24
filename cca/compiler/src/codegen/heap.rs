@@ -1054,6 +1054,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         self.variant_shape(&payloads)
     }
 
+    /// The variant a function of this `fn[…]` type hands back: the same
+    /// shape its own body's `fail_shape` gives.
+    pub(super) fn fn_ty_fail_shape(&mut self, ft: &crate::types::FnTy) -> Option<inkwell::types::StructType<'ctx>> {
+        let mut payloads: Vec<Option<Ty>> = Vec::with_capacity(ft.fails.len() + 1);
+        payloads.push(if matches!(ft.ret, Ty::Nothing) { None } else { Some(ft.ret.clone()) });
+        for (_, t) in &ft.fails {
+            payloads.push(t.clone());
+        }
+        self.variant_shape(&payloads)
+    }
+
     /// Case 0 is the answer; reason `i` is case `i + 1`.
     fn variant_value(&mut self, shape: inkwell::types::StructType<'ctx>, case: usize, cases: usize, payload: Option<BasicValueEnum<'ctx>>) -> Option<BasicValueEnum<'ctx>> {
         let tmp = self.builder.build_alloca(shape, "outcome").ok()?;
@@ -1518,13 +1529,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if let Callee::Op(Op::CharFromCode(unit)) = callee {
             return self.char_from_code(fi, *unit, args, dest, ok, fail, blocks, slots, func);
         }
-        let target = match callee {
-            Callee::Fn(idx) => idx.0 as usize,
+        // What comes back and why it can fail: the callee's own, or — for a
+        // function held as a value — its `fn[…] -> T or fail[…]` type's.
+        let (ret, reasons, shape) = match callee {
+            Callee::Fn(idx) => {
+                let t = idx.0 as usize;
+                (self.p.functions[t].ret.clone(), self.p.functions[t].fails.clone(), self.fail_shape(t)?)
+            }
+            Callee::Value(o) => {
+                let Ty::Fn(ft) = self.operand_cy_ty(fi, o)?.base().clone() else { return None };
+                let shape = self.fn_ty_fail_shape(&ft)?;
+                (ft.ret.clone(), ft.fails.clone(), shape)
+            }
             _ => return None,
         };
         let outcome = self.call(fi, callee, args, slots)?;
-        let shape = self.fail_shape(target)?;
-        let cases = self.p.functions[target].fails.len() + 1;
+        let cases = reasons.len() + 1;
         let tmp = self.builder.build_alloca(shape, "outcome").ok()?;
         let _ = self.builder.build_store(tmp, outcome);
         let tag_ty = self.enum_tag_type(cases);
@@ -1546,7 +1566,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // The answer.
         self.builder.position_at_end(good);
         if let Some(d) = dest {
-            let ret = self.p.functions[target].ret.clone();
+            let ret = ret.clone();
             if let Some(t) = self.ty(&ret) {
                 if let Ok(at) = self.builder.build_struct_gep(shape, tmp, 1, "answer") {
                     if let Ok(v) = self.builder.build_load(t, at, "v") {
@@ -1563,7 +1583,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         for (arm, land) in landings {
             self.builder.position_at_end(land);
             if let Some(place) = &arm.payload {
-                let carried = self.p.functions[target].fails.get(arm.index).and_then(|(_, t)| t.clone());
+                let carried = reasons.get(arm.index).and_then(|(_, t)| t.clone());
                 if let Some(ct) = carried.and_then(|t| self.ty(&t)) {
                     if let Ok(at) = self.builder.build_struct_gep(shape, tmp, 1, "carried") {
                         if let Ok(v) = self.builder.build_load(ct, at, "why") {

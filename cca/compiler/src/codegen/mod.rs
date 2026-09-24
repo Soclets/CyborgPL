@@ -1875,10 +1875,6 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// with no captures its code is the plain function; with some, the
     /// block of them goes first. Which one is known only at run time.
     fn call_held(&mut self, fv: BasicValueEnum<'ctx>, ft: &crate::types::FnTy, vals: &mut Vec<BasicMetadataValueEnum<'ctx>>, signs: &[bool]) -> Option<Option<BasicValueEnum<'ctx>>> {
-        if !ft.fails.is_empty() {
-            self.cannot("calling a held function that can fail has no shape in the generated code yet", None);
-            return None;
-        }
         let p = self.ctx.ptr_type(AddressSpace::default());
         let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
         for (k, t) in &ft.params {
@@ -1901,7 +1897,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             vals[i] = self.fit_as(v, t, signs.get(i).copied().unwrap_or(true)).into();
         }
-        let ret: Option<BasicTypeEnum> = if ft.ret == Ty::Nothing { None } else { Some(self.ty(&ft.ret)?) };
+        // A function that can fail hands back its variant (answer or reason).
+        let ret: Option<BasicTypeEnum> = if !ft.fails.is_empty() {
+            Some(self.fn_ty_fail_shape(ft)?.into())
+        } else if ft.ret == Ty::Nothing {
+            None
+        } else {
+            Some(self.ty(&ft.ret)?)
+        };
         let mut with_env = vec![p.into()];
         with_env.extend(params.iter().copied());
         let (plain_t, env_t) = match ret {
