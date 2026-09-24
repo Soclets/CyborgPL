@@ -181,9 +181,16 @@ fn reject_programs_are_refused_in_ccas_own_words() {
     let seen: Vec<String> = all.iter().map(|p| name_of(p)).collect();
     let mut failures: Vec<String> = common::par_map(&all, |src| -> Option<String> {
         let name = name_of(src);
-        let Some(want) = phrases.get(&name) else {
+        let Some((want, print)) = phrases.get(&name) else {
             return Some(format!("{}: no line in tests/reject_phrases.txt — add one saying what CCA should say", name));
         };
+        // The oracle's words moved since the phrase was reviewed: the phrase
+        // may no longer say the same thing (owner, 2026-09-24).
+        let now = fingerprint(&dir.join(format!("{}.err", name)));
+        if print.as_deref() != Some(now.as_str()) {
+            return Some(format!("{}: the oracle's .err is not the one this phrase was reviewed against — re-check this phrase against the new .err, then record [fnv:{}]\n  .err now: {}\n  phrase:   {}", name, now, oracle_err(&dir, &name), want));
+        }
+        let want = want.clone();
         let got = check(src).and_then(|()| prove(src));
         if let Some(why) = want.strip_prefix("!pending") {
             return got.as_ref().err().map(|e| format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message.{}\n{}", name, if why.trim().is_empty() { String::new() } else { format!(" It said:{}", why) }, indent(e)));
@@ -215,15 +222,32 @@ fn oracle_err(dir: &Path, name: &str) -> String {
     std::fs::read_to_string(dir.join(format!("{}.err", name))).map(|s| s.trim().to_string()).unwrap_or_default()
 }
 
-fn load_phrases() -> HashMap<String, String> {
+/// Each line: the phrase, and the fingerprint of the `.err` it was
+/// reviewed against (`name [fnv:HASH] :: phrase`).
+fn load_phrases() -> HashMap<String, (String, Option<String>)> {
     let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/reject_phrases.txt")).unwrap();
     text.lines()
         .filter(|l| !l.trim().is_empty() && !l.starts_with('#'))
         .map(|l| {
             let (n, p) = l.split_once(" :: ").unwrap_or_else(|| panic!("bad line in reject_phrases.txt: {}", l));
-            (n.trim().to_string(), p.trim().to_string())
+            let n = n.trim();
+            let (name, print) = match n.split_once(" [fnv:") {
+                Some((name, rest)) => (name.trim(), Some(rest.trim_end_matches(']').to_string())),
+                None => (n, None),
+            };
+            (name.to_string(), (p.trim().to_string(), print))
         })
         .collect()
+}
+
+/// FNV-1a 64 of a file's bytes: the `.err` a phrase was reviewed against.
+fn fingerprint(path: &Path) -> String {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for b in std::fs::read(path).unwrap_or_default() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    format!("{:016x}", h)
 }
 
 fn indent(s: &str) -> String {

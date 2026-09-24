@@ -207,6 +207,12 @@ impl Checker {
                 return err(Diagnostic::error(format!("`{}` is a keyword, not a value", w)).at(span));
             }
         }
+        // A std name without its brackets: what std offers is called, and a
+        // call needs `[…]` — the oracle's reason, before whether std is
+        // there at all.
+        if path.limb.as_ref().map_or(false, |l| l.name == "std") {
+            return err(Diagnostic::error(format!("`{}` is called, and a call needs `[…]`: `{}[…]`", path.spelled(), path.spelled())).at(span));
+        }
         // An enum case without data: `Status.empty`.
         if path.segs.len() >= 2 {
             let prefix = ast::Path { limb: path.limb.clone(), segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
