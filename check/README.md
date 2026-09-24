@@ -82,10 +82,15 @@ or reasoning with CCA:
   operands' width, shift counts 0..width−1). `check claims` reads
   `cca precog --json`, matches each proven claim to the generator's tree by
   its span, lets (b) justify what it can, and asks Z3 of the rest, over
-  every input Precog considers (any `uint64` length): can the site fail,
-  and can its value fall outside the set or interval CCA claimed? A "yes"
-  is a refuted claim with the input; if the input is short enough to set,
-  it is also run through both engines. `check claims-run --cases N` does it
+  every input Precog considers (any `uint64` length): can its value fall
+  outside the set or interval CCA claimed (or, for a claim without one,
+  can the site fail)? A "yes" counts only when **confirmed**: the program
+  is run exactly on the solver's input by `gen/src/eval.rs` (an evaluator
+  of the generator's tree, checked against the oracle by `check evaltest`)
+  and the site is seen to fail or its value to leave the claim. The
+  translation approximates on purpose (loops cut, deep calls unknown), and
+  unconfirmed answers are counted, never reported. A confirmed refutation
+  with a short enough input is also run through both engines. `check claims-run --cases N` does it
   over many programs. `check aim --seed N` shows every site of one program
   and a failing input where Z3 finds one; `check run --target` adds those
   inputs to each program's input sets.

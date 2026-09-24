@@ -217,7 +217,7 @@ fn main() {
                 Err(e) => println!("seed {}: {e}", p.seed),
                 Ok(o) => {
                     println!(
-                        "seed {}: {} proven claims: {} with nothing to ask (literals, the printer), {} matched to my tree, {} not; {} justified by the simple intervals (b){}; {} solver questions (c), {} given up, {} not reached",
+                        "seed {}: {} proven claims: {} with nothing to ask (literals, the printer), {} matched to my tree, {} not; {} justified by the simple intervals (b){}; {} solver questions (c), {} given up, {} not reached; {} solver answers the exact run did not confirm",
                         p.seed,
                         o.proven,
                         o.literal,
@@ -227,7 +227,8 @@ fn main() {
                         if o.intervals_complete { "" } else { " — (b) could not follow the whole program" },
                         o.asked,
                         o.unknown,
-                        o.unasked
+                        o.unasked,
+                        o.unconfirmed
                     );
                     for c in o.unmatched.iter().take(5) {
                         println!("  unmatched: line {}:{}..{} {} {}", c.line, c.col, c.end_col, c.kind, c.construct);
@@ -251,6 +252,55 @@ fn main() {
             }
         }
         "claims-run" => claims_run(&tools(), &a),
+        "evalsite" => {
+            // What the exact evaluator saw at every site on one line.
+            let p = generate(a.num("seed", 1), &a.config());
+            let (_, spans) = p.render_spans();
+            let vals: Vec<u64> = a.flags.get("values").map(|v| v.split(',').filter_map(|x| x.parse().ok()).collect()).unwrap_or_default();
+            let r = check_gen::eval::run(&p, &vals);
+            let line = a.num("line", 0) as u32;
+            for ((n, st, kind), seen) in &r.seen {
+                let at = spans.expr.get(n).filter(|x| x.0 == line).map(|x| (x.1, x.2)).or(spans.stmt.get(st).filter(|x| x.0 == line).map(|x| (x.1, x.3)));
+                if let Some((c0, c1)) = at {
+                    println!("{line}:{c0}..{c1} {kind}: {:?}", seen);
+                }
+            }
+            println!("stopped at: {:?}; exhausted: {}", r.stopped.map(|x| x.2), r.exhausted);
+        }
+        "evaltest" => {
+            // check_gen::eval against the oracle: stops or not, and where.
+            let t = tools();
+            let (mut same, mut differ) = (0, 0);
+            for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 20) {
+                let p = generate(seed, &a.config());
+                let (text, spans) = p.render_spans();
+                let dir = work().join("evaltest");
+                std::fs::create_dir_all(&dir).unwrap();
+                let f = dir.join("prog.cpls");
+                std::fs::write(&f, &text).unwrap();
+                let sets = if p.inputs.is_empty() { vec![vec![]] } else { envs(&p) };
+                for env in sets {
+                    let vals: Vec<u64> = env.iter().map(|(_, v)| v.len() as u64).collect();
+                    let o = engines::oracle(&t, &f, &dir, &env);
+                    let r = check_gen::eval::run(&p, &vals);
+                    let eline = r.stopped.and_then(|(n, s, _)| spans.expr.get(&n).map(|x| x.0).or(spans.stmt.get(&s).map(|x| x.0)));
+                    let oline = match &o {
+                        engines::Oracle::Stopped { line, .. } => Some(line.unwrap_or(0)),
+                        _ => None,
+                    };
+                    if r.exhausted {
+                        continue;
+                    }
+                    if eline == oline {
+                        same += 1;
+                    } else {
+                        differ += 1;
+                        println!("seed {seed} inputs {vals:?}: oracle stops at {oline:?}, eval at {eline:?} ({:?})", r.stopped.map(|x| x.2));
+                    }
+                }
+            }
+            println!("{same} runs agree, {differ} differ");
+        }
         "corpus" => corpus(&tools()),
         "run" => run(&tools(), &a),
         _ => {
@@ -554,6 +604,7 @@ fn claims_run(t: &Tools, a: &Args) {
         unknown: usize,
         unasked: usize,
         refuted: usize,
+        unconfirmed: usize,
         incomplete_b: u64,
     }
     let tally = Mutex::new(T::default());
@@ -585,6 +636,7 @@ fn claims_run(t: &Tools, a: &Args) {
                         tl.unknown += o.unknown;
                         tl.unasked += o.unasked;
                         tl.refuted += o.refuted.len();
+                        tl.unconfirmed += o.unconfirmed;
                         tl.incomplete_b += (!o.intervals_complete) as u64;
                         drop(tl);
                         for r in &o.refuted {
@@ -614,8 +666,8 @@ fn claims_run(t: &Tools, a: &Args) {
     });
     let tl = tally.into_inner().unwrap();
     println!(
-        "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched, {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions: {} answered, {} given up by Z3, {} not reached in time; REFUTED {}",
-        tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.asked - tl.unknown - tl.unasked, tl.unknown, tl.unasked, tl.refuted
+        "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched, {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions: {} answered, {} given up by Z3, {} not reached in time; REFUTED {} (confirmed by running the program exactly; {} solver answers not confirmed)",
+        tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.asked - tl.unknown - tl.unasked, tl.unknown, tl.unasked, tl.refuted, tl.unconfirmed
     );
 }
 

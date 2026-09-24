@@ -2,6 +2,7 @@
 //! `seed → program` is a pure function: any finding replays from its seed.
 
 pub mod ast;
+pub mod eval;
 pub mod gen;
 pub mod intervals;
 pub mod printer;

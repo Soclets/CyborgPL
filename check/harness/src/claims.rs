@@ -100,11 +100,21 @@ pub fn matches(c: &Claim, e: &Encoded, spans: &Spans) -> Vec<usize> {
         })
         .filter(|(_, s)| {
             let hit = |sp: Option<&(u32, u32, u32)>| sp.map_or(false, |&(l, a, b)| l == c.line && a == c.col && b == c.end_col);
-            // the expression itself, or (an argument) the call it is passed to
-            let by_expr = hit(spans.expr.get(&s.node)) || hit(spans.expr.get(&s.stmt));
-            // a statement: with or without its tier word, with or without its `;`
-            let by_stmt = spans.stmt.get(&s.stmt).map_or(false, |&(l, a0, a1, b)| l == c.line && (a0 == c.col || a1 == c.col) && (b == c.end_col || b - 1 == c.end_col));
-            by_expr || by_stmt
+            if s.kind != "narrowing" {
+                // an operator: its own expression's span
+                return hit(spans.expr.get(&s.node));
+            }
+            if let Some(&(l, a0, a1, b)) = spans.stmt.get(&s.stmt) {
+                // a landing in a statement (let, =, return, print): CCA gives
+                // the statement's span, with or without its tier word or `;`
+                return l == c.line && (a0 == c.col || a1 == c.col) && (b == c.end_col || b - 1 == c.end_col);
+            }
+            if s.stmt != 0 {
+                // an argument: the call's span
+                return hit(spans.expr.get(&s.stmt));
+            }
+            // a conversion: its own span
+            hit(spans.expr.get(&s.node))
         })
         .map(|(k, _)| k)
         .collect()
@@ -130,6 +140,9 @@ pub struct Outcome {
     /// Z3 was stopped at the time limit before reaching the question.
     pub unasked: usize,
     pub refuted: Vec<Refuted>,
+    /// Refutations the exact evaluator did not confirm on the solver's
+    /// input: artefacts of the translation's approximations, not findings.
+    pub unconfirmed: usize,
     pub unmatched: Vec<Claim>,
     /// Claims with nothing to ask: a negative number's minus, a `for`
     /// counter over literal bounds, the program's own printer.
@@ -152,7 +165,7 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
     let mut questions = vec![];
     let mut about = vec![];
     let ranges = check_gen::intervals::analyse(p, u64::MAX as u128);
-    let mut out = Outcome { proven: 0, matched: 0, justified: 0, intervals_complete: ranges.is_some(), asked: 0, unknown: 0, unasked: 0, refuted: vec![], unmatched: vec![], literal: 0 };
+    let mut out = Outcome { proven: 0, matched: 0, justified: 0, intervals_complete: ranges.is_some(), asked: 0, unknown: 0, unasked: 0, refuted: vec![], unconfirmed: 0, unmatched: vec![], literal: 0 };
     let lines: Vec<&str> = text.lines().collect();
     // The text a claim's span covers.
     let span_text = |c: &Claim| -> String {
@@ -167,10 +180,12 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
             let t = span_text(c);
             let t = t.trim_matches(|ch| ch == '(' || ch == ')');
             let neg_lit = t.starts_with('-') && t[1..].chars().all(|ch| ch.is_ascii_digit()) && t.len() > 1;
+            // bare numbers alone: a constant, folded exactly (operators.md)
+            let bare_group = !span_text(c).contains('\'') && !span_text(c).contains('[') && !span_text(c).is_empty();
             let for_counter = lines.get(c.line as usize - 1).map_or(false, |l| l.trim_start().starts_with("for ")) && c.end_col == c.col + 1;
             // The program's own printer comes before the generated code.
             let in_printer = lines.iter().position(|l| l.starts_with("fn f") || l.starts_with("MAIN")).map_or(false, |first| (c.line as usize) <= first);
-            if neg_lit || for_counter || in_printer {
+            if neg_lit || bare_group || for_counter || in_printer {
                 out.literal += 1;
             } else {
                 out.unmatched.push(c.clone());
@@ -233,7 +248,31 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
         match a {
             Answer::Fails(v) => {
                 let (claim, test, site) = &about[k];
-                out.refuted.push(Refuted { claim: claim.clone(), test, inputs: v.clone(), site: enc.sites[*site].what.clone() });
+                // Confirm on the actual program: run it exactly on the
+                // solver's input and look at what the claimed site saw.
+                let run = check_gen::eval::run(p, v);
+                let keys: Vec<(usize, usize, &'static str)> = questions[k].0.iter().map(|i| {
+                    let s = &enc.sites[*i];
+                    (s.node, s.stmt, s.kind)
+                }).collect();
+                let confirmed = !run.exhausted
+                    && match &questions[k].1 {
+                        Test::Fails => run.stopped.map_or(false, |st| keys.contains(&st)),
+                        t => keys.iter().any(|key| {
+                            run.seen.get(key).map_or(false, |vals| {
+                                vals.iter().any(|x| match t {
+                                    Test::OutsideSet(set) => !set.contains(x),
+                                    Test::OutsideInterval(lo, hi) => x < lo || x > hi,
+                                    Test::Fails => false,
+                                })
+                            })
+                        }),
+                    };
+                if confirmed {
+                    out.refuted.push(Refuted { claim: claim.clone(), test, inputs: v.clone(), site: enc.sites[*site].what.clone() });
+                } else {
+                    out.unconfirmed += 1;
+                }
             }
             Answer::Unknown => out.unknown += 1,
             Answer::Never => {}
