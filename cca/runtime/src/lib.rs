@@ -1099,3 +1099,44 @@ pub unsafe extern "C" fn cyborg_str_points(p: *const u8, len: u64) -> u64 {
     let b = if len == 0 { &[][..] } else { core::slice::from_raw_parts(p, len as usize) };
     b.iter().filter(|&&c| c & 0xc0 != 0x80).count() as u64
 }
+
+/// A text's code points, decoded into `dst` (room for as many as
+/// `cyborg_str_points` counted). `str.each.point`.
+///
+/// # Safety
+/// `p` must have `len` readable bytes of UTF-8 and `dst` room for them.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_str_decode_points(p: *const u8, len: u64, dst: *mut u32) -> u64 {
+    let len = len & !STATIC;
+    if len == 0 {
+        return 0;
+    }
+    let s = core::str::from_utf8_unchecked(core::slice::from_raw_parts(p, len as usize));
+    let mut n = 0;
+    for c in s.chars() {
+        *dst.add(n) = c as u32;
+        n += 1;
+    }
+    n as u64
+}
+
+/// A text's grapheme clusters, each a new text of its own in `dst` (room
+/// for as many as `cyborg_str_graphemes` counted). `str.each.grapheme`.
+///
+/// # Safety
+/// `p` must have `len` readable bytes of UTF-8 and `dst` room for them.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_str_split_graphemes(p: *const u8, len: u64, dst: *mut Text) -> u64 {
+    use unicode_segmentation::UnicodeSegmentation;
+    let len = len & !STATIC;
+    if len == 0 {
+        return 0;
+    }
+    let s = core::str::from_utf8_unchecked(core::slice::from_raw_parts(p, len as usize));
+    let mut n = 0;
+    for g in s.graphemes(true) {
+        text_of(dst.add(n), g.as_bytes());
+        n += 1;
+    }
+    n as u64
+}

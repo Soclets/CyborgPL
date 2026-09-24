@@ -2314,6 +2314,62 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let c = basic_result(self.builder.build_call(f, &[data.into(), n.into()], "count").ok()?)?;
                 Some(Some(c))
             }
+            // `str.each.<unit>`: the text's units, as a sequence the loop
+            // walks (`strings.md`) — bytes copied, points decoded, grapheme
+            // clusters each a text of its own (the sequence owns them).
+            Op::StrEach(unit) => {
+                let p = args.first()?.place()?;
+                let (slot, ty) = self.slot_of(fi, p, slots)?;
+                let st = match self.ty(&ty)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let data = self.load_field_ptr(st, slot, 0);
+                let raw = self.load_field_int(st, slot, 1);
+                let bytes = self.real_length(raw);
+                let w = self.ctx.i64_type();
+                let out_ty = dest_ty.clone()?;
+                let elem = Self::elem_of(&out_ty)?;
+                let esize = self.size_of_ty(&elem)?;
+                let count = match unit {
+                    crate::types::Unit::Byte => bytes,
+                    crate::types::Unit::Point | crate::types::Unit::Free(_) => {
+                        let f = self.rt("cyborg_str_points");
+                        basic_result(self.builder.build_call(f, &[data.into(), raw.into()], "n").ok()?)?.into_int_value()
+                    }
+                    crate::types::Unit::Grapheme => {
+                        let f = self.rt("cyborg_str_graphemes");
+                        basic_result(self.builder.build_call(f, &[data.into(), raw.into()], "n").ok()?)?.into_int_value()
+                    }
+                };
+                let size = self.builder.build_int_mul(count, w.const_int(esize, false), "size").ok()?;
+                let buf = self.alloc(size);
+                match unit {
+                    crate::types::Unit::Byte => {
+                        let f = self.rt("cyborg_copy");
+                        let _ = self.builder.build_call(f, &[buf.into(), data.into(), bytes.into()], "");
+                    }
+                    crate::types::Unit::Point | crate::types::Unit::Free(_) => {
+                        let f = self.rt("cyborg_str_decode_points");
+                        let _ = self.builder.build_call(f, &[data.into(), raw.into(), buf.into()], "");
+                    }
+                    crate::types::Unit::Grapheme => {
+                        let f = self.rt("cyborg_str_split_graphemes");
+                        let _ = self.builder.build_call(f, &[data.into(), raw.into(), buf.into()], "");
+                    }
+                }
+                let shape = match self.ty(&out_ty)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let mut agg = shape.get_undef();
+                agg = self.builder.build_insert_value(agg, buf, 0, "p").ok()?.into_struct_value();
+                agg = self.builder.build_insert_value(agg, count, 1, "n").ok()?.into_struct_value();
+                if shape.count_fields() > 2 {
+                    agg = self.builder.build_insert_value(agg, count, 2, "c").ok()?.into_struct_value();
+                }
+                Some(Some(agg.into()))
+            }
             // The number under a character (`conversion.md`): a byte's is a
             // `uint8`, a point's a `uint32`, and the char already is it.
             Op::CharCode => {

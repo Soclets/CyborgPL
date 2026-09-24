@@ -151,3 +151,4 @@ durations 7
 duration_negative trap
 bare_group_exact 255
 graphemes 31
+text_walk 7
