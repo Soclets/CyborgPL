@@ -1,0 +1,22 @@
+# A capture-free, C-shaped Cyborg function handed to C's qsort (ffi.md): the
+# callback crosses as its code, C calls it with C's convention, and the
+# list lent to C's pointer takes the pointer's width (a `:=` of bare numbers).
+extern fn exit ['code': int32];
+extern fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
+                 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
+fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+    nocheck return ptr.read['a'] - ptr.read['b'];
+}
+fn descending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+    nocheck return ptr.read['b'] - ptr.read['a'];
+}
+MAIN {
+    let mut 'nums' := [5, 1, 4, 2, 3];
+    let mut 'got': int32 = 0;
+    nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
+    if 'nums'[pos 1] == 1 and 'nums'[pos 5] == 5 and 'nums'[pos 3] == 3 { 'got' = 'got' + 1; }
+    let 'f' := descending;
+    nocheck qsort[lend.mut 'nums', 5, size.of[int32], 'f'];
+    if 'nums'[pos 1] == 5 and 'nums'[pos 2] == 4 and 'nums'[pos 5] == 1 { 'got' = 'got' + 2; }
+    nocheck exit['got'];
+}

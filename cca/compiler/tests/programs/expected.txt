@@ -136,4 +136,7 @@ bin16_rounds_past trap
 bin_literal_edges 15
 chars 127
 text_to_bin 127
+fn_values 63
+callbacks 3
+lend_width 79
 list_literal_narrow trap

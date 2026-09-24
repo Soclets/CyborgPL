@@ -1681,6 +1681,18 @@ impl Checker {
                 if !self.unify(&pt, pty) {
                     return err(Diagnostic::error(format!("{} is a `{}`, and {} is a `{}`", what, self.spell(pty), name, self.spell(&pt))).at(e.span));
                 }
+                // A name whose numbers' width was never written (`:=` of a
+                // list of bare numbers) takes it from here: Precog picks the
+                // type from use (`types.md`), and a lend hands over the
+                // value where it is, so the callee's width is the one it has
+                // to be. Left at the exact width, `total[lend 'xs']` on a
+                // `list[int32]` read the wrong layout.
+                if place.proj.is_empty() {
+                    let pty_r = self.resolve(pty);
+                    if let Some(adopted) = adopt_widths(&pt, &pty_r) {
+                        ctx.locals[place.base.0 as usize].ty = adopted;
+                    }
+                }
                 Ok(match verb {
                     Verb::Give => Arg::Give(place),
                     Verb::Copy => Arg::Copy(place),
@@ -1792,6 +1804,19 @@ impl Checker {
         Ok(Expr { kind: K::Call { callee: Callee::Extern(id), args: hargs, otherwise: ow, fails: fails.clone() }, ty: info.ret.clone(), span })
     }
 
+    /// A `:=` list lent to C's pointer takes the pointer's width: C reads
+    /// its elements at that width.
+    fn adopt_from_ptr(&mut self, ctx: &mut FnCtx, place: &Place, pty: &Ty) {
+        if !place.proj.is_empty() {
+            return;
+        }
+        let pt = self.resolve(&place.ty);
+        let pty = self.resolve(pty);
+        if let Some(adopted) = adopt_widths(&pt, &pty) {
+            ctx.locals[place.base.0 as usize].ty = adopted;
+        }
+    }
+
     /// An argument to C: a value, or a lend that becomes the pointer.
     fn c_argument(&mut self, ctx: &mut FnCtx, e: &ast::Expr, pty: &Ty, fname: &str, pname: &str) -> Result<Arg> {
         if let Ty::Ptr { mutable, elem } = pty {
@@ -1805,6 +1830,7 @@ impl Checker {
                     }
                     let place = self.place(ctx, expr, PlaceUse::Lend)?;
                     self.check_lend_as_ptr(ctx, &place, elem, e.span)?;
+                    self.adopt_from_ptr(ctx, &place, pty);
                     return Ok(Arg::Lend { place, mutable: false });
                 }
                 AK::Verb { verb: Verb::LendMut, expr, amp } => {
@@ -1813,6 +1839,7 @@ impl Checker {
                     }
                     let place = self.place(ctx, expr, PlaceUse::LendMut)?;
                     self.check_lend_as_ptr(ctx, &place, elem, e.span)?;
+                    self.adopt_from_ptr(ctx, &place, pty);
                     return Ok(Arg::Lend { place, mutable: true });
                 }
                 AK::Verb { verb, .. } => return err(Diagnostic::error(format!("`{}` hands C a pointer: `lend` (or `lend.mut`) becomes the address; `{}` does not", fname, verb.spelled())).at(e.span)),
@@ -2759,4 +2786,36 @@ impl Checker {
         let ow = self.call_otherwise(ctx, otherwise, &fails, &ty, used, span, &format!("std::{}", name))?;
         Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::Std(name)), args: hargs, otherwise: ow, fails }, ty, span })
     }
+}
+
+/// `have` with every number whose width is not settled — a bare number's,
+/// or the exact one plain math gives — taking `want`'s width, where `want`
+/// has one; `None` when nothing changes.
+pub fn adopt_widths(have: &Ty, want: &Ty) -> Option<Ty> {
+    fn go(h: &Ty, w: &Ty, changed: &mut bool) -> Ty {
+        match (h, w) {
+            (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Fixed { .. })) => {
+                *changed = true;
+                w.clone()
+            }
+            (Ty::Int(IntW::Fixed { .. }), Ty::Int(IntW::Fixed { .. })) if h.is_exact() && !w.is_exact() => {
+                *changed = true;
+                w.clone()
+            }
+            (Ty::Bin(crate::types::BinW::Free(_)), Ty::Bin(crate::types::BinW::Fixed(_))) => {
+                *changed = true;
+                w.clone()
+            }
+            (Ty::Seq { elem: e1, kind }, Ty::Seq { elem: e2, .. }) => Ty::Seq { elem: Box::new(go(e1, e2, changed)), kind: *kind },
+            // "A lend satisfies a pointer" (`ffi.md`): C reads the elements.
+            (Ty::Seq { elem: e1, kind }, Ty::Ptr { elem: e2, .. }) => Ty::Seq { elem: Box::new(go(e1, e2, changed)), kind: *kind },
+            (Ty::Map { key: k1, val: v1, order }, Ty::Map { key: k2, val: v2, .. }) => Ty::Map { key: Box::new(go(k1, k2, changed)), val: Box::new(go(v1, v2, changed)), order: *order },
+            (Ty::Channel(e1), Ty::Channel(e2)) => Ty::Channel(Box::new(go(e1, e2, changed))),
+            (Ty::Bounded { inner, bound }, w) => Ty::Bounded { inner: Box::new(go(inner, w.base(), changed)), bound: bound.clone() },
+            _ => h.clone(),
+        }
+    }
+    let mut changed = false;
+    let t = go(have, want.base(), &mut changed);
+    changed.then_some(t)
 }

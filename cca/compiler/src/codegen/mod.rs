@@ -75,7 +75,7 @@ pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, na
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), op_sites: Vec::new() };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), op_sites: Vec::new() };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -99,6 +99,9 @@ struct Cg<'a, 'ctx> {
     p: &'a Program,
     sources: &'a SourceMap,
     fns: HashMap<usize, FunctionValue<'ctx>>,
+    /// Function literals that capture: body index to how many captures.
+    /// Each takes the block of captured addresses as its first parameter.
+    env_fns: HashMap<usize, usize>,
     externs: HashMap<u32, FunctionValue<'ctx>>,
     problems: Vec<NotYet>,
     strings: HashMap<String, PointerValue<'ctx>>,
@@ -156,6 +159,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // One block the runtime owns; the program holds a pointer to it.
             Ty::Channel(_) => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             Ty::Char(crate::types::Unit::Byte) => Some(self.ctx.i8_type().into()),
+            // A function held as a value (`functions-as-values.md`): its
+            // code and the block of what it captured, null when it captured
+            // nothing — then the code is the plain function, which is what
+            // C wants of a callback (`ffi.md`). Provisional (`cca/README.md`).
+            Ty::Fn(_) => {
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                Some(self.ctx.struct_type(&[p.into(), p.into()], false).into())
+            }
             // A unit not written is Precog's to pick (`types.md`: "from the
             // content and its use"); one code point is the flat, fast unit.
             // A literal of several points is a grapheme, and waits.
@@ -239,12 +250,26 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     // ------------------------------------------------------------ declarations
 
     fn declare_all(&mut self) {
+        for f in &self.p.functions {
+            for b in &f.blocks {
+                for s in &b.stmts {
+                    if let StmtKind::Assign { rvalue: Rvalue::Closure { body, captures }, .. } = &s.kind {
+                        if !captures.is_empty() {
+                            self.env_fns.insert(body.0 as usize, captures.len());
+                        }
+                    }
+                }
+            }
+        }
         for (i, f) in self.p.functions.iter().enumerate() {
             if f.is_main {
                 continue;
             }
             let span = f.spans.first().copied();
             let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
+            if self.env_fns.contains_key(&i) {
+                params.push(self.ctx.ptr_type(AddressSpace::default()).into());
+            }
             let mut ok = true;
             for p in &f.params {
                 // A borrow is an address: `lent` and `lent.mut` cross as a
@@ -292,6 +317,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
             let mut ok = true;
             for (_, t) in &e.params {
+                // A callback slot holds an address and nothing else (`ffi.md`).
+                if matches!(t.base(), Ty::Fn(_)) {
+                    params.push(self.ctx.ptr_type(AddressSpace::default()).into());
+                    continue;
+                }
                 match self.ty(&t.clone()) {
                     Some(x) => params.push(x.into()),
                     None => ok = false,
@@ -424,8 +454,31 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if !self.problems.is_empty() {
             return;
         }
+        // A literal that captured: its first parameter is the block of the
+        // addresses it borrowed, one per capture, and its captures are its
+        // first locals (`check_instance` declares them before the
+        // parameters). Each lent capture's slot holds the address.
+        let skip = match self.env_fns.get(&i).copied() {
+            Some(n) => {
+                let env = func.get_nth_param(0).map(|v| v.into_pointer_value());
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                let arr = p.array_type(n as u32);
+                for c in 0..n {
+                    let (Some(env), Some(slot)) = (env, slots[c]) else { continue };
+                    if !lent[c] {
+                        self.cannot("a function literal that owns what it captured (`copy`, `give`) has no shape in the generated code yet".to_string(), Some(f.span(f.locals[c].span)));
+                        continue;
+                    }
+                    let at = unsafe { self.builder.build_gep(arr, env, &[self.ctx.i32_type().const_zero(), self.ctx.i32_type().const_int(c as u64, false)], "capture") }.unwrap();
+                    let addr = self.builder.build_load(p, at, "captured").unwrap();
+                    let _ = self.builder.build_store(slot, addr);
+                }
+                1
+            }
+            None => 0,
+        };
         for (pi, p) in f.params.iter().enumerate() {
-            let Some(v) = func.get_nth_param(pi as u32) else { continue };
+            let Some(v) = func.get_nth_param(pi as u32 + skip) else { continue };
             if lent[p.0 as usize] {
                 slots[p.0 as usize] = Some(v.into_pointer_value());
                 continue;
@@ -732,7 +785,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Const::Bool(b) => Some(self.ctx.bool_type().const_int(*b as u64, false).into()),
             Const::Bin(t) => Some(self.ctx.f64_type().const_float(t.parse().unwrap_or(0.0)).into()),
             Const::Duration(n) => Some(self.ctx.i64_type().const_int(*n as u64, true).into()),
-            Const::SizeOf { .. } => Some(self.ctx.i64_type().const_int(8, false).into()),
+            // C's size and alignment of the type (`ffi.md`), from the
+            // target's own layout. It was 8 for everything, and qsort
+            // walked an `int32` list 8 bytes at a time.
+            Const::SizeOf { align, ty } => {
+                let t = self.ty(&ty.clone())?;
+                let n = if *align { self.target.get_abi_alignment(&t) as u64 } else { self.target.get_abi_size(&t) };
+                Some(self.ctx.i64_type().const_int(n, false).into())
+            }
             Const::Char(s) => {
                 if s.chars().count() != 1 {
                     self.cannot(format!("the character `{}` is more than one code point, a grapheme, which waits with the rest of `char`", s), None);
@@ -998,6 +1058,34 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
             }
+            // A named function as a value: its code, and nothing captured.
+            Rvalue::FnRef(idx) => {
+                let f = *self.fns.get(&(idx.0 as usize))?;
+                Some(self.fn_value(f.as_global_value().as_pointer_value(), None))
+            }
+            // A literal: its code, and — when it captured — a block of the
+            // addresses it borrowed. A lend cannot outlive what it borrows,
+            // so the block lives in this function's frame, made once at its
+            // entry (not once per trip of a loop).
+            Rvalue::Closure { body, captures } => {
+                let f = *self.fns.get(&(body.0 as usize))?;
+                if captures.is_empty() {
+                    return Some(self.fn_value(f.as_global_value().as_pointer_value(), None));
+                }
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                let arr = p.array_type(captures.len() as u32);
+                let env = self.entry_alloca(func, arr.into(), "captures")?;
+                for (c, (verb, place)) in captures.iter().enumerate() {
+                    if !matches!(verb, crate::ast::Verb::Lend | crate::ast::Verb::LendMut) {
+                        self.cannot("a function literal that owns what it captured (`copy`, `give`) has no shape in the generated code yet", None);
+                        return None;
+                    }
+                    let (addr, _) = self.slot_of(fi, place, slots)?;
+                    let at = unsafe { self.builder.build_gep(arr, env, &[self.ctx.i32_type().const_zero(), self.ctx.i32_type().const_int(c as u64, false)], "capture") }.ok()?;
+                    let _ = self.builder.build_store(at, addr);
+                }
+                Some(self.fn_value(f.as_global_value().as_pointer_value(), Some(env)))
+            }
             Rvalue::Lend { place, .. } => {
                 // A lend of a plain value is its address; C wants exactly that.
                 let (slot, _) = self.slot_of(fi, place, slots)?;
@@ -1061,10 +1149,6 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let g = self.extern_global(id.0)?;
                 let t = self.ty(&self.p.items.externs[id.0 as usize].ret.clone())?;
                 self.builder.build_load(t, g, "extern").ok()
-            }
-            _ => {
-                self.cannot("this value has no shape in the generated code yet", None);
-                None
             }
         }
     }
@@ -1544,6 +1628,109 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(r)
     }
 
+    /// Whether two types are the same memory: containers' elements alike,
+    /// all the way down (a bound changes no layout).
+    fn same_layout(&mut self, a: &Ty, b: &Ty) -> bool {
+        match (a.base(), b.base()) {
+            (Ty::Seq { elem: x, .. }, Ty::Seq { elem: y, .. }) | (Ty::Channel(x), Ty::Channel(y)) => {
+                let (x, y) = ((**x).clone(), (**y).clone());
+                self.same_layout(&x, &y)
+            }
+            (Ty::Map { key: k1, val: v1, .. }, Ty::Map { key: k2, val: v2, .. }) => {
+                let (k1, v1, k2, v2) = ((**k1).clone(), (**v1).clone(), (**k2).clone(), (**v2).clone());
+                self.same_layout(&k1, &k2) && self.same_layout(&v1, &v2)
+            }
+            (x, y) => {
+                let (x, y) = (x.clone(), y.clone());
+                self.ty(&x) == self.ty(&y)
+            }
+        }
+    }
+
+    /// A function value: code and captures (null for none).
+    fn fn_value(&mut self, code: PointerValue<'ctx>, env: Option<PointerValue<'ctx>>) -> BasicValueEnum<'ctx> {
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let st = self.ctx.struct_type(&[p.into(), p.into()], false);
+        let env = env.unwrap_or_else(|| p.const_null());
+        let v = st.get_undef();
+        let v = self.builder.build_insert_value(v, code, 0, "code").unwrap();
+        self.builder.build_insert_value(v, env, 1, "env").unwrap().into_struct_value().into()
+    }
+
+    /// Room on the stack made at the function's entry, so a loop does not
+    /// make it again on every trip.
+    fn entry_alloca(&mut self, func: FunctionValue<'ctx>, t: BasicTypeEnum<'ctx>, name: &str) -> Option<PointerValue<'ctx>> {
+        let entry = func.get_first_basic_block()?;
+        let b = self.ctx.create_builder();
+        match entry.get_first_instruction() {
+            Some(i) => b.position_before(&i),
+            None => b.position_at_end(entry),
+        }
+        b.build_alloca(t, name).ok()
+    }
+
+    /// Calling a function held as a value, with the arguments already made:
+    /// with no captures its code is the plain function; with some, the
+    /// block of them goes first. Which one is known only at run time.
+    fn call_held(&mut self, fv: BasicValueEnum<'ctx>, ft: &crate::types::FnTy, vals: &mut Vec<BasicMetadataValueEnum<'ctx>>, signs: &[bool]) -> Option<Option<BasicValueEnum<'ctx>>> {
+        if !ft.fails.is_empty() {
+            self.cannot("calling a held function that can fail has no shape in the generated code yet", None);
+            return None;
+        }
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
+        for (k, t) in &ft.params {
+            if matches!(k, crate::types::ParamKind::Lent | crate::types::ParamKind::LentMut) {
+                params.push(p.into());
+            } else {
+                params.push(self.ty(t)?.into());
+            }
+        }
+        // Each argument at the parameter's width, and a value handed to a
+        // lent parameter given a place to point at — as a direct call does.
+        for (i, w) in params.iter().enumerate() {
+            let Some(slot) = vals.get(i).copied() else { continue };
+            let (Ok(v), Ok(t)) = (BasicValueEnum::try_from(slot), BasicTypeEnum::try_from(*w)) else { continue };
+            if t.is_pointer_type() && !v.is_pointer_value() {
+                let tmp = self.builder.build_alloca(v.get_type(), "lent_value").ok()?;
+                let _ = self.builder.build_store(tmp, v);
+                vals[i] = tmp.into();
+                continue;
+            }
+            vals[i] = self.fit_as(v, t, signs.get(i).copied().unwrap_or(true)).into();
+        }
+        let ret: Option<BasicTypeEnum> = if ft.ret == Ty::Nothing { None } else { Some(self.ty(&ft.ret)?) };
+        let mut with_env = vec![p.into()];
+        with_env.extend(params.iter().copied());
+        let (plain_t, env_t) = match ret {
+            Some(r) => (r.fn_type(&params, false), r.fn_type(&with_env, false)),
+            None => (self.ctx.void_type().fn_type(&params, false), self.ctx.void_type().fn_type(&with_env, false)),
+        };
+        let s = fv.into_struct_value();
+        let code = self.builder.build_extract_value(s, 0, "code").ok()?.into_pointer_value();
+        let env = self.builder.build_extract_value(s, 1, "env").ok()?.into_pointer_value();
+        let func = self.builder.get_insert_block()?.get_parent()?;
+        let bare = self.ctx.append_basic_block(func, "no_captures");
+        let captured = self.ctx.append_basic_block(func, "with_captures");
+        let join = self.ctx.append_basic_block(func, "called");
+        let none = self.builder.build_is_null(env, "no_env").ok()?;
+        let _ = self.builder.build_conditional_branch(none, bare, captured);
+        self.builder.position_at_end(bare);
+        let a = self.builder.build_indirect_call(plain_t, code, vals, "call").ok()?;
+        let _ = self.builder.build_unconditional_branch(join);
+        self.builder.position_at_end(captured);
+        let mut ev: Vec<BasicMetadataValueEnum> = vec![env.into()];
+        ev.extend(vals.iter().copied());
+        let b = self.builder.build_indirect_call(env_t, code, &ev, "call").ok()?;
+        let _ = self.builder.build_unconditional_branch(join);
+        self.builder.position_at_end(join);
+        let Some(r) = ret else { return Some(None) };
+        let phi = self.builder.build_phi(r, "held").ok()?;
+        let (Some(av), Some(bv)) = (basic_result(a), basic_result(b)) else { return None };
+        phi.add_incoming(&[(&av, bare), (&bv, captured)]);
+        Some(Some(phi.as_basic_value()))
+    }
+
     /// The Cyborg type of an operand held in a place.
     fn operand_cy_ty(&mut self, fi: usize, o: &Operand) -> Option<Ty> {
         let p = o.place()?;
@@ -1651,14 +1838,66 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             };
             vals.push(v.into());
         }
+        // A list, map or channel handed over by place has the callee's
+        // layout only if its elements have the callee's widths: a
+        // `list[int64]` read as a `list[int32]` is garbage. What that should
+        // do is not decided (`cca/README.md`); until it is, it is not built.
+        let want: Option<Vec<Ty>> = match callee {
+            Callee::Fn(idx) => {
+                let callee_f = &self.p.functions[idx.0 as usize];
+                Some(callee_f.params.iter().map(|p| callee_f.locals[p.0 as usize].ty.clone()).collect())
+            }
+            // A list lent to C's pointer: C reads its elements at the
+            // pointer's width.
+            Callee::Extern(id) => Some(self.p.items.externs[id.0 as usize].params.iter().map(|(_, t)| match t.base() {
+                Ty::Ptr { elem, .. } => Ty::Seq { elem: elem.clone(), kind: crate::types::SeqKind::List },
+                _ => t.clone(),
+            }).collect()),
+            _ => None,
+        };
+        if let Some(want) = want {
+            for (a, w) in args.iter().zip(&want) {
+                let place = match a {
+                    Arg::Lend { place, .. } | Arg::Copy(place) | Arg::Give(place) => place,
+                    _ => continue,
+                };
+                let (_, have) = self.slot_of(fi, place, slots)?;
+                if matches!(callee, Callee::Extern(_)) && !(matches!(have.base(), Ty::Seq { .. }) && matches!(w.base(), Ty::Seq { .. })) {
+                    continue;
+                }
+                if !self.same_layout(&have, w) {
+                    let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
+                    self.cannot(format!("handing a `{}` to a parameter that takes a `{}` has no shape in the generated code yet: their elements differ in width", spell(&have), spell(w)), None);
+                    return None;
+                }
+            }
+        }
         let f = match callee {
             Callee::Fn(idx) => *self.fns.get(&(idx.0 as usize))?,
             Callee::Extern(id) => *self.externs.get(&id.0)?,
+            Callee::Value(o) => {
+                let ft = match self.operand_cy_ty(fi, o)?.base() {
+                    Ty::Fn(ft) => (**ft).clone(),
+                    _ => return None,
+                };
+                let fv = self.operand(fi, o, slots)?;
+                return self.call_held(fv, &ft, &mut vals, &signs)?;
+            }
             _ => {
                 self.cannot("this call has no shape in the generated code yet", None);
                 return None;
             }
         };
+        // A function handed to C is its code: it captured nothing (the
+        // checker refuses one that did), so the code is the plain function.
+        if let Callee::Extern(id) = callee {
+            let kinds: Vec<bool> = self.p.items.externs[id.0 as usize].params.iter().map(|(_, t)| matches!(t.base(), Ty::Fn(_))).collect();
+            for (v, is_fn) in vals.iter_mut().zip(kinds) {
+                if let (true, Ok(BasicValueEnum::StructValue(s))) = (is_fn, BasicValueEnum::try_from(*v)) {
+                    *v = self.builder.build_extract_value(s, 0, "code").ok()?.into();
+                }
+            }
+        }
         // Each argument at the width the callee declared.
         let want = f.get_type().get_param_types();
         for (i, w) in want.iter().enumerate() {

@@ -332,3 +332,21 @@ Dated, with the alternative, so each can become a question later.
   point, and a literal of several points (a grapheme) waits with the rest
   of `char.grapheme`. Not a semantic choice: the unit changes no value a
   program can see, only its size.
+- **2026-09-24 — A function value is its code and a block of what it
+  captured.** Two pointers: the code, and the captures — null for a named
+  function or a literal that captured nothing, whose code is then the
+  plain function (what C's callback slot takes). A literal that captured
+  gets the block as its first parameter; a lend's block lives in the frame
+  that made it (a lend cannot outlive what it borrows). A held call
+  branches on the null. Nothing in `design/` says how a function value is
+  laid out. Alternatives: always an env parameter (C callbacks then need a
+  second entry per function); defunctionalising — every function value's
+  possible targets are known to Precog, so a tag and a switch, no indirect
+  call. A literal that owns what it captured (`copy`, `give`) waits on how
+  such a value is owned (can it be copied?), asked.
+- **2026-09-24 — A list lent to a parameter of other widths is not built.**
+  A `:=` list of bare numbers takes its width from use (`types.md`: Precog
+  picks), but a `list[int64]` lent to a `list[int32]` is refused by CCA as
+  not yet: the callee would read the wrong layout. The oracle accepts it
+  (it does not model widths). Alternatives: a converted copy (each element
+  a narrowing site, written back for `lend.mut`), or a type error. Asked.
