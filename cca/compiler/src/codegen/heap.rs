@@ -39,6 +39,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_str_free" => self.ctx.void_type().fn_type(&[p.into(), w.into()], false),
             "cyborg_parse_int" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_int_to_text" => self.ctx.void_type().fn_type(&[p.into(), w.into(), w.into()], false),
+            "cyborg_str_points" | "cyborg_str_graphemes" => w.fn_type(&[p.into(), w.into()], false),
             "cyborg_parse_bin" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), self.ctx.i32_type().into(), p.into()], false),
             "cyborg_char_to_text" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.i32_type().into()], false),
             "cyborg_text_one_point" => w.fn_type(&[p.into(), w.into()], false),
@@ -86,7 +87,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // fact reaches here, the handle carries it — the high bit of
             // the length — and the free tests it. That is the fallback
             // the same decision names.
-            Ty::Str(_) => true,
+            Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => true,
             Ty::Struct { id, args } => {
                 let info = &self.p.items.structs[id.0 as usize];
                 info.fields.iter().any(|f| self.owns_memory(&f.ty.subst(args)))
@@ -165,7 +166,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let f = self.rt_chan_drop();
                 let _ = self.builder.build_call(f, &[ch.into(), dropper.into()], "");
             }
-            Ty::Str(_) => {
+            Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => {
                 let shape = match self.ty(t) {
                     Some(BasicTypeEnum::StructType(s)) => s,
                     _ => return,
@@ -301,7 +302,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // reach this one; the design does not say which `copy` means.
                 self.cannot("a `copy` of a channel: the design does not say whether that is a second channel or a second way to reach this one", None);
             }
-            Ty::Str(_) => {
+            Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => {
                 let shape = match self.ty(t) {
                     Some(BasicTypeEnum::StructType(s)) => s,
                     _ => return,
@@ -851,12 +852,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     // ------------------------------------------------------------ helpers
 
-    fn load_field_ptr(&mut self, shape: inkwell::types::StructType<'ctx>, at: PointerValue<'ctx>, i: u32) -> PointerValue<'ctx> {
+    pub(super) fn load_field_ptr(&mut self, shape: inkwell::types::StructType<'ctx>, at: PointerValue<'ctx>, i: u32) -> PointerValue<'ctx> {
         let p = self.builder.build_struct_gep(shape, at, i, "fp").unwrap();
         self.builder.build_load(self.ctx.ptr_type(AddressSpace::default()), p, "ptr").unwrap().into_pointer_value()
     }
 
-    fn load_field_int(&mut self, shape: inkwell::types::StructType<'ctx>, at: PointerValue<'ctx>, i: u32) -> IntValue<'ctx> {
+    pub(super) fn load_field_int(&mut self, shape: inkwell::types::StructType<'ctx>, at: PointerValue<'ctx>, i: u32) -> IntValue<'ctx> {
         let p = self.builder.build_struct_gep(shape, at, i, "fi").unwrap();
         self.builder.build_load(self.ctx.i64_type(), p, "n").unwrap().into_int_value()
     }
@@ -1349,15 +1350,36 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let v = self.operand(fi, &o, slots)?;
         let i64t = self.ctx.i64_type();
+        // Into a grapheme: text that is one grapheme cluster, copied.
+        if unit == Unit::Grapheme {
+            let Ty::Str(_) = from.base() else {
+                self.cannot("a conversion into a `char.grapheme` from this has no shape in the generated code yet", None);
+                return None;
+            };
+            let (p, n) = self.text_parts(v)?;
+            let f = self.rt("cyborg_str_graphemes");
+            let c = basic_result(self.builder.build_call(f, &[p.into(), n.into()], "count").ok()?)?.into_int_value();
+            let bad = self.builder.build_int_compare(IntPredicate::NE, c, i64t.const_int(1, false), "not_one_char").ok()?;
+            let arm = fail.iter().find(|a| a.index == 0).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])?;
+            let good = self.ctx.append_basic_block(func, "one_grapheme");
+            let _ = self.builder.build_conditional_branch(bad, arm, good);
+            self.builder.position_at_end(good);
+            let copied = self.to_text(fi, &o, v, &Ty::Char(Unit::Grapheme))?;
+            if let Some(d) = dest {
+                self.store_place(fi, d, copied, slots);
+            }
+            let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+            return Some(());
+        }
         let (code, bad) = match (from.base(), unit) {
-            (Ty::Str(_), Unit::Point | Unit::Free(_)) => {
+            (Ty::Str(_) | Ty::Char(Unit::Grapheme), Unit::Point | Unit::Free(_)) => {
                 let (p, n) = self.text_parts(v)?;
                 let f = self.rt("cyborg_text_one_point");
                 let code = basic_result(self.builder.build_call(f, &[p.into(), n.into()], "point").ok()?)?.into_int_value();
                 let bad = self.builder.build_int_compare(IntPredicate::SLT, code, i64t.const_zero(), "not_one_char").ok()?;
                 (code, bad)
             }
-            (Ty::Str(_), Unit::Byte) => {
+            (Ty::Str(_) | Ty::Char(Unit::Grapheme), Unit::Byte) => {
                 // One byte of UTF-8 text is an ASCII one. The byte is read
                 // only once there is one to read.
                 let (p, raw) = self.text_parts(v)?;
@@ -1450,10 +1472,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     #[allow(clippy::too_many_arguments)]
     fn emit_bounded_text(&mut self, fi: usize, from: &Ty, to: &Ty, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         let Some(crate::types::Bound::Len { lo, hi, unit }) = to.bound() else { return None };
-        if matches!(from.base(), Ty::Str(_)) && matches!(unit, Some(crate::types::Unit::Point) | Some(crate::types::Unit::Grapheme)) {
-            self.cannot("a text bound counted in code points or characters has no run-time check yet", None);
-            return None;
-        }
+        let walk = matches!(from.base(), Ty::Str(_) | Ty::Char(_)) && matches!(unit, Some(crate::types::Unit::Point) | Some(crate::types::Unit::Grapheme));
         let operand = match arg {
             Arg::Value(o) => o.clone(),
             Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => Operand::Read(p.clone()),
@@ -1462,7 +1481,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let v = self.operand(fi, &operand, slots)?;
         let text = self.to_text(fi, &operand, v, &to.base().clone())?;
         let (p, raw) = self.text_parts(text)?;
-        let n = self.real_length(raw);
+        let mut n = self.real_length(raw);
+        // Text or a character counted in points or graphemes: a walk.
+        if walk {
+            let f = self.rt(if *unit == Some(crate::types::Unit::Point) { "cyborg_str_points" } else { "cyborg_str_graphemes" });
+            n = basic_result(self.builder.build_call(f, &[p.into(), raw.into()], "count").ok()?)?.into_int_value();
+        }
         let i64t = self.ctx.i64_type();
         let below = self.builder.build_int_compare(IntPredicate::ULT, n, i64t.const_int(*lo, false), "below").ok()?;
         let above = self.builder.build_int_compare(IntPredicate::UGT, n, i64t.const_int(*hi, false), "above").ok()?;
@@ -1600,7 +1624,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             BasicTypeEnum::StructType(s) => s,
             _ => return None,
         };
-        if let Ty::Str(_) = from.base() {
+        if let Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) = from.base() {
             let (p, n) = self.text_parts(v)?;
             let out = self.builder.build_alloca(shape, "text").ok()?;
             let f = self.rt("cyborg_str_copy");
@@ -1652,7 +1676,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     /// A text known at compile time: the binary's own bytes, marked so.
-    fn const_text(&mut self, text: &str) -> BasicValueEnum<'ctx> {
+    pub(super) fn const_text(&mut self, text: &str) -> BasicValueEnum<'ctx> {
         let bytes = self.global_bytes(&text.to_string());
         let len = self.ctx.i64_type().const_int(text.len() as u64 | (1u64 << 63), false);
         let h = self.handle(2);
@@ -1887,14 +1911,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn emit_hash(&mut self, t: &Ty, at: PointerValue<'ctx>, func: FunctionValue<'ctx>) -> Option<IntValue<'ctx>> {
         let w = self.ctx.i64_type();
         match t.base() {
-            Ty::Int(_) | Ty::Bool | Ty::Char(_) | Ty::Duration => {
+            Ty::Int(_) | Ty::Bool | Ty::Char(crate::types::Unit::Byte | crate::types::Unit::Point | crate::types::Unit::Free(_)) | Ty::Duration => {
                 let l = self.ty(t)?;
                 let v = self.builder.build_load(l, at, "v").ok()?.into_int_value();
                 let v = self.builder.build_int_z_extend_or_bit_cast(v, w, "wide").ok()?;
                 let f = self.rt("cyborg_hash_int");
                 basic_result(self.builder.build_call(f, &[v.into()], "h").ok()?).map(|x| x.into_int_value())
             }
-            Ty::Str(_) => {
+            Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => {
                 let shape = match self.ty(t)? {
                     BasicTypeEnum::StructType(s) => s,
                     _ => return None,
@@ -1975,13 +1999,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     fn emit_same(&mut self, t: &Ty, a: PointerValue<'ctx>, b: PointerValue<'ctx>, func: FunctionValue<'ctx>) -> Option<IntValue<'ctx>> {
         match t.base() {
-            Ty::Int(_) | Ty::Bool | Ty::Char(_) | Ty::Duration => {
+            Ty::Int(_) | Ty::Bool | Ty::Char(crate::types::Unit::Byte | crate::types::Unit::Point | crate::types::Unit::Free(_)) | Ty::Duration => {
                 let l = self.ty(t)?;
                 let x = self.builder.build_load(l, a, "a").ok()?.into_int_value();
                 let y = self.builder.build_load(l, b, "b").ok()?.into_int_value();
                 self.builder.build_int_compare(IntPredicate::EQ, x, y, "same").ok()
             }
-            Ty::Str(_) => {
+            Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => {
                 let shape = match self.ty(t)? {
                     BasicTypeEnum::StructType(s) => s,
                     _ => return None,

@@ -191,7 +191,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // needs to be: a text and an array never grow, so they carry no
             // capacity; a list does, so it carries one; a map that is never
             // walked has no order list to point at.
-            Ty::Str(_) => Some(self.handle(2).into()),
+            // A grapheme is a text of its own (`types.md`: "variable size ...
+            // an owned value like `str`"): held as one, pointer and length.
+            Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => Some(self.handle(2).into()),
             Ty::Seq { kind, .. } => match kind {
                 crate::types::SeqKind::Array => Some(self.handle(2).into()),
                 // `Free` is Precog's to settle — "a sequence nothing ever
@@ -652,7 +654,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Terminator::Call { callee, args, dest, ok, fail } if !fail.is_empty() => {
                 if self.emit_failing_call(fi, callee, args, dest, *ok, fail, blocks, slots, func).is_none() {
-                    self.cannot("this call that can fail has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    // Say whose call: a std one waits on the std Limb, not
+                    // on the base language.
+                    let what = match callee {
+                        Callee::Op(Op::Std(name)) => format!("`std::{}`, a call that can fail, has no shape in the generated code yet: std's", name),
+                        _ => "this call that can fail has no shape in the generated code yet".to_string(),
+                    };
+                    self.cannot(what, Some(f.span(f.blocks[b].term_span)));
                     let _ = self.builder.build_unreachable();
                 }
             }
@@ -872,6 +880,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 if let (Operand::Const(Const::Bin(text)), Some(BasicTypeEnum::FloatType(t))) = (o, want) {
                     return Some(unsafe { t.const_float_from_string(&text.replace('_', "")) }.into());
                 }
+                // A character literal landing in a grapheme: its text.
+                if let (Operand::Const(Const::Char(s)), Some(BasicTypeEnum::StructType(_))) = (o, want) {
+                    return Some(self.const_text(s));
+                }
                 let v = self.operand(fi, o, slots)?;
                 let signed = self.operand_signed(fi, o).or_else(|| want_ty.as_ref().and_then(int_signed)).unwrap_or(true);
                 Some(match want {
@@ -890,8 +902,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
             Rvalue::Binary { op, lhs, rhs } => {
-                let a = self.operand(fi, lhs, slots)?;
-                let b = self.operand(fi, rhs, slots)?;
+                // A grapheme beside a character literal: the literal as text.
+                let grapheme = |this: &mut Self, o: &Operand| matches!(this.operand_cy_ty(fi, o).map(|t| t.base().clone()), Some(Ty::Char(crate::types::Unit::Grapheme)));
+                let (lg, rg) = (grapheme(self, lhs), grapheme(self, rhs));
+                let a = match lhs {
+                    Operand::Const(Const::Char(s)) if rg => self.const_text(s),
+                    _ => self.operand(fi, lhs, slots)?,
+                };
+                let b = match rhs {
+                    Operand::Const(Const::Char(s)) if lg => self.const_text(s),
+                    _ => self.operand(fi, rhs, slots)?,
+                };
                 if a.is_vector_value() || b.is_vector_value() {
                     let lane = self.operand_lane(fi, lhs).or_else(|| self.operand_lane(fi, rhs));
                     return self.vector_binary(fi, op, a, b, lane, sites, func);
@@ -1077,7 +1098,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Rvalue::Convert { to, operand } => {
                 let v = self.operand(fi, operand, slots)?;
-                if let Ty::Str(_) = to.base() {
+                if let Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) = to.base() {
                     return self.to_text(fi, operand, v, to);
                 }
                 let t = self.ty(&to.clone())?;
@@ -2278,6 +2299,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let i = self.builder.build_int_cast_sign_flag(i, self.ctx.i64_type(), signed, "idx").ok()?;
                 Some(Some(unsafe { self.builder.build_gep(t, p, &[i], "at").ok()? }.into()))
             }
+            // A text's code points or grapheme clusters: a walk over its bytes
+            // (`strings.md`: three counts, no single length).
+            Op::StrPoints | Op::StrGraphemes => {
+                let p = args.first()?.place()?;
+                let (slot, ty) = self.slot_of(fi, p, slots)?;
+                let st = match self.ty(&ty)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let data = self.load_field_ptr(st, slot, 0);
+                let n = self.load_field_int(st, slot, 1);
+                let f = self.rt(if *op == Op::StrPoints { "cyborg_str_points" } else { "cyborg_str_graphemes" });
+                let c = basic_result(self.builder.build_call(f, &[data.into(), n.into()], "count").ok()?)?;
+                Some(Some(c))
+            }
             // The number under a character (`conversion.md`): a byte's is a
             // `uint8`, a point's a `uint32`, and the char already is it.
             Op::CharCode => {
@@ -2492,12 +2528,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             _ => return,
         };
         let span = Some(self.p.functions[fi].span(site.span));
-        // A text bound counted in code points or characters has to walk the
-        // text, and that walk is std's to write.
-        if matches!(unit, Some(crate::types::Unit::Point) | Some(crate::types::Unit::Grapheme)) {
-            self.cannot("a text bound counted in code points or characters has no run-time check yet", span);
-            return;
-        }
+        let _ = span;
         let Some(p) = site.operands.first().and_then(|o| o.place()).cloned() else { return };
         let Some((slot, ty)) = self.slot_of(fi, &p, slots) else { return };
         let Some(BasicTypeEnum::StructType(st)) = self.ty(&ty) else { return };
@@ -2506,6 +2537,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let mut n = raw.into_int_value();
         if matches!(ty.base(), Ty::Str(_)) {
             n = self.real_length(n);
+            // Counted in code points or grapheme clusters: a walk over it.
+            if let Some(u @ (crate::types::Unit::Point | crate::types::Unit::Grapheme)) = unit {
+                let data = self.load_field_ptr(st, slot, 0);
+                let f = self.rt(if u == crate::types::Unit::Point { "cyborg_str_points" } else { "cyborg_str_graphemes" });
+                let Some(c) = self.builder.build_call(f, &[data.into(), raw.into()], "count").ok().and_then(basic_result) else { return };
+                n = c.into_int_value();
+            }
         }
         let w = self.ctx.i128_type();
         let Ok(n) = self.builder.build_int_z_extend(n, w, "n128") else { return };
@@ -2743,7 +2781,7 @@ fn int_signed(t: &Ty) -> Option<bool> {
 
 /// A value the runtime holds behind a handle.
 fn is_handle(t: &Ty) -> bool {
-    matches!(t.base(), Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. })
+    matches!(t.base(), Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) | Ty::Seq { .. } | Ty::Map { .. })
 }
 
 fn sanitise(name: &str) -> String {

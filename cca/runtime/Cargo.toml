@@ -14,4 +14,7 @@ doctest = false
 bench = false
 
 [dependencies]
+# UAX #29 grapheme clusters (`char.grapheme`, counts in graphemes): no_std,
+# and the one table a text runtime cannot do without.
+unicode-segmentation = { version = "=1.13.3", default-features = false }
 

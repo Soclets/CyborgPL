@@ -1072,3 +1072,30 @@ impl Norm {
         self.digits[..self.len].cmp(&o.digits[..o.len])
     }
 }
+
+/// How many grapheme clusters a text holds (UAX #29, extended): what a
+/// person sees as one character (`types.md`, `char.grapheme`).
+///
+/// # Safety
+/// `p` must have `len` readable bytes of UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_str_graphemes(p: *const u8, len: u64) -> u64 {
+    use unicode_segmentation::UnicodeSegmentation;
+    let len = len & !STATIC;
+    if len == 0 {
+        return 0;
+    }
+    let s = core::str::from_utf8_unchecked(core::slice::from_raw_parts(p, len as usize));
+    s.graphemes(true).count() as u64
+}
+
+/// How many code points a text holds: every byte that does not continue one.
+///
+/// # Safety
+/// `p` must have `len` readable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_str_points(p: *const u8, len: u64) -> u64 {
+    let len = len & !STATIC;
+    let b = if len == 0 { &[][..] } else { core::slice::from_raw_parts(p, len as usize) };
+    b.iter().filter(|&&c| c & 0xc0 != 0x80).count() as u64
+}
