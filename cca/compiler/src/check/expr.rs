@@ -1399,19 +1399,29 @@ impl Checker {
                 Err(e) => return Err(e),
             };
             if variadic {
+                // A typed variadic holds values of its type, whatever each
+                // argument's own width (a bare number's is none): `...'nums':
+                // int32` is a list of int32, not of the exact type.
+                let typed = decl.params.last().and_then(|p| p.ty.as_ref()).is_some();
                 match &a {
                     Arg::Spread { expr, count } => {
                         let lt = self.resolve(&self.arg_type(expr));
                         let et = self.elem_type_of(&lt, span, "unpacking")?;
                         match self.resolve(&et) {
-                            Ty::Bundle(ts) => bundle_tys.extend(ts),
+                            Ty::Bundle(ts) if !typed => bundle_tys.extend(ts),
                             t => {
-                                for _ in 0..*count {
+                                let t = if typed { self.resolve(&pty) } else { t };
+                                let n = match self.resolve(&lt) {
+                                    Ty::Bundle(ts) => ts.len(),
+                                    _ => *count,
+                                };
+                                for _ in 0..n {
                                     bundle_tys.push(t.clone());
                                 }
                             }
                         }
                     }
+                    _ if typed => bundle_tys.push(self.resolve(&pty)),
                     _ => bundle_tys.push(self.resolve(&self.arg_type(&a))),
                 }
             }
@@ -1618,6 +1628,15 @@ impl Checker {
                 // Each element must fit the variadic's element type.
                 if !self.unify(&elem, pty) && !matches!(elem, Ty::Bundle(_)) {
                     return err(Diagnostic::error(format!("`{}` takes `{}` values, and the elements of {} are `{}`", fname, self.spell(pty), self.place_name(ctx, &place), self.spell(&elem))).at(span));
+                }
+                // A `:=` list of bare numbers unpacked into a typed variadic
+                // takes its width, as a lend does: its elements are copied
+                // across as they are.
+                if place.proj.is_empty() && !matches!(elem, Ty::Bundle(_)) {
+                    let want = Ty::Seq { elem: Box::new(self.resolve(pty)), kind: SeqKind::List };
+                    if let Some(adopted) = adopt_widths(&t, &want) {
+                        ctx.locals[place.base.0 as usize].ty = adopted;
+                    }
                 }
                 let elem_owned = elem.is_owned() && !matches!(elem, Ty::Bundle(_));
                 let inner = match kind {

@@ -881,6 +881,15 @@ impl Precog {
                             _ => None,
                         })),
                     }
+                    // `...give 'xs'` moves every element out and leaves the
+                    // list empty ("a give never leaves holes").
+                    for a in args {
+                        if let Arg::Spread { place, verb: Some(crate::ast::Verb::Give), .. } = a {
+                            if let Domain::Seq { elem, .. } = self.read(f, &after, place) {
+                                self.store(f, &mut after, place, Domain::Seq { len: ISet::one(0), elem });
+                            }
+                        }
+                    }
                     let mut e = after.clone();
                     if let Some(p) = dest {
                         self.store(f, &mut e, p, ret);
@@ -1441,7 +1450,13 @@ impl Precog {
                 let mut callee_env = self.entry_env(i);
                 let params = self.prog().functions[i].params.clone();
                 let mut key = String::new();
-                for (p, a) in params.iter().zip(args) {
+                // A variadic's last parameter is the bundle the call builds
+                // from every argument past the fixed ones — not the first of
+                // them. Bound one to one, `count[...'ys', 1]` saw only 'ys'
+                // and folded `== 3` to false.
+                let variadic = self.prog().functions[i].variadic;
+                let fixed = if variadic { params.len().saturating_sub(1) } else { params.len() };
+                for (p, a) in params[..fixed].iter().zip(args) {
                     let d = self.arg_domain(f, env, a);
                     // `key`, never `describe`: a description is prose, and
                     // two different arguments that read the same would
@@ -1449,6 +1464,36 @@ impl Precog {
                     key.push_str(&d.key());
                     key.push(';');
                     callee_env.insert(*p, d);
+                }
+                if variadic {
+                    if let Some(bp) = params.last().copied() {
+                        let bty = self.prog().functions[i].locals[bp.0 as usize].ty.clone();
+                        let d = match bty.base() {
+                            Ty::Seq { .. } => {
+                                let mut len = ISet::one(0);
+                                let mut elem: Option<Domain> = None;
+                                for a in args.iter().skip(fixed) {
+                                    let (n, e) = match a {
+                                        Arg::Spread { place, .. } => match self.read(f, env, place) {
+                                            Domain::Seq { len, elem } => (len, *elem),
+                                            _ => (ISet::Range { lo: 0, hi: i64::MAX as i128 }, Domain::Any),
+                                        },
+                                        _ => (ISet::one(1), self.arg_domain(f, env, a)),
+                                    };
+                                    len = len.add(&n);
+                                    elem = Some(match elem {
+                                        Some(x) => x.union(&e),
+                                        None => e,
+                                    });
+                                }
+                                Domain::Seq { len, elem: Box::new(elem.unwrap_or(Domain::Any)) }
+                            }
+                            _ => Domain::Any,
+                        };
+                        key.push_str(&d.key());
+                        key.push(';');
+                        callee_env.insert(bp, d);
+                    }
                 }
                 // A recursive call while this function's table is being
                 // filled: answered from the table, for every tuple the

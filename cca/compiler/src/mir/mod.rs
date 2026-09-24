@@ -433,6 +433,9 @@ pub struct Function {
     pub is_main: bool,
     /// This function is a task's body: it was written inside a `concur`.
     pub is_task: bool,
+    /// Its last parameter is a variadic bundle: a call hands the values one
+    /// by one, and the call builds the bundle (`functions.md`).
+    pub variadic: bool,
     /// A task body's captures, in the order its parent passes them.
     pub captures: Vec<LocalId>,
     /// For an exact instruction, keyed by (block, statement): every value

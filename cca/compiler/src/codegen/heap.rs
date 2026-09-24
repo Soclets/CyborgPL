@@ -91,6 +91,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let info = &self.p.items.structs[id.0 as usize];
                 info.fields.iter().any(|f| self.owns_memory(&f.ty.subst(args)))
             }
+            Ty::Bundle(ts) => ts.iter().any(|t| self.owns_memory(t)),
             _ => false,
         }
     }
@@ -183,6 +184,20 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let ft = f.ty.subst(&args);
                     if let Some(inner) = self.drop_fn(&ft) {
                         if let Ok(fp) = self.builder.build_struct_gep(shape, at, i as u32, "f") {
+                            let _ = self.builder.build_call(inner, &[fp.into()], "");
+                        }
+                    }
+                }
+            }
+            // A bundle is its values side by side: each gives back its own.
+            Ty::Bundle(ts) => {
+                let shape = match self.ty(t) {
+                    Some(BasicTypeEnum::StructType(s)) => s,
+                    _ => return,
+                };
+                for (i, et) in ts.iter().enumerate() {
+                    if let Some(inner) = self.drop_fn(et) {
+                        if let Ok(fp) = self.builder.build_struct_gep(shape, at, i as u32, "e") {
                             let _ = self.builder.build_call(inner, &[fp.into()], "");
                         }
                     }
@@ -293,6 +308,27 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
             }
+            Ty::Bundle(ts) => {
+                let shape = match self.ty(t) {
+                    Some(BasicTypeEnum::StructType(s)) => s,
+                    _ => return,
+                };
+                for (i, et) in ts.clone().iter().enumerate() {
+                    let (Ok(dp), Ok(sp)) = (self.builder.build_struct_gep(shape, dst, i as u32, "d"), self.builder.build_struct_gep(shape, src, i as u32, "s")) else { continue };
+                    match self.copy_fn(et) {
+                        Some(inner) => {
+                            let _ = self.builder.build_call(inner, &[dp.into(), sp.into()], "");
+                        }
+                        None => {
+                            if let Some(l) = self.ty(et) {
+                                if let Ok(v) = self.builder.build_load(l, sp, "v") {
+                                    let _ = self.builder.build_store(dp, v);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -333,6 +369,244 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             agg = self.builder.build_insert_value(agg, w.const_int(n, false), 2, "c").ok()?.into_struct_value();
         }
         Some(agg.into())
+    }
+
+    /// The arguments of a call to a variadic function: the fixed ones as
+    /// they are, then the bundle the call builds from the rest
+    /// (`functions.md`). All of one type, the bundle is a list — its
+    /// length may be known only at run time, when a bounded list is
+    /// unpacked into it — and otherwise the values side by side. An owning
+    /// bundle is the callee's to give back; a lent one is built here, handed
+    /// over by address, and its buffer (not what is in it) given back after
+    /// the call: the second list is the extra buffers to free.
+    pub(super) fn variadic_args(&mut self, fi: usize, callee: usize, args: &[Arg], slots: &[Option<PointerValue<'ctx>>]) -> Option<(Vec<BasicMetadataValueEnum<'ctx>>, Vec<PointerValue<'ctx>>)> {
+        let cf = &self.p.functions[callee];
+        let fixed = cf.params.len().checked_sub(1)?;
+        let bp = cf.params[fixed];
+        let bty = cf.locals[bp.0 as usize].ty.clone();
+        let lent = matches!(cf.locals[bp.0 as usize].kind, LocalKind::Lent { .. });
+        let mut vals: Vec<BasicMetadataValueEnum> = Vec::new();
+        for a in &args[..fixed.min(args.len())] {
+            let v = match a {
+                Arg::Value(o) => self.operand(fi, o, slots)?,
+                Arg::Copy(p) => self.operand(fi, &Operand::Read(p.clone()), slots)?,
+                Arg::Give(p) => self.operand(fi, &Operand::Move(p.clone()), slots)?,
+                Arg::Lend { place, .. } => self.slot_of(fi, place, slots)?.0.into(),
+                Arg::Spread { .. } => return None,
+            };
+            vals.push(v.into());
+        }
+        let rest = &args[fixed.min(args.len())..];
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let w = self.ctx.i64_type();
+        let mut frees = Vec::new();
+        // One value of the bundle, from a place or an operand, by its verb:
+        // a copy is a second, independent value.
+        let one = |this: &mut Self, a: &Arg| -> Option<(Option<PointerValue<'ctx>>, Option<BasicValueEnum<'ctx>>, bool)> {
+            Some(match a {
+                Arg::Value(o) => (None, Some(this.operand(fi, o, slots)?), false),
+                Arg::Copy(pl) => (Some(this.slot_of(fi, pl, slots)?.0), None, true),
+                Arg::Give(pl) | Arg::Lend { place: pl, .. } => (Some(this.slot_of(fi, pl, slots)?.0), None, false),
+                Arg::Spread { .. } => return None,
+            })
+        };
+        match bty.base() {
+            Ty::Seq { .. } => {
+                let elem = Self::elem_of(&bty)?;
+                let lty = self.ty(&elem)?;
+                let esize = self.size_of_ty(&elem)?;
+                let cap = match bty.bound() {
+                    Some(crate::types::Bound::Len { hi, .. }) => *hi,
+                    _ => rest.len() as u64,
+                };
+                let data = if cap == 0 { p.const_null() } else { self.alloc(w.const_int(cap * esize, false)) };
+                let cur = self.builder.build_alloca(w, "filled").ok()?;
+                let _ = self.builder.build_store(cur, w.const_zero());
+                let copier = self.copy_fn(&elem);
+                for a in rest {
+                    if let Arg::Spread { place, verb, .. } = a {
+                        let verb = verb.filter(|v| matches!(v, crate::ast::Verb::Copy | crate::ast::Verb::Give));
+                        let (src, sty) = self.slot_of(fi, place, slots)?;
+                        // Copied across as they are: only a list of the same
+                        // element layout.
+                        let same = Self::elem_of(&sty).map_or(false, |se| self.ty(&se) == Some(lty));
+                        if !same {
+                            self.cannot("unpacking a list whose elements differ in width from the variadic's has no shape in the generated code yet", None);
+                            return None;
+                        }
+                        let shape = match self.ty(&sty)? {
+                            BasicTypeEnum::StructType(s) => s,
+                            _ => return None,
+                        };
+                        let sdata = self.load_field_ptr(shape, src, 0);
+                        let n = self.load_field_int(shape, src, 1);
+                        let at = self.builder.build_load(w, cur, "at").ok()?.into_int_value();
+                        let off = self.builder.build_int_mul(at, w.const_int(esize, false), "off").ok()?;
+                        let dst = unsafe { self.builder.build_gep(self.ctx.i8_type(), data, &[off], "dst").ok()? };
+                        let bytes = self.builder.build_int_mul(n, w.const_int(esize, false), "bytes").ok()?;
+                        match (verb, copier) {
+                            // Each element a second value of its own.
+                            (Some(crate::ast::Verb::Copy), Some(c)) => {
+                                let func = self.builder.get_insert_block()?.get_parent()?;
+                                let head = self.ctx.append_basic_block(func, "copy_each");
+                                let body = self.ctx.append_basic_block(func, "copy_one");
+                                let done = self.ctx.append_basic_block(func, "copied_all");
+                                let i = self.builder.build_alloca(w, "i").ok()?;
+                                let _ = self.builder.build_store(i, w.const_zero());
+                                let _ = self.builder.build_unconditional_branch(head);
+                                self.builder.position_at_end(head);
+                                let iv = self.builder.build_load(w, i, "iv").ok()?.into_int_value();
+                                let more = self.builder.build_int_compare(IntPredicate::ULT, iv, n, "more").ok()?;
+                                let _ = self.builder.build_conditional_branch(more, body, done);
+                                self.builder.position_at_end(body);
+                                let o = self.builder.build_int_mul(iv, w.const_int(esize, false), "o").ok()?;
+                                let s = unsafe { self.builder.build_gep(self.ctx.i8_type(), sdata, &[o], "s").ok()? };
+                                let d = unsafe { self.builder.build_gep(self.ctx.i8_type(), dst, &[o], "d").ok()? };
+                                let _ = self.builder.build_call(c, &[d.into(), s.into()], "");
+                                let next = self.builder.build_int_add(iv, w.const_int(1, false), "next").ok()?;
+                                let _ = self.builder.build_store(i, next);
+                                let _ = self.builder.build_unconditional_branch(head);
+                                self.builder.position_at_end(done);
+                            }
+                            // The same bytes: a plain value, a lend, or a
+                            // give (the list is left empty below).
+                            _ => {
+                                let f = self.rt("cyborg_copy");
+                                let _ = self.builder.build_call(f, &[dst.into(), sdata.into(), bytes.into()], "");
+                            }
+                        }
+                        if verb == Some(crate::ast::Verb::Give) {
+                            // "A give never leaves holes": the list is left empty.
+                            let lenp = self.builder.build_struct_gep(shape, src, 1, "len").ok()?;
+                            let _ = self.builder.build_store(lenp, w.const_zero());
+                        }
+                        let after = self.builder.build_int_add(at, n, "after").ok()?;
+                        let _ = self.builder.build_store(cur, after);
+                        continue;
+                    }
+                    let (from, v, copy) = one(self, a)?;
+                    let at = self.builder.build_load(w, cur, "at").ok()?.into_int_value();
+                    let off = self.builder.build_int_mul(at, w.const_int(esize, false), "off").ok()?;
+                    let dst = unsafe { self.builder.build_gep(self.ctx.i8_type(), data, &[off], "dst").ok()? };
+                    match (from, v, copy, copier) {
+                        (Some(src), _, true, Some(c)) => {
+                            let _ = self.builder.build_call(c, &[dst.into(), src.into()], "");
+                        }
+                        (Some(src), _, _, _) => {
+                            let v = self.builder.build_load(lty, src, "v").ok()?;
+                            let _ = self.builder.build_store(dst, v);
+                        }
+                        (None, Some(v), _, _) => {
+                            let v = self.fit(v, lty);
+                            let _ = self.builder.build_store(dst, v);
+                        }
+                        _ => return None,
+                    }
+                    let next = self.builder.build_int_add(at, w.const_int(1, false), "next").ok()?;
+                    let _ = self.builder.build_store(cur, next);
+                }
+                let shape = match self.ty(&bty)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let len = self.builder.build_load(w, cur, "len").ok()?;
+                let mut agg = shape.get_undef();
+                agg = self.builder.build_insert_value(agg, data, 0, "p").ok()?.into_struct_value();
+                agg = self.builder.build_insert_value(agg, len, 1, "n").ok()?.into_struct_value();
+                if shape.count_fields() > 2 {
+                    agg = self.builder.build_insert_value(agg, w.const_int(cap, false), 2, "c").ok()?.into_struct_value();
+                }
+                if lent {
+                    let tmp = self.builder.build_alloca(shape, "bundle").ok()?;
+                    let _ = self.builder.build_store(tmp, agg);
+                    vals.push(tmp.into());
+                    if cap > 0 {
+                        frees.push(data);
+                    }
+                } else {
+                    vals.push(BasicValueEnum::from(agg).into());
+                }
+            }
+            Ty::Bundle(ts) => {
+                let ts = ts.clone();
+                let shape = match self.ty(&bty)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let tmp = self.builder.build_alloca(shape, "bundle").ok()?;
+                let mut k = 0usize;
+                let put = |this: &mut Self, k: usize, src: Option<PointerValue<'ctx>>, v: Option<BasicValueEnum<'ctx>>, copy: bool| -> Option<()> {
+                    let et = ts.get(k)?.clone();
+                    let lty = this.ty(&et)?;
+                    let d = this.builder.build_struct_gep(shape, tmp, k as u32, "e").ok()?;
+                    match (src, v) {
+                        (Some(s), _) => match (copy, this.copy_fn(&et)) {
+                            (true, Some(c)) => {
+                                let _ = this.builder.build_call(c, &[d.into(), s.into()], "");
+                            }
+                            _ => {
+                                let x = this.builder.build_load(lty, s, "v").ok()?;
+                                let _ = this.builder.build_store(d, x);
+                            }
+                        },
+                        (None, Some(v)) => {
+                            let v = this.fit(v, lty);
+                            let _ = this.builder.build_store(d, v);
+                        }
+                        _ => return None,
+                    }
+                    Some(())
+                };
+                for a in rest {
+                    if let Arg::Spread { place, count, verb } = a {
+                        let copy = *verb == Some(crate::ast::Verb::Copy);
+                        let give = *verb == Some(crate::ast::Verb::Give);
+                        let (src, sty) = self.slot_of(fi, place, slots)?;
+                        let sshape = match self.ty(&sty)? {
+                            BasicTypeEnum::StructType(s) => s,
+                            _ => return None,
+                        };
+                        match sty.base() {
+                            // A bundle passed on: its values, field by field.
+                            Ty::Bundle(st) => {
+                                for j in 0..st.len() {
+                                    let s = self.builder.build_struct_gep(sshape, src, j as u32, "s").ok()?;
+                                    put(self, k, Some(s), None, copy)?;
+                                    k += 1;
+                                }
+                            }
+                            // A list whose length is known here: its elements.
+                            _ => {
+                                let elem = Self::elem_of(&sty)?;
+                                let esize = self.size_of_ty(&elem)?;
+                                let sdata = self.load_field_ptr(sshape, src, 0);
+                                for j in 0..*count {
+                                    let s = unsafe { self.builder.build_gep(self.ctx.i8_type(), sdata, &[w.const_int(j as u64 * esize, false)], "s").ok()? };
+                                    put(self, k, Some(s), None, copy)?;
+                                    k += 1;
+                                }
+                                if give {
+                                    let lenp = self.builder.build_struct_gep(sshape, src, 1, "len").ok()?;
+                                    let _ = self.builder.build_store(lenp, w.const_zero());
+                                }
+                            }
+                        }
+                        continue;
+                    }
+                    let (from, v, copy) = one(self, a)?;
+                    put(self, k, from, v, copy)?;
+                    k += 1;
+                }
+                if lent {
+                    vals.push(tmp.into());
+                } else {
+                    let v = self.builder.build_load(shape, tmp, "bundle").ok()?;
+                    vals.push(v.into());
+                }
+            }
+            _ => return None,
+        }
+        Some((vals, frees))
     }
 
     /// `'xs'[pos i]` — 1-based (`lists.md`), so the machine's offset is

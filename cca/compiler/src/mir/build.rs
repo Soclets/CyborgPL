@@ -495,6 +495,7 @@ impl<'a> FnBuilder<'a> {
             spans: self.spans,
             is_main: body.is_main,
             is_task: self.is_task,
+            variadic: self.inst.map_or(false, |i| self.arena.instances[i.0 as usize].key.bundle.is_some()),
             captures: self.captures,
             ranges: Default::default(),
         }
@@ -1330,10 +1331,21 @@ impl<'a> FnBuilder<'a> {
     /// What each parameter of a callee holds, where that is known.
     fn param_tys(&self, callee: &hir::Callee) -> Vec<Ty> {
         match callee {
-            hir::Callee::Fn(inst) => match self.arena.instances[inst.0 as usize].body.as_ref() {
-                Some(b) => b.params.iter().map(|p| self.resolve_ty(&b.locals[p.0 as usize].ty)).collect(),
-                None => Vec::new(),
-            },
+            // A variadic's last parameter is the bundle the call builds: each
+            // value past the fixed ones goes into its own element type, in
+            // order (the instance's key has them, unpacked lists included).
+            hir::Callee::Fn(inst) => {
+                let ins = &self.arena.instances[inst.0 as usize];
+                let mut out: Vec<Ty> = match ins.body.as_ref() {
+                    Some(b) => b.params.iter().map(|p| self.resolve_ty(&b.locals[p.0 as usize].ty)).collect(),
+                    None => Vec::new(),
+                };
+                if let Some(bundle) = &ins.key.bundle {
+                    out.pop();
+                    out.extend(bundle.iter().map(|t| self.resolve_ty(t)));
+                }
+                out
+            }
             hir::Callee::Extern(id) => self.arena.items.externs[id.0 as usize].params.iter().map(|(_, t)| self.resolve_ty(t)).collect(),
             _ => Vec::new(),
         }
@@ -1427,9 +1439,16 @@ impl<'a> FnBuilder<'a> {
                 // handed to a `uint8` parameter is a narrowing, and a
                 // narrowing is a check site (`conversion.md`). It was not one.
                 let wants = self.param_tys(callee);
-                for (i, (a, m)) in args.iter().zip(&margs).enumerate() {
+                let mut i = 0usize;
+                for (a, m) in args.iter().zip(&margs) {
+                    // An unpacked list stands for as many values as it holds.
+                    if let Arg::Spread { count, .. } = m {
+                        i += *count;
+                        continue;
+                    }
                     let Some(want) = wants.get(i) else { break };
-                    if matches!(m, Arg::Lend { .. } | Arg::Spread { .. }) {
+                    i += 1;
+                    if matches!(m, Arg::Lend { .. }) {
                         continue;
                     }
                     let have = self.arg_ty(a);
@@ -1737,6 +1756,7 @@ fn placeholder(body: &hir::Body) -> Function {
         spans: Vec::new(),
         is_main: body.is_main,
         is_task: false,
+        variadic: false,
         captures: Vec::new(),
         ranges: Default::default(),
     }

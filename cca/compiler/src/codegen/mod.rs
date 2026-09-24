@@ -167,6 +167,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let p = self.ctx.ptr_type(AddressSpace::default());
                 Some(self.ctx.struct_type(&[p.into(), p.into()], false).into())
             }
+            // A variadic bundle of values of different types: side by side,
+            // walked by unrolling (`functions.md`).
+            Ty::Bundle(ts) => {
+                let mut fields = Vec::new();
+                for t in ts.clone() {
+                    fields.push(self.ty(&t)?);
+                }
+                Some(self.ctx.struct_type(&fields, false).into())
+            }
             // A unit not written is Precog's to pick (`types.md`: "from the
             // content and its use"); one code point is the flat, fast unit.
             // A literal of several points is a grapheme, and waits.
@@ -748,7 +757,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     slot = next;
                     ty = elem;
                 }
-                _ => return None,
+                // A value of a bundle of different types: its field.
+                Proj::BundleElem(i) => {
+                    let Ty::Bundle(ts) = ty.base() else { return None };
+                    let et = ts.get(*i)?.clone();
+                    let st = match self.ty(&ty)? {
+                        BasicTypeEnum::StructType(s) => s,
+                        _ => return None,
+                    };
+                    slot = self.builder.build_struct_gep(st, slot, *i as u32, "elem").ok()?;
+                    ty = et;
+                }
+                #[allow(unreachable_patterns)]
+                _ => {
+                    self.cannot("this place has no shape in the generated code yet", None);
+                    return None;
+                }
             }
         }
         Some((slot, ty))
@@ -1809,7 +1833,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 _ => true,
             })
             .collect();
-        for a in args {
+        let variadic = match callee {
+            Callee::Fn(idx) if self.p.functions[idx.0 as usize].variadic => Some(idx.0 as usize),
+            _ => None,
+        };
+        let mut frees = Vec::new();
+        if let Some(ci) = variadic {
+            let (v, f) = self.variadic_args(fi, ci, args, slots)?;
+            vals = v;
+            frees = f;
+        }
+        for a in args.iter().filter(|_| variadic.is_none()) {
             let v = match a {
                 Arg::Value(o) => self.operand(fi, o, slots)?,
                 Arg::Copy(p) => self.operand(fi, &Operand::Read(p.clone()), slots)?,
@@ -1843,9 +1877,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // `list[int64]` read as a `list[int32]` is garbage. What that should
         // do is not decided (`cca/README.md`); until it is, it is not built.
         let want: Option<Vec<Ty>> = match callee {
+            // A variadic's bundle is built from the rest by the call, so
+            // only its fixed parameters meet an argument one to one.
             Callee::Fn(idx) => {
                 let callee_f = &self.p.functions[idx.0 as usize];
-                Some(callee_f.params.iter().map(|p| callee_f.locals[p.0 as usize].ty.clone()).collect())
+                let fixed = if callee_f.variadic { callee_f.params.len().saturating_sub(1) } else { callee_f.params.len() };
+                Some(callee_f.params[..fixed].iter().map(|p| callee_f.locals[p.0 as usize].ty.clone()).collect())
             }
             // A list lent to C's pointer: C reads its elements at the
             // pointer's width.
@@ -1922,6 +1959,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
         }
         let call = self.builder.build_call(f, &vals, "call").ok()?;
+        // A lent bundle's buffer was made for the call; what was in it
+        // belongs to the arguments' owners.
+        for d in frees {
+            let free = self.rt("cyborg_free");
+            let _ = self.builder.build_call(free, &[d.into()], "");
+        }
         basic_result(call)
     }
 
@@ -2112,6 +2155,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Op::StrBytes | Op::ListLength | Op::ArrayLength | Op::MapLength => {
                 let p = args.first()?.place()?;
                 let (slot, ty) = self.slot_of(fi, p, slots)?;
+                // A bundle's length is its shape's: known here (`functions.md`).
+                if let Ty::Bundle(ts) = ty.base() {
+                    return Some(Some(self.ctx.i64_type().const_int(ts.len() as u64, false).into()));
+                }
                 let text = matches!(ty.base(), Ty::Str(_));
                 let shape = self.ty(&ty)?;
                 let st = match shape {
