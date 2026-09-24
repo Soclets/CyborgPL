@@ -152,6 +152,16 @@ is the algorithm, so it is written and never guessed. Proposed
 alternatives: the bigger size; the left operand's (the oracle's old
 placeholder).
 
+**A negative exponent is a check site** (owner, 2026-09-24: a), for `xx`
+and `xx~` alike: `2 xx -1` is a half, which no integer holds, and a
+fraction is not something wrapping answers. Precog sees the whole
+program and proves the exponent never negative, the working build
+checks where it cannot, and the final build refuses an unproven one.
+Proposed alternatives: a fixed answer such as 0, so `xx~` stays
+check-free; an exponent that must be unsigned. For `xx~` only the base's
+size counts: the exponent is a count, like a shift's, not a value being
+wrapped (the oracle's reading, not ruled).
+
 How it was reached: check claude asked which size a group of bare
 numbers takes when the name beside it (`int16`) and the place it is
 stored (`int64`) disagree. Proposed: (a) the name beside decides; (b)

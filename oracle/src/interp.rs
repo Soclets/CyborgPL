@@ -1564,14 +1564,16 @@ impl<'p> Interp<'p> {
             Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+~" | "-~" | "x~" | "xx~") => {
                 // Wrapping is at one size, and it is always written, never guessed: operands of two
                 // sizes, or an exact sum that mixes them, need `to.int16[…]` (owner, 2026-09-23: b)
-                let (sl, sr) = (self.plain_size(l), self.plain_size(r));
+                // a power's exponent is a count, like a shift's, not a value being wrapped: only the
+                // base's size counts for `xx~` (provisional, by analogy with shifts)
+                let (sl, sr) = (self.plain_size(l), if op == "xx~" { Ok(None) } else { self.plain_size(r) });
                 let mixed = match (&sl, &sr) {
                     (Err(m), _) | (_, Err(m)) => Some(m.clone()),
                     (Ok(Some(a)), Ok(Some(b))) if ty_name(a) != ty_name(b) => Some(format!("{} and {}", ty_name(a), ty_name(b))),
                     _ => None,
                 };
                 if let Some(m) = mixed { return rt(line, format!("`{op}` wraps at one size, and this mixes {m}: say which, `to.int16[…]` around a side")); }
-                let width = self.expr_ty(l).or_else(|| self.expr_ty(r));
+                let width = if op == "xx~" { self.expr_ty(l) } else { self.expr_ty(l).or_else(|| self.expr_ty(r)) };
                 let (bits, signed) = match width {
                     Some(Ty::Int(w)) => (int_bits(&w), true),
                     Some(Ty::Uint(w)) => (int_bits(&w), false),
@@ -1587,7 +1589,7 @@ impl<'p> Interp<'p> {
                     "+~" => x.wrapping_add(y),
                     "-~" => x.wrapping_sub(y),
                     "x~" => x.wrapping_mul(y),
-                    _ => { if y < 0 { return rt(line, "a negative exponent on integers would produce a fraction"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
+                    _ => { if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
                 };
                 let m: i128 = 1i128 << bits;
                 let mut v = raw.rem_euclid(m);
@@ -1717,7 +1719,7 @@ impl<'p> Interp<'p> {
             ("mod", Int(_), Int(0)) => return site(line, "`mod` by zero"),
             ("mod", Int(x), Int(y)) => { let r = x.checked_rem(y).ok_or_else(|| ovf("mod"))?; Int(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r }) }
             ("xx", Int(x), Int(y)) => {
-                if y < 0 { return rt(line, "a negative exponent on integers would produce a fraction"); }
+                if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
                 let mut acc: i128 = 1;
                 for _ in 0..y { acc = acc.checked_mul(x).ok_or_else(|| ovf("xx"))?; }
                 Int(acc)

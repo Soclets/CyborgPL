@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — A negative exponent is a check site, for `xx` and `xx~` (owner: a)
+
+From compiler claude, building powers at run time. `2 xx~ 'n'` with `'n'`
+negative gives a fraction. `operators.md` said wrapping is "never a
+check", which is about overflow, and nothing recorded exponents, not even
+for plain `xx`. Proposed (a) a check site for both, like any unproven
+safety property; (b) a fixed answer such as 0, so `xx~` stays
+check-free; (c) the exponent must be unsigned. Compiler claude and
+design claude recommended a. Owner: "big Precog sees the whole program,
+and those vars already use `:=`", that is a. The oracle's refusal
+became a check site (a `nocheck` over it is reported as a lie), and there
+is a reject test, negative_exponent. Found on the way: the mixed-size
+rule for wrapping refused `'h' xx~ 'n'` with a `uint32` base and an
+`int32` exponent. The oracle now counts only the base's size for `xx~`,
+reading the exponent as a count like a shift's. That is provisional and
+listed in the oracle README.
+
 ### 2026-09-24 — Oracle bug: text too big for a range type's base crashed instead of failing (design session)
 
 Found while checking a question from compiler claude. `input.md` says a
