@@ -881,6 +881,13 @@ impl<'p> Interp<'p> {
             (Ty::Simd(_, n), Value::Simd(lanes), _) if lanes.len() != *n && lanes.iter().all(|l| *l == lanes[0]) => Value::Simd(vec![lanes[0].clone(); *n]),
             _ => v,
         };
+        // A bin16/bin32 holds what its width holds: the value is rounded to it where it lands
+        // (DECISIONS 2026-09-14: a bin32 0.1 is 0.100000001490116119384765625).
+        let before = v.clone();
+        let v = round_to_width(t, v);
+        if let (Value::Bin(a), Value::Bin(b)) = (&before, &v) {
+            if a.is_finite() && b.is_infinite() { return site(line, format!("{a} does not fit {}: it rounds past the largest value", ty_name(t))); }
+        }
         self.check_type(&v, t, line)?;
         Ok(v)
     }
@@ -1481,6 +1488,17 @@ impl<'p> Interp<'p> {
                     (Ty::Bool, _) => return rt(line, "nothing converts to bool: there is no truthiness; compare instead"),
                     (t, other) => return rt(line, format!("no conversion from {} to {}", other.kind(), ty_name(t))),
                 };
+                // a converted bin16/bin32 holds what its width holds (DECISIONS 2026-09-14)
+                let before = out.clone();
+                let out = round_to_width(ty, out);
+                if let (Value::Bin(a), Value::Bin(b)) = (&before, &out) {
+                    if a.is_finite() && b.is_infinite() {
+                        if !(ranged || from_text) { return site(line, format!("{a} does not fit {}: it rounds past the largest value", ty_name(ty))); }
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "out_of_range".into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        return Ok((v, prov));
+                    }
+                }
                 if let Ty::TextRanged(..) = full_ty {
                     if self.check_type(&out, full_ty, line).is_err() {
                         let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{}", ty_name(full_ty)), "out_of_range".into(), None, true)?;
@@ -3053,9 +3071,13 @@ impl<'p> Interp<'p> {
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
                 let mut text = String::new();
                 for a in &c.args.values {
+                    // the useful form is the shortest text that gives the value back at its own
+                    // width: a bin32 0.1 shows `0.1` (DECISIONS 2026-09-14)
+                    let crate::ast::Value::Expr(e) = a;
+                    let saved = self.expected.take(); let ty = self.expr_ty(e); self.expected = saved;
                     let (v, _) = self.value_mode(a, !useful)?;
                     if matches!(v, Value::Nothing) { return rt(c.line, "a call that returns nothing cannot be printed"); }
-                    text.push_str(&if useful { v.show_useful() } else { v.show_stored() });
+                    text.push_str(&if useful { show_useful_as(&v, ty.as_ref()) } else { v.show_stored() });
                 }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
@@ -3119,6 +3141,48 @@ fn subst(ty: &Ty, map: &HashMap<String, Ty>) -> Ty {
         Ty::Ptr(t, m) => Ty::Ptr(Box::new(subst(t, map)), *m),
         Ty::Inst(n, args) => Ty::Inst(n.clone(), args.iter().map(|a| subst(a, map)).collect()),
         other => other.clone(),
+    }
+}
+
+/// IEEE round-to-nearest-even of an f64 to binary16: 11 significant bits, subnormals below
+/// 2^-14 in steps of 2^-24; past 65504 it rounds to infinity (65520 and up).
+fn round_f16(x: f64) -> f64 {
+    if !x.is_finite() || x == 0.0 { return x; }
+    let a = x.abs();
+    let e = ((a.to_bits() >> 52) & 0x7ff) as i32 - 1023;
+    let ulp = if a >= 2f64.powi(-14) { 2f64.powi(e - 10) } else { 2f64.powi(-24) };
+    let r = (a / ulp).round_ties_even() * ulp;
+    let r = if r > 65504.0 { f64::INFINITY } else { r };
+    r.copysign(x)
+}
+
+/// The useful form of a value whose static type is known: a bin16/bin32 is the shortest decimal
+/// that rounds back to the same value at that width, not at 64 bits.
+fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {
+    let ty = match ty { Some(Ty::Ranged(b, _, _)) => Some(&**b), t => t };
+    match (v, ty) {
+        (Value::Bin(x), Some(Ty::Bin(w @ (16 | 32)))) if x.is_finite() => {
+            let back = |y: f64| if *w == 32 { (y as f32) as f64 } else { round_f16(y) };
+            for digits in 0..17 {
+                let t = format!("{:.*e}", digits, x);
+                if let Ok(y) = t.parse::<f64>() { if back(y) == *x { return format!("{y}"); } }
+            }
+            format!("{x}")
+        }
+        (Value::List(items), Some(Ty::List(e) | Ty::Array(e))) => format!("[{}]", items.iter().map(|i| show_useful_as(i, Some(e))).collect::<Vec<_>>().join(", ")),
+        (v, _) => v.show_useful(),
+    }
+}
+
+/// Round every bin inside a value to the width its type gives it (bin16, bin32); bin64 is as held.
+fn round_to_width(t: &Ty, v: Value) -> Value {
+    match (t, v) {
+        (Ty::Bin(32), Value::Bin(x)) => Value::Bin((x as f32) as f64),
+        (Ty::Bin(16), Value::Bin(x)) => Value::Bin(round_f16(x)),
+        (Ty::Ranged(b, _, _), v) => round_to_width(b, v),
+        (Ty::List(e) | Ty::Array(e), Value::List(items)) => Value::List(items.into_iter().map(|i| round_to_width(e, i)).collect()),
+        (Ty::Simd(e, _), Value::Simd(lanes)) => Value::Simd(lanes.into_iter().map(|i| round_to_width(e, i)).collect()),
+        (_, v) => v,
     }
 }
 

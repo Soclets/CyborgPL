@@ -1,0 +1,15 @@
+# A bin16/bin32 holds what its width holds: a value is rounded to it where it lands
+# (DECISIONS 2026-09-14). `print` shows what is stored, `printu` the shortest text that
+# gives the value back at its own width.
+MAIN {
+    let 'f': bin32 = 0.1;
+    let 'h': bin16 = 0.1;
+    let 'd': bin64 = 0.1;
+    std::print.stdout['f', \n];     # 0.100000001490116119384765625
+    std::print.stdout['h', \n];     # 0.0999755859375
+    std::print.stdout['d', \n];
+    std::printu.stdout['f', " ", 'h', " ", 'd', \n];     # all three: 0.1
+    let 'big': bin16 = 65519.0;                          # rounds down to bin16's largest, 65504
+    let 'g' := to.bin32["0.1"] otherwise 0.0;            # a conversion lands at bin32 too
+    std::print.stdout['big', " ", 'g', \n];
+}

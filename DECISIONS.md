@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Oracle bug: bin16 and bin32 were kept at 64 bits (compiler session)
+
+`let 'f': bin32 = 0.1;` printed the 64-bit 0.1
+(0.1000000000000000055511151231257827…), where the 2026-09-14 entry
+gives this exact case as `0.100000001490116119384765625`. The oracle never
+rounded a bin to its width. Fixed: a bin16 or bin32 is rounded
+(IEEE, nearest-even) where it lands, on a typed `let`, an assignment, an
+argument, a return or a field, and by `to.bin32[…]`. A value that rounds past the
+largest (65520 into bin16) does not fit: a check site, or `out_of_range`
+from text or into a range type. `printu` now shows the shortest text that
+gives the value back at its own width (`0.1` for a bin32 0.1, per the same
+entry). A `bin64` holding the same bits still shows `0.10000000149011612`.
+Whether bin32 arithmetic also rounds after each operation is before the
+owner and is not changed here: the oracle still computes an expression at
+64 bits and rounds where it lands. `examples/bin_widths.cpls`, reject test
+bin16_rounds_past.
+
 ### 2026-09-24 — Oracle bug: a huge shift count wrapped to a small one (verification session)
 
 Generator seed 1125, shrunk: `(0 shr 4611686018427387904) > 0` ran in the
