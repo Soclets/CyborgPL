@@ -1314,6 +1314,12 @@ impl<'a> Enc<'a> {
                 Some(format!("(not (and {} {} {}))", self.cmp_const(&a, "bvsge", 1)?, not_backwards, self.cmp_vals(&b, "bvsle", &n)?))
             }
             SiteKind::Narrow { to } | SiteKind::LengthBound { to } => {
+                // A duration's site carries both sides of a subtraction, and
+                // what must fit is their difference: asking about the first
+                // alone "proved" `'a' - 2 seconds` never negative.
+                if *to == Ty::Duration || ops.len() > 1 {
+                    return None;
+                }
                 let v = ops.first().cloned().flatten()?;
                 let (lo, hi) = int_bounds(to)?;
                 Some(format!("(or {} {})", self.cmp_const(&v, "bvsgt", hi)?, self.cmp_const(&v, "bvslt", lo)?))

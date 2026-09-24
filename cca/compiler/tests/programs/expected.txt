@@ -147,3 +147,5 @@ copy_arg 6
 user_keys 129
 user_keys_disagree trap
 big_literal_list 1
+durations 7
+duration_negative trap

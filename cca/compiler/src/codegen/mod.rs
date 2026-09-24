@@ -161,6 +161,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // One block the runtime owns; the program holds a pointer to it.
             Ty::Channel(_) => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             Ty::Char(crate::types::Unit::Byte) => Some(self.ctx.i8_type().into()),
+            // "One representation underneath: nanoseconds in an integer wide
+            // enough for centuries" (`concurrency.md`): 64 bits hold 292
+            // years, and a duration is never negative.
+            Ty::Duration => Some(self.ctx.i64_type().into()),
             // A function held as a value (`functions-as-values.md`): its
             // code and the block of what it captured, null when it captured
             // nothing — then the code is the plain function, which is what
@@ -2395,6 +2399,23 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let SiteKind::Narrow { to } = &site.kind else { return };
         if let Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32))) = to.base() {
             return self.bin_narrow_check(fi, id, *bits, &site, slots, func);
+        }
+        // A duration is never negative (owner, 2026-09-22): the site holds
+        // both sides of the subtraction, and it fails when the second is
+        // the larger. Only the first was looked at, and it always fit.
+        if *to == Ty::Duration && site.operands.len() == 2 {
+            let read = |o: &Operand| match o.place() {
+                Some(p) => Operand::Read(p.clone()),
+                None => o.clone(),
+            };
+            let (a, b) = (read(&site.operands[0]), read(&site.operands[1]));
+            let (Some(BasicValueEnum::IntValue(x)), Some(BasicValueEnum::IntValue(y))) = (self.operand(fi, &a, slots), self.operand(fi, &b, slots)) else { return };
+            let w = self.ctx.i64_type();
+            let x = self.fit_as(x.into(), w.into(), true).into_int_value();
+            let y = self.fit_as(y.into(), w.into(), true).into_int_value();
+            let Ok(bad) = self.builder.build_int_compare(IntPredicate::SLT, x, y, "below_zero") else { return };
+            let _ = self.guard(fi, id, bad, func);
+            return;
         }
         let Some((lo, hi)) = crate::precog::smt::int_bounds(to) else {
             if !matches!(to.base(), Ty::Bin(_)) {
