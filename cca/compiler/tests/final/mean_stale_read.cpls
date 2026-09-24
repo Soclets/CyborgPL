@@ -1,0 +1,24 @@
+# Not an average: one element read once, before the loop, and added on
+# every trip — the count is the input's, not the list's length. The sum
+# over length template must not fit (its read has to be in the loop, at the
+# current position), so the final build refuses the narrowing.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn atoi ['s': ptr[uint8]] -> int32;
+fn stale [lent 'xs': list[int32], 'n': int32] -> int32 {
+    let mut 'total' := 0;
+    let 'v' := lend 'xs';
+    let mut 'i' := 1;
+    let 'x' := 'v'[pos 'i'];
+    while 'i' <== 'n' {
+        'total' = 'total' + 'x';
+        'i' = 'i' + 1;
+    }
+    return 'total' / list.length[lend 'xs'];
+}
+MAIN {
+    let 'k' := "N";
+    nocheck let 'n': int32 = atoi[getenv[lend 'k']];
+    let 'xs': list[int32] = [2147483647,];
+    nocheck exit[stale[lend 'xs', 'n'] mod 256];
+}

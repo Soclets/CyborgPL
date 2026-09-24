@@ -211,6 +211,11 @@ fn final_build_proves_counted_loops_and_no_more() {
         assert!(r.status.success(), "the final build refused bench/{}.cpls:\n{}", name, String::from_utf8_lossy(&r.stderr));
     }
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
+    // An average fits its elements' type: the sum-over-length template.
+    for name in ["mean_ok"] {
+        let r = final_build(&tests.join(format!("{}.cpls", name)));
+        assert!(r.status.success(), "the final build refused tests/final/{}.cpls:\n{}", name, String::from_utf8_lossy(&r.stderr));
+    }
     // Where each must be refused: the line that really can go wrong.
     for (name, phrase) in [
         ("acc_overflows", "acc_overflows.cpls, line 12"),
@@ -218,6 +223,7 @@ fn final_build_proves_counted_loops_and_no_more() {
         ("fib_93", "fib_93.cpls, line 8"),
         ("recursion_upward", "recursion_upward.cpls, line 9"),
         ("counter_on_a_branch", "counter_on_a_branch.cpls, line 19"),
+        ("mean_stale_read", "mean_stale_read.cpls, line 17"),
     ] {
         let r = final_build(&tests.join(format!("{}.cpls", name)));
         let err = String::from_utf8_lossy(&r.stderr);

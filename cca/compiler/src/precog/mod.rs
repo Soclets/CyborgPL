@@ -1100,7 +1100,17 @@ impl Precog {
                         facts.insert(dest.local, (cmp, lhs.clone(), rhs.clone()));
                     }
                 }
-                self.binary(f, op, &a, &b, dest)
+                let r = self.binary(f, op, &a, &b, dest);
+                // A sum over a list's elements divided by its length: the
+                // average stays within the elements' range (`precog.md`,
+                // the loop-invariant template "a sum is bounded by trips
+                // times the largest element").
+                if *op == BinOp::Div {
+                    if let (Domain::Ints(s), Some((lo, hi))) = (&r, mean_bound(&self.prog().functions[f], lhs, rhs)) {
+                        return Domain::Ints(s.clamp(lo, hi));
+                    }
+                }
+                r
             }
             Rvalue::Convert { to, operand } => {
                 let d = self.read_operand(f, env, operand);
@@ -2715,4 +2725,238 @@ fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
         SiteKind::ShiftWidth | SiteKind::ShiftCount => ds.get(1).cloned(),
         _ => None,
     }
+}
+
+// ---------------------------------------------------------------- templates
+
+/// The template "a sum is bounded by trips times the largest element"
+/// (`precog.md`), for `A / M` where `M` is a list's length and `A` a sum of
+/// that list's elements taken in a counted walk over it. Every condition is
+/// checked on the graph, conservatively; any doubt and the answer is `None`
+/// (nothing proven, nothing assumed):
+///
+/// - `M` is set once, to `ListLength[P]`, and nothing in the function writes
+///   `P`'s root local or lends it mutably — the list is the same at the walk
+///   and at the division;
+/// - `A` is set to 0, and otherwise only by `A = T` with `T = A + X` once;
+/// - `X` is set once, from `Q[pos I]`, with `Q` a lend of that same `P`
+///   (through copies of the borrow);
+/// - `I` is set to 1 once, outside every cycle, and otherwise only by
+///   `I = I + 1`; every cycle through the add passes through that step;
+/// - the read `X = Q[pos I]`, then `T = A + X`, then `A = T` are in one
+///   block, in that order: every add uses a fresh read at the current `I`.
+///
+/// Then each add is at a different `I`, each `I` a position the read
+/// checked, so at most `len(P)` of them: `A` is within `len · min(lo, 0)` and
+/// `len · max(hi, 0)` for the elements' type range `[lo, hi]`, and `A / len`
+/// (when `len` is not zero — else that division's own site stops it) is
+/// within `[min(lo, 0), max(hi, 0)]`.
+fn mean_bound(func: &Function, lhs: &Operand, rhs: &Operand) -> Option<(i128, i128)> {
+    let whole = |o: &Operand| -> Option<LocalId> {
+        let p = o.place()?;
+        p.proj.is_empty().then_some(p.local)
+    };
+    let (a, m) = (whole(lhs)?, whole(rhs)?);
+    // Every place a local is written, and how.
+    enum Write<'a> {
+        Assign(&'a Rvalue, usize),
+        Other,
+    }
+    let writes = |l: LocalId| -> Vec<Write> {
+        let mut out = Vec::new();
+        for (bi, b) in func.blocks.iter().enumerate() {
+            for s in &b.stmts {
+                match &s.kind {
+                    StmtKind::Assign { place, rvalue } if place.local == l => {
+                        if place.proj.is_empty() {
+                            out.push(Write::Assign(rvalue, bi));
+                        } else {
+                            out.push(Write::Other);
+                        }
+                    }
+                    StmtKind::Op { dest: Some(d), .. } if d.local == l => out.push(Write::Other),
+                    _ => {}
+                }
+            }
+            if let Terminator::Call { dest: Some(d), .. } = &b.term {
+                if d.local == l {
+                    out.push(Write::Other);
+                }
+            }
+        }
+        out
+    };
+    let ops_writing = |l: LocalId| -> Vec<(&Op, &[Operand], usize)> {
+        let mut out = Vec::new();
+        for (bi, b) in func.blocks.iter().enumerate() {
+            for s in &b.stmts {
+                if let StmtKind::Op { dest: Some(d), op, args } = &s.kind {
+                    if d.local == l {
+                        out.push((op, args.as_slice(), bi));
+                    }
+                }
+            }
+        }
+        out
+    };
+    // M = ListLength[P], once.
+    let (m_ops, m_writes) = (ops_writing(m), writes(m));
+    if m_ops.len() != 1 || m_writes.len() != 1 {
+        return None;
+    }
+    let (op, args, _) = m_ops[0];
+    if *op != Op::ListLength {
+        return None;
+    }
+    let p = args.first()?.place()?.clone();
+    let root = p.local;
+    // Nothing writes P's root, lends it mutably, or changes it by an op.
+    for b in &func.blocks {
+        for s in &b.stmts {
+            match &s.kind {
+                StmtKind::Assign { place, rvalue } => {
+                    if place.local == root {
+                        return None;
+                    }
+                    if let Rvalue::Lend { place: lp, mutable: true } = rvalue {
+                        if lp.local == root {
+                            return None;
+                        }
+                    }
+                }
+                StmtKind::Op { dest, op, args } => {
+                    if dest.as_ref().map_or(false, |d| d.local == root) {
+                        return None;
+                    }
+                    let changes = matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore);
+                    if changes && args.first().and_then(|a| a.place()).map_or(false, |pl| pl.local == root) {
+                        return None;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let Terminator::Call { args, dest, .. } = &b.term {
+            if dest.as_ref().map_or(false, |d| d.local == root) {
+                return None;
+            }
+            for arg in args {
+                if let Arg::Lend { place, mutable: true } = arg {
+                    if place.local == root {
+                        return None;
+                    }
+                }
+            }
+        }
+    }
+    // Does a local alias P: set once, by a lend of P or a copy of one that does?
+    let aliases_p = |mut q: LocalId| -> bool {
+        for _ in 0..8 {
+            let w = writes(q);
+            if w.len() != 1 {
+                return false;
+            }
+            match &w[0] {
+                Write::Assign(Rvalue::Lend { place, mutable: false }, _) => return place.local == p.local && place.proj == p.proj,
+                Write::Assign(Rvalue::Use(Operand::Read(src)), _) if src.proj.is_empty() => q = src.local,
+                _ => return false,
+            }
+        }
+        false
+    };
+    // A: 0, and `A = T` with `T = A + X`.
+    let mut zero = false;
+    let mut add: Option<(LocalId, usize)> = None;
+    for w in writes(a) {
+        match w {
+            Write::Assign(Rvalue::Use(Operand::Const(Const::Int(0))), _) if !zero => zero = true,
+            Write::Assign(Rvalue::Use(Operand::Read(t)), _) if t.proj.is_empty() && add.is_none() => {
+                let tw = writes(t.local);
+                let [Write::Assign(Rvalue::Binary { op: BinOp::Add, lhs, rhs }, tb)] = tw.as_slice() else { return None };
+                let x = match (whole(lhs), whole(rhs)) {
+                    (Some(l), Some(r)) if l == a => r,
+                    (Some(l), Some(r)) if r == a => l,
+                    _ => return None,
+                };
+                add = Some((x, *tb));
+            }
+            _ => return None,
+        }
+    }
+    let (x, add_block) = add?;
+    if !zero {
+        return None;
+    }
+    // X = Q[pos I], once, Q a lend of P.
+    let xw = writes(x);
+    let [Write::Assign(Rvalue::Use(Operand::Read(read)), _)] = xw.as_slice() else { return None };
+    let [Proj::Index(Operand::Read(ip))] = read.proj.as_slice() else { return None };
+    if !ip.proj.is_empty() || !aliases_p(read.local) {
+        return None;
+    }
+    let i = ip.local;
+    // I: 1 once, outside every cycle; otherwise `I = T2`, `T2 = I + 1`.
+    let mut start: Option<usize> = None;
+    let mut step: Option<usize> = None;
+    for w in writes(i) {
+        match w {
+            Write::Assign(Rvalue::Use(Operand::Const(Const::Int(1))), bi) if start.is_none() => start = Some(bi),
+            // `I = I + 1` written directly.
+            Write::Assign(Rvalue::Binary { op: BinOp::Add, lhs, rhs }, bi) if step.is_none() => {
+                let ok = (whole(lhs) == Some(i) && matches!(rhs, Operand::Const(Const::Int(1)))) || (whole(rhs) == Some(i) && matches!(lhs, Operand::Const(Const::Int(1))));
+                if !ok {
+                    return None;
+                }
+                step = Some(bi);
+            }
+            Write::Assign(Rvalue::Use(Operand::Read(t)), bi) if t.proj.is_empty() && step.is_none() => {
+                let tw = writes(t.local);
+                let [Write::Assign(Rvalue::Binary { op: BinOp::Add, lhs, rhs }, _)] = tw.as_slice() else { return None };
+                let ok = (whole(lhs) == Some(i) && matches!(rhs, Operand::Const(Const::Int(1)))) || (whole(rhs) == Some(i) && matches!(lhs, Operand::Const(Const::Int(1))));
+                if !ok {
+                    return None;
+                }
+                step = Some(bi);
+            }
+            _ => return None,
+        }
+    }
+    let (start, step) = (start?, step?);
+    // Can `from`'s successors reach `to` without passing through `avoid`?
+    let reaches = |from: usize, to: usize, avoid: Option<usize>| -> bool {
+        let mut seen = vec![false; func.blocks.len()];
+        let mut stack: Vec<usize> = crate::mir::verify::successors(&func.blocks[from].term).iter().map(|b| b.0 as usize).collect();
+        while let Some(b) = stack.pop() {
+            if Some(b) == avoid || b >= seen.len() || seen[b] {
+                continue;
+            }
+            if b == to {
+                return true;
+            }
+            seen[b] = true;
+            stack.extend(crate::mir::verify::successors(&func.blocks[b].term).iter().map(|x| x.0 as usize));
+        }
+        false
+    };
+    if reaches(start, start, None) || reaches(add_block, add_block, Some(step)) {
+        return None;
+    }
+    // The read, the sum and the store, in one block and in that order, with
+    // nothing between them writing X or I: each add adds a fresh element.
+    let stmts = &func.blocks[add_block].stmts;
+    let at = |pred: &dyn Fn(&StmtKind) -> bool| stmts.iter().position(|s| pred(&s.kind));
+    let r = at(&|k| matches!(k, StmtKind::Assign { place, .. } if place.local == x && place.proj.is_empty()));
+    let s_ = at(&|k| matches!(k, StmtKind::Assign { rvalue: Rvalue::Binary { op: BinOp::Add, lhs, rhs }, .. } if whole(lhs) == Some(x) || whole(rhs) == Some(x)));
+    let st = at(&|k| matches!(k, StmtKind::Assign { place, .. } if place.local == a && place.proj.is_empty()));
+    let (Some(r), Some(s_), Some(st)) = (r, s_, st) else { return None };
+    if !(r < s_ && s_ < st) {
+        return None;
+    }
+    let touches = |k: &StmtKind| matches!(k, StmtKind::Assign { place, .. } if place.local == x || place.local == i);
+    if stmts[r + 1..st].iter().any(|s| touches(&s.kind)) {
+        return None;
+    }
+    // The elements' range: X holds a value of its type.
+    let (lo, hi) = smt::int_bounds(&func.locals[x.0 as usize].ty)?;
+    Some((lo.min(0), hi.max(0)))
 }
