@@ -214,7 +214,7 @@ inductively (true before the first trip; true after a trip if true before
 it): a counter stays within the range's ends; a sum is bounded by trips
 times the largest element — which is what makes an average fit the
 element type, since a sum bounded by *n* × max divided by *n* is at
-most max (`examples/gradebook.cpls`, the case CCA cannot yet prove); an index never decreases and never passes the
+most max (`examples/gradebook.cpls`, proven by CCA since dd04991, 2026-09-24); an index never decreases and never passes the
 length; a running max/min stays within the elements' domain; a count
 never exceeds the trips so far. A confirmed guess is a proof, never an
 assumption. If no shape fits or none is confirmed, the loop's sites are
