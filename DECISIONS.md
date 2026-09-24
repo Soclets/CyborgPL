@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — Oracle bug: a huge shift count wrapped to a small one (verification session)
+
+Generator seed 1125, shrunk: `(0 shr 4611686018427387904) > 0` ran in the
+oracle and was refused by CCA, which was right. The shift-count rule
+(0 to width − 1, a check site) compared the count only after narrowing
+it to 32 bits, so 2^62 became 0. Fixed by comparing the whole count. A
+shift with no width anywhere now says "on a value of any width" instead
+of the oracle's internal 127 bits. Reject test: shift_count_huge.
+
 ### 2026-09-24 — Text too big for its number type fails `out_of_range` (owner: c)
 
 From compiler claude: `conversion.md` did not say what a well-formed number

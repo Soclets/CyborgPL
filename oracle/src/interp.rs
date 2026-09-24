@@ -1626,7 +1626,11 @@ impl<'p> Interp<'p> {
                         if y < 0 { return rt(line, format!("`{op}` by a negative count")); }
                         let width_ty = self.expr_ty(l);
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
-                        if y as u32 >= bits { return site(line, format!("`{op}` by {y} on a {bits}-bit value: every bit is lost")); }
+                        // compare before narrowing: `y as u32` would wrap a huge count to a small one (seed 1125)
+                        if y >= bits as i128 {
+                            let what = if width_ty.is_some() { format!("a {bits}-bit value") } else { "a value of any width".to_string() };
+                            return site(line, format!("`{op}` by {y} on {what}: every bit is lost"));
+                        }
                         if op == "shl" {
                             let r = x.checked_shl(y as u32).ok_or_else(|| RuntimeError { line, msg: "shift overflow".into(), exit: None, site: true, leave: None })?;
                             if let Some(t) = width_ty { if let Some((lo, hi)) = crate::value::int_range(&t) { if r < lo || r > hi { return site(line, format!("`shl` by {y} overflows: {r} does not fit the {bits}-bit type")); } } }
