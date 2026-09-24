@@ -127,3 +127,4 @@ equality 63
 consts 63
 conversions 255
 text_too_big trap
+bin_widths 31

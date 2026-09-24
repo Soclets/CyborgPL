@@ -895,6 +895,41 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         }
                     }
                 }
+                // Bins: the operation is done at the answer's own width (a
+                // comparison at the wider side's), each operand brought to
+                // it and a literal written straight at it. An `fadd float`
+                // stored into a free-width `bin`'s `double` left half of it
+                // garbage.
+                if let (BasicValueEnum::FloatValue(x), BasicValueEnum::FloatValue(y)) = (a, b) {
+                    let at = if op.is_comparison() {
+                        let (xt, yt) = (x.get_type(), y.get_type());
+                        let bits = |t: inkwell::types::FloatType<'ctx>| if t == self.ctx.f16_type() { 16 } else if t == self.ctx.f32_type() { 32 } else { 64 };
+                        // A literal has no width of its own: the place's.
+                        match (lhs, rhs) {
+                            (Operand::Const(_), _) => yt,
+                            (_, Operand::Const(_)) => xt,
+                            _ if bits(xt) >= bits(yt) => xt,
+                            _ => yt,
+                        }
+                    } else {
+                        match want {
+                            Some(BasicTypeEnum::FloatType(t)) => t,
+                            _ => x.get_type(),
+                        }
+                    };
+                    let bring = |this: &mut Self, o: &Operand, v: inkwell::values::FloatValue<'ctx>| -> Option<inkwell::values::FloatValue<'ctx>> {
+                        if let Operand::Const(Const::Bin(text)) = o {
+                            return Some(unsafe { at.const_float_from_string(&text.replace('_', "")) });
+                        }
+                        if v.get_type() == at {
+                            return Some(v);
+                        }
+                        this.builder.build_float_cast(v, at, "at_width").ok()
+                    };
+                    let x = bring(self, lhs, x)?;
+                    let y = bring(self, rhs, y)?;
+                    return self.binary(fi, op, x.into(), y.into(), sites, func, blocks, true);
+                }
                 let signed = self.operand_signed(fi, lhs).or_else(|| self.operand_signed(fi, rhs)).or_else(|| want_ty.as_ref().and_then(int_signed)).unwrap_or(true);
                 let (a, b) = match (a, b, want) {
                     (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y), Some(t @ BasicTypeEnum::IntType(_))) if x.is_const() && y.is_const() && !op.is_comparison() => (self.fit_as(a, t, signed), self.fit_as(b, t, signed)),
