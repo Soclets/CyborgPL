@@ -361,3 +361,10 @@ Dated, with the alternative, so each can become a question later.
   them ("solver" for layer 3); integers as decimal strings. An interface
   between two sessions, not the language's JSON schema, which the brief
   leaves to the owner; its shape can change when that is decided.
+- **2026-09-24 — Unicode 17.0.0, pinned.** Grapheme clusters are UAX #29
+  (extended) through unicode-segmentation =1.13.3, whose tables are Unicode
+  17.0.0 — earlier notes of this session said 16, wrongly. The owner ruled
+  one Unicode version per build, recorded in the lock file beside the
+  compiler version, moved on deliberately ("we should update when we should
+  update"; reproducible-builds.md, item 7). No lock file exists yet
+  (Synthia's); `cca version` prints both, for it to carry.

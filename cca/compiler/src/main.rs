@@ -10,6 +10,7 @@ fn usage() -> ! {
     eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
     eprintln!("       cca precog <file.cpls | limb-dir>    check, lower, prove, and report");
     eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
+    eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
 
@@ -17,6 +18,14 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(cmd) = args.first() else { usage() };
     match cmd.as_str() {
+        // "One Unicode version per build, recorded in the lock file beside the
+        // compiler version" (reproducible-builds.md, item 7; owner,
+        // 2026-09-24): what a lock file will carry, in one place.
+        "version" => {
+            let (a, b, c) = unicode_segmentation::UNICODE_VERSION;
+            println!("cca {}", env!("CARGO_PKG_VERSION"));
+            println!("unicode {}.{}.{}", a, b, c);
+        }
         "parse" => {
             let mut failed = false;
             for f in &args[1..] {
