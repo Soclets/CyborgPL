@@ -2582,10 +2582,6 @@ for JetPack, always containing analysable source, never an opaque binary
 
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
 
-**Language — surfaced by the second (OCaml) oracle, 2026-09-17**
-
-**Language — surfaced by the oracle**
-
 **Language**
 - N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
