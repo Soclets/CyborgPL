@@ -213,7 +213,7 @@ list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type paramete
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
-map_bound_over [fnv:0e4ebc4a07b99fd9] :: !pending needs a map's *known keys*, not only its count: three `set`s of three different literals grow it by exactly three, and layer 2 today says "by 0 to 3", so the site is a check rather than a refusal
+map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
 map_get_unhandled [fnv:fb19a18b0ea9877e] :: `map.get` can fail (missing): say what happens
 map_hash_disagrees [fnv:bffd9b036fb4e87b] :: !pending the `KeyHashAgrees` site exists in MIR and needs layer 3 (the solver) to prove or disprove it
 map_literal_dup_key [fnv:2c22ea3aaf3284e2] :: this key is written twice in the literal

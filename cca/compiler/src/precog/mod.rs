@@ -1124,7 +1124,16 @@ impl Precog {
                 }
                 Domain::Seq { len: ISet::one(items.len() as i128), elem: Box::new(elem) }
             }
-            Rvalue::MakeMap(pairs) => Domain::Map { len: ISet::one(pairs.len() as i128), key: Box::new(Domain::Any), val: Box::new(Domain::Any) },
+            // The keys a map can hold, as a set that may be larger than the
+            // truth: a new map's are its literal's (none for `map.empty`).
+            Rvalue::MakeMap(pairs) => {
+                let (mut key, mut val) = (Domain::Empty, Domain::Empty);
+                for (k, v) in pairs {
+                    key = key.union(&self.read_operand(f, env, k));
+                    val = val.union(&self.read_operand(f, env, v));
+                }
+                Domain::Map { len: ISet::one(pairs.len() as i128), key: Box::new(key), val: Box::new(val) }
+            }
             Rvalue::MakeStruct { fields, .. } => {
                 let ds = fields.iter().map(|o| self.read_operand(f, env, o)).collect();
                 Domain::Struct(ds)
@@ -1447,7 +1456,16 @@ impl Precog {
                 Domain::Seq { len: len.add(&ISet::one(1)), elem: Box::new(elem.union(&added)) }
             }
             (Op::ListRemove, Domain::Seq { len, elem }) => Domain::Seq { len: len.sub(&ISet::one(1)).clamp(0, i64::MAX as i128), elem },
-            (Op::MapSet, Domain::Map { len, key, val }) => Domain::Map { len: len.add(&ISet::range(0, 1)).clamp(0, i64::MAX as i128), key, val },
+            // A key that is one known value, outside every key the map can
+            // hold, is a new entry: exactly one more (`map_bound_over`'s
+            // third `set`). Otherwise it may replace one: none or one more.
+            // Either way the keys and values the map can hold grow by it.
+            (Op::MapSet, Domain::Map { len, key, val }) => {
+                let k = args.get(1).map(|a| self.read_operand(f, env, a)).unwrap_or(Domain::Any);
+                let v = args.get(2).map(|a| self.read_operand(f, env, a)).unwrap_or(Domain::Any);
+                let grows = if surely_absent(&key, &k) { ISet::one(1) } else { ISet::range(0, 1) };
+                Domain::Map { len: len.add(&grows).clamp(0, i64::MAX as i128), key: Box::new(key.union(&k)), val: Box::new(val.union(&v)) }
+            }
             (Op::MapRemove, Domain::Map { len, key, val }) => Domain::Map { len: len.sub(&ISet::range(0, 1)).clamp(0, i64::MAX as i128), key, val },
             // A store writes N elements whose lanes Precog does not follow
             // (`simd.md`, a domain per lane, is not built yet): the length
@@ -2959,4 +2977,27 @@ fn mean_bound(func: &Function, lhs: &Operand, rhs: &Operand) -> Option<(i128, i1
     // The elements' range: X holds a value of its type.
     let (lo, hi) = smt::int_bounds(&func.locals[x.0 as usize].ty)?;
     Some((lo.min(0), hi.max(0)))
+}
+
+/// Is `k` one known value that none of `keys` (every key a map can hold,
+/// possibly more) is? Only then is a `set` of it surely a new entry.
+fn surely_absent(keys: &Domain, k: &Domain) -> bool {
+    match (keys, k) {
+        (Domain::Empty, _) => single_value(k),
+        (Domain::Ints(ks), Domain::Ints(x)) => x.single().map_or(false, |v| !ks.contains(v)),
+        (Domain::Text { values: Some(ks), .. }, Domain::Text { values: Some(x), .. }) => x.len() == 1 && !ks.contains(&x[0]),
+        (Domain::Chars { values: Some(ks) }, Domain::Chars { values: Some(x) }) => x.len() == 1 && !ks.contains(&x[0]),
+        (Domain::Bools(t, f), Domain::Bools(xt, xf)) => (*xt && !*xf && !*t) || (*xf && !*xt && !*f),
+        _ => false,
+    }
+}
+
+/// Exactly one value, known.
+fn single_value(d: &Domain) -> bool {
+    match d {
+        Domain::Ints(s) | Domain::Duration(s) => s.single().is_some(),
+        Domain::Text { values: Some(v), .. } | Domain::Chars { values: Some(v) } => v.len() == 1,
+        Domain::Bools(t, f) => t != f,
+        _ => false,
+    }
 }

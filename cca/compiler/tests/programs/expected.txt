@@ -156,3 +156,4 @@ keyword_fn 51
 grapheme_literal 3
 held_fail 15
 inline_asm 7
+map_same_key 8
