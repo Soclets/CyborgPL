@@ -53,6 +53,22 @@ not exist.
 The same verbs apply at call sites, which settles most of the borrow-syntax
 question: a parameter receives whatever the caller wrote.
 
+## A lend's sizes must match (owner, 2026-09-24: a)
+
+```
+fn total [lent 'xs': list[int32]] -> int64 { … }
+let 'big': list[int64] = [1, 2, 3];
+total[lend 'big'];          # error: a list[int64] lent where a list[int32] is looked at
+```
+
+A lend hands over the value where it is, with no copy, so what is lent
+must have the parameter's layout. Range bounds do not change the layout
+(a `list[int32][0, 10]` lends as a `list[int32]`), and a `:=` collection
+takes its width from its use. To take any width, make the parameter
+generic. Proposed alternative: a quiet converted copy, each element a
+narrowing site, written back for `lend.mut`, which would hide a copy
+behind the word that means none.
+
 ## Mutability: statable, not standard (decided 2026-09-14)
 
 A plain `let 'x' := 1000;` is the standard practice — Precog already knows

@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-24 — A lend's sizes must match the parameter's (owner: a)
+
+From compiler claude: `total[lend 'big']` with `'big'` a `list[int64]` and
+`total` taking `lent 'xs': list[int32]`. The oracle accepted it, since it
+did not model widths, and CCA had compiled it reading the wrong layout.
+Proposed (a) a type error; (b) a converted copy, each element a narrowing
+site, written back for `lend.mut`. Design claude recommended a, since
+`lend` is the word for no copy. Owner: a. Range bounds do not change the
+layout, and a `:=` collection or a generic's `<T>` is not compared. The
+oracle refuses the mismatch (reject test lend_width_mismatch).
+`ownership-syntax.md`.
+
 ### 2026-09-24 — A function carrying a `copy`/`give` capture is owned (owner: a)
 
 From compiler claude, building functions as values: can

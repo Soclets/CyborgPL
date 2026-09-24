@@ -2450,6 +2450,8 @@ impl<'p> Interp<'p> {
         }
         let mut rest: Vec<Value> = Vec::new();
         for (arg, param) in pairs {
+            // the declared type of a variable handed over by a verb, to hold a lend to its layout
+            let src_ty = match &arg { Arg::Ast(crate::ast::Value::Expr(Expr::Owned(_, n, _))) => self.lookup(n).and_then(|s| s.ty.clone()), _ => None };
             let (v, prov) = match arg { Arg::Ast(a) => self.value(a)?, Arg::Val(v, p) => (v, p) };
             let pn = &param.name;
             let slot = match param.kind {
@@ -2469,6 +2471,14 @@ impl<'p> Interp<'p> {
                         Prov::Borrowed(cell, is_mut) => {
                             if want_mut && !is_mut { return rt(c.line, format!("`{name}` may modify '{pn}': pass `lend.mut`, not `lend`")); }
                             if !want_mut && is_mut { return rt(c.line, format!("`{name}` only looks at '{pn}': pass `lend`, not `lend.mut`")); }
+                            // a lend hands the value over where it is, so its widths must match the
+                            // parameter's (owner, 2026-09-24: a); a range's bounds do not change the layout
+                            if let (Some(st), Some(pt)) = (&src_ty, &param.ty) {
+                                let mut vars = Vec::new(); pt.vars_into(&mut vars); st.vars_into(&mut vars);
+                                if vars.is_empty() && layout_name(st) != layout_name(pt) {
+                                    return rt(c.line, format!("`{name}` looks at '{pn}' as {}, but what you lent is {}: a lend hands over the value where it is, so the sizes must match (change the parameter, or make it generic)", ty_name(pt), ty_name(st)));
+                                }
+                            }
                             if let Some(t) = &param.ty { self.check_type(&v, t, c.line)?; }
                             Slot { cell, ty: param.ty.clone(), kind, alive: true, immut: false, sized: false }
                         }
@@ -3243,6 +3253,17 @@ fn lit_digits(e: &Expr) -> Option<String> {
         Expr::Paren(inner, _) => lit_digits(inner),
         Expr::Unary(op, inner, _) if op == "-" => lit_digits(inner).map(|t| match t.strip_prefix('-') { Some(p) => p.to_string(), None => format!("-{t}") }),
         _ => None,
+    }
+}
+
+/// A type as memory lays it out: range bounds and text bounds do not change it.
+fn layout_name(t: &Ty) -> String {
+    match t {
+        Ty::Ranged(b, _, _) => layout_name(b),
+        Ty::TextRanged(e, _, _, _) => ty_name(&Ty::Str(e.clone())),
+        Ty::List(e) => format!("list[{}]", layout_name(e)),
+        Ty::Array(e) => format!("array[{}]", layout_name(e)),
+        t => ty_name(t),
     }
 }
 
