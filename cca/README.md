@@ -351,3 +351,13 @@ Dated, with the alternative, so each can become a question later.
   given, or unpacked into. (A lend whose written widths differ is a type
   error, owner 2026-09-24: a — "a lend hands over the value where it is, so
   the sizes must match".)
+- **2026-09-24 — `cca precog --json`: a line per check site, for the
+  Precog oracle.** Check claude asked for CCA's claims in a form a program
+  reads (`precog.md`, attacks b and c). One JSON object per site: file,
+  start and end (line, column) of its expression, the function instance,
+  the kind of check and the construct, the type and range it must fit, the
+  verdict (proven / checked / refused / nocheck), the layer that proved it
+  (1, 2, 3, induction), and the value and operands as layers 1 and 2 saw
+  them ("solver" for layer 3); integers as decimal strings. An interface
+  between two sessions, not the language's JSON schema, which the brief
+  leaves to the owner; its shape can change when that is decided.

@@ -49,6 +49,10 @@ pub struct SiteResult {
     pub verdict: Verdict,
     /// "layer 1: ran it", "layer 2: 1 to 100" — what convinced it.
     pub note: String,
+    /// The value the check asks about, as layers 1 and 2 saw it, if the
+    /// kind has one; and every operand's.
+    pub value: Option<Domain>,
+    pub operands: Vec<Domain>,
 }
 
 pub struct Analysis {
@@ -89,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -154,7 +158,10 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     let mut sites: Vec<SiteResult> = a
         .results
         .iter()
-        .map(|((f, s), v)| SiteResult { function: *f, site: SiteId(*s), verdict: v.clone(), note: note_of(v) })
+        .map(|((f, s), v)| {
+            let (value, operands) = a.claims.get(&(*f, *s)).cloned().unwrap_or((None, Vec::new()));
+            SiteResult { function: *f, site: SiteId(*s), verdict: v.clone(), note: note_of(v), value, operands }
+        })
         .collect();
     sites.sort_by_key(|r| (r.function, r.site.0));
     let certain: Vec<usize> = sites.iter().enumerate().filter(|(_, r)| matches!(&r.verdict, Verdict::Fails { counterexample } if counterexample.starts_with("every"))).map(|(i, _)| i).collect();
@@ -237,6 +244,10 @@ struct Precog {
     /// from several call sites has to survive all of them, so the worse
     /// answer is the one kept.
     results: HashMap<(usize, u32), Verdict>,
+    /// What each site's check is about — the value it asks of — as layers 1
+    /// and 2 saw it, joined over every time it was judged; and the
+    /// operands'. For the Precog oracle (`cca precog --json`).
+    claims: HashMap<(usize, u32), (Option<Domain>, Vec<Domain>)>,
     /// Exact instructions' value ranges, `None` once one visit could not say.
     ranges: HashMap<(usize, usize, usize), Option<(i128, i128)>>,
     /// Counted loops: the state each head was entered with from outside
@@ -1651,6 +1662,21 @@ impl Precog {
         let ds: Vec<Domain> = site.operands.iter().map(|o| self.read_operand(f, env, o)).collect();
         let ty_of = |this: &Self, i: usize| -> Option<Ty> { site.operands.get(i).and_then(|o| o.place()).map(|p| this.place_ty(f, p)) };
         let verdict = self.judge_kind(f, &site, &ds, ty_of);
+        if !self.dry {
+            let value = claimed_value(&site.kind, &ds);
+            let entry = self.claims.entry((f, id.0)).or_insert((None, Vec::new()));
+            entry.0 = match (entry.0.take(), value) {
+                (Some(a), Some(b)) => Some(a.union(&b)),
+                (a, b) => a.or(b),
+            };
+            if entry.1.len() == ds.len() {
+                for (old, new) in entry.1.iter_mut().zip(&ds) {
+                    *old = old.union(new);
+                }
+            } else {
+                entry.1 = ds.clone();
+            }
+        }
         if site.tier == Some(Tier::Nocheck) {
             // The check is removed on the writer's word. But the domains
             // were computed anyway, and if they say this fails every time
@@ -2665,4 +2691,28 @@ fn literal_fits_bin(text: &str, to: &Ty) -> Option<bool> {
     }
     let whole = whole.trim_start_matches('0');
     Some(whole.len() < limit.len() || (whole.len() == limit.len() && whole < limit))
+}
+
+/// The value a site's check asks about, from its operands' domains: an
+/// operation's answer, a narrowed value, a divisor, a position, a shift
+/// count. `None` for a kind without one number to show.
+fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
+    match kind {
+        SiteKind::Overflow(op) => {
+            let (Some(Domain::Ints(a)), b) = (ds.first(), ds.get(1)) else { return None };
+            let r = match (op, b) {
+                (BinOp::Add, Some(Domain::Ints(y))) => a.add(y),
+                (BinOp::Sub, Some(Domain::Ints(y))) => a.sub(y),
+                (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
+                (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
+                (BinOp::Div, Some(Domain::Ints(y))) => a.div_floor(y),
+                (BinOp::Sub, None) => a.neg(),
+                _ => return None,
+            };
+            Some(Domain::Ints(r))
+        }
+        SiteKind::Narrow { .. } | SiteKind::LengthBound { .. } | SiteKind::DivZero | SiteKind::ModZero | SiteKind::Bounds | SiteKind::NegativeExponent => ds.first().cloned(),
+        SiteKind::ShiftWidth | SiteKind::ShiftCount => ds.get(1).cloned(),
+        _ => None,
+    }
 }

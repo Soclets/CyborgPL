@@ -55,8 +55,10 @@ fn main() {
         }
         "precog" => {
             let mut failed = false;
-            for f in &args[1..] {
-                if let Err(d) = precog_one(Path::new(f)) {
+            // `--json`: a line per site, for the Precog oracle (report.rs).
+            let json = args[1..].iter().any(|a| a == "--json");
+            for f in args[1..].iter().filter(|a| *a != "--json") {
+                if let Err(d) = precog_one(Path::new(f), json) {
                     failed = true;
                     eprint!("{}", d);
                 }
@@ -157,7 +159,7 @@ fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool) ->
     Ok(())
 }
 
-fn precog_one(path: &Path) -> Result<(), String> {
+fn precog_one(path: &Path, json: bool) -> Result<(), String> {
     let mut sources = SourceMap::default();
     let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = cca::check::Checker::new(items);
@@ -173,6 +175,10 @@ fn precog_one(path: &Path) -> Result<(), String> {
         eprintln!("drops: {} removed as already given away, {} left on some paths only", owned.drops_removed, owned.conditional_drops);
     }
     let analysis = cca::precog::analyse(&mut mir);
+    if json {
+        print!("{}", cca::precog::report::render_json(&analysis, &mir, &sources));
+        return Ok(());
+    }
     print!("{}", cca::precog::report::render(&analysis, &mir, &sources));
     for n in cca::precog::notes(&analysis, &mir, &sources) {
         print!("\n{}", n);
