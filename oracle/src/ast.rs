@@ -250,7 +250,7 @@ pub enum Stmt {
     /// `let 'x' := v;` (ty None) or `let 'x': T = v;` (ty Some);
     /// optionally `let mut` / `let immut` before the name (decided 2026-09-19)
     /// `shadow`: written with `$:=` / `$=`, deliberately hiding an outer name
-    Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, shadow: bool, line: usize },
+    Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, shadow: bool, sealed: bool, line: usize },
     /// `'x' = v;`
     Assign { name: String, value: Bracket, line: usize },
     /// `'xs'[pos i] = v;`

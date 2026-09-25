@@ -5,6 +5,33 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-25 — `!$` in front: a name that cannot be shadowed; `immut` only forbids `change`; `!mut` = `immut` (owner)
+
+```
+immut 'a' := 1;   'a' $:= 2;      # allowed now: shadowing changes nothing
+!$ 'c' := 1;      'c' $:= 2;      # error: 'c' cannot be shadowed
+!$ mut 'total' := 0;              # changeable, never shadowed
+!mut 'b' := 3;                    # the same as immut 'b' := 3;
+```
+
+The owner asked why `immut` could not be shadowed (the 2026-09-14 rule,
+recorded without a reason) and whether it made any safety or performance
+difference. None: a shadow is a second variable, and the old value is never
+touched, so the rule only guards the reader. The owner split the two
+promises: `immut` keeps "cannot be changed", and a new marker says "cannot
+be shadowed". Design claude proposed `sealed`, `final`, `fixed`, `pinned`,
+and recommended `sealed`. The owner asked why not `!$`. Design claude
+argued `!` isn't "not" in Cyborg, which was wrong: `!==` is exactly that
+pattern, so it counts for `!$`. The owner found `'b' !$:= 1;` unreadable
+("looks like a stroke") and moved it in front of the name, where `mut` and
+`immut` go. Owner: `!$` in front, and `!mut` as another spelling of
+`immut`. `!$` combines with `mut`/`immut` (`!$ mut 'x'`). A loop's counter
+stays unshadowable, as before. `!$` on a declaration that itself shadows
+(`!$ 'x' $:= …`) is allowed and not ruled on. Earlier the same day the
+owner considered `$` as an alias for `nocheck` and dropped it on the
+2026-09-19 no-alias rule. `examples/sealed.cpls`; the reject test
+shadow_sealed replaces shadow_immut.
+
 ### 2026-09-25 — No `let`: a declaration starts with its name; changing says `change` (owner)
 
 ```
@@ -2260,7 +2287,7 @@ produces the useful form, for its own argument and its own pieces. Surfaced
 by the oracle. Claude offered stored-by-default vs useful-when-building;
 owner chose stored.
 
-### 2026-09-14 — Shadowing only with `$:=` / `$=`; never for `immut` (owner)
+### 2026-09-14 — Shadowing only with `$:=` / `$=`; never for `immut` (owner) — `immut` part replaced 2026-09-25 by `!$`
 
 First decided as "no shadowing", then refined the same day: a visible name
 may be redeclared only with the `$`-marked operator, so hiding is always

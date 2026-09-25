@@ -1033,6 +1033,7 @@ impl Parser {
                 }
             },
             Tok::LBrace => Ok(Stmt::Block { body: self.block()?, line }),
+            Tok::NoShadow => self.decl(),
             Tok::Var(name) => {
                 // `'x' := …`, `'x': T = …`, `'x' $:= …` declare (owner, 2026-09-25)
                 if matches!(self.peek_at(1), Tok::Walrus | Tok::ShadowWalrus | Tok::Colon | Tok::Semi) { return self.decl(); }
@@ -1095,6 +1096,7 @@ impl Parser {
     // decl := ('mut' | 'immut')? Var (':' type)? (':=' | '=' | '$:=' | '$=') rhs ';'   (no `let`, owner 2026-09-25)
     fn decl(&mut self) -> PResult<Stmt> {
         let line = self.line();
+        let sealed = if *self.peek() == Tok::NoShadow { self.advance(); true } else { false };
         let mut mutability = None;
         if self.is_word("mut") { self.advance(); mutability = Some(Mutability::Mut); }
         else if self.is_word("immut") { self.advance(); mutability = Some(Mutability::Immut); }
@@ -1118,7 +1120,7 @@ impl Parser {
         }
         let value = self.rhs()?;
         self.expect(Tok::Semi, "`;`")?;
-        Ok(Stmt::Decl { name, mutability, ty, value, shadow, line })
+        Ok(Stmt::Decl { name, mutability, ty, value, shadow, sealed, line })
     }
 
     // if := 'if' expr block ('else' 'if' expr block)* ('else' block)?

@@ -30,6 +30,7 @@ pub enum Tok {
     Eq,             // =
     ShadowWalrus,   // $:=
     ShadowEq,       // $=
+    NoShadow,       // !$ — before a declaration: the name cannot be shadowed (owner, 2026-09-25)
     Colon,          // :   'x': int32
     Ellipsis,       // ... a variadic parameter
     LeftArrow,      // <-  asm: register into variable
@@ -64,6 +65,7 @@ impl fmt::Display for Tok {
             Tok::Eq => write!(f, "="),
             Tok::ShadowWalrus => write!(f, "$:="),
             Tok::ShadowEq => write!(f, "$="),
+            Tok::NoShadow => write!(f, "!$"),
             Tok::Colon => write!(f, ":"),
             Tok::Ellipsis => write!(f, "..."),
             Tok::LeftArrow => write!(f, "<-"),
@@ -256,6 +258,11 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         // multi-char punctuation, longest first
         let rest: String = chars[i..chars.len().min(i + 3)].iter().collect();
         let two: String = rest.chars().take(2).collect();
+        if two == "!$" { push(Tok::NoShadow, &mut toks); i += 2; col += 2; continue; }
+        // `!mut` is `immut` written another way (owner, 2026-09-25)
+        if rest.starts_with("!mu") && chars[i..].iter().take(4).collect::<String>() == "!mut" && !chars.get(i + 4).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
+            push(Tok::Word("immut".into()), &mut toks); i += 4; col += 4; continue;
+        }
         if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
         if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
         if c == '$' { return err(tl, tc, "`$` marks a shadowing declaration and sits on the operator: `$:=` or `$=`".into()); }
