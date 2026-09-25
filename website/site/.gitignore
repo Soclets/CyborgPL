@@ -4,3 +4,4 @@ build/
 .wrangler/
 public/icons/
 public/favicon.svg
+public/search-index.json

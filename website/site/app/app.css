@@ -154,3 +154,23 @@ input { font: inherit; }
   .page { animation: none; }
   .btn, .fcard, .gcard, .dots i { transition: none; }
 }
+
+/* ---------------------------------------------------------------- smart search */
+.result .hit { font-size: 12px; color: var(--base01); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+mark { background: rgba(181, 137, 0, .22); color: inherit; border-radius: 3px; }
+.answer { display: block; padding: 16px; margin-bottom: 12px; border-radius: 20px; background: var(--surface); border-top: 5px solid var(--violet); color: var(--text); }
+.answer:active { transform: scale(.98); }
+.answer b { display: block; font-size: 19px; letter-spacing: -.01em; color: var(--ink); }
+.answer p { margin: 4px 0 12px; font-size: 14px; line-height: 1.45; }
+.answer p.foreign { margin: 0 0 6px; font: 700 12px var(--sans); letter-spacing: .04em; text-transform: uppercase; color: var(--orange); }
+.answer p.foreign code { text-transform: none; font-size: 13px; }
+.answer .code { background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+.answer small { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.suggest-head { display: flex; align-items: baseline; justify-content: space-between; }
+.suggest-head button { font-size: 14px; font-weight: 600; color: var(--blue); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.chips button { height: 38px; padding: 0 15px; border-radius: 99px; background: var(--surface); color: var(--ink); font-size: 15px; font-weight: 600; transition: transform .08s ease; }
+.chips button.mono { font-family: var(--mono); }
+.chips button:active { transform: scale(.95); }
+.hint { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.gcard .gline { height: auto; min-height: 0; -webkit-mask-image: none; mask-image: none; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; }
