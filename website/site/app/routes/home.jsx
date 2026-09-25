@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
 import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
@@ -78,6 +78,12 @@ export default function Home() {
   const { index, answers } = useLoaderData();
   const [q, setQState] = useState(lastQ);
   const setQ = (v) => { lastQ = v; setQState(v); };
+  // A second tap on this tab, already at the top, clears the search.
+  useEffect(() => {
+    const clear = () => { setQ(""); document.activeElement?.blur(); };
+    addEventListener("cyborgpl:retap", clear);
+    return () => removeEventListener("cyborgpl:retap", clear);
+  }, []);
   const row = useRef(null);
   const [card, setCard] = useState(0);
   const onScroll = () => {

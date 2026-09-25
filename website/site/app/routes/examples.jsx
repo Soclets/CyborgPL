@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLoaderData } from "react-router";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
@@ -21,10 +21,17 @@ export default function Examples() {
   const { examples } = useLoaderData();
   const [q, setQState] = useState(lastQ);
   const setQ = (v) => { lastQ = v; setQState(v); };
+  // A second tap on this tab, already at the top, clears the search.
+  useEffect(() => {
+    const clear = () => { setQ(""); document.activeElement?.blur(); };
+    addEventListener("cyborgpl:retap", clear);
+    return () => removeEventListener("cyborgpl:retap", clear);
+  }, []);
   const [focused, setFocused] = useState(false);
   const code = useCodeIndex(focused || !!q);
   // Same engine as Home: names, summaries, typos, synonyms, and every line of code.
-  const found = runSearch(examples.map((e) => ({ ...e, text: e.summary })), q, code);
+  const entries = useMemo(() => examples.map((e) => ({ ...e, text: e.summary })), [examples]);
+  const found = runSearch(entries, q, code);
   const shown = found.q ? found.results.map((r) => ({ ...r.entry, line: r.line })) : examples;
   return (
     <div className="examples">

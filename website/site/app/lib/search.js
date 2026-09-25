@@ -51,14 +51,18 @@ const fuzz = (t) => (t.length >= 8 ? 2 : t.length >= 4 ? 1 : 0);
 
 // A line of code matches a word where a word starts (not inside a quoted 'name'),
 // and a symbol (:=, ++, \n…) anywhere. Comments don't count.
+const wordRe = new Map();
+const commentless = new WeakMap();
 function codeHit(term, lines) {
   if (!lines) return null;
-  const short = term.length <= 2;
-  const re = isWord(term) ? new RegExp(`(^|[^A-Za-z0-9_'])${escape(term)}${short ? "(?![A-Za-z0-9_])" : ""}`, "i") : null;
-  for (const raw of lines) {
-    const line = raw.trimStart().startsWith("#") ? "" : raw.replace(/\s+#\s.*$/, "");
-    if (re ? re.test(line) : line.includes(term)) return raw.trim();
+  let re = null;
+  if (isWord(term)) {
+    re = wordRe.get(term);
+    if (!re) wordRe.set(term, (re = new RegExp(`(^|[^A-Za-z0-9_'])${escape(term)}${term.length <= 2 ? "(?![A-Za-z0-9_])" : ""}`, "i")));
   }
+  let code = commentless.get(lines);
+  if (!code) commentless.set(lines, (code = lines.map((l) => l.replace(/\s+#\s.*$/, ""))));
+  for (let i = 0; i < code.length; i++) if (re ? re.test(code[i]) : code[i].includes(term)) return lines[i].trim();
   return null;
 }
 
