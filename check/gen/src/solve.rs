@@ -13,7 +13,8 @@
 //! It is used for aiming, never for judging: every input it finds is run
 //! through the oracle and both CCA builds, and only a disagreement there is
 //! a finding. So an imprecision here (loops cut at a bound, calls too deep
-//! left unknown, `and`/`or` not short-circuited) costs aim, never truth.
+//! left unknown) costs aim, never truth. `and`/`or` run both sides, as the
+//! owner ruled (fc04c70).
 
 use crate::ast::*;
 use crate::ast::addr;

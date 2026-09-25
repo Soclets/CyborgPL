@@ -9,7 +9,7 @@
 //! checked where it lands and against the 64-bit window in between; bare
 //! numbers alone folded exactly; `/` floors, `mod` takes the divisor's sign;
 //! bitwise at the operands' width; shift counts 0..width-1; both sides of
-//! `and` / `or` evaluated (undecided in design/; both engines do this).
+//! `and` / `or` evaluated, left then right (owner, fc04c70).
 
 use crate::ast::*;
 use std::collections::HashMap;
