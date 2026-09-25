@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate, useNavigationType } from "react-router";
 import Icon from "../components/Icon.jsx";
 
 const TABS = [
@@ -21,21 +21,29 @@ export default function Tabs() {
   // The top-level tab decides the page transition; opening an example (a sheet) doesn't.
   const section = "/" + (pathname.split("/")[1] ?? "");
 
-  // The pill slides from the old tab to the new one (measured before and after, then
-  // animated by the browser), so the tab bar needs no animation library.
+  // One pill for the whole bar, moved by a CSS transition: a tap during a slide carries on
+  // from wherever the pill is, instead of restarting. Back and forward don't slide it —
+  // Safari's own back animation is already playing then, and two would show.
+  const nav = useRef(null);
   const pill = useRef(null);
-  const was = useRef(null);
+  const placed = useRef(false);
+  const navType = useNavigationType();
   useLayoutEffect(() => {
-    const el = pill.current;
-    if (!el) return;
-    const now = el.getBoundingClientRect();
-    const from = was.current;
-    was.current = now;
-    if (!from || (from.left === now.left && from.width === now.width) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    el.animate(
-      [{ transform: `translateX(${from.left - now.left}px)`, width: `${from.width}px` }, { transform: "none", width: `${now.width}px` }],
-      { duration: 260, easing: "cubic-bezier(.3, 1.3, .5, 1)" },
-    );
+    const place = (slide) => {
+      const on = nav.current.querySelector(".tab.on"), p = pill.current;
+      if (!on) return void (p.style.opacity = "0");
+      p.style.transition = slide ? "" : "none";
+      p.style.transform = `translateX(${on.offsetLeft + 4}px)`;
+      p.style.width = `${on.offsetWidth - 8}px`;
+      p.style.opacity = "1";
+      if (!slide) p.getBoundingClientRect(); // settle the jump before transitions return
+    };
+    place(placed.current && navType !== "POP");
+    placed.current = true;
+    nav.current.classList.add("ready");
+    const onResize = () => place(false);
+    addEventListener("resize", onResize);
+    return () => removeEventListener("resize", onResize);
   }, [section]);
 
   // A finger acts on lift, not on the click that follows. iOS drops that click when the
@@ -58,13 +66,13 @@ export default function Tabs() {
       <main className="page" key={section}>
         <Outlet />
       </main>
-      <nav className="tabbar" aria-label="Sections">
+      <nav className="tabbar" aria-label="Sections" ref={nav}>
+        <span className="tab-pill" ref={pill} />
         {TABS.map((t) => {
           const on = t.match(pathname);
           return (
             <Link key={t.to} to={t.to} prefetch="render" className={"tab" + (on ? " on" : "")} aria-current={on ? "page" : undefined} aria-label={t.label}
               onPointerUp={(e) => onPointerUp(t, e)} onClick={(e) => onClick(t, e)} draggable={false}>
-              {on && <span ref={pill} className="tab-pill" />}
               <span className="tab-inner">
                 <Icon name={t.icon} size={22} />
                 {on && <b>{t.label}</b>}
