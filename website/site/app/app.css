@@ -107,7 +107,13 @@ input { font: inherit; }
 .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .sheet-head b { display: block; font-size: 24px; letter-spacing: -.02em; color: var(--ink); line-height: 1.15; }
 .sheet-head small { font: 12px var(--mono); color: var(--muted); }
-.close { width: 32px; height: 32px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; color: var(--base00); flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.source-hit { display: flex; align-items: center; gap: 14px; padding: 16px; margin-bottom: 12px; border-radius: 20px; background: var(--ink); color: var(--base3); }
+.source-hit:active { transform: scale(.98); }
+.source-hit .gh { width: 44px; height: 44px; border-radius: 14px; background: var(--base3); color: var(--ink); display: grid; place-items: center; flex: none; }
+.source-hit span:nth-child(2) { flex: 1; display: flex; flex-direction: column; }
+.source-hit b { font-size: 17px; }
+.source-hit small { font-size: 13px; color: var(--base1); }
 .sheet-summary { margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: var(--text); }
 .seg { display: inline-flex; gap: 6px; margin: 14px 0 12px; }
 .seg button { padding: 8px 18px; border-radius: 99px; background: var(--surface); font: 700 14px var(--sans); color: var(--base00); }

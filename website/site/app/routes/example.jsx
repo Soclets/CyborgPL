@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useLoaderData, useLocation, useNavigate } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
-import Icon from "../components/Icon.jsx";
 
 export const meta = ({ loaderData }) => [{ title: `${loaderData?.title ?? "Example"} · CyborgPL` }];
 
@@ -11,8 +10,8 @@ export async function loader({ params }) {
   return getExample(params.id);
 }
 
-// The example opens as a bottom sheet over the grid. Drag it down (or tap outside,
-// the ×, or Escape) to put it away.
+// The example opens as a bottom sheet over the grid. Swipe it down to put it away
+// (tapping the dimmed strip above it, or Escape, also works).
 export default function Example() {
   const ex = useLoaderData();
   const navigate = useNavigate();
@@ -74,7 +73,9 @@ export default function Example() {
               <b>{ex.title}</b>
               <small>{ex.file} · {ex.lines} lines</small>
             </div>
-            <button className="close" onClick={close} aria-label="Close"><Icon name="x" size={16} stroke={2.4} /></button>
+            {/* No visible close button: swipe down (owner, 2026-09-25). This one is for screen
+                readers only, since VoiceOver can't do the drag. */}
+            <button className="sr-only" onClick={close}>Close</button>
           </div>
           {ex.summary && <p className="sheet-summary">{ex.summary}</p>}
           <div className="seg" role="tablist">

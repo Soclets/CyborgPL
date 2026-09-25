@@ -23,6 +23,9 @@ export async function loader() {
   return { index: [...pages, ...features, ...lessons, ...examples] };
 }
 
+// Asking for the code gets a button straight to it (owner, 2026-09-25).
+const SOURCE_QUERIES = new Set(["gh", "repo", "source", "source code", "github"]);
+
 // Every word typed must start a word in the entry ("own" finds Ownership, not Download).
 // Title matches rank above matches in the description.
 const words = (t) => t.toLowerCase().split(/[^a-z0-9:=.]+/).filter(Boolean);
@@ -73,6 +76,13 @@ export default function Home() {
       <div className="home">
         <Search q={q} setQ={setQ} />
         <div className="results">
+          {SOURCE_QUERIES.has(needle.replace(/\s+/g, " ")) && (
+            <a className="source-hit" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+              <span className="gh"><Icon name="github" size={24} stroke={1.8} /></span>
+              <span><b>Source code on GitHub</b><small>Cyborg-Assembly-Manufacturing-Site/CyborgPL</small></span>
+              <Icon name="external" size={18} />
+            </a>
+          )}
           {hits.map((r, i) => (
             <Link key={r.to} to={r.to} state={r.kind === "Example" ? { fromGrid: true } : undefined} className="result" prefetch="intent" style={{ "--c": ACCENTS[i % ACCENTS.length] }}>
               <span className="ri"><Icon name={r.icon} size={18} /></span>
@@ -80,7 +90,7 @@ export default function Home() {
               <em>{r.kind}</em>
             </Link>
           ))}
-          {!hits.length && <p className="empty">Nothing matches “{q}”.</p>}
+          {!hits.length && !SOURCE_QUERIES.has(needle.replace(/\s+/g, " ")) && <p className="empty">Nothing matches “{q}”.</p>}
         </div>
       </div>
     );
