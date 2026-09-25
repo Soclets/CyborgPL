@@ -1,4 +1,5 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { REPO_URL } from "./lib/content.js";
 import "./app.css";
 
 export const links = () => [
@@ -9,9 +10,12 @@ export const links = () => [
 
 export function Layout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        {/* A computer (a mouse, not a finger) gets the plain page instead of the app (owner, 2026-09-25).
+            Decided before anything paints, so the app never flashes. */}
+        <script dangerouslySetInnerHTML={{ __html: `if (matchMedia("(hover: hover) and (pointer: fine)").matches) document.documentElement.className = "desktop";` }} />
         {/* viewport-fit=cover: draw under the notch and home bar; the CSS keeps content clear of them */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#fdf6e3" />
@@ -25,6 +29,7 @@ export function Layout({ children }) {
         <Links />
       </head>
       <body>
+        <p id="desktop">CyborgPL is under development. <a href={REPO_URL}>{REPO_URL}</a></p>
         {children}
         <ScrollRestoration />
         <Scripts />

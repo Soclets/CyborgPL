@@ -174,3 +174,10 @@ mark { background: rgba(181, 137, 0, .22); color: inherit; border-radius: 3px; }
 .chips button:active { transform: scale(.95); }
 .hint { font-size: 13px; color: var(--muted); line-height: 1.45; }
 .gcard .gline { height: auto; min-height: 0; -webkit-mask-image: none; mask-image: none; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; }
+
+/* ---------------------------------------------------------------- desktop: the plain page */
+#desktop { display: none; }
+html.desktop, html.desktop body { background: #fff; color: #000; }
+html.desktop body > :not(#desktop) { display: none !important; }
+html.desktop #desktop { display: block; margin: 16px 8px; font: 16px "Times New Roman", Times, serif; }
+html.desktop #desktop a { color: #000; text-decoration: underline; }
