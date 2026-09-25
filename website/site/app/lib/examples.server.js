@@ -1,0 +1,57 @@
+// Build-time only (the .server suffix keeps it out of the browser bundle): reads the
+// real programs from examples/ and highlights them with the repo's own grammar.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { createHighlighter } from "shiki";
+import { solarizedLight } from "./theme.js";
+
+const REPO = path.resolve(process.cwd(), "../..");
+const EXAMPLES = path.join(REPO, "examples");
+
+let highlighter;
+function hl() {
+  highlighter ??= createHighlighter({
+    themes: [solarizedLight],
+    langs: [JSON.parse(readFileSync(path.join(REPO, "website/grammar/cyborgpl.tmLanguage.json"), "utf8"))],
+  });
+  return highlighter;
+}
+
+export async function highlight(code) {
+  return (await hl()).codeToHtml(code, { lang: "cyborgpl", theme: solarizedLight.name });
+}
+
+// A few names read better by hand; the rest come from the file name.
+const TITLES = {
+  hello: "Hello, World", fizzbuzz: "FizzBuzz", enums: "Enums & match", concur: "Concurrency",
+  ffi: "Talking to C", simd: "SIMD", printf: "printf", pi: "Digits of pi", whichever: "whichever",
+};
+export const titleOf = (id) => TITLES[id] ?? id.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+const read = (id, ext) => readFileSync(path.join(EXAMPLES, `${id}.${ext}`), "utf8").replace(/\n$/, "");
+export const exampleIds = () => readdirSync(EXAMPLES).filter((f) => f.endsWith(".cpls")).map((f) => f.slice(0, -5)).sort();
+
+// The first comment line, without its "(design/…, date)" bookkeeping.
+function summaryOf(src) {
+  const first = src.split("\n").find((l) => l.trim().startsWith("#"));
+  if (!first) return "";
+  return first.replace(/^\s*#+\s*/, "").replace(/\s*\((?:[^()]*?(?:design\/|\d{4}-\d{2}-\d{2}|owner)[^()]*)\)/g, "").trim();
+}
+
+export function listExamples() {
+  return exampleIds().map((id) => {
+    const src = read(id, "cpls");
+    const code = src.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
+    return { id, title: titleOf(id), summary: summaryOf(src), lines: src.split("\n").length, preview: code.slice(0, 6).join("\n") };
+  });
+}
+
+export async function getExample(id) {
+  if (!exampleIds().includes(id)) throw new Response("Not found", { status: 404 });
+  const src = read(id, "cpls");
+  const exit = existsSync(path.join(EXAMPLES, `${id}.exit`)) ? read(id, "exit").trim() : null;
+  return {
+    id, title: titleOf(id), summary: summaryOf(src), file: `examples/${id}.cpls`,
+    lines: src.split("\n").length, html: await highlight(src), out: read(id, "out"), exit,
+  };
+}

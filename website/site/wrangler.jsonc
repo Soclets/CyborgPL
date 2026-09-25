@@ -1,0 +1,13 @@
+// https://cyborgpl.dev — static files only (every screen is pre-rendered), so every
+// request is free and unlimited on Cloudflare's free plan. `npm run deploy` builds and
+// publishes; the site only changes when the owner asks.
+{
+  "name": "cyborgpl-website",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./build/client",
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash"
+  },
+  "routes": [{ "pattern": "cyborgpl.dev", "custom_domain": true }]
+}

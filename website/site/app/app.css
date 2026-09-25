@@ -1,0 +1,142 @@
+/* CyborgPL — mobile first. Solarized Light (Ethan Schoonover's palette). */
+:root {
+  --base03: #002b36; --base02: #073642; --base01: #586e75; --base00: #657b83;
+  --base0: #839496; --base1: #93a1a1; --base2: #eee8d5; --base3: #fdf6e3;
+  --yellow: #b58900; --orange: #cb4b16; --red: #dc322f; --magenta: #d33682;
+  --violet: #6c71c4; --blue: #268bd2; --cyan: #2aa198; --green: #859900;
+
+  --bg: var(--base3); --surface: var(--base2); --ink: var(--base02); --text: var(--base00); --muted: var(--base1);
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --pad: 20px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tabbar-space: calc(96px + var(--safe-bottom));
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { background: var(--bg); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; touch-action: manipulation; }
+svg { display: block; flex: none; }
+code, pre { font-family: var(--mono); }
+input { font: inherit; }
+
+/* One phone-width column. On a wide screen it stays centred until the desktop layout exists. */
+.page { max-width: 520px; margin: 0 auto; padding: calc(var(--safe-top) + 18px) var(--pad) var(--tabbar-space); min-height: 100dvh; animation: enter .28s ease both; }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ---------------------------------------------------------------- type */
+.huge { font-size: clamp(40px, 12.5vw, 56px); line-height: .98; letter-spacing: -.045em; font-weight: 900; color: var(--ink); margin: 0 0 16px; }
+.huge span { color: var(--violet); }
+.h2big { font-size: 38px; letter-spacing: -.035em; font-weight: 900; color: var(--ink); margin: 10px 0 12px; }
+.lede { font-size: 16px; line-height: 1.55; color: var(--text); margin: 0 0 20px; }
+.lede.small { font-size: 15px; margin-bottom: 16px; }
+.section { font: 800 13px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 30px 0 12px; }
+
+/* ---------------------------------------------------------------- home */
+.top { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 22px; }
+.badge { font: 800 11px var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--base3); background: var(--yellow); padding: 7px 12px; border-radius: 99px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { height: 50px; padding: 0 20px; display: inline-flex; align-items: center; gap: 8px; border-radius: 99px; background: var(--surface); color: var(--ink); font: 700 16px var(--sans); transition: transform .15s ease, background-color .15s ease; }
+.btn:active { transform: scale(.96); }
+.btn.primary { background: var(--ink); color: var(--base3); }
+.btn.round { width: 50px; padding: 0; justify-content: center; }
+
+.cards { display: flex; gap: 12px; margin: 0 calc(-1 * var(--pad)); padding: 4px var(--pad) 18px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 var(--pad); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.cards::-webkit-scrollbar { display: none; }
+.fcard { flex: 0 0 min(78%, 300px); min-height: 186px; scroll-snap-align: start; border-radius: 24px; padding: 18px; background: var(--c); color: var(--base3); display: flex; flex-direction: column; box-shadow: 0 16px 28px -18px var(--c); transition: transform .15s ease; }
+.fcard:active { transform: scale(.97); }
+.fi { width: 42px; height: 42px; border-radius: 13px; background: rgba(253,246,227,.22); display: grid; place-items: center; margin-bottom: auto; }
+.fcard b { font-size: 20px; line-height: 1.12; margin: 18px 0 6px; }
+.fcard small { font-size: 14px; line-height: 1.4; opacity: .93; }
+.dots { display: flex; gap: 6px; justify-content: center; }
+.dots i { width: 6px; height: 6px; border-radius: 3px; background: #ddd4b8; transition: width .25s ease, background-color .25s ease; }
+.dots i.on { width: 18px; background: var(--ink); }
+
+/* ---------------------------------------------------------------- code */
+.code pre { margin: 0; background: transparent !important; font-size: 13px; line-height: 1.6; white-space: pre; }
+.code { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.code::-webkit-scrollbar { display: none; }
+.code.small pre { font-size: 13px; }
+
+/* ---------------------------------------------------------------- learn */
+.panel { background: var(--surface); border-radius: 20px; padding: 16px; }
+.outline { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #d8cfb2; display: flex; gap: 10px; align-items: baseline; font-size: 14px; }
+.outline span { font: 800 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--yellow); }
+.outline code { color: var(--ink); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.lesson { background: var(--surface); border-radius: 20px; padding: 16px; scroll-margin-top: calc(var(--safe-top) + 16px); }
+.lesson b { font-size: 17px; color: var(--ink); }
+.lesson p { margin: 6px 0 12px; font-size: 15px; line-height: 1.5; }
+.lesson .code { background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+.lesson-head { display: flex; align-items: center; gap: 10px; }
+.num { width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--base3); font: 800 13px var(--sans); display: grid; place-items: center; }
+.feature { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border-radius: 20px; padding: 16px; border-left: 6px solid var(--c); scroll-margin-top: calc(var(--safe-top) + 16px); }
+.feature .fi { background: var(--c); color: var(--base3); width: 40px; height: 40px; margin: 0; }
+.feature b { font-size: 17px; color: var(--ink); }
+.feature p { margin: 4px 0 0; font-size: 15px; line-height: 1.45; }
+
+/* ---------------------------------------------------------------- examples */
+.search { display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 14px; border-radius: 99px; background: var(--surface); color: var(--muted); margin-bottom: 16px; }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 16px; /* 16px: stops iOS zooming on focus */ }
+.search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.gcard { min-width: 0; border-radius: 20px; background: var(--surface); padding: 10px 10px 12px; display: flex; flex-direction: column; border-top: 5px solid var(--c); transition: transform .15s ease; }
+.gcard:active { transform: scale(.97); }
+.gcode { height: 78px; margin: 0 0 10px; overflow: hidden; border-radius: 12px; background: var(--bg); padding: 8px; font-size: 8px; line-height: 1.5; color: var(--base00); white-space: pre; -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
+.gcard b { font-size: 15px; line-height: 1.2; color: var(--ink); padding: 0 2px; overflow-wrap: anywhere; }
+.gcard small { font-size: 12px; color: var(--muted); padding: 2px 2px 0; }
+.empty { text-align: center; color: var(--muted); margin: 30px 0; }
+
+/* ---------------------------------------------------------------- the example sheet */
+.sheet-layer { position: fixed; inset: 0; z-index: 50; }
+.scrim { position: absolute; inset: 0; background: rgba(0, 43, 54, .38); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--safe-top) + 44px); max-width: 520px; margin: 0 auto;
+  background: var(--bg); border-radius: 28px 28px 0 0; display: flex; flex-direction: column; box-shadow: 0 -24px 60px -24px rgba(0,0,0,.55); touch-action: none; }
+.sheet-grip { padding: 10px var(--pad) 0; flex: none; cursor: grab; touch-action: none; }
+.grabber { width: 40px; height: 5px; border-radius: 3px; background: #d3cbb2; margin: 0 auto 12px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sheet-head b { display: block; font-size: 24px; letter-spacing: -.02em; color: var(--ink); line-height: 1.15; }
+.sheet-head small { font: 12px var(--mono); color: var(--muted); }
+.close { width: 32px; height: 32px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; color: var(--base00); flex: none; }
+.sheet-summary { margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: var(--text); }
+.seg { display: inline-flex; gap: 6px; margin: 14px 0 12px; }
+.seg button { padding: 8px 18px; border-radius: 99px; background: var(--surface); font: 700 14px var(--sans); color: var(--base00); }
+.seg button.on { background: var(--ink); color: var(--base3); }
+.sheet-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-x pan-y;
+  padding: 0 var(--pad) calc(var(--tabbar-space) + 8px); }
+.sheet-code { background: var(--surface); border-radius: 18px; padding: 14px; }
+.sheet-code pre { font-size: 12.5px; }
+.output pre { margin: 0; background: var(--ink); color: var(--base2); border-radius: 18px; padding: 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.exit { margin: 12px 4px 0; font-size: 14px; color: var(--orange); font-weight: 700; }
+.checked { margin: 12px 4px 0; font-size: 13px; color: var(--muted); }
+
+/* ---------------------------------------------------------------- more / plain pages */
+.list { background: var(--surface); border-radius: 20px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #e3dbc3; color: var(--ink); }
+.row:last-child { border-bottom: 0; }
+.row b { flex: 1; font-size: 17px; font-weight: 600; }
+.row > .icon:last-child { color: var(--muted); }
+.row:active { background: #e6dfc8; }
+.ri { width: 34px; height: 34px; border-radius: 10px; background: var(--ink); color: var(--base3); display: grid; place-items: center; }
+.fineprint { margin: 18px 6px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.crumb { display: inline-block; margin: 4px 0 0; font: 600 16px var(--sans); color: var(--violet); }
+.notice { background: var(--surface); border-radius: 20px; padding: 18px; }
+.notice b { font-size: 18px; color: var(--ink); }
+.notice p { margin: 6px 0 0; font-size: 15px; line-height: 1.5; }
+
+/* ---------------------------------------------------------------- tab bar (floating pill) */
+.tabbar { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(var(--safe-bottom) + 14px);
+  height: 62px; padding: 0 8px; display: flex; align-items: center; gap: 4px; border-radius: 99px; background: var(--ink);
+  box-shadow: 0 16px 34px -12px rgba(0, 43, 54, .6); }
+.tab { position: relative; height: 46px; min-width: 46px; padding: 0 12px; border-radius: 99px; display: flex; align-items: center; justify-content: center; color: var(--base0); }
+.tab.on { color: var(--ink); padding: 0 16px; }
+.tab-pill { position: absolute; inset: 0; border-radius: 99px; background: var(--base3); }
+.tab-inner { position: relative; display: flex; align-items: center; gap: 7px; }
+.tab-inner b { font: 800 15px var(--sans); }
+
+@media (prefers-reduced-motion: reduce) {
+  .page { animation: none; }
+  .btn, .fcard, .gcard, .dots i { transition: none; }
+}
