@@ -193,6 +193,26 @@ the opposite of plain integer math, which is exact because there 16- and
 and could not run on Metal, which has no 64-bit float. Proposed
 alternative: 64-bit intermediates rounded once where stored.
 
+## `and` / `or` always work out both sides (owner, 2026-09-25: b)
+
+```
+'ok' := check_name['f'] and check_age['f'];     # both run, left then right
+if 'i' <== list.length[lend 'xs'] {             # a check that protects the next
+    if 'xs'[pos 'i'] == 5 { … }                 # step is written as two `if`s
+}
+```
+
+Nothing written on a line is skipped: `and` and `or` evaluate the left
+side, then the right, even when the left already decides the answer.
+The one-line guard `'i' <== … and 'xs'[pos 'i'] == 5` is therefore not a
+guard. The read runs when `'i'` is past the end, so it stops the working
+build and the final build refuses it. It is safe either way, never
+silent. The owner's reason: the code does exactly what it says ("so the
+code isn't lying"). Proposed alternatives: stop early, as C, Rust, Python,
+Go and JavaScript do, so the one-line guard works and Precog narrows the
+right side by the left (recommended by check claude and design claude);
+run both and refuse such lines at compile time.
+
 ## Not yet listed (open)
 
 - Integer division vs. `/` on `int` (truncate? error on inexact?).

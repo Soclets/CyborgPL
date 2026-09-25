@@ -1,0 +1,18 @@
+# `and` and `or` always work out both sides, left then right: nothing written on the
+# line is skipped (owner, 2026-09-25: b). A check that protects the next step is
+# therefore written as two `if`s; tests/reject/and_does_not_guard.cpls is the one-line
+# form, which stops when the right side is out of range.
+fn loud ['name': str.utf8, 'answer': bool] -> bool {
+    std::printu.stdout["checked ", 'name', \n];
+    return 'answer';
+}
+MAIN {
+    'ok' := loud["first", false] and loud["second", true];    # both print
+    std::printu.stdout['ok', \n];
+    'xs' := [3, 5, 8];
+    'i': uint64 = 7;
+    if 'i' <== list.length[lend 'xs'] {
+        if 'xs'[pos 'i'] == 5 { std::printu.stdout["found", \n]; }
+    }
+    std::printu.stdout["done", \n];
+}

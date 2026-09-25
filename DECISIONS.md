@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-25 — `and`/`or` always work out both sides (owner: b)
+
+From check claude: nothing said whether `and` stops early. Both engines ran
+both sides, so `if 'n' > 0 and 100 / 'n' > 2` stops when `'n'` is 0.
+Proposed (a) stop early, as nearly every language does, so the one-line
+guard works and Precog learns from the left side (recommended by check
+claude and design claude); (b) always run both, today's behaviour; (c)
+run both and refuse a line whose right side can fail when the left
+already decides. The owner asked whether Precog could help (it can prove
+only what the program does, so under b it refuses the line), for use cases
+of running both (every check reporting its own error, constant-time
+comparisons), and walked through a list-index guard in CyborgPL and in
+Python, where `&` shows b's crash. Then: "so the code isn't lying?". Under
+b every piece written runs, and nothing is skipped silently. Owner: b. A
+check-then-use is two `if`s. Nothing changes in the oracle or CCA, which
+already did this. `examples/and_runs_both.cpls`, reject test
+and_does_not_guard. `operators.md`.
+
 ### 2026-09-25 — `!$` in front: a name that cannot be shadowed; `immut` only forbids `change`; `!mut` = `immut` (owner)
 
 ```
