@@ -1,6 +1,6 @@
 fn sum [...'nums'] -> bin64 {
-    let 'total': bin64 = 0;
-    for 'n' in lend 'nums' { 'total' = 'total' + to.bin64['n']; }
+    'total': bin64 = 0;
+    for 'n' in lend 'nums' { change 'total' = 'total' + to.bin64['n']; }
     return 'total';
 }
 
@@ -18,7 +18,7 @@ MAIN {
     std::printu.stdout[sum[1, 2.5, 3], \n];
     std::printu.stdout[sum[], \n];
     std::printu.stdout[count_ints[4, 5, 6], \n];
-    let 'name' := "Ann";
+    'name' := "Ann";
     show["mixed", lend 'name', 7, true, `x`];
     show["none"];
 }

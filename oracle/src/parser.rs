@@ -12,7 +12,7 @@ use crate::value::ty_name;
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
+    "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
     "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
@@ -137,6 +137,7 @@ impl Parser {
                 match self.peek().clone() {
                     Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
+                    Tok::Var(_) => return self.err("a Limb-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
                     other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
                 }
@@ -180,9 +181,9 @@ impl Parser {
                     // extern fn name [params] -> T;   (design/ffi.md)
                     let line = self.line();
                     self.advance();
-                    if self.is_word("let") {
-                        // extern let ['mut'] 'name': T;   — a C global (decided 2026-09-21)
-                        self.advance();
+                    if self.is_word("let") { return self.err("`let` is gone (2026-09-25): C's variable is `extern 'errno': int32;` (or `extern mut 'x': T;`)"); }
+                    if self.is_word("mut") || self.is_word("immut") || matches!(self.peek(), Tok::Var(_)) {
+                        // extern ['mut'] 'name': T;   — a C global (decided 2026-09-21; no `let` since 2026-09-25)
                         let mutable = if self.is_word("mut") { self.advance(); true } else { false };
                         if self.is_word("immut") { return self.err("an `extern let` is C's variable; it is read-only unless `mut`, never `immut`"); }
                         let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern let '{w}': …`")), other => return self.err(format!("expected a quoted name after `extern let`, found {other}")) };
@@ -286,7 +287,8 @@ impl Parser {
                     prog.claims.push(Claim { ty, iface: self.canonical(&segs), line });
                 }
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
-                Tok::Word(w) if w == "let" || w == "var" => return self.err("a `let` cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`"),
+                Tok::Word(w) if w == "let" || w == "var" => return self.err("`let` is gone (2026-09-25), and a Limb-level value is a `const`: `const 'x' := 1;`"),
+                Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
                 Tok::Word(w) if w == "check" || w == "nocheck" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Limb-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
@@ -844,8 +846,12 @@ impl Parser {
         let line = self.line();
         match self.peek().clone() {
             Tok::Word(w) => match w.as_str() {
-                "let" => self.decl(),
-                "var" => self.err("`var` became `let` (2026-09-19): `let 'x' := 1;` / `let 'x': int32 = 1;`"),
+                // no `let` (owner, 2026-09-25): a declaration starts with its name
+                "let" => self.err("`let` is gone (2026-09-25): declare with `'x' := 1;`, `'x': int32 = 1;` or `mut 'x' := 1;`"),
+                "var" => self.err("`var` is gone: declare with `'x' := 1;` or `'x': int32 = 1;`"),
+                "mut" | "immut" => self.decl(),
+                _ if matches!(self.peek_at(1), Tok::Var(_)) && !KEYWORDS.contains(&w.as_str()) => self.err(format!("a type goes after the name: `'x': {w} = …;`")),
+                "change" => { self.advance(); self.change_stmt(line) }
                 "if" => self.if_stmt(),
                 "loop" => self.loop_stmt(),
                 "while" => self.while_stmt(),
@@ -1028,6 +1034,8 @@ impl Parser {
             },
             Tok::LBrace => Ok(Stmt::Block { body: self.block()?, line }),
             Tok::Var(name) => {
+                // `'x' := …`, `'x': T = …`, `'x' $:= …` declare (owner, 2026-09-25)
+                if matches!(self.peek_at(1), Tok::Walrus | Tok::ShadowWalrus | Tok::Colon | Tok::Semi) { return self.decl(); }
                 self.advance();
                 if *self.peek() == Tok::LBracket && !matches!(self.peek_at(1), Tok::Word(w) if w == "pos") {
                     // 'f'[args];  — a function value called as a statement (2026-09-21)
@@ -1036,6 +1044,22 @@ impl Parser {
                     self.expect(Tok::Semi, "`;` after the call")?;
                     return Ok(Stmt::CallValue { name, args, handler, line });
                 }
+                match self.peek() {
+                    Tok::Word(w) if w == "mut" || w == "immut" => return self.err(format!("`{w}` goes before the name: `{w} '{name}' := …;`")),
+                    Tok::LBracket | Tok::Dot | Tok::Eq | Tok::ShadowEq => return self.err(format!("changing a variable says so: `change '{name}' = …;` (a declaration is `'{name}' := …;`)")),
+                    Tok::Op(o) if o == "++" => return self.err(format!("`++` joins text; to add one write `change '{name}' = '{name}' + 1;`")),
+                    other => return self.err(format!("expected `:=` to declare '{name}', `[…]` to call it, or `change '{name}' = …;` to change it; found {other}")),
+                }
+            }
+            other => self.err(format!("expected a statement, found {other}")),
+        }
+    }
+
+    // change := 'change' Var ( '[' pos … ']' | '.' field )? '=' rhs ';'   (owner, 2026-09-25)
+    fn change_stmt(&mut self, line: usize) -> PResult<Stmt> {
+        match self.peek().clone() {
+            Tok::Var(name) => {
+                self.advance();
                 if *self.peek() == Tok::LBracket {
                     // 'xs'[pos i] = v;  (decided 2026-09-17)
                     let idx = self.index_bracket(&name)?;
@@ -1056,32 +1080,28 @@ impl Parser {
                 }
                 match self.peek() {
                     Tok::Eq => {}
-                    Tok::Op(o) if o == "++" => return self.err(format!("`++` joins text; to add one write `'{name}' = '{name}' + 1;`")),
-                    Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq => return self.err(format!("`:=` declares; to assign to the existing '{name}' write `'{name}' = …;` (to shadow it, `let '{name}' $:= …;`)")),
-                    Tok::Colon => return self.err(format!("a declaration starts with `let`: `let '{name}': int32 = …;`")),
-                    other => return self.err(format!("expected `=` after '{name}', found {other}")),
+                    Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq | Tok::Colon => return self.err(format!("`change` changes what exists, with `=`: `change '{name}' = …;` (a new '{name}' is `'{name}' := …;`, a shadow `'{name}' $:= …;`)")),
+                    other => return self.err(format!("expected `=` after `change '{name}'`, found {other}")),
                 }
                 self.advance();
                 let value = self.rhs()?;
                 self.expect(Tok::Semi, "`;`")?;
                 Ok(Stmt::Assign { name, value, line })
             }
-            other => self.err(format!("expected a statement, found {other}")),
+            other => self.err(format!("`change` is followed by the variable it changes: `change 'x' = …;`, found {other}")),
         }
     }
 
-    // decl := 'let' ('mut' | 'immut')? Var (':' type)? (':=' | '=' | '$:=' | '$=') rhs ';'
+    // decl := ('mut' | 'immut')? Var (':' type)? (':=' | '=' | '$:=' | '$=') rhs ';'   (no `let`, owner 2026-09-25)
     fn decl(&mut self) -> PResult<Stmt> {
         let line = self.line();
-        self.expect_word("let")?;
-        if *self.peek() == Tok::Dot { return self.err("`let` takes no chain: `let mut 'x': int32 = …` — mutability before the name, type after it"); }
         let mut mutability = None;
         if self.is_word("mut") { self.advance(); mutability = Some(Mutability::Mut); }
         else if self.is_word("immut") { self.advance(); mutability = Some(Mutability::Immut); }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) if w == "mut" || w == "immut" => return self.err("say `mut` or `immut` once, before the name"),
-            Tok::Word(w) => return self.err(format!("variable names are quoted: `let '{w}'` (a type goes after the name: `let 'x': {w}`)")),
+            Tok::Word(w) => return self.err(format!("variable names are quoted: `'{w}'` (a type goes after the name: `'x': {w}`)")),
             other => return self.err(format!("expected a quoted variable name, found {other}")),
         };
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };

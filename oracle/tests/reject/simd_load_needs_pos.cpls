@@ -1,1 +1,1 @@
-MAIN { let 'xs': array[int32] = [1, 2, 3, 4]; let 'v' := simd.load[lend 'xs', 1]; }
+MAIN { 'xs': array[int32] = [1, 2, 3, 4]; 'v' := simd.load[lend 'xs', 1]; }

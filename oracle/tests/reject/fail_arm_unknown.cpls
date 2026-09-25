@@ -1,4 +1,4 @@
 fn f [] -> int32 or fail[a] { fail a; }
 MAIN {
-    let 'x' := f[] otherwise { a { std::exit[1]; } z { std::exit[1]; } };
+    'x' := f[] otherwise { a { std::exit[1]; } z { std::exit[1]; } };
 }

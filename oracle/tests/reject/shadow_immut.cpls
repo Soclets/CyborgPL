@@ -1,10 +1,10 @@
 MAIN {
-    let 'x' := 1;
+    'x' := 1;
     if true {
-        let 'x' $:= 2;
+        'x' $:= 2;
         std::printu.stdout['x', \n];
     }
     std::printu.stdout['x', \n];
-    let immut 'k' := 5;
-    let 'k' $:= 6;
+    immut 'k' := 5;
+    'k' $:= 6;
 }

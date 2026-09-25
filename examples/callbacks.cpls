@@ -11,7 +11,7 @@ fn descending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
 }
 
 MAIN {
-    let 'nums' := [5, 1, 4, 2, 3];
+    'nums' := [5, 1, 4, 2, 3];
     nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
     std::printu.stdout['nums', \n];
     nocheck qsort[lend.mut 'nums', 5, size.of[int32], descending];

@@ -21,12 +21,12 @@ fn label [lent 'l': Locker] -> str.utf8 {
 }
 
 MAIN {
-    let 'mine' := Locker[number = 7, owner = "Tankun", items = list.empty];
-    let 'names' := ["helmet", "gloves", "rope"];
-    let mut 'stored': int32 = 0;
+    'mine' := Locker[number = 7, owner = "Tankun", items = list.empty];
+    'names' := ["helmet", "gloves", "rope"];
+    mut 'stored': int32 = 0;
 
     for 'n' in lend 'names' {
-        if stash[lend.mut 'mine', copy 'n'] { 'stored' = 'stored' + 1; }
+        if stash[lend.mut 'mine', copy 'n'] { change 'stored' = 'stored' + 1; }
     }
     std::printu.stdout[label[lend 'mine'], ": ", 'stored', " stored, ", free_slots[lend 'mine'], " free", \n];
 
@@ -34,10 +34,10 @@ MAIN {
         check std::printu.stdout['i', ". ", 'mine'.items[pos 'i'], \n];
     }
 
-    let 'x': bin64 = 0.1;
+    'x': bin64 = 0.1;
     std::print.stdout['x', \n];
     std::printu.stdout['x', \n];
 
-    let 'tag' := give 'mine'.owner;
+    'tag' := give 'mine'.owner;
     std::print.stdout['tag', \n];
 }

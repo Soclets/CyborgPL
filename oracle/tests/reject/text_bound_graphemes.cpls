@@ -1,1 +1,1 @@
-MAIN { let 's': str.utf8[1, 2 graphemes] = "เกี่ยวข้อง"; }
+MAIN { 's': str.utf8[1, 2 graphemes] = "เกี่ยวข้อง"; }

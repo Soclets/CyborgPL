@@ -1,5 +1,5 @@
 MAIN {
-    let 's' := "text";
-    let 'f' := fn [] -> int32 with [give 's'] { return str.bytes[lend 's']; };
+    's' := "text";
+    'f' := fn [] -> int32 with [give 's'] { return str.bytes[lend 's']; };
     std::print.stdout['s'];
 }

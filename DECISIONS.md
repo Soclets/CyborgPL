@@ -5,6 +5,40 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-25 — No `let`: a declaration starts with its name; changing says `change` (owner)
+
+```
+'x' := 1000;            # was  let 'x' := 1000;
+'x': int32 = 1000;      # was  let 'x': int32 = 1000;
+mut 'x' := 1000;        # was  let mut 'x' := 1000;
+'x' $:= 2000;           # shadowing, was  let 'x' $:= 2000;
+change 'x' = 2000;      # changing, was  'x' = 2000;
+change 'xs'[pos 1] = 5;
+change 'p'.x = 3;
+extern 'errno': int32;  # C's variable, was  extern let 'errno': int32;
+```
+
+The owner asked whether `'x' := 1000;` was ambiguous. It was not: the
+oracle refused it as a missing `let`. The owner wanted it as the
+declaration. Design claude noted that the Go pitfall (`:=` silently making
+a new variable) cannot happen here, since redeclaring a visible name needs
+`$`, and that the cost is scanning for declarations and churn. The owner:
+drop `let` from every declaration, and use a word for changing a value if
+declaring and changing would clash. For the compiler they don't (what
+follows the name tells them apart); for the eye `'x': int32 = 1000;` and
+`'x' = 1000;` are close. The owner wanted a word anyway, one saying it
+cannot declare. Proposed: `change`, `update`, `set` (in Tcl and shell `set`
+creates), `now`. Design claude recommended `change`. Owner: `change`. This
+reverses the 2026-09-19 `let`. `let` and a bare `'x' = …;` are refused with
+the new spelling. `extern let` became `extern 'x': T;`, which follows from
+"all of them" but was not asked separately.
+
+Only the oracle changed so far (owner: "only has to go in oracle for now"):
+the parser, all examples, the reject tests, and new reject tests
+let_removed and assign_needs_change. Not yet updated: `design/` prose and
+samples, and CCA, check claude's generator and the website grammar, which
+all still expect `let` until the owner tells those sessions.
+
 ### 2026-09-24 — Oracle messages: two told the wrong story (compiler session's phrase review)
 
 Compiler claude re-reviewed every CCA reject phrase against its `.err`,

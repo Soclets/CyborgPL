@@ -5,7 +5,7 @@ MAIN {
     std::print.stdout[\n];
     for 'j': uint64 in range[3, 0, -1] { std::printu.stdout['j', " "]; }   # ends at 0: must not underflow
     std::print.stdout[\n];
-    let 'xs' := [10, 20, 30];
+    'xs' := [10, 20, 30];
     for 'k': uint64 in range[list.length[lend 'xs'], 1, -1] { std::printu.stdout['xs'[pos 'k'], " "]; }
     std::print.stdout[\n];
 }

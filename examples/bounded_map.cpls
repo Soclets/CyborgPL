@@ -1,10 +1,10 @@
 # A map's count bound (decided 2026-09-22), and bounds on the things inside — types composing.
 MAIN {
-    let mut 'small': map[str.utf8[1, 3 bytes], int32[0, 10]][0, 2] = map.empty;
+    mut 'small': map[str.utf8[1, 3 bytes], int32[0, 10]][0, 2] = map.empty;
     map.set[lend.mut 'small', "ab", 5];
     map.set[lend.mut 'small', "cd", 7];
-    let 'n' := map.length[lend 'small'];         # uint64[0, 2]
-    let 'tiny': int8 = 'n';                      # proven by the bound
+    'n' := map.length[lend 'small'];         # uint64[0, 2]
+    'tiny': int8 = 'n';                      # proven by the bound
     std::printu.stdout['tiny', " entries", \n];
     map.remove[lend.mut 'small', "ab"] otherwise { missing { } };
     map.set[lend.mut 'small', "ef", 10];         # back to two: fits

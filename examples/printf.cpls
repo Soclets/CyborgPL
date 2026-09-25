@@ -1,8 +1,8 @@
 # std::printf — C's print in full (decided 2026-09-22): escapes and % formatting, checked against the arguments.
 MAIN {
-    let 'name' := "rope";
-    let 'count' := 3;
-    let 'price': bin64 = 12.5;
+    'name' := "rope";
+    'count' := 3;
+    'price': bin64 = 12.5;
     std::printf.stdout["%s has %d items at $%.2f each\n", 'name', 'count', 'price'];
     std::printf.stdout["hex %x, padded %5d, zero %05d, left [%-6s], %3d%%\n", 255, 42, 42, "ab", 90];
     std::printf.stdout["tab\there, unicode ก, byte \x41\n"];

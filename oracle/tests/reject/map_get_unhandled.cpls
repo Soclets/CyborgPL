@@ -1,1 +1,1 @@
-MAIN { let mut 'm': map[str.utf8, int32] = map.empty; let 'x' := map.get[lend 'm', "a"]; }
+MAIN { mut 'm': map[str.utf8, int32] = map.empty; 'x' := map.get[lend 'm', "a"]; }

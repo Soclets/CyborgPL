@@ -1,12 +1,12 @@
 # a whole-line comment
 MAIN {
-    let 'a' := 1;          # trailing: from here to the end of the line
-    let 'b' := 2; #wl this whole line is a comment, including the code before the #
+    'a' := 1;          # trailing: from here to the end of the line
+    'b' := 2; #wl this whole line is a comment, including the code before the #
     #3l these three lines
-    let 'c' := 3;
-    let 'd' := 4;
-    let 'e' := 5; #2ld this line and two more down
-    let 'f' := 6;
-    let 'g' := 7;
+    'c' := 3;
+    'd' := 4;
+    'e' := 5; #2ld this line and two more down
+    'f' := 6;
+    'g' := 7;
     std::printu.stdout['a', " ", 'e', \n];
 }

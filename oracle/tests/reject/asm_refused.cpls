@@ -1,5 +1,5 @@
 MAIN {
-    let 'fd' := 1;
+    'fd' := 1;
     nocheck inline.ASM {
         mov x16, #4
         svc 0

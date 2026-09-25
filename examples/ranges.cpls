@@ -6,19 +6,19 @@ fn scale ['p': Percent, 'total': int32[0, 1000]] -> int32[0, 1000] {
 }
 
 MAIN {
-    let 'half' := Percent[value = 50];
+    'half' := Percent[value = 50];
     std::printu.stdout[scale[give 'half', 800], \n];
-    let 'raw' := 250;
+    'raw' := 250;
     if 'raw' >== 0 and 'raw' <== 100 {
-        let 'ok': int32[0, 100] = 'raw';                   # the if is the guardrail; a check site
+        'ok': int32[0, 100] = 'raw';                   # the if is the guardrail; a check site
         std::printu.stdout['ok', \n];
     } else {
         std::print.stdout["250 is not a percentage", \n];
     }
-    let 'r' := to.uint8[0, 100]["42"] otherwise 0;          # into a range type: fails, does not check
-    let 'bad' := to.uint8[0, 100]["142"] otherwise 0;
-    let 'huge' := to.uint8[0, 100]["99999999999"] otherwise 0;   # not even a uint8: still out of range, not a crash
+    'r' := to.uint8[0, 100]["42"] otherwise 0;          # into a range type: fails, does not check
+    'bad' := to.uint8[0, 100]["142"] otherwise 0;
+    'huge' := to.uint8[0, 100]["99999999999"] otherwise 0;   # not even a uint8: still out of range, not a crash
     std::printu.stdout['r', " ", 'bad', " ", 'huge', \n];
-    let 'unit': bin64[0.0, 1.0] = 0.25;
+    'unit': bin64[0.0, 1.0] = 0.25;
     std::printu.stdout['unit', \n];
 }

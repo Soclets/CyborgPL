@@ -1,10 +1,10 @@
 MAIN {
-    let 'x' := 1;
+    'x' := 1;
     if true {
-        let 'x' $:= 2;
+        'x' $:= 2;
         std::printu.stdout['x', \n];
     }
     std::printu.stdout['x', \n];
-    let 'x': int32 $= 3;
+    'x': int32 $= 3;
     std::printu.stdout['x', \n];
 }

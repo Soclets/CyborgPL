@@ -1,4 +1,4 @@
 MAIN {
-    let 'x': uint8 = 250;
-    'x' = 'x' &+ 10;
+    'x': uint8 = 250;
+    change 'x' = 'x' &+ 10;
 }

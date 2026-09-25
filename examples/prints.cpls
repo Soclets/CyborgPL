@@ -1,8 +1,8 @@
 # The two prints. Both are std's; the base language has no print.
 MAIN {
-    let 'name' := "Ann";
-    let 'count' := 6;
-    let 'x': bin64 = 0.1;
+    'name' := "Ann";
+    'count' := 6;
+    'x': bin64 = 0.1;
 
     # print: any values, each in its stored form, nothing between
     std::print.stdout["x is ", 'x', \n];
@@ -11,7 +11,7 @@ MAIN {
     std::printu.stdout["x is ", 'x', \n];
 
     # a joined text is already text: print and printu agree on it
-    let 'line' := 'name' ++ " scored " ++ to.str.utf8['count'];
+    'line' := 'name' ++ " scored " ++ to.str.utf8['count'];
     std::print.stdout['line', \n];
     std::printu.stdout['line', \n];
 

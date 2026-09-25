@@ -1,4 +1,4 @@
 MAIN {
-    let 'xs': list[int32] = [1, 2, 3];
+    'xs': list[int32] = [1, 2, 3];
     list.append[lend 'xs', 4];
 }

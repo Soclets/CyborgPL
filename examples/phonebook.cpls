@@ -1,14 +1,14 @@
 # map[K, V] — a language collection beside list and array (decided 2026-09-22).
 # A missing key is a failure, not a check site: `otherwise` says what happens.
 MAIN {
-    let mut 'phones': map[str.utf8, int32] = map["ann" = 5551, "bob" = 5552];   # a literal: key = value
+    mut 'phones': map[str.utf8, int32] = map["ann" = 5551, "bob" = 5552];   # a literal: key = value
     map.set[lend.mut 'phones', "ann", 5553];                          # same key: replaced
     std::printu.stdout[map.length[lend 'phones'], " entries", \n];
-    let 'a' := map.get[lend 'phones', "ann"] otherwise 0;
-    let 'c' := map.get[lend 'phones', "cat"] otherwise 0;             # missing → 0
+    'a' := map.get[lend 'phones', "ann"] otherwise 0;
+    'c' := map.get[lend 'phones', "cat"] otherwise 0;             # missing → 0
     std::printu.stdout["ann ", 'a', ", cat ", 'c', \n];
     if map.has[lend 'phones', "bob"] { std::printu.stdout["bob is in", \n]; }
-    let 'gone' := map.remove[lend.mut 'phones', "bob"] otherwise 0;   # hands the value back
+    'gone' := map.remove[lend.mut 'phones', "bob"] otherwise 0;   # hands the value back
     std::printu.stdout["removed ", 'gone', ", ", map.length[lend 'phones'], " left", \n];
     map.remove[lend.mut 'phones', "nobody"] otherwise { missing { std::printu.stdout["nobody to remove", \n]; } };
     map.set[lend.mut 'phones', "cat", 5554];
@@ -16,8 +16,8 @@ MAIN {
     std::print.stdout[\n];
     for 'e' in map.pairs[lend 'phones'] { std::printu.stdout['e'.key, "=", 'e'.value, " "]; }
     std::print.stdout[\n];
-    let mut 'fast': map.unordered[str.utf8, int32] = map.empty;                     # chosen: never walked
+    mut 'fast': map.unordered[str.utf8, int32] = map.empty;                     # chosen: never walked
     map.set[lend.mut 'fast', "x", 1];
     std::printu.stdout[map.has[lend 'fast', "x"], \n];
-    let 'who' := map.get[lend 'phones', "zed"] otherwise { missing { std::printu.stdout["no zed", \n]; std::exit[0]; } };
+    'who' := map.get[lend 'phones', "zed"] otherwise { missing { std::printu.stdout["no zed", \n]; std::exit[0]; } };
 }

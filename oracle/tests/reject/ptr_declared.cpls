@@ -1,3 +1,3 @@
 MAIN {
-    let 'p': ptr[uint8] = 1;
+    'p': ptr[uint8] = 1;
 }

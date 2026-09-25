@@ -1,6 +1,6 @@
 struct V { x: int32 }
 op + ['a': V, 'b': V] -> V { return V[x = 'a'.x + 'b'.x]; }
 MAIN {
-    let 'u' := V[x = 1];
-    let 'w' := 'u' + 1;
+    'u' := V[x = 1];
+    'w' := 'u' + 1;
 }

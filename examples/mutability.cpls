@@ -3,10 +3,10 @@ fn twice [immut 'n': int32] -> int32 {
 }
 
 MAIN {
-    let 'plain' := 1;
-    'plain' = 'plain' + 1;
-    let mut 'counter' := 0;
-    'counter' = 'counter' + 1;
-    let immut 'limit': int32 = 10;
+    'plain' := 1;
+    change 'plain' = 'plain' + 1;
+    mut 'counter' := 0;
+    change 'counter' = 'counter' + 1;
+    immut 'limit': int32 = 10;
     std::printu.stdout['plain', " ", 'counter', " ", 'limit', " ", twice['limit'], \n];
 }

@@ -1,1 +1,1 @@
-MAIN { let 'x': int8[1, max] = 0; }
+MAIN { 'x': int8[1, max] = 0; }

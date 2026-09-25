@@ -1,4 +1,4 @@
 MAIN {
-    let 'fd' := 1;
+    'fd' := 1;
     nocheck inline.ASM { nop } with [in 'fd' -> x0];
 }

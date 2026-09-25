@@ -1,4 +1,4 @@
 # a value that rounds past bin16's largest (65504) does not fit (2026-09-24)
 MAIN {
-    let 'x': bin16 = 65520.0;
+    'x': bin16 = 65520.0;
 }

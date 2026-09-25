@@ -4,22 +4,22 @@ MAIN {
     # so the narrowing below is proven and `check` says so. A name never changes numeric
     # family (`types.md`), so the value is a bin from the start — `to.bin16` would be the
     # way to cross from an integer, and it would fail rather than round silently.
-    let 'x': bin32 = 70000.0;
+    'x': bin32 = 70000.0;
     if 'x' > 65_504.0 {
         std::print.stdout["too big", \n];
     } else {
-        check let 'y': bin16 = 'x';
+        check 'y': bin16 = 'x';
         draw['y'];
     }
-    let 'xs' := [1, 2, 3];
+    'xs' := [1, 2, 3];
     check {
         for 'i' in range[1, list.length[lend 'xs']] {
             std::printu.stdout['xs'[pos 'i'], " "];
         }
     }
     std::print.stdout[\n];
-    nocheck 'xs'[pos 2] = 9;
+    nocheck change 'xs'[pos 2] = 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
-    check if 'x' > 0.0 { 'xs'[pos 1] = to.int32['x' / 2.0] otherwise 0; }
+    check if 'x' > 0.0 { change 'xs'[pos 1] = to.int32['x' / 2.0] otherwise 0; }
     std::printu.stdout['xs', \n];
 }

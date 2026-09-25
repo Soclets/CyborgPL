@@ -1,4 +1,4 @@
 MAIN {
-    let 'a': uint8 = 200;
-    let 'x' := 'a' shl 1;
+    'a': uint8 = 200;
+    'x' := 'a' shl 1;
 }

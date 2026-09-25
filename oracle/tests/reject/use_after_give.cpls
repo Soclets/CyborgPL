@@ -1,5 +1,5 @@
 MAIN {
-    let 's' := "a";
-    let 't' := give 's';
+    's' := "a";
+    't' := give 's';
     std::print.stdout['s'];
 }

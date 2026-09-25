@@ -1,5 +1,5 @@
 extern fn malloc ['n': uint64] -> ptr.mut[uint8];
 MAIN {
-    nocheck let 'p' := malloc[2];
-    nocheck let 'b' := ptr.read[ptr.at['p', 5]];
+    nocheck 'p' := malloc[2];
+    nocheck 'b' := ptr.read[ptr.at['p', 5]];
 }

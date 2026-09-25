@@ -1,6 +1,6 @@
 fn say ['n': int32] {
-    let 'by3' := ('n' mod 3) == 0;
-    let 'by5' := ('n' mod 5) == 0;
+    'by3' := ('n' mod 3) == 0;
+    'by5' := ('n' mod 5) == 0;
     if 'by3' and 'by5' {
         std::print.stdout["FizzBuzz", \n];
     } else if 'by3' {
@@ -13,10 +13,10 @@ fn say ['n': int32] {
 }
 
 MAIN {
-    let immut 'limit': int32 = 15;
-    let 'i' := 1;
+    immut 'limit': int32 = 15;
+    'i' := 1;
     while 'i' <== 'limit' {
         say['i'];
-        'i' = 'i' + 1;
+        change 'i' = 'i' + 1;
     }
 }

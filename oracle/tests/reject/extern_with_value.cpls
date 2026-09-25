@@ -1,2 +1,2 @@
-extern let 'a': int32 = 1;
+extern 'a': int32 = 1;
 MAIN { }

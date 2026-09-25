@@ -1,4 +1,4 @@
 MAIN {
-    let 'a': uint8 = 12;
-    let 'x' := 'a' and.bit 4 + 1;
+    'a': uint8 = 12;
+    'x' := 'a' and.bit 4 + 1;
 }

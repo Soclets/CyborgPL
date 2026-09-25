@@ -1,1 +1,1 @@
-MAIN { let 'c' := channel[str.utf8]; let 's' := "x"; channel.send[lend 'c', lend 's']; }
+MAIN { 'c' := channel[str.utf8]; 's' := "x"; channel.send[lend 'c', lend 's']; }

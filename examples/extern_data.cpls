@@ -1,11 +1,11 @@
 # extern let: a C global (decided 2026-09-21). Reading or writing it is a nocheck site.
-extern let 'lib_version': int32;              # C: extern int lib_version;
-extern let mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we may write it)
+extern 'lib_version': int32;              # C: extern int lib_version;
+extern mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we may write it)
 
 MAIN {
-    nocheck let 'v' := 'lib_version';
+    nocheck 'v' := 'lib_version';
     std::printu.stdout["version ", 'v', \n];
-    nocheck 'lib_verbose' = 1;
-    nocheck let 'on' := 'lib_verbose';
+    nocheck change 'lib_verbose' = 1;
+    nocheck 'on' := 'lib_verbose';
     std::printu.stdout["verbose ", 'on', \n];
 }

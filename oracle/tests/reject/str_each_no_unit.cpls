@@ -1,5 +1,5 @@
 MAIN {
-    let 's' := "abc";
+    's' := "abc";
     for 'c' in str.each[lend 's'] {
     }
 }

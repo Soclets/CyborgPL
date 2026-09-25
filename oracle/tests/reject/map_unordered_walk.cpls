@@ -1,5 +1,5 @@
 MAIN {
-    let mut 'm': map.unordered[str.utf8, int32] = map.empty;
+    mut 'm': map.unordered[str.utf8, int32] = map.empty;
     map.set[lend.mut 'm', "a", 1];
     for 'k' in map.keys[lend 'm'] { }
 }

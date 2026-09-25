@@ -1,2 +1,2 @@
-extern let mut 'a': int32;
-MAIN { 'a' = 2; }
+extern mut 'a': int32;
+MAIN { change 'a' = 2; }

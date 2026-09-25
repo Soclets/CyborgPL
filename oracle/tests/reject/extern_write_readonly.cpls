@@ -1,2 +1,2 @@
-extern let 'a': int32;
-MAIN { nocheck 'a' = 1; }
+extern 'a': int32;
+MAIN { nocheck change 'a' = 1; }

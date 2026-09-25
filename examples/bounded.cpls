@@ -3,19 +3,19 @@
 
 fn fill ['count': int32] -> list[int32][0, 5] or fail[too_many] {
     if 'count' > 5 { fail too_many; }
-    let mut 'out' := list.empty;
+    mut 'out' := list.empty;
     for 'i' in range[1, 'count'] { list.append[lend.mut 'out', 'i' x 'i']; }
     return give 'out';
 }
 
 MAIN {
-    let mut 'squares': list[int32][0, 5] = fill[3] otherwise list.empty;
-    let 'n' := list.length[lend 'squares'];    # a uint64[0, 5]
-    let 'small': int8 = 'n';                   # proven: the bound says at most 5
+    mut 'squares': list[int32][0, 5] = fill[3] otherwise list.empty;
+    'n' := list.length[lend 'squares'];    # a uint64[0, 5]
+    'small': int8 = 'n';                   # proven: the bound says at most 5
     std::printu.stdout['squares', " has ", 'small', \n];
     list.append[lend.mut 'squares', 16];
     list.append[lend.mut 'squares', 25];       # five: still inside
     std::printu.stdout[list.length[lend 'squares'], \n];
-    let 'big' := fill[9] otherwise { too_many { std::printu.stdout["9 is too many", \n]; std::exit[0]; } };
+    'big' := fill[9] otherwise { too_many { std::printu.stdout["9 is too many", \n]; std::exit[0]; } };
     std::printu.stdout[list.length[lend 'big'], \n];
 }

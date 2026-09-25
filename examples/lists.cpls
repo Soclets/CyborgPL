@@ -1,18 +1,18 @@
 fn count [lent 'items'] -> int32 {
-    let 'n' := 0;
+    'n' := 0;
     for 'item' in lend 'items' {
-        'n' = 'n' + 1;
+        change 'n' = 'n' + 1;
     }
     return 'n';
 }
 
 MAIN {
-    let 'grid' := [[1, 2], [3, 4]];
+    'grid' := [[1, 2], [3, 4]];
     std::printu.stdout['grid', \n];
     for 'row' in lend 'grid' {
         std::printu.stdout[count[lend 'row'], \n];
     }
     std::printu.stdout[count[["a", "b", "c"]], \n];
-    let 'one' := [7,];
+    'one' := [7,];
     std::printu.stdout['one', " ", count[lend 'one'], \n];
 }

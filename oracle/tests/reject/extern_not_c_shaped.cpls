@@ -1,2 +1,2 @@
-extern let 'a': str.utf8;
+extern 'a': str.utf8;
 MAIN { }

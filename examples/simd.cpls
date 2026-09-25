@@ -1,23 +1,23 @@
 # simd[T, N] (design/simd.md, 2026-09-22): N plain values in one register, the ordinary
 # operators lane by lane. The plain loop is the portable way; this is for when it is not enough.
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
-    let mut 'acc': simd[uint8, 16] = simd.fill[0];
+    mut 'acc': simd[uint8, 16] = simd.fill[0];
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
-        'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
+        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
     }
     return simd.max['acc'] < 128;
 }
 
 MAIN {
-    let 'plain': array[uint8] = [72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33, 33, 33, 33, 33];
-    let 'thai': array[uint8] = [72, 101, 108, 108, 111, 32, 224, 184, 129, 108, 100, 33, 33, 33, 33, 33];
+    'plain': array[uint8] = [72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33, 33, 33, 33, 33];
+    'thai': array[uint8] = [72, 101, 108, 108, 111, 32, 224, 184, 129, 108, 100, 33, 33, 33, 33, 33];
     std::printu.stdout[is_ascii[lend 'plain'], " ", is_ascii[lend 'thai'], \n];
-    let 'a': simd[int32, 4] = simd.fill[10];
-    let 'b': simd[int32, 4] = simd.fill[3];
+    'a': simd[int32, 4] = simd.fill[10];
+    'b': simd[int32, 4] = simd.fill[3];
     std::printu.stdout['a' + 'b', " ", simd.sum['a'], " ", simd.max['a' x 'b'], \n];
-    let 'm' := 'a' > 'b';                       # a simd[bool, 4], one answer per lane
+    'm' := 'a' > 'b';                       # a simd[bool, 4], one answer per lane
     std::printu.stdout[simd.all['m'], " ", simd.any['b' > 'a'], \n];
-    let mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
+    mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
     simd.store[lend.mut 'out', pos 2, 'a' + 'b'];
     std::printu.stdout['out', \n];
 }

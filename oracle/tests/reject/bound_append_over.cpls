@@ -1,4 +1,4 @@
 MAIN {
-    let mut 'ys': list[int32][0, 3] = [1, 2, 3];
+    mut 'ys': list[int32][0, 3] = [1, 2, 3];
     list.append[lend.mut 'ys', 4];
 }

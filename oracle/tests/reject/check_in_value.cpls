@@ -1,3 +1,3 @@
 MAIN {
-    let 'x' := 1 + check 2;
+    'x' := 1 + check 2;
 }
