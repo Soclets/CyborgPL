@@ -27,7 +27,7 @@ export default function Learn() {
       <h2 className="section">Syntax in five minutes</h2>
       <div className="stack">
         {syntax.map((s, i) => (
-          <article key={s.title} className="lesson">
+          <article key={s.title} id={`syntax-${i + 1}`} className="lesson">
             <div className="lesson-head"><span className="num">{i + 1}</span><b>{s.title}</b></div>
             <p>{s.text}</p>
             <Code html={s.html} className="small" />

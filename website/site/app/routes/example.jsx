@@ -29,12 +29,13 @@ export default function Example() {
     const leave = () => {
       if (done) return;
       done = true;
+      // Opened from inside the app (grid or search): go back there. Opened by link: land on the grid.
       if (location.state?.fromGrid) navigate(-1);
       else navigate("/examples", { replace: true, preventScrollReset: true });
     };
-    animate(y, window.innerHeight, { type: "tween", duration: 0.22, ease: "easeIn" }).then(leave);
+    animate(y, window.innerHeight, { type: "tween", duration: 0.15, ease: "easeIn" }).then(leave);
     // If the browser pauses animations (a background tab), close anyway.
-    setTimeout(leave, 400);
+    setTimeout(leave, 260);
   };
 
   useEffect(() => {
@@ -51,13 +52,13 @@ export default function Example() {
 
   return (
     <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={ex.title}>
-      <motion.div className="scrim" onClick={close} initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
+      <motion.div className="scrim" onClick={close} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} />
       <motion.section
         className="sheet"
         style={{ y }}
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 420, damping: 42 }}
+        transition={{ type: "spring", stiffness: 800, damping: 60, mass: 0.7 }}
         drag="y"
         dragListener={false}
         dragControls={drag}

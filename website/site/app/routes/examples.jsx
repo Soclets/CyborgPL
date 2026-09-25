@@ -26,7 +26,7 @@ export default function Examples() {
       </label>
       <div className="grid">
         {shown.map((e, i) => (
-          <Link key={e.id} to={e.id} state={{ fromGrid: true }} preventScrollReset className="gcard" style={{ "--c": ACCENTS[i % ACCENTS.length] }}>
+          <Link key={e.id} to={e.id} state={{ fromGrid: true }} preventScrollReset prefetch="intent" className="gcard" style={{ "--c": ACCENTS[i % ACCENTS.length] }}>
             <pre className="gcode">{e.preview}</pre>
             <b>{e.title}</b>
             <small>{e.lines} lines</small>

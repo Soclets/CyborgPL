@@ -5,9 +5,9 @@ const P = {
   code: "m8 8-4 4 4 4m8-8 4 4-4 4m-2-10-4 16",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   shield: "M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z",
-  key: "M14 10a4 4 0 1 0-3.9 4.9L10 15v2H8v2H5v-3l5.1-5.1A4 4 0 0 0 14 10z",
-  type: "M5 7V5h14v2M12 5v14m-3 0h6",
-  dot: "M12 12h.01M6 12h.01M18 12h.01",
+  key: "M11 12h10m-3 0v3m-3-3v2M7.5 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z",
+  type: "M6.5 9h.01M6.5 15h.01M11 9h7M11 15h7",  // the := glyph itself
+  dot: "M4 5h16l-6 7v6l-4 2v-8z",  // a funnel: a dot narrows
   alert: "M12 4 3 20h18zm0 6v4m0 3h.01",
   chip: "M8 8h8v8H8zM4 10h2m-2 4h2m12-4h2m-2 4h2M10 4v2m4-2v2m-4 12v2m4-2v2",
   chev: "m9 6 6 6-6 6",

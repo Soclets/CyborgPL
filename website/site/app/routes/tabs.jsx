@@ -22,11 +22,11 @@ export default function Tabs() {
         {TABS.map((t) => {
           const on = t.match(pathname);
           return (
-            <Link key={t.to} to={t.to} className={"tab" + (on ? " on" : "")} aria-current={on ? "page" : undefined} aria-label={t.label}>
-              {on && <motion.span layoutId="tab-pill" className="tab-pill" transition={{ type: "spring", stiffness: 520, damping: 38 }} />}
+            <Link key={t.to} to={t.to} prefetch="render" className={"tab" + (on ? " on" : "")} aria-current={on ? "page" : undefined} aria-label={t.label}>
+              {on && <motion.span layoutId="tab-pill" className="tab-pill" transition={{ type: "spring", stiffness: 900, damping: 55, mass: 0.6 }} />}
               <span className="tab-inner">
                 <Icon name={t.icon} size={22} />
-                {on && <motion.b initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }}>{t.label}</motion.b>}
+                {on && <motion.b initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.1 }}>{t.label}</motion.b>}
               </span>
             </Link>
           );
