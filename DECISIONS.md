@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-25 — `and.then` / `or.else`: stop once the answer is known (owner)
+
+Straight after choosing b (both sides always run), the owner asked for a
+familiar `and` by the dot rule. Design claude proposed `and.then` /
+`or.else`, as in Ada, which made the same split (plain `and` runs both,
+`and then` stops early), against `and.guard`, `and.early` and `and.short`.
+Recommended `and.then` / `or.else` for reading as English. The owner asked
+what describes it best (these), confirmed `or.else` narrows `or`, asked why
+`and.then` too (the everyday check-then-use is an `and`), what `or.else`
+does, and why not `otherwise`. `otherwise` handles failures, and a list
+read out of range or a division by zero is a check site, not a failure. A
+failing `list.get` was offered for the list case. Owner: "Add the and and or
+stuff": `and.then` and `or.else`, not `list.get`. They are in the oracle,
+with Precog's narrowing left to CCA. `examples/and_then_or_else.cpls`;
+`operators.md`.
+
 ### 2026-09-25 — `and`/`or` always work out both sides (owner: b)
 
 From check claude: nothing said whether `and` stops early. Both engines ran

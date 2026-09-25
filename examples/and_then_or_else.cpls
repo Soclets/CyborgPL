@@ -1,0 +1,18 @@
+# `and.then` / `or.else` (owner, 2026-09-25): the right side is worked out only when the
+# left has not already decided — "A, and then (only if A held) B", "A, or else (only if
+# A failed) B". Plain `and` / `or` always work out both (examples/and_runs_both.cpls).
+fn loud ['name': str.utf8, 'answer': bool] -> bool {
+    std::printu.stdout["checked ", 'name', \n];
+    return 'answer';
+}
+MAIN {
+    'xs' := [3, 5, 8];
+    'i': uint64 = 7;
+    if 'i' <== list.length[lend 'xs'] and.then 'xs'[pos 'i'] == 5 {     # 'i' is past the end: never read std::printu.stdout["found", \n]; }
+    'n': int32 = 0;
+    if 'n' == 0 or.else 100 / 'n' < 2 { std::printu.stdout["small or nothing", \n]; }
+    'a' := loud["first", false] and.then loud["second", true];
+    'b' := loud["third", true] or.else loud["fourth", true];
+    'c' := loud["fifth", true] and.then loud["sixth", false];
+    std::printu.stdout['a', " ", 'b', " ", 'c', \n];
+}

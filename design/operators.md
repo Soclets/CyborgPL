@@ -213,6 +213,24 @@ Go and JavaScript do, so the one-line guard works and Precog narrows the
 right side by the left (recommended by check claude and design claude);
 run both and refuse such lines at compile time.
 
+**`and.then` / `or.else` stop once the answer is known** (owner, same
+day), for when the second half should depend on the first:
+
+```
+if 'i' <== list.length[lend 'xs'] and.then 'xs'[pos 'i'] == 5 { … }
+if 'n' == 0 or.else 100 / 'n' < 2 { … }
+```
+
+A variant of `and`/`or` by the dot rule, like `and.bit`. It reads as the
+English: "A, and then B" (only if A held) and "A, or else B" (only if A
+failed), the spelling Ada uses (`and then` / `or else`). Same precedence as
+`and` / `or`. Precog narrows the right side by the left, so the read and
+the division above are proven. Names considered: `and.guard`, `and.early`,
+`and.short`. Handling it with `otherwise` was asked about and does not
+apply: a list read out of range or a division by zero is a check site,
+not a failure. A failing `list.get` was floated for the list case and not
+chosen.
+
 ## Not yet listed (open)
 
 - Integer division vs. `/` on `int` (truncate? error on inexact?).

@@ -1579,6 +1579,9 @@ impl Parser {
             Tok::Op(o) => Some(o.clone()),
             // `and.bit` / `or.bit` — one operator spelled as a chain
             Tok::Word(w) if (w == "and" || w == "or") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bit") => Some(format!("{w}.bit")),
+            // `and.then` / `or.else` — the right side only when the left has not decided (owner, 2026-09-25)
+            Tok::Word(w) if w == "and" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "then") => Some("and.then".into()),
+            Tok::Word(w) if w == "or" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "else") => Some("or.else".into()),
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
@@ -1614,8 +1617,8 @@ impl Parser {
 
     fn level(op: &str) -> u8 {
         match op {
-            "or" => 1,
-            "and" => 2,
+            "or" | "or.else" => 1,
+            "and" | "and.then" => 2,
             "==" | "!==" | "<" | ">" | "<==" | ">==" => 3,
             "++" => 4,
             "+" | "-" | "+~" | "-~" => 5,
@@ -1648,6 +1651,7 @@ impl Parser {
             let lv = Self::level(&op);
             if lv < min || lv == 0 { break; }
             self.advance();
+            if op == "and.then" || op == "or.else" { self.advance(); self.advance(); }
             // right-associative for xx, left for everything else
             let rhs = if op == "xx" { self.climb(lv)? } else { self.climb(lv + 1)? };
             lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);

@@ -1717,6 +1717,16 @@ impl<'p> Interp<'p> {
                 };
                 Ok((Value::Int(v), Prov::Plain))
             }
+            // `and.then` / `or.else` (owner, 2026-09-25): the right side is worked out only when
+            // the left has not already decided the answer; plain `and`/`or` always do both
+            Expr::Binary(op, l, r, _) if op == "and.then" || op == "or.else" => {
+                let (a, _) = self.eval(l)?;
+                let Value::Bool(a) = a else { return rt(line, format!("`{op}` works on bools, got {}", a.kind())) };
+                if (op == "and.then" && !a) || (op == "or.else" && a) { return Ok((Value::Bool(a), Prov::Plain)); }
+                let (b, _) = self.eval(r)?;
+                let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
+                Ok((Value::Bool(b), Prov::Plain))
+            }
             Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "/" | "mod" | "++" | "==" | "!==" | "<" | ">" | "<==" | ">==" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
