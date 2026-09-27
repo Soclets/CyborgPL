@@ -171,6 +171,10 @@ pub enum Op {
     SimdMax,
     SimdMin,
     SimdSum,
+    /// The lanes in a new order, fixed when compiling (0-based).
+    SimdShuffle(Vec<u32>),
+    SimdLoadSome,
+    SimdStoreSome,
     /// A std name, until the std Limb exists (owner, 2026-09-22).
     Std(String),
 }
@@ -226,6 +230,9 @@ pub enum SiteKind {
     SliceRange,
     /// `simd.load` / `simd.store`: is `i + N - 1` still inside?
     SimdRange { lanes: u32 },
+    /// `simd.load.some` / `simd.store.some`: k is at most the lanes, and
+    /// the k items from the position are in the list.
+    SimdSome { lanes: u32 },
     /// Equal keys must hash the same, for a type with its own `hash`.
     KeyHashAgrees,
     /// A lend that must not outlive its owner.
@@ -254,6 +261,7 @@ impl SiteKind {
             SiteKind::SliceRange => "the slice can run outside the list, or backwards".into(),
             SiteKind::NegativeExponent => "a negative exponent on integers would produce a fraction".into(),
             SiteKind::SimdRange { lanes } => format!("the {} lanes can run past the end", lanes),
+            SiteKind::SimdSome { lanes } => format!("the items for {} lanes can run past the end, or be more than the lanes", lanes),
             SiteKind::KeyHashAgrees => "two keys this says are equal can hash differently, and the map would hold both".into(),
             SiteKind::LendOutlives => "the borrow can outlive what it borrows".into(),
             SiteKind::TaskLendOutlives => "the task can outlive what it borrowed".into(),

@@ -1,0 +1,21 @@
+# A simd value goes anywhere a number does (owner, 2026-09-27: a): a struct's
+# field, a list's element, a parameter and a return (examples/simd_fields.cpls
+# with int32 lanes, read out as an exit code).
+extern fn exit ['code': int32];
+
+struct Particle { place: simd[int32, 4]  vel: simd[int32, 4] }
+
+fn step ['p': Particle] -> Particle {
+    return Particle[place = 'p'.place + 'p'.vel, vel = 'p'.vel];
+}
+
+MAIN {
+    'p' := Particle[place = simd.fill[1], vel = simd.fill[2]];
+    'q' := step[give 'p'];
+    mut 'history': list[simd[int32, 4]] = [];
+    list.append[lend.mut 'history', 'q'.place];
+    list.append[lend.mut 'history', 'q'.place + 'q'.vel];
+    list.append[lend.mut 'history', simd.shuffle['q'.vel, [1, 2, 3, 4]]];
+    # 12 + 3 x 10 + 20 + 8 = 70
+    nocheck exit[simd.sum['q'.place] + to.int32[list.length[lend 'history']] x 10 + simd.sum['history'[pos 2]] + simd.sum['history'[pos 3]]];
+}

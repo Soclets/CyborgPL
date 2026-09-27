@@ -701,7 +701,7 @@ impl Precog {
                         // Anything that changes a value makes what was asked
                         // about it a moment ago no longer news.
                         if let Some(src) = args.first().and_then(|a| a.place()) {
-                            if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore) {
+                            if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore | Op::SimdStoreSome) {
                                 lengths.retain(|_, (_, p)| p.local != src.local);
                             }
                         }
@@ -1471,7 +1471,7 @@ impl Precog {
             // (`simd.md`, a domain per lane, is not built yet): the length
             // stays, the elements become anything. Keeping them as they
             // were folded an `if` about a stored element to false.
-            (Op::SimdStore, Domain::Seq { len, .. }) => Domain::Seq { len, elem: Box::new(Domain::Any) },
+            (Op::SimdStore | Op::SimdStoreSome, Domain::Seq { len, .. }) => Domain::Seq { len, elem: Box::new(Domain::Any) },
             _ => return,
         };
         env.insert(target.local, after);
@@ -1853,6 +1853,23 @@ impl Precog {
                     Verdict::Fails { counterexample: format!("every time: {} lanes from position {} and there are {} element(s)", lanes, ilo, lhi) }
                 } else {
                     Verdict::Fails { counterexample: format!("the {} lanes can reach position {} when there are {} element(s)", lanes, ihi, llo) }
+                }
+            }
+            // k items from position i: k <= N, 1 <= i, i + k - 1 <= length.
+            SiteKind::SimdSome { lanes } => {
+                let (Some(Domain::Ints(i)), Some(Domain::Seq { len, .. }), Some(Domain::Ints(k))) = (ds.first(), ds.get(1), ds.get(2)) else { return Verdict::Unproven };
+                let (Some((ilo, ihi)), Some((llo, lhi)), Some((klo, khi))) = (i.bounds(), len.bounds(), k.bounds()) else { return Verdict::Unproven };
+                let n = *lanes as i128;
+                if klo > n {
+                    Verdict::Fails { counterexample: format!("every time: {} items and only {} lanes", klo, n) }
+                } else if ilo + klo - 1 > lhi || ihi < 1 {
+                    Verdict::Fails { counterexample: format!("every time: {} items from position {} run past the end of a list of {}", klo, ilo, lhi) }
+                } else if khi <= n && ilo >= 1 && ihi + khi - 1 <= llo {
+                    Verdict::Proven { how: "every item is inside" }
+                } else if khi > n {
+                    Verdict::Fails { counterexample: format!("there can be {} items for {} lanes", khi, n) }
+                } else {
+                    Verdict::Fails { counterexample: format!("{} items from position {} can run past the end of a list of {}", khi, ihi, llo) }
                 }
             }
             // A lend into a task is only ever into a structured one (the
@@ -2846,7 +2863,7 @@ fn mean_bound(func: &Function, lhs: &Operand, rhs: &Operand) -> Option<(i128, i1
                     if dest.as_ref().map_or(false, |d| d.local == root) {
                         return None;
                     }
-                    let changes = matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore);
+                    let changes = matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore | Op::SimdStoreSome);
                     if changes && args.first().and_then(|a| a.place()).map_or(false, |pl| pl.local == root) {
                         return None;
                     }

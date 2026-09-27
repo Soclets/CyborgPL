@@ -331,7 +331,11 @@ short_name_one_limb [fnv:c62ad7b10088ce87] :: gives other Limbs a shorter name
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
 simd_load_needs_pos [fnv:5ad79b7ed48ef355] :: says the position with `pos`, as every index does
 simd_load_past_end [fnv:00802e6e1064a8bf] :: the 16 lanes can run past the end
+simd_mask_lanes [fnv:51d1f37b90e986ac] :: a mask has as many lanes as the vectors it compares
 simd_not_a_bool [fnv:cf5039b775bdbbc1] :: a vector is never a single answer
+simd_shuffle_lane [fnv:9019a13509c2627b] :: lane 5 does not exist
+simd_shuffle_not_fixed [fnv:10de2b5101aae9ec] :: takes the new order as fixed lane numbers
+simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past the end
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is followed by `.of`: `size.of[int32]`

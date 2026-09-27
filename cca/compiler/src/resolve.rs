@@ -896,6 +896,16 @@ impl Items {
                     let Some(lanes) = lane_count(&args[1]) else {
                         return err(Diagnostic::error("the second thing in a `simd` is how many lanes, written as a number: `simd[uint8, 16]`").at(args[1].span));
                     };
+                    // A mask (owner, 2026-09-27: a): one answer per lane of
+                    // the vectors it compares, so as many lanes as they have.
+                    if elem.base() == &Ty::Bool {
+                        let widths: Vec<u32> = [64u32, 32, 16, 8].iter().map(|b| TARGET_SIMD_BITS / b).collect();
+                        if !widths.contains(&lanes) {
+                            let listed = widths.iter().map(|w| w.to_string()).collect::<Vec<_>>();
+                            return err(Diagnostic::error(format!("a mask has as many lanes as the vectors it compares: {} or {} here, not {}", listed[..listed.len() - 1].join(", "), listed[listed.len() - 1], lanes)).at(args[1].span));
+                        }
+                        return Ok(Ty::Simd { elem: Box::new(elem), lanes });
+                    }
                     if simd_lane_bits(&elem).is_none() {
                         return err(Diagnostic::error(format!("a `simd` holds plain numbers or bools, and `{}` is neither: its lanes live in a register, so each one is a fixed-width number", spell(&elem, self))).at(args[0].span));
                     }

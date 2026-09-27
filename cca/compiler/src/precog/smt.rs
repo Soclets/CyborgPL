@@ -622,7 +622,7 @@ impl<'a> Enc<'a> {
                             _ => self.op(op, args, &env),
                         };
                         // An operation that changes a collection's size.
-                        if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore) {
+                        if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore | Op::SimdStoreSome) {
                             if let Some(p) = args.first().and_then(|a| a.place()) {
                                 // An append makes the list one longer, a
                                 // removal one shorter: said, not forgotten.
@@ -1492,7 +1492,7 @@ fn written_in(b: &BasicBlock, out: &mut std::collections::HashSet<LocalId>) {
                 // The operations that change the collection they are handed
                 // — the same list the walk itself forgets on. Reading a
                 // list, printing one, measuring one changes nothing.
-                if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore) {
+                if matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore | Op::SimdStoreSome) {
                     if let Some(p) = args.first().and_then(|a| a.place()) {
                         out.insert(p.local);
                     }

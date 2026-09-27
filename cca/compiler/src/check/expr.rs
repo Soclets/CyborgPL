@@ -548,6 +548,14 @@ impl Checker {
         // 9223372036854775807 + 1` is a `uint64` sum, 2^63, not an
         // `integer` one that overflows.
         let mut v = v;
+        // A vector whose lanes were left to its context takes them from the
+        // place it goes: a field, an element, a parameter.
+        if let (Ty::Simd { lanes: 0, .. }, Ty::Simd { elem, lanes }) = (vt.base(), t.base()) {
+            if *lanes > 0 {
+                let (elem, lanes) = ((**elem).clone(), *lanes);
+                self.settle_lanes(&mut v, &elem, lanes);
+            }
+        }
         // `Ty::Infer` too: a shift, `not.bit` or wrapping operator of bare
         // numbers waits for its width from here (owner, 2026-09-23), and so
         // does every literal group inside it.
@@ -599,6 +607,13 @@ impl Checker {
                 Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span })
             }
             UnOp::Not => {
+                // A mask flips lane by lane (owner, 2026-09-27: a).
+                if let Ty::Simd { elem, .. } = vt.base() {
+                    if elem.base() == &Ty::Bool {
+                        let ty = vt.base().clone();
+                        return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span });
+                    }
+                }
                 self.expect_bool(&v, "`not`'s operand")?;
                 Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: Ty::Bool, span })
             }
@@ -921,7 +936,7 @@ impl Checker {
 
     /// A lane-wise operator. The rule is the scalar rule, N times.
     #[allow(clippy::too_many_arguments)]
-    fn simd_binary(&mut self, op: &BinOp, op_span: Span, l: Expr, r: Expr, lt: &Ty, rt: &Ty, span: Span) -> Result<Expr> {
+    fn simd_binary(&mut self, op: &BinOp, op_span: Span, mut l: Expr, mut r: Expr, lt: &Ty, rt: &Ty, span: Span) -> Result<Expr> {
         let (lane, lanes) = match (lt.base(), rt.base()) {
             (Ty::Simd { elem, lanes }, Ty::Simd { elem: e2, lanes: l2 }) => {
                 if !self.unify(elem, e2) {
@@ -930,7 +945,15 @@ impl Checker {
                 if lanes != l2 && *lanes != 0 && *l2 != 0 {
                     return err(Diagnostic::error(format!("`{}` works lane by lane, and these are different lengths: {} and {}", op.spelled(), lanes, l2)).at(op_span));
                 }
-                ((**elem).clone(), (*lanes).max(*l2))
+                // The side that says its lanes says them for both: a
+                // `simd.fill[10]` beside a `simd[int32, 4]` is four int32s.
+                let (a, b) = (self.resolve(elem), self.resolve(e2));
+                let free = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_)) | Ty::Var(_));
+                let lane = if free(&a) && !free(&b) { b } else { a };
+                let lanes = (*lanes).max(*l2);
+                self.settle_lanes(&mut l, &lane, lanes);
+                self.settle_lanes(&mut r, &lane, lanes);
+                (lane, lanes)
             }
             // A scalar broadcasts against a vector (the oracle's pick,
             // 2026-09-22; `simd.md` records it as something it had to choose).
@@ -948,7 +971,11 @@ impl Checker {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => lane_r.is_numeric(),
             BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
             BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => lane_r.is_numeric() || lane_r.base() == &Ty::Bool,
-            BinOp::And | BinOp::Or | BinOp::AndThen | BinOp::OrElse => lane_r.base() == &Ty::Bool,
+            BinOp::And | BinOp::Or => lane_r.base() == &Ty::Bool,
+            BinOp::AndThen | BinOp::OrElse => {
+                let plain = if *op == BinOp::AndThen { "and" } else { "or" };
+                return err(Diagnostic::error(format!("`{}` works on a single bool: it stops once the answer is known, and a mask has an answer in every lane — `{}` works lane by lane", op.spelled(), plain)).at(op_span));
+            }
             _ => false,
         };
         if !ok {
@@ -957,6 +984,24 @@ impl Checker {
         // A comparison gives one answer per lane, never a single `bool`.
         let ty = if op.is_comparison() { Ty::Simd { elem: Box::new(Ty::Bool), lanes } } else { Ty::Simd { elem: Box::new(lane), lanes } };
         Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
+    }
+
+    /// A vector whose lanes were left to its context (`simd.fill[…]`, and
+    /// arithmetic on one) takes them from the side that says them.
+    fn settle_lanes(&mut self, e: &mut Expr, lane: &Ty, lanes: u32) {
+        let Ty::Simd { elem, lanes: have } = self.resolve(&e.ty).base().clone() else { return };
+        let free = matches!(elem.base(), Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_)) | Ty::Var(_));
+        if have != 0 && !free {
+            return;
+        }
+        let el = if elem.base() == &Ty::Bool && lane.base() != &Ty::Bool { (*elem).clone() } else { lane.clone() };
+        e.ty = Ty::Simd { elem: Box::new(el), lanes };
+        if let K::Binary { op, lhs, rhs, .. } = &mut e.kind {
+            if !op.is_comparison() {
+                self.settle_lanes(lhs, lane, lanes);
+                self.settle_lanes(rhs, lane, lanes);
+            }
+        }
     }
 
     /// An operand read. A bare *owned* name in an operator is a view of it
@@ -2130,7 +2175,10 @@ impl Checker {
             ("simd", ["max"]) => BuiltinHead::B(Builtin::SimdMax),
             ("simd", ["min"]) => BuiltinHead::B(Builtin::SimdMin),
             ("simd", ["sum"]) => BuiltinHead::B(Builtin::SimdSum),
-            ("simd", [other]) => return err(Diagnostic::error(format!("`simd.{}` does not exist: a vector has `fill`, `load`, `store`, `all`, `any`, `max`, `min`, `sum`", other)).at(span)),
+            ("simd", ["shuffle"]) => BuiltinHead::B(Builtin::SimdShuffle(Vec::new())),
+            ("simd", ["load", "some"]) => BuiltinHead::B(Builtin::SimdLoadSome),
+            ("simd", ["store", "some"]) => BuiltinHead::B(Builtin::SimdStoreSome),
+            ("simd", [other]) => return err(Diagnostic::error(format!("`simd.{}` does not exist: a vector has `fill`, `load`, `store`, `load.some`, `store.some`, `shuffle`, `all`, `any`, `max`, `min`, `sum`", other)).at(span)),
             ("channel", ["send"]) => BuiltinHead::B(Builtin::ChannelSend),
             ("channel", ["take"]) => BuiltinHead::B(Builtin::ChannelTake),
             ("channel", [other]) => return err(Diagnostic::error(format!("`channel.{}` does not exist: a channel has `send` and `take`", other)).at(span)),
@@ -2168,6 +2216,7 @@ impl Checker {
             Ok(())
         };
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
+        let mut shuffle_order: Option<Vec<u32>> = None;
         let (hargs, ty): (Vec<Arg>, Ty) = match &b {
             Builtin::ListLength | Builtin::ArrayLength | Builtin::MapLength | Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes => {
                 arity(1, self)?;
@@ -2465,6 +2514,70 @@ impl Checker {
                 }
                 (vec![a, idx, Arg::Value(v)], Ty::Nothing)
             }
+            // The leftover end of a vector loop (owner, 2026-09-27: a).
+            Builtin::SimdLoadSome | Builtin::SimdStoreSome => {
+                let store = matches!(b, Builtin::SimdStoreSome);
+                arity(if store { 4 } else { 3 }, self)?;
+                let a = self.lent_arg(ctx, positional[0], &name, store)?;
+                let at = self.resolve(&self.arg_type(&a));
+                let elem = match at.base() {
+                    Ty::Seq { elem, .. } => (**elem).clone(),
+                    other => return err(Diagnostic::error(format!("`{}` works on a list or an array, and {} is a `{}`", name, self.arg_name(ctx, &a), self.spell(other))).at(positional[0].span)),
+                };
+                let idx = self.pos_arg(ctx, positional[1], &name)?;
+                let k = self.expr(ctx, positional[2])?;
+                if !self.resolve(&k.ty).is_int() {
+                    return err(Diagnostic::error(format!("`{}`'s third argument is how many items, a whole number from 0 to the lanes, and this is a `{}`", name, self.spell(&self.resolve(&k.ty)))).at(positional[2].span));
+                }
+                if !store {
+                    (vec![a, idx, Arg::Value(k)], Ty::Simd { elem: Box::new(elem), lanes: 0 })
+                } else {
+                    let v = self.expr(ctx, positional[3])?;
+                    let vt = self.resolve(&v.ty);
+                    match vt.base() {
+                        Ty::Simd { elem: lane, .. } => {
+                            if !self.unify(lane, &elem) {
+                                return err(Diagnostic::error(format!("`simd.store.some` writes `{}` lanes into a list of `{}`", self.spell(lane), self.spell(&elem))).at(positional[3].span));
+                            }
+                        }
+                        other => return err(Diagnostic::error(format!("`simd.store.some` writes a vector, and this is a `{}`", self.spell(other))).at(positional[3].span)),
+                    }
+                    (vec![a, idx, Arg::Value(k), Arg::Value(v)], Ty::Nothing)
+                }
+            }
+            // One rearrangement for all (owner, 2026-09-27: a): the order is
+            // lane numbers fixed when compiling, 1-based, repeats allowed.
+            Builtin::SimdShuffle(_) => {
+                arity(2, self)?;
+                let v = self.expr(ctx, positional[0])?;
+                let v = self.as_operand(ctx, v)?;
+                let vt = self.resolve(&v.ty);
+                let lanes = match vt.base() {
+                    Ty::Simd { lanes, .. } if *lanes > 0 => *lanes,
+                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`'v': simd[int32, 4] = …`)").at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`simd.shuffle` rearranges a vector's lanes, and this is a `{}`", self.spell(other))).at(positional[0].span)),
+                };
+                let fixed = "`simd.shuffle` takes the new order as fixed lane numbers, known when compiling: `[4, 3, 2, 1]`";
+                let AK::List(items) = &positional[1].kind else {
+                    return err(Diagnostic::error(fixed).at(positional[1].span));
+                };
+                let mut order = Vec::new();
+                for it in items {
+                    let AK::Int(text) = &it.kind else {
+                        return err(Diagnostic::error(fixed).at(it.span));
+                    };
+                    let n: u64 = text.parse().unwrap_or(u64::MAX);
+                    if n < 1 || n > lanes as u64 {
+                        return err(Diagnostic::error(format!("lane {} does not exist: the vector has {} lanes, 1 to {}", text, lanes, lanes)).at(it.span));
+                    }
+                    order.push(n as u32 - 1);
+                }
+                if order.len() != lanes as usize {
+                    return err(Diagnostic::error(format!("the new order names {} lane(s), and the vector has {}: one lane number per lane", order.len(), lanes)).at(positional[1].span));
+                }
+                shuffle_order = Some(order);
+                (vec![Arg::Value(v)], vt.base().clone())
+            }
             Builtin::SimdAll | Builtin::SimdAny => {
                 arity(1, self)?;
                 let v = self.expr(ctx, positional[0])?;
@@ -2490,6 +2603,10 @@ impl Checker {
                 (vec![Arg::Value(v)], lane)
             }
             Builtin::Std(_) => unreachable!(),
+        };
+        let b = match shuffle_order {
+            Some(order) => Builtin::SimdShuffle(order),
+            None => b,
         };
         let ow = self.call_otherwise(ctx, otherwise, &fails, &ty, used, span, &name)?;
         Ok(Expr { kind: K::Call { callee: Callee::Builtin(b), args: hargs, otherwise: ow, fails }, ty, span })

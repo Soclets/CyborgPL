@@ -161,3 +161,9 @@ map_same_key 8
 and_then_guards 109
 # C enums and ranged C struct fields at the door, against real libc.
 c_enum_door 219
+# SIMD (owner, 2026-09-27: a): masks as a type, shuffle, the leftover end,
+# and vectors in structs and lists.
+simd_masks 25
+simd_shuffle_tail 175
+simd_some_bounds trap
+simd_fields 70

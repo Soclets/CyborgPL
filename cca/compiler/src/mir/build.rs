@@ -1595,6 +1595,20 @@ impl<'a> FnBuilder<'a> {
                 let list = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
                 self.site(SiteKind::SimdRange { lanes }, vec![idx, list], span);
             }
+            // k items from the position, k at most N (owner, 2026-09-27: a).
+            Op::SimdLoadSome | Op::SimdStoreSome => {
+                let lanes = match op {
+                    Op::SimdLoadSome => match ty.base() {
+                        Ty::Simd { lanes, .. } => *lanes,
+                        _ => 0,
+                    },
+                    _ => args.get(3).map(|a| self.arg_ty_lanes(a)).unwrap_or(None).unwrap_or(0),
+                };
+                let idx = args.get(1).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(1)));
+                let list = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
+                let k = args.get(2).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(0)));
+                self.site(SiteKind::SimdSome { lanes }, vec![idx, list, k], span);
+            }
             // 1 <= first <= last + 1 <= length + 1 (`lists.md`).
             Op::ListSlice => {
                 let Some(Arg::Lend { place, .. }) = args.first() else { return };
@@ -1941,6 +1955,9 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::SimdMax => Op::SimdMax,
         Builtin::SimdMin => Op::SimdMin,
         Builtin::SimdSum => Op::SimdSum,
+        Builtin::SimdShuffle(order) => Op::SimdShuffle(order.clone()),
+        Builtin::SimdLoadSome => Op::SimdLoadSome,
+        Builtin::SimdStoreSome => Op::SimdStoreSome,
         Builtin::Std(n) => Op::Std(n.clone()),
     }
 }

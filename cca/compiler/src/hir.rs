@@ -207,6 +207,11 @@ pub enum Builtin {
     SimdMax,
     SimdMin,
     SimdSum,
+    /// `simd.shuffle['v', [4, 3, 2, 1]]`: the new order, 0-based here.
+    SimdShuffle(Vec<u32>),
+    /// `simd.load.some` / `simd.store.some`: only the first k lanes.
+    SimdLoadSome,
+    SimdStoreSome,
     /// `std::…` — refused for now; kept so the checker names it.
     Std(String),
 }

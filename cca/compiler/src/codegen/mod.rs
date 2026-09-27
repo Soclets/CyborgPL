@@ -222,6 +222,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let (id, args) = (*id, args.clone());
                 self.enum_shape(id, &args).map(|s| s.into())
             }
+            // A vector whose lane count nothing settled has no shape; LLVM
+            // panics on one, so it is refused here instead.
+            Ty::Simd { lanes: 0, .. } => None,
             Ty::Simd { elem, lanes } => {
                 let e = self.ty(elem)?;
                 match e {
@@ -565,6 +568,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     SiteKind::SliceRange => self.slice_check(fi, *id, slots, func),
                     SiteKind::NegativeExponent => self.negative_exponent_check(fi, *id, slots, func),
                     SiteKind::SimdRange { lanes } => self.simd_range_check(fi, *id, lanes, slots, func),
+                    SiteKind::SimdSome { lanes } => self.simd_some_check(fi, *id, lanes, slots, func),
                     SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
                     SiteKind::LengthBound { .. } => self.length_check(fi, *id, slots, func),
                     SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::ShiftWidth | SiteKind::ShiftCount => pending.push(*id),
@@ -934,6 +938,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     (UnOp::Neg, BasicValueEnum::FloatValue(x)) => Some(self.builder.build_float_neg(x, "neg").ok()?.into()),
                     (UnOp::Not, BasicValueEnum::IntValue(i)) => Some(self.builder.build_not(i, "not").ok()?.into()),
                     (UnOp::NotBit, BasicValueEnum::IntValue(i)) => Some(self.builder.build_not(i, "notbit").ok()?.into()),
+                    // A mask flips lane by lane.
+                    (UnOp::Not, BasicValueEnum::VectorValue(m)) => Some(self.builder.build_not(m, "not").ok()?.into()),
                     _ => None,
                 }
             }
@@ -1730,8 +1736,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     self.builder.build_int_unsigned_rem(x, y, "rem").ok()?.into()
                 }
             }
-            BinOp::AndBit => self.builder.build_and(x, y, "and").ok()?.into(),
-            BinOp::OrBit => self.builder.build_or(x, y, "or").ok()?.into(),
+            // Masks, lane by lane (owner, 2026-09-27: a); both sides are
+            // already worked out, as `and` / `or` always are.
+            BinOp::AndBit | BinOp::And => self.builder.build_and(x, y, "and").ok()?.into(),
+            BinOp::OrBit | BinOp::Or => self.builder.build_or(x, y, "or").ok()?.into(),
             BinOp::Xor => self.builder.build_xor(x, y, "xor").ok()?.into(),
             BinOp::Shl | BinOp::Shr => {
                 // The count is 0 to width - 1 in every lane (owner,
@@ -2390,6 +2398,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     Some(None)
                 }
             }
+            // A new order fixed when compiling: one instruction.
+            Op::SimdShuffle(order) => {
+                let v = self.operand(fi, args.first()?, slots)?.into_vector_value();
+                let i32t = self.ctx.i32_type();
+                let mask: Vec<IntValue<'ctx>> = order.iter().map(|l| i32t.const_int(*l as u64, false)).collect();
+                let mask = inkwell::types::VectorType::const_vector(&mask);
+                Some(Some(self.builder.build_shuffle_vector(v, v.get_type().get_undef(), mask, "shuffle").ok()?.into()))
+            }
+            Op::SimdLoadSome | Op::SimdStoreSome => Some(self.simd_some(fi, op, args, slots, dest_ty)?),
             Op::SimdAll | Op::SimdAny | Op::SimdMax | Op::SimdMin | Op::SimdSum => {
                 let v = self.operand(fi, args.first()?, slots)?.into_vector_value();
                 let et = v.get_type().get_element_type();
@@ -2909,6 +2926,103 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             self.builder.build_int_compare(IntPredicate::SGT, last, n, "high"),
         ) else { return };
         let Ok(bad) = self.builder.build_or(low, high, "lanes_out") else { return };
+        let _ = self.guard(fi, id, bad, func);
+    }
+
+    /// `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a): only the
+    /// first k lanes touch memory — LLVM's masked load and store, so the
+    /// lanes past the list are never read — and a load's other lanes are
+    /// zero.
+    fn simd_some(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], dest_ty: Option<Ty>) -> Option<Option<BasicValueEnum<'ctx>>> {
+        let place = args.first()?.place()?.clone();
+        let (at, ty) = self.slot_of(fi, &place, slots)?;
+        let shape = match self.ty(&ty)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        let elem = Self::elem_of(&ty)?;
+        let esize = self.size_of_ty(&elem)?;
+        let w = self.ctx.i64_type();
+        let i = self.operand(fi, args.get(1)?, slots)?.into_int_value();
+        let signed = self.operand_signed(fi, args.get(1)?).unwrap_or(true);
+        let i = self.builder.build_int_cast_sign_flag(i, w, signed, "pos").ok()?;
+        let zb = self.builder.build_int_sub(i, w.const_int(1, false), "zb").ok()?;
+        let off = self.builder.build_int_mul(zb, w.const_int(esize, false), "off").ok()?;
+        let data = self.builder.build_struct_gep(shape, at, 0, "data").ok()?;
+        let data = self.builder.build_load(self.ctx.ptr_type(AddressSpace::default()), data, "p").ok()?.into_pointer_value();
+        let from = unsafe { self.builder.build_gep(self.ctx.i8_type(), data, &[off], "lanes").ok()? };
+        let vt = if *op == Op::SimdLoadSome { self.ty(&dest_ty?)?.into_vector_type() } else { self.operand(fi, args.get(3)?, slots)?.into_vector_value().get_type() };
+        let n = vt.get_size();
+        // Lane j is on when j < k.
+        let k = self.operand(fi, args.get(2)?, slots)?.into_int_value();
+        let ks = self.operand_signed(fi, args.get(2)?).unwrap_or(false);
+        let k = self.builder.build_int_cast_sign_flag(k, w, ks, "k").ok()?;
+        let lanes: Vec<IntValue<'ctx>> = (0..n).map(|j| w.const_int(j as u64, false)).collect();
+        let lanes = inkwell::types::VectorType::const_vector(&lanes);
+        let mut kv = w.vec_type(n).get_undef();
+        for j in 0..n {
+            kv = self.builder.build_insert_element(kv, k, self.ctx.i32_type().const_int(j as u64, false), "k").ok()?;
+        }
+        let mask = self.builder.build_int_compare(IntPredicate::ULT, lanes, kv, "on").ok()?;
+        let align = self.ctx.i32_type().const_int(esize.max(1), false);
+        let ptr_t = self.ctx.ptr_type(AddressSpace::default());
+        if *op == Op::SimdLoadSome {
+            let id = inkwell::intrinsics::Intrinsic::find("llvm.masked.load")?;
+            let f = id.get_declaration(self.module, &[vt.into(), ptr_t.into()])?;
+            let zero = vt.const_zero();
+            // LLVM 22 took the alignment argument off; older ones have it.
+            let call = if f.count_params() == 4 {
+                self.builder.build_call(f, &[from.into(), align.into(), mask.into(), zero.into()], "load_some").ok()?
+            } else {
+                self.builder.build_call(f, &[from.into(), mask.into(), zero.into()], "load_some").ok()?
+            };
+            Some(Some(basic_result(call)?))
+        } else {
+            let v = self.operand(fi, args.get(3)?, slots)?;
+            let id = inkwell::intrinsics::Intrinsic::find("llvm.masked.store")?;
+            let f = id.get_declaration(self.module, &[vt.into(), ptr_t.into()])?;
+            if f.count_params() == 4 {
+                self.builder.build_call(f, &[v.into(), from.into(), align.into(), mask.into()], "").ok()?;
+            } else {
+                self.builder.build_call(f, &[v.into(), from.into(), mask.into()], "").ok()?;
+            }
+            Some(None)
+        }
+    }
+
+    /// `k <= N`, `1 <= i` and `i + k - 1 <= length`, in 128 bits.
+    fn simd_some_check(&mut self, fi: usize, id: SiteId, lanes: u32, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
+        let site = self.p.functions[fi].site(id).clone();
+        if !self.gets_check(&site.verdict) {
+            return;
+        }
+        let (Some(io), Some(lo), Some(ko)) = (site.operands.first(), site.operands.get(1), site.operands.get(2)) else { return };
+        let w = self.ctx.i128_type();
+        let read = |this: &mut Self, o: &Operand| -> Option<IntValue<'ctx>> {
+            let r = match o.place() {
+                Some(p) => Operand::Read(p.clone()),
+                None => o.clone(),
+            };
+            let v = this.operand(fi, &r, slots)?;
+            let s = this.operand_signed(fi, o).unwrap_or(true);
+            Some(this.fit_as(v, w.into(), s).into_int_value())
+        };
+        let (Some(i), Some(k)) = (read(self, io), read(self, ko)) else { return };
+        let Some(place) = lo.place().cloned() else { return };
+        let Some((at, ty)) = self.slot_of(fi, &place, slots) else { return };
+        let Some(BasicTypeEnum::StructType(shape)) = self.ty(&ty) else { return };
+        let Ok(lp) = self.builder.build_struct_gep(shape, at, 1, "len") else { return };
+        let Ok(n) = self.builder.build_load(self.ctx.i64_type(), lp, "n") else { return };
+        let n = self.fit_as(n, w.into(), false).into_int_value();
+        let Some(bad) = (|| {
+            let last = self.builder.build_int_add(i, k, "past").ok()?;
+            let last = self.builder.build_int_sub(last, w.const_int(1, false), "last").ok()?;
+            let many = self.builder.build_int_compare(IntPredicate::SGT, k, w.const_int(lanes as u64, false), "many").ok()?;
+            let low = self.builder.build_int_compare(IntPredicate::SLT, i, w.const_int(1, false), "low").ok()?;
+            let high = self.builder.build_int_compare(IntPredicate::SGT, last, n, "high").ok()?;
+            let b = self.builder.build_or(many, low, "bad").ok()?;
+            self.builder.build_or(b, high, "items_out").ok()
+        })() else { return };
         let _ = self.guard(fi, id, bad, func);
     }
 
