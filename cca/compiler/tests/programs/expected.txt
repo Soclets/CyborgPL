@@ -159,3 +159,5 @@ inline_asm 7
 map_same_key 8
 # `and.then` / `or.else` guard the read on their right (owner, 2026-09-25).
 and_then_guards 109
+# C enums and ranged C struct fields at the door, against real libc.
+c_enum_door 219

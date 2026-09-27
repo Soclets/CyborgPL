@@ -913,8 +913,32 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// at an address it can actually be stored at.
     pub(super) fn enum_shape(&mut self, id: EnumId, args: &[Ty]) -> Option<inkwell::types::StructType<'ctx>> {
         let info = self.p.items.enums[id.0 as usize].clone();
+        if info.numbers.is_some() {
+            // C's enum: its number, 32 bits, and nothing beside it.
+            return Some(self.ctx.struct_type(&[self.ctx.i32_type().into()], false));
+        }
         let payloads: Vec<Option<Ty>> = info.cases.iter().map(|c| c.payload.as_ref().map(|t| t.subst(args))).collect();
         self.variant_shape(&payloads)
+    }
+
+    /// An enum's tag: which case, as a number. A `layout.c enum`'s tag is
+    /// the case's own number, so C reads it as it wrote it; any other's is
+    /// the case's place in the list.
+    pub(super) fn tag_type_of(&self, id: EnumId) -> inkwell::types::IntType<'ctx> {
+        let info = &self.p.items.enums[id.0 as usize];
+        if info.numbers.is_some() {
+            self.ctx.i32_type()
+        } else {
+            self.enum_tag_type(info.cases.len())
+        }
+    }
+
+    pub(super) fn tag_of(&self, id: EnumId, case: usize) -> IntValue<'ctx> {
+        let t = self.tag_type_of(id);
+        match &self.p.items.enums[id.0 as usize].numbers {
+            Some(ns) => t.const_int(ns[case] as u64, true),
+            None => t.const_int(case as u64, false),
+        }
     }
 
     /// One of several cases, each of which may carry something: an enum,
@@ -967,8 +991,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // and read back at the enum's: a register cannot hold both views.
         let tmp = self.builder.build_alloca(shape, "case").ok()?;
         let info = self.p.items.enums[id.0 as usize].clone();
-        let tag = self.enum_tag_type(info.cases.len());
-        self.store_field(shape, tmp, 0, tag.const_int(case as u64, false).into());
+        let _ = info;
+        self.store_field(shape, tmp, 0, self.tag_of(id, case).into());
         if let Some(o) = payload {
             let v = self.operand(fi, o, slots)?;
             let at = self.builder.build_struct_gep(shape, tmp, 1, "detail").ok()?;
@@ -1018,12 +1042,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Ty::Enum { id, .. } => *id,
             _ => return None,
         };
-        let count = self.p.items.enums[id.0 as usize].cases.len();
-        let tag_ty = self.enum_tag_type(count);
+        let tag_ty = self.tag_type_of(id);
         let p = self.builder.build_struct_gep(shape, at, 0, "tag").ok()?;
         let tag = self.builder.build_load(tag_ty, p, "which").ok()?.into_int_value();
         let unreached = self.ctx.append_basic_block(func, "no_such_case");
-        let arms: Vec<(IntValue<'ctx>, LlBlock<'ctx>)> = cases.iter().map(|(c, b)| (tag_ty.const_int(*c as u64, false), blocks[b.0 as usize])).collect();
+        let arms: Vec<(IntValue<'ctx>, LlBlock<'ctx>)> = cases.iter().map(|(c, b)| (self.tag_of(id, *c), blocks[b.0 as usize])).collect();
         let _ = self.builder.build_switch(tag, unreached, &arms);
         self.builder.position_at_end(unreached);
         let _ = self.builder.build_unreachable();
@@ -1128,16 +1151,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     #[allow(clippy::too_many_arguments)]
     fn emit_ranged_extern(&mut self, fi: usize, id: crate::hir::ExternId, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         let ret = self.p.items.externs[id.0 as usize].ret.clone();
-        let Some(crate::types::Bound::Int { lo, hi }) = ret.bound().cloned() else { return None };
-        let signed = matches!(ret.base(), Ty::Int(crate::types::IntW::Fixed { signed: true, .. }));
-        let v = self.call(fi, callee, args, slots)?.into_int_value();
-        let t = v.get_type();
-        let (below, above) = if signed {
-            (self.builder.build_int_compare(IntPredicate::SLT, v, super::const_i128(t, lo), "below").ok()?, self.builder.build_int_compare(IntPredicate::SGT, v, super::const_i128(t, hi), "above").ok()?)
-        } else {
-            (self.builder.build_int_compare(IntPredicate::ULT, v, super::const_i128(t, lo), "below").ok()?, self.builder.build_int_compare(IntPredicate::UGT, v, super::const_i128(t, hi), "above").ok()?)
-        };
-        let outside = self.builder.build_or(below, above, "out_of_range").ok()?;
+        let v = self.call(fi, callee, args, slots)?;
+        let kept = self.kept_at_door(v, &ret)?;
+        let outside = self.builder.build_not(kept, "out_of_range").ok()?;
         let inside = self.ctx.append_basic_block(func, "in_range");
         // `out_of_range` is the one reason; an arm for it, or none when the
         // caller's `otherwise` gives a value or leaves the same way for all.
@@ -1149,6 +1165,53 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
         Some(())
+    }
+
+    /// Whether what C handed back keeps Cyborg's promises: a range holds its
+    /// number, a C enum's number is one of its cases, and a `layout.c`
+    /// struct's fields keep theirs (owner, 2026-09-27: a).
+    fn kept_at_door(&mut self, v: BasicValueEnum<'ctx>, ty: &Ty) -> Option<IntValue<'ctx>> {
+        let mut kept = self.ctx.bool_type().const_all_ones();
+        if let Some(b) = ty.bound() {
+            let crate::types::Bound::Int { lo, hi } = b.clone() else { return None };
+            let signed = matches!(ty.base(), Ty::Int(crate::types::IntW::Fixed { signed: true, .. }));
+            let v = v.into_int_value();
+            let t = v.get_type();
+            let (lp, hp) = if signed { (IntPredicate::SGE, IntPredicate::SLE) } else { (IntPredicate::UGE, IntPredicate::ULE) };
+            let from = self.builder.build_int_compare(lp, v, super::const_i128(t, lo), "from").ok()?;
+            let to = self.builder.build_int_compare(hp, v, super::const_i128(t, hi), "to").ok()?;
+            return self.builder.build_and(from, to, "in_range").ok();
+        }
+        match ty.base() {
+            Ty::Enum { id, .. } => {
+                let Some(ns) = self.p.items.enums[id.0 as usize].numbers.clone() else { return Some(kept) };
+                let n = self.builder.build_extract_value(v.into_struct_value(), 0, "number").ok()?.into_int_value();
+                let mut any = self.ctx.bool_type().const_zero();
+                for x in ns {
+                    let is = self.builder.build_int_compare(IntPredicate::EQ, n, n.get_type().const_int(x as u64, true), "is_case").ok()?;
+                    any = self.builder.build_or(any, is, "a_case").ok()?;
+                }
+                Some(any)
+            }
+            Ty::Struct { id, args } => {
+                let info = self.p.items.structs[id.0 as usize].clone();
+                if !info.layout_c {
+                    return Some(kept);
+                }
+                let sv = v.into_struct_value();
+                for (i, f) in info.fields.iter().enumerate() {
+                    let ft = f.ty.subst(args);
+                    if ft.bound().is_none() && !matches!(ft.base(), Ty::Enum { .. } | Ty::Struct { .. }) {
+                        continue;
+                    }
+                    let fv = self.builder.build_extract_value(sv, i as u32, "field").ok()?;
+                    let k = self.kept_at_door(fv, &ft)?;
+                    kept = self.builder.build_and(kept, k, "kept").ok()?;
+                }
+                Some(kept)
+            }
+            _ => Some(kept),
+        }
     }
 
     /// A conversion that can fail (`conversion.md`). Its reasons are the
@@ -2100,7 +2163,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     _ => return None,
                 };
                 let cases = self.p.items.enums[id.0 as usize].cases.len();
-                let tag_ty = self.enum_tag_type(cases);
+                let tag_ty = self.tag_type_of(id);
                 let ta = self.builder.build_struct_gep(shape, a, 0, "ta").ok()?;
                 let tb = self.builder.build_struct_gep(shape, b, 0, "tb").ok()?;
                 let ta = self.builder.build_load(tag_ty, ta, "tag_a").ok()?.into_int_value();

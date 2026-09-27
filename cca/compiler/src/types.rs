@@ -219,13 +219,31 @@ impl Ty {
         }
     }
 
+    /// What C hands back that Cyborg must check before holding it: a range,
+    /// a C enum's number, which may match no case, and a `layout.c` struct
+    /// with either among its fields (owner, 2026-09-27: a).
+    pub fn checked_at_door(&self, structs: &[StructInfo], enums: &[EnumInfo]) -> bool {
+        if self.bound().is_some() {
+            return true;
+        }
+        match self.base() {
+            Ty::Enum { id, .. } => enums[id.0 as usize].numbers.is_some(),
+            Ty::Struct { id, .. } => {
+                let s = &structs[id.0 as usize];
+                s.layout_c && s.fields.iter().any(|f| f.ty.checked_at_door(structs, enums))
+            }
+            _ => false,
+        }
+    }
+
     /// C-shaped: may cross to C (`ffi.md`).
-    pub fn is_c_shaped(&self, structs: &[StructInfo]) -> bool {
+    pub fn is_c_shaped(&self, structs: &[StructInfo], enums: &[EnumInfo]) -> bool {
         match self {
             Ty::Int(IntW::Fixed { .. }) | Ty::Bin(BinW::Fixed(_)) | Ty::Bool | Ty::Ptr { .. } => true,
             Ty::Char(Unit::Byte) | Ty::Char(Unit::Point) => true,
             Ty::Struct { id, .. } => structs[id.0 as usize].layout_c,
-            Ty::Fn(f) => f.params.iter().all(|(k, t)| *k == ParamKind::Owned && t.is_c_shaped(structs)) && f.fails.is_empty() && (f.ret == Ty::Nothing || f.ret.is_c_shaped(structs)),
+            Ty::Enum { id, .. } => enums[id.0 as usize].numbers.is_some(),
+            Ty::Fn(f) => f.params.iter().all(|(k, t)| *k == ParamKind::Owned && t.is_c_shaped(structs, enums)) && f.fails.is_empty() && (f.ret == Ty::Nothing || f.ret.is_c_shaped(structs, enums)),
             _ => false,
         }
     }
@@ -298,6 +316,9 @@ pub struct EnumInfo {
     pub name: String,
     pub path: String,
     pub cases: Vec<CaseInfo>,
+    /// A `layout.c enum`: each case's number, as C sees it (owner,
+    /// 2026-09-27: a). Its tag is that number, 32 bits.
+    pub numbers: Option<Vec<i64>>,
     pub blanks: Vec<String>,
     pub span: crate::source::Span,
 }

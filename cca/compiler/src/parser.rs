@@ -296,12 +296,18 @@ impl<'a> Parser<'a> {
                 if which.name != "c" {
                     return self.fail_at(which.span, format!("the only layout is `layout.c`, C's shape; `layout.{}` does not exist", which.name));
                 }
-                self.expect_word("struct")?;
+                if self.eat_word("enum") {
+                    return Ok(ItemKind::Enum(self.enum_decl(true)?));
+                }
+                if !self.is_word("struct") {
+                    return self.fail(format!("`layout.c` is followed by `struct` or `enum`, found {}", self.peek().describe()));
+                }
+                self.bump();
                 Ok(ItemKind::Struct(self.struct_decl(true)?))
             }
             "enum" => {
                 self.bump();
-                Ok(ItemKind::Enum(self.enum_decl()?))
+                Ok(ItemKind::Enum(self.enum_decl(false)?))
             }
             "interface" => {
                 self.bump();
@@ -642,7 +648,7 @@ impl<'a> Parser<'a> {
         Ok(StructDecl { name, layout_c, fields })
     }
 
-    fn enum_decl(&mut self) -> Result<EnumDecl> {
+    fn enum_decl(&mut self, layout_c: bool) -> Result<EnumDecl> {
         let name = self.ident("the enum's name")?;
         self.expect(&Tok::LBrace, "`{` after the enum's name")?;
         let mut cases = Vec::new();
@@ -657,19 +663,42 @@ impl<'a> Parser<'a> {
                 other => return self.fail(format!("expected a case name or `}}`, found {}", other.describe())),
             };
             let payload = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
+            // `a = 65`: a C enum's case says its number (owner, 2026-09-27).
+            let number = if self.is(&Tok::Op("=".into())) {
+                let at = self.span();
+                self.bump();
+                let negative = self.is(&Tok::Op("-".into()));
+                if negative {
+                    self.bump();
+                }
+                let n = match self.peek().clone() {
+                    Tok::Num { text, bin: false } => {
+                        self.bump();
+                        let v: Option<i128> = text.parse().ok();
+                        match v {
+                            Some(v) => v,
+                            None => return self.fail(format!("C's enum is 32 bits, C's `int`: {} does not fit int32", text)),
+                        }
+                    }
+                    other => return self.fail(format!("a C enum's case number is a whole number, found {}", other.describe())),
+                };
+                Some((if negative { -n } else { n }, at.to(self.prev_span())))
+            } else {
+                None
+            };
             if self.is(&Tok::Comma) {
                 return self.fail("no `,` between cases: one per line, nothing between");
             }
             if self.is(&Tok::Semi) {
                 return self.fail("no `;` after a case: cases are not statements");
             }
-            cases.push(EnumCase { name: cname, payload });
+            cases.push(EnumCase { name: cname, payload, number });
         }
         self.bump();
         if cases.is_empty() {
             return self.fail_at(name.span, format!("enum `{}` has no cases: an enum is one of a few named cases, so name at least one", name.name));
         }
-        Ok(EnumDecl { name, cases })
+        Ok(EnumDecl { name, cases, layout_c })
     }
 
     fn iface_decl(&mut self) -> Result<IfaceDecl> {

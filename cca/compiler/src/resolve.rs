@@ -245,7 +245,7 @@ impl Items {
             }
             ItemKind::Enum(decl) => {
                 let id = EnumId(self.enums.len() as u32);
-                self.enums.push(EnumInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), cases: Vec::new(), blanks: Vec::new(), span: decl.name.span });
+                self.enums.push(EnumInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), cases: Vec::new(), numbers: decl.layout_c.then(Vec::new), blanks: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Enum(id), vis, decl.name.span)?;
                 self.pending_enums.push((id, decl.clone(), m));
             }
@@ -290,8 +290,10 @@ impl Items {
                 if fields.iter().any(|x: &FieldInfo| x.name == f.name.name) {
                     return err(Diagnostic::error(format!("field `{}` is declared twice in `{}`", f.name.name, decl.name.name)).at(f.name.span));
                 }
-                if decl.layout_c && !ty.is_c_shaped(&self.structs) {
-                    return err(Diagnostic::error(format!("field `{}` of the `layout.c` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.c` structs can cross to C", f.name.name, decl.name.name)).at(f.ty.span));
+                // A range is Cyborg's promise, and C sees the plain number
+                // (owner, 2026-09-27: a).
+                if decl.layout_c && !ty.base().is_c_shaped(&self.structs, &self.enums) {
+                    return err(Diagnostic::error(format!("field `{}` of the `layout.c` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.c` structs and enums can cross to C", f.name.name, decl.name.name)).at(f.ty.span));
                 }
                 fields.push(FieldInfo { name: f.name.name.clone(), immut: f.immut, ty });
             }
@@ -303,6 +305,7 @@ impl Items {
         for (id, decl, m) in &enums {
             let mut blanks = Vec::new();
             let mut cases = Vec::new();
+            let mut numbers: Vec<i64> = Vec::new();
             for c in &decl.cases {
                 let payload = match &c.payload {
                     Some(t) => Some(self.resolve_type(t, *m, &mut blanks, true)?),
@@ -311,9 +314,31 @@ impl Items {
                 if cases.iter().any(|x: &CaseInfo| x.name == c.name.name) {
                     return err(Diagnostic::error(format!("case `{}` is declared twice in `{}`", c.name.name, decl.name.name)).at(c.name.span));
                 }
+                if decl.layout_c {
+                    // C's enum (owner, 2026-09-27: a): a number per case,
+                    // each its own, written as the C header does.
+                    if c.payload.is_some() {
+                        return err(Diagnostic::error(format!("case `{}` of the C enum `{}` carries no data: C's enum is a number per case — `{} = 1`", c.name.name, decl.name.name, c.name.name)).at(c.name.span));
+                    }
+                    let Some((n, at)) = c.number else {
+                        return err(Diagnostic::error(format!("case `{}` of the C enum `{}` says its number, as the C header does — `{} = 65`: guessing the order is how bindings go wrong", c.name.name, decl.name.name, c.name.name)).at(c.name.span));
+                    };
+                    if n < i32::MIN as i128 || n > i32::MAX as i128 {
+                        return err(Diagnostic::error(format!("C's enum is 32 bits, C's `int`: {} does not fit int32", n)).at(at));
+                    }
+                    if let Some(j) = numbers.iter().position(|x| *x == n as i64) {
+                        return err(Diagnostic::error(format!("`{}` and `{}` are both {}: each case has its own number", decl.cases[j].name.name, c.name.name, n)).at(at));
+                    }
+                    numbers.push(n as i64);
+                } else if let Some((_, at)) = c.number {
+                    return err(Diagnostic::error(format!("only a `layout.c enum`'s cases have numbers: `{}` is a Cyborg enum, whose cases are names", decl.name.name)).at(at));
+                }
                 cases.push(CaseInfo { name: c.name.name.clone(), payload });
             }
             let e = &mut self.enums[id.0 as usize];
+            if decl.layout_c {
+                e.numbers = Some(numbers);
+            }
             e.cases = cases;
             e.blanks = blanks.into_iter().map(|(n, _)| n).collect();
         }
@@ -377,7 +402,7 @@ impl Items {
                     if !blanks.is_empty() {
                         return err(Diagnostic::error("a blank `<T>` cannot cross to C: an `extern fn` is written in C's own types").at(t.span));
                     }
-                    let ranged = ty.bound().is_some();
+                    let ranged = self.checked_at_door(&ty);
                     self.check_c_shaped(ty.base(), t.span, &format!("the `extern fn {}` return", decl.name.name))?;
                     (ty, ranged)
                 }
@@ -420,12 +445,21 @@ impl Items {
         Ok(())
     }
 
+    /// What C hands back that Cyborg must check before holding it: a range
+    /// (`ffi.md`, a ranged return), a C enum's number, which may match no
+    /// case, and a `layout.c` struct with either among its fields (owner,
+    /// 2026-09-27: a). Outside, the call fails `out_of_range`.
+    pub fn checked_at_door(&self, ty: &Ty) -> bool {
+        ty.checked_at_door(&self.structs, &self.enums)
+    }
+
     fn check_c_shaped(&self, ty: &Ty, span: Span, what: &str) -> Result<()> {
-        if ty.is_c_shaped(&self.structs) {
+        if ty.is_c_shaped(&self.structs, &self.enums) {
             return Ok(());
         }
         let why = match ty.base() {
             Ty::Struct { id, .. } => format!("`{}` is not `layout.c`: only a `layout.c struct` has C's shape", self.structs[id.0 as usize].name),
+            Ty::Enum { id, .. } => format!("`{}` is not `layout.c`: only a `layout.c enum` crosses to C, a number per case", self.enums[id.0 as usize].name),
             Ty::Str(_) => "a `str` is not C-shaped: C sees bytes, so hand it a `ptr[uint8]` (a lend of the text)".to_string(),
             Ty::Seq { .. } => "a list is not C-shaped: C sees a pointer to the elements — `ptr[T]` and a length".to_string(),
             Ty::Fn(_) => "the callback is not C-shaped: parameters by value (no `lent`), C-shaped types, no `fail`".to_string(),
@@ -891,7 +925,7 @@ impl Items {
                         return err(Diagnostic::error("`ptr` takes one type parameter: `ptr[uint8]`").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
-                    if !elem.contains_var() && !elem.is_c_shaped(&self.structs) {
+                    if !elem.contains_var() && !elem.is_c_shaped(&self.structs, &self.enums) {
                         let why = match elem.base() {
                             Ty::Struct { id, .. } => format!("`{}` is not `layout.c`: only a `layout.c struct` has C's shape", self.structs[id.0 as usize].name),
                             other => format!("`{}` is not C-shaped", spell(other, self)),

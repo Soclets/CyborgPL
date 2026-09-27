@@ -1,0 +1,30 @@
+# A C enum and a C struct with a ranged field cross to real C (owner,
+# 2026-09-27: a): the enum is C's int, `div_t` comes back packed in one
+# register as C returns it, and what C hands back is checked at the door —
+# toupper['2'] is no case, 50 is past quot's range, and both take `otherwise`.
+# The oracle cannot link C, so the answer is worked out by hand:
+# 1000 + 200 + 30 + (3 + 1) + 9 = 1243, which exits as 1243 mod 256 = 219.
+extern fn exit ['code': int32];
+layout.c enum Key { a = 65  b = 66  escape = 256 }
+extern fn abs ['k': Key] -> int32;
+extern fn toupper ['c': int32] -> Key;
+layout.c struct Div { quot: int32[0, 10]  rem: int32 }
+extern fn div ['n': int32, 'd': int32] -> Div;
+
+fn code ['k': Key] -> int32 {
+    match 'k' {
+        a { return 1; }
+        b { return 2; }
+        escape { return 3; }
+    }
+}
+
+MAIN {
+    nocheck 'n': int32 = abs[Key.escape];                        # 256
+    nocheck 'up': Key = toupper[97] otherwise Key.escape;        # a
+    nocheck 'same': Key = toupper[66] otherwise Key.escape;      # b
+    nocheck 'none': Key = toupper[50] otherwise Key.escape;      # '2' is no case: escape
+    nocheck 'q': Div = div[7, 2] otherwise Div[quot = 0, rem = 9];
+    nocheck 'big': Div = div[100, 2] otherwise Div[quot = 0, rem = 9];
+    nocheck exit[('n' - 256) + code[give 'up'] x 1000 + code[give 'same'] x 100 + code[give 'none'] x 10 + 'q'.quot + 'q'.rem + 'big'.rem];
+}

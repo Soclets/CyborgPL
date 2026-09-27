@@ -50,10 +50,18 @@ cargo test        # every examples/*.cpls checks; every reject program is
 - Over the examples, Precog settles 398 of 422 sites: layer 1 folds what
   it can, layer 2 proves most of the rest, and layer 3 is asked what is
   left. 21 sites keep a check at run time and 3 are `nocheck`.
-- What has no code generated yet: the heap types (list, map, text
-  building), failures as values, `concur`, `channel` and `inline.ASM`.
-  CCA checks, proves and reports those programs; it refuses to write
-  machine code for them rather than writing something wrong.
+- 2026-09-24: every base-language example builds; what has no code yet
+  is `std::` (none for now, owner). CCA refuses to write machine code it
+  has no shape for rather than writing something wrong.
+- 2026-09-27: the 2026-09-25 syntax (no `let`, `change`, `!$`,
+  `and.then` / `or.else`); `layout.c enum` and ranged `layout.c` fields,
+  checked at the door when a call returns them. A `layout.c` struct or C
+  enum crosses to C as C passes it (`codegen/cabi.rs`, AAPCS64: packed
+  registers, float HFAs, `sret` over 16 bytes); another machine's
+  convention is not written, and CCA refuses there. Not built, and asked:
+  a C enum or ranged field that C writes other than as a return (a
+  callback's parameter, C's variable, `ptr.read`, a `ptr.mut` lent to C),
+  and a callback that takes or returns a struct by value.
 
 - `cca build --assert-proofs file.cpls -o out` (2026-09-23): the build that
   checks Precog (`precog.md`, attack (d)). Every site Precog proved keeps

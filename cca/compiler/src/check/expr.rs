@@ -1825,7 +1825,7 @@ impl Checker {
                 // C's own varargs: each extra argument must be C-shaped.
                 let v = self.expr(ctx, &e)?;
                 let vt = self.resolve(&v.ty);
-                if !vt.base().is_c_shaped(&self.items.structs) && !matches!(vt.base(), Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_))) {
+                if !vt.base().is_c_shaped(&self.items.structs, &self.items.enums) && !matches!(vt.base(), Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_))) {
                     return err(Diagnostic::error(format!("a `{}` cannot cross to C's varargs: only C-shaped values can", self.spell(&vt))).at(e.span));
                 }
                 hargs.push(Arg::Value(v));
@@ -1841,7 +1841,9 @@ impl Checker {
             }
             None => {
                 if !fails.is_empty() {
-                    return err(Diagnostic::error(format!("`{}` can fail (out_of_range): its return is a range C promised, checked at the door — say what happens with `otherwise`", info.name)).at(span));
+                    let what = if info.ret.bound().is_some() { "its return is a range C promised" } else { "what C hands back is checked at the door — a C enum's number must be one of its cases, a ranged field in its range" };
+                    let what = if info.ret.bound().is_some() { format!("{}, checked at the door", what) } else { what.to_string() };
+                    return err(Diagnostic::error(format!("`{}` can fail (out_of_range): {} — say what happens with `otherwise`", info.name, what)).at(span));
                 }
                 None
             }

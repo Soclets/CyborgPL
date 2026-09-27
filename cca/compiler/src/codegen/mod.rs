@@ -38,6 +38,7 @@ use crate::mir::*;
 use crate::source::SourceMap;
 use crate::types::{BinW, IntW, Ty};
 
+mod cabi;
 mod heap;
 mod tasks;
 
@@ -331,17 +332,42 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if e.is_let {
                 continue;
             }
+            // C calling back with a struct by value takes a thunk in C's
+            // convention, and C writing through a `ptr.mut` into a C enum or
+            // a ranged field needs a door; neither is built.
+            let back = e.params.iter().any(|(_, t)| match t.base() {
+                Ty::Fn(f) => f.params.iter().chain(std::iter::once(&(crate::types::ParamKind::Owned, f.ret.clone()))).any(|(_, p)| matches!(p.base(), Ty::Struct { .. }) || p.checked_at_door(&self.p.items.structs, &self.p.items.enums)),
+                Ty::Ptr { mutable: true, elem } => elem.checked_at_door(&self.p.items.structs, &self.p.items.enums),
+                _ => false,
+            });
+            if back {
+                self.cannot(format!("the `extern fn {}` lets C hand Cyborg a C enum, a ranged field or a struct by value without a call returning it — through a callback's parameters or a `ptr.mut` — and that is not built yet: where C's number is checked there is asked", e.name), None);
+                continue;
+            }
             let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
             let mut ok = true;
+            // A struct returned through room the caller gives (`cabi.rs`).
+            let sret = match &e.ret {
+                Ty::Nothing => None,
+                r => match self.c_pass(&r.base().clone(), true) {
+                    Some(cabi::CPass::Indirect(t)) => Some(t),
+                    _ => None,
+                },
+            };
+            if sret.is_some() {
+                params.push(self.ctx.ptr_type(AddressSpace::default()).into());
+            }
             for (_, t) in &e.params {
                 // A callback slot holds an address and nothing else (`ffi.md`).
                 if matches!(t.base(), Ty::Fn(_)) {
                     params.push(self.ctx.ptr_type(AddressSpace::default()).into());
                     continue;
                 }
-                match self.ty(&t.clone()) {
-                    Some(x) => params.push(x.into()),
-                    None => ok = false,
+                match (self.ty(&t.clone()), self.c_pass(&t.clone(), false)) {
+                    (Some(x), Some(cabi::CPass::Direct)) => params.push(x.into()),
+                    (Some(_), Some(cabi::CPass::Coerce(c))) => params.push(c.into()),
+                    (Some(_), Some(cabi::CPass::Indirect(_))) => params.push(self.ctx.ptr_type(AddressSpace::default()).into()),
+                    _ => ok = false,
                 }
             }
             if !ok {
@@ -350,15 +376,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             let fty = match &e.ret {
                 Ty::Nothing => self.ctx.void_type().fn_type(&params, e.variadic),
-                r => match self.ty(&r.base().clone()) {
-                    Some(t) => t.fn_type(&params, e.variadic),
-                    None => {
+                _ if sret.is_some() => self.ctx.void_type().fn_type(&params, e.variadic),
+                r => match (self.ty(&r.base().clone()), self.c_pass(&r.base().clone(), true)) {
+                    (Some(t), Some(cabi::CPass::Direct)) => t.fn_type(&params, e.variadic),
+                    (Some(_), Some(cabi::CPass::Coerce(c))) => c.fn_type(&params, e.variadic),
+                    _ => {
                         self.cannot(format!("the `extern fn {}` returns something the generated code has no shape for yet", e.name), None);
                         continue;
                     }
                 },
             };
             let v = self.module.add_function(&e.name, fty, Some(Linkage::External));
+            if let Some(t) = sret {
+                let kind = inkwell::attributes::Attribute::get_named_enum_kind_id("sret");
+                v.add_attribute(inkwell::attributes::AttributeLoc::Param(0), self.ctx.create_type_attribute(kind, inkwell::types::AnyType::as_any_type_enum(&t)));
+            }
             self.externs.insert(i as u32, v);
         }
         // The runtime's one entry: what a fired check calls.
@@ -1247,6 +1279,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // Reading C's variable: a nocheck site, a plain load.
             Rvalue::ExternRead(id) => {
+                if self.c_writes_unchecked(&self.p.items.externs[id.0 as usize].ret.clone()) {
+                    return None;
+                }
                 let g = self.extern_global(id.0)?;
                 let t = self.ty(&self.p.items.externs[id.0 as usize].ret.clone())?;
                 self.builder.build_load(t, g, "extern").ok()
@@ -2224,6 +2259,31 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
         }
+        // What crosses to C by value crosses as C passes it (`cabi.rs`).
+        let mut sret_slot = None;
+        let mut ret_pass = cabi::CPass::Direct;
+        if let Callee::Extern(id) = callee {
+            let e = self.p.items.externs[id.0 as usize].clone();
+            for (i, (_, t)) in e.params.iter().enumerate() {
+                if matches!(t.base(), Ty::Fn(_)) {
+                    continue;
+                }
+                let how = self.c_pass(t, false)?;
+                if let (cabi::CPass::Direct, _) | (_, None) = (how, vals.get(i)) {
+                    continue;
+                }
+                let v = BasicValueEnum::try_from(vals[i]).ok()?;
+                vals[i] = self.to_c(v, how)?;
+            }
+            if e.ret != Ty::Nothing {
+                ret_pass = self.c_pass(&e.ret.base().clone(), true)?;
+                if let cabi::CPass::Indirect(t) = ret_pass {
+                    let room = self.here_alloca(t, "c_sret")?;
+                    vals.insert(0, room.into());
+                    sret_slot = Some(room);
+                }
+            }
+        }
         // Each argument at the width the callee declared.
         let want = f.get_type().get_param_types();
         for (i, w) in want.iter().enumerate() {
@@ -2248,13 +2308,27 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
         }
         let call = self.builder.build_call(f, &vals, "call").ok()?;
+        if let (Some(_), cabi::CPass::Indirect(t)) = (sret_slot, ret_pass) {
+            let kind = inkwell::attributes::Attribute::get_named_enum_kind_id("sret");
+            call.add_attribute(inkwell::attributes::AttributeLoc::Param(0), self.ctx.create_type_attribute(kind, inkwell::types::AnyType::as_any_type_enum(&t)));
+        }
         // A lent bundle's buffer was made for the call; what was in it
         // belongs to the arguments' owners.
         for d in frees {
             let free = self.rt("cyborg_free");
             let _ = self.builder.build_call(free, &[d.into()], "");
         }
-        basic_result(call)
+        match (ret_pass, sret_slot) {
+            (cabi::CPass::Indirect(t), Some(room)) => self.builder.build_load(t, room, "from_c").ok(),
+            (cabi::CPass::Coerce(_), _) => {
+                let Callee::Extern(id) = callee else { return basic_result(call) };
+                let r = self.p.items.externs[id.0 as usize].ret.base().clone();
+                let t = self.ty(&r)?;
+                let v = basic_result(call)?;
+                self.reinterpret(v, t)
+            }
+            _ => basic_result(call),
+        }
     }
 
     /// The language's own operations. A length is a field of the handle,
@@ -2353,6 +2427,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Op::PtrRead => {
                 let p = self.operand(fi, args.first()?, slots)?.into_pointer_value();
                 let elem = self.pointee(fi, args.first()?)?;
+                if self.c_writes_unchecked(&elem) {
+                    return None;
+                }
                 let t = self.ty(&elem)?;
                 Some(Some(self.builder.build_load(t, p, "read").ok()?))
             }

@@ -133,7 +133,7 @@ fn a_bin_answer_is_in_the_interval() {
     let ops = [BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div];
     for round in 0..4000 {
         let scale = [1e-40, 1e-3, 1.0, 3e3, 1.6e7, 1e30][round % 6];
-        let mut pick = |u: &mut dyn FnMut() -> f64| {
+        let pick = |u: &mut dyn FnMut() -> f64| {
             let a = (u() - 0.5) * scale;
             let b = a + u() * scale;
             (a, b)

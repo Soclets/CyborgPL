@@ -60,6 +60,10 @@ bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound i
 bound_backwards [fnv:eaa53671d88b43f0] :: the low bound comes first: `[2, 5]`
 bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
 bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][3, 5]`)
+c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
+c_enum_number_missing [fnv:3721994c1fc31d28] :: of the C enum `K` says its number
+c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
+c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what a `int32[0, 4096]` holds
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
 call_without_bracket [fnv:93fa5962e0fc877b] :: a call needs `[…]`
 callback_fails [fnv:35748b82590d3e88] :: the `extern fn f` parameter 'cb' is not C-shaped
@@ -111,6 +115,7 @@ enum_match_missing_case [fnv:b42f70eab9e1b344] :: every case of `S` must have an
 enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and this is a `integer`: use `if`
 enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
+enum_not_c [fnv:290fed975360e9b3] :: the `extern fn f` parameter 'k' is not C-shaped
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
 eq_in_value [fnv:5a99b3d49669530b] :: gives a declaration its value once; equality is `==`
@@ -197,7 +202,7 @@ join_outside_bracket [fnv:80a1ba96be64706e] :: join text with `++`, separate val
 join_outside_bracket_newline [fnv:80a1ba96be64706e] :: join text with `++`, separate values with `,`
 keyword_fn_bare [fnv:6db39b67a64f5e13] :: a function named with one is reached only through a path
 lang_prefix [fnv:c1d124ba1f70ae44] :: `lang:` was removed: keywords are bare
-layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `layout.c` structs can cross to C
+layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `layout.c` structs and enums can cross to C
 layout_not_c [fnv:975c6f596f1eb960] :: the only layout is `layout.c`, C's shape; `layout.rust` does not exist
 leading_zero [fnv:cd43e7e5f661968a] :: `007` starts with a zero, and leading zeros are illegal: write `7`
 lend_to_lent_mut [fnv:c679086eecdd878a] :: `edit` may modify 'text' (it is `lent.mut`): write `lend.mut`
