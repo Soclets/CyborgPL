@@ -25,7 +25,7 @@ const DIGITS_REVERSED_FOR: &str = "    mut 'v': uint64 = 'm';
         if 'v' == 0 { break; }
     }
     for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
-        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', 'ds'['k']];
     }
 ";
 
@@ -39,7 +39,7 @@ const DIGITS_REVERSED_WHILE: &str = "    mut 'v': uint64 = 'm';
     }
     mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >== 1 {
-        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', 'ds'['k']];
         change 'k' = 'k' - 1;
     }
 ";

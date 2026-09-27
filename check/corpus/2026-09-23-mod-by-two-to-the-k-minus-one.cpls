@@ -19,7 +19,7 @@ fn emit ['m': uint64, 'neg': bool] {
     }
     mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >== 1 {
-        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', 'ds'['k']];
         change 'k' = 'k' - 1;
     }
     list.append[lend.mut 'buf', 10];
