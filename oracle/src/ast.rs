@@ -245,6 +245,8 @@ pub struct Program {
     pub externs: Vec<ExternVar>,
     pub modules: Vec<ModuleDef>,
     pub main: Option<Vec<Stmt>>,
+    /// modules written under `#strict` (owner, 2026-09-27)
+    pub strict_modules: Vec<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]

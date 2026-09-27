@@ -1,8 +1,17 @@
-# `#strict` (owner, 2026-09-27): in this file every check site's proof is written in its own
-# function — here the range type on 'n' is why 100 / 'n' can't divide by zero. The oracle
-# has no proofs, so it runs this like any program; Precog is what holds `#strict` to it.
+# A `#strict` file (owner, 2026-09-27): verbose, for the reader. Every check site's proof is
+# written in its own function (the range on 'n' is why 100 / 'n' is safe), and the file
+# writes out what other files leave to Precog: `pos` on every position, every parameter's
+# type, a return type, `mut` or `immut` on every declaration, `temp` or `perm` on every `for`.
+# `nocheck` is still allowed. The oracle checks the spelling; Precog checks the proofs.
 #strict
 fn ratio ['n': int32[1, max]] -> int32 { return 100 / 'n'; }
 MAIN {
-    std::printu.stdout[ratio[4], \n];   # a comment
+    immut 'xs': list[int32] = [10, 20, 30, 40];
+    mut 'total': int32 = 0;
+    for temp 'i': uint64 in range[1, 4] {
+        change 'total' = 'total' + 'xs'[pos 'i'];
+    }
+    immut 'mid' := list.slice[lend 'xs', pos 2, pos 3];
+    immut 'f' := fn ['n': int32] -> int32 { return 'n' x 2; };
+    std::printu.stdout['total', " ", 'mid', " ", ratio[4], " ", 'f'[3], \n];
 }

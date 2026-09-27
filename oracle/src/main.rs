@@ -59,6 +59,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         prog.consts.extend(part.consts);
         prog.externs.extend(part.externs);
         prog.modules.extend(part.modules);
+        prog.strict_modules.extend(part.strict_modules);
     }
     Ok(prog)
 }

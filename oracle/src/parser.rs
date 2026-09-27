@@ -47,6 +47,10 @@ pub struct Parser {
     /// set while parsing the type in `to.<type>[…]`: the bracket belongs to the
     /// conversion, not to the type
     to_target: bool,
+    /// `#strict` at the top of this file: types, `pos`, `mut`/`immut`, `temp`/`perm` written out
+    strict: bool,
+    /// a `return <value>` seen in the body being parsed (a `#strict` fn must then write `-> T`)
+    saw_value_return: bool,
     /// set while parsing a map literal's key: the `=` after it pairs, it is not an assignment
     in_map_key: bool,
     /// set while parsing an extern signature or a layout.c struct: `ptr[T]` is allowed
@@ -62,9 +66,9 @@ pub struct Parser {
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -100,7 +104,7 @@ impl Parser {
     // program := item* Eof
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
-        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None };
+        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, strict_modules: Vec::new() };
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -112,6 +116,14 @@ impl Parser {
             if *self.peek() == Tok::Eof {
                 if depth > 0 { return self.err("unclosed `module {`"); }
                 return Ok(());
+            }
+            if *self.peek() == Tok::Strict {
+                let started = !(prog.funcs.is_empty() && prog.structs.is_empty() && prog.enums.is_empty() && prog.consts.is_empty() && prog.externs.is_empty() && prog.modules.is_empty() && prog.main.is_none() && prog.interfaces.is_empty());
+                if depth > 0 || started || self.strict { return self.err("`#strict` goes once, at the top of the file, before anything else"); }
+                self.advance();
+                self.strict = true;
+                prog.strict_modules.push(self.module.clone());
+                continue;
             }
             // visibility (decided 2026-09-19): nothing, `pub.limb`, `pub`
             let mut vis = Vis::Private;
@@ -270,6 +282,7 @@ impl Parser {
                     self.expect(Tok::LBrace, "`{` to open the module")?;
                     self.module.push(name);
                     prog.modules.push(ModuleDef { path: self.module.clone(), vis, line });
+                    if self.strict { prog.strict_modules.push(self.module.clone()); }
                     self.items(prog, depth + 1)?;
                     self.module.pop();
                 }
@@ -500,6 +513,10 @@ impl Parser {
             Tok::Word(_) => return self.err("a return type is written `-> int32` after the parameter list"),
             _ => {}
         }
+        if self.strict {
+            if let Some(p) = params.iter().find(|p| p.ty.is_none()) { return self.err(format!("`#strict`: parameter '{}' says its type", p.name)); }
+        }
+        self.saw_value_return = false;
         let body = if self.at_boundary {
             if *self.peek() == Tok::LBrace { return self.err("an `extern fn` has no body — it lives somewhere else; end it with `;`"); }
             if !fails.is_empty() { return self.err("an `extern fn` cannot `fail`; C has no failures — a wrapper turns its return value into one"); }
@@ -510,6 +527,7 @@ impl Parser {
             self.expect(Tok::Semi, "`;` to end the promise")?;
             Vec::new()
         } else { self.block()? };
+        if self.strict && ret.is_none() && self.saw_value_return { return self.err(format!("`#strict`: `{name}` returns a value, so it says its type: `-> int32`")); }
         let bounds = std::mem::take(&mut self.bounds);
         Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, bounds, params, body, line })
     }
@@ -903,6 +921,7 @@ impl Parser {
                 "return" => {
                     self.advance();
                     let value = if *self.peek() == Tok::Semi { None } else { Some(self.rhs()?) };
+                    if value.is_some() { self.saw_value_return = true; }
                     self.expect(Tok::Semi, "`;` after return")?;
                     Ok(Stmt::Return { value, line })
                 }
@@ -1076,10 +1095,14 @@ impl Parser {
             },
             Tok::LBrace => Ok(Stmt::Block { body: self.block()?, line }),
             Tok::NoShadow => self.decl(),
+            Tok::Strict => self.err("`#strict` goes once, at the top of the file, before anything else"),
             Tok::Var(name) => {
                 // `'x' := …`, `'x': T = …`, `'x' $:= …` declare (owner, 2026-09-25)
                 if matches!(self.peek_at(1), Tok::Walrus | Tok::ShadowWalrus | Tok::Colon | Tok::Semi) { return self.decl(); }
                 self.advance();
+                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Word(w) if w == "pos") {
+                    return self.err(format!("'{name}'[…] on its own reads an item and drops it; to change it, `change '{name}'[…] = …;`"));
+                }
                 if *self.peek() == Tok::LBracket {
                     // 'f'[args];  — a function value called as a statement (2026-09-21); a list read
                     // on its own line (`'xs'[2];`) is refused when it runs, since it does nothing
@@ -1143,6 +1166,10 @@ impl Parser {
         let mut mutability = None;
         if self.is_word("mut") { self.advance(); mutability = Some(Mutability::Mut); }
         else if self.is_word("immut") { self.advance(); mutability = Some(Mutability::Immut); }
+        if self.strict && mutability.is_none() {
+            let n = match self.peek() { Tok::Var(v) => v.clone(), _ => "x".into() };
+            return self.err(format!("`#strict`: a declaration says whether it changes: `mut '{n}' := …` or `immut '{n}' := …`"));
+        }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) if w == "mut" || w == "immut" => return self.err("say `mut` or `immut` once, before the name"),
@@ -1230,6 +1257,7 @@ impl Parser {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
             Tok::Word(w) if w == "seq" => return self.err("`seq` comes first: `for seq perm 'x' in …`"),
+            _ if self.strict => return self.err("`#strict`: a `for` says whether its variable outlives it: `for temp 'x' in …` or `for perm 'x' in …`"),
             _ => false,
         };
         let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted loop variable, found {other}")) };
@@ -1378,7 +1406,14 @@ impl Parser {
             else { ret = Some(self.ty()?); if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?; } }
         }
         let caps = self.captures()?;
+        if self.strict {
+            if let Some(p) = params.iter().find(|p| p.ty.is_none()) { return self.err(format!("`#strict`: parameter '{}' says its type", p.name)); }
+        }
+        let saved_ret = self.saw_value_return;
+        self.saw_value_return = false;
         let body = self.block()?;
+        if self.strict && ret.is_none() && self.saw_value_return { return self.err("`#strict`: this function returns a value, so it says its type: `-> int32`"); }
+        self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);
         Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, bounds, params, body, line })
@@ -1503,7 +1538,10 @@ impl Parser {
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
     fn index_bracket(&mut self, name: &str) -> PResult<Expr> {
         self.expect(Tok::LBracket, "`[`")?;
-        if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::RBracket) { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{name}'[2]`")); }
+        if self.strict {
+            if !self.is_word("pos") { return self.err(format!("`#strict`: an index says it is a position: `'{name}'[pos 2]`")); }
+            self.advance();
+        } else if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::RBracket) { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{name}'[2]` (`pos` belongs to `#strict` files)")); }
         let idx = self.expr()?;
         if *self.peek() == Tok::Comma { return self.err(format!("an index is one position: `'{name}'[3]`")); }
         self.expect(Tok::RBracket, "`]` after the position")?;
@@ -1554,7 +1592,8 @@ impl Parser {
             let mut values = vec![self.value()?];
             for which in ["first", "last"] {
                 self.expect(Tok::Comma, &format!("`,` before the {which} position"))?;
-                if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `{head}.slice[lend 'xs', 2, 4]`")); }
+                if self.strict { if !self.is_word("pos") { return self.err(format!("`#strict`: positions say `pos`: `{head}.slice[lend 'xs', pos 2, pos 4]`")); } self.advance(); }
+                else if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `{head}.slice[lend 'xs', 2, 4]` (`pos` belongs to `#strict` files)")); }
                 values.push(self.value()?);
             }
             self.expect(Tok::RBracket, "`]`")?;
@@ -1565,7 +1604,8 @@ impl Parser {
             self.advance();
             let mut values = vec![self.value()?];
             self.expect(Tok::Comma, "`,` after the list")?;
-            if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `simd.{op}[lend 'xs', 'i']`")); }
+            if self.strict { if !self.is_word("pos") { return self.err(format!("`#strict`: the position says `pos`: `simd.{op}[lend 'xs', pos 'i']`")); } self.advance(); }
+            else if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `simd.{op}[lend 'xs', 'i']` (`pos` belongs to `#strict` files)")); }
             values.push(self.value()?);
             while *self.peek() == Tok::Comma { self.advance(); values.push(self.value()?); }
             self.expect(Tok::RBracket, "`]`")?;
@@ -1787,7 +1827,12 @@ impl Parser {
                 if *self.peek() == Tok::LBracket {
                     // 'f'[args] calls a function value, 'xs'[2] reads a list: which one is decided by
                     // what the variable holds (no `pos` since 2026-09-27, owner)
-                    if matches!(self.peek_at(1), Tok::Word(w) if w == "pos") && !matches!(self.peek_at(2), Tok::LBracket | Tok::Dot | Tok::RBracket | Tok::Comma) { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{v}'[2]`")); }
+                    let says_pos = matches!(self.peek_at(1), Tok::Word(w) if w == "pos") && !matches!(self.peek_at(2), Tok::LBracket | Tok::Dot | Tok::RBracket | Tok::Comma);
+                    if self.strict && says_pos {
+                        let idx = self.index_bracket(&v)?;
+                        return Ok(Expr::Index(v, Box::new(idx), line));
+                    }
+                    if says_pos { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{v}'[2]` (`pos` belongs to `#strict` files)")); }
                     let args = self.bracket()?;
                     return Ok(Expr::CallValue(v, args, None, line));
                 }

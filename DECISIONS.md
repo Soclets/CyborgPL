@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `#strict` also writes out what Precog would infer; `nocheck` allowed in it (owner)
+
+`nocheck` under `#strict`: (a) allowed, as a written and listed reason,
+and needed for any C call; (b) refused, with such code moved to a
+non-strict file. Design claude recommended a. Owner: a. The owner then
+asked about "the syntax changes with `#strict`, like requiring `pos`".
+Offered: 1 `pos` on every index, 2 parameter types, 3 return types, 4
+`mut` on changed variables, 5 types on every variable, 6 `temp`/`perm`
+on every `for`. Design claude recommended 1 to 4, and against 5 (the `:=`
+pillar) and 6 (noise). Owner: 1, 2, 3 and 6, and "look at 4 again".
+Offered 4a (`mut` on what changes), 4b (`mut` or `immut` on every
+declaration), 4c (nothing, since `change` marks each change). Design
+claude recommended 4a. Owner: 4b, "`#strict` gives a fuck about the reader
+too". So in a strict file, `pos` comes back on every position (and only
+there). Parameters and value-returning functions say their types, every
+declaration says `mut` or `immut`, and every `for` says `temp` or `perm`.
+All of it is in the oracle. `#strict` once at the top of a file is the
+oracle's reading, not asked. Still open: the working build in a strict
+file. `core-features.md`; `examples/strict.cpls`; reject tests
+strict_decl, strict_pos, strict_param, strict_ret, strict_for,
+strict_top.
+
 ### 2026-09-27 — `#strict`: guardrails required, written in the same function (owner: a)
 
 The owner: "I kinda want to add `#strict`", with no clash with comments,

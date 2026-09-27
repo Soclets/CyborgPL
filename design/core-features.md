@@ -137,9 +137,30 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   "tiers are never global" rule above forbade in its wording; it only
   makes things stricter, never looser, and the owner chose it. Proposed
   alternative: an `if` in front of every site even where a type already
-  makes it safe. Still open: where the line goes and what it covers,
-  whether `nocheck` is allowed under it, and whether the working build
-  refuses an unproven site too.
+  makes it safe.
+
+  **`nocheck` is allowed** in a strict file (owner: a): it is a written
+  reason too, and listed. Otherwise a C call could never sit in one.
+
+  **And the file writes out what others leave to Precog** (owner, same
+  day: "`#strict` gives a fuck about the reader too"):
+  - `pos` on every position: `'xs'[pos 2]`, `list.slice[lend 'xs', pos 2,
+    pos 4]`, `simd.load[lend 'xs', pos 'i']`. Only strict files have it;
+    elsewhere `pos` is gone. So a list read never looks like a call.
+  - a type on every parameter;
+  - a return type on every function that returns a value;
+  - `mut` or `immut` (or `!mut`) on every declaration;
+  - `temp` or `perm` on every `for`.
+  Proposed and not chosen: a type on every variable, since `:=` letting
+  Precog pick the best type is a pillar and a written type can be a worse
+  choice. Also proposed for mutability: `mut` only on variables that
+  change (4a), or nothing, since `change` already marks each change (4c).
+  The owner chose `mut` or `immut` everywhere (4b).
+
+  `#strict` goes once, at the top of the file, before any item, and covers
+  the file and its `module` blocks. That is the oracle's reading and was
+  not asked. Still open: whether the working build refuses an unproven
+  site in a strict file too, or checks it at run time as elsewhere.
 - **The ladder** (clarified 2026-09-19): a guardrail that is good enough
   already removes the check under the default tier — Precog proves it and
   emits nothing; a proven check can never fire, so keeping it would be pure

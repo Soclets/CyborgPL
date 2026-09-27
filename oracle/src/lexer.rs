@@ -30,6 +30,7 @@ pub enum Tok {
     Eq,             // =
     ShadowWalrus,   // $:=
     ShadowEq,       // $=
+    Strict,         // #strict — the file's reasons are written out (owner, 2026-09-27)
     NoShadow,       // !$ — before a declaration: the name cannot be shadowed (owner, 2026-09-25)
     Colon,          // :   'x': int32
     Ellipsis,       // ... a variadic parameter
@@ -66,6 +67,7 @@ impl fmt::Display for Tok {
             Tok::ShadowWalrus => write!(f, "$:="),
             Tok::ShadowEq => write!(f, "$="),
             Tok::NoShadow => write!(f, "!$"),
+            Tok::Strict => write!(f, "#strict"),
             Tok::Colon => write!(f, ":"),
             Tok::Ellipsis => write!(f, "..."),
             Tok::LeftArrow => write!(f, "<-"),
@@ -314,6 +316,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                     // `#strict` (owner, 2026-09-27): every check site's proof written in its own
                     // function. A compile-time rule about proofs, which the oracle has none of, so
                     // here it is recognised and changes nothing.
+                    toks.push(Token { tok: Tok::Strict, line: tl, col: tc });
                     col += j - i; i = j; continue;
                 }
                 if word == "wl" {

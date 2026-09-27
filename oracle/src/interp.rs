@@ -1209,6 +1209,7 @@ impl<'p> Interp<'p> {
     fn as_index(&self, name: &str, args: &Bracket, has_handler: bool, line: usize) -> Result<Option<Expr>, RuntimeError> {
         let holds_list = self.lookup(name).map(|s| matches!(&*s.cell.borrow(), Value::List(_) | Value::Str(_))).unwrap_or(false);
         if !holds_list { return Ok(None); }
+        if self.prog.strict_modules.iter().any(|m| *m == self.module) { return rt(line, format!("`#strict`: a list read says it is a position: `'{name}'[pos 2]`")); }
         if has_handler { return rt(line, format!("reading '{name}'[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`")); }
         match args.values.as_slice() {
             [crate::ast::Value::Expr(e)] => Ok(Some(e.clone())),
