@@ -2,5 +2,5 @@
 # builds an integer stored into a bool when it is an all-literal wrapping
 # sum. Both engines must refuse it (same line).
 MAIN {
-    let 'a': bool = 0 -~ 0;
+    'a': bool = 0 -~ 0;
 }

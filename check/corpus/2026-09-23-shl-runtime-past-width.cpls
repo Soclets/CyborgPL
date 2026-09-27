@@ -5,11 +5,11 @@ extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
-    let 'k' := "CHK_A";
-    nocheck let 'n': uint64 = strlen[getenv[lend 'k']];
-    let 'v': uint8 = 200;
-    let 's': uint8 = to.uint8['n'];
-    let 'r': uint8 = 'v' shl 's';
-    let 'hi' := "ran on";
+    'k' := "CHK_A";
+    nocheck 'n': uint64 = strlen[getenv[lend 'k']];
+    'v': uint8 = 200;
+    's': uint8 = to.uint8['n'];
+    'r': uint8 = 'v' shl 's';
+    'hi' := "ran on";
     nocheck write[1, lend 'hi', 6];
 }

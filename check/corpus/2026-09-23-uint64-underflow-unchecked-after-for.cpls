@@ -8,18 +8,18 @@ extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
-    let mut 'buf': list[uint8] = [];
+    mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
-    let mut 'v': uint64 = 'm';
-    let mut 'p': uint64 = 1;
+    mut 'v': uint64 = 'm';
+    mut 'p': uint64 = 1;
     while 'v' / 'p' >== 10 {
-        'p' = 'p' x 10;
+        change 'p' = 'p' x 10;
     }
     loop {
         list.append[lend.mut 'buf', to.uint8[48 + ('v' / 'p')]];
-        'v' = 'v' mod 'p';
+        change 'v' = 'v' mod 'p';
         if 'p' == 1 { break; }
-        'p' = 'p' / 10;
+        change 'p' = 'p' / 10;
     }
     list.append[lend.mut 'buf', 10];
     nocheck write[1, lend 'buf', list.length[lend 'buf']];
@@ -38,18 +38,18 @@ fn put_i ['n': int64] {
 }
 
 MAIN {
-    let 'in1_key' := "CHK_IN1";
-    nocheck let 'in1': uint64 = strlen[getenv[lend 'in1_key']];
-    let 'in2_key' := "CHK_IN2";
-    nocheck let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
+    'in1_key' := "CHK_IN1";
+    nocheck 'in1': uint64 = strlen[getenv[lend 'in1_key']];
+    'in2_key' := "CHK_IN2";
+    nocheck 'in2': uint64 = strlen[getenv[lend 'in2_key']];
     for 'i21': int16 in range[37, 40] {
     }
-    let 'w24': uint16 = 4;
+    'w24': uint16 = 4;
     loop {
         if 'w24' <== 0 {
             break;
         }
-        'w24' = 'w24' - 1;
-        let 'v25': bool = 0 - 'in2' >== 0;
+        change 'w24' = 'w24' - 1;
+        'v25': bool = 0 - 'in2' >== 0;
     }
 }

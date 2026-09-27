@@ -395,10 +395,10 @@ fn render_stmt(out: &mut String, s: &Stmt, indent: usize, loose: bool) {
                 Mutability::Mut => "mut ",
                 Mutability::Immut => "immut ",
             };
-            out.push_str(&format!("{pad}{}let {m}{}: {} = {};\n", tier_prefix(*tier), q(name), ty.text(), ex(value)));
+            out.push_str(&format!("{pad}{}{m}{}: {} = {};\n", tier_prefix(*tier), q(name), ty.text(), ex(value)));
         }
         Stmt::Assign { tier, name, value } => {
-            out.push_str(&format!("{pad}{}{} = {};\n", tier_prefix(*tier), q(name), ex(value)));
+            out.push_str(&format!("{pad}{}change {} = {};\n", tier_prefix(*tier), q(name), ex(value)));
         }
         Stmt::If { arms, otherwise } => {
             for (i, (c, body)) in arms.iter().enumerate() {
@@ -479,8 +479,8 @@ impl Program {
         out.push_str("\nMAIN {\n");
         for i in &self.inputs {
             let key = format!("{}_key", i.name);
-            out.push_str(&format!("    let {} := \"{}\";\n", q(&key), i.var));
-            out.push_str(&format!("    nocheck let {}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
+            out.push_str(&format!("    {} := \"{}\";\n", q(&key), i.var));
+            out.push_str(&format!("    nocheck {}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
         }
         render_block(&mut out, &self.main, 1, self.loose);
         out.push_str("}\n");
@@ -615,11 +615,11 @@ impl<'a> Wr<'a> {
                     Mutability::Mut => "mut ",
                     Mutability::Immut => "immut ",
                 };
-                let head = format!("let {m}{}: {} = ", q(name), ty.text());
+                let head = format!("{m}{}: {} = ", q(name), ty.text());
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
             Stmt::Assign { tier, name, value } => {
-                let head = format!("{} = ", q(name));
+                let head = format!("change {} = ", q(name));
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
             Stmt::If { arms, otherwise } => {
@@ -702,8 +702,8 @@ impl Program {
         w.out.push_str("\nMAIN {\n");
         for i in &self.inputs {
             let key = format!("{}_key", i.name);
-            w.out.push_str(&format!("    let {} := \"{}\";\n", q(&key), i.var));
-            w.out.push_str(&format!("    nocheck let {}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
+            w.out.push_str(&format!("    {} := \"{}\";\n", q(&key), i.var));
+            w.out.push_str(&format!("    nocheck {}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
         }
         w.block(&self.main, 1);
         w.out.push_str("}\n");

@@ -2,7 +2,7 @@
 # 2^63 compared as a negative number. The oracle and the normal build do not.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
-    let 'v1': uint16 = 0;
-    let 'yes' := "taken";
+    'v1': uint16 = 0;
+    'yes' := "taken";
     if 9223372036854775808 <== 'v1' { nocheck write[1, lend 'yes', 5]; }
 }

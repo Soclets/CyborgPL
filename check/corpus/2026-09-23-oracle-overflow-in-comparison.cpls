@@ -2,9 +2,9 @@
 # plain math is exact until it lands, so 112 > 224 is simply false and this runs.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
-    let 'v': int8 = 112;
-    let 'yes' := "in ";
+    'v': int8 = 112;
+    'yes' := "in ";
     if 'v' > ('v' + 'v') { nocheck write[1, lend 'yes', 3]; }
-    let 'end' := "end";
+    'end' := "end";
     nocheck write[1, lend 'end', 3];
 }

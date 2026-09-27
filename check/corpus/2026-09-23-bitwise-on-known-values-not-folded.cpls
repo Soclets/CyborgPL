@@ -5,9 +5,9 @@
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
-    let 'k' := "CHK_A";
-    nocheck let 'n': uint64 = strlen[getenv[lend 'k']];
-    let 'z': uint8 = 5 and.bit 0;
-    let 'r': uint64 = 0;
-    check { 'r' = 'n' x 'z'; }
+    'k' := "CHK_A";
+    nocheck 'n': uint64 = strlen[getenv[lend 'k']];
+    'z': uint8 = 5 and.bit 0;
+    'r': uint64 = 0;
+    check { change 'r' = 'n' x 'z'; }
 }

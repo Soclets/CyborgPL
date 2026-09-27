@@ -2,7 +2,7 @@
 # uint64 counter may count down. The oracle refused this before 3502e6c.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
-    let 'hi' := "hi";
+    'hi' := "hi";
     for 'i': uint64 in range[3, 1, -1] {
         nocheck write[1, lend 'hi', 2];
     }
