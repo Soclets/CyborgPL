@@ -3,7 +3,7 @@
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
     mut 'acc': simd[uint8, 16] = simd.fill[0];
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
-        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
+        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', 'i'];
     }
     return simd.max['acc'] < 128;
 }
@@ -18,6 +18,6 @@ MAIN {
     'm' := 'a' > 'b';                       # a simd[bool, 4], one answer per lane
     std::printu.stdout[simd.all['m'], " ", simd.any['b' > 'a'], \n];
     mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
-    simd.store[lend.mut 'out', pos 2, 'a' + 'b'];
+    simd.store[lend.mut 'out', 2, 'a' + 'b'];
     std::printu.stdout['out', \n];
 }

@@ -15,7 +15,8 @@ solved for types, solved here for behaviour.
 
 The rule stands: a *value you hold* is quoted, a function's name is bare.
 A bare name alone was an error before; now it is the function. `'f'[…]`
-cannot be confused with indexing, because an index always says `pos`.
+calls it. Since `pos` went (2026-09-27), a list read looks the same
+(`'xs'[2]`), and what the variable holds decides which it is.
 Operators and `extern` functions are not values (open).
 
 ## 2. The type of a function is its signature without the names
@@ -61,7 +62,7 @@ silently, which is where "why is this borrowed" bugs come from.
   copies by itself like a number. Proposed alternatives: every function
   value takes a verb; no `copy`/`give` captures at all, which would undo
   2026-09-21.
-- `lend 'xs'[pos i]` / `copy 'xs'[pos i]` — a verb on an element — is now
+- `lend 'xs'[i]` / `copy 'xs'[i]` — a verb on an element — is now
   spelled (needed to pass elements to a `lent` parameter); `give` of an
   element is refused (it would leave a hole; `list.remove` hands the element
   back — owner, 2026-09-21).

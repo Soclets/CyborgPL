@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `pos` is removed: `'xs'[2]` (owner)
+
+```
+'xs'[2]                         # was  'xs'[pos 2]
+change 'xs'[2] = 5;             # was  change 'xs'[pos 2] = 5;
+list.slice[lend 'xs', 2, 4]     # was  list.slice[lend 'xs', pos 2, pos 4]
+simd.load[lend 'xs', 'i']       # was  simd.load[lend 'xs', pos 'i']
+```
+
+The owner: "Feeling like removing `pos`". Design claude laid out its two
+jobs. The owner's own 2026-09-17 reason was a position against a value
+(`2` as "the second" or "2"). Since 2026-09-21 it had also told a list read
+from a call of a function held in a variable (`'f'[2]`). The owner asked
+whether functions were bare (named ones are, held ones are quoted), then
+"they could just add comments". While asking what
+`simd.load[lend 'xs', pos 'i']` does, the owner read `'i'` as an item
+(`'i' = 'xs'[5]`) rather than a position, the confusion `pos` was made to
+prevent, and design claude said so. Owner: "Remove `pos`". Every `pos`
+goes. `'x'[…]` reads a list when `'x'` holds one and calls a function when
+it holds one. A list read alone as a statement is refused, and so is
+`otherwise` on one. `pos` is no longer a keyword. Old spellings are refused
+with "`pos` is gone". The oracle, examples, reject tests (pos_removed
+replaces index_without_pos, simd_load_needs_pos, slice_needs_pos) and
+`design/` are converted. CCA and check claude have not been told.
+
 ### 2026-09-27 — Oracle bug: `bit` was reserved, though no decision reserves it (compiler session)
 
 The oracle refused `fn bit […]` as a keyword. `bit` only ever follows a

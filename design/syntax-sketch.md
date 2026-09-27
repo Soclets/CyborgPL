@@ -74,7 +74,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   words — `fn`, `change`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
+  `list`, `array`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
   be used bare as function names; a function *may* be named with one, and
   is then reached only through a path (`std::to[…]`, `limb.to[…]`;
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
@@ -93,7 +93,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
     type says list;
   - carries a call's arguments: `add[10, 20]`, `std::exit[1]`;
   - constructs a struct: `Locker[name = "A", …]`;
-  - indexes: `'xs'[pos 3]`;
+  - indexes: `'xs'[3]`;
   - bounds a range: `range[1, 10, 2]`.
 
   A **single expression stands bare**: `'x' := 1000;`, `change 'i' = 'i' + 1;`,

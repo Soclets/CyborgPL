@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with",
+    "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -1080,8 +1080,9 @@ impl Parser {
                 // `'x' := …`, `'x': T = …`, `'x' $:= …` declare (owner, 2026-09-25)
                 if matches!(self.peek_at(1), Tok::Walrus | Tok::ShadowWalrus | Tok::Colon | Tok::Semi) { return self.decl(); }
                 self.advance();
-                if *self.peek() == Tok::LBracket && !matches!(self.peek_at(1), Tok::Word(w) if w == "pos") {
-                    // 'f'[args];  — a function value called as a statement (2026-09-21)
+                if *self.peek() == Tok::LBracket {
+                    // 'f'[args];  — a function value called as a statement (2026-09-21); a list read
+                    // on its own line (`'xs'[2];`) is refused when it runs, since it does nothing
                     let args = self.bracket()?;
                     let handler = self.handler()?;
                     self.expect(Tok::Semi, "`;` after the call")?;
@@ -1502,10 +1503,9 @@ impl Parser {
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
     fn index_bracket(&mut self, name: &str) -> PResult<Expr> {
         self.expect(Tok::LBracket, "`[`")?;
-        if !self.is_word("pos") { return self.err(format!("an index says it is a position: `'{name}'[pos 2]`")); }
-        self.advance();
+        if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::RBracket) { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{name}'[2]`")); }
         let idx = self.expr()?;
-        if *self.peek() == Tok::Comma { return self.err(format!("an index is one position: `'{name}'[pos 3]`")); }
+        if *self.peek() == Tok::Comma { return self.err(format!("an index is one position: `'{name}'[3]`")); }
         self.expect(Tok::RBracket, "`]` after the position")?;
         Ok(idx)
     }
@@ -1554,8 +1554,7 @@ impl Parser {
             let mut values = vec![self.value()?];
             for which in ["first", "last"] {
                 self.expect(Tok::Comma, &format!("`,` before the {which} position"))?;
-                if !self.is_word("pos") { return self.err(format!("`{head}.slice` says its positions with `pos`: `{head}.slice[lend 'xs', pos 2, pos 4]`")); }
-                self.advance();
+                if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `{head}.slice[lend 'xs', 2, 4]`")); }
                 values.push(self.value()?);
             }
             self.expect(Tok::RBracket, "`]`")?;
@@ -1566,8 +1565,7 @@ impl Parser {
             self.advance();
             let mut values = vec![self.value()?];
             self.expect(Tok::Comma, "`,` after the list")?;
-            if !self.is_word("pos") { return self.err(format!("`simd.{op}` says the position with `pos`: `simd.{op}[lend 'xs', pos 'i'{}]`", if op == "store" { ", 'v'" } else { "" })); }
-            self.advance();
+            if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `simd.{op}[lend 'xs', 'i']`")); }
             values.push(self.value()?);
             while *self.peek() == Tok::Comma { self.advance(); values.push(self.value()?); }
             self.expect(Tok::RBracket, "`]`")?;
@@ -1786,14 +1784,12 @@ impl Parser {
             Tok::Newline => { self.advance(); Ok(Expr::Newline(line)) }
             Tok::Var(v) => {
                 self.advance();
-                if *self.peek() == Tok::LBracket && !matches!(self.peek_at(1), Tok::Word(w) if w == "pos") {
-                    // 'f'[args] — calling a function value; an index always says `pos` (2026-09-21)
+                if *self.peek() == Tok::LBracket {
+                    // 'f'[args] calls a function value, 'xs'[2] reads a list: which one is decided by
+                    // what the variable holds (no `pos` since 2026-09-27, owner)
+                    if matches!(self.peek_at(1), Tok::Word(w) if w == "pos") && !matches!(self.peek_at(2), Tok::LBracket | Tok::Dot | Tok::RBracket | Tok::Comma) { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{v}'[2]`")); }
                     let args = self.bracket()?;
                     return Ok(Expr::CallValue(v, args, None, line));
-                }
-                if *self.peek() == Tok::LBracket {
-                    let idx = self.index_bracket(&v)?;
-                    return Ok(Expr::Index(v, Box::new(idx), line));
                 }
                 if *self.peek() == Tok::Dot {
                     self.advance();

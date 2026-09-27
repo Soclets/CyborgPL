@@ -6,7 +6,7 @@ fn count_on ['m': simd[bool, 4]] -> bool {
 }
 MAIN {
     'xs': array[int32] = [5, 20, 30, 40];
-    'a': simd[int32, 4] = simd.load[lend 'xs', pos 1];
+    'a': simd[int32, 4] = simd.load[lend 'xs', 1];
     'm': simd[bool, 4] = 'a' > simd.fill[10];
     'all': simd[bool, 4] = simd.fill[true];
     'both' := 'm' and 'all';

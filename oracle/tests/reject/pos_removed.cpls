@@ -1,0 +1,5 @@
+# `pos` is gone (owner, 2026-09-27): a position is written bare, 'xs'[2]
+MAIN {
+    'xs' := [1, 2, 3];
+    'x' := 'xs'[pos 2];
+}

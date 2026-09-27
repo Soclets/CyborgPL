@@ -74,7 +74,7 @@ struct Percent { value: uint8[0, 100] }
   `int32[0, 100]`.
 - Precog carries the bounds through arithmetic: `'n' + 1` is an
   `int32[1, 101]`; storing it back into an `int32[0, 100]` is a check
-  site; `'xs'[pos 'n']` on a 100-element list is proven.
+  site; `'xs'['n']` on a 100-element list is proven.
 - A range type cannot cross to C (C has no ranges — use the plain type).
   `size.of` is the base type's.
 

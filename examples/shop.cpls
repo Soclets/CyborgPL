@@ -20,9 +20,9 @@ fn cheapest [lent 'xs': list[<T: Priced>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     'best' := 1;
     for 'k' in range[2, list.length[lend 'xs']] {
-        if price[lend 'xs'[pos 'k']] < price[lend 'xs'[pos 'best']] { change 'best' = 'k'; }
+        if price[lend 'xs'['k']] < price[lend 'xs'['best']] { change 'best' = 'k'; }
     }
-    return copy 'xs'[pos 'best'];
+    return copy 'xs'['best'];
 }
 
 fn describe [lent 'i': Item] -> str.utf8 {

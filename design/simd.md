@@ -12,7 +12,7 @@ algorithm.
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
     mut 'acc' := simd.fill[0];                          # simd[uint8, 16]
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
-        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
+        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', 'i'];
     }
     return simd.max['acc'] < 128;
 }
@@ -56,11 +56,11 @@ that names the fold to use.
 
 ## The operations
 
-- `'v'[pos 1]` — one lane, 1-based like every index; a check site.
+- `'v'[1]` — one lane, 1-based like every index; a check site.
 - `simd.fill[7]` — every lane the same value.
-- `simd.load[lend 'xs', pos 'i']` — N elements of an `array` or `list`
+- `simd.load[lend 'xs', 'i']` — N elements of an `array` or `list`
   into a vector; a check site (is `'i' + N - 1` inside?).
-- `simd.store[lend.mut 'xs', pos 'i', 'v']` — the other way.
+- `simd.store[lend.mut 'xs', 'i', 'v']` — the other way.
 - `simd.all['m']` / `simd.any['m']` — a `simd[bool, N]` to one `bool`.
 - `simd.max['v']` / `simd.min['v']` / `simd.sum['v']` — a numeric
   vector to one value. `sum` is a check site (it can overflow `T`).
@@ -79,7 +79,7 @@ All of the above, with the oracle's target fixed as ARM64's 128 bits.
 `examples/simd.cpls` is the `is_ascii` program plus arithmetic,
 comparisons, folds and a store; five reject tests cover a shape the
 target does not have, a vector used as a condition, a load past the
-end, a bad element type, and a position without `pos`. Two things the
+end, and a bad element type. Two things the
 oracle had to pick and this document has not said: a scalar broadcasts
 against a vector (`'v' + 1`), and `simd.sum` is a check site while
 `max`/`min` are not.
@@ -102,8 +102,8 @@ on the spot. `examples/simd_mask.cpls`.
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
 ```
-'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 9, 2];   # 2 items; lanes 3–4 are zero
-simd.store.some[lend.mut 'xs', pos 9, 2, 'v'];               # writes lanes 1–2 only
+'v': simd[int32, 4] = simd.load.some[lend 'xs', 9, 2];   # 2 items; lanes 3–4 are zero
+simd.store.some[lend.mut 'xs', 9, 2, 'v'];               # writes lanes 1–2 only
 ```
 
 Every vector loop over a list whose length is not a multiple of N has a

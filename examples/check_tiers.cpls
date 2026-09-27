@@ -14,12 +14,12 @@ MAIN {
     'xs' := [1, 2, 3];
     check {
         for 'i' in range[1, list.length[lend 'xs']] {
-            std::printu.stdout['xs'[pos 'i'], " "];
+            std::printu.stdout['xs'['i'], " "];
         }
     }
     std::print.stdout[\n];
-    nocheck change 'xs'[pos 2] = 9;
+    nocheck change 'xs'[2] = 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
-    check if 'x' > 0.0 { change 'xs'[pos 1] = to.int32['x' / 2.0] otherwise 0; }
+    check if 'x' > 0.0 { change 'xs'[1] = to.int32['x' / 2.0] otherwise 0; }
     std::printu.stdout['xs', \n];
 }

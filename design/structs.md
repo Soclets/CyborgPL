@@ -21,7 +21,7 @@ struct Locker {
   2026-09-19, after a cold read caught `'number': int32` in the declaration
   but `'l'.number` at access): a field is a path *into* a struct, not a
   variable you hold. The quotes go on the whole — `'l'` — and the route
-  into it (`.number`, like `[pos 2]` into a list) is bare. `name: type`,
+  into it (`.number`, like `[2]` into a list) is bare. `name: type`,
   the type after the name like every other site.
 - No declaration word on a field: a struct always *owns* its fields, so there is nothing
   to choose (a parameter's `lent` chooses; a field cannot).

@@ -771,6 +771,9 @@ impl<'p> Interp<'p> {
                 Ok(Flow::Normal)
             }
             Stmt::CallValue { name, args, handler, line } => {
+                if self.as_index(name, args, handler.is_some(), *line)?.is_some() {
+                    return rt(*line, format!("'{name}'[…] on its own reads an item and drops it; to change it, `change '{name}'[…] = …;`"));
+                }
                 self.call_is_stmt = true;
                 let r = self.call_value(name, args, handler.as_ref(), *line);
                 self.call_is_stmt = false;
@@ -1202,6 +1205,17 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// `'xs'[i]` when `'xs'` holds a list or array: the one position inside, as an index.
+    fn as_index(&self, name: &str, args: &Bracket, has_handler: bool, line: usize) -> Result<Option<Expr>, RuntimeError> {
+        let holds_list = self.lookup(name).map(|s| matches!(&*s.cell.borrow(), Value::List(_) | Value::Str(_))).unwrap_or(false);
+        if !holds_list { return Ok(None); }
+        if has_handler { return rt(line, format!("reading '{name}'[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`")); }
+        match args.values.as_slice() {
+            [crate::ast::Value::Expr(e)] => Ok(Some(e.clone())),
+            _ => rt(line, format!("an index is one position: `'{name}'[3]`")),
+        }
+    }
+
     fn kind_clash(&self, have: Option<bool>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
         let want = match want { Ty::Ranged(b, _, _) => &**b, t => t };
         match (have, want) {
@@ -1619,6 +1633,11 @@ impl<'p> Interp<'p> {
                 Ok((v, prov))
             }
             Expr::CallValue(name, args, handler, _) => {
+                // `'xs'[2]` reads a list and `'f'[2]` calls a function: no `pos` since 2026-09-27
+                // (owner), so what the variable holds decides
+                if let Some(idx) = self.as_index(name, args, handler.is_some(), line)? {
+                    return self.eval(&Expr::Index(name.clone(), Box::new(idx), line));
+                }
                 let v = self.call_value(name, args, handler.as_ref(), line)?;
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((v, prov))

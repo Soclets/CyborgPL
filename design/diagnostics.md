@@ -20,7 +20,7 @@ indentation by spaces only:
 ```
 check: 'k' can be past the end of 'xs'
 where: shop.cpls, line 31, column 20 — in `pick`, called from MAIN at line 48
-code:  'xs'[pos 'k']
+code:  'xs'['k']
 when:  'k' is 101 and 'xs' has 100 elements — there is no element to take
 
 why:   'k' comes from 'n'
@@ -32,7 +32,7 @@ fix:   limit the number where it is read — line 4:
        'n' := to.int32[1, 99][std::input.line[] otherwise ""] otherwise 0;
 
    or  check 'k' before using it — line 31:
-       if 'k' <== list.length[lend 'xs'] { 'x' := 'xs'[pos 'k']; … }
+       if 'k' <== list.length[lend 'xs'] { 'x' := 'xs'['k']; … }
 ```
 
 ```

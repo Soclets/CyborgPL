@@ -111,7 +111,7 @@ word in front of a statement, covering every check site inside it. A `{ }`
 block is a statement, so a region is `check { … }` with no second rule.
 
 ```
-check change 'xs'[pos 'i'] = 'total' + 'score';     # prove: index in range, add fits
+check change 'xs'['i'] = 'total' + 'score';     # prove: index in range, add fits
 nocheck change 'hash' = 'hash' x 31 + 'c';          # I want the wrap; on my word
 check { for 'i' in range[1, 'n'] { … } }     # every site in the region
 check if 'x' > 0 { … }                       # an if or a loop is a statement too

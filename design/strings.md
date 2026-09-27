@@ -86,9 +86,9 @@ until you say what. `each.<unit>` yields the units without building a
 list (Precog lowers it to a loop over the bytes; the oracle builds the
 list).
 
-## No `[pos]` on a text
+## No `[i]` on a text
 
-`'s'[pos 3]` is a compile error — the 3rd byte or the 3rd grapheme? The
+`'s'[3]` is a compile error — the 3rd byte or the 3rd grapheme? The
 positional forms live in std with the unit spelled and a failure for out
 of range: `std::str.at.grapheme[lend 's', 3] otherwise …`,
 `std::str.slice.grapheme[lend 's', 1, 5] otherwise …`. Most "the 3rd

@@ -148,7 +148,7 @@ note.
 
 Check sites are: integer overflow (plain operators, which are exact
 and checked where the value lands, or past 64 bits in between — owner,
-2026-09-23, `operators.md`; `+~` etc. are never sites), division and `mod` by zero, `[pos]` bounds, narrowing (`uint64`
+2026-09-23, `operators.md`; `+~` etc. are never sites), division and `mod` by zero, `[i]` bounds, narrowing (`uint64`
 into `int32`, a value into a range type), a length bound on a bounded
 list after every change, `to.…` conversions that are not failures, and
 the "must leave" rules the checker already enforces. Failures (`fail`) are
@@ -302,7 +302,7 @@ Per check site, in source order:
 
 ```
 line 7   'total' + square['i']   overflow           proven    (layer 2: max 333833500)
-line 12  'xs'[pos 'k']           out of bounds      checked   (layer 3: sat, k=100 when len=100)
+line 12  'xs'['k']           out of bounds      checked   (layer 3: sat, k=100 when len=100)
 line 15  'a' / 'b'               division by zero   trusted   (nocheck)
 line 9   square: 'x' x 'x'       overflow           proven    (layer 2, at 1 call site)
 ```

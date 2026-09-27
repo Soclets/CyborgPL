@@ -8,9 +8,9 @@ fn by_owner  [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[len
 fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> str.utf8 {
     'best' := 1;
     for 'i' in range[2, list.length[lend 'xs']] {
-        if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { change 'best' = 'i'; }
+        if 'less'[lend 'xs'['i'], lend 'xs'['best']] { change 'best' = 'i'; }
     }
-    'winner' := lend 'xs'[pos 'best'];
+    'winner' := lend 'xs'['best'];
     return copy 'winner'.owner;
 }
 
@@ -26,7 +26,7 @@ MAIN {
     std::print.stdout[first_by[lend 'lockers', by_owner], \n];
 
     'f' := by_number;                                                 # held in a variable
-    std::printu.stdout['f'[lend 'lockers'[pos 1], lend 'lockers'[pos 2]], \n];   # called: 'f'[…]
+    std::printu.stdout['f'[lend 'lockers'[1], lend 'lockers'[2]], \n];   # called: 'f'[…]
 
     'limit' := 60;
     'scores' := [72, 40, 95, 55];

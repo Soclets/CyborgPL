@@ -6,7 +6,7 @@ fn max ['a': <T>, 'b': <T>] -> <T> {
 
 fn first [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
-    return 'xs'[pos 1];
+    return 'xs'[1];
 }
 
 struct Pair { left: <A>  right: <B> }         # blanks in order of first appearance: A, B

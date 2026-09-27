@@ -1,1 +1,0 @@
-MAIN { 'xs': array[int32] = [1, 2, 3, 4]; 'v' := simd.load[lend 'xs', 1]; }

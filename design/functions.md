@@ -79,7 +79,7 @@ never bare (owner, 2026-09-23: no Limb can offer a shortcut).
 and a function is not one. A function name is a plain identifier — no
 spaces or symbols, not a keyword. Variables keep the anything-goes naming.
 
-A call (`add[…]`) and a list index (`'items'[pos 3]`) are told apart by
+A call (`add[…]`) and a list index (`'items'[3]`) are told apart by
 shape; a keyword and a call are told apart by the reserved-word list.
 
 The operator words (`x`, `xx`, `mod`, `and`, `or`, `not`) are bare too, but

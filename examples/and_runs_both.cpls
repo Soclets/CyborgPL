@@ -12,7 +12,7 @@ MAIN {
     'xs' := [3, 5, 8];
     'i': uint64 = 7;
     if 'i' <== list.length[lend 'xs'] {
-        if 'xs'[pos 'i'] == 5 { std::printu.stdout["found", \n]; }
+        if 'xs'['i'] == 5 { std::printu.stdout["found", \n]; }
     }
     std::printu.stdout["done", \n];
 }

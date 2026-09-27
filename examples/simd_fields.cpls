@@ -11,5 +11,5 @@ MAIN {
     mut 'history': list[simd[bin32, 4]] = [];
     list.append[lend.mut 'history', 'q'.place];
     list.append[lend.mut 'history', 'q'.place + 'q'.vel];
-    std::printu.stdout[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[pos 2]], \n];
+    std::printu.stdout[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[2]], \n];
 }

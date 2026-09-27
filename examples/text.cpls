@@ -13,7 +13,7 @@ MAIN {
 
     # the toolbox is std's
     'words' := std::str.split[lend 's', " "];
-    std::printu.stdout[list.length[lend 'words'], " words; first is ", 'words'[pos 1], \n];
+    std::printu.stdout[list.length[lend 'words'], " words; first is ", 'words'[1], \n];
     std::printu.stdout[std::str.upper[lend 's'], \n];
     std::printu.stdout[std::str.contains[lend 's', "wör"], " ", std::str.starts_with[lend 's', "hé"], \n];
     'third' := std::str.at.grapheme[lend 's', 3] otherwise `?`;

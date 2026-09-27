@@ -3,5 +3,5 @@
 MAIN {
     'xs' := [3, 5, 8];
     'i': uint64 = 7;
-    if 'i' <== list.length[lend 'xs'] and 'xs'[pos 'i'] == 5 { }
+    if 'i' <== list.length[lend 'xs'] and 'xs'['i'] == 5 { }
 }

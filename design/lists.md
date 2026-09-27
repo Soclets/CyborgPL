@@ -23,9 +23,9 @@ programmer only says which at a boundary.
 ## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
 
 ```
-'mid' := list.slice[lend 'xs', pos 2, pos 4];      # elements 2, 3 and 4
-'head' := array.slice[lend 'fixed', pos 1, pos 2];
-'none' := list.slice[lend 'xs', pos 3, pos 2];     # empty: last is first - 1
+'mid' := list.slice[lend 'xs', 2, 4];      # elements 2, 3 and 4
+'head' := array.slice[lend 'fixed', 1, 2];
+'none' := list.slice[lend 'xs', 3, 2];     # empty: last is first - 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -40,8 +40,8 @@ it. The owner asked whether Precog could help, and it is what decides
 this: **(a) always compiles and sometimes copies; (b) never copies and
 sometimes refuses.**
 
-1-based and inclusive, like `[pos i]` and `range[…]`, and the positions
-say `pos` as every index does. A **check site**, not a failure, because
+1-based and inclusive, like `[i]` and `range[…]`, with the positions
+written bare, as every index is. A **check site**, not a failure, because
 it is a language operation — `std::str.slice.grapheme` fails instead
 because everything in std fails. `array` gets it too (owner): slicing
 reads, so the reason an array has no `append` does not apply.
@@ -98,12 +98,19 @@ capacity in `types.md`.
 `[72, 95, 38]` — comma-separated values in a bracket. `[7,]` is a one-element
 list (`[7]` is the number seven). `[[1, 2], [3, 4]]` nests.
 
-## Indexing — `pos`, 1-based
+## Indexing — `'xs'[2]`, 1-based
 
-`'xs'[pos 1]` is the first element; `'xs'[pos 0]` does not exist and is an
-error. `pos` is mandatory on every index (decided 2026-09-17): it says the
-number is a *position*, so a reader never wonders whether `2` means "the
-second" or "the value 2". The position is an ordinal, the way people count,
+`'xs'[1]` is the first element; `'xs'[0]` does not exist and is an
+error. The position is written bare (owner, 2026-09-27: "Remove `pos`").
+From 2026-09-17 every index said `pos` (`'xs'[pos 2]`), the owner's own
+proposal, so a reader never wondered whether `2` meant "the second" or
+"the value 2", and since 2026-09-21 it also told a list read (`'xs'[pos 2]`)
+from a call of a function value (`'f'[2]`). Now both are `'x'[2]`, and
+what the variable holds decides: a list is read, a function is called.
+The compiler always knows which, and the owner's view is that a reader
+has names and comments. A list read standing alone as a statement does
+nothing and is refused. `pos` is no longer a keyword. The position is an
+ordinal, the way people count,
 which lines up with inclusive ranges:
 `for 'i' in range[1, list.length[lend 'xs']]` walks the whole list
 with no `- 1` anywhere. An out-of-range position is a runtime check in the
@@ -112,7 +119,7 @@ default tier, proven away by Precog where it can be.
 **Element assignment** (decided 2026-09-17) is the same shape on the left of `=`:
 
 ```
-change 'xs'[pos 2] = 5;
+change 'xs'[2] = 5;
 ```
 
 The list must be assignable (not `immut`, not a shared `lent`); the position
@@ -125,9 +132,9 @@ search, and a search is a loop the reader should see —
 
 ```
 for perm 'i' in range[1, list.length[lend 'xs']] {
-    if 'xs'[pos 'i'] == 2 { break; }
+    if 'xs'['i'] == 2 { break; }
 }
-change 'xs'[pos 'i'] = 5;
+change 'xs'['i'] = 5;
 ```
 
 — which the `perm` counter makes three plain lines.
@@ -179,7 +186,7 @@ known). Inside a call the parameter is written the same way:
 **`list.remove` hands the removed element back** (decided 2026-09-21): the
 list stops owning it, so the caller does — or drops it by not taking it.
 This is the one way to move an owned element *out* of a list without a
-copy. `give 'xs'[pos i]` stays refused: it would leave a hole (a slot
+copy. `give 'xs'[i]` stays refused: it would leave a hole (a slot
 with nothing in it, which every later access would have to check for —
 a cost on every list in the program), and shrinking-by-give would be a
 second spelling of `list.remove`. Positions that must stay put are the

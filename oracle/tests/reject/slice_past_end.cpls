@@ -1,1 +1,1 @@
-MAIN { 'xs' := [1, 2, 3]; 's' := list.slice[lend 'xs', pos 1, pos 9]; }
+MAIN { 'xs' := [1, 2, 3]; 's' := list.slice[lend 'xs', 1, 9]; }

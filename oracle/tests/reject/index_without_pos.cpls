@@ -1,4 +1,0 @@
-MAIN {
-    'xs' := [1, 2, 3];
-    std::printu.stdout['xs'[2]];
-}

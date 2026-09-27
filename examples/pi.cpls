@@ -8,12 +8,12 @@ fn pi_digits ['n': int32] {
     for 'j' in range[1, 'n'] {
         mut 'q' := 0;
         for 'i' in range['len', 1, -1] {
-            'x' := (10 x 'a'[pos 'i']) + ('q' x 'i');
+            'x' := (10 x 'a'['i']) + ('q' x 'i');
             'den' := (2 x 'i') - 1;
-            change 'a'[pos 'i'] = 'x' mod 'den';
+            change 'a'['i'] = 'x' mod 'den';
             change 'q' = 'x' / 'den';
         }
-        change 'a'[pos 1] = 'q' mod 10;
+        change 'a'[1] = 'q' mod 10;
         change 'q' = 'q' / 10;
         if 'q' == 9 {
             change 'nines' = 'nines' + 1;

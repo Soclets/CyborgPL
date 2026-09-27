@@ -10,16 +10,16 @@ MAIN {
     while 'i' <== 'n' {
         'left' := 'n' - 'i' + 1;
         if 'left' >== 4 {
-            'v': simd[int32, 4] = simd.load[lend 'xs', pos 'i'];
+            'v': simd[int32, 4] = simd.load[lend 'xs', 'i'];
             change 'acc' = 'acc' + 'v';
         } else {
-            'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 'i', 'left'];
+            'v': simd[int32, 4] = simd.load.some[lend 'xs', 'i', 'left'];
             change 'acc' = 'acc' + 'v';
         }
         change 'i' = 'i' + 4;
     }
     'twice': simd[int32, 4] = simd.fill[2];
-    'last': simd[int32, 4] = simd.load[lend 'xs', pos 7];
-    simd.store.some[lend.mut 'xs', pos 9, 2, 'last' x 'twice'];
+    'last': simd[int32, 4] = simd.load[lend 'xs', 7];
+    simd.store.some[lend.mut 'xs', 9, 2, 'last' x 'twice'];
     std::printu.stdout[simd.sum['acc'], " ", 'xs', \n];
 }
