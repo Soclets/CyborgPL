@@ -1535,7 +1535,7 @@ impl Parser {
             ("list", "length" | "append" | "remove" | "empty" | "slice") | ("array", "length" | "slice") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
             ("channel", "send" | "take") => true,
-            ("simd", "fill" | "load" | "store" | "load.some" | "store.some" | "all" | "any" | "max" | "min" | "sum") => true,
+            ("simd", "fill" | "load" | "store" | "load.some" | "store.some" | "all" | "any" | "max" | "min" | "sum" | "shuffle") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
@@ -1574,6 +1574,15 @@ impl Parser {
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
         let args = self.bracket()?;
+        // `simd.shuffle['v', [4, 3, 2, 1]]` — the new order is fixed numbers, known when compiling
+        // (owner, 2026-09-27: a), so it is one instruction and Precog sees through it
+        if head == "simd" && op == "shuffle" {
+            let fixed = match args.values.get(1) {
+                Some(Value::Expr(Expr::Nested(b))) => b.values.iter().all(|v| matches!(v, Value::Expr(Expr::Int(..)))),
+                _ => false,
+            };
+            if args.values.len() != 2 || !fixed { return self.err("`simd.shuffle` takes a vector and the new order as fixed lane numbers: `simd.shuffle['v', [4, 3, 2, 1]]`"); }
+        }
         Ok((head, op, args))
     }
 

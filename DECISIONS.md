@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `simd.shuffle['v', [4, 3, 2, 1]]` rearranges lanes (owner: a)
+
+The last SIMD leftover. Proposed (a) one general shuffle whose order is
+fixed lane numbers known when compiling; (b) leave it, since the folds
+cover the common cases. Design claude recommended a. Owner: a. Lane
+numbers are 1-based, repeats are allowed, and a lane that does not exist
+is an error. Two-vector shuffles (interleave) were not asked. `simd.md`;
+`examples/simd_shuffle.cpls`; reject tests simd_shuffle_not_fixed,
+simd_shuffle_lane. That closes the SIMD list in `simd.md`.
+
 ### 2026-09-27 — A simd value may be a struct field or a list element (owner: a)
 
 Proposed (a) anywhere a number goes, a plain fixed-size value aligned to
@@ -2773,7 +2783,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
-- SIMD leftovers: more element types (`simd[bool, N]` written directly?), shuffles and lane-crossing, masked load/store for a short tail, `simd` as a struct field or list element. (2026-09-22, `design/simd.md`)
+- SIMD: shuffling two vectors together (interleave). The other leftovers were decided 2026-09-27. (`design/simd.md`)
 
 
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.

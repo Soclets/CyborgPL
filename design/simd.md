@@ -130,7 +130,21 @@ and physics keep positions this way. Proposed alternative: SIMD values
 local only, with plain numbers stored and reloaded each time.
 `examples/simd_fields.cpls`.
 
+## Rearranging lanes: `simd.shuffle` (owner, 2026-09-27: a)
+
+```
+'r' := simd.shuffle['v', [4, 3, 2, 1]];      # reversed
+'p' := simd.shuffle['v', [2, 1, 4, 3]];      # neighbours swapped
+'b' := simd.shuffle['v', [1, 1, 1, 1]];      # lane 1 everywhere
+```
+
+One operation for every rearrangement: the vector, then its new order as
+lane numbers (1-based, as positions are), one per lane, and repeats are
+allowed. The order must be fixed numbers known when compiling, so it is
+one instruction on every chip and Precog sees through it. A lane that
+does not exist is an error. Proposed alternative: nothing yet, since the
+folds cover the common cases. Shuffling two vectors together
+(interleave) was not asked. `examples/simd_shuffle.cpls`.
+
 ## Open
 
-- Shuffles and lane-crossing operations (reverse, interleave, a
-  general permute) — none designed; the folds cover the common cases.

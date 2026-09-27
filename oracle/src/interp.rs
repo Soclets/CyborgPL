@@ -2303,6 +2303,21 @@ impl<'p> Interp<'p> {
                 }
                 Ok(Value::Bool(out))
             }
+            "shuffle" => {
+                let (v, _) = self.value(&args.values[0])?;
+                let lanes = self.simd_lanes(&v, op, line)?;
+                let (order, _) = { let saved = self.expected.take(); let r = self.value(&args.values[1]); self.expected = saved; r? };
+                let order = match order { Value::List(o) => o, other => return rt(line, format!("`simd.shuffle`'s order is a list of lane numbers, got {}", other.kind())) };
+                let n = lanes.len();
+                if order.len() != n { return rt(line, format!("`simd.shuffle` of {n} lanes takes {n} lane numbers, given {}", order.len())); }
+                let mut out = Vec::with_capacity(n);
+                for o in order {
+                    match o { Value::Int(k) if k >= 1 && k as usize <= n => out.push(lanes[k as usize - 1].clone()),
+                              Value::Int(k) => return rt(line, format!("lane {k} does not exist; a vector of {n} lanes has lanes 1 to {n}")),
+                              other => return rt(line, format!("a lane number is an integer, got {}", other.kind())) }
+                }
+                Ok(Value::Simd(out))
+            }
             "max" | "min" | "sum" => {
                 if args.values.len() != 1 { return rt(line, format!("`simd.{op}` takes one simd")); }
                 let (v, _) = self.value(&args.values[0])?;

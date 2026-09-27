@@ -1,0 +1,11 @@
+# `simd.shuffle` rearranges lanes (owner, 2026-09-27: a): the vector, then its new order as
+# lane numbers, which must be fixed numbers known when compiling. Reversing, swapping and
+# copying one lane everywhere are all just orders.
+MAIN {
+    'xs': array[int32] = [10, 20, 30, 40];
+    'v': simd[int32, 4] = simd.load[lend 'xs', pos 1];
+    'r' := simd.shuffle['v', [4, 3, 2, 1]];         # reversed
+    'pairs' := simd.shuffle['v', [2, 1, 4, 3]];     # neighbours swapped
+    'first' := simd.shuffle['v', [1, 1, 1, 1]];     # lane 1 everywhere
+    std::printu.stdout['r', \n, 'pairs', \n, 'first', \n];
+}
