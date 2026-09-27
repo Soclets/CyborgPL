@@ -3,9 +3,9 @@
 # none or one. The same key twice into a map bounded to one entry fits.
 extern fn exit ['code': int32];
 MAIN {
-    let mut 'm': map[str.utf8, int32][0, 1] = map.empty;
+    mut 'm': map[str.utf8, int32][0, 1] = map.empty;
     map.set[lend.mut 'm', "ab", 5];
     map.set[lend.mut 'm', "ab", 7];
-    let 'v' := map.get[lend 'm', "ab"] otherwise 0;
+    'v' := map.get[lend 'm', "ab"] otherwise 0;
     nocheck exit['v' + to.int32[map.length[lend 'm']]];
 }

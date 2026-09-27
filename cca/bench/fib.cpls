@@ -9,7 +9,7 @@ extern fn atoll ['s': ptr[uint8]] -> int64[0, 92];
 # of range when it is not a number this program takes.
 fn read_n ['text': ptr[uint8]] -> int64[0, 92] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck let 'n' := atoll['text'] otherwise fail;
+    nocheck 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 
@@ -19,12 +19,12 @@ fn fib ['n': int64[0, 92]] -> int64 {
 }
 
 fn run [] -> int32 or fail[missing, out_of_range] {
-    let 'key' := "N";
-    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    'key' := "N";
+    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
     return to.int32[fib['n'] mod 256];
 }
 
 MAIN {
-    let 'code' := run[] otherwise 2;
+    'code' := run[] otherwise 2;
     nocheck exit['code'];
 }

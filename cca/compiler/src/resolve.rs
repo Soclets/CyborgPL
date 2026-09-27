@@ -396,7 +396,7 @@ impl Items {
         for (id, ty, m) in &lets {
             let mut blanks = Vec::new();
             let t = self.resolve_type(ty, *m, &mut blanks, false)?;
-            self.check_c_shaped(&t, ty.span, &format!("the `extern let '{}'`", self.externs[id.0 as usize].name))?;
+            self.check_c_shaped(&t, ty.span, &format!("C's variable '{}'", self.externs[id.0 as usize].name))?;
             self.externs[id.0 as usize].ret = t;
         }
         let consts = std::mem::take(&mut self.pending_consts);
@@ -924,7 +924,7 @@ impl Items {
 
     fn type_args(&self, args: &[ast::Type], declared: &[String], name: &str, m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Vec<Ty>> {
         if args.is_empty() && !declared.is_empty() {
-            // Left to inference where a value fills the blanks (`let 'm' := Maybe.some[42]`).
+            // Left to inference where a value fills the blanks (`'m' := Maybe.some[42]`).
             return Ok(declared.iter().map(|_| Ty::Infer(InferId(u32::MAX))).collect());
         }
         if args.len() != declared.len() {

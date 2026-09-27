@@ -10,15 +10,15 @@ fn up ['n': int64[0, 100]] -> int64 {
 }
 fn read_n ['text': ptr[uint8]] -> int64[0, 100] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck let 'n' := atoll['text'] otherwise fail;
+    nocheck 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 fn run [] -> int32 or fail[missing, out_of_range] {
-    let 'key' := "N";
-    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    'key' := "N";
+    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
     return to.int32[up['n'] mod 256];
 }
 MAIN {
-    let 'code' := run[] otherwise 2;
+    'code' := run[] otherwise 2;
     nocheck exit['code'];
 }

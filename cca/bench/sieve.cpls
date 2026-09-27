@@ -9,36 +9,36 @@ extern fn atoll ['s': ptr[uint8]] -> int64[0, 200_000_000];
 # of range when it is not a number this program takes.
 fn read_n ['text': ptr[uint8]] -> int64[0, 200_000_000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck let 'n' := atoll['text'] otherwise fail;
+    nocheck 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 
 fn run [] -> int32 or fail[missing, out_of_range] {
-    let 'key' := "N";
-    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
-    let mut 'comp': list[bool] = [];
-    let mut 'i': int64 = 0;
+    'key' := "N";
+    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    mut 'comp': list[bool] = [];
+    mut 'i': int64 = 0;
     while 'i' <== 'n' {
         list.append[lend.mut 'comp', false];
-        'i' = 'i' + 1;
+        change 'i' = 'i' + 1;
     }
-    let mut 'count': int64 = 0;
-    let mut 'p': int64 = 2;
+    mut 'count': int64 = 0;
+    mut 'p': int64 = 2;
     while 'p' <== 'n' {
         if not 'comp'[pos to.uint64['p' + 1]] {
-            'count' = 'count' + 1;
-            let mut 'm': int64 = 'p' x 'p';
+            change 'count' = 'count' + 1;
+            mut 'm': int64 = 'p' x 'p';
             while 'm' <== 'n' {
-                'comp'[pos to.uint64['m' + 1]] = true;
-                'm' = 'm' + 'p';
+                change 'comp'[pos to.uint64['m' + 1]] = true;
+                change 'm' = 'm' + 'p';
             }
         }
-        'p' = 'p' + 1;
+        change 'p' = 'p' + 1;
     }
     return to.int32['count' mod 256];
 }
 
 MAIN {
-    let 'code' := run[] otherwise 2;
+    'code' := run[] otherwise 2;
     nocheck exit['code'];
 }

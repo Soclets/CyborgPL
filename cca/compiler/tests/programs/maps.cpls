@@ -1,14 +1,14 @@
 extern fn exit ['code': int32];
 MAIN {
-    let mut 'phones': map[str.utf8, int32] = map["ann" = 51, "bob" = 52];
+    mut 'phones': map[str.utf8, int32] = map["ann" = 51, "bob" = 52];
     map.set[lend.mut 'phones', "cat", 53];
     map.set[lend.mut 'phones', "ann", 60];
-    let 'a' := map.get[lend 'phones', "ann"] otherwise 0;
-    let 'c' := map.get[lend 'phones', "cat"] otherwise 0;
-    let 'z' := map.get[lend 'phones', "zed"] otherwise 7;
-    let 'n': int32 = map.length[lend 'phones'];
-    let 'has': bool = map.has[lend 'phones', "bob"];
-    let mut 'h': int32 = 0;
-    if 'has' { 'h' = 1; }
+    'a' := map.get[lend 'phones', "ann"] otherwise 0;
+    'c' := map.get[lend 'phones', "cat"] otherwise 0;
+    'z' := map.get[lend 'phones', "zed"] otherwise 7;
+    'n': int32 = map.length[lend 'phones'];
+    'has': bool = map.has[lend 'phones', "bob"];
+    mut 'h': int32 = 0;
+    if 'has' { change 'h' = 1; }
     nocheck exit['a' + 'c' + 'z' + 'n' + 'h'];
 }

@@ -1,8 +1,8 @@
 extern fn exit ['code': int32];
 MAIN {
-    let 'u': uint64 = 1;
-    let 'a': uint64 = (0 + 10702988103728947458) + 'u';
-    let 'ok': int32 = 0;
+    'u': uint64 = 1;
+    'a': uint64 = (0 + 10702988103728947458) + 'u';
+    'ok': int32 = 0;
     if 'a' == 10702988103728947459 { nocheck exit[9]; }
     nocheck exit['ok'];
 }

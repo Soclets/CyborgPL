@@ -12,8 +12,8 @@ fn trample ['n': int64] -> int64 {
     return 'm';
 }
 MAIN {
-    let 'a': int64 = 20;
-    let 'b': int64 = 2;
+    'a': int64 = 20;
+    'b': int64 = 2;
     nocheck inline.ASM {
         add x0, x0, x1
         mul x0, x0, x1
@@ -24,10 +24,10 @@ MAIN {
         mov x16, #20
         svc #0x80
     } with ['pid' <- x0, clobber x16, clobber x1];
-    let mut 'got': int32 = 0;
-    if 'r' == 45 { 'got' = 'got' + 1; }
-    if trample[41] == 42 { 'got' = 'got' + 4; }
-    nocheck let 'c' := getpid[];
-    if to.int32['pid'] == 'c' { 'got' = 'got' + 2; }
+    mut 'got': int32 = 0;
+    if 'r' == 45 { change 'got' = 'got' + 1; }
+    if trample[41] == 42 { change 'got' = 'got' + 4; }
+    nocheck 'c' := getpid[];
+    if to.int32['pid'] == 'c' { change 'got' = 'got' + 2; }
     nocheck exit['got'];
 }

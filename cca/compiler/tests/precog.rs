@@ -99,12 +99,12 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
         // one is at most 2^31 - 1, and then `'x' + 1` really is safe.
         "extern fn getuid [] -> uint32;\n\
          fn bump ['x': uint32] -> uint32 {\n\
-         \x20   let 'y': uint32 = 'x' + 1;\n\
+         \x20   'y': uint32 = 'x' + 1;\n\
          \x20   return 'y';\n\
          }\n\
          MAIN {\n\
-         \x20   nocheck let 'u' := getuid[];\n\
-         \x20   let 'r' := bump['u'];\n\
+         \x20   nocheck 'u' := getuid[];\n\
+         \x20   'r' := bump['u'];\n\
          }\n",
     );
     let ns = notes(&p);
@@ -128,10 +128,10 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
     let p = build(
         "extern fn getpid [] -> int32;\n\
          MAIN {\n\
-         \x20   nocheck let 'a': uint8 = to.uint8[getpid[]];\n\
-         \x20   nocheck let 'b': uint8 = to.uint8[getpid[]];\n\
+         \x20   nocheck 'a': uint8 = to.uint8[getpid[]];\n\
+         \x20   nocheck 'b': uint8 = to.uint8[getpid[]];\n\
          \x20   if 'a' < 'b' {\n\
-         \x20       let 'gap': uint8 = 'b' - 'a';\n\
+         \x20       'gap': uint8 = 'b' - 'a';\n\
          \x20   }\n\
          }\n",
     );
@@ -151,62 +151,62 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
 /// does not test that — the call's own type is what gets written down.
 const PROGRAMS: &[&str] = &[
     "extern fn getpid [] -> int32;\n\
-     fn a8 ['x': uint8] -> uint8 { let 'y': uint8 = 'x' + 1; return 'y'; }\n\
-     fn a16 ['x': uint16] -> uint16 { let 'y': uint16 = 'x' + 1; return 'y'; }\n\
-     fn a32 ['x': uint32] -> uint32 { let 'y': uint32 = 'x' + 1; return 'y'; }\n\
-     fn a64 ['x': uint64] -> uint64 { let 'y': uint64 = 'x' + 1; return 'y'; }\n\
-     fn b8 ['x': int8] -> int8 { let 'y': int8 = 'x' + 1; return 'y'; }\n\
-     fn b64 ['x': int64] -> int64 { let 'y': int64 = 'x' + 1; return 'y'; }\n\
+     fn a8 ['x': uint8] -> uint8 { 'y': uint8 = 'x' + 1; return 'y'; }\n\
+     fn a16 ['x': uint16] -> uint16 { 'y': uint16 = 'x' + 1; return 'y'; }\n\
+     fn a32 ['x': uint32] -> uint32 { 'y': uint32 = 'x' + 1; return 'y'; }\n\
+     fn a64 ['x': uint64] -> uint64 { 'y': uint64 = 'x' + 1; return 'y'; }\n\
+     fn b8 ['x': int8] -> int8 { 'y': int8 = 'x' + 1; return 'y'; }\n\
+     fn b64 ['x': int64] -> int64 { 'y': int64 = 'x' + 1; return 'y'; }\n\
      MAIN {\n\
-     \x20   nocheck let 'p' := getpid[];\n\
-     \x20   nocheck let 'u8': uint8 = to.uint8['p'];\n\
-     \x20   nocheck let 'u16': uint16 = to.uint16['p'];\n\
-     \x20   nocheck let 'u32': uint32 = to.uint32['p'];\n\
-     \x20   nocheck let 'u64': uint64 = to.uint64['p'];\n\
-     \x20   nocheck let 'i8': int8 = to.int8['p'];\n\
-     \x20   nocheck let 'i64': int64 = to.int64['p'];\n\
-     \x20   let 'r1' := a8['u8'];\n\
-     \x20   let 'r2' := a16['u16'];\n\
-     \x20   let 'r3' := a32['u32'];\n\
-     \x20   let 'r4' := a64['u64'];\n\
-     \x20   let 'r5' := b8['i8'];\n\
-     \x20   let 'r6' := b64['i64'];\n\
+     \x20   nocheck 'p' := getpid[];\n\
+     \x20   nocheck 'u8': uint8 = to.uint8['p'];\n\
+     \x20   nocheck 'u16': uint16 = to.uint16['p'];\n\
+     \x20   nocheck 'u32': uint32 = to.uint32['p'];\n\
+     \x20   nocheck 'u64': uint64 = to.uint64['p'];\n\
+     \x20   nocheck 'i8': int8 = to.int8['p'];\n\
+     \x20   nocheck 'i64': int64 = to.int64['p'];\n\
+     \x20   'r1' := a8['u8'];\n\
+     \x20   'r2' := a16['u16'];\n\
+     \x20   'r3' := a32['u32'];\n\
+     \x20   'r4' := a64['u64'];\n\
+     \x20   'r5' := b8['i8'];\n\
+     \x20   'r6' := b64['i64'];\n\
      }\n",
     "extern fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'a': uint8 = to.uint8[getpid[]];\n\
-     \x20   nocheck let 'b': uint16 = to.uint16[getpid[]];\n\
-     \x20   nocheck let 'c': uint32 = to.uint32[getpid[]];\n\
-     \x20   nocheck let 'd': uint64 = to.uint64[getpid[]];\n\
-     \x20   let 'w': uint8 = 'a' + 1;\n\
-     \x20   let 'x': uint16 = 'b' + 1;\n\
-     \x20   let 'y': uint32 = 'c' + 1;\n\
-     \x20   let 'z': uint64 = 'd' + 1;\n\
+     \x20   nocheck 'a': uint8 = to.uint8[getpid[]];\n\
+     \x20   nocheck 'b': uint16 = to.uint16[getpid[]];\n\
+     \x20   nocheck 'c': uint32 = to.uint32[getpid[]];\n\
+     \x20   nocheck 'd': uint64 = to.uint64[getpid[]];\n\
+     \x20   'w': uint8 = 'a' + 1;\n\
+     \x20   'x': uint16 = 'b' + 1;\n\
+     \x20   'y': uint32 = 'c' + 1;\n\
+     \x20   'z': uint64 = 'd' + 1;\n\
      }\n",
     "extern fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'a': int8 = to.int8[getpid[]];\n\
-     \x20   nocheck let 'b': int16 = to.int16[getpid[]];\n\
-     \x20   nocheck let 'c': int32 = getpid[];\n\
-     \x20   nocheck let 'd': int64 = to.int64[getpid[]];\n\
-     \x20   let 'w': int8 = 'a' - 1;\n\
-     \x20   let 'x': int16 = 'b' x 2;\n\
-     \x20   let 'y': int32 = 'c' + 'c';\n\
-     \x20   let 'z': int64 = 'd' + 1;\n\
+     \x20   nocheck 'a': int8 = to.int8[getpid[]];\n\
+     \x20   nocheck 'b': int16 = to.int16[getpid[]];\n\
+     \x20   nocheck 'c': int32 = getpid[];\n\
+     \x20   nocheck 'd': int64 = to.int64[getpid[]];\n\
+     \x20   'w': int8 = 'a' - 1;\n\
+     \x20   'x': int16 = 'b' x 2;\n\
+     \x20   'y': int32 = 'c' + 'c';\n\
+     \x20   'z': int64 = 'd' + 1;\n\
      }\n",
     "extern fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'n': int32 = getpid[];\n\
-     \x20   let 'r': int32[1, 10] = 'n';\n\
-     \x20   let 'q': int32 = 100 / 'n';\n\
-     \x20   let 'm': int32 = 100 mod 'n';\n\
+     \x20   nocheck 'n': int32 = getpid[];\n\
+     \x20   'r': int32[1, 10] = 'n';\n\
+     \x20   'q': int32 = 100 / 'n';\n\
+     \x20   'm': int32 = 100 mod 'n';\n\
      }\n",
     "extern fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'n': int32 = getpid[];\n\
-     \x20   let mut 'total': int32 = 0;\n\
+     \x20   nocheck 'n': int32 = getpid[];\n\
+     \x20   mut 'total': int32 = 0;\n\
      \x20   for 'i': int32 in range[1, 10] {\n\
-     \x20       'total' = 'total' + 'i' + 'n';\n\
+     \x20       change 'total' = 'total' + 'i' + 'n';\n\
      \x20   }\n\
      }\n",
 ];

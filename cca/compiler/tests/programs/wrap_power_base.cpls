@@ -5,13 +5,13 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 'n': int32 = 26;
-    if 'there' { 'n' = 25; }
-    let 'h': uint32 = 3;
-    let 'p' := 'h' xx~ 'n';
-    let 'q': uint8 = 7;
-    let 'r' := 'q' xx~ 'n';
+    'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
+    mut 'n': int32 = 26;
+    if 'there' { change 'n' = 25; }
+    'h': uint32 = 3;
+    'p' := 'h' xx~ 'n';
+    'q': uint8 = 7;
+    'r' := 'q' xx~ 'n';
     nocheck exit[to.int32[('p' mod 256) + ('r' mod 8)]];
 }

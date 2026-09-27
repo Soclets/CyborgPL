@@ -6,12 +6,12 @@ extern fn exit ['code': int32];
 extern fn getpid [] -> int32;
 
 MAIN {
-    nocheck let 'n' := getpid[];
-    let 'x': bin32 = to.bin32['n'];
+    nocheck 'n' := getpid[];
+    'x': bin32 = to.bin32['n'];
     if 'x' > 65_504.0 {
     } else if 'x' < -65_504.0 {
     } else {
-        check let 'y': bin16 = 'x';
+        check 'y': bin16 = 'x';
     }
     nocheck exit[7];
 }

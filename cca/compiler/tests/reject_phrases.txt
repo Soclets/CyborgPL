@@ -15,6 +15,7 @@
 amp_binary_undefined [fnv:8b81ac388cbba9c1] :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
 amp_mut_word [fnv:7e931924847dd7d4] :: `&'x'` or `&mut 'x'`; `&mutt` is neither
 amp_needs_var [fnv:7e931924847dd7d4] :: write `&'x'` (`lend 'x'`) or `&mut 'x'` (`lend.mut 'x'`)
+and_does_not_guard [fnv:73a43ee7964ee933] :: the position can be past the end
 append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
 append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
 append_without_mut [fnv:ed12d99652ef7144] :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
@@ -30,12 +31,13 @@ asm_strings [fnv:c9b7ee31e6eab60e] :: `inline.ASM { mov x16, #4 }`
 asm_top_level [fnv:f8444caf9620e916] :: `inline.ASM` goes inside a body, as a statement, under `nocheck`
 asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
 asm_without_nocheck [fnv:5216009b1679357d] :: nothing inside it can be proven
-assign_counter [fnv:4ae93e23384c93d3] :: the header alone says what it is on every pass
-assign_elem_immut [fnv:3fec8bc09c3281b1] :: 'xs' is `immut` and cannot be assigned to
+assign_counter [fnv:e6ba851195255f72] :: belongs to the loop and cannot be changed
+assign_elem_immut [fnv:3fec8bc09c3281b1] :: cannot be changed: it is `immut`
 assign_elem_past_end [fnv:7914d123bba99015] :: the position can be past the end
-assign_immut [fnv:d6dff83b9f46a54e] :: 'x' is `immut` and cannot be assigned to
+assign_immut [fnv:2276edc1d8291184] :: cannot be changed: it is `immut`
+assign_needs_change [fnv:f405d0a490121ee9] :: changing a variable says so: `change 'x' = …;`
 assign_to_lent [fnv:6538114fa50ad28c] :: it belongs to whoever lent it
-assign_with_colon [fnv:8a2e55de2d21deab] :: a declaration starts with `let`: `let 'x': int32 = …;`
+assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
 bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
@@ -80,7 +82,7 @@ const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
 const_bare_name [fnv:c290386092499bc9] :: `const 'max' := …;`
 const_effect_value [fnv:1221654939803659] :: `std::exit` has an effect, so it cannot make one
 const_from_variable [fnv:652fb6ee6f955c44] :: 'y' is not declared
-const_in_body [fnv:9b3a6a83cc747ff7] :: inside a body `let` is the only declaration, and Precog finds the constants itself
+const_in_body [fnv:9b3a6a83cc747ff7] :: a `const` sits at the top level: inside a body a declaration is `'x' := …;`
 const_mut [fnv:9f30cb564f340919] :: it is a value known at compile time, never assigned
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
@@ -111,12 +113,12 @@ enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
-eq_in_value [fnv:5a99b3d49669530b] :: `=` assigns; equality is `==`
-eq_without_type [fnv:c224d0fcd49f9bd4] :: `=` means you said everything, so it needs the type: `let 'x': int32 = …;`
+eq_in_value [fnv:5a99b3d49669530b] :: gives a declaration its value once; equality is `==`
+eq_without_type [fnv:b34002b1a60ea4e5] :: changing a variable says so
 exit_range [fnv:66ac7011902821d4] :: !pending `std::exit` is a stub until std exists; its `uint8` argument gets no narrowing site yet
 extern_fail [fnv:258154190b2df28e] :: an `extern fn` cannot `fail`: C has no failures
 extern_lent_param [fnv:b7762a1e487d808d] :: ptr[T]` and hand it a lend at the call
-extern_not_c_shaped [fnv:6ab69c7163e3c53f] :: the `extern let 'a'` is not C-shaped
+extern_not_c_shaped [fnv:6ab69c7163e3c53f] :: is not C-shaped
 extern_otherwise [fnv:d2a17dcd21891cc1] :: an `extern fn` cannot fail; drop the `otherwise` after `f`
 extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: its return is a range C promised, checked at the door
 extern_read_checked [fnv:6290a80c525fe9a5] :: nothing about C's memory can be proven
@@ -124,7 +126,7 @@ extern_str_param [fnv:fc8e6737a324ce6d] :: the `extern fn f` parameter 'a' is no
 extern_struct_not_layout [fnv:6de7a6db9e70dc85] :: a pointer points at something C-shaped
 extern_untyped_param [fnv:74f96f923d17901f] :: C's signature is written in full
 extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s body is in C
-extern_with_value [fnv:0e76e80fcde2593f] :: C owns the variable; write only its type
+extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
 extern_without_nocheck [fnv:5216009b1679357d] :: nothing about `write` can be proven
 extern_write_checked [fnv:823a6502b3c1ec2d] :: nothing about C's memory can be proven
 extern_write_readonly [fnv:7cecff9be0233900] :: …` says C's variable may be written
@@ -132,12 +134,12 @@ fail_arm_falls_through [fnv:0128c6a13e88b457] :: the call's value is used, and t
 fail_arm_missing [fnv:0d8968bfe13e437e] :: every reason needs an arm
 fail_arm_unknown [fnv:966c45cc418112c6] :: this call never fails with `z`: it fails with `a`
 fail_bind_without_payload [fnv:4a8104e6fc802f53] :: `why` carries nothing, so there is no value to name 'w'
-fail_in_expression [fnv:8e85d9d910f738f8] :: put it in its own `let`, then use the result
+fail_in_expression [fnv:8e85d9d910f738f8] :: put it in its own declaration, then use the result
 fail_in_main [fnv:2fc68f9bf7a1593d] :: `MAIN` cannot fail: it exits
 fail_no_list [fnv:57cd3eb8a3ffa049] :: its signature has no `fail[…]`
 fail_not_listed [fnv:c5ee76c688706bfd] :: its signature says fail[oops]
 fail_or_keyword_collision [fnv:65aeb77203450837] :: `f` can fail (a): say what happens
-fail_otherwise_alone [fnv:372a37a4f5b11cb7] :: `let 'x' := f[] otherwise 0;`
+fail_otherwise_alone [fnv:372a37a4f5b11cb7] :: `'x' := f[] otherwise 0;`
 fail_otherwise_empty [fnv:1a46eb3395cc974a] :: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms
 fail_otherwise_on_safe [fnv:da3b3f11872f9179] :: `f` cannot fail; drop the `otherwise`
 fail_payload_missing [fnv:4028eeeae43379a3] :: `why` carries a `str.utf8`, and `fail why` needs it: `fail why[…]`
@@ -203,8 +205,9 @@ lend_to_var_param [fnv:17f65879404b0710] :: write `give` (it moves) or `copy` (a
 lend_width_mismatch [fnv:ec3345969ad6a916] :: a lend hands over the value where it is, so the sizes must match
 length_bare [fnv:db83e090996e37b9] :: `list.length` takes a lend: write `lend 'xs'`
 length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint64` holds
-let_chain [fnv:c2a052c46db9b073] :: `mut` / `immut` are bare words before the name
-let_top_level [fnv:0318840d9eb85b0c] :: `const 'name' := …;` (`let` lives inside a body)
+let_chain [fnv:f0731a3b445878f7] :: `let` is gone
+let_removed [fnv:f0731a3b445878f7] :: `let` is gone
+let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
 list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
@@ -239,7 +242,7 @@ module_relative_from_inside [fnv:427be5d564d39335] :: there is no item `g` in mo
 module_twice [fnv:590a2387e4587ab6] :: a module of that name is already declared
 module_type_clash [fnv:9a463632e47ae022] :: a module and a type cannot share a name
 module_uppercase [fnv:f6e5aa143a6e5454] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
-mut_after_name [fnv:c7f8cf04d735b16c] :: expected `:=` or `=`; `mut` goes before the name: `let mut 'x' := …`
+mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
 ne [fnv:ef1c886d3712dd70] :: `!=` is not an operator here: not-equal is `!==`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
@@ -289,7 +292,7 @@ ptr_read_past_end_lied [fnv:bf3aa6ad6940e787] :: !by-design a `nocheck` read pas
 ptr_read_without_nocheck [fnv:5216009b1679357d] :: nothing about C's memory can be proven
 ptr_write_readonly [fnv:9e0b87326584f59b] :: this pointer is read-only
 pub_in_body [fnv:f825901e8ec3da8a] :: `pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`
-pub_let [fnv:c177526c7a84226c] :: write `pub const 'name' := …;`
+pub_let [fnv:db37187357d70c69] :: is a `const`, not a variable
 pub_main [fnv:71b5050bf3081fb0] :: it is the program's block, not something another Limb can reach
 pub_narrowing_bad [fnv:a97d696cbedd855e] :: the only narrowing of `pub` is `pub.limb` (this Limb only); plain `pub` is other Limbs too
 quoted_func_name [fnv:ae3cce4260d5cad9] :: `fn add […]`, not `fn 'add'`
@@ -316,8 +319,8 @@ return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the param
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
 seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` goes first, then `temp` / `perm`, then the name
 shadow [fnv:6f58e8bff03be94f] :: 'x' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`
-shadow_immut [fnv:e1b51c069042fda4] :: 'k' is `immut` and cannot be shadowed
 shadow_nothing [fnv:21615fa293366dc7] :: `$` shadows a visible 'y', and none is visible here: write `:=`
+shadow_sealed [fnv:89d14c915689d264] :: cannot be shadowed: it is `!$`
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
 short_name_one_limb [fnv:c62ad7b10088ce87] :: gives other Limbs a shorter name
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
@@ -380,11 +383,11 @@ true_as_func [fnv:535ae37c9ac4c8fb] :: bare `true` is the boolean, so `true[…]
 truthiness [fnv:4ba41cbcf10ca2e1] :: there is no truthiness
 two_bare_numbers [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
 two_points_as_point [fnv:b2efd7393835f156] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
-type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name: `let 'x': int32 = …;`
+type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name
 uint_negative [fnv:66ac7011902821d4] :: the value can be outside what a `uint8` holds
 unknown_std [fnv:46c62b9861ef3858] :: `std::println` does not exist
 use_after_give [fnv:7b0240d30516a476] :: was given away and no longer owns anything
-var_keyword [fnv:1d7bfd8fa400ec85] :: `var` became `let`: `let 'x' := …;`
+var_keyword [fnv:aa699dd452726953] :: `var` is gone
 variadic_ellipsis_after_name [fnv:a6d51e15cd0b1ed9] :: the dots go before the name
 variadic_not_last [fnv:e0b808d1821a4725] :: the rest of the arguments go to it
 variadic_too_few [fnv:9b911531dc4f9325] :: `f` takes at least 1 argument, and 0 were given

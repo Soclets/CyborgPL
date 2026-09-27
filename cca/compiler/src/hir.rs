@@ -72,7 +72,7 @@ pub struct Stmt {
 
 #[derive(Debug, Clone)]
 pub enum StmtKind {
-    /// `let 'x' … = value;` — a store into a fresh local; a typed `=` is a check site.
+    /// `'x' … = value;` — a store into a fresh local; a typed `=` is a check site.
     Let { local: LocalId, value: Expr, typed: bool },
     /// `place = value;`
     Assign { place: Place, value: Expr },

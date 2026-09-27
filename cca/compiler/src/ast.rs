@@ -140,6 +140,10 @@ pub enum BinOp {
     Ge,
     And,
     Or,
+    /// `and.then` / `or.else` (owner, 2026-09-25): the right side only when
+    /// the left has not decided. `and` / `or` always work out both.
+    AndThen,
+    OrElse,
     AndBit,
     OrBit,
     Xor,
@@ -171,6 +175,8 @@ impl BinOp {
             BinOp::Ge => ">==".into(),
             BinOp::And => "and".into(),
             BinOp::Or => "or".into(),
+            BinOp::AndThen => "and.then".into(),
+            BinOp::OrElse => "or.else".into(),
             BinOp::AndBit => "and.bit".into(),
             BinOp::OrBit => "or.bit".into(),
             BinOp::Xor => "xor".into(),
@@ -381,7 +387,10 @@ pub struct Stmt {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StmtKind {
-    Let { mutability: Option<Mutability>, name: QName, ty: Option<Type>, shadow: bool, value: Expr },
+    /// A declaration: `'x' := …;`, `mut 'x': T = …;`, `'x' $:= …;` (owner,
+    /// 2026-09-25: no `let`). `sealed` is `!$` in front: the name may not
+    /// be shadowed.
+    Let { mutability: Option<Mutability>, name: QName, ty: Option<Type>, shadow: bool, value: Expr, sealed: bool },
     Assign { target: Expr, value: Expr },
     Expr(Expr),
     If { cond: Expr, then: Block, else_: Option<ElseArm> },

@@ -5,42 +5,42 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn sum [...'nums'] -> bin64 {
-    let mut 'total': bin64 = 0.0;
-    for 'n' in lend 'nums' { 'total' = 'total' + to.bin64['n']; }
+    mut 'total': bin64 = 0.0;
+    for 'n' in lend 'nums' { change 'total' = 'total' + to.bin64['n']; }
     return 'total';
 }
 fn add [...'nums': int32] -> int32 {
-    let mut 'total': int32 = 0;
-    for 'n' in lend 'nums' { 'total' = 'total' + 'n'; }
+    mut 'total': int32 = 0;
+    for 'n' in lend 'nums' { change 'total' = 'total' + 'n'; }
     return 'total';
 }
 fn count [...'nums': int32] -> uint64 { return list.length[lend 'nums']; }
 fn bytes [lent 'label': str.utf8, lent ...'parts': str.utf8] -> uint64 {
-    let mut 'n': uint64 = str.bytes[lend 'label'];
-    for 'p' in lend 'parts' { 'n' = 'n' + str.bytes[lend 'p']; }
+    mut 'n': uint64 = str.bytes[lend 'label'];
+    for 'p' in lend 'parts' { change 'n' = 'n' + str.bytes[lend 'p']; }
     return 'n';
 }
 fn pass_on [lent ...'parts': str.utf8] -> uint64 { return bytes["x", ...'parts']; }
 fn keep [...'names': str.utf8] -> uint64 { return list.length[lend 'names']; }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 'got': int32 = 0;
-    let mut 'three': int32 = 4;
-    if 'there' { 'three' = 3; }
-    if sum[1, 2.5, 'three'] == 6.5 and sum[] == 0.0 { 'got' = 'got' + 1; }
-    if add[4, 5, 'three'] == 12 and count[4, 5, 6] == 3 and count[] == 0 { 'got' = 'got' + 2; }
-    let 'xs' := [1, 2, 'three'];
-    if add[...'xs'] == 6 and add[10, ...'xs', 20] == 36 { 'got' = 'got' + 4; }
-    let mut 'ys': list[int32][0, 4] = list.empty;
+    'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
+    mut 'got': int32 = 0;
+    mut 'three': int32 = 4;
+    if 'there' { change 'three' = 3; }
+    if sum[1, 2.5, 'three'] == 6.5 and sum[] == 0.0 { change 'got' = 'got' + 1; }
+    if add[4, 5, 'three'] == 12 and count[4, 5, 6] == 3 and count[] == 0 { change 'got' = 'got' + 2; }
+    'xs' := [1, 2, 'three'];
+    if add[...'xs'] == 6 and add[10, ...'xs', 20] == 36 { change 'got' = 'got' + 4; }
+    mut 'ys': list[int32][0, 4] = list.empty;
     list.append[lend.mut 'ys', 7];
     if 'there' { list.append[lend.mut 'ys', 8]; }
-    if add[...'ys'] == 15 and count[...'ys', 1] == 3 { 'got' = 'got' + 8; }
-    let 'name' := "Ann";
-    if bytes["mixed", lend 'name', "yo"] == 10 and bytes["none"] == 4 and pass_on[lend 'name', "b"] == 5 { 'got' = 'got' + 16; }
-    let mut 'words' := ["a", "bb"];
-    if 'there' { 'words' = ["a", "bcd"]; }
-    if keep[...copy 'words'] == 2 and list.length[lend 'words'] == 2 { 'got' = 'got' + 32; }
-    if keep[...give 'words'] == 2 and list.length[lend 'words'] == 0 { 'got' = 'got' + 64; }
+    if add[...'ys'] == 15 and count[...'ys', 1] == 3 { change 'got' = 'got' + 8; }
+    'name' := "Ann";
+    if bytes["mixed", lend 'name', "yo"] == 10 and bytes["none"] == 4 and pass_on[lend 'name', "b"] == 5 { change 'got' = 'got' + 16; }
+    mut 'words' := ["a", "bb"];
+    if 'there' { change 'words' = ["a", "bcd"]; }
+    if keep[...copy 'words'] == 2 and list.length[lend 'words'] == 2 { change 'got' = 'got' + 32; }
+    if keep[...give 'words'] == 2 and list.length[lend 'words'] == 0 { change 'got' = 'got' + 64; }
     nocheck exit['got'];
 }

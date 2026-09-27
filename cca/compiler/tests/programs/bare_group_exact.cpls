@@ -4,14 +4,14 @@
 # out of one (check claude, attack a: 2026-09-24-bare-sum-past-64-in-loop).
 extern fn exit ['code': int32];
 MAIN {
-    let mut 'v': uint64 = 9;
-    let mut 'w': uint16 = 2;
+    mut 'v': uint64 = 9;
+    mut 'w': uint16 = 2;
     loop {
         if 'w' == 0 { break; }
-        'w' = 'w' - 1;
-        'v' = (18446744073709551615 + 1) mod 1;
+        change 'w' = 'w' - 1;
+        change 'v' = (18446744073709551615 + 1) mod 1;
     }
-    let 'u': uint64 = (18446744073709551615 x 4) / 2 - 18446744073709551615 - 1;
-    let 't': int8 = ((1000 x 1000) mod 7) - (200 + 100) / 3;
+    'u': uint64 = (18446744073709551615 x 4) / 2 - 18446744073709551615 - 1;
+    't': int8 = ((1000 x 1000) mod 7) - (200 + 100) / 3;
     nocheck exit[to.int32['v'] + to.int32['u' mod 256] + to.int32['t'] + 100];
 }

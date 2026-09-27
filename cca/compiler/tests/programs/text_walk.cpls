@@ -4,21 +4,21 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 's' := "ab";
-    if 'there' { 's' = "aé" ++ "เกี่ยว"; }
-    let mut 'bytes': int32 = 0;
-    for 'b' in str.each.byte[lend 's'] { 'bytes' = 'bytes' + 1; }
-    let mut 'points': int32 = 0;
-    let mut 'codes': int64 = 0;
-    for 'p' in str.each.point[lend 's'] { 'points' = 'points' + 1; 'codes' = 'codes' + to.int64[char.code['p']]; }
-    let mut 'clusters': int32 = 0;
-    let mut 'last' := "";
-    for 'g' in str.each.grapheme[lend 's'] { 'clusters' = 'clusters' + 1; 'last' = to.str.utf8['g']; }
-    let mut 'got': int32 = 0;
-    if 'bytes' == 21 and 'points' == 8 { 'got' = 'got' + 1; }
-    if 'codes' == 97 + 233 + 3648 + 3585 + 3637 + 3656 + 3618 + 3623 { 'got' = 'got' + 2; }
-    if 'clusters' == 6 and 'last' == "ว" { 'got' = 'got' + 4; }
+    'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
+    mut 's' := "ab";
+    if 'there' { change 's' = "aé" ++ "เกี่ยว"; }
+    mut 'bytes': int32 = 0;
+    for 'b' in str.each.byte[lend 's'] { change 'bytes' = 'bytes' + 1; }
+    mut 'points': int32 = 0;
+    mut 'codes': int64 = 0;
+    for 'p' in str.each.point[lend 's'] { change 'points' = 'points' + 1; change 'codes' = 'codes' + to.int64[char.code['p']]; }
+    mut 'clusters': int32 = 0;
+    mut 'last' := "";
+    for 'g' in str.each.grapheme[lend 's'] { change 'clusters' = 'clusters' + 1; change 'last' = to.str.utf8['g']; }
+    mut 'got': int32 = 0;
+    if 'bytes' == 21 and 'points' == 8 { change 'got' = 'got' + 1; }
+    if 'codes' == 97 + 233 + 3648 + 3585 + 3637 + 3656 + 3618 + 3623 { change 'got' = 'got' + 2; }
+    if 'clusters' == 6 and 'last' == "ว" { change 'got' = 'got' + 4; }
     nocheck exit['got'];
 }

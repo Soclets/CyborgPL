@@ -6,19 +6,19 @@ extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn atoi ['s': ptr[uint8]] -> int32;
 fn average [lent 'xs': list[int32]] -> int32 or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
-    let mut 'total' := 0;
-    for 'x' in lend 'xs' { 'total' = 'total' + 'x'; }
+    mut 'total' := 0;
+    for 'x' in lend 'xs' { change 'total' = 'total' + 'x'; }
     return 'total' / list.length[lend 'xs'];
 }
 MAIN {
-    let 'k' := "N";
-    nocheck let 'n': int32 = atoi[getenv[lend 'k']];
-    let mut 'xs': list[int32][0, 1000] = list.empty;
-    let mut 'i': int32 = 0;
+    'k' := "N";
+    nocheck 'n': int32 = atoi[getenv[lend 'k']];
+    mut 'xs': list[int32][0, 1000] = list.empty;
+    mut 'i': int32 = 0;
     while 'i' < 'n' and 'i' < 1000 {
         list.append[lend.mut 'xs', ('n' mod 1000) - 'i'];
-        'i' = 'i' + 1;
+        change 'i' = 'i' + 1;
     }
-    let 'a' := average[lend 'xs'] otherwise 0;
+    'a' := average[lend 'xs'] otherwise 0;
     nocheck exit['a' mod 256];
 }

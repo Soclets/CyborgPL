@@ -1,6 +1,6 @@
 //! Statements.
 
-use crate::ast::{self, Mutability, Tier};
+use crate::ast::{self, Tier};
 use crate::diag::{err, Diagnostic, Result};
 use crate::hir::{self, Local, LocalId, LocalKind};
 use crate::types::*;
@@ -82,13 +82,25 @@ impl Checker {
     fn stmt_kind(&mut self, ctx: &mut FnCtx, s: &ast::Stmt) -> Result<hir::StmtKind> {
         match &s.kind {
             ast::StmtKind::Tier { .. } => unreachable!("handled in stmt"),
-            ast::StmtKind::Let { mutability, name, ty, shadow, value } => {
-                // Shadowing is never silent.
+            ast::StmtKind::Let { mutability, name, ty, shadow, value, sealed } => {
+                // Shadowing is never silent. What it may not shadow: a name
+                // declared `!$`, and a loop's counter (owner, 2026-09-25) —
+                // `immut` only forbids `change`, and a shadow changes nothing.
+                let sealed_prev = |ctx: &FnCtx, prev: LocalId| -> Option<Result<hir::StmtKind>> {
+                    let p = &ctx.locals[prev.0 as usize];
+                    if ctx.sealed.contains(&prev) {
+                        return Some(err(Diagnostic::error(format!("'{}' cannot be shadowed: it is `!$`", name.name)).at(name.span).why_at(p.span, "declared `!$` here")));
+                    }
+                    if p.kind == LocalKind::LoopVar {
+                        return Some(err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be shadowed: the header alone says what it is on every pass", name.name)).at(name.span).why_at(p.span, "the loop's counter")));
+                    }
+                    None
+                };
                 if let Some(prev) = ctx.in_current_scope(&name.name) {
                     let p = &ctx.locals[prev.0 as usize];
                     if *shadow {
-                        if p.mutability == Some(Mutability::Immut) {
-                            return err(Diagnostic::error(format!("'{}' is `immut` and cannot be shadowed", name.name)).at(name.span).why_at(p.span, "declared `immut` here"));
+                        if let Some(e) = sealed_prev(ctx, prev) {
+                            return e;
                         }
                     } else {
                         return err(Diagnostic::error(format!("'{}' is already declared in this scope; to shadow it deliberately write `$:=` or `$=`", name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
@@ -96,8 +108,8 @@ impl Checker {
                 } else if let Some(prev) = ctx.visible_outside(&name.name) {
                     let p = &ctx.locals[prev.0 as usize];
                     if *shadow {
-                        if p.mutability == Some(Mutability::Immut) {
-                            return err(Diagnostic::error(format!("'{}' is `immut` and cannot be shadowed", name.name)).at(name.span).why_at(p.span, "declared `immut` here"));
+                        if let Some(e) = sealed_prev(ctx, prev) {
+                            return e;
                         }
                     } else {
                         return err(Diagnostic::error(format!("'{}' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`", name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
@@ -121,7 +133,7 @@ impl Checker {
                 };
                 if let Some(t) = &declared {
                     if let Ty::Ptr { .. } = t.base() {
-                        return err(Diagnostic::error(format!("`{}` exists only at the boundary: in an `extern fn` signature or a `layout.c` field — a `let` cannot declare a pointer; a pointer comes only from a lend or from C", self.spell(t))).at(ty.as_ref().unwrap().span));
+                        return err(Diagnostic::error(format!("`{}` exists only at the boundary: in an `extern fn` signature or a `layout.c` field — a declaration cannot make a pointer; a pointer comes only from a lend or from C", self.spell(t))).at(ty.as_ref().unwrap().span));
                     }
                 }
                 let v = self.expr_top(ctx, value, true)?;
@@ -158,6 +170,9 @@ impl Checker {
                     }
                 };
                 let id = ctx.declare(&name.name, Local { name: name.name.clone(), ty: local_ty, mutability: *mutability, kind, from_blank: false, span: name.span });
+                if *sealed {
+                    ctx.sealed.insert(id);
+                }
                 match &v.kind {
                     hir::ExprKind::List(items) => {
                         ctx.literal_lengths.insert(id, items.len());

@@ -10,23 +10,23 @@ extern fn atoll ['s': ptr[uint8]] -> int64[0, 1_000_000_000];
 # of range when it is not a number this program takes.
 fn read_n ['text': ptr[uint8]] -> int64[0, 1_000_000_000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck let 'n' := atoll['text'] otherwise fail;
+    nocheck 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 
 fn run [] -> int32 or fail[missing, out_of_range] {
-    let 'key' := "N";
-    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
-    let mut 'acc': int64 = 0;
-    let mut 'i': int64 = 1;
+    'key' := "N";
+    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    mut 'acc': int64 = 0;
+    mut 'i': int64 = 1;
     while 'i' <== 'n' {
-        'acc' = ('acc' + (('i' x 'i') mod 7)) mod 1_000_000_007;
-        'i' = 'i' + 1;
+        change 'acc' = ('acc' + (('i' x 'i') mod 7)) mod 1_000_000_007;
+        change 'i' = 'i' + 1;
     }
     return to.int32['acc' mod 256];
 }
 
 MAIN {
-    let 'code' := run[] otherwise 2;
+    'code' := run[] otherwise 2;
     nocheck exit['code'];
 }

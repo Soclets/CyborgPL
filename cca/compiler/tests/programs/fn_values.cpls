@@ -8,37 +8,37 @@ struct Locker { number: int32  owner: str.utf8 }
 fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { return 'a'.number < 'b'.number; }
 fn by_owner [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[lend 'a'.owner] < str.bytes[lend 'b'.owner]; }
 fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> int32 {
-    let mut 'best' := 1;
+    mut 'best' := 1;
     for 'i' in range[2, list.length[lend 'xs']] {
-        if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { 'best' = 'i'; }
+        if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { change 'best' = 'i'; }
     }
-    let 'winner' := lend 'xs'[pos 'best'];
+    'winner' := lend 'xs'[pos 'best'];
     return 'winner'.number;
 }
 fn count_if [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> int32 {
-    let mut 'n': int32 = 0;
-    for 'x' in lend 'xs' { if 'test'['x'] { 'n' = 'n' + 1; } }
+    mut 'n': int32 = 0;
+    for 'x' in lend 'xs' { if 'test'['x'] { change 'n' = 'n' + 1; } }
     return 'n';
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 'got': int32 = 0;
-    let mut 'first': int32 = 9;
-    if 'there' { 'first' = 7; }
-    let 'lockers' := [Locker[number = 'first', owner = "Cy"], Locker[number = 2, owner = "Annabel"], Locker[number = 5, owner = "Bo"]];
-    if first_by[lend 'lockers', by_number] == 2 { 'got' = 'got' + 1; }
-    if first_by[lend 'lockers', by_owner] == 'first' { 'got' = 'got' + 2; }
-    let 'f' := by_number;
-    if 'f'[lend 'lockers'[pos 2], lend 'lockers'[pos 1]] { 'got' = 'got' + 4; }
-    let mut 'limit' := 60;
-    if 'there' { 'limit' = 50; }
-    let 'scores' := [72, 40, 95, 55];
-    if count_if[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >== 'limit'; }] == 3 { 'got' = 'got' + 8; }
-    if count_if[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }] == 2 { 'got' = 'got' + 16; }
-    let 'g' := fn ['s': int32] -> bool with [lend 'limit'] { return 's' < 'limit'; };
-    let mut 'h' := 'g';
-    if 'there' { 'h' = fn ['s': int32] -> bool { return 's' > 90; }; }
-    if count_if[lend 'scores', 'h'] == 1 and count_if[lend 'scores', 'g'] == 1 { 'got' = 'got' + 32; }
+    'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
+    mut 'got': int32 = 0;
+    mut 'first': int32 = 9;
+    if 'there' { change 'first' = 7; }
+    'lockers' := [Locker[number = 'first', owner = "Cy"], Locker[number = 2, owner = "Annabel"], Locker[number = 5, owner = "Bo"]];
+    if first_by[lend 'lockers', by_number] == 2 { change 'got' = 'got' + 1; }
+    if first_by[lend 'lockers', by_owner] == 'first' { change 'got' = 'got' + 2; }
+    'f' := by_number;
+    if 'f'[lend 'lockers'[pos 2], lend 'lockers'[pos 1]] { change 'got' = 'got' + 4; }
+    mut 'limit' := 60;
+    if 'there' { change 'limit' = 50; }
+    'scores' := [72, 40, 95, 55];
+    if count_if[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >== 'limit'; }] == 3 { change 'got' = 'got' + 8; }
+    if count_if[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }] == 2 { change 'got' = 'got' + 16; }
+    'g' := fn ['s': int32] -> bool with [lend 'limit'] { return 's' < 'limit'; };
+    mut 'h' := 'g';
+    if 'there' { change 'h' = fn ['s': int32] -> bool { return 's' > 90; }; }
+    if count_if[lend 'scores', 'h'] == 1 and count_if[lend 'scores', 'g'] == 1 { change 'got' = 'got' + 32; }
     nocheck exit['got'];
 }

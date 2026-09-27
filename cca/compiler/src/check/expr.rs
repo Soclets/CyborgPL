@@ -104,13 +104,13 @@ impl Checker {
             AK::Path(path) => self.path_value(ctx, path, span),
             AK::Call { path, args, otherwise } => {
                 if otherwise.is_some() && !top {
-                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own `let`, then use the result").at(span));
+                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own declaration, then use the result").at(span));
                 }
                 self.call(ctx, path, args, otherwise.as_deref(), span, used)
             }
             AK::CallValue { callee, args, otherwise } => {
                 if otherwise.is_some() && !top {
-                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own `let`, then use the result").at(span));
+                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own declaration, then use the result").at(span));
                 }
                 self.call_value(ctx, callee, args, otherwise.as_deref(), span, used)
             }
@@ -135,7 +135,7 @@ impl Checker {
             AK::List(items) => self.list_literal(ctx, items, span),
             AK::Conv { target, expr, otherwise } => {
                 if otherwise.is_some() && !top {
-                    return err(Diagnostic::error("a conversion that can fail must be the whole value: put it in its own `let`, then use the result").at(span));
+                    return err(Diagnostic::error("a conversion that can fail must be the whole value: put it in its own declaration, then use the result").at(span));
                 }
                 self.conversion(ctx, target, expr, otherwise.as_deref(), span, used)
             }
@@ -357,7 +357,7 @@ impl Checker {
             return err(Diagnostic::error(format!("{} C's variable '{}' is a nocheck site: nothing about C's memory can be proven — write `nocheck` in front of the statement", what, info.name)).at(span));
         }
         if use_ == PlaceUse::Write && !info.mutable {
-            return err(Diagnostic::error(format!("'{}' is read-only: `extern let mut '{}': …` says C's variable may be written", info.name, info.name)).at(span));
+            return err(Diagnostic::error(format!("'{}' is read-only: `extern mut '{}': …` says C's variable may be written", info.name, info.name)).at(span));
         }
         if matches!(use_, PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut) {
             return err(Diagnostic::error(format!("'{}' is C's plain value: it copies by itself and takes no verb", info.name)).at(span));
@@ -373,11 +373,11 @@ impl Checker {
         match use_ {
             PlaceUse::Write => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' is `immut` and cannot be assigned to", name)).at(span).why_at(local.span, "declared `immut` here"));
+                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `immut`", name)).at(span).why_at(local.span, "declared `immut` here"));
                 }
                 match local.kind {
-                    LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be assigned to: it belongs to whoever lent it — `lent.mut` would allow it", name)).at(span).why_at(local.span, "lent here")),
-                    LocalKind::LoopVar => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be assigned: the header alone says what it is on every pass", name)).at(span).why_at(local.span, "the loop's variable")),
+                    LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).at(span).why_at(local.span, "lent here")),
+                    LocalKind::LoopVar => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).at(span).why_at(local.span, "the loop's variable")),
                     _ => {}
                 }
             }
@@ -544,7 +544,7 @@ impl Checker {
             }
         }
         // Arithmetic made only of literals has no family either, so in a
-        // typed place it takes the place's: `let 'm': uint64 =
+        // typed place it takes the place's: `'m': uint64 =
         // 9223372036854775807 + 1` is a `uint64` sum, 2^63, not an
         // `integer` one that overflows.
         let mut v = v;
@@ -555,7 +555,7 @@ impl Checker {
             if literal_only(&v) {
                 // Bare numbers with only plain math between them are worked
                 // out exactly and checked where they land (owner,
-                // 2026-09-23): `let 'tiny': int8 = (100 + 100) - 150;` is
+                // 2026-09-23): `'tiny': int8 = (100 + 100) - 150;` is
                 // 50, and the 200 in between is fine. A shift, `not.bit` or
                 // wrapping operator still takes its width from here.
                 let to = if plain_group(&v) { Ty::exact() } else { t.base().clone() };
@@ -617,7 +617,7 @@ impl Checker {
                         self.widths_pending.push((t.clone(), span, "not.bit".to_string()));
                         return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let 'x': uint8 = …`)").at(span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`'x': uint8 = …`)").at(span)),
                     other => return err(Diagnostic::error(format!("`not.bit` works on integers, and this is a `{}`", self.spell(other))).at(span)),
                 }
                 let ty = vt.base().clone();
@@ -726,7 +726,7 @@ impl Checker {
                         self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
                         return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let 'x': uint32 = …`)", op.spelled())).at(op_span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`'x': uint32 = …`)", op.spelled())).at(op_span)),
                     other => return err(Diagnostic::error(format!("`{}` wraps an integer, and this is a `{}`: it only knows a declared integer width", op.spelled(), self.spell(other))).at(op_span)),
                 }
                 if !rt.is_int() {
@@ -780,7 +780,7 @@ impl Checker {
                 let r = self.expect_operand(ctx, r, &lt, op, op_span)?;
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
             }
-            BinOp::And | BinOp::Or => {
+            BinOp::And | BinOp::Or | BinOp::AndThen | BinOp::OrElse => {
                 self.expect_bool(&l, &format!("the left side of `{}`", op.spelled()))?;
                 self.expect_bool(&r, &format!("the right side of `{}`", op.spelled()))?;
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
@@ -948,7 +948,7 @@ impl Checker {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => lane_r.is_numeric(),
             BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
             BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => lane_r.is_numeric() || lane_r.base() == &Ty::Bool,
-            BinOp::And | BinOp::Or => lane_r.base() == &Ty::Bool,
+            BinOp::And | BinOp::Or | BinOp::AndThen | BinOp::OrElse => lane_r.base() == &Ty::Bool,
             _ => false,
         };
         if !ok {

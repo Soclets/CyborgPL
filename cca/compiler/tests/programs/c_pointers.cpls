@@ -4,11 +4,11 @@ extern fn exit ['code': int32];
 extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
 extern fn free ['p': ptr.mut[uint8]];
 MAIN {
-    nocheck let 'buf' := malloc[4];
+    nocheck 'buf' := malloc[4];
     nocheck ptr.write['buf', 72];
     nocheck ptr.write[ptr.at['buf', 1], 105];
-    nocheck let 'a' := ptr.read['buf'];
-    nocheck let 'b' := ptr.read[ptr.at['buf', 1]];
+    nocheck 'a' := ptr.read['buf'];
+    nocheck 'b' := ptr.read[ptr.at['buf', 1]];
     nocheck free['buf'];
     nocheck exit[to.int32['a'] + to.int32['b'] - 170];
 }

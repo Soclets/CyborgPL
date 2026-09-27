@@ -11,12 +11,12 @@ fn descending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
     nocheck return ptr.read['b'] - ptr.read['a'];
 }
 MAIN {
-    let mut 'nums' := [5, 1, 4, 2, 3];
-    let mut 'got': int32 = 0;
+    mut 'nums' := [5, 1, 4, 2, 3];
+    mut 'got': int32 = 0;
     nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
-    if 'nums'[pos 1] == 1 and 'nums'[pos 5] == 5 and 'nums'[pos 3] == 3 { 'got' = 'got' + 1; }
-    let 'f' := descending;
+    if 'nums'[pos 1] == 1 and 'nums'[pos 5] == 5 and 'nums'[pos 3] == 3 { change 'got' = 'got' + 1; }
+    'f' := descending;
     nocheck qsort[lend.mut 'nums', 5, size.of[int32], 'f'];
-    if 'nums'[pos 1] == 5 and 'nums'[pos 2] == 4 and 'nums'[pos 5] == 1 { 'got' = 'got' + 2; }
+    if 'nums'[pos 1] == 5 and 'nums'[pos 2] == 4 and 'nums'[pos 5] == 1 { change 'got' = 'got' + 2; }
     nocheck exit['got'];
 }

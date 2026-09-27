@@ -7,37 +7,37 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn point ['code': int64] -> uint32 {
-    let 'c' := char.point.from_code['code'] otherwise { not_a_char { return 0; } };
+    'c' := char.point.from_code['code'] otherwise { not_a_char { return 0; } };
     return char.code['c'];
 }
 fn byte ['code': int64] -> uint8 {
-    let 'c' := char.byte.from_code['code'] otherwise { not_a_char { return 0; } };
+    'c' := char.byte.from_code['code'] otherwise { not_a_char { return 0; } };
     return char.code['c'];
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 'd': int64 = 0;
-    if 'there' { 'd' = 1; }
-    let mut 'got': int32 = 0;
-    if point[55295 + 'd'] == 0 and point[57344 - 'd'] == 0 and point[-'d'] == 0 and point[1114110 + 'd'] == 1114111 { 'got' = 'got' + 1; }
-    if byte[199 + 'd'] == 200 and byte[255 + 'd'] == 0 and point['d' - 1] == 0 { 'got' = 'got' + 2; }
-    let 'b200' := char.byte.from_code[199 + 'd'] otherwise `?`;
-    let 't' := to.str.utf8['b200'];
-    if str.bytes[lend 't'] == 2 { 'got' = 'got' + 4; }
-    let mut 'e' := "Z";
-    if 'there' { 'e' = "é"; }
-    let 'p' := to.char.point['e'] otherwise `?`;
-    let 'y' := to.char.byte['p'] otherwise `?`;
-    if char.code['p'] == 233 and 'y' == `?` { 'got' = 'got' + 8; }
-    let 'two' := to.char.point['e' ++ "x"] otherwise `?`;
-    let 'none' := to.char.byte["" ++ 'e'] otherwise `!`;
-    if 'two' == `?` and 'none' == `!` { 'got' = 'got' + 16; }
-    let 'bb': char.byte = `A`;
-    let mut 'pp': char.point = `B`;
-    if 'there' { 'pp' = `A`; }
-    if 'bb' == 'pp' { 'got' = 'got' + 32; }
-    let 'j' := 'p' ++ "!" ++ 'pp';
-    if 'j' == "é!A" { 'got' = 'got' + 64; }
+    'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
+    mut 'd': int64 = 0;
+    if 'there' { change 'd' = 1; }
+    mut 'got': int32 = 0;
+    if point[55295 + 'd'] == 0 and point[57344 - 'd'] == 0 and point[-'d'] == 0 and point[1114110 + 'd'] == 1114111 { change 'got' = 'got' + 1; }
+    if byte[199 + 'd'] == 200 and byte[255 + 'd'] == 0 and point['d' - 1] == 0 { change 'got' = 'got' + 2; }
+    'b200' := char.byte.from_code[199 + 'd'] otherwise `?`;
+    't' := to.str.utf8['b200'];
+    if str.bytes[lend 't'] == 2 { change 'got' = 'got' + 4; }
+    mut 'e' := "Z";
+    if 'there' { change 'e' = "é"; }
+    'p' := to.char.point['e'] otherwise `?`;
+    'y' := to.char.byte['p'] otherwise `?`;
+    if char.code['p'] == 233 and 'y' == `?` { change 'got' = 'got' + 8; }
+    'two' := to.char.point['e' ++ "x"] otherwise `?`;
+    'none' := to.char.byte["" ++ 'e'] otherwise `!`;
+    if 'two' == `?` and 'none' == `!` { change 'got' = 'got' + 16; }
+    'bb': char.byte = `A`;
+    mut 'pp': char.point = `B`;
+    if 'there' { change 'pp' = `A`; }
+    if 'bb' == 'pp' { change 'got' = 'got' + 32; }
+    'j' := 'p' ++ "!" ++ 'pp';
+    if 'j' == "é!A" { change 'got' = 'got' + 64; }
     nocheck exit['got'];
 }

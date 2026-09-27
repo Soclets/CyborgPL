@@ -2,10 +2,10 @@
 # (types.md), with its unit unwritten too: e + a combining accent.
 extern fn exit ['code': int32];
 MAIN {
-    let 'g' := `é`;
-    let 't' := to.str.utf8['g'];
-    let mut 'got': int32 = 0;
-    if str.bytes[lend 't'] == 3 and str.graphemes[lend 't'] == 1 { 'got' = 'got' + 1; }
-    if 'g' == `é` { 'got' = 'got' + 2; }
+    'g' := `é`;
+    't' := to.str.utf8['g'];
+    mut 'got': int32 = 0;
+    if str.bytes[lend 't'] == 3 and str.graphemes[lend 't'] == 1 { change 'got' = 'got' + 1; }
+    if 'g' == `é` { change 'got' = 'got' + 2; }
     nocheck exit['got'];
 }

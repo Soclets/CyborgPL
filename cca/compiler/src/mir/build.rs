@@ -356,7 +356,7 @@ impl<'a> FnBuilder<'a> {
         // A list or map written out in full: each element going into the
         // element type is a store like any other, so a narrower one is a
         // check site (as a struct's fields are). Without it
-        // `let 'xs': list[int8] = [1, 300];` kept 44.
+        // `'xs': list[int8] = [1, 300];` kept 44.
         let dest_ty = {
             let base = self.locals[place.local.0 as usize].ty.clone();
             self.resolve_ty(&projected_ty(&base, &place.proj, &self.arena.items))
@@ -1181,6 +1181,29 @@ impl<'a> FnBuilder<'a> {
                     self.site_of(SiteKind::Overflow(BinOp::Sub), vec![operand.clone()], Some(ty), span);
                 }
                 Rvalue::Unary { op: *op, operand }
+            }
+            // `and.then` / `or.else` (owner, 2026-09-25): the right side only
+            // when the left has not decided — a branch, so Precog narrows the
+            // right side by the left the way an `if` narrows its body
+            // (`'i' <== list.length[…] and.then 'xs'[pos 'i']` is proven).
+            hir::ExprKind::Binary { op: op @ (crate::ast::BinOp::AndThen | crate::ast::BinOp::OrElse), lhs, rhs, .. } => {
+                let and = *op == crate::ast::BinOp::AndThen;
+                let t = self.temp(&Ty::Bool, span);
+                let l = self.eval(lhs, span);
+                let right = self.new_block();
+                let decided = self.new_block();
+                let join = self.new_block();
+                let (then_b, else_b) = if and { (right, decided) } else { (decided, right) };
+                self.terminate(Terminator::If { cond: l, then: then_b, else_: else_b });
+                self.cur = right;
+                let r = self.eval(rhs, span);
+                self.assign(Place::local(t), Rvalue::Use(r), span);
+                self.terminate(Terminator::Goto(join));
+                self.cur = decided;
+                self.assign(Place::local(t), Rvalue::Use(Operand::Const(Const::Bool(!and))), span);
+                self.terminate(Terminator::Goto(join));
+                self.cur = join;
+                Rvalue::Use(Operand::Read(Place::local(t)))
             }
             hir::ExprKind::Binary { op, lhs, rhs, .. } => {
                 // "Bare numbers alone are worked out exactly at compile

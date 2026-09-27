@@ -103,6 +103,8 @@ pub struct FnCtx {
     pub blank_names: Vec<String>,
     /// Locals holding a list literal whose length is still known (for `...`).
     pub literal_lengths: HashMap<LocalId, usize>,
+    /// Locals declared `!$`: they may not be shadowed (owner, 2026-09-25).
+    pub sealed: std::collections::HashSet<LocalId>,
 }
 
 impl FnCtx {
@@ -365,7 +367,7 @@ impl Checker {
         for (t, span, what) in std::mem::take(&mut self.widths_pending) {
             let got = self.resolve(&t);
             // Bound, but to something that is not a whole number: an integer
-            // operation stored into a `bool` is a mistake, as `let 'a': bool
+            // operation stored into a `bool` is a mistake, as `'a': bool
             // = 5` is.
             if !matches!(got, Ty::Infer(_)) && !got.is_int() {
                 return err(Diagnostic::error(format!("expected a value of the declared type ({}), found a whole number: `{}` works on integers", self.spell(&got), what)).at(span));
@@ -373,7 +375,7 @@ impl Checker {
             if matches!(got, Ty::Infer(_)) {
                 return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what))
                     .at(span)
-                    .try_(format!("give the result a type (`let 'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));
+                    .try_(format!("give the result a type (`'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));
             }
         }
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();
@@ -412,7 +414,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new() }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default() }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {

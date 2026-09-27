@@ -157,3 +157,5 @@ grapheme_literal 3
 held_fail 15
 inline_asm 7
 map_same_key 8
+# `and.then` / `or.else` guard the read on their right (owner, 2026-09-25).
+and_then_guards 109

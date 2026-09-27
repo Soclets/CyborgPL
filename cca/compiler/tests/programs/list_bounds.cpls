@@ -1,8 +1,8 @@
 extern fn getpid [] -> int32;
 extern fn exit ['code': int32];
 MAIN {
-    let mut 'xs': list[int32] = [1, 2, 3];
-    nocheck let 'n': int32 = getpid[];
-    let 'v': int32 = 'xs'[pos 'n'];
+    mut 'xs': list[int32] = [1, 2, 3];
+    nocheck 'n': int32 = getpid[];
+    'v': int32 = 'xs'[pos 'n'];
     nocheck exit['v'];
 }

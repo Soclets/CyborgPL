@@ -4,19 +4,19 @@ extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn atoi ['s': ptr[uint8]] -> int32;
 MAIN {
-    let 'k' := "N";
-    nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
-    let mut 'xs': list[bool] = [];
-    let mut 'i': int64 = 0;
+    'k' := "N";
+    nocheck 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
+    mut 'xs': list[bool] = [];
+    mut 'i': int64 = 0;
     while 'i' <== 'n' {
         if ('i' mod 2) == 0 { list.append[lend.mut 'xs', true]; }
-        'i' = 'i' + 1;
+        change 'i' = 'i' + 1;
     }
-    let mut 'p': int64 = 1;
-    let mut 'c': int64 = 0;
+    mut 'p': int64 = 1;
+    mut 'c': int64 = 0;
     while 'p' <== 'n' {
-        if 'xs'[pos to.uint64['p']] { 'c' = 'c' + 1; }
-        'p' = 'p' + 1;
+        if 'xs'[pos to.uint64['p']] { change 'c' = 'c' + 1; }
+        change 'p' = 'p' + 1;
     }
     nocheck exit[to.int32['c' mod 256]];
 }

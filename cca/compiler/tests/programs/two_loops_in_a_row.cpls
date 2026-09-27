@@ -6,14 +6,14 @@
 # it must stop. (Since plain math is exact, the site is the store.)
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
-    let 's' := "ab";
-    nocheck let 'n': uint64 = strlen[lend 's'];
+    's' := "ab";
+    nocheck 'n': uint64 = strlen[lend 's'];
     for 'i': int16 in range[37, 40] {
     }
-    let mut 'w': uint16 = 4;
+    mut 'w': uint16 = 4;
     loop {
         if 'w' <== 0 { break; }
-        'w' = 'w' - 1;
-        let 'v': uint64 = 0 - 'n';
+        change 'w' = 'w' - 1;
+        'v': uint64 = 0 - 'n';
     }
 }

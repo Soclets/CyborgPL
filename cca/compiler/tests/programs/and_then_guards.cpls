@@ -1,0 +1,21 @@
+# `and.then` / `or.else` stop once the answer is known (owner, 2026-09-25), so
+# the check on the left guards the read on the right: Precog proves each read
+# in range, and the reads that would be out of range never run.
+extern fn exit ['code': int32];
+
+MAIN {
+    'xs' := [3, 5, 8];
+    mut 'i': uint64 = 0;
+    mut 'hits': int32 = 0;
+    mut 'kept': int32 = 0;
+    while 'i' < 10 {
+        if 'i' >== 1 and.then 'i' <== list.length[lend 'xs'] and.then 'xs'[pos 'i'] == 5 {
+            change 'hits' = 'hits' + 1;
+        }
+        if 'i' == 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'[pos 'i'] > 4 {
+            change 'kept' = 'kept' + 1;
+        }
+        change 'i' = 'i' + 1;
+    }
+    nocheck exit[('hits' x 100) + 'kept'];     # 109
+}

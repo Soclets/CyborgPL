@@ -5,10 +5,10 @@ extern fn getpid [] -> int32;
 extern fn exit ['code': int32];
 
 MAIN {
-    nocheck let 'n' := getpid[];
+    nocheck 'n' := getpid[];
     if 'n' > 0 {
         if 'n' < 1000 {
-            let 'x': int32 = 'n' + 1;
+            'x': int32 = 'n' + 1;
             nocheck exit[0];
         }
     }

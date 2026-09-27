@@ -10,8 +10,8 @@ fn up ['n': int64[0, 100]] -> int64 {
     return up['n' + 1] + 9_000_000_000_000_000_000;
 }
 MAIN {
-    let 's' := "ninety-eight bytes of text, counted by strlen at run time so nothing is known while compiling!!!!";
-    nocheck let 'n': uint64 = strlen[lend 's'];
-    let 'k': int64[0, 100] = to.int64['n' mod 101];
+    's' := "ninety-eight bytes of text, counted by strlen at run time so nothing is known while compiling!!!!";
+    nocheck 'n': uint64 = strlen[lend 's'];
+    'k': int64[0, 100] = to.int64['n' mod 101];
     nocheck exit[to.int32[up['k'] mod 256]];
 }

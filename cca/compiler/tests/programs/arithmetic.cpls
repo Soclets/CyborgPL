@@ -6,6 +6,6 @@ fn add ['a': int32, 'b': int32] -> int32 { return 'a' + 'b'; }
 fn twice ['n': int32] -> int32 { return 'n' x 2; }
 
 MAIN {
-    let 'sum': int32 = add[20, 1];
+    'sum': int32 = add[20, 1];
     nocheck exit[twice['sum']];       # 42
 }

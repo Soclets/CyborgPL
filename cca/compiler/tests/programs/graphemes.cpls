@@ -5,26 +5,26 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn short [lent 't': str.utf8] -> int32 {
-    let 's': str.utf8[0, 2 graphemes] = to.str.utf8[0, 2 graphemes]['t'] otherwise { out_of_range { return 0; } };
+    's': str.utf8[0, 2 graphemes] = to.str.utf8[0, 2 graphemes]['t'] otherwise { out_of_range { return 0; } };
     return 1;
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 'w' := "ab";
-    if 'there' { 'w' = "เกี่ยว"; }
-    let mut 'got': int32 = 0;
-    if str.graphemes[lend 'w'] == 4 and str.points[lend 'w'] == 6 and str.bytes[lend 'w'] == 18 { 'got' = 'got' + 1; }
-    let 'g': char.grapheme = `é`;
-    let 'p' := to.char.point['g'] otherwise `?`;
-    if char.code['p'] == 233 and 'g' == `é` { 'got' = 'got' + 2; }
-    let 'one' := to.char.grapheme["x" ++ 'w'] otherwise `?`;
-    let 'syl' := to.char.grapheme["เกี่ยว"] otherwise `?`;
-    let 'acc' := to.char.grapheme["é"] otherwise `?`;
-    let 'at' := to.str.utf8['acc'];
-    if 'one' == `?` and 'syl' == `?` and str.bytes[lend 'at'] == 3 { 'got' = 'got' + 4; }
-    let 'up' := to.char.grapheme[`x`];
-    if to.str.utf8['up'] ++ "!" == "x!" { 'got' = 'got' + 8; }
-    if short[lend 'w'] == 0 and short["ab"] == 1 and short["abc"] == 0 { 'got' = 'got' + 16; }
+    'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
+    mut 'w' := "ab";
+    if 'there' { change 'w' = "เกี่ยว"; }
+    mut 'got': int32 = 0;
+    if str.graphemes[lend 'w'] == 4 and str.points[lend 'w'] == 6 and str.bytes[lend 'w'] == 18 { change 'got' = 'got' + 1; }
+    'g': char.grapheme = `é`;
+    'p' := to.char.point['g'] otherwise `?`;
+    if char.code['p'] == 233 and 'g' == `é` { change 'got' = 'got' + 2; }
+    'one' := to.char.grapheme["x" ++ 'w'] otherwise `?`;
+    'syl' := to.char.grapheme["เกี่ยว"] otherwise `?`;
+    'acc' := to.char.grapheme["é"] otherwise `?`;
+    'at' := to.str.utf8['acc'];
+    if 'one' == `?` and 'syl' == `?` and str.bytes[lend 'at'] == 3 { change 'got' = 'got' + 4; }
+    'up' := to.char.grapheme[`x`];
+    if to.str.utf8['up'] ++ "!" == "x!" { change 'got' = 'got' + 8; }
+    if short[lend 'w'] == 0 and short["ab"] == 1 and short["abc"] == 0 { change 'got' = 'got' + 16; }
     nocheck exit['got'];
 }

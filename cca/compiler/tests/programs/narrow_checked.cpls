@@ -3,7 +3,7 @@
 extern fn exit ['code': int32];
 extern fn getuid [] -> uint32;
 MAIN {
-    nocheck let 'u' := getuid[];
-    let 'b': uint8 = 'u';
+    nocheck 'u' := getuid[];
+    'b': uint8 = 'u';
     nocheck exit[to.int32['b']];
 }

@@ -6,7 +6,7 @@ extern fn exit ['code': int32];
 fn to [] -> int32 { return 5; }
 fn true [] -> int32 { return 1; }
 MAIN {
-    let 'x' := limb.to[];
-    let 'y' := limb.true[];
+    'x' := limb.to[];
+    'y' := limb.true[];
     nocheck exit['x' x 10 + 'y'];
 }

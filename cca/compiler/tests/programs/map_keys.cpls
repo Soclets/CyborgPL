@@ -1,16 +1,16 @@
 extern fn exit ['code': int32];
 struct Point { x: int32  y: int32 }
 MAIN {
-    let mut 'big': map[int32, int32] = map.empty;
+    mut 'big': map[int32, int32] = map.empty;
     for 'i': int32 in range[1, 200] {
         map.set[lend.mut 'big', 'i', 'i' x 2];
     }
-    let 'v' := map.get[lend 'big', 150] otherwise 0;
-    let 'gone' := map.remove[lend.mut 'big', 1] otherwise 0;
-    let 'n': int32 = map.length[lend 'big'];
-    let mut 'grid': map[Point, int32] = map.empty;
+    'v' := map.get[lend 'big', 150] otherwise 0;
+    'gone' := map.remove[lend.mut 'big', 1] otherwise 0;
+    'n': int32 = map.length[lend 'big'];
+    mut 'grid': map[Point, int32] = map.empty;
     map.set[lend.mut 'grid', Point[x = 1, y = 2], 9];
-    let 'p' := map.get[lend 'grid', Point[x = 1, y = 2]] otherwise 0;
-    let 'q' := map.get[lend 'grid', Point[x = 9, y = 9]] otherwise 5;
+    'p' := map.get[lend 'grid', Point[x = 1, y = 2]] otherwise 0;
+    'q' := map.get[lend 'grid', Point[x = 9, y = 9]] otherwise 5;
     nocheck exit['v' - 290 + 'gone' + 'n' - 197 + 'p' + 'q'];
 }

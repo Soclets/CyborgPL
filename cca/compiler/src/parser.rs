@@ -9,7 +9,7 @@ use crate::source::Span;
 /// Bare words the language owns. A function may be named with one only
 /// through a path (`limb.to[…]`); a bare `to[…]` is the keyword.
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
+    "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
     "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub",
     "const", "module", "limb", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
     "layout", "size", "align", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
@@ -221,7 +221,10 @@ impl<'a> Parser<'a> {
                 return self.fail("`MAIN` is never `pub`: it is the program's block, not something another Limb can reach");
             }
             if self.is_word("let") {
-                return self.fail("a Limb's top-level value is a `const`, not a `let`: write `pub const 'name' := …;`");
+                return self.fail("`let` is gone, and a Limb's top-level value is a `const`: `pub const 'name' := …;`");
+            }
+            if let Tok::Name(n) = self.peek().clone() {
+                return self.fail(format!("a Limb-level value is a `const`, not a variable: `pub const '{}' := …;`", n));
             }
         }
         let kind = self.item_kind(vis)?;
@@ -232,7 +235,7 @@ impl<'a> Parser<'a> {
     fn item_kind(&mut self, vis: Vis) -> Result<ItemKind> {
         let w = match self.peek().clone() {
             Tok::Word(w) => w,
-            Tok::Name(n) => return self.fail(format!("'{}' cannot start a top-level item: quotes mark a value; a function is `fn name […]`, a Limb-level value is `const 'name' := …;`", n)),
+            Tok::Name(n) => return self.fail(format!("a Limb-level value is a `const`: `const '{}' := …;` — a variable lives inside a body", n)),
             other => return self.fail(format!("expected a top-level item (`fn`, `struct`, `enum`, `const`, `module`, `MAIN`), found {}", other.describe())),
         };
         match w.as_str() {
@@ -258,24 +261,28 @@ impl<'a> Parser<'a> {
                 if self.eat_word("fn") {
                     let decl = self.fn_decl(false)?;
                     Ok(ItemKind::ExternFn(decl))
-                } else if self.eat_word("let") {
+                } else if self.is_word("let") {
+                    self.fail("`let` is gone: C's variable is `extern 'x': T;` (`extern mut 'x': T;` to write it)")
+                } else if matches!(self.peek(), Tok::Name(_)) || self.is_word("mut") || self.is_word("immut") {
+                    // C's variable (owner, 2026-09-25): `extern 'x': T;`,
+                    // `extern mut 'x': T;` to write it.
                     let mutable = self.eat_word("mut");
                     if self.is_word("immut") {
-                        return self.fail("`immut` means nothing on an `extern let`: C's variable is read-only unless you write `mut`");
+                        return self.fail("`immut` means nothing on C's variable: it is read-only unless you write `mut`");
                     }
                     let name = self.qname("the C variable's name")?;
                     if !self.is(&Tok::Colon) {
-                        return self.fail("an `extern let` needs a type: C's variable has a C-shaped type and no value here — `extern let 'x': int32;`");
+                        return self.fail("C's variable needs a type: it has a C-shaped type and no value here — `extern 'x': int32;`");
                     }
                     self.bump();
                     let ty = self.type_()?;
                     if self.is_op("=") || self.is(&Tok::Walrus) {
-                        return self.fail("an `extern let` has no value here: C owns the variable; write only its type");
+                        return self.fail("C's variable has no value here: C owns it; write only its type");
                     }
                     self.expect_semi("the extern declaration")?;
                     Ok(ItemKind::ExternLet { mutable, name, ty })
                 } else {
-                    self.fail("`extern` is followed by `fn` (a C function) or `let` (a C variable)")
+                    self.fail("`extern` is followed by `fn` (a C function) or a quoted name (a C variable: `extern 'x': int32;`)")
                 }
             }
             "struct" => {
@@ -327,7 +334,7 @@ impl<'a> Parser<'a> {
                 Ok(ItemKind::Module { name, items })
             }
             "mod" => self.fail("`mod` is the remainder operator; a module is `module name { … }`"),
-            "let" => self.fail("a Limb's top-level value is a `const`, not a `let`: `const 'name' := …;` (`let` lives inside a body)"),
+            "let" => self.fail("`let` is gone, and a Limb-level value is a `const`: `const 'name' := …;`"),
             "check" | "nocheck" => {
                 if self.is_word_at(1, "fn") {
                     self.fail(format!("`{}` cannot go on a `fn`: the tiers are never global — there is no file-wide or Limb-wide tier; put `{}` in front of the statements inside", w, w))
@@ -336,7 +343,7 @@ impl<'a> Parser<'a> {
                 }
             }
             "inline" => self.fail("`inline.ASM` goes inside a body, as a statement, under `nocheck`"),
-            "var" => self.fail("`var` became `let`, and a Limb's top-level value is a `const`"),
+            "var" => self.fail("`var` is gone, and a Limb's top-level value is a `const`: `const 'name' := …;`"),
             _ => {
                 // `Vec satisfies Ordered;`
                 if !is_keyword(&w) {
@@ -772,12 +779,12 @@ impl<'a> Parser<'a> {
             }
         } else if self.eat_op("=") {
             if ty.is_none() {
-                return self.fail_at(self.prev_span(), "`=` means you said everything, so it needs the type: `let 'x': int32 = …;` — or `:=` to let Precog choose");
+                return self.fail_at(self.prev_span(), "`=` means you said everything, so it needs the type: `'x': int32 = …;` — or `:=` to let Precog choose");
             }
         } else if self.is(&Tok::Semi) {
             return self.fail(format!("a {} needs a value: there is no implicit zero — write `= 0` (or whatever it should hold)", what));
         } else if self.is_word("mut") || self.is_word("immut") {
-            return self.fail(format!("expected `:=` or `=`; `{}` goes before the name: `let {} 'x' := …`", self.word_text(), self.word_text()));
+            return self.fail(format!("expected `:=` or `=`; `{}` goes before the name: `{} 'x' := …`", self.word_text(), self.word_text()));
         } else {
             return self.fail(format!("expected `:=` or `=`, found {}", self.peek().describe()));
         }
@@ -1009,6 +1016,53 @@ impl<'a> Parser<'a> {
         Ok(Stmt { kind, span: start.to(self.prev_span()) })
     }
 
+    /// A declaration, from its front words to its `;` (owner, 2026-09-25):
+    /// `'x' := …`, `'x': T = …`, `mut`/`immut`/`!mut` and `!$` in front,
+    /// `$` before the `:=`/`=` to shadow.
+    fn declaration(&mut self) -> Result<StmtKind> {
+        let mut sealed = false;
+        let mut mutability = None;
+        loop {
+            if self.is_op("!") {
+                self.bump();
+                if self.eat(&Tok::Dollar) {
+                    sealed = true;
+                } else if self.eat_word("mut") {
+                    mutability = Some(Mutability::Immut);
+                } else {
+                    return self.fail("`!` in front of a declaration is `!$` (the name cannot be shadowed) or `!mut` (the value cannot be changed)");
+                }
+            } else if self.eat_word("mut") {
+                mutability = Some(Mutability::Mut);
+            } else if self.eat_word("immut") {
+                mutability = Some(Mutability::Immut);
+            } else {
+                break;
+            }
+        }
+        let name = match self.peek().clone() {
+            Tok::Name(n) => {
+                let span = self.bump().span;
+                QName { name: n, span }
+            }
+            Tok::Word(w) if is_primitive_head(&w) || matches!(self.peek_at(1), Tok::Name(_)) => {
+                return self.fail(format!("a type goes after the name: `'x': {} = …;`", w));
+            }
+            Tok::Word(w) => return self.fail(format!("a variable's name is quoted: `'{}' := …;`", w)),
+            other => return self.fail(format!("expected the variable's name, found {}", other.describe())),
+        };
+        if self.is_word("mut") || self.is_word("immut") {
+            return self.fail(format!("`{}` goes before the name: `{} '{}' := …;`", self.word_text(), self.word_text(), name.name));
+        }
+        let (ty, shadow) = self.let_type_and_marker("declaration")?;
+        let value = self.expr_top()?;
+        if self.is_op("=") {
+            return self.fail("`=` gives a declaration its value once; equality is `==`");
+        }
+        self.expect_semi("the declaration")?;
+        Ok(StmtKind::Let { mutability, name, ty, shadow, value, sealed })
+    }
+
     fn stmt_kind(&mut self) -> Result<StmtKind> {
         let w = match self.peek().clone() {
             Tok::Word(w) => w,
@@ -1017,41 +1071,41 @@ impl<'a> Parser<'a> {
                 return Ok(StmtKind::Block(b));
             }
             Tok::Semi => return self.fail("expected a statement, found `;` — there are no empty statements"),
+            // A declaration starts with its name (owner, 2026-09-25).
+            Tok::Name(n) => {
+                return match self.peek_at(1) {
+                    Tok::Colon | Tok::Walrus | Tok::Dollar => self.declaration(),
+                    Tok::Word(m) if m == "mut" || m == "immut" => self.fail_at(self.span(), format!("`{}` goes before the name: `{} '{}' := …;`", m, m, n)),
+                    _ => self.expr_stmt(),
+                };
+            }
+            Tok::Op(o) if o == "!" => return self.declaration(),
             _ => return self.expr_stmt(),
         };
         match w.as_str() {
-            "let" => {
+            "let" => self.fail("`let` is gone: a declaration starts with its name — `'x' := …;`, `mut 'x' := …;`"),
+            "var" => self.fail("`var` is gone: a declaration starts with its name — `'x' := …;`"),
+            "mut" | "immut" => self.declaration(),
+            // Changing says so (owner, 2026-09-25): `change 'x' = …;`.
+            "change" => {
                 self.bump();
-                if self.is(&Tok::Dot) {
-                    return self.fail("`let` takes no chain: `mut` / `immut` are bare words before the name — `let mut 'x' := …`");
+                let target = self.expr_top()?;
+                match &target.kind {
+                    ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::Index { .. } => {}
+                    ExprKind::ConstPath { .. } => return self.fail_at(target.span, "a const is never changed: it is a value known at compile time"),
+                    _ => return self.fail_at(target.span, "only a variable, a field or an element can be changed"),
                 }
-                let mutability = if self.eat_word("mut") {
-                    Some(Mutability::Mut)
-                } else if self.eat_word("immut") {
-                    Some(Mutability::Immut)
-                } else {
-                    None
-                };
-                let name = match self.peek().clone() {
-                    Tok::Name(n) => {
-                        let span = self.bump().span;
-                        QName { name: n, span }
-                    }
-                    Tok::Word(w) if is_primitive_head(&w) || matches!(self.peek_at(1), Tok::Name(_)) => {
-                        return self.fail(format!("a type goes after the name: `let 'x': {} = …;`", w));
-                    }
-                    Tok::Word(w) => return self.fail(format!("a variable's name is quoted: `let '{}' := …;`", w)),
-                    other => return self.fail(format!("expected the variable's name after `let`, found {}", other.describe())),
-                };
-                let (ty, shadow) = self.let_type_and_marker("let")?;
+                if !self.eat_op("=") {
+                    return self.fail(format!("expected `=` after what is changed, found {}", self.peek().describe()));
+                }
                 let value = self.expr_top()?;
                 if self.is_op("=") {
-                    return self.fail("`=` assigns; equality is `==`");
+                    return self.fail("`=` changes once; equality is `==`");
                 }
-                self.expect_semi("the declaration")?;
-                Ok(StmtKind::Let { mutability, name, ty, shadow, value })
+                self.expect_semi("the change")?;
+                Ok(StmtKind::Assign { target, value })
             }
-            "var" => self.fail("`var` became `let`: `let 'x' := …;`"),
+            w if is_primitive_head(w) && matches!(self.peek_at(1), Tok::Name(_)) => self.fail(format!("a type goes after the name: `'x': {} = …;`", w)),
             "check" | "nocheck" => {
                 let tier_span = self.bump().span;
                 let tier = if w == "check" { Tier::Check } else { Tier::Nocheck };
@@ -1149,15 +1203,15 @@ impl<'a> Parser<'a> {
                 self.inline_rest()
             }
             "asm" => self.fail("an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`"),
-            "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
+            "otherwise" => self.fail("`otherwise` follows a call that can fail: `'x' := f[] otherwise 0;`"),
             "fn" | "struct" | "interface" | "op" => self.fail(format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
             "enum" => self.fail("an `enum` sits at the top level of a file or a module, not inside a body"),
-            "const" => self.fail("a `const` sits at the top level: inside a body `let` is the only declaration, and Precog finds the constants itself"),
+            "const" => self.fail("a `const` sits at the top level: inside a body a declaration is `'x' := …;`, and Precog finds the constants itself"),
             "module" => self.fail("a `module` sits at the top level of a file, not inside a body"),
             "pub" => self.fail("`pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`"),
             "extern" => self.fail("an `extern` declaration sits at the top level, not inside a body"),
             "MAIN" => self.fail("`MAIN` cannot be nested or called: it is the program's one block"),
-            "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare — `let 'x' := 1;`"),
+            "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare — `'x' := 1;`"),
             _ => self.expr_stmt(),
         }
     }
@@ -1427,25 +1481,18 @@ impl<'a> Parser<'a> {
         let e = self.expr_top()?;
         if self.is(&Tok::Colon) {
             if let ExprKind::Name(n) = &e.kind {
-                return self.fail(format!("a declaration starts with `let`: `let '{}': int32 = …;` — a bare `'{}': …` is not a statement", n.name, n.name));
+                return self.fail(format!("a declaration is the name, its type, then `=`: `'{}': int32 = …;`", n.name));
             }
         }
         if self.is_op("=") {
-            self.bump();
-            match &e.kind {
-                ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::Index { .. } => {}
-                ExprKind::ConstPath { .. } => return self.fail_at(e.span, "a const is never assigned: it is a value known at compile time"),
-                _ => return self.fail_at(e.span, "only a variable, a field or an element can be assigned to"),
-            }
-            let value = self.expr_top()?;
-            if self.is_op("=") {
-                return self.fail("`=` assigns; equality is `==`");
-            }
-            self.expect_semi("the assignment")?;
-            return Ok(StmtKind::Assign { target: e, value });
+            let spelled = match &e.kind {
+                ExprKind::Name(n) => format!("'{}'", n.name),
+                _ => "'x'".to_string(),
+            };
+            return self.fail_at(e.span, format!("changing a variable says so: `change {} = …;`", spelled));
         }
         if self.is(&Tok::Walrus) {
-            return self.fail("a declaration starts with `let`: `let 'x' := …;`");
+            return self.fail("a declaration is a name alone: `'x' := …;`");
         }
         match &e.kind {
             ExprKind::Call { .. } | ExprKind::CallValue { .. } | ExprKind::Conv { .. } => {}
@@ -1483,7 +1530,7 @@ impl<'a> Parser<'a> {
                     e.span = e.span.to(self.prev_span());
                 }
                 _ => {
-                    return self.fail_at(e.span, "a call that can fail must be the whole value: put it in its own `let`, then use the result — `otherwise` cannot sit inside a larger expression");
+                    return self.fail_at(e.span, "a call that can fail must be the whole value: put it in its own declaration, then use the result — `otherwise` cannot sit inside a larger expression");
                 }
             }
         }
@@ -1581,6 +1628,8 @@ impl<'a> Parser<'a> {
                     "x" => (BinOp::Mul, 7, 8),
                     "xx" => (BinOp::Pow, 9, 9),
                     "mod" => (BinOp::Mod, 7, 8),
+                    "and" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "then") => (BinOp::AndThen, 2, 3),
+                    "or" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "else") => (BinOp::OrElse, 1, 2),
                     "and" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::AndBit, 0, 1),
                     "or" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::OrBit, 0, 1),
                     "and" => (BinOp::And, 2, 3),
@@ -1612,6 +1661,10 @@ impl<'a> Parser<'a> {
                 BinOp::WrapMul | BinOp::WrapPow => {
                     self.bump();
                 }
+                BinOp::AndThen | BinOp::OrElse => {
+                    self.bump(); // .
+                    self.bump(); // then / else
+                }
                 BinOp::AndBit | BinOp::OrBit => {
                     self.bump(); // .
                     let b = self.ident("`bit`")?;
@@ -1623,7 +1676,7 @@ impl<'a> Parser<'a> {
             }
             let op_span = op_span.to(self.prev_span());
             if op == BinOp::Join && self.is(&Tok::Semi) {
-                return self.fail_at(op_span, "`++` joins text; there is no increment — write `'i' = 'i' + 1;`");
+                return self.fail_at(op_span, "`++` joins text; there is no increment — write `change 'i' = 'i' + 1;`");
             }
             // The near-misses the language refuses by name.
             if let BinOp::Custom(c) = &op {
@@ -1631,8 +1684,8 @@ impl<'a> Parser<'a> {
                     "!=" => Some("not-equal is `!==`"),
                     ">=" => Some("greater-or-equal is `>==` — a lone `=` is assignment and never sits inside a comparison"),
                     "<=" => Some("less-or-equal is `<==` — a lone `=` is assignment and never sits inside a comparison"),
-                    "--" => Some("there is no decrement: write `'i' = 'i' - 1;`"),
-                    "+=" | "-=" => Some("there is no compound assignment: write `'i' = 'i' + 1;`"),
+                    "--" => Some("there is no decrement: write `change 'i' = 'i' - 1;`"),
+                    "+=" | "-=" => Some("there is no compound assignment: write `change 'i' = 'i' + 1;`"),
                     _ => None,
                 };
                 if let Some(h) = hint {
@@ -1824,7 +1877,7 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::Range { start: Box::new(s), stop: Box::new(e), step }, span })
                 }
-                "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
+                "otherwise" => self.fail("`otherwise` follows a call that can fail: `'x' := f[] otherwise 0;`"),
                 "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare"),
                 w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket) => {
                     self.fail(format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `limb.{}[…]` inside its own Limb, `name::{}[…]` from outside", w, w, w))

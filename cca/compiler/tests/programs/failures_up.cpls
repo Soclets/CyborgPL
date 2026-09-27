@@ -4,14 +4,14 @@ fn inner ['n': int32] -> int32 or fail[bad: list[int32]] {
     return 'n';
 }
 fn outer ['n': int32] -> int32 or fail[bad: list[int32]] {
-    let 'v' := inner['n'] otherwise fail;
+    'v' := inner['n'] otherwise fail;
     return 'v' + 1;
 }
 MAIN {
-    let 'ok' := outer[5] otherwise 0;
-    let mut 'n': int32 = 0;
+    'ok' := outer[5] otherwise 0;
+    mut 'n': int32 = 0;
     outer[-1] otherwise {
-        bad 'why' { 'n' = list.length[lend 'why']; }
+        bad 'why' { change 'n' = list.length[lend 'why']; }
     };
     nocheck exit['ok' + 'n'];
 }

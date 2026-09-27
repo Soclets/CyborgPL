@@ -1,17 +1,17 @@
 extern fn exit ['code': int32];
 MAIN {
-    let mut 'm': map[str.utf8, int32] = map.empty;
+    mut 'm': map[str.utf8, int32] = map.empty;
     map.set[lend.mut 'm', "seven", 7];
     map.set[lend.mut 'm', "three", 3];
     map.set[lend.mut 'm', "five", 5];
     map.set[lend.mut 'm', "three", 9];
-    let mut 'acc': int32 = 0;
+    mut 'acc': int32 = 0;
     for 'v' in map.values[lend 'm'] {
-        'acc' = ('acc' x 3) + 'v';
+        change 'acc' = ('acc' x 3) + 'v';
     }
-    let mut 'keylen': int32 = 0;
+    mut 'keylen': int32 = 0;
     for 'k' in map.keys[lend 'm'] {
-        'keylen' = 'keylen' + str.bytes[lend 'k'];
+        change 'keylen' = 'keylen' + str.bytes[lend 'k'];
     }
     nocheck exit['acc' + 'keylen'];
 }
