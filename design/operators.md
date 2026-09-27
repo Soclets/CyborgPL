@@ -233,8 +233,8 @@ chosen.
 
 ## Not yet listed (open)
 
-- Integer division vs. `/` on `int` (truncate? error on inexact?).
-- `mod` on negative operands (sign of the result).
+(Integer `/` and `mod` were decided 2026-09-20: floor division, the
+mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
 ## Custom operators — `op` (decided 2026-09-20)
 

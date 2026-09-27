@@ -89,8 +89,4 @@ arithmetic ranges (`'n' + 1`) — a value is checked when stored.
 
 ## Open
 
-- Range types on non-numeric things (a `str.utf8[1, 80]` length bound?
-  a list with a length bound — the old "stating a length at a boundary"
-  question). Probably the same brackets; not decided.
-- A range with one open end (`int32[0, …]`).
 - Ranges in `layout.c` structs (refused today).

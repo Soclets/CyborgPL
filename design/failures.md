@@ -85,8 +85,6 @@ tests.
 
 ## Open
 
-- A general variant type (`enum`) — item 4; a failure is a variant, so it
-  would share machinery.
 - Whether std's boundary functions (input, files) return failures this way
   (they should) and what their reason lists are.
 - A catch-all arm (`other { … }`) — deliberately not offered: exhaustiveness

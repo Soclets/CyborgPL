@@ -2726,12 +2726,8 @@ for JetPack, always containing analysable source, never an opaque binary
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)
-- Limb name declared in source (`limb [...]`)? Revisit with `pub` and the author's bare-reachability flag (`design/limbs.md`). (Claude, 2026-09-14)
-- The Limb author's "reachable bare" flag — spelling, beside or on `pub`. (`design/limbs.md`, 2026-09-19)
 
 **Precog**
 - Non-terminating compile-time code: with step budgets now required, the budget's size and the error it produces. (Claude, 2026-09-14)
-- Build output lists every `nocheck` site? Claude recommends yes. (Claude, 2026-09-14)
 
 **Process**
-- Build the oracle interpreter first, before the real compiler? Claude recommends yes. (Claude, 2026-09-14)
