@@ -1,0 +1,2 @@
+# range labels belong to #strict files (2026-09-27)
+MAIN { for 'i' in range[from 2, to 8, by 2] { } }

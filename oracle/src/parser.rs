@@ -1282,15 +1282,27 @@ impl Parser {
         if *self.peek() != Tok::LBracket { return self.err("`range` builds its bounds in `[ ]`: `range[1, 10]` or `range[1, 10, 2]`"); }
         self.advance();
         let mut values = Vec::new();
+        // In a `#strict` file each bound says what it is — `range[from 2, to 8, by 2]` — and `by`
+        // is always written (owner, 2026-09-27); elsewhere the labels are not used.
+        const LABELS: [&str; 3] = ["from", "to", "by"];
         loop {
             if matches!(self.peek(), Tok::Walrus | Tok::Eq) {
                 return self.err("range bounds are plain values: `range[0, 9]` — the counter's type goes on its name (`'i': int32`)");
+            }
+            let k = values.len().min(2);
+            let labelled = matches!(self.peek(), Tok::Word(w) if LABELS.contains(&w.as_str())) && !matches!(self.peek_at(1), Tok::Dot | Tok::LBracket | Tok::Comma | Tok::RBracket);
+            if self.strict {
+                if !self.is_word(LABELS[k]) { return self.err(format!("`#strict`: each bound says what it is: `range[from 2, to 8, by 1]` — this one is `{}`", LABELS[k])); }
+                self.advance();
+            } else if labelled {
+                return self.err("`from` / `to` / `by` label a range in a `#strict` file; here it is `range[2, 8]` or `range[2, 8, 2]`");
             }
             values.push(Value::Expr(self.expr()?));
             if *self.peek() == Tok::Comma { self.advance(); continue; }
             break;
         }
         self.expect(Tok::RBracket, "`]`")?;
+        if self.strict && values.len() == 2 { return Err(ParseError { line, col: 0, msg: "`#strict`: a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]`".into() }); }
         if values.len() < 2 || values.len() > 3 {
             return Err(ParseError { line, col: 0, msg: format!("a range is `range[start, stop]` or `range[start, stop, step]`, not {} value(s)", values.len()) });
         }

@@ -150,7 +150,13 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   - a type on every parameter;
   - a return type on every function that returns a value;
   - `mut` or `immut` (or `!mut`) on every declaration;
-  - `temp` or `perm` on every `for`.
+  - `temp` or `perm` on every `for`;
+  - each range bound labelled, the step always written:
+    `for temp 'i' in range[from 2, to 8, by 2]` (owner, same day: "the loop
+    syntax should be more self-explanatory"). "Count from 2 to 8 by -4"
+    shows at a glance that it never runs. Proposed alternative words:
+    `start` / `end` / `step`. Outside strict files the labels are not
+    used, as with `pos`.
   Proposed and not chosen: a type on every variable, since `:=` letting
   Precog pick the best type is a pillar and a written type can be a worse
   choice. Also proposed for mutability: `mut` only on variables that
@@ -159,8 +165,11 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 
   `#strict` goes once, at the top of the file, before any item, and covers
   the file and its `module` blocks. That is the oracle's reading and was
-  not asked. Still open: whether the working build refuses an unproven
-  site in a strict file too, or checks it at run time as elsewhere.
+  not asked. **The working build refuses too** (owner: a): in a strict
+  file a site not proven from its own function is an error in every
+  build, not a run-time check until the final one. The reason must be
+  written, so you find out at once. Proposed alternative: the working
+  build checks at run time, as elsewhere.
 - **The ladder** (clarified 2026-09-19): a guardrail that is good enough
   already removes the check under the default tier — Precog proves it and
   emits nothing; a proven check can never fire, so keeping it would be pure

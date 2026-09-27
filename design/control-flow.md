@@ -104,7 +104,9 @@ conversion at every index. **The compiler compares before it steps**:
 `range[3, 0, -1]` ends at 0, and computing "next = 0 − 1" to test would
 underflow a `uint64` — an implementation rule the difference in
 behaviour would otherwise hide. The bounds carry no
-`:=`/`=` markers (they would say the same thing twice):
+`:=`/`=` markers (they would say the same thing twice). In a `#strict`
+file each bound is labelled and the step always written,
+`range[from 2, to 8, by 2]` (owner, 2026-09-27; `core-features.md`):
 
 ```
 for 'i' in range[0, 9] { }                 # like  'i' := 0;

@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `#strict`: `range[from 2, to 8, by 2]`, and the working build refuses too (owner)
+
+The owner looked at loops (`range[2, 8, -4]` runs zero times) and said
+that under `#strict` "the loop syntax should be more self-explanatory".
+Proposed: labels on the bounds, `from` / `to` / `by` (reads as a
+sentence) or `start` / `end` / `step`, and whether `by 1` must be
+written. Design claude recommended `from` / `to` / `by`, with `by` always
+written. Owner: that. Outside strict files the labels are refused, as
+`pos` is. The same answer settled the working build in a strict file:
+(a) an unproven site is refused in every build; (b) a run-time check as
+elsewhere. Design claude recommended a. Owner: a. The oracle enforces the
+labels, but not builds, which it doesn't model. Reject tests
+strict_range, strict_range_by, range_labels_outside_strict.
+`core-features.md`, `control-flow.md`.
+
 ### 2026-09-27 — `#strict` also writes out what Precog would infer; `nocheck` allowed in it (owner)
 
 `nocheck` under `#strict`: (a) allowed, as a written and listed reason,
