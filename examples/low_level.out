@@ -1,0 +1,6 @@
+straight to fd 1 via write(2)
+third raw byte: 67
+fnv1a:          6181572250411736725
+popcount(0xF0F0): 8
+all ascii:      true
+Header: 16 bytes, aligned to 8
