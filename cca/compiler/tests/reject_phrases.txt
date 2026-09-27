@@ -73,7 +73,7 @@ callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
 callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
 chained_cmp [fnv:fb46d9317941f47c] :: comparisons do not chain
 char_to_number [fnv:f0322c3a10514c25] :: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit)
-check_bare [fnv:413f5a3fb67ec940] :: `check 'xs'[pos 'i'] = 1;`, `check { … }`
+check_bare [fnv:413f5a3fb67ec940] :: `check` goes in front of a statement
 check_fails [fnv:be678e17da79103a] :: the position can be past the end
 check_in_value [fnv:e7e32bc71274232c] :: if half a statement needs it, split the statement
 check_nocheck [fnv:fd645963528e9ebf] :: `check` and `nocheck` cannot both cover it
@@ -153,7 +153,7 @@ fail_payload_wrong_type [fnv:7d29ffc630950dd5] :: the failure's payload is an `i
 fail_propagate_unlisted [fnv:f6414896eca05a40] :: its signature says fail[b]
 fail_quoted_name [fnv:a24dda5e1530d482] :: a failure's name is bare
 fail_unhandled [fnv:65aeb77203450837] :: `f` can fail (oops): say what happens
-fnval_call_not_function [fnv:aebd5e80ae2bdfd7] :: `'f'[…]` calls a held function, and `[pos …]` indexes a list
+fnval_call_not_function [fnv:aebd5e80ae2bdfd7] :: 'n' is a `integer`, neither a list nor a function
 fnval_capture_without_verb [fnv:6651c83f112f16d2] :: say how 'limit' comes in
 fnval_give_captured_used [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
 fnval_op_as_value [fnv:62b0125508bce133] :: an operator sits between two values
@@ -190,7 +190,6 @@ iface_unknown_in_bound [fnv:2d41798402b31028] :: there is no interface named `No
 iface_unsatisfied_bound [fnv:f047b3b93b1031a0] :: `str` is not `Ordered`: no `op <` for it
 iface_with_body [fnv:7529b88ba149365d] :: end the signature with `;` and leave the body out
 index_past_end [fnv:7914d123bba99015] :: the position can be past the end
-index_without_pos [fnv:fd270ba2750c92ef] :: `'xs'[…]` calls, `'xs'[pos …]` indexes
 index_zero [fnv:7914d123bba99015] :: the position can be past the end
 inline_c [fnv:5018d173d49afa27] :: only `inline.ASM` exists so far; `inline.C` is not offered yet
 input_unhandled [fnv:42153828b7c05b82] :: `std::input.line` can fail (closed): say what happens
@@ -283,6 +282,7 @@ param_var [fnv:565659dbb62e1df1] :: an owning parameter is bare
 plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
+pos_removed [fnv:8fd7b8e8ad8219fa] :: `pos` is gone
 printf_extra_arg [fnv:a2a7cfdeb00d434f] :: !pending
 printf_missing_arg [fnv:fb03145792229455] :: !pending
 printf_nonliteral [fnv:bf5171be01f2014d] :: !pending
@@ -329,7 +329,6 @@ shadow_sealed [fnv:89d14c915689d264] :: cannot be shadowed: it is `!$`
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
 short_name_one_limb [fnv:c62ad7b10088ce87] :: gives other Limbs a shorter name
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
-simd_load_needs_pos [fnv:5ad79b7ed48ef355] :: says the position with `pos`, as every index does
 simd_load_past_end [fnv:00802e6e1064a8bf] :: the 16 lanes can run past the end
 simd_mask_lanes [fnv:51d1f37b90e986ac] :: a mask has as many lanes as the vectors it compares
 simd_not_a_bool [fnv:cf5039b775bdbbc1] :: a vector is never a single answer
@@ -339,7 +338,6 @@ simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past 
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is followed by `.of`: `size.of[int32]`
-slice_needs_pos [fnv:f573e0339feb2e03] :: says the position with `pos`
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list
 spread_lent_no_verb [fnv:4aeae176b5f51db7] :: `...` with no verb lends each element
 spread_lent_unbounded [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call

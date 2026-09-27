@@ -28,7 +28,7 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     while 'r' < 10 {
         mut 'j': uint64 = 1;
         while 'j' <== list.length[lend 'xs'] {
-            change 'acc' = 'acc' + 'xs'[pos 'j'];
+            change 'acc' = 'acc' + 'xs'['j'];
             change 'j' = 'j' + 1;
         }
         change 'r' = 'r' + 1;

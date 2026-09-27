@@ -135,7 +135,7 @@ pub fn render_json(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
             SiteKind::Overflow(op) => ("overflow", op.spelled()),
             SiteKind::DivZero => ("division_by_zero", "/".into()),
             SiteKind::ModZero => ("modulo_by_zero", "mod".into()),
-            SiteKind::Bounds => ("position", "[pos …]".into()),
+            SiteKind::Bounds => ("position", "[…]".into()),
             SiteKind::Narrow { to } => ("narrowing", format!("into {}", spell(to))),
             SiteKind::LengthBound { to } => ("length_bound", format!("into {}", spell(to))),
             SiteKind::ShiftWidth => ("shift_width", "shl".into()),

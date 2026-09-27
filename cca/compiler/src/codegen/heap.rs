@@ -668,7 +668,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some((vals, frees))
     }
 
-    /// `'xs'[pos i]` — 1-based (`lists.md`), so the machine's offset is
+    /// `'xs'[i]` — 1-based (`lists.md`), so the machine's offset is
     /// one less. The position was bounds-checked at its own site.
     pub(super) fn index_slot(&mut self, at: PointerValue<'ctx>, ty: &Ty, idx: IntValue<'ctx>) -> Option<(PointerValue<'ctx>, Ty)> {
         let elem = Self::elem_of(ty)?;
@@ -679,7 +679,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let esize = self.size_of_ty(&elem)?;
         let w = self.ctx.i64_type();
         let data = self.load_field_ptr(shape, at, 0);
-        let idx = self.builder.build_int_z_extend_or_bit_cast(idx, w, "i").ok()?;
+        // Checked to be 1 to the length at its site, so it fits a word
+        // whatever width it came at — an exact answer is 65 bits or more.
+        let idx = self.builder.build_int_cast_sign_flag(idx, w, false, "i").ok()?;
         let zero_based = self.builder.build_int_sub(idx, w.const_int(1, false), "zb").ok()?;
         let off = self.builder.build_int_mul(zero_based, w.const_int(esize, false), "off").ok()?;
         let slot = unsafe { self.builder.build_gep(self.ctx.i8_type(), data, &[off], "elem").ok()? };
@@ -735,7 +737,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 
-    /// `list.slice[lend 'xs', pos a, pos b]` — a new list owning copies of
+    /// `list.slice[lend 'xs', a, b]` — a new list owning copies of
     /// elements a to b (`lists.md`). The positions were checked at their
     /// own site: `1 <= a <= b + 1 <= length + 1`, so the count is never
     /// negative and the copy never leaves the list. Always a copy for now;

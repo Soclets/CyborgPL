@@ -3,5 +3,5 @@
 extern fn exit ['code': int32];
 MAIN {
     'xs' := [9223372036854775808, 1];
-    nocheck exit[to.int32['xs'[pos 2]]];
+    nocheck exit[to.int32['xs'[2]]];
 }

@@ -277,9 +277,9 @@ pub enum ExprKind {
     CallValue { callee: Box<Expr>, args: Vec<Arg>, otherwise: Option<Box<Otherwise>> },
     /// `'x'.field`
     Field { base: Box<Expr>, field: Ident },
-    /// `'xs'[pos i]`
+    /// `'xs'[i]`
     Index { base: Box<Expr>, index: Box<Expr> },
-    /// `give 'x'`, `lend 'xs'[pos 1]`, `&'s'`.
+    /// `give 'x'`, `lend 'xs'[1]`, `&'s'`.
     Verb { verb: Verb, amp: bool, expr: Box<Expr> },
     Unary { op: UnOp, expr: Box<Expr> },
     Binary { op: BinOp, op_span: Span, lhs: Box<Expr>, rhs: Box<Expr> },
@@ -298,8 +298,7 @@ pub enum ExprKind {
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
     /// `pos i` where an argument goes: a position, not a value
-    /// (`simd.load[lend 'xs', pos 'i']`).
-    Pos(Box<Expr>),
+    /// (`simd.load[lend 'xs', 'i']`).
     /// `range[start, stop, step]` — only what a `for` runs over.
     Range { start: Box<Expr>, stop: Box<Expr>, step: Option<Box<Expr>> },
 }

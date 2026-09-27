@@ -2786,7 +2786,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let _ = self.guard(fi, id, bad, func);
     }
 
-    /// `'xs'[pos i]` must be within the list: 1-based, so 1 through the
+    /// `'xs'[i]` must be within the list: 1-based, so 1 through the
     /// length (`lists.md`). Proven sites carry no check; the rest trap
     /// with the site's own words.
     fn bounds_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {

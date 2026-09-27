@@ -9,7 +9,7 @@ MAIN {
     'a' := to.array[give 'l'];
     mut 'm' := to.list[copy 'a'];
     list.append[lend.mut 'm', 4];
-    mut 's': list[int32] = array.slice[lend 'a', pos 2, pos 3];
+    mut 's': list[int32] = array.slice[lend 'a', 2, 3];
     list.append[lend.mut 's', 9];
     mut 'w': list[str.utf8] = ["x", "yy"];
     list.append[lend.mut 'w', "zzz"];
@@ -17,6 +17,6 @@ MAIN {
     'back' := to.list[give 'fw'];
     # 3 + 4 x 10 + 3 x 100 + 3 + (1 + 4 + 9)
     'n': uint64 = array.length[lend 'a'] + list.length[lend 'm'] x 10 + list.length[lend 's'] x 100 + list.length[lend 'back'];
-    'v': int32 = 'a'[pos 1] + 'm'[pos 4] + 's'[pos 3];
+    'v': int32 = 'a'[1] + 'm'[4] + 's'[3];
     nocheck exit[to.int32['n'] + 'v'];
 }

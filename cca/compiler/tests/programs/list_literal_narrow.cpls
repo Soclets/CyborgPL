@@ -9,5 +9,5 @@ MAIN {
     mut 'x': int32 = 5;
     if 'there' { change 'x' = 300; }
     'xs': list[int8] = [1, 'x'];
-    nocheck exit[to.int32['xs'[pos 2]]];
+    nocheck exit[to.int32['xs'[2]]];
 }

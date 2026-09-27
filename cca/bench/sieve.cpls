@@ -25,11 +25,11 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     mut 'count': int64 = 0;
     mut 'p': int64 = 2;
     while 'p' <== 'n' {
-        if not 'comp'[pos to.uint64['p' + 1]] {
+        if not 'comp'[to.uint64['p' + 1]] {
             change 'count' = 'count' + 1;
             mut 'm': int64 = 'p' x 'p';
             while 'm' <== 'n' {
-                change 'comp'[pos to.uint64['m' + 1]] = true;
+                change 'comp'[to.uint64['m' + 1]] = true;
                 change 'm' = 'm' + 'p';
             }
         }

@@ -212,7 +212,7 @@ fn state_of(env: &Env, l: LocalId) -> State {
 /// A `give` of a whole value, or of a field — which consumes the whole
 /// variable (`structs.md`: "there is no half-empty struct"). Taking an
 /// element out of a list is the lowering's own business and takes nothing
-/// away: `give 'xs'[pos i]` is refused at the source, and a `for … in give
+/// away: `give 'xs'[i]` is refused at the source, and a `for … in give
 /// 'xs'` consumes the list as a whole.
 fn moves_base(pl: &Place) -> bool {
     !pl.proj.iter().any(|p| matches!(p, Proj::Index(_) | Proj::BundleElem(_)))

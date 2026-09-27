@@ -9,10 +9,10 @@ MAIN {
     mut 'hits': int32 = 0;
     mut 'kept': int32 = 0;
     while 'i' < 10 {
-        if 'i' >== 1 and.then 'i' <== list.length[lend 'xs'] and.then 'xs'[pos 'i'] == 5 {
+        if 'i' >== 1 and.then 'i' <== list.length[lend 'xs'] and.then 'xs'['i'] == 5 {
             change 'hits' = 'hits' + 1;
         }
-        if 'i' == 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'[pos 'i'] > 4 {
+        if 'i' == 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'['i'] > 4 {
             change 'kept' = 'kept' + 1;
         }
         change 'i' = 'i' + 1;

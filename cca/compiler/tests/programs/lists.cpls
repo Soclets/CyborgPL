@@ -3,7 +3,7 @@ MAIN {
     mut 'xs': list[int32] = [10, 20, 30];
     list.append[lend.mut 'xs', 12];
     'n': int32 = list.length[lend 'xs'];
-    'a': int32 = 'xs'[pos 1];
-    'd': int32 = 'xs'[pos 4];
+    'a': int32 = 'xs'[1];
+    'd': int32 = 'xs'[4];
     nocheck exit['n' + 'a' + 'd'];
 }

@@ -1837,7 +1837,7 @@ impl Precog {
                 } else if ahi < 1 || blo > nhi {
                     Verdict::Fails { counterexample: format!("every time: the slice from {} to {} runs outside a list of {} element(s)", describe_ints(a), describe_ints(b), describe_ints(n)) }
                 } else if alo > bhi.saturating_add(1) {
-                    Verdict::Fails { counterexample: format!("every time: the slice from {} to {} runs backwards; an empty slice is `pos n, pos n - 1`", describe_ints(a), describe_ints(b)) }
+                    Verdict::Fails { counterexample: format!("every time: the slice from {} to {} runs backwards; an empty slice is `n, n - 1`", describe_ints(a), describe_ints(b)) }
                 } else {
                     Verdict::Fails { counterexample: format!("the slice can be from {} to {} when there are {} element(s)", alo.min(ahi), bhi, nlo) }
                 }
@@ -2774,11 +2774,11 @@ fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
 ///   `P`'s root local or lends it mutably — the list is the same at the walk
 ///   and at the division;
 /// - `A` is set to 0, and otherwise only by `A = T` with `T = A + X` once;
-/// - `X` is set once, from `Q[pos I]`, with `Q` a lend of that same `P`
+/// - `X` is set once, from `Q[I]`, with `Q` a lend of that same `P`
 ///   (through copies of the borrow);
 /// - `I` is set to 1 once, outside every cycle, and otherwise only by
 ///   `I = I + 1`; every cycle through the add passes through that step;
-/// - the read `X = Q[pos I]`, then `T = A + X`, then `A = T` are in one
+/// - the read `X = Q[I]`, then `T = A + X`, then `A = T` are in one
 ///   block, in that order: every add uses a fresh read at the current `I`.
 ///
 /// Then each add is at a different `I`, each `I` a position the read
@@ -2922,7 +2922,7 @@ fn mean_bound(func: &Function, lhs: &Operand, rhs: &Operand) -> Option<(i128, i1
     if !zero {
         return None;
     }
-    // X = Q[pos I], once, Q a lend of P.
+    // X = Q[I], once, Q a lend of P.
     let xw = writes(x);
     let [Write::Assign(Rvalue::Use(Operand::Read(read)), _)] = xw.as_slice() else { return None };
     let [Proj::Index(Operand::Read(ip))] = read.proj.as_slice() else { return None };

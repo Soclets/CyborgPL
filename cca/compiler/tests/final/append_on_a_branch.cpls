@@ -15,7 +15,7 @@ MAIN {
     mut 'p': int64 = 1;
     mut 'c': int64 = 0;
     while 'p' <== 'n' {
-        if 'xs'[pos to.uint64['p']] { change 'c' = 'c' + 1; }
+        if 'xs'[to.uint64['p']] { change 'c' = 'c' + 1; }
         change 'p' = 'p' + 1;
     }
     nocheck exit[to.int32['c' mod 256]];

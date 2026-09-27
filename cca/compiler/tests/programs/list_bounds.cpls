@@ -3,6 +3,6 @@ extern fn exit ['code': int32];
 MAIN {
     mut 'xs': list[int32] = [1, 2, 3];
     nocheck 'n': int32 = getpid[];
-    'v': int32 = 'xs'[pos 'n'];
+    'v': int32 = 'xs'['n'];
     nocheck exit['v'];
 }

@@ -3,10 +3,10 @@ MAIN {
     mut 'a': list[int32] = [1, 2, 3];
     mut 'b': list[int32] = copy 'a';
     list.append[lend.mut 'b', 4];
-    change 'b'[pos 1] = 9;
+    change 'b'[1] = 9;
     'la': int32 = list.length[lend 'a'];
     'lb': int32 = list.length[lend 'b'];
-    'a1': int32 = 'a'[pos 1];
-    'b1': int32 = 'b'[pos 1];
+    'a1': int32 = 'a'[1];
+    'b1': int32 = 'b'[1];
     nocheck exit['la' x 1 + 'lb' x 10 + 'a1' x 100 + 'b1' x 1000];
 }

@@ -167,3 +167,5 @@ simd_masks 25
 simd_shuffle_tail 175
 simd_some_bounds trap
 simd_fields 70
+# 'x'[…] reads a list or calls a held function (owner, 2026-09-27).
+index_or_call 37

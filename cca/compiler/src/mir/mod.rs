@@ -70,7 +70,7 @@ pub struct LocalDecl {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Proj {
     Field(usize),
-    /// `[pos i]` — 1-based; guarded by a `Bounds` site.
+    /// `[i]` — 1-based; guarded by a `Bounds` site.
     Index(Operand),
     /// One element of a mixed variadic bundle.
     BundleElem(usize),
@@ -211,7 +211,7 @@ pub enum SiteKind {
     Overflow(BinOp),
     DivZero,
     ModZero,
-    /// `'xs'[pos i]` — 1-based, must be within the length.
+    /// `'xs'[i]` — 1-based, must be within the length.
     Bounds,
     /// Into a narrower type, or into a range type by assignment.
     Narrow { to: Ty },
@@ -225,8 +225,8 @@ pub enum SiteKind {
     /// `xx` (and `xx~`): a negative exponent makes a fraction, which no
     /// integer holds.
     NegativeExponent,
-    /// `list.slice[…, pos a, pos b]`: `1 <= a <= b + 1 <= length + 1` —
-    /// inside the list, and not backwards; `pos n, pos n - 1` is empty.
+    /// `list.slice[…, a, b]`: `1 <= a <= b + 1 <= length + 1` —
+    /// inside the list, and not backwards; `pos n, n - 1` is empty.
     SliceRange,
     /// `simd.load` / `simd.store`: is `i + N - 1` still inside?
     SimdRange { lanes: u32 },
@@ -484,7 +484,7 @@ impl Function {
                     }
                 }
                 Proj::Index(_) => {
-                    s.push_str("[pos …]");
+                    s.push_str("[…]");
                     if let Ty::Seq { elem, .. } = ty.base().clone() {
                         ty = (*elem).clone();
                     }

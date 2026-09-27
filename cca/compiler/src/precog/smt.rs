@@ -850,7 +850,7 @@ impl<'a> Enc<'a> {
 
     fn assign(&mut self, env: &mut Env, place: &Place, v: Option<Val>) {
         // Whatever is written, every length known of this local is stale —
-        // except for a store into one element: `'xs'[pos i] = v` leaves
+        // except for a store into one element: `'xs'[i] = v` leaves
         // every length the query tracks (fields only) as it was.
         if !place.proj.iter().any(|p| matches!(p, Proj::Index(_))) {
             self.forget_lengths(env, place.local);
@@ -958,7 +958,7 @@ impl<'a> Enc<'a> {
 
     /// A length, the same one each time it is read until something could
     /// have changed it. Only a place reached by fields alone is remembered:
-    /// `'xs'[pos 'i']` names a different element each time `'i'` moves.
+    /// `'xs'['i']` names a different element each time `'i'` moves.
     fn length(&mut self, op: &Op, args: &[Operand], env: &mut Env) -> Option<Val> {
         let key = args.first().and_then(|a| a.place()).map(|p| self.through_borrows(p)).and_then(|p| {
             let p = &p;

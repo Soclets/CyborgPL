@@ -10,7 +10,7 @@ use crate::source::Span;
 /// through a path (`limb.to[…]`); a bare `to[…]` is the keyword.
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
-    "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "list", "array", "pos", "struct", "pub",
+    "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "list", "array", "struct", "pub",
     "const", "module", "limb", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
     "layout", "size", "align", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
     "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "bin16", "bin32", "bin64",
@@ -1139,7 +1139,7 @@ impl<'a> Parser<'a> {
                 let tier_span = self.bump().span;
                 let tier = if w == "check" { Tier::Check } else { Tier::Nocheck };
                 if self.is(&Tok::Semi) {
-                    return self.fail_at(tier_span, format!("`{}` goes in front of a statement, covering its check sites: `{} 'xs'[pos 'i'] = 1;`, `{} {{ … }}`", w, w, w));
+                    return self.fail_at(tier_span, format!("`{}` goes in front of a statement, covering its check sites: `{} change 'xs'['i'] = 1;`, `{} {{ … }}`", w, w, w));
                 }
                 if self.is_word("check") || self.is_word("nocheck") {
                     return self.fail(format!("one tier per statement: `{}` and `{}` cannot both cover it", w, self.word_text()));
@@ -1526,6 +1526,9 @@ impl<'a> Parser<'a> {
         match &e.kind {
             ExprKind::Call { .. } | ExprKind::CallValue { .. } | ExprKind::Conv { .. } => {}
             ExprKind::Path(p) => return self.fail_at(e.span, format!("`{}` alone is not a statement: a call needs `[…]` — `{}[…];`", p.spelled(), p.spelled())),
+            // One value in brackets: a list read, or a call of a function
+            // held in a variable — the checker knows which.
+            ExprKind::Index { .. } => {}
             _ => {
                 if self.is(&Tok::Semi) {
                     return self.fail_at(e.span, "a value alone is not a statement: assign it, or call something with it");
@@ -1550,6 +1553,11 @@ impl<'a> Parser<'a> {
             let ow_span = self.span();
             self.bump();
             let ow = self.otherwise_rest()?;
+            // `'f'[2] otherwise …` is a call: a list read never fails.
+            if let ExprKind::Index { .. } = e.kind {
+                let ExprKind::Index { base, index } = std::mem::replace(&mut e.kind, ExprKind::Bool(false)) else { unreachable!() };
+                e.kind = ExprKind::CallValue { callee: base, args: vec![Arg::Positional(*index)], otherwise: None };
+            }
             match &mut e.kind {
                 ExprKind::Call { otherwise, .. } | ExprKind::CallValue { otherwise, .. } | ExprKind::Conv { otherwise, .. } => {
                     if otherwise.is_some() {
@@ -1911,7 +1919,7 @@ impl<'a> Parser<'a> {
                 w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket) => {
                     self.fail(format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `limb.{}[…]` inside its own Limb, `name::{}[…]` from outside", w, w, w))
                 }
-                "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "match" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "pos" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {
+                "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "match" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {
                     self.fail(format!("expected a value, found `{}`", w))
                 }
                 _ => {
@@ -1961,7 +1969,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// A primary followed by `.field`, `[pos i]`, `[args]`.
+    /// A primary followed by `.field`, `[i]`, `[args]`.
     fn postfix(&mut self) -> Result<Expr> {
         let start = self.span();
         let e = match self.peek().clone() {
@@ -2051,22 +2059,22 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Tok::LBracket => {
-                    // `'xs'[pos i]` or `'f'[args]`
-                    if self.is_word_at(1, "pos") {
-                        self.bump();
-                        self.bump();
-                        let index = self.expr(0)?;
-                        self.expect(&Tok::RBracket, "`]` closing the index")?;
-                        let span = e.span.to(self.prev_span());
+                    // `'xs'[2]` reads a list and `'f'[2]` calls a function
+                    // (owner, 2026-09-27: `pos` is removed). One plain value
+                    // is read as an index here; the checker makes it a call
+                    // when the value holds a function.
+                    match &e.kind {
+                        ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::CallValue { .. } | ExprKind::Index { .. } => {}
+                        _ => break,
+                    }
+                    self.bump();
+                    let mut args = self.args()?;
+                    let span = e.span.to(self.prev_span());
+                    let one = args.len() == 1 && matches!(&args[0], Arg::Positional(x) if !matches!(x.kind, ExprKind::Verb { .. } | ExprKind::Spread { .. }));
+                    if one {
+                        let Some(Arg::Positional(index)) = args.pop() else { unreachable!() };
                         e = Expr { kind: ExprKind::Index { base: Box::new(e), index: Box::new(index) }, span };
                     } else {
-                        match &e.kind {
-                            ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::CallValue { .. } | ExprKind::Index { .. } => {}
-                            _ => break,
-                        }
-                        self.bump();
-                        let args = self.args()?;
-                        let span = e.span.to(self.prev_span());
                         e = Expr { kind: ExprKind::CallValue { callee: Box::new(e), args, otherwise: None }, span };
                     }
                 }
@@ -2110,17 +2118,9 @@ impl<'a> Parser<'a> {
                     return self.fail(format!("a field's name is bare in a construction: `{} = …`, not `'{}' = …`", n, n));
                 }
             }
-            // `pos i` as an argument: `simd.load[lend 'xs', pos 'i']`.
-            if self.is_word("pos") {
-                let start = self.span();
-                self.bump();
-                let inner = self.expr(0)?;
-                let span = start.to(self.prev_span());
-                args.push(Arg::Positional(Expr { kind: ExprKind::Pos(Box::new(inner)), span }));
-                if !self.eat(&Tok::Comma) {
-                    break;
-                }
-                continue;
+            // `pos` the old keyword, not a function someone named `pos`.
+            if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket) {
+                return self.fail("`pos` is gone: a position is written bare — `'xs'[2]`, `list.slice[lend 'xs', 2, 4]`");
             }
             let e = self.expr(0)?;
             if self.is(&Tok::Walrus) {

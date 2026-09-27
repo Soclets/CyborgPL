@@ -1,0 +1,14 @@
+# `pos` is removed (owner, 2026-09-27): 'x'[…] reads a list when 'x' holds
+# one and calls a function when it holds one; a position can be any
+# whole number, a 65-bit exact answer included. 3 + 30 + 4 = 37 (oracle).
+fn inc ['n': int32] -> int32 { return 'n' + 1; }
+fn add ['a': int32, 'b': int32] -> int32 { return 'a' + 'b'; }
+extern fn exit ['code': int32];
+MAIN {
+    'f' := inc;
+    'g' := add;
+    'xs': list[int32] = [4, 5, 6];
+    'a' := 'f'[2];
+    'c' := 'g'[10, 20];
+    nocheck exit['a' + 'c' + 'xs'['xs'[1] - 3]];
+}

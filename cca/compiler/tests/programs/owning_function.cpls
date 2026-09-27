@@ -17,7 +17,7 @@ MAIN {
     'again' := copy 'count';
     'moved' := give 'count';
     'words' := ["a", "bb"];
-    'size' := fn [] -> uint64 with [give 'words'] { return str.bytes[lend 'words'[pos 2]]; };
+    'size' := fn [] -> uint64 with [give 'words'] { return str.bytes[lend 'words'[2]]; };
     'inc' := fn ['a': int32] -> int32 { return 'a' + 1; };
     'inc2' := 'inc';
     'inc3' := fn [] -> uint64 { return 7; };

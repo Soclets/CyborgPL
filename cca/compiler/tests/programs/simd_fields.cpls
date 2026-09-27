@@ -17,5 +17,5 @@ MAIN {
     list.append[lend.mut 'history', 'q'.place + 'q'.vel];
     list.append[lend.mut 'history', simd.shuffle['q'.vel, [1, 2, 3, 4]]];
     # 12 + 3 x 10 + 20 + 8 = 70
-    nocheck exit[simd.sum['q'.place] + to.int32[list.length[lend 'history']] x 10 + simd.sum['history'[pos 2]] + simd.sum['history'[pos 3]]];
+    nocheck exit[simd.sum['q'.place] + to.int32[list.length[lend 'history']] x 10 + simd.sum['history'[2]] + simd.sum['history'[3]]];
 }

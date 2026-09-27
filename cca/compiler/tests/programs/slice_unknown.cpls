@@ -6,6 +6,6 @@ MAIN {
     's' := "nine char";
     nocheck 'k': uint64 = strlen[lend 's'];
     'xs': list[int64] = [1, 2, 3];
-    'part' := list.slice[lend 'xs', pos 1, pos 'k'];
+    'part' := list.slice[lend 'xs', 1, 'k'];
     nocheck exit[to.int32[list.length[lend 'part']]];
 }

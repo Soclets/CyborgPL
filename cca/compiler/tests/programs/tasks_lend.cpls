@@ -15,6 +15,6 @@ MAIN {
     }
     'la': int32 = list.length[lend 'a'];
     'lb': int32 = list.length[lend 'b'];
-    'last': int32 = 'b'[pos 5];
+    'last': int32 = 'b'[5];
     nocheck exit['la' + 'lb' + 'last'];
 }

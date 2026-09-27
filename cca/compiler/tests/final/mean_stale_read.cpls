@@ -9,7 +9,7 @@ fn stale [lent 'xs': list[int32], 'n': int32] -> int32 {
     mut 'total' := 0;
     'v' := lend 'xs';
     mut 'i' := 1;
-    'x' := 'v'[pos 'i'];
+    'x' := 'v'['i'];
     while 'i' <== 'n' {
         change 'total' = 'total' + 'x';
         change 'i' = 'i' + 1;

@@ -157,7 +157,7 @@ fn place_s(p: &Place, f: &Function) -> String {
                 let _ = write!(s, ".{}", i);
             }
             Proj::Index(o) => {
-                let _ = write!(s, "[pos {}]", operand_s(o, f));
+                let _ = write!(s, "[{}]", operand_s(o, f));
             }
             Proj::BundleElem(i) => {
                 let _ = write!(s, "[bundle {}]", i);

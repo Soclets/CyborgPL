@@ -5,7 +5,7 @@ MAIN {
     list.append[lend.mut 'grid', give 'row'];
     'copy_of': list[list[int32]] = copy 'grid';
     'rows': int32 = list.length[lend 'grid'];
-    'third': int32 = 'grid'[pos 3][pos 3];
+    'third': int32 = 'grid'[3][3];
     'crows': int32 = list.length[lend 'copy_of'];
     nocheck exit['rows' + 'third' + 'crows'];
 }

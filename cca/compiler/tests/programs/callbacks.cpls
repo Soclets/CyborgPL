@@ -14,9 +14,9 @@ MAIN {
     mut 'nums' := [5, 1, 4, 2, 3];
     mut 'got': int32 = 0;
     nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
-    if 'nums'[pos 1] == 1 and 'nums'[pos 5] == 5 and 'nums'[pos 3] == 3 { change 'got' = 'got' + 1; }
+    if 'nums'[1] == 1 and 'nums'[5] == 5 and 'nums'[3] == 3 { change 'got' = 'got' + 1; }
     'f' := descending;
     nocheck qsort[lend.mut 'nums', 5, size.of[int32], 'f'];
-    if 'nums'[pos 1] == 5 and 'nums'[pos 2] == 4 and 'nums'[pos 5] == 1 { change 'got' = 'got' + 2; }
+    if 'nums'[1] == 5 and 'nums'[2] == 4 and 'nums'[5] == 1 { change 'got' = 'got' + 2; }
     nocheck exit['got'];
 }

@@ -31,6 +31,14 @@ impl Checker {
         let v = self.expr_in(ctx, e, true, false)?;
         match &v.kind {
             K::Call { .. } | K::Conv { .. } => {}
+            _ if matches!(e.kind, AK::Index { .. }) => {
+                let AK::Index { base, .. } = &e.kind else { unreachable!() };
+                let who = match &base.kind {
+                    AK::Name(n) => format!("'{}'", n.name),
+                    _ => "a list".into(),
+                };
+                return err(Diagnostic::error(format!("{}[…] on its own reads an item and drops it; to change it, `change {}[…] = …;`", who, who)).at(e.span));
+            }
             _ => return err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").at(e.span)),
         }
         Ok(v)
@@ -114,6 +122,11 @@ impl Checker {
                 }
                 self.call_value(ctx, callee, args, otherwise.as_deref(), span, used)
             }
+            // `'f'[2]` calls what `'f'` holds when it holds a function
+            // (owner, 2026-09-27: `pos` is removed).
+            AK::Index { base, index } if matches!(self.peek_ty(ctx, base).as_ref().map(|t| t.base()), Some(Ty::Fn(_))) => {
+                self.call_value(ctx, base, &[AArg::Positional((**index).clone())], None, span, used)
+            }
             AK::Field { .. } | AK::Index { .. } => {
                 let place = self.place(ctx, e, PlaceUse::Read)?;
                 let ty = place.ty.clone();
@@ -157,7 +170,6 @@ impl Checker {
                 Ok(Expr { kind: K::Channel { elem: et.clone(), capacity: cap }, ty: Ty::Channel(Box::new(et)), span })
             }
             AK::FnLit(lit) => self.fn_literal(ctx, lit, span),
-            AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one is only wanted where something is indexed or loaded: `'xs'[pos 3]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Spread { .. } => err(Diagnostic::error("`...` has no meaning here: it unpacks a list into a call's arguments — `sum[...'xs']`").at(span)),
             AK::SizeOf { align, ty } => {
                 let mut blanks = Vec::new();
@@ -169,6 +181,33 @@ impl Checker {
             }
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
+    }
+
+    /// What a place holds, looked at without using it: enough to tell a
+    /// list read from a call of a held function.
+    fn peek_ty(&self, ctx: &FnCtx, e: &ast::Expr) -> Option<Ty> {
+        let t = match &e.kind {
+            AK::Name(n) => ctx.locals[ctx.lookup(&n.name)?.0 as usize].ty.clone(),
+            AK::Paren(inner) => self.peek_ty(ctx, inner)?,
+            AK::Field { base, field } => match self.peek_ty(ctx, base)?.base() {
+                Ty::Struct { id, args } => {
+                    let info = &self.items.structs[id.0 as usize];
+                    info.fields.iter().find(|f| f.name == field.name)?.ty.subst(args)
+                }
+                _ => return None,
+            },
+            AK::Index { base, .. } => match self.peek_ty(ctx, base)?.base() {
+                Ty::Seq { elem, .. } => (**elem).clone(),
+                Ty::Fn(f) => f.ret.clone(),
+                _ => return None,
+            },
+            AK::CallValue { callee, .. } => match self.peek_ty(ctx, callee)?.base() {
+                Ty::Fn(f) => f.ret.clone(),
+                _ => return None,
+            },
+            _ => return None,
+        };
+        Some(self.resolve(&t))
     }
 
     fn undeclared<T>(&self, ctx: &FnCtx, n: &ast::QName) -> Result<T> {
@@ -312,10 +351,16 @@ impl Checker {
                 let elem = match bt.base() {
                     Ty::Seq { elem, .. } => (**elem).clone(),
                     Ty::Simd { elem, .. } => (**elem).clone(),
-                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[pos]`: it would not say which unit — the 3rd byte, point or grapheme? — use `std::str.at.<unit>` when std exists, or walk it with `str.each.<unit>`").at(e.span)),
+                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `std::str.at.<unit>` when std exists, or walk it with `str.each.<unit>`").at(e.span)),
                     Ty::Map { .. } => return err(Diagnostic::error("a map is looked up by key with `map.get[lend 'm', key] otherwise …`, not by position").at(e.span)),
-                    Ty::Bundle(_) => return err(Diagnostic::error("a mixed bundle has no `[pos]`: walk it with `for`").at(e.span)),
-                    other => return err(Diagnostic::error(format!("`[pos …]` indexes a list, and this is a `{}`", self.spell(other))).at(e.span)),
+                    Ty::Bundle(_) => return err(Diagnostic::error("a mixed bundle has no `[…]`: walk it with `for`").at(e.span)),
+                    other => {
+                        let who = match &base.kind {
+                            AK::Name(n) => format!("'{}'", n.name),
+                            _ => "this".into(),
+                        };
+                        return err(Diagnostic::error(format!("{} is a `{}`, neither a list nor a function: `'x'[…]` reads a list, or calls a function held in 'x'", who, self.spell(other))).at(e.span));
+                    }
                 };
                 if use_ == PlaceUse::Give {
                     return err(Diagnostic::error("an element cannot be given away: it would leave a hole in the list — `list.remove[lend.mut 'xs', i]` hands the element back").at(e.span));
@@ -445,7 +490,7 @@ impl Checker {
                     // find the struct through the base type chain is expensive; keep the field index readable
                     s.push_str(&format!(".{}", self.field_name_at(ctx, p, *i)));
                 }
-                Proj::Index(_) => s.push_str("[pos …]"),
+                Proj::Index(_) => s.push_str("[…]"),
             }
         }
         s
@@ -1822,8 +1867,9 @@ impl Checker {
         let ct = self.resolve(&c.ty);
         let ft = match ct.base() {
             Ty::Fn(f) => (**f).clone(),
-            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, not a function: `'xs'[…]` calls, `'xs'[pos …]` indexes", self.expr_name(ctx, &c))).at(span)),
-            other => return err(Diagnostic::error(format!("{} is a `{}`, not a function: `'f'[…]` calls a held function, and `[pos …]` indexes a list", self.expr_name(ctx, &c), self.spell(other))).at(span)),
+            Ty::Seq { .. } if otherwise.is_some() => return err(Diagnostic::error(format!("reading {}[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`", self.expr_name(ctx, &c))).at(span)),
+            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).at(span)),
+            other => return err(Diagnostic::error(format!("{} is a `{}`, not a function: `'f'[…]` calls a held function, and `'xs'[2]` reads a list", self.expr_name(ctx, &c), self.spell(other))).at(span)),
         };
         let flat = self.flatten_args(ctx, args, span)?;
         if flat.len() != ft.params.len() {
@@ -2680,11 +2726,10 @@ impl Checker {
     }
 
     /// `pos i` where a position is wanted.
+    /// A position, written bare (owner, 2026-09-27: `pos` is removed).
     fn pos_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str) -> Result<Arg> {
-        let AK::Pos(inner) = &e.kind else {
-            return err(Diagnostic::error(format!("`{}` says the position with `pos`, as every index does: `{}[…, pos 'i']`", name, name)).at(e.span));
-        };
-        let v = self.expr(ctx, inner)?;
+        let _ = name;
+        let v = self.expr(ctx, e)?;
         let vt = self.resolve(&v.ty);
         if !vt.is_int() {
             return err(Diagnostic::error(format!("a position is a whole number, and this is a `{}`", self.spell(&vt))).at(e.span));

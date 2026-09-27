@@ -10,9 +10,9 @@ fn by_owner [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[lend
 fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> int32 {
     mut 'best' := 1;
     for 'i' in range[2, list.length[lend 'xs']] {
-        if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { change 'best' = 'i'; }
+        if 'less'[lend 'xs'['i'], lend 'xs'['best']] { change 'best' = 'i'; }
     }
-    'winner' := lend 'xs'[pos 'best'];
+    'winner' := lend 'xs'['best'];
     return 'winner'.number;
 }
 fn count_if [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> int32 {
@@ -30,7 +30,7 @@ MAIN {
     if first_by[lend 'lockers', by_number] == 2 { change 'got' = 'got' + 1; }
     if first_by[lend 'lockers', by_owner] == 'first' { change 'got' = 'got' + 2; }
     'f' := by_number;
-    if 'f'[lend 'lockers'[pos 2], lend 'lockers'[pos 1]] { change 'got' = 'got' + 4; }
+    if 'f'[lend 'lockers'[2], lend 'lockers'[1]] { change 'got' = 'got' + 4; }
     mut 'limit' := 60;
     if 'there' { change 'limit' = 50; }
     'scores' := [72, 40, 95, 55];
