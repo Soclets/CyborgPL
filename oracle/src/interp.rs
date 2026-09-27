@@ -1129,7 +1129,10 @@ impl<'p> Interp<'p> {
         // arithmetic in its arguments (found by the verification session, 2026-09-23).
         // It stops at a comparison too: a `bool` holds the comparison's answer, never its
         // operands, which take their width from each other (verification session, seed 93).
-        let fresh = matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
+        // …except `simd.load` / `simd.fill`, which take their lane count from the declared type
+        // (design/simd.md) — the stop had cut that off, so a `simd[int32, 4]` loaded 16 lanes
+        let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if h == "simd" && (op == "load" || op == "fill"));
+        let fresh = !simd_shape && matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
             | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
             || matches!(e, Expr::Binary(op, ..) if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "<==" | ">=="));
@@ -1646,6 +1649,9 @@ impl<'p> Interp<'p> {
                 }
                 match (op.as_str(), v) {
                     ("not", Value::Bool(b)) => Ok((Value::Bool(!b), Prov::Plain)),
+                    // a mask, lane by lane (owner, 2026-09-27: `simd[bool, N]` is a type)
+                    ("not", Value::Simd(ls)) if ls.iter().all(|l| matches!(l, Value::Bool(_))) =>
+                        Ok((Value::Simd(ls.iter().map(|l| match l { Value::Bool(b) => Value::Bool(!b), o => o.clone() }).collect()), Prov::Plain)),
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
                     ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None, site: true, leave: None })?), keep)),
                     ("-", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
@@ -2220,8 +2226,9 @@ impl<'p> Interp<'p> {
                 if args.values.len() != 1 { return rt(line, "`simd.fill` takes one value: `simd.fill[0]`"); }
                 let (v, _) = self.value(&args.values[0])?;
                 if !matches!(v, Value::Int(_) | Value::Bin(_) | Value::Bool(_)) { return rt(line, format!("a simd holds plain numbers or bools, not {}", v.kind())); }
-                // the lane count comes from the declared type; 16 is the oracle's default shape
-                Ok(Value::Simd(vec![v; 16]))
+                // the lane count comes from the declared type; 16 when nothing states one
+                let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };
+                Ok(Value::Simd(vec![v; n]))
             }
             "load" | "store" => {
                 let want = if op == "load" { 2 } else { 3 };
@@ -2232,7 +2239,9 @@ impl<'p> Interp<'p> {
                 let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
                 let (iv, _) = self.value(&args.values[1])?;
                 let i = match iv { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
-                let n = 16usize;   // the oracle's shape; the compiler takes it from the type
+                // the lane count comes from the declared type (`'a': simd[int32, 4] = simd.load[…]`);
+                // 16 when nothing states one
+                let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };
                 let n = match &args.values[2..] { [a] => { let (v, _) = self.value(a)?; match v { Value::Simd(l) => l.len(), _ => n } } _ => n };
                 if i < 1 || (i - 1) as usize + n > items.len() {
                     return site(line, format!("`simd.{op}` of {n} lanes at position {i} runs past the end of a list of {} element(s)", items.len()));

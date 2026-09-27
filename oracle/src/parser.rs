@@ -708,7 +708,13 @@ impl Parser {
             if !matches!(t, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Bool) { return self.err(format!("a simd holds plain numbers or bools, not {}", ty_name(&t))); }
             // Only the target's own register shapes. The oracle's target is the owner's
             // machine: ARM64, 128-bit NEON (design/simd.md; a real target list is the compiler's).
-            let bits = match &t { Ty::Int(w) | Ty::Uint(w) => match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, Ty::Bin(w) => *w as usize, Ty::Bool => 8, _ => 0 };
+            // a mask (`simd[bool, N]`, owner 2026-09-27: a) has as many lanes as the vectors it
+            // compares, so any count the target has for some element type: 2, 4, 8 or 16
+            if matches!(t, Ty::Bool) {
+                if ![2, 4, 8, 16].contains(&n) { return self.err(format!("a mask has as many lanes as the vectors it compares: 2, 4, 8 or 16 on this target, not {n}")); }
+                return Ok(Ty::Simd(Box::new(t), n));
+            }
+            let bits = match &t { Ty::Int(w) | Ty::Uint(w) => match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, Ty::Bin(w) => *w as usize, _ => 0 };
             if bits * n != 128 {
                 let fits = 128 / bits.max(1);
                 return self.err(format!("this target's vector registers are 128 bits, so a `simd[{}, …]` holds {fits} lanes, not {n}", ty_name(&t)));

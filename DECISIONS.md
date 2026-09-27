@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `simd[bool, N]` is a type you can write (owner: a)
+
+A vector comparison already gives a `simd[bool, N]`, but the type could
+not be written, so no function could take a mask. Proposed (a) a
+writable type, with `simd.fill[true]`, `all`/`any` and lane-wise
+`not`/`and`/`or`; (b) a mask only as a comparison's result. Design claude
+recommended a. Owner: a. A mask has the lane count of what it compares:
+2, 4, 8 or 16 on a 128-bit target. The oracle had allowed only 16, as if a
+bool were 8 bits. Found on the way, an oracle bug: `simd.load` and
+`simd.fill` always made 16 lanes whatever the declared type, and the
+2026-09-23 context-stops-at-a-call fix had also cut them off from it. Both
+now take the declared lane count. `simd.md`; `examples/simd_mask.cpls`;
+reject test simd_mask_lanes.
+
 ### 2026-09-27 — A range type may be a `layout.c` struct's field (owner: a)
 
 Refused until now (`input.md` Open). Proposed (a) allow it: C sees the

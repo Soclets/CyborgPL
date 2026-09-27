@@ -1,0 +1,15 @@
+# `simd[bool, N]` is a type you can write (owner, 2026-09-27: a): a mask, one yes/no per
+# lane, as a vector comparison gives. It has as many lanes as the vectors it compares, and
+# `not`/`and`/`or` work lane by lane. A function can take one.
+fn count_on ['m': simd[bool, 4]] -> bool {
+    return simd.all['m'];
+}
+MAIN {
+    'xs': array[int32] = [5, 20, 30, 40];
+    'a': simd[int32, 4] = simd.load[lend 'xs', pos 1];
+    'm': simd[bool, 4] = 'a' > simd.fill[10];
+    'all': simd[bool, 4] = simd.fill[true];
+    'both' := 'm' and 'all';
+    'flip' := not 'm';
+    std::printu.stdout[simd.any['m'], " ", simd.all['m'], " ", count_on['both'], " ", simd.any['flip'], \n];
+}

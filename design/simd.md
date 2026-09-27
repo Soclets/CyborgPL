@@ -84,10 +84,23 @@ oracle had to pick and this document has not said: a scalar broadcasts
 against a vector (`'v' + 1`), and `simd.sum` is a check site while
 `max`/`min` are not.
 
+## A mask is a type: `simd[bool, N]` (owner, 2026-09-27: a)
+
+```
+fn all_on ['m': simd[bool, 4]] -> bool { return simd.all['m']; }
+'m': simd[bool, 4] = 'a' > simd.fill[10];
+'flip' := not 'm';
+```
+
+A vector comparison's result can be written as a type, so a function can
+take a mask and a declaration can name one. It has as many lanes as the
+vectors it compares: 2, 4, 8 or 16 on a 128-bit target. `simd.fill[true]`,
+`simd.all`, `simd.any` apply, and `not`, `and`, `or` work lane by lane.
+Proposed alternative: a mask exists only as a comparison's result, used
+on the spot. `examples/simd_mask.cpls`.
+
 ## Open
 
-- Which `T` beyond the integers and bins: `bool` exists as a
-  comparison's result; is `simd[bool, N]` writable directly?
 - Shuffles and lane-crossing operations (reverse, interleave, a
   general permute) — none designed; the folds cover the common cases.
 - Masked load/store (fill only some lanes), which is what a tail
