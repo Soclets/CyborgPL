@@ -67,7 +67,5 @@ in one scope (open: state that rule).
 
 ## Open
 
-- Enums with no data as plain integers at the C boundary (`layout.c
-  enum`?) — for FFI.
 - A catch-all arm — deliberately not offered; exhaustiveness is the point.
 - A `match` that yields a value.

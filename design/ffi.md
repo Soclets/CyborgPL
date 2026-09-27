@@ -106,6 +106,26 @@ performance difference against (a): none — same compare, same proofs;
 written once in the signature instead of after every call. Owner: c.
 `examples/extern_range.cpls`.
 
+## `layout.c enum` — C's enum (owner, 2026-09-27: a)
+
+```
+layout.c enum Key { a = 65  b = 66  escape = 256 }
+extern fn IsKeyDown ['key': Key] -> bool;
+```
+
+A C enum is a number with names, and here it is a Cyborg enum laid out
+as C's: `match` covers every case, and it is owned like every enum
+(2026-09-20). Its cases carry no data, and each says its number, as the C
+header does. Guessing the order is how bindings go wrong, so a missing
+number is an error, and so are two cases with one number. It is 32 bits,
+C's `int`. A number C hands back that matches no case fails `out_of_range`
+at the door, like a ranged return: C can send any number. Only a
+`layout.c enum` crosses to C. Proposed alternative: no enums at the
+boundary, plain numbers with named constants, which loses the names in
+types and the exhaustive `match`. Written numbers required, and 32 bits:
+design claude's recommendation with a, not asked separately.
+`examples/c_enum.cpls`.
+
 ## `extern 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```

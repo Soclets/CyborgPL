@@ -93,6 +93,8 @@ pub struct EnumDef {
     pub cases: Vec<FailCase>, // a case is a name with an optional payload — the failure shape
     /// type variables, in order of first appearance (design/generics.md)
     pub params: Vec<String>,
+    /// `layout.c enum` (owner, 2026-09-27): each case's number in C; `None` for a Cyborg enum
+    pub c_values: Option<Vec<i128>>,
     pub line: usize,
 }
 

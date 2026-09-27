@@ -216,7 +216,11 @@ impl<'p> Interp<'p> {
             Ty::Struct(n) => match self.prog.structs.iter().find(|d| &d.name == n) {
                 Some(d) if d.layout_c => Ok(()),
                 Some(_) => Err(format!("struct `{n}` is not `layout.c`; its layout is Precog's, not C's")),
-                None => Err(format!("no struct named `{n}`")),
+                None => match self.prog.enums.iter().find(|e| &e.name == n) {
+                    Some(e) if e.c_values.is_some() => Ok(()),
+                    Some(_) => Err(format!("enum `{n}` is not `layout.c`; a C enum is `layout.c enum {n} {{ a = 0 }}`")),
+                    None => Err(format!("no struct or enum named `{n}`")),
+                },
             },
             Ty::Var(_) | Ty::Inst(..) => Err("a generic type cannot cross to C".into()),
             Ty::Ranged(..) => Err("a range type cannot cross to C; C has no ranges — use the plain type".into()),

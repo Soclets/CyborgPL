@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `layout.c enum`: C's enum, a number per case (owner: a)
+
+The first low-level item (the owner: "I'll do the low-level stuff first").
+C libraries use enums constantly (raylib's keys: `KEY_A = 65`). Proposed
+(a) `layout.c enum Key { a = 65  b = 66 }`, a Cyborg enum laid out as C's
+number, whose cases carry no data, with a number C returns checked at the
+door (`out_of_range`); (b) no enums at the boundary, plain numbers and
+named constants. Design claude recommended a, with every number written
+out. Owner: a. The enum is owned like every enum (2026-09-20), 32 bits,
+and only a `layout.c enum` crosses to C. `ffi.md`; `examples/c_enum.cpls`;
+reject tests c_enum_number_missing, c_enum_same_number, c_enum_data,
+enum_not_c.
+
 ### 2026-09-27 — N% is renamed Lunae (owner)
 
 "`Lunae` is the `N%`'s new name. I liked Lua's name." The scripting

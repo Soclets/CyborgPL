@@ -175,7 +175,7 @@ impl Parser {
                     if cases.is_empty() { return self.err(format!("enum `{name}` has no cases")); }
                     let mut params = Vec::new();
                     for c in &cases { if let Some(t) = &c.ty { t.vars_into(&mut params); } }
-                    prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params, line });
+                    prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params, c_values: None, line });
                 }
                 Tok::Word(w) if w == "extern" => {
                     // extern fn name [params] -> T;   (design/ffi.md)
@@ -211,7 +211,43 @@ impl Parser {
                     self.advance();
                     self.expect(Tok::Dot, "`.c` after `layout` (`layout.c struct …`)")?;
                     match self.advance().tok { Tok::Word(l) if l == "c" => {}, other => return self.err(format!("the only layout is `layout.c`, found {other}")) }
-                    if !self.is_word("struct") { return self.err("`layout.c` goes before `struct`: `layout.c struct Timeval { … }`"); }
+                    if self.is_word("enum") {
+                        // layout.c enum Key { a = 65  b = 66 }  — C's enum: a number per case, no data,
+                        // every number written (owner, 2026-09-27: a)
+                        let line = self.line();
+                        self.advance();
+                        let name = match self.advance().tok {
+                            Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
+                            Tok::Word(n) => n,
+                            other => return self.err(format!("expected an enum name, found {other}")),
+                        };
+                        self.expect(Tok::LBrace, "`{`")?;
+                        let (mut cases, mut values): (Vec<FailCase>, Vec<i128>) = (Vec::new(), Vec::new());
+                        while *self.peek() != Tok::RBrace {
+                            let cname = match self.advance().tok {
+                                Tok::Word(c) if KEYWORDS.contains(&c.as_str()) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
+                                Tok::Word(c) => c,
+                                Tok::Eof => return self.err("unclosed `layout.c enum {`"),
+                                other => return self.err(format!("expected a case name, found {other}")),
+                            };
+                            if *self.peek() == Tok::Colon { return self.err(format!("a C enum's case carries no data; C's enum is a number: `{cname} = 1`")); }
+                            if *self.peek() != Tok::Eq { return self.err(format!("a C enum's case says its number, as the C header does: `{cname} = 1`")); }
+                            self.advance();
+                            let neg = matches!(self.peek(), Tok::Op(o) if o == "-");
+                            if neg { self.advance(); }
+                            let v = match self.advance().tok { Tok::Int(n) => if neg { -n } else { n }, other => return self.err(format!("a C enum's number is a whole number, found {other}")) };
+                            if v < i32::MIN as i128 || v > i32::MAX as i128 { return self.err(format!("{v} does not fit C's enum (an `int`, 32 bits)")); }
+                            if cases.iter().any(|c| c.name == cname) { return self.err(format!("case `{cname}` is declared twice")); }
+                            if let Some(i) = values.iter().position(|x| *x == v) { return self.err(format!("`{cname}` and `{}` are both {v}; each case has its own number", cases[i].name)); }
+                            cases.push(FailCase { name: cname, ty: None });
+                            values.push(v);
+                        }
+                        self.advance();
+                        if cases.is_empty() { return self.err(format!("enum `{name}` has no cases")); }
+                        prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params: Vec::new(), c_values: Some(values), line });
+                        continue;
+                    }
+                    if !self.is_word("struct") { return self.err("`layout.c` goes before `struct` or `enum`: `layout.c struct Timeval { … }`, `layout.c enum Key { a = 65 }`"); }
                     self.at_boundary = true;
                     let d = self.struct_def();
                     self.at_boundary = false;
