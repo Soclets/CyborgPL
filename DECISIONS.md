@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — Oracle bug: `bit` was reserved, though no decision reserves it (compiler session)
+
+The oracle refused `fn bit […]` as a keyword. `bit` only ever follows a
+dot (`and.bit`, `or.bit`, `not.bit`), where a word needs no reserving,
+like `.then`, `.some`, `.slice`, and `syntax-sketch.md`'s keyword list
+never had it. Removed from the oracle's list. CCA already accepted it.
+
 ### 2026-09-27 — `simd.shuffle['v', [4, 3, 2, 1]]` rearranges lanes (owner: a)
 
 The last SIMD leftover. Proposed (a) one general shuffle whose order is

@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "bit", "with",
+    "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "pos", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
