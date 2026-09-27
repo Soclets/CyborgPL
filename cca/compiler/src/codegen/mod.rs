@@ -69,7 +69,7 @@ pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, na
     // knows that.
     let target = match machine() {
         Ok(m) => {
-            module.set_triple(&TargetMachine::get_default_triple());
+            module.set_triple(&host_triple());
             module.set_data_layout(&m.get_target_data().get_data_layout());
             m.get_target_data()
         }
@@ -2937,11 +2937,35 @@ fn readable_op(debug: &str) -> String {
     out
 }
 
+/// This machine's triple, with the OS version the linker will use. LLVM
+/// reads a macOS version off the Darwin one, and on this machine it reads one
+/// too many (darwin27 → macOS 28 on macOS 27), so every link warned that the
+/// object was built for a newer macOS. `cc` links for the deployment target,
+/// or else the running macOS; the object says the same.
+fn host_triple() -> inkwell::targets::TargetTriple {
+    static TRIPLE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    let t = TRIPLE.get_or_init(|| {
+        let default = TargetMachine::get_default_triple().as_str().to_string_lossy().into_owned();
+        if !cfg!(target_os = "macos") {
+            return default;
+        }
+        let version = std::env::var("MACOSX_DEPLOYMENT_TARGET").ok().filter(|v| !v.is_empty()).or_else(|| {
+            let out = std::process::Command::new("sw_vers").arg("-productVersion").output().ok()?;
+            Some(String::from_utf8(out.stdout).ok()?.trim().to_string())
+        });
+        match (version, default.split_once("-apple-")) {
+            (Some(v), Some((arch, _))) if !v.is_empty() => format!("{}-apple-macosx{}", arch, v),
+            _ => default,
+        }
+    });
+    inkwell::targets::TargetTriple::create(t)
+}
+
 /// Write the module as an object file for this machine.
 /// This machine, described: the triple, the CPU and what it can do.
 fn machine() -> Result<TargetMachine, String> {
     Target::initialize_native(&InitializationConfig::default()).map_err(|e| e.to_string())?;
-    let triple = TargetMachine::get_default_triple();
+    let triple = host_triple();
     let target = Target::from_triple(&triple).map_err(|e| e.to_string())?;
     target
         .create_target_machine(&triple, &TargetMachine::get_host_cpu_name().to_string(), &TargetMachine::get_host_cpu_features().to_string(), OptimizationLevel::Aggressive, RelocMode::PIC, CodeModel::Default)
@@ -2950,7 +2974,7 @@ fn machine() -> Result<TargetMachine, String> {
 
 pub fn write_object(module: &Module, path: &Path) -> Result<(), String> {
     let machine = machine()?;
-    module.set_triple(&TargetMachine::get_default_triple());
+    module.set_triple(&host_triple());
     module.set_data_layout(&machine.get_target_data().get_data_layout());
     // LLVM's whole pipeline, as clang -O3 runs it (owner: optimised
     // everywhere). Without it the module went to the backend as written —
