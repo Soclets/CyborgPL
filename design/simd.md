@@ -99,10 +99,25 @@ vectors it compares: 2, 4, 8 or 16 on a 128-bit target. `simd.fill[true]`,
 Proposed alternative: a mask exists only as a comparison's result, used
 on the spot. `examples/simd_mask.cpls`.
 
+## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
+
+```
+'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 9, 2];   # 2 items; lanes 3–4 are zero
+simd.store.some[lend.mut 'xs', pos 9, 2, 'v'];               # writes lanes 1–2 only
+```
+
+Every vector loop over a list whose length is not a multiple of N has a
+tail. With these the tail is one more trip of the same loop, not a second
+scalar loop. k is 0 to N, and the k items must lie in the list, a check
+site Precog proves like `simd.load`'s. The other lanes of a load are the
+element type's zero. Newer hardware does this directly (SVE predicates,
+AVX-512 masks), and elsewhere the compiler lowers it. Proposed
+alternative: leave the tail a plain loop. The names `load.some` /
+`store.some` were design claude's proposal, flagged as placeholders, and
+went through with a. `examples/simd_tail.cpls`.
+
 ## Open
 
 - Shuffles and lane-crossing operations (reverse, interleave, a
   general permute) — none designed; the folds cover the common cases.
-- Masked load/store (fill only some lanes), which is what a tail
-  shorter than N needs; today the tail is a plain loop.
 - Whether `simd` values may be struct fields or list elements.

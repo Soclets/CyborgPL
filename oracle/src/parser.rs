@@ -1526,12 +1526,16 @@ impl Parser {
     fn builtin(&mut self) -> PResult<(String, String, Bracket)> {
         let head = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
         self.expect(Tok::Dot, &format!("`.` after `{head}` (`{head}.length[…]`)"))?;
-        let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `{head}.`, found {other}")) };
+        let mut op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `{head}.`, found {other}")) };
+        // `simd.load.some` / `simd.store.some` — only the first k lanes (owner, 2026-09-27: a)
+        if head == "simd" && (op == "load" || op == "store") && *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "some") {
+            self.advance(); self.advance(); op = format!("{op}.some");
+        }
         let ok = match (head.as_str(), op.as_str()) {
             ("list", "length" | "append" | "remove" | "empty" | "slice") | ("array", "length" | "slice") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
             ("channel", "send" | "take") => true,
-            ("simd", "fill" | "load" | "store" | "all" | "any" | "max" | "min" | "sum") => true,
+            ("simd", "fill" | "load" | "store" | "load.some" | "store.some" | "all" | "any" | "max" | "min" | "sum") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
@@ -1557,7 +1561,7 @@ impl Parser {
             self.expect(Tok::RBracket, "`]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
-        if head == "simd" && (op == "load" || op == "store") {
+        if head == "simd" && op.starts_with("load") || head == "simd" && op.starts_with("store") {
             let line = self.line();
             self.advance();
             let mut values = vec![self.value()?];
@@ -1565,7 +1569,7 @@ impl Parser {
             if !self.is_word("pos") { return self.err(format!("`simd.{op}` says the position with `pos`: `simd.{op}[lend 'xs', pos 'i'{}]`", if op == "store" { ", 'v'" } else { "" })); }
             self.advance();
             values.push(self.value()?);
-            if *self.peek() == Tok::Comma { self.advance(); values.push(self.value()?); }
+            while *self.peek() == Tok::Comma { self.advance(); values.push(self.value()?); }
             self.expect(Tok::RBracket, "`]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }

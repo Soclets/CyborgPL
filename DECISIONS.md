@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `simd.load.some` / `simd.store.some` for a loop's leftover end (owner: a)
+
+A vector of N lanes over a list of any length leaves up to N−1 items,
+which needed a second, plain loop. Proposed (a) loads and stores of only
+the first k lanes, the other loaded lanes zero, with k items that must be in
+the list (a check site); (b) leave the tail a plain loop. Design claude
+recommended a, with the names flagged as placeholders. Owner: a, names
+unchanged. The oracle's `simd.load.some` takes its lane count from the
+declared type, as `simd.load` now does. `simd.md`;
+`examples/simd_tail.cpls` (1 to 10 sums to 55); reject test
+simd_some_past_end.
+
 ### 2026-09-27 — `simd[bool, N]` is a type you can write (owner: a)
 
 A vector comparison already gives a `simd[bool, N]`, but the type could

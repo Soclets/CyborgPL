@@ -1131,7 +1131,7 @@ impl<'p> Interp<'p> {
         // operands, which take their width from each other (verification session, seed 93).
         // …except `simd.load` / `simd.fill`, which take their lane count from the declared type
         // (design/simd.md) — the stop had cut that off, so a `simd[int32, 4]` loaded 16 lanes
-        let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if h == "simd" && (op == "load" || op == "fill"));
+        let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if h == "simd" && (op == "load" || op == "fill" || op == "load.some"));
         let fresh = !simd_shape && matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
             | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
@@ -2229,6 +2229,43 @@ impl<'p> Interp<'p> {
                 // the lane count comes from the declared type; 16 when nothing states one
                 let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };
                 Ok(Value::Simd(vec![v; n]))
+            }
+            // `simd.load.some[lend 'xs', pos 'i', k]` loads k items, the other lanes zero;
+            // `simd.store.some[lend.mut 'xs', pos 'i', k, 'v']` writes the first k lanes (owner, 2026-09-27: a)
+            "load.some" | "store.some" => {
+                let store = op == "store.some";
+                let want = if store { 4 } else { 3 };
+                if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}[{}, pos 'i', 'k'{}]`", if store { "lend.mut 'xs'" } else { "lend 'xs'" }, if store { ", 'v'" } else { "" })); }
+                let (xs, prov) = self.value(&args.values[0])?;
+                let cell = match &prov { Prov::Borrowed(c, m) => { if store && !*m { return rt(line, "`simd.store.some` changes the list: pass `lend.mut`"); } c.clone() }
+                    Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend '{n}'`")), _ => Rc::new(RefCell::new(xs.clone())) };
+                let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
+                let i = match self.value(&args.values[1])?.0 { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
+                let k = match self.value(&args.values[2])?.0 { Value::Int(k) => k, other => return rt(line, format!("a lane count is an integer, got {}", other.kind())) };
+                let (n, v) = if store {
+                    let saved = self.expected.take();
+                    let r = self.value(&args.values[3]);
+                    self.expected = saved;
+                    match r?.0 { Value::Simd(l) => (l.len(), Some(l)), other => return rt(line, format!("`simd.store.some` writes a simd value, got {}", other.kind())) }
+                } else { (match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize }, None) };
+                if k < 0 || k as usize > n { return site(line, format!("`simd.{op}` of {k} lanes: a vector of {n} lanes takes 0 to {n}")); }
+                if i < 1 || (i - 1) as usize + k as usize > items.len() {
+                    return site(line, format!("`simd.{op}` of {k} lanes at position {i} runs past the end of a list of {} element(s)", items.len()));
+                }
+                let at = (i - 1) as usize;
+                let k = k as usize;
+                match v {
+                    None => {
+                        let zero = match items.first() { Some(Value::Bin(_)) => Value::Bin(0.0), Some(Value::Bool(_)) => Value::Bool(false), _ => Value::Int(0) };
+                        let mut lanes = items[at..at + k].to_vec();
+                        lanes.resize(n, zero);
+                        Ok(Value::Simd(lanes))
+                    }
+                    Some(l) => {
+                        if let Value::List(xs) = &mut *cell.borrow_mut() { for j in 0..k { xs[at + j] = l[j].clone(); } }
+                        Ok(Value::Nothing)
+                    }
+                }
             }
             "load" | "store" => {
                 let want = if op == "load" { 2 } else { 3 };
