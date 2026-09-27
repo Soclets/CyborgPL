@@ -2053,7 +2053,9 @@ impl Parser {
                     self.to_target = false;
                     let ty = ty?;
                     if matches!(ty, Ty::List(_) | Ty::Array(_)) { return self.err("`to.list[…]` / `to.array[…]` keep the element type, so it is not written: `to.array[give 'l']`"); }
-                    if matches!(ty, Ty::Struct(_) | Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
+                    // a named type is allowed here only if it is a `layout.c enum` (checked when it runs:
+                    // the parser cannot yet tell a struct's name from an enum's)
+                    if matches!(ty, Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
                     if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     let b = self.bracket()?;

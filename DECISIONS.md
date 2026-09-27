@@ -5,6 +5,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — C's numbers are checked wherever they come in; callbacks take plain numbers (owner)
+
+From compiler claude: the C-enum door was only at a call's return. A
+callback's parameter, a C variable, `ptr.read` and a `ptr.mut` lent to C
+could all bring in a number with no case, which is undefined behaviour in
+a `match`. Proposed (a) checks only at doors, with plain numbers converted
+by `to.Key[…]` elsewhere; (b) `nocheck` vouches for the number; (c) check
+everywhere and stop the program. Design claude recommended a. The owner
+asked for use-case differences: a newer C library adding a case is an
+`out_of_range` under a and undefined behaviour under b. Then "could we do
+a and b?", "why not b where a nocheck is?" (returns are `nocheck` calls
+whose check stays, per 2026-09-22), "or another tier?", and "is `nocheck`
+currently lying?". It isn't: `nocheck` removes check sites (bugs), and
+this is a failure (an answer) that writing the type asks for. That gave
+the rule: a C enum or range type is checked wherever it comes in from C
+(return, lent pointer, `ptr.read`, C variable), failing `out_of_range`;
+the plain type skips the check; a callback's parameter must be plain.
+Performance: a comparison or two per value. Owner: "yeah, do that rule".
+In the oracle: `to.Key[…]` and the callback refusal. The owner also said
+"I think there should be a new tier", still to be asked about. `ffi.md`;
+`examples/c_enum_convert.cpls`; reject tests callback_c_enum and
+to_c_enum_unhandled.
+
 ### 2026-09-27 — `#strict`: `range[from 2, to 8, by 2]`, and the working build refuses too (owner)
 
 The owner looked at loops (`range[2, 8, -4]` runs zero times) and said

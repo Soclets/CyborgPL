@@ -229,6 +229,13 @@ impl<'p> Interp<'p> {
                 if !fails.is_empty() { return Err("a callback cannot fail; C has no failures".into()); }
                 for (k, t) in ps {
                     if *k != ParamKind::Owned { return Err("a callback's parameters are by value; C passes pointers for the rest".into()); }
+                    // C calls a callback, so a bad number has no `otherwise` to fail to: its
+                    // parameters are plain, converted inside (owner, 2026-09-27)
+                    if let Ty::Struct(n) = t {
+                        let checked = self.prog.enums.iter().any(|e| &e.name == n && e.c_values.is_some())
+                            || self.prog.structs.iter().any(|d| &d.name == n && d.fields.iter().any(|f| matches!(f.ty, Ty::Ranged(..))));
+                        if checked { return Err(format!("a callback's parameter cannot be `{n}`: C calls it, so a bad number would have nowhere to fail to — take the plain number and convert it inside: `to.{n}['n'] otherwise …`")); }
+                    }
                     self.c_shaped(t)?;
                 }
                 if let Some(r) = ret { self.c_shaped(r)?; }
@@ -1454,6 +1461,28 @@ impl<'p> Interp<'p> {
                     (_, Prov::Borrowed(..)) => rt(line, "converting a lend would copy it without saying so: `copy` it or `give` it"),
                     (Value::List(_), _) => Ok((v, Prov::Fresh)),
                     (other, _) => rt(line, format!("`to.list` / `to.array` take a list or an array, got {}", other.kind())),
+                }
+            }
+            // `to.Key['n']` — a number into a C enum: a case with that number, or `out_of_range`
+            // (owner, 2026-09-27: what comes from C as a plain number is converted this way)
+            Expr::Convert(Ty::Struct(tname), b, handler, _) => {
+                let def = match self.prog.enums.iter().find(|e| &e.name == tname) {
+                    Some(e) if e.c_values.is_some() => e.clone(),
+                    Some(_) => return rt(line, format!("no conversion to the enum `{tname}`; only a `layout.c enum`'s numbers convert")),
+                    None => return rt(line, format!("no conversion to {tname}; conversions are between numbers, text, lists and arrays, and into a `layout.c enum`")),
+                };
+                let fails = vec![FailCase { name: "out_of_range".into(), ty: None }];
+                self.check_handler(handler.as_ref(), &fails, &format!("to.{tname}"), line)?;
+                let (v, _) = self.single(b, line)?;
+                let n = match v { Value::Int(n) => n, other => return rt(line, format!("`to.{tname}` takes a number, got {}", other.kind())) };
+                let vals = def.c_values.as_ref().unwrap();
+                match vals.iter().position(|x| *x == n) {
+                    Some(i) => Ok((Value::Enum(def.name.clone(), def.cases[i].name.clone(), None), Prov::Fresh)),
+                    None => {
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{tname}"), "out_of_range".into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        Ok((v, prov))
+                    }
                 }
             }
             Expr::Convert(ty, b, handler, _) => {

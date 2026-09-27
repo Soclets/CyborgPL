@@ -106,6 +106,35 @@ performance difference against (a): none — same compare, same proofs;
 written once in the signature instead of after every call. Owner: c.
 `examples/extern_range.cpls`.
 
+## Where C's numbers are checked (owner, 2026-09-27)
+
+A C enum or a range type is checked **wherever it comes in from C**, and
+fails `out_of_range` for a number it doesn't allow: a call's return, what
+C wrote through a `ptr.mut` you lent it (checked when the call ends), a
+`ptr.read`, and a C variable. Each is handled with `otherwise`. Writing the
+type is the request to check. To skip the check, write the plain type
+(`int32`), and convert when you want the enum:
+
+```
+'k' := to.Key['code'] otherwise { out_of_range { return; } };
+```
+
+`nocheck` does not remove these. It turns off *check sites*, the bugs
+("calling C here is fine"), not *failures*, which are answers you handle.
+Returns were ruled so on 2026-09-22. A **callback's** parameter must be the
+plain number: C calls it, so a failure would have nowhere to go.
+
+Why it matters: a newer C library adds a case (`KEY_F13 = 302`) that
+your binding doesn't list. Checked, that's an `out_of_range` your program
+handles. Unchecked, it's undefined behaviour in a `match`. The check is a
+comparison or two, under a nanosecond, beside a call into C.
+
+Proposed and not chosen: `nocheck` vouching for the number where it is
+already written (b); stopping the program on a bad number (c); a fourth
+tier trusting C's answers too. The owner asked whether `nocheck` was then
+"lying" (it isn't, for the reason above), then chose this rule.
+`examples/c_enum_convert.cpls`.
+
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
