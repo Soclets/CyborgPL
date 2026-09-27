@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — A simd value may be a struct field or a list element (owner: a)
+
+Proposed (a) anywhere a number goes, a plain fixed-size value aligned to
+the register width; (b) local only. Design claude recommended a. Owner:
+a. The oracle already allowed it, with a simd value plain and copying by
+itself, so only the record changed. `simd.md`;
+`examples/simd_fields.cpls`. Asked in passing: `range[2, 7, -4]` runs
+zero times, since counting down from 2 never reaches 7, and that is not
+an error.
+
 ### 2026-09-27 — `simd.load.some` / `simd.store.some` for a loop's leftover end (owner: a)
 
 A vector of N lanes over a list of any length leaves up to N−1 items,

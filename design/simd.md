@@ -116,8 +116,21 @@ alternative: leave the tail a plain loop. The names `load.some` /
 `store.some` were design claude's proposal, flagged as placeholders, and
 went through with a. `examples/simd_tail.cpls`.
 
+## A simd value goes anywhere a number does (owner, 2026-09-27: a)
+
+```
+struct Particle { place: simd[bin32, 4]  vel: simd[bin32, 4] }
+'history': list[simd[bin32, 4]] = [];
+```
+
+Struct fields, list elements, parameters and returns. It is a plain,
+fixed-size value that copies by itself, like a number, and the compiler
+aligns it to the register width (16 bytes on a 128-bit target). Graphics
+and physics keep positions this way. Proposed alternative: SIMD values
+local only, with plain numbers stored and reloaded each time.
+`examples/simd_fields.cpls`.
+
 ## Open
 
 - Shuffles and lane-crossing operations (reverse, interleave, a
   general permute) — none designed; the folds cover the common cases.
-- Whether `simd` values may be struct fields or list elements.
