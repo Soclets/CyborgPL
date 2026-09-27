@@ -310,6 +310,12 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 let mut word = String::new();
                 while j < chars.len() && chars[j].is_ascii_alphanumeric() { word.push(chars[j]); j += 1; }
                 let skip_lines: usize;   // full lines to skip after this one
+                if word == "strict" {
+                    // `#strict` (owner, 2026-09-27): every check site's proof written in its own
+                    // function. A compile-time rule about proofs, which the oracle has none of, so
+                    // here it is recognised and changes nothing.
+                    col += j - i; i = j; continue;
+                }
                 if word == "wl" {
                     // drop everything already lexed on this line
                     while toks.last().map(|t| t.line == tl).unwrap_or(false) { toks.pop(); }

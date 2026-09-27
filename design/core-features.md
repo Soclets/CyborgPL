@@ -125,6 +125,21 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   be a global by another name. Never at the top level: **the tiers are never
   global** — no flag, no file-wide switch, no release mode (see "No
   development mode"). The grammar has nowhere to write a global one.
+- **`#strict`: every reason written where it is used** (owner, 2026-09-27:
+  a). In a file marked `#strict`, a check site must be proven from what
+  is written in its own function: a guardrail `if`, a range type (on a
+  parameter, a variable, a declared return), or a loop's bounds. Precog
+  still checks the proof, but may not use facts from callers or other
+  functions' bodies, so a reader sees why each site is safe, and a
+  function stays safe whoever calls it later. "Verbose, but for a
+  reason." A comment needs a space (`# text`), and `#strict` is one of the
+  `#word` forms, like `#wl`. It is a file-wide switch, which the
+  "tiers are never global" rule above forbade in its wording; it only
+  makes things stricter, never looser, and the owner chose it. Proposed
+  alternative: an `if` in front of every site even where a type already
+  makes it safe. Still open: where the line goes and what it covers,
+  whether `nocheck` is allowed under it, and whether the working build
+  refuses an unproven site too.
 - **The ladder** (clarified 2026-09-19): a guardrail that is good enough
   already removes the check under the default tier — Precog proves it and
   emits nothing; a proven check can never fire, so keeping it would be pure

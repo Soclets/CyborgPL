@@ -113,6 +113,7 @@ had to make to run at all; none is a decision.
 | `xx~` wraps at the base's size, and its exponent's size does not count as mixing | `interp.rs` wrapping branch | By analogy with a shift's count; the owner ruled mixing for values, not for a power's exponent |
 | A bin operation on two different widths (`bin32` with `bin64`) rounds at the wider | `interp.rs` `bin_width` | Mixed bin widths were not asked; the owner ruled per-step rounding at the values' width |
 | A C enum, or a `layout.c` struct with ranged fields, handed back by C is checked at the door (`out_of_range`) — not exercised, since no emulated libc function returns one | `interp.rs` extern emulation | The rule is decided; the oracle has nothing to run it on |
+| `#strict` is recognised and changes nothing | `lexer.rs` | It is a rule about where proofs come from, and the oracle has no proofs; Precog enforces it |
 | Text → bin also takes a leading `+`, and refuses `_` grouping, `.5`, `5.` and surrounding spaces | `interp.rs` `bin_text` | The owner ruled sign, digits, fraction and exponent; these edges were not asked |
 | A list/array mismatch is caught where the source's type is declared (a variable, a call's return, a slice, a conversion); a field read is not traced | `interp.rs` `coll_kind` | The oracle's limit, not the rule |
 

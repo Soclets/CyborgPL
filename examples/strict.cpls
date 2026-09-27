@@ -1,0 +1,8 @@
+# `#strict` (owner, 2026-09-27): in this file every check site's proof is written in its own
+# function — here the range type on 'n' is why 100 / 'n' can't divide by zero. The oracle
+# has no proofs, so it runs this like any program; Precog is what holds `#strict` to it.
+#strict
+fn ratio ['n': int32[1, max]] -> int32 { return 100 / 'n'; }
+MAIN {
+    std::printu.stdout[ratio[4], \n];   # a comment
+}

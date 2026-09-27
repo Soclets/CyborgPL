@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `#strict`: guardrails required, written in the same function (owner: a)
+
+The owner: "I kinda want to add `#strict`", with no clash with comments,
+which need a space. Asked what it does: "change the syntax to become more
+verbose, but for a reason", then "guardrails required under `#strict`".
+Design claude explained that guardrails are not required today: Precog
+proves what it can by itself, and the final build refuses the rest until
+a guardrail, a tighter type or `nocheck` settles it. Proposed for what
+counts as a guardrail: (a) the reason must be written in the same
+function (an `if`, a range type, loop bounds), with Precog still checking
+it but not using facts from callers or other bodies; (b) an `if` in front
+of every site. Design claude recommended a. Owner: a. It is a file-wide
+switch, which the 2026-09-14 "tiers are never global" rule's wording
+forbade, but it only tightens. Open: where it goes and what it covers,
+`nocheck` under it, and the working build. The oracle cannot check
+proofs, so it only accepts the line. `core-features.md`.
+
 ### 2026-09-27 — `pos` is removed: `'xs'[2]` (owner)
 
 ```
