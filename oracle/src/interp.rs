@@ -844,14 +844,16 @@ impl<'p> Interp<'p> {
             // the concrete value (the compiler's counterexample); a `nocheck` whose
             // site fires is a lie — the compiled program would be undefined there.
             Stmt::Tier { tier, body, line } => {
-                if *tier == Tier::NoCheck { self.nocheck_depth += 1; }
+                let off = matches!(tier, Tier::NoCheck | Tier::NoChecksAtAll);
+                if off { self.nocheck_depth += 1; }
                 let r = self.stmt(body);
-                if *tier == Tier::NoCheck { self.nocheck_depth -= 1; }
+                if off { self.nocheck_depth -= 1; }
                 match r {
                     Err(e) if e.site => {
                         let msg = match tier {
                             Tier::Check => format!("`check` at line {line} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", e.msg),
                             Tier::NoCheck => format!("`nocheck` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
+                            Tier::NoChecksAtAll => format!("`NO_FUCKING_CHECKS` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
                         };
                         Err(RuntimeError { line: e.line, msg, exit: None, site: false, leave: None })
                     }

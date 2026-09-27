@@ -125,6 +125,18 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   be a global by another name. Never at the top level: **the tiers are never
   global** — no flag, no file-wide switch, no release mode (see "No
   development mode"). The grammar has nowhere to write a global one.
+- **`NO_FUCKING_CHECKS`, the fourth tier** (owner, 2026-09-27): everything
+  `nocheck` turns off, and what C hands back is trusted too, so a C enum or
+  range type from C gets no `out_of_range` check and needs no `otherwise`
+  for one. It goes where `nocheck` goes, in front of a statement or a
+  block, never on a function or a file, and it is listed in the build
+  output with the `nocheck` sites. For the rare hot spot where even a
+  comparison per value from C matters, and the author accepts undefined
+  behaviour if C sends a number the binding doesn't know. It does not
+  touch failures of Cyborg's own operations (text that isn't a number, a
+  missing map key); those are answers, not checks. That limit is design
+  claude's reading of "no checks", not asked. The owner chose the name.
+  Proposed first as `nocheck.all`.
 - **`#strict`: every reason written where it is used** (owner, 2026-09-27:
   a). In a file marked `#strict`, a check site must be proven from what
   is written in its own function: a guardrail `if`, a range type (on a

@@ -1,0 +1,14 @@
+# `NO_FUCKING_CHECKS` (owner, 2026-09-27): the fourth tier. Everything `nocheck` turns off, and
+# what C hands back is trusted too, with no `out_of_range` check on a C enum or range. Goes
+# where `nocheck` goes, a statement or a block, never a file; listed like `nocheck`.
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+MAIN {
+    'msg' := "hello";
+    NO_FUCKING_CHECKS 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+    NO_FUCKING_CHECKS {
+        'a': int32 = 10;
+        'b': int32 = 2;
+        'q' := 'a' / 'b';
+        std::printu.stdout[\n, 'q', \n];
+    }
+}

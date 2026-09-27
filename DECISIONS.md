@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — `NO_FUCKING_CHECKS`: a fourth tier that trusts C's answers too (owner)
+
+Out of the C-enum question: design claude sketched a stronger `nocheck`
+that also skips the checks on numbers C hands back (placeholder
+`nocheck.all`) and advised against it, since the check is a comparison or
+two and guards against newer libraries. The owner: "I think there should
+be a new tier", then "`NO_FUCKING_CHECKS` is it, no checks". It removes
+what `nocheck` removes, plus the C-entry `out_of_range` checks. Like
+`nocheck`, it goes before a statement or block, and is listed. Failures of
+Cyborg's own operations are unaffected (design claude's reading, not
+asked). The oracle treats it like `nocheck`, running the checks anyway and
+reporting a vouch that fails ("`NO_FUCKING_CHECKS` at line N lied"); the
+C side it can't run. `core-features.md`; `examples/no_checks.cpls`; reject
+test no_checks_lied.
+
 ### 2026-09-27 — C's numbers are checked wherever they come in; callbacks take plain numbers (owner)
 
 From compiler claude: the C-enum door was only at a call's return. A

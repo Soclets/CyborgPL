@@ -309,7 +309,7 @@ pub enum AsmBind {
 
 /// The three check tiers (decided 2026-09-14): default is written as nothing.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Tier { Check, NoCheck }
+pub enum Tier { Check, NoCheck, NoChecksAtAll }   // NO_FUCKING_CHECKS (owner, 2026-09-27)
 
 #[derive(Debug, Clone)]
 pub struct Call {
