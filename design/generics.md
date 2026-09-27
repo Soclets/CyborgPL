@@ -22,8 +22,8 @@ fn first [lent 'xs': list[<T>]] -> <T> or fail[empty] { … }
 struct Pair { left: <A>  right: <B> }                  # blanks in order of first appearance
 enum Maybe { none  some: <T> }
 
-let 'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
-let 'm' := Maybe.some[42];                                          # filled from the value
+'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
+'m' := Maybe.some[42];                                          # filled from the value
 ```
 
 - **`<T>` is a type variable — a blank.** Owner's spelling, over Claude's

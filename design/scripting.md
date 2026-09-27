@@ -27,15 +27,16 @@ it proves. So an iteration build is never *less* safe than the final one,
 only slower; the writer sees the same behaviour in both, and the final one
 is faster.
 
-## N% (owner, 2026-09-18)
+## Lunae, formerly N% (owner, 2026-09-18; renamed 2026-09-27)
 
-The scripting language is **N%** — its own language, distinct from both
+The scripting language is **Lunae** (named N% until 2026-09-27; the owner
+liked Lua's name) — its own language, distinct from both
 Cyborg and the owner's earlier N# (`nsharp`). **Its own syntax, not
 Cyborg's.** Designer-friendly; fast to compile; safest by default; does not
 care about performance until it is handed to Cyborg. The hand-off is
-therefore a real translation — N% source → CyborgPL source → Precog — not
+therefore a real translation — Lunae source → CyborgPL source → Precog — not
 an insertion of defaults into Cyborg syntax; the translator is the
-component that has to be right, and the differential harness (N%'s own
+component that has to be right, and the differential harness (Lunae's own
 compiler vs. the lowered CyborgPL through the oracle) is how that is known.
 
 ## What it implies (open)
@@ -53,5 +54,5 @@ compiler vs. the lowered CyborgPL through the oracle) is how that is known.
    The oracle is already that machine for lowered scripts; differential
    testing applies.
 4. ~~Syntax~~ — decided: its own (above).
-5. ~~A name~~ — decided: N%.
-6. The translator N% → CyborgPL, and its verification.
+5. ~~A name~~ — decided: N%, renamed **Lunae** (2026-09-27).
+6. The translator Lunae → CyborgPL, and its verification.

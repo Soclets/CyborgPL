@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — N% is renamed Lunae (owner)
+
+"`Lunae` is the `N%`'s new name. I liked Lua's name." The scripting
+language on top of CyborgPL (2026-09-18) keeps everything else. Its logo,
+a full moon in nebula colours, is in `brand/lunae/` (f842f7c, from the
+website session). The compiler's name, Nowork, is unchanged.
+`scripting.md`, `tooling.md`.
+
+### 2026-09-27 — `design/` rewritten to the 2026-09-25 syntax (owner: "do 2")
+
+Every code sample and every sentence about declarations in `design/`
+now uses the 2026-09-25 syntax: no `let`, `change`, `!$`, `!mut`, `extern
+'x': T`. History sections keep the old form on purpose, and `DECISIONS.md`
+keeps each entry as it was written. The same day, with the owner's
+go-ahead, compiler claude, check claude and the website session were told
+about the new syntax and `and.then` / `or.else`.
+
 ### 2026-09-25 — `and.then` / `or.else`: stop once the answer is known (owner)
 
 Straight after choosing b (both sides always run), the owner asked for a
@@ -2703,7 +2720,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
 
 **Language**
-- N%: its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
+- Lunae (formerly N%): its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
 - Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)

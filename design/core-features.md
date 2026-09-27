@@ -97,7 +97,7 @@ proofs rather than skipping them — never by doing less.
   programmer alone. The build output lists every `nocheck` site.
   **A certain failure gets a note, never a refusal** (owner,
   2026-09-22): when Precog's ordinary work happens to show that a
-  `nocheck` site fails on *every* run — `nocheck let 'q' := 1 / 'z';`
+  `nocheck` site fails on *every* run — `nocheck 'q' := 1 / 'z';`
   with `'z'` proven to be 0 — the build says so (`note:`, the third
   kind in `diagnostics.md`) and builds anyway. Precog never goes
   looking; it only refuses to stay silent about what it could not
@@ -111,8 +111,8 @@ word in front of a statement, covering every check site inside it. A `{ }`
 block is a statement, so a region is `check { … }` with no second rule.
 
 ```
-check 'xs'[pos 'i'] = 'total' + 'score';     # prove: index in range, add fits
-nocheck 'hash' = 'hash' x 31 + 'c';          # I want the wrap; on my word
+check change 'xs'[pos 'i'] = 'total' + 'score';     # prove: index in range, add fits
+nocheck change 'hash' = 'hash' x 31 + 'c';          # I want the wrap; on my word
 check { for 'i' in range[1, 'n'] { … } }     # every site in the region
 check if 'x' > 0 { … }                       # an if or a loop is a statement too
 ```
@@ -140,7 +140,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 
   ```
   if 'x' > 65_504 { deny[]; } else {
-      check let 'y': bin16 = 'x';     # proven from the branch: check removed
+      check 'y': bin16 = 'x';     # proven from the branch: check removed
   }
   ```
   Without the `if`, the same line is a compile error: *"'x' does not fit

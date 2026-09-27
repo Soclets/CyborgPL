@@ -31,10 +31,10 @@ enclosing scope cannot be redeclared with `:=` or `=`. It *can* be
 deliberately hidden with `$:=` / `$=`, the `$` marking the intent:
 
 ```
-let 'x' := 1;
+'x' := 1;
 if true {
-    let 'x' $:= 2;            # shadows the outer 'x' until the block ends
-    let 'y': int32 $= 3;      # error: there is no 'y' to shadow
+    'x' $:= 2;            # shadows the outer 'x' until the block ends
+    'y': int32 $= 3;      # error: there is no 'y' to shadow
 }
 ```
 
@@ -67,7 +67,7 @@ for 'i' in range[0, 1000] {                    # 'i' from 0 to 1000 inclusive
 
 `temp`: the variable exists only inside the loop — **the default** (decided
 2026-09-19; until then stating one of the two was mandatory). Writing `temp`
-is allowed and changes nothing, like `let mut`. `perm`: it is still there
+is allowed and changes nothing, like `mut`. `perm`: it is still there
 afterwards, holding **whatever the loop last gave it** — the last value the
 body ran with after a full run (the stop value when the step lands on it; for
 `range[0, 10, 3]` it is 9), the value at a `break`, the start value if the
@@ -92,7 +92,7 @@ from, stop at"; the writer sees `'i'` reach `stop`. A third slot is the
 a step of 0 is a compile error. Start past stop with a positive step runs
 zero times.
 
-The counter is declared like a `let`: bare name → best type from the
+The counter is declared like a variable: bare name → best type from the
 bounds; `'i': int32` → explicit, every value must fit. **The step is not
 one of those values** (owner, 2026-09-23): it is its own signed number,
 an instruction to go up or down, so `for 'i': uint64 in range[3, 1, -1]`
@@ -107,8 +107,8 @@ behaviour would otherwise hide. The bounds carry no
 `:=`/`=` markers (they would say the same thing twice):
 
 ```
-for 'i' in range[0, 9] { }                 # like  let 'i' := 0;
-for 'i': int8 in range[0, 9] { }           # like  let 'i': int8 = 0;
+for 'i' in range[0, 9] { }                 # like  'i' := 0;
+for 'i': int8 in range[0, 9] { }           # like  'i': int8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a

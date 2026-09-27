@@ -10,7 +10,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 | `int` | signed integer, two's complement | 8, 16, 32, 64, 128 (confirmed 2026-09-23) |
 | `uint` | unsigned integer | 8, 16, 32, 64, 128 (confirmed 2026-09-23) |
 | `str` | text, narrowed by encoding: `'s': str.utf8` (decided 2026-09-14) | `utf8`, `utf16`, `utf32`, `ascii`; `:=` picks the best encoding from use |
-| `bool` | boolean; what comparisons and `and`/`or`/`not` produce; literals `true` / `false` (decided 2026-09-14): `let 'correct?': bool = true;` | — |
+| `bool` | boolean; what comparisons and `and`/`or`/`not` produce; literals `true` / `false` (decided 2026-09-14): `'correct?': bool = true;` | — |
 | `char` | one character, narrowed by *unit*: `char.point`, `char.grapheme`, `char.byte` (decided 2026-09-14) | see below |
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
@@ -33,7 +33,7 @@ and `deci`/`uenr` are ours to write rather than vendored.
 
 ## A declaration always has a value (owner, 2026-09-23)
 
-`let 'n': int32;` is refused — write the `0`. There is no implicit
+`'n': int32;` is refused — write the `0`. There is no implicit
 zero, for any type: nothing is ever silently `0`, `false`, `""` or an
 empty list, so no value ever appears from nowhere and `:=` always has
 something to infer from. Go, C# and Java fill zeroes in for fields;
@@ -45,8 +45,8 @@ this does not.
   and `bin32` are different families; mixing them in one expression is a
   compile error and conversion is explicit (spelling open). A bare numeric
   **literal** has no family of its own: it takes the family of its context,
-  so `let 'x': bin16 = 1000;` and `'b' x 2` with `'b'` a bin are fine. A
-  *variable* never converts: `let 'b': bin64 = 'a';` with `'a'` an `int32`
+  so `'x': bin16 = 1000;` and `'b' x 2` with `'b'` a bin are fine. A
+  *variable* never converts: `'b': bin64 = 'a';` with `'a'` an `int32`
   is an error.
 - **Width in the typed form is mandatory** (`int32`, never `int`) —
   decided 2026-09-14; see "typed form is always fully explicit" below.
@@ -95,7 +95,7 @@ this does not.
     binary; boundaries can shift with Unicode versions, so the version is
     pinned per build and updated deliberately (`reproducible-builds.md`). The correct
     user-facing unit.
-  A character literal is written in **backticks**: `` let 'c' := `1`; ``
+  A character literal is written in **backticks**: `` 'c' := `1`; ``
   (decided 2026-09-14). Three quote styles, three token classes: `"…"` text,
   `'…'` name, `` `…` `` one character. The literal must be exactly one unit
   of the chosen or inferred kind. With `:=`, Precog picks the unit from the
@@ -110,6 +110,6 @@ this does not.
   value it is given. Provided by the **standard Limb**, not built into the
   language — so it is CyborgPL source Precog can see through, and it takes
   the role legacy's `bignum`/`bigint` had. Reached through the Limb
-  boundary: `let 'n': std::uenr = 1000;`. **Exact is exact**: fractions are
+  boundary: `'n': std::uenr = 1000;`. **Exact is exact**: fractions are
   held as true rationals, so `(1/3) x 3` is exactly `1` (decided
   2026-09-14).

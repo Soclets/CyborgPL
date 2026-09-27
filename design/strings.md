@@ -42,10 +42,10 @@ is Cyborg's own call with C's format language inside it.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let 'name': str.utf8[1, 40 graphemes] = std::input.line[] otherwise "";
+'name': str.utf8[1, 40 graphemes] = std::input.line[] otherwise "";
 fn greet [lent 'who': str.utf8[1, 10 graphemes]] { … }
-let 'field': str.utf8[0, 255 bytes] = …;
-let 'code': str.utf8[4, 4 points] = …;
+'field': str.utf8[0, 255 bytes] = …;
+'code': str.utf8[4, 4 points] = …;
 ```
 
 The thing, then its bounds, as `int32[0, 100]` and `list[T][lo, hi]` —

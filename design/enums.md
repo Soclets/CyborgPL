@@ -23,8 +23,8 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 ## Values
 
 ```
-let 'a' := Status.empty;                 # a case with no data: bare
-let 'b' := Status.claimed["Tankun"];     # a case with data: the bracket builds it
+'a' := Status.empty;                 # a case with no data: bare
+'b' := Status.claimed["Tankun"];     # a case with data: the bracket builds it
 struct Locker { number: int32  status: Status }
 ```
 

@@ -7,12 +7,12 @@ over cores or a GPU, the programmer writes nothing). Concurrency is
 download beside a keyboard — where the waiting is the point.
 
 ```
-let 'results' := channel[str.utf8];
-let 'a' := "a.com";
+'results' := channel[str.utf8];
+'a' := "a.com";
 concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }   # a call's result is fresh: no verb
 concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
 for 'i' in range[1, 2] {
-    let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
+    'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
     std::printu.stdout[str.bytes[lend 'page'], \n];
 }
 ```
@@ -63,7 +63,7 @@ the goroutine leak).
 ## A task's failure — `otherwise` on the `concur` (owner: a)
 
 ```
-concur with [give 'url'] { let 'p' := fetch['url'] otherwise fail; … }
+concur with [give 'url'] { 'p' := fetch['url'] otherwise fail; … }
     otherwise { no_network { std::printu.stdout["offline", \n]; } };
 ```
 
@@ -94,10 +94,10 @@ while the program carries on.
 ## Channels
 
 ```
-let 'c' := channel[str.utf8];                    # hand-off: send waits for a taker
-let 'q' := channel[str.utf8][0, 100];            # a buffer: send waits only when full
+'c' := channel[str.utf8];                    # hand-off: send waits for a taker
+'q' := channel[str.utf8][0, 100];            # a buffer: send waits only when full
 channel.send[lend 'c', give 'line'];             # a value is given, never lent
-let 'v' := channel.take[lend 'c'] otherwise …;   # waits; fails `closed` when no sender is left
+'v' := channel.take[lend 'c'] otherwise …;   # waits; fails `closed` when no sender is left
 ```
 
 **Capacity by the bound rule** (owner: b): no bound is a hand-off (Go's
@@ -132,8 +132,8 @@ Time is the outside world, so it is std's, like input:
 
 ```
 std::time.wait[5 seconds];
-let 'deadline' := std::time.after[500 millis];     # a channel that sends once
-let 'tick' := std::time.every[1 second];           # a channel that sends every second
+'deadline' := std::time.after[500 millis];     # a channel that sends once
+'tick' := std::time.every[1 second];           # a channel that sends every second
 whichever {
     'msg' from lend 'inbox'     { … }
     'now' from lend 'deadline'  { std::printu.stdout["timed out", \n]; }

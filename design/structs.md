@@ -23,18 +23,18 @@ struct Locker {
   variable you hold. The quotes go on the whole — `'l'` — and the route
   into it (`.number`, like `[pos 2]` into a list) is bare. `name: type`,
   the type after the name like every other site.
-- No `let` on a field: a struct always *owns* its fields, so there is nothing
+- No declaration word on a field: a struct always *owns* its fields, so there is nothing
   to choose (a parameter's `lent` chooses; a field cannot).
 - No `;` after a field: fields are not statements.
 - `immut` is allowed on a field — `immut number: int32` — under the same
-  rule as `let immut`: a verified contract, allowed, not standard.
+  rule as `immut` on a variable: a verified contract, allowed, not standard.
 - A field may be any type, including another struct or a list.
 
 ## Making a value — by field name
 
 ```
-let 'mine' := Locker[name = "field kit", number = 7,
-                     'capacity' = 12, occupied = false];
+'mine' := Locker[name = "field kit", number = 7,
+                 capacity = 12, occupied = false];
 ```
 
 - The struct name, bare, before `[ ]`, like a call — this bracket *builds*
@@ -47,8 +47,8 @@ let 'mine' := Locker[name = "field kit", number = 7,
 ## Reading and writing a field
 
 ```
-let 'n' := 'mine'.number;           # read
-'mine'.number = 8;                  # write
+'n' := 'mine'.number;           # read
+change 'mine'.number = 8;                  # write
 ```
 
 A quoted name followed by `.` is field access — a new shape, unambiguous

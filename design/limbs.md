@@ -62,8 +62,8 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
 - **`pub`** is a bare word before `fn`, `struct`, or `const` at the top
   level: visible to other Limbs. Without it, private to this Limb. `MAIN`
   is never `pub`.
-- **A Limb's top-level value is a `const`**, not a `let` (`let` stays
-  refused at the top level). It is a value known at compile time — a
+- **A Limb's top-level value is a `const`**, not a variable (a variable
+  is refused at the top level). It is a value known at compile time — a
   literal, arithmetic on literals, another const, a pure call; anything
   with an effect or a runtime input is a compile error. It has no storage:
   Precog bakes it in at every use. It is never assignable, never `mut` /
@@ -84,8 +84,9 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   has no owner, so ownership, whole-program analysis, and automatic
   parallelism would all have a hole in it. Closed, not parked.
 - This does not reopen "no `const` keyword for locals" (2026-09-14): inside
-  a body `let` is still the only declaration and Precog finds the constants
-  itself. `const` exists only where `let` does not.
+  a body a variable declaration (`'x' := …`) is still the only kind and
+  Precog finds the constants itself. `const` exists only where variables
+  do not.
 
 ## Modules (decided 2026-09-19)
 

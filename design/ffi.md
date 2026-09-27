@@ -45,9 +45,9 @@ extern fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
   written through**:
 
   ```
-  nocheck let 'c' := ptr.read['p'];         # the T at 'p'
+  nocheck 'c' := ptr.read['p'];         # the T at 'p'
   nocheck ptr.write['p', 65];               # needs ptr.mut
-  nocheck let 'q' := ptr.at['p', 3];        # 3 elements further — in T units, never bytes
+  nocheck 'q' := ptr.at['p', 3];        # 3 elements further — in T units, never bytes
   if ptr.is_null['f'] { fail not_found; }   # C's null; reading it would crash
   ```
   All `nocheck` sites. No pointer↔integer conversion; a pointer comes
@@ -81,13 +81,13 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
   handler) is a `fn[…]` value to hold and pass back; calling it is an
   `extern` call, a `nocheck` site.
 - Consequence: `ptr[T]` may now appear in any function's parameters and
-  return (a callback receives pointers); a `let` still cannot declare one.
+  return (a callback receives pointers); a declaration still cannot hold one.
 
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
 extern fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
-nocheck let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
+nocheck 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
 An extern's return may be a range type. It is a promise about C that
@@ -106,14 +106,14 @@ performance difference against (a): none — same compare, same proofs;
 written once in the signature instead of after every call. Owner: c.
 `examples/extern_range.cpls`.
 
-## `extern let` — a C global (decided 2026-09-21)
+## `extern 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-extern let 'lib_version': int32;        # C: extern int lib_version;   read-only
-extern let mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
+extern 'lib_version': int32;        # C: extern int lib_version;   read-only
+extern mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
 
-nocheck let 'v' := 'lib_version';       # reading C's variable is a nocheck site
-nocheck 'lib_verbose' = 1;              # so is writing one
+nocheck 'v' := 'lib_version';       # reading C's variable is a nocheck site
+nocheck change 'lib_verbose' = 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern fn` names its functions.
@@ -123,12 +123,13 @@ meaningless. Every read and write is a nocheck site, like an extern call:
 nothing about C's memory can be proven. It is a plain value that copies
 by itself — no verbs. Proposed alternatives: no extern data at all (a C
 helper function per variable) and `extern 'x': ptr[T]` read through
-`ptr.read`. Owner chose `extern let`.
+`ptr.read`. Owner chose `extern let`, which lost its `let` with every
+other declaration on 2026-09-25.
 
 **`errno` is not a plain global** on macOS and Linux — it is a macro
-that calls a function — so `extern let 'errno': int32;` would be wrong
+that calls a function — so `extern 'errno': int32;` would be wrong
 there; the std Limb offers `std::c.errno[]` backed by the real thing.
-`extern let` is for genuinely plain C globals. `examples/extern_data.cpls`.
+`extern 'x': T` is for genuinely plain C globals. `examples/extern_data.cpls`.
 
 ## `layout.c` — a struct in C's shape
 
@@ -173,7 +174,7 @@ nocheck inline.ASM {
 - **`with [ … ]` binds variables to registers; the arrow is the
   direction** (owner: "drop the words, keep the arrows"): `'v' -> x0`
   copies the variable in before the block, `'v' <- x0` stores the
-  register into `'v'` after (declaring it, like a `let`), `'v' <-> x0`
+  register into `'v'` after (declaring it, like `'v' := …`), `'v' <-> x0`
   both; `clobber x16` says a register was overwritten.
 - **Compiler rule (2026-09-21):** on AArch64 the lowering spells `x29` as
   `fp` and `x30` as `lr` in what it hands LLVM — the ABI names. LLVM 22

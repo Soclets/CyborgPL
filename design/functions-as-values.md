@@ -9,8 +9,8 @@ solved for types, solved here for behaviour.
 ## 1. A function becomes a value by its bare name
 
 ```
-let 'f' := average;            # the function itself; bare name, no brackets
-let 'n' := 'f'[lend 's'];      # calling a held function: quoted name, then the arguments
+'f' := average;            # the function itself; bare name, no brackets
+'n' := 'f'[lend 's'];      # calling a held function: quoted name, then the arguments
 ```
 
 The rule stands: a *value you hold* is quoted, a function's name is bare.
@@ -36,9 +36,9 @@ difference.
 ## 3. Inline functions capture explicitly — `with`
 
 ```
-let 'limit' := 60;
-let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >== 'limit'; }];
-let 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
+'limit' := 60;
+'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >== 'limit'; }];
+'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -55,7 +55,7 @@ silently, which is where "why is this borrowed" bugs come from.
 - A captured `lend` is visible inside as a lent variable, a `copy`/`give`
   as an owned one; a capture and a parameter cannot share a name.
 - **A function carrying a `copy`/`give` capture is an owned value**
-  (owner, 2026-09-24: a): `let 'g' := 'f'` is refused, as for a list, and
+  (owner, 2026-09-24: a): `'g' := 'f'` is refused, as for a list, and
   `copy 'f'` copies what it carries while `give 'f'` hands it on. Dropping
   it frees what it owns. A function carrying nothing, or only `lend`s,
   copies by itself like a number. Proposed alternatives: every function
@@ -69,7 +69,7 @@ silently, which is where "why is this borrowed" bugs come from.
 ## Open
 
 - (Callbacks across the C boundary: decided 2026-09-21, `ffi.md`.)
-- An operator as a value (`let 'f' := <+>`).
+- An operator as a value (`'f' := <+>`).
 - Returning a function that captured a `lend` — the lifetime rule.
 
 ## Oracle

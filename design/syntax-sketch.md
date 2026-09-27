@@ -1,7 +1,9 @@
 # Syntax sketch
 
 The language's surface as decided so far. Revised 2026-09-19 (owner):
-`let`/`fn`, the type after the name, and `[ ]` only where it builds a value.
+`fn`, the type after the name, and `[ ]` only where it builds a value;
+revised 2026-09-25 (owner): no `let` — a declaration starts with its name,
+and changing says `change`.
 The 2026-09-14 form is under **History** at the bottom.
 
 ## The sample
@@ -16,14 +18,14 @@ struct Locker {
 fn count [lent 'text': str.utf8] -> int32 { … }
 
 MAIN {
-    let 'mine' := Locker[name = "A", number = 7, occupied = false];
-    let mut 'total': int32 = 0;
+    'mine' := Locker[name = "A", number = 7, occupied = false];
+    mut 'total': int32 = 0;
     for 'i' in range[1, 10] {
-        if ('i' mod 2) == 0 { 'total' = 'total' + 'i'; }
+        if ('i' mod 2) == 0 { change 'total' = 'total' + 'i'; }
         else if 'i' == 7 { break; }
         else { continue; }
     }
-    let 's' := "line 1" ++ \n ++ "line 2";
+    's' := "line 1" ++ \n ++ "line 2";
     std::printu.stdout["total: ", 'total', \n];
 }
 ```
@@ -31,25 +33,29 @@ MAIN {
 ## Declarations (revised 2026-09-19)
 
 ```
-let 'x' := 1000;                 # Precog picks the best type
-let 'x': bin16 = 1000;           # explicit type; must be fully explicit
-let mut 'n': int32 = 0;          # mutability, when stated, before the name
-let immut 'limit' := 10;
-let 'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
+'x' := 1000;                 # Precog picks the best type
+'x': bin16 = 1000;           # explicit type; must be fully explicit
+mut 'n': int32 = 0;          # mutability, when stated, before the name
+immut 'limit' := 10;
+'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
 pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
 ```
 
-- **`let`**, not `var`. The quotes already say "this is a variable", so the
-  keyword only has to say "declaration"; `let` is what the hire pool types.
+- **No declaration keyword** (2026-09-25; it was `let` from 2026-09-19,
+  `var` before). The quotes already say "this is a variable", and what
+  follows the name says what happens to it: `'x' := 1;` declares,
+  `change 'x' = 2;` changes, `'x' $:= 3;` shadows. `change` is the word
+  because it cannot be read as "make a new one".
 - **The type follows the name after `:`** — `'x': int32`, never
-  `int32 'x'` or `let.int32 'x'`. The name comes first and long types no
+  `int32 'x'`. The name comes first and long types no
   longer push it off the line. `:` is the one way to attach a type to a
   name: variables, parameters, struct fields, loop counters.
 - **`:=` only without a type, `=` only with one.** Unchanged. `:=` marks
   "the compiler chooses the best type"; `=` marks "you said everything".
-- **`mut` / `immut`** are bare words between `let` and the name (Rust's
-  spot). Statable, not standard — see `ownership-syntax.md`. **Plain
-  means Precog infers**: `let 'x' := 1; 'x' = 2;` is legal; `mut` states
+- **`mut` / `immut`** (`!mut` is the same as `immut`) are bare words before
+  the name, and `!$` before those says the name cannot be shadowed
+  (2026-09-25). Statable, not standard — see `ownership-syntax.md`. **Plain
+  means Precog infers**: `'x' := 1; change 'x' = 2;` is legal; `mut` states
   intent, `immut` is the enforced contract. The same rule holds for an
   owning parameter (`'items': T` may be changed; `immut 'n': T` may not).
   Not Rust's default-fixed — a fifth cold reader assumed it was
@@ -65,7 +71,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   longer hold keywords together (`else if`, `while`, `for`). The chains
   that stay are the ones doing real work.
 - **Keywords are bare and reserved** (decided 2026-09-14). The language's
-  words — `fn`, `let`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
+  words — `fn`, `change`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
   `list`, `array`, `pos`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
@@ -90,8 +96,8 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   - indexes: `'xs'[pos 3]`;
   - bounds a range: `range[1, 10, 2]`.
 
-  A **single expression stands bare**: `let 'x' := 1000;`, `'i' = 'i' + 1;`,
-  `return 'a' + 'b';`, `if 'a' == 'b' { }`, `let 'n' := add[10, 20];`,
+  A **single expression stands bare**: `'x' := 1000;`, `change 'i' = 'i' + 1;`,
+  `return 'a' + 'b';`, `if 'a' == 'b' { }`, `'n' := add[10, 20];`,
   `occupied = false` inside a construction. A bracket around a single
   expression is allowed as grouping and builds nothing.
 - **Text joins with `++`** (decided 2026-09-19, replacing the whitespace
@@ -110,9 +116,9 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   `\"` and `\\`. Everything else is literal — `"\n"` is a backslash and an
   `n`, a tab is a typed tab. **The newline is the bare `\n` outside
   quotes**, which is why it lives outside: `"Line 1" ++ \n ++ "Line 2"`,
-  `let 'nl' := \n;`. (The oracle's first lexer had C-style `\n`/`\t` inside
+  `'nl' := \n;`. (The oracle's first lexer had C-style `\n`/`\t` inside
   quotes; a default, never decided, now removed.)
-- **Names are quoted, so operators are free glyphs**: `let '+' := 10 + 20;`
+- **Names are quoted, so operators are free glyphs**: `'+' := 10 + 20;`
   is legal — the name `'+'` and the operator `+` are different tokens.
 - **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,
   never a parameter list.
@@ -126,14 +132,14 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   cryptic): `std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output[…]`
   (and `…standard_error`). `printu` stays. **A number joined
   with `++` becomes text in its stored form, everywhere**:
-  `let 's' := "x is " ++ 'x';` holds the full expansion, and `printu['s']`
+  `'s' := "x is " ++ 'x';` holds the full expansion, and `printu['s']`
   cannot undo it. `printu` is the only thing that produces the useful form,
   and only for the values handed to it directly.
 - Borrowed prints (`std::printc`/`std::c.printf`, `std::printrs`/`std::rs.println`)
   existed for a day (2026-09-19) and were removed by the owner on
   2026-09-20; `print` and `printu` are the prints.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
-  needs the `$`; `let 'x' $:= 2;`. `immut` names cannot be shadowed.
+  needs the `$`; `'x' $:= 2;`. `immut` names cannot be shadowed.
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
   (`1_000_000`); `1,000` is an error that points at `_`; leading zeros are
   illegal.

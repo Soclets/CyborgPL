@@ -10,9 +10,9 @@ algorithm.
 
 ```
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
-    let mut 'acc' := simd.fill[0];                          # simd[uint8, 16]
+    mut 'acc' := simd.fill[0];                          # simd[uint8, 16]
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
-        'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
+        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
     }
     return simd.max['acc'] < 128;
 }

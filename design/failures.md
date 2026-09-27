@@ -46,13 +46,14 @@ no spelling outside a failure (open item 4).
 
 A call that can fail carries **`otherwise`** and one of four things. The
 call must be the whole right-hand side (or the whole statement); a failing
-call buried in a larger expression is an error — put it in its own `let`.
+call buried in a larger expression is an error — declare it on its own
+line first (`'v' := f[…] otherwise 0;`).
 
 ```
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise false;          # a fallback value
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise return false;   # leave, whatever the reason
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise fail;           # pass it up unchanged
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {               # one arm per reason
+'ok' := stash[lend.mut 'mine', copy 'n'] otherwise false;          # a fallback value
+'ok' := stash[lend.mut 'mine', copy 'n'] otherwise return false;   # leave, whatever the reason
+'ok' := stash[lend.mut 'mine', copy 'n'] otherwise fail;           # pass it up unchanged
+'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {               # one arm per reason
     full           { break; }
     bad_item 'why' { std::print.stdout["bad: ", 'why', \n]; continue; }
 };
@@ -65,7 +66,7 @@ save[lend 'mine'] otherwise { disk_full { std::print.stdout["not saved", \n]; } 
   can fail with. **Arms** — every reason the callee lists must be covered
   (adding a failure to a function breaks every caller on purpose); a payload
   is bound to a quoted name, which is now a variable you hold.
-- In the arms form, if the call's value is used (`let 'ok' := …`) each arm
+- In the arms form, if the call's value is used (`'ok' := …`) each arm
   must leave — there is no value to give `'ok'`. If the call is a statement,
   arms may fall through.
 - A call that cannot fail must not have `otherwise`.

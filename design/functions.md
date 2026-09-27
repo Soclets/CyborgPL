@@ -7,8 +7,8 @@ parameters, `-> T`).
 fn add ['a': int32, 'b': int32] -> int32 {
     return 'a' + 'b';
 }
-let 'sum' := add[10, 20];              # this Limb: bare
-let 'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
+'sum' := add[10, 20];              # this Limb: bare
+'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
 ```
 
 ## Definition
@@ -26,7 +26,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   sits before the name and mirrors the caller exactly: the caller writes
   `lend 's'`, the parameter reads `lent 'text': …`; `lend.mut` ↔ `lent.mut`.
   An **owning parameter has no keyword** — the caller writes `give`/`copy`.
-  `mut`/`immut` go where they go on `let`: before the name.
+  `mut`/`immut` go where they go on a declaration: before the name.
   A parameter with no type (`lent 'items'`) is legal: Precog infers its
   best type from every call site in the program.
 - **A function that can fail says so**: `-> bool or fail[full, bad_item: str.utf8]`
@@ -90,7 +90,7 @@ followed by `[`. They may be function names; they are not reserved.
 
 Arguments are comma-separated values in one `[ ]`, positionally matched to
 the parameters. A call is a value and stands bare wherever a value goes:
-`let 'sum' := add[10, 20];`, `let 'y' := add[1, 2] x 3;`,
+`'sum' := add[10, 20];`, `'y' := add[1, 2] x 3;`,
 `if is_even['n'] { }`. A call as a statement: `shout[lend.mut 'u'];`.
 (Until 2026-09-19 the outer bracket was mandatory — `:= [add[10, 20]]`.)
 
@@ -106,7 +106,7 @@ return;                       # in a nothing-function
 
 ```
 MAIN {
-    let 'sum' := add[10, 20];
+    'sum' := add[10, 20];
     std::printu.stdout["sum: ", 'sum', \n];
 }
 ```
@@ -136,7 +136,7 @@ simplified the same day; `func` became `fn` on 2026-09-19.
   joining is now the explicit `++`.)
 
 A bracket holding several comma-separated values is a **list**:
-`let 'l' := [1, 2, 3];`. Function arguments are exactly that. A list of one
+`'l' := [1, 2, 3];`. Function arguments are exactly that. A list of one
 is written with a trailing comma: `[1,]`. A `[ ]` may sit inside a `[ ]` as
 a value — `[[1, 2], [3, 4]]` is a list of lists.
 
