@@ -312,6 +312,7 @@ range_bounds_order [fnv:15adcb907214545a] :: the low bound comes first: `[0, 100
 range_convert_arm_missing [fnv:7d69be2b3de665e6] :: every reason needs an arm
 range_convert_unhandled [fnv:769294ffd6316ce9] :: `to.int32[0, 100]` can fail (not_a_number, out_of_range): say what happens
 range_field_out [fnv:6464c17428ae3267] :: the value can be outside what a `uint8[0, 100]` holds
+range_labels_outside_strict [fnv:f1af584c4a26a1c5] :: label a range in a `#strict` file
 range_max_max [fnv:ef6343cb6dbd8287] :: the value can be outside what a `int32[2147483647, 2147483647]` holds
 range_max_on_low_side [fnv:561f9168a24ad79e] :: the low bound comes first
 range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what a `int8` holds
@@ -355,6 +356,14 @@ str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
 str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
 str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is std's
 str_toolbox_in_language [fnv:366a14926afb6c66] :: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet
+strict_decl [fnv:b8025f0c47e84bab] :: a declaration says whether it changes
+strict_for [fnv:06b3bea872c594a0] :: a `for` says whether its variable outlives it
+strict_param [fnv:e284bfe1db8f2b9c] :: parameter 'n' says its type
+strict_pos [fnv:959c6fc995de9a2b] :: a list read says it is a position
+strict_range [fnv:47d9fd2ab1066781] :: each bound says what it is
+strict_range_by [fnv:71fa87accabcbe2b] :: a range writes its step too
+strict_ret [fnv:c79ad4f458e579d7] :: `f` returns a value, so it says its type
+strict_top [fnv:c550bed1c222dbe5] :: `#strict` goes once, at the top of the file
 struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it
 struct_field_no_colon [fnv:1b310f9423971d5e] :: a field's type follows its name after `:`
 struct_field_unbracketed [fnv:3a5e01bd7a977ab9] :: a field is written name first, then its type: `x: int32`

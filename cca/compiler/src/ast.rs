@@ -295,6 +295,8 @@ pub enum ExprKind {
     FnLit(Box<FnLit>),
     /// `...'xs'`, `...copy 'xs'`
     Spread { verb: Option<Verb>, expr: Box<Expr> },
+    /// `pos i` in a `#strict` file: a position, where one goes.
+    Pos(Box<Expr>),
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
     /// `pos i` where an argument goes: a position, not a value
@@ -539,4 +541,6 @@ pub struct Item {
 #[derive(Debug, Clone, PartialEq)]
 pub struct File {
     pub items: Vec<Item>,
+    /// `#strict` at its top: which file it is.
+    pub strict: Option<crate::source::FileId>,
 }

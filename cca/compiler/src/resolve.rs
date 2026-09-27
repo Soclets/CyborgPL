@@ -116,6 +116,8 @@ pub struct ConstInfo {
 
 #[derive(Debug, Default)]
 pub struct Items {
+    /// Files marked `#strict` (owner, 2026-09-27).
+    pub strict_files: std::collections::HashSet<crate::source::FileId>,
     pub modules: Vec<Module>,
     pub fns: Vec<FnDeclInfo>,
     pub externs: Vec<ExternInfo>,
@@ -189,6 +191,9 @@ impl Items {
 
     /// Collect one parsed file as module `m`.
     pub fn collect_file(&mut self, file: &ast::File, m: ModuleId, is_root: bool) -> Result<()> {
+        if let Some(f) = file.strict {
+            self.strict_files.insert(f);
+        }
         for item in &file.items {
             self.collect_item(item, m, is_root)?;
         }

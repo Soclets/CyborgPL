@@ -38,15 +38,31 @@ pub fn is_primitive_head(w: &str) -> bool {
 struct Parser<'a> {
     toks: &'a [Token],
     pos: usize,
+    /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
+    /// every parameter's type, a return type, `mut`/`immut` on every
+    /// declaration, `temp`/`perm` on every `for`.
+    strict: bool,
+    /// Whether the body being parsed has a `return` with a value: in a
+    /// strict file such a function says its type.
+    returns_value: bool,
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0 };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false };
+    let mut strict = None;
+    if p.is(&Tok::Strict) {
+        strict = Some(p.span().file);
+        p.strict = true;
+        p.bump();
+    }
     let mut items = Vec::new();
     while !p.at_eof() {
+        if p.is(&Tok::Strict) {
+            return p.fail("`#strict` goes once, at the top of the file, before any item");
+        }
         items.push(p.item()?);
     }
-    Ok(File { items })
+    Ok(File { items, strict })
 }
 
 const NOT_A_COMMENT: &str = "";
@@ -406,7 +422,13 @@ impl<'a> Parser<'a> {
             if self.is(&Tok::Semi) {
                 return self.fail(format!("`{}` has no body: a function without one is an `extern fn`", name.name));
             }
-            Some(self.block("the function")?)
+            let outer = std::mem::replace(&mut self.returns_value, false);
+            let b = self.block("the function")?;
+            if self.strict && self.returns_value && ret.is_none() {
+                return self.fail_at(name.span, format!("`{}` returns a value, so it says its type: `fn {} […] -> int32 {{ … }}` — a `#strict` file writes it out", name.name, name.name));
+            }
+            self.returns_value = outer;
+            Some(b)
         } else {
             if self.is(&Tok::LBrace) {
                 return self.fail(format!("an `extern fn` has no body: `{}`'s body is in C — end the declaration with `;`", name.name));
@@ -491,6 +513,11 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect(&Tok::RBracket, "`]` closing the parameters")?;
+        if self.strict {
+            if let Some(p) = params.iter().find(|p| p.ty.is_none()) {
+                return self.fail_at(p.name.span, format!("parameter '{}' says its type: `'{}': int32` — a `#strict` file writes every parameter's type", p.name.name, p.name.name));
+            }
+        }
         Ok(params)
     }
 
@@ -1069,6 +1096,11 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
+        if self.strict && mutability.is_none() {
+            if let Tok::Name(n) = self.peek().clone() {
+                return self.fail(format!("a declaration says whether it changes: `mut '{}' := …;` or `immut '{}' := …;` — a `#strict` file writes it out", n, n));
+            }
+        }
         let name = match self.peek().clone() {
             Tok::Name(n) => {
                 let span = self.bump().span;
@@ -1100,6 +1132,7 @@ impl<'a> Parser<'a> {
                 return Ok(StmtKind::Block(b));
             }
             Tok::Semi => return self.fail("expected a statement, found `;` — there are no empty statements"),
+            Tok::Strict => return self.fail("`#strict` goes once, at the top of the file, before any item"),
             // A declaration starts with its name (owner, 2026-09-25).
             Tok::Name(n) => {
                 return match self.peek_at(1) {
@@ -1189,6 +1222,7 @@ impl<'a> Parser<'a> {
                 }
                 let e = self.expr_top()?;
                 self.expect_semi("the return value")?;
+                self.returns_value = true;
                 Ok(StmtKind::Return(Some(e)))
             }
             "fail" => {
@@ -1277,6 +1311,8 @@ impl<'a> Parser<'a> {
             perm = true;
         } else if self.eat_word("temp") {
             perm = false;
+        } else if self.strict && !self.is_word("seq") {
+            return self.fail("a `for` says whether its variable outlives it: `for temp 'i' in …` or `for perm 'i' in …` — a `#strict` file writes it out");
         }
         if self.is_word("seq") {
             return self.fail("expected a quoted loop variable: `seq` goes first, then `temp` / `perm`, then the name — `for seq perm 'i' in …`");
@@ -1306,10 +1342,37 @@ impl<'a> Parser<'a> {
             if self.is(&Tok::Walrus) || self.is_op("=") {
                 return self.fail("the bounds of a `range` are plain values: `range[0, 3]` — the `:=` / `=` markers are gone (they would say the same thing twice)");
             }
-            let start = self.expr(0)?;
-            self.expect(&Tok::Comma, "`,` between the range's start and stop")?;
-            let stop = self.expr(0)?;
-            let step = if self.eat(&Tok::Comma) { Some(self.expr(0)?) } else { None };
+            // A strict file labels each bound and always writes the step
+            // (owner, 2026-09-27): `range[from 2, to 8, by 2]`.
+            let (start, stop, step) = if self.strict {
+                let labelled = |this: &mut Self, word: &str| -> Result<Expr> {
+                    if this.range_label() != Some(word) {
+                        return this.fail(format!("each bound says what it is: `range[from 2, to 8, by 2]` — `{}` goes here, in a `#strict` file", word));
+                    }
+                    this.bump();
+                    this.expr(0)
+                };
+                let start = labelled(self, "from")?;
+                self.expect(&Tok::Comma, "`,` between the range's start and stop")?;
+                let stop = labelled(self, "to")?;
+                if !self.eat(&Tok::Comma) {
+                    return self.fail("a range writes its step too, even 1: `range[from 2, to 8, by 1]` — a `#strict` file writes it out");
+                }
+                let step = labelled(self, "by")?;
+                (start, stop, Some(step))
+            } else {
+                let unlabelled = |this: &mut Self| -> Result<Expr> {
+                    if let Some(w) = this.range_label() {
+                        return this.fail(format!("label a range in a `#strict` file; elsewhere its bounds are bare — `range[2, 8, 2]`, not `{} …`", w));
+                    }
+                    this.expr(0)
+                };
+                let start = unlabelled(self)?;
+                self.expect(&Tok::Comma, "`,` between the range's start and stop")?;
+                let stop = unlabelled(self)?;
+                let step = if self.eat(&Tok::Comma) { Some(unlabelled(self)?) } else { None };
+                (start, stop, step)
+            };
             self.expect(&Tok::RBracket, "`]` closing the range")?;
             let _ = rstart;
             ForIter::Range { start, stop, step }
@@ -1318,6 +1381,20 @@ impl<'a> Parser<'a> {
         };
         let body = self.block("`for`")?;
         Ok(StmtKind::For { seq, perm, name, ty, iter, body })
+    }
+
+    /// `from`, `to` or `by` heading a range bound; `to.int32[…]` is a
+    /// conversion, not a label.
+    fn range_label(&self) -> Option<&'static str> {
+        if self.is_word("from") {
+            Some("from")
+        } else if self.is_word("by") {
+            Some("by")
+        } else if self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot) {
+            Some("to")
+        } else {
+            None
+        }
     }
 
     fn captures(&mut self) -> Result<Vec<Capture>> {
@@ -2070,9 +2147,19 @@ impl<'a> Parser<'a> {
                     self.bump();
                     let mut args = self.args()?;
                     let span = e.span.to(self.prev_span());
-                    let one = args.len() == 1 && matches!(&args[0], Arg::Positional(x) if !matches!(x.kind, ExprKind::Verb { .. } | ExprKind::Spread { .. }));
+                    // A strict file says `pos` on every position, so there
+                    // a read is `[pos …]` and anything else is a call.
+                    let one = if self.strict {
+                        args.len() == 1 && matches!(&args[0], Arg::Positional(x) if matches!(x.kind, ExprKind::Pos(_)))
+                    } else {
+                        args.len() == 1 && matches!(&args[0], Arg::Positional(x) if !matches!(x.kind, ExprKind::Verb { .. } | ExprKind::Spread { .. }))
+                    };
                     if one {
                         let Some(Arg::Positional(index)) = args.pop() else { unreachable!() };
+                        let index = match index.kind {
+                            ExprKind::Pos(inner) => *inner,
+                            _ => index,
+                        };
                         e = Expr { kind: ExprKind::Index { base: Box::new(e), index: Box::new(index) }, span };
                     } else {
                         e = Expr { kind: ExprKind::CallValue { callee: Box::new(e), args, otherwise: None }, span };
@@ -2120,7 +2207,19 @@ impl<'a> Parser<'a> {
             }
             // `pos` the old keyword, not a function someone named `pos`.
             if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket) {
-                return self.fail("`pos` is gone: a position is written bare — `'xs'[2]`, `list.slice[lend 'xs', 2, 4]`");
+                if !self.strict {
+                    return self.fail("`pos` is gone: a position is written bare — `'xs'[2]`, `list.slice[lend 'xs', 2, 4]`");
+                }
+                // A strict file says every position (owner, 2026-09-27).
+                let start = self.span();
+                self.bump();
+                let inner = self.expr(0)?;
+                let span = start.to(self.prev_span());
+                args.push(Arg::Positional(Expr { kind: ExprKind::Pos(Box::new(inner)), span }));
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+                continue;
             }
             let e = self.expr(0)?;
             if self.is(&Tok::Walrus) {
@@ -2145,7 +2244,12 @@ impl<'a> Parser<'a> {
         let params = self.params(ParamContext::Fn)?;
         let (ret, fails) = self.return_spec()?;
         let captures = if self.eat_word("with") { self.captures()? } else { Vec::new() };
+        let outer = std::mem::replace(&mut self.returns_value, false);
         let body = self.block("the function")?;
+        if self.strict && self.returns_value && ret.is_none() {
+            return self.fail_at(start, "this function returns a value, so it says its type: `fn [ … ] -> int32 { … }` — a `#strict` file writes it out");
+        }
+        self.returns_value = outer;
         let span = start.to(self.prev_span());
         Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret, fails, captures, body })), span })
     }

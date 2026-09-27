@@ -179,6 +179,7 @@ impl Checker {
                 }
                 Ok(Expr { kind: K::SizeOf { align: *align, ty: t }, ty: Ty::u64(), span })
             }
+            AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
     }
@@ -1867,6 +1868,7 @@ impl Checker {
         let ct = self.resolve(&c.ty);
         let ft = match ct.base() {
             Ty::Fn(f) => (**f).clone(),
+            Ty::Seq { .. } if self.items.strict_files.contains(&span.file) => return err(Diagnostic::error(format!("a list read says it is a position: `{}[pos …]` — a `#strict` file writes it out", self.expr_name(ctx, &c))).at(span)),
             Ty::Seq { .. } if otherwise.is_some() => return err(Diagnostic::error(format!("reading {}[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`", self.expr_name(ctx, &c))).at(span)),
             Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).at(span)),
             other => return err(Diagnostic::error(format!("{} is a `{}`, not a function: `'f'[…]` calls a held function, and `'xs'[2]` reads a list", self.expr_name(ctx, &c), self.spell(other))).at(span)),
@@ -2728,7 +2730,12 @@ impl Checker {
     /// `pos i` where a position is wanted.
     /// A position, written bare (owner, 2026-09-27: `pos` is removed).
     fn pos_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str) -> Result<Arg> {
-        let _ = name;
+        // A strict file says every position (owner, 2026-09-27).
+        let e = match &e.kind {
+            AK::Pos(inner) => &**inner,
+            _ if self.items.strict_files.contains(&e.span.file) => return err(Diagnostic::error(format!("`{}` says each position with `pos` — `pos 2` — in a `#strict` file", name)).at(e.span)),
+            _ => e,
+        };
         let v = self.expr(ctx, e)?;
         let vt = self.resolve(&v.ty);
         if !vt.is_int() {

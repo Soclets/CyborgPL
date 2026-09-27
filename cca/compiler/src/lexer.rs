@@ -24,6 +24,8 @@ pub enum Tok {
     Op(String),
     /// `{ raw }` after `inline.ASM`: the verbatim text between the braces.
     Raw(String),
+    /// `#strict` (owner, 2026-09-27): the file writes every reason out.
+    Strict,
     Walrus,      // :=
     ColonColon,  // ::
     Colon,       // :
@@ -52,6 +54,7 @@ impl Tok {
             Tok::Word(w) => format!("`{}`", w),
             Tok::Op(o) => format!("`{}`", o),
             Tok::Raw(_) => "a raw block".into(),
+            Tok::Strict => "`#strict`".into(),
             Tok::Walrus => "`:=`".into(),
             Tok::ColonColon => "`::`".into(),
             Tok::Colon => "`:`".into(),
@@ -302,7 +305,12 @@ impl<'a> Lexer<'a> {
             return Ok(());
         }
         if !ends_form {
-            return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down", form));
+            return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form));
+        }
+        // Not a comment: `#strict` is one of the `#word` forms, like `#wl`.
+        if form == "strict" {
+            self.push(Tok::Strict, start);
+            return Ok(());
         }
         if form == "wl" {
             // The whole line, including the code before the `#`.
@@ -319,7 +327,7 @@ impl<'a> Lexer<'a> {
         let (digits, suffix) = form.split_at(form.find(|c: char| !c.is_ascii_digit()).unwrap_or(form.len()));
         let n: usize = match digits.parse() {
             Ok(n) if !digits.is_empty() => n,
-            _ => return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down", form)),
+            _ => return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form)),
         };
         match suffix {
             "l" => {
@@ -344,7 +352,7 @@ impl<'a> Lexer<'a> {
                 }
                 self.skip_lines(n);
             }
-            _ => return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down", form)),
+            _ => return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form)),
         }
         Ok(())
     }

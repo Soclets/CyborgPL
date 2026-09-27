@@ -93,7 +93,11 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None };
+    // A `#strict` file's functions (owner, 2026-09-27): each site is proven
+    // from what its own function says, never from a caller's arguments or
+    // another function's body.
+    a.strict_fns = (0..p.functions.len()).filter(|f| p.functions[*f].spans.first().map_or(false, |s| p.items.strict_files.contains(&s.file))).collect();
     // A program is walked from `MAIN`, and every function it reaches is
     // analysed **per call site**, with that call's argument domains
     // (`precog.md`): `square['i']` with `'i'` in 1..1000 proves its own
@@ -110,6 +114,27 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
                 let entry = a.entry_env(f);
                 a.run_function(f, entry, 0);
             }
+        }
+    }
+    // Each strict function once more, on its own terms: its parameters are
+    // what their types allow, and a call is what its declared return type
+    // allows. Only its own sites' verdicts, claims and facts come out of
+    // this; everything else the walk touches is put back as it was, so the
+    // folds and ranges the whole program earned are kept.
+    let strict: Vec<usize> = { let mut v: Vec<usize> = a.strict_fns.iter().copied().collect(); v.sort(); v };
+    for f in strict {
+        let saved = (a.folds.clone(), a.ranges.clone(), a.loop_entry.clone(), a.loop_bound.clone(), a.acc_step.clone(), a.induction.clone(), a.induction_missing.clone(), a.induction_wide, a.cache.clone(), a.edges.clone(), a.reads_outside, a.gave_up, a.lies.len());
+        a.gave_up = false;
+        a.own_terms = Some(f);
+        let entry = a.entry_env(f);
+        a.run_function(f, entry, 0);
+        let gave_up = a.gave_up;
+        a.own_terms = None;
+        (a.folds, a.ranges, a.loop_entry, a.loop_bound, a.acc_step, a.induction, a.induction_missing, a.induction_wide, a.cache, a.edges, a.reads_outside, a.gave_up) = (saved.0, saved.1, saved.2, saved.3, saved.4, saved.5, saved.6, saved.7, saved.8, saved.9, saved.10, saved.11);
+        a.lies.truncate(saved.12);
+        // Facts from a walk that stopped short are not facts.
+        if gave_up {
+            a.block_facts.retain(|(g, _), _| *g != f);
         }
     }
     // Fold what layer 1 settled, before anything reads the graph again —
@@ -287,6 +312,10 @@ struct Precog {
     block_facts: HashMap<(usize, usize), Env>,
     /// Every edge layer 2 found some run could take: (function, from, to).
     edges: std::collections::HashSet<(usize, usize, usize)>,
+    /// Functions written in a `#strict` file.
+    strict_fns: std::collections::HashSet<usize>,
+    /// The strict function being walked on its own terms, if one is.
+    own_terms: Option<usize>,
 }
 
 /// What layer 3 may assume at the head of a loop, per function and block.
@@ -295,6 +324,15 @@ pub type Facts = HashMap<(usize, usize), HashMap<LocalId, Domain>>;
 impl Precog {
     fn prog(&self) -> &Program {
         unsafe { &*self.p }
+    }
+
+    /// Whether what is found in `f` now may stand as `f`'s: a strict
+    /// function's only on its own-terms walk, and nothing else during one.
+    fn counts_for(&self, f: usize) -> bool {
+        match self.own_terms {
+            Some(g) => f == g,
+            None => !self.strict_fns.contains(&f),
+        }
     }
 
     fn entry_env(&mut self, f: usize) -> Env {
@@ -595,8 +633,9 @@ impl Precog {
             visits[b] += 1;
             // Remember what arrived here, joined with everything that ever
             // did. A local missing from either side is unknown in the join.
+            let skip = self.dry || !self.counts_for(f);
             match self.block_facts.get_mut(&(f, b)) {
-                _ if self.dry => {}
+                _ if skip => {}
                 None => {
                     self.block_facts.insert((f, b), env.clone());
                 }
@@ -951,7 +990,7 @@ impl Precog {
 
         }
         for (id, v) in sites_seen {
-            if self.dry {
+            if self.dry || !self.counts_for(f) {
                 break;
             }
             let key = (f, id);
@@ -1484,6 +1523,12 @@ impl Precog {
                 if i >= self.prog().functions.len() {
                     return Domain::Any;
                 }
+                // On its own terms a strict function knows a call only by
+                // the callee's declared return type, not its body.
+                if self.own_terms.is_some() {
+                    let ret = self.prog().functions[i].ret.clone();
+                    return Domain::of_ty(&ret, &self.prog().items);
+                }
                 // Per call site, with these argument domains: the same
                 // machinery generics and variadics already use.
                 let mut callee_env = self.entry_env(i);
@@ -1573,7 +1618,11 @@ impl Precog {
             }
             Callee::Value(_) => {
                 // A held function: which one it is was not followed here.
-                self.gave_up = true;
+                // On a strict function's own terms that is the rule, not
+                // a gap.
+                if self.own_terms.is_none() {
+                    self.gave_up = true;
+                }
                 Domain::Any
             }
             Callee::Op(op) => {
@@ -1690,7 +1739,7 @@ impl Precog {
         let ds: Vec<Domain> = site.operands.iter().map(|o| self.read_operand(f, env, o)).collect();
         let ty_of = |this: &Self, i: usize| -> Option<Ty> { site.operands.get(i).and_then(|o| o.place()).map(|p| this.place_ty(f, p)) };
         let verdict = self.judge_kind(f, &site, &ds, ty_of);
-        if !self.dry {
+        if !self.dry && self.counts_for(f) {
             let value = claimed_value(&site.kind, &ds);
             let entry = self.claims.entry((f, id.0)).or_insert((None, Vec::new()));
             entry.0 = match (entry.0.take(), value) {
@@ -2440,6 +2489,23 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
                 .why("`check` asks whether the guardrail is enough, and this one could not be shown to be")
                 .why("no counterexample either: the guardrail may well be enough, and nothing here could prove it")
                 .fix(None, "narrow what reaches here — a bound on the type, or an `if` in front of it");
+            if !f.name.is_empty() && f.name != "MAIN" {
+                d = d.place(format!("in `{}`", f.name));
+            }
+            out.push(d.render(sources));
+            continue;
+        }
+        // In a `#strict` file a site not proven from its own function is an
+        // error in every build, never a run-time check (owner, 2026-09-27:
+        // a). A written `check` or `nocheck` keeps its own meaning.
+        let strict = f.spans.first().map_or(false, |s| p.items.strict_files.contains(&s.file));
+        let open = matches!(&r.verdict, Verdict::Unproven) || matches!(&r.verdict, Verdict::Fails { counterexample } if !counterexample.starts_with("every"));
+        if strict && open && site.tier.is_none() {
+            let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
+            let mut d = crate::diag::Diagnostic::error(format!("{} — and this `#strict` file does not say why not in this function", site.sentence(&spell)))
+                .at(f.span(site.span))
+                .why("in a strict file each site is proven from what its own function writes, in every build (owner, 2026-09-27: a)")
+                .fix(None, "write the reason here: an `if` in front, a range type on the parameter or the return, or the loop's bounds");
             if !f.name.is_empty() && f.name != "MAIN" {
                 d = d.place(format!("in `{}`", f.name));
             }

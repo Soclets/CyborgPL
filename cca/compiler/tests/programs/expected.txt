@@ -169,3 +169,5 @@ simd_some_bounds trap
 simd_fields 70
 # 'x'[…] reads a list or calls a held function (owner, 2026-09-27).
 index_or_call 37
+# A #strict file: pos, types, mut/immut, temp/perm, proofs in its own function.
+strict_file 181

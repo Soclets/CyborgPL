@@ -267,3 +267,26 @@ fn ir_of(name: &str) -> String {
 fn indent(s: &str) -> String {
     s.lines().map(|l| format!("    {}", l)).collect::<Vec<_>>().join("\n")
 }
+
+/// `#strict` (owner, 2026-09-27): each site is proven from what its own
+/// function says. The same program proves every division without it, and
+/// with it refuses the two whose reason lives in a caller or another body —
+/// in the final build and the working build alike (owner, 2026-09-27: a) —
+/// while the division a range type guards stays proven.
+#[test]
+fn strict_proves_from_its_own_function() {
+    let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
+    let lax = final_build(&tests.join("strict_lax.cpls"));
+    assert!(lax.status.success(), "the final build refused strict_lax.cpls:\n{}", String::from_utf8_lossy(&lax.stderr));
+    let strict = final_build(&tests.join("strict_caller.cpls"));
+    let err = String::from_utf8_lossy(&strict.stderr).to_string();
+    assert!(!strict.status.success(), "the final build accepted strict_caller.cpls");
+    for line in ["strict_caller.cpls, line 6,", "strict_caller.cpls, line 11,"] {
+        assert!(err.contains(line), "the final build should refuse {} and said:\n{}", line, err);
+    }
+    assert!(!err.contains("strict_caller.cpls, line 8,"), "ratio's range proves its division, and the final build said:\n{}", err);
+    let out = std::env::temp_dir().join("cca-final-tests/strict_caller_working");
+    let working = Command::new(cca()).arg("build").arg(tests.join("strict_caller.cpls")).arg("-o").arg(&out).output().unwrap();
+    let err = String::from_utf8_lossy(&working.stderr).to_string();
+    assert!(!working.status.success() && err.contains("this `#strict` file does not say why not in this function"), "the working build should refuse the unproven strict sites, and said:\n{}", err);
+}
