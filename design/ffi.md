@@ -106,6 +106,20 @@ performance difference against (a): none — same compare, same proofs;
 written once in the signature instead of after every call. Owner: c.
 `examples/extern_range.cpls`.
 
+## A range type as a C struct's field (owner, 2026-09-27: a)
+
+```
+layout.c struct Rect { w: int32[0, 4096]  h: int32[0, 4096] }
+```
+
+C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
+The range is Cyborg's promise: proven where Cyborg fills one in, and
+checked at the door when a struct comes from C, failing `out_of_range`,
+the ranged-return rule applied to fields. Proposed alternative: keep
+refusing it, with plain fields checked by hand. A range on an `extern fn`
+*parameter* is still refused; that was not asked.
+`examples/c_struct_ranges.cpls`.
+
 ## `layout.c enum` — C's enum (owner, 2026-09-27: a)
 
 ```

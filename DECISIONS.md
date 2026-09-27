@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-27 — A range type may be a `layout.c` struct's field (owner: a)
+
+Refused until now (`input.md` Open). Proposed (a) allow it: C sees the
+plain number, and the range is checked at the door when the struct comes
+from C (`out_of_range`, as for a ranged return) and proven where Cyborg
+fills it in; (b) keep refusing it. Design claude recommended a. Owner: a.
+A range on an `extern fn` parameter is still refused (not asked).
+`ffi.md`; `examples/c_struct_ranges.cpls`; reject test
+c_struct_range_out.
+
 ### 2026-09-27 — `layout.c enum`: C's enum, a number per case (owner: a)
 
 The first low-level item (the owner: "I'll do the low-level stuff first").

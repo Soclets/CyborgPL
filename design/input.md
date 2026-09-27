@@ -89,4 +89,3 @@ arithmetic ranges (`'n' + 1`) — a value is checked when stored.
 
 ## Open
 
-- Ranges in `layout.c` structs (refused today).

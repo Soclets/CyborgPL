@@ -241,7 +241,10 @@ impl<'p> Interp<'p> {
     fn check_boundary(&self) -> Result<(), RuntimeError> {
         for d in self.prog.structs.iter().filter(|d| d.layout_c) {
             for f in &d.fields {
-                if let Err(m) = self.c_shaped(&f.ty) { return rt(d.line, format!("`layout.c struct {}`: field `{}` — {m}", d.name, f.name)); }
+                // a field may be a range type (owner, 2026-09-27: a): C sees the plain number, and
+                // a struct that comes from C is checked at the door, `out_of_range`
+                let laid = match &f.ty { Ty::Ranged(b, _, _) => &**b, t => t };
+                if let Err(m) = self.c_shaped(laid) { return rt(d.line, format!("`layout.c struct {}`: field `{}` — {m}", d.name, f.name)); }
             }
         }
         // `extern let` (decided 2026-09-21): C-shaped, like an extern parameter
