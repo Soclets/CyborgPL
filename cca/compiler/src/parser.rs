@@ -1168,13 +1168,17 @@ impl<'a> Parser<'a> {
                 Ok(StmtKind::Assign { target, value })
             }
             w if is_primitive_head(w) && matches!(self.peek_at(1), Tok::Name(_)) => self.fail(format!("a type goes after the name: `'x': {} = …;`", w)),
-            "check" | "nocheck" => {
+            "check" | "nocheck" | "NO_FUCKING_CHECKS" => {
                 let tier_span = self.bump().span;
-                let tier = if w == "check" { Tier::Check } else { Tier::Nocheck };
+                let tier = match w.as_str() {
+                    "check" => Tier::Check,
+                    "nocheck" => Tier::Nocheck,
+                    _ => Tier::NoChecks,
+                };
                 if self.is(&Tok::Semi) {
                     return self.fail_at(tier_span, format!("`{}` goes in front of a statement, covering its check sites: `{} change 'xs'['i'] = 1;`, `{} {{ … }}`", w, w, w));
                 }
-                if self.is_word("check") || self.is_word("nocheck") {
+                if self.is_word("check") || self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
                     return self.fail(format!("one tier per statement: `{}` and `{}` cannot both cover it", w, self.word_text()));
                 }
                 if self.is_word("fn") {

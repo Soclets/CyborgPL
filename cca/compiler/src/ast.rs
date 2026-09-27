@@ -332,6 +332,17 @@ pub enum Mutability {
 pub enum Tier {
     Check,
     Nocheck,
+    /// `NO_FUCKING_CHECKS` (owner, 2026-09-27): everything `nocheck` turns
+    /// off, and what C hands back is trusted too — no `out_of_range` on a
+    /// C enum or range from C, and a bad one is undefined behaviour.
+    NoChecks,
+}
+
+impl Tier {
+    /// The writer vouches: `nocheck` or `NO_FUCKING_CHECKS`.
+    pub fn trusts(self) -> bool {
+        matches!(self, Tier::Nocheck | Tier::NoChecks)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

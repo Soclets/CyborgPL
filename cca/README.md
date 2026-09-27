@@ -58,10 +58,16 @@ cargo test        # every examples/*.cpls checks; every reject program is
   checked at the door when a call returns them. A `layout.c` struct or C
   enum crosses to C as C passes it (`codegen/cabi.rs`, AAPCS64: packed
   registers, float HFAs, `sret` over 16 bytes); another machine's
-  convention is not written, and CCA refuses there. Not built, and asked:
-  a C enum or ranged field that C writes other than as a return (a
-  callback's parameter, C's variable, `ptr.read`, a `ptr.mut` lent to C),
-  and a callback that takes or returns a struct by value.
+  convention is not written, and CCA refuses there. C's numbers are
+  checked wherever they come in (owner, 2026-09-27): a return, a
+  `ptr.read`, and every element of a list lent to C through a `ptr.mut`,
+  checked when the call ends; `to.Key[…]` converts a number; a callback's
+  parameter is never a C enum; `NO_FUCKING_CHECKS` trusts C instead. Not
+  built: reading C's variable of a C enum or range (how its `otherwise` is
+  written is asked), and a callback that takes or returns a struct by
+  value (it needs a thunk in C's convention).
+- 2026-09-27: `pos` removed; `#strict` (the written-out syntax, and each
+  site proven from its own function, in every build).
 
 - `cca build --assert-proofs file.cpls -o out` (2026-09-23): the build that
   checks Precog (`precog.md`, attack (d)). Every site Precog proved keeps

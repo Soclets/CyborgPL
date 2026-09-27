@@ -40,6 +40,7 @@ fn stmt(k: &StmtKind, f: &Function, spell: &dyn Fn(&Ty) -> String) -> String {
             let tier = match s.tier {
                 Some(crate::ast::Tier::Check) => " check",
                 Some(crate::ast::Tier::Nocheck) => " nocheck",
+                Some(crate::ast::Tier::NoChecks) => " NO_FUCKING_CHECKS",
                 None => "",
             };
             format!("site s{}{}: {}", id.0, tier, s.sentence(spell))

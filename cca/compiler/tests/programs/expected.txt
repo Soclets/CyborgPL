@@ -171,3 +171,6 @@ simd_fields 70
 index_or_call 37
 # A #strict file: pos, types, mut/immut, temp/perm, proofs in its own function.
 strict_file 181
+# C's numbers checked wherever they come in; to.Key; NO_FUCKING_CHECKS (owner, 2026-09-27).
+c_enum_convert 203
+c_door_everywhere 31

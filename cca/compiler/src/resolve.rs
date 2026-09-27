@@ -399,6 +399,14 @@ impl Items {
                     return err(Diagnostic::error(format!("a range type cannot cross to C: '{}' is written as the plain `{}`", p.name.name, spell(&ty.base().clone(), self))).at(t.span));
                 }
                 self.check_c_shaped(&ty, t.span, &format!("the `extern fn {}` parameter '{}'", decl.name.name, p.name.name))?;
+                // C calls a callback, so a number it sends that no case has
+                // would have nowhere to fail (owner, 2026-09-27).
+                if let Ty::Fn(f) = ty.base() {
+                    if let Some((_, bad)) = f.params.iter().find(|(_, t)| self.checked_at_door(t)) {
+                        let spelled = spell(bad, self);
+                        return err(Diagnostic::error(format!("a callback's parameter cannot be `{}`: C calls it, so a number it sends that `{}` does not allow would have nowhere to fail", spelled, spelled)).at(t.span).fix(None, format!("take the plain number and convert inside: `to.{}[…] otherwise …`", spelled)));
+                    }
+                }
                 params.push((p.name.name.clone(), ty));
             }
             let (ret, ranged) = match &decl.ret {

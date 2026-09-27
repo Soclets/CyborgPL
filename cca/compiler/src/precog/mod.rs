@@ -1754,7 +1754,7 @@ impl Precog {
                 entry.1 = ds.clone();
             }
         }
-        if site.tier == Some(Tier::Nocheck) {
+        if site.tier.is_some_and(Tier::trusts) {
             // The check is removed on the writer's word. But the domains
             // were computed anyway, and if they say this fails every time
             // the build says so once and carries on.
@@ -2567,12 +2567,13 @@ pub fn notes(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> V
     for (f_idx, site_id, what) in &a.certain_under_nocheck {
         let f = &p.functions[*f_idx];
         let site = f.site(*site_id);
-        let d = crate::diag::Diagnostic::note("this `nocheck` covers something that fails every time it runs")
+        let word = if site.tier == Some(Tier::NoChecks) { "NO_FUCKING_CHECKS" } else { "nocheck" };
+        let d = crate::diag::Diagnostic::note(format!("this `{}` covers something that fails every time it runs", word))
             .at(f.span(site.span))
             .when(what.clone())
-            .why("`nocheck` removes the check on your word, and the build keeps it removed")
+            .why(format!("`{}` removes the check on your word, and the build keeps it removed", word))
             .why("Precog was not looking; this is what it saw while working out everything else")
-            .fix(None, "remove the `nocheck`, or fix what it is covering");
+            .fix(None, format!("remove the `{}`, or fix what it is covering", word));
         out.push(d.render(sources));
     }
     out

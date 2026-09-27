@@ -66,6 +66,7 @@ c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
 c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what a `int32[0, 4096]` holds
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
 call_without_bracket [fnv:93fa5962e0fc877b] :: a call needs `[…]`
+callback_c_enum [fnv:ba1492734bc49737] :: a callback's parameter cannot be `Key`
 callback_fails [fnv:35748b82590d3e88] :: the `extern fn f` parameter 'cb' is not C-shaped
 callback_lent_param [fnv:acc6e686bfb5348a] :: the `extern fn f` parameter 'cb' is not C-shaped
 callback_str_param [fnv:fc8e6737a324ce6d] :: the `extern fn f` parameter 'cb' is not C-shaped
@@ -250,6 +251,7 @@ mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
 ne [fnv:ef1c886d3712dd70] :: `!=` is not an operator here: not-equal is `!==`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
+no_checks_lied [fnv:25a223b72a20f04f] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 / 2 x 3`)
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
 nocheck_lied [fnv:ee1996e7ba5a0e26] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
@@ -389,6 +391,7 @@ text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its
 text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.point` can fail (not_one_char): say what happens
 to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so
 to_bool [fnv:fef2b7077f153711] :: there is no truthiness
+to_c_enum_unhandled [fnv:d5c360ddcb700642] :: `to.Key` can fail (out_of_range)
 to_list [fnv:fe57458270798005] :: keeps the element type, so it is not written
 to_narrowing_fails [fnv:cd716c13c720d27d] :: the value can be outside what a `int8` holds
 to_otherwise_on_safe [fnv:71d90a0143267704] :: `to.str.utf8` cannot fail here; drop the `otherwise`

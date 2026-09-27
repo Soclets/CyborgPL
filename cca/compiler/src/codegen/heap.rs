@@ -1152,9 +1152,27 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// handles. A failure, not a check: the final build keeps it.
     #[allow(clippy::too_many_arguments)]
     fn emit_ranged_extern(&mut self, fi: usize, id: crate::hir::ExternId, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
-        let ret = self.p.items.externs[id.0 as usize].ret.clone();
-        let v = self.call(fi, callee, args, slots)?;
-        let kept = self.kept_at_door(v, &ret)?;
+        let e = self.p.items.externs[id.0 as usize].clone();
+        let ret = e.ret.clone();
+        let v = self.call(fi, callee, args, slots);
+        if ret != Ty::Nothing && v.is_none() {
+            return None;
+        }
+        let mut kept = match v {
+            Some(v) => self.kept_at_door(v, &ret)?,
+            None => self.ctx.bool_type().const_all_ones(),
+        };
+        // What C wrote through a `ptr.mut` lent to it is checked when the
+        // call ends (owner, 2026-09-27): every element of the lent list.
+        for ((_, pt), a) in e.params.iter().zip(args) {
+            let Ty::Ptr { mutable: true, elem } = pt.base() else { continue };
+            if !elem.checked_at_door(&self.p.items.structs, &self.p.items.enums) {
+                continue;
+            }
+            let Arg::Lend { place, .. } = a else { continue };
+            let k = self.kept_in_list(fi, place, elem, slots, func)?;
+            kept = self.builder.build_and(kept, k, "kept").ok()?;
+        }
         let outside = self.builder.build_not(kept, "out_of_range").ok()?;
         let inside = self.ctx.append_basic_block(func, "in_range");
         // `out_of_range` is the one reason; an arm for it, or none when the
@@ -1162,8 +1180,68 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let out = fail.first().map(|a| blocks[a.block.0 as usize])?;
         let _ = self.builder.build_conditional_branch(outside, out, inside);
         self.builder.position_at_end(inside);
-        if let Some(d) = dest {
+        if let (Some(d), Some(v)) = (dest, v) {
             self.store_place(fi, d, v.into(), slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
+    /// Whether every element of a list C may have written keeps its type's
+    /// promise.
+    fn kept_in_list(&mut self, fi: usize, place: &Place, elem: &Ty, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<IntValue<'ctx>> {
+        let (at, ty) = self.slot_of(fi, place, slots)?;
+        let shape = self.ty(&ty)?.into_struct_type();
+        let et = self.ty(elem)?;
+        let w = self.ctx.i64_type();
+        let data = self.load_field_ptr(shape, at, 0);
+        let lp = self.builder.build_struct_gep(shape, at, 1, "len").ok()?;
+        let n = self.builder.build_load(w, lp, "n").ok()?.into_int_value();
+        let flag = self.builder.build_alloca(self.ctx.bool_type(), "kept").ok()?;
+        let _ = self.builder.build_store(flag, self.ctx.bool_type().const_all_ones());
+        let iv = self.builder.build_alloca(w, "i").ok()?;
+        let _ = self.builder.build_store(iv, w.const_zero());
+        let head = self.ctx.append_basic_block(func, "door_head");
+        let body = self.ctx.append_basic_block(func, "door_body");
+        let done = self.ctx.append_basic_block(func, "door_done");
+        let _ = self.builder.build_unconditional_branch(head);
+        self.builder.position_at_end(head);
+        let i = self.builder.build_load(w, iv, "i").ok()?.into_int_value();
+        let more = self.builder.build_int_compare(IntPredicate::ULT, i, n, "more").ok()?;
+        let _ = self.builder.build_conditional_branch(more, body, done);
+        self.builder.position_at_end(body);
+        let slot = unsafe { self.builder.build_gep(et, data, &[i], "elem").ok()? };
+        let x = self.builder.build_load(et, slot, "x").ok()?;
+        let k = self.kept_at_door(x, elem)?;
+        let was = self.builder.build_load(self.ctx.bool_type(), flag, "was").ok()?.into_int_value();
+        let now = self.builder.build_and(was, k, "now").ok()?;
+        let _ = self.builder.build_store(flag, now);
+        let next = self.builder.build_int_add(i, w.const_int(1, false), "next").ok()?;
+        let _ = self.builder.build_store(iv, next);
+        let _ = self.builder.build_unconditional_branch(head);
+        self.builder.position_at_end(done);
+        self.builder.build_load(self.ctx.bool_type(), flag, "kept").ok().map(|v| v.into_int_value())
+    }
+
+    /// A read from C's memory that comes in checked (owner, 2026-09-27): a
+    /// C enum or range fails `out_of_range` when C's number breaks it.
+    #[allow(clippy::too_many_arguments)]
+    fn emit_checked_ptr_read(&mut self, fi: usize, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let o = match args.first()? {
+            Arg::Value(o) => o.clone(),
+            _ => return None,
+        };
+        let p = self.operand(fi, &o, slots)?.into_pointer_value();
+        let elem = self.pointee(fi, &o)?;
+        let t = self.ty(&elem)?;
+        let v = self.builder.build_load(t, p, "read").ok()?;
+        let kept = self.kept_at_door(v, &elem)?;
+        let inside = self.ctx.append_basic_block(func, "kept");
+        let out = fail.first().map(|a| blocks[a.block.0 as usize])?;
+        let _ = self.builder.build_conditional_branch(kept, inside, out);
+        self.builder.position_at_end(inside);
+        if let Some(d) = dest {
+            self.store_place(fi, d, v, slots);
         }
         let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
         Some(())
@@ -1254,6 +1332,39 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         if let (Ty::Bin(crate::types::BinW::Fixed(bits)), Ty::Str(_)) = (to.base(), from.base()) {
             return self.text_into_bin(fi, *bits, to, arg, dest, ok, fail, blocks, slots, func);
+        }
+        // A number into a C enum (owner, 2026-09-27): one of its cases'
+        // numbers, or `out_of_range`.
+        if let (Ty::Enum { id, .. }, Ty::Int(_)) = (to.base(), from.base()) {
+            let numbers = self.p.items.enums[id.0 as usize].numbers.clone()?;
+            let signed = match arg {
+                Arg::Value(o) => self.operand_signed(fi, o).unwrap_or(true),
+                _ => true,
+            };
+            let v = match arg {
+                Arg::Value(o) => self.operand(fi, o, slots)?,
+                Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => self.operand(fi, &Operand::Read(p.clone()), slots)?,
+                _ => return None,
+            };
+            let w = self.ctx.i128_type();
+            let value = self.builder.build_int_cast_sign_flag(v.into_int_value(), w, signed, "value").ok()?;
+            let mut any = self.ctx.bool_type().const_zero();
+            for n in numbers {
+                let is = self.builder.build_int_compare(IntPredicate::EQ, value, super::const_i128(w, n as i128), "is_case").ok()?;
+                any = self.builder.build_or(any, is, "a_case").ok()?;
+            }
+            let out = fail.first().map(|a| blocks[a.block.0 as usize])?;
+            let inside = self.ctx.append_basic_block(func, "a_case");
+            let _ = self.builder.build_conditional_branch(any, inside, out);
+            self.builder.position_at_end(inside);
+            let shape = self.ty(to)?.into_struct_type();
+            let n32 = self.builder.build_int_truncate(value, self.ctx.i32_type(), "number").ok()?;
+            let e = self.builder.build_insert_value(shape.get_undef(), n32, 0, "key").ok()?.into_struct_value();
+            if let Some(d) = dest {
+                self.store_place(fi, d, e.into(), slots);
+            }
+            let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+            return Some(());
         }
         let Ty::Int(crate::types::IntW::Fixed { .. }) = to.base() else { return None };
         let w = self.ctx.i128_type();
@@ -1590,6 +1701,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         if let Callee::Convert(to) = callee {
             return self.emit_failing_convert(fi, to, args, dest, ok, fail, blocks, slots, func);
+        }
+        if let Callee::Op(Op::PtrRead) = callee {
+            return self.emit_checked_ptr_read(fi, args, dest, ok, fail, blocks, slots, func);
         }
         if let Callee::Op(Op::CharFromCode(unit)) = callee {
             return self.char_from_code(fi, *unit, args, dest, ok, fail, blocks, slots, func);

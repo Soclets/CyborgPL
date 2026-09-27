@@ -111,17 +111,3 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 }
 
-impl<'a, 'ctx> Cg<'a, 'ctx> {
-    /// A value C wrote that no door checked: a C enum's number or a ranged
-    /// field read from C's variable or through a pointer. Whether the
-    /// `nocheck` the writer wrote vouches for it is asked; until then it is
-    /// not built.
-    pub(super) fn c_writes_unchecked(&mut self, t: &Ty) -> bool {
-        if !t.checked_at_door(&self.p.items.structs, &self.p.items.enums) {
-            return false;
-        }
-        let spell = crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
-        self.cannot(format!("reading a `{}` that C wrote, from C's variable or through a pointer, is not built yet: whether its number is checked at the door, like a return, is asked", spell), None);
-        true
-    }
-}

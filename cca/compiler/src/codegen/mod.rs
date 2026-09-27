@@ -336,15 +336,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 continue;
             }
             // C calling back with a struct by value takes a thunk in C's
-            // convention, and C writing through a `ptr.mut` into a C enum or
-            // a ranged field needs a door; neither is built.
+            // convention, which is not built.
             let back = e.params.iter().any(|(_, t)| match t.base() {
-                Ty::Fn(f) => f.params.iter().chain(std::iter::once(&(crate::types::ParamKind::Owned, f.ret.clone()))).any(|(_, p)| matches!(p.base(), Ty::Struct { .. }) || p.checked_at_door(&self.p.items.structs, &self.p.items.enums)),
-                Ty::Ptr { mutable: true, elem } => elem.checked_at_door(&self.p.items.structs, &self.p.items.enums),
+                Ty::Fn(f) => f.params.iter().chain(std::iter::once(&(crate::types::ParamKind::Owned, f.ret.clone()))).any(|(_, p)| matches!(p.base(), Ty::Struct { .. })),
                 _ => false,
             });
             if back {
-                self.cannot(format!("the `extern fn {}` lets C hand Cyborg a C enum, a ranged field or a struct by value without a call returning it — through a callback's parameters or a `ptr.mut` — and that is not built yet: where C's number is checked there is asked", e.name), None);
+                self.cannot(format!("the `extern fn {}` takes a callback that passes or returns a struct by value, which needs a thunk in C's calling convention, and that is not built yet", e.name), None);
                 continue;
             }
             let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
@@ -1285,9 +1283,6 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // Reading C's variable: a nocheck site, a plain load.
             Rvalue::ExternRead(id) => {
-                if self.c_writes_unchecked(&self.p.items.externs[id.0 as usize].ret.clone()) {
-                    return None;
-                }
                 let g = self.extern_global(id.0)?;
                 let t = self.ty(&self.p.items.externs[id.0 as usize].ret.clone())?;
                 self.builder.build_load(t, g, "extern").ok()
@@ -2444,9 +2439,6 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Op::PtrRead => {
                 let p = self.operand(fi, args.first()?, slots)?.into_pointer_value();
                 let elem = self.pointee(fi, args.first()?)?;
-                if self.c_writes_unchecked(&elem) {
-                    return None;
-                }
                 let t = self.ty(&elem)?;
                 Some(Some(self.builder.build_load(t, p, "read").ok()?))
             }

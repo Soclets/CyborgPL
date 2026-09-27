@@ -398,7 +398,12 @@ impl Checker {
     /// An `extern let` is a place of its own kind: a read or write is a nocheck site.
     fn extern_place(&mut self, ctx: &mut FnCtx, id: hir::ExternId, use_: PlaceUse, span: Span) -> Result<Place> {
         let info = self.items.externs[id.0 as usize].clone();
-        if ctx.tier != Some(ast::Tier::Nocheck) {
+        // C's variable of a C enum or range fails `out_of_range` when read
+        // (owner, 2026-09-27); how its `otherwise` is written is asked.
+        if use_ != PlaceUse::Write && info.ret.checked_at_door(&self.items.structs, &self.items.enums) && ctx.tier != Some(ast::Tier::NoChecks) {
+            return err(Diagnostic::error(format!("not yet: reading C's variable '{}', a `{}`, is checked as it comes in, and how its `otherwise` is written is asked — read it under `NO_FUCKING_CHECKS`, or declare it with the plain number and convert with `to.{}[…]`", info.name, self.spell(&info.ret), self.spell(&info.ret))).at(span));
+        }
+        if !ctx.tier.is_some_and(ast::Tier::trusts) {
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
             return err(Diagnostic::error(format!("{} C's variable '{}' is a nocheck site: nothing about C's memory can be proven — write `nocheck` in front of the statement", what, info.name)).at(span));
         }
@@ -1896,7 +1901,7 @@ impl Checker {
         if info.is_let {
             return err(Diagnostic::error(format!("'{}' is C's variable, not a function", info.name)).at(span));
         }
-        if ctx.tier != Some(ast::Tier::Nocheck) {
+        if !ctx.tier.is_some_and(ast::Tier::trusts) {
             return err(Diagnostic::error(format!("a call into C is a nocheck site: nothing about `{}` can be proven — write `nocheck` in front of the statement", info.name)).at(span).fix(None, format!("nocheck … {}[…] …;", info.name)));
         }
         let flat = self.flatten_args(ctx, args, span)?;
@@ -1924,7 +1929,12 @@ impl Checker {
                 hargs.push(Arg::Value(v));
             }
         }
-        let fails: Vec<(String, Option<Ty>)> = if info.ranged { vec![("out_of_range".into(), None)] } else { Vec::new() };
+        // What C hands back is checked where it comes in (owner, 2026-09-27):
+        // the return, and what C wrote through a `ptr.mut` into Cyborg's own
+        // list lent to it (a pointer C already owns is C's memory, read
+        // through `ptr.read`) — unless `NO_FUCKING_CHECKS` trusts C too.
+        let writes_back = info.params.iter().zip(&hargs).any(|((_, t), a)| matches!(t.base(), Ty::Ptr { mutable: true, elem } if elem.checked_at_door(&self.items.structs, &self.items.enums)) && matches!(a, Arg::Lend { mutable: true, .. }));
+        let fails: Vec<(String, Option<Ty>)> = if (info.ranged || writes_back) && ctx.tier != Some(ast::Tier::NoChecks) { vec![("out_of_range".into(), None)] } else { Vec::new() };
         let ow = match otherwise {
             Some(o) => {
                 if fails.is_empty() {
@@ -2136,6 +2146,10 @@ impl Checker {
             (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.point.from_code[…] otherwise …` builds one from a code").at(span)),
             (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`'n' !== 0`)").at(span)),
             (_, Ty::Seq { .. }) => return err(Diagnostic::error("there is no conversion to a list").at(span)),
+            // A number from C becomes a C enum only through a check (owner,
+            // 2026-09-27): one no case has fails `out_of_range`.
+            (Ty::Int(_), Ty::Enum { id, .. }) if self.items.enums[id.0 as usize].numbers.is_some() => fails.push("out_of_range"),
+            (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `layout.c enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).at(span)),
             (_, Ty::Struct { .. }) | (_, Ty::Enum { .. }) => return err(Diagnostic::error(format!("there is no conversion to `{}`: a struct or enum value is built by name", target_spelling)).at(span)),
             (Ty::Duration, _) | (_, Ty::Duration) => return err(Diagnostic::error("a duration does not convert: compare or add durations directly").at(span)),
             _ => return err(Diagnostic::error(format!("there is no conversion from `{}` to `{}`", self.spell(&vt), target_spelling)).at(span)),
@@ -2462,7 +2476,7 @@ impl Checker {
                 (vec![Arg::Value(v)], Ty::Char(*unit))
             }
             Builtin::PtrRead | Builtin::PtrWrite | Builtin::PtrAt | Builtin::PtrIsNull => {
-                if b != Builtin::PtrIsNull && ctx.tier != Some(ast::Tier::Nocheck) {
+                if b != Builtin::PtrIsNull && !ctx.tier.is_some_and(ast::Tier::trusts) {
                     return err(Diagnostic::error(format!("`{}` is a nocheck site: nothing about C's memory can be proven — write `nocheck` in front of the statement", name)).at(span));
                 }
                 let n = match b {
@@ -2477,7 +2491,14 @@ impl Checker {
                     other => return err(Diagnostic::error(format!("`{}` takes a pointer, and this is a `{}`", name, self.spell(other))).at(positional[0].span)),
                 };
                 match b {
-                    Builtin::PtrRead => (vec![Arg::Value(p)], elem),
+                    // A C enum or range read from C's memory is checked as it
+                    // comes in, unless `NO_FUCKING_CHECKS` (owner, 2026-09-27).
+                    Builtin::PtrRead => {
+                        if elem.checked_at_door(&self.items.structs, &self.items.enums) && ctx.tier != Some(ast::Tier::NoChecks) {
+                            fails.push(("out_of_range".into(), None));
+                        }
+                        (vec![Arg::Value(p)], elem)
+                    }
                     Builtin::PtrIsNull => (vec![Arg::Value(p)], Ty::Bool),
                     Builtin::PtrAt => {
                         let i = self.expr(ctx, positional[1])?;
