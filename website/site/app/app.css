@@ -253,9 +253,6 @@ html.desktop .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)
 html.desktop .gcode { height: 118px; font-size: 10px; }
 html.desktop .gcard { transition: transform .12s ease; }
 html.desktop .sheet { top: 12vh; bottom: auto; max-height: 82vh; max-width: 880px; border-radius: 24px; box-shadow: 0 30px 90px -20px rgba(0, 0, 0, .6); }
-/* No tint behind the window on a computer (owner, 2026-09-28); the scrim stays, clear, so a
-   click outside the window still closes it. */
-html.desktop .scrim { background: transparent; }
 html.desktop .grabber { display: none; }
 html.desktop .sheet-grip { padding: 24px 28px 0; cursor: default; }
 html.desktop .sheet-body { padding: 0 28px 28px; }
@@ -266,3 +263,14 @@ html.desktop .sheet-close:hover { background: var(--pressed); }
 
 /* more and the plain pages */
 html.desktop .more, html.desktop .plain { max-width: 720px; }
+
+/* ---------------------------------------------------------------- loading screen (root.jsx) */
+#boot { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); color: var(--ink);
+  transition: opacity .3s ease, visibility 0s linear .3s; }
+#boot[data-done] { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot-in { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.boot-bar { width: 168px; height: 4px; border-radius: 2px; background: var(--surface); overflow: hidden; }
+.boot-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); border-radius: 2px; background: var(--violet); transition: width .18s ease; }
+.boot-pct { margin-top: -10px; font: 600 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.boot-pct::after { content: attr(data-pct); }
+@media (prefers-reduced-motion: reduce) { #boot, .boot-bar i { transition: none; } }

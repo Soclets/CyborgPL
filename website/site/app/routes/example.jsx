@@ -26,12 +26,15 @@ export default function Example() {
   // Starts far below the screen, also in the pre-rendered page, so a direct link never
   // shows the window in place before it slides in.
   const y = useMotionValue(10000);
-  // On a computer the tint goes down with the window when it closes (owner, 2026-09-28).
-  const scrimY = useMotionValue(0);
+  // The tint's opacity: it fades in with the window and out as the window leaves.
+  const tint = useMotionValue(0);
   const drag = useDragControls();
 
   const closing = useRef(false);
-  const close = () => {
+  // Closing is one smooth move for the window and the tint together (owner, 2026-09-28).
+  // After a swipe the window carries on at the swipe's own speed, so there is no hitch
+  // where the finger let go; from ×, Escape or a click outside it glides, gathering speed.
+  const close = (flick = 0) => {
     if (closing.current) return;
     closing.current = true;
     let done = false;
@@ -42,11 +45,14 @@ export default function Example() {
       if (location.state?.fromGrid) navigate(-1);
       else navigate("/examples", { replace: true, preventScrollReset: true });
     };
-    const down = { type: "tween", duration: 0.15, ease: "easeIn" };
-    if (document.documentElement.classList.contains("desktop")) animate(scrimY, window.innerHeight, down);
-    animate(y, window.innerHeight, down).then(leave);
+    const to = window.innerHeight + 40;
+    const left = Math.max(0, to - y.get());
+    const swiped = flick > 300;
+    const duration = swiped ? Math.min(0.3, Math.max(0.12, left / flick)) : 0.3;
+    animate(tint, 0, { duration, ease: "easeOut" });
+    animate(y, to, { type: "tween", duration, ease: swiped ? "linear" : [0.4, 0, 1, 1] }).then(leave);
     // If the browser pauses animations (a background tab), close anyway.
-    setTimeout(leave, 260);
+    setTimeout(leave, duration * 1000 + 200);
   };
 
   // In from the bottom of the screen, from rest. A motion value remembers how fast it last
@@ -57,7 +63,8 @@ export default function Example() {
   useLayoutEffect(() => {
     y.jump(window.innerHeight);
     const a = animate(y, 0, { type: "spring", stiffness: 800, damping: 60, mass: 0.7, velocity: 0 });
-    return () => a.stop();
+    const t = animate(tint, 1, { duration: 0.2, ease: "easeOut" });
+    return () => { a.stop(); t.stop(); };
   }, []);
 
   useEffect(() => {
@@ -74,7 +81,7 @@ export default function Example() {
 
   return (
     <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={ex.title}>
-      <motion.div className="scrim" onClick={close} style={{ y: scrimY }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} />
+      <motion.div className="scrim" onClick={() => close()} style={{ opacity: tint }} />
       <motion.section
         className="sheet"
         style={{ y }}
@@ -83,7 +90,7 @@ export default function Example() {
         dragControls={drag}
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={{ top: 0, bottom: 0.9 }}
-        onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) close(); }}
+        onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) close(info.velocity.y); }}
       >
         {/* Only the top of the sheet drags it, so the code inside still scrolls. */}
         <div className="sheet-grip" onPointerDown={(e) => drag.start(e)}>
@@ -95,7 +102,7 @@ export default function Example() {
             </div>
             {/* On a phone there is no visible close button: swipe down (owner, 2026-09-25), and this
                 one is for screen readers only. A computer can't swipe, so there it shows (app.css). */}
-            <button className="sheet-close" onClick={close} aria-label="Close"><Icon name="x" size={20} /></button>
+            <button className="sheet-close" onClick={() => close()} aria-label="Close"><Icon name="x" size={20} /></button>
           </div>
           {ex.summary && <p className="sheet-summary">{ex.summary}</p>}
           <div className="seg" role="tablist">
