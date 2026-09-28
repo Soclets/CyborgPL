@@ -11,6 +11,9 @@
   ],
   "patterns": [
     {
+      "include": "#strict"
+    },
+    {
       "include": "#comment"
     },
     {
@@ -36,6 +39,9 @@
     },
     {
       "include": "#enum-body"
+    },
+    {
+      "include": "#check-tier"
     },
     {
       "include": "#declaration"
@@ -227,14 +233,26 @@
           }
         },
         {
-          "comment": "struct / enum / interface / module / limb declare a bare name.",
-          "match": "\\b(struct|enum|interface|module|limb)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "comment": "struct / enum / interface declare a type's bare name.",
+          "match": "\\b(struct|enum|interface)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": {
               "name": "keyword.declaration.cyborgpl"
             },
             "2": {
               "name": "entity.name.type.cyborgpl"
+            }
+          }
+        },
+        {
+          "comment": "module and limb declare a namespace.",
+          "match": "\\b(module|limb)\\s+([a-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.namespace.cyborgpl"
             }
           }
         },
@@ -398,6 +416,21 @@
           }
         },
         {
+          "comment": "A library call through a built-in type is one dotted name up to its brackets: list.length[…], str.each.grapheme[…], simd.load.some[…].",
+          "match": "\\b(str|char|list|array|seq|map|simd|channel|ptr)(\\.)([a-z_][A-Za-z0-9_]*(?:\\.[a-z_][A-Za-z0-9_]*)*)(?=\\s*\\[)",
+          "captures": {
+            "1": {
+              "name": "support.type.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "entity.name.function.cyborgpl"
+            }
+          }
+        },
+        {
           "name": "support.type.cyborgpl",
           "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr)\\b"
         },
@@ -426,6 +459,26 @@
           "match": "\\b(?:give|copy|lend|lent)(?:\\.mut)?\\b"
         },
         {
+          "comment": "#strict labels a range's bounds (2026-09-27): range[from 1, to 4, by 1].",
+          "name": "keyword.other.range.label.cyborgpl",
+          "match": "(?<=\\[|,\\s)(?:from|to|by)\\b(?=\\s)"
+        },
+        {
+          "comment": "`change` marks every change to a value (2026-09-25); a declaration is just its name: 'x' := 1;",
+          "name": "keyword.other.change.cyborgpl",
+          "match": "\\bchange\\b"
+        },
+        {
+          "comment": "`!$` in front: the name cannot be shadowed. `!mut` is `immut` (2026-09-25).",
+          "name": "storage.modifier.cyborgpl",
+          "match": "!\\$|!mut\\b"
+        },
+        {
+          "comment": "`&` and `&mut` are lend / lend.mut, and lent / lent.mut on a parameter.",
+          "name": "keyword.other.ownership.cyborgpl",
+          "match": "&(?:mut\\b)?"
+        },
+        {
           "comment": "Failures in signatures, handled with `otherwise`.",
           "name": "keyword.control.failure.cyborgpl",
           "match": "\\b(?:fail|otherwise)\\b"
@@ -435,20 +488,17 @@
           "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|match|whichever|concur)\\b"
         },
         {
-          "comment": "The check tiers.",
-          "name": "keyword.other.check.cyborgpl",
-          "match": "\\b(?:check|nocheck)\\b"
-        },
-        {
           "name": "keyword.declaration.cyborgpl",
-          "match": "\\b(?:let|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b"
+          "match": "\\b(?:pub\\.limb|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b",
+          "comment": "`pub.limb` is `pub` narrowed: visible across the limb."
         },
         {
           "name": "storage.modifier.cyborgpl",
-          "match": "\\b(?:mut|immut|temp|perm|satisfies|from|to|with|size|align)\\b"
+          "match": "\\b(?:mut|immut|temp|perm|satisfies|from|to(?!\\.)|with|size|align)\\b",
+          "comment": "`to` before a dot is a conversion (to.int32[…]), matched as a call."
         },
         {
-          "comment": "`pos` marks a 1-based index: 'xs'[pos 1].",
+          "comment": "`pos` marks a position, in `#strict` files only (removed elsewhere 2026-09-27): 'xs'[pos 1].",
           "name": "keyword.other.position.cyborgpl",
           "match": "\\bpos\\b"
         },
@@ -461,9 +511,9 @@
           "match": "\\b(?:true|false)\\b"
         },
         {
-          "comment": "Retired on 2026-09-19, still reserved so the error can point at the new spelling.",
+          "comment": "Retired, still reserved so the error can point at the new spelling: var/func on 2026-09-19, let on 2026-09-25.",
           "name": "invalid.deprecated.cyborgpl",
-          "match": "\\b(?:var|func)\\b"
+          "match": "\\b(?:var|func|let)\\b"
         }
       ]
     },
@@ -521,6 +571,18 @@
           }
         },
         {
+          "comment": "A bare lowercase segment between dots, after a bare word, is a module: counter.inner.twice[…]. A quoted variable's field chain starts with ' and is left to the narrowing rule.",
+          "match": "(?<=[A-Za-z0-9_])(\\.)([a-z_][A-Za-z0-9_]*)(?=\\.[a-z_])",
+          "captures": {
+            "1": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.namespace.cyborgpl"
+            }
+          }
+        },
+        {
           "comment": "A dotted name called with brackets is a function: `counter.bump[…]`, `map.remove[…]`.",
           "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\[)",
           "captures": {
@@ -554,9 +616,9 @@
           "match": "\\b(?:and\\.bit|or\\.bit|xor|shl|shr|not\\.bit)\\b"
         },
         {
-          "comment": "Word operators. `x` multiplies and `xx` raises; the ~ suffix wraps.",
+          "comment": "Word operators. `x` multiplies and `xx` raises; the ~ suffix wraps. `and.then` / `or.else` (2026-09-25) stop once the answer is known; plain `and` / `or` work out both sides.",
           "name": "keyword.operator.word.cyborgpl",
-          "match": "\\b(?:xx~|x~|xx|x|mod|and|or|not)\\b"
+          "match": "\\b(?:and\\.then|or\\.else|xx~|x~|(?:xx|x|mod|and|or|not)\\b)"
         },
         {
           "comment": "$ marks a shadowing declaration and sits on the operator.",
@@ -584,16 +646,18 @@
         },
         {
           "name": "keyword.operator.arithmetic.cyborgpl",
-          "match": "[+\\-/]"
+          "match": "[+\\-]~?|/",
+          "comment": "+~ and -~ wrap (2026-09-20)."
+        },
+        {
+          "name": "keyword.operator.assignment.cyborgpl",
+          "match": "(?<![!%&*+\\-/<>=?@^|~])=(?![!%&*+\\-/<>=?@^|~])",
+          "comment": "A lone `=`: a written type's value, a change, or a field label. A longer run is an operator."
         },
         {
           "comment": "A maximal run of operator characters is one operator: the language's own, or a custom `op`.",
           "name": "keyword.operator.custom.cyborgpl",
           "match": "[!%&*+\\-/<>=?@^|~]+"
-        },
-        {
-          "name": "keyword.operator.assignment.cyborgpl",
-          "match": "="
         },
         {
           "comment": "A variadic parameter.",
@@ -639,7 +703,7 @@
       ]
     },
     "enum-body": {
-      "comment": "Inside `enum Name { … }` every bare word is a case; a case with a payload is written `some: <T>`.",
+      "comment": "Inside `enum Name { … }` every bare word is a case; a case with a payload is written `some: <T>`, and in a `layout.c enum` a case is given its number: `a = 65`.",
       "begin": "\\b(enum)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\{)",
       "end": "\\}",
       "beginCaptures": {
@@ -685,6 +749,14 @@
         {
           "name": "variable.other.enummember.cyborgpl",
           "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "comment": "`layout.c enum Key { a = 65 }`: each case's number (2026-09-27).",
+          "name": "keyword.operator.assignment.cyborgpl",
+          "match": "="
         },
         {
           "include": "#punctuation"
@@ -755,6 +827,16 @@
       "comment": "Variables are always quoted, so a bare lowercase word left over is a function named as a value: `first_by[…, by_number]`, `let 'f' := by_number;`.",
       "name": "entity.name.function.reference.cyborgpl",
       "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+    },
+    "strict": {
+      "comment": "`#strict` (2026-09-27), once at the top of a file: the file writes out its reasons. It is not a comment — a comment's # is followed by a space or a comment form.",
+      "name": "keyword.other.directive.strict.cyborgpl",
+      "match": "#strict\\b"
+    },
+    "check-tier": {
+      "comment": "The check tiers. NO_FUCKING_CHECKS (2026-09-27) also trusts the numbers C hands back.",
+      "name": "keyword.other.check.cyborgpl",
+      "match": "\\b(?:check|nocheck|NO_FUCKING_CHECKS)\\b"
     }
   }
 }

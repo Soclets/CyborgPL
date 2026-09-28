@@ -25,17 +25,30 @@ export async function highlight(code) {
 const TITLES = {
   hello: "Hello, World", fizzbuzz: "FizzBuzz", enums: "Enums & match", concur: "Concurrency",
   ffi: "Talking to C", simd: "SIMD", printf: "printf", pi: "Digits of pi", whichever: "whichever",
+  and_runs_both: "and runs both sides", and_then_or_else: "and.then / or.else", no_checks: "NO_FUCKING_CHECKS",
+  strict: "#strict", print_vs_printu: "print vs printu", c_enum: "C enums",
 };
-export const titleOf = (id) => TITLES[id] ?? id.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+export const titleOf = (id) => TITLES[id] ?? id.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()).replace(/^Simd\b/, "SIMD");
 
 const read = (id, ext) => readFileSync(path.join(EXAMPLES, `${id}.${ext}`), "utf8").replace(/\n$/, "");
 export const exampleIds = () => readdirSync(EXAMPLES).filter((f) => f.endsWith(".cpls")).map((f) => f.slice(0, -5)).sort();
 
-// The first comment line, without its "(design/…, date)" bookkeeping.
+// The opening sentence of the first comment, without its "(design/…, date)" bookkeeping. A
+// sentence may run over several comment lines; an indented line (a list) or a blank one ends it.
 function summaryOf(src) {
-  const first = src.split("\n").find((l) => l.trim().startsWith("#"));
-  if (!first) return "";
-  return first.replace(/^\s*#+\s*/, "").replace(/\s*\((?:[^()]*?(?:design\/|\d{4}-\d{2}-\d{2}|owner)[^()]*)\)/g, "").trim();
+  const lines = src.split("\n");
+  const start = lines.findIndex((l) => l.trim().startsWith("#") && !l.trim().startsWith("#strict"));
+  if (start < 0) return "";
+  let text = "";
+  for (let i = start; i < lines.length; i++) {
+    const m = lines[i].match(/^\s*#(?![0-9]*l|wl|strict)( ?)(.*)$/);
+    if (!m || (i > start && (/^\s/.test(m[2]) || !m[2].trim()))) break;
+    text += (text ? " " : "") + m[2].trim();
+    if (/\.$/.test(m[2].trim())) break;
+  }
+  text = text.replace(/\s*\((?:[^()]*?(?:design\/|\d{4}-\d{2}-\d{2}|owner)[^()]*)\)/g, "").trim();
+  const end = text.search(/\.(\s|$)/); // only a full stop: `!` and `?` are also operator characters
+  return end >= 0 ? text.slice(0, end + 1) : text;
 }
 
 export function listExamples() {

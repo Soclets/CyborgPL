@@ -24,6 +24,7 @@ const SYNONYMS = {
   array: ["list", "lists", "array"], vector: ["list", "lists"], vec: ["list"],
   dict: ["map", "maps"], dictionary: ["map", "maps"], hashmap: ["map", "maps"],
   comment: ["#", "comments"],
+  assign: ["change"], reassign: ["change"], mutate: ["change", "mut"], mutable: ["mut"], shadow: ["$:=", "sealed"], strict: ["#strict", "strict"],
 };
 
 export const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, " ");
