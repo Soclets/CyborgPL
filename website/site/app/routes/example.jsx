@@ -78,10 +78,10 @@ export default function Example() {
     const gap = innerWidth - root.clientWidth;
     const before = [root.style.overflow, body.style.paddingRight];
     root.style.overflow = "hidden";
-    if (gap > 0) body.style.paddingRight = `${gap}px`;
+    if (gap > 0) { body.style.paddingRight = `${gap}px`; root.style.setProperty("--lock-gap", `${gap}px`); }
     const onKey = (e) => e.key === "Escape" && close();
     addEventListener("keydown", onKey);
-    return () => { [root.style.overflow, body.style.paddingRight] = before; removeEventListener("keydown", onKey); };
+    return () => { [root.style.overflow, body.style.paddingRight] = before; root.style.removeProperty("--lock-gap"); removeEventListener("keydown", onKey); };
   }, []);
 
   useEffect(() => setTab("code"), [ex.id]);
