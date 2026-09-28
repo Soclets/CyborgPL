@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-28 — `synthia tune`: CPU-or-GPU measured once, saved to `tune.cplt` (owner)
+
+The owner asked whether Precog would run a loop on CPU and on GPU at
+compile time, when the machine is the target, to see which is better.
+Design claude: not inside a build, since Precog has no wall-clock (the
+same source must give the same program) and CCA never runs what it
+builds; the choice is a cost model. Proposed (a) the cost model only;
+(b) the cost model plus `synthia tune`, which measures once on the real
+machine and writes a file every later build reads, like PGO. Design
+claude recommended b. The owner asked how it works (step by step: tune
+runs both versions with given inputs, writes `tune.cplt`, builds read it,
+stale or foreign entries are ignored with a note) and said "Yeah". Synthia
+is the compiler session's; nothing here is in the oracle. `gpu.md`,
+`reproducible-builds.md`.
+
 ### 2026-09-28 — A C variable holds C's plain number; `to.int32[Mode.vi]` converts back (owner: b)
 
 Left open by the C-entry rule: `otherwise` follows a call, but a C

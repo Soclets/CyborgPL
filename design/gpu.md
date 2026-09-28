@@ -69,6 +69,29 @@ CUDA; all three. Owner: Metal and Vulkan.
 A line per `for` Precog considered — offloaded, parallel on cores,
 sequential and why (`diagnostics.md`).
 
+## Measured once, on purpose: `synthia tune` (owner, 2026-09-28)
+
+By default a cost model decides CPU or GPU: the loop's work (trips times
+the body's cost) against the GPU's launch cost. The owner asked whether
+Precog could instead run both at compile time when the building machine
+is the target. Not inside a build: Precog uses no wall-clock
+(`reproducible-builds.md`), and CCA never runs what it builds. Instead,
+as profile-guided optimisation:
+
+```
+synthia tune        # builds a measuring version, runs it on this machine with the inputs given,
+                    # times each undecided loop on CPU and GPU, and writes tune.cplt
+synthia final       # reads tune.cplt as an input, like the lock file
+```
+
+`tune.cplt` records the target, the compiler version and, per loop, the
+winner and its times. It is committed with the code, so a build of the
+same source and the same file is always the same program. An entry is
+ignored, and the build says so, when its loop has changed since it was
+measured, or when the file was made for a different target. Then the cost
+model decides. Proposed alternative: the cost model only. The file name
+and its extension were design claude's proposal, accepted with the rest.
+
 ## Open
 
 - Precog's offload threshold: how many iterations, of what body, before
