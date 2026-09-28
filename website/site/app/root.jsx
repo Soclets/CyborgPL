@@ -5,11 +5,12 @@ import "./app.css";
 export const links = () => [
   { rel: "manifest", href: "/manifest.webmanifest" },
   // The tab logo (brand/logo.svg): ICO and PNG for Safari and older browsers, SVG for the rest.
-  { rel: "icon", href: "/favicon.ico", sizes: "48x48" },
-  { rel: "icon", href: "/icons/favicon-32.png", type: "image/png", sizes: "32x32" },
-  { rel: "icon", href: "/icons/favicon-96.png", type: "image/png", sizes: "96x96" },
-  { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
-  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
+  // ?v=2: a new address, so browsers that cached "no icon" (Safari) fetch these afresh.
+  { rel: "icon", href: "/favicon.ico?v=2", sizes: "48x48" },
+  { rel: "icon", href: "/icons/favicon-32.png?v=2", type: "image/png", sizes: "32x32" },
+  { rel: "icon", href: "/icons/favicon-96.png?v=2", type: "image/png", sizes: "96x96" },
+  { rel: "icon", href: "/favicon.svg?v=2", type: "image/svg+xml" },
+  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png?v=2" },
 ];
 
 // The loading screen (owner, 2026-09-28: "a real loading screen"). It is in every
