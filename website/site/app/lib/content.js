@@ -14,6 +14,25 @@ export const FEATURES = [
   { id: "llvm", icon: "chip", title: "LLVM backend", text: "Native code, through LLVM." },
 ];
 
+// Home's honest table (owner, 2026-09-28): each feature beside what it costs. Every line is
+// the design's own words, from design/core-features.md and DECISIONS.md — no costs invented.
+export const TRADEOFFS = [
+  { get: "Precog proves every overflow and bounds check at compile time; the final build carries none of them.",
+    cost: "Compile time is not a cost the language cares about: builds are slow, and every build is a full one — there is no fast development mode." },
+  { get: "What Precog can’t prove still gets a runtime check, whatever it costs.",
+    cost: "The final build refuses code it can’t prove until you write a guardrail, a tighter type, or nocheck." },
+  { get: "Ownership, no garbage collector: every value has one owner, so the compiler knows when to free it.",
+    cost: "Every call says what happens to a value: lend, give or copy." },
+  { get: ":= works out the best type from the whole program.",
+    cost: "A value from outside the program has no bound, so there you write its type; := on it is an error." },
+  { get: "Failures are part of a function’s signature, not exceptions.",
+    cost: "The caller must handle every one; forgetting is a compile error." },
+  { get: "and / or always work out both sides: nothing written is skipped.",
+    cost: "A check that guards the next step takes two ifs, or and.then." },
+  { get: "Native code, through LLVM.",
+    cost: "In development: no release yet, nothing to download." },
+];
+
 export const ACCENTS = ["#6c71c4", "#268bd2", "#2aa198", "#859900", "#cb4b16", "#d33682"];
 
 // What trips up newcomers, per design claude. Every code line is from design claude

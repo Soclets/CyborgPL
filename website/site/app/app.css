@@ -7,7 +7,7 @@
 
   --bg: var(--base3); --surface: var(--base2); --ink: var(--base02); --text: var(--base00); --muted: var(--base1);
   /* Roles the dark theme swaps (desktop only, below). */
-  --on-ink: var(--base3); --pressed: #e6dfc8; --line: #e3dbc3; --line-dash: #d8cfb2; --dot: #ddd4b8; --grabber: #d3cbb2;
+  --on-ink: var(--base3); --pressed: #e6dfc8; --line: #e3dbc3; --line-dash: #d8cfb2; --grabber: #d3cbb2;
   --code-dim: var(--base00); --hit: var(--base01); --term-bg: var(--base02); --term-fg: var(--base2); --scrim: rgba(0, 43, 54, .38);
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -55,16 +55,16 @@ input { font: inherit; }
 .btn.primary { background: var(--ink); color: var(--on-ink); }
 .btn.round { width: 50px; padding: 0; justify-content: center; }
 
-.cards { display: flex; gap: 12px; margin: 0 calc(-1 * var(--pad)); padding: 4px var(--pad) 18px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 var(--pad); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.cards::-webkit-scrollbar { display: none; }
-.fcard { flex: 0 0 min(78%, 300px); min-height: 186px; scroll-snap-align: start; border-radius: 24px; padding: 18px; background: var(--c); color: var(--base3); display: flex; flex-direction: column; box-shadow: 0 16px 28px -18px var(--c); transition: transform .08s ease; }
-.fcard:active { transform: scale(.97); }
 .fi { flex: none; width: 42px; height: 42px; border-radius: 13px; background: rgba(253,246,227,.22); display: grid; place-items: center; margin-bottom: auto; }
-.fcard b { font-size: 20px; line-height: 1.12; margin: 18px 0 6px; }
-.fcard small { font-size: 14px; line-height: 1.4; opacity: .93; }
-.dots { display: flex; gap: 6px; justify-content: center; }
-.dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--dot); transition: width .15s ease, background-color .15s ease; }
-.dots i.on { width: 18px; background: var(--ink); }
+
+/* Home's features & flaws: on a phone each row is a card, the cost under the feature. */
+.tradeoffs { width: 100%; border-collapse: separate; border-spacing: 0; }
+.tradeoffs thead { display: none; }
+.tradeoffs tr { display: block; background: var(--surface); border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; }
+.tradeoffs td { display: block; font-size: 15px; line-height: 1.45; }
+.tradeoffs td:first-child { color: var(--ink); font-weight: 600; }
+.tradeoffs td:last-child { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-dash); color: var(--text); }
+.tradeoffs td:last-child::before { content: "Cost  "; font: 800 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--orange); white-space: pre; }
 
 /* ---------------------------------------------------------------- code */
 .code pre { margin: 0; background: transparent !important; font-size: 13px; line-height: 1.6; white-space: pre; }
@@ -162,7 +162,7 @@ input { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .page, .tab-inner b { animation: none; }
   .tab-pill { transition: none; }
-  .btn, .fcard, .gcard, .dots i { transition: none; }
+  .btn, .gcard { transition: none; }
 }
 
 /* ---------------------------------------------------------------- smart search */
@@ -192,14 +192,14 @@ mark { background: rgba(181, 137, 0, .22); color: inherit; border-radius: 3px; }
 
 html.desktop[data-theme="dark"] {
   --bg: var(--base03); --surface: var(--base02); --ink: var(--base1); --text: var(--base0); --muted: var(--base01);
-  --on-ink: var(--base03); --pressed: #0d4250; --line: #0d4250; --line-dash: #1d5563; --dot: var(--base01); --grabber: var(--base01);
+  --on-ink: var(--base03); --pressed: #0d4250; --line: #0d4250; --line-dash: #1d5563; --grabber: var(--base01);
   --code-dim: var(--base0); --hit: var(--base1); --term-bg: #00212b; --term-fg: var(--base1); --scrim: rgba(0, 0, 0, .55);
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
   html.desktop:not([data-theme="light"]) {
     --bg: var(--base03); --surface: var(--base02); --ink: var(--base1); --text: var(--base0); --muted: var(--base01);
-    --on-ink: var(--base03); --pressed: #0d4250; --line: #0d4250; --line-dash: #1d5563; --dot: var(--base01); --grabber: var(--base01);
+    --on-ink: var(--base03); --pressed: #0d4250; --line: #0d4250; --line-dash: #1d5563; --grabber: var(--base01);
     --code-dim: var(--base0); --hit: var(--base1); --term-bg: #00212b; --term-fg: var(--base1); --scrim: rgba(0, 0, 0, .55);
     color-scheme: dark;
   }
@@ -232,16 +232,25 @@ html.desktop .huge { font-size: 96px; margin-bottom: 26px; }
 html.desktop .home .lede { font-size: 20px; max-width: 700px; margin-bottom: 28px; }
 html.desktop .home .search, html.desktop .examples .search { max-width: 640px; }
 html.desktop .home .search { margin: 0 0 40px; }
-html.desktop .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 4px 0 0; overflow: visible; }
-html.desktop .fcard { min-height: 200px; }
-html.desktop .dots { display: none; }
 html.desktop .results { max-width: 760px; }
 html.desktop .result:hover, html.desktop .row:hover { background: var(--pressed); }
 html.desktop .btn:hover { background: var(--pressed); }
 html.desktop .btn.primary:hover { background: var(--ink); opacity: .9; }
-html.desktop .fcard:hover, html.desktop .gcard:hover, html.desktop .answer:hover { transform: translateY(-3px); }
-html.desktop .fcard, html.desktop .answer { transition: transform .12s ease; }
+html.desktop .gcard:hover, html.desktop .answer:hover { transform: translateY(-3px); }
+html.desktop .answer { transition: transform .12s ease; }
 html.desktop .chips button:hover { background: var(--pressed); }
+
+/* home's table, as a table */
+html.desktop .tradeoffs { background: var(--surface); border-radius: 20px; overflow: hidden; }
+html.desktop .tradeoffs thead { display: table-header-group; }
+html.desktop .tradeoffs tr { display: table-row; background: none; border-radius: 0; padding: 0; margin: 0; }
+html.desktop .tradeoffs th { text-align: left; padding: 14px 20px; font: 800 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+html.desktop .tradeoffs th:first-child { color: var(--green); }
+html.desktop .tradeoffs th:last-child { color: var(--orange); }
+html.desktop .tradeoffs td { display: table-cell; width: 50%; vertical-align: top; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+html.desktop .tradeoffs tr:last-child td { border-bottom: 0; }
+html.desktop .tradeoffs td:last-child { margin: 0; padding-top: 16px; border-top: 0; border-left: 1px solid var(--line); }
+html.desktop .tradeoffs td:last-child::before { content: none; }
 
 /* learn */
 html.desktop .learn .stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

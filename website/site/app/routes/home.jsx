@@ -4,7 +4,7 @@ import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
 import { ANSWERS } from "../lib/answers.js";
-import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX } from "../lib/content.js";
+import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX, TRADEOFFS } from "../lib/content.js";
 import { around, runSearch } from "../lib/search.js";
 import { useCodeIndex, useRecent } from "../lib/useSearch.js";
 import { seo } from "../lib/seo.js";
@@ -82,14 +82,6 @@ export default function Home() {
     addEventListener("cyborgpl:retap", clear);
     return () => removeEventListener("cyborgpl:retap", clear);
   }, []);
-  const row = useRef(null);
-  const [card, setCard] = useState(0);
-  const onScroll = () => {
-    const el = row.current;
-    if (!el) return;
-    const w = el.firstElementChild?.getBoundingClientRect().width ?? 1;
-    setCard(Math.min(FEATURES.length - 1, Math.round(el.scrollLeft / (w + 12))));
-  };
 
   const navigate = useNavigate();
   const [focused, setFocused] = useState(false);
@@ -157,26 +149,22 @@ export default function Home() {
   return (
     <div className="home">
       {search}
-      <h1 className="huge">Selfless dev<br />meets <span>Selfish</span><br />language.</h1>
+      <h1 className="huge">For the <span>selfless</span> people</h1>
       <p className="lede">{DESCRIPTION}</p>
       <div className="actions">
         <Link className="btn primary" to="/download" prefetch="intent"><Icon name="download" size={18} stroke={2.3} />Download</Link>
         <Link className="btn" to="/learn" prefetch="intent">Read shit</Link>
         <a className="btn round" href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub"><Icon name="github" size={20} stroke={1.9} /></a>
       </div>
-      <h2 className="section">Core features</h2>
-      <div className="cards" ref={row} onScroll={onScroll}>
-        {FEATURES.map((f, i) => (
-          <Link key={f.id} className="fcard" to={`/learn#${f.id}`} prefetch="intent" style={{ "--c": ACCENTS[i] }}>
-            <span className="fi"><Icon name={f.icon} size={22} /></span>
-            <b>{f.title}</b>
-            <small>{f.text}</small>
-          </Link>
-        ))}
-      </div>
-      <div className="dots" aria-hidden="true">
-        {FEATURES.map((f, i) => <i key={f.id} className={i === card ? "on" : ""} />)}
-      </div>
+      <h2 className="section">Features &amp; flaws</h2>
+      <table className="tradeoffs">
+        <thead><tr><th scope="col">What you get</th><th scope="col">What it costs</th></tr></thead>
+        <tbody>
+          {TRADEOFFS.map((t) => (
+            <tr key={t.get}><td>{t.get}</td><td>{t.cost}</td></tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
