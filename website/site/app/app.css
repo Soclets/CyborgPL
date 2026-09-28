@@ -253,6 +253,9 @@ html.desktop .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)
 html.desktop .gcode { height: 118px; font-size: 10px; }
 html.desktop .gcard { transition: transform .12s ease; }
 html.desktop .sheet { top: 12vh; bottom: auto; max-height: 82vh; max-width: 880px; border-radius: 24px; box-shadow: 0 30px 90px -20px rgba(0, 0, 0, .6); }
+/* No tint behind the window on a computer (owner, 2026-09-28); the scrim stays, clear, so a
+   click outside the window still closes it. */
+html.desktop .scrim { background: transparent; }
 html.desktop .grabber { display: none; }
 html.desktop .sheet-grip { padding: 24px 28px 0; cursor: default; }
 html.desktop .sheet-body { padding: 0 28px 28px; }
