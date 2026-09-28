@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLoaderData, useLocation, useNavigate } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
+import Icon from "../components/Icon.jsx";
 import { seo } from "../lib/seo.js";
 
 export const meta = ({ loaderData: ex, params }) => seo({
@@ -78,9 +79,9 @@ export default function Example() {
               <b>{ex.title}</b>
               <small>{ex.file} · {ex.lines} lines</small>
             </div>
-            {/* No visible close button: swipe down (owner, 2026-09-25). This one is for screen
-                readers only, since VoiceOver can't do the drag. */}
-            <button className="sr-only" onClick={close}>Close</button>
+            {/* On a phone there is no visible close button: swipe down (owner, 2026-09-25), and this
+                one is for screen readers only. A computer can't swipe, so there it shows (app.css). */}
+            <button className="sheet-close" onClick={close} aria-label="Close"><Icon name="x" size={20} /></button>
           </div>
           {ex.summary && <p className="sheet-summary">{ex.summary}</p>}
           <div className="seg" role="tablist">

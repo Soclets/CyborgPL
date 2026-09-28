@@ -3,7 +3,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createHighlighter } from "shiki";
-import { solarizedLight } from "./theme.js";
+import { solarizedDark, solarizedLight } from "./theme.js";
 
 const REPO = path.resolve(process.cwd(), "../..");
 const EXAMPLES = path.join(REPO, "examples");
@@ -11,14 +11,16 @@ const EXAMPLES = path.join(REPO, "examples");
 let highlighter;
 function hl() {
   highlighter ??= createHighlighter({
-    themes: [solarizedLight],
+    themes: [solarizedLight, solarizedDark],
     langs: [JSON.parse(readFileSync(path.join(REPO, "website/grammar/cyborgpl.tmLanguage.json"), "utf8"))],
   });
   return highlighter;
 }
 
+// Both themes in one pass: each span carries the light colour, and --shiki-dark for the
+// dark theme, which the desktop site switches to (app.css).
 export async function highlight(code) {
-  return (await hl()).codeToHtml(code, { lang: "cyborgpl", theme: solarizedLight.name });
+  return (await hl()).codeToHtml(code, { lang: "cyborgpl", themes: { light: solarizedLight.name, dark: solarizedDark.name }, defaultColor: "light" });
 }
 
 // A few names read better by hand; the rest come from the file name.

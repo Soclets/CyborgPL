@@ -19,3 +19,16 @@ export const solarizedLight = {
     { scope: ["punctuation"], settings: { foreground: "#93a1a1" } },
   ],
 };
+
+// Solarized Dark: the same roles, with the base tones mirrored (Solarized's own rule:
+// base0 for body text, base01 for comments and punctuation, base1 for emphasis).
+export const solarizedDark = {
+  name: "solarized-dark-cyborgpl",
+  type: "dark",
+  colors: { "editor.background": "#00000000", "editor.foreground": "#839496" },
+  settings: solarizedLight.settings.map((s) => {
+    const swap = { "#657b83": "#839496", "#93a1a1": "#586e75", "#586e75": "#93a1a1" };
+    const fg = s.settings.foreground;
+    return { ...s, settings: { ...s.settings, ...(fg ? { foreground: swap[fg] ?? fg } : {}) } };
+  }),
+};

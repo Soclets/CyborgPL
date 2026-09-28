@@ -1,6 +1,8 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate, useNavigationType } from "react-router";
 import Icon from "../components/Icon.jsx";
+import Mark from "../components/Mark.jsx";
+import { REPO_URL } from "../lib/content.js";
 
 const TABS = [
   { to: "/", icon: "home", label: "Home", match: (p) => p === "/" },
@@ -8,6 +10,54 @@ const TABS = [
   { to: "/examples", icon: "code", label: "Examples", match: (p) => p.startsWith("/examples") },
   { to: "/more", icon: "more", label: "More", match: (p) => ["/more", "/download", "/licence"].some((x) => p.startsWith(x)) },
 ];
+
+// The desktop site's top bar (a computer only; phones keep the tab bar). Download and
+// Licence sit in it directly, since a wide screen has room for them.
+const LINKS = [
+  { to: "/", label: "Home", match: (p) => p === "/" },
+  { to: "/learn", label: "Learn", match: (p) => p.startsWith("/learn") },
+  { to: "/examples", label: "Examples", match: (p) => p.startsWith("/examples") },
+  { to: "/download", label: "Download", match: (p) => p.startsWith("/download") },
+  { to: "/licence", label: "Licence", match: (p) => p.startsWith("/licence") },
+];
+
+// Light, dark, or whatever the computer is set to. Kept on this computer; root.jsx applies
+// it before the first paint.
+const THEMES = [
+  { key: "system", icon: "auto", label: "Theme: follows the system" },
+  { key: "light", icon: "sun", label: "Theme: Solarized Light" },
+  { key: "dark", icon: "moon", label: "Theme: Solarized Dark" },
+];
+function ThemeSwitch() {
+  const [theme, setTheme] = useState("system");
+  useEffect(() => setTheme(document.documentElement.dataset.theme ?? "system"), []);
+  const next = () => {
+    const t = THEMES[(THEMES.findIndex((x) => x.key === theme) + 1) % THEMES.length].key;
+    setTheme(t);
+    if (t === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = t;
+    try { t === "system" ? localStorage.removeItem("cyborgpl.theme") : localStorage.setItem("cyborgpl.theme", t); } catch {}
+  };
+  const cur = THEMES.find((x) => x.key === theme);
+  return <button className="theme-switch" onClick={next} aria-label={cur.label} title={cur.label}><Icon name={cur.icon} size={19} /></button>;
+}
+
+function Topbar({ pathname }) {
+  return (
+    <header className="topbar">
+      <div className="topbar-in">
+        <Link to="/" className="brand" prefetch="intent"><Mark size={26} /><b>CyborgPL</b></Link>
+        <nav aria-label="Site">
+          {LINKS.map((l) => (
+            <Link key={l.to} to={l.to} prefetch="intent" className={l.match(pathname) ? "on" : ""} aria-current={l.match(pathname) ? "page" : undefined}>{l.label}</Link>
+          ))}
+        </nav>
+        <a className="topbar-icon" href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub" title="Source on GitHub"><Icon name="github" size={19} stroke={1.9} /></a>
+        <ThemeSwitch />
+      </div>
+    </header>
+  );
+}
 
 // Tapping the tab you're on: the first tap goes to the top, the next clears the search.
 function retap() {
@@ -63,6 +113,7 @@ export default function Tabs() {
 
   return (
     <>
+      <Topbar pathname={pathname} />
       <main className="page" key={section}>
         <Outlet />
       </main>
