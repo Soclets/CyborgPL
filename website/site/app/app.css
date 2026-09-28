@@ -213,7 +213,8 @@ html.desktop :focus-visible { outline: 2px solid var(--blue); outline-offset: 2p
 html.desktop .page { max-width: 1120px; padding: 48px 32px 96px; min-height: calc(100vh - 65px); }
 
 /* the top bar */
-html.desktop .topbar { display: block; position: sticky; top: 0; z-index: 40; border-bottom: 1px solid var(--line);
+/* Above an open example and its tint (z 50), so the bar always works — as the phone's tab bar does. */
+html.desktop .topbar { display: block; position: sticky; top: 0; z-index: 60; border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px); }
 .topbar-in { max-width: 1120px; height: 64px; margin: 0 auto; padding: 0 32px; display: flex; align-items: center; gap: 28px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); }
