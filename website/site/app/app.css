@@ -212,11 +212,15 @@ html.desktop[data-theme="dark"] .shiki, html.desktop[data-theme="dark"] .shiki s
 
 html.desktop .tabbar { display: none; }
 html.desktop :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+/* The page is one layer, beneath the top bar (z 60). Safari can paint parts of the page it
+   composites on their own (sideways-scrolling code, animated cards) over a sticky,
+   frosted bar whatever its z-index; inside a z 0 layer they can't climb above it. */
+html.desktop .page { position: relative; z-index: 0; }
 html.desktop .page { max-width: 1120px; padding: 48px 32px 96px; min-height: calc(100vh - 65px); }
 
 /* the top bar */
 /* Above an open example and its tint (z 50), so the bar always works — as the phone's tab bar does. */
-html.desktop .topbar { display: block; position: sticky; top: 0; z-index: 60; border-bottom: 1px solid var(--line);
+html.desktop .topbar { display: block; position: sticky; top: 0; z-index: 60; transform: translateZ(0); border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px); }
 /* While an example locks the page, the body is padded by the scrollbar's width
    (example.jsx); the bar's background runs under that padding to the edge. */
