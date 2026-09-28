@@ -29,12 +29,12 @@ and "compile for the exact machine" makes the target part of the input.
 5. **The target is an explicit, recorded input** — in `Synthia.cplm` or the
    lock file — never sniffed from the host. "Native" is a convenience that
    resolves to a named target and writes it down.
-5. **Deterministic ordering** across Limbs and within the analysis: parallel
+6. **Deterministic ordering** across Limbs and within the analysis: parallel
    inside the compiler is fine only where the result cannot depend on who
    finishes first.
-6. **Compile-time arithmetic matches the target.** A `bin16` folded at
+7. **Compile-time arithmetic matches the target.** A `bin16` folded at
    compile time rounds exactly as the target's `bin16` would.
-7. **The Unicode version is pinned** (owner, 2026-09-24: "Pin it, but we
+8. **The Unicode version is pinned** (owner, 2026-09-24: "Pin it, but we
    should update when we should update"). Grapheme boundaries, case
    mapping and every other Unicode table come from one recorded version,
    written in the lock file beside the compiler version, so the same
