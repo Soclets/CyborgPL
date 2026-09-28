@@ -49,12 +49,14 @@ export default function Example() {
     setTimeout(leave, 260);
   };
 
-  // In from the bottom of the screen, in pixels. Starting from "100%" made Motion convert
-  // units by measuring, and the very first open measured wrong and came in from the top.
-  // A layout effect runs before the first paint, so the window never shows in place first.
+  // In from the bottom of the screen, from rest. A motion value remembers how fast it last
+  // changed, and moving it to the start position counted as a huge flick, so the spring
+  // launched upward and came in from the top, by a different amount each time (owner).
+  // jump() moves it without a speed, and the spring is told to start still. A layout effect
+  // runs before the first paint, so the window never shows in place first.
   useLayoutEffect(() => {
-    y.set(window.innerHeight);
-    const a = animate(y, 0, { type: "spring", stiffness: 800, damping: 60, mass: 0.7 });
+    y.jump(window.innerHeight);
+    const a = animate(y, 0, { type: "spring", stiffness: 800, damping: 60, mass: 0.7, velocity: 0 });
     return () => a.stop();
   }, []);
 
