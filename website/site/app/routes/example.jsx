@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLoaderData, useLocation, useNavigate } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
@@ -23,7 +23,9 @@ export default function Example() {
   const navigate = useNavigate();
   const location = useLocation();
   const [tab, setTab] = useState("code");
-  const y = useMotionValue(0);
+  // Starts far below the screen, also in the pre-rendered page, so a direct link never
+  // shows the window in place before it slides in.
+  const y = useMotionValue(10000);
   // On a computer the tint goes down with the window when it closes (owner, 2026-09-28).
   const scrimY = useMotionValue(0);
   const drag = useDragControls();
@@ -47,6 +49,15 @@ export default function Example() {
     setTimeout(leave, 260);
   };
 
+  // In from the bottom of the screen, in pixels. Starting from "100%" made Motion convert
+  // units by measuring, and the very first open measured wrong and came in from the top.
+  // A layout effect runs before the first paint, so the window never shows in place first.
+  useLayoutEffect(() => {
+    y.set(window.innerHeight);
+    const a = animate(y, 0, { type: "spring", stiffness: 800, damping: 60, mass: 0.7 });
+    return () => a.stop();
+  }, []);
+
   useEffect(() => {
     // Lock the page behind the sheet, and let Escape close it.
     const root = document.documentElement;
@@ -65,9 +76,6 @@ export default function Example() {
       <motion.section
         className="sheet"
         style={{ y }}
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 800, damping: 60, mass: 0.7 }}
         drag="y"
         dragListener={false}
         dragControls={drag}
