@@ -23,6 +23,8 @@ a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; touch-action: manipulation; }
 svg { display: block; flex: none; }
 code, pre { font-family: var(--mono); }
+/* Inline code in site copy (components/Md.jsx). */
+.ic { font-size: .88em; padding: .08em .36em; border-radius: 6px; background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink); white-space: nowrap; }
 input { font: inherit; }
 
 /* One phone-width column. On a wide screen it stays centred until the desktop layout exists. */

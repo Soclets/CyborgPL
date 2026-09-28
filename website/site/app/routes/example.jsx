@@ -3,11 +3,13 @@ import { useLoaderData, useLocation, useNavigate } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
+import Md from "../components/Md.jsx";
+import { plain } from "../lib/md.js";
 import { seo } from "../lib/seo.js";
 
 export const meta = ({ loaderData: ex, params }) => seo({
   title: `${ex?.title ?? "Example"} · CyborgPL`,
-  description: ex?.summary || `examples/${params.id}.cpls — a CyborgPL program and the output it prints.`,
+  description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.cpls — a CyborgPL program and the output it prints.`,
   path: `/examples/${params.id}`,
 });
 
@@ -67,14 +69,19 @@ export default function Example() {
     return () => { a.stop(); t.stop(); };
   }, []);
 
-  useEffect(() => {
-    // Lock the page behind the sheet, and let Escape close it.
-    const root = document.documentElement;
-    const before = root.style.overflow;
+  // Lock the page behind the sheet, and let Escape close it. Hiding the scrollbar would
+  // widen the page and shift everything sideways, then back on close (owner: make it
+  // smooth); padding as wide as the scrollbar holds the page exactly where it was.
+  // A layout effect, so the lock and its padding land in the same frame.
+  useLayoutEffect(() => {
+    const root = document.documentElement, body = document.body;
+    const gap = innerWidth - root.clientWidth;
+    const before = [root.style.overflow, body.style.paddingRight];
     root.style.overflow = "hidden";
+    if (gap > 0) body.style.paddingRight = `${gap}px`;
     const onKey = (e) => e.key === "Escape" && close();
     addEventListener("keydown", onKey);
-    return () => { root.style.overflow = before; removeEventListener("keydown", onKey); };
+    return () => { [root.style.overflow, body.style.paddingRight] = before; removeEventListener("keydown", onKey); };
   }, []);
 
   useEffect(() => setTab("code"), [ex.id]);
@@ -104,7 +111,7 @@ export default function Example() {
                 one is for screen readers only. A computer can't swipe, so there it shows (app.css). */}
             <button className="sheet-close" onClick={() => close()} aria-label="Close"><Icon name="x" size={20} /></button>
           </div>
-          {ex.summary && <p className="sheet-summary">{ex.summary}</p>}
+          {ex.summary && <p className="sheet-summary"><Md text={ex.summary} /></p>}
           <div className="seg" role="tablist">
             <button role="tab" aria-selected={tab === "code"} className={tab === "code" ? "on" : ""} onClick={() => setTab("code")}>Code</button>
             <button role="tab" aria-selected={tab === "output"} className={tab === "output" ? "on" : ""} onClick={() => setTab("output")}>Output</button>

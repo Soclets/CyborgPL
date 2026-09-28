@@ -1,6 +1,7 @@
 import { useLoaderData } from "react-router";
 import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
+import Md from "../components/Md.jsx";
 import { ACCENTS, FEATURES, SYNTAX } from "../lib/content.js";
 import { seo } from "../lib/seo.js";
 
@@ -29,8 +30,8 @@ export default function Learn() {
       <div className="stack">
         {syntax.map((s, i) => (
           <article key={s.title} id={`syntax-${i + 1}`} className="lesson">
-            <div className="lesson-head"><span className="num">{i + 1}</span><b>{s.title}</b></div>
-            <p>{s.text}</p>
+            <div className="lesson-head"><span className="num">{i + 1}</span><b><Md text={s.title} /></b></div>
+            <p><Md text={s.text} /></p>
             <Code html={s.html} className="small" />
           </article>
         ))}
@@ -41,7 +42,7 @@ export default function Learn() {
         {FEATURES.map((f, i) => (
           <article key={f.id} id={f.id} className="feature" style={{ "--c": ACCENTS[i] }}>
             <span className="fi"><Icon name={f.icon} size={20} /></span>
-            <div><b>{f.title}</b><p>{f.text}</p></div>
+            <div><b><Md text={f.title} /></b><p><Md text={f.text} /></p></div>
           </article>
         ))}
       </div>

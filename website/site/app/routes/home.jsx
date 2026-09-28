@@ -3,8 +3,10 @@ import { Link, useLoaderData, useNavigate } from "react-router";
 import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
+import Md from "../components/Md.jsx";
 import { ANSWERS } from "../lib/answers.js";
 import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX, TRADEOFFS } from "../lib/content.js";
+import { plain } from "../lib/md.js";
 import { around, runSearch } from "../lib/search.js";
 import { useCodeIndex, useRecent } from "../lib/useSearch.js";
 import { seo } from "../lib/seo.js";
@@ -20,8 +22,8 @@ export async function loader() {
     { to: "/download", title: "Download", text: "Nothing to download yet", kind: "Page", icon: "download" },
     { to: "/licence", title: "Licence", text: "Apache-2.0 with the LLVM exception; text CC BY 4.0", kind: "Page", icon: "scale" },
   ];
-  const features = FEATURES.map((f) => ({ to: `/learn#${f.id}`, title: f.title, text: f.text, kind: "Feature", icon: f.icon }));
-  const lessons = SYNTAX.map((s, i) => ({ to: `/learn#syntax-${i + 1}`, title: s.title, text: s.text, kind: "Syntax", icon: "book" }));
+  const features = FEATURES.map((f) => ({ to: `/learn#${f.id}`, title: plain(f.title), text: plain(f.text), kind: "Feature", icon: f.icon }));
+  const lessons = SYNTAX.map((s, i) => ({ to: `/learn#syntax-${i + 1}`, title: plain(s.title), text: plain(s.text), kind: "Syntax", icon: "book" }));
   const examples = listExamples().map((e) => ({ to: `/examples/${e.id}`, title: e.title, text: e.summary || `examples/${e.id}.cpls`, kind: "Example", icon: "code", id: e.id }));
   // An answer's code must be a real line of its example, or the build stops.
   const { readFileSync } = await import("node:fs");
@@ -61,8 +63,8 @@ function Answer({ a, html, q, onGo }) {
   return (
     <Link to={a.to} className="answer" prefetch="intent" onClick={onGo} state={a.to.startsWith("/examples/") ? { fromGrid: true } : undefined}>
       {a.foreign?.includes(q) && <p className="foreign"><code>{q}</code> isn’t built in here.</p>}
-      <b>{a.title}</b>
-      <p>{a.text}</p>
+      <b><Md text={a.title} /></b>
+      <p><Md text={a.text} /></p>
       <Code html={html} />
       <small>examples/{a.from}.cpls <Icon name="chev" size={14} /></small>
     </Link>
@@ -161,7 +163,7 @@ export default function Home() {
         <thead><tr><th scope="col">What you get</th><th scope="col">What it costs</th></tr></thead>
         <tbody>
           {TRADEOFFS.map((t) => (
-            <tr key={t.get}><td>{t.get}</td><td>{t.cost}</td></tr>
+            <tr key={t.get}><td><Md text={t.get} /></td><td><Md text={t.cost} /></td></tr>
           ))}
         </tbody>
       </table>
