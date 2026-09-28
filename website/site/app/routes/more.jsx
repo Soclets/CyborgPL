@@ -1,8 +1,9 @@
 import { Link } from "react-router";
 import Icon from "../components/Icon.jsx";
 import { REPO_URL } from "../lib/content.js";
+import { seo } from "../lib/seo.js";
 
-export const meta = () => [{ title: "More · CyborgPL" }];
+export const meta = () => seo({ title: "More · CyborgPL", description: "Download CyborgPL, read its source, and its licence.", path: "/more" });
 
 export default function More() {
   return (

@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 
-export const meta = () => [{ title: "Not found · CyborgPL" }];
+export const meta = () => [{ title: "Not found · CyborgPL" }, { name: "robots", content: "noindex" }];
 
 export default function NotFound() {
   return (

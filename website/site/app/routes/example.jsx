@@ -2,8 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useLoaderData, useLocation, useNavigate } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
+import { seo } from "../lib/seo.js";
 
-export const meta = ({ loaderData }) => [{ title: `${loaderData?.title ?? "Example"} · CyborgPL` }];
+export const meta = ({ loaderData: ex, params }) => seo({
+  title: `${ex?.title ?? "Example"} · CyborgPL`,
+  description: ex?.summary || `examples/${params.id}.cpls — a CyborgPL program and the output it prints.`,
+  path: `/examples/${params.id}`,
+});
 
 export async function loader({ params }) {
   const { getExample } = await import("../lib/examples.server.js");

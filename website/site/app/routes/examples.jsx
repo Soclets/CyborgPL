@@ -5,8 +5,9 @@ import Marked from "../components/Marked.jsx";
 import { ACCENTS } from "../lib/content.js";
 import { around, runSearch } from "../lib/search.js";
 import { useCodeIndex } from "../lib/useSearch.js";
+import { seo } from "../lib/seo.js";
 
-export const meta = () => [{ title: "Examples · CyborgPL" }];
+export const meta = () => seo({ title: "Examples · CyborgPL", description: "Real CyborgPL programs from the repo, each with the output it really prints.", path: "/examples" });
 
 // Build time: every program in examples/, with a few lines to preview.
 export async function loader() {

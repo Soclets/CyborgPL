@@ -1,6 +1,7 @@
 import { Link } from "react-router";
+import { seo } from "../lib/seo.js";
 
-export const meta = () => [{ title: "Download · CyborgPL" }];
+export const meta = () => seo({ title: "Download · CyborgPL", description: "Nothing to download yet: CyborgPL is in development and has no release.", path: "/download" });
 
 export default function Download() {
   return (

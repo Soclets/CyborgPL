@@ -7,11 +7,9 @@ import { ANSWERS } from "../lib/answers.js";
 import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX } from "../lib/content.js";
 import { around, runSearch } from "../lib/search.js";
 import { useCodeIndex, useRecent } from "../lib/useSearch.js";
+import { seo } from "../lib/seo.js";
 
-export const meta = () => [
-  { title: "CyborgPL" },
-  { name: "description", content: DESCRIPTION },
-];
+export const meta = () => seo({ title: "CyborgPL", description: DESCRIPTION, path: "/" });
 
 // Build time: one small index over everything worth finding.
 export async function loader() {
