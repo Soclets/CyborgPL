@@ -1,0 +1,30 @@
+# A C variable holds C's plain number (owner, 2026-09-28: b): it converts to
+# a C enum with `to.Mode[…]` and back with `to.int32[Mode.vi]`, and a
+# `ptr.read` of a C enum fails `out_of_range` for a number no case has
+# (examples/c_variables.cpls, with libc's own `optind` as the C variable, so
+# the oracle cannot link it and the answer is worked out by hand: 1, 11, 10
+# → 100 + 10 + 0 = 110).
+extern fn exit ['code': int32];
+extern fn malloc ['bytes': uint64] -> ptr.mut[Mode];
+extern fn free ['p': ptr.mut[Mode]];
+extern mut 'optind': int32;
+layout.c enum Mode { emacs = 0  vi = 1 }
+fn mode_at ['p': ptr[Mode]] -> int32 {
+    nocheck 'm' := ptr.read['p'] otherwise Mode.emacs;
+    match 'm' {
+        emacs { return 10; }
+        vi { return 11; }
+    }
+}
+MAIN {
+    nocheck change 'optind' = to.int32[Mode.vi];
+    nocheck 'raw' := 'optind';
+    'current' := to.Mode['raw'] otherwise Mode.emacs;
+    nocheck 'mem' := malloc[8];
+    nocheck ptr.write['mem', 1];
+    nocheck ptr.write[ptr.at['mem', 1], 7];
+    nocheck 'a' := mode_at['mem'];
+    nocheck 'b' := mode_at[ptr.at['mem', 1]];
+    nocheck free['mem'];
+    nocheck exit[to.int32['current'] x 100 + ('a' - 10) x 10 + ('b' - 10)];
+}

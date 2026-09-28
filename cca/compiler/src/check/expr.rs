@@ -398,11 +398,6 @@ impl Checker {
     /// An `extern let` is a place of its own kind: a read or write is a nocheck site.
     fn extern_place(&mut self, ctx: &mut FnCtx, id: hir::ExternId, use_: PlaceUse, span: Span) -> Result<Place> {
         let info = self.items.externs[id.0 as usize].clone();
-        // C's variable of a C enum or range fails `out_of_range` when read
-        // (owner, 2026-09-27); how its `otherwise` is written is asked.
-        if use_ != PlaceUse::Write && info.ret.checked_at_door(&self.items.structs, &self.items.enums) && ctx.tier != Some(ast::Tier::NoChecks) {
-            return err(Diagnostic::error(format!("not yet: reading C's variable '{}', a `{}`, is checked as it comes in, and how its `otherwise` is written is asked — read it under `NO_FUCKING_CHECKS`, or declare it with the plain number and convert with `to.{}[…]`", info.name, self.spell(&info.ret), self.spell(&info.ret))).at(span));
-        }
         if !ctx.tier.is_some_and(ast::Tier::trusts) {
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
             return err(Diagnostic::error(format!("{} C's variable '{}' is a nocheck site: nothing about C's memory can be proven — write `nocheck` in front of the statement", what, info.name)).at(span));
@@ -619,6 +614,15 @@ impl Checker {
                 // wrapping operator still takes its width from here.
                 let to = if plain_group(&v) { Ty::exact() } else { t.base().clone() };
                 retype_literal_arith(&mut v, &to);
+            }
+        }
+        // A pointer that may write is also one that reads: `ptr.mut[T]`
+        // goes where `ptr[T]` is wanted, never the other way.
+        if let (Ty::Ptr { mutable: true, elem: e1 }, Ty::Ptr { mutable: false, elem: e2 }) = (vt.base(), t.base()) {
+            if self.unify(e1, e2) {
+                let mut v = v;
+                v.ty = t.base().clone();
+                return Ok(v);
             }
         }
         if self.unify(&vt, &t) {
@@ -2150,6 +2154,10 @@ impl Checker {
             // 2026-09-27): one no case has fails `out_of_range`.
             (Ty::Int(_), Ty::Enum { id, .. }) if self.items.enums[id.0 as usize].numbers.is_some() => fails.push("out_of_range"),
             (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `layout.c enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).at(span)),
+            // And back: a C enum's number never fails (owner, 2026-09-28);
+            // a narrower target is a narrowing site, as ever.
+            (Ty::Enum { id, .. }, Ty::Int(_)) if self.items.enums[id.0 as usize].numbers.is_some() => {}
+            (Ty::Enum { .. }, Ty::Int(_)) => return err(Diagnostic::error(format!("only a `layout.c enum` has numbers: `{}` is a Cyborg enum, whose cases are names", self.spell(&vt))).at(span)),
             (_, Ty::Struct { .. }) | (_, Ty::Enum { .. }) => return err(Diagnostic::error(format!("there is no conversion to `{}`: a struct or enum value is built by name", target_spelling)).at(span)),
             (Ty::Duration, _) | (_, Ty::Duration) => return err(Diagnostic::error("a duration does not convert: compare or add durations directly").at(span)),
             _ => return err(Diagnostic::error(format!("there is no conversion from `{}` to `{}`", self.spell(&vt), target_spelling)).at(span)),
@@ -2495,6 +2503,9 @@ impl Checker {
                     // comes in, unless `NO_FUCKING_CHECKS` (owner, 2026-09-27).
                     Builtin::PtrRead => {
                         if elem.checked_at_door(&self.items.structs, &self.items.enums) && ctx.tier != Some(ast::Tier::NoChecks) {
+                            if otherwise.is_none() {
+                                return err(Diagnostic::error(format!("`ptr.read` of a `{}` from C can fail (out_of_range): C may hold a number `{}` does not allow — say what happens with `otherwise`", self.spell(&elem), self.spell(&elem))).at(span));
+                            }
                             fails.push(("out_of_range".into(), None));
                         }
                         (vec![Arg::Value(p)], elem)
@@ -2512,7 +2523,15 @@ impl Checker {
                             return err(Diagnostic::error("`ptr.write` needs a `ptr.mut`: this pointer is read-only").at(span));
                         }
                         let v = self.expr(ctx, positional[1])?;
-                        let v = self.expect_store(ctx, v, &elem, "what the pointer points at")?;
+                        // C's memory holds a C enum as its number, so C's
+                        // plain number may be written there as it is
+                        // (`examples/c_variables.cpls`, 2026-09-28).
+                        let c_enum = matches!(elem.base(), Ty::Enum { id, .. } if self.items.enums[id.0 as usize].numbers.is_some());
+                        let v = if c_enum && self.resolve(&v.ty).is_int() {
+                            self.expect_store(ctx, v, &Ty::Int(IntW::Fixed { signed: true, bits: 32 }), "C's number for a C enum")?
+                        } else {
+                            self.expect_store(ctx, v, &elem, "what the pointer points at")?
+                        };
                         (vec![Arg::Value(p), Arg::Value(v)], Ty::Nothing)
                     }
                 }

@@ -1153,6 +1153,17 @@ impl Precog {
             }
             Rvalue::Convert { to, operand } => {
                 let d = self.read_operand(f, env, operand);
+                // A C enum's number: the numbers of the cases it can be.
+                if let Some(Ty::Enum { id, .. }) = operand.place().map(|p| self.place_ty(f, p)).map(|t| t.base().clone()) {
+                    if let Some(ns) = self.prog().items.enums[id.0 as usize].numbers.clone() {
+                        let picked: Vec<i64> = match &d {
+                            Domain::Enum(cases) => cases.iter().filter_map(|(c, _)| ns.get(*c).copied()).collect(),
+                            _ => ns.clone(),
+                        };
+                        let (lo, hi) = (picked.iter().min().copied().unwrap_or(0), picked.iter().max().copied().unwrap_or(0));
+                        return Domain::Ints(ISet::range(lo as i128, hi as i128));
+                    }
+                }
                 self.convert(to, &d)
             }
             Rvalue::MakeList(items) => {

@@ -1137,7 +1137,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 self.binary(fi, op, a, b, sites, func, blocks, signed)
             }
             Rvalue::Convert { to, operand } => {
-                let v = self.operand(fi, operand, slots)?;
+                let mut v = self.operand(fi, operand, slots)?;
+                // A C enum's number is its tag (`cabi.rs`, `tag_of`).
+                if let BasicValueEnum::StructValue(s) = v {
+                    if matches!(self.operand_cy_ty(fi, operand).as_ref().map(|t| t.base()), Some(Ty::Enum { .. })) {
+                        v = self.builder.build_extract_value(s, 0, "number").ok()?;
+                    }
+                }
                 if let Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) = to.base() {
                     return self.to_text(fi, operand, v, to);
                 }

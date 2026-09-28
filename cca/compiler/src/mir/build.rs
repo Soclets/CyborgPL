@@ -1494,14 +1494,24 @@ impl<'a> FnBuilder<'a> {
                 (c, margs, otherwise.as_deref(), fails.clone())
             }
             hir::ExprKind::Conv { target, expr, otherwise, fails } => {
-                let op = self.eval(expr, span);
+                let mut op = self.eval(expr, span);
+                let mut from_ty = self.resolve_ty(&expr.ty);
+                // A C enum is its number, C's `int` (owner, 2026-09-28): that
+                // first, and the rest is a conversion from an `int32`.
+                if let Ty::Enum { id, .. } = from_ty.base() {
+                    if self.arena.items.enums[id.0 as usize].numbers.is_some() {
+                        let n = Ty::Int(IntW::Fixed { signed: true, bits: 32 });
+                        op = self.into_temp(Rvalue::Convert { to: n.clone(), operand: op }, &n, span);
+                        from_ty = n;
+                    }
+                }
                 let f: Vec<(String, Option<Ty>)> = fails.iter().map(|n| (n.clone(), None)).collect();
                 if f.is_empty() {
                     // A conversion that cannot fail is an ordinary
                     // instruction — but a *narrowing* one is still a check
                     // site (`conversion.md`): `to.int8['big']` asks whether
                     // it fits, and only `check` makes the compiler say so.
-                    let from = self.resolve_ty(&expr.ty);
+                    let from = from_ty.clone();
                     self.narrow_arg(&op, &from, &self.resolve_ty(target), span);
                     let rv = Rvalue::Convert { to: target.clone(), operand: op };
                     match dest {
@@ -1518,7 +1528,7 @@ impl<'a> FnBuilder<'a> {
                 // "narrowing is a check site"). A range type instead fails
                 // `out_of_range`, one of its listed reasons, and so does text,
                 // however big its number (owner, 2026-09-24: c).
-                let from = self.resolve_ty(&expr.ty);
+                let from = from_ty;
                 let to = self.resolve_ty(target);
                 let plain_int = matches!(to, Ty::Int(IntW::Fixed { .. })) && !to.is_exact();
                 if plain_int && matches!(from.base(), Ty::Bin(_)) {

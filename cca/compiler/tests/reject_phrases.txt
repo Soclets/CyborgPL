@@ -64,6 +64,7 @@ c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
 c_enum_number_missing [fnv:3721994c1fc31d28] :: of the C enum `K` says its number
 c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
 c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what a `int32[0, 4096]` holds
+c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
 call_without_bracket [fnv:93fa5962e0fc877b] :: a call needs `[…]`
 callback_c_enum [fnv:ba1492734bc49737] :: a callback's parameter cannot be `Key`
@@ -117,6 +118,7 @@ enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and thi
 enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
 enum_not_c [fnv:290fed975360e9b3] :: the `extern fn f` parameter 'k' is not C-shaped
+enum_number_not_c [fnv:5cd2bb5264276a44] :: only a `layout.c enum` has numbers
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
 eq_in_value [fnv:5a99b3d49669530b] :: gives a declaration its value once; equality is `==`
@@ -294,6 +296,7 @@ ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_nu
 ptr_declared [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.c` field
 ptr_in_let_still_refused [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.c` field
 ptr_lend_mut_needed [fnv:ed12d99652ef7144] :: C may write through it, so write `lend.mut`
+ptr_read_c_enum_unhandled [fnv:32fe4958b7e20764] :: `ptr.read` of a `Mode` from C can fail (out_of_range)
 ptr_read_null_lied [fnv:4d31d6e728a30b8b] :: !by-design a `nocheck` read through C's pointer; nothing at compile time can know what C returned, and `nocheck` says so — the oracle catches it only by running it
 ptr_read_past_end_lied [fnv:bf3aa6ad6940e787] :: !by-design a `nocheck` read past what C allocated; nothing at compile time can know that, and `nocheck` says so — the oracle catches it only by running it
 ptr_read_without_nocheck [fnv:5216009b1679357d] :: nothing about C's memory can be proven

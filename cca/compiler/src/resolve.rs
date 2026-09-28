@@ -435,6 +435,12 @@ impl Items {
             let mut blanks = Vec::new();
             let t = self.resolve_type(ty, *m, &mut blanks, false)?;
             self.check_c_shaped(&t, ty.span, &format!("C's variable '{}'", self.externs[id.0 as usize].name))?;
+            // Reading a variable never fails, so it holds C's plain number
+            // (owner, 2026-09-28: b).
+            if self.checked_at_door(&t) {
+                let spelled = spell(&t, self);
+                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).at(ty.span).fix(None, format!("declare it `int32` and convert: `to.{}[…] otherwise …`", spelled)));
+            }
             self.externs[id.0 as usize].ret = t;
         }
         let consts = std::mem::take(&mut self.pending_consts);

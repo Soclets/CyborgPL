@@ -174,3 +174,5 @@ strict_file 181
 # C's numbers checked wherever they come in; to.Key; NO_FUCKING_CHECKS (owner, 2026-09-27).
 c_enum_convert 203
 c_door_everywhere 31
+# A C variable holds C's plain number; to.int32[Mode.vi]; ptr.read of a C enum (owner, 2026-09-28).
+c_variables 110
