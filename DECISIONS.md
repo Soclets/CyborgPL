@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-28 — A C variable holds C's plain number; `to.int32[Mode.vi]` converts back (owner: b)
+
+Left open by the C-entry rule: `otherwise` follows a call, but a C
+variable is read by its name. Proposed (a) `otherwise` after a C
+variable's name, for C variables only; (b) a C variable of a C enum or
+range type is refused, declared plain and converted with `to.Mode[…]`.
+The owner asked for missed use cases. The one found was writing a C
+library's mode variable, which b answers with a new never-failing
+conversion from a C enum to its number, `to.int32[Mode.vi]`. Design claude
+recommended b with that. Owner: b. Also fixed, the gaps compiler claude
+found in the oracle: `ptr.read` of a C enum or range now takes `otherwise`
+and fails `out_of_range` (it was refused with `otherwise` and accepted
+without), and a C variable of such a type is refused. `ptr.mut` lent to C
+means a list, array or text (a single variable can't be lent as a
+pointer), so every element is checked. `ffi.md`;
+`examples/c_variables.cpls`; reject tests c_var_c_enum,
+ptr_read_c_enum_unhandled, enum_number_not_c.
+
 ### 2026-09-27 — `NO_FUCKING_CHECKS`: a fourth tier that trusts C's answers too (owner)
 
 Out of the C-enum question: design claude sketched a stronger `nocheck`

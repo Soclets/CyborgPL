@@ -388,6 +388,9 @@ pub enum Expr {
     MapLit(Vec<(Expr, Bracket)>, usize),
     /// `map.get[lend 'm', k]` / `map.remove[lend.mut 'm', k]`: hand a value back or fail `missing` (decided 2026-09-22)
     MapFail(String, Bracket, Option<Handler>, usize),
+    /// `ptr.read['p'] otherwise …` — a read of a C enum or range type from C, which can fail
+    /// `out_of_range` (owner, 2026-09-27/28)
+    PtrReadChecked(Bracket, Option<Handler>, usize),
     /// `char.point.from_code[n]` / `char.byte.from_code[n]`: a number to a character, fails `not_a_char` (decided 2026-09-21)
     CharFromCode(CharUnit, Bracket, Option<Handler>, usize),
     /// `...'xs'` in a call: unpack the list into the variadic part (decided 2026-09-21)
@@ -410,6 +413,7 @@ impl Expr {
             | Expr::Newline(l) | Expr::Var(_, l) | Expr::Owned(_, _, l)
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,
+            Expr::PtrReadChecked(_, _, l) => *l,
             Expr::Nested(b) => b.line,
             Expr::Index(_, _, l) => *l,
             Expr::Builtin(_, _, _, l) => *l,

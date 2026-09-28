@@ -110,8 +110,19 @@ written once in the signature instead of after every call. Owner: c.
 
 A C enum or a range type is checked **wherever it comes in from C**, and
 fails `out_of_range` for a number it doesn't allow: a call's return, what
-C wrote through a `ptr.mut` you lent it (checked when the call ends), a
-`ptr.read`, and a C variable. Each is handled with `otherwise`. Writing the
+C wrote through a `ptr.mut` you lent it (every element of the lent list,
+checked when the call ends), and a `ptr.read`. Each is handled with
+`otherwise` (`ptr.read['p'] otherwise Mode.emacs`).
+
+**A C variable holds C's plain number** (owner, 2026-09-28: b): it is
+read by its name, and reading a variable never fails anywhere in
+Cyborg, so `extern 'm': Mode;` is refused. Declare it `int32` and
+convert. **`to.int32[Mode.vi]`** turns a C enum back into its number,
+which never fails but must fit the target, and that is how a C enum is
+written into a plain C variable. Proposed alternative: `otherwise` after
+a C variable's name (`'current' otherwise Mode.emacs`). The owner asked
+for missed use cases; writing a C library's mode variable was the one,
+and the conversion back answers it. Writing the
 type is the request to check. To skip the check, write the plain type
 (`int32`), and convert when you want the enum:
 

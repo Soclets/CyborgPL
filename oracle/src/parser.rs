@@ -1328,7 +1328,8 @@ impl Parser {
                 Expr::CharFromCode(_, _, h, _) => *h = self.handler()?,
                 Expr::MapFail(_, _, h, _) => *h = self.handler()?,
                 Expr::CallValue(_, _, h, _) => *h = self.handler()?,
-                _ => return self.err("`otherwise` handles a call that can fail, and the call must be the whole value: put it in its own `let` first"),
+                Expr::Builtin(hd, op, b, l) if hd == "ptr" && op == "read" => { let (b, l) = (b.clone(), *l); e = Expr::PtrReadChecked(b, self.handler()?, l); }
+                _ => return self.err("`otherwise` handles a call that can fail, and the call must be the whole value: declare it on its own line first (`'v' := f[…] otherwise …;`)"),
             }
         }
         Ok(Bracket { values: vec![Value::Expr(e)], line, one_list: false })

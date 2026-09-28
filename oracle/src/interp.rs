@@ -112,6 +112,8 @@ pub struct Interp<'p> {
     /// how many `nocheck` statements enclose the running code (extern calls and
     /// pointer reads/writes need at least one — design/ffi.md)
     nocheck_depth: usize,
+    /// inside `NO_FUCKING_CHECKS`: C's numbers are trusted, no `out_of_range` (owner, 2026-09-27)
+    trust_c_depth: usize,
     /// type variables (`<T>`) of the running generic function, bound to a value's
     /// shape as arguments arrive (design/generics.md); the oracle checks
     /// consistency by kind, the compiler specialises per type
@@ -125,7 +127,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -256,7 +258,10 @@ impl<'p> Interp<'p> {
         }
         // `extern let` (decided 2026-09-21): C-shaped, like an extern parameter
         for x in &self.prog.externs {
-            if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`extern let '{}'`: {m}", x.name)); }
+            if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`extern '{}'`: {m}", x.name)); }
+            // a C variable is read by its name, and a read never fails, so it holds C's plain
+            // number; convert it with `to.Key[…] otherwise …` (owner, 2026-09-28: b)
+            if let Some(n) = self.c_checked(&x.ty) { return rt(x.line, format!("`extern '{}'`: a C variable cannot be `{n}` — reading a variable never fails, so it holds C's plain number: declare it `int32` and convert, `to.{n}['{}'] otherwise …`", x.name, x.name)); }
         }
         for f in self.prog.funcs.iter().filter(|f| f.is_extern) {
             for p in &f.params {
@@ -845,9 +850,12 @@ impl<'p> Interp<'p> {
             // site fires is a lie — the compiled program would be undefined there.
             Stmt::Tier { tier, body, line } => {
                 let off = matches!(tier, Tier::NoCheck | Tier::NoChecksAtAll);
+                let trust = *tier == Tier::NoChecksAtAll;
                 if off { self.nocheck_depth += 1; }
+                if trust { self.trust_c_depth += 1; }
                 let r = self.stmt(body);
                 if off { self.nocheck_depth -= 1; }
+                if trust { self.trust_c_depth -= 1; }
                 match r {
                     Err(e) if e.site => {
                         let msg = match tier {
@@ -1226,6 +1234,36 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// A type C's numbers are checked against when they come in: a `layout.c enum`, a range,
+    /// or a struct with a ranged field. Its name for messages, or `None`.
+    fn c_checked(&self, t: &Ty) -> Option<String> {
+        match t {
+            Ty::Ranged(..) => Some(ty_name(t)),
+            Ty::Struct(n) if self.prog.enums.iter().any(|e| &e.name == n && e.c_values.is_some()) => Some(n.clone()),
+            Ty::Struct(n) if self.prog.structs.iter().any(|d| &d.name == n && d.fields.iter().any(|f| matches!(f.ty, Ty::Ranged(..)))) => Some(n.clone()),
+            _ => None,
+        }
+    }
+
+    /// The element type a pointer expression is declared to point at, when stated.
+    fn ptr_elem(&self, e: &crate::ast::Value) -> Option<Ty> {
+        match e { crate::ast::Value::Expr(Expr::Var(n, _)) => match self.lookup(n).and_then(|s| s.ty.clone()) { Some(Ty::Ptr(inner, _)) => Some(*inner), _ => None }, _ => None }
+    }
+
+    /// C's number read as a checked type: a C enum's case, or the value if it fits the range.
+    fn from_c(&self, v: Value, t: &Ty) -> Option<Value> {
+        match (t, &v) {
+            (Ty::Struct(n), Value::Int(k)) => {
+                let e = self.prog.enums.iter().find(|e| &e.name == n)?;
+                let i = e.c_values.as_ref()?.iter().position(|x| x == k)?;
+                Some(Value::Enum(e.name.clone(), e.cases[i].name.clone(), None))
+            }
+            (Ty::Struct(_), Value::Enum(..)) => Some(v),
+            (Ty::Ranged(..), _) => if self.check_type(&v, t, 0).is_ok() { Some(v) } else { None },
+            _ => Some(v),
+        }
+    }
+
     fn kind_clash(&self, have: Option<bool>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
         let want = match want { Ty::Ranged(b, _, _) => &**b, t => t };
         match (have, want) {
@@ -1583,6 +1621,14 @@ impl<'p> Interp<'p> {
                             }
                         }
                     }
+                    // a C enum's case to its number (owner, 2026-09-28): never fails; the number must fit
+                    (Ty::Int(_) | Ty::Uint(_), Value::Enum(tn, cn, None)) => {
+                        let Some(e) = self.prog.enums.iter().find(|e| &e.name == tn && e.c_values.is_some()) else { return rt(line, format!("only a `layout.c enum` has numbers; `{tn}` is a Cyborg enum")) };
+                        let i = e.cases.iter().position(|c| &c.name == cn).unwrap();
+                        let k = Value::Int(e.c_values.as_ref().unwrap()[i]);
+                        fit_base!(k.clone());
+                        k
+                    }
                     (Ty::Int(_) | Ty::Uint(_), Value::Char(_, c)) => return rt(line, format!("a character does not convert to a number: `char.code[`{c}`]` is its code, `to.int32[to.str.utf8[…]]` its digit value (decided 2026-09-21)")),
                     (Ty::Char(_), Value::Int(_)) => return rt(line, "a number does not convert to a character: `char.point.from_code[…] otherwise …` (decided 2026-09-21)"),
                     (Ty::Char(unit), Value::Str(s) | Value::Char(_, s)) => {
@@ -1677,6 +1723,26 @@ impl<'p> Interp<'p> {
             Expr::SizeOf(ty, is_size, _) => {
                 let (size, align) = self.size_align(ty, line)?;
                 Ok((Value::Int(if *is_size { size } else { align } as i128), Prov::Literal))
+            }
+            Expr::Builtin(head, op, args, _) if head == "ptr" && op == "read" && args.values.first().and_then(|a| self.ptr_elem(a)).and_then(|t| self.c_checked(&t)).is_some() => {
+                let t = self.ptr_elem(&args.values[0]).unwrap();
+                let n = self.c_checked(&t).unwrap();
+                if self.trust_c_depth == 0 { return rt(line, format!("`ptr.read` of a `{n}` from C can fail (out_of_range); say what happens: `ptr.read[…] otherwise …`")); }
+                let v = self.builtin(head, op, args, line)?;
+                match self.from_c(v, &t) { Some(v) => { let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
+                    None => site(line, format!("`NO_FUCKING_CHECKS` trusted C, and C sent no `{n}` here — the compiled program would be undefined")) }
+            }
+            Expr::PtrReadChecked(args, handler, _) => {
+                let t = args.values.first().and_then(|a| self.ptr_elem(a));
+                let Some(n) = t.as_ref().and_then(|t| self.c_checked(t)) else { return rt(line, "`ptr.read` of a plain type cannot fail, so it takes no `otherwise`") };
+                let t = t.unwrap();
+                let fails = vec![FailCase { name: "out_of_range".into(), ty: None }];
+                self.check_handler(handler.as_ref(), &fails, "ptr.read", line)?;
+                let v = self.builtin("ptr", "read", args, line)?;
+                match self.from_c(v, &t) {
+                    Some(v) => { let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
+                    None => { let _ = n; let v = self.handle_failure(handler.as_ref().unwrap(), line, "ptr.read", "out_of_range".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
+                }
             }
             Expr::Builtin(head, op, args, _) => {
                 let v = self.builtin(head, op, args, line)?;
