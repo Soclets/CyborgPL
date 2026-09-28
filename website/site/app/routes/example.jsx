@@ -24,6 +24,8 @@ export default function Example() {
   const location = useLocation();
   const [tab, setTab] = useState("code");
   const y = useMotionValue(0);
+  // On a computer the tint goes down with the window when it closes (owner, 2026-09-28).
+  const scrimY = useMotionValue(0);
   const drag = useDragControls();
 
   const closing = useRef(false);
@@ -38,7 +40,9 @@ export default function Example() {
       if (location.state?.fromGrid) navigate(-1);
       else navigate("/examples", { replace: true, preventScrollReset: true });
     };
-    animate(y, window.innerHeight, { type: "tween", duration: 0.15, ease: "easeIn" }).then(leave);
+    const down = { type: "tween", duration: 0.15, ease: "easeIn" };
+    if (document.documentElement.classList.contains("desktop")) animate(scrimY, window.innerHeight, down);
+    animate(y, window.innerHeight, down).then(leave);
     // If the browser pauses animations (a background tab), close anyway.
     setTimeout(leave, 260);
   };
@@ -57,7 +61,7 @@ export default function Example() {
 
   return (
     <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={ex.title}>
-      <motion.div className="scrim" onClick={close} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} />
+      <motion.div className="scrim" onClick={close} style={{ y: scrimY }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} />
       <motion.section
         className="sheet"
         style={{ y }}

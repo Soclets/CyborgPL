@@ -26,7 +26,9 @@ code, pre { font-family: var(--mono); }
 input { font: inherit; }
 
 /* One phone-width column. On a wide screen it stays centred until the desktop layout exists. */
-.page { max-width: 520px; margin: 0 auto; padding: calc(var(--safe-top) + 18px) var(--pad) var(--tabbar-space); min-height: 100dvh; animation: enter .12s ease-out both; }
+.page { max-width: 520px; margin: 0 auto; padding: calc(var(--safe-top) + 18px) var(--pad) var(--tabbar-space); min-height: 100dvh; animation: enter .12s ease-out backwards; }
+/* backwards, not both: once faded in, the page keeps no layer of its own, so the example's
+   window and its tint can rise above the desktop top bar. */
 @keyframes enter { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------------------------------------------------------------- type */
@@ -249,7 +251,7 @@ html.desktop .lesson, html.desktop .feature { scroll-margin-top: 88px; }
 html.desktop .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
 html.desktop .gcode { height: 118px; font-size: 10px; }
 html.desktop .gcard { transition: transform .12s ease; }
-html.desktop .sheet { top: 6vh; bottom: 6vh; max-width: 880px; border-radius: 24px; box-shadow: 0 30px 90px -20px rgba(0, 0, 0, .6); }
+html.desktop .sheet { top: 12vh; bottom: auto; max-height: 82vh; max-width: 880px; border-radius: 24px; box-shadow: 0 30px 90px -20px rgba(0, 0, 0, .6); }
 html.desktop .grabber { display: none; }
 html.desktop .sheet-grip { padding: 24px 28px 0; cursor: default; }
 html.desktop .sheet-body { padding: 0 28px 28px; }
