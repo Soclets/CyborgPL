@@ -2003,7 +2003,14 @@ impl<'p> Interp<'p> {
                         Err(m) => match handler { Some(h) => { let v = self.handle_failure(h, line, &format!("to.{target}"), "too_many_digits".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; return Ok((v, prov)); } None => return rt(line, format!("{i} {m}")) },
                     },
                     (Ty::Deci(w), Value::Bin(x)) => {
-                        let d = if *useful { crate::deci::Deci::from_bin_useful(*x, *w) } else { crate::deci::Deci::from_bin_exact(*x, *w) };
+                        if !x.is_finite() { return rt(line, format!("a bin {} into a deci is not decided", if x.is_nan() { "NaN" } else { "infinity" })); }
+                        // `.useful`: the shortest decimal that reads back as the same bin *at its own width*
+                        // (a bin32 0.1 is `0.1`, not its 64-bit widening; compiler session, 2026-09-29)
+                        let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
+                        let d = if *useful {
+                            let text = show_useful_as(&Value::Bin(*x), src_ty.as_ref());
+                            match crate::deci::Deci::parse(&text, *w) { Ok(Some(d)) => Ok(d), _ => crate::deci::Deci::from_bin_useful(*x, *w) }
+                        } else { crate::deci::Deci::from_bin_exact(*x, *w) };
                         Value::Deci(d.or_else(|m| site(line, format!("{x} {m}")))?)
                     }
                     (Ty::Deci(w), Value::Deci(d)) => {
@@ -2292,6 +2299,13 @@ impl<'p> Interp<'p> {
                 // (`'n' > (0 -~ 1)` wraps in uint64; verification session, seed 90).
                 let cmp = matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==");
                 let saved_expected = self.expected.clone();
+                // beside a deci, a group of bare numbers takes the deci's width, as a literal does
+                // (`'a' + (1.5 x 2)`; compiler session, 2026-09-29)
+                let mut deci_set = false;
+                if !cmp && self.deci_ctx().is_none() && matches!(op.as_str(), "+" | "-" | "x" | "div" | "mod") {
+                    let side = self.expr_ty(l).or_else(|| self.expr_ty(r));
+                    if let Some(t @ Ty::Deci(_)) = side { self.expected = Some(t); deci_set = true; }
+                }
                 if cmp { self.expected = None; let other = self.expr_ty(r); self.expected = other; }
                 let r_a = self.eval(l);
                 let la = self.last_lit.take();
@@ -2307,7 +2321,7 @@ impl<'p> Interp<'p> {
                 if cmp { self.expected = None; let other = self.expr_ty(l); self.expected = other; }
                 let r_b = self.eval(r);
                 let lb = self.last_lit.take();
-                if cmp { self.expected = saved_expected; }
+                if cmp || deci_set { self.expected = saved_expected; }
                 let (b, pb) = r_b?;
                 // a bin literal meeting a bin16/bin32 value in arithmetic is at that width, rounded
                 // once from its digits (owner, 2026-09-24: bin math at its values' width)
@@ -2660,7 +2674,8 @@ impl<'p> Interp<'p> {
     }
 
     fn keys_equal(&mut self, a: &Value, b: &Value, line: usize) -> Result<bool, RuntimeError> {
-        if !self.custom_key(a) { return Ok(a == b); }
+        // plain values by value (maps.md): a deci 1.50 and 1.5 are one key (compiler session, 2026-09-29)
+        if !self.custom_key(a) { return Ok(value_eq(a, b)); }
         let shape = shape_of(a);
         // bind both keys as temporaries so the user's `op ==` can be applied to them
         let mut scope = HashMap::new();
@@ -2689,9 +2704,23 @@ impl<'p> Interp<'p> {
             _ => (Rc::new(RefCell::new(v.clone())), true),
         };
         if !matches!(&*cell.borrow(), Value::Map(_)) { return rt(line, format!("`map.{op}` needs a map, got {}", v.kind())); }
+        // the key and the value land in the map's key and value types, which are their context, as a
+        // parameter's type is an argument's (owner, 2026-09-29: a)
+        let kv = match &args.values[0] {
+            crate::ast::Value::Expr(Expr::Owned(_, n, _)) => match self.lookup(n).and_then(|s| s.ty.clone()) {
+                Some(Ty::Map(k, v, _)) => Some((*k, *v)),
+                Some(Ty::Ranged(b, _, _)) => match *b { Ty::Map(k, v, _) => Some((*k, *v)), _ => None },
+                _ => None,
+            },
+            _ => None,
+        };
         let mut rest = Vec::new();
-        for a in &args.values[1..] {
-            let (v, prov) = self.value(a)?;
+        for (i, a) in args.values[1..].iter().enumerate() {
+            let ctx = kv.as_ref().map(|(k, v)| if i == 0 { k.clone() } else { v.clone() });
+            let saved = std::mem::replace(&mut self.expected, ctx);
+            let r = self.value(a);
+            self.expected = saved;
+            let (v, prov) = r?;
             match prov {
                 Prov::Bare(n) => return rt(line, format!("bare '{n}' into a map: say `give '{n}'` or `copy '{n}'`")),
                 Prov::Borrowed(..) => return rt(line, "a map owns its keys and values; store a `copy` or `give`, not a lend"),
@@ -4236,4 +4265,16 @@ fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
 fn stmt_line(s: &Stmt) -> usize {
     let t = format!("{s:?}");
     t.rfind("line: ").and_then(|i| t[i + 6..].split(|c: char| !c.is_ascii_digit()).next().and_then(|d| d.parse().ok())).unwrap_or(0)
+}
+
+/// Equality by value, for map keys: a deci compares by its value (`1.50` is `1.5`), everything else
+/// as held, field by field and item by item.
+fn value_eq(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Deci(x), Value::Deci(y)) => x.cmp_value(y).is_eq(),
+        (Value::List(x), Value::List(y)) => x.len() == y.len() && x.iter().zip(y).all(|(p, q)| value_eq(p, q)),
+        (Value::Struct(n, xs), Value::Struct(m, ys)) => n == m && xs.len() == ys.len() && xs.iter().zip(ys).all(|((k, p), (l, q))| k == l && value_eq(p, q)),
+        (Value::Enum(t, c, d), Value::Enum(u, e, f)) => t == u && c == e && match (d, f) { (Some(p), Some(q)) => value_eq(p, q), (None, None) => true, _ => false },
+        _ => a == b,
+    }
 }
