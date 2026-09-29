@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Synthia is written in Go (owner)
+
+The owner: "What should Synthia be in? I'm kinda feeling Golang." Rust
+had been decided on 2026-09-14, when Synthia was expected to sit beside
+the compiler and share its reviewers. Design claude noted the two-package-
+manager split (below) left Synthia a separate tool that shares no code
+with CCA: it reads `Synthia.ttsr`, fetches Limbs and runs `cca build …`,
+which is Go's standard library (HTTP, archives, hashing, processes), with
+goroutines for parallel downloads and one cross-compiling binary; the
+costs are a second toolchain and the old "one language for reviewers"
+reason, which assumed a team the owner no longer plans. Owner: "yeah,
+Synthia in Go." The compiler, CCA's built-in package manager, the oracle
+and the verification tools stay Rust. Who writes it is open (next).
+`implementation-languages.md`.
+
 ### 2026-09-29 — One lane of a vector can be changed: `change 'v'[3] = 30;` (owner: a)
 
 Compiler claude asked: `simd.md` had the lane read `'v'[1]` but no write;
