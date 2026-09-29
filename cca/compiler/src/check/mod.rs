@@ -351,13 +351,29 @@ impl Checker {
         }
         // MAIN.
         let main = match self.items.main.clone() {
-            Some((block, module, span)) => {
+            Some((block, module, span, main_params)) => {
                 let inst = FnInst(self.instances.len() as u32);
                 let key = InstKey { fn_id: FnId(u32::MAX), blanks: Vec::new(), bundle: None, owning: Vec::new() };
                 self.instances.push(Instance { key, sig: hir::Signature { params: Vec::new(), ret: Ty::Nothing, fails: Vec::new() }, body: None, captures: Vec::new() });
                 let mut ctx = self.new_ctx(inst, module, "MAIN".to_string(), Ty::Nothing, Vec::new(), true);
+                // C's `argc` and `argv` (owner, 2026-09-29): exactly these
+                // two types, the names the writer's.
+                let mut params = Vec::new();
+                let want = [("argc", Ty::Int(crate::types::IntW::Fixed { signed: true, bits: 32 })), ("argv", Ty::Ptr { mutable: false, elem: Box::new(Ty::Ptr { mutable: false, elem: Box::new(Ty::Int(crate::types::IntW::Fixed { signed: false, bits: 8 })) }) })];
+                for (p, (c, want)) in main_params.iter().zip(want.iter()) {
+                    let Some(t) = &p.ty else {
+                        return err(Diagnostic::error(format!("MAIN's '{}' is C's `{}`: write its type, `{}`", p.name.name, c, self.spell(want))).at(p.span));
+                    };
+                    let mut blanks = Vec::new();
+                    let got = self.items.resolve_type(t, module, &mut blanks, false)?;
+                    if got != *want || !matches!(p.kind, ast::ParamKind::Owned) {
+                        return err(Diagnostic::error(format!("MAIN's '{}' is C's `{}`, whose type is `{}`, not `{}`", p.name.name, c, self.spell(want), self.spell(&got))).at(t.span));
+                    }
+                    let id = ctx.declare(&p.name.name, Local { name: p.name.name.clone(), ty: want.clone(), mutability: None, kind: LocalKind::Owned, from_blank: false, span: p.span });
+                    params.push(id);
+                }
                 let body = self.block(&mut ctx, &block)?;
-                self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params: Vec::new(), ret: Ty::Nothing, fails: Vec::new(), block: body, span, name: "MAIN".into(), is_main: true, is_test: false, ret_lent: None });
+                self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: Ty::Nothing, fails: Vec::new(), block: body, span, name: "MAIN".into(), is_main: true, is_test: false, ret_lent: None });
                 Some(inst)
             }
             None => None,

@@ -437,9 +437,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         let Some(main_idx) = self.p.main else { return };
         let i32t = self.ctx.i32_type();
-        let f = self.module.add_function("main", i32t.fn_type(&[], false), None);
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let f = self.module.add_function("main", i32t.fn_type(&[i32t.into(), p.into()], false), None);
         let entry = self.ctx.append_basic_block(f, "entry");
         self.builder.position_at_end(entry);
+        // C's arguments, kept where `MAIN` reads its parameters (owner,
+        // 2026-09-29) — whether it runs directly or as a task.
+        let (argc, argv) = self.main_args();
+        let _ = self.builder.build_store(argc, f.get_nth_param(0).unwrap());
+        let _ = self.builder.build_store(argv, f.get_nth_param(1).unwrap());
         let name = format!("cy_main_{}", main_idx.0);
         let body = match self.module.get_function(&name) {
             Some(v) => v,
@@ -456,6 +462,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let _ = self.builder.build_call(body, &[], "");
         }
         let _ = self.builder.build_return(Some(&i32t.const_zero()));
+    }
+
+    /// Where C's `argc` and `argv` are kept for `MAIN`.
+    fn main_args(&mut self) -> (PointerValue<'ctx>, PointerValue<'ctx>) {
+        let i32t = self.ctx.i32_type();
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let argc = self.module.get_global("cy_argc").unwrap_or_else(|| {
+            let g = self.module.add_global(i32t, None, "cy_argc");
+            g.set_linkage(inkwell::module::Linkage::Internal);
+            g.set_initializer(&i32t.const_zero());
+            g
+        });
+        let argv = self.module.get_global("cy_argv").unwrap_or_else(|| {
+            let g = self.module.add_global(p, None, "cy_argv");
+            g.set_linkage(inkwell::module::Linkage::Internal);
+            g.set_initializer(&p.const_null());
+            g
+        });
+        (argc.as_pointer_value(), argv.as_pointer_value())
     }
 
     /// The test binary's `main`: the test its first argument numbers, run
@@ -612,6 +637,20 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             None => 0,
         };
+        // `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`: its parameters
+        // are what C's `main` kept.
+        if f.is_main && f.params.len() == 2 {
+            let (argc, argv) = self.main_args();
+            let loaded = [
+                self.builder.build_load(self.ctx.i32_type(), argc, "argc").ok(),
+                self.builder.build_load(self.ctx.ptr_type(AddressSpace::default()), argv, "argv").ok(),
+            ];
+            for (p, v) in f.params.iter().zip(loaded) {
+                if let (Some(slot), Some(v)) = (slots[p.0 as usize], v) {
+                    let _ = self.builder.build_store(slot, v);
+                }
+            }
+        }
         for (pi, p) in f.params.iter().enumerate() {
             let Some(v) = func.get_nth_param(pi as u32 + skip) else { continue };
             if lent[p.0 as usize] {

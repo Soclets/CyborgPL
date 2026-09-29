@@ -406,8 +406,9 @@ Dated, with the alternative, so each can become a question later.
   terminal's input and output, removes the folder, and exits with the
   program's exit (a signal as 128 + its number, as a shell has it). CCA's
   own words while building go to stderr, so the program's stdout is only
-  its own. A program's arguments, `--input`, a cross target's runner and
-  `cca test` wait for the owner (what a test is is not designed yet).
+  its own. The words after `--` are the program's `argv` (owner,
+  2026-09-29), as the oracle takes them. `--input` and a cross target's
+  runner wait for the owner.
   Alternative: keep the binary beside the source, as `cca build` does.
 - **2026-09-29 — A vector nothing gives a lane width has 64-bit lanes.**
   `'a' := simd.fill[5]` has no type to take its lanes from; CCA gives it

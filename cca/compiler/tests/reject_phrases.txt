@@ -249,6 +249,8 @@ list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `intege
 list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
 loop_list_changed [fnv:6d53a59f1655981d] :: 's' cannot be changed here: the loop on line 4 is still going through it
 lte_retired [fnv:be35669e815daffa] :: less-or-equal is `</==`
+main_args_one [fnv:a01f160c881421a0] :: `,` and the second parameter
+main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
 manifest_pub [fnv:e04dd347852c3d54] :: `pub` means nothing in CCA.cplr

@@ -147,7 +147,7 @@ pub struct Items {
     pub ops: HashMap<String, Vec<FnId>>,
     /// `Vec satisfies Ordered;` claims, checked after collection.
     pub claims: Vec<(Ty, IfaceId, Span)>,
-    pub main: Option<(ast::Block, ModuleId, Span)>,
+    pub main: Option<(ast::Block, ModuleId, Span, Vec<ast::Param>)>,
     /// Pending struct/enum/iface bodies to resolve after every name is known.
     pending_structs: Vec<(StructId, ast::StructDecl, ModuleId)>,
     pending_enums: Vec<(EnumId, ast::EnumDecl, ModuleId)>,
@@ -226,14 +226,14 @@ impl Items {
     fn collect_item(&mut self, item: &Item, m: ModuleId, is_root: bool) -> Result<()> {
         let vis = item.vis;
         match &item.kind {
-            ItemKind::Main(block) => {
+            ItemKind::Main(params, block) => {
                 if !is_root {
                     return err(Diagnostic::error("`MAIN` lives at the root of the Limb (`limb.cpls`), not in a module").at(item.span));
                 }
                 if self.main.is_some() {
                     return err(Diagnostic::error("a program has one `MAIN`; this is the second").at(item.span));
                 }
-                self.main = Some((block.clone(), m, item.span));
+                self.main = Some((block.clone(), m, item.span, params.clone()));
             }
             ItemKind::Fn(decl) => {
                 let id = FnId(self.fns.len() as u32);

@@ -276,11 +276,22 @@ impl<'a> Parser<'a> {
         match w.as_str() {
             "MAIN" => {
                 self.bump();
-                if self.is(&Tok::LBracket) {
-                    return self.fail("`MAIN` takes no parameters and cannot be called: it is the program's block — `MAIN { … }`");
-                }
+                // C's own two (owner, 2026-09-29: "low-level shit,
+                // decided"), or none: the types are checked with the rest.
+                let params = if self.is(&Tok::LBracket) {
+                    let at = self.span();
+                    let ps = self.params(ParamContext::Fn)?;
+                    match ps.len() {
+                        0 | 2 => {}
+                        1 => return self.fail_at(at, "`MAIN` takes C's two parameters or none: `,` and the second parameter — `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] { … }`"),
+                        _ => return self.fail_at(at, "`MAIN` takes C's two parameters or none — `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] { … }`"),
+                    }
+                    ps
+                } else {
+                    Vec::new()
+                };
                 let body = self.block("MAIN")?;
-                Ok(ItemKind::Main(body))
+                Ok(ItemKind::Main(params, body))
             }
             "fn" => {
                 self.bump();

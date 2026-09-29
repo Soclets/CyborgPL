@@ -577,7 +577,9 @@ pub enum ItemKind {
     Module { name: Ident, items: Vec<Item> },
     /// `Vec satisfies Ordered;`
     Satisfies { ty: Type, iface: Path },
-    Main(Block),
+    /// `MAIN { … }`, or `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] { … }`
+    /// with C's arguments (owner, 2026-09-29).
+    Main(Vec<Param>, Block),
 }
 
 #[derive(Debug, Clone, PartialEq)]

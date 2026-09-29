@@ -74,7 +74,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Opt
     // A dependency's `MAIN` runs only when that Limb itself is run, and
     // is left out when another Limb uses it (owner, 2026-09-29: a).
     if as_dep.is_some() {
-        file.items.retain(|i| !matches!(i.kind, crate::ast::ItemKind::Main(_)));
+        file.items.retain(|i| !matches!(i.kind, crate::ast::ItemKind::Main(..)));
     }
     items.collect_file(&file, m, as_dep.is_none())?;
     load_dir(sources, items, dir, m, true)?;

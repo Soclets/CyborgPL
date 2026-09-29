@@ -10,7 +10,7 @@ fn usage() -> ! {
     eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
     eprintln!("       cca precog <file.cpls | limb-dir>    check, lower, prove, and report");
     eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
-    eprintln!("       cca run <file.cpls | limb-dir>       build, then run it here; its exit is cca's");
+    eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
@@ -117,18 +117,21 @@ fn main() {
         // this terminal's input and output. What CCA says while building
         // goes to stderr, so what the program prints is all of stdout. How
         // `--input`, a program's own arguments and a cross target's runner
-        // work is open, so none is taken.
+        // work is open, so none is taken. Past `--`, the words are the
+        // program's own, its `argv` (owner, 2026-09-29), as the oracle has it.
         "run" => {
             let mut file = None;
             let mut assert_proofs = false;
             let mut final_build = false;
-            for a in &args[1..] {
+            let split = args.iter().position(|a| a == "--").unwrap_or(args.len());
+            let words: Vec<String> = args.get(split + 1..).map(|w| w.to_vec()).unwrap_or_default();
+            for a in &args[1..split] {
                 match a.as_str() {
                     "--assert-proofs" => assert_proofs = true,
                     "--final" => final_build = true,
                     f if file.is_none() && !f.starts_with('-') => file = Some(f.to_string()),
                     other => {
-                        eprintln!("error: `cca run` takes one program and `--final` or `--assert-proofs`; `{}` is not one of them (a program's own arguments, and `--input`, are not decided yet)", other);
+                        eprintln!("error: `cca run` takes one program and `--final` or `--assert-proofs`; `{}` is not one of them — the program's own words go after `--` (`--input` is not decided yet)", other);
                         exit(2);
                     }
                 }
@@ -147,7 +150,7 @@ fn main() {
                 eprint!("{}", d);
                 exit(1);
             }
-            let status = std::process::Command::new(&exe).status();
+            let status = std::process::Command::new(&exe).args(&words).status();
             let _ = std::fs::remove_dir_all(&dir);
             match status {
                 Ok(s) => {

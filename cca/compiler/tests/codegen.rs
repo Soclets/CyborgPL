@@ -126,6 +126,16 @@ fn a_proven_site_hands_its_fact_to_llvm() {
     assert!(ir.contains("nsw") || ir.contains("nuw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
 }
 
+/// C's arguments reach `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`
+/// (owner, 2026-09-29), passed by `cca run … -- words`.
+#[test]
+fn main_takes_the_command_line() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let src = dir().parent().unwrap().join("args/words.cpls");
+    let r = Command::new(cca()).arg("run").arg(&src).arg("--").args(["apples", "3", "hello world"]).output().unwrap();
+    assert_eq!(r.status.code(), Some(212), "the arguments did not arrive as C hands them over:\n{}", String::from_utf8_lossy(&r.stderr));
+}
+
 /// `cca test` (owner, 2026-09-29, `testing.md`): examples/testing.cpls
 /// reports exactly as the oracle's `.test-out` has it, and every other way
 /// a test ends reports as tests/testing/outcomes.test-out says. A failing
