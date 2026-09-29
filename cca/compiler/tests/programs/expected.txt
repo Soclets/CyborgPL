@@ -232,3 +232,4 @@ simd_fill_arith 44
 group_divisor 71
 simd_fill_bare_div 253
 strict_guard_main 5
+nested_loop_exit trap

@@ -535,6 +535,7 @@ impl<'a> Enc<'a> {
         let mut order: Vec<(usize, u32)> = Vec::new();
         let mut seen: Vec<(usize, u32)> = Vec::new();
         let mut edges: Vec<((usize, u32), (usize, u32))> = Vec::new();
+        let mut dropped: Vec<((usize, u32), usize)> = Vec::new();
 
         // The entry: parameters are whatever their type allows.
         let mut env0: Env = Env::new();
@@ -568,7 +569,9 @@ impl<'a> Enc<'a> {
                 if is_back && next_level > UNROLL_PER_LOOP {
                     // Not cut: the head at the last level already stands for
                     // every later trip (see `last_trip`), so nothing is lost
-                    // by not going round again.
+                    // by not going round again — when that copy of the head
+                    // is on the way here. Checked below.
+                    dropped.push((node, ti));
                     continue;
                 }
                 if is_back && unrollings >= UNROLL_TOTAL {
@@ -584,6 +587,47 @@ impl<'a> Enc<'a> {
                 edges.push((node, (ti, next_level)));
                 if !seen.contains(&(ti, next_level)) && !queue.contains(&(ti, next_level)) {
                     queue.push((ti, next_level));
+                }
+            }
+        }
+
+        // Levels are shared, so an inner loop's trips climb them too. An
+        // outer loop whose inner loop runs twelve times reached the last
+        // level inside its second trip, and its way round from there was
+        // dropped — but its head's last copy was reached only where the
+        // inner loop ended sooner, which it never does. Every way out of
+        // the loop was then impossible and `unsat` proved a narrowing after
+        // it (check claude, seed 6313). A way round is dropped soundly only
+        // when every path to it passes that last copy of its head; where
+        // one does not, that copy is widened: every entry into the loop
+        // arrives there as well (see `send`). With no such copy to stand
+        // for them, the query is cut.
+        let mut widened: std::collections::HashSet<(usize, u32)> = std::collections::HashSet::new();
+        if !dropped.is_empty() {
+            let mut next: HashMap<(usize, u32), Vec<(usize, u32)>> = HashMap::new();
+            for (a, b) in &edges {
+                next.entry(*a).or_default().push(*b);
+            }
+            let mut avoiding: HashMap<usize, std::collections::HashSet<(usize, u32)>> = HashMap::new();
+            for (from, head) in &dropped {
+                let reach = avoiding.entry(*head).or_insert_with(|| {
+                    let skip = (*head, UNROLL_PER_LOOP);
+                    let mut got = std::collections::HashSet::new();
+                    let mut stack = vec![(0usize, 0u32)];
+                    while let Some(n) = stack.pop() {
+                        if n == skip || !got.insert(n) {
+                            continue;
+                        }
+                        stack.extend(next.get(&n).into_iter().flatten().copied());
+                    }
+                    got
+                });
+                if reach.contains(from) {
+                    if seen.contains(&(*head, UNROLL_PER_LOOP)) {
+                        widened.insert((*head, UNROLL_PER_LOOP));
+                    } else {
+                        self.truncated = true;
+                    }
                 }
             }
         }
@@ -655,9 +699,11 @@ impl<'a> Enc<'a> {
 
         // Walk the nodes in the order they were discovered, merging what
         // arrives and emitting what each block does.
+        let mut walked: std::collections::HashSet<(usize, u32)> = std::collections::HashSet::new();
         for node in order.clone() {
             let (b, level) = node;
             let Some(arrivals) = incoming.get(&node).cloned() else { continue };
+            walked.insert(node);
             let (guard, mut env) = self.merge(&arrivals);
             let stmts = self.func().blocks[b].stmts.clone();
             for s in &stmts {
@@ -737,7 +783,31 @@ impl<'a> Enc<'a> {
                 // Entered from outside the loop: remembered, with the length
                 // of each list that moves in lock-step, so the last trip can
                 // be tied back to it.
-                if !is_back && bodies.get(&ti).map_or(false, |body| !body.contains(&b)) {
+                let entering = !is_back && bodies.get(&ti).map_or(false, |body| !body.contains(&b));
+                // A widened head's last copy (above) stands for trips that
+                // began at any entry into the loop, so every entry arrives
+                // there too — with what the loop writes forgotten, and the
+                // conditions of the path that entered kept. An entry walked
+                // after that copy could not be added: the query is cut.
+                if entering && lvl < UNROLL_PER_LOOP && widened.contains(&(ti, UNROLL_PER_LOOP)) {
+                    if walked.contains(&(ti, UNROLL_PER_LOOP)) {
+                        this.truncated = true;
+                    } else {
+                        let mut late = e.clone();
+                        let grows = resized.get(&ti).cloned().unwrap_or_default();
+                        for l in last_trip.get(&ti).cloned().unwrap_or_default() {
+                            if grows.contains(&l) {
+                                this.forget(&mut late, l);
+                            } else {
+                                this.forget_value(&mut late, l);
+                            }
+                            this.assume_fact(&mut late, ti, l);
+                        }
+                        this.forget_aliased(&mut late);
+                        incoming.entry((ti, UNROLL_PER_LOOP)).or_default().push((g.clone(), late));
+                    }
+                }
+                if entering {
                     for (list, _) in lockstep.get(&ti).cloned().unwrap_or_default() {
                         let _ = this.length(&Op::ListLength, &[Operand::Read(Place::local(list))], &mut e);
                     }
