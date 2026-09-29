@@ -1,0 +1,12 @@
+# A loop's item has the list's element type (found by check claude, 2026-09-29): 'y' is a uint8,
+# so 'y' +~ 10 wraps at 8 bits, and 'x' is an int32 for not.bit.
+MAIN {
+    'xs': list[int32] = [1, 2];
+    for 'x' in lend 'xs' {
+        'v': int64 = to.int64['x' +~ 10];
+        'w': int64 = to.int64[not.bit 'x'];
+        std::printu.stdout['v', " ", 'w', \n];
+    }
+    'ys': list[uint8] = [250, 3];
+    for 'i', 'y' in lend 'ys' { std::printu.stdout['i', " ", 'y' +~ 10, \n]; }
+}

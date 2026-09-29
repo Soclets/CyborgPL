@@ -651,6 +651,15 @@ impl<'p> Interp<'p> {
                     _ => None,
                 };
                 let started = self.write_count;
+                // the item has the list's element type (check claude, 2026-09-29: `'x' +~ 10` had no width)
+                let elem_ty = match over.values.first() {
+                    Some(crate::ast::Value::Expr(Expr::Owned(_, n, _) | Expr::Var(n, _))) => match self.lookup(n).and_then(|s| s.ty.clone()) {
+                        Some(Ty::List(t)) | Some(Ty::Array(t)) => Some(*t),
+                        Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(*t), _ => None },
+                        _ => None,
+                    },
+                    _ => None,
+                };
                 // perm: the variable outlives the loop, holding whatever the loop last gave it.
                 let cell = Rc::new(RefCell::new(Value::Nothing));
                 let pos_cell = Rc::new(RefCell::new(Value::Int(0)));
@@ -664,7 +673,7 @@ impl<'p> Interp<'p> {
                         Some(ix) => self.declare(ix, Slot { cell: pos_cell.clone(), ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0 }, *line),
                         None => Ok(()),
                     }
-                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: None, kind, alive: true, immut: true, sized: false, sealed: true , since: 0 }, *line))
+                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: elem_ty.clone(), kind, alive: true, immut: true, sized: false, sealed: true , since: 0 }, *line))
                     .and_then(|_| self.stmts(body));
                     self.pop();
                     let r = r?;
