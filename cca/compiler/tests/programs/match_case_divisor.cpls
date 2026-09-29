@@ -1,0 +1,11 @@
+# Layer 3 must see every case of a match (check claude, 2026-09-29, seed
+# 1990): 'd' shr 35 is 0 for 284, so 5 div 'v' divides by zero. The query
+# kept only the first case's value, 1, and "proved" the division; and it
+# shifted a uint64 arithmetically. Now it traps, as the oracle stops.
+extern fn exit ['code': int32];
+enum E { a  b: uint64 }
+MAIN {
+    'v': uint64 = match E.b[284] { a { 1 } b 'd' { 'd' shr 35 } };
+    'n': uint64 = 5 div 'v';
+    nocheck exit[to.int32['n' mod 100]];
+}

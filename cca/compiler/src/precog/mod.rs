@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, walks: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, walks: HashMap::new(), induction_done: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -328,6 +328,12 @@ struct Precog {
     /// in all (`CCA_PRECOG_STATS=1` prints it: where a slow build's time
     /// goes).
     walks: HashMap<usize, (u64, u64)>,
+    /// A recursive function's answers, one per tuple of its arguments, from
+    /// every table a finished induction filled: an answer for exact values
+    /// does not depend on which call asked, so the next call starts from
+    /// them instead of walking every tuple again (a generated program
+    /// walked one function 30077 times).
+    induction_done: HashMap<usize, HashMap<Vec<i128>, Domain>>,
 }
 
 /// What layer 3 may assume at the head of a loop, per function and block.
@@ -449,6 +455,19 @@ impl Precog {
         // them, until none are new. Then the real run, smallest first, so a
         // call on a smaller tuple reads its answer. Too many: the old way.
         let asked = self.arg_tuples(params, env)?;
+        // Every tuple asked is answered already: nothing to walk.
+        if !self.dry {
+            if let Some(done) = self.induction_done.get(&i) {
+                if asked.iter().all(|t| done.contains_key(t)) {
+                    let mut out = Domain::Empty;
+                    for t in &asked {
+                        out = out.union(&done[t]);
+                    }
+                    return Some(out);
+                }
+            }
+        }
+        let known: HashMap<Vec<i128>, Domain> = self.induction_done.get(&i).cloned().unwrap_or_default();
         let mut needed: std::collections::BTreeSet<Vec<i128>> = asked.iter().cloned().collect();
         if let Some(from_floor) = self.arg_tuples_opts(params, env, Some(i)) {
             needed.extend(from_floor);
@@ -467,7 +486,7 @@ impl Precog {
             }
         };
         let was_dry = self.dry;
-        self.induction.insert(i, (HashMap::new(), true));
+        self.induction.insert(i, (known.clone(), true));
         self.dry = true;
         let mut complete = false;
         while needed.len() <= INDUCTION_CAP {
@@ -496,9 +515,13 @@ impl Precog {
             self.induction.remove(&i);
             return None;
         }
-        self.induction.insert(i, (HashMap::new(), true));
+        self.induction.insert(i, (known, true));
         run_all(self, &needed);
         self.induction.get_mut(&i).unwrap().1 = false;
+        if !was_dry {
+            let filled = self.induction[&i].0.clone();
+            self.induction_done.entry(i).or_default().extend(filled);
+        }
         let table = &self.induction[&i].0;
         let mut out = Domain::Empty;
         for t in &asked {

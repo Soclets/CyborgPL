@@ -453,6 +453,23 @@ impl<'a> Enc<'a> {
         Val { term: name, bits, signed }
     }
 
+    /// A branch point the query does not decide — a `match`, a call's ok
+    /// and failure edges, an `if` on a condition it cannot read — split
+    /// into one guard per way out, told apart by a free selector. Every
+    /// successor may be the one taken, and never two at once: handing them
+    /// all the same guard let the join keep only the first (check claude,
+    /// 2026-09-29: a `match` case's 0 never reached the division, which was
+    /// "proven").
+    fn choices(&mut self, guard: &str, n: usize) -> Vec<String> {
+        if n <= 1 {
+            return vec![guard.to_string(); n];
+        }
+        let sel = format!("sel{}", self.next);
+        self.next += 1;
+        self.defs.push(format!("(declare-fun {} () (_ BitVec 16))", sel));
+        (0..n).map(|k| self.define_bool(&format!("(and {} (= {} (_ bv{} 16)))", guard, sel, k))).collect()
+    }
+
     fn define_bool(&mut self, body: &str) -> String {
         let name = format!("b{}", self.next);
         self.next += 1;
@@ -744,8 +761,9 @@ impl<'a> Enc<'a> {
                             send(self, *else_, g2, env.clone());
                         }
                         _ => {
-                            send(self, *then, guard.clone(), env.clone());
-                            send(self, *else_, guard.clone(), env.clone());
+                            let g = self.choices(&guard, 2);
+                            send(self, *then, g[0].clone(), env.clone());
+                            send(self, *else_, g[1].clone(), env.clone());
                         }
                     }
                 }
@@ -773,38 +791,43 @@ impl<'a> Enc<'a> {
                         });
                         self.assign(&mut e, d, v);
                     }
-                    send(self, *ok, guard.clone(), e);
-                    for arm in fail {
+                    let g = self.choices(&guard, 1 + fail.len());
+                    send(self, *ok, g[0].clone(), e);
+                    for (k, arm) in fail.iter().enumerate() {
                         let mut fe = after.clone();
                         if let Some(p) = &arm.payload {
                             self.forget(&mut fe, p.local);
                         }
-                        send(self, arm.block, guard.clone(), fe);
+                        send(self, arm.block, g[k + 1].clone(), fe);
                     }
                 }
                 Terminator::TaskOutcome { ok, fail, .. } => {
-                    send(self, *ok, guard.clone(), env.clone());
-                    for arm in fail {
+                    let g = self.choices(&guard, 1 + fail.len());
+                    send(self, *ok, g[0].clone(), env.clone());
+                    for (k, arm) in fail.iter().enumerate() {
                         let mut fe = env.clone();
                         if let Some(p) = &arm.payload {
                             self.forget(&mut fe, p.local);
                         }
-                        send(self, arm.block, guard.clone(), fe);
+                        send(self, arm.block, g[k + 1].clone(), fe);
                     }
                 }
                 Terminator::Whichever { arms, closed } => {
-                    for arm in arms {
+                    let g = self.choices(&guard, arms.len() + closed.iter().count());
+                    for (k, arm) in arms.iter().enumerate() {
                         let mut ae = env.clone();
                         self.forget(&mut ae, arm.dest.local);
-                        send(self, arm.block, guard.clone(), ae);
+                        send(self, arm.block, g[k].clone(), ae);
                     }
                     if let Some(c) = closed {
-                        send(self, *c, guard.clone(), env.clone());
+                        send(self, *c, g[arms.len()].clone(), env.clone());
                     }
                 }
                 other => {
-                    for t in crate::mir::verify::successors(other) {
-                        send(self, t, guard.clone(), env.clone());
+                    let succ = crate::mir::verify::successors(other);
+                    let g = self.choices(&guard, succ.len());
+                    for (k, t) in succ.into_iter().enumerate() {
+                        send(self, t, g[k].clone(), env.clone());
                     }
                 }
             }
@@ -864,8 +887,10 @@ impl<'a> Enc<'a> {
         // value lands in an `int64` as the machine stores it. One that does
         // not fit stopped at the landing's own site, so nothing after it
         // sees the difference.
+        // And read by its local's sign: a bare 1 stored in a `uint64` is
+        // unsigned from here on, or a later widening would sign-extend it.
         let v = v.map(|v| match int_shape(&self.func().locals[place.local.0 as usize].ty.clone()) {
-            Some((bits, signed)) if bits != v.bits => self.resize(v, bits, signed),
+            Some((bits, signed)) => self.resize(v, bits, signed),
             _ => v,
         });
         match v.or_else(|| self.unknown_of(place.local)) {
@@ -1064,7 +1089,15 @@ impl<'a> Enc<'a> {
                     return Some(self.define(w, &body, true));
                 }
                 let (a, b) = self.same_width(a, b);
-                let signed = a.signed || b.signed;
+                // The operation's sign is its typed side's — a bare number
+                // beside a `uint64` does not make it signed — and a shift's
+                // is its left operand's alone (check claude, 2026-09-29:
+                // `'d' shr 35` on a `uint64` was an arithmetic shift).
+                let signed = match (op, lhs) {
+                    (BinOp::Shl | BinOp::Shr, _) => a.signed,
+                    (_, Operand::Const(_)) => b.signed,
+                    _ => a.signed,
+                };
                 let w = a.bits;
                 let body = match op {
                     BinOp::WrapAdd => format!("(bvadd {} {})", a.term, b.term),
