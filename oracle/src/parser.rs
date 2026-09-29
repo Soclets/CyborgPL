@@ -1371,7 +1371,7 @@ impl Parser {
         if self.is_word("otherwise") {
             match &mut e {
                 Expr::Call(c) => c.handler = self.handler()?,
-                Expr::Convert(_, _, h, _) => *h = self.handler()?,
+                Expr::Convert(_, _, h, _, _) => *h = self.handler()?,
                 Expr::CharFromCode(_, _, h, _) => *h = self.handler()?,
                 Expr::MapFail(_, _, h, _) => *h = self.handler()?,
                 Expr::CallValue(_, _, h, _) => *h = self.handler()?,
@@ -2119,7 +2119,7 @@ impl Parser {
                             if b.values.len() != 1 { return self.err(format!("`to.{k}[…]` converts exactly one value")); }
                             if *self.peek() == Tok::LBracket { return self.err(format!("`to.{k}[…]` keeps the element type, so it is not written: `to.{k}[give 'x']`")); }
                             let blank = Box::new(Ty::Var(String::new()));
-                            return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, line));
+                            return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, false, line));
                         }
                     }
                     self.to_target = true;
@@ -2130,11 +2130,21 @@ impl Parser {
                     // a named type is allowed here only if it is a `layout.c enum` (checked when it runs:
                     // the parser cannot yet tell a struct's name from an enum's)
                     if matches!(ty, Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
+                    // `to.deci64.useful[…]`: the shortest decimal that reads back as the same bin (owner, 2026-09-29)
+                    // the type parser reads `deci64.useful` as one dotted name
+                    let (ty, dotted_useful) = match &ty {
+                        Ty::Struct(n) if n.ends_with(".useful") && matches!(&n[..n.len() - 7], "deci32" | "deci64" | "deci128") => (Ty::Deci(n[4..n.len() - 7].parse().unwrap()), true),
+                        _ => (ty, false),
+                    };
+                    let useful = dotted_useful || if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "useful") {
+                        if !matches!(ty, Ty::Deci(_)) { return self.err(format!("`.useful` is a deci conversion's: `to.deci64.useful[…]`; `to.{}` has none", ty_name(&ty))); }
+                        self.advance(); self.advance(); true
+                    } else { false };
                     if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     let b = self.bracket()?;
                     if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
-                    Ok(Expr::Convert(ty, b, None, line))
+                    Ok(Expr::Convert(ty, b, None, useful, line))
                 }
                 // bare `true[…]` is the boolean followed by a bracket; a function named `true` is
                 // legal and reached by path (keywords may name functions, 2026-09-19)

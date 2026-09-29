@@ -1032,7 +1032,8 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::Bin(_), Value::Int(i)) => rt(line, format!("{i} is an integer, not {name}; there is no implicit conversion between numeric families")),
-            (Ty::Deci(_), _) => rt(line, "deci is not implemented in the oracle"),
+            (Ty::Deci(w), Value::Deci(d)) => if d.width == *w { Ok(()) } else { rt(line, format!("a deci{} is not {name}; widths do not change by themselves: `to.{name}[…]`", d.width)) },
+            (Ty::Deci(_), v) => rt(line, format!("{} is {}, not {name}; there is no implicit conversion between numeric families", v.show_stored(), v.kind())),
             (Ty::Str(enc), Value::Str(s)) => {
                 if *enc == Encoding::Ascii && !s.is_ascii() { return rt(line, "this text is not ASCII, so it cannot be str.ascii"); }
                 Ok(())
@@ -1215,13 +1216,26 @@ impl<'p> Interp<'p> {
         let t = match e {
             Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
             Expr::Paren(inner, _) => self.expr_ty(inner),
-            Expr::Convert(t, _, _, _) => Some(t.clone()),
+            Expr::Convert(t, _, _, _, _) => Some(t.clone()),
             Expr::Unary(_, inner, _) => self.expr_ty(inner),
             Expr::Binary(_, l, r, _) => self.expr_ty(l).or_else(|| self.expr_ty(r)),
             _ => None,
         };
         let t = t.or_else(|| self.expected.clone());
         match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t }
+    }
+
+    /// the deci width a literal here would take, if a deci goes here
+    fn deci_ctx(&self) -> Option<u8> {
+        match &self.expected { Some(Ty::Deci(w)) => Some(*w), Some(Ty::Ranged(b, _, _)) => match **b { Ty::Deci(w) => Some(w), _ => None }, _ => None }
+    }
+    /// a literal's digits as a deci: exact, or an error when they do not fit (owner, 2026-09-29: b)
+    fn deci_literal(&self, digits: &str, w: u8, line: usize) -> Result<crate::deci::Deci, RuntimeError> {
+        match crate::deci::Deci::parse(digits, w) {
+            Ok(Some(d)) => Ok(d),
+            Ok(None) => rt(line, format!("`{digits}` is not a number")),
+            Err(m) => rt(line, format!("`{digits}` {m}: write fewer digits, or use a wider deci")),
+        }
     }
 
     /// `return lend 'x';` is checked where it is written, called or not (check claude, 2026-09-29):
@@ -1584,6 +1598,10 @@ impl<'p> Interp<'p> {
     fn eval_inner(&mut self, e: &Expr) -> Result<(Value, Prov), RuntimeError> {
         let line = e.line();
         match e {
+            // a literal where a deci goes is that deci, from its digits (owner, 2026-09-29): too many
+            // digits for the width is an error, never rounded
+            Expr::Int(i, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(crate::deci::Deci::from_int(*i, w).or_else(|m| rt(line, format!("`{i}` {m}: write fewer digits, or use a wider deci")))?), Prov::Literal)) }
+            Expr::Bin(_, digits, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(self.deci_literal(digits, w, line)?), Prov::Literal)) }
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
             Expr::Duration(n, _) => Ok((Value::Duration(*n), Prov::Plain)),
             Expr::ChannelNew(_, cap, _) => {
@@ -1810,7 +1828,7 @@ impl<'p> Interp<'p> {
             }
             // `to.array[give 'l']` / `to.list[give 'a']` (owner, 2026-09-23): the elements are
             // handed over as they are; only whether it can grow changes
-            Expr::Convert(Ty::List(_) | Ty::Array(_), b, _, _) => {
+            Expr::Convert(Ty::List(_) | Ty::Array(_), b, _, _, _) => {
                 let (v, prov) = self.single(b, line)?;
                 match (&v, &prov) {
                     (_, Prov::Bare(n)) => rt(line, format!("converting bare '{n}': say `give '{n}'` (no copy) or `copy '{n}'` (keeps '{n}')")),
@@ -1821,7 +1839,7 @@ impl<'p> Interp<'p> {
             }
             // `to.Key['n']` — a number into a C enum: a case with that number, or `out_of_range`
             // (owner, 2026-09-27: what comes from C as a plain number is converted this way)
-            Expr::Convert(Ty::Struct(tname), b, handler, _) => {
+            Expr::Convert(Ty::Struct(tname), b, handler, _, _) => {
                 let def = match self.prog.enums.iter().find(|e| &e.name == tname) {
                     Some(e) if e.c_values.is_some() => e.clone(),
                     Some(_) => return rt(line, format!("no conversion to the enum `{tname}`; only a `layout.c enum`'s numbers convert")),
@@ -1841,7 +1859,7 @@ impl<'p> Interp<'p> {
                     }
                 }
             }
-            Expr::Convert(ty, b, handler, _) => {
+            Expr::Convert(ty, b, handler, useful, _) => {
                 let (v, _) = self.single(b, line)?;
                 let target = ty_name(ty);
                 let full_ty = ty;
@@ -1851,13 +1869,31 @@ impl<'p> Interp<'p> {
                     Ty::TextRanged(e, _, _, _) => { text_base = Ty::Str(e.clone()); (&text_base, true) }   // a bounded text: out of it is `out_of_range` (2026-09-22)
                     t => (t, false),
                 };
-                let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_));
+                let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_));
                 // text → number fails `not_a_number`, and a real number too big for the type fails
                 // `out_of_range`: text comes from outside, so it is a failure, not a check (owner, 2026-09-24: c)
                 let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }, FailCase { name: "out_of_range".into(), ty: None }] } else { Vec::new() };
                 let from_text = can_fail;
                 // bin → int fails unless the bin is whole (decided 2026-09-21): rounding is said first, in std
                 if matches!(v, Value::Bin(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
+                // deci (owner, 2026-09-29): a deci → integer fails `not_whole`, as a bin does; text or an
+                // integer with more digits than the width fails `too_many_digits` — an integer only when its
+                // type could have that many (an int32 into a deci64 always fits)
+                if matches!(v, Value::Deci(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
+                if let Ty::Deci(w) = base {
+                    let p = crate::deci::precision(*w);
+                    let digits = |n: i128| n.unsigned_abs().to_string().len();
+                    let may_exceed = match &v {
+                        Value::Str(_) => true,
+                        Value::Int(_) => match b.values.first() { Some(crate::ast::Value::Expr(e)) => match self.expr_ty(e) {
+                            Some(t @ (Ty::Int(_) | Ty::Uint(_))) => crate::value::int_range(&t).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
+                            Some(Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi))) => digits(lo).max(digits(hi)) > p,
+                            _ => false,
+                        }, _ => false },
+                        _ => false,
+                    };
+                    if may_exceed { fails.push(FailCase { name: "too_many_digits".into(), ty: None }); }
+                }
                 // text → char fails unless the text is exactly one unit; char → a smaller unit fails
                 // unless it fits (decided 2026-09-21). Numbers never convert to or from chars.
                 if let Ty::Char(unit) = base {
@@ -1956,6 +1992,42 @@ impl<'p> Interp<'p> {
                             return Ok((v, prov));
                         }
                         Value::Char(unit.clone(), s.clone())
+                    }
+                    // deci (owner, 2026-09-29)
+                    (Ty::Deci(w), Value::Int(i)) => match crate::deci::Deci::from_int(*i, *w) {
+                        Ok(d) => Value::Deci(d),
+                        Err(m) => match handler { Some(h) => { let v = self.handle_failure(h, line, &format!("to.{target}"), "too_many_digits".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; return Ok((v, prov)); } None => return rt(line, format!("{i} {m}")) },
+                    },
+                    (Ty::Deci(w), Value::Bin(x)) => {
+                        let d = if *useful { crate::deci::Deci::from_bin_useful(*x, *w) } else { crate::deci::Deci::from_bin_exact(*x, *w) };
+                        Value::Deci(d.or_else(|m| site(line, format!("{x} {m}")))?)
+                    }
+                    (Ty::Deci(w), Value::Deci(d)) => {
+                        if d.width > *w { return rt(line, format!("a deci{} into a deci{}: narrowing between deci widths is not decided", d.width, w)); }
+                        Value::Deci(d.widen(*w))
+                    }
+                    (Ty::Deci(w), Value::Str(s)) => match crate::deci::Deci::parse(s.trim_start_matches('+'), *w) {
+                        Ok(Some(d)) => Value::Deci(d),
+                        other => {
+                            let why = match other { Ok(None) => "not_a_number", Err(m) if m.contains("digits") => "too_many_digits", _ => "out_of_range" };
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), why.into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
+                    },
+                    (Ty::Int(_) | Ty::Uint(_), Value::Deci(d)) => match d.to_int() {
+                        None => {
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_whole".into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
+                        Some(Err(())) => return site(line, format!("{} does not fit {target}", d.show_stored())),
+                        Some(Ok(i)) => { fit_base!(Value::Int(i)); Value::Int(i) }
+                    },
+                    (Ty::Bin(w), Value::Deci(d)) => {
+                        // rounded once, from the digits, straight to the width
+                        let b = if *w == 16 || *w == 32 { Value::Bin(round_decimal(&d.show_stored(), *w)) } else { Value::Bin(d.to_f64()) };
+                        fit_base!(b.clone()); b
                     }
                     (Ty::Bool, _) => return rt(line, "nothing converts to bool: there is no truthiness; compare instead"),
                     (t, other) => return rt(line, format!("no conversion from {} to {}", other.kind(), ty_name(t))),
@@ -2113,6 +2185,7 @@ impl<'p> Interp<'p> {
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
                     ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None, site: true, leave: None })?), keep)),
                     ("-", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
+                    ("-", Value::Deci(d)) => Ok((Value::Deci(d.neg()), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),
                 }
@@ -2231,6 +2304,19 @@ impl<'p> Interp<'p> {
                     let b = match (&b, &pb, &lb, self.bin_width(l)) { (Value::Bin(_), Prov::Literal, Some(d), Some(w @ (16 | 32))) => Value::Bin(round_decimal(d, w)), _ => b };
                     (a, b)
                 };
+                // A literal beside a deci is a deci of its width, from its digits (owner, 2026-09-29).
+                let lit_deci = |me: &Self, v: &Value, digits: &Option<String>, w: u8| -> Result<Option<Value>, RuntimeError> {
+                    Ok(match (v, digits) {
+                        (Value::Int(i), _) => Some(Value::Deci(crate::deci::Deci::from_int(*i, w).or_else(|m| rt(line, format!("`{i}` {m}: write fewer digits, or use a wider deci")))?)),
+                        (Value::Bin(_), Some(d)) => Some(Value::Deci(me.deci_literal(d, w, line)?)),
+                        _ => None,
+                    })
+                };
+                let (a, b) = match (&a, &b) {
+                    (Value::Deci(d), Value::Int(_) | Value::Bin(_)) if matches!(pb, Prov::Literal) => match lit_deci(self, &b, &lb, d.width)? { Some(x) => (a.clone(), x), None => (a, b) },
+                    (Value::Int(_) | Value::Bin(_), Value::Deci(d)) if matches!(pa, Prov::Literal) => match lit_deci(self, &a, &la, d.width)? { Some(x) => (x, b.clone()), None => (a, b) },
+                    _ => (a, b),
+                };
                 // A bare literal adopts the other side's family.
                 let (a, b) = match (&a, &b, &pa, &pb) {
                     (Value::Bin(_), Value::Int(i), _, Prov::Literal) => (a.clone(), Value::Bin(*i as f64)),
@@ -2327,6 +2413,21 @@ impl<'p> Interp<'p> {
             ("div", Bin(x), Bin(y)) => Bin(x / y),
             ("mod", Bin(x), Bin(y)) => Bin(x % y),
             ("xx", Bin(x), Bin(y)) => Bin(x.powf(y)),
+            // deci (owner, 2026-09-29): exact, then rounded to the width, half to even
+            (_, Deci(x), Deci(y)) if x.width != y.width => return rt(line, format!("`{op}` between a deci{} and a deci{}: say which width, `to.deci{}[…]`", x.width, y.width, x.width.max(y.width))),
+            ("+", Deci(x), Deci(y)) => Deci(x.add(&y).or_else(|m| site(line, m))?),
+            ("-", Deci(x), Deci(y)) => Deci(x.sub(&y).or_else(|m| site(line, m))?),
+            ("x", Deci(x), Deci(y)) => Deci(x.mul(&y).or_else(|m| site(line, m))?),
+            ("div", Deci(x), Deci(y)) => match x.div(&y) { None => return site(line, "division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
+            ("==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_eq()),
+            ("!==", Deci(x), Deci(y)) => Bool(!x.cmp_value(&y).is_eq()),
+            ("<", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_lt()),
+            (">", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_gt()),
+            ("</==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_le()),
+            (">/==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_ge()),
+            ("mod" | "xx", Deci(_), Deci(_)) => return rt(line, format!("`{op}` on deci is not decided")),
+            (_, Deci(_), Int(_) | Bin(_)) | (_, Int(_) | Bin(_), Deci(_)) =>
+                return rt(line, format!("`{op}` between a deci and another number family: there is no implicit conversion between numeric families; `to.deci64[…]`")),
             ("+" | "-" | "x" | "div" | "mod" | "xx", Int(_), Bin(_)) | ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(_), Int(_)) =>
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
             // a char compares by its content, whatever unit it was declared in
@@ -2382,7 +2483,7 @@ impl<'p> Interp<'p> {
                 Some(u64)
             }
             // `let 'a' := to.array[give 'l']` is an array of what 'l' held
-            [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::List(_) | Ty::Array(_)), b, _, _))] => {
+            [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::List(_) | Ty::Array(_)), b, _, _, _))] => {
                 let elem = match b.values.first() {
                     Some(crate::ast::Value::Expr(Expr::Owned(_, n, _) | Expr::Var(n, _))) => match self.lookup(n).and_then(|s| s.ty.clone()) {
                         Some(Ty::List(e) | Ty::Array(e)) => Some(e),
@@ -3122,6 +3223,7 @@ impl<'p> Interp<'p> {
         let def = match self.prog.interfaces.iter().find(|i| i.name == iface) { Some(i) => i, None => return rt(line, format!("no interface named `{iface}`")) };
         let builtin_ops: &[&str] = match shape {
             "integer" | "bin" => &["+", "-", "x", "xx", "div", "mod", "<", ">", "</==", ">/==", "==", "!=="],
+            "deci" => &["+", "-", "x", "div", "<", ">", "</==", ">/==", "==", "!=="],
             "bool" => &["and", "or", "==", "!=="],
             "str" => &["++", "==", "!=="],
             "char" | "list" => &["==", "!=="],
@@ -3803,7 +3905,7 @@ impl<'p> Interp<'p> {
 /// A type's shape, matching `shape_of`: the kind, or the struct/enum name.
 fn ty_shape(t: &Ty) -> String {
     match t {
-        Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) | Ty::Deci(_) => "bin".into(), Ty::Bool => "bool".into(),
+        Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
         Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(),
     }

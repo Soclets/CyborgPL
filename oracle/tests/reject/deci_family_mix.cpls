@@ -1,0 +1,6 @@
+# deci (owner, 2026-09-29): deci is its own family
+MAIN {
+    'a': deci64 = 1.5;
+    'w': bin64 = 2.0;
+    'c' := 'a' + 'w';
+}

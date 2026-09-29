@@ -10,6 +10,8 @@ use std::fmt::Write as _;
 pub enum Value {
     Int(i128),
     Bin(f64),
+    /// IEEE decimal (design/types.md, owner 2026-09-29)
+    Deci(crate::deci::Deci),
     Bool(bool),
     Str(String),
     Char(CharUnit, String),
@@ -84,6 +86,7 @@ impl Value {
         match self {
             Value::Int(_) => "integer",
             Value::Bin(_) => "bin",
+            Value::Deci(_) => "deci",
             Value::Bool(_) => "bool",
             Value::Str(_) => "str",
             Value::Char(..) => "char",
@@ -105,6 +108,7 @@ impl Value {
         match self {
             Value::Int(i) => i.to_string(),
             Value::Bin(b) => exact_decimal(*b),
+            Value::Deci(d) => d.show_stored(),
             Value::Bool(b) => if *b { "true".into() } else { "false".into() },
             Value::Str(s) => s.clone(),
             Value::Char(_, c) => c.clone(),
@@ -126,6 +130,7 @@ impl Value {
     pub fn show_useful(&self) -> String {
         match self {
             Value::Bin(b) => format!("{b}"),
+            Value::Deci(d) => d.show_useful(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
             Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_useful(), v.show_useful())).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_useful())).collect::<Vec<_>>().join(", ")),

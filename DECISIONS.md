@@ -59,7 +59,13 @@ Then three more the same day:
    does there, so a `deci` passed to C always matches. Proposed
    alternatives: always DPD; always BID. The owner asked when
    hardware-compatible `deci` comes: using the decimal instructions needs a
-   POWER or z target, compiler work for if-and-when. `types.md`.
+   POWER or z target, compiler work for if-and-when.
+8. **`deci` → integer fails `not_whole`, and `deci` → `bin` rounds**, as `bin`
+   does (owner: "yeah, same as bin").
+The oracle now runs `deci` (`examples/deci.cpls`; reject tests
+deci_literal_digits, deci_int_needs_otherwise, deci_family_mix,
+deci_widths_mix). Not decided: `mod` and `xx` on `deci`, narrowing between
+`deci` widths, and a `deci` in a range type. `types.md`.
 
 ### 2026-09-29 — A generic `op`; one that overlaps a specific one is an error (owner: allow, a)
 

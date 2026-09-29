@@ -1,0 +1,37 @@
+# deci, IEEE 754 decimal (owner, 2026-09-29): 0.1 + 0.2 is exactly 0.3; every operation rounds to the
+# width half to even; trailing zeros are kept (print shows 2.50, print.useful 2.5); a literal with too
+# many digits is an error; text, and an integer whose type could have too many digits, fail
+# too_many_digits; to.deci64.useful[bin] is the shortest decimal, to.deci64[bin] the exact value.
+MAIN {
+    'a': deci64 = 0.1;
+    'b': deci64 = 'a' + 0.2;
+    std::print.stdout['b', " ", 'b' == 0.3, \n];
+    'price': deci64 = 19.99;
+    'sub': deci64 = 'price' x 3;
+    'tax': deci64 = 'sub' x 0.075;
+    std::print.stdout['sub', " ", 'tax', " ", 'sub' + 'tax', \n];
+    'h': deci64 = 2.50;
+    std::print.stdout['h' x 2, " ", 'h', " ", 1.50 == 1.5, \n];
+    std::print.useful.stdout['h' x 2, " ", 'h', \n];
+    'third': deci64 = 1;
+    std::print.stdout['third' div 3, " ", 'h' div 2, " ", 10.0 div 4, \n];
+    'r': deci32 = 2.5;
+    'e1': deci32 = 1.000005;
+    std::print.stdout['e1' x 1, " ", 'e1' + 0.0000005, \n];
+    'w': bin64 = 0.1;
+    std::print.stdout[to.deci64['w'], " ", to.deci128['w'], " ", to.deci128.useful['w'], \n];
+    'n': int32 = 12345;
+    std::print.stdout[to.deci64['n'], \n];
+    'big': int64 = 12345678901234567;
+    'bd' := to.deci64['big'] otherwise 'price';
+    std::print.stdout['bd', \n];
+    't' := to.deci64["1.250"] otherwise 'price';
+    'u' := to.deci64["0.12345678901234567"] otherwise 'price';
+    'v' := to.deci64["abc"] otherwise 'h';
+    std::print.stdout['t', " ", 'u', " ", 'v', \n];
+    'i' := to.int32['h' x 2] otherwise -1;
+    'j' := to.int32['h'] otherwise -1;
+    std::print.stdout['i', " ", 'j', " ", to.bin64['h'], " ", to.str.utf8['h'], \n];
+    'neg': deci64 = -1.5;
+    std::print.stdout['neg', " ", -'neg', " ", 'neg' < 'h', \n];
+}

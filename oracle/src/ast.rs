@@ -384,7 +384,8 @@ pub enum Expr {
     ConstPath(Vec<String>, String, Vec<String>, usize),
     /// `to.int32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
     /// fail (`not_a_number`), so it may carry an `otherwise` handler
-    Convert(Ty, Bracket, Option<Handler>, usize),
+    /// `to.T[v]`; the bool is `.useful` (`to.deci64.useful[…]`, owner 2026-09-29)
+    Convert(Ty, Bracket, Option<Handler>, bool, usize),
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
@@ -438,7 +439,7 @@ impl Expr {
             Expr::OwnedField(_, _, _, l) => *l,
             Expr::OwnedElem(_, _, _, l) => *l,
             Expr::ConstPath(_, _, _, l) => *l,
-            Expr::Convert(_, _, _, l) => *l,
+            Expr::Convert(_, _, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
             Expr::FnRef(_, _, l) | Expr::OpValue(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
             Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) | Expr::MapLit(_, l) | Expr::Duration(_, l) | Expr::ChannelNew(_, _, l) => *l,

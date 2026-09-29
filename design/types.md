@@ -65,8 +65,12 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
 - **The bit layout is each machine's own**: DPD on IBM POWER and z (their
   decimal hardware), BID elsewhere (as C's `_Decimal64` there), so a `deci`
   handed to C always matches.
+- **To an integer** fails `not_whole` unless whole; **to a `bin`** rounds, as
+  `bin` math does.
 - `deci` is its own family: it never mixes with `bin` or an integer
   without `to.…` (2026-09-14).
+- Not decided: `mod` and `xx` on `deci`, narrowing between `deci` widths,
+  a `deci` in a range type.
 
 ## Notes (Claude, 2026-09-14)
 
