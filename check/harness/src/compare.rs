@@ -161,6 +161,12 @@ fn compare_one(o: &Oracle, build: &Build, mode: Mode, dir: &Path, env: &Env) -> 
             let _ = writeln!(d, "cca build{tag}: refused at line {} — {msg}", opt(*line));
             match o {
                 Oracle::Stopped { line: m, .. } if m == line && line.is_some() => None,
+                // CCA refuses a site that fails whenever it is reached; the
+                // oracle stopped at an earlier line first (a run-time check
+                // CCA keeps, since that one may never run) and so never got
+                // there. Provisional (2026-09-29, seed 4091): earlier by line
+                // number, which a loop or a call can get wrong.
+                Oracle::Stopped { line: Some(m), .. } if msg.starts_with("error:") && line.map_or(false, |l| *m < l) => None,
                 Oracle::Stopped { .. } => finding("different-site", d),
                 Oracle::Ran { .. } => finding("cca-refused-oracle-ran", d),
                 Oracle::Timeout => finding("oracle-timeout", d),

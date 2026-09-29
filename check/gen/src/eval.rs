@@ -284,7 +284,11 @@ impl<'a> Ev<'a> {
                     let n = xs.len().max(ys.len());
                     let mut out = vec![];
                     for i in 0..n {
-                        out.push(self.binary(*op, xs[i.min(xs.len() - 1)], ys[i.min(ys.len() - 1)], t)?);
+                        let v = self.binary(*op, xs[i.min(xs.len() - 1)], ys[i.min(ys.len() - 1)], t)?;
+                        // Each lane `+ - x xx` is checked at the lane's type
+                        // (owner: b, fc1cea9); the wrapping forms are not.
+                        let v = if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow) { self.land(v, t.into())? } else { v };
+                        out.push(v);
                     }
                     Val::S(out)
                 } else {
@@ -610,6 +614,18 @@ impl<'a> Ev<'a> {
                     v.push(self.land(y, (*elem).into())?);
                 }
                 env.last_mut().unwrap().insert(name.clone(), (Val::L(Rc::new(RefCell::new(v))), (*elem).into()));
+                Ok(Flow::Next)
+            }
+            Stmt::SetAt { name, pos, value, .. } if matches!(Self::lookup(env, name), Some((Val::S(_), _))) => {
+                // One lane of a vector (owner, 8d8a302).
+                let Some((Val::S(mut v), ty)) = Self::lookup(env, name) else { unreachable!() };
+                let x = self.expr(env, pos)?.i();
+                (self.node, self.stmt) = (addr(pos), addr(s));
+                self.check("position", x, 1 <= x && x <= v.len() as i128)?;
+                let y = self.expr(env, value)?.i();
+                (self.node, self.stmt) = (addr(value), addr(s));
+                v[(x - 1) as usize] = self.land(y, ty)?;
+                Self::set(env, name, Val::S(v));
                 Ok(Flow::Next)
             }
             Stmt::SetAt { name, pos, value, .. } => {

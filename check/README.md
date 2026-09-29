@@ -209,6 +209,13 @@ load is set aside in `work/flaky/` with both runs' details.
 
 ## Provisional
 
+- **An oracle stop before CCA's refusal agrees** (2026-09-29, seed 4091):
+  CCA refuses at compile time a site that fails whenever it is reached,
+  while an earlier failure it keeps as a run-time check (it may never run)
+  stops the oracle first. Counted as agreement when the oracle's line comes
+  before CCA's; line order can be wrong across loops and calls.
+  Alternative: compare only where both name a line, and list the rest.
+
 Picks this session had to make to keep moving. Each is a question, not a
 decision; dated, with the alternative.
 

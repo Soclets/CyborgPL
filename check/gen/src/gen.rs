@@ -84,7 +84,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: false, simd_wrap: false }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true }
     }
 }
 
@@ -653,6 +653,7 @@ impl Gen {
             if nested && !self.enums.is_empty() { 2 } else { 0 },                    // match statement
             if self.cfg.simd { 2 } else { 0 },                                       // simd let
             if self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 },   // simd change
+            if self.cfg.simd_lanes && self.in_check == 0 && self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 }, // lane change
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -671,6 +672,7 @@ impl Gen {
             15 => self.match_stmt(depth),
             16 => self.simd_let(),
             17 => self.simd_assign(),
+            18 => self.lane_write(),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -1150,11 +1152,11 @@ impl Gen {
         (Expr::SimdFill(Box::new(e)), iv)
     }
 
-    /// A vector of lane type `t` whose every lane stays in `target`, every
-    /// intermediate inside `t`: a fill, or one lane-wise operator on two
-    /// operands, switched to a wrapping or bitwise one where a lane could
-    /// leave `t` (lane arithmetic, exact or checked per operation, is with
-    /// the owner, 2026-09-29).
+    /// A vector of lane type `t` whose every lane stays in `target`: a fill,
+    /// or one lane-wise operator on two operands, switched to a wrapping or
+    /// bitwise one where a lane could leave `t`, since each lane operation
+    /// is checked at the lane's type (owner: b, fc1cea9) — unless a risk is
+    /// taken.
     fn simd_value(&mut self, t: Ty, target: Iv) -> (Expr, Iv) {
         let r = t.range();
         if self.simd_vars(Some(t)).is_empty() || self.rng.chance(35) {
@@ -1197,6 +1199,9 @@ impl Gen {
         };
         let (op, iv) = match out {
             Some(iv) if iv.within(r) => (op, iv),
+            // Left to overflow a lane on purpose: each lane operation is
+            // checked at the lane type (owner: b, fc1cea9).
+            _ if matches!(op, Add | Sub | Mul) && self.take_risk() => (op, r),
             // a lane could leave the type: wrap instead
             _ if self.cfg.simd_wrap => (*self.rng.pick(&[WAdd, WSub, WMul, Xor]), r),
             _ => (*self.rng.pick(&[AndBit, OrBit, Xor]), r),
@@ -1222,6 +1227,19 @@ impl Gen {
         let v = self.rng.pick(&vs).clone();
         let (value, _) = self.simd_value(v.ty, v.ty.range());
         Stmt::Assign { tier: Tier::Default, name: v.name, value }
+    }
+
+    /// `change 's'[k] = v;` (owner, 8d8a302): a literal lane, or rarely one
+    /// past the last when a risk is taken.
+    fn lane_write(&mut self) -> Stmt {
+        let vs: Vec<VarInfo> = self.simd_vars(None).into_iter().filter(|v| v.assignable).collect();
+        let v = self.rng.pick(&vs).clone();
+        let n = v.simd.unwrap() as i128;
+        self.risky = false;
+        self.positioned = true;
+        let k = if self.take_risk() { n + 1 } else { self.rng.range(1, n) };
+        let (value, _) = self.value_in(v.ty, v.iv);
+        Stmt::SetAt { tier: Tier::Default, name: v.name, pos: Expr::Lit(k), value }
     }
 
     /// One number from a vector of lane type `t`: a fold, or one lane.
