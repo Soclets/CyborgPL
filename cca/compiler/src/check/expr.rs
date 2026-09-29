@@ -568,6 +568,15 @@ impl Checker {
         // does (owner, 2026-09-22): Precog's freedom is over representation —
         // width, list or array, map order, which checks survive — never over
         // meaning, and 70000 in a `bin16` would silently become 69984.
+        // Bare numbers in a `deci` place are decimals, exactly as written
+        // (owner, 2026-09-29): `'a': deci64 = 0.1 + 0.2;` is 0.3.
+        if let Ty::Deci(bits) = t.base() {
+            if !matches!(vt.base(), Ty::Deci(_)) && deci_group(&v) {
+                let mut v = v;
+                into_deci(&mut v, *bits)?;
+                return Ok(v);
+            }
+        }
         if let (K::Int(i), Ty::Bin(_)) = (&v.kind, t.base()) {
             return Ok(Expr { kind: K::Bin(i.to_string()), ty: t.base().clone(), span: v.span });
         }
@@ -1124,6 +1133,9 @@ impl Checker {
     fn numeric_pair(&mut self, ctx: &mut FnCtx, l: Expr, r: Expr, op: &BinOp, op_span: Span) -> Result<(Expr, Expr, Ty)> {
         let lt = self.resolve(&l.ty);
         let rt = self.resolve(&r.ty);
+        if matches!(lt.base(), Ty::Deci(_)) || matches!(rt.base(), Ty::Deci(_)) {
+            return self.deci_pair(l, r, &lt, &rt, op, op_span);
+        }
         let (l, r) = match (lt.base(), rt.base()) {
             (Ty::Int(_), Ty::Bin(_)) if matches!(l.kind, K::Int(_)) => {
                 let l = self.expect_store(ctx, l, &rt, "the operand")?;
@@ -1221,6 +1233,49 @@ impl Checker {
             _ => return err(Diagnostic::error(format!("`{}` between a `{}` and a `{}`: there is no implicit conversion between numeric families — convert one side with `to.{}[…]`", op.spelled(), self.spell(&lt), self.spell(&rt), self.spell(lt.base()))).at(op_span)),
         };
         Ok((l, r, ty))
+    }
+
+    /// Both sides of an operator where one is a `deci` (owner, 2026-09-29):
+    /// bare numbers beside one take its width, and nothing else mixes —
+    /// not another family, not another `deci` width.
+    fn deci_pair(&mut self, l: Expr, r: Expr, lt: &Ty, rt: &Ty, op: &BinOp, op_span: Span) -> Result<(Expr, Expr, Ty)> {
+        let (mut l, mut r) = (l, r);
+        // `xx` takes a whole exponent (owner, 2026-09-29): a whole-number
+        // literal or variable — a count — and rounds like the rest. A
+        // fractional one is a root, which is std's math.
+        if *op == BinOp::Pow {
+            if let (Ty::Deci(b), Ty::Int(_)) = (lt.base(), rt.base()) {
+                if matches!(rt.base(), Ty::Int(IntW::Free(_))) && literal_only(&r) {
+                    retype_literal_arith(&mut r, &Ty::Int(IntW::Fixed { signed: true, bits: 64 }));
+                }
+                return Ok((l, r, Ty::Deci(*b)));
+            }
+            if matches!(lt.base(), Ty::Deci(_)) {
+                return err(Diagnostic::error(format!("a deci power takes a whole exponent, and this one is a `{}`: roots are std's math", self.spell(&rt))).at(r.span));
+            }
+            return err(Diagnostic::error("a deci power takes a whole exponent: the deci goes on the left of `xx`").at(op_span));
+        }
+        match (lt.base(), rt.base()) {
+            (Ty::Deci(b), other) if !matches!(other, Ty::Deci(_)) && deci_group(&r) => into_deci(&mut r, *b)?,
+            (other, Ty::Deci(b)) if !matches!(other, Ty::Deci(_)) && deci_group(&l) => into_deci(&mut l, *b)?,
+            _ => {}
+        }
+        let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
+        match op {
+            // `mod` takes the divisor's sign (owner, 2026-09-29).
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => {}
+            _ if op.is_comparison() => {}
+            _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a deci is not one", op.spelled())).at(op_span)),
+        }
+        match (lt.base(), rt.base()) {
+            (Ty::Deci(a), Ty::Deci(b)) if a == b => Ok((l, r, Ty::Deci(*a))),
+            (Ty::Deci(a), Ty::Deci(b)) => {
+                let wide = format!("deci{}", (*a).max(*b));
+                err(Diagnostic::error(format!("`{}` between a deci{} and a deci{}: say which width, `to.{}[…]`", op.spelled(), a, b, wide)).at(op_span))
+            }
+            (Ty::Deci(b), _) | (_, Ty::Deci(b)) => err(Diagnostic::error(format!("`{}` between a deci and another number family: there is no implicit conversion between numeric families; `to.deci{}[…]`", op.spelled(), b)).at(op_span)),
+            _ => unreachable!("deci_pair without a deci"),
+        }
     }
 
     /// The right side of a comparison must be the left's family.
@@ -2301,6 +2356,20 @@ impl Checker {
 
     fn conversion(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let mut blanks = Vec::new();
+        // `to.deci64.useful[…]`: a bin's shortest decimal (owner,
+        // 2026-09-29), where `to.deci64[…]` is its exact value.
+        let mut useful = false;
+        let stripped;
+        let target = match &target.kind {
+            ast::TypeKind::Path { path, args } if args.is_empty() && path.segs.len() == 2 && path.segs[1].name == "useful" && path.segs[0].name.starts_with("deci") => {
+                useful = true;
+                let mut p = path.clone();
+                p.segs.pop();
+                stripped = ast::Type { kind: ast::TypeKind::Path { path: p, args: Vec::new() }, span: target.span };
+                &stripped
+            }
+            _ => target,
+        };
         let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
         let mut v = self.expr(ctx, operand)?;
         // Bare numbers alone are worked out exactly, whatever is between
@@ -2313,7 +2382,20 @@ impl Checker {
         let vt = self.resolve(&v.ty);
         let target_spelling = self.spell(&t);
         let mut fails: Vec<&str> = Vec::new();
+        if useful && !matches!(vt.base(), Ty::Bin(_) | Ty::Int(_)) {
+            return err(Diagnostic::error(format!("`to.{}.useful` is a bin's shortest decimal, and this is a `{}`: write `to.{}[…]`", target_spelling, self.spell(&vt), target_spelling)).at(span));
+        }
         match (vt.base(), t.base()) {
+            // Into or out of a `deci` (owner, 2026-09-29): the list is
+            // shared with the code generator, which finds each failure's
+            // arm by its place in it.
+            (Ty::Int(_) | Ty::Bin(_) | Ty::Str(_) | Ty::Deci(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Int(_) | Ty::Bin(_) | Ty::Str(_)) => {
+                let literal = match &v.kind {
+                    K::Int(i) => Some(i.unsigned_abs().to_string().len() as u32),
+                    _ => None,
+                };
+                fails.extend(crate::deci::conv_fails(&vt, &t, literal).unwrap_or_default());
+            }
             (Ty::Int(_), Ty::Int(_)) => {}
             (Ty::Int(_), Ty::Bin(_)) => {}
             (Ty::Bin(_), Ty::Int(_)) => fails.push("not_whole"),
@@ -2366,7 +2448,7 @@ impl Checker {
             }
         };
         let fails_owned: Vec<String> = fails.iter().map(|s| s.to_string()).collect();
-        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned }, ty: t, span })
+        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful }, ty: t, span })
     }
 
     // ------------------------------------------------------------ builtins
@@ -3010,6 +3092,49 @@ fn plain_group(e: &Expr) -> bool {
         K::Int(_) => true,
         _ => false,
     }
+}
+
+/// Bare numbers — whole or with a point — with only `+ - x div` between
+/// them: what a `deci` place makes decimals of.
+fn deci_group(e: &Expr) -> bool {
+    match &e.kind {
+        K::Int(_) => matches!(e.ty.base(), Ty::Int(IntW::Free(_))) || e.ty.is_exact(),
+        K::Bin(_) => matches!(e.ty.base(), Ty::Bin(BinW::Free(_))),
+        K::Unary { op: UnOp::Neg, expr } => deci_group(expr),
+        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div, lhs, rhs, .. } => deci_group(lhs) && deci_group(rhs),
+        _ => false,
+    }
+}
+
+/// A `deci_group` made decimals of `bits`: each literal exactly as
+/// written, and one with more digits than the width holds refused, never
+/// rounded (`types.md`).
+fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
+    let text = match &e.kind {
+        K::Int(i) => Some(i.to_string()),
+        K::Bin(t) => Some(t.clone()),
+        _ => None,
+    };
+    if let Some(text) = text {
+        let p = crate::deci::digits(bits);
+        let value = match crate::deci::literal(&text, bits) {
+            Ok(v) => v,
+            Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; deci{} holds {}: write fewer digits, or use a wider deci", text, n, bits, p)).at(e.span)),
+            Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what deci{} holds: write fewer digits, or use a wider deci", text, bits)).at(e.span)),
+        };
+        e.kind = K::Deci { bits, value };
+    } else {
+        match &mut e.kind {
+            K::Unary { expr, .. } => into_deci(expr, bits)?,
+            K::Binary { lhs, rhs, .. } => {
+                into_deci(lhs, bits)?;
+                into_deci(rhs, bits)?;
+            }
+            _ => {}
+        }
+    }
+    e.ty = Ty::Deci(bits);
+    Ok(())
 }
 
 /// Every leaf a literal, every node arithmetic.

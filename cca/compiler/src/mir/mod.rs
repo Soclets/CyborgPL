@@ -100,6 +100,8 @@ pub enum Const {
     /// Kept as written: compile-time arithmetic rounds at the target's
     /// width, never the host's (`reproducible-builds.md`).
     Bin(String),
+    /// A `deci` constant in its layout (BID), and its width.
+    Deci { bits: u16, value: u128 },
     Str(String),
     Char(String),
     Bool(bool),
@@ -190,7 +192,9 @@ pub enum Rvalue {
     Unary { op: UnOp, operand: Operand },
     Binary { op: BinOp, lhs: Operand, rhs: Operand },
     /// `to.T[…]` that cannot fail (the failing ones are a `Call`).
-    Convert { to: Ty, operand: Operand },
+    /// `useful`: a bin into a `deci` as its shortest decimal
+    /// (`to.deci64.useful[…]`), not its exact value.
+    Convert { to: Ty, operand: Operand, useful: bool },
     MakeList(Vec<Operand>),
     MakeMap(Vec<(Operand, Operand)>),
     MakeStruct { id: StructId, fields: Vec<Operand> },

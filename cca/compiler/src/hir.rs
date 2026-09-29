@@ -254,6 +254,8 @@ pub enum ExprKind {
     Match { value: Box<Expr>, arms: Vec<MatchArm> },
     Int(i128),
     Bin(String),
+    /// A `deci` literal in its layout (BID), worked out at its width.
+    Deci { bits: u16, value: u128 },
     Str(String),
     Char(String),
     Bool(bool),
@@ -281,7 +283,8 @@ pub enum ExprKind {
     /// A user `op`: a call under an operator's spelling.
     UserOp { inst: FnInst, lhs: Box<Arg>, rhs: Box<Arg> },
     /// `to.T[e]`: `fails` non-empty when the conversion can fail.
-    Conv { target: Ty, expr: Box<Expr>, otherwise: Option<Box<Otherwise>>, fails: Vec<String> },
+    /// `useful`: `to.deci64.useful[…]`, a bin's shortest decimal.
+    Conv { target: Ty, expr: Box<Expr>, otherwise: Option<Box<Otherwise>>, fails: Vec<String>, useful: bool },
     /// A named function as a value.
     FnRef(FnInst),
     /// An anonymous function with its captures.

@@ -98,6 +98,12 @@ const_mut [fnv:9f30cb564f340919] :: it is a value known at compile time, never a
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
+deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
+deci_fractional_power [fnv:bb5918d5dddef02d] :: a deci power takes a whole exponent
+deci_int_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
+deci_literal_digits [fnv:1d5b181bc964df20] :: has 9 digits; deci32 holds 7
+deci_narrow_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
+deci_widths_mix [fnv:557616dea39aac01] :: between a deci64 and a deci32: say which width
 detached_lend [fnv:3faba8a8fbccffe8] :: no scope protects it, so 'x' could be gone while the task still looks at it
 dir_badname [fnv:bfe56ff8eb188642] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
 dir_device_name [fnv:4718e7decb462654] :: is a reserved device name on Windows and cannot name a module

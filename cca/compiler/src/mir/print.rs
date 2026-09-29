@@ -103,7 +103,7 @@ fn rvalue_s(r: &Rvalue, f: &Function, spell: &dyn Fn(&Ty) -> String) -> String {
         Rvalue::Lend { place, mutable } => format!("lend{} {}", if *mutable { ".mut" } else { "" }, place_s(place, f)),
         Rvalue::Unary { op, operand } => format!("{:?} {}", op, operand_s(operand, f)),
         Rvalue::Binary { op, lhs, rhs } => format!("{} {} {}", operand_s(lhs, f), op.spelled(), operand_s(rhs, f)),
-        Rvalue::Convert { to, operand } => format!("to.{}[{}]", spell(to), operand_s(operand, f)),
+        Rvalue::Convert { to, operand, .. } => format!("to.{}[{}]", spell(to), operand_s(operand, f)),
         Rvalue::MakeList(v) => format!("[{}]", v.iter().map(|x| operand_s(x, f)).collect::<Vec<_>>().join(", ")),
         Rvalue::MakeMap(v) => format!("map[{}]", v.iter().map(|(k, x)| format!("{} = {}", operand_s(k, f), operand_s(x, f))).collect::<Vec<_>>().join(", ")),
         Rvalue::MakeStruct { id, fields } => format!("struct{}[{}]", id.0, fields.iter().map(|x| operand_s(x, f)).collect::<Vec<_>>().join(", ")),
@@ -137,6 +137,7 @@ fn const_s(c: &Const) -> String {
     match c {
         Const::Int(v) => v.to_string(),
         Const::Bin(v) => v.clone(),
+        Const::Deci { bits, value } => format!("deci{}:{:#x}", bits, value),
         Const::Str(v) => format!("{:?}", v),
         Const::Char(v) => format!("`{}`", v),
         Const::Bool(v) => v.to_string(),

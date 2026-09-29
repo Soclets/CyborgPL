@@ -39,6 +39,7 @@ use crate::source::SourceMap;
 use crate::types::{BinW, IntW, Ty};
 
 mod cabi;
+mod deci;
 mod heap;
 mod tasks;
 
@@ -158,6 +159,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Ty::Bin(BinW::Fixed(32)) => Some(self.ctx.f32_type().into()),
             Ty::Bin(BinW::Fixed(64)) | Ty::Bin(BinW::Free(_)) => Some(self.ctx.f64_type().into()),
             Ty::Bin(BinW::Fixed(128)) => Some(self.ctx.f128_type().into()),
+            // Its layout (BID), in an integer of its width.
+            Ty::Deci(32) => Some(self.ctx.i32_type().into()),
+            Ty::Deci(64) => Some(self.ctx.i64_type().into()),
+            Ty::Deci(_) => Some(self.ctx.i128_type().into()),
             Ty::Ptr { .. } => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             // One block the runtime owns; the program holds a pointer to it.
             Ty::Channel(_) => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
@@ -897,6 +902,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Const::Int(v) => Some(self.ctx.i64_type().const_int(*v as u64, true).into()),
             Const::Bool(b) => Some(self.ctx.bool_type().const_int(*b as u64, false).into()),
             Const::Bin(t) => Some(self.ctx.f64_type().const_float(t.parse().unwrap_or(0.0)).into()),
+            Const::Deci { bits, value } => {
+                let t = match bits {
+                    32 => self.ctx.i32_type(),
+                    64 => self.ctx.i64_type(),
+                    _ => self.ctx.i128_type(),
+                };
+                Some(t.const_int_arbitrary_precision(&[*value as u64, (*value >> 64) as u64]).into())
+            }
             Const::Duration(n) => Some(self.ctx.i64_type().const_int(*n as u64, true).into()),
             // C's size and alignment of the type (`ffi.md`), from the
             // target's own layout. It was 8 for everything, and qsort
@@ -960,6 +973,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Rvalue::Unary { op, operand } => {
                 let v = self.operand(fi, operand, slots)?;
+                if let (UnOp::Neg, BasicValueEnum::IntValue(i), Some(Ty::Deci(_))) = (op, v, self.operand_cy_ty(fi, operand).map(|t| t.base().clone())) {
+                    return self.deci_neg(i);
+                }
                 match (op, v) {
                     (UnOp::Neg, BasicValueEnum::IntValue(i)) => Some(self.builder.build_int_neg(i, "neg").ok()?.into()),
                     (UnOp::Neg, BasicValueEnum::FloatValue(x)) => Some(self.builder.build_float_neg(x, "neg").ok()?.into()),
@@ -982,6 +998,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     Operand::Const(Const::Char(s)) if lg => self.const_text(s),
                     _ => self.operand(fi, rhs, slots)?,
                 };
+                // A decimal is its layout, not a number LLVM knows: every
+                // operation, `==` too (`1.50 == 1.5`), is the runtime's.
+                let deci = [lhs, rhs].iter().find_map(|o| match self.operand_cy_ty(fi, o).map(|t| t.base().clone()) {
+                    Some(Ty::Deci(bits)) => Some(bits),
+                    _ => None,
+                });
+                if let Some(bits) = deci {
+                    let exp_signed = self.operand_signed(fi, rhs).unwrap_or(true);
+                    return self.deci_binary(fi, op, a, b, bits, exp_signed, func);
+                }
                 if a.is_vector_value() || b.is_vector_value() {
                     let lane = self.operand_lane(fi, lhs).or_else(|| self.operand_lane(fi, rhs));
                     return self.vector_binary(fi, op, a, b, lane, sites, func);
@@ -1165,8 +1191,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 };
                 self.binary(fi, op, a, b, sites, func, blocks, signed)
             }
-            Rvalue::Convert { to, operand } => {
+            Rvalue::Convert { to, operand, useful } => {
                 let mut v = self.operand(fi, operand, slots)?;
+                if let Some(from) = self.operand_cy_ty(fi, operand) {
+                    if matches!(from.base(), Ty::Deci(_)) && !matches!(to.base(), Ty::Str(_)) || matches!(to.base(), Ty::Deci(_)) {
+                        let from_signed = self.operand_signed(fi, operand).unwrap_or(true);
+                        return self.deci_convert(fi, v, &from, to, *useful, from_signed, func);
+                    }
+                }
                 // A C enum's number is its tag (`cabi.rs`, `tag_of`).
                 if let BasicValueEnum::StructValue(s) = v {
                     if matches!(self.operand_cy_ty(fi, operand).as_ref().map(|t| t.base()), Some(Ty::Enum { .. })) {
@@ -2089,6 +2121,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// The Cyborg type of an operand held in a place.
     fn operand_cy_ty(&mut self, fi: usize, o: &Operand) -> Option<Ty> {
+        if let Operand::Const(Const::Deci { bits, .. }) = o {
+            return Some(Ty::Deci(*bits));
+        }
         let p = o.place()?;
         let f = &self.p.functions[fi];
         let base = f.locals[p.local.0 as usize].ty.clone();
@@ -2691,6 +2726,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             return;
         }
         let SiteKind::Narrow { to } = &site.kind else { return };
+        // Into a `deci` range type: compared as decimals, by the runtime.
+        if let (Ty::Deci(bits), Some(crate::types::Bound::Bin { lo, hi })) = (to.base(), to.bound()) {
+            let Some(o) = site.operands.first() else { return };
+            let o = match o.place() {
+                Some(p) => Operand::Read(p.clone()),
+                None => o.clone(),
+            };
+            let Some(BasicValueEnum::IntValue(v)) = self.operand(fi, &o, slots) else { return };
+            let Some(bad) = self.deci_outside(v, *bits, &lo.clone(), &hi.clone()) else { return };
+            let _ = self.guard(fi, id, bad, func);
+            return;
+        }
         if let Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32))) = to.base() {
             return self.bin_narrow_check(fi, id, *bits, &site, slots, func);
         }

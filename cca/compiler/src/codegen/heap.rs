@@ -1320,6 +1320,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             (Some(t), _) => t,
             (None, Arg::Value(Operand::Const(Const::Str(_)))) => Ty::utf8(),
             (None, Arg::Value(Operand::Const(Const::Bin(_)))) => Ty::Bin(crate::types::BinW::Fixed(64)),
+            (None, Arg::Value(Operand::Const(Const::Deci { bits, .. }))) => Ty::Deci(*bits),
             (None, Arg::Value(Operand::Const(Const::Int(_)))) => Ty::exact(),
             (None, Arg::Value(Operand::Const(Const::Bool(_)))) => Ty::Bool,
             _ => return None,
@@ -1332,6 +1333,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         if let (Ty::Bin(crate::types::BinW::Fixed(bits)), Ty::Str(_)) = (to.base(), from.base()) {
             return self.text_into_bin(fi, *bits, to, arg, dest, ok, fail, blocks, slots, func);
+        }
+        if let Ty::Deci(_) = to.base() {
+            return self.into_deci(fi, to, &from, arg, dest, ok, fail, blocks, slots, func);
         }
         // A number into a C enum (owner, 2026-09-27): one of its cases'
         // numbers, or `out_of_range`.
@@ -1370,7 +1374,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let w = self.ctx.i128_type();
         // Which arm each reason takes: its index in the reason list.
         let first_reason = match from.base() {
-            Ty::Str(_) | Ty::Bin(_) => true,
+            Ty::Str(_) | Ty::Bin(_) | Ty::Deci(_) => true,
             _ => false,
         };
         let arm = |index: usize| fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize]);
@@ -1430,6 +1434,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     _ => true,
                 };
                 (self.builder.build_int_cast_sign_flag(v.into_int_value(), w, signed, "value").ok()?, None)
+            }
+            Ty::Deci(bits) => {
+                // Whole, or it fails `not_whole` (owner, 2026-09-29); past
+                // 128 bits is past every integer type.
+                let (lo, hi) = self.deci_halves(v.into_int_value())?;
+                let out = self.builder.build_alloca(w, "whole").ok()?;
+                let f = self.rt_deci("cyborg_deci_to_int")?;
+                let status = basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), self.ctx.i32_type().const_int(*bits as u64, false).into(), out.into()], "status").ok()?)?.into_int_value();
+                let i8t = self.ctx.i8_type();
+                let frac = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(1, false), "not_whole").ok()?;
+                let next = self.ctx.append_basic_block(func, "is_whole");
+                let _ = self.builder.build_conditional_branch(frac, arm(0)?, next);
+                self.builder.position_at_end(next);
+                let too = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "too_big").ok()?;
+                (self.builder.build_load(w, out, "value").ok()?.into_int_value(), Some(too))
             }
             _ => return None,
         };
@@ -1652,6 +1671,108 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 
+    /// Into a `deci` where it can fail (owner, 2026-09-29): a whole number
+    /// whose type could have more digits than the width holds fails
+    /// `too_many_digits`; text fails `not_a_number`, `out_of_range` or
+    /// `too_many_digits`, in that order.
+    #[allow(clippy::too_many_arguments)]
+    fn into_deci(&mut self, fi: usize, to: &Ty, from: &Ty, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let Ty::Deci(bits) = to.base().clone() else { return None };
+        let o = match arg {
+            Arg::Value(o) => o.clone(),
+            Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => Operand::Read(p.clone()),
+            _ => return None,
+        };
+        let v = self.operand(fi, &o, slots)?;
+        // Each reason's arm is its place in the checker's list.
+        let literal = match &o {
+            Operand::Const(Const::Int(i)) => Some(i.unsigned_abs().to_string().len() as u32),
+            _ => None,
+        };
+        let names = crate::deci::conv_fails(from, to, literal)?;
+        let arm = |name: &str| -> Option<LlBlock<'ctx>> {
+            let index = names.iter().position(|n| *n == name)?;
+            fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])
+        };
+        let w = self.ctx.i128_type();
+        let out = self.builder.build_alloca(w, "deci").ok()?;
+        let _ = self.builder.build_store(out, w.const_zero());
+        let i32t = self.ctx.i32_type();
+        let width = i32t.const_int(bits as u64, false);
+        let i8t = self.ctx.i8_type();
+        // The runtime's status, and what each non-zero one means: a reason
+        // of the list, or a stop.
+        let (status, meaning): (Option<IntValue<'ctx>>, Vec<(u64, Result<&str, String>)>) = match from.base() {
+            Ty::Str(_) => {
+                let (p, n) = self.text_parts(v)?;
+                let f = self.rt_deci("cyborg_deci_parse")?;
+                let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
+                (Some(status), vec![(1, Ok("not_a_number")), (2, Ok("out_of_range")), (3, Ok("too_many_digits"))])
+            }
+            Ty::Int(_) => {
+                let signed = self.operand_signed(fi, &o).unwrap_or(true);
+                let x = self.builder.build_int_cast_sign_flag(v.into_int_value(), w, signed, "whole").ok()?;
+                let (lo, hi) = self.deci_halves(x)?;
+                let f = self.rt_deci("cyborg_deci_from_int")?;
+                let status = basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
+                (Some(status), vec![(1, Ok("too_many_digits"))])
+            }
+            Ty::Bin(_) => {
+                // Only a range type makes this one fail: the value first.
+                let d = self.deci_convert(fi, v, from, &Ty::Deci(bits), false, true, func)?;
+                let _ = self.builder.build_store(out, self.builder.build_int_z_extend_or_bit_cast(d.into_int_value(), w, "deci").ok()?);
+                (None, vec![])
+            }
+            Ty::Deci(from_bits) if *from_bits > bits => {
+                let (lo, hi) = self.deci_halves(v.into_int_value())?;
+                let f = self.rt_deci("cyborg_deci_narrow")?;
+                let status = basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), i32t.const_int(*from_bits as u64, false).into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
+                (Some(status), vec![(1, Ok("too_many_digits")), (2, Err(format!("the value is past what a `deci{}` holds", bits)))])
+            }
+            Ty::Deci(_) => {
+                let d = self.deci_convert(fi, v, from, &Ty::Deci(bits), false, true, func)?;
+                let _ = self.builder.build_store(out, self.builder.build_int_z_extend_or_bit_cast(d.into_int_value(), w, "deci").ok()?);
+                (None, vec![])
+            }
+            _ => {
+                self.cannot("this conversion into a deci has no shape in the generated code yet", None);
+                return None;
+            }
+        };
+        if let Some(status) = status {
+            for (code, what) in meaning {
+                let bad = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(code, false), "fails").ok()?;
+                match what {
+                    Ok(name) => {
+                        // A reason the list does not have is one this
+                        // source can never give.
+                        let Some(to_arm) = arm(name) else { continue };
+                        let next = self.ctx.append_basic_block(func, "converted");
+                        let _ = self.builder.build_conditional_branch(bad, to_arm, next);
+                        self.builder.position_at_end(next);
+                    }
+                    Err(why) => self.deci_stop(fi, bad, &why, func)?,
+                }
+            }
+        }
+        let x = self.builder.build_load(w, out, "deci").ok()?.into_int_value();
+        let t = self.ty(&Ty::Deci(bits))?.into_int_type();
+        let r = if bits == 128 { x } else { self.builder.build_int_truncate(x, t, "deci").ok()? };
+        // A range type: outside its bounds fails `out_of_range`.
+        if let Some(crate::types::Bound::Bin { lo, hi }) = to.bound() {
+            let (lo, hi) = (lo.clone(), hi.clone());
+            let outside = self.deci_outside(r, bits, &lo, &hi)?;
+            let next = self.ctx.append_basic_block(func, "in_range");
+            let _ = self.builder.build_conditional_branch(outside, arm("out_of_range")?, next);
+            self.builder.position_at_end(next);
+        }
+        if let Some(d) = dest {
+            self.store_place(fi, d, r.into(), slots);
+        }
+        let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+        Some(())
+    }
+
     /// Into a bounded text (`input.md`): the text, then its length against
     /// the bound, failing `out_of_range` outside it — and the text just
     /// made is given back on that path. A number or a bool is ASCII, so its
@@ -1816,6 +1937,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Operand::Const(Const::Int(_)) => Ty::exact(),
             Operand::Const(Const::Bool(_)) => Ty::Bool,
             Operand::Const(Const::Bin(_)) => Ty::Bin(crate::types::BinW::Fixed(64)),
+            Operand::Const(Const::Deci { bits, .. }) => Ty::Deci(*bits),
             Operand::Const(Const::Str(_)) => Ty::Str(crate::types::Enc::Utf8),
             Operand::Const(Const::Char(_)) => Ty::Char(crate::types::Unit::Point),
             _ => self.operand_cy_ty(fi, operand)?,
@@ -1853,6 +1975,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let hi = self.builder.build_int_truncate(sh, i64t, "hi").ok()?;
                 let f = self.rt("cyborg_int_to_text");
                 let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into()], "");
+            }
+            (Ty::Deci(bits), BasicValueEnum::IntValue(d)) => {
+                let (lo, hi) = self.deci_halves(d)?;
+                return self.deci_text_raw(lo, hi, *bits, false);
             }
             (Ty::Bin(_), BasicValueEnum::FloatValue(x)) => {
                 let wide = if x.get_type() == self.ctx.f64_type() { x } else { self.builder.build_float_ext(x, self.ctx.f64_type(), "wide").ok()? };
@@ -2118,6 +2244,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let f = self.rt("cyborg_hash_int");
                 basic_result(self.builder.build_call(f, &[v.into()], "h").ok()?).map(|x| x.into_int_value())
             }
+            // Over the value, as `==` compares it (`1.50` is `1.5`).
+            Ty::Deci(bits) => {
+                let l = self.ty(t)?;
+                let v = self.builder.build_load(l, at, "v").ok()?.into_int_value();
+                let (lo, hi) = self.deci_halves(v)?;
+                let f = self.rt_deci("cyborg_deci_hash")?;
+                basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), self.ctx.i32_type().const_int(*bits as u64, false).into()], "h").ok()?).map(|x| x.into_int_value())
+            }
             Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => {
                 let shape = match self.ty(t)? {
                     BasicTypeEnum::StructType(s) => s,
@@ -2204,6 +2338,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let x = self.builder.build_load(l, a, "a").ok()?.into_int_value();
                 let y = self.builder.build_load(l, b, "b").ok()?.into_int_value();
                 self.builder.build_int_compare(IntPredicate::EQ, x, y, "same").ok()
+            }
+            // By value, as `==` on two decimals is: `1.50` is `1.5`.
+            Ty::Deci(bits) => {
+                let l = self.ty(t)?;
+                let x = self.builder.build_load(l, a, "a").ok()?;
+                let y = self.builder.build_load(l, b, "b").ok()?;
+                let r = self.deci_binary(0, &crate::ast::BinOp::Eq, x, y, *bits, true, func)?;
+                Some(r.into_int_value())
             }
             Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) => {
                 let shape = match self.ty(t)? {

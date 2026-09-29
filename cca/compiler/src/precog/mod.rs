@@ -1086,6 +1086,8 @@ impl Precog {
                 let v = t.parse::<f64>().ok();
                 Domain::Bins { lo: v, hi: v }
             }
+            // Nothing about a decimal is followed yet.
+            Const::Deci { .. } => Domain::Any,
             Const::Str(s) => Domain::Text { len: Lengths::of(s), values: Some(vec![s.clone()]), classes: classes_of(s) },
             Const::Char(c) => Domain::Chars { values: Some(vec![c.clone()]) },
             Const::Bool(b) => Domain::Bools(*b, !*b),
@@ -1188,7 +1190,7 @@ impl Precog {
                 }
                 r
             }
-            Rvalue::Convert { to, operand } => {
+            Rvalue::Convert { to, operand, .. } => {
                 let d = self.read_operand(f, env, operand);
                 // A C enum's number: the numbers of the cases it can be.
                 if let Some(Ty::Enum { id, .. }) = operand.place().map(|p| self.place_ty(f, p)).map(|t| t.base().clone()) {

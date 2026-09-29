@@ -802,6 +802,26 @@ impl Items {
                 }
                 Bound::Bin { lo: l, hi: h }
             }
+            // With `bin`'s rules (owner, 2026-09-29): the bounds are
+            // written with a point, and each is a value of the width.
+            Ty::Deci(bits) => {
+                if let Some(u) = unit {
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
+                }
+                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `deci{}[0.0, 1.0]`", bits)).at(e.span)));
+                let (l, h) = (written(lo)?, written(hi)?);
+                for (t, e) in [(&l, lo), (&h, hi)] {
+                    match crate::deci::literal(t, *bits) {
+                        Ok(_) => {}
+                        Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; deci{} holds {}: a range's bounds are values of its type", t, n, bits, crate::deci::digits(*bits))).at(e.span)),
+                        Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what deci{} holds: a range's bounds are values of its type", t, bits)).at(e.span)),
+                    }
+                }
+                if l.replace('_', "").parse::<f64>().unwrap_or(0.0) > h.replace('_', "").parse::<f64>().unwrap_or(0.0) {
+                    return err(Diagnostic::error(format!("the low bound comes first: `[{}, {}]`", h, l)).at(span));
+                }
+                Bound::Bin { lo: l, hi: h }
+            }
             Ty::Str(_) => {
                 let u = match unit {
                     Some(u) => match u.name.as_str() {

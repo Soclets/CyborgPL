@@ -378,3 +378,28 @@ Dated, with the alternative, so each can become a question later.
   freedom around the block, never correctness. A binding uses the whole
   register (`xN` 64 bits, `wN` 32), the value widened by its own sign.
   Alternative: a `clobber memory` word the programmer writes.
+- **2026-09-29 — `deci` is software BID, and every operation is a runtime
+  call** (`runtime/src/deci.rs`, `compiler/src/codegen/deci.rs`): a value
+  is its layout in an integer of its width. An answer past the largest
+  value, a division or `mod` by zero, and zero to a negative power stop the
+  program where they happen (exit 101, as a check does), as the oracle
+  stops; they are not Precog sites, since Precog follows nothing about a
+  decimal yet (every `deci` domain is "any", a range type's too).
+  Alternative: sites Precog could prove, once it follows decimals.
+- **2026-09-29 — `deci` `xx` is exact while the power has at most p + 40
+  digits**, then carried at p + 40 digits, cut toward zero and marked
+  inexact: only an answer within 10^-40 of a tie could round differently.
+  The oracle stops instead ("past the oracle's limit of exact digits"), so
+  `1.0000001 xx 10000000` is 2.718281692544966 here and a stop there.
+  Alternative: an exact power always (slow and large), or a stop.
+- **2026-09-29 — Questions the `deci` rulings leave open, CCA's reading
+  meanwhile** (asked): a bin infinity or NaN into a `deci` stops the
+  program ("not yet … asked"; the oracle panics on an infinity and makes a
+  NaN); a parenthesised group of bare numbers beside a `deci` takes its
+  width, as an integer group does (the oracle refuses `'a' + (1.5 x 2)` but
+  takes `'a' + 1.5 x 2`); a `deci` exponent in `xx` is refused ("a whole
+  exponent"; the oracle takes one); a `deci` map key is found by value, as
+  `op ==` compares (`maps.md`), so `1.50` and `1.5` are one key (the
+  oracle keeps two); `to.deci64.useful[…]` of a `bin32` is the shortest
+  decimal that reads back as that `bin32` (the oracle widens to 64 bits
+  first: `0.1000000014901161`).

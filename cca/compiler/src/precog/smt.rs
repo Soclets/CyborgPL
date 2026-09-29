@@ -1149,7 +1149,7 @@ impl<'a> Enc<'a> {
                 };
                 Some(self.define(w, &body, signed))
             }
-            Rvalue::Convert { to, operand } => {
+            Rvalue::Convert { to, operand, .. } => {
                 let v = self.operand(operand, env)?;
                 let (bits, signed) = int_shape(to)?;
                 Some(self.resize(v, bits, signed))

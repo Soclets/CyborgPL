@@ -251,6 +251,10 @@ impl Domain {
     /// an `int32[0, 100]` is 0..100, a `list[T][0, 5]` has 0..5 elements.
     pub fn of_ty(ty: &Ty, items: &crate::resolve::Items) -> Domain {
         match ty {
+            // Nothing about a decimal is followed yet, its bounds
+            // included: they are decimals, and a bin interval would round
+            // them.
+            Ty::Bounded { inner, .. } if matches!(inner.base(), Ty::Deci(_)) => Domain::Any,
             Ty::Bounded { inner, bound } => {
                 let inner_domain = Domain::of_ty(inner, items);
                 match (bound, inner_domain) {

@@ -400,7 +400,7 @@ impl Checker {
     fn check_const_value(&self, e: &hir::Expr) -> Result<()> {
         // A const is a value known at compile time: literals, arithmetic, other consts, pure calls.
         match &e.kind {
-            hir::ExprKind::Int(_) | hir::ExprKind::Bin(_) | hir::ExprKind::Str(_) | hir::ExprKind::Char(_) | hir::ExprKind::Bool(_) | hir::ExprKind::Duration(_) | hir::ExprKind::Const(_) | hir::ExprKind::ListEmpty | hir::ExprKind::MapEmpty | hir::ExprKind::SizeOf { .. } => Ok(()),
+            hir::ExprKind::Int(_) | hir::ExprKind::Bin(_) | hir::ExprKind::Deci { .. } | hir::ExprKind::Str(_) | hir::ExprKind::Char(_) | hir::ExprKind::Bool(_) | hir::ExprKind::Duration(_) | hir::ExprKind::Const(_) | hir::ExprKind::ListEmpty | hir::ExprKind::MapEmpty | hir::ExprKind::SizeOf { .. } => Ok(()),
             hir::ExprKind::Unary { expr, .. } => self.check_const_value(expr),
             hir::ExprKind::Binary { lhs, rhs, .. } => {
                 self.check_const_value(lhs)?;

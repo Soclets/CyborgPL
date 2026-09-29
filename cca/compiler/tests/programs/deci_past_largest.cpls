@@ -1,0 +1,14 @@
+# A deci answer past the largest value stops the program where it is
+# (owner, 2026-09-29; the oracle: "does not fit deci32: past the largest
+# value"): 9999999 to the 15th is past 10^96. The exit before it is never
+# reached.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+MAIN {
+    'm': deci32 = 9999999;
+    mut 'q': deci32 = 'm';
+    for 'i': int32 in range[1, 15] {
+        change 'q' = 'q' x 'm';
+    }
+    nocheck exit[7];
+}

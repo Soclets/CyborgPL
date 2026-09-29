@@ -13,6 +13,7 @@ pub mod check;
 pub mod hir;
 pub mod resolve;
 pub mod types;
+pub mod deci;
 pub mod load;
 
 pub mod mir;
