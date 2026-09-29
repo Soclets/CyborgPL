@@ -37,6 +37,21 @@ Owner, 2026-09-14.
 
 - **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
   deliberately avoided.
+- **CCA's package manager** (owner, 2026-09-29) — a second, built-in one,
+  "because a hobby is supposed to be fun": `cca add …`, no name of its own.
+  Its manifest is **`CCA.cplr`**, written in CyborgPL syntax on purpose:
+  `.cplr` (*CyborgPL Related*) is the extension for CyborgPL-syntax files
+  that belong to the tooling, and the file's name says which one it is.
+  For example (shape not decided):
+
+  ```
+  pub const 'name' := "shop";
+  pub const 'version' := "1.0.0";
+  pub const 'dependencies' := [cca.Dep[name = "geometry", version = "1.2"]];
+  ```
+
+  Synthia stays the separate tool, its `Synthia.cplm` TOML. What goes in
+  `CCA.cplr`, and how the two relate, is open.
 - **`.limb`** — a *published* Limb: the Limb's directory (`Synthia.cplm` +
   `.cpls` files) packaged as one file for Synthia to upload, download, and
   checksum. Same relationship as a Rust crate folder to its `.crate` tarball.

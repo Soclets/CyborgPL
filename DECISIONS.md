@@ -5,6 +5,36 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Two package managers: Synthia, and CCA's own, whose manifest `CCA.cplr` is CyborgPL (owner)
+
+The owner asked "who said TOML inside?" of `Synthia.cplm`. Design claude
+checked: on 2026-09-23 it had bundled "the TOML-inside decision" into the
+confirmation of the `.cplm` extension, and the owner's "`.cplm` it is,
+yes" was recorded as choosing it; the alternatives (a format of our own,
+the manifest in CyborgPL as `pub const`s) were never chosen between. Shown
+the CyborgPL form, the owner: "Since, it's a hobby lang, and a hobby is
+supposed to be fun. There should be two package managers. Synthia is the
+not built-in one. Our built-in PM would have CyborgPL syntax deliberately."
+- **Synthia** stays the separate tool; `Synthia.cplm` stays TOML (design
+  claude's reading of the split, which the owner did not object to).
+- **CCA has a package manager built in** (owner, asked "idk, what do you
+  suggest?"; design claude suggested the compiler, which already parses
+  CyborgPL and evaluates constants, and keeps 2026-09-23's "dependencies
+  in the manifest, never in source"): `cca add …`. Proposed alternative:
+  built into the language, the manifest an ordinary source file.
+- **It has no name of its own**: "just CCA's package manager" (owner: a).
+  Proposed alternative: a name of its own, as Synthia has.
+- **Its manifest is `CCA.cplr`**, *CyborgPL Related*, written in CyborgPL
+  syntax (owner). `.cplr` is the extension for CyborgPL-syntax files that
+  belong to the tooling; the name says which file it is. Proposed: `CCA.cplm`
+  (one extension, two formats), `CCA.cpls` (reads as program source),
+  `CCA.cplc` (*CyborgPL Config*, the owner's own idea of 2026-09-23); the
+  owner asked whether `.cpm` (*Cyborg Package Manager*) was taken (free as
+  an extension; the name CPM belongs to CPM.cmake) and then proposed
+  `.cplr`, free everywhere.
+What goes in `CCA.cplr`, and how the two managers relate, is open.
+`tooling.md`.
+
 ### 2026-09-29 — A `bin` never holds an infinity or a NaN (owner: a)
 
 Raised by compiler claude: a `bin` infinity or NaN into a `deci` had no
