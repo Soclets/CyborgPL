@@ -79,6 +79,10 @@ deci_widths_mix). The leftovers, the same day:
 12. **A `deci` may be a range type, with `bin`'s rules** (owner: a). Design
     claude's example had written `deci64[0, 1]`; with `bin`'s rules the
     bounds carry a point, `deci64[0.0, 1.0]`.
+13. **A `deci` power's exponent is an integer or a whole literal** (owner:
+    a), raised by compiler claude: CCA refused a `deci` variable, the oracle
+    checked it at run time. Proposed alternative: a `deci` variable, checked
+    when it runs. Reject test deci_power_deci_exponent.
 `examples/deci_more.cpls`; reject tests deci_fractional_power,
 deci_narrow_needs_otherwise. `types.md`.
 

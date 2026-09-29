@@ -2361,6 +2361,11 @@ impl<'p> Interp<'p> {
                     return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));
                 }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
+                // a deci power's exponent is an integer or a whole literal, never a deci variable: the
+                // compiler cannot know it is whole (owner, 2026-09-29: a)
+                if op == "xx" && matches!(a, Value::Deci(_)) && matches!(b, Value::Deci(_)) && !matches!(pb, Prov::Literal) {
+                    return rt(line, "a deci power's exponent is an integer or a whole literal, not a deci that may hold a fraction: `'r' xx to.int32['k'] otherwise …`");
+                }
                 let v = self.binary(op, a, b, line)?;
                 // bin16/bin32 math rounds after every operation, at its values' width, as the
                 // hardware does (owner, 2026-09-24: a — "the programmer could've chose a better one")

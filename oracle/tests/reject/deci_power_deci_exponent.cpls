@@ -1,0 +1,6 @@
+# a deci power's exponent is an integer or a whole literal (owner, 2026-09-29: a)
+MAIN {
+    'r': deci64 = 1.05;
+    'k': deci64 = 3.00;
+    'q' := 'r' xx 'k';
+}

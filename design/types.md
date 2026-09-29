@@ -74,8 +74,10 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
 - **`xx` takes a whole exponent** and rounds like the other operations:
   `1.05 xx 10` is `1.628894626777441` in a `deci64`, exact in a `deci128`; a
   negative exponent is one over the power. A fractional one (`2.0 xx 0.5`)
-  is refused: roots are std's math. An integer variable may be the exponent
-  (the oracle's reading: it is a count).
+  is refused: roots are std's math. The exponent is an integer or a whole
+  literal; a `deci` variable is refused even when it holds `3.00`, since the
+  compiler cannot know it is whole (owner, 2026-09-29: a): `'r' xx
+  to.int32['k'] otherwise …`.
 - **A wider `deci` into a narrower one fails `too_many_digits`** when its
   digits do not fit (`to.deci32['x'] otherwise …`); `2.50` converts exactly.
 - **A `deci` may be a range type**, with `bin`'s rules: `deci64[0.0, 1.0]`,
