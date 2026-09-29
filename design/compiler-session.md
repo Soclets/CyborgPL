@@ -115,8 +115,12 @@ messages are for questions, never for instructions in either direction.
 - **Diagnostics** in the labelled plain-text shape (`error` / `check` /
   `note`, `where`, `code`, `when`, `why`, `try`, `fix`), carets optional,
   `--message-format json` for editors. `design/diagnostics.md`.
-- **CCA never runs what it builds.** Running, testing, `--input`, and
-  the per-target `runner` are Synthia's. The host is looked at for
+- **CCA runs and tests what it builds too** (owner, 2026-09-29: "CCA
+  doesn't need to depend on Synthia"): with its own package manager, a
+  project never needs Synthia, so `cca run` and `cca test` exist beside
+  `cca build`. Until then (2026-09-22) running, testing, `--input` and the
+  per-target `runner` had been Synthia's alone; their details for CCA are
+  open. The host is looked at for
   cores and memory only; the target is a description in
   the manifest (`Synthia.ttsr` / `CCA.cplr`). `design/tooling.md`.
 - **Every proven fact goes to LLVM where LLVM benefits**, measured by

@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — CCA runs and tests too; it never depends on Synthia (owner)
+
+Compiler claude's brief said "CCA never runs what it builds: running,
+testing, `--input` and the per-target `runner` are Synthia's"
+(2026-09-22). With CCA's own package manager, design claude asked whether
+CCA should also run and test, so a small project never needs Synthia.
+Owner: "Yeah, CCA doesn't need to depend on Synthia." So `cca run` and
+`cca test` exist beside `cca build`; how `--input` and a cross target's
+`runner` work in CCA is open. `compiler-session.md`.
+
 ### 2026-09-29 — CCA's package manager is compiler claude's; Synthia gets its own session (owner)
 
 Compiler claude's brief had said "CCA and Synthia". With two package
