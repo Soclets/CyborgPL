@@ -1,1 +1,4 @@
+const 'name' := "uses_runnable";
+const 'version' := "0.1.0";
 const 'dependencies' := [cca::Dep[name = "runnable", path = "../runnable"],];
+const 'targets' := [cca::Target[name = "aarch64-macos"],];

@@ -1,2 +1,4 @@
 const 'name' := "cycle_b";
+const 'version' := "0.1.0";
 const 'dependencies' := [cca::Dep[name = "cycle_a", path = "../cycle_a"],];
+const 'targets' := [cca::Target[name = "aarch64-macos"],];

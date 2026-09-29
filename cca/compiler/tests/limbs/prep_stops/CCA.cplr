@@ -1,2 +1,4 @@
 const 'name' := "stops";
+const 'version' := "0.1.0";
 const 'dependencies' := [cca::Dep[name = "bad", path = "../prep_bad"],];
+const 'targets' := [cca::Target[name = "aarch64-macos"],];

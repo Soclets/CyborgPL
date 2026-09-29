@@ -344,6 +344,17 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             }
         }
     }
+    // What every manifest says (owner, 2026-09-29, as a Synthia.ttsr
+    // does): a folder with no `CCA.cplr` is a plain program, and one with
+    // it is a Limb with a name, a version and a target to build.
+    for need in ["name", "version"] {
+        if !seen.iter().any(|s| s == need) {
+            return err(Diagnostic::error(format!("CCA.cplr has no '{}': a build needs the Limb's 'name', 'version' and at least one target", need)).place(at.display().to_string()));
+        }
+    }
+    if out.default_target.is_none() {
+        return err(Diagnostic::error("CCA.cplr has no target: a build needs the Limb's 'name', 'version' and at least one target, `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`").place(at.display().to_string()));
+    }
     Ok(out)
 }
 

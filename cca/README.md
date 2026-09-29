@@ -419,7 +419,9 @@ Dated, with the alternative, so each can become a question later.
   default target (owner, 2026-09-29: b: `default = true`, or the only
   one), and writes code for `aarch64-macos` only so far, so any other
   default is refused as "not yet" rather than built for the wrong
-  machine; with no 'targets' at all it builds for `aarch64-macos`. A
+  machine. A `CCA.cplr` without a 'name', a 'version' or a target is
+  refused (owner, 2026-09-29), a dependency's too; a folder with no
+  `CCA.cplr` is a plain program. A
   dependency's own 'targets' are checked and not otherwise used. Using a
   runner is open. Two Limbs that depend on the same folder share one
   copy of it. A `version` dependency is refused until the registry

@@ -1,2 +1,4 @@
 const 'name' := "geometry";
+const 'version' := "0.1.0";
 const 'dependencies' := [cca::Dep[name = "money", path = "../prep_money"],];
+const 'targets' := [cca::Target[name = "aarch64-macos"],];

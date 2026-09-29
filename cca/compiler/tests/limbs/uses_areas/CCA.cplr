@@ -1,3 +1,4 @@
 const 'name' := "uses_areas";
 const 'version' := "0.1.0";
 const 'dependencies' := [cca::Dep[name = "areas", path = "../../../../../examples/limbs/areas"],];
+const 'targets' := [cca::Target[name = "aarch64-macos"],];
