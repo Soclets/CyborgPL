@@ -288,6 +288,8 @@ impl Domain {
                 Domain::Bins { lo: m.map(|x| -x), hi: m }
             }
             Ty::Bool => Domain::Bools(true, true),
+            // A vector: what any of its lanes can be.
+            Ty::Simd { elem, .. } => Domain::of_ty(elem, items),
             Ty::Str(_) => Domain::Text { len: Lengths::any(), values: None, classes: Vec::new() },
             Ty::Char(_) => Domain::Chars { values: None },
             Ty::Seq { elem, .. } => Domain::Seq { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, elem: Box::new(Domain::of_ty(elem, items)) },

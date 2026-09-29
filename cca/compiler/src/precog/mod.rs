@@ -180,9 +180,15 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         if guarded_by_open_site {
             continue;
         }
+        // A vector is not its lanes' one value: nothing is folded into one
+        // (a vector's domain is its lanes' union).
+        let into_vector = p.functions.get(*f).and_then(|func| func.blocks.get(*b).and_then(|blk| blk.stmts.get(*si)).map(|st| match &st.kind {
+            StmtKind::Assign { place, .. } => place.proj.is_empty() && matches!(func.locals[place.local.0 as usize].ty.base(), Ty::Simd { .. }),
+            _ => false,
+        })).unwrap_or(false);
         if let Some(st) = p.functions.get_mut(*f).and_then(|f| f.blocks.get_mut(*b)).and_then(|blk| blk.stmts.get_mut(*si)) {
             if let StmtKind::Assign { place, rvalue } = &st.kind {
-                if !matches!(rvalue, Rvalue::Use(Operand::Const(_))) {
+                if !matches!(rvalue, Rvalue::Use(Operand::Const(_))) && !into_vector {
                     st.kind = StmtKind::Assign { place: place.clone(), rvalue: Rvalue::Use(Operand::Const(c.clone())) };
                     folded += 1;
                 }
@@ -1571,6 +1577,38 @@ impl Precog {
                 Domain::Seq { len, elem: Box::new(Domain::Any) }
             }
             Op::MapHas | Op::PtrIsNull | Op::SimdAll | Op::SimdAny => Domain::Bools(true, true),
+            // A vector's domain is what any of its lanes can be — the union
+            // of the per-lane domains `simd.md` describes. Lane-wise
+            // operators are then the scalar rule, and a lane read is any
+            // lane: sound, and enough to see `simd.fill[200]` doubled
+            // leave a `uint8` (simd_lane_step).
+            Op::SimdFill | Op::SimdShuffle(_) | Op::SimdMax | Op::SimdMin => arg(self, 0),
+            Op::SimdLoad => match arg(self, 0) {
+                Domain::Seq { elem, .. } => *elem,
+                _ => Domain::Any,
+            },
+            // The lanes past the items are zero.
+            Op::SimdLoadSome => match arg(self, 0) {
+                Domain::Seq { elem, .. } => elem.union(&Domain::Ints(ISet::one(0))),
+                _ => Domain::Any,
+            },
+            // N lanes added: N times each lane's range.
+            Op::SimdSum => {
+                let lanes = args.first().and_then(|a| a.place()).map(|p| self.place_ty(f, p)).and_then(|t| match t.base() {
+                    Ty::Simd { lanes, .. } => Some(*lanes as i128),
+                    _ => None,
+                });
+                match (arg(self, 0), lanes) {
+                    (Domain::Ints(s), Some(n)) => match s.bounds() {
+                        Some((lo, hi)) => match (lo.checked_mul(n), hi.checked_mul(n)) {
+                            (Some(a), Some(b)) => Domain::Ints(ISet::range(a, b)),
+                            _ => Domain::Any,
+                        },
+                        None => Domain::Any,
+                    },
+                    _ => Domain::Any,
+                }
+            }
             Op::CharCode => Domain::Ints(ISet::Range { lo: 0, hi: 0x10FFFF }),
             Op::Std(name) => {
                 if name.starts_with("input") {
@@ -1610,7 +1648,12 @@ impl Precog {
             // (`simd.md`, a domain per lane, is not built yet): the length
             // stays, the elements become anything. Keeping them as they
             // were folded an `if` about a stored element to false.
-            (Op::SimdStore | Op::SimdStoreSome, Domain::Seq { len, .. }) => Domain::Seq { len, elem: Box::new(Domain::Any) },
+            (Op::SimdStore | Op::SimdStoreSome, Domain::Seq { len, elem }) => {
+                // What any stored lane can be joins what was there.
+                let v = args.get(2).map(|a| self.read_operand(f, env, a)).unwrap_or(Domain::Any);
+                let stored = if matches!(v, Domain::Any) { Domain::Any } else { elem.union(&v) };
+                Domain::Seq { len, elem: Box::new(stored) }
+            }
             _ => return,
         };
         env.insert(target.local, after);
