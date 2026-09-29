@@ -79,6 +79,11 @@ struct VarInfo {
     list: Option<ListInfo>,
     /// The item of a `for … in lend` (see `Config::item_through_to`).
     item: bool,
+    /// Its range is known to the generator only: it comes from a self-call
+    /// (whose result only an induction over the calls could bound), or from
+    /// a value that used such a name, with no range type to say it. Never
+    /// used in a `check` statement or block (seed 137, 2026-09-29).
+    unseen: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -299,12 +304,37 @@ impl Gen {
     }
 
     fn declare(&mut self, name: String, ty: Ty, iv: Iv, assignable: bool) {
-        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false });
+        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false, unseen: false });
     }
 
-    /// Plain values in scope (never a list).
+    /// Plain values in scope (never a list; inside a `check` block, never
+    /// an unseen one).
     fn vars(&self) -> impl Iterator<Item = &VarInfo> {
-        self.scopes.iter().flatten().filter(|v| v.list.is_none())
+        let in_check = self.in_check > 0;
+        self.scopes.iter().flatten().filter(move |v| v.list.is_none() && !(in_check && v.unseen))
+    }
+
+    /// Whether `e` reads an unseen name.
+    fn uses_unseen(&self, e: &Expr) -> bool {
+        let unseen = |n: &str| self.scopes.iter().flatten().rev().find(|v| v.name == n).map_or(false, |v| v.unseen);
+        fn walk(e: &Expr, f: &dyn Fn(&str) -> bool) -> bool {
+            match e {
+                Expr::Var(n) => f(n),
+                // A length's bounds and an item's range are the generator's.
+                Expr::Len(_) | Expr::At(..) => true,
+                Expr::Lit(_) | Expr::Bool(_) | Expr::Lend(_) => false,
+                Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => walk(a, f) || walk(b, f),
+                Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => walk(a, f),
+                Expr::Call(_, args) => args.iter().any(|a| walk(a, f)),
+            }
+        }
+        walk(e, &unseen)
+    }
+
+    fn mark_unseen(&mut self, name: &str) {
+        if let Some(v) = self.scopes.iter_mut().flatten().rev().find(|v| v.name == name) {
+            v.unseen = true;
+        }
     }
 
     fn lists(&self) -> Vec<VarInfo> {
@@ -482,7 +512,8 @@ impl Gen {
             }
             let rname = self.name("r");
             body.push(Stmt::Let { tier: Tier::Default, name: rname.clone(), mutability: Mutability::Plain, ty: ret.into(), value: Expr::Call(name.clone(), args) });
-            self.declare(rname, ret, ret_iv, false);
+            self.declare(rname.clone(), ret, ret_iv, false);
+            self.mark_unseen(&rname);
         }
         let n = self.stmt_count() / 2 + 1;
         body.extend(self.stmts(n, self.depth().saturating_sub(1).max(1)));
@@ -617,7 +648,7 @@ impl Gen {
         let room = if mutable { self.rng.below(9) } else { 0 };
         let name = self.name("xs");
         let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
-        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false });
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, unseen: false });
         Stmt::ListLet { name, mutable, elem, items }
     }
 
@@ -654,6 +685,7 @@ impl Gen {
         self.positioned = false;
         let pos = self.position(&v);
         let (value, _) = self.value_in(v.ty, v.iv);
+        self.positioned |= self.uses_unseen(&value) || self.uses_unseen(&pos);
         let tier = self.tier(self.risky);
         Stmt::SetAt { tier, name: v.name, pos, value }
     }
@@ -685,8 +717,10 @@ impl Gen {
         self.scopes.push(vec![]);
         self.declare(item.clone(), v.ty, v.iv, false);
         self.scopes.last_mut().unwrap().last_mut().unwrap().item = true;
+        self.mark_unseen(&item);
         if let Some(p) = &pos {
             self.declare(p.clone(), Ty::U64, Iv::new(1, cap.max(1) as i128), false);
+            self.mark_unseen(p);
         }
         let nb = self.stmt_count() / 2 + 1;
         let body = self.stmts(nb, depth - 1);
@@ -905,9 +939,14 @@ impl Gen {
         } else {
             self.int_expr_typed(t)
         };
+        let unseen = self.uses_unseen(&value);
+        self.positioned |= unseen;
         let tier = self.tier(self.risky);
         let name = self.name("v");
         self.declare(name.clone(), t, promise, assignable);
+        if unseen && tr.range.is_none() {
+            self.mark_unseen(&name);
+        }
         Stmt::Let { tier, name, mutability, ty: tr, value }
     }
 
@@ -917,6 +956,14 @@ impl Gen {
         self.risky = false;
         self.positioned = false;
         let value = if v.ty == Ty::Bool { { let d = self.expr_depth(); self.bool_expr(d) } } else { self.value_in(v.ty, v.iv).0 };
+        let value = if v.ty != Ty::Bool && !v.unseen && self.uses_unseen(&value) {
+            // A seen name keeps what it holds visible: the guard is written
+            // out, since a `check` earlier in a loop sees this value next trip.
+            self.fit(value, v.ty.range(), v.iv, v.ty).0
+        } else {
+            value
+        };
+        self.positioned |= self.uses_unseen(&value);
         let tier = self.tier(self.risky);
         Stmt::Assign { tier, name: v.name, value }
     }
@@ -1329,7 +1376,8 @@ impl Gen {
         let (a, ia) = if bitty && is_literal_only(&a) && is_literal_only(&b) {
             match self.typed_leaf(t) {
                 Some((v, iv)) => (v, iv),
-                None => (a, ia),
+                // Nothing typed in scope: no operator at all (seed 444).
+                None => return (a, ia),
             }
         } else {
             (a, ia)
