@@ -1,0 +1,5 @@
+# The targets CCA writes code for, one name per line, spelled as a
+# CCA.cplr or Synthia.ttsr spells them. CCA reads this file when it is
+# built, and Synthia copies it: this is the one list. CCA builds only for
+# the machine it runs on so far, so a target here is built on that machine.
+aarch64-macos

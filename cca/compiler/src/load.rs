@@ -23,6 +23,12 @@ pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     Ok(items)
 }
 
+/// The targets CCA writes code for: `cca/targets.txt`, the one list,
+/// which Synthia copies.
+pub fn targets() -> Vec<&'static str> {
+    include_str!("../../targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect()
+}
+
 /// What `cca prepare` runs, in order (owner, 2026-09-29): each Limb's
 /// `build.cplr` with the name it goes by and the folder it runs in. `names`
 /// are the local names this Limb's `CCA.cplr` gives its dependencies, or
@@ -123,13 +129,18 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Opt
     }
     let manifest = read_manifest(sources, dir)?;
     // What is built is the default target — from the manifest, never from
-    // the host (`reproducible-builds.md`). CCA writes code for one target
-    // so far, so another default is not built wrongly: it waits.
+    // the host (`reproducible-builds.md`). CCA writes code for the targets
+    // in `cca/targets.txt`, and only on that machine so far, so another
+    // default is not built wrongly: it waits.
     if as_dep.is_none() {
         if let Some((t, span)) = &manifest.default_target {
             let here = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
+            let known = targets();
+            if !known.contains(&t.as_str()) {
+                return err(Diagnostic::error(format!("not yet: the default target is `{}`, and CCA writes code for {} only so far", t, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).at(*span));
+            }
             if *t != here {
-                return err(Diagnostic::error(format!("not yet: the default target is `{}`, and CCA writes code for `{}` only so far", t, here)).at(*span));
+                return err(Diagnostic::error(format!("not yet: the default target is `{}`, and CCA builds it only on a `{}` machine so far — this one is `{}`", t, t, here)).at(*span));
             }
         }
     }
