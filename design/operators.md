@@ -195,6 +195,16 @@ processors a 16-bit and a 64-bit add cost the same, and the checks are
 what cost, and this has the fewest. Owner: "yes, that one". It also
 answers mixed sizes (`int16 + int64`), which nothing had decided.
 
+## A `bin` never holds an infinity or a NaN (owner, 2026-09-29: a)
+
+An operation whose `bin` result would be an infinity or a NaN is a check
+site, like integer overflow: `'big' x 10.0` past the largest `bin64`,
+`1.0 div 0.0` and `0.0 div 0.0` (division by zero), `-1.0 xx 0.5` (no
+number). Precog proves them away where it can, the working build checks,
+the final build refuses the rest. Text never makes one either
+(2026-09-24). Proposed alternative: IEEE's infinities and NaN, as C has
+them.
+
 ## `bin16` / `bin32` math rounds after every step (owner, 2026-09-24: a)
 
 ```

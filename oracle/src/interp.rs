@@ -2438,12 +2438,15 @@ impl<'p> Interp<'p> {
                 for _ in 0..y { acc = acc.checked_mul(x).ok_or_else(|| ovf("xx"))?; }
                 Int(acc)
             }
-            ("+", Bin(x), Bin(y)) => Bin(x + y),
-            ("-", Bin(x), Bin(y)) => Bin(x - y),
-            ("x", Bin(x), Bin(y)) => Bin(x * y),
-            ("div", Bin(x), Bin(y)) => Bin(x / y),
-            ("mod", Bin(x), Bin(y)) => Bin(x % y),
-            ("xx", Bin(x), Bin(y)) => Bin(x.powf(y)),
+            // a bin never holds an infinity or a NaN (owner, 2026-09-29: a): a result that would be
+            // one is a check site, as integer overflow and division by zero are
+            ("div" | "mod", Bin(_), Bin(y)) if y == 0.0 => return site(line, if op == "div" { "division by zero" } else { "`mod` by zero" }),
+            ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(x), Bin(y)) => {
+                let r = match op { "+" => x + y, "-" => x - y, "x" => x * y, "div" => x / y, "mod" => x % y, _ => x.powf(y) };
+                if r.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} has no number as its answer (NaN): a bin never holds one")); }
+                if r.is_infinite() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest bin (it would be infinity): a bin never holds one")); }
+                Bin(r)
+            }
             // deci (owner, 2026-09-29): exact, then rounded to the width, half to even
             (_, Deci(x), Deci(y)) if x.width != y.width => return rt(line, format!("`{op}` between a deci{} and a deci{}: say which width, `to.deci{}[…]`", x.width, y.width, x.width.max(y.width))),
             ("+", Deci(x), Deci(y)) => Deci(x.add(&y).or_else(|m| site(line, m))?),

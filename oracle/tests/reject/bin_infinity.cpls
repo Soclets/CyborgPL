@@ -1,0 +1,5 @@
+# a bin never holds an infinity (owner, 2026-09-29: a)
+MAIN {
+    'big': bin64 = 10.0 xx 308.0;
+    'inf': bin64 = 'big' x 10.0;
+}

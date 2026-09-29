@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A `bin` never holds an infinity or a NaN (owner: a)
+
+Raised by compiler claude: a `bin` infinity or NaN into a `deci` had no
+answer (the oracle panicked; CCA stopped). Behind it: text never makes
+one (2026-09-24), and a `bin16`/`bin32` past its largest is a check site,
+but `bin64` overflow, `1.0 div 0.0` and `0.0 div 0.0` were unsaid, and the
+oracle let them produce C's infinity and NaN. Proposed (a) never: an
+operation whose result would be one is a check site, like integer
+overflow and division by zero; (b) IEEE's way, like C, with NaN's
+oddities (`NaN == NaN` false, spreading silently). Design claude
+recommended a; owner: a. So a `bin` always holds a real number, and
+`to.deci…[bin]` always has an answer. `NO_FUCKING_CHECKS` remains the
+way to raw IEEE speed. Reject tests bin_infinity, bin_nan.
+
 ### 2026-09-29 — The prints are one family: `std::print`, `std::print.useful`, `std::print.format` (owner)
 
 Raised by the `deci` conversion's useful form (below): the owner made
