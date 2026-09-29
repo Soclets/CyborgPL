@@ -126,6 +126,20 @@ fn a_proven_site_hands_its_fact_to_llvm() {
     assert!(ir.contains("nsw") || ir.contains("nuw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
 }
 
+/// A line nesting thousands of brackets (check claude, seed 6241: 81,855
+/// characters) overflowed the main thread's stack while being checked.
+#[test]
+fn deep_nesting_is_checked() {
+    let dir = std::env::temp_dir().join("cca-codegen-tests");
+    let _ = std::fs::create_dir_all(&dir);
+    let src = dir.join("deep.cpls");
+    let depth = 5000;
+    let expr = format!("{}1{}", "(1 + ".repeat(depth), ")".repeat(depth));
+    std::fs::write(&src, format!("MAIN {{\n    'x': int64 = {};\n}}\n", expr)).unwrap();
+    let r = Command::new(cca()).arg("check").arg(&src).output().unwrap();
+    assert!(r.status.success(), "a deep expression was not checked:\n{}", String::from_utf8_lossy(&r.stderr));
+}
+
 /// C's arguments reach `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`
 /// (owner, 2026-09-29), passed by `cca run … -- words`.
 #[test]

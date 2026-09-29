@@ -17,6 +17,18 @@ fn usage() -> ! {
 }
 
 fn main() {
+    // Checking, lowering and proving walk an expression by recursion, and
+    // a generated line nesting 5,000 brackets overflowed the main thread's
+    // 8 MB (check claude, seed 6241). The work runs on a thread with room
+    // for that; only the pages it touches are ever used.
+    let worker = std::thread::Builder::new().stack_size(1 << 30).spawn(real_main);
+    match worker.map(|h| h.join()) {
+        Ok(Ok(())) => {}
+        _ => exit(101),
+    }
+}
+
+fn real_main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Some(cmd) = args.first() else { usage() };
     match cmd.as_str() {
