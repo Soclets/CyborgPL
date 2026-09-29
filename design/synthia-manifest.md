@@ -78,6 +78,9 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   2026-09-29: "256 bytes it is"; "it doesn't require `.`"): room for a
   version written in Thai. What a needed Limb's `version` means is the
   registry's, and open.
+- **`prefix = cash`** in `[my identity]` is the word code writes in front
+  of `::` to reach this Limb (owner, 2026-09-29: "`prefix`"), as
+  `CCA.cplr`'s `'prefix'`; its `name` is a label apart from it.
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
   Limb's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,

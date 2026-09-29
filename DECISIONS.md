@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — In `Synthia.ttsr` the word before `::` is `prefix = cash`, in `[my identity]` (owner: "`prefix`")
+
+Relayed by synthia claude. Proposed: (a) `prefix`; (b) a phrase in the
+Limb's own voice, such as `called_in_code`. Synthia claude recommended
+(a), one word across both managers. The owner: "`prefix`". Synthia
+claude's own step, which the owner may overrule: `prefix` follows the
+module-name rule, as `CCA.cplr`'s does in the oracle.
+
 ### 2026-09-29 — A `Synthia.ttsr` target must be one CCA can build (owner: "Only what's actually doable")
 
 Relayed by synthia claude. Proposed: (a) only targets CCA knows, from a
