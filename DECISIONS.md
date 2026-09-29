@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `Synthia.ttsr`'s syntax, begun (owner)
+
+The owner started from their own sketch — `[my credentials]` with `name`,
+`version`, `time.created`, `time.published`, `time.stated_ver.created`,
+then `[my needed things]` and `[my target]` — over design claude's three
+shapes (TOML-like, indented, braced blocks; it recommended TOML-like
+without quotes). Settled, one question at a time:
+`[my identity]` (b, over keeping "credentials", which reads as secrets);
+`time.stated_ver.created` is when the stated version was made; the
+publish time is the registry's (b); times are ISO 8601 (a), a readable
+form being a Synthia command's job (the owner first chose a readable
+second line, then withdrew it); a dependency is dotted keys (b); a
+published dependency is named by its **ID, which the Limb's creator
+generates: 256 bits of randomness as 64 hex digits, required to register**
+(the owner); the ID takes no quotes or braces (the owner, after design
+claude argued for `{}` — "you said the ID would look like any other text
+value; it won't, there's `.id`"). `design/synthia-manifest.md`.
+
 ### 2026-09-29 — Command-line arguments: `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`, C's own (owner: "low-level shit, decided")
 
 `cca run` could not pass arguments: the language had no door for them. The
