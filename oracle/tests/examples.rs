@@ -36,6 +36,14 @@ fn examples_produce_expected_output() {
         let out = Command::new(oracle()).arg(&src).output().unwrap();
         let got = String::from_utf8_lossy(&out.stdout).to_string();
         let code = out.status.code().unwrap_or(-1);
+        // a `.test-out` beside it: its `test fn`s, run by `oracle --test` (owner, 2026-09-29), print that
+        if let Ok(want_tests) = fs::read_to_string(src.with_extension("test-out")) {
+            let t = Command::new(oracle()).arg("--test").arg(&src).output().unwrap();
+            let got_tests = String::from_utf8_lossy(&t.stdout).to_string();
+            if got_tests != want_tests {
+                failures.push(format!("{} (--test):\n  got:\n{got_tests}\n  want:\n{want_tests}\n  stderr: {}", src.file_name().unwrap().to_string_lossy(), String::from_utf8_lossy(&t.stderr)));
+            }
+        }
         if got != want || code != want_code {
             failures.push(format!("{}:\n  exit {code} (want {want_code})\n  stderr: {}\n  got:\n{got}\n  want:\n{want}",
                 src.file_name().unwrap().to_string_lossy(), String::from_utf8_lossy(&out.stderr), ));

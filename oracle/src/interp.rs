@@ -96,6 +96,8 @@ pub struct Interp<'p> {
     pending_deps: Vec<usize>,
     /// the line of the `return` that ended the last call
     ret_line: usize,
+    /// inside `must.fail`: a failure passes up to it whatever the test's own `fail[…]`
+    must_fail_depth: u32,
     /// the matched case's data type, for the name an arm binds
     arm_ty: Option<Ty>,
     /// Limb-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
@@ -145,11 +147,47 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
     pub fn run(&mut self) -> Result<u8, RuntimeError> {
+        self.prepare()?;
+        let main = match &self.prog.main {
+            Some(m) => m,
+            None => return rt(0, "this Limb has no MAIN, so it is a library, not a program"),
+        };
+        match self.block(main) {
+            Ok(Flow::Normal) => Ok(0),
+            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
+            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
+            Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
+            Ok(Flow::Give(_)) => rt(0, "`giveS` outside a case"),
+            Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// `cca test` (owner, 2026-09-29): every `test fn`, in the order written, each on its own;
+    /// a test passes unless a `must` does not hold or something else stops it. Exit 0 when all pass.
+    pub fn run_tests(&mut self) -> Result<u8, RuntimeError> {
+        self.prepare()?;
+        let tests: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_test).cloned().collect();
+        let (mut passed, mut failed) = (0, 0);
+        for t in &tests {
+            let r = self.run_body(t, Vec::new());
+            let line = match r {
+                Ok(_) => { passed += 1; format!("test {} ... ok", t.name) }
+                Err(e) => { failed += 1; format!("test {} ... FAILED: line {}: {}", t.name, e.line, if e.msg.is_empty() { "it left early".to_string() } else { e.msg.clone() }) }
+            };
+            writeln!(self.out, "{line}").map_err(|e| RuntimeError { line: 0, msg: e.to_string(), exit: None, site: false, leave: None })?;
+        }
+        writeln!(self.out, "{} tests: {passed} passed, {failed} failed", tests.len()).map_err(|e| RuntimeError { line: 0, msg: e.to_string(), exit: None, site: false, leave: None })?;
+        Ok(if failed == 0 { 0 } else { 1 })
+    }
+
+    /// The checks before anything runs, then the consts and C's variables.
+    fn prepare(&mut self) -> Result<(), RuntimeError> {
         // Consts first, in order: each may use the ones above it. Precog would
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
@@ -179,19 +217,7 @@ impl<'p> Interp<'p> {
             self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(zero)), ty: Some(x.ty.clone()), kind: if x.mutable { SlotKind::ExternMut } else { SlotKind::Extern }, alive: true, immut: !x.mutable, sized: false, sealed: false , since: 0, deps: Vec::new() });
         }
         self.module = Vec::new();
-        let main = match &self.prog.main {
-            Some(m) => m,
-            None => return rt(0, "this Limb has no MAIN, so it is a library, not a program"),
-        };
-        match self.block(main) {
-            Ok(Flow::Normal) => Ok(0),
-            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
-            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
-            Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
-            Ok(Flow::Give(_)) => rt(0, "`giveS` outside a case"),
-            Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
-            Err(e) => Err(e),
-        }
+        Ok(())
     }
 
     // ---- scopes -----------------------------------------------------------
@@ -522,6 +548,43 @@ impl<'p> Interp<'p> {
 
     fn stmt_inner(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
         match s {
+            // a test's assertions (owner, 2026-09-29)
+            Stmt::Must { cond, line } => {
+                let (v, _) = self.eval(cond)?;
+                match v {
+                    Value::Bool(true) => Ok(Flow::Normal),
+                    Value::Bool(false) => {
+                        // a comparison shows both sides (worked out again for the message: the oracle's reading)
+                        if let Expr::Binary(op, l, r, _) = cond {
+                            if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==") {
+                                let (a, _) = self.eval(l)?;
+                                let (b, _) = self.eval(r)?;
+                                return rt(*line, format!("`must` does not hold: the left side is {}, and it must be `{op}` {}", a.show_useful(), b.show_useful()));
+                            }
+                        }
+                        rt(*line, "`must` does not hold")
+                    }
+                    other => rt(*line, format!("`must` takes a condition, a bool; this is {}", other.kind())),
+                }
+            }
+            Stmt::MustFail { expr, reason, line } => {
+                self.must_fail_depth += 1;
+                let r = self.eval(expr);
+                self.must_fail_depth -= 1;
+                match r {
+                    Ok(_) => rt(*line, "`must.fail`: it did not fail"),
+                    Err(RuntimeError { leave: Some(Flow::Fail(got, _)), .. }) => match reason {
+                        Some(want) if *want != got => rt(*line, format!("`must.fail.{want}`: it failed with `{got}`")),
+                        _ => Ok(Flow::Normal),
+                    },
+                    Err(e) => Err(e),
+                }
+            }
+            Stmt::MustStop { expr, line } => match self.eval(expr) {
+                Ok(_) => rt(*line, "`must.stop`: no check fired"),
+                Err(e) if e.site => Ok(Flow::Normal),
+                Err(e) => Err(e),
+            },
             Stmt::Decl { name, mutability, ty, value, shadow, sealed, line } => {
                 let (v, prov) = if value.values.is_empty() {
                     match ty {
@@ -3102,6 +3165,7 @@ impl<'p> Interp<'p> {
             return rt(c.line, private_msg(&c.from, &func.module, &format!("`{}`", join_path(&func.module, name))));
         }
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
+        if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `cca test` runs it, and nothing calls it")); }
         if func.is_extern {
             if self.nocheck_depth == 0 { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a nocheck site: `nocheck … {name}[…]`")); }
             let ranged_ret = matches!(func.ret, Some(Ty::Ranged(..)));
@@ -3488,6 +3552,8 @@ impl<'p> Interp<'p> {
                 let missing: Vec<&str> = fails.iter().filter(|f| !arms.iter().any(|a| a.name == f.name)).map(|f| f.name.as_str()).collect();
                 if !missing.is_empty() { return rt(line, format!("`{name}` can also fail with {}; every reason must be handled (or `otherwise fail;` to pass them up)", missing.join(", "))); }
             }
+            // inside `must.fail`, the failure climbs out to the test (owner, 2026-09-29)
+            (Some(Handler::Propagate), false) if self.must_fail_depth > 0 => {}
             (Some(Handler::Propagate), false) => {
                 let missing: Vec<&str> = fails.iter().filter(|f| !self.fails.iter().any(|m| m.name == f.name)).map(|f| f.name.as_str()).collect();
                 if !missing.is_empty() { return rt(line, format!("`otherwise fail;` passes {} up, but this function does not list {} in its `fail[…]`", list(), missing.join(", "))); }

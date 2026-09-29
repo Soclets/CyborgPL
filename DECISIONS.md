@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Tests: `test fn`, and the `must` family (owner: b, a, "the fam")
+
+Compiler claude asked what `cca test` runs. Proposed (a) programs with
+expected output, (b) test functions with assertions, (c) both; design
+claude recommended c; the owner asked "assert_eq?" and chose b. A test is
+`test fn name [] { … }` (owner: a; alternatives: a `module tests` block, a
+`#test` file mode). The assertion: `expect` ("sounds like an optimization
+hint", owner), `assert`, `must`, `ensure` were proposed; the owner asked
+about `must_be` / `must-be` and then `must.`, and chose the family: `must
+<condition>;`, `must.fail …;`, `must.fail.<reason> …;`, `must.stop …;`.
+Only inside a `test fn`, never `pub`, never called, left out of builds
+(design claude's details). `design/testing.md`; the oracle runs them with
+`--test`; `examples/testing.cpls`; four reject tests.
+
 ### 2026-09-29 — The Synthia logo: four even orbits round a star, on a deep-space tile (owner)
 
 Made by the owner with website claude (`brand/synthia/`, 7870adb): the

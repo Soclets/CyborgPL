@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "giveS", "gives", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with",
+    "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -66,14 +66,16 @@ pub struct Parser {
     /// where `limb.` points: `[]` for the Limb being built, `["::geometry"]` for a dependency
     /// loaded beside it (a segment no source can write, so the two never meet)
     limb_root: Vec<String>,
+    /// inside a `test fn`'s body: `must` may appear (owner, 2026-09-29)
+    in_test: bool,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new() } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -163,6 +165,19 @@ impl Parser {
                 }
             }
             match self.peek().clone() {
+                // `test fn name [] { … }` (owner, 2026-09-29): run by `cca test`, never called
+                Tok::Word(w) if w == "test" && matches!(self.peek_at(1), Tok::Word(f) if f == "fn") => {
+                    if vis != Vis::Private { return self.err("a `test fn` is never `pub`: nothing calls it, `cca test` runs it"); }
+                    self.advance();
+                    self.in_test = true;
+                    let f = self.func();
+                    self.in_test = false;
+                    let mut f = f?;
+                    if !f.params.is_empty() { return Err(ParseError { line: f.line, col: 0, msg: format!("`test fn {}` takes no parameters: `test fn {} [] {{ … }}`", f.name, f.name) }); }
+                    if f.ret.is_some() || f.ret_lent.is_some() || !f.fails.is_empty() { return Err(ParseError { line: f.line, col: 0, msg: format!("`test fn {}` returns nothing and cannot fail; it passes unless a `must` does not hold", f.name) }); }
+                    f.is_test = true;
+                    prog.funcs.push(f)
+                }
                 Tok::Word(w) if w == "fn" => { let mut f = self.func()?; f.vis = vis; prog.funcs.push(f) }
                 Tok::Word(w) if w == "struct" => { let mut d = self.struct_def()?; d.vis = vis; prog.structs.push(d) }
                 Tok::Word(w) if w == "enum" => {
@@ -426,7 +441,7 @@ impl Parser {
             Vec::new()
         } else { self.block()? };
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, bounds, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, bounds, params, body, line })
     }
 
     // struct := 'struct' Word '{' (('mut' | 'immut')? Word ':' type)* '}'   — no `;`, no `let`
@@ -547,7 +562,7 @@ impl Parser {
         // (owner, 2026-09-29); elsewhere Precog works it out from the body
         if self.strict && matches!(ret_lent, Some((_, None))) { return self.err(format!("`#strict`: `{name}` hands back a borrow, so it names what the borrow depends on: `-> lent@x …` with `lent@x` on those parameters")); }
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, bounds, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -955,6 +970,42 @@ impl Parser {
                 "mut" | "immut" => self.decl(),
                 _ if matches!(self.peek_at(1), Tok::Var(_)) && !KEYWORDS.contains(&w.as_str()) => self.err(format!("a type goes after the name: `'x': {w} = …;`")),
                 "change" => { self.advance(); self.change_stmt(line) }
+                // `must …;` — a test's assertion (owner, 2026-09-29): `must`, `must.fail[.reason]`, `must.stop`
+                "must" => {
+                    if !self.in_test { return self.err("`must` belongs in a `test fn`; in a program, Precog proves what must hold (`check`)"); }
+                    self.advance();
+                    let (mut kind, mut reason) = (None, None);
+                    if *self.peek() == Tok::Dot {
+                        self.advance();
+                        match self.advance().tok {
+                            Tok::Word(w) if w == "fail" => {
+                                kind = Some("fail");
+                                if *self.peek() == Tok::Dot {
+                                    self.advance();
+                                    match self.advance().tok { Tok::Word(r) => reason = Some(r), other => return self.err(format!("expected a failure's name after `must.fail.`, found {other}")) }
+                                }
+                            }
+                            Tok::Word(w) if w == "stop" => kind = Some("stop"),
+                            other => return self.err(format!("`must` narrows to `must.fail` or `must.stop`, not `must.{other}`")),
+                        }
+                    }
+                    let mut e = self.expr()?;
+                    self.expect(Tok::Semi, "`;`")?;
+                    match kind {
+                        None => Ok(Stmt::Must { cond: e, line }),
+                        Some("fail") => {
+                            // the failure climbs out to `must.fail` instead of needing an `otherwise`
+                            let can = match &mut e {
+                                Expr::Call(c) if c.handler.is_none() => { c.handler = Some(Handler::Propagate); true }
+                                Expr::Convert(_, _, h, _, _) | Expr::MapFail(_, _, h, _) | Expr::CharFromCode(_, _, h, _) | Expr::PtrReadChecked(_, h, _) | Expr::CallValue(_, _, h, _) if h.is_none() => { *h = Some(Handler::Propagate); true }
+                                _ => false,
+                            };
+                            if !can { return self.err("`must.fail` takes something that can fail, with no `otherwise`: a call, or `to.…[…]`"); }
+                            Ok(Stmt::MustFail { expr: e, reason, line })
+                        }
+                        _ => Ok(Stmt::MustStop { expr: e, line }),
+                    }
+                }
                 "if" => self.if_stmt(),
                 "loop" => self.loop_stmt(),
                 "while" => self.while_stmt(),
@@ -1495,7 +1546,7 @@ impl Parser {
         self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, bounds, params, body, line })
+        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
     }
 
     /// `with [lend 'a', give 'b']` — explicit captures, for an anonymous fn and for `concur`.

@@ -189,6 +189,11 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
 }
 
 pub fn run_path(path: &Path, out: Box<dyn std::io::Write>) -> Result<u8, String> {
+    run_path_as(path, out, false)
+}
+
+/// `tests`: run every `test fn` instead of MAIN (`cca test`, owner 2026-09-29).
+pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Result<u8, String> {
     let prog = load(path)?;
     let mut out = out;
     for _ in 0..parser::AMPERSANDS.swap(0, std::sync::atomic::Ordering::Relaxed) {
@@ -196,16 +201,18 @@ pub fn run_path(path: &Path, out: Box<dyn std::io::Write>) -> Result<u8, String>
         writeln!(out, "What are you? Rust programmer or Claude?").map_err(|e| e.to_string())?;
     }
     let mut interp = interp::Interp::new(&prog, out);
-    interp.run().map_err(|e| if e.line == 0 { format!("{}: {}", path.display(), e.msg) } else { format!("{}: line {}: {}", path.display(), e.line, e.msg) })
+    let r = if tests { interp.run_tests() } else { interp.run() };
+    r.map_err(|e| if e.line == 0 { format!("{}: {}", path.display(), e.msg) } else { format!("{}: line {}: {}", path.display(), e.line, e.msg) })
 }
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() != 2 {
-        eprintln!("usage: oracle <file.cpls | limb-directory>");
-        exit(2);
-    }
-    match run_path(Path::new(&args[1]), Box::new(std::io::stdout())) {
+    let (tests, target) = match args.as_slice() {
+        [_, t] => (false, t),
+        [_, flag, t] if flag == "--test" => (true, t),
+        _ => { eprintln!("usage: oracle [--test] <file.cpls | limb-directory>"); exit(2); }
+    };
+    match run_path_as(Path::new(target), Box::new(std::io::stdout()), tests) {
         Ok(code) => exit(code as i32),
         Err(msg) => { eprintln!("{msg}"); exit(1); }
     };

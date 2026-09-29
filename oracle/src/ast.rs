@@ -161,6 +161,8 @@ pub struct Func {
     /// `op NAME ['a': T, 'b': T] -> R { }` — a custom operator (design/operators.md, 2026-09-20):
     /// used between two operands, never called with `[…]`; operands lent unless `give`
     pub is_op: bool,
+    /// `test fn name [] { … }` (owner, 2026-09-29): run by `cca test`, never called, left out of builds
+    pub is_test: bool,
     /// `<T: Ordered>` — each type variable's required interface (canonical), if any
     pub bounds: Vec<(String, String)>,
     pub params: Vec<Param>,
@@ -295,6 +297,12 @@ pub enum Stmt {
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
     /// `giveS v;` — a case's value, in a `#strict` file (owner, 2026-09-29)
     Gives { value: Bracket, line: usize },
+    /// `must 'x' == 5;` — in a `test fn` only (owner, 2026-09-29)
+    Must { cond: Expr, line: usize },
+    /// `must.fail f[…];` / `must.fail.not_a_number to.int32["x"];` — it must fail (with that reason)
+    MustFail { expr: Expr, reason: Option<String>, line: usize },
+    /// `must.stop 'xs'[99];` — a check site must fire
+    MustStop { expr: Expr, line: usize },
     /// `concur [with […]] { … }` / `concur f[…];` — start a task (design/concurrency.md, 2026-09-22)
     Concur { detached: bool, caps: Vec<(Verb, String)>, body: Vec<Stmt>, handler: Option<Handler>, line: usize },
     /// `whichever { 'v' from lend 'c' { … } … }` — wait on several channels, take from whichever first
