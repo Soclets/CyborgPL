@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A `Synthia.ttsr` target must be one CCA can build (owner: "Only what's actually doable")
+
+Relayed by synthia claude. Proposed: (a) only targets CCA knows, from a
+list; (b) the shape `architecture-system`; (c) anything, CCA judging at
+build time. Synthia claude recommended (b) until CCA had a list. The
+owner: "Only what's actually doable". Synthia claude has asked compiler
+claude for CCA's list, its spellings and where it lives. Open: whether
+`CCA.cplr` refuses a target CCA cannot build (not ruled for CCA; the
+oracle, which builds nothing, cannot tell today).
+
 ### 2026-09-29 — The word in front of `::` is the Limb maker's, and apart from its name (owner: "yea")
 
 Asked whether a dependency found by folder may call itself something other
