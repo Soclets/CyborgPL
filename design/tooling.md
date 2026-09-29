@@ -47,7 +47,7 @@ Owner, 2026-09-14.
   ```
   pub const 'name' := "shop";
   pub const 'version' := "1.0.0";
-  pub const 'dependencies' := [cca.Dep[name = "geometry", version = "1.2"]];
+  pub const 'dependencies' := [cca::Dep[name = "geometry", version = "1.2"]];
   ```
 
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
