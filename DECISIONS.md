@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — The Synthia logo: four even orbits round a star, on a deep-space tile (owner)
+
+Made by the owner with website claude (`brand/synthia/`, 7870adb): the
+owner's pick "Star at the heart · 4 loops" — four even orbits 45° apart,
+each a shade along cyan → violet → pink with one glowing atom riding it,
+round a four-point star, on a deep-space tile (Lunae's cosmic palette,
+CyborgPL's tile shape). Tried before it: a dolphin, a sun/moon emblem,
+sound waves (dropped as too generic after a reverse image search),
+S-shaped waves, a constellation, a molecule. The owner asked for
+something closer to React's logo; website claude flagged that React's
+mark (three equal ellipses and a centre dot) is Meta's trademark, and four
+loops and a star keep it apart. The owner chose it knowing the risk. At the
+owner's word, relayed by website claude ("say that it should be put in the
+Synthia GH repo"), it is in the Synthia repo's `brand/` and at the top of
+its README (Synthia 98a2549).
+
 ### 2026-09-29 — A `cca::Dep` is a name plus a `version` or a `path`; the oracle runs Limbs with dependencies (owner: a)
 
 Asked whether Limbs were ready for compiler claude: the language rules
