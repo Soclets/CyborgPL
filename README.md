@@ -2,7 +2,7 @@
   <img src="brand/logo.svg" alt="" width="96">
 </p>
 
-<h3 align="center">CyborgPL</h3>
+<h3 align="center">CyborgPL™</h3>
 
 <p align="center">Just a small hobby lang 😊<br>
 Very slow at the development, fast &amp; safe at the final product.</p>
@@ -17,14 +17,14 @@ Very slow at the development, fast &amp; safe at the final product.</p>
 
 ## Credits
 
-CyborgPL is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
+CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
 
 **Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as four [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log and the oracle), *compiler claude* (CCA), *check claude* (the program generator and differential testing in `check/`) and *website claude* (`website/`). Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
 
 **Languages and tools**
 - [Rust](https://www.rust-lang.org) and Cargo: the oracle, CCA and the verification harness.
 - [LLVM](https://llvm.org) 22: CCA's code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
-- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Precog's proofs, and the independent check of them.
+- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Precog™'s proofs, and the independent check of them.
 - [Clang](https://clang.llvm.org): the C programs CCA is benchmarked against (`cca/bench/`).
 - [Python](https://www.python.org): the benchmark runner.
 - [Node.js](https://nodejs.org) and npm: the website's build.
@@ -64,4 +64,4 @@ The oracle and the verification harness use no crates.
 - **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
 
 Copyright 2026 Tankun Sriket.
-CyborgPL, Precog, Limb and Synthia are names of this project.
+CyborgPL™, Precog™, Limb™ and Synthia™ are names of this project.
