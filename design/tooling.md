@@ -58,7 +58,11 @@ Owner, 2026-09-14.
   Every name and type is checked against the settings CCA knows.
   **`name`, `version` and at least one target are required** (owner,
   2026-09-29: "yea"), as in `Synthia.ttsr`. `version` is any text, at most 256 bytes
-  (owner: "same" as `Synthia.ttsr`). **A
+  (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
+  front of `::`** to reach this Limb, picked by its maker and apart from
+  its `name` (owner, 2026-09-29: "yea", then b): `const 'prefix' :=
+  "cash";`. Not in the oracle yet; open: whether it is required, and
+  how a user overrides it when two Limbs pick the same one. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
   computed lives in **`build.cplr`**, a full CyborgPL program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
