@@ -5,6 +5,7 @@ in the Limb's own voice, with dotted keys and no quotes.
 
 ```
 [my identity]
+id = 7c01e4b2d9f35a68e1b0c2d3f4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a2b
 name = shop
 version = 1.0.0
 time.created = 2026-09-29T17:40:00+07:00
@@ -36,5 +37,15 @@ money.path = ../money
   or braces: the key already says it is an ID, and a line ends where its
   value does (owner: "yeah", after asking about `{}` and `""`).
 
-Open: the rest of `[my identity]` (the Limb's own ID?), `[my target]`,
-comments, what a registered name is for once IDs name Limbs.
+- **A Limb states its own ID in `[my identity]`** (owner: a), generated
+  once when it is created and never changed; the registry checks it
+  matches when the Limb registers.
+- **The registry refuses an ID it already has, and a registered ID is
+  permanent** (owner): it belongs to that Limb for good, never released or
+  reused. By accident two IDs never match — 2²⁵⁶ ≈ 1.16 × 10⁷⁷, and eight
+  billion people making a billion Limbs each would share one with chance
+  ≈ 2.8 × 10⁻⁴⁰ — so the rule is against a copied ID, someone passing their
+  Limb off as another.
+
+Open: `[my target]`, comments, what a registered name is for once IDs
+name Limbs, and how an update proves it comes from the ID's owner.

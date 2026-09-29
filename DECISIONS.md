@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A Limb states its own ID; a registered ID is refused twice and kept for good (owner)
+
+`id = …` sits in `[my identity]` (owner: a; alternative: only in the
+registry), generated once and never changed. The owner asked whether
+matching IDs are allowed and whether a match is basically impossible: by
+accident, yes — design claude first answered with uncomputed figures
+(2²⁵⁶ "roughly the atoms in the universe", a 10⁻⁵⁰ chance); the owner:
+"You better compute your answers". Computed: 2²⁵⁶ ≈ 1.16 × 10⁷⁷, about a
+thousandth of the ~10⁸⁰ atoms, and 8 × 10¹⁸ Limbs collide with chance
+≈ 2.8 × 10⁻⁴⁰. The real risk is a copied ID, so **the registry refuses an ID
+it already has**, and **a registered ID is permanent** (owner: "yea, and a
+registered ID is perm"). `design/synthia-manifest.md`.
+
 ### 2026-09-29 — `Synthia.ttsr`'s syntax, begun (owner)
 
 The owner started from their own sketch — `[my credentials]` with `name`,
