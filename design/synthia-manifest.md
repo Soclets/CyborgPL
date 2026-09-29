@@ -32,12 +32,12 @@ x86_64-windows.runner = wine
   (owner: b). A readable form of a time is a Synthia command's job, not a
   second line in the file (the owner first chose a readable line, then:
   "They could just run a Synthia CLI cmd"). **`synthia show`** shows
-  the manifest (owner, 2026-09-29: "opt 1"); **the readable time is
-  another command's** (owner: "`c`, but it should be another command"): in
-  the zone written in the file, plus how long ago —
-  `29 September 2026, 17:40 (UTC+7), 2 hours ago`. The clock is read only
-  for "ago", on display. Open: that command's name, and whether `synthia
-  show` prints times as written or leaves them out. Builds never read these times
+  the manifest (owner, 2026-09-29: "opt 1"); times as written, and
+  **`synthia show --readable`** gives them readably (owner: "Yeah, not a
+  separate command, just not exactly the same one", replacing "`c`, but it
+  should be another command"): in the zone written in the file, plus how
+  long ago — `29 September 2026, 17:40 (UTC+7), 2 hours ago`. The clock is
+  read only for "ago", on display. Open: the layout of `synthia show`. Builds never read these times
   (reproducible builds).
 - **A dependency is dotted keys** (owner: b): `geometry.version = 1.2`,
   `money.path = ../money`. A published one is named by **its ID**, which

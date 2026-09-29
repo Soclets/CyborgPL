@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Readable times come from `synthia show --readable` (owner)
+
+Relayed by synthia claude. Replaces the "another command" part of the
+entry below; the readable form itself stands. Synthia claude proposed
+`synthia time`; the owner floated "readable"; synthia claude set out
+`synthia readable` beside `synthia time`; then the owner proposed
+`synthia show --readable`, and, asked whether that replaces "another
+command": "Yeah, not a separate command, just not exactly the same one".
+So `synthia show` gives times as written (`2026-09-29T17:40:00+07:00`),
+and `synthia show --readable` gives `29 September 2026, 17:40 (UTC+7),
+2 hours ago`. Open: the layout of `synthia show`.
+
 ### 2026-09-29 — A manifest time reads in its own zone, plus how long ago, from a command of its own (owner: "`c`, but it should be another command")
 
 Relayed by synthia claude. Proposed: (a) the zone written in the file
