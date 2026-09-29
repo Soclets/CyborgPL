@@ -1,3 +1,6 @@
 const 'name' := "uses_a_limb";
 const 'version' := "1.0.0";
-const 'dependencies' := [cca::Dep[name = "areas", path = "../limbs/areas"],];
+const 'dependencies' := [
+    cca::Dep[name = "areas", path = "../limbs/areas"],
+    cca::Dep[name = "runnable", path = "../limbs/runnable"],
+];

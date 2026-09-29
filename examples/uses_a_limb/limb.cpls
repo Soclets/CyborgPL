@@ -4,4 +4,5 @@ MAIN {
     'c': areas::Circle = areas::Circle[radius = 2.0];
     'a' := areas::circle[lend 'c'];
     std::print.useful.stdout['a', " ", areas::shapes.square[4], " ", areas::'pi', \n];
+    std::print.useful.stdout[runnable::seven[] + 1, \n];      # runnable's own MAIN does not run
 }

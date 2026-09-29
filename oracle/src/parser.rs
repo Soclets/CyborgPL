@@ -310,7 +310,7 @@ impl Parser {
                     self.module.pop();
                 }
                 Tok::Word(w) if w == "MAIN" => {
-                    if !self.module.is_empty() { return self.err("MAIN lives at the root of the Limb (`limb.cpls`, outside any module)"); }
+                    if self.module != self.limb_root { return self.err("MAIN lives at the root of the Limb (`limb.cpls`, outside any module)"); }
                     if prog.main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
                     if *self.peek() == Tok::LBracket { return self.err("MAIN is a block, not a function: `MAIN { … }`, no parameter list"); }
