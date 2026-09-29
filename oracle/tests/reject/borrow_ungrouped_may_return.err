@@ -1,0 +1,1 @@
+line 12: 'r' is a borrow, and something its result depends on was given away on line 11

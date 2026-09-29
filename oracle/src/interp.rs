@@ -1226,6 +1226,55 @@ impl<'p> Interp<'p> {
         Ok(())
     }
 
+    /// The parameters a `-> lent` function may hand back a borrow of, on any path: `return lend 'p'`,
+    /// a local that borrows 'p', or a call passing `lend 'p'` where that call may hand it back.
+    fn may_return(&self, f: &Func, depth: usize) -> Vec<String> {
+        fn walk<'a>(b: &'a [Stmt], rets: &mut Vec<&'a crate::ast::Value>, locals: &mut Vec<(&'a str, &'a crate::ast::Value)>) {
+            for s in b {
+                match s {
+                    Stmt::Return { value: Some(v), .. } => if let [x] = v.values.as_slice() { rets.push(x); },
+                    Stmt::Decl { name, value, .. } => if let [x] = value.values.as_slice() { locals.push((name.as_str(), x)); },
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, rets, locals); } if let Some(b) = otherwise { walk(b, rets, locals); } }
+                    Stmt::Loop { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } | Stmt::Block { body, .. } => walk(body, rets, locals),
+                    Stmt::Match { arms, .. } => for a in arms { walk(&a.body, rets, locals); },
+                    Stmt::Tier { body, .. } => walk(std::slice::from_ref(body), rets, locals),
+                    _ => {}
+                }
+            }
+        }
+        let mut out = Vec::new();
+        if depth > 8 { return f.params.iter().filter(|p| p.kind != ParamKind::Owned).map(|p| p.name.clone()).collect(); }
+        let (mut rets, mut locals) = (Vec::new(), Vec::new());
+        walk(&f.body, &mut rets, &mut locals);
+        let mut todo: Vec<&crate::ast::Value> = rets;
+        let mut seen = 0;
+        while let Some(v) = todo.pop() {
+            seen += 1; if seen > 256 { break; }
+            match v {
+                crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, n, _)) | crate::ast::Value::Expr(Expr::Var(n, _)) => {
+                    if f.params.iter().any(|p| &p.name == n) { if !out.contains(n) { out.push(n.clone()); } }
+                    else { for (ln, lv) in &locals { if ln == n { todo.push(lv); } } }
+                }
+                crate::ast::Value::Expr(Expr::Call(c)) => for a in self.call_froms(c, depth + 1) { if f.params.iter().any(|p| p.name == a) && !out.contains(&a) { out.push(a); } else { for (ln, lv) in &locals { if *ln == a { todo.push(lv); } } } },
+                _ => {}
+            }
+        }
+        out
+    }
+
+    /// The variables a call to a `-> lent` function lends it that its result may borrow:
+    /// the arguments in its `@` group, or, without one, what its body may hand back.
+    fn call_froms(&self, c: &crate::ast::Call, depth: usize) -> Vec<String> {
+        let Some(g) = self.prog.funcs.iter().find(|f| f.name == *c.path.last().unwrap() && f.module == c.path[..c.path.len() - 1]) else { return Vec::new() };
+        let names: Vec<String> = match &g.ret_lent {
+            Some((_, Some(l))) => g.params.iter().filter(|p| p.life.as_ref() == Some(l)).map(|p| p.name.clone()).collect(),
+            Some((_, None)) => self.may_return(g, depth),
+            None => return Vec::new(),
+        };
+        g.params.iter().zip(&c.args.values).filter(|(p, _)| names.contains(&p.name)).filter_map(|(_, a)| match a {
+            crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, s, _)) => Some(s.clone()), _ => None }).collect()
+    }
+
     /// The borrow rule on every path, not only the one a run takes (check claude, 2026-09-29):
     /// in each body, read in source order, a borrow `'r' := lend 's'` (or a `-> lent@x` call's
     /// result, for the arguments in @x) followed by a change, `give` or `lend.mut` of 's' and then a
@@ -1233,24 +1282,20 @@ impl<'p> Interp<'p> {
     /// the run-time check.
     fn check_borrow_order(&self) -> Result<(), RuntimeError> {
         // (line, the statement's own text, a new borrow: (name, what it borrows))
-        fn flat(b: &[Stmt], out: &mut Vec<(usize, String, Option<(String, Vec<String>, bool)>)>, prog: &Program) {
+        fn flat(b: &[Stmt], out: &mut Vec<(usize, String, Option<(String, Vec<String>, bool)>)>, me: &Interp) {
             for st in b {
                 match st {
-                    Stmt::If { arms, otherwise, line } => { for (c, body) in arms { out.push((*line, format!("{c:?}"), None)); flat(body, out, prog); } if let Some(o) = otherwise { flat(o, out, prog); } }
-                    Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::Concur { body, .. } => flat(body, out, prog),
-                    Stmt::While { cond, body, line } => { out.push((*line, format!("{cond:?}"), None)); flat(body, out, prog); }
-                    Stmt::For { over, body, line, .. } => { out.push((*line, format!("{over:?}"), None)); flat(body, out, prog); }
-                    Stmt::Range { bounds, body, line, .. } => { out.push((*line, format!("{bounds:?}"), None)); flat(body, out, prog); }
-                    Stmt::Match { value, arms, line } => { out.push((*line, format!("{value:?}"), None)); for a in arms { flat(&a.body, out, prog); } }
-                    Stmt::Tier { body, .. } => flat(std::slice::from_ref(body), out, prog),
+                    Stmt::If { arms, otherwise, line } => { for (c, body) in arms { out.push((*line, format!("{c:?}"), None)); flat(body, out, me); } if let Some(o) = otherwise { flat(o, out, me); } }
+                    Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::Concur { body, .. } => flat(body, out, me),
+                    Stmt::While { cond, body, line } => { out.push((*line, format!("{cond:?}"), None)); flat(body, out, me); }
+                    Stmt::For { over, body, line, .. } => { out.push((*line, format!("{over:?}"), None)); flat(body, out, me); }
+                    Stmt::Range { bounds, body, line, .. } => { out.push((*line, format!("{bounds:?}"), None)); flat(body, out, me); }
+                    Stmt::Match { value, arms, line } => { out.push((*line, format!("{value:?}"), None)); for a in arms { flat(&a.body, out, me); } }
+                    Stmt::Tier { body, .. } => flat(std::slice::from_ref(body), out, me),
                     Stmt::Decl { name, value, line, .. } => {
                         let from = match value.values.as_slice() {
                             [crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, s, _))] => Some(vec![s.clone()]),
-                            [crate::ast::Value::Expr(Expr::Call(c))] => prog.funcs.iter().find(|f| f.name == *c.path.last().unwrap() && f.module == c.path[..c.path.len() - 1]).and_then(|f| match &f.ret_lent {
-                                Some((_, Some(l))) => Some(f.params.iter().zip(&c.args.values).filter(|(p, _)| p.life.as_ref() == Some(l)).filter_map(|(_, a)| match a {
-                                    crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, s, _)) => Some(s.clone()), _ => None }).collect()),
-                                _ => None,
-                            }),
+                            [crate::ast::Value::Expr(Expr::Call(c))] => Some(me.call_froms(c, 0)).filter(|v| !v.is_empty()),
                             _ => None,
                         };
                         let via_call = matches!(value.values.as_slice(), [crate::ast::Value::Expr(Expr::Call(_))]);
@@ -1270,10 +1315,10 @@ impl<'p> Interp<'p> {
         let bodies = self.prog.funcs.iter().map(|f| &f.body).chain(self.prog.main.iter());
         for body in bodies {
             let mut ev = Vec::new();
-            flat(body, &mut ev, self.prog);
+            flat(body, &mut ev, self);
             for (i, (_, _, b)) in ev.iter().enumerate() {
                 let Some((r, froms, via_call)) = b else { continue };
-                let whose = if *via_call { "something in its `@` group" } else { "what it borrows" };
+                let whose = if *via_call { "something its result depends on" } else { "what it borrows" };
                 for s in froms {
                     let mut wrote: Option<(usize, &str)> = None;
                     for (line, t, nb) in &ev[i + 1..] {
@@ -1308,7 +1353,7 @@ impl<'p> Interp<'p> {
         for key in std::iter::once(&own).chain(s.deps.iter()) {
             if let Some((n, at, what)) = self.writes.get(key) {
                 if *n > s.since {
-                    let whose = if *key == own { "what it borrows" } else { "something in its `@` group" };
+                    let whose = if *key == own { "what it borrows" } else { "something its result depends on" };
                     return rt(line, format!("'{name}' is a borrow, and {whose} was {what} on line {at} while '{name}' was still in use: a borrow never aliases a change and never outlives its owner"));
                 }
             }
@@ -2976,15 +3021,19 @@ impl<'p> Interp<'p> {
         let borrowed = self.ret_borrow.take();
         match (&func.ret_lent, borrowed) {
             (Some((_, life)), Some((cell, m))) => {
-                let from = lent_params.iter().find(|(_, _, pc)| Rc::ptr_eq(pc, &cell));
+                // one list may be lent to two parameters: any of them in the group will do
+                let mut sharing = lent_params.iter().filter(|(_, _, pc)| Rc::ptr_eq(pc, &cell));
+                let from = match life { Some(l) => lent_params.iter().filter(|(_, _, pc)| Rc::ptr_eq(pc, &cell)).find(|(_, pl, _)| pl.as_ref() == Some(l)).or_else(|| sharing.next()), None => sharing.next() };
                 match from {
                     None => return rt(self.ret_line, format!("`{name}` hands back a borrow of something that dies when it returns; a borrow it returns must come from a `lent` parameter")),
                     Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(self.ret_line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent@{l} '{pn}'`")); } },
                 }
                 // `@x`: the result lives while everything in the group does, whichever the body returned
+                // without a group, whatever the body may hand back, on any path (Precog reads the body)
+                let deps = self.may_return(&func, 0);
                 self.call_deps = match life {
                     Some(l) => lent_params.iter().filter(|(_, pl, _)| pl.as_ref() == Some(l)).map(|(_, _, pc)| Rc::as_ptr(pc) as *const () as usize).collect(),
-                    None => Vec::new(),
+                    None => lent_params.iter().filter(|(n, _, _)| deps.contains(n)).map(|(_, _, pc)| Rc::as_ptr(pc) as *const () as usize).collect(),
                 };
                 self.call_borrow = Some((cell, m));
             }
