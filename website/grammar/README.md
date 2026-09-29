@@ -7,8 +7,9 @@ that reads TextMate grammars.
 It was written from the oracle's lexer and parser — `oracle/src/lexer.rs` for
 the token shapes and `oracle/src/parser.rs` for the keyword list and the type
 spellings — so it follows the same rules the reference interpreter enforces,
-including the 2026-09-19 syntax revision and the 2026-09-25/27 changes (no `let`,
-`change`, `!$`, `and.then` / `or.else`, `#strict`, `pos` only in strict files).
+including the 2026-09-19 syntax revision and the 2026-09-25/27/29 changes (no `let`,
+`change`, `!$`, `and.then` / `or.else`, `#strict`, `pos` only in strict files, `div`,
+`</==` / `>/==`, `@x` lifetime groups, `gives`, `op +` as a value).
 
 ## What it knows
 
@@ -42,8 +43,11 @@ including the 2026-09-19 syntax revision and the 2026-09-25/27 changes (no `let`
   brackets, and the narrowing dot.
 - Ownership verbs (and `&` / `&mut`, their other spelling), the check tiers including
   `NO_FUCKING_CHECKS`, failure names after `fail`, and the word operators `x`, `xx`,
-  `mod`, `and`, `or`, `and.then`, `or.else`, plus the wrapping `+~` / `-~` / `x~` /
-  `xx~` and the bitwise `and.bit` / `xor` / `shl` / `shr`.
+  `div`, `mod`, `and`, `or`, `and.then`, `or.else`, plus the wrapping `+~` / `-~` / `x~` /
+  `xx~` and the bitwise `and.bit` / `xor` / `shl` / `shr`. The comparisons `==`, `!==`, `<`,
+  `>`, `</==`, `>/==`; the retired `/`, `<==`, `>==` are marked deprecated.
+- `@x` on a returned borrow (`-> lent@x T`), `gives` in a strict `match`, and an operator
+  handed over as a value (`op +`, `op neg`, `op </==`).
 - `#strict`'s range labels, `range[from 1, to 4, by 1]`, and `pos`.
 - `layout.c enum Key { a = 65 }`: a case and its number.
 - A library call through a built-in type as one name: `str.each.grapheme[…]`,
@@ -68,7 +72,7 @@ non-whitespace span left without a scope — there should be none — and, for e
 every distinct word it was given, which is the list to read by hand for words in the
 wrong class. `node website/grammar/audit.mjs <scope>` prints one class.
 
-Last run on 2026-09-28 against all 87 programs: no unscoped spans, and each class read
+Last run on 2026-09-29 against all 97 programs: no unscoped spans, and each class read
 by hand — every word coloured as an enum case is a real case or failure name, every
 capitalised word outside comments and strings is a declared type, generic or interface,
 and every bare word coloured as a function reference is one.

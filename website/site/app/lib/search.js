@@ -5,7 +5,7 @@ export const SOURCE_QUERIES = new Set(["gh", "repo", "source", "source code", "g
 
 // Other words people use for the same idea — only where the idea really is CyborgPL's.
 const SYNONYMS = {
-  gc: ["ownership"], garbage: ["ownership"], collector: ["ownership"], memory: ["ownership"], borrow: ["lend", "ownership"], move: ["give", "ownership"],
+  gc: ["ownership"], garbage: ["ownership"], collector: ["ownership"], memory: ["ownership"], move: ["give", "ownership"],
   exception: ["failures", "fail", "otherwise"], exceptions: ["failures", "fail", "otherwise"], error: ["failures", "fail"], errors: ["failures", "fail"],
   try: ["otherwise", "failures"], catch: ["otherwise", "failures"], throw: ["fail"], result: ["failures"],
   async: ["concurrency", "concur"], await: ["concur"], thread: ["concur", "concurrency"], threads: ["concur", "concurrency"], parallel: ["concur", "simd", "concurrency"], spawn: ["concur"],
@@ -24,6 +24,7 @@ const SYNONYMS = {
   array: ["list", "lists", "array"], vector: ["list", "lists"], vec: ["list"],
   dict: ["map", "maps"], dictionary: ["map", "maps"], hashmap: ["map", "maps"],
   comment: ["#", "comments"],
+  divide: ["div"], division: ["div"], lifetime: ["@x", "lifetimes"], borrow: ["lend", "ownership", "lifetimes"],
   assign: ["change"], reassign: ["change"], mutate: ["change", "mut"], mutable: ["mut"], shadow: ["$:=", "sealed"], strict: ["#strict", "strict"],
 };
 

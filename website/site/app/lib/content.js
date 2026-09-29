@@ -37,13 +37,13 @@ export const ACCENTS = ["#6c71c4", "#268bd2", "#2aa198", "#859900", "#cb4b16", "
 
 // What trips up newcomers, per design claude. Every code line is from design claude
 // (DECISIONS.md) or copied from a real program in examples/ — none are invented.
-// Syntax as of 2026-09-27: no `let`, `change`, no `pos`.
+// Syntax as of 2026-09-29: no `let`, `change`, no `pos`, `div`, `</==` / `>/==`.
 export const SYNTAX = [
   { title: "Names are quoted", text: "Variables always sit in single quotes. Types, functions and fields are bare words.", code: "'x' := 1000;" },
   { title: "`:=` or `=`", text: "A declaration starts with its name. `:=` works out the best type from the whole program; `=` needs the type written.", code: "'x' := 1000;\n'n': int32 = 5;" },
   { title: "Changing says `change`", text: "Every change to a value says `change`, so it never looks like a declaration. Only a `mut` value can change.", code: "mut 'x' := 1000;\nchange 'x' = 2000;" },
   { title: "Calls use brackets", text: "Arguments go in `[ ]`, not `( )`.", code: "add[1, 2]" },
-  { title: "`x` multiplies", text: "`x` multiplies, `xx` is power, `mod` is the remainder.", code: "'by3' := ('n' mod 3) == 0;" },
+  { title: "`x` multiplies, `div` divides", text: "`x` multiplies, `div` divides, `xx` is power, `mod` is the remainder.", code: "'by3' := ('n' mod 3) == 0;" },
   { title: "Positions start at 1", text: "The first element is position 1, written bare.", code: "return 'xs'[1];" },
   { title: "The newline is outside the string", text: "A string is exactly its characters. The newline is its own piece.", code: "std::print.stdout[\"Hello, World!\", \\n];" },
   { title: "Ownership at the call site", text: "The caller says whether it lends, gives or copies.", code: "describe[lend 'l']" },

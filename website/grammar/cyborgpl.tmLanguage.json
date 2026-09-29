@@ -74,6 +74,9 @@
       "include": "#call"
     },
     {
+      "include": "#lifetime"
+    },
+    {
       "include": "#operator"
     },
     {
@@ -485,7 +488,8 @@
         },
         {
           "name": "keyword.control.cyborgpl",
-          "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|match|whichever|concur)\\b"
+          "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|gives|match|whichever|concur)\\b",
+          "comment": "`gives` is a `#strict` match arm's value (2026-09-29)."
         },
         {
           "name": "keyword.declaration.cyborgpl",
@@ -616,9 +620,9 @@
           "match": "\\b(?:and\\.bit|or\\.bit|xor|shl|shr|not\\.bit)\\b"
         },
         {
-          "comment": "Word operators. `x` multiplies and `xx` raises; the ~ suffix wraps. `and.then` / `or.else` (2026-09-25) stop once the answer is known; plain `and` / `or` work out both sides.",
+          "comment": "Word operators. `x` multiplies, `xx` raises, `div` divides (2026-09-29); the ~ suffix wraps. `and.then` / `or.else` stop once the answer is known; plain `and` / `or` work out both sides.",
           "name": "keyword.operator.word.cyborgpl",
-          "match": "\\b(?:and\\.then|or\\.else|xx~|x~|(?:xx|x|mod|and|or|not)\\b)"
+          "match": "\\b(?:and\\.then|or\\.else|xx~|x~|(?:xx|x|div|mod|and|or|not)\\b)"
         },
         {
           "comment": "$ marks a shadowing declaration and sits on the operator.",
@@ -640,14 +644,19 @@
           "match": "\\+\\+"
         },
         {
-          "comment": "Comparison is doubled: !== <== >==.",
+          "comment": "Comparison: == !== < > and </== >/== (less / greater, or equal; 2026-09-29).",
           "name": "keyword.operator.comparison.cyborgpl",
-          "match": "!==|<==|>==|==|<|>"
+          "match": "!==|</==|>/==|==|<|>"
+        },
+        {
+          "comment": "Retired 2026-09-29, refused with the new spelling: `/` is `div`, `<==` / `>==` are `</==` / `>/==`.",
+          "name": "invalid.deprecated.cyborgpl",
+          "match": "<==|>==|(?<![!%&*+\\-/<>=?@^|~])/(?![!%&*+\\-/<>=?@^|~])"
         },
         {
           "name": "keyword.operator.arithmetic.cyborgpl",
-          "match": "[+\\-]~?|/",
-          "comment": "+~ and -~ wrap (2026-09-20)."
+          "match": "[+\\-]~?",
+          "comment": "+ and -; +~ and -~ wrap (2026-09-20). Division is the word `div`."
         },
         {
           "name": "keyword.operator.assignment.cyborgpl",
@@ -837,6 +846,18 @@
       "comment": "The check tiers. NO_FUCKING_CHECKS (2026-09-27) also trusts the numbers C hands back.",
       "name": "keyword.other.check.cyborgpl",
       "match": "\\b(?:check|nocheck|NO_FUCKING_CHECKS)\\b"
+    },
+    "lifetime": {
+      "comment": "`@x` names a lifetime group on a returned borrow, `-> lent@x T` (2026-09-29).",
+      "match": "(@)([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.lifetime.cyborgpl"
+        },
+        "2": {
+          "name": "storage.modifier.lifetime.cyborgpl"
+        }
+      }
     }
   }
 }

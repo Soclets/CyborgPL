@@ -8,7 +8,7 @@ import { plain } from "../lib/md.js";
 import { seo } from "../lib/seo.js";
 
 export const meta = ({ loaderData: ex, params }) => seo({
-  title: `${ex?.title ?? "Example"} · CyborgPL`,
+  title: `${ex?.title ? plain(ex.title) : "Example"} · CyborgPL`,
   description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.cpls — a CyborgPL program and the output it prints.`,
   path: `/examples/${params.id}`,
 });
@@ -87,7 +87,7 @@ export default function Example() {
   useEffect(() => setTab("code"), [ex.id]);
 
   return (
-    <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={ex.title}>
+    <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={plain(ex.title)}>
       <motion.div className="scrim" onClick={() => close()} style={{ opacity: tint }} />
       <motion.section
         className="sheet"
@@ -104,7 +104,7 @@ export default function Example() {
           <div className="grabber" />
           <div className="sheet-head">
             <div>
-              <b>{ex.title}</b>
+              <b><Md text={ex.title} /></b>
               <small>{ex.file} · {ex.lines} lines</small>
             </div>
             {/* On a phone there is no visible close button: swipe down (owner, 2026-09-25), and this
