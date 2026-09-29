@@ -17,7 +17,8 @@ The owner asked whether the `~` sat on the wrong side (no: `-~`, 2026-09-20),
 for an explanation, how a list says its item type (`list[uint8]` on the
 variable), confirmed `'xs': list[uint8] = [1, 2, 3];` is right, noted that
 b would open a follow-up question (how an item states its size), and chose
-a. Nested lists pass it down. The oracle had used the list type itself as
+a. Nested lists pass it down. Not ruled: whether a call's argument takes
+its parameter's type the same way (both engines refuse `f[0 -~ 1]` for now). The oracle had used the list type itself as
 the items' context and refused `[0 -~ 'i',]`; fixed. `operators.md`;
 `examples/list_item_context.cpls`.
 
