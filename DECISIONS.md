@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A Limb's own `version` is any text, at most 256 bytes (owner: "256 bytes it is")
+
+Relayed by synthia claude. Proposed: (a) three numbers, `1.0.0`; (b) one
+to three numbers; (c) anything. The owner first said "Maximum is 4 dots,
+numbers only", then, before anything was built: "let's just do anything
+with a character byte limit", "it doesn't require `.`". Weighed: 8, 16,
+24, 32, 64 bytes. 8 refuses `12.10.100` (9 bytes) and `1.0.0-rc.1` (10);
+`1.0.0-beta.12+build.2026.09.29` is 30; the shortest Thai version,
+`เวอร์ชัน ๑.๒.๓`, is 36, so 24 and 32 refuse any version written in
+Thai (byte counts checked by design claude). Synthia claude recommended
+256 if Thai matters. The owner: "256 bytes it is". This is the Limb's own
+`version` only; what `geometry.version = 1.2` means for a needed Limb is
+left for the registry. Open: `CCA.cplr`'s 'version' has no limit in the
+oracle, so a 300-byte version passes CCA and not Synthia.
+
 ### 2026-09-29 — `CCA.cplr` needs `name`, `version` and a target too (owner: "yea")
 
 Synthia claude noted that the oracle required none of these in `CCA.cplr`

@@ -74,6 +74,10 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   target** (owner, 2026-09-29: b). `id`, `time.created` and
   `time.stated_ver.created` are needed only to publish, and checked then:
   a Limb that never leaves its machine needs no ID.
+- **A Limb's own `version` is any text, at most 256 bytes** (owner,
+  2026-09-29: "256 bytes it is"; "it doesn't require `.`"): room for a
+  version written in Thai. What a needed Limb's `version` means is the
+  registry's, and open.
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
   Limb's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,
