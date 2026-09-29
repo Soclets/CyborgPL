@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A manifest time reads in its own zone, plus how long ago, from a command of its own (owner: "`c`, but it should be another command")
+
+Relayed by synthia claude. Proposed: (a) the zone written in the file
+only; (b) converted to the zone of the computer running it; (c) (a) plus
+how long ago. Synthia claude recommended (c). The owner: "`c`, but it
+should be another command". So `2026-09-29T17:40:00+07:00` reads
+`29 September 2026, 17:40 (UTC+7), 2 hours ago`, shown by a command other
+than `synthia show`. The clock is read only for "ago", on display; builds
+never read these times. Open: that command's name, and what `synthia
+show` does with times (as written, or left out).
+
 ### 2026-09-29 — A `#` inside a `Synthia.ttsr` value is part of it (owner: "yea")
 
 Synthia claude's fix for a comment after a value (acb3aa9): a `#` that
@@ -21,8 +32,9 @@ Relayed by synthia claude. Proposed: `synthia show`, `synthia info`,
 and one that could later show a needed Limb (`synthia show geometry`).
 The owner: "opt 1", which synthia claude reports as `show`. The owner
 added: "there should be a way to view the recorded time in an
-easier-to-read format", so `synthia show` gives the manifest's times
-readably. What that form looks like is open.
+easier-to-read format", which synthia claude took as `synthia show`
+giving the times readably. Superseded the same day: the readable time is a
+command of its own (next entry up).
 
 ### 2026-09-29 — A refused `Synthia.ttsr` is reported in CCA's message shape (owner: "yea")
 
