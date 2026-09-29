@@ -537,6 +537,9 @@ impl Parser {
             Vec::new()
         } else { self.block()? };
         if self.strict && ret.is_none() && self.saw_value_return { return self.err(format!("`#strict`: `{name}` returns a value, so it says its type: `-> int32`")); }
+        // a returned borrow names its group in a strict file: callers there see only signatures
+        // (owner, 2026-09-29); elsewhere Precog works it out from the body
+        if self.strict && matches!(ret_lent, Some((_, None))) { return self.err(format!("`#strict`: `{name}` hands back a borrow, so it names what the borrow depends on: `-> lent@x …` with `lent@x` on those parameters")); }
         let bounds = std::mem::take(&mut self.bounds);
         Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, bounds, params, body, line })
     }

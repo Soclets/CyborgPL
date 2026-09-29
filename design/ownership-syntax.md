@@ -161,8 +161,10 @@ group (`-> lent str.utf8 from 'a', 'b'`, recommended by design claude
 and not chosen); `~` for the mark (it already means wrapping); a Rust-style
 list up front (`fn longer <@x> …`). `examples/lifetimes.cpls`.
 
-## Open
-
-- Whether a `#strict` file must write the `@` group on every returned
-  borrow (it cannot look into bodies), and whether it may be left out
-  elsewhere, as "optional, verified" (2026-09-14) suggests.
+**The group is optional outside `#strict`** (owner, 2026-09-29:
+"`-> lent str.utf8` is legal in normal"): `fn first [lent 'a': str.utf8]
+-> lent str.utf8` is fine, and Precog works out from the body what the
+result depends on, as "optional, verified" (2026-09-14) had it. **A
+`#strict` file must write it** (owner: "yeah, required in strict"): a
+strict caller sees only signatures, and the reader should see what the
+result depends on. Either way it costs nothing when the program runs.

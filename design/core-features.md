@@ -165,6 +165,8 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   - `temp` or `perm` on every `for`;
   - a `match` / `otherwise` case says its value with `gives` (2026-09-29,
     `enums.md`);
+  - a returned borrow names its lifetime group, `-> lent@x T` (2026-09-29,
+    `ownership-syntax.md`);
   - each range bound labelled, the step always written:
     `for temp 'i' in range[from 2, to 8, by 2]` (owner, same day: "the loop
     syntax should be more self-explanatory"). "Count from 2 to 8 by -4"

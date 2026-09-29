@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `@x` on a returned borrow: required in `#strict`, optional elsewhere (owner)
+
+Asked whether the group may be left out. The owner asked which has better
+performance (neither: the group is checked at compile time and leaves
+nothing in the program) and said "`-> lent str.utf8` is legal in normal"
+files, where Precog works the group out from the body, as "optional,
+verified" (2026-09-14) had it. Design claude recommended requiring it in
+`#strict`, since a strict caller sees only signatures and the reader
+should see what the result depends on. Owner: "yeah, required in
+strict". A strict function returning `lent T` or `lent.mut T` without
+`@x` is refused. `ownership-syntax.md`, `core-features.md`; reject test
+strict_lifetime.
+
 ### 2026-09-29 — Handing back a borrow: `-> lent@x T`, with `@x` a lifetime group (owner: b, `@`)
 
 Item 4, returning a function that borrowed something, turned out to be
@@ -21,9 +34,8 @@ follows `@` (the group's name, meaning only "same group"), and for a
 comparison with Rust (`fn longer<'x>(a: &'x str, b: &'x str) -> &'x
 str`), then "`@` it is". The oracle now returns borrows (it refused any
 before) and refuses one from the wrong group, one of something dying at
-the return, and a borrow returned without `-> lent` in the signature. Open:
-whether `#strict` requires the group and whether it may be omitted
-elsewhere. `ownership-syntax.md`; `examples/lifetimes.cpls`; reject
+the return, and a borrow returned without `-> lent` in the signature. Whether
+the group may be left out was settled the same day (next entry up). `ownership-syntax.md`; `examples/lifetimes.cpls`; reject
 tests lifetime_wrong_group, lifetime_local, lifetime_unsaid.
 
 ### 2026-09-29 — `for 'i', 'x' in lend 'xs'`: the position beside the item (owner: a)
@@ -2996,7 +3008,6 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - Lunae (formerly N%): its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
-- Lifetimes: must `#strict` write the `@` group on a returned borrow, and may it be left out elsewhere? (2026-09-29)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
