@@ -2,9 +2,7 @@
 
 For the session that builds **Synthia**, CyborgPL's separate package
 manager ("synthia claude"). Written 2026-09-29 by the design session, at
-the owner's request. Read this first; then everything it points at. The
-session is not started yet: the owner starts it, and then gives it its
-share of the machine's cores.
+the owner's request. Read this first; then everything it points at.
 
 ## Who decides
 
@@ -35,9 +33,9 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
 - **Go** (owner, 2026-09-29). Its standard library covers what a package
   manager does: fetching, archives, hashing, running `cca`.
 - **Its manifest is `Synthia.ttsr`** — *Tankun's TOML Syntax Ripoff* — in
-  a syntax of Synthia's own, which "may not be like TOML" (owner). The
-  syntax is **not designed**: that is the first question, and it is the
-  owner's.
+  a syntax of Synthia's own (owner). Its syntax is designed:
+  `design/synthia-manifest.md` (owner, 2026-09-29), and its one open point
+  is there.
 - **How it connects**: Synthia reads its manifest, fetches the Limbs,
   and calls `cca build …` saying where each is. CCA never reads
   `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): CCA
@@ -49,9 +47,15 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   2026-09-29: "same license").
 - **Marks**: Synthia™. ™, never ®.
 
+## For now: Go only
+
+The owner, 2026-09-29: "make it only do Go for now". Synthia's builds and
+tests run Go and nothing else, and it never runs `cca`: a `cca` build uses
+LLVM on every core it can get, and Synthia's share of the machine is small.
+
 ## What is open
 
-The manifest's syntax; commands (`synthia build/final/run/test` are
+Commands (`synthia build/final/run/test` are
 named in `tooling.md` from before CCA had its own); lock files,
 publishing, where Limbs are fetched from; how CCA takes the list of Limbs
 (ask compiler claude, who owns CCA's command line). `design/tooling.md`,
