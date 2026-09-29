@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A refused `Synthia.ttsr` is reported in CCA's message shape (owner: "yea")
+
+Relayed by synthia claude. Proposed: a one-line form
+(`Synthia.ttsr:3:5: the `=` has one space on each side`), or the labelled
+shape of `design/diagnostics.md`. Synthia claude recommended CCA's shape
+— one shape for both tools, and the owner had found one-liners "less
+useful than C's" (2026-09-22). The owner: "yea".
+
+```
+error: the `=` has one space on each side
+where: Synthia.ttsr, line 3, column 5, in [my identity]
+code:  name=shop
+
+fix:   line 3:
+       name = shop
+```
+
+`fix:` is left out when there is no one right line to write.
+
 ### 2026-09-29 — `Synthia.ttsr` lines are written one way; anything else is refused (owner: "refuse")
 
 Relayed by synthia claude. `synthia-manifest.md` shows `key = value` with

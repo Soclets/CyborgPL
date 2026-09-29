@@ -67,6 +67,9 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   its own line. `name=shop`, an indented line, and a comment after a value
   are refused. The refusal shows the corrected line where there is one
   (`name=shop` → `name = shop`; owner: "I think it's correct").
+- **A refusal is written in CCA's message shape** (`diagnostics.md`;
+  owner, 2026-09-29: "yea"): `error:`, `where:` (file, line, column,
+  section), `code:`, and `fix:` when there is one right line to write.
 - **Names may repeat; IDs never do** (owner: "Names could be the same, IDs
   can't"). A name is a label; the key before `.id` in `[my needed things]` is
   what this Limb's code calls that dependency (`geometry.id = …` →
