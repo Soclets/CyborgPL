@@ -19,7 +19,7 @@ extern fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
 
 - `extern` before `fn`, like `pub`; no body, a `;` instead. A normal
   signature otherwise. Which library provides it is Synthia's business
-  (`Synthia.cplm`), never the source's. One calling convention: C's.
+  (the manifest (`Synthia.ttsr` / `CCA.cplr`)), never the source's. One calling convention: C's.
 - **An `extern` call is a `nocheck` site** — Precog cannot see inside it,
   so nothing about it can be proven; `nocheck` already means "on my
   word", and the build output already lists every such site, so it now

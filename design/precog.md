@@ -270,7 +270,7 @@ already specifies: write the type.
   (`rlimit`); results do not depend on thread scheduling.
 - Sites are analysed and reported in source order.
 - Compile-time arithmetic is performed at the exact width the target uses;
-  the target is a description in `Synthia.cplm`, never the host.
+  the target is a description in the manifest (`Synthia.ttsr` / `CCA.cplr`), never the host.
 - Nothing is read at compile time except the source and the config: no
   files, clock, environment, network.
 - The compiler's and both solvers' versions are in the report header.

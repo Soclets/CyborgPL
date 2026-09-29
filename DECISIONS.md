@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Synthia's manifest is `Synthia.ttsr`, in a syntax of its own (owner)
+
+Following the two-package-manager split (below), the owner said Synthia
+"will likely not be TOML inside", asked how an external package manager
+connects (it reads its manifest, fetches the Limbs, and calls CCA with
+where each is; CCA never reads the manifest), whether Synthia should be
+`.cplr` (only if CyborgPL syntax), then proposed `.sss` (*Synthia Special
+Syntax*; taken by SugarSS, a CSS syntax in PostCSS/Parcel/webpack),
+`.ttr` (*Tankun's TOML Ripoff*; used by TETR.IO replays), and `.ttsr`,
+**Tankun's TOML Syntax Ripoff**, free everywhere: "yeah. And no, the
+syntax may not be like TOML." Design claude had suggested keeping `.cplm`
+for Synthia's own syntax. `.cplm` is retired; the extension family is
+`.cpls` (source), `.cplr` (CyborgPL-syntax tooling files, `CCA.cplr`),
+`.ttsr` (Synthia's manifest), `.limb` (a published Limb). The syntax
+itself is open; Synthia is not being built. `tooling.md`, `limbs.md`.
+
 ### 2026-09-29 — Two package managers: Synthia, and CCA's own, whose manifest `CCA.cplr` is CyborgPL (owner)
 
 The owner asked "who said TOML inside?" of `Synthia.cplm`. Design claude

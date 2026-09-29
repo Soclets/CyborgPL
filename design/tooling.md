@@ -24,18 +24,16 @@ Owner, 2026-09-14.
   limbs.)
 - **Synthia** — the package manager and build tool: it *synthesises*
   everything (owner, 2026-09-23, on renaming from JetPack). Its manifest
-  is **`Synthia.cplm`** — *CyborgPL Manifest*, the family's third
-  extension beside `.cpls` and `.limb`, and unclaimed anywhere. The
-  file's contents are **TOML**: a manifest is data, TOML needs no parser
-  of ours and every editor highlights it, so the extension says whose
-  the file is while the format stays standard. *(Reopened 2026-09-29: the
-  TOML part had been bundled into the owner's "yes" to the extension, and
-  the owner now says Synthia will likely not be TOML inside.)* Proposed alternatives:
-  `Synthia.toml` (Cargo's furniture); `.cpm`, which drops the family's
-  `l` and brushes against CPM.cmake's world; the manifest written in
-  CyborgPL itself as `pub const`s — the strongest "one language" story
-  and the most work, kept in mind if configuration ever needs to compute
-  anything.
+  is **`Synthia.ttsr`** — *Tankun's TOML Syntax Ripoff* (owner,
+  2026-09-29), in a syntax of Synthia's own, which "may not be like TOML".
+  History: on 2026-09-23 it was `Synthia.cplm` (*CyborgPL Manifest*) with
+  TOML inside, the TOML part bundled into the owner's "yes" to the
+  extension; reopened on 2026-09-29, when the owner made two package
+  managers. Proposed along the way: `Synthia.toml`; `.cpm`; `.cplm` kept
+  for Synthia's own syntax (design claude); `.sss` (*Synthia Special
+  Syntax*, taken by SugarSS, a CSS syntax); `.ttr` (the owner's, used by
+  TETR.IO replays). `.ttsr` is free everywhere. What the syntax looks like
+  is open; Synthia is not being built yet.
 
 - **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
   deliberately avoided.
@@ -52,10 +50,10 @@ Owner, 2026-09-14.
   pub const 'dependencies' := [cca.Dep[name = "geometry", version = "1.2"]];
   ```
 
-  Synthia stays the separate tool; what is inside `Synthia.cplm` is open
-  again (owner, 2026-09-29: "Synthia will likely not be TOML inside"). What goes in
+  Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
+  (above). What goes in
   `CCA.cplr`, and how the two relate, is open.
-- **`.limb`** — a *published* Limb: the Limb's directory (`Synthia.cplm` +
+- **`.limb`** — a *published* Limb: the Limb's directory (its manifest +
   `.cpls` files) packaged as one file for Synthia to upload, download, and
   checksum. Same relationship as a Rust crate folder to its `.crate` tarball.
   Checked 2026-09-14: no existing `.limb` format is registered.
@@ -68,7 +66,7 @@ Owner, 2026-09-14.
 ## Cross-compiling, running elsewhere (discussed 2026-09-21, proposal)
 
 CCA compiles and stops; it never executes what it built. The target is
-declared in `Synthia.cplm`, never sniffed from the host; the host is
+declared in the manifest (`Synthia.ttsr` or `CCA.cplr`), never sniffed from the host; the host is
 looked at only for cores and memory (speed), never for meaning — the same
 program with the same config gives the same proofs and the same binary on
 a laptop or a farm. Proof-cache entries are keyed by (function bytes,
@@ -94,4 +92,4 @@ with the rest of Synthia.
 
 ## Open
 
-- Whether `Synthia.cplm` is also the name of the CLI (`synthia add …`).
+- Synthia's own syntax for `Synthia.ttsr`, and how Synthia and CCA's package manager relate.

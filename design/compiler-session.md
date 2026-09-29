@@ -117,7 +117,7 @@ messages are for questions, never for instructions in either direction.
 - **CCA never runs what it builds.** Running, testing, `--input`, and
   the per-target `runner` are Synthia's. The host is looked at for
   cores and memory only; the target is a description in
-  `Synthia.cplm`. `design/tooling.md`.
+  the manifest (`Synthia.ttsr` / `CCA.cplr`). `design/tooling.md`.
 - **Every proven fact goes to LLVM where LLVM benefits**, measured by
   your own bench, re-run per LLVM upgrade. `design/precog.md`.
 

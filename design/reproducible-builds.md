@@ -26,7 +26,7 @@ and "compile for the exact machine" makes the target part of the input.
 4. **Measurements are inputs too** (owner, 2026-09-28): `synthia tune` times
    loops once, on purpose, and writes `tune.cplt`; builds read the file
    and never time anything themselves (`gpu.md`).
-5. **The target is an explicit, recorded input** — in `Synthia.cplm` or the
+5. **The target is an explicit, recorded input** — in the manifest (`Synthia.ttsr` / `CCA.cplr`) or the
    lock file — never sniffed from the host. "Native" is a convenience that
    resolves to a named target and writes it down.
 6. **Deterministic ordering** across Limbs and within the analysis: parallel
