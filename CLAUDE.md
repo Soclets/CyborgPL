@@ -35,7 +35,7 @@ the owner explicitly chooses it.
   - check claude: `local_ef7a2c2e-a6ee-44b5-a0bd-b5c9a62174ec`
   - website session: `local_c5cfe29e-4c8b-43d5-b06c-a1b7e2c93b90`
 
-- **Cores** (owner, 2026-09-23: "How many cores do I have? Split it evenly"): the machine has 10 (4 performance, 6 efficiency). Each of the three sessions uses at most **3** at once, for builds, tests and any runs it starts, and 1 is left for the desktop. `oracle/.cargo/config.toml` holds this for the oracle, and each session holds it for its own work.
+- **Cores** (owner, 2026-09-23: "How many cores do I have? Split it evenly"): the machine has 10 (4 performance, 6 efficiency). Each of the three sessions uses at most **3** at once, for builds, tests and any runs it starts, and 1 is left for the desktop. `oracle/.cargo/config.toml` holds this for the oracle, and each session holds it for its own work. Synthia claude has no bound, since it runs only Go for now (owner, 2026-09-29: "No core bounds, because Go only for now is stated").
 
 ## Layout
 

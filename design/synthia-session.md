@@ -50,8 +50,10 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
 ## For now: Go only
 
 The owner, 2026-09-29: "make it only do Go for now". Synthia's builds and
-tests run Go and nothing else, and it never runs `cca`: a `cca` build uses
-LLVM on every core it can get, and Synthia's share of the machine is small.
+tests run Go and nothing else, and it never runs `cca`. So it has no core
+bound (owner, 2026-09-29: "No core bounds, because Go only for now is
+stated"): Go's bursts are short, while a `cca` build uses LLVM on every core
+it can get.
 
 ## What is open
 
