@@ -106,8 +106,9 @@ pub fn matches(c: &Claim, e: &Encoded, spans: &Spans) -> Vec<usize> {
             }
             if let Some(&(l, a0, a1, b)) = spans.stmt.get(&s.stmt) {
                 // a landing in a statement (let, =, return, print): CCA gives
-                // the statement's span, with or without its tier word or `;`
-                return l == c.line && (a0 == c.col || a1 == c.col) && (b == c.end_col || b - 1 == c.end_col);
+                // the statement's span, with or without its tier word or `;`,
+                // or, for a print's argument, the argument's own (034493a)
+                return (l == c.line && (a0 == c.col || a1 == c.col) && (b == c.end_col || b - 1 == c.end_col)) || hit(spans.expr.get(&s.node));
             }
             if s.stmt != 0 {
                 // an argument: its own span (CCA 034493a); before that, the
