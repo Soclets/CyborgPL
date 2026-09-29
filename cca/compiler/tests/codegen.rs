@@ -290,3 +290,18 @@ fn strict_proves_from_its_own_function() {
     let err = String::from_utf8_lossy(&working.stderr).to_string();
     assert!(!working.status.success() && err.contains("this `#strict` file does not say why not in this function"), "the working build should refuse the unproven strict sites, and said:\n{}", err);
 }
+
+/// A borrow lasts until its last use (Rust-style, `core-features.md`):
+/// while it is in use, what it borrows is not given away, and a `lent.mut`
+/// one lets nobody else use it; after it, both are fine.
+#[test]
+fn borrows_keep_what_they_borrow_while_in_use() {
+    let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
+    for (name, phrase) in [("borrow_given_while_used", "'s' cannot be given away here: 'l' still borrows it"), ("borrow_mut_exclusive", "'xs' cannot be used here: 'm' still borrows it `lent.mut`")] {
+        let r = final_build(&tests.join(format!("{}.cpls", name)));
+        let err = String::from_utf8_lossy(&r.stderr).to_string();
+        assert!(!r.status.success() && err.contains(phrase), "{}: should be refused ({}), and said:\n{}", name, phrase, err);
+    }
+    let ok = final_build(&tests.join("borrow_given_after.cpls"));
+    assert!(ok.status.success(), "borrow_given_after.cpls should build:\n{}", String::from_utf8_lossy(&ok.stderr));
+}

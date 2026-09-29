@@ -59,6 +59,8 @@ pub struct Module {
 #[derive(Debug, Clone)]
 pub struct ParamDecl {
     pub kind: ParamKind,
+    /// `lent@x`: its lifetime group (owner, 2026-09-29).
+    pub group: Option<String>,
     pub amp: bool,
     pub mutability: Option<ast::Mutability>,
     pub variadic: bool,
@@ -78,6 +80,9 @@ pub struct FnDeclInfo {
     pub vis: Vis,
     pub params: Vec<ParamDecl>,
     pub ret: Ty,
+    /// `-> lent@x T`: a borrow handed back, whether it may be changed, and
+    /// its group (owner, 2026-09-29).
+    pub ret_lent: Option<(bool, Option<String>)>,
     pub fails: Vec<(String, Option<Ty>)>,
     /// Generic blanks by first appearance: name and interface bound.
     pub blanks: Vec<(String, Option<IfaceId>)>,
@@ -221,7 +226,7 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), params: op.params.clone(), ret: op.ret.clone(), fails: Vec::new(), body: Some(op.body.clone()) };
+                let decl = ast::FnDecl { name: op.op.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()) };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -502,13 +507,24 @@ impl Items {
                     (None, true)
                 }
             };
-            params.push(ParamDecl { kind: conv_kind(p.kind), amp: p.amp, mutability: p.mutability, variadic: p.variadic, name: p.name.name.clone(), ty, from_blank, span: p.span });
+            params.push(ParamDecl { kind: conv_kind(p.kind), group: p.group.as_ref().map(|g| g.name.clone()), amp: p.amp, mutability: p.mutability, variadic: p.variadic, name: p.name.name.clone(), ty, from_blank, span: p.span });
         }
         let ret = match &decl.ret {
             Some(t) => self.resolve_type(t, m, &mut blanks, true)?,
             None => Ty::Nothing,
         };
         let fails = self.resolve_fails(&decl.fails, m, &mut blanks)?;
+        // A returned borrow's group is one its parameters are in.
+        if let Some(rl) = &decl.ret_lent {
+            if let Some(g) = &rl.group {
+                if !decl.params.iter().any(|p| p.group.as_ref().map(|x| &x.name) == Some(&g.name)) {
+                    return err(Diagnostic::error(format!("no parameter is `lent@{}`, so `-> lent@{}` would borrow from nothing: mark the parameters it may come from", g.name, g.name)).at(g.span));
+                }
+            }
+            if !fails.is_empty() {
+                return err(Diagnostic::error("not yet: a function that hands back a borrow and can also fail has no shape in CCA yet").at(rl.span));
+            }
+        }
         if let Some(o) = &op {
             if params.len() != 2 {
                 return err(Diagnostic::error(format!("an operator takes exactly two operands; `{}` is declared with {}", o, params.len())).at(decl.name.span));
@@ -526,7 +542,7 @@ impl Items {
             }
         }
         let path = if op.is_some() { decl.name.name.clone() } else { qualify(self, m, &decl.name.name) };
-        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, fails, blanks, body: decl.body.clone(), op, is_literal: false, span, name_span: decl.name.span })
+        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, span, name_span: decl.name.span })
     }
 
     pub fn resolve_fails(&mut self, fails: &[ast::FailSpec], m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>) -> Result<Vec<(String, Option<Ty>)>> {
@@ -1021,7 +1037,7 @@ pub fn conv_kind(k: ast::ParamKind) -> ParamKind {
 }
 
 fn placeholder_fn(name: &str, m: ModuleId, vis: Vis, span: Span, name_span: Span) -> FnDeclInfo {
-    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, span, name_span }
+    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, span, name_span }
 }
 
 fn qualify(items: &Items, m: ModuleId, name: &str) -> String {

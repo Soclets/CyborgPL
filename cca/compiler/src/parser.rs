@@ -45,10 +45,12 @@ struct Parser<'a> {
     /// Whether the body being parsed has a `return` with a value: in a
     /// strict file such a function says its type.
     returns_value: bool,
+    /// What the last `-> …` said about a returned borrow.
+    ret_lent: Option<RetLent>,
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None };
     let mut strict = None;
     if p.is(&Tok::Strict) {
         strict = Some(p.span().file);
@@ -418,6 +420,11 @@ impl<'a> Parser<'a> {
             return self.fail("the return type is `-> int32`, not `: int32` — `:` attaches a type to a name, and a result is not the function's type");
         }
         let (ret, fails) = self.return_spec()?;
+        let ret_lent = self.ret_lent.take();
+        // A strict caller sees only signatures (owner, 2026-09-29).
+        if let (true, Some(RetLent { group: None, span, .. })) = (self.strict, &ret_lent) {
+            return self.fail_at(*span, format!("`{}` hands back a borrow, so it names what the borrow depends on: `-> lent@x …`, with `lent@x` on those parameters — a `#strict` file writes it out", name.name));
+        }
         let body = if has_body {
             if self.is(&Tok::Semi) {
                 return self.fail(format!("`{}` has no body: a function without one is an `extern fn`", name.name));
@@ -436,7 +443,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, params, ret, fails, body })
+        Ok(FnDecl { name, params, ret, ret_lent, fails, body })
     }
 
     /// `-> T`, `-> T or fail[…]`, `-> fail[…]`, or nothing.
@@ -446,8 +453,25 @@ impl<'a> Parser<'a> {
                 return self.fail(format!("`{}` is one operator: put a space after `->` (`-> <T>`)", o));
             }
         }
+        self.ret_lent = None;
         if !self.eat_op("->") {
             return Ok((None, Vec::new()));
+        }
+        // `-> lent T`, `-> lent.mut@x T`: a borrow handed back (owner,
+        // 2026-09-29). `lent[…]` would be a call, and never follows `->`.
+        if self.is_word("lent") {
+            let start = self.bump().span;
+            let mutable = if self.eat(&Tok::Dot) {
+                let m = self.ident("`mut` after `lent.`")?;
+                if m.name != "mut" {
+                    return self.fail_at(m.span, format!("`lent.{}` is not a borrow: `-> lent T` or `-> lent.mut T`", m.name));
+                }
+                true
+            } else {
+                false
+            };
+            let group = if self.eat_op("@") { Some(self.ident("the lifetime group's name after `@`")?) } else { None };
+            self.ret_lent = Some(RetLent { mutable, group, span: start.to(self.prev_span()) });
         }
         if self.is_word("fail") {
             self.bump();
@@ -528,6 +552,7 @@ impl<'a> Parser<'a> {
         let mut amp = false;
         let mut mutability = None;
         let mut variadic = false;
+        let mut group = None;
         match self.peek().clone() {
             Tok::Word(w) if w == "lent" => {
                 self.bump();
@@ -539,6 +564,9 @@ impl<'a> Parser<'a> {
                     kind = ParamKind::LentMut;
                 } else {
                     kind = ParamKind::Lent;
+                }
+                if self.eat_op("@") {
+                    group = Some(self.ident("the lifetime group's name after `@`")?);
                 }
                 if ctx == ParamContext::Op {
                     return self.fail_at(start, "an operator's operands are lent by default: write `'a': T` with no `lent`; `give 'a': T` takes it by value");
@@ -594,6 +622,7 @@ impl<'a> Parser<'a> {
         }
         let mut p = self.param_rest(start, kind, amp, mutability, false)?;
         p.variadic = variadic;
+        p.group = group;
         if variadic && ctx == ParamContext::Extern {
             // C's own varargs: allowed, with no type.
         }
@@ -620,7 +649,7 @@ impl<'a> Parser<'a> {
         }
         let ty = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
         let span = start.to(self.prev_span());
-        Ok(Param { kind, amp, mutability, variadic: false, name, ty, span })
+        Ok(Param { kind, group: None, amp, mutability, variadic: false, name, ty, span })
     }
 
     fn struct_decl(&mut self, layout_c: bool) -> Result<StructDecl> {
@@ -746,6 +775,9 @@ impl<'a> Parser<'a> {
             };
             let params = self.params(ParamContext::Iface)?;
             let (ret, fails) = self.return_spec()?;
+        if let Some(r) = self.ret_lent.take() {
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
+        }
             if self.is(&Tok::LBrace) {
                 return self.fail("an interface lists promises, not code: end the signature with `;` and leave the body out");
             }
@@ -791,6 +823,9 @@ impl<'a> Parser<'a> {
             return self.fail(format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
         }
         let (ret, fails) = self.return_spec()?;
+        if let Some(r) = self.ret_lent.take() {
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
+        }
         if !fails.is_empty() {
             return self.fail_at(op.span, format!("an operator cannot fail; make `{}` a `fn` if it needs `fail[…]`", op.name));
         }
@@ -928,6 +963,9 @@ impl<'a> Parser<'a> {
                 }
                 self.expect(&Tok::RBracket, "`]` closing the function type's parameters")?;
                 let (ret, fails) = self.return_spec()?;
+        if let Some(r) = self.ret_lent.take() {
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
+        }
                 TypeKind::Fn { params, ret: ret.map(Box::new), fails }
             }
             Tok::Word(w) if w == "list" && matches!(self.peek_at(1), Tok::Dot) => {
@@ -1265,6 +1303,17 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.match_rest()
             }
+            // `gives` (owner, 2026-09-29: b) is a strict file's; elsewhere
+            // a case's value stands alone. `gives[…]` is a call.
+            "gives" if !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot) => {
+                let at = self.bump().span;
+                if !self.strict {
+                    return self.fail_at(at, "`gives` belongs to `#strict` files; elsewhere a case's value stands alone: `{ 1 }`");
+                }
+                let value = self.expr_top()?;
+                self.expect_semi("the case's value")?;
+                Ok(StmtKind::Gives { value, bare: false })
+            }
             "inline" => {
                 self.bump();
                 self.inline_rest()
@@ -1330,6 +1379,20 @@ impl<'a> Parser<'a> {
             other => return self.fail(format!("expected a quoted loop variable, found {}", other.describe())),
         };
         let ty = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
+        // `for 'i', 'x' in …`: the position first, then the item, as in
+        // `'xs'['i']` (owner, 2026-09-29).
+        let (pos, name) = if self.eat(&Tok::Comma) {
+            let item = match self.peek().clone() {
+                Tok::Name(n) => {
+                    let span = self.bump().span;
+                    QName { name: n, span }
+                }
+                other => return self.fail(format!("expected the item's quoted name after the position's: `for 'i', 'x' in …`, found {}", other.describe())),
+            };
+            (Some(name), item)
+        } else {
+            (None, name)
+        };
         if self.is_word("temp") || self.is_word("perm") {
             return self.fail(format!("expected `in`; `{}` goes before the name — `for {} '{}' in …`", self.word_text(), self.word_text(), name.name));
         }
@@ -1383,8 +1446,11 @@ impl<'a> Parser<'a> {
         } else {
             ForIter::Over(self.expr(0)?)
         };
+        if let (Some(p), ForIter::Range { .. }) = (&pos, &iter) {
+            return self.fail_at(p.span, format!("a range's counter already is the position: `for '{}' in range[…]`, one name", p.name));
+        }
         let body = self.block("`for`")?;
-        Ok(StmtKind::For { seq, perm, name, ty, iter, body })
+        Ok(StmtKind::For { seq, perm, name, pos, ty, iter, body })
     }
 
     /// `from`, `to` or `by` heading a range bound; `to.int32[…]` is a
@@ -1509,6 +1575,11 @@ impl<'a> Parser<'a> {
     }
 
     fn match_rest(&mut self) -> Result<StmtKind> {
+        let (value, arms) = self.match_parts()?;
+        Ok(StmtKind::Match { value, arms })
+    }
+
+    fn match_parts(&mut self) -> Result<(Expr, Vec<MatchArm>)> {
         let value = self.expr(0)?;
         let open = self.expect(&Tok::LBrace, "`{` after the matched value")?;
         let mut arms = Vec::new();
@@ -1529,7 +1600,7 @@ impl<'a> Parser<'a> {
         if arms.is_empty() {
             return self.fail_at(open.to(self.prev_span()), "`match` needs an arm per case");
         }
-        Ok(StmtKind::Match { value, arms })
+        Ok((value, arms))
     }
 
     fn inline_rest(&mut self) -> Result<StmtKind> {
@@ -1589,6 +1660,14 @@ impl<'a> Parser<'a> {
     /// An expression statement or an assignment.
     fn expr_stmt(&mut self) -> Result<StmtKind> {
         let e = self.expr_top()?;
+        // A value alone before the `}` is its block's value — a `match`
+        // case's or an `otherwise` arm's (owner, 2026-09-29: a).
+        if self.is(&Tok::RBrace) {
+            if self.strict {
+                return self.fail_at(e.span, "a case says its value with `gives`: `{ gives 1; }` — a `#strict` file writes it out");
+            }
+            return Ok(StmtKind::Gives { value: e, bare: true });
+        }
         if self.is(&Tok::Colon) {
             if let ExprKind::Name(n) = &e.kind {
                 return self.fail(format!("a declaration is the name, its type, then `=`: `'{}': int32 = …;`", n.name));
@@ -1996,11 +2075,17 @@ impl<'a> Parser<'a> {
                     Ok(Expr { kind: ExprKind::Range { start: Box::new(s), stop: Box::new(e), step }, span })
                 }
                 "otherwise" => self.fail("`otherwise` follows a call that can fail: `'x' := f[] otherwise 0;`"),
+                "match" => {
+                    let start = self.bump().span;
+                    let (value, arms) = self.match_parts()?;
+                    let span = start.to(self.prev_span());
+                    Ok(Expr { kind: ExprKind::Match { value: Box::new(value), arms }, span })
+                }
                 "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare"),
                 w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket) => {
                     self.fail(format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `limb.{}[…]` inside its own Limb, `name::{}[…]` from outside", w, w, w))
                 }
-                "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "match" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {
+                "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {
                     self.fail(format!("expected a value, found `{}`", w))
                 }
                 _ => {
@@ -2247,6 +2332,9 @@ impl<'a> Parser<'a> {
     fn fn_lit(&mut self, start: Span) -> Result<Expr> {
         let params = self.params(ParamContext::Fn)?;
         let (ret, fails) = self.return_spec()?;
+        if let Some(r) = self.ret_lent.take() {
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
+        }
         let captures = if self.eat_word("with") { self.captures()? } else { Vec::new() };
         let outer = std::mem::replace(&mut self.returns_value, false);
         let body = self.block("the function")?;

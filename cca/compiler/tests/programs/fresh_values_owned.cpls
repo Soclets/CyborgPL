@@ -1,0 +1,18 @@
+# A value a function built and handed back is given back by whoever holds
+# it — and a fresh one sent, appended or set is moved in, never given back
+# twice. Both were wrong until 2026-09-29: an answer held in a variable was
+# never freed, which only hid the second.
+extern fn exit ['code': int32];
+fn page [lent 'u': str.utf8] -> str.utf8 { return "page of " ++ 'u'; }
+fn run [] -> int32 {
+    mut 'xs': list[str.utf8] = [];
+    'a' := "a";
+    list.append[lend.mut 'xs', page[lend 'a']];
+    list.append[lend.mut 'xs', page["b"]];
+    mut 'm': map[str.utf8, str.utf8] = map.empty;
+    map.set[lend.mut 'm', page["k"], page["v"]];
+    return to.int32[list.length[lend 'xs']] + to.int32[map.length[lend 'm']];
+}
+MAIN {
+    nocheck exit[run[]];
+}

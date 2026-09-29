@@ -1,0 +1,28 @@
+# A `match` gives a value (owner, 2026-09-29: a): a case whose block ends
+# in a value gives it, and a case may still leave; an `otherwise` arm gives
+# the call's value the same way (examples/match_value.cpls as an exit code:
+# free is 4 bytes, "taken by ann" 12, locked leaves with 8, and "12x" is
+# not a number, -2 → 4 + 12 + 8 + 100 - 2 = 122).
+extern fn exit ['code': int32];
+enum Status { empty  claimed: str.utf8  locked }
+fn label ['s': Status] -> str.utf8 {
+    'text' := match 's' {
+        empty         { "free" }
+        claimed 'who' { "taken by " ++ 'who' }
+        locked        { return "(locked)"; }
+    };
+    return give 'text';
+}
+fn width ['s': Status] -> int32 {
+    'l' := label[give 's'];
+    return to.int32[str.bytes[lend 'l']];
+}
+MAIN {
+    'n' := to.int32["12x"] otherwise { not_a_number { -2 } out_of_range { -1 } };
+    'k': int32 = match Status.empty {
+        empty { 100 }
+        claimed 'w' { 0 }
+        locked { 0 }
+    };
+    nocheck exit[width[Status.empty] + width[Status.claimed["ann"]] + width[Status.locked] + 'k' + 'n'];
+}

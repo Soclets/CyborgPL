@@ -54,6 +54,10 @@ pub struct Body {
     /// The source function's name, for messages.
     pub name: String,
     pub is_main: bool,
+    /// A returned borrow (owner, 2026-09-29): whether it may be changed,
+    /// and the parameters (by position) the caller's result borrows —
+    /// its group's, or, with no group written, the ones it hands back.
+    pub ret_lent: Option<(bool, Vec<usize>)>,
 }
 
 #[derive(Debug, Clone)]
@@ -82,7 +86,7 @@ pub enum StmtKind {
     While { cond: Expr, body: Block },
     ForRange { counter: LocalId, start: Expr, stop: Expr, step: Option<Expr>, body: Block, perm: bool, seq: bool },
     /// Over a list/array/bundle/text-walk/map-walk: `elem` is the element local.
-    ForEach { elem: LocalId, iter: Expr, body: Block, perm: bool, seq: bool },
+    ForEach { elem: LocalId, pos: Option<LocalId>, iter: Expr, body: Block, perm: bool, seq: bool },
     Return(Option<Expr>),
     Fail { name: String, index: usize, payload: Option<Expr> },
     Break,
@@ -99,6 +103,8 @@ pub struct MatchArm {
     pub case: usize,
     pub bind: Option<LocalId>,
     pub body: Block,
+    /// The case's value, in a `match` used as one (owner, 2026-09-29).
+    pub gives: Option<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -144,6 +150,8 @@ pub struct FailArm {
     pub index: usize,
     pub bind: Option<LocalId>,
     pub body: Block,
+    /// The arm's value, when the call's value is used (owner, 2026-09-29).
+    pub gives: Option<Expr>,
 }
 
 #[derive(Debug, Clone)]
@@ -242,6 +250,8 @@ impl Arg {
 
 #[derive(Debug, Clone)]
 pub enum ExprKind {
+    /// A `match` used as a value: each arm gives it or leaves.
+    Match { value: Box<Expr>, arms: Vec<MatchArm> },
     Int(i128),
     Bin(String),
     Str(String),

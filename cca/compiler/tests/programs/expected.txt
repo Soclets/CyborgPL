@@ -176,3 +176,12 @@ c_enum_convert 203
 c_door_everywhere 31
 # A C variable holds C's plain number; to.int32[Mode.vi]; ptr.read of a C enum (owner, 2026-09-28).
 c_variables 110
+# A match gives a value; for 'i', 'x' gives the position (owner, 2026-09-29).
+for_position 238
+match_value 122
+strict_match 11
+# What a call hands back is freed by its holder; a fresh value moves into what keeps it.
+fresh_values_owned 3
+# A function hands back a borrow: -> lent@x T (owner, 2026-09-29).
+lifetimes 13
+lifetimes_mut 73

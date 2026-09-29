@@ -58,6 +58,8 @@ pub fn check(p: &mut Program, sources: &SourceMap) -> Outcome {
     for i in 0..p.functions.len() {
         walk(p, i, sources, &mut out);
     }
+    // And while a borrow is in use, what it borrows stays as it is.
+    out.problems.extend(super::borrows::check(p, sources));
     out
 }
 

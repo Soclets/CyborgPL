@@ -15,6 +15,7 @@
 //! which is what makes the reuse key in `precog.md` hash canonical MIR
 //! without a comment invalidating every proof.
 
+pub mod borrows;
 pub mod build;
 pub mod channels;
 pub mod domain;
@@ -434,6 +435,9 @@ pub struct Function {
     /// Where a `return` puts its value. `None` when the function returns
     /// nothing.
     pub ret_local: Option<LocalId>,
+    /// A borrow handed back (owner, 2026-09-29): whether `lent.mut`, and
+    /// the parameters, by position, the caller's result borrows.
+    pub ret_lent: Option<(bool, Vec<usize>)>,
     pub fails: Vec<(String, Option<Ty>)>,
     pub sites: Vec<Site>,
     /// Spans, indexed by `SpanId`. Not part of the canonical form.

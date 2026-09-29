@@ -318,6 +318,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         continue;
                     }
                 }
+            } else if f.ret_lent.is_some() {
+                // A borrow handed back is an address, like a `lent` one.
+                self.ctx.ptr_type(AddressSpace::default()).fn_type(&params, false)
             } else {
                 match f.ret {
                     Ty::Nothing => self.ctx.void_type().fn_type(&params, false),
@@ -704,8 +707,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Terminator::Call { callee, args, dest, ok, .. } => {
                 let v = self.call(fi, callee, args, slots);
-                if let (Some(d), Some(v)) = (dest, v) {
+                // A borrow handed back: the variable holding it holds the
+                // address (`-> lent`, owner 2026-09-29).
+                let borrows = dest.as_ref().is_some_and(|d| d.proj.is_empty() && matches!(f.locals[d.local.0 as usize].kind, LocalKind::Lent { .. }));
+                if let (true, Some(d), Some(v)) = (borrows, dest, v) {
+                    if let Some(slot) = slots[d.local.0 as usize] {
+                        let _ = self.builder.build_store(slot, v);
+                    }
+                } else if let (Some(d), Some(v)) = (dest, v) {
                     self.store_place(fi, d, v, slots);
+                    // What came back is here now, and is given back at the
+                    // end like anything else held. Without this an owned
+                    // answer — a text a function built — was never freed.
+                    if d.proj.is_empty() {
+                        self.mark_alive(d.local, true);
+                    }
                 }
                 let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
             }
@@ -717,6 +733,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Terminator::Return => {
                 match f.ret_local {
+                    // A borrow: the address its slot holds.
+                    Some(r) if f.ret_lent.is_some() => {
+                        let p = self.ctx.ptr_type(AddressSpace::default());
+                        match slots[r.0 as usize] {
+                            Some(slot) => {
+                                let v = self.builder.build_load(p, slot, "ret").unwrap();
+                                let _ = self.builder.build_return(Some(&v));
+                            }
+                            None => {
+                                let _ = self.builder.build_return(Some(&p.const_null()));
+                            }
+                        }
+                    }
                     Some(r) => match slots[r.0 as usize] {
                         Some(slot) => {
                             let t = self.ty(&f.locals[r.0 as usize].ty.clone());

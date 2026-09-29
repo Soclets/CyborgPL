@@ -1,0 +1,23 @@
+#strict
+# In a `#strict` file a case says its value with `gives` (owner, 2026-09-29:
+# b), and may do other work first (examples/strict_match.cpls as an exit
+# code: "taken by bo" is 11 bytes).
+extern fn exit ['code': int32];
+enum Status { empty  claimed: str.utf8  locked }
+fn label ['s': Status] -> str.utf8 {
+    immut 'text' := match 's' {
+        empty         { gives "free"; }
+        claimed 'who' { immut 'prefix' := "taken by "; gives 'prefix' ++ 'who'; }
+        locked        { gives "locked"; }
+    };
+    return give 'text';
+}
+fn width ['s': Status] -> int32 {
+    immut 'l' := label[give 's'];
+    immut 'n' := str.bytes[lend 'l'];
+    if 'n' > 1000 { return 0; }
+    return to.int32['n'];
+}
+MAIN {
+    nocheck exit[width[Status.claimed["bo"]]];
+}

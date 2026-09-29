@@ -253,6 +253,8 @@ pub struct Expr {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExprKind {
+    /// `match 's' { empty { "free" } … }` used as a value (owner, 2026-09-29).
+    Match { value: Box<Expr>, arms: Vec<MatchArm> },
     Int(String),
     Bin(String),
     Str(String),
@@ -408,7 +410,9 @@ pub enum StmtKind {
     If { cond: Expr, then: Block, else_: Option<ElseArm> },
     Loop(Block),
     While { cond: Expr, body: Block },
-    For { seq: bool, perm: bool, name: QName, ty: Option<Type>, iter: ForIter, body: Block },
+    /// `pos`: `for 'i', 'x' in lend 'xs'` — the position beside the item
+    /// (owner, 2026-09-29).
+    For { seq: bool, perm: bool, name: QName, pos: Option<QName>, ty: Option<Type>, iter: ForIter, body: Block },
     Return(Option<Expr>),
     Fail { name: Ident, payload: Option<Expr> },
     Break,
@@ -418,6 +422,9 @@ pub enum StmtKind {
     Concur { detached: bool, captures: Vec<Capture>, body: ConcurBody, otherwise: Option<Otherwise> },
     Whichever { arms: Vec<WhicheverArm>, otherwise: Option<Otherwise> },
     Match { value: Expr, arms: Vec<MatchArm> },
+    /// A case's value (owner, 2026-09-29): `{ "free" }` (`bare`), or
+    /// `{ gives "free"; }` in a `#strict` file.
+    Gives { value: Expr, bare: bool },
     InlineAsm { text: String, bindings: Vec<AsmBinding> },
 }
 
@@ -433,6 +440,9 @@ pub enum ParamKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Param {
     pub kind: ParamKind,
+    /// `lent@x`: the lifetime group this borrow belongs to (owner,
+    /// 2026-09-29).
+    pub group: Option<Ident>,
     pub amp: bool,
     pub mutability: Option<Mutability>,
     pub variadic: bool,
@@ -441,11 +451,21 @@ pub struct Param {
     pub span: Span,
 }
 
+/// A returned borrow: `-> lent T`, `-> lent.mut@x T`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RetLent {
+    pub mutable: bool,
+    pub group: Option<Ident>,
+    pub span: Span,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct FnDecl {
     pub name: Ident,
     pub params: Vec<Param>,
     pub ret: Option<Type>,
+    /// `-> lent@x T`: the function hands back a borrow (owner, 2026-09-29).
+    pub ret_lent: Option<RetLent>,
     pub fails: Vec<FailSpec>,
     /// `None` for `extern fn` and interface entries.
     pub body: Option<Block>,

@@ -105,6 +105,14 @@ pub struct FnCtx {
     pub literal_lengths: HashMap<LocalId, usize>,
     /// Locals declared `!$`: they may not be shadowed (owner, 2026-09-25).
     pub sealed: std::collections::HashSet<LocalId>,
+    /// `-> lent@x T` (owner, 2026-09-29): whether it may change, its group.
+    pub ret_lent: Option<(bool, Option<String>)>,
+    /// The `lent` parameters: their position and group.
+    pub lent_params: HashMap<LocalId, (usize, Option<String>)>,
+    /// The parameters a `return lend …` handed back, by position.
+    pub returned: std::collections::BTreeSet<usize>,
+    /// The one call whose returned borrow a declaration is taking now.
+    pub lend_call_ok: Option<crate::source::Span>,
 }
 
 impl FnCtx {
@@ -338,7 +346,7 @@ impl Checker {
                 self.instances.push(Instance { key, sig: hir::Signature { params: Vec::new(), ret: Ty::Nothing, fails: Vec::new() }, body: None, captures: Vec::new() });
                 let mut ctx = self.new_ctx(inst, module, "MAIN".to_string(), Ty::Nothing, Vec::new(), true);
                 let body = self.block(&mut ctx, &block)?;
-                self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params: Vec::new(), ret: Ty::Nothing, fails: Vec::new(), block: body, span, name: "MAIN".into(), is_main: true });
+                self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params: Vec::new(), ret: Ty::Nothing, fails: Vec::new(), block: body, span, name: "MAIN".into(), is_main: true, ret_lent: None });
                 Some(inst)
             }
             None => None,
@@ -414,7 +422,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default() }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {
@@ -435,7 +443,8 @@ impl Checker {
             ctx.declare(name, Local { name: name.clone(), ty: ty.clone(), mutability: None, kind, from_blank: false, span: decl.span });
         }
         let mut params = Vec::new();
-        for (p, (kind, ty)) in decl.params.iter().zip(&sig.params) {
+        ctx.ret_lent = decl.ret_lent.clone();
+        for (pi, (p, (kind, ty))) in decl.params.iter().zip(&sig.params).enumerate() {
             if ctx.lookup(&p.name).is_some() {
                 return err(Diagnostic::error(format!("'{}' is declared twice: a capture and a parameter cannot share a name", p.name)).at(p.span));
             }
@@ -448,14 +457,27 @@ impl Checker {
                 self.amp_count += 1;
             }
             let id = ctx.declare(&p.name, Local { name: p.name.clone(), ty: ty.clone(), mutability: p.mutability, kind: lk, from_blank: p.from_blank, span: p.span });
+            if matches!(kind, ParamKind::Lent | ParamKind::LentMut) {
+                ctx.lent_params.insert(id, (pi, p.group.clone()));
+            }
             params.push(id);
         }
         let block = self.block(&mut ctx, body)?;
+        // What the caller's result borrows: the group's parameters, or,
+        // with no group written, the ones the body hands back (Precog's
+        // inference, owner 2026-09-29).
+        let ret_lent = decl.ret_lent.as_ref().map(|(m, g)| {
+            let deps: Vec<usize> = match g {
+                Some(g) => decl.params.iter().enumerate().filter(|(_, p)| p.group.as_ref() == Some(g)).map(|(i, _)| i).collect(),
+                None => ctx.returned.iter().copied().collect(),
+            };
+            (*m, deps)
+        });
         if sig.ret != Ty::Nothing && !stmt::leaves_block(&block) {
             return err(Diagnostic::error(format!("`{}` returns a `{}` but can fall off the end and return nothing: every path must `return` a value (or `fail`)", decl.name, self.spell(&sig.ret))).at(decl.name_span).why(format!("declared `-> {}`", self.spell(&sig.ret))));
         }
         let name = decl.name.clone();
-        self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name, is_main: false });
+        self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name, is_main: false, ret_lent });
         Ok(())
     }
 
@@ -468,7 +490,7 @@ impl Checker {
                 Some(t) => Some(self.items.resolve_type(t, module, &mut blanks, true)?),
                 None => None,
             };
-            params.push(crate::resolve::ParamDecl { kind: crate::resolve::conv_kind(p.kind), amp: p.amp, mutability: p.mutability, variadic: p.variadic, name: p.name.name.clone(), ty, from_blank: false, span: p.span });
+            params.push(crate::resolve::ParamDecl { kind: crate::resolve::conv_kind(p.kind), group: None, amp: p.amp, mutability: p.mutability, variadic: p.variadic, name: p.name.name.clone(), ty, from_blank: false, span: p.span });
         }
         let ret = match &lit.ret {
             Some(t) => self.items.resolve_type(t, module, &mut blanks, true)?,
@@ -479,7 +501,7 @@ impl Checker {
             return err(Diagnostic::error("an anonymous function has no blanks: write the types").at(span));
         }
         let id = FnId(self.items.fns.len() as u32);
-        self.items.fns.push(crate::resolve::FnDeclInfo { name: "an anonymous function".into(), path: String::new(), module, vis: ast::Vis::Private, params, ret, fails, blanks: Vec::new(), body: Some(lit.body.clone()), op: None, is_literal: true, span, name_span: span });
+        self.items.fns.push(crate::resolve::FnDeclInfo { name: "an anonymous function".into(), path: String::new(), module, vis: ast::Vis::Private, params, ret, ret_lent: None, fails, blanks: Vec::new(), body: Some(lit.body.clone()), op: None, is_literal: true, span, name_span: span });
         self.literal_fns.push((lit.clone(), module));
         Ok(id)
     }

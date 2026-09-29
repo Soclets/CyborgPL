@@ -180,6 +180,7 @@ impl Checker {
                 Ok(Expr { kind: K::SizeOf { align: *align, ty: t }, ty: Ty::u64(), span })
             }
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
+            AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
     }
@@ -1565,6 +1566,11 @@ impl Checker {
         let sig = self.instances[inst.0 as usize].sig.clone();
         let _ = path;
         let ow = self.call_otherwise(ctx, otherwise, &sig.fails, &sig.ret, used, span, &decl.name)?;
+        // A borrow handed back is held by a new name, which then borrows
+        // what the call lent (owner, 2026-09-29).
+        if self.items.fns[id.0 as usize].ret_lent.is_some() && ctx.lend_call_ok != Some(span) {
+            return err(Diagnostic::error(format!("`{}` hands back a borrow, and a borrow is held by a name: `'l' := {}[…];`", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).at(span));
+        }
         Ok(Expr { kind: K::Call { callee: Callee::Fn(inst), args: hargs, otherwise: ow, fails: sig.fails.clone() }, ty: sig.ret, span })
     }
 
@@ -1660,12 +1666,19 @@ impl Checker {
                         (Some(b), None) => return err(Diagnostic::error(format!("`{}` carries nothing, so there is no value to name '{}'", arm.name.name, b.name)).at(b.span)),
                         (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries a `{}`: name it — `{} 'value' {{ … }}`", arm.name.name, self.spell(t), arm.name.name)).at(arm.name.span)),
                     };
-                    let body = self.block(ctx, &arm.body)?;
+                    // An arm gives the call's value, as a `match` case does
+                    // (owner, 2026-09-29), or leaves.
+                    let (body, given) = self.arm_block(ctx, &arm.body)?;
                     ctx.pop_scope();
-                    if used && !super::stmt::leaves_block(&body) {
-                        return err(Diagnostic::error(format!("the `{}` arm must leave (`return`, `fail`, `break`, `continue` or `std::exit`): the call's value is used, and this arm gives it nothing", arm.name.name)).at(arm.body.span));
+                    let given = match given {
+                        Some(_) if !used => return err(Diagnostic::error(format!("the `{}` arm gives a value, but the call's value is not used", arm.name.name)).at(arm.body.span)),
+                        Some(g) => Some(self.expect_store(ctx, g, ret, "the call's value")?),
+                        None => None,
+                    };
+                    if used && given.is_none() && !super::stmt::leaves_block(&body) {
+                        return err(Diagnostic::error(format!("the `{}` arm must give the call's value (`{{ 0 }}`) or leave (`return`, `fail`, `break`, `continue` or `std::exit`)", arm.name.name)).at(arm.body.span));
                     }
-                    out.push(hir::FailArm { index: fi, bind, body });
+                    out.push(hir::FailArm { index: fi, bind, body, gives: given });
                 }
                 let _ = span;
                 Ok(hir::Otherwise::Arms(out))
@@ -2109,7 +2122,7 @@ impl Checker {
         if sig.ret != Ty::Nothing && !super::stmt::leaves_block(&block) {
             return err(Diagnostic::error(format!("this function returns a `{}` but can fall off the end: every path must `return` a value", self.spell(&sig.ret))).at(decl.span));
         }
-        self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name: "an anonymous function".into(), is_main: false });
+        self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name: "an anonymous function".into(), is_main: false, ret_lent: None });
         Ok(())
     }
 

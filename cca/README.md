@@ -68,6 +68,11 @@ cargo test        # every examples/*.cpls checks; every reject program is
   by value (it needs a thunk in C's convention).
 - 2026-09-27: `pos` removed; `#strict` (the written-out syntax, and each
   site proven from its own function, in every build).
+- 2026-09-29: a `match` gives a value; `for 'i', 'x'` gives the position;
+  a function hands back a borrow (`-> lent@x T`), and borrows are checked
+  Rust-style — while one is in use (to its last use), what it borrows is
+  not given away, changed or lent `mut`, and a `lent.mut` one is used by
+  nobody else (`mir/borrows.rs`).
 
 - `cca build --assert-proofs file.cpls -o out` (2026-09-23): the build that
   checks Precog (`precog.md`, attack (d)). Every site Precog proved keeps

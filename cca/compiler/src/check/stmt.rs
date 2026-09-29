@@ -51,6 +51,35 @@ fn has_break(b: &hir::Block) -> bool {
 }
 
 impl Checker {
+    /// A `match` case's or an `otherwise` arm's block, whose last statement
+    /// may be its value (owner, 2026-09-29): the statements before it in
+    /// the arm's scope, then the value, which sees what they declared.
+    pub fn arm_block(&mut self, ctx: &mut FnCtx, b: &ast::Block) -> Result<(hir::Block, Option<hir::Expr>)> {
+        let (last, rest) = match b.stmts.split_last() {
+            Some((l, r)) => (Some(l), r),
+            None => (None, &b.stmts[..]),
+        };
+        let Some(ast::Stmt { kind: ast::StmtKind::Gives { value, .. }, .. }) = last else {
+            return Ok((self.block(ctx, b)?, None));
+        };
+        ctx.push_scope();
+        let mut stmts = Vec::new();
+        for s in rest {
+            stmts.push(self.stmt(ctx, s)?);
+        }
+        let v = self.expr(ctx, value)?;
+        ctx.pop_scope();
+        Ok((hir::Block { stmts, span: b.span }, Some(v)))
+    }
+
+    /// Whether this is a call that hands back a borrow, and whether a
+    /// `lent.mut` one.
+    pub fn call_lends(&self, e: &hir::Expr) -> Option<bool> {
+        let hir::ExprKind::Call { callee: hir::Callee::Fn(inst), .. } = &e.kind else { return None };
+        let key = &self.instances[inst.0 as usize].key;
+        self.items.fns[key.fn_id.0 as usize].ret_lent.as_ref().map(|(m, _)| *m)
+    }
+
     pub fn block(&mut self, ctx: &mut FnCtx, b: &ast::Block) -> Result<hir::Block> {
         ctx.push_scope();
         let mut stmts = Vec::new();
@@ -81,6 +110,10 @@ impl Checker {
 
     fn stmt_kind(&mut self, ctx: &mut FnCtx, s: &ast::Stmt) -> Result<hir::StmtKind> {
         match &s.kind {
+            // A value, or `gives`, anywhere but at the end of a case of a
+            // `match` used as one (or of an `otherwise` arm).
+            ast::StmtKind::Gives { bare: true, .. } => err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").at(s.span)),
+            ast::StmtKind::Gives { bare: false, .. } => err(Diagnostic::error("`gives` ends a case of a `match` used as a value, and says that value; this is not the end of one").at(s.span)),
             ast::StmtKind::Tier { .. } => unreachable!("handled in stmt"),
             ast::StmtKind::Let { mutability, name, ty, shadow, value, sealed } => {
                 // Shadowing is never silent. What it may not shadow: a name
@@ -136,7 +169,16 @@ impl Checker {
                         return err(Diagnostic::error(format!("`{}` exists only at the boundary: in an `extern fn` signature or a `layout.c` field — a declaration cannot make a pointer; a pointer comes only from a lend or from C", self.spell(t))).at(ty.as_ref().unwrap().span));
                     }
                 }
-                let v = self.expr_top(ctx, value, true)?;
+                // A borrow a function hands back is held by a new name
+                // (owner, 2026-09-29), which borrows what the call lent.
+                let saved = ctx.lend_call_ok.take();
+                if let ast::ExprKind::Call { .. } = &value.kind {
+                    ctx.lend_call_ok = Some(value.span);
+                }
+                let v = self.expr_top(ctx, value, true);
+                ctx.lend_call_ok = saved;
+                let v = v?;
+                let lends = self.call_lends(&v);
                 if let hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::ListAppend), .. } = &v.kind {
                     return err(Diagnostic::error("`list.append` hands nothing back and cannot be used as a value: it changes the list in place").at(value.span));
                 }
@@ -153,19 +195,30 @@ impl Checker {
                             }
                         }
                         let v = self.expect_store(ctx, v, t, "the declared type")?;
-                        self.check_stored_value(ctx, &v, t)?;
-                        (v, t.clone(), LocalKind::Owned)
+                        if lends.is_none() {
+                            self.check_stored_value(ctx, &v, t)?;
+                        }
+                        let kind = match lends {
+                            Some(true) => LocalKind::LentMut,
+                            Some(false) => LocalKind::Lent,
+                            None => LocalKind::Owned,
+                        };
+                        (v, t.clone(), kind)
                     }
                     None => {
                         let vt = self.resolve(&v.ty);
                         if vt == Ty::Nothing {
                             return err(Diagnostic::error(format!("'{}' would hold nothing: the value on the right returns nothing", name.name)).at(value.span));
                         }
-                        let kind = match &v.kind {
-                            hir::ExprKind::Lend { mutable, .. } => if *mutable { LocalKind::LentMut } else { LocalKind::Lent },
+                        let kind = match (&v.kind, lends) {
+                            (hir::ExprKind::Lend { mutable, .. }, _) => if *mutable { LocalKind::LentMut } else { LocalKind::Lent },
+                            (_, Some(true)) => LocalKind::LentMut,
+                            (_, Some(false)) => LocalKind::Lent,
                             _ => LocalKind::Owned,
                         };
-                        self.check_stored_value(ctx, &v, &vt)?;
+                        if lends.is_none() {
+                            self.check_stored_value(ctx, &v, &vt)?;
+                        }
                         (v, self.infer_local_type(&vt), kind)
                     }
                 };
@@ -225,7 +278,7 @@ impl Checker {
                 ctx.loop_depth -= 1;
                 Ok(hir::StmtKind::While { cond: c, body: b })
             }
-            ast::StmtKind::For { seq, perm, name, ty, iter, body } => self.for_stmt(ctx, *seq, *perm, name, ty.as_ref(), iter, body),
+            ast::StmtKind::For { seq, perm, name, pos, ty, iter, body } => self.for_stmt(ctx, *seq, *perm, name, pos.as_ref(), ty.as_ref(), iter, body),
             ast::StmtKind::Return(value) => {
                 if ctx.is_task {
                     return err(Diagnostic::error("a task is a block, not a function: `return` cannot leave it").at(s.span));
@@ -237,6 +290,40 @@ impl Checker {
                     Some(v) => {
                         if ctx.ret == Ty::Nothing {
                             return err(Diagnostic::error(format!("`{}` returns nothing, so `return` takes no value: write `return;` or give the function a `-> type`", ctx.name)).at(v.span));
+                        }
+                        // A borrow handed back (owner, 2026-09-29): of a
+                        // `lent` parameter, in the group the return names.
+                        if let ast::ExprKind::Verb { verb: verb @ (ast::Verb::Lend | ast::Verb::LendMut), expr, .. } = &v.kind {
+                            let Some((mutable, group)) = ctx.ret_lent.clone() else {
+                                return err(Diagnostic::error(format!("`{}` returns a borrow, so its signature must say so: `-> lent {}`", ctx.name, self.spell(&ctx.ret))).at(v.span));
+                            };
+                            let lend_mut = *verb == ast::Verb::LendMut;
+                            let place = self.place(ctx, expr, if lend_mut { PlaceUse::LendMut } else { PlaceUse::Lend })?;
+                            let who = ctx.locals[place.base.0 as usize].name.clone();
+                            let Some((pi, pg)) = ctx.lent_params.get(&place.base).cloned() else {
+                                return err(Diagnostic::error(format!("`{}` hands back a borrow of '{}', which dies when it returns: only a borrow of a `lent` parameter outlives the call", ctx.name, who)).at(v.span));
+                            };
+                            if let Some(g) = &group {
+                                if pg.as_ref() != Some(g) {
+                                    let is = match &pg {
+                                        Some(p) => format!("'{}' is `lent@{}`", who, p),
+                                        None => format!("'{}' is in no group", who),
+                                    };
+                                    return err(Diagnostic::error(format!("`{}` returns a borrow of '{}', which is not in @{}: {}", ctx.name, who, g, is)).at(v.span));
+                                }
+                            }
+                            if mutable && !lend_mut {
+                                return err(Diagnostic::error(format!("`{}` hands back `lent.mut`: `return lend.mut '{}';`", ctx.name, who)).at(v.span));
+                            }
+                            if !mutable && lend_mut {
+                                return err(Diagnostic::error(format!("`{}` hands back a plain `lent`: `return lend '{}';`, or declare `-> lent.mut …`", ctx.name, who)).at(v.span));
+                            }
+                            ctx.returned.insert(pi);
+                            let ty = place.ty.clone();
+                            return Ok(hir::StmtKind::Return(Some(hir::Expr { kind: hir::ExprKind::Lend { place, mutable: lend_mut }, ty, span: v.span })));
+                        }
+                        if ctx.ret_lent.is_some() {
+                            return err(Diagnostic::error(format!("`{}` hands back a borrow: `return lend 'a';`, of one of its `lent` parameters", ctx.name)).at(v.span));
                         }
                         let e = self.expr_top(ctx, v, true)?;
                         let rt = ctx.ret.clone();
@@ -358,7 +445,8 @@ impl Checker {
         Ok(hir::StmtKind::Fail { name: name.name.clone(), index, payload })
     }
 
-    fn for_stmt(&mut self, ctx: &mut FnCtx, seq: bool, perm: bool, name: &ast::QName, ty: Option<&ast::Type>, iter: &ast::ForIter, body: &ast::Block) -> Result<hir::StmtKind> {
+    #[allow(clippy::too_many_arguments)]
+    fn for_stmt(&mut self, ctx: &mut FnCtx, seq: bool, perm: bool, name: &ast::QName, pos: Option<&ast::QName>, ty: Option<&ast::Type>, iter: &ast::ForIter, body: &ast::Block) -> Result<hir::StmtKind> {
         if let Some(prev) = ctx.lookup(&name.name) {
             let p = &ctx.locals[prev.0 as usize];
             return err(Diagnostic::error(format!("'{}' is already declared; a loop variable is a new name (shadowing is never silent)", name.name)).at(name.span).why_at(p.span, "declared here"));
@@ -453,6 +541,11 @@ impl Checker {
                     let mut stmts = Vec::new();
                     for (i, t) in ts.iter().enumerate() {
                         ctx.push_scope();
+                        let mut pos_let = None;
+                        if let Some(p) = pos {
+                            let pid = ctx.declare(&p.name, Local { name: p.name.clone(), ty: Ty::u64(), mutability: None, kind: LocalKind::LoopVar, from_blank: false, span: p.span });
+                            pos_let = Some(hir::Stmt { kind: hir::StmtKind::Let { local: pid, value: hir::Expr { kind: hir::ExprKind::Int(i as i128 + 1), ty: Ty::u64(), span: p.span }, typed: true }, span: p.span, tier: ctx.tier });
+                        }
                         let id = ctx.declare(&name.name, Local { name: name.name.clone(), ty: t.clone(), mutability: None, kind: LocalKind::LoopVar, from_blank: false, span: name.span });
                         let value = hir::Expr { kind: hir::ExprKind::BundleElem { place: place.clone(), index: i }, ty: t.clone(), span: e.span };
                         let saved_depth = ctx.loop_depth;
@@ -460,7 +553,8 @@ impl Checker {
                         let b = self.block(ctx, body)?;
                         ctx.loop_depth = saved_depth;
                         ctx.pop_scope();
-                        let mut inner = vec![hir::Stmt { kind: hir::StmtKind::Let { local: id, value, typed: false }, span: name.span, tier: ctx.tier }];
+                        let mut inner: Vec<hir::Stmt> = pos_let.into_iter().collect();
+                        inner.push(hir::Stmt { kind: hir::StmtKind::Let { local: id, value, typed: false }, span: name.span, tier: ctx.tier });
                         inner.push(hir::Stmt { kind: hir::StmtKind::Block(b), span: body.span, tier: ctx.tier });
                         stmts.push(hir::Stmt { kind: hir::StmtKind::Block(hir::Block { stmts: inner, span: body.span }), span: body.span, tier: ctx.tier });
                     }
@@ -469,6 +563,8 @@ impl Checker {
                 if !perm {
                     ctx.push_scope();
                 }
+                // The position is a `uint64` from 1, like every position.
+                let pos_id = pos.map(|p| ctx.declare(&p.name, Local { name: p.name.clone(), ty: Ty::u64(), mutability: None, kind: LocalKind::LoopVar, from_blank: false, span: p.span }));
                 let id = ctx.declare(&name.name, Local { name: name.name.clone(), ty: elem_ty, mutability: None, kind: if elem_kind == LocalKind::Owned { LocalKind::LoopVar } else { elem_kind }, from_blank: false, span: name.span });
                 // A lent element is a loop variable too: not assignable.
                 ctx.locals[id.0 as usize].kind = LocalKind::LoopVar;
@@ -481,7 +577,7 @@ impl Checker {
                 if !perm {
                     ctx.pop_scope();
                 }
-                Ok(hir::StmtKind::ForEach { elem: id, iter: it, body: b, perm, seq })
+                Ok(hir::StmtKind::ForEach { elem: id, pos: pos_id, iter: it, body: b, perm, seq })
             }
         }
     }
@@ -497,6 +593,26 @@ impl Checker {
     }
 
     fn match_stmt(&mut self, ctx: &mut FnCtx, value: &ast::Expr, arms: &[ast::MatchArm]) -> Result<hir::StmtKind> {
+        // A case that gives a value needs a `match` used as one.
+        for arm in arms {
+            if let Some(g @ ast::Stmt { kind: ast::StmtKind::Gives { .. }, .. }) = arm.body.stmts.last() {
+                return err(Diagnostic::error(format!("the `{}` case gives a value, but this `match` is not used as one: `'x' := match … {{ … }};`", arm.case.name)).at(g.span));
+            }
+        }
+        let (v, out) = self.match_arms(ctx, value, arms, None)?;
+        Ok(hir::StmtKind::Match { value: v, arms: out })
+    }
+
+    /// A `match` used as a value (owner, 2026-09-29: a): each case gives
+    /// it, or leaves (`return`, `fail`, `break`, `continue`).
+    pub fn match_value(&mut self, ctx: &mut FnCtx, value: &ast::Expr, arms: &[ast::MatchArm], span: crate::source::Span) -> Result<hir::Expr> {
+        let t = self.fresh();
+        let (v, out) = self.match_arms(ctx, value, arms, Some(&t))?;
+        let ty = self.resolve(&t);
+        Ok(hir::Expr { kind: hir::ExprKind::Match { value: Box::new(v), arms: out }, ty, span })
+    }
+
+    fn match_arms(&mut self, ctx: &mut FnCtx, value: &ast::Expr, arms: &[ast::MatchArm], gives: Option<&Ty>) -> Result<(hir::Expr, Vec<hir::MatchArm>)> {
         let v = self.expr(ctx, value)?;
         let vt = self.resolve(&v.ty);
         let (id, args) = match vt.base() {
@@ -529,15 +645,26 @@ impl Checker {
                 (Some(b), None) => return err(Diagnostic::error(format!("`{}` carries nothing, so there is no value to name '{}'", arm.case.name, b.name)).at(b.span)),
                 (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries a `{}`: name it — `{} 'value' {{ … }}`", arm.case.name, self.spell(t), arm.case.name)).at(arm.case.span)),
             };
-            let body = self.block(ctx, &arm.body)?;
+            let (body, given) = match gives {
+                Some(t) => {
+                    let (body, g) = self.arm_block(ctx, &arm.body)?;
+                    let g = match g {
+                        Some(g) => Some(self.expect_store(ctx, g, t, "the `match`'s value")?),
+                        None if super::stmt::leaves_block(&body) => None,
+                        None => return err(Diagnostic::error(format!("the `{}` case gives no value: end it with one (`{{ … }}`), or leave with `return`, `fail` or `break`", arm.case.name)).at(arm.body.span)),
+                    };
+                    (body, g)
+                }
+                None => (self.block(ctx, &arm.body)?, None),
+            };
             ctx.pop_scope();
-            out.push(hir::MatchArm { case: ci, bind, body });
+            out.push(hir::MatchArm { case: ci, bind, body, gives: given });
         }
         let missing: Vec<&str> = info.cases.iter().enumerate().filter(|(i, _)| !covered[*i]).map(|(_, c)| c.name.as_str()).collect();
         if !missing.is_empty() {
             return err(Diagnostic::error(format!("this `match` does not handle {}: every case of `{}` must have an arm", missing.iter().map(|m| format!("`{}`", m)).collect::<Vec<_>>().join(", "), info.name)).at(value.span));
         }
-        Ok(hir::StmtKind::Match { value: v, arms: out })
+        Ok((v, out))
     }
 
     fn concur_stmt(&mut self, ctx: &mut FnCtx, detached: bool, captures: &[ast::Capture], body: &ast::ConcurBody, otherwise: Option<&ast::Otherwise>, span: Span) -> Result<hir::StmtKind> {

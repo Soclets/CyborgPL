@@ -138,7 +138,7 @@ extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
 extern_without_nocheck [fnv:5216009b1679357d] :: nothing about `write` can be proven
 extern_write_checked [fnv:823a6502b3c1ec2d] :: nothing about C's memory can be proven
 extern_write_readonly [fnv:7cecff9be0233900] :: …` says C's variable may be written
-fail_arm_falls_through [fnv:0128c6a13e88b457] :: the call's value is used, and this arm gives it nothing
+fail_arm_falls_through [fnv:0128c6a13e88b457] :: must give the call's value (`{ 0 }`) or leave
 fail_arm_missing [fnv:0d8968bfe13e437e] :: every reason needs an arm
 fail_arm_unknown [fnv:966c45cc418112c6] :: this call never fails with `z`: it fails with `a`
 fail_bind_without_payload [fnv:4a8104e6fc802f53] :: `why` carries nothing, so there is no value to name 'w'
@@ -169,6 +169,7 @@ fnval_wrong_verb [fnv:e7a82c8acfe26976] :: expected `apply`'s parameter 'f' (fn[
 for_bare_list [fnv:18b1a4df3e7b57c4] :: `for 'i' in lend 'xs'` looks at each element, `give 'xs'` consumes the list
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`
+for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the position
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`
 func_keyword [fnv:06228e3da7cced76] :: `fn name [params] -> type { … }`
 generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), and 1 type(s) were given
@@ -182,6 +183,7 @@ generic_wrong_return [fnv:81336ef057ec73fd] :: the return type is an `integer` a
 give_plain [fnv:0b0079f7332adfe9] :: a `integer` is a plain value that owns nothing (no allocation behind it), so it copies by itself
 give_to_lent_param [fnv:a3589766a127e65e] :: `look` only looks at 'text' (it is `lent`); you tried to give it away
 give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing left to give
+gives_outside_strict [fnv:d5ee3746e712f21d] :: `gives` belongs to `#strict` files
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
 grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 gte [fnv:e252ab2c27694e53] :: greater-or-equal is `>==`
@@ -215,6 +217,9 @@ length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint
 let_chain [fnv:f0731a3b445878f7] :: `let` is gone
 let_removed [fnv:f0731a3b445878f7] :: `let` is gone
 let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
+lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
+lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
+lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
 list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
@@ -232,6 +237,7 @@ map_literal_no_pair [fnv:29d9d93486c67e90] :: `map["ann" = 5551, "bob" = 5552]`
 map_set_needs_mut [fnv:0522b20ca28e7b3b] :: `map.set` changes the collection, so it takes `lend.mut`, not `lend`
 map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
 map_value_out_of_range [fnv:da58956c39843392] :: the value can be outside what a `int32[0, 10]` holds
+match_value_unused [fnv:dd91724a0b94c519] :: gives a value, but this `match` is not used as one
 missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a value (or `fail`)
 mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 mod_beside_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod` beside another operator
@@ -363,6 +369,8 @@ str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, a
 str_toolbox_in_language [fnv:366a14926afb6c66] :: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet
 strict_decl [fnv:b8025f0c47e84bab] :: a declaration says whether it changes
 strict_for [fnv:06b3bea872c594a0] :: a `for` says whether its variable outlives it
+strict_lifetime [fnv:a1a89ccd784cb0b3] :: hands back a borrow, so it names what the borrow depends on
+strict_match_needs_gives [fnv:73a3f2c3ec563e4b] :: a case says its value with `gives`
 strict_param [fnv:e284bfe1db8f2b9c] :: parameter 'n' says its type
 strict_pos [fnv:959c6fc995de9a2b] :: a list read says it is a position
 strict_range [fnv:47d9fd2ab1066781] :: each bound says what it is

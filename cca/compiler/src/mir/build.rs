@@ -267,7 +267,12 @@ impl<'a> FnBuilder<'a> {
             let span = fb.span_id(body.span);
             let id = LocalId(fb.locals.len() as u32);
             let ret = resolved(&body.ret, &fb.arena.subst);
-            fb.locals.push(LocalDecl { name: Some("the result".into()), ty: ret.clone(), domain: Domain::of_ty(&ret, &fb.arena.items), kind: LocalKind::Return, span });
+            // A borrow handed back is held as one: an address.
+            let kind = match &body.ret_lent {
+                Some((m, _)) => LocalKind::Lent { mutable: *m },
+                None => LocalKind::Return,
+            };
+            fb.locals.push(LocalDecl { name: Some("the result".into()), ty: ret.clone(), domain: Domain::of_ty(&ret, &fb.arena.items), kind, span });
             fb.ret_local = Some(id);
         }
         // An owned parameter is the function's to give back when it ends,
@@ -493,6 +498,7 @@ impl<'a> FnBuilder<'a> {
             blocks: self.blocks,
             ret: resolved(&body.ret, &self.arena.subst),
             ret_local: self.ret_local,
+            ret_lent: body.ret_lent.clone(),
             fails: body.fails.clone(),
             sites: self.sites,
             spans: self.spans,
@@ -629,8 +635,8 @@ impl<'a> FnBuilder<'a> {
             hir::StmtKind::ForRange { counter, start, stop, step, body, perm, seq } => {
                 self.for_range(*counter, start, stop, step.as_ref(), body, *perm, *seq, span);
             }
-            hir::StmtKind::ForEach { elem, iter, body, perm, seq } => {
-                self.for_each(*elem, iter, body, *perm, *seq, span);
+            hir::StmtKind::ForEach { elem, pos, iter, body, perm, seq } => {
+                self.for_each(*elem, *pos, iter, body, *perm, *seq, span);
             }
             hir::StmtKind::Return(v) => {
                 match v {
@@ -664,41 +670,7 @@ impl<'a> FnBuilder<'a> {
                 }
             }
             hir::StmtKind::Block(b) => self.block(b),
-            hir::StmtKind::Match { value, arms } => {
-                let v = self.eval(value, span);
-                let join = self.new_block();
-                let mut cases = Vec::new();
-                for arm in arms {
-                    let b = self.new_block();
-                    cases.push((arm.case, b));
-                }
-                self.terminate(Terminator::Switch { value: v.clone(), cases: cases.clone() });
-                for (arm, (_, b)) in arms.iter().zip(&cases) {
-                    self.cur = *b;
-                    self.push_scope();
-                    if let (Some(bind), Some(place)) = (arm.bind, v.place()) {
-                        let ty = self.locals[bind.0 as usize].ty.clone();
-                        let mut src = place.clone();
-                        src.proj.push(Proj::Field(arm.case));
-                        let rv = match self.locals[bind.0 as usize].kind {
-                            LocalKind::Lent { mutable } => Rvalue::Lend { place: src, mutable },
-                            _ => Rvalue::Use(Operand::Read(src)),
-                        };
-                        self.assign(Place::local(LocalId(bind.0)), rv, span);
-                        let _ = ty;
-                        self.scopes.last_mut().unwrap().push(LocalId(bind.0));
-                    }
-                    for st in &arm.body.stmts {
-                        if self.closed() {
-                            break;
-                        }
-                        self.stmt(st);
-                    }
-                    self.pop_scope(span);
-                    self.terminate(Terminator::Goto(join));
-                }
-                self.cur = join;
-            }
+            hir::StmtKind::Match { value, arms } => self.lower_match(value, arms, None, span),
             hir::StmtKind::Concur { detached, captures, body, otherwise, fails } => {
                 self.concur(*detached, captures, body, otherwise.as_ref(), fails, span);
             }
@@ -836,7 +808,8 @@ impl<'a> FnBuilder<'a> {
 
     /// A `for` over a list, a text walk or a map walk: by position, so the
     /// element's own bounds check is the one the loop already proves.
-    fn for_each(&mut self, elem: hir::LocalId, iter: &hir::Expr, body: &hir::Block, perm: bool, _seq: bool, span: SpanId) {
+    #[allow(clippy::too_many_arguments)]
+    fn for_each(&mut self, elem: hir::LocalId, pos: Option<hir::LocalId>, iter: &hir::Expr, body: &hir::Block, perm: bool, _seq: bool, span: SpanId) {
         let e = LocalId(elem.0);
         let iter_op = self.eval(iter, span);
         let iter_ty = self.resolve_ty(&iter.ty);
@@ -884,6 +857,9 @@ impl<'a> FnBuilder<'a> {
             _ => Rvalue::Use(Operand::Read(src)),
         };
         self.assign(Place::local(e), rv, span);
+        if let Some(p) = pos {
+            self.assign(Place::local(LocalId(p.0)), Rvalue::Use(Operand::Read(Place::local(i))), span);
+        }
         self.loops.push(LoopTargets { brk: exit, cont: next, depth: self.scopes.len() });
         self.block(body);
         self.terminate(Terminator::Goto(next));
@@ -917,8 +893,7 @@ impl<'a> FnBuilder<'a> {
             block: body.clone(),
             span: self.spans[span.0 as usize],
             name: format!("a task in {}", self.fn_name()),
-            is_main: false,
-        };
+            is_main: false, ret_lent: None, };
         let idx = FnIdx(self.arena.functions.len() as u32);
         self.arena.functions.push(placeholder(&task_body));
         let mut fb = FnBuilder::new(self.arena, None, &task_body, true);
@@ -1022,6 +997,11 @@ impl<'a> FnBuilder<'a> {
         // edge rather than a value to test afterwards.
         if let hir::ExprKind::Call { .. } | hir::ExprKind::Conv { .. } = &value.kind {
             self.call_into(Some(place.clone()), value, span);
+            self.store_site(&place, target, typed, span);
+            return;
+        }
+        if let hir::ExprKind::Match { value: m, arms } = &value.kind {
+            self.lower_match(m, arms, Some(place.clone()), span);
             self.store_site(&place, target, typed, span);
             return;
         }
@@ -1142,6 +1122,12 @@ impl<'a> FnBuilder<'a> {
             hir::ExprKind::Give(p) => {
                 let place = self.place(p, span);
                 Operand::Move(place)
+            }
+            hir::ExprKind::Match { value, arms } => {
+                let ty = self.resolve_ty(&e.ty);
+                let t = self.temp(&ty, span);
+                self.lower_match(value, arms, Some(Place::local(t)), span);
+                Operand::Read(Place::local(t))
             }
             hir::ExprKind::Call { .. } | hir::ExprKind::Conv { .. } => {
                 let ty = self.resolve_ty(&e.ty);
@@ -1554,7 +1540,17 @@ impl<'a> FnBuilder<'a> {
         if fails.is_empty() {
             if let Callee::Op(op) = &callee {
                 let op = op.clone();
-                let ops: Vec<Operand> = args.iter().map(|a| self.owned_operand(a, span)).collect();
+                // What the operation keeps — the value sent, appended or
+                // set — it takes: a fresh value's temporary is moved in, so
+                // it is not given back a second time where it was made.
+                let keeps = |i: usize| matches!((&op, i), (Op::ChannelSend, 1) | (Op::ListAppend, 1) | (Op::MapSet, 1) | (Op::MapSet, 2));
+                let ops: Vec<Operand> = args.iter().enumerate().map(|(i, a)| {
+                    let o = self.owned_operand(a, span);
+                    match o {
+                        Operand::Read(p) if keeps(i) && p.proj.is_empty() && self.locals[p.local.0 as usize].name.is_none() && self.locals[p.local.0 as usize].ty.is_owned() => Operand::Move(p),
+                        o => o,
+                    }
+                }).collect();
                 let result_ty = self.resolve_ty(&e.ty);
                 self.before_op_sites(&op, &args, &result_ty, span);
                 self.push(StmtKind::Op { dest: dest.clone(), op: op.clone(), args: ops }, span);
@@ -1750,6 +1746,10 @@ impl<'a> FnBuilder<'a> {
                         }
                         self.stmt(st);
                     }
+                    if let (Some(g), Some(d), false) = (&arm.gives, &dest, self.closed()) {
+                        let ty = self.resolve_ty(&g.ty);
+                        self.store(d.clone(), g, &ty, false, span);
+                    }
                     self.pop_scope(span);
                     self.terminate(Terminator::Goto(after));
                 }
@@ -1801,6 +1801,47 @@ impl<'a> FnBuilder<'a> {
     }
 
     /// What one non-arm `otherwise` does, lowered into the current block.
+    /// A `match`: switch on the case, each arm in its own scope. Used as a
+    /// value (owner, 2026-09-29), each arm that gives one stores it in
+    /// `dest` before the join.
+    fn lower_match(&mut self, value: &hir::Expr, arms: &[hir::MatchArm], dest: Option<Place>, span: SpanId) {
+        let v = self.eval(value, span);
+        let join = self.new_block();
+        let mut cases = Vec::new();
+        for arm in arms {
+            let b = self.new_block();
+            cases.push((arm.case, b));
+        }
+        self.terminate(Terminator::Switch { value: v.clone(), cases: cases.clone() });
+        for (arm, (_, b)) in arms.iter().zip(&cases) {
+            self.cur = *b;
+            self.push_scope();
+            if let (Some(bind), Some(place)) = (arm.bind, v.place()) {
+                let mut src = place.clone();
+                src.proj.push(Proj::Field(arm.case));
+                let rv = match self.locals[bind.0 as usize].kind {
+                    LocalKind::Lent { mutable } => Rvalue::Lend { place: src, mutable },
+                    _ => Rvalue::Use(Operand::Read(src)),
+                };
+                self.assign(Place::local(LocalId(bind.0)), rv, span);
+                self.scopes.last_mut().unwrap().push(LocalId(bind.0));
+            }
+            for st in &arm.body.stmts {
+                if self.closed() {
+                    break;
+                }
+                self.stmt(st);
+            }
+            if let (Some(g), Some(d), false) = (&arm.gives, &dest, self.closed()) {
+                let ty = self.resolve_ty(&g.ty);
+                self.store(d.clone(), g, &ty, false, span);
+            }
+            self.pop_scope(span);
+            self.terminate(Terminator::Goto(join));
+        }
+        self.cur = join;
+    }
+
     fn otherwise(&mut self, o: &hir::Otherwise, dest: Option<Place>, ok: BlockId, span: SpanId) {
         match o {
             hir::Otherwise::Value(e) => {
@@ -1830,6 +1871,7 @@ fn placeholder(body: &hir::Body) -> Function {
         blocks: vec![BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable, term_span: SpanId(0) }],
         ret: Ty::Nothing,
         ret_local: None,
+        ret_lent: None,
         fails: Vec::new(),
         sites: Vec::new(),
         spans: Vec::new(),

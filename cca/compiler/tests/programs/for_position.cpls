@@ -1,0 +1,15 @@
+# The position beside the item (owner, 2026-09-29: a): `for 'i', 'x' in
+# lend 'xs'` — 'i' is 1, 2, 3 … (a uint64), 'x' the item there; `perm`
+# keeps both after the loop (examples/for_position.cpls as an exit code:
+# best at 2, and after the loop 3 and 88 → 2 x 100 + 3 x 10 + 8 = 238).
+extern fn exit ['code': int32];
+MAIN {
+    'scores': list[int32] = [70, 95, 88];
+    mut 'best_at': uint64 = 0;
+    mut 'best': int32 = 0;
+    for 'i', 's' in lend 'scores' {
+        if 's' > 'best' { change 'best' = 's'; change 'best_at' = 'i'; }
+    }
+    for perm 'n', 'y' in lend 'scores' { }
+    nocheck exit[to.int32['best_at'] x 100 + to.int32['n'] x 10 + 'y' - 80];
+}
