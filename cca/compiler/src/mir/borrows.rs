@@ -164,6 +164,37 @@ fn term_acc(t: &Terminator, ret: Option<LocalId>) -> (Vec<(Place, Acc)>, Option<
     (out, def)
 }
 
+/// Where borrow `l` is next used after step `i` of block `b` (the steps are
+/// the statements, then the terminator): the nearest along the graph.
+fn next_use(f: &Function, b: usize, i: usize, l: LocalId) -> Option<SpanId> {
+    let uses = |acc: &[(Place, Acc)]| acc.iter().any(|(p, _)| p.local == l);
+    let block_steps = |bi: usize| -> Vec<(Vec<(Place, Acc)>, SpanId)> {
+        let blk = &f.blocks[bi];
+        let mut v: Vec<(Vec<(Place, Acc)>, SpanId)> = blk.stmts.iter().map(|s| (stmt_acc(&s.kind).0, s.span)).collect();
+        v.push((term_acc(&blk.term, f.ret_local).0, blk.term_span));
+        v
+    };
+    for (acc, sp) in block_steps(b).into_iter().skip(i + 1) {
+        if uses(&acc) {
+            return Some(sp);
+        }
+    }
+    let mut seen: HashSet<usize> = HashSet::new();
+    let mut queue: std::collections::VecDeque<usize> = super::verify::successors(&f.blocks[b].term).into_iter().map(|s| s.0 as usize).collect();
+    while let Some(bi) = queue.pop_front() {
+        if !seen.insert(bi) {
+            continue;
+        }
+        for (acc, sp) in block_steps(bi) {
+            if uses(&acc) {
+                return Some(sp);
+            }
+        }
+        queue.extend(super::verify::successors(&f.blocks[bi].term).into_iter().map(|s| s.0 as usize));
+    }
+    None
+}
+
 pub fn check(p: &Program, sources: &SourceMap) -> Vec<String> {
     let mut problems = Vec::new();
     for fi in 0..p.functions.len() {
@@ -298,12 +329,20 @@ fn check_fn(p: &Program, fi: usize, sources: &SourceMap, problems: &mut Vec<Stri
                     if !reported.insert((pl.local, *span)) {
                         continue;
                     }
-                    let by = match f.locals[l.0 as usize].name.clone() {
-                        Some(n) => format!("'{}'", n),
-                        None => "a borrow still in use here — a `for` walking it, or an argument".to_string(),
-                    };
+                    // Reported at the change, naming the later use (owner,
+                    // 2026-09-29: a), as Rust does.
+                    let later = next_use(f, bi, i, *l).map(|sp| {
+                        let s = f.span(sp);
+                        sources.get(s.file).line_col(s.start).0
+                    });
                     let kind = if exclusive { "`lent.mut` " } else { "" };
-                    let mut d = Diagnostic::error(format!("'{}' cannot be {} here: {} still borrows it {}and is used after this", owner, what, by, kind)).at(f.span(*span));
+                    let tail = match (f.locals[l.0 as usize].name.clone(), later) {
+                        (Some(n), Some(line)) => format!("'{}' still borrows it {}and is used on line {}", n, kind, line),
+                        (Some(n), None) => format!("'{}' still borrows it {}and is used after this", n, kind),
+                        (None, Some(line)) => format!("the loop on line {} is still going through it", line),
+                        (None, None) => "a borrow of it is still in use".to_string(),
+                    };
+                    let mut d = Diagnostic::error(format!("'{}' cannot be {} here: {}", owner, what, tail)).at(f.span(*span));
                     d = d.why("while a borrow is in use, what it borrows stays as it is (Rust-style borrowing, `core-features.md`)");
                     if f.name != "MAIN" {
                         d = d.place(format!("in `{}`", f.name));

@@ -201,3 +201,5 @@ list_item_context 127
 # A match case's bare numbers are exact; an argument that cannot arrive stops at the call (check claude, 2026-09-29).
 match_case_exact 25
 argument_never_arrives trap
+# An argument takes its parameter's type as context (owner, 2026-09-29: a).
+argument_context 15

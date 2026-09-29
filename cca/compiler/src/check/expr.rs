@@ -1920,13 +1920,15 @@ impl Checker {
                         };
                     }
                 }
-                // Whether a call's argument takes its parameter's type as a
-                // width, as a list item does, is not ruled (912854a); both
-                // engines refuse it until it is.
+                // An argument takes its parameter's type as its context, as a
+                // declaration's value does (owner, 2026-09-29: a) — but a
+                // generic parameter has no width to give.
                 if let Ty::Infer(_) = self.resolve(&v.ty) {
-                    let vt = self.resolve(&v.ty);
-                    let op = self.widths_pending.iter().find(|(t, _, _)| self.resolve(t) == vt).map(|(_, _, w)| w.clone()).unwrap_or_else(|| "this".into());
-                    return err(Diagnostic::error(format!("not yet: `{}` needs to know which width it works in, and whether an argument takes its parameter's is asked — give an operand a type, or say it in a declaration first (`'x': uint8 = 0 -~ 1;`)", op)).at(e.span));
+                    if self.resolve(pty).contains_var() {
+                        let vt = self.resolve(&v.ty);
+                        let op = self.widths_pending.iter().find(|(t, _, _)| self.resolve(t) == vt).map(|(_, _, w)| w.clone()).unwrap_or_else(|| "this".into());
+                        return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and a generic parameter gives none: give an operand a type (`to.uint8[0] -~ 1`)", op)).at(e.span));
+                    }
                 }
                 let v = self.expect_store(ctx, v, pty, &what)?;
                 Ok(Arg::Value(v))
