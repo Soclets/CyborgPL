@@ -96,8 +96,17 @@ fn stmt_acc(s: &StmtKind) -> (Vec<(Place, Acc)>, Option<LocalId>) {
                 place_acc(place, Acc::Write, &mut out);
             }
         }
-        StmtKind::Op { dest, args, .. } => {
-            args.iter().for_each(|o| operand_acc(o, &mut out));
+        StmtKind::Op { dest, args, op } => {
+            // An operation that changes what it is given — an append, a
+            // removal, a store — changes its first argument (check claude,
+            // 2026-09-29: an append slipped past a borrow still in use).
+            let changes = matches!(op, Op::ListAppend | Op::ListRemove | Op::MapSet | Op::MapRemove | Op::SimdStore | Op::SimdStoreSome);
+            for (i, o) in args.iter().enumerate() {
+                match o {
+                    Operand::Read(p) | Operand::Move(p) if changes && i == 0 => place_acc(p, Acc::Write, &mut out),
+                    o => operand_acc(o, &mut out),
+                }
+            }
             if let Some(d) = dest {
                 if d.proj.is_empty() {
                     def = Some(d.local);

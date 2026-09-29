@@ -187,3 +187,5 @@ lifetimes 13
 lifetimes_mut 73
 # op + as a value (owner, 2026-09-29).
 op_values 47
+# A borrow handed back through a call (check claude, 2026-09-29).
+borrow_through_a_call 2

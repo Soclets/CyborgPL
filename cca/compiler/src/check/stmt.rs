@@ -326,6 +326,45 @@ impl Checker {
                             let ty = place.ty.clone();
                             return Ok(hir::StmtKind::Return(Some(hir::Expr { kind: hir::ExprKind::Lend { place, mutable: lend_mut }, ty, span: v.span })));
                         }
+                        // Or the borrow another call hands back, when what it
+                        // borrows is this function's own `lent` parameters.
+                        if let (Some((mutable, group)), ast::ExprKind::Call { .. }) = (ctx.ret_lent.clone(), &v.kind) {
+                            let saved = ctx.lend_call_ok.replace(v.span);
+                            let e = self.expr_top(ctx, v, true);
+                            ctx.lend_call_ok = saved;
+                            let e = e?;
+                            if let (Some(m), hir::ExprKind::Call { callee: hir::Callee::Fn(inst), args, .. }) = (self.call_lends(&e), &e.kind) {
+                                if m != mutable {
+                                    return err(Diagnostic::error(format!("`{}` hands back a {} borrow, and this call hands back a {} one", ctx.name, if mutable { "`lent.mut`" } else { "plain `lent`" }, if m { "`lent.mut`" } else { "plain `lent`" })).at(v.span));
+                                }
+                                let key = self.instances[inst.0 as usize].key.clone();
+                                let callee = self.items.fns[key.fn_id.0 as usize].clone();
+                                let cgroup = callee.ret_lent.as_ref().and_then(|(_, g)| g.clone());
+                                for (i, (a, p)) in args.iter().zip(&callee.params).enumerate() {
+                                    let depends = match &cgroup {
+                                        Some(g) => p.group.as_ref() == Some(g),
+                                        None => matches!(p.kind, crate::types::ParamKind::Lent | crate::types::ParamKind::LentMut),
+                                    };
+                                    let _ = i;
+                                    if !depends {
+                                        continue;
+                                    }
+                                    let hir::Arg::Lend { place, .. } = a else { continue };
+                                    let who = ctx.locals[place.base.0 as usize].name.clone();
+                                    let Some((pi, pg)) = ctx.lent_params.get(&place.base).cloned() else {
+                                        return err(Diagnostic::error(format!("`{}` hands back a borrow of '{}', which dies when it returns: only a borrow of a `lent` parameter outlives the call", ctx.name, who)).at(v.span));
+                                    };
+                                    if let Some(g) = &group {
+                                        if pg.as_ref() != Some(g) {
+                                            return err(Diagnostic::error(format!("`{}` returns a borrow of '{}', which is not in @{}", ctx.name, who, g)).at(v.span));
+                                        }
+                                    }
+                                    ctx.returned.insert(pi);
+                                }
+                                return Ok(hir::StmtKind::Return(Some(e)));
+                            }
+                            return err(Diagnostic::error(format!("`{}` hands back a borrow: `return lend 'a';`, of one of its `lent` parameters", ctx.name)).at(v.span));
+                        }
                         if ctx.ret_lent.is_some() {
                             return err(Diagnostic::error(format!("`{}` hands back a borrow: `return lend 'a';`, of one of its `lent` parameters", ctx.name)).at(v.span));
                         }
