@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — CCA's package manager is compiler claude's; Synthia gets its own session (owner)
+
+Compiler claude's brief had said "CCA and Synthia". With two package
+managers and Synthia in Go, design claude suggested CCA's built-in one
+stays with compiler claude (it is part of the compiler) and Synthia goes
+to a new session when it is built. Owner: "CCA's PM goes to compiler
+claude, while Synthia goes to synthia claude." The Synthia session is not
+started; its brief, clone and share of the ten cores (today 3 sessions ×
+3 + 1) come when the owner starts it. `CLAUDE.md`, `compiler-session.md`.
+
 ### 2026-09-29 — Synthia is written in Go (owner)
 
 The owner: "What should Synthia be in? I'm kinda feeling Golang." Rust

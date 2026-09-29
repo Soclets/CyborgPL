@@ -1,7 +1,9 @@
 # The compiler session — a brief
 
-For the session that builds CCA, the Cyborg Chassis Assembler, and
-Synthia. Written 2026-09-22 by the design session, at the owner's
+For the session that builds CCA, the Cyborg Chassis Assembler, with its
+built-in package manager (`CCA.cplr`, owner 2026-09-29). Synthia, the
+separate package manager, moved to its own session in Go the same day.
+Written 2026-09-22 by the design session, at the owner's
 request. Read this first; then everything it points at.
 
 ## Who decides
@@ -41,8 +43,7 @@ no branch — in **your own clone** at `/Users/ts/CyborgPL v2 compiler`.
 A separate folder for two reasons: two sessions in one working tree
 would step on each other's unsaved files, and Claude's memory is kept
 per folder, so a folder of your own gives you a memory of your own
-(owner's point). Your code lives in **`cca/`** (a Cargo crate) and
-**`synthia/`**, beside `design/`, `oracle/` and `examples/`, so the
+(owner's point). Your code lives in **`cca/`** (a Cargo crate), beside `design/`, `oracle/` and `examples/`, so the
 docs and the tests you build against are always the current ones and
 the differential harness runs `oracle/` and `cca/` side by side. Commit
 to `main`; `git pull --rebase` before every push — the design session
