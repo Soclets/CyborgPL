@@ -421,16 +421,20 @@ Dated, with the alternative, so each can become a question later.
   default is refused as "not yet" rather than built for the wrong
   machine. The targets CCA writes code for are listed in `cca/targets.txt`,
   the one list (Synthia copies it); a default not in it, or not this
-  machine's, is "not yet". A `CCA.cplr` without a 'name', a 'version' or a target is
-  refused (owner, 2026-09-29), a dependency's too; a folder with no
-  `CCA.cplr` is a plain program. A
+  machine's, is "not yet". A `CCA.cplr` without a 'name', a 'prefix', a
+  'version' or a target is refused (owner, 2026-09-29), a dependency's
+  too; a folder with no `CCA.cplr` is a plain program, and a dependency
+  must have one. A dependency is reached by its own 'prefix' and names no
+  word; two different folders with one prefix, or a dependency whose
+  prefix is `std` or `cca`, are refused, as the oracle does; the root
+  Limb's own prefix is checked against neither, as in the oracle. A
   dependency's own 'targets' are checked and not otherwise used. Using a
   runner is open. Two Limbs that depend on the same folder share one
   copy of it. A `version` dependency is refused until the registry
   exists, as the oracle does.
 - **2026-09-29 — `cca prepare`: picks around the owner's rulings.** The
-  rulings (the current folder's Limb; names are local names or its own,
-  comma-separated with or without a space; a `build.cplr` runs in its own
+  rulings (the current folder's Limb; names are prefixes, its own or its
+  dependencies', comma-separated with or without a space; a `build.cplr` runs in its own
   Limb's folder; `--all` runs dependencies first, each once, stopping at the
   first failure) are built as ruled. Picks beside them: named Limbs run in
   the order given, each once; a named Limb with no `build.cplr` is refused,
@@ -438,7 +442,7 @@ Dated, with the alternative, so each can become a question later.
   of its own (the working build, no access to its Limb's code), with no
   words, and the failing one's exit is cca's. A folder argument is refused
   as "not yet (asked)", since `cca prepare money` cannot tell a folder
-  `money` from a dependency `money`; so is no names at all, as ruled.
+  `money` from a prefix `money`; so is no names at all, as ruled.
   Alternative: run named Limbs dependencies-first too.
 - **2026-09-29 — How `cca test` runs tests.** One test binary holds every
   `test fn` (and no `MAIN`); `cca test` runs it once per test, the test's

@@ -674,7 +674,7 @@ impl Items {
         let here = self.limb_root(m);
         match self.limb_deps.get(&here).and_then(|d| d.get(&limb.name)) {
             Some(r) => Ok(*r),
-            None => err(Diagnostic::error(format!("there is no Limb named `{}`: another Limb is reached only when `CCA.cplr` lists it — `const 'dependencies' := [cca::Dep[name = \"{}\", path = \"…\"],];`", limb.name, limb.name)).at(limb.span)),
+            None => err(Diagnostic::error(format!("no Limb with the prefix `{}`: a Limb this one uses is listed in its `CCA.cplr` (`const 'dependencies' := [cca::Dep[path = …],];`), and its own `CCA.cplr` says `const 'prefix' := \"{}\";`", limb.name, limb.name)).at(limb.span)),
         }
     }
 

@@ -1,4 +1,5 @@
 const 'name' := "app";
+const 'prefix' := "app";
 const 'version' := "0.1.0";
-const 'dependencies' := [cca::Dep[name = "geometry", path = "../prep_geometry"], cca::Dep[name = "money", path = "../prep_money"]];
+const 'dependencies' := [cca::Dep[path = "../prep_geometry"], cca::Dep[path = "../prep_money"]];
 const 'targets' := [cca::Target[name = "aarch64-macos"],];

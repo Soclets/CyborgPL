@@ -187,7 +187,7 @@ fn limbs_reach_their_dependencies() {
     // A version may be any text of at most 256 bytes (owner, 2026-09-29).
     let r = Command::new(cca()).arg("check").arg(limbs.join("long_version")).output().unwrap();
     assert!(r.status.success(), "a 256-byte version was refused:\n{}", String::from_utf8_lossy(&r.stderr));
-    for (name, says) in [("cycle_a", "go round in a circle: cycle_a → cycle_b → cycle_a"), ("misnamed", "calls itself `areas` in its `CCA.cplr`, and the Limb that depends on it names it `geometry`")] {
+    for (name, says) in [("cycle_a", "go round in a circle: cycle_a → cycle_b → cycle_a")] {
         let r = Command::new(cca()).arg("check").arg(limbs.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
@@ -211,7 +211,7 @@ fn prepare_runs_build_scripts_in_their_folders() {
     }
     let r = prep("prep_stops", &["--all"]);
     assert!(r.status.code() == Some(7) && said(&r) == "bad", "`--all` did not stop at the first that failed:\n{}{}", said(&r), String::from_utf8_lossy(&r.stderr));
-    for (words, says) in [(&[][..], "not yet: `cca prepare` with no names"), (&["geometry", "money"][..], "names are separated by commas"), (&["nope"][..], "`nope` is not a dependency of this Limb"), (&["../prep_money"][..], "for a Limb in another folder")] {
+    for (words, says) in [(&[][..], "not yet: `cca prepare` with no names"), (&["geometry", "money"][..], "names are separated by commas"), (&["nope"][..], "no Limb here has the prefix `nope`"), (&["../prep_money"][..], "for a Limb in another folder")] {
         let r = prep("prep_app", words);
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "`cca prepare {}` was not refused with {:?}:\n{}", words.join(" "), says, err);

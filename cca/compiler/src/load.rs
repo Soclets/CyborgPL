@@ -12,7 +12,7 @@ use crate::source::{FileId, SourceMap};
 pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     let mut items = Items::default();
     if path.is_dir() {
-        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new() };
+        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new() };
         load_limb(sources, &mut items, path, None, &mut state)?;
     } else {
         let m = new_module(&mut items, "limb", None, Vis::Pub);
@@ -30,18 +30,31 @@ pub fn targets() -> Vec<&'static str> {
 }
 
 /// What `cca prepare` runs, in order (owner, 2026-09-29): each Limb's
-/// `build.cplr` with the name it goes by and the folder it runs in. `names`
-/// are the local names this Limb's `CCA.cplr` gives its dependencies, or
-/// the Limb's own name, run in the order given, each once; `None` is
-/// `--all` — every Limb reached, dependencies before the Limbs that use
-/// them, each once. Nothing is loaded but manifests.
+/// `build.cplr` with the prefix it goes by and the folder it runs in.
+/// `names` are prefixes — this Limb's own or a dependency's — run in the
+/// order given, each once; `None` is `--all` — every Limb reached,
+/// dependencies before the Limbs that use them, each once. Nothing is
+/// loaded but manifests.
 pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, names: Option<&[String]>) -> Result<Vec<(String, PathBuf)>> {
     if !dir.join("limb.cpls").is_file() {
         return err(Diagnostic::error(format!("`cca prepare` acts on the Limb in this folder, and `{}` has no `limb.cpls`", short(dir))));
     }
+    // A Limb's prefix, from its own `CCA.cplr`; a dependency without one
+    // has none to be named by.
+    fn prefix_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<String> {
+        if let Some((manifest_at, written)) = from {
+            if !dir.join("CCA.cplr").is_file() {
+                return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no 'prefix' for code to reach it by", written)).place(manifest_at.display().to_string()));
+            }
+        }
+        Ok(match read_manifest(sources, dir)?.prefix {
+            Some((p, _)) => p,
+            None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()),
+        })
+    }
     let manifest = read_manifest(sources, dir)?;
-    let own = manifest.name.as_ref().map(|(n, _)| n.clone());
-    let script = |d: &Path| d.join("build.cplr").is_file();
+    let manifest_at = dir.join("CCA.cplr");
+    let own = prefix_of(sources, dir, None)?;
     let Some(names) = names else {
         // Dependencies first: a Limb is listed after everything under it.
         fn walk(sources: &mut SourceMap, dir: &Path, shown: String, stack: &mut Vec<(PathBuf, String)>, done: &mut Vec<PathBuf>, out: &mut Vec<(String, PathBuf)>) -> Result<()> {
@@ -55,9 +68,12 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, names: Option<&[String]
                 return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
             }
             let manifest = read_manifest(sources, dir)?;
+            let manifest_at = dir.join("CCA.cplr");
             stack.push((key.clone(), shown.clone()));
             for d in &manifest.deps {
-                walk(sources, &dir.join(&d.path), d.name.clone(), stack, done, out)?;
+                let at = dir.join(&d.path);
+                let p = prefix_of(sources, &at, Some((&manifest_at, &d.path)))?;
+                walk(sources, &at, p, stack, done, out)?;
             }
             stack.pop();
             done.push(key);
@@ -66,73 +82,95 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, names: Option<&[String]
             }
             Ok(())
         }
-        let shown = own.clone().unwrap_or_else(|| dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()));
         let mut out = Vec::new();
-        walk(sources, dir, shown, &mut Vec::new(), &mut Vec::new(), &mut out)?;
+        walk(sources, dir, own, &mut Vec::new(), &mut Vec::new(), &mut out)?;
         return Ok(out);
     };
+    let mut known: Vec<(String, PathBuf)> = vec![(own, dir.to_path_buf())];
+    for d in &manifest.deps {
+        let at = dir.join(&d.path);
+        let p = prefix_of(sources, &at, Some((&manifest_at, &d.path)))?;
+        known.push((p, at));
+    }
     let mut out: Vec<(String, PathBuf)> = Vec::new();
     for n in names {
         if out.iter().any(|(m, _)| m == n) {
             continue;
         }
-        let at = if own.as_deref() == Some(n.as_str()) {
-            dir.to_path_buf()
-        } else if let Some(d) = manifest.deps.iter().find(|d| d.name == *n) {
-            dir.join(&d.path)
-        } else {
-            let mut known: Vec<String> = own.iter().cloned().collect();
-            known.extend(manifest.deps.iter().map(|d| d.name.clone()));
-            let list = if known.is_empty() { "this Limb has no name and no dependencies in its `CCA.cplr`".to_string() } else { format!("the names here are {}", known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")) };
-            return err(Diagnostic::error(format!("`{}` is not a dependency of this Limb nor its own name: {}", n, list)));
+        let Some((_, at)) = known.iter().find(|(p, _)| p == n) else {
+            return err(Diagnostic::error(format!("no Limb here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(k, _)| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
         };
-        if !script(&at) {
+        if !at.join("build.cplr").is_file() {
             return err(Diagnostic::error(format!("`{}` has no `build.cplr` to run, at `{}`", n, at.display())));
         }
-        out.push((n.clone(), at));
+        out.push((n.clone(), at.clone()));
     }
     Ok(out)
 }
 
 /// Where loading has got to: the Limbs being loaded now (a dependency back
-/// to one of them is a cycle), and those loaded already (two Limbs that
-/// share a dependency share one copy of it).
+/// to one of them is a cycle), those loaded already (two Limbs that share a
+/// dependency share one copy of it), and each dependency's prefix with the
+/// folder that has it.
 struct Loading {
     stack: Vec<(PathBuf, String)>,
-    done: std::collections::HashMap<PathBuf, ModuleId>,
+    done: std::collections::HashMap<PathBuf, (ModuleId, String)>,
+    prefixes: std::collections::HashMap<String, PathBuf>,
 }
 
 /// One Limb directory and, through its `CCA.cplr`, its dependencies: each
-/// a tree of its own, its root's `limb_deps` naming theirs. `as_dep` is the
-/// name a depending Limb gives it; the Limb being built has none, and its
-/// root is `ROOT`, made first.
-fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Option<&str>, state: &mut Loading) -> Result<ModuleId> {
+/// a tree of its own, its root's `limb_deps` naming theirs by their own
+/// 'prefix' (owner, 2026-09-29). `from` is, for a dependency, the depending
+/// Limb's `CCA.cplr` and the path it wrote; the Limb being built has none,
+/// and its root is `ROOT`, made first. Gives back the Limb's root module
+/// and its prefix.
+fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, state: &mut Loading) -> Result<(ModuleId, String)> {
     let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
     if let Some(r) = state.done.get(&key) {
-        return Ok(*r);
+        return Ok(r.clone());
     }
-    let shown = match as_dep {
-        Some(n) => n.to_string(),
-        None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()),
-    };
     if let Some(at) = state.stack.iter().position(|(p, _)| *p == key) {
         let mut names: Vec<String> = state.stack[at..].iter().map(|(_, n)| n.clone()).collect();
-        names.push(shown);
+        names.push(state.stack[at].1.clone());
         return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
     }
     let root = dir.join("limb.cpls");
     if !root.is_file() {
-        return err(Diagnostic::error(match as_dep {
+        return err(Diagnostic::error(match from {
             None => format!("`{}` is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there", short(dir)),
-            Some(n) => format!("the dependency `{}` is at `{}`, and a Limb needs its root file `limb.cpls`: none is there", n, dir.display()),
+            Some((_, written)) => format!("the Limb at `{}` needs its root file `limb.cpls`: none is there", written),
         }));
     }
+    // A dependency is reached by the prefix its own `CCA.cplr` gives it,
+    // and the depending Limb names no word (owner, 2026-09-29).
+    if let Some((manifest_at, written)) = from {
+        if !dir.join("CCA.cplr").is_file() {
+            return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no 'prefix' for code to reach it by", written)).place(manifest_at.display().to_string()));
+        }
+    }
     let manifest = read_manifest(sources, dir)?;
+    let prefix = match &manifest.prefix {
+        Some((p, _)) => p.clone(),
+        None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()),
+    };
+    if let Some((manifest_at, written)) = from {
+        if prefix == "std" || prefix == "cca" {
+            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which is the built-in `{}::`; edit its 'prefix'", written, prefix, prefix)).place(manifest_at.display().to_string()));
+        }
+        // No override: two Limbs with one prefix are fixed by editing one
+        // (owner, 2026-09-29: "Just edit the source code").
+        if let Some(other) = state.prefixes.get(&prefix) {
+            if *other != key {
+                return err(Diagnostic::error(format!("two Limbs have the prefix `{}` ({} and {}); edit one Limb's 'prefix'", prefix, other.display(), key.display())).place(manifest_at.display().to_string()));
+            }
+        }
+        state.prefixes.insert(prefix.clone(), key.clone());
+    }
     // What is built is the default target — from the manifest, never from
     // the host (`reproducible-builds.md`). CCA writes code for the targets
     // in `cca/targets.txt`, and only on that machine so far, so another
     // default is not built wrongly: it waits.
-    if as_dep.is_none() {
+    if from.is_none() {
         if let Some((t, span)) = &manifest.default_target {
             let here = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
             let known = targets();
@@ -144,59 +182,58 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Opt
             }
         }
     }
-    if let (Some(want), Some((have, span))) = (as_dep, &manifest.name) {
-        if want != have {
-            return err(Diagnostic::error(format!("this Limb calls itself `{}` in its `CCA.cplr`, and the Limb that depends on it names it `{}`: the names must agree", have, want)).at(*span));
-        }
-    }
-    let m = match as_dep {
+    let m = match from {
         None => new_module(items, "limb", None, Vis::Pub),
-        Some(n) => {
+        Some(_) => {
             let id = ModuleId(items.modules.len() as u32);
-            items.modules.push(crate::resolve::Module { name: "limb".to_string(), path: format!("{}::limb", n), parent: None, vis: Vis::Pub, items: Default::default(), consts: Default::default() });
+            items.modules.push(crate::resolve::Module { name: "limb".to_string(), path: format!("{}::limb", prefix), parent: None, vis: Vis::Pub, items: Default::default(), consts: Default::default() });
             id
         }
     };
     let mut file = parse_file(sources, &root)?;
     // A dependency's `MAIN` runs only when that Limb itself is run, and
     // is left out when another Limb uses it (owner, 2026-09-29: a).
-    if as_dep.is_some() {
+    if from.is_some() {
         file.items.retain(|i| !matches!(i.kind, crate::ast::ItemKind::Main(..)));
     }
-    items.collect_file(&file, m, as_dep.is_none())?;
+    items.collect_file(&file, m, from.is_none())?;
     load_dir(sources, items, dir, m, true)?;
-    state.stack.push((key.clone(), shown));
+    state.stack.push((key.clone(), prefix.clone()));
     let mut deps = std::collections::HashMap::new();
+    let manifest_at = dir.join("CCA.cplr");
     for d in &manifest.deps {
         let at = dir.join(&d.path);
-        let r = load_limb(sources, items, &at, Some(&d.name), state)?;
-        deps.insert(d.name.clone(), r);
+        let (r, p) = load_limb(sources, items, &at, Some((&manifest_at, &d.path)), state)?;
+        deps.insert(p, r);
     }
     state.stack.pop();
     items.limb_deps.insert(m, deps);
-    state.done.insert(key, m);
-    Ok(m)
+    state.done.insert(key, (m, prefix.clone()));
+    Ok((m, prefix))
 }
 
 /// What a `CCA.cplr` says (owner, 2026-09-29): one plain `const` per
 /// setting, in CyborgPL, its shapes from the built-in `cca` Limb.
 struct Manifest {
     name: Option<(String, crate::source::Span)>,
+    /// The word code writes in front of `::` to reach this Limb, which its
+    /// maker picks; `name` is a label for people and may repeat (owner,
+    /// 2026-09-29).
+    prefix: Option<(String, crate::source::Span)>,
     deps: Vec<Dep>,
     /// The target built when none is named (owner, 2026-09-29: b).
     default_target: Option<(String, crate::source::Span)>,
 }
 
 struct Dep {
-    name: String,
     path: String,
 }
 
-const SETTINGS: [&str; 4] = ["name", "version", "dependencies", "targets"];
+const SETTINGS: [&str; 5] = ["name", "prefix", "version", "dependencies", "targets"];
 
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind, ItemKind};
-    let mut out = Manifest { name: None, deps: Vec::new(), default_target: None };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None };
     let at = dir.join("CCA.cplr");
     if !at.is_file() {
         return Ok(out);
@@ -230,6 +267,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         seen.push(setting.to_string());
         match setting {
             "name" => out.name = Some((text(&c.value, "'name'")?, c.value.span)),
+            "prefix" => {
+                let p = text(&c.value, "'prefix'")?;
+                check_prefix(&p, c.value.span)?;
+                out.prefix = Some((p, c.value.span));
+            }
             // Any text, at most 256 bytes (owner, 2026-09-29), as in a
             // Synthia.ttsr.
             "version" => {
@@ -301,59 +343,56 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             }
             _ => {
                 let ExprKind::List(entries) = &c.value.kind else {
-                    return err(Diagnostic::error("'dependencies' is a list of `cca::Dep[…]`: `[cca::Dep[name = \"areas\", path = \"../areas\"],]`").at(c.value.span));
+                    return err(Diagnostic::error("'dependencies' is a list of `cca::Dep[…]`: `[cca::Dep[path = \"../areas\"],]`").at(c.value.span));
                 };
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each dependency is a `cca::Dep[name = …, path = …]`").at(e.span));
+                        return err(Diagnostic::error("each dependency is a `cca::Dep[path = …]`, or a `cca::Dep[id = …, version = …]`").at(e.span));
                     };
                     if path.limb.as_ref().map(|l| l.name.as_str()) != Some("cca") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Dep"]) {
                         return err(Diagnostic::error(format!("each dependency is a `cca::Dep[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
-                    let (mut name, mut dpath, mut version, mut id) = (None, None, None, None);
+                    let (mut dpath, mut version, mut id) = (None, None, None);
                     for a in args {
                         let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `cca::Dep` names its fields: `name = …`, and a `path = …` or a `version = …`").at(a.span()));
+                            return err(Diagnostic::error("a `cca::Dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
                         };
                         let slot = match field.name.as_str() {
-                            "name" => &mut name,
+                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Limb's own 'prefix', from its `CCA.cplr`").at(field.span)),
                             "path" => &mut dpath,
                             "version" => &mut version,
                             "id" => &mut id,
-                            other => return err(Diagnostic::error(format!("a `cca::Dep` has no field `{}`: it is a `name`, and a `path` or an `id` and a `version`", other)).at(field.span)),
+                            other => return err(Diagnostic::error(format!("a `cca::Dep` has no field `{}`: it is a `path`, or an `id` and a `version`", other)).at(field.span)),
                         };
                         *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
                     }
-                    let Some((dname, dspan)) = name else {
-                        return err(Diagnostic::error("a `cca::Dep` needs its `name`: the name its code reaches it by, `name::…`").at(e.span));
-                    };
                     // The registry knows a Limb by the ID its creator made —
                     // 256 random bits, 64 hex digits — never by its name
                     // (owner, 2026-09-29: "Names could be the same, IDs
                     // can't").
                     if let Some((i, ispan)) = &id {
                         if i.len() != 64 || !i.chars().all(|c| c.is_ascii_hexdigit()) {
-                            return err(Diagnostic::error(format!("`{}`'s `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", dname, i)).at(*ispan));
+                            return err(Diagnostic::error(format!("a dependency's `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", i)).at(*ispan));
                         }
                     }
                     match (dpath, version) {
                         (Some(_), Some((_, vspan))) => {
-                            return err(Diagnostic::error(format!("`{}` says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both", dname)).at(vspan));
+                            return err(Diagnostic::error("a dependency says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both").at(vspan));
                         }
                         (None, Some(_)) if id.is_none() => {
-                            return err(Diagnostic::error(format!("`{}` comes from the registry, which knows a Limb by its ID, never its name: add `id = \"…\"`, the 64 hex digits its creator made", dname)).at(e.span));
+                            return err(Diagnostic::error("this dependency comes from the registry, which knows a Limb by its ID, never its name: add `id = \"…\"`, the 64 hex digits its creator made").at(e.span));
                         }
                         (None, Some((_, vspan))) => {
-                            return err(Diagnostic::error(format!("not yet: `{}` asks the registry for a `version`, and the registry does not exist yet — give its folder with `path = \"…\"`", dname)).at(vspan));
+                            return err(Diagnostic::error("not yet: this dependency asks the registry for a `version`, and the registry does not exist yet — give its folder with `path = \"…\"`").at(vspan));
                         }
                         (None, None) => {
-                            return err(Diagnostic::error(format!("`{}` needs to say where it comes from: a `path = \"…\"` (a folder on this machine) or a `version` (the registry)", dname)).at(e.span));
+                            return err(Diagnostic::error("a dependency says where it comes from: a `path = \"…\"` (a folder on this machine), or an `id` and a `version` (the registry)").at(e.span));
                         }
-                        (Some((p, _)), None) => {
-                            if out.deps.iter().any(|d| d.name == dname) {
-                                return err(Diagnostic::error(format!("`{}` is listed twice in 'dependencies'", dname)).at(dspan));
+                        (Some((p, pspan)), None) => {
+                            if out.deps.iter().any(|d| d.path == p) {
+                                return err(Diagnostic::error(format!("`{}` is listed twice in 'dependencies'", p)).at(pspan));
                             }
-                            out.deps.push(Dep { name: dname, path: p });
+                            out.deps.push(Dep { path: p });
                         }
                     }
                 }
@@ -363,13 +402,15 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // What every manifest says (owner, 2026-09-29, as a Synthia.ttsr
     // does): a folder with no `CCA.cplr` is a plain program, and one with
     // it is a Limb with a name, a version and a target to build.
-    for need in ["name", "version"] {
+    for need in ["name", "prefix", "version"] {
         if !seen.iter().any(|s| s == need) {
-            return err(Diagnostic::error(format!("CCA.cplr has no '{}': a build needs the Limb's 'name', 'version' and at least one target", need)).place(at.display().to_string()));
+            let what = if need == "prefix" { ", the word code writes in front of `::` to reach this Limb" } else { "" };
+            let example = if need == "prefix" { ": `const 'prefix' := \"shop\";`" } else { "" };
+            return err(Diagnostic::error(format!("CCA.cplr has no '{}'{}: a build needs the Limb's 'name', 'prefix', 'version' and at least one target{}", need, what, example)).place(at.display().to_string()));
         }
     }
     if out.default_target.is_none() {
-        return err(Diagnostic::error("CCA.cplr has no target: a build needs the Limb's 'name', 'version' and at least one target, `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`").place(at.display().to_string()));
+        return err(Diagnostic::error("CCA.cplr has no target: a build needs the Limb's 'name', 'prefix', 'version' and at least one target, `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`").place(at.display().to_string()));
     }
     Ok(out)
 }
@@ -458,6 +499,23 @@ fn check_name(name: &str, at: &Path) -> Result<()> {
         return err(Diagnostic::error(format!("`{}` is a keyword and cannot name a module: rename `{}`", name, short(at))));
     }
     Ok(())
+}
+
+/// A 'prefix' is written in code as `prefix::`, so it follows the
+/// module-name rule (owner, 2026-09-29).
+fn check_prefix(p: &str, span: crate::source::Span) -> Result<()> {
+    let why = if p.chars().any(|c| c.is_ascii_uppercase()) {
+        "lowercase only — macOS and Windows file systems do not tell `Shapes` from `shapes`"
+    } else if !(p.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) && p.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')) {
+        "lowercase ASCII letters, digits and `_`, starting with a letter"
+    } else if crate::parser::is_device_name(p) {
+        "a reserved device name on Windows"
+    } else if crate::parser::is_keyword(p) {
+        "a keyword"
+    } else {
+        return Ok(());
+    };
+    err(Diagnostic::error(format!("`{}` cannot be a prefix, written in code as `{}::`: {}", p, p, why)).at(span))
 }
 
 /// The file's own name, for a message: a full path is noise and differs per machine.
