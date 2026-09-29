@@ -1160,7 +1160,7 @@ impl<'p> Interp<'p> {
         let fresh = !simd_shape && matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
             | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
-            || matches!(e, Expr::Binary(op, ..) if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "<==" | ">=="));
+            || matches!(e, Expr::Binary(op, ..) if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/=="));
         let r = if fresh && self.expected.is_some() {
             let saved = self.expected.take();
             let r = self.eval_inner(e);
@@ -1200,7 +1200,7 @@ impl<'p> Interp<'p> {
             Expr::Var(n, _) | Expr::Owned(_, n, _) => Ok(self.lookup(n).and_then(|s| s.ty.clone()).map(base)),
             Expr::Convert(t, ..) => Ok(Some(base(t.clone()))),
             Expr::Paren(inner, _) | Expr::Unary(_, inner, _) => self.plain_size(inner),
-            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+" | "-" | "x" | "xx" | "/" | "mod") => {
+            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod") => {
                 match (self.plain_size(l)?, self.plain_size(r)?) {
                     (Some(a), Some(b)) if ty_name(&a) != ty_name(&b) => Err(format!("{} and {}", ty_name(&a), ty_name(&b))),
                     (a, b) => Ok(a.or(b)),
@@ -1905,14 +1905,14 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "/" | "mod" | "++" | "==" | "!==" | "<" | ">" | "<==" | ">==" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(op, l, r, _) => {
                 // A comparison's operands take their width from each other (2026-09-23): the
                 // stored `bool` says nothing, but a typed side sizes a literal group on the other
                 // (`'n' > (0 -~ 1)` wraps in uint64; verification session, seed 90).
-                let cmp = matches!(op.as_str(), "==" | "!==" | "<" | ">" | "<==" | ">==");
+                let cmp = matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==");
                 let saved_expected = self.expected.clone();
                 if cmp { self.expected = None; let other = self.expr_ty(r); self.expected = other; }
                 let r_a = self.eval(l);
@@ -2016,10 +2016,10 @@ impl<'p> Interp<'p> {
             ("+", Int(x), Int(y)) => Int(x.checked_add(y).ok_or_else(|| ovf("+"))?),
             ("-", Int(x), Int(y)) => Int(x.checked_sub(y).ok_or_else(|| ovf("-"))?),
             ("x", Int(x), Int(y)) => Int(x.checked_mul(y).ok_or_else(|| ovf("x"))?),
-            ("/", Int(_), Int(0)) => return site(line, "division by zero"),
+            ("div", Int(_), Int(0)) => return site(line, "division by zero"),
             // Decided 2026-09-20: floor division and the mathematician's mod
             // (-7 / 2 = -4, -7 mod 2 = 1); hardware truncation is std::div.trunc / std::mod.trunc.
-            ("/", Int(x), Int(y)) => { let q = x.checked_div(y).ok_or_else(|| ovf("/"))?; Int(if x % y != 0 && ((x < 0) != (y < 0)) { q - 1 } else { q }) }
+            ("div", Int(x), Int(y)) => { let q = x.checked_div(y).ok_or_else(|| ovf("div"))?; Int(if x % y != 0 && ((x < 0) != (y < 0)) { q - 1 } else { q }) }
             ("mod", Int(_), Int(0)) => return site(line, "`mod` by zero"),
             ("mod", Int(x), Int(y)) => { let r = x.checked_rem(y).ok_or_else(|| ovf("mod"))?; Int(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r }) }
             ("xx", Int(x), Int(y)) => {
@@ -2031,10 +2031,10 @@ impl<'p> Interp<'p> {
             ("+", Bin(x), Bin(y)) => Bin(x + y),
             ("-", Bin(x), Bin(y)) => Bin(x - y),
             ("x", Bin(x), Bin(y)) => Bin(x * y),
-            ("/", Bin(x), Bin(y)) => Bin(x / y),
+            ("div", Bin(x), Bin(y)) => Bin(x / y),
             ("mod", Bin(x), Bin(y)) => Bin(x % y),
             ("xx", Bin(x), Bin(y)) => Bin(x.powf(y)),
-            ("+" | "-" | "x" | "/" | "mod" | "xx", Int(_), Bin(_)) | ("+" | "-" | "x" | "/" | "mod" | "xx", Bin(_), Int(_)) =>
+            ("+" | "-" | "x" | "div" | "mod" | "xx", Int(_), Bin(_)) | ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(_), Int(_)) =>
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
             // a char compares by its content, whatever unit it was declared in
             // durations (design/concurrency.md): compare, add, subtract, scale by an integer
@@ -2042,8 +2042,8 @@ impl<'p> Interp<'p> {
             ("!==", Duration(a), Duration(b)) => Bool(a != b),
             ("<", Duration(a), Duration(b)) => Bool(a < b),
             (">", Duration(a), Duration(b)) => Bool(a > b),
-            ("<==", Duration(a), Duration(b)) => Bool(a <= b),
-            (">==", Duration(a), Duration(b)) => Bool(a >= b),
+            ("</==", Duration(a), Duration(b)) => Bool(a <= b),
+            (">/==", Duration(a), Duration(b)) => Bool(a >= b),
             ("+", Duration(a), Duration(b)) => Duration(a + b),
             ("-", Duration(a), Duration(b)) => { if b > a { return rt(line, "a duration is never negative"); } Duration(a - b) }
             ("x", Duration(a), Int(k)) | ("x", Int(k), Duration(a)) => { if k < 0 { return rt(line, "a duration is never negative"); } Duration(a * k) }
@@ -2053,13 +2053,13 @@ impl<'p> Interp<'p> {
             ("!==", x, y) => { same_family(&x, &y, line, "!==")?; Bool(x != y) }
             ("<", Int(x), Int(y)) => Bool(x < y),
             (">", Int(x), Int(y)) => Bool(x > y),
-            ("<==", Int(x), Int(y)) => Bool(x <= y),
-            (">==", Int(x), Int(y)) => Bool(x >= y),
+            ("</==", Int(x), Int(y)) => Bool(x <= y),
+            (">/==", Int(x), Int(y)) => Bool(x >= y),
             ("<", Bin(x), Bin(y)) => Bool(x < y),
             (">", Bin(x), Bin(y)) => Bool(x > y),
-            ("<==", Bin(x), Bin(y)) => Bool(x <= y),
-            (">==", Bin(x), Bin(y)) => Bool(x >= y),
-            ("<" | ">" | "<==" | ">==", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is std's (decided 2026-09-20)")),
+            ("</==", Bin(x), Bin(y)) => Bool(x <= y),
+            (">/==", Bin(x), Bin(y)) => Bool(x >= y),
+            ("<" | ">" | "</==" | ">/==", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is std's (decided 2026-09-20)")),
             ("and", Bool(x), Bool(y)) => Bool(x && y),
             ("or", Bool(x), Bool(y)) => Bool(x || y),
             (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
@@ -2801,7 +2801,7 @@ impl<'p> Interp<'p> {
     fn satisfies(&self, shape: &str, iface: &str, line: usize) -> Result<Result<(), String>, RuntimeError> {
         let def = match self.prog.interfaces.iter().find(|i| i.name == iface) { Some(i) => i, None => return rt(line, format!("no interface named `{iface}`")) };
         let builtin_ops: &[&str] = match shape {
-            "integer" | "bin" => &["+", "-", "x", "xx", "/", "mod", "<", ">", "<==", ">==", "==", "!=="],
+            "integer" | "bin" => &["+", "-", "x", "xx", "div", "mod", "<", ">", "</==", ">/==", "==", "!=="],
             "bool" => &["and", "or", "==", "!=="],
             "str" => &["++", "==", "!=="],
             "char" | "list" => &["==", "!=="],

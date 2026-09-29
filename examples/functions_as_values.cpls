@@ -30,7 +30,7 @@ MAIN {
 
     'limit' := 60;
     'scores' := [72, 40, 95, 55];
-    'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >== 'limit'; }];
+    'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
     std::printu.stdout['passing', \n];
 
     'evens' := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing

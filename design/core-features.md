@@ -97,7 +97,7 @@ proofs rather than skipping them — never by doing less.
   programmer alone. The build output lists every `nocheck` site.
   **A certain failure gets a note, never a refusal** (owner,
   2026-09-22): when Precog's ordinary work happens to show that a
-  `nocheck` site fails on *every* run — `nocheck 'q' := 1 / 'z';`
+  `nocheck` site fails on *every* run — `nocheck 'q' := 1 div 'z';`
   with `'z'` proven to be 0 — the build says so (`note:`, the third
   kind in `diagnostics.md`) and builds anyway. Precog never goes
   looking; it only refuses to stay silent about what it could not

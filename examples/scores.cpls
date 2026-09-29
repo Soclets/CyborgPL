@@ -31,7 +31,7 @@ MAIN {
         }
     }
 
-    'average' := 'total' / 'count';
+    'average' := 'total' div 'count';
     'curved' := clamp['average' + 10, 0, 100];
 
     std::printu.stdout["scored ", 'count', " tests", \n];
@@ -39,9 +39,9 @@ MAIN {
     std::printu.stdout["even scores: ", 'evens', \n];
     std::printu.stdout["average ", 'average', ", curved ", 'curved', \n];
 
-    if 'average' >== 90 {
+    if 'average' >/== 90 {
         std::printu.stdout["grade A", \n];
-    } else if 'average' >== 75 {
+    } else if 'average' >/== 75 {
         std::printu.stdout["grade B", \n];
     } else {
         std::printu.stdout["keep going", \n];

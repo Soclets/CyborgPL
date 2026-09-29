@@ -139,7 +139,7 @@ outliving `'s'`.
 
 ```
 fn longer [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 {
-    if str.bytes[lend 'a'] >== str.bytes[lend 'b'] { return lend 'a'; }
+    if str.bytes[lend 'a'] >/== str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
 fn pick [lent@x 'a': str.utf8, lent@y 'b': str.utf8] -> lent@x str.utf8 { return lend 'a'; }

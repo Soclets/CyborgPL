@@ -2,23 +2,31 @@
 
 Decided 2026-09-14.
 
+**`div` and `</==` / `>/==`** (owner, 2026-09-29): division is the word
+`div`, and `/` is no longer an operator. Freed from division, the slash
+reads as "or", so less-or-equal is `</==` ("less / equal") and
+greater-or-equal `>/==`. Subtraction and negation both stay `-`: the
+owner first made negation `neg` (`neg'x'`), then went back to `-` once
+it meant writing minus five as `neg 5`. The old spellings are refused
+with an error naming the new ones.
+
 | Operator | Meaning |
 |---|---|
 | `+` | add |
 | `-` | subtract (and unary negation, assumed) |
 | `x` | multiply |
 | `xx` | power |
-| `/` | divide |
+| `div` | divide (was `/` until 2026-09-29) |
 | `mod` | remainder / modulo |
 | `==` | equal |
-| `!==` | not equal — built from `==`, same rule as `<==`/`>==` |
+| `!==` | not equal — built from `==` |
 | `<`, `>` | less than, greater than |
-| `<==`, `>==` | less-or-equal, greater-or-equal — built from `==`, because a lone `=` is assignment and must never appear inside a comparison |
+| `</==`, `>/==` | less-or-equal, greater-or-equal — the slash reads as "or" ("less / equal"), and `==` because a lone `=` is assignment and must never appear inside a comparison (was `<==` / `>==` until 2026-09-29) |
 | `and` | boolean and |
 | `or` | boolean or |
 | `not` | boolean not |
 
-Word operators (`x`, `xx`, `mod`, `and`, `or`, `not`) are safe for the same
+Word operators (`x`, `xx`, `div`, `mod`, `and`, `or`, `not`) are safe for the same
 reason `x` is: user names are always quoted, so a bare word is never a name.
 
 `x`/`xx` carry over from legacy CyborgPL (the owner's design there). They are
@@ -52,14 +60,14 @@ Tightest to loosest:
 |---|---|---|
 | 1 | `xx` | right-associative: `2 xx 3 xx 2` = 512 |
 | 2 | unary `-` | below `xx`: `-2 xx 2` = −4; `(-2) xx 2` = 4 |
-| 3 | `x` `/` `mod` | `x` chains freely; `/` or `mod` beside `x`, `/`, or `mod` **requires parentheses** (`6 / 2 x 3` has no settled reading); `mod` beside *any* operator requires parentheses (it has no mathematical notation) |
+| 3 | `x` `div` `mod` | `x` chains freely; `div` or `mod` beside `x`, `div`, or `mod` **requires parentheses** (`6 div 2 x 3` has no settled reading); `mod` beside *any* operator requires parentheses (it has no mathematical notation) |
 | 4 | `+` `-` | left-associative |
-| 5 | `==` `!==` `<` `>` `<==` `>==` | never chained (`1 < 2 < 3` is an error); never beside `not` |
+| 5 | `==` `!==` `<` `>` `</==` `>/==` | never chained (`1 < 2 < 3` is an error); never beside `not` |
 | 6 | `not` | applies to one operand or a parenthesis |
 | 7 | `and` | ∧ before ∨, as in logic |
 | 8 | `or` | |
 
-**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `nocheck`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked, exact and checked where they land (2026-09-23, below). Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`/` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 / 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a / b) x b + (a mod b)` holds. Hardware truncation (`-7 / 2 = -3`, `-7 mod 2 = -1`) is std's, by name — `std::div.trunc[a, b]`, `std::mod.trunc[a, b]` — for matching a C library bit for bit. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where Precog cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `nocheck`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and not ('a' == 'b')` reads as expected, and `6 / 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
+**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `nocheck`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked, exact and checked where they land (2026-09-23, below). Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`div` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 div 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a div b) x b + (a mod b)` holds. Hardware truncation (`-7 div 2 = -3`, `-7 mod 2 = -1`) is std's, by name — `std::div.trunc[a, b]`, `std::mod.trunc[a, b]` — for matching a C library bit for bit. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where Precog cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `nocheck`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and not ('a' == 'b')` reads as expected, and `6 div 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
 
 ## A shift's count (owner, 2026-09-23: a)
 
@@ -197,14 +205,14 @@ alternative: 64-bit intermediates rounded once where stored.
 
 ```
 'ok' := check_name['f'] and check_age['f'];     # both run, left then right
-if 'i' <== list.length[lend 'xs'] {             # a check that protects the next
+if 'i' </== list.length[lend 'xs'] {             # a check that protects the next
     if 'xs'['i'] == 5 { … }                 # step is written as two `if`s
 }
 ```
 
 Nothing written on a line is skipped: `and` and `or` evaluate the left
 side, then the right, even when the left already decides the answer.
-The one-line guard `'i' <== … and 'xs'['i'] == 5` is therefore not a
+The one-line guard `'i' </== … and 'xs'['i'] == 5` is therefore not a
 guard. The read runs when `'i'` is past the end, so it stops the working
 build and the final build refuses it. It is safe either way, never
 silent. The owner's reason: the code does exactly what it says ("so the
@@ -217,8 +225,8 @@ run both and refuse such lines at compile time.
 day), for when the second half should depend on the first:
 
 ```
-if 'i' <== list.length[lend 'xs'] and.then 'xs'['i'] == 5 { … }
-if 'n' == 0 or.else 100 / 'n' < 2 { … }
+if 'i' </== list.length[lend 'xs'] and.then 'xs'['i'] == 5 { … }
+if 'n' == 0 or.else 100 div 'n' < 2 { … }
 ```
 
 A variant of `and`/`or` by the dot rule, like `and.bit`. It reads as the
@@ -233,7 +241,7 @@ chosen.
 
 ## Not yet listed (open)
 
-(Integer `/` and `mod` were decided 2026-09-20: floor division, the
+(Integer `div` (then `/`) and `mod` were decided 2026-09-20: floor division, the
 mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
 ## Custom operators — `op` (decided 2026-09-20)

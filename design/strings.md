@@ -120,7 +120,7 @@ real versions will be CyborgPL.
   `"é"` as one code point is not `"é"` as `e` + combining accent;
   normalising is a std function. A `char` compares by content, whatever
   unit it was declared in.
-- `<` / `>` / `<==` / `>==` on text are a **compile error**: byte order is
+- `<` / `>` / `</==` / `>/==` on text are a **compile error**: byte order is
   never what anyone means, and a collation rule (locale-aware ordering)
   is std's, undesigned.
 

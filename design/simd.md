@@ -43,7 +43,7 @@ in `Synthia.cplm`, never from the host.
 ## The operators, element-wise (owner: a)
 
 Every operator a plain `T` has works on `simd[T, N]`, lane by lane —
-`+ - x / mod`, `and.bit or.bit not.bit xor shl shr`, the wrapping
+`+ - x div mod`, `and.bit or.bit not.bit xor shl shr`, the wrapping
 forms. `'a' or.bit 'b'` is the same bit-for-bit OR as on one number,
 done N times. Proposed alternative: named operations only
 (`simd.or['a', 'b']`) — nothing new in the grammar, worse to read

@@ -10,14 +10,14 @@ fn heaviest [...'items': Item] -> Item or fail[none] {
 }
 
 fn kilos ['grams': int32] -> int32 or fail[not_whole] {
-    'k': bin64 = to.bin64['grams'] / 1000.0;
+    'k': bin64 = to.bin64['grams'] div 1000.0;
     return to.int32['k'] otherwise fail;
 }
 
 fn initial [lent 'name': str.utf8] -> char.point {
     'first' := std::str.at.point[lend 'name', 1] otherwise `?`;
     'code' := char.code['first'];
-    if 'code' >== 97 and 'code' <== 122 {
+    if 'code' >/== 97 and 'code' </== 122 {
         return char.point.from_code['code' - 32] otherwise `?`;
     }
     return 'first';

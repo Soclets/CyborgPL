@@ -39,7 +39,7 @@ difference.
 
 ```
 'limit' := 60;
-'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >== 'limit'; }];
+'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
 ```
 

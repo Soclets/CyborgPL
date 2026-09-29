@@ -8,7 +8,7 @@ MAIN {
     NO_FUCKING_CHECKS {
         'a': int32 = 10;
         'b': int32 = 2;
-        'q' := 'a' / 'b';
+        'q' := 'a' div 'b';
         std::printu.stdout[\n, 'q', \n];
     }
 }

@@ -55,7 +55,7 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   reader sees where: `to.int32[std::round['x']]`. The rounding toolbox
   (`std::round`, `floor`, `ceil`, `trunc`: a bin in, a whole bin out) is
   std's, like `div.trunc`; names provisional. Owner chose this over C's
-  quiet truncation and over floor (which would match `/`).
+  quiet truncation and over floor (which would match `div`).
   `examples/whole.cpls`.
 - **`char`** (decided 2026-09-21, three questions):
   - **Number ↔ char is not a conversion.** `to.int32[`7`]` is refused: it

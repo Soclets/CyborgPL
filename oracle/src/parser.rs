@@ -19,7 +19,7 @@ pub const KEYWORDS: &[&str] = &[
     "var", "func",
 ];
 
-const OP_WORDS: &[&str] = &["x", "xx", "mod", "and", "or"];
+const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
 /// Bitwise operators (decided 2026-09-21): the boolean words narrowed with `.bit`, plus xor/shl/shr;
 /// no precedence — parentheses whenever one meets another operator.
 const BIT_OPS: &[&str] = &["and.bit", "or.bit", "xor", "shl", "shr"];
@@ -1768,13 +1768,13 @@ impl Parser {
     //
     //   tightest   xx                     right-associative (a power tower)
     //              unary -                so -2 xx 2 is -(2 xx 2)
-    //              x  /  mod              x chains; / and mod must be parenthesised
-    //                                     when mixed with x, /, or mod (6 / 2 x 3 has
+    //              x  div  mod            x chains; div and mod must be parenthesised
+    //                                     when mixed with x, div, or mod (6 div 2 x 3 has
     //                                     no settled reading; mod has no notation)
     //              +  -                   left-associative
     //              ++                     text join, left-associative; below arithmetic,
     //                                     above comparisons (decided 2026-09-19)
-    //              == !== < > <== >==     never chained; never mixed with `not`
+    //              == !== < > </== >/==   never chained; never mixed with `not`
     //              not                    applies to one operand or a parenthesis
     //              and
     //   loosest    or                     ∧ before ∨, as in logic
@@ -1788,10 +1788,10 @@ impl Parser {
         match op {
             "or" | "or.else" => 1,
             "and" | "and.then" => 2,
-            "==" | "!==" | "<" | ">" | "<==" | ">==" => 3,
+            "==" | "!==" | "<" | ">" | "</==" | ">/==" => 3,
             "++" => 4,
             "+" | "-" | "+~" | "-~" => 5,
-            "x" | "/" | "mod" | "x~" => 6,
+            "x" | "div" | "mod" | "x~" => 6,
             "xx" | "xx~" => 8,
             _ => 0,
         }
@@ -1832,16 +1832,16 @@ impl Parser {
         let bad = |line: usize, msg: String| Err(ParseError { line, col: 0, msg });
         match e {
             Expr::Binary(op, l, r, line) => {
-                let is_cmp = |o: &str| matches!(o, "==" | "!==" | "<" | ">" | "<==" | ">==");
+                let is_cmp = |o: &str| matches!(o, "==" | "!==" | "<" | ">" | "</==" | ">/==");
                 for child in [l.as_ref(), r.as_ref()] {
                     match child {
                         Expr::Binary(cop, ..) => {
                             if cop == "mod" || op == "mod" {
                                 return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading for mod beside another operator — parenthesise"));
                             }
-                            let both_mul = matches!(op.as_str(), "x" | "/" | "mod") && matches!(cop.as_str(), "x" | "/" | "mod");
+                            let both_mul = matches!(op.as_str(), "x" | "div" | "mod") && matches!(cop.as_str(), "x" | "div" | "mod");
                             if both_mul && !(op == "x" && cop == "x") {
-                                return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading here (6 / 2 x 3, or anything with mod) — parenthesise one side"));
+                                return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading here (6 div 2 x 3, or anything with mod) — parenthesise one side"));
                             }
                             if is_cmp(op) && is_cmp(cop) {
                                 return bad(*line, format!("`{cop}` next to `{op}`: comparisons do not chain — write `[(a {cop} b) and (b {op} c)]`, or parenthesise"));

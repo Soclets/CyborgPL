@@ -7,9 +7,9 @@ MAIN {
     'n' := list.length[lend 'xs'];
     mut 'acc': simd[int32, 4] = simd.fill[0];
     mut 'i': uint64 = 1;
-    while 'i' <== 'n' {
+    while 'i' </== 'n' {
         'left' := 'n' - 'i' + 1;
-        if 'left' >== 4 {
+        if 'left' >/== 4 {
             'v': simd[int32, 4] = simd.load[lend 'xs', 'i'];
             change 'acc' = 'acc' + 'v';
         } else {

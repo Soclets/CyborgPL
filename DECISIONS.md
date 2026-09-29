@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Division is `div`; less/greater-or-equal are `</==` and `>/==` (owner)
+
+The owner's own change, raised while listing the operators for `op +`:
+"`/` becomes `div`, `-` becomes `neg` (so, `neg'x'`). Now, since `/`
+can't be confused for `div` in our lang. We could change `>==` and `<==`
+to `>/==` and `</==`". Design claude read the slash as "or" ("less /
+equal") when restating it, and asked whether subtraction stays `-`
+(owner: yes). Asked then how minus five is written, `-5` kept for
+numbers typed directly (recommended) or `neg 5`; the owner: "Nvm, let's
+just make it back to `-`, forget `neg`". So negation and subtraction stay
+`-`, and only `div`, `</==`, `>/==` change. `div` is all division,
+integers (floor) and bins alike; `std::div.trunc` keeps its name. `/`,
+`<==` and `>==` are refused with errors naming the new spellings.
+`operators.md`; every example and test converted; reject tests
+slash_retired, lte_retired, gte (now naming `>/==`).
+
 ### 2026-09-29 — An operator is a value as `op +` (owner: a, `op +`)
 
 Open since 2026-09-21. Proposed (a) a way to hand an operator where a

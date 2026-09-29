@@ -1,5 +1,5 @@
 MAIN {
     'limit' := 60;
-    'f' := fn ['s': int32] -> bool { return 's' >== 'limit'; };
+    'f' := fn ['s': int32] -> bool { return 's' >/== 'limit'; };
     'b' := 'f'[70];
 }

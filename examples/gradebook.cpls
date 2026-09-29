@@ -9,7 +9,7 @@ fn average [lent 's': Student] -> int32 or fail[no_scores] {
     if list.length[lend 's'.scores] == 0 { fail no_scores; }
     'total' := 0;
     for 'x' in lend 's'.scores { change 'total' = 'total' + 'x'; }
-    check return 'total' / list.length[lend 's'.scores];     # the if above proves the divisor is not 0
+    check return 'total' div list.length[lend 's'.scores];     # the if above proves the divisor is not 0
 }
 
 fn record [lent.mut 's': Student, 'score': int32] -> fail[out_of_range: int32] {
@@ -19,7 +19,7 @@ fn record [lent.mut 's': Student, 'score': int32] -> fail[out_of_range: int32] {
 
 fn grade [lent 's': Student] -> str.utf8 {
     'avg' := average[lend 's'] otherwise return to.str.utf8['passing'] ++ "? no scores";
-    if 'avg' >== 'passing' { return "pass (" ++ to.str.utf8['avg'] ++ ")"; }
+    if 'avg' >/== 'passing' { return "pass (" ++ to.str.utf8['avg'] ++ ")"; }
     return "fail (" ++ to.str.utf8['avg'] ++ ")";
 }
 
@@ -40,7 +40,7 @@ MAIN {
     for 's' in lend 'students' {
         std::print.stdout['s'.name, ": ", grade[lend 's'], \n];
         'avg' := average[lend 's'] otherwise 0;
-        if 'avg' >== 'passing' { change 'passed' = 'passed' + 1; }
+        if 'avg' >/== 'passing' { change 'passed' = 'passed' + 1; }
     }
     std::printu.stdout['passed', " of ", list.length[lend 'students'], " passed", \n];
 }

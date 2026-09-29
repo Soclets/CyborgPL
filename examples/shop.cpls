@@ -26,7 +26,7 @@ fn cheapest [lent 'xs': list[<T: Priced>]] -> <T> or fail[empty] {
 }
 
 fn describe [lent 'i': Item] -> str.utf8 {
-    'dollars' := to.str.utf8['i'.cents / 100] ++ "." ++ to.str.utf8['i'.cents mod 100];
+    'dollars' := to.str.utf8['i'.cents div 100] ++ "." ++ to.str.utf8['i'.cents mod 100];
     match 'i'.stock {
         out      { return 'i'.name ++ " — sold out"; }
         few 'n'  { return 'i'.name ++ " — only " ++ to.str.utf8['n'] ++ " left at $" ++ 'dollars'; }
@@ -49,7 +49,7 @@ MAIN {
     for 'i' in lend 'shelf' { std::print.stdout[describe[lend 'i'], \n]; }
 
     'limit' := 5_000;
-    'affordable' := keep[lend 'shelf', fn [lent 'i': Item] -> bool with [lend 'limit'] { return 'i'.cents <== 'limit'; }];
+    'affordable' := keep[lend 'shelf', fn [lent 'i': Item] -> bool with [lend 'limit'] { return 'i'.cents </== 'limit'; }];
     std::printu.stdout[list.length[lend 'affordable'], " affordable", \n];
 
     'pick' := cheapest[lend 'affordable'] otherwise std::exit[0];

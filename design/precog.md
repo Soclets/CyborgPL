@@ -103,7 +103,7 @@ every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
   possible cases, each with its payload's domain.
 - **Control flow**: at an `if`, the condition's set decides which branches
   are possible, and each branch is analysed with the condition assumed —
-  a guard `if 'n' <== 100 { … }` narrows `'n'` inside. `match` narrows the
+  a guard `if 'n' </== 100 { … }` narrows `'n'` inside. `match` narrows the
   enum to one case per arm. `otherwise` splits: the success value's
   domain on one side, each failure's on the other.
 - **Loops** iterate the analysis to a fixpoint, widening to intervals when
@@ -303,7 +303,7 @@ Per check site, in source order:
 ```
 line 7   'total' + square['i']   overflow           proven    (layer 2: max 333833500)
 line 12  'xs'['k']           out of bounds      checked   (layer 3: sat, k=100 when len=100)
-line 15  'a' / 'b'               division by zero   trusted   (nocheck)
+line 15  'a' div 'b'             division by zero   trusted   (nocheck)
 line 9   square: 'x' x 'x'       overflow           proven    (layer 2, at 1 call site)
 ```
 

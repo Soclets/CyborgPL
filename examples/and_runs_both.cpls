@@ -11,7 +11,7 @@ MAIN {
     std::printu.stdout['ok', \n];
     'xs' := [3, 5, 8];
     'i': uint64 = 7;
-    if 'i' <== list.length[lend 'xs'] {
+    if 'i' </== list.length[lend 'xs'] {
         if 'xs'['i'] == 5 { std::printu.stdout["found", \n]; }
     }
     std::printu.stdout["done", \n];

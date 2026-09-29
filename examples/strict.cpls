@@ -1,10 +1,10 @@
 # A `#strict` file (owner, 2026-09-27): verbose, for the reader. Every check site's proof is
-# written in its own function (the range on 'n' is why 100 / 'n' is safe), and the file
+# written in its own function (the range on 'n' is why 100 div 'n' is safe), and the file
 # writes out what other files leave to Precog: `pos` on every position, labelled ranges, every parameter's
 # type, a return type, `mut` or `immut` on every declaration, `temp` or `perm` on every `for`.
 # `nocheck` is still allowed. The oracle checks the spelling; Precog checks the proofs.
 #strict
-fn ratio ['n': int32[1, max]] -> int32 { return 100 / 'n'; }
+fn ratio ['n': int32[1, max]] -> int32 { return 100 div 'n'; }
 MAIN {
     immut 'xs': list[int32] = [10, 20, 30, 40];
     mut 'total': int32 = 0;

@@ -32,7 +32,7 @@ fix:   limit the number where it is read — line 4:
        'n' := to.int32[1, 99][std::input.line[] otherwise ""] otherwise 0;
 
    or  check 'k' before using it — line 31:
-       if 'k' <== list.length[lend 'xs'] { 'x' := 'xs'['k']; … }
+       if 'k' </== list.length[lend 'xs'] { 'x' := 'xs'['k']; … }
 ```
 
 ```

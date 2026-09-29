@@ -2,14 +2,14 @@
 struct Percent { value: uint8[0, 100] }
 
 fn scale ['p': Percent, 'total': int32[0, 1000]] -> int32[0, 1000] {
-    return ('total' x to.int32['p'.value]) / 100;
+    return ('total' x to.int32['p'.value]) div 100;
 }
 
 MAIN {
     'half' := Percent[value = 50];
     std::printu.stdout[scale[give 'half', 800], \n];
     'raw' := 250;
-    if 'raw' >== 0 and 'raw' <== 100 {
+    if 'raw' >/== 0 and 'raw' </== 100 {
         'ok': int32[0, 100] = 'raw';                   # the if is the guardrail; a check site
         std::printu.stdout['ok', \n];
     } else {

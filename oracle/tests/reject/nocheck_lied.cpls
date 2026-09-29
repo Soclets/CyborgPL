@@ -1,4 +1,4 @@
 MAIN {
     'z' := 0;
-    nocheck 'q' := 1 / 'z';
+    nocheck 'q' := 1 div 'z';
 }

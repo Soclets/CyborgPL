@@ -40,7 +40,7 @@ pub enum Tok {
     Arrow,          // ->  fn f [...] -> int32
     Semi,           // ;
     Comma,          // ,
-    Op(String),     // + - / ++ == !== < > <== >==
+    Op(String),     // + - ++ == !== < > </== >/==
     Eof,
 }
 
@@ -288,9 +288,10 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 "<->" => Tok::BothArrow,
                 "=" => Tok::Eq,
                 "!=" => return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()),
-                "<=" => return err(tl, tc, "`<=` is not an operator; less-or-equal is `<==`".into()),
-                ">=" => return err(tl, tc, "`>=` is not an operator; greater-or-equal is `>==`".into()),
-                "--" | "+=" | "-=" => return err(tl, tc, format!("`{run}` does not exist; write the assignment in full: 'i' = 'i' + 1;")),
+                "<=" | "<==" => return err(tl, tc, format!("`{run}` is not an operator; less-or-equal is `</==` (owner, 2026-09-29)")),
+                ">=" | ">==" => return err(tl, tc, format!("`{run}` is not an operator; greater-or-equal is `>/==` (owner, 2026-09-29)")),
+                "/" => return err(tl, tc, "`/` is not an operator; division is `div`: `'a' div 'b'` (owner, 2026-09-29)".into()),
+                "--" | "+=" | "-=" => return err(tl, tc, format!("`{run}` does not exist; write the change in full: change 'i' = 'i' + 1;")),
                 _ => Tok::Op(run),   // built-in or custom; the parser tells them apart
             };
             push(tok, &mut toks);
