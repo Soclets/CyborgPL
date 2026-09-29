@@ -1,0 +1,8 @@
+# check claude's borrow findings (2026-09-29): a borrow never aliases a change and never outlives its owner (core-features.md)
+fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
+MAIN {
+    mut 's': list[int32] = [1, 2, 3];
+    'r' := first[lend 's'];
+    list.append[lend.mut 's', 4];
+    std::printu.stdout[list.length[lend 'r'], \n];
+}
