@@ -160,6 +160,11 @@ fn main() {
                 }
             }
         }
+        // Decided to exist (owner, 2026-09-29); what a test is, is not.
+        "test" => {
+            eprintln!("error: `cca test` will run a project's tests, and what a test is in CyborgPL is not designed yet (asked)");
+            exit(2);
+        }
         _ => usage(),
     }
 }
