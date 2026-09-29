@@ -625,17 +625,23 @@ impl<'p> Interp<'p> {
                 }
                 Ok(Flow::Normal)
             }
-            Stmt::For { name, perm, over, body, line, .. } => {
+            Stmt::For { name, index, perm, over, body, line, .. } => {
                 let (items, kind) = self.for_source(over, *line)?;
                 // perm: the variable outlives the loop, holding whatever the loop last gave it.
                 let cell = Rc::new(RefCell::new(Value::Nothing));
+                let pos_cell = Rc::new(RefCell::new(Value::Int(0)));
                 let mut ran = false;
-                for item in items {
+                for (k, item) in items.into_iter().enumerate() {
                     ran = true;
                     *cell.borrow_mut() = item;
+                    *pos_cell.borrow_mut() = Value::Int(k as i128 + 1);
                     self.push();
-                    let r = self.declare(name, Slot { cell: cell.clone(), ty: None, kind, alive: true, immut: true, sized: false, sealed: true }, *line)
-                        .and_then(|_| self.stmts(body));
+                    let r = match index {
+                        Some(ix) => self.declare(ix, Slot { cell: pos_cell.clone(), ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true }, *line),
+                        None => Ok(()),
+                    }
+                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: None, kind, alive: true, immut: true, sized: false, sealed: true }, *line))
+                    .and_then(|_| self.stmts(body));
                     self.pop();
                     match r? {
                         Flow::Break => break,
@@ -646,6 +652,7 @@ impl<'p> Interp<'p> {
                 if *perm {
                     if !ran { return rt(*line, format!("`perm` '{name}' would outlive a loop over an empty list, but was never given a value")); }
                     self.declare(name, Slot { cell, ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false }, *line)?;
+                    if let Some(ix) = index { self.declare(ix, Slot { cell: pos_cell, ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false }, *line)?; }
                 }
                 Ok(Flow::Normal)
             }

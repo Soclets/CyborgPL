@@ -267,7 +267,8 @@ pub enum Stmt {
     Loop { body: Vec<Stmt>, line: usize },
     While { cond: Bracket, body: Vec<Stmt>, line: usize },
     /// `for 'x' in lend 'xs' { }` / `for perm …`: `perm` keeps the variable after the loop (temp is the default)
-    For { name: String, perm: bool, seq: bool, over: Bracket, body: Vec<Stmt>, line: usize },
+    /// `index`: `for 'i', 'x' in lend 'xs'` — the position (1, 2, …) beside the item (owner, 2026-09-29)
+    For { name: String, index: Option<String>, perm: bool, seq: bool, over: Bracket, body: Vec<Stmt>, line: usize },
     /// `for 'i' in range[start, stop, step] { }` — inclusive stop; `'i': T` types the counter
     Range { name: String, perm: bool, seq: bool, ty: Option<Ty>, bounds: Bracket, body: Vec<Stmt>, line: usize },
     Break { line: usize },

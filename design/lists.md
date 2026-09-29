@@ -210,8 +210,23 @@ it is still "not a value". With `:=` nothing on the left says "list", so the
 value has to: `list.empty`. An empty `array` could never be filled, so it
 is an error.
 
+## The position beside the item: `for 'i', 'x' in lend 'xs'` (owner, 2026-09-29: a)
+
+```
+for 'i', 'x' in lend 'xs' {
+    std::printu.stdout['i', ". ", 'x', \n];      # 1. ann  2. bob  3. cy
+}
+```
+
+The position first, then the item, the order of `'xs'['i']`. The position
+counts 1, 2, 3… and is a `uint64`, like every position. A range needs
+none, since its counter is already the position, so `for 'i', 'x' in
+range[…]` is refused. With `perm`, both outlive the loop (the oracle's
+reading, not asked). Proposed alternative: leave it, looping over
+`range[1, list.length[…]]` and reading `'xs'['i']`, one extra line.
+`examples/for_position.cpls`.
+
 ## Open
 
 - Stating a length at a boundary (a list from input) — parked with input,
   2026-09-17; it is the range-annotation question.
-- Index alongside element in `for` (parked from 2026-09-17).

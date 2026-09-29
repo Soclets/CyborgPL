@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `for 'i', 'x' in lend 'xs'`: the position beside the item (owner: a)
+
+Parked since 2026-09-17. Proposed (a) name both, the position first;
+(b) leave it to a range loop and a read. Design claude recommended a,
+since numbering and finding positions come up constantly. The owner asked
+for an explanation (with `["ann", "bob", "cy"]` the block runs with 1/"ann",
+2/"bob", 3/"cy") and chose a. The position is a `uint64`. A range with two
+names is refused. With `perm`, both outlive the loop (oracle's reading).
+`lists.md`; `examples/for_position.cpls`; reject test for_position_range.
+
 ### 2026-09-29 — A `match` gives a value: `{ "free" }`, and `{ gives "free"; }` in `#strict` (owner: a, b)
 
 The first everyday item on the base-language list. The owner asked what

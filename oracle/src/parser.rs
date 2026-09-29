@@ -1271,12 +1271,21 @@ impl Parser {
             _ if self.strict => return self.err("`#strict`: a `for` says whether its variable outlives it: `for temp 'x' in …` or `for perm 'x' in …`"),
             _ => false,
         };
-        let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted loop variable, found {other}")) };
+        let mut name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted loop variable, found {other}")) };
+        // `for 'i', 'x' in lend 'xs'` — the position first, then the item (owner, 2026-09-29)
+        let mut index = None;
+        if *self.peek() == Tok::Comma {
+            self.advance();
+            let item = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected the item's quoted name after the position's: `for 'i', 'x' in …`, found {other}")) };
+            if item == name { return self.err("the position and the item need different names"); }
+            index = Some(std::mem::replace(&mut name, item));
+        }
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
         if *self.peek() == Tok::LBracket { return self.err("expected `in` before what the loop runs over"); }
         self.expect_word("in")?;
         if self.is_word("range") {
             self.advance();
+            if index.is_some() { return self.err("a range's counter already is the position; `for 'i' in range[…]`"); }
             let bounds = self.range_bounds()?;
             let body = self.block()?;
             return Ok(Stmt::Range { name, perm, seq, ty, bounds, body, line });
@@ -1284,7 +1293,7 @@ impl Parser {
         if ty.is_some() { return self.err("a `for` over a list takes no type on its variable; the element's type is the list's"); }
         let over = self.rhs()?;
         let body = self.block()?;
-        Ok(Stmt::For { name, perm, seq, over, body, line })
+        Ok(Stmt::For { name, index, perm, seq, over, body, line })
     }
 
     // range bounds := '[' expr ',' expr (',' expr)? ']'   — start, inclusive stop, step
