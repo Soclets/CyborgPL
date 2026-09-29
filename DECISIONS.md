@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — The Limb registry is an index that links to each Limb's own release (owner)
+
+The owner asked how to host a Limb registry without paying, apart from
+the domain (`limbs.xxx`, bought when a registry exists). Proposed: (1) a
+registry that is an index only, small files naming each Limb's versions,
+where each release lives and a checksum, served as static files
+(Cloudflare Pages, free); the code stays with its author; (2) a registry
+with uploads on Cloudflare's free tier (Workers, R2, D1). Asked what is
+better past 10 GB (the index-only design never gets there; R2 or
+Backblaze B2 for a few dollars; sponsorship programs such as Fastly's for
+large public registries), the owner chose "the 'cheating' route",
+confirmed as "the one that just links to someone's Limb release". The
+registry never stores code. Open: which hosts a release may live on,
+whether a checksum is required, and how publishing works. `tooling.md`.
+
 ### 2026-09-29 — Synthia keeps CyborgPL's licence; its repo is set up (owner)
 
 Setting up `Cyborg-Assembly-Manufacturing-Site/Synthia`, the owner asked
