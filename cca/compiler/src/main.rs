@@ -10,6 +10,7 @@ fn usage() -> ! {
     eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
     eprintln!("       cca precog <file.cpls | limb-dir>    check, lower, prove, and report");
     eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
+    eprintln!("       cca run <file.cpls | limb-dir>       build, then run it here; its exit is cca's");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -101,7 +102,7 @@ fn main() {
             let mut failed = false;
             for f in &files {
                 let dest = out.clone().unwrap_or_else(|| Path::new(f).file_stem().unwrap().to_string_lossy().to_string());
-                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs, final_build) {
+                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs, final_build, false) {
                     failed = true;
                     eprint!("{}", d);
                 }
@@ -110,11 +111,69 @@ fn main() {
                 exit(1);
             }
         }
+        // `cca run` (owner, 2026-09-29: "CCA doesn't need to depend on
+        // Synthia"): the build `cca build` makes, run on this machine with
+        // this terminal's input and output. What CCA says while building
+        // goes to stderr, so what the program prints is all of stdout. How
+        // `--input`, a program's own arguments and a cross target's runner
+        // work is open, so none is taken.
+        "run" => {
+            let mut file = None;
+            let mut assert_proofs = false;
+            let mut final_build = false;
+            for a in &args[1..] {
+                match a.as_str() {
+                    "--assert-proofs" => assert_proofs = true,
+                    "--final" => final_build = true,
+                    f if file.is_none() && !f.starts_with('-') => file = Some(f.to_string()),
+                    other => {
+                        eprintln!("error: `cca run` takes one program and `--final` or `--assert-proofs`; `{}` is not one of them (a program's own arguments, and `--input`, are not decided yet)", other);
+                        exit(2);
+                    }
+                }
+            }
+            let Some(file) = file else { usage() };
+            let path = Path::new(&file);
+            let dir = std::env::temp_dir().join(format!("cca-run-{}", std::process::id()));
+            if let Err(e) = std::fs::create_dir_all(&dir) {
+                eprintln!("error: cannot make {}: {}", dir.display(), e);
+                exit(1);
+            }
+            let stem = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "program".into());
+            let exe = dir.join(&stem);
+            if let Err(d) = build_one(path, &exe, assert_proofs, final_build, true) {
+                let _ = std::fs::remove_dir_all(&dir);
+                eprint!("{}", d);
+                exit(1);
+            }
+            let status = std::process::Command::new(&exe).status();
+            let _ = std::fs::remove_dir_all(&dir);
+            match status {
+                Ok(s) => {
+                    use std::os::unix::process::ExitStatusExt;
+                    // A signal is reported as a shell does: 128 + its number.
+                    exit(s.code().unwrap_or_else(|| 128 + s.signal().unwrap_or(0)));
+                }
+                Err(e) => {
+                    eprintln!("error: cannot run {}: {}", exe.display(), e);
+                    exit(1);
+                }
+            }
+        }
         _ => usage(),
     }
 }
 
-fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool) -> Result<(), String> {
+/// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
+/// stderr, for `cca run`, whose stdout is the program's.
+fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool) -> Result<(), String> {
+    let say = |s: String| {
+        if quiet {
+            eprint!("{}", s);
+        } else {
+            print!("{}", s);
+        }
+    };
     let mut sources = SourceMap::default();
     let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = cca::check::Checker::new(items);
@@ -128,7 +187,7 @@ fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool) ->
     }
     let analysis = cca::precog::analyse_opts(&mut mir, !assert_proofs);
     for n in cca::precog::notes(&analysis, &mir, &sources) {
-        print!("\n{}", n);
+        say(format!("\n{}", n));
     }
     let refusals = cca::precog::refusals_opts(&analysis, &mir, &sources, final_build);
     if !refusals.is_empty() {
@@ -160,11 +219,13 @@ fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool) ->
     let trusted = analysis.sites.iter().filter(|r| matches!(r.verdict, cca::mir::Verdict::Trusted)).count();
     let checked = analysis.sites.len() - proven - trusted;
     if trusted > 0 {
-        println!("{} sites: {} proven, {} checked at run time, {} nocheck", analysis.sites.len(), proven, checked, trusted);
+        say(format!("{} sites: {} proven, {} checked at run time, {} nocheck\n", analysis.sites.len(), proven, checked, trusted));
     } else {
-        println!("{} sites: {} proven, {} checked at run time", analysis.sites.len(), proven, checked);
+        say(format!("{} sites: {} proven, {} checked at run time\n", analysis.sites.len(), proven, checked));
     }
-    println!("wrote {}", out.display());
+    if !quiet {
+        println!("wrote {}", out.display());
+    }
     Ok(())
 }
 

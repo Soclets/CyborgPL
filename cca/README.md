@@ -400,3 +400,12 @@ Dated, with the alternative, so each can become a question later.
   no C global of a range type. One such site anywhere turns the clamps off
   everywhere. Alternative: follow each value to where its range was made,
   which is more work and hands LLVM more.
+- **2026-09-29 — `cca run <program>` builds as `cca build` does (the working
+  build, or `--final` / `--assert-proofs`), into a folder of its own under
+  the system's temporary folder, runs it on this machine with the
+  terminal's input and output, removes the folder, and exits with the
+  program's exit (a signal as 128 + its number, as a shell has it). CCA's
+  own words while building go to stderr, so the program's stdout is only
+  its own. A program's arguments, `--input`, a cross target's runner and
+  `cca test` wait for the owner (what a test is is not designed yet).
+  Alternative: keep the binary beside the source, as `cca build` does.

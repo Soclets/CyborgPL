@@ -126,6 +126,20 @@ fn a_proven_site_hands_its_fact_to_llvm() {
     assert!(ir.contains("nsw") || ir.contains("nuw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
 }
 
+/// `cca run` (owner, 2026-09-29): the program's exit is cca's, its stdout
+/// is only the program's (CCA's tally goes to stderr), and nothing is left
+/// behind.
+#[test]
+fn run_builds_runs_and_hands_back_the_exit() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let r = Command::new(cca()).arg("run").arg(dir().join("simd_lane_write.cpls")).output().unwrap();
+    assert_eq!(r.status.code(), Some(208), "`cca run` did not hand back the program's exit:\n{}", String::from_utf8_lossy(&r.stderr));
+    assert!(r.stdout.is_empty(), "`cca run` printed on the program's stdout:\n{}", String::from_utf8_lossy(&r.stdout));
+    assert!(String::from_utf8_lossy(&r.stderr).contains("sites:"), "`cca run` said nothing of the build on stderr");
+    let r = Command::new(cca()).arg("run").arg(dir().join("deci_divide_zero.cpls")).output().unwrap();
+    assert_eq!(r.status.code(), Some(101), "a check that fired under `cca run` did not stop it with 101");
+}
+
 /// A call's answer of a range type is told its range where nothing in the
 /// program took a range on anyone's word (owner, 2026-09-29: c), and a
 /// counter Precog proved in both ranges carries `nsw` beside `nuw`.
