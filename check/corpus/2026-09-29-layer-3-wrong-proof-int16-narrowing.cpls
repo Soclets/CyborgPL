@@ -1,6 +1,7 @@
-# Finding 2026-09-29 (check run, seed 6313, shrunk; still long): the oracle stops at line 74 with
-# "831993207373 does not fit int16" inside a nest of calls; CCA and my exact evaluator run it. Not cut
-# further by hand; possibly the argument-context rule (1967d08) reaching into a nested call.
+# Finding 2026-09-29 (check run, seed 6313, shrunk): 'v16' is 831993207373 ((-256867307) x f3[1, 2, 7],
+# f3 giving -3239), so to.int16['v16'] at line 77, column 755 must stop the program. CCA's Precog claims
+# that narrowing proven (layer 3, solver) while its own operand range is about ±2.4e27, drops the
+# check, and the binary runs on. The oracle stops there, as it should (design claude traced it).
 # check claude generator, seed 6313
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
