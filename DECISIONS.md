@@ -11,7 +11,10 @@ Relayed by synthia claude. Proposed: (a) `prefix`; (b) a phrase in the
 Limb's own voice, such as `called_in_code`. Synthia claude recommended
 (a), one word across both managers. The owner: "`prefix`". Synthia
 claude's own step, which the owner may overrule: `prefix` follows the
-module-name rule, as `CCA.cplr`'s does in the oracle.
+module-name rule, as `CCA.cplr`'s does in the oracle. **`prefix` is required in every `Synthia.ttsr`**, as in
+`CCA.cplr` (owner: "Well, if it's not always required, it could be weird
+to CyborgPL users"; synthia claude had first offered "required only when
+another Limb needs it", then withdrew it).
 
 ### 2026-09-29 — A `Synthia.ttsr` target must be one CCA can build (owner: "Only what's actually doable")
 

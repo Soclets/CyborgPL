@@ -81,6 +81,8 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
 - **`prefix = cash`** in `[my identity]` is the word code writes in front
   of `::` to reach this Limb (owner, 2026-09-29: "`prefix`"), as
   `CCA.cplr`'s `'prefix'`; its `name` is a label apart from it.
+  Required, as in `CCA.cplr` (owner: "if it's not always required, it
+  could be weird to CyborgPL users").
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
   Limb's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,
