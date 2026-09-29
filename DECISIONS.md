@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Synthia keeps CyborgPL's licence; its repo is set up (owner)
+
+Setting up `Cyborg-Assembly-Manufacturing-Site/Synthia`, the owner asked
+whether the "average package manager licence" is MIT (the most common:
+pnpm, pip, Composer, Bundler; Cargo is MIT or Apache-2.0, Yarn and
+Homebrew BSD, npm Artistic-2.0), what MIT does, and what Apache's patent
+grant means (a contributor cannot later sue users over patents in their
+own contribution). Owner: "Oh hell no, same license, then": Apache-2.0
+WITH LLVM-exception, as everywhere (2026-09-23). The owner also set the
+repo's description: "Fast, reliable, and easy-to-use dependency
+management for CyborgPL." The repo holds a README in CyborgPL's voice,
+the licence, a Go module and the session's `CLAUDE.md`; its brief is
+`design/synthia-session.md`. The session is not started.
+
 ### 2026-09-29 — CCA runs and tests too; it never depends on Synthia (owner)
 
 Compiler claude's brief said "CCA never runs what it builds: running,
