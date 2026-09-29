@@ -40,6 +40,8 @@ enum Val {
     L(Rc<RefCell<Vec<i128>>>),
     /// An enum value: its case's index and data (0 if none).
     E(usize, i128),
+    /// A simd vector's lanes; one lane (from `simd.fill`) stands for all.
+    S(Vec<i128>),
 }
 
 impl Val {
@@ -47,14 +49,14 @@ impl Val {
         match self {
             Val::I(v) => v,
             Val::B(b) => b as i128,
-            Val::L(_) | Val::E(..) => 0,
+            Val::L(_) | Val::E(..) | Val::S(_) => 0,
         }
     }
     fn b(self) -> bool {
         match self {
             Val::B(b) => b,
             Val::I(v) => v != 0,
-            Val::L(_) | Val::E(..) => false,
+            Val::L(_) | Val::E(..) | Val::S(_) => false,
         }
     }
 }
@@ -154,6 +156,7 @@ impl<'a> Ev<'a> {
         match e {
             Expr::Var(n) => Self::lookup(env, n).map(|v| v.1.base),
             Expr::To(t, _) => Some(*t),
+            Expr::SimdFill(a) => self.ty_of(env, a),
             Expr::At(n, _) => Self::lookup(env, n).map(|v| v.1.base),
             Expr::Len(_) => Some(Ty::U64),
             Expr::Call(f, _) => self.p.funcs.iter().find(|g| &g.name == f).map(|g| g.ret.base),
@@ -198,6 +201,13 @@ impl<'a> Ev<'a> {
                     let same = c == c2 && d == d2;
                     return Ok(Val::B(if *op == CmpOp::Eq { same } else { !same }));
                 }
+                if matches!(x, Val::S(_)) || matches!(y, Val::S(_)) {
+                    // One answer per lane (simd.md), kept as 0 / 1.
+                    let (xs, ys) = (lanes(&x), lanes(&y));
+                    let n = xs.len().max(ys.len());
+                    let out = (0..n).map(|i| cmp(*op, xs[i.min(xs.len() - 1)], ys[i.min(ys.len() - 1)]) as i128).collect();
+                    return Ok(Val::S(out));
+                }
                 let (x, y) = (x.i(), y.i());
                 Val::B(match op {
                     CmpOp::Eq => x == y,
@@ -224,6 +234,13 @@ impl<'a> Ev<'a> {
                 let r = self.call(env, f, args);
                 self.call_at = saved;
                 r?
+            }
+            Expr::At(n, p) if matches!(Self::lookup(env, n), Some((Val::S(_), _))) => {
+                let x = self.expr(env, p)?.i();
+                let Some((Val::S(v), _)) = Self::lookup(env, n) else { unreachable!() };
+                (self.node, self.stmt) = (addr(e), 0);
+                self.check("position", x, 1 <= x && x <= v.len() as i128)?;
+                Val::I(v[(x - 1) as usize])
             }
             Expr::At(n, p) => {
                 let x = self.expr(env, p)?.i();
@@ -258,10 +275,37 @@ impl<'a> Ev<'a> {
             }
             Expr::Bin(op, a, b) => {
                 let t = self.ty_of(env, e).unwrap_or(Ty::I64);
-                let x = self.expr(env, a)?.i();
-                let y = self.expr(env, b)?.i();
+                let x = self.expr(env, a)?;
+                let y = self.expr(env, b)?;
                 self.node = addr(e);
-                Val::I(self.binary(*op, x, y, t)?)
+                if matches!(x, Val::S(_)) || matches!(y, Val::S(_)) {
+                    // Lane by lane, each by the plain rule.
+                    let (xs, ys) = (lanes(&x), lanes(&y));
+                    let n = xs.len().max(ys.len());
+                    let mut out = vec![];
+                    for i in 0..n {
+                        out.push(self.binary(*op, xs[i.min(xs.len() - 1)], ys[i.min(ys.len() - 1)], t)?);
+                    }
+                    Val::S(out)
+                } else {
+                    Val::I(self.binary(*op, x.i(), y.i(), t)?)
+                }
+            }
+            Expr::SimdFill(a) => Val::S(vec![self.expr(env, a)?.i()]),
+            Expr::SimdFold(f, a) => {
+                let t = self.ty_of(env, a).unwrap_or(Ty::I64);
+                let xs = lanes(&self.expr(env, a)?);
+                match *f {
+                    "max" => Val::I(*xs.iter().max().unwrap_or(&0)),
+                    "min" => Val::I(*xs.iter().min().unwrap_or(&0)),
+                    "all" => Val::B(xs.iter().all(|x| *x != 0)),
+                    "any" => Val::B(xs.iter().any(|x| *x != 0)),
+                    _ => {
+                        // sum: a check site, it can leave the lane type
+                        (self.node, self.stmt) = (addr(e), 0);
+                        Val::I(self.land(xs.iter().sum(), t.into())?)
+                    }
+                }
             }
         })
     }
@@ -439,6 +483,17 @@ impl<'a> Ev<'a> {
 
     fn stmt_inner(&mut self, env: &mut Env, s: &Stmt) -> Result<Flow, Stop> {
         match s {
+            Stmt::SimdLet { name, elem, lanes: n, value, .. } => {
+                let x = self.expr(env, value)?;
+                let xs = lanes(&x);
+                (self.node, self.stmt) = (addr(value), addr(s));
+                let mut v = vec![];
+                for i in 0..*n {
+                    v.push(self.land(xs[i.min(xs.len() - 1)], (*elem).into())?);
+                }
+                env.last_mut().unwrap().insert(name.clone(), (Val::S(v), (*elem).into()));
+                Ok(Flow::Next)
+            }
             Stmt::EnumLet { name, value, .. } => {
                 let x = self.expr(env, value)?;
                 env.last_mut().unwrap().insert(name.clone(), (x, Ty::I64.into()));
@@ -463,6 +518,16 @@ impl<'a> Ev<'a> {
                 let x = self.expr(env, value)?;
                 if let Val::E(..) = x {
                     Self::set(env, name, x);
+                    return Ok(Flow::Next);
+                }
+                if let (Val::S(_), Some((Val::S(old), _))) = (&x, Self::lookup(env, name)) {
+                    let xs = lanes(&x);
+                    (self.node, self.stmt) = (addr(value), addr(s));
+                    let mut v = vec![];
+                    for i in 0..old.len() {
+                        v.push(self.land(xs[i.min(xs.len() - 1)], ty)?);
+                    }
+                    Self::set(env, name, Val::S(v));
                     return Ok(Flow::Next);
                 }
                 (self.node, self.stmt) = (addr(value), addr(s));
@@ -621,6 +686,24 @@ impl<'a> Ev<'a> {
                 }
             },
         }
+    }
+}
+
+fn lanes(v: &Val) -> Vec<i128> {
+    match v {
+        Val::S(xs) => xs.clone(),
+        x => vec![x.clone().i()],
+    }
+}
+
+fn cmp(op: CmpOp, x: i128, y: i128) -> bool {
+    match op {
+        CmpOp::Eq => x == y,
+        CmpOp::Ne => x != y,
+        CmpOp::Lt => x < y,
+        CmpOp::Gt => x > y,
+        CmpOp::Le => x <= y,
+        CmpOp::Ge => x >= y,
     }
 }
 

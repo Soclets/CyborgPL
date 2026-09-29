@@ -1,0 +1,46 @@
+# Finding 2026-09-29 (check run, seed 3761, cut down by hand): 'x' + 201 does not fit f2's uint8
+# return. The oracle reports it at the call (line 44, "301 does not fit uint8"), not at the
+# return (line 41), where the value lands in the return type. CCA points at the return.
+# check claude generator, seed 1
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    mut 'v': uint64 = 'm';
+    mut 'ds': list[uint8] = [];
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+    change 'v' = 'v' div 10;
+    while 'v' > 0 {
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+        change 'v' = 'v' div 10;
+    }
+    mut 'k': uint64 = list.length[lend 'ds'];
+    while 'k' >/== 1 {
+        list.append[lend.mut 'buf', 'ds'['k']];
+        change 'k' = 'k' - 1;
+    }
+    list.append[lend.mut 'buf', 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' >/== 0 {
+        emit[to.uint64['n'], false];
+    } else {
+        'up': int64 = -('n' + 1);
+        emit[to.uint64['up'] + 1, true];
+    }
+}
+
+fn f2 ['x': uint8] -> uint8 {
+    return 'x' + 201;
+}
+MAIN {
+    'a': uint8 = f2[100];
+    put_u['a'];
+}

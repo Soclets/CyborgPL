@@ -69,7 +69,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,simd-lanes,simd-wrap".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -91,6 +91,9 @@ impl Args {
             borrow_wrong: self.num("borrow-wrong", 250),
             enums: !avoid.contains("enums"),
             strict: if avoid.contains("strict") { 0 } else { self.num("strict", 200) },
+            simd: !avoid.contains("simd"),
+            simd_lanes: !avoid.contains("simd-lanes"),
+            simd_wrap: !avoid.contains("simd-wrap"),
         }
     }
 }

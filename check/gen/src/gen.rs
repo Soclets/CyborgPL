@@ -70,11 +70,21 @@ pub struct Config {
     pub enums: bool,
     /// Per mille of programs written as `#strict` files.
     pub strict: u64,
+    /// simd vectors (design/simd.md): `simd.fill`, lane-wise operators kept
+    /// inside the lane type, comparisons folded with `all` / `any`, and
+    /// `max` / `min` / `sum`.
+    pub simd: bool,
+    /// Read single lanes, `'v'[k]` (CCA read wrong values, sent 2026-09-29).
+    pub simd_lanes: bool,
+    /// The wrapping operators on vectors (the oracle refuses them, sent
+    /// 2026-09-29); without them a lane that could leave its type is made
+    /// by a bitwise operator instead.
+    pub simd_wrap: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200 }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: false, simd_wrap: false }
     }
 }
 
@@ -97,6 +107,8 @@ struct VarInfo {
     unseen: bool,
     /// Set for an enum value: the index of its enum in `Gen::enums`.
     en: Option<usize>,
+    /// Set for a simd vector: its lanes (`ty` and `iv` are then a lane's).
+    simd: Option<usize>,
 }
 
 #[derive(Clone, Debug)]
@@ -312,7 +324,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -337,19 +349,23 @@ impl Gen {
     }
 
     fn declare(&mut self, name: String, ty: Ty, iv: Iv, assignable: bool) {
-        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false, data: false, unseen: false, en: None });
+        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false, data: false, unseen: false, en: None, simd: None });
     }
 
     /// Plain values in scope (never a list; inside a `check` block, never
     /// an unseen one).
     fn vars(&self) -> impl Iterator<Item = &VarInfo> {
         let in_check = self.in_check > 0;
-        self.scopes.iter().flatten().filter(move |v| v.list.is_none() && v.en.is_none() && !(in_check && v.unseen))
+        self.scopes.iter().flatten().filter(move |v| v.list.is_none() && v.en.is_none() && v.simd.is_none() && !(in_check && v.unseen))
     }
 
     /// Whether `v` is read only through `to.T[…]` (an engine gives it no width).
     fn through_to(&self, v: &VarInfo) -> bool {
         (self.cfg.item_through_to && v.item) || (self.cfg.data_through_to && v.data)
+    }
+
+    fn simd_vars(&self, t: Option<Ty>) -> Vec<VarInfo> {
+        self.scopes.iter().flatten().filter(|v| v.simd.is_some() && t.map_or(true, |t| v.ty == t)).cloned().collect()
     }
 
     fn enum_vars(&self) -> Vec<VarInfo> {
@@ -368,7 +384,9 @@ impl Gen {
             match e {
                 Expr::Var(n) => f(n),
                 // A length's bounds and an item's range are the generator's.
-                Expr::Len(_) | Expr::At(..) | Expr::Match(..) => true,
+                // A lane's range is the generator's too.
+                Expr::Len(_) | Expr::At(..) | Expr::Match(..) | Expr::SimdFold(..) => true,
+                Expr::SimdFill(a) => walk(a, f),
                 Expr::Case(_, _, d) => d.as_ref().map_or(false, |d| walk(d, f)),
                 Expr::Lit(_) | Expr::Bool(_) | Expr::Lend(_) => false,
                 Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => walk(a, f) || walk(b, f),
@@ -633,6 +651,8 @@ impl Gen {
             if self.enums.is_empty() { 0 } else { 2 },                               // enum let
             if self.enum_vars().iter().any(|v| v.assignable) { 1 } else { 0 },       // enum change
             if nested && !self.enums.is_empty() { 2 } else { 0 },                    // match statement
+            if self.cfg.simd { 2 } else { 0 },                                       // simd let
+            if self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 },   // simd change
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -649,6 +669,8 @@ impl Gen {
             13 => self.enum_let(),
             14 => self.enum_assign(),
             15 => self.match_stmt(depth),
+            16 => self.simd_let(),
+            17 => self.simd_assign(),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -728,7 +750,7 @@ impl Gen {
         let room = if mutable { self.rng.below(9) } else { 0 };
         let name = self.name("xs");
         let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
-        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, data: false, unseen: false, en: None });
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, data: false, unseen: false, en: None, simd: None });
         Stmt::ListLet { name, mutable, elem, items }
     }
 
@@ -1033,7 +1055,7 @@ impl Gen {
         let value = self.case_value(ei);
         let name = self.name("e");
         let en = self.enums[ei].def.name.clone();
-        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: Ty::I64, iv: Iv::point(0), assignable: mutable, list: None, item: false, data: false, unseen: false, en: Some(ei) });
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: Ty::I64, iv: Iv::point(0), assignable: mutable, list: None, item: false, data: false, unseen: false, en: Some(ei), simd: None });
         Stmt::EnumLet { name, mutable, en, value }
     }
 
@@ -1107,6 +1129,115 @@ impl Gen {
             arms.push(Arm { case: self.enums[ei].def.cases[c].0.clone(), bind, value: None, body });
         }
         Stmt::MatchStmt { scrut, arms }
+    }
+
+    // ------------------------------------------------------------ simd
+
+    /// The target's shapes (ARM64's 128 bits, the oracle's target).
+    fn lanes(t: Ty) -> usize {
+        128 / t.bits() as usize
+    }
+
+    /// A vector operand of lane type `t`: a name of that type, or a fill.
+    /// Its lanes' interval.
+    fn simd_operand(&mut self, t: Ty, _hint: Iv) -> (Expr, Iv) {
+        let vs = self.simd_vars(Some(t));
+        if !vs.is_empty() && self.rng.chance(65) {
+            let v = self.rng.pick(&vs).clone();
+            return (Expr::Var(v.name), v.iv);
+        }
+        let (e, iv) = self.literal(t);
+        (Expr::SimdFill(Box::new(e)), iv)
+    }
+
+    /// A vector of lane type `t` whose every lane stays in `target`, every
+    /// intermediate inside `t`: a fill, or one lane-wise operator on two
+    /// operands, switched to a wrapping or bitwise one where a lane could
+    /// leave `t` (lane arithmetic, exact or checked per operation, is with
+    /// the owner, 2026-09-29).
+    fn simd_value(&mut self, t: Ty, target: Iv) -> (Expr, Iv) {
+        let r = t.range();
+        if self.simd_vars(Some(t)).is_empty() || self.rng.chance(35) {
+            let (e, iv) = self.value_in(t, target);
+            return (Expr::SimdFill(Box::new(e)), iv);
+        }
+        let (a, ia) = self.simd_operand(t, target);
+        use BinOp::*;
+        let op = *self.rng.pick(&[Add, Sub, Mul, Div, Mod, AndBit, OrBit, Xor, Shl, Shr, WAdd, WSub, WMul]);
+        let op = if !self.cfg.simd_wrap && matches!(op, WAdd | WSub | WMul) { Xor } else { op };
+        let (b, ib, op) = match op {
+            Div | Mod => {
+                // a nonzero divisor, never -1 beside the minimum
+                let k = if t.signed() && self.rng.chance(30) { -self.rng.range(2, 9) } else { self.rng.range(1, 9) };
+                (Expr::SimdFill(Box::new(Expr::Lit(k))), Iv::point(k), op)
+            }
+            Shl | Shr => {
+                let k = self.rng.range(0, t.bits() as i128 - 1);
+                (Expr::SimdFill(Box::new(Expr::Lit(k))), Iv::point(k), op)
+            }
+            _ => {
+                let (b, ib) = self.simd_operand(t, target);
+                (b, ib, op)
+            }
+        };
+        let out = match op {
+            Add => corners(ia, ib, |x, y| Some(x + y)),
+            Sub => corners(ia, ib, |x, y| Some(x - y)),
+            Mul => corners(ia, ib, |x, y| x.checked_mul(y)),
+            Div => corners(ia, ib, |x, y| Some(floor_div(x, y))),
+            Mod => Some(if ib.lo > 0 { Iv::new(0, ib.hi - 1) } else { Iv::new(ib.lo + 1, 0) }),
+            Shl => corners(ia, ib, |x, k| x.checked_mul(1i128 << k)),
+            Shr if ia.lo >= 0 => Some(Iv::new(ia.lo >> ib.hi, ia.hi >> ib.lo)),
+            AndBit | OrBit | Xor if ia.lo >= 0 && ib.lo >= 0 => {
+                let top = ia.hi.max(ib.hi);
+                let mask = if top == 0 { 0 } else { (1i128 << (128 - top.leading_zeros())) - 1 };
+                Some(Iv::new(0, if op == AndBit { ia.hi.min(ib.hi) } else { mask }))
+            }
+            _ => Some(r),
+        };
+        let (op, iv) = match out {
+            Some(iv) if iv.within(r) => (op, iv),
+            // a lane could leave the type: wrap instead
+            _ if self.cfg.simd_wrap => (*self.rng.pick(&[WAdd, WSub, WMul, Xor]), r),
+            _ => (*self.rng.pick(&[AndBit, OrBit, Xor]), r),
+        };
+        (Expr::Bin(op, Box::new(a), Box::new(b)), iv)
+    }
+
+    fn simd_let(&mut self) -> Stmt {
+        let t = self.int_ty();
+        let n = Self::lanes(t);
+        let mutable = self.rng.chance(35);
+        // A vector that changes promises only its type.
+        let target = if mutable { t.range() } else { self.ghost(t) };
+        let (value, iv) = self.simd_value(t, target);
+        let name = self.name("s");
+        let promise = if mutable { t.range() } else { iv };
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: t, iv: promise, assignable: mutable, list: None, item: false, data: false, unseen: false, en: None, simd: Some(n) });
+        Stmt::SimdLet { name, mutable, elem: t, lanes: n, value }
+    }
+
+    fn simd_assign(&mut self) -> Stmt {
+        let vs: Vec<VarInfo> = self.simd_vars(None).into_iter().filter(|v| v.assignable).collect();
+        let v = self.rng.pick(&vs).clone();
+        let (value, _) = self.simd_value(v.ty, v.ty.range());
+        Stmt::Assign { tier: Tier::Default, name: v.name, value }
+    }
+
+    /// One number from a vector of lane type `t`: a fold, or one lane.
+    fn simd_read(&mut self, v: VarInfo, t: Ty) -> (Expr, Iv) {
+        let n = v.simd.unwrap() as i128;
+        let var = Box::new(Expr::Var(v.name.clone()));
+        let sum = Iv::new(v.iv.lo * n, v.iv.hi * n);
+        match self.rng.below(4) {
+            0 if self.cfg.simd_lanes => {
+                let k = self.rng.range(1, n);
+                (Expr::At(v.name, Box::new(Expr::Lit(k))), v.iv)
+            }
+            1 if sum.within(t.range()) || self.take_risk() => (Expr::SimdFold("sum", var), sum.meet(t.range()).unwrap_or(t.range())),
+            2 => (Expr::SimdFold("min", var), v.iv),
+            _ => (Expr::SimdFold("max", var), v.iv),
+        }
     }
 
     fn tier(&mut self, risky: bool) -> Tier {
@@ -1451,6 +1582,8 @@ impl Gen {
         let can_call = self.sigs[..self.callable].iter().any(|s| s.ret == t && (self.in_check == 0 || self.strict || s.ret_ranged));
         let readable = self.readable(Some(t));
         let items: Vec<VarInfo> = self.vars().filter(|v| v.ty == t && self.through_to(v)).cloned().collect();
+        // A lane's range is the generator's own: never inside `check`.
+        let simds = if self.in_check > 0 { vec![] } else { self.simd_vars(Some(t)) };
         let has_list = !self.lists().is_empty();
         let w = [
             if same.is_empty() { 0 } else { 6 },
@@ -1460,12 +1593,17 @@ impl Gen {
             if readable.is_empty() { 0 } else { 3 },
             if t == Ty::U64 && has_list && self.in_check == 0 { 1 } else { 0 },
             if items.is_empty() { 0 } else { 4 },
+            if simds.is_empty() { 0 } else { 3 },
         ];
         match self.rng.weighted(&w) {
             4 => {
                 let v = self.rng.pick(&readable).clone();
                 let p = self.position(&v);
                 (Expr::At(v.name, Box::new(p)), v.iv)
+            }
+            7 => {
+                let v = self.rng.pick(&simds).clone();
+                self.simd_read(v, t)
             }
             6 => {
                 let v = self.rng.pick(&items).clone();
@@ -1717,6 +1855,14 @@ impl Gen {
 
     fn bool_expr(&mut self, depth: u32) -> Expr {
         let bools = self.vars_of(Ty::Bool);
+        let svs = if self.in_check > 0 { vec![] } else { self.simd_vars(None) };
+        if !svs.is_empty() && self.rng.chance(8) {
+            let v = self.rng.pick(&svs).clone();
+            let other = self.simd_operand(v.ty, v.iv);
+            let op = *self.rng.pick(&[CmpOp::Eq, CmpOp::Ne, CmpOp::Lt, CmpOp::Gt, CmpOp::Le, CmpOp::Ge]);
+            let f = if self.rng.chance(50) { "all" } else { "any" };
+            return Expr::SimdFold(f, Box::new(Expr::Cmp(op, Box::new(Expr::Var(v.name)), Box::new(other.0))));
+        }
         let evs = self.enum_vars();
         if !evs.is_empty() && self.rng.chance(8) {
             let v = self.rng.pick(&evs).clone();

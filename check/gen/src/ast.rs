@@ -231,6 +231,11 @@ pub enum Expr {
     Lend(String),
     /// `E1.c2[v]`, or `E1.c1` for a case with no data (design/enums.md).
     Case(String, String, Option<Box<Expr>>),
+    /// `simd.fill[v]`: every lane `v` (design/simd.md).
+    SimdFill(Box<Expr>),
+    /// `simd.max[v]`, `simd.min`, `simd.sum` (a check site), `simd.all`,
+    /// `simd.any`: a vector folded to one value.
+    SimdFold(&'static str, Box<Expr>),
     /// `match 'e' { c1 { v } c2 'd' { return w; } }`: every case covered;
     /// an arm gives a value, or holds statements that leave (23ab20b).
     Match(Box<Expr>, Vec<Arm>),
@@ -302,6 +307,8 @@ pub enum Stmt {
     EnumLet { name: String, mutable: bool, en: String, value: Expr },
     /// `match 'e' { … }` as a statement: every arm a block.
     MatchStmt { scrut: Expr, arms: Vec<Arm> },
+    /// `mut 's': simd[int32, 4] = …;`
+    SimdLet { name: String, mutable: bool, elem: Ty, lanes: usize, value: Expr },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -376,7 +383,7 @@ fn q(name: &str) -> String {
 fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
-        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) => Some(0),
+        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
         Expr::Bin(BinOp::Mul | BinOp::Div, ..) => Some(3),
@@ -558,6 +565,16 @@ impl<'a> Wr<'a> {
             }
             Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
             Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
+            Expr::SimdFill(v) => {
+                self.out.push_str("simd.fill[");
+                self.e(v);
+                self.out.push(']');
+            }
+            Expr::SimdFold(f, v) => {
+                self.out.push_str(&format!("simd.{f}["));
+                self.e(v);
+                self.out.push(']');
+            }
             Expr::Case(en, c, data) => {
                 self.out.push_str(&format!("{en}.{c}"));
                 if let Some(d) = data {
@@ -623,6 +640,11 @@ impl<'a> Wr<'a> {
         match s {
             Stmt::EnumLet { name, mutable, en, value } => {
                 let head = format!("{}{}: {en} = ", if *mutable { "mut " } else if self.strict { "immut " } else { "" }, q(name));
+                self.simple(s, &pad, Tier::Default, &head, value, ";");
+            }
+            Stmt::SimdLet { name, mutable, elem, lanes, value } => {
+                let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
+                let head = format!("{m}{}: simd[{}, {lanes}] = ", q(name), elem.name());
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::MatchStmt { scrut, arms } => {

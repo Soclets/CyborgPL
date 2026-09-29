@@ -65,7 +65,7 @@ fn stmt_size(s: &Stmt) -> usize {
         Stmt::SetAt { pos, value, .. } => expr_size(pos) + expr_size(value),
         Stmt::Append { value, .. } => expr_size(value),
         Stmt::ForEach { body, .. } => block_size(body),
-        Stmt::Borrow { value, .. } | Stmt::EnumLet { value, .. } => expr_size(value),
+        Stmt::Borrow { value, .. } | Stmt::EnumLet { value, .. } | Stmt::SimdLet { value, .. } => expr_size(value),
         Stmt::MatchStmt { scrut, arms } => expr_size(scrut) + arms_size(arms),
         Stmt::Give { .. } => 0,
     }
@@ -76,6 +76,7 @@ fn expr_size(e: &Expr) -> usize {
         Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::Len(_) | Expr::Lend(_) => 0,
         Expr::At(_, a) => expr_size(a),
         Expr::Case(_, _, d) => d.as_ref().map_or(0, |d| expr_size(d)),
+        Expr::SimdFill(a) | Expr::SimdFold(_, a) => expr_size(a),
         Expr::Match(s, arms) => expr_size(s) + arms_size(arms),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => expr_size(a) + expr_size(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_size(a),
@@ -256,7 +257,7 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 out.push(vec![Stmt::Append { name: name.clone(), value: e }]);
             }
         }
-        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } => {}
+        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::SimdLet { .. } => {}
         Stmt::MatchStmt { scrut, arms } => {
             for i in 0..arms.len() {
                 for b in block_variants(&arms[i].body) {
@@ -299,7 +300,7 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
             }
             return out;
         }
-        Expr::Bool(_) | Expr::Var(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) => return out,
+        Expr::Bool(_) | Expr::Var(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => return out,
         Expr::Len(_) => {
             out.push(Expr::Lit(1));
             return out;
@@ -435,7 +436,7 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
             scopes.last_mut().unwrap().push(name.clone());
             ok
         }
-        Stmt::EnumLet { name, value, .. } => {
+        Stmt::EnumLet { name, value, .. } | Stmt::SimdLet { name, value, .. } => {
             let ok = e(value, scopes);
             scopes.last_mut().unwrap().push(name.clone());
             ok
@@ -458,6 +459,7 @@ fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bo
         Expr::Var(n) | Expr::Len(n) | Expr::Lend(n) => known(scopes, n),
         Expr::At(n, p) => known(scopes, n) && expr_ok(p, scopes, arity),
         Expr::Case(_, _, d) => d.as_ref().map_or(true, |d| expr_ok(d, scopes, arity)),
+        Expr::SimdFill(a) | Expr::SimdFold(_, a) => expr_ok(a, scopes, arity),
         Expr::Match(s, arms) => expr_ok(s, scopes, arity) && arms_ok(arms, &mut scopes.clone(), arity),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_ok(a, scopes, arity),

@@ -236,7 +236,7 @@ impl<'a> Enc<'a> {
             Expr::Case(..) => self.enum_val(ctx, e).0,
             // A match giving a value is encoded by its statement (`Let`),
             // which sees arms that leave; anywhere else it is not modelled.
-            Expr::Match(..) => {
+            Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => {
                 self.too_big = true;
                 self.fresh_int()
             }
@@ -598,7 +598,7 @@ impl<'a> Enc<'a> {
                 self.land(&c, &v, *ty, &format!("let '{name}'"));
                 self.scopes.last_mut().unwrap().insert(name.clone(), Var { term: v, ty: *ty });
             }
-            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } => {
+            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::SimdLet { .. } => {
                 // Not modelled yet: the whole program is left to the other attacks.
                 self.too_big = true;
             }
