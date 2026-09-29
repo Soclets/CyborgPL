@@ -17,8 +17,19 @@ better past 10 GB (the index-only design never gets there; R2 or
 Backblaze B2 for a few dollars; sponsorship programs such as Fastly's for
 large public registries), the owner chose "the 'cheating' route",
 confirmed as "the one that just links to someone's Limb release". The
-registry never stores code. Open: which hosts a release may live on,
-whether a checksum is required, and how publishing works. `tooling.md`.
+registry never stores code. Then, the same day (owner: "1. GH 2. yea
+3. registering is a PR, updating needs no review again. And please do
+note that Malware-free is not [guaranteed]"):
+- **A release lives on GitHub**, and nowhere else. Proposed alternatives:
+  also GitLab, Codeberg, any link.
+- **The index keeps a checksum of every release**, so a file swapped
+  behind its link is caught. (Design claude recommended it strongly: a
+  linking registry is only as trustworthy as its checksums.)
+- **Registering a new Limb is a pull request**, reviewed; **a new version
+  of a registered Limb needs no review**. How an update proves it comes
+  from the Limb's owner is open.
+- **Malware-free is not guaranteed**: the registry says so plainly.
+`tooling.md`.
 
 ### 2026-09-29 — Synthia keeps CyborgPL's licence; its repo is set up (owner)
 
