@@ -30,8 +30,101 @@ extern "C" {
 /// a constant it emitted itself.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_check_failed(msg: *const u8, len: usize) -> ! {
-    write(2, msg, len);
+    if !QUIET_STOP {
+        write(2, msg, len);
+    }
     exit(101)
+}
+
+// ------------------------------------------------------------------ tests
+//
+// `cca test` (owner, 2026-09-29) runs a test binary once per `test fn`,
+// the test's number its first argument: a test that passes ends 0; a
+// `must` that does not hold says `line N: …` on stderr and ends 1; a
+// check that fires ends 101 as it does anywhere.
+
+extern "C" {
+    fn fork() -> i32;
+    fn waitpid(pid: i32, status: *mut i32, options: i32) -> i32;
+}
+
+/// Set in the process `must.stop` runs its expression in: the check it
+/// expects is the test passing, not a message.
+static mut QUIET_STOP: bool = false;
+
+/// A `must` that does not hold: `line N: msg` on stderr, and the test ends.
+///
+/// # Safety
+/// `msg` must point at `len` readable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_must_report(msg: *const u8, len: u64, line: u64) -> ! {
+    let mut buf = [0u8; 48];
+    let mut n = 0;
+    for &b in b"line " {
+        buf[n] = b;
+        n += 1;
+    }
+    let mut digits = [0u8; 20];
+    let d = digits_of(line as u128, &mut digits);
+    for &b in &digits[d..] {
+        buf[n] = b;
+        n += 1;
+    }
+    buf[n] = b':';
+    buf[n + 1] = b' ';
+    n += 2;
+    write(2, buf.as_ptr(), n);
+    write(2, msg, (len & !STATIC) as usize);
+    write(2, b"\n".as_ptr(), 1);
+    exit(1)
+}
+
+/// `must.stop`: the expression runs in a copy of this process. 1 there;
+/// here, once it has ended, 0 when a check fired in it and 2 when none did.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_must_stop_fork() -> i32 {
+    let pid = fork();
+    if pid == 0 {
+        QUIET_STOP = true;
+        return 1;
+    }
+    if pid < 0 {
+        return 2;
+    }
+    let mut status: i32 = 0;
+    waitpid(pid, &mut status, 0);
+    // Ended by `exit` (the low seven bits clear), with a check's code.
+    let exited = status & 0x7f == 0;
+    let code = (status >> 8) & 0xff;
+    if exited && (code == 101 || code == 104) {
+        0
+    } else {
+        2
+    }
+}
+
+/// `must.stop`'s expression ran to its end: no check fired.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_must_stop_done() -> ! {
+    exit(3)
+}
+
+/// The test to run: the binary's first argument, a number.
+///
+/// # Safety
+/// `argv` must hold `argc` C strings.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_test_index(argc: i32, argv: *const *const u8) -> i64 {
+    if argc < 2 {
+        return -1;
+    }
+    let mut p = *argv.add(1);
+    let mut n: i64 = 0;
+    while *p >= b'0' && *p <= b'9' {
+        n = n * 10 + (*p - b'0') as i64;
+        p = p.add(1);
+    }
+    n
 }
 
 /// A proven site failed in the proof-checking build (`--assert-proofs`):
@@ -42,7 +135,9 @@ pub unsafe extern "C" fn cyborg_check_failed(msg: *const u8, len: usize) -> ! {
 /// As `cyborg_check_failed`.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_proof_failed(msg: *const u8, len: usize) -> ! {
-    write(2, msg, len);
+    if !QUIET_STOP {
+        write(2, msg, len);
+    }
     exit(104)
 }
 

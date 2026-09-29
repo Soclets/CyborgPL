@@ -11,6 +11,7 @@ fn usage() -> ! {
     eprintln!("       cca precog <file.cpls | limb-dir>    check, lower, prove, and report");
     eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
     eprintln!("       cca run <file.cpls | limb-dir>       build, then run it here; its exit is cca's");
+    eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -160,18 +161,93 @@ fn main() {
                 }
             }
         }
-        // Decided to exist (owner, 2026-09-29); what a test is, is not.
+        // `cca test` (owner, 2026-09-29, `testing.md`): every `test fn`,
+        // in the order written, each in a run of its own, so a check that
+        // fires ends that test only. The report is the oracle's.
         "test" => {
-            eprintln!("error: `cca test` will run a project's tests, and what a test is in CyborgPL is not designed yet (asked)");
-            exit(2);
+            let mut file = None;
+            let mut assert_proofs = false;
+            for a in &args[1..] {
+                match a.as_str() {
+                    "--assert-proofs" => assert_proofs = true,
+                    f if file.is_none() && !f.starts_with('-') => file = Some(f.to_string()),
+                    other => {
+                        eprintln!("error: `cca test` takes one program or Limb and `--assert-proofs`; `{}` is not one of them", other);
+                        exit(2);
+                    }
+                }
+            }
+            let Some(file) = file else { usage() };
+            let path = Path::new(&file);
+            let dir = std::env::temp_dir().join(format!("cca-test-{}", std::process::id()));
+            if let Err(e) = std::fs::create_dir_all(&dir) {
+                eprintln!("error: cannot make {}: {}", dir.display(), e);
+                exit(1);
+            }
+            let exe = dir.join("tests");
+            let names = match build_opts(path, &exe, assert_proofs, false, true, true) {
+                Ok(n) => n,
+                Err(d) => {
+                    let _ = std::fs::remove_dir_all(&dir);
+                    eprint!("{}", d);
+                    exit(1);
+                }
+            };
+            let mut passed = 0;
+            for (k, name) in names.iter().enumerate() {
+                let out = std::process::Command::new(&exe).arg(k.to_string()).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::inherit()).stderr(std::process::Stdio::piped()).output();
+                let verdict = match out {
+                    Ok(o) => test_verdict(&o.status, &String::from_utf8_lossy(&o.stderr)),
+                    Err(e) => Some(format!("it could not be run: {}", e)),
+                };
+                match verdict {
+                    None => {
+                        passed += 1;
+                        println!("test {} ... ok", name);
+                    }
+                    Some(why) => println!("test {} ... FAILED: {}", name, why),
+                }
+            }
+            let _ = std::fs::remove_dir_all(&dir);
+            println!("{} tests: {} passed, {} failed", names.len(), passed, names.len() - passed);
+            exit(if passed == names.len() { 0 } else { 1 });
         }
         _ => usage(),
+    }
+}
+
+/// How one test's run ended, in the report's words: `None` when it passed.
+/// A `must` that does not hold said `line N: …` and ended 1; a check (or a
+/// proof, when proofs are asserted) says `check: …` / `proof failed: …`
+/// and `where: file, line N, column M`.
+fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<String> {
+    use std::os::unix::process::ExitStatusExt;
+    match status.code() {
+        Some(0) => None,
+        Some(1) => Some(stderr.lines().find(|l| l.starts_with("line ")).unwrap_or("a `must` did not hold").to_string()),
+        Some(code @ (101 | 104)) => {
+            let what = stderr.lines().find_map(|l| l.strip_prefix("check: ").or_else(|| l.strip_prefix("proof failed: "))).unwrap_or("a check fired");
+            let line = stderr.lines().find_map(|l| l.strip_prefix("where: ")).and_then(|w| w.split(", line ").nth(1)).and_then(|w| w.split(',').next());
+            let what = if code == 104 { format!("proof failed: {}", what) } else { what.to_string() };
+            Some(match line {
+                Some(n) => format!("line {}: {}", n, what),
+                None => what,
+            })
+        }
+        Some(code) => Some(format!("it ended with exit code {}", code)),
+        None => Some(format!("it was stopped by signal {}", status.signal().unwrap_or(0))),
     }
 }
 
 /// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
 /// stderr, for `cca run`, whose stdout is the program's.
 fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool) -> Result<(), String> {
+    build_opts(path, out, assert_proofs, final_build, quiet, false).map(|_| ())
+}
+
+/// `tests`: the test binary (`cca test`), and the names of its tests in
+/// the order its first argument numbers them.
+fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, tests: bool) -> Result<Vec<String>, String> {
     let say = |s: String| {
         if quiet {
             eprint!("{}", s);
@@ -200,7 +276,8 @@ fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, qu
     }
     let ctx = cca::codegen::inkwell::context::Context::create();
     let name = path.file_stem().unwrap().to_string_lossy().to_string();
-    let lowered = cca::codegen::lower_opts(&ctx, &mir, &sources, &name, assert_proofs).map_err(|problems| {
+    let test_names: Vec<String> = mir.functions.iter().filter(|f| f.is_test).map(|f| f.name.clone()).collect();
+    let lowered = cca::codegen::lower_for(&ctx, &mir, &sources, &name, assert_proofs, tests).map_err(|problems| {
         let mut s = String::new();
         for p in problems {
             let mut d = cca::diag::Diagnostic::error(format!("not yet: {}", p.what));
@@ -231,7 +308,7 @@ fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, qu
     if !quiet {
         println!("wrote {}", out.display());
     }
-    Ok(())
+    Ok(test_names)
 }
 
 fn precog_one(path: &Path, json: bool) -> Result<(), String> {

@@ -133,8 +133,121 @@ impl Checker {
         Ok(hir::Stmt { kind, span: s.span, tier })
     }
 
+    /// `must …;` (owner, 2026-09-29), lowered to what is there already: an
+    /// `if` whose other side reports and ends the test. A comparison's
+    /// sides are worked out a second time for the message, as the oracle
+    /// has it; `must.fail` catches the call's reasons in a local;
+    /// `must.stop` runs its expression in a process of its own.
+    fn must(&mut self, ctx: &mut FnCtx, kind: &ast::MustKind, expr: &ast::Expr, span: crate::source::Span) -> Result<hir::StmtKind> {
+        use crate::ast::{BinOp, ExprKind as AK, MustKind};
+        use crate::types::IntW;
+        if !ctx.is_test {
+            return err(Diagnostic::error("`must` belongs in a `test fn`: in a program, Precog and `check` say what must hold, before it runs").at(span));
+        }
+        let int32 = Ty::Int(IntW::Fixed { signed: true, bits: 32 });
+        let text = |s: &str| hir::Expr { kind: hir::ExprKind::Str(s.to_string()), ty: Ty::utf8(), span };
+        let stmt = |kind: hir::StmtKind| hir::Stmt { kind, span, tier: None };
+        let block = |stmts: Vec<hir::Stmt>| hir::Block { stmts, span };
+        let builtin = |b: hir::Builtin, args: Vec<hir::Arg>, ty: Ty| hir::Expr { kind: hir::ExprKind::Call { callee: hir::Callee::Builtin(b), args, otherwise: None, fails: Vec::new() }, ty, span };
+        let report = |msg: hir::Expr| stmt(hir::StmtKind::Expr(builtin(hir::Builtin::MustReport, vec![hir::Arg::Value(msg)], Ty::Nothing)));
+        let fresh = |ctx: &mut FnCtx, name: &str, ty: &Ty| {
+            let id = hir::LocalId(ctx.locals.len() as u32);
+            ctx.locals.push(Local { name: name.to_string(), ty: ty.clone(), mutability: Some(crate::ast::Mutability::Mut), kind: LocalKind::Owned, from_blank: false, span });
+            id
+        };
+        let read = |id: hir::LocalId, ty: &Ty| hir::Expr { kind: hir::ExprKind::Read(hir::Place { base: id, proj: Vec::new(), ty: ty.clone(), span }), ty: ty.clone(), span };
+        let is = |id: hir::LocalId, n: i128| hir::Expr { kind: hir::ExprKind::Binary { op: BinOp::Eq, lhs: Box::new(read(id, &Ty::Int(IntW::Fixed { signed: true, bits: 32 }))), rhs: Box::new(hir::Expr { kind: hir::ExprKind::Int(n), ty: Ty::Int(IntW::Fixed { signed: true, bits: 32 }), span }), op_span: span }, ty: Ty::Bool, span };
+        let if_then = |cond: hir::Expr, then: Vec<hir::Stmt>| stmt(hir::StmtKind::If { cond, then: block(then), else_: None });
+        match kind {
+            MustKind::Hold => {
+                let cond = self.expr(ctx, expr)?;
+                self.expect_bool(&cond, "`must`'s condition")?;
+                // A comparison of values that have a text shows both sides.
+                let mut inner = expr;
+                while let AK::Paren(e) = &inner.kind {
+                    inner = e;
+                }
+                let printable = |t: &Ty| matches!(t.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Char(_) | Ty::Str(_));
+                let msg = match (&inner.kind, &cond.kind) {
+                    (AK::Binary { op, op_span, lhs, rhs }, hir::ExprKind::Binary { lhs: hl, rhs: hr, .. }) if op.is_comparison() && printable(&self.resolve(&hl.ty)) && printable(&self.resolve(&hr.ty)) => {
+                        let as_text = |e: &ast::Expr| ast::Expr { kind: AK::Conv { target: ast::Type { kind: ast::TypeKind::Path { path: ast::Path { limb: None, segs: vec![ast::Ident { name: "str".into(), span: e.span }, ast::Ident { name: "utf8".into(), span: e.span }], span: e.span }, args: Vec::new() }, span: e.span }, expr: Box::new(e.clone()), otherwise: None }, span: e.span };
+                        let lit = |s: String| ast::Expr { kind: AK::Str(s), span };
+                        let join = |a: ast::Expr, b: ast::Expr| ast::Expr { kind: AK::Binary { op: BinOp::Join, op_span: *op_span, lhs: Box::new(a), rhs: Box::new(b) }, span };
+                        let m = join(join(join(lit("`must` does not hold: the left side is ".into()), as_text(lhs)), lit(format!(", and it must be `{}` ", op.spelled()))), as_text(rhs));
+                        self.expr(ctx, &m)?
+                    }
+                    _ => text("`must` does not hold"),
+                };
+                let not = hir::Expr { kind: hir::ExprKind::Unary { op: crate::ast::UnOp::Not, expr: Box::new(cond) }, ty: Ty::Bool, span };
+                Ok(hir::StmtKind::If { cond: not, then: block(vec![report(msg)]), else_: None })
+            }
+            MustKind::Fail(reason) => {
+                let was = ctx.must_fail;
+                ctx.must_fail = true;
+                let call = self.expr(ctx, expr);
+                ctx.must_fail = was;
+                let mut call = call?;
+                let fails: Vec<String> = match &call.kind {
+                    hir::ExprKind::Call { fails, .. } => fails.iter().map(|(n, _)| n.clone()).collect(),
+                    hir::ExprKind::Conv { fails, .. } => fails.clone(),
+                    _ => Vec::new(),
+                };
+                if fails.is_empty() {
+                    return err(Diagnostic::error("`must.fail` takes something that can fail: a call or a `to.…` with reasons, and this one has none").at(expr.span));
+                }
+                let spelled = match reason {
+                    Some(r) => format!("must.fail.{}", r.name),
+                    None => "must.fail".to_string(),
+                };
+                let want = match reason {
+                    Some(r) => match fails.iter().position(|f| *f == r.name) {
+                        Some(i) => Some(i),
+                        None => return err(Diagnostic::error(format!("this cannot fail with `{}`: its reasons are {}", r.name, fails.iter().map(|f| format!("`{}`", f)).collect::<Vec<_>>().join(", "))).at(r.span)),
+                    },
+                    None => None,
+                };
+                // Which reason came back: 0 for none, i + 1 for reason i.
+                let got = fresh(ctx, "the reason", &int32);
+                let arms: Vec<hir::FailArm> = (0..fails.len()).map(|i| hir::FailArm {
+                    index: i,
+                    bind: None,
+                    body: block(vec![stmt(hir::StmtKind::Assign { place: hir::Place { base: got, proj: Vec::new(), ty: int32.clone(), span }, value: hir::Expr { kind: hir::ExprKind::Int(i as i128 + 1), ty: int32.clone(), span } })]),
+                    gives: None,
+                }).collect();
+                match &mut call.kind {
+                    hir::ExprKind::Call { otherwise, .. } | hir::ExprKind::Conv { otherwise, .. } => *otherwise = Some(Box::new(hir::Otherwise::Arms(arms))),
+                    _ => unreachable!("a call or a conversion"),
+                }
+                let mut out = vec![
+                    stmt(hir::StmtKind::Let { local: got, value: hir::Expr { kind: hir::ExprKind::Int(0), ty: int32.clone(), span }, typed: false }),
+                    stmt(hir::StmtKind::Expr(call)),
+                    if_then(is(got, 0), vec![report(text(&format!("`{}`: it did not fail", spelled)))]),
+                ];
+                if let Some(k) = want {
+                    for (j, name) in fails.iter().enumerate() {
+                        if j != k {
+                            out.push(if_then(is(got, j as i128 + 1), vec![report(text(&format!("`{}`: it failed with `{}`", spelled, name)))]));
+                        }
+                    }
+                }
+                Ok(hir::StmtKind::Block(block(out)))
+            }
+            MustKind::Stop => {
+                self.items.must_stop_spans.push(expr.span);
+                let value = self.expr(ctx, expr)?;
+                let k = fresh(ctx, "the stop", &int32);
+                Ok(hir::StmtKind::Block(block(vec![
+                    stmt(hir::StmtKind::Let { local: k, value: builtin(hir::Builtin::MustStopFork, Vec::new(), int32.clone()), typed: false }),
+                    if_then(is(k, 1), vec![stmt(hir::StmtKind::Expr(value)), stmt(hir::StmtKind::Expr(builtin(hir::Builtin::MustStopDone, Vec::new(), Ty::Nothing)))]),
+                    if_then(is(k, 2), vec![report(text("`must.stop`: no check fired"))]),
+                ])))
+            }
+        }
+    }
+
     fn stmt_kind(&mut self, ctx: &mut FnCtx, s: &ast::Stmt) -> Result<hir::StmtKind> {
         match &s.kind {
+            ast::StmtKind::Must { kind, expr } => self.must(ctx, kind, expr, s.span),
             // A value, or `gives`, anywhere but at the end of a case of a
             // `match` used as one (or of an `otherwise` arm).
             ast::StmtKind::Gives { bare: true, .. } => err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").at(s.span)),

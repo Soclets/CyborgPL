@@ -108,6 +108,16 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         Some(m) => {
             let entry = a.entry_env(m.0 as usize);
             a.run_function(m.0 as usize, entry, 0);
+            // Each `test fn` is a start of its own (owner, 2026-09-29):
+            // `cca test` runs it, and what it calls is called from there
+            // too. Walked from MAIN alone, `add[1, 1]` folded `add`'s body
+            // to 2, and the test's `add[2, 3]` gave 2.
+            for f in 0..p.functions.len() {
+                if p.functions[f].is_test {
+                    let entry = a.entry_env(f);
+                    a.run_function(f, entry, 0);
+                }
+            }
         }
         None => {
             for f in 0..p.functions.len() {
@@ -2662,6 +2672,12 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
     for r in &a.sites {
         let f = &p.functions[r.function];
         let site = f.site(r.site);
+        // A check a `must.stop` expects to fire (owner, 2026-09-29) is the
+        // test, not a mistake: it stays a check and is never refused.
+        let sp = f.span(site.span);
+        if p.items.must_stop_spans.iter().any(|m| m.file == sp.file && m.start <= sp.start && sp.end <= m.end) {
+            continue;
+        }
         let checked = site.tier == Some(Tier::Check) || (final_build && site.tier.is_none());
         // `check` is "I built a guardrail, tell me whether it is enough", so
         // *not knowing* is an answer it has to hear (`core-features.md`:

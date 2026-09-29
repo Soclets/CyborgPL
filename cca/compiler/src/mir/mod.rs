@@ -134,6 +134,10 @@ impl Operand {
 /// The language's own operations, as MIR sees them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Op {
+    /// `must` in a `test fn` (owner, 2026-09-29): see `hir::Builtin`.
+    MustReport,
+    MustStopFork,
+    MustStopDone,
     ListLength,
     ListAppend,
     ListRemove,
@@ -450,6 +454,8 @@ pub struct Function {
     /// Spans, indexed by `SpanId`. Not part of the canonical form.
     pub spans: Vec<Span>,
     pub is_main: bool,
+    /// A `test fn`: `cca test` runs it; a normal build leaves it out.
+    pub is_test: bool,
     /// This function is a task's body: it was written inside a `concur`.
     pub is_task: bool,
     /// Its last parameter is a variadic bundle: a call hands the values one

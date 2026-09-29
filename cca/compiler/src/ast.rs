@@ -429,6 +429,19 @@ pub enum StmtKind {
     /// `{ gives "free"; }` in a `#strict` file.
     Gives { value: Expr, bare: bool },
     InlineAsm { text: String, bindings: Vec<AsmBinding> },
+    /// `must …;` in a `test fn` (owner, 2026-09-29): what must hold, that
+    /// something fails (with a reason), or that a check site fires.
+    Must { kind: MustKind, expr: Expr },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MustKind {
+    /// `must 'n' == 42;`
+    Hold,
+    /// `must.fail …;`, `must.fail.not_a_number …;`
+    Fail(Option<Ident>),
+    /// `must.stop …;`
+    Stop,
 }
 
 // ---------------------------------------------------------------- items
@@ -472,6 +485,9 @@ pub struct FnDecl {
     pub fails: Vec<FailSpec>,
     /// `None` for `extern fn` and interface entries.
     pub body: Option<Block>,
+    /// `test fn` (owner, 2026-09-29): run by `cca test`, never called,
+    /// left out of a normal build.
+    pub test: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

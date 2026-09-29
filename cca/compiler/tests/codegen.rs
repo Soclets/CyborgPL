@@ -126,6 +126,24 @@ fn a_proven_site_hands_its_fact_to_llvm() {
     assert!(ir.contains("nsw") || ir.contains("nuw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
 }
 
+/// `cca test` (owner, 2026-09-29, `testing.md`): examples/testing.cpls
+/// reports exactly as the oracle's `.test-out` has it, and every other way
+/// a test ends reports as tests/testing/outcomes.test-out says. A failing
+/// test makes the exit 1.
+#[test]
+fn tests_run_and_report() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let repo = dir().parent().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().to_path_buf();
+    let testing = dir().parent().unwrap().join("testing");
+    for (src, want) in [(repo.join("examples/testing.cpls"), repo.join("examples/testing.test-out")), (testing.join("outcomes.cpls"), testing.join("outcomes.test-out"))] {
+        let r = Command::new(cca()).arg("test").arg(&src).env("CCA_STD_STUBS", "1").output().unwrap();
+        let got = String::from_utf8_lossy(&r.stdout).to_string();
+        let want = std::fs::read_to_string(&want).unwrap();
+        assert_eq!(got, want, "`cca test {}` reported otherwise:\n{}", src.display(), String::from_utf8_lossy(&r.stderr));
+        assert_eq!(r.status.code(), Some(1), "a failing test did not make `cca test` exit 1");
+    }
+}
+
 /// A Limb with a `path` dependency (owner, 2026-09-29): `areas::…` reaches
 /// its `pub` items, types, consts and modules, and the program runs; a
 /// cycle, and a dependency whose own `CCA.cplr` gives another name, are

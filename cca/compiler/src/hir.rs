@@ -54,6 +54,9 @@ pub struct Body {
     /// The source function's name, for messages.
     pub name: String,
     pub is_main: bool,
+    /// A `test fn` (owner, 2026-09-29): `cca test` runs it; a normal build
+    /// leaves it out.
+    pub is_test: bool,
     /// A returned borrow (owner, 2026-09-29): whether it may be changed,
     /// and the parameters (by position) the caller's result borrows —
     /// its group's, or, with no group written, the ones it hands back.
@@ -175,6 +178,14 @@ pub enum Callee {
 /// The language's own operations, spelled as calls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Builtin {
+    /// A `must` that does not hold, in a `test fn` (owner, 2026-09-29):
+    /// the message, reported at the statement's line; the test ends.
+    MustReport,
+    /// `must.stop`: 1 in the process that runs the expression, 0 in the
+    /// one that waits when a check fired there, 2 when none did.
+    MustStopFork,
+    /// `must.stop`'s expression ran and no check fired: that process ends.
+    MustStopDone,
     ListLength,
     ListAppend,
     ListRemove,

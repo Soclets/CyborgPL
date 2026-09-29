@@ -422,3 +422,13 @@ Dated, with the alternative, so each can become a question later.
   it. A `version` dependency is refused until the registry exists, as the
   oracle does. Alternatives: accept and ignore `'target'`; ignore a
   dependency's `MAIN`.
+- **2026-09-29 — How `cca test` runs tests.** One test binary holds every
+  `test fn` (and no `MAIN`); `cca test` runs it once per test, the test's
+  number its argument, so a check that fires ends that test only. A `must`
+  that does not hold ends its test with exit 1 and `line N: …` on stderr.
+  `must.stop` runs its expression in a forked copy of the process (POSIX
+  `fork`) and the test carries on in the original. A fired check is
+  reported in CCA's own words (`the position can be past the end`), not
+  the oracle's. A comparison shows its sides when both have a text form
+  (numbers, `bool`, characters, text); other values say only that `must`
+  does not hold. Alternative: `setjmp`/`longjmp` in one process.

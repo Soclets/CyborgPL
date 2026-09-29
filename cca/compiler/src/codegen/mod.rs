@@ -65,6 +65,13 @@ pub fn lower<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &
 /// undefined behaviour. A `nocheck` site proved nothing and is not
 /// asserted.
 pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &str, assert_proofs: bool) -> Result<Lowered<'ctx>, Vec<NotYet>> {
+    lower_for(ctx, p, sources, name, assert_proofs, false)
+}
+
+/// `tests`: the binary `cca test` runs (owner, 2026-09-29) — every `test
+/// fn`, its entry running the one its first argument numbers, in the order
+/// written. Otherwise the tests are left out and the entry runs `MAIN`.
+pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &str, assert_proofs: bool, tests: bool) -> Result<Lowered<'ctx>, Vec<NotYet>> {
     let module = ctx.create_module(name);
     // The machine's own description, set before anything is lowered: the
     // heap needs to know how big an element is, and only the target data
@@ -77,7 +84,7 @@ pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, na
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, cur_fi: 0, op_sites: Vec::new() };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, op_sites: Vec::new() };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -132,6 +139,8 @@ struct Cg<'a, 'ctx> {
     /// Whether any range in the program rests on someone's word
     /// (`guaranteed_range`), worked out once.
     ranges_trusted: Option<bool>,
+    /// Building the test binary (`lower_for`).
+    tests: bool,
     /// The function being written.
     cur_fi: usize,
     /// The check sites guarding the operation being lowered.
@@ -291,7 +300,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
         }
         for (i, f) in self.p.functions.iter().enumerate() {
-            if f.is_main {
+            // A normal build leaves the tests out (owner, 2026-09-29).
+            if f.is_main || (f.is_test && !self.tests) {
                 continue;
             }
             let span = f.spans.first().copied();
@@ -421,6 +431,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// `MAIN` becomes C's `main`: the block runs, and its end is exit 0
     /// (`functions.md`: "when the block ends, the process exits 0").
     fn emit_entry(&mut self) {
+        if self.tests {
+            self.emit_test_entry();
+            return;
+        }
         let Some(main_idx) = self.p.main else { return };
         let i32t = self.ctx.i32_type();
         let f = self.module.add_function("main", i32t.fn_type(&[], false), None);
@@ -444,10 +458,61 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let _ = self.builder.build_return(Some(&i32t.const_zero()));
     }
 
+    /// The test binary's `main`: the test its first argument numbers, run
+    /// as `MAIN` would be (as a task when the program has any), then 0.
+    /// A `must` that does not hold, or a check, ends it sooner.
+    fn emit_test_entry(&mut self) {
+        let i32t = self.ctx.i32_type();
+        let i64t = self.ctx.i64_type();
+        let p = self.ctx.ptr_type(AddressSpace::default());
+        let tests: Vec<usize> = self.p.functions.iter().enumerate().filter(|(_, f)| f.is_test).map(|(i, _)| i).collect();
+        // Which test, where the task-run entry can read it.
+        let which = self.module.add_global(i64t, None, "cy_test_which");
+        which.set_initializer(&i64t.const_zero());
+        let run = self.module.add_function("cy_test_run", self.ctx.void_type().fn_type(&[], false), Some(inkwell::module::Linkage::Internal));
+        let entry = self.ctx.append_basic_block(run, "entry");
+        self.builder.position_at_end(entry);
+        let n = self.builder.build_load(i64t, which.as_pointer_value(), "which").unwrap().into_int_value();
+        let done = self.ctx.append_basic_block(run, "done");
+        let mut cases = Vec::new();
+        for (k, fi) in tests.iter().enumerate() {
+            let b = self.ctx.append_basic_block(run, "test");
+            cases.push((i64t.const_int(k as u64, false), b));
+            self.builder.position_at_end(b);
+            if let Some(f) = self.fns.get(fi).copied() {
+                let _ = self.builder.build_call(f, &[], "");
+            }
+            let _ = self.builder.build_unconditional_branch(done);
+        }
+        self.builder.position_at_end(entry);
+        let _ = self.builder.build_switch(n, done, &cases);
+        self.builder.position_at_end(done);
+        let _ = self.builder.build_return(None);
+        let main = self.module.add_function("main", i32t.fn_type(&[i32t.into(), p.into()], false), None);
+        let e = self.ctx.append_basic_block(main, "entry");
+        self.builder.position_at_end(e);
+        let index = self.module.get_function("cyborg_test_index").unwrap_or_else(|| self.module.add_function("cyborg_test_index", i64t.fn_type(&[i32t.into(), p.into()], false), None));
+        let argc = main.get_nth_param(0).unwrap();
+        let argv = main.get_nth_param(1).unwrap();
+        let k = self.builder.build_call(index, &[argc.into(), argv.into()], "k").ok().and_then(basic_result).unwrap();
+        let _ = self.builder.build_store(which.as_pointer_value(), k);
+        if self.uses_tasks() {
+            let task_run = self.module.get_function("cyborg_run").unwrap_or_else(|| self.module.add_function("cyborg_run", self.ctx.void_type().fn_type(&[p.into()], false), None));
+            let _ = self.builder.build_call(task_run, &[run.as_global_value().as_pointer_value().into()], "");
+        } else {
+            let _ = self.builder.build_call(run, &[], "");
+        }
+        let _ = self.builder.build_return(Some(&i32t.const_zero()));
+    }
+
     // ------------------------------------------------------------ bodies
 
     fn define(&mut self, i: usize) {
         let f = &self.p.functions[i];
+        // The test binary runs the tests, never `MAIN`.
+        if f.is_main && self.tests {
+            return;
+        }
         let func = if f.is_main {
             let name = format!("cy_main_{}", i);
             match self.module.get_function(&name) {
@@ -2715,6 +2780,31 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     _ => v.get_type(),
                 };
                 Some(Some(self.builder.build_int_z_extend_or_bit_cast(v, want, "code").ok()?.into()))
+            }
+            // `must` in a `test fn` (owner, 2026-09-29).
+            Op::MustReport => {
+                let v = self.operand(fi, args.first()?, slots)?;
+                let (ptr, len) = self.text_parts_pub(v)?;
+                let f = &self.p.functions[fi];
+                let (b, si) = (self.here.0 as usize, self.here.1 as usize);
+                let block = &f.blocks[b];
+                let span = f.span(block.stmts.get(si).map(|s| s.span).unwrap_or(block.term_span));
+                let (line, _) = self.sources.get(span.file).line_col(span.start);
+                let i64t = self.ctx.i64_type();
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                let rf = self.module.get_function("cyborg_must_report").unwrap_or_else(|| self.module.add_function("cyborg_must_report", self.ctx.void_type().fn_type(&[p.into(), i64t.into(), i64t.into()], false), None));
+                let _ = self.builder.build_call(rf, &[ptr.into(), len.into(), i64t.const_int(line as u64, false).into()], "");
+                Some(None)
+            }
+            Op::MustStopFork => {
+                let rf = self.module.get_function("cyborg_must_stop_fork").unwrap_or_else(|| self.module.add_function("cyborg_must_stop_fork", self.ctx.i32_type().fn_type(&[], false), None));
+                let v = self.builder.build_call(rf, &[], "stop").ok().and_then(basic_result)?;
+                Some(Some(v))
+            }
+            Op::MustStopDone => {
+                let rf = self.module.get_function("cyborg_must_stop_done").unwrap_or_else(|| self.module.add_function("cyborg_must_stop_done", self.ctx.void_type().fn_type(&[], false), None));
+                let _ = self.builder.build_call(rf, &[], "");
+                Some(None)
             }
             // C's null (`ffi.md`): a pointer compared with nothing.
             Op::PtrIsNull => {

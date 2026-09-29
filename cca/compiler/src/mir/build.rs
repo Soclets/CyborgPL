@@ -508,6 +508,7 @@ impl<'a> FnBuilder<'a> {
             sites: self.sites,
             spans: self.spans,
             is_main: body.is_main,
+            is_test: body.is_test,
             is_task: self.is_task,
             variadic: self.inst.map_or(false, |i| self.arena.instances[i.0 as usize].key.bundle.is_some()),
             captures: self.captures,
@@ -898,7 +899,8 @@ impl<'a> FnBuilder<'a> {
             block: body.clone(),
             span: self.spans[span.0 as usize],
             name: format!("a task in {}", self.fn_name()),
-            is_main: false, ret_lent: None, };
+            is_main: false,
+            is_test: false, ret_lent: None, };
         let idx = FnIdx(self.arena.functions.len() as u32);
         self.arena.functions.push(placeholder(&task_body));
         let mut fb = FnBuilder::new(self.arena, None, &task_body, true);
@@ -1916,6 +1918,7 @@ fn placeholder(body: &hir::Body) -> Function {
         sites: Vec::new(),
         spans: Vec::new(),
         is_main: body.is_main,
+        is_test: body.is_test,
         is_task: false,
         variadic: false,
         captures: Vec::new(),
@@ -2012,6 +2015,9 @@ pub fn needs_narrow_check(from: &Ty, to: &Ty) -> bool {
 
 fn builtin_op(b: &Builtin) -> Op {
     match b {
+        Builtin::MustReport => Op::MustReport,
+        Builtin::MustStopFork => Op::MustStopFork,
+        Builtin::MustStopDone => Op::MustStopDone,
         Builtin::ListLength => Op::ListLength,
         Builtin::ListAppend => Op::ListAppend,
         Builtin::ListSlice | Builtin::ArraySlice => Op::ListSlice,

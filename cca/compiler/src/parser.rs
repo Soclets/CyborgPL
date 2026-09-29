@@ -245,6 +245,23 @@ impl<'a> Parser<'a> {
                 return self.fail(format!("a Limb-level value is a `const`, not a variable: `pub const '{}' := …;`", n));
             }
         }
+        // `test fn` (owner, 2026-09-29): never `pub`, run by `cca test`.
+        if self.is_word("test") && self.is_word_at(1, "fn") {
+            if vis != Vis::Private {
+                return self.fail("a `test fn` is never `pub`: nothing reaches it but `cca test`");
+            }
+            self.bump();
+            let kind = self.item_kind(vis)?;
+            let kind = match kind {
+                ItemKind::Fn(mut d) => {
+                    d.test = true;
+                    ItemKind::Fn(d)
+                }
+                other => other,
+            };
+            let span = start.to(self.prev_span());
+            return Ok(Item { vis, kind, span });
+        }
         let kind = self.item_kind(vis)?;
         let span = start.to(self.prev_span());
         Ok(Item { vis, kind, span })
@@ -443,7 +460,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, params, ret, ret_lent, fails, body })
+        Ok(FnDecl { name, params, ret, ret_lent, fails, body, test: false })
     }
 
     /// `-> T`, `-> T or fail[…]`, `-> fail[…]`, or nothing.
@@ -1266,6 +1283,31 @@ impl<'a> Parser<'a> {
                 self.expect_semi("the return value")?;
                 self.returns_value = true;
                 Ok(StmtKind::Return(Some(e)))
+            }
+            // `must` (owner, 2026-09-29): `must …;`, `must.fail …;`,
+            // `must.fail.<reason> …;`, `must.stop …;`. A function called
+            // `must` is still `must[…]`.
+            "must" if !matches!(self.peek_at(1), Tok::LBracket) => {
+                self.bump();
+                let kind = if self.eat(&Tok::Dot) {
+                    let w = self.ident("`fail` or `stop` after `must.`")?;
+                    match w.name.as_str() {
+                        "fail" => {
+                            if self.eat(&Tok::Dot) {
+                                MustKind::Fail(Some(self.ident("the reason after `must.fail.`")?))
+                            } else {
+                                MustKind::Fail(None)
+                            }
+                        }
+                        "stop" => MustKind::Stop,
+                        other => return self.fail_at(w.span, format!("`must.{}` is not one of the family: `must …` (what must hold), `must.fail …` (it must fail), `must.stop …` (a check must fire)", other)),
+                    }
+                } else {
+                    MustKind::Hold
+                };
+                let expr = self.expr_top()?;
+                self.expect_semi("the `must`")?;
+                Ok(StmtKind::Must { kind, expr })
             }
             "fail" => {
                 self.bump();

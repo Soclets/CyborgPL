@@ -91,6 +91,8 @@ pub struct FnDeclInfo {
     pub op: Option<String>,
     /// An anonymous `fn` literal (captures are resolved by the checker).
     pub is_literal: bool,
+    /// `test fn` (owner, 2026-09-29).
+    pub test: bool,
     pub span: Span,
     pub name_span: Span,
 }
@@ -121,6 +123,9 @@ pub struct ConstInfo {
 
 #[derive(Debug, Default)]
 pub struct Items {
+    /// Where a `must.stop`'s expression is (owner, 2026-09-29): a check
+    /// site there must fire, so one failing every time is not refused.
+    pub must_stop_spans: Vec<Span>,
     /// Each Limb's dependencies, by the name its `CCA.cplr` gives them
     /// (owner, 2026-09-29): its root module to theirs. `areas::circle`
     /// starts at the root this map gives `areas` from the Limb it is in.
@@ -239,7 +244,7 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()) };
+                let decl = ast::FnDecl { name: op.op.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -506,6 +511,16 @@ impl Items {
     }
 
     fn resolve_fn_decl(&mut self, decl: &ast::FnDecl, m: ModuleId, op: Option<String>, vis: Vis, span: Span) -> Result<FnDeclInfo> {
+        // A `test fn` (owner, 2026-09-29): `cca test` calls it with nothing
+        // and looks for nothing back but whether its `must`s hold.
+        if decl.test {
+            if let Some(p) = decl.params.first() {
+                return err(Diagnostic::error(format!("the `test fn {}` takes no parameters: `cca test` calls it with nothing — make '{}' a value inside it", decl.name.name, p.name.name)).at(p.span));
+            }
+            if decl.ret.is_some() || decl.ret_lent.is_some() || !decl.fails.is_empty() {
+                return err(Diagnostic::error(format!("the `test fn {}` returns nothing and cannot fail: what it checks, it says with `must`", decl.name.name)).at(decl.name.span));
+            }
+        }
         let mut blanks: Vec<(String, Option<IfaceId>)> = Vec::new();
         let mut params = Vec::new();
         for p in &decl.params {
@@ -555,7 +570,7 @@ impl Items {
             }
         }
         let path = if op.is_some() { decl.name.name.clone() } else { qualify(self, m, &decl.name.name) };
-        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, span, name_span: decl.name.span })
+        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, span, name_span: decl.name.span })
     }
 
     pub fn resolve_fails(&mut self, fails: &[ast::FailSpec], m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>) -> Result<Vec<(String, Option<Ty>)>> {
@@ -1096,7 +1111,7 @@ pub fn conv_kind(k: ast::ParamKind) -> ParamKind {
 }
 
 fn placeholder_fn(name: &str, m: ModuleId, vis: Vis, span: Span, name_span: Span) -> FnDeclInfo {
-    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, span, name_span }
+    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, test: false, span, name_span }
 }
 
 fn qualify(items: &Items, m: ModuleId, name: &str) -> String {

@@ -2010,6 +2010,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         h.const_named_struct(&[bytes.into(), len.into()]).into()
     }
 
+    pub(super) fn text_parts_pub(&mut self, v: BasicValueEnum<'ctx>) -> Option<(PointerValue<'ctx>, IntValue<'ctx>)> {
+        self.text_parts(v)
+    }
+
     /// The pointer and the raw length out of a text value.
     fn text_parts(&mut self, v: BasicValueEnum<'ctx>) -> Option<(PointerValue<'ctx>, IntValue<'ctx>)> {
         let agg = match v {

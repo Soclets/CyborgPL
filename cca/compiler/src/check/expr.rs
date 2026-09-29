@@ -272,6 +272,9 @@ impl Checker {
                 if decl.op.is_some() {
                     return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values and is not a value itself", decl.name)).at(span));
                 }
+                if decl.test {
+                    return err(Diagnostic::error(format!("`{}` is a `test fn`: `cca test` runs it, and it is not a value to hold", decl.name)).at(span));
+                }
                 if !decl.blanks.is_empty() || decl.params.iter().any(|p| p.ty.is_none() || p.variadic) {
                     return err(Diagnostic::error(format!("`{}` has blanks, so it has no single type to hold: pass it where the blanks are filled, or write a version with the types", decl.name)).at(span));
                 }
@@ -1641,6 +1644,10 @@ impl Checker {
                 }
                 self.construct(ctx, id, args, span)
             }
+            // Nothing calls a `test fn` (owner, 2026-09-29).
+            ItemRef::Fn(id) if self.items.fns[id.0 as usize].test => {
+                err(Diagnostic::error(format!("`{}` is a `test fn`: `cca test` runs it, and nothing else calls it", path.spelled())).at(span))
+            }
             ItemRef::Fn(id) => self.fn_call(ctx, id, args, otherwise, span, used, path),
             ItemRef::ExternFn(id) => self.extern_call(ctx, id, args, otherwise, span, used),
             ItemRef::Enum(_) => err(Diagnostic::error(format!("`{}` is an enum: a value is one of its cases — `{}.case` or `{}.case[data]`", path.spelled(), path.spelled(), path.spelled())).at(span)),
@@ -1781,7 +1788,8 @@ impl Checker {
                 Ok(Some(Box::new(self.otherwise(ctx, o, fails, ret, used, span)?)))
             }
             None => {
-                if !fails.is_empty() {
+                // `must.fail` catches the reasons itself (owner, 2026-09-29).
+                if !fails.is_empty() && !ctx.must_fail {
                     let list = fails.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>().join(", ");
                     return err(Diagnostic::error(format!("`{}` can fail ({}): say what happens — `otherwise` a value, `otherwise return …`, `otherwise fail`, or `otherwise {{ {} {{ … }} }}` arms", name, list, fails[0].0)).at(span));
                 }
@@ -2178,7 +2186,7 @@ impl Checker {
                 Some(Box::new(self.otherwise(ctx, o, &fails, &info.ret, used, span)?))
             }
             None => {
-                if !fails.is_empty() {
+                if !fails.is_empty() && !ctx.must_fail {
                     let what = if info.ret.bound().is_some() { "its return is a range C promised" } else { "what C hands back is checked at the door — a C enum's number must be one of its cases, a ranged field in its range" };
                     let what = if info.ret.bound().is_some() { format!("{}, checked at the door", what) } else { what.to_string() };
                     return err(Diagnostic::error(format!("`{}` can fail (out_of_range): {} — say what happens with `otherwise`", info.name, what)).at(span));
@@ -2338,7 +2346,7 @@ impl Checker {
         };
         let body = crate::ast::Block { stmts: vec![crate::ast::Stmt { kind: crate::ast::StmtKind::Return(Some(value)), span }], span };
         let fn_id = FnId(self.items.fns.len() as u32);
-        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, span, name_span: span });
+        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, span, name_span: span });
         let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
         let inst = self.instance(key);
         self.check_literal_now(inst, Vec::new())?;
@@ -2379,7 +2387,7 @@ impl Checker {
         if sig.ret != Ty::Nothing && !super::stmt::leaves_block(&block) {
             return err(Diagnostic::error(format!("this function returns a `{}` but can fall off the end: every path must `return` a value", self.spell(&sig.ret))).at(decl.span));
         }
-        self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name: "an anonymous function".into(), is_main: false, ret_lent: None });
+        self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name: "an anonymous function".into(), is_main: false, is_test: false, ret_lent: None });
         Ok(())
     }
 
@@ -2472,7 +2480,7 @@ impl Checker {
                 Some(Box::new(self.otherwise(ctx, o, &fail_list, &t, used, span)?))
             }
             None => {
-                if !fails.is_empty() {
+                if !fails.is_empty() && !ctx.must_fail {
                     return err(Diagnostic::error(format!("`to.{}` can fail ({}): say what happens — `otherwise …`", target_spelling, fails.join(", "))).at(span));
                 }
                 None
@@ -2585,6 +2593,7 @@ impl Checker {
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let mut shuffle_order: Option<Vec<u32>> = None;
         let (hargs, ty): (Vec<Arg>, Ty) = match &b {
+            Builtin::MustReport | Builtin::MustStopFork | Builtin::MustStopDone => unreachable!("made by `must`, never written"),
             Builtin::ListLength | Builtin::ArrayLength | Builtin::MapLength | Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes => {
                 arity(1, self)?;
                 let a = self.lent_arg(ctx, positional[0], &name, false)?;

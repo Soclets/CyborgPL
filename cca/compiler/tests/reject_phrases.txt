@@ -282,6 +282,8 @@ module_relative_from_inside [fnv:427be5d564d39335] :: there is no item `g` in mo
 module_twice [fnv:590a2387e4587ab6] :: a module of that name is already declared
 module_type_clash [fnv:9a463632e47ae022] :: a module and a type cannot share a name
 module_uppercase [fnv:f6e5aa143a6e5454] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
+must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
+must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
 mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
 ne [fnv:ef1c886d3712dd70] :: `!=` is not an operator here: not-equal is `!==`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
@@ -432,6 +434,8 @@ struct_wrong_field_type [fnv:7d29ffc630950dd5] :: field `x` is an `int32` and th
 take_unhandled [fnv:0a69f5303bdb8818] :: `channel.take` can fail (closed): say what happens
 temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
 temp_after_name [fnv:64d751df57cc16a6] :: expected `in`; `temp` goes before the name
+test_fn_called [fnv:9771210d724d2896] :: is a `test fn`: `cca test` runs it
+test_fn_params [fnv:e6c6894b85ea10f6] :: takes no parameters
 text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[1, 2 graphemes]`)
 text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
 text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[0, 20 bytes]`)
