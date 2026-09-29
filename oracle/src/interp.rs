@@ -52,6 +52,7 @@ struct Slot {
     alive: bool,     // false after `give`
     immut: bool,     // stated `immut`: assignment is an error
     sized: bool,     // the list's length is known here (a literal, a bound, a bundle) — `...'xs'` may unpack it
+    deps: Vec<usize>, // a borrow a call handed back under `@x`: every cell in the group (owner, 2026-09-29: they live and die together)
     since: u64,      // a lent slot: the write count when it was bound; a later write to what it borrows makes it stale
     sealed: bool,    // `!$`: the name cannot be shadowed (owner, 2026-09-25); a loop's counter is too
 }
@@ -90,6 +91,11 @@ pub struct Interp<'p> {
     /// aliases a mutation and never outlives its owner (core-features.md).
     writes: HashMap<usize, (u64, usize, &'static str)>,
     write_count: u64,
+    /// the group cells of the last returned `-> lent@x` borrow, until a declaration takes them
+    call_deps: Vec<usize>,
+    pending_deps: Vec<usize>,
+    /// the line of the `return` that ended the last call
+    ret_line: usize,
     /// Limb-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
     consts: HashMap<String, Slot>,
     /// the module the running code was written in (for bare names and visibility)
@@ -137,7 +143,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -145,6 +151,7 @@ impl<'p> Interp<'p> {
         // Consts first, in order: each may use the ones above it. Precog would
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
+        self.check_returned_borrows()?;
         self.check_fails()?;
         self.check_claims()?;
         self.check_boundary()?;
@@ -159,14 +166,14 @@ impl<'p> Interp<'p> {
             let (v, prov) = self.bracket(&c.value, c.line)?;
             if matches!(prov, Prov::Borrowed(..)) { return rt(c.line, format!("const '{}' cannot hold a lend", c.name)); }
             let v = self.fit(v, prov, c.ty.as_ref(), c.line)?;
-            self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(v)), ty: c.ty.clone(), kind: SlotKind::Const, alive: true, immut: true, sized: false, sealed: false , since: 0 });
+            self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(v)), ty: c.ty.clone(), kind: SlotKind::Const, alive: true, immut: true, sized: false, sealed: false , since: 0, deps: Vec::new() });
         }
         // extern variables live beside the consts: C's memory, emulated as zero until written
         for x in &self.prog.externs {
             let key = const_key(&x.module, &x.name);
             if self.consts.contains_key(&key) { return rt(x.line, format!("'{}' is declared twice", x.name)); }
             let zero = match &x.ty { Ty::Bin(_) => Value::Bin(0.0), Ty::Bool => Value::Bool(false), Ty::Ptr(..) => Value::Ptr(Ptr { cell: None, index: 0, mutable: x.mutable }), _ => Value::Int(0) };
-            self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(zero)), ty: Some(x.ty.clone()), kind: if x.mutable { SlotKind::ExternMut } else { SlotKind::Extern }, alive: true, immut: !x.mutable, sized: false, sealed: false , since: 0 });
+            self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(zero)), ty: Some(x.ty.clone()), kind: if x.mutable { SlotKind::ExternMut } else { SlotKind::Extern }, alive: true, immut: !x.mutable, sized: false, sealed: false , since: 0, deps: Vec::new() });
         }
         self.module = Vec::new();
         let main = match &self.prog.main {
@@ -350,7 +357,7 @@ impl<'p> Interp<'p> {
     /// Decided 2026-09-14: a visible name may only be redeclared with `$:=` /
     /// `$=`, and never if the visible one is `immut`.
     fn declare_shadow(&mut self, name: &str, mut slot: Slot, shadow: bool, line: usize) -> Result<(), RuntimeError> {
-        if matches!(slot.kind, SlotKind::Lent | SlotKind::LentMut) { slot.since = self.write_count; }
+        if matches!(slot.kind, SlotKind::Lent | SlotKind::LentMut) { slot.since = self.write_count; slot.deps = std::mem::take(&mut self.pending_deps); }
         match (self.lookup(name), shadow) {
             (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`")),
             (None, true) => return rt(line, format!("`$` shadows an existing '{name}', but none is visible here")),
@@ -405,7 +412,7 @@ impl<'p> Interp<'p> {
         let saved_tasks = std::mem::take(&mut self.tasks);
         let flow = (|| {
             for (n, cell, mutable) in &task.captures {
-                self.declare(n, Slot { cell: cell.clone(), ty: None, kind: if *mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false, sealed: false , since: 0 }, task.line)?;
+                self.declare(n, Slot { cell: cell.clone(), ty: None, kind: if *mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, task.line)?;
             }
             self.block(&task.body)
         })();
@@ -466,6 +473,7 @@ impl<'p> Interp<'p> {
     }
 
     fn stmt(&mut self, s: &Stmt) -> Result<Flow, RuntimeError> {
+        self.pending_deps.clear();
         let r = match self.stmt_inner(s) {
             Err(RuntimeError { leave: Some(f), .. }) => Ok(f),
             other => other,
@@ -501,7 +509,7 @@ impl<'p> Interp<'p> {
                     Prov::Bare(n) => return rt(*line, format!("declaring '{name}' from bare '{n}', which owns a {}: say `give '{n}'`, `copy '{n}'`, or `lend '{n}'`", v.kind())),
                     Prov::Borrowed(cell, is_mut) => {
                         if ty.is_some() { return rt(*line, format!("'{name}' would hold a lend; a lent variable takes no explicit type here (use `:=`)")); }
-                        Slot { cell, ty: None, kind: if is_mut { SlotKind::LentMut } else { SlotKind::Lent }, alive: true, immut, sized: false, sealed: false , since: 0 }
+                        Slot { cell, ty: None, kind: if is_mut { SlotKind::LentMut } else { SlotKind::Lent }, alive: true, immut, sized: false, sealed: false , since: 0, deps: Vec::new() }
                     }
                     _ => {
                         let v = self.fit(v, prov, ty.as_ref(), *line)?;
@@ -510,7 +518,7 @@ impl<'p> Interp<'p> {
                         let ty = ty.clone().or_else(|| self.known_ty(value));
                         // its length is known here when it came from a literal list, `list.empty`, or a bound
                         let sized = Self::sized_from(value, ty.as_ref());
-                        Slot { cell: Rc::new(RefCell::new(v)), ty, kind: SlotKind::Owned, alive: true, immut, sized, sealed: *sealed , since: 0 }
+                        Slot { cell: Rc::new(RefCell::new(v)), ty, kind: SlotKind::Owned, alive: true, immut, sized, sealed: *sealed , since: 0, deps: Vec::new() }
                     }
                 };
                 self.declare_shadow(name, slot, *shadow, *line)?;
@@ -670,10 +678,10 @@ impl<'p> Interp<'p> {
                     *pos_cell.borrow_mut() = Value::Int(k as i128 + 1);
                     self.push();
                     let r = match index {
-                        Some(ix) => self.declare(ix, Slot { cell: pos_cell.clone(), ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0 }, *line),
+                        Some(ix) => self.declare(ix, Slot { cell: pos_cell.clone(), ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0, deps: Vec::new() }, *line),
                         None => Ok(()),
                     }
-                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: elem_ty.clone(), kind, alive: true, immut: true, sized: false, sealed: true , since: 0 }, *line))
+                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: elem_ty.clone(), kind, alive: true, immut: true, sized: false, sealed: true , since: 0, deps: Vec::new() }, *line))
                     .and_then(|_| self.stmts(body));
                     self.pop();
                     let r = r?;
@@ -690,8 +698,8 @@ impl<'p> Interp<'p> {
                 }
                 if *perm {
                     if !ran { return rt(*line, format!("`perm` '{name}' would outlive a loop over an empty list, but was never given a value")); }
-                    self.declare(name, Slot { cell, ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0 }, *line)?;
-                    if let Some(ix) = index { self.declare(ix, Slot { cell: pos_cell, ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0 }, *line)?; }
+                    self.declare(name, Slot { cell, ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, *line)?;
+                    if let Some(ix) = index { self.declare(ix, Slot { cell: pos_cell, ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, *line)?; }
                 }
                 Ok(Flow::Normal)
             }
@@ -718,7 +726,7 @@ impl<'p> Interp<'p> {
                     if let Some(t) = ty { self.check_type(&Value::Int(i), t, *line)?; }
                     *cell.borrow_mut() = Value::Int(i);
                     self.push();
-                    let r = self.declare(name, Slot { cell: cell.clone(), ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0 }, *line)
+                    let r = self.declare(name, Slot { cell: cell.clone(), ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0, deps: Vec::new() }, *line)
                         .and_then(|_| self.stmts(body));
                     self.pop();
                     match r? {
@@ -732,13 +740,14 @@ impl<'p> Interp<'p> {
                 if *perm {
                     // 'i' keeps whatever the loop last gave it: the last value the body ran
                     // with, or the start if the body never ran.
-                    self.declare(name, Slot { cell, ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0 }, *line)?;
+                    self.declare(name, Slot { cell, ty: ty.clone(), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, *line)?;
                 }
                 Ok(Flow::Normal)
             }
             Stmt::Break { .. } => Ok(Flow::Break),
             Stmt::Continue { .. } => Ok(Flow::Continue),
             Stmt::Return { value, line } => {
+                self.ret_line = *line;
                 let v = match value {
                     None => Value::Nothing,
                     Some(b) => {
@@ -1173,6 +1182,49 @@ impl<'p> Interp<'p> {
         match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t }
     }
 
+    /// `return lend 'x';` is checked where it is written, called or not (check claude, 2026-09-29):
+    /// a borrow of an owned local or an owned parameter dies at the return, one outside the
+    /// signature's group is refused, and one returned without `-> lent` must say so. A borrow
+    /// that comes from a call or another lend is followed when the function runs.
+    fn check_returned_borrows(&self) -> Result<(), RuntimeError> {
+        fn walk<'a>(b: &'a [Stmt], out: &mut Vec<(&'a str, bool, usize)>, owned_locals: &mut Vec<&'a str>) {
+            for s in b {
+                match s {
+                    Stmt::Return { value: Some(v), line } => if let [crate::ast::Value::Expr(Expr::Owned(verb @ (Verb::Lend | Verb::LendMut), n, _))] = v.values.as_slice() { out.push((n.as_str(), *verb == Verb::LendMut, *line)); },
+                    Stmt::Decl { name, value, .. } => {
+                        let borrowish = matches!(value.values.as_slice(), [crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, ..) | Expr::Call(_) | Expr::CallValue(..) | Expr::Var(..))]);
+                        if !borrowish { owned_locals.push(name.as_str()); }
+                    }
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, out, owned_locals); } if let Some(b) = otherwise { walk(b, out, owned_locals); } }
+                    Stmt::Loop { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } | Stmt::Block { body, .. } => walk(body, out, owned_locals),
+                    Stmt::Match { arms, .. } => for a in arms { walk(&a.body, out, owned_locals); },
+                    Stmt::Tier { body, .. } => walk(std::slice::from_ref(body), out, owned_locals),
+                    _ => {}
+                }
+            }
+        }
+        for f in &self.prog.funcs {
+            let (mut rets, mut locals) = (Vec::new(), Vec::new());
+            walk(&f.body, &mut rets, &mut locals);
+            for (n, _, line) in rets {
+                let param = f.params.iter().find(|p| p.name == n);
+                let lent = param.map_or(false, |p| matches!(p.kind, ParamKind::Lent | ParamKind::LentMut));
+                match &f.ret_lent {
+                    None => if lent || locals.contains(&n) || param.is_some() { return rt(line, format!("`{}` returns a borrow, so its signature must say so: `-> lent@x …`", f.name)); },
+                    Some((_, life)) => {
+                        if (param.is_some() && !lent) || (param.is_none() && locals.contains(&n)) {
+                            return rt(line, format!("`{}` hands back a borrow of something that dies when it returns; a borrow it returns must come from a `lent` parameter", f.name));
+                        }
+                        if let (Some(p), Some(l)) = (param, life) {
+                            if p.life.as_ref() != Some(l) { return rt(line, format!("`{}` returns a borrow of '{n}', which is not in @{l}: say `lent@{l} '{n}'`", f.name)); }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Something was written through `name` (a change, a `give`, a `lend.mut`): every other borrow
     /// of the same thing made before now is stale. The writer itself, if a `lent.mut`, stays fresh.
     fn wrote(&mut self, name: &str, line: usize, what: &'static str) {
@@ -1188,10 +1240,16 @@ impl<'p> Interp<'p> {
     /// A borrow used after what it borrows was changed or given away (check claude's finding, 2026-09-29).
     fn stale(&self, name: &str, s: &Slot, line: usize) -> Result<(), RuntimeError> {
         if !matches!(s.kind, SlotKind::Lent | SlotKind::LentMut) { return Ok(()); }
-        match self.writes.get(&(Rc::as_ptr(&s.cell) as *const () as usize)) {
-            Some((n, at, what)) if *n > s.since => rt(line, format!("'{name}' is a borrow, and what it borrows was {what} on line {at} while '{name}' was still in use: a borrow never aliases a change and never outlives its owner")),
-            _ => Ok(()),
+        let own = Rc::as_ptr(&s.cell) as *const () as usize;
+        for key in std::iter::once(&own).chain(s.deps.iter()) {
+            if let Some((n, at, what)) = self.writes.get(key) {
+                if *n > s.since {
+                    let whose = if *key == own { "what it borrows" } else { "something in its `@` group" };
+                    return rt(line, format!("'{name}' is a borrow, and {whose} was {what} on line {at} while '{name}' was still in use: a borrow never aliases a change and never outlives its owner"));
+                }
+            }
         }
+        Ok(())
     }
 
     fn read_var(&self, name: &str, line: usize) -> Result<Value, RuntimeError> {
@@ -1345,7 +1403,7 @@ impl<'p> Interp<'p> {
     fn run_arm(&mut self, arm: &Arm, data: Option<Value>) -> Result<Flow, RuntimeError> {
         self.push();
         if let (Some(b), Some(d)) = (&arm.bind, data) {
-            let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(d)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0 }, arm.line);
+            let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(d)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, arm.line);
             if let Err(e) = r { self.pop(); return Err(e); }
         }
         let r = match &arm.value {
@@ -1471,7 +1529,7 @@ impl<'p> Interp<'p> {
             Expr::Call(c) => {
                 self.call_borrow = None;
                 let v = self.call(c)?;
-                match self.call_borrow.take() { Some((cell, m)) => Ok((v, Prov::Borrowed(cell, m))), None => Ok((v, Prov::Fresh)) }
+                match self.call_borrow.take() { Some((cell, m)) => { self.pending_deps = std::mem::take(&mut self.call_deps); Ok((v, Prov::Borrowed(cell, m))) } None => Ok((v, Prov::Fresh)) }
             }
             Expr::Nested(b) => self.bracket(b, line),
             Expr::Index(name, idx, _) => {
@@ -2311,7 +2369,7 @@ impl<'p> Interp<'p> {
     fn call_named(&mut self, name: &str, shape: &str, arg: Value, line: usize) -> Result<Value, RuntimeError> {
         let def = self.prog.funcs.iter().find(|f| !f.is_op && f.name == name && f.params.len() == 1 && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false)).cloned().unwrap();
         let kind = match def.params[0].kind { ParamKind::Owned => SlotKind::Owned, ParamKind::Lent => SlotKind::Lent, ParamKind::LentMut => SlotKind::LentMut };
-        let bound = vec![(def.params[0].name.clone(), Slot { cell: Rc::new(RefCell::new(arg)), ty: def.params[0].ty.clone(), kind, alive: true, immut: false, sized: false, sealed: false , since: 0 })];
+        let bound = vec![(def.params[0].name.clone(), Slot { cell: Rc::new(RefCell::new(arg)), ty: def.params[0].ty.clone(), kind, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() })];
         match self.run_body(&def, bound)? { Flow::Return(v) => Ok(v), _ => rt(line, format!("`{name}` returned nothing")) }
     }
 
@@ -2320,7 +2378,7 @@ impl<'p> Interp<'p> {
         let shape = shape_of(a);
         // bind both keys as temporaries so the user's `op ==` can be applied to them
         let mut scope = HashMap::new();
-        scope.insert("__key_b".to_string(), Slot { cell: Rc::new(RefCell::new(b.clone())), ty: None, kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: false , since: 0 });
+        scope.insert("__key_b".to_string(), Slot { cell: Rc::new(RefCell::new(b.clone())), ty: None, kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: false , since: 0, deps: Vec::new() });
         self.scopes.push(scope);
         let ax = Expr::Var("__key_a".into(), line); let bx = Expr::Var("__key_b".into(), line);
         let r = self.custom_op_with("==", (a.clone(), Prov::Plain), &ax, &bx, line);
@@ -2639,7 +2697,7 @@ impl<'p> Interp<'p> {
         self.push();
         let owned = v.is_owned();
         let r = (|| {
-            self.declare(&arm.name, Slot { cell: Rc::new(RefCell::new(v)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0 }, arm.line)?;
+            self.declare(&arm.name, Slot { cell: Rc::new(RefCell::new(v)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, arm.line)?;
             let _ = owned;
             self.block(&arm.body)
         })();
@@ -2783,7 +2841,7 @@ impl<'p> Interp<'p> {
                         _ => {}
                     }
                     let v = self.fit(v, prov, param.ty.as_ref(), c.line)?;
-                    Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind: SlotKind::Owned, alive: true, immut: param.mutability == Some(Mutability::Immut), sized: false, sealed: false , since: 0 }
+                    Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind: SlotKind::Owned, alive: true, immut: param.mutability == Some(Mutability::Immut), sized: false, sealed: false , since: 0, deps: Vec::new() }
                 }
                 ParamKind::Lent | ParamKind::LentMut => {
                     let want_mut = param.kind == ParamKind::LentMut;
@@ -2801,7 +2859,7 @@ impl<'p> Interp<'p> {
                                 }
                             }
                             if let Some(t) = &param.ty { self.check_type(&v, t, c.line)?; }
-                            Slot { cell, ty: param.ty.clone(), kind, alive: true, immut: false, sized: false, sealed: false , since: 0 }
+                            Slot { cell, ty: param.ty.clone(), kind, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }
                         }
                         Prov::Bare(n) => return rt(c.line, format!("`{name}` only looks at '{pn}' — pass `lend '{n}'`")),
                         Prov::Given => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `give`")),
@@ -2810,7 +2868,7 @@ impl<'p> Interp<'p> {
                         // it, so it lives for the call and is lent by the call itself (decided 2026-09-14).
                         other => {
                             let v = self.fit(v, other, param.ty.as_ref(), c.line)?;
-                            Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind, alive: true, immut: false, sized: false, sealed: false , since: 0 }
+                            Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }
                         }
                     }
                 }
@@ -2819,7 +2877,7 @@ impl<'p> Interp<'p> {
         }
         if let Some(p) = func.params.last().filter(|p| p.variadic) {
             let kind = match p.kind { ParamKind::Owned => SlotKind::Owned, ParamKind::Lent => SlotKind::Lent, ParamKind::LentMut => SlotKind::LentMut };
-            bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(Value::List(rest))), ty: None, kind, alive: true, immut: p.mutability == Some(Mutability::Immut), sized: true, sealed: false , since: 0 }));
+            bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(Value::List(rest))), ty: None, kind, alive: true, immut: p.mutability == Some(Mutability::Immut), sized: true, sealed: false , since: 0, deps: Vec::new() }));
         }
 
         // `<T: Ordered>`: the type that filled the blank must keep the promise
@@ -2832,7 +2890,7 @@ impl<'p> Interp<'p> {
         // captured variables (a function value's `with […]`) are visible inside as what they were taken as
         for (cname, cell, mutable) in captures {
             if bound.iter().any(|(n, _)| n == &cname) { return rt(c.line, format!("'{cname}' is both a parameter and a capture")); }
-            bound.push((cname, Slot { cell, ty: None, kind: if mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false, sealed: false , since: 0 }));
+            bound.push((cname, Slot { cell, ty: None, kind: if mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }));
         }
         // which borrowed parameter is which cell, to check a `-> lent@x` return against
         let lent_params: Vec<(String, Option<String>, Rc<RefCell<Value>>)> = func.params.iter()
@@ -2856,13 +2914,18 @@ impl<'p> Interp<'p> {
             (Some((_, life)), Some((cell, m))) => {
                 let from = lent_params.iter().find(|(_, _, pc)| Rc::ptr_eq(pc, &cell));
                 match from {
-                    None => return rt(c.line, format!("`{name}` hands back a borrow of something that dies when it returns; a borrow it returns must come from a `lent` parameter")),
-                    Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(c.line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent@{l} '{pn}'`")); } },
+                    None => return rt(self.ret_line, format!("`{name}` hands back a borrow of something that dies when it returns; a borrow it returns must come from a `lent` parameter")),
+                    Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(self.ret_line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent@{l} '{pn}'`")); } },
                 }
+                // `@x`: the result lives while everything in the group does, whichever the body returned
+                self.call_deps = match life {
+                    Some(l) => lent_params.iter().filter(|(_, pl, _)| pl.as_ref() == Some(l)).map(|(_, _, pc)| Rc::as_ptr(pc) as *const () as usize).collect(),
+                    None => Vec::new(),
+                };
                 self.call_borrow = Some((cell, m));
             }
-            (Some(_), None) => return rt(c.line, format!("`{name}` says it hands back a borrow (`-> lent …`) but returned a value of its own; `return lend '…'`")),
-            (None, Some(_)) => return rt(c.line, format!("`{name}` returns a borrow, so its signature must say so: `-> lent@x …`")),
+            (Some(_), None) => return rt(self.ret_line, format!("`{name}` says it hands back a borrow (`-> lent …`) but returned a value of its own; `return lend '…'`")),
+            (None, Some(_)) => return rt(self.ret_line, format!("`{name}` returns a borrow, so its signature must say so: `-> lent@x …`")),
             (None, None) => {}
         }
         match (&func.ret, &result) {
@@ -2929,7 +2992,7 @@ impl<'p> Interp<'p> {
         let mut bound = Vec::new();
         for (v, p) in args.into_iter().zip(&func.params) {
             let v = self.fit(v, Prov::Plain, p.ty.as_ref(), line)?;
-            bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(v)), ty: p.ty.clone(), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0 }));
+            bound.push((p.name.clone(), Slot { cell: Rc::new(RefCell::new(v)), ty: p.ty.clone(), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }));
         }
         let saved_depth = self.nocheck_depth;
         let flow = self.run_body(&func, bound);
@@ -2994,7 +3057,7 @@ impl<'p> Interp<'p> {
                         _ => {}
                     }
                     let v = self.fit(v, prov, param.ty.as_ref(), line)?;
-                    Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0 }
+                    Slot { cell: Rc::new(RefCell::new(v)), ty: param.ty.clone(), kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }
                 }
                 _ => {
                     // lent: an operand is looked at, never consumed; a variable is borrowed in place
@@ -3004,7 +3067,7 @@ impl<'p> Interp<'p> {
                         (_, Prov::Borrowed(c, _)) => { if let Some(t) = &param.ty { self.check_type(&v, t, line)?; } c.clone() }
                         _ => { let v = self.fit(v, if is_lit { Prov::Literal } else { Prov::Plain }, param.ty.as_ref(), line)?; Rc::new(RefCell::new(v)) }
                     };
-                    Slot { cell, ty: param.ty.clone(), kind: SlotKind::Lent, alive: true, immut: false, sized: false, sealed: false , since: 0 }
+                    Slot { cell, ty: param.ty.clone(), kind: SlotKind::Lent, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }
                 }
             };
             bound.push((param.name.clone(), slot));

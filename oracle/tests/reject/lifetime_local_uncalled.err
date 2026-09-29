@@ -1,0 +1,1 @@
+line 4: `b1` hands back a borrow of something that dies

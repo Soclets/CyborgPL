@@ -1,0 +1,9 @@
+# `@x`: the result lives while everything in the group does, whichever the body returned (check claude, 2026-09-29)
+fn b1 [lent@x 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] { return lend 'a'; }
+MAIN {
+    's': list[int32] = [5,];
+    't': list[int32] = [6, 7];
+    'r' := b1[lend 's', lend 't'];
+    'g' := give 't';
+    std::printu.stdout['r'[1], \n];
+}
