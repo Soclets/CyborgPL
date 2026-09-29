@@ -232,7 +232,11 @@ impl<'a> Enc<'a> {
                 self.fresh_int()
             }
             Expr::Len(_) | Expr::Lend(_) => self.fresh_int(),
-            Expr::Case(..) | Expr::Match(..) => {
+            // An enum value alone as an integer: only its case (see `enum_val`).
+            Expr::Case(..) => self.enum_val(ctx, e).0,
+            // A match giving a value is encoded by its statement (`Let`),
+            // which sees arms that leave; anywhere else it is not modelled.
+            Expr::Match(..) => {
                 self.too_big = true;
                 self.fresh_int()
             }
@@ -257,6 +261,12 @@ impl<'a> Enc<'a> {
             Expr::Or(a, b) => {
                 let (x, y) = (self.expr(ctx, a, None), self.expr(ctx, b, None));
                 self.boolean(format!("(or {x} {y})"))
+            }
+            Expr::Cmp(op, a, b) if self.is_enum(a) || self.is_enum(b) => {
+                let (k1, d1) = self.enum_val(ctx, a);
+                let (k2, d2) = self.enum_val(ctx, b);
+                let same = format!("(and (= {k1} {k2}) (= {d1} {d2}))");
+                self.boolean(if *op == CmpOp::Eq { same } else { format!("(not {same})") })
             }
             Expr::Cmp(op, a, b) => {
                 let t = self.ty_of(a).or_else(|| self.ty_of(b));
@@ -437,6 +447,78 @@ impl<'a> Enc<'a> {
 
     // ---------------------------------------------------------------- statements
 
+    // ---------------------------------------------------------------- enums
+
+    fn is_enum(&self, e: &Expr) -> bool {
+        match e {
+            Expr::Case(..) => true,
+            Expr::Var(n) => self.lookup(&format!("{n}#d")).is_some(),
+            _ => false,
+        }
+    }
+
+    /// An enum value as two terms: its case's index and its data (0 if none).
+    fn enum_val(&mut self, ctx: &Ctx, e: &Expr) -> (String, String) {
+        match e {
+            Expr::Var(n) => {
+                let k = self.lookup(n).map(|v| v.term).unwrap_or_else(|| bv(0));
+                let d = self.lookup(&format!("{n}#d")).map(|v| v.term).unwrap_or_else(|| bv(0));
+                (k, d)
+            }
+            Expr::Case(en, c, data) => {
+                let def = self.p.enums.iter().find(|d| &d.name == en);
+                let (idx, ty) = def.and_then(|d| d.cases.iter().position(|x| &x.0 == c).map(|i| (i, d.cases[i].1))).unwrap_or((0, None));
+                let d = match (data, ty) {
+                    (Some(x), Some(t)) => {
+                        let v = self.expr(ctx, x, Some(t));
+                        (self.node, self.stmt) = (addr(&**x), addr(e));
+                        self.land(ctx, &v, t.into(), &format!("data of {en}.{c}"));
+                        v
+                    }
+                    _ => bv(0),
+                };
+                (bv(idx as i128), d)
+            }
+            _ => {
+                self.too_big = true;
+                (self.fresh_int(), self.fresh_int())
+            }
+        }
+    }
+
+    fn bind_enum(&mut self, name: &str, k: String, d: String) {
+        let s = self.scopes.last_mut().unwrap();
+        s.insert(name.to_string(), Var { term: k, ty: Ty::I64.into() });
+        s.insert(format!("{name}#d"), Var { term: d, ty: Ty::I64.into() });
+    }
+
+    /// Run every arm of a match under its own case: the value each gives
+    /// (None for an arm of statements), with its data bound.
+    fn arms(&mut self, ctx: &Ctx, scrut: &Expr, arms: &[Arm], ctx_ty: Option<Ty>, leave: &mut Leave) -> Vec<(String, Option<String>)> {
+        let (k, d) = self.enum_val(ctx, scrut);
+        let mut out = vec![];
+        for (i, a) in arms.iter().enumerate() {
+            let is = self.boolean(format!("(= {k} {})", bv(i as i128)));
+            let pc = self.boolean(format!("(and {} {is})", ctx.pc));
+            let c = Ctx { pc };
+            self.scopes.push(HashMap::new());
+            if let Some(b) = &a.bind {
+                let ty = self.p.enums.iter().flat_map(|e| e.cases.iter()).find(|x| x.0 == a.case).and_then(|x| x.1).unwrap_or(Ty::I64);
+                self.scopes.last_mut().unwrap().insert(b.clone(), Var { term: d.clone(), ty: ty.into() });
+            }
+            let v = match &a.value {
+                Some(v) => Some(self.expr(&c, v, ctx_ty)),
+                None => {
+                    self.block(&c, &a.body, leave);
+                    None
+                }
+            };
+            self.scopes.pop();
+            out.push((is, v));
+        }
+        out
+    }
+
     fn here(&mut self, ctx: &Ctx, leave: &Leave) -> Ctx {
         let mut gone = vec![];
         for f in [&leave.brk, &leave.cont, &leave.ret].into_iter().flatten() {
@@ -480,7 +562,34 @@ impl<'a> Enc<'a> {
                     self.land(ctx, &v, (*elem).into(), &format!("item of '{name}'"));
                 }
             }
-            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::MatchStmt { .. } => {
+            Stmt::EnumLet { name, value, .. } => {
+                let (k, d) = self.enum_val(ctx, value);
+                self.bind_enum(name, k, d);
+            }
+            Stmt::Assign { name, value, .. } if self.is_enum(&Expr::Var(name.clone())) => {
+                let (k, d) = self.enum_val(ctx, value);
+                self.assign(ctx, name, k);
+                self.assign(ctx, &format!("{name}#d"), d);
+            }
+            Stmt::MatchStmt { scrut, arms } => {
+                self.arms(ctx, scrut, arms, None, leave);
+            }
+            Stmt::Let { name, ty, value: m @ Expr::Match(scrut, arms), .. } => {
+                let vals = self.arms(ctx, scrut, arms, Some(ty.base), leave);
+                // The value: an ite over the arms that give one; an arm that
+                // left gives none, and the landing is only asked where none left.
+                let mut v = bv(0);
+                for (is, x) in vals.iter().rev() {
+                    if let Some(x) = x {
+                        v = self.int(format!("(ite {is} {x} {v})"));
+                    }
+                }
+                let c = self.here(ctx, leave);
+                (self.node, self.stmt) = (addr(m), addr(s));
+                self.land(&c, &v, *ty, &format!("let '{name}'"));
+                self.scopes.last_mut().unwrap().insert(name.clone(), Var { term: v, ty: *ty });
+            }
+            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } => {
                 // Not modelled yet: the whole program is left to the other attacks.
                 self.too_big = true;
             }

@@ -62,6 +62,10 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   names, changes, `==` on them, `match` statements, and `match` giving a
   value in a declaration, where an arm may leave instead. A case's data
   has a range only the generator knows, so it is kept out of `check`.
+  The solver (c) models enums: a value is two terms, its case and its
+  data; a `match` runs each arm under its own case, with the data bound;
+  `==` compares both. (Written after a layer-3 proof of a divisor from a
+  match was found wrong, 2026-09-29.)
   These findings are not shrunk: a step would not keep the program's own
   expectation up to date. The mistake sits at the top of MAIN, where it
   always runs (the oracle checked borrows only on the paths it ran;
