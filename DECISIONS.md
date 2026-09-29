@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `op -` is subtraction; negation as a value is `op neg` (owner)
+
+`-` is both subtraction and negation (the day's `neg` was dropped), so
+`op -` was ambiguous. Design claude proposed letting where it goes
+decide (a slot taking two numbers gets subtract, one number negate).
+The owner proposed instead `op -placeholder` or `op neg`. A placeholder
+such as `op -_` would give `_` a second meaning beside digit grouping;
+design claude recommended `op neg`. Owner: "`op neg` it is". `neg`
+exists only after `op`; in expressions negation is still `-'x'`.
+
 ### 2026-09-29 — Division is `div`; less/greater-or-equal are `</==` and `>/==` (owner)
 
 The owner's own change, raised while listing the operators for `op +`:
@@ -35,8 +45,8 @@ asked whether operators can be words (yes, 2026-09-20: `x`, `mod`,
 `dot`), then "`op +` it is". The value's type comes from where it goes
 (`fold`'s parameter, a typed declaration); `'f' := op +;` alone cannot
 say which `+`, so it is refused (design claude's reading, not yet
-ruled). Still open: `op` on `and.then` / `or.else`, and on `-`, which
-is both negation and subtraction. `functions-as-values.md`.
+ruled). Still open: `op` on `and.then` / `or.else`. (`-` was settled the
+same day: `op -` subtracts, `op neg` negates.) `functions-as-values.md`.
 
 ### 2026-09-29 — `@x` on a returned borrow: required in `#strict`, optional elsewhere (owner)
 
