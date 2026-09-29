@@ -59,7 +59,11 @@ oracle: `'prefix'` is required and follows the module-name rule; a
 refused (no prefix to reach it by); reject tests manifest_no_prefix,
 manifest_bad_prefix, limb_dep_names_word, limb_prefix_clash,
 limb_prefix_std. The check that a folder Limb's own name matches its local
-name is gone with the local name.
+name is gone with the local name. Possibly reopening: asked by synthia claude whether
+`Synthia.ttsr` follows the no-override rule, the owner said "this is
+Synthia. So... You could do an easy override"; offered an override in
+both manifests (reopening this) or in neither, the owner: "Undecided yet,
+wait".
 Open: the `Synthia.ttsr` spelling (synthia claude's); whether `name`, no
 longer written in code, still follows the module-name rule (entry below).
 
