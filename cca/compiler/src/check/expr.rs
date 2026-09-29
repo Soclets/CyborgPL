@@ -1505,6 +1505,21 @@ impl Checker {
     // ------------------------------------------------------------ calls
 
     fn call(&mut self, ctx: &mut FnCtx, path: &ast::Path, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
+        // The prints are one family (owner, dc7e2e4): the old names say the
+        // new ones, with std or without it.
+        if path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
+            let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
+            let renamed = match segs.first() {
+                Some(&"printu") => Some("print.useful"),
+                Some(&"printf") => Some("print.format"),
+                _ => None,
+            };
+            if let Some(new) = renamed {
+                let rest = segs[1..].join(".");
+                let (old, new) = if rest.is_empty() { (segs[0].to_string(), new.to_string()) } else { (format!("{}.{}", segs[0], rest), format!("{}.{}", new, rest)) };
+                return err(Diagnostic::error(format!("std::{} is spelled std::{} now", old, new)).at(span));
+            }
+        }
         if self.std_stubs && path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             return self.std_stub(ctx, path, args, otherwise, span, used);
         }
@@ -3129,7 +3144,7 @@ impl Checker {
         let mut hargs = Vec::new();
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let ty = match name.as_str() {
-            "print.stdout" | "print.stderr" | "printu.stdout" | "printu.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "printf.stdout" | "printf.stderr" => {
+            "print.stdout" | "print.stderr" | "print.useful.stdout" | "print.useful.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
                 for e in &positional {
                     let v = self.expr(ctx, e)?;
                     let v = self.as_operand(ctx, v)?;
