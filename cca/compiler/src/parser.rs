@@ -2181,6 +2181,17 @@ impl<'a> Parser<'a> {
                 "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {
                     self.fail(format!("expected a value, found `{}`", w))
                 }
+                // Another Limb's const, straight after `::`: `areas::'pi'`
+                // (`limbs.md`).
+                _ if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Name(_)) => {
+                    let limb = self.ident("a Limb's name")?;
+                    self.bump();
+                    let Tok::Name(n) = self.peek().clone() else { unreachable!() };
+                    let span = self.bump().span;
+                    let path = Path { limb: Some(limb.clone()), segs: Vec::new(), span: limb.span.to(span) };
+                    let e = Expr { span: start.to(span), kind: ExprKind::ConstPath { path, name: QName { name: n, span } } };
+                    self.postfix_on(e)
+                }
                 _ => {
                     let path = self.path()?;
                     // a const by path: `a.'k'`, `std::'pi'`, `limb.'scale'`

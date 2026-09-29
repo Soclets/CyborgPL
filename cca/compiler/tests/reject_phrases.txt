@@ -239,6 +239,10 @@ lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', 
 lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
 lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
+limb_private [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
+limb_pub_limb [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
+limb_unlisted [fnv:e83a614a6a1b6ee5] :: there is no Limb named `geometry`
+limb_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
 list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `integer` and this value is text: convert it first
@@ -246,6 +250,9 @@ list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type paramete
 loop_list_changed [fnv:6d53a59f1655981d] :: 's' cannot be changed here: the loop on line 4 is still going through it
 lte_retired [fnv:be35669e815daffa] :: less-or-equal is `</==`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
+manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
+manifest_pub [fnv:e04dd347852c3d54] :: `pub` means nothing in CCA.cplr
+manifest_unknown_setting [fnv:ca0a29678045f41c] :: CCA.cplr has no setting 'versoin'
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
 map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
@@ -306,7 +313,7 @@ op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
 op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
 op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
 op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
-other_limb [fnv:426e314fd75e64c7] :: a Limb is a dependency listed in `Synthia.cplm`, and none is
+other_limb [fnv:426e314fd75e64c7] :: another Limb is reached only when `CCA.cplr` lists it
 overflow_lands [fnv:106012fcbb102c23] :: the value can be outside what a `int8` holds
 overflow_past_64_bits [fnv:3fe9bf00838316b2] :: goes past 64 bits in between
 owning_function_bare [fnv:a8b589ea7248e723] :: is an owned `fn[] -> uint64`: say what happens to it

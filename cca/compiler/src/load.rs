@@ -6,20 +6,14 @@ use std::path::{Path, PathBuf};
 
 use crate::ast::Vis;
 use crate::diag::{err, Diagnostic, Result};
-use crate::resolve::{Items, ModuleId, ROOT};
+use crate::resolve::{Items, ModuleId};
 use crate::source::{FileId, SourceMap};
 
 pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     let mut items = Items::default();
     if path.is_dir() {
-        let root = path.join("limb.cpls");
-        if !root.is_file() {
-            return err(Diagnostic::error(format!("`{}` is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there", short(path))));
-        }
-        let m = new_module(&mut items, "limb", None, Vis::Pub);
-        let file = parse_file(sources, &root)?;
-        items.collect_file(&file, m, true)?;
-        load_dir(sources, &mut items, path, m, true)?;
+        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new() };
+        load_limb(sources, &mut items, path, None, &mut state)?;
     } else {
         let m = new_module(&mut items, "limb", None, Vis::Pub);
         let file = parse_file(sources, path)?;
@@ -29,12 +23,179 @@ pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     Ok(items)
 }
 
-fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {
-    let path = match parent {
-        None => "limb".to_string(),
-        Some(p) if p == ROOT => name.to_string(),
-        Some(p) => format!("{}.{}", items.modules[p.0 as usize].path, name),
+/// Where loading has got to: the Limbs being loaded now (a dependency back
+/// to one of them is a cycle), and those loaded already (two Limbs that
+/// share a dependency share one copy of it).
+struct Loading {
+    stack: Vec<(PathBuf, String)>,
+    done: std::collections::HashMap<PathBuf, ModuleId>,
+}
+
+/// One Limb directory and, through its `CCA.cplr`, its dependencies: each
+/// a tree of its own, its root's `limb_deps` naming theirs. `as_dep` is the
+/// name a depending Limb gives it; the Limb being built has none, and its
+/// root is `ROOT`, made first.
+fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Option<&str>, state: &mut Loading) -> Result<ModuleId> {
+    let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+    if let Some(r) = state.done.get(&key) {
+        return Ok(*r);
+    }
+    let shown = match as_dep {
+        Some(n) => n.to_string(),
+        None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()),
     };
+    if let Some(at) = state.stack.iter().position(|(p, _)| *p == key) {
+        let mut names: Vec<String> = state.stack[at..].iter().map(|(_, n)| n.clone()).collect();
+        names.push(shown);
+        return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
+    }
+    let root = dir.join("limb.cpls");
+    if !root.is_file() {
+        return err(Diagnostic::error(match as_dep {
+            None => format!("`{}` is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there", short(dir)),
+            Some(n) => format!("the dependency `{}` is at `{}`, and a Limb needs its root file `limb.cpls`: none is there", n, dir.display()),
+        }));
+    }
+    let manifest = read_manifest(sources, dir)?;
+    if let (Some(want), Some((have, span))) = (as_dep, &manifest.name) {
+        if want != have {
+            return err(Diagnostic::error(format!("this Limb calls itself `{}` in its `CCA.cplr`, and the Limb that depends on it names it `{}`: the names must agree", have, want)).at(*span));
+        }
+    }
+    let m = match as_dep {
+        None => new_module(items, "limb", None, Vis::Pub),
+        Some(n) => {
+            let id = ModuleId(items.modules.len() as u32);
+            items.modules.push(crate::resolve::Module { name: "limb".to_string(), path: format!("{}::limb", n), parent: None, vis: Vis::Pub, items: Default::default(), consts: Default::default() });
+            id
+        }
+    };
+    let file = parse_file(sources, &root)?;
+    if as_dep.is_some() {
+        if let Some(main) = file.items.iter().find(|i| matches!(i.kind, crate::ast::ItemKind::Main(_))) {
+            return err(Diagnostic::error(format!("`{}` is used as a dependency, and a dependency has no `MAIN`: only the Limb being built runs", shown)).at(main.span));
+        }
+    }
+    items.collect_file(&file, m, as_dep.is_none())?;
+    load_dir(sources, items, dir, m, true)?;
+    state.stack.push((key.clone(), shown));
+    let mut deps = std::collections::HashMap::new();
+    for d in &manifest.deps {
+        let at = dir.join(&d.path);
+        let r = load_limb(sources, items, &at, Some(&d.name), state)?;
+        deps.insert(d.name.clone(), r);
+    }
+    state.stack.pop();
+    items.limb_deps.insert(m, deps);
+    state.done.insert(key, m);
+    Ok(m)
+}
+
+/// What a `CCA.cplr` says (owner, 2026-09-29): one plain `const` per
+/// setting, in CyborgPL, its shapes from the built-in `cca` Limb.
+struct Manifest {
+    name: Option<(String, crate::source::Span)>,
+    deps: Vec<Dep>,
+}
+
+struct Dep {
+    name: String,
+    path: String,
+}
+
+const SETTINGS: [&str; 4] = ["name", "version", "dependencies", "target"];
+
+fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
+    use crate::ast::{Arg as AArg, ExprKind, ItemKind};
+    let mut out = Manifest { name: None, deps: Vec::new() };
+    let at = dir.join("CCA.cplr");
+    if !at.is_file() {
+        return Ok(out);
+    }
+    let file = parse_file(sources, &at)?;
+    let mut seen: Vec<String> = Vec::new();
+    let text = |e: &crate::ast::Expr, what: &str| -> Result<String> {
+        match &e.kind {
+            ExprKind::Str(s) => Ok(s.clone()),
+            _ => err(Diagnostic::error(format!("{} is text: `\"…\"`", what)).at(e.span)),
+        }
+    };
+    for item in &file.items {
+        let ItemKind::Const(c) = &item.kind else {
+            return err(Diagnostic::error("`CCA.cplr` holds settings, one plain `const` each: `const 'name' := \"areas\";`").at(item.span));
+        };
+        if item.vis != Vis::Private {
+            return err(Diagnostic::error(format!("`pub` means nothing in CCA.cplr: its settings are read by CCA, never reached from code — write `const '{}' := …;`", c.name.name)).at(item.span));
+        }
+        let setting = c.name.name.as_str();
+        if !SETTINGS.contains(&setting) {
+            return err(Diagnostic::error(format!("CCA.cplr has no setting '{}': the settings are {}", setting, SETTINGS.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", "))).at(c.name.span));
+        }
+        if seen.iter().any(|s| s == setting) {
+            return err(Diagnostic::error(format!("'{}' is set twice in CCA.cplr: one `const` per setting", setting)).at(c.name.span));
+        }
+        seen.push(setting.to_string());
+        match setting {
+            "name" => out.name = Some((text(&c.value, "'name'")?, c.value.span)),
+            "version" => {
+                text(&c.value, "'version'")?;
+            }
+            "target" => {
+                return err(Diagnostic::error("not yet: CCA builds for this machine only, so a 'target' setting waits for cross targets").at(c.name.span));
+            }
+            _ => {
+                let ExprKind::List(entries) = &c.value.kind else {
+                    return err(Diagnostic::error("'dependencies' is a list of `cca::Dep[…]`: `[cca::Dep[name = \"areas\", path = \"../areas\"],]`").at(c.value.span));
+                };
+                for e in entries {
+                    let ExprKind::Call { path, args, .. } = &e.kind else {
+                        return err(Diagnostic::error("each dependency is a `cca::Dep[name = …, path = …]`").at(e.span));
+                    };
+                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("cca") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Dep"]) {
+                        return err(Diagnostic::error(format!("each dependency is a `cca::Dep[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    }
+                    let (mut name, mut dpath, mut version) = (None, None, None);
+                    for a in args {
+                        let AArg::Named(field, v) = a else {
+                            return err(Diagnostic::error("a `cca::Dep` names its fields: `name = …`, and a `path = …` or a `version = …`").at(a.span()));
+                        };
+                        let slot = match field.name.as_str() {
+                            "name" => &mut name,
+                            "path" => &mut dpath,
+                            "version" => &mut version,
+                            other => return err(Diagnostic::error(format!("a `cca::Dep` has no field `{}`: it is a `name`, and a `path` or a `version`", other)).at(field.span)),
+                        };
+                        *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
+                    }
+                    let Some((dname, dspan)) = name else {
+                        return err(Diagnostic::error("a `cca::Dep` needs its `name`: the name its code reaches it by, `name::…`").at(e.span));
+                    };
+                    match (dpath, version) {
+                        (Some(_), Some((_, vspan))) => {
+                            return err(Diagnostic::error(format!("`{}` says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both", dname)).at(vspan));
+                        }
+                        (None, Some((_, vspan))) => {
+                            return err(Diagnostic::error(format!("not yet: `{}` asks the registry for a `version`, and the registry does not exist yet — give its folder with `path = \"…\"`", dname)).at(vspan));
+                        }
+                        (None, None) => {
+                            return err(Diagnostic::error(format!("`{}` needs to say where it comes from: a `path = \"…\"` (a folder on this machine) or a `version` (the registry)", dname)).at(e.span));
+                        }
+                        (Some((p, _)), None) => {
+                            if out.deps.iter().any(|d| d.name == dname) {
+                                return err(Diagnostic::error(format!("`{}` is listed twice in 'dependencies'", dname)).at(dspan));
+                            }
+                            out.deps.push(Dep { name: dname, path: p });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(out)
+}
+
+fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {
+    let path = crate::resolve::module_path(items, name, parent);
     let id = ModuleId(items.modules.len() as u32);
     items.modules.push(crate::resolve::Module { name: name.to_string(), path, parent, vis, items: Default::default(), consts: Default::default() });
     id

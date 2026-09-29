@@ -121,6 +121,10 @@ pub struct ConstInfo {
 
 #[derive(Debug, Default)]
 pub struct Items {
+    /// Each Limb's dependencies, by the name its `CCA.cplr` gives them
+    /// (owner, 2026-09-29): its root module to theirs. `areas::circle`
+    /// starts at the root this map gives `areas` from the Limb it is in.
+    pub limb_deps: HashMap<ModuleId, HashMap<String, ModuleId>>,
     /// Somewhere a C door that is checked everywhere else is trusted under
     /// `NO_FUCKING_CHECKS`: a range type may then hold what it does not
     /// allow, and no range is a fact the code generator may hand LLVM.
@@ -158,6 +162,15 @@ impl Items {
     }
 
     /// Is `m` the same as `d` or nested inside it?
+    /// The root of the Limb module `m` is in: each Limb is its own tree.
+    pub fn limb_root(&self, m: ModuleId) -> ModuleId {
+        let mut cur = m;
+        while let Some(p) = self.modules[cur.0 as usize].parent {
+            cur = p;
+        }
+        cur
+    }
+
     pub fn inside(&self, m: ModuleId, d: ModuleId) -> bool {
         let mut cur = Some(m);
         while let Some(c) = cur {
@@ -170,11 +183,7 @@ impl Items {
     }
 
     fn add_module(&mut self, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {
-        let path = match parent {
-            None => "limb".to_string(),
-            Some(p) if p == ROOT => name.to_string(),
-            Some(p) => format!("{}.{}", self.modules[p.0 as usize].path, name),
-        };
+        let path = module_path(self, name, parent);
         let id = ModuleId(self.modules.len() as u32);
         self.modules.push(Module { name: name.to_string(), path, parent, vis, items: HashMap::new(), consts: HashMap::new() });
         id
@@ -566,18 +575,21 @@ impl Items {
 
     /// Look up the first segment of a path in module `m`, then walk.
     pub fn lookup_path(&self, path: &ast::Path, m: ModuleId) -> Result<ItemRef> {
+        let mut cur = m;
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
                 return err(Diagnostic::error(format!("`{}` is not available yet: there is no `std` Limb for now — the base language comes first", path.spelled())).at(path.span));
             }
-            return err(Diagnostic::error(format!("there is no Limb named `{}`: a Limb is a dependency listed in `Synthia.cplm`, and none is", limb.name)).at(limb.span));
+            cur = self.dependency(limb, m)?;
+            if path.segs.first().map_or(false, |s| s.name == "limb") {
+                return err(Diagnostic::error(format!("`{}::` already starts at that Limb's root: write `{}::…` without `limb.`", limb.name, limb.name)).at(path.span));
+            }
         }
-        let mut cur = m;
         let mut segs = path.segs.iter().peekable();
         let first = segs.peek().unwrap();
         if first.name == "limb" {
             segs.next();
-            cur = ROOT;
+            cur = self.limb_root(m);
             if segs.peek().is_none() {
                 return err(Diagnostic::error("`limb` is followed by `.` and the root item it reaches: `limb.helper[…]`").at(path.span));
             }
@@ -605,16 +617,19 @@ impl Items {
         Ok(result.unwrap())
     }
 
-    /// A const reached by path: `a.'k'`, `limb.'scale'`.
+    /// A const reached by path: `a.'k'`, `limb.'scale'`, `areas::'pi'`.
     pub fn lookup_const_path(&self, path: &ast::Path, name: &ast::QName, m: ModuleId) -> Result<crate::hir::ConstId> {
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
                 return err(Diagnostic::error("`std::` is not available yet: there is no `std` Limb for now").at(path.span));
             }
-            return err(Diagnostic::error(format!("there is no Limb named `{}`", limb.name)).at(limb.span));
+            if path.segs.is_empty() {
+                let root = self.dependency(limb, m)?;
+                return self.lookup_const_in(root, name, m);
+            }
         }
         let target = if path.is(&["limb"]) {
-            ROOT
+            self.limb_root(m)
         } else {
             match self.lookup_path(path, m)? {
                 ItemRef::Module(t) => t,
@@ -629,13 +644,30 @@ impl Items {
         let Some((id, vis, _)) = module.consts.get(&name.name) else {
             return err(Diagnostic::error(format!("there is no const '{}' in {}", name.name, describe_module(&module.path))).at(name.span));
         };
+        if !self.visible(*vis, target, from) && self.limb_root(target) != self.limb_root(from) {
+            return err(Diagnostic::error(format!("the const '{}' is not `pub`, and another Limb reaches only `pub` items", name.name)).at(name.span));
+        }
         if !self.visible(*vis, target, from) {
             return err(Diagnostic::error(format!("'{}' is private to {}: add `pub` (other Limbs too) or `pub.limb` (this Limb) where it is declared", name.name, describe_module(&module.path))).at(name.span));
         }
         Ok(*id)
     }
 
+    /// The root of the Limb `limb::` names from module `m`: one its
+    /// `CCA.cplr` lists (owner, 2026-09-29).
+    fn dependency(&self, limb: &ast::Ident, m: ModuleId) -> Result<ModuleId> {
+        let here = self.limb_root(m);
+        match self.limb_deps.get(&here).and_then(|d| d.get(&limb.name)) {
+            Some(r) => Ok(*r),
+            None => err(Diagnostic::error(format!("there is no Limb named `{}`: another Limb is reached only when `CCA.cplr` lists it — `const 'dependencies' := [cca::Dep[name = \"{}\", path = \"…\"],];`", limb.name, limb.name)).at(limb.span)),
+        }
+    }
+
     fn visible(&self, vis: Vis, declared_in: ModuleId, from: ModuleId) -> bool {
+        // Only `pub` crosses a Limb's edge (`limbs.md`).
+        if self.limb_root(declared_in) != self.limb_root(from) {
+            return vis == Vis::Pub;
+        }
         match vis {
             Vis::Pub | Vis::Limb => true,
             Vis::Private => self.inside(from, declared_in),
@@ -648,6 +680,9 @@ impl Items {
         }
         let where_ = describe_module(&self.modules[declared_in.0 as usize].path);
         let what = item.what();
+        if self.limb_root(declared_in) != self.limb_root(from) {
+            return err(Diagnostic::error(format!("{} `{}` is not `pub`, and another Limb reaches only `pub` items", what, seg.name)).at(seg.span).fix(None, "its own Limb opens it with `pub`; `pub.limb` keeps it inside that Limb"));
+        }
         let full = match item {
             ItemRef::Module(c) => format!("module `{}`", self.modules[c.0 as usize].path),
             _ => format!("{} `{}`", what, seg.name),
@@ -1072,8 +1107,29 @@ fn qualify(items: &Items, m: ModuleId, name: &str) -> String {
     }
 }
 
+/// A module's path for messages: `shapes.circle` in the Limb being built,
+/// `areas::shapes` in a dependency, whose root is `areas::limb`.
+pub fn module_path(items: &Items, name: &str, parent: Option<ModuleId>) -> String {
+    match parent {
+        None => "limb".to_string(),
+        Some(p) => {
+            let pp = &items.modules[p.0 as usize];
+            if pp.parent.is_none() {
+                match pp.path.strip_suffix("::limb") {
+                    Some(limb) => format!("{}::{}", limb, name),
+                    None => name.to_string(),
+                }
+            } else {
+                format!("{}.{}", pp.path, name)
+            }
+        }
+    }
+}
+
 pub fn describe_module(path: &str) -> String {
-    if path == "limb" {
+    if let Some(limb) = path.strip_suffix("::limb") {
+        format!("the root of Limb `{}`", limb)
+    } else if path == "limb" {
         "the root (`limb.cpls`)".to_string()
     } else {
         format!("module `{}`", path)

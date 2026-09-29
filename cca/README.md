@@ -414,3 +414,11 @@ Dated, with the alternative, so each can become a question later.
   the natural width a lone number has (`core-features.md`), 64 bits, so
   two lanes in a 128-bit register. Before, it had no shape at all.
   Alternative: refuse it and ask for a type, as `simd.shuffle` does.
+- **2026-09-29 — Limbs with dependencies: three picks.** A `'target'`
+  setting in `CCA.cplr` is refused as "not yet" (CCA builds for this
+  machine only). A Limb used as a dependency that has a `MAIN` is refused
+  (only the Limb being built runs; the example calls a dependency one with
+  no `MAIN`). Two Limbs that depend on the same folder share one copy of
+  it. A `version` dependency is refused until the registry exists, as the
+  oracle does. Alternatives: accept and ignore `'target'`; ignore a
+  dependency's `MAIN`.

@@ -1,0 +1,2 @@
+const 'name' := "cycle_b";
+const 'dependencies' := [cca::Dep[name = "cycle_a", path = "../cycle_a"],];

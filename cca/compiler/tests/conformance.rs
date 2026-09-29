@@ -113,6 +113,9 @@ fn targets(dir: &Path) -> Vec<PathBuf> {
         .unwrap()
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().map(|x| x == "cpls").unwrap_or(false) || p.is_dir())
+        // A folder that only holds Limbs used as dependencies
+        // (`examples/limbs/`) is not a program of its own.
+        .filter(|p| !(p.is_dir() && !p.join("limb.cpls").is_file() && std::fs::read_dir(p).map(|rd| rd.filter_map(|e| e.ok()).any(|e| e.path().join("limb.cpls").is_file())).unwrap_or(false)))
         .collect();
     v.sort();
     v

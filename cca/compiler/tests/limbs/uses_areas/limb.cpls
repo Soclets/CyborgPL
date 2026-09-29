@@ -1,0 +1,16 @@
+# A Limb that uses another (owner, 2026-09-29), examples/uses_a_limb as an
+# exit: a circle of radius 2 is 12.56636, so its whole part is 12; square 4
+# is 16; pi's whole part is 3. 12 + 16 + 3 = 31.
+extern fn exit ['code': int32];
+MAIN {
+    'c': areas::Circle = areas::Circle[radius = 2.0];
+    'a' := areas::circle[lend 'c'];
+    'whole': int32 = to.int32[floor_of['a']] otherwise 0;
+    'p': int32 = to.int32[floor_of[areas::'pi']] otherwise 0;
+    nocheck exit['whole' + areas::shapes.square[4] + 'p'];
+}
+fn floor_of ['x': bin64] -> bin64 {
+    mut 'n': bin64 = 0.0;
+    while 'n' + 1.0 </== 'x' { change 'n' = 'n' + 1.0; }
+    return 'n';
+}
