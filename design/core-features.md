@@ -163,7 +163,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   - a return type on every function that returns a value;
   - `mut` or `immut` (or `!mut`) on every declaration;
   - `temp` or `perm` on every `for`;
-  - a `match` / `otherwise` case says its value with `gives` (2026-09-29,
+  - a `match` / `otherwise` case says its value with `giveS` (2026-09-29,
     `enums.md`);
   - a returned borrow names its lifetime group, `-> lent@x T` (2026-09-29,
     `ownership-syntax.md`);

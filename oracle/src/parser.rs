@@ -12,7 +12,7 @@ use crate::value::ty_name;
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "change", "gives", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
+    "fn", "let", "change", "giveS", "gives", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
     "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
@@ -51,7 +51,7 @@ pub struct Parser {
     strict: bool,
     /// a `return <value>` seen in the body being parsed (a `#strict` fn must then write `-> T`)
     saw_value_return: bool,
-    /// inside a `match` / `otherwise` case's block: `gives` may appear
+    /// inside a `match` / `otherwise` case's block: `giveS` may appear
     arm_depth: usize,
     /// set while parsing a map literal's key: the `=` after it pairs, it is not an assignment
     in_map_key: bool,
@@ -1054,9 +1054,10 @@ impl Parser {
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
                 "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20)"),
-                "gives" => {
-                    if !self.strict { return self.err("`gives` belongs to `#strict` files; elsewhere a case's value is written alone: `empty { \"free\" }`"); }
-                    if self.arm_depth == 0 { return self.err("`gives` gives a `match` or `otherwise` case its value; there is no case here"); }
+                "gives" => return self.err("`gives` is spelled `giveS` (owner, 2026-09-29: the capital S keeps it apart from `give`)"),
+                "giveS" => {
+                    if !self.strict { return self.err("`giveS` belongs to `#strict` files; elsewhere a case's value is written alone: `empty { \"free\" }`"); }
+                    if self.arm_depth == 0 { return self.err("`giveS` gives a `match` or `otherwise` case its value; there is no case here"); }
                     self.advance();
                     let value = self.rhs()?;
                     self.expect(Tok::Semi, "`;` after the value")?;
@@ -1558,16 +1559,21 @@ impl Parser {
             };
             let bind = if let Tok::Var(v) = self.peek().clone() { self.advance(); Some(v) } else { None };
             // `{ "free" }` — a block holding only a value is that value (owner, 2026-09-29: a); in a
-            // `#strict` file the value is said with `gives` instead (b)
+            // `#strict` file the value is said with `giveS` instead (b)
             let mut value = None;
             if *self.peek() == Tok::LBrace && *self.peek_at(1) != Tok::RBrace {
                 let save = self.pos;
                 self.advance();
                 let try_value = self.expr();
                 if matches!(try_value, Ok(_)) && *self.peek() == Tok::RBrace {
-                    if self.strict { return self.err(format!("`#strict`: a case says its value with `gives`: `{name} {{ gives …; }}`")); }
-                    self.advance();
-                    value = try_value.ok();
+                    if self.strict {
+                        // a `match` alone in a strict case is a statement: a value would say `giveS` (owner, 2026-09-29)
+                        if !matches!(try_value, Ok(Expr::Match(..))) { return self.err(format!("`#strict`: a case says its value with `giveS`: `{name} {{ giveS …; }}`")); }
+                        self.pos = save;
+                    } else {
+                        self.advance();
+                        value = try_value.ok();
+                    }
                 } else {
                     self.pos = save;
                 }

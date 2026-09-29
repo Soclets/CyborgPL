@@ -1,0 +1,28 @@
+#strict
+# In a #strict file a bare nested `match` is a statement, and a nested match that is the value
+# says `giveS` (owner, 2026-09-29).
+enum Order { cancelled  paid }
+enum Ship { pickup  post }
+fn handle ['o': Order, 's': Ship] {
+    match 'o' {
+        cancelled { }
+        paid {
+            match 's' {
+                pickup { std::printu.stdout["counter", \n]; }
+                post { std::printu.stdout["mail", \n]; }
+            }
+        }
+    }
+}
+fn price ['o': Order, 's': Ship] -> int32 {
+    immut 'p': int32 = match 'o' {
+        cancelled { giveS 0; }
+        paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
+    };
+    return 'p';
+}
+MAIN {
+    handle[Order.paid, Ship.post];
+    immut 'n': int32 = price[Order.paid, Ship.post];
+    std::printu.stdout['n', \n];
+}

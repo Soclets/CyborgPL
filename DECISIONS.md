@@ -5,6 +5,35 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `gives` is spelled `giveS` (owner)
+
+While settling nested matches in `#strict`, the owner asked whether `give`
+was already used (yes: it moves ownership; `gives` was a separate word)
+and asked for alternatives. Proposed: `yield` (Java's switch), `is`
+(recommended by design claude; the owner asked whether it could be
+confused with `=`: not in position, though Python/C#/Kotlin readers know
+`is` as a test), `value`, `result`. Owner: "`giveS` it is, yes, with the
+capital `S`" — the word stays, and the capital keeps it apart from `give`.
+The old spelling is refused with an error naming the new one. Reject test
+gives_renamed.
+
+### 2026-09-29 — A `match` alone in a case: the outer match decides (owner: a; `#strict`: yes)
+
+Check claude found the engines split on a case whose block holds only
+another `match`: a value (the oracle, which then refused the statement
+match) or a statement (CCA). Proposed (a) the outer match decides; (b) a
+`match` where a statement can go is always a statement; (c) a statement
+`match` alone in a case ends with `;`. Check claude and design claude
+recommended a. The owner asked what it is for (a choice inside a choice:
+cancelled or paid, then pickup or post), what Rust does (the inner match
+is the case's value, which must be `()` when the outer is a statement; a
+`;` is the escape hatch), and whether not-a has any use (reading a match
+alone, which `#strict` already gives), and chose a. For `#strict`, design
+claude proposed that a bare nested `match` is always a statement, since a
+value says `giveS`; owner: yes. The oracle had demanded `gives` there;
+fixed. `enums.md`; `examples/nested_match.cpls`,
+`examples/strict_nested_match.cpls`.
+
 ### 2026-09-29 — An argument takes its parameter's type as its context (owner: a)
 
 The follow-up to the list-literal ruling. Design claude had written "a

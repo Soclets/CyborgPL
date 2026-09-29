@@ -293,7 +293,7 @@ pub enum Stmt {
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
     /// `match v { case ['bind'] { … } … }` — every case covered (decided 2026-09-20)
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
-    /// `gives v;` — a case's value, in a `#strict` file (owner, 2026-09-29)
+    /// `giveS v;` — a case's value, in a `#strict` file (owner, 2026-09-29)
     Gives { value: Bracket, line: usize },
     /// `concur [with […]] { … }` / `concur f[…];` — start a task (design/concurrency.md, 2026-09-22)
     Concur { detached: bool, caps: Vec<(Verb, String)>, body: Vec<Stmt>, handler: Option<Handler>, line: usize },

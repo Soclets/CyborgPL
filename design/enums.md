@@ -82,14 +82,38 @@ case that gives a value in a `match` used as a statement is an error.
 The same holds for `otherwise` with several reasons:
 `to.int32['t'] otherwise { not_a_number { -2 } out_of_range { -1 } }`.
 
-**In a `#strict` file a case says it with `gives`** (b): `empty { gives
-"free"; }`, and it may do other work first. `gives` belongs to strict
+**In a `#strict` file a case says it with `giveS`** (b; spelled `gives`
+until the owner renamed it the same day, the capital S keeping it apart
+from `give`): `empty { giveS "free"; }`, and it may do other work first.
+`giveS` belongs to strict
 files, as `pos` does, and the bare value is refused there. Proposed
 alternative: an arrow, `empty -> "free"`, which collides with `->` for
 return types. "`match` is a statement" (2026-09-20) was design claude's
 detail, not a ruling. The owner asked what `match` is for and why the
 word, since that is `enums.md` above. `examples/match_value.cpls`,
 `examples/strict_match.cpls`.
+
+**A `match` alone in a case: the outer match decides** (owner,
+2026-09-29: a). In a `match` used as a statement, a case holding only
+another `match` runs it as a statement; in a `match` used as a value, it
+is that match's value. In a `#strict` file a bare nested `match` is
+always a statement, since a value says `giveS` (owner: "yes"):
+
+```
+match 'o' {
+    cancelled { }
+    paid { match 's' { pickup { … } post { … } } }                 # runs
+}
+'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
+#strict: paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
+```
+
+Raised by check claude (the engines split). Proposed alternatives: a
+`match` where a statement can go is always a statement (b); a statement
+`match` alone in a case ends with `;` (c, Rust's escape hatch). Rust
+treats the inner match as the case's value and errors unless its value
+is `()`. Alternative words for `giveS`: `yield` (Java's switch), `is`
+(recommended by design claude), `value`, `result`.
 
 ## Open
 

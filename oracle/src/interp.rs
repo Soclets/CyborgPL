@@ -188,7 +188,7 @@ impl<'p> Interp<'p> {
             Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
             Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
-            Ok(Flow::Give(_)) => rt(0, "`gives` outside a case"),
+            Ok(Flow::Give(_)) => rt(0, "`giveS` outside a case"),
             Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
             Err(e) => Err(e),
         }
@@ -433,7 +433,7 @@ impl<'p> Interp<'p> {
             }
             Ok(Flow::Return(_)) => rt(task.line, "`return` inside a task: a task is a block, not a function"),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(task.line, "`break`/`continue` inside a task reach no loop"),
-            Ok(Flow::Give(_)) => rt(task.line, "`gives` outside a case"),
+            Ok(Flow::Give(_)) => rt(task.line, "`giveS` outside a case"),
             Ok(Flow::Normal) => Ok(()),
             Err(e) => Err(e),
         }
@@ -858,8 +858,8 @@ impl<'p> Interp<'p> {
                 let (v, _) = self.single(value, *line)?;
                 let (arm, data, dty) = self.pick_arm(v, arms, *line)?;
                 self.arm_ty = dty;
-                if arm.value.is_some() { return rt(arm.line, format!("case `{}` gives a value, but this `match` is not used as one", arm.name)); }
-                match self.run_arm(arm, data)? {
+                if arm.value.is_some() && !matches!(arm.value, Some(Expr::Match(..))) { return rt(arm.line, format!("case `{}` gives a value, but this `match` is not used as one", arm.name)); }
+                match self.run_arm(arm, data, true)? {
                     Flow::Give(_) => rt(arm.line, format!("case `{}` gives a value, but this `match` is not used as one", arm.name)),
                     f => Ok(f),
                 }
@@ -1527,7 +1527,7 @@ impl<'p> Interp<'p> {
     }
 
     /// Run one case with its data bound: its value if it is one, else its statements' flow.
-    fn run_arm(&mut self, arm: &Arm, data: Option<Value>) -> Result<Flow, RuntimeError> {
+    fn run_arm(&mut self, arm: &Arm, data: Option<Value>, as_stmt: bool) -> Result<Flow, RuntimeError> {
         self.push();
         if let (Some(b), Some(d)) = (&arm.bind, data) {
             let ty = self.arm_ty.take();
@@ -1535,6 +1535,9 @@ impl<'p> Interp<'p> {
             if let Err(e) = r { self.pop(); return Err(e); }
         }
         let r = match &arm.value {
+            // a case holding only a `match`, inside a `match` used as a statement: that inner match is
+            // a statement too — the outer match decides (owner, 2026-09-29: a)
+            Some(Expr::Match(v, arms, l)) if as_stmt => self.stmt(&Stmt::Match { value: v.clone(), arms: arms.clone(), line: *l }),
             Some(e) => self.eval(e).map(|(v, _)| Flow::Give(v)),
             None => self.stmts(&arm.body),
         };
@@ -2037,7 +2040,7 @@ impl<'p> Interp<'p> {
                 let (v, _) = self.single(value, line)?;
                 let (arm, data, dty) = self.pick_arm(v, arms, line)?;
                 self.arm_ty = dty;
-                match self.run_arm(arm, data)? {
+                match self.run_arm(arm, data, false)? {
                     Flow::Give(v) => { let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
                     Flow::Normal => rt(arm.line, format!("case `{}` neither gives a value nor leaves (return, fail, break, continue)", arm.name)),
                     f => Err(RuntimeError { line, msg: String::new(), exit: None, site: false, leave: Some(f) }),
@@ -3051,7 +3054,7 @@ impl<'p> Interp<'p> {
             Flow::Return(v) => v,
             Flow::Normal => Value::Nothing,
             Flow::Break | Flow::Continue => return rt(func.line, "`break`/`continue` outside a loop"),
-            Flow::Give(_) => return rt(func.line, "`gives` outside a case"),
+            Flow::Give(_) => return rt(func.line, "`giveS` outside a case"),
             Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
         // `-> lent@x T`: the borrow must be of a parameter in group x — or of any lent parameter
@@ -3153,7 +3156,7 @@ impl<'p> Interp<'p> {
             Flow::Normal => Ok(Value::Nothing),
             Flow::Fail(..) => rt(line, "a callback cannot fail"),
             Flow::Break | Flow::Continue => rt(line, "`break`/`continue` outside a loop"),
-            Flow::Give(_) => rt(line, "`gives` outside a case"),
+            Flow::Give(_) => rt(line, "`giveS` outside a case"),
         }
     }
 
@@ -3227,7 +3230,7 @@ impl<'p> Interp<'p> {
             Flow::Return(v) => v,
             Flow::Normal => return rt(line, format!("`op {op}` fell off the end without returning a value")),
             Flow::Break | Flow::Continue => return rt(def.line, "`break`/`continue` outside a loop"),
-            Flow::Give(_) => return rt(def.line, "`gives` outside a case"),
+            Flow::Give(_) => return rt(def.line, "`giveS` outside a case"),
             Flow::Fail(..) => return rt(line, "an operator cannot fail"),
         };
         let k = self.ret_kind.take();
@@ -3282,7 +3285,7 @@ impl<'p> Interp<'p> {
             Handler::Arms(arms) => {
                 let arm = arms.iter().find(|a| a.name == reason).unwrap();
                 self.arm_ty = None;
-                match self.run_arm(arm, payload)? {
+                match self.run_arm(arm, payload, !value_used)? {
                     // a case that gives a value is the value (owner, 2026-09-29)
                     Flow::Give(v) if value_used => Ok(v),
                     Flow::Give(_) => rt(arm.line, format!("the `{reason}` case gives a value, but the value of `{name}` is not used")),
