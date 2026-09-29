@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -352,6 +352,14 @@ struct Precog {
     /// For a function whose induction table is being filled: the tuple its
     /// body is being run for, and every tuple each run's calls asked for.
     induction_at: HashMap<usize, Vec<i128>>,
+    /// Inductions that reached past the cap, by function and the tuples
+    /// asked: not tried again.
+    induction_failed: std::collections::HashSet<(usize, Vec<Vec<i128>>)>,
+    /// The last induction tried reached past its cap.
+    induction_fell_short: bool,
+    /// Functions being walked because induction fell short for them: not
+    /// tried by induction again inside that walk.
+    no_induction: std::collections::HashSet<usize>,
     induction_calls: HashMap<(usize, Vec<i128>), Vec<Vec<i128>>>,
     /// How often each function was walked, and how many blocks it walked
     /// in all (`CCA_PRECOG_STATS=1` prints it: where a slow build's time
@@ -492,6 +500,13 @@ impl Precog {
         // them, until none are new. Then the real run, smallest first, so a
         // call on a smaller tuple reads its answer. Too many: the old way.
         let asked = self.arg_tuples(params, env)?;
+        // An induction that reached more tuples than the cap from these
+        // asks will again: the ordinary walk answers at once. Tried anew for
+        // every call, the same 797 asks cost a build 144 s (check claude,
+        // seed 6798).
+        if self.induction_failed.contains(&(i, asked.clone())) || self.no_induction.contains(&i) {
+            return None;
+        }
         // Every tuple asked is answered already: nothing to walk.
         if !self.dry {
             if let Some(done) = self.induction_done.get(&i) {
@@ -559,6 +574,8 @@ impl Precog {
         }
         if !complete {
             self.induction.remove(&i);
+            self.induction_failed.insert((i, asked));
+            self.induction_fell_short = true;
             return None;
         }
         // The real run is over the tuples a call can actually reach: those
@@ -745,7 +762,9 @@ impl Precog {
                 Some(seen) => {
                     seen.retain(|l, d| match env.get(l) {
                         Some(now) => {
-                            *d = d.union(now);
+                            if d != now {
+                                *d = d.union(now);
+                            }
                             true
                         }
                         None => false,
@@ -1768,10 +1787,17 @@ impl Precog {
                 // A function that calls itself, on arguments with few
                 // enough values: proven by induction instead of followed
                 // until the depth runs out.
+                self.induction_fell_short = false;
                 if let Some(d) = self.by_induction(i, &params, &callee_env, depth) {
                     self.remember(i, key, d.clone());
                     return d;
                 }
+                // Induction reached past its cap here: the walk below is
+                // how this call is answered, and the calls it makes to
+                // itself are not tried by induction again. Each level down
+                // asked anew, failed anew, and cost thousands of walks
+                // (check claude, seed 6798: 144 s).
+                let short = std::mem::take(&mut self.induction_fell_short) && self.no_induction.insert(i);
                 if depth >= CALL_DEPTH {
                     self.gave_up = true;
                     let ret = self.prog().functions[i].ret.clone();
@@ -1781,6 +1807,9 @@ impl Precog {
                 let ret_ty = self.prog().functions[i].ret.clone();
                 self.remember(i, key.clone(), Domain::of_ty(&ret_ty, &self.prog().items));
                 let d = self.run_function(i, callee_env, depth + 1);
+                if short {
+                    self.no_induction.remove(&i);
+                }
                 let d = if matches!(d, Domain::Empty) { Domain::of_ty(&ret_ty, &self.prog().items) } else { d };
                 self.remember(i, key, d.clone());
                 d

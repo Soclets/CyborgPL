@@ -86,7 +86,36 @@ impl ISet {
     pub fn union(&self, other: &ISet) -> ISet {
         match (self, other) {
             (ISet::Empty, x) | (x, ISet::Empty) => x.clone(),
+            (ISet::Exact(a), ISet::Exact(b)) if a == b => ISet::Exact(a.clone()),
             (ISet::Exact(a), ISet::Exact(b)) if a.len() + b.len() <= SET_CAP => {
+                // Two sorted lists merged in one pass; anything else sorted.
+                // Precog joins every block's facts on every visit, and
+                // sorting each join was most of a 144 s build (check
+                // claude, seed 6798).
+                if a.windows(2).all(|w| w[0] < w[1]) && b.windows(2).all(|w| w[0] < w[1]) {
+                    let mut v = Vec::with_capacity(a.len() + b.len());
+                    let (mut i, mut j) = (0, 0);
+                    while i < a.len() && j < b.len() {
+                        match a[i].cmp(&b[j]) {
+                            std::cmp::Ordering::Less => {
+                                v.push(a[i]);
+                                i += 1;
+                            }
+                            std::cmp::Ordering::Greater => {
+                                v.push(b[j]);
+                                j += 1;
+                            }
+                            std::cmp::Ordering::Equal => {
+                                v.push(a[i]);
+                                i += 1;
+                                j += 1;
+                            }
+                        }
+                    }
+                    v.extend_from_slice(&a[i..]);
+                    v.extend_from_slice(&b[j..]);
+                    return ISet::Exact(v);
+                }
                 let mut v = a.clone();
                 v.extend_from_slice(b);
                 v.sort_unstable();
@@ -867,7 +896,16 @@ impl ISet {
                             ISet::Exact(kept)
                         }
                     }
-                    None => self.clone(),
+                    // A range too wide to list loses the value only at an
+                    // end: a `uint32` that is not 0 is 1 or more — what a
+                    // `#strict` file's `'v' !== 0 and.then (15 mod 'v')`
+                    // needs, with no caller to say what 'v' is (check
+                    // claude, seed 6430).
+                    None => match self.bounds() {
+                        Some((lo, hi)) if v == lo && lo < hi => self.clamp(lo + 1, hi),
+                        Some((lo, hi)) if v == hi && lo < hi => self.clamp(lo, hi - 1),
+                        _ => self.clone(),
+                    },
                 },
                 None => self.clone(),
             },
