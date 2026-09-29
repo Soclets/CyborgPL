@@ -17,7 +17,8 @@ The rule stands: a *value you hold* is quoted, a function's name is bare.
 A bare name alone was an error before; now it is the function. `'f'[…]`
 calls it. Since `pos` went (2026-09-27), a list read looks the same
 (`'xs'[2]`), and what the variable holds decides which it is.
-Operators and `extern` functions are not values (open).
+`extern` functions are not values (open); operators are, as `op +`
+(2026-09-29).
 
 ## 2. The type of a function is its signature without the names
 
@@ -70,7 +71,8 @@ silently, which is where "why is this borrowed" bugs come from.
 ## Open
 
 - (Callbacks across the C boundary: decided 2026-09-21, `ffi.md`.)
-- An operator as a value (`'f' := <+>`).
+- An operator as a value: decided 2026-09-29, `op +` (DECISIONS.md); its
+  section here is still to be written.
 - (Returning a function that captured a `lend`: the 2026-09-21 rule, "a
   lend may leave its call and Precog proves it lives long enough", covers
   it. A function value is one more borrow leaving; `ownership-syntax.md`.)

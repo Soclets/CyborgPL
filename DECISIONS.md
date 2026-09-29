@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — An operator is a value as `op +` (owner: a, `op +`)
+
+Open since 2026-09-21. Proposed (a) a way to hand an operator where a
+function goes; (b) none, write an inline `fn`. Design claude recommended
+b (the inline `fn` is one line and always says its types). The owner
+asked why an operator would be stored (mostly it is passed: a `fold`, a
+sort's comparison, a calculator picking one at run time), asked for a
+small program (`fold[lend 'xs', 0, op +]` against the inline `fn`,
+checked in the oracle), and chose a. Spellings proposed: `op +` (the
+word that defines one), `(+)` (Haskell, OCaml), `op[+]`. The owner
+asked whether operators can be words (yes, 2026-09-20: `x`, `mod`,
+`dot`), then "`op +` it is". The value's type comes from where it goes
+(`fold`'s parameter, a typed declaration); `'f' := op +;` alone cannot
+say which `+`, so it is refused (design claude's reading, not yet
+ruled). Still open: `op` on `and.then` / `or.else`, and on `-`, which
+is both negation and subtraction. `functions-as-values.md`.
+
 ### 2026-09-29 — `@x` on a returned borrow: required in `#strict`, optional elsewhere (owner)
 
 Asked whether the group may be left out. The owner asked which has better
