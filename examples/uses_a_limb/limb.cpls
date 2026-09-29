@@ -1,5 +1,5 @@
-# A Limb that uses another (owner, 2026-09-29): CCA.cplr lists it, `cca::Dep[name = "areas", path =
-# "../limbs/areas"]`, and its `pub` items are reached with `::` (limbs.md).
+# A Limb that uses another (owner, 2026-09-29): CCA.cplr lists it, `cca::Dep[path = "../limbs/areas"]`,
+# and its `pub` items are reached with `::` after its own 'prefix', `areas` (limbs.md, tooling.md).
 MAIN {
     'c': areas::Circle = areas::Circle[radius = 2.0];
     'a' := areas::circle[lend 'c'];

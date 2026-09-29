@@ -1,4 +1,5 @@
 const 'name' := "limb_pub_limb";
+const 'prefix' := "limb_pub_limb";
 const 'version' := "1.0.0";
 const 'targets' := [cca::Target[name = "aarch64-macos"],];
-const 'dependencies' := [cca::Dep[name = "areas", path = "../../../../examples/limbs/areas"],];
+const 'dependencies' := [cca::Dep[path = "../../../../examples/limbs/areas"],];

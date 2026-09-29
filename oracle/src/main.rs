@@ -84,12 +84,12 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
     Ok(prog)
 }
 
-/// A dependency from `CCA.cplr`: `cca::Dep[name = "geometry", path = "../geometry"]` (or a
-/// `version`, from the registry, which the oracle cannot fetch).
-struct Dep { name: String, path: Option<String>, version: Option<String>, id: Option<String> }
+/// A dependency from `CCA.cplr`: `cca::Dep[path = "../geometry"]` (or an `id` and `version`, from
+/// the registry, which the oracle cannot fetch). It names no word: code writes the Limb's own 'prefix'.
+struct Dep { what: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
 /// Read a Limb's `CCA.cplr` (owner, 2026-09-29): one plain `const` per setting, in CyborgPL syntax,
-/// the shapes from the built-in `cca` Limb. Returns its `name` (none when there is no `CCA.cplr`) and its dependencies.
+/// the shapes from the built-in `cca` Limb. Returns its 'prefix' (none when there is no `CCA.cplr`) and its dependencies.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
     let file = dir.join("CCA.cplr");
     if !file.is_file() { return Ok((None, Vec::new())); }
@@ -99,12 +99,19 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
         return Err(format!("{shown}: CCA.cplr holds settings only: one `const` per setting"));
     }
     let text = |b: &ast::Bracket| -> Option<String> { match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Text(t, _))] => Some(t.clone()), _ => None } };
-    let (mut name, mut deps) = (None, Vec::new());
+    let (mut name, mut prefix, mut deps) = (false, None, Vec::new());
     let (mut has_version, mut targets) = (false, 0);
     for c in &prog.consts {
         if c.vis != ast::Vis::Private { return Err(format!("{shown}: line {}: `pub` means nothing in CCA.cplr, which no Limb reads: `const '{}' := …;`", c.line, c.name)); }
         match c.name.as_str() {
-            "name" => name = Some(text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?),
+            // a label for people; code writes the 'prefix' (owner, 2026-09-29: "Infront and name are different things")
+            "name" => { text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?; name = true; }
+            // the word code writes in front of `::` to reach this Limb, its maker's pick (owner, 2026-09-29: b, "required")
+            "prefix" => {
+                let p = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'prefix' is a text: `const 'prefix' := \"shop\";`", c.line))?;
+                parser::module_name_ok(&p).map_err(|m| format!("{shown}: line {}: `{p}` cannot be a prefix, written in code as `{p}::`: {m}", c.line))?;
+                prefix = Some(p);
+            }
             "version" => {
                 let v = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'version' is a text", c.line))?;
                 // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for CCA.cplr: "same")
@@ -147,57 +154,64 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                 let mut items = Vec::new();
                 for v in &c.value.values { let ast::Value::Expr(x) = v; each(x, &mut items); }
                 for it in items {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a dependency is `cca::Dep[name = …, path = …]` or `cca::Dep[name = …, version = …]`", c.line)) };
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a dependency is `cca::Dep[path = …]` or `cca::Dep[id = …, version = …]`", c.line)) };
                     if shape != "::cca.Dep" { return Err(format!("{shown}: line {line}: a dependency is a `cca::Dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
-                    let mut d = Dep { name: String::new(), path: None, version: None, id: None };
+                    let mut d = Dep { what: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
+                        // two Limbs with one prefix are an error, fixed by editing a Limb's source (owner, 2026-09-29:
+                        // "Just edit the source code"), so a dependency names no word
+                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the Limb's own 'prefix', from its `CCA.cplr`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
-                        match f.as_str() { "name" => d.name = t, "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
-                            other => return Err(format!("{shown}: line {line}: a `cca::Dep` has no `{other}`; it has `name`, and `path`, or `id` and `version`")) }
+                        match f.as_str() { "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
+                            other => return Err(format!("{shown}: line {line}: a `cca::Dep` has no `{other}`; it has `path`, or `id` and `version`")) }
                     }
-                    if d.name.is_empty() { return Err(format!("{shown}: line {line}: a dependency needs its `name`")); }
-                    if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: `{}` says where it comes from once: a `path` on this machine, or a `version` from the registry", d.name)); }
+                    d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the Limb at `{p}`"), (None, Some(i)) => format!("the Limb `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
+                    if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: a dependency says where it comes from once: a `path` on this machine, or an `id` and `version` from the registry")); }
                     // the registry knows a Limb by its ID, never its name (owner, 2026-09-29): names may repeat
                     // an ID is 64 hex digits wherever it is written (the owner's definition; compiler claude, 2026-09-29)
                     if let Some(i) = &d.id {
-                        if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: `{}`'s id is 64 hex digits, 256 random bits", d.name)); }
+                        if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
                     }
-                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: `{}` comes from the registry, which knows a Limb by its ID: `id = \"…\"`, 64 hex digits", d.name)); }
+                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a Limb by its ID: `id = \"…\"`, 64 hex digits")); }
                     deps.push(d);
                 }
             }
-            other => return Err(format!("{shown}: line {}: CCA.cplr has no setting '{other}'; its settings are 'name', 'version', 'dependencies' and 'targets'", c.line)),
+            other => return Err(format!("{shown}: line {}: CCA.cplr has no setting '{other}'; its settings are 'name', 'prefix', 'version', 'dependencies' and 'targets'", c.line)),
         }
     }
     // a build needs the Limb's name, version and a target; only publishing needs more (owner, 2026-09-29:
     // "yea", matching Synthia.ttsr)
-    let why = "a build needs the Limb's 'name', 'version' and at least one target";
-    if name.is_none() { return Err(format!("{shown}: CCA.cplr has no 'name': {why}: `const 'name' := \"shop\";`")); }
+    let why = "a build needs the Limb's 'name', 'prefix', 'version' and at least one target";
+    if !name { return Err(format!("{shown}: CCA.cplr has no 'name': {why}: `const 'name' := \"shop\";`")); }
+    if prefix.is_none() { return Err(format!("{shown}: CCA.cplr has no 'prefix', the word code writes in front of `::` to reach this Limb: {why}: `const 'prefix' := \"shop\";`")); }
     if !has_version { return Err(format!("{shown}: CCA.cplr has no 'version': {why}: `const 'version' := \"1.0.0\";`")); }
     if targets == 0 { return Err(format!("{shown}: CCA.cplr has no target: {why}: `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`")); }
-    Ok((name, deps))
+    Ok((prefix, deps))
 }
 
-/// Load every Limb `dir` depends on, and theirs, each once, under `::name`.
+/// Load every Limb `dir` depends on, and theirs, each once, under `::prefix`.
 fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, PathBuf)>, chain: &mut Vec<PathBuf>) -> Result<(), String> {
     let (_, deps) = read_manifest(dir)?;
     let here = dir.canonicalize().map_err(|e| format!("{}: {e}", dir.display()))?;
     chain.push(here);
     for d in deps {
+        let here_file = dir.join("CCA.cplr");
         let Some(rel) = &d.path else {
-            return Err(format!("{}: `{}` comes from the registry (`version`); the oracle takes `path` dependencies only", dir.join("CCA.cplr").display(), d.name));
+            return Err(format!("{}: {} comes from the registry; the oracle takes `path` dependencies only", here_file.display(), d.what));
         };
         let depdir = dir.join(rel);
-        let canon = depdir.canonicalize().map_err(|_| format!("{}: `{}` is at `{rel}`, and there is no directory there", dir.join("CCA.cplr").display(), d.name))?;
-        if chain.contains(&canon) { return Err(format!("{}: `{}` depends, through its dependencies, on itself", dir.join("CCA.cplr").display(), d.name)); }
-        if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == d.name) {
-            if *p != canon { return Err(format!("{}: two different Limbs are called `{}` ({} and {})", dir.join("CCA.cplr").display(), d.name, p.display(), canon.display())); }
+        let canon = depdir.canonicalize().map_err(|_| format!("{}: a dependency is at `{rel}`, and there is no directory there", here_file.display()))?;
+        if chain.contains(&canon) { return Err(format!("{}: {} depends, through its dependencies, on itself", here_file.display(), d.what)); }
+        if !depdir.join("CCA.cplr").is_file() { return Err(format!("{}: {} has no `CCA.cplr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
+        let (Some(prefix), _) = read_manifest(&depdir)? else { unreachable!() };
+        // a Limb may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
+        if prefix == "std" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which is the built-in `{prefix}::`; edit its 'prefix'", here_file.display(), d.what)); }
+        if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == prefix) {
+            if *p != canon { return Err(format!("{}: two Limbs have the prefix `{prefix}` ({} and {}); edit one Limb's 'prefix'", here_file.display(), p.display(), canon.display())); }
             continue;
         }
-        let (own, _) = read_manifest(&depdir)?;
-        if let Some(own) = own { if own != d.name { return Err(format!("{}: the Limb at `{rel}` calls itself `{own}`, not `{}`", dir.join("CCA.cplr").display(), d.name)); } }
-        loaded.push((d.name.clone(), canon.clone()));
-        let root = vec![format!("::{}", d.name)];
+        loaded.push((prefix.clone(), canon.clone()));
+        let root = vec![format!("::{prefix}")];
         let mut dep = load_limb(&depdir, root.clone())?;
         // a dependency's MAIN never runs: only the Limb being built has one (the oracle's reading)
         dep.main = None;

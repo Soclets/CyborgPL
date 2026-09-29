@@ -1,8 +1,9 @@
 const 'name' := "uses_a_limb";
+const 'prefix' := "uses_a_limb";
 const 'version' := "1.0.0";
 const 'dependencies' := [
-    cca::Dep[name = "areas", path = "../limbs/areas"],
-    cca::Dep[name = "runnable", path = "../limbs/runnable"],
+    cca::Dep[path = "../limbs/areas"],
+    cca::Dep[path = "../limbs/runnable"],
 ];
 const 'targets' := [
     cca::Target[name = "aarch64-macos", default = true],

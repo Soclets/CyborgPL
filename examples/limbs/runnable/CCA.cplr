@@ -1,3 +1,4 @@
 const 'name' := "runnable";
+const 'prefix' := "runnable";
 const 'version' := "0.1.0";
 const 'targets' := [cca::Target[name = "aarch64-macos"],];

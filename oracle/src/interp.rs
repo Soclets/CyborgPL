@@ -3168,7 +3168,7 @@ impl<'p> Interp<'p> {
                 local.path.insert(0, format!("::{l}"));
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no Limb named `{l}`: a Limb this one uses is listed in its `CCA.cplr` (`const 'dependencies' := [cca::Dep[name = \"{l}\", path = …],];`)")),
+            Some(l) => rt(c.line, format!("no Limb with the prefix `{l}`: a Limb this one uses is listed in its `CCA.cplr` (`const 'dependencies' := [cca::Dep[path = …],];`), and its own `CCA.cplr` says `const 'prefix' := \"{l}\";`")),
             None => self.user_call(c),
         }
     }

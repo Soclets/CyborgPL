@@ -76,15 +76,16 @@ Owner, 2026-09-14.
   alternatives: `build-script`, `run-build`. Compiler claude's four
   suggestions, accepted by the owner: `cca prepare` acts on the Limb in
   the current directory, or a folder given as `cca run` takes one; a name is
-  a dependency's local name in that Limb's `CCA.cplr`, or the Limb's own
-  name; a `build.cplr` runs in its own Limb's folder; `--all` runs
+  a dependency's prefix, or the Limb's own (at first "local name"; the
+  prefix replaced it, owner 2026-09-29); a `build.cplr` runs in its own Limb's folder; `--all` runs
   dependencies before the Limbs that use them, each once, stopping at the
   first that fails. Open: what a `build.cplr` may produce or pass to the
   build, and `cca prepare` with no names (refused until ruled). A
-  **`cca::Dep` is a name plus a `version`** (from the registry) **or a
-  `path`** (a folder on this machine) (owner, 2026-09-29: a):
-  `cca::Dep[name = "money", path = "../money"]`. The settings the oracle
-  knows: `name`, `version`, `dependencies`, `targets` (a list of
+  **`cca::Dep` is an `id` and `version`** (from the registry) **or a
+  `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
+  was dropped when the prefix became the Limb's own):
+  `cca::Dep[path = "../money"]`. The settings the oracle
+  knows: `name`, `prefix`, `version`, `dependencies`, `targets` (a list of
   `cca::Target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
   targets, since CCA's package manager can do whatever Synthia can, owner
   2026-09-29).

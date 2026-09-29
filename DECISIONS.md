@@ -40,7 +40,15 @@ claude's pick, (b) no override, (c) every dependency line states its
 prefix). The owner pointed out a Limb's files can simply be edited; a
 registry Limb is copied to a folder first, since the downloaded one is
 checked against the registry's checksum. So a dependency line names no
-word: `cca::Dep[path = "../money"]` or `cca::Dep[id = "…", version = "…"]`.
+word: `cca::Dep[path = "../money"]` or `cca::Dep[id = "…", version = "…"]`. **A Limb may pick `std` or `cca`** (owner: "They can, it just wouldn't
+work practically"; design claude had recommended refusing them): using it
+clashes with the built-in one, like any two Limbs with one prefix. In the
+oracle: `'prefix'` is required and follows the module-name rule; a
+`cca::Dep` naming a word is refused; a dependency without a `CCA.cplr` is
+refused (no prefix to reach it by); reject tests manifest_no_prefix,
+manifest_bad_prefix, limb_dep_names_word, limb_prefix_clash,
+limb_prefix_std. The check that a folder Limb's own name matches its local
+name is gone with the local name.
 Open: the `Synthia.ttsr` spelling (synthia claude's); whether `name`, no
 longer written in code, still follows the module-name rule (entry below).
 

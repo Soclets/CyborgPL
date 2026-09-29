@@ -100,9 +100,10 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   `geometry::area[…]`), so two Limbs both called "geometry" live side by
   side as `geometry.id` and `geo2.id`, and a clash never breaks a build.
   Proposed alternative: names unique in the registry too, first come.
-  `CCA.cplr` alike: a registry dependency is
-  `cca::Dep[name = "geometry", id = "…", version = "1.2"]`, `name` being the
-  local name.
+  Superseded the same day for `CCA.cplr`: the word in front of `::` is
+  the Limb's own `'prefix'`, apart from its `name`, and a dependency names
+  no word (`cca::Dep[id = "…", version = "1.2"]`); see `tooling.md`. The
+  `Synthia.ttsr` side is synthia claude's to ask.
 
 - **A target must be one CCA can build** (owner, 2026-09-29: "Only
   what's actually doable"), from CCA's own list, not any
