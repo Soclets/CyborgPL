@@ -104,6 +104,10 @@ pub struct Interp<'p> {
     /// once, from its digits, to a bin16/bin32 (compiler session, 2026-09-24)
     last_lit: Option<String>,
     ret_kind: Option<bool>,
+    /// a `return lend 'x'` in flight: the lent cell and whether it is mutable (owner, 2026-09-29)
+    ret_borrow: Option<(Rc<RefCell<Value>>, bool)>,
+    /// the borrow the last call handed back, for the expression that called it
+    call_borrow: Option<(Rc<RefCell<Value>>, bool)>,
     /// tasks started by `concur` and not yet run (design/concurrency.md). The oracle's
     /// schedule: a task runs when something waits on it (a `take`, a `whichever`, a full
     /// `send`) or when the block that started it ends — in source order. One valid schedule.
@@ -127,7 +131,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -707,7 +711,8 @@ impl<'p> Interp<'p> {
                         self.ret_kind = self.last_kind.take();
                         match prov {
                             Prov::Bare(n) => return rt(*line, format!("returning bare '{n}', which owns a {}: say `give '{n}'` (or `copy`)", v.kind())),
-                            Prov::Borrowed(..) => return rt(*line, "returning a lend: the oracle does not model lifetimes, so a function cannot return a borrow"),
+                            // a borrow handed back (owner, 2026-09-29): checked against `-> lent@x` by the caller
+                            Prov::Borrowed(cell, m) => { self.ret_borrow = Some((cell, m)); v }
                             _ => v,
                         }
                     }
@@ -1403,7 +1408,11 @@ impl<'p> Interp<'p> {
                     }
                 }
             }
-            Expr::Call(c) => Ok((self.call(c)?, Prov::Fresh)),
+            Expr::Call(c) => {
+                self.call_borrow = None;
+                let v = self.call(c)?;
+                match self.call_borrow.take() { Some((cell, m)) => Ok((v, Prov::Borrowed(cell, m))), None => Ok((v, Prov::Fresh)) }
+            }
             Expr::Nested(b) => self.bracket(b, line),
             Expr::Index(name, idx, _) => {
                 let v = self.read_var(name, line)?;
@@ -2749,6 +2758,12 @@ impl<'p> Interp<'p> {
             if bound.iter().any(|(n, _)| n == &cname) { return rt(c.line, format!("'{cname}' is both a parameter and a capture")); }
             bound.push((cname, Slot { cell, ty: None, kind: if mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false, sealed: false }));
         }
+        // which borrowed parameter is which cell, to check a `-> lent@x` return against
+        let lent_params: Vec<(String, Option<String>, Rc<RefCell<Value>>)> = func.params.iter()
+            .filter(|p| p.kind != ParamKind::Owned)
+            .filter_map(|p| bound.iter().find(|(n, _)| n == &p.name).map(|(_, sl)| (p.name.clone(), p.life.clone(), sl.cell.clone())))
+            .collect();
+        self.ret_borrow = None;
         let flow = self.run_body(func, bound);
         // this call's blanks are its own; the body's `let 'y': <T>` and the return check use them
         let result = match flow? {
@@ -2758,6 +2773,22 @@ impl<'p> Interp<'p> {
             Flow::Give(_) => return rt(func.line, "`gives` outside a case"),
             Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
+        // `-> lent@x T`: the borrow must be of a parameter in group x — or of any lent parameter
+        // when no group is written (Precog works it out) — never of something that dies here
+        let borrowed = self.ret_borrow.take();
+        match (&func.ret_lent, borrowed) {
+            (Some((_, life)), Some((cell, m))) => {
+                let from = lent_params.iter().find(|(_, _, pc)| Rc::ptr_eq(pc, &cell));
+                match from {
+                    None => return rt(c.line, format!("`{name}` hands back a borrow of something that dies when it returns; a borrow it returns must come from a `lent` parameter")),
+                    Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(c.line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent@{l} '{pn}'`")); } },
+                }
+                self.call_borrow = Some((cell, m));
+            }
+            (Some(_), None) => return rt(c.line, format!("`{name}` says it hands back a borrow (`-> lent …`) but returned a value of its own; `return lend '…'`")),
+            (None, Some(_)) => return rt(c.line, format!("`{name}` returns a borrow, so its signature must say so: `-> lent@x …`")),
+            (None, None) => {}
+        }
         match (&func.ret, &result) {
             (Some(t), Value::Nothing) => rt(c.line, format!("`{name}` is declared `-> {}` but returned nothing", ty_name(t))),
             (Some(t), v) => { let k = self.ret_kind.take(); self.kind_clash(k, t, c.line)?; self.check_type(v, t, c.line)?; Ok(result) }

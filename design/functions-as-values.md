@@ -71,7 +71,9 @@ silently, which is where "why is this borrowed" bugs come from.
 
 - (Callbacks across the C boundary: decided 2026-09-21, `ffi.md`.)
 - An operator as a value (`'f' := <+>`).
-- Returning a function that captured a `lend` — the lifetime rule.
+- (Returning a function that captured a `lend`: the 2026-09-21 rule, "a
+  lend may leave its call and Precog proves it lives long enough", covers
+  it. A function value is one more borrow leaving; `ownership-syntax.md`.)
 
 ## Oracle
 

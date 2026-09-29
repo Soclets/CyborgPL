@@ -1,0 +1,1 @@
+returns a borrow of 'b', which is not in @x

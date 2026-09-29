@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Handing back a borrow: `-> lent@x T`, with `@x` a lifetime group (owner: b, `@`)
+
+Item 4, returning a function that borrowed something, turned out to be
+covered by 2026-09-21 (a lend may leave its call, and Precog proves it).
+The open part was the optional lifetime annotation, which `#strict` needs
+since callers there see only signatures. Nothing said how a function
+hands back a borrow at all. Proposed (a) name the parameters it borrows
+from, `-> lent str.utf8 from 'a', 'b'`; (b) Rust-style group labels.
+Design claude recommended a. Owner: b, "but what's the syntax?". Offered
+`@` ("at"), `~` (already wrapping), and a Rust-style list up front.
+Recommended `@` introduced by first use, like `<T>`. The owner asked
+whether the group needs a name (yes, that is b's difference from a), what
+follows `@` (the group's name, meaning only "same group"), and for a
+comparison with Rust (`fn longer<'x>(a: &'x str, b: &'x str) -> &'x
+str`), then "`@` it is". The oracle now returns borrows (it refused any
+before) and refuses one from the wrong group, one of something dying at
+the return, and a borrow returned without `-> lent` in the signature. Open:
+whether `#strict` requires the group and whether it may be omitted
+elsewhere. `ownership-syntax.md`; `examples/lifetimes.cpls`; reject
+tests lifetime_wrong_group, lifetime_local, lifetime_unsaid.
+
 ### 2026-09-29 — `for 'i', 'x' in lend 'xs'`: the position beside the item (owner: a)
 
 Parked since 2026-09-17. Proposed (a) name both, the position first;
@@ -2975,7 +2996,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - Lunae (formerly N%): its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
-- Lifetime annotation spelling (optional, verified). (Claude, 2026-09-14)
+- Lifetimes: must `#strict` write the `@` group on a returned borrow, and may it be left out elsewhere? (2026-09-29)
 - Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)

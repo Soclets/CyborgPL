@@ -140,6 +140,8 @@ pub struct Param {
     /// `...'name'` (decided 2026-09-19): the rest of the arguments, any number, each
     /// keeping its own type unless `: type` says otherwise; last parameter only
     pub variadic: bool,
+    /// `lent@x 'a'` — the lifetime group this borrow belongs to (owner, 2026-09-29)
+    pub life: Option<String>,
     pub line: usize,
 }
 
@@ -149,6 +151,8 @@ pub struct Func {
     pub module: Vec<String>,
     pub vis: Vis,
     pub ret: Option<Ty>,
+    /// `-> lent@x T` — the function hands back a borrow: (mutable, its lifetime group if written)
+    pub ret_lent: Option<(bool, Option<String>)>,
     /// `-> T or fail[a, b: type]` (decided 2026-09-19): the ways this function can fail.
     /// Empty = cannot fail.
     pub fails: Vec<FailCase>,

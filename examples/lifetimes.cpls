@@ -1,0 +1,18 @@
+# Handing back a borrow (owner, 2026-09-29): `-> lent@x T`. `@x` names a lifetime group, introduced
+# by first use like `<T>`: everything marked `@x` lives and dies together, so the result of `longer`
+# is good while both 'a and 'b are; `pick`'s result only needs 'a. Like Rust's `'x`, spelt with
+# `@` since `'` means a variable here. A borrow of something that dies at the return is refused.
+fn longer [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 {
+    if str.bytes[lend 'a'] >== str.bytes[lend 'b'] { return lend 'a'; }
+    return lend 'b';
+}
+fn pick [lent@x 'a': str.utf8, lent@y 'b': str.utf8] -> lent@x str.utf8 {
+    return lend 'a';
+}
+MAIN {
+    's' := "hello";
+    't' := "hi";
+    'l' := longer[lend 's', lend 't'];
+    'p' := pick[lend 't', lend 's'];
+    std::printu.stdout['l', " ", 'p', \n];
+}

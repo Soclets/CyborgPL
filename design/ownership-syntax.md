@@ -135,8 +135,34 @@ A lend may be given its own name (decided 2026-09-14):
 not assignable, not give-able. Precog's lifetime inference keeps it from
 outliving `'s'`.
 
+## Handing back a borrow: `-> lent@x T` (owner, 2026-09-29)
+
+```
+fn longer [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 {
+    if str.bytes[lend 'a'] >== str.bytes[lend 'b'] { return lend 'a'; }
+    return lend 'b';
+}
+fn pick [lent@x 'a': str.utf8, lent@y 'b': str.utf8] -> lent@x str.utf8 { return lend 'a'; }
+```
+
+A function may hand back a borrow of what it was lent (2026-09-21: a lend
+may leave the call, and Precog proves it lives long enough). The return
+says so, `-> lent T` or `-> lent.mut T`. **`@x` names a lifetime group**:
+everything marked `@x` lives and dies together, so `longer`'s result is
+good while both `'a` and `'b` are, and `pick`'s needs only `'a`. The name
+means nothing but "same group", and it is introduced by first use, like
+`<T>`, with no list up front. Rust writes the same idea `<'x>` …
+`&'x str`. `'` means a variable here, so `@`, which reads as "at", and it
+sits on the borrow word, since borrowing is a word before the name. A
+returned borrow must come from a `lent` parameter in its group, never
+from something that dies at the return, and a function returning one
+must say so. Proposed alternatives: naming the parameters instead of a
+group (`-> lent str.utf8 from 'a', 'b'`, recommended by design claude
+and not chosen); `~` for the mark (it already means wrapping); a Rust-style
+list up front (`fn longer <@x> …`). `examples/lifetimes.cpls`.
+
 ## Open
 
-- The lifetime annotation's spelling (optional, verified). (Reaffirmed 2026-09-21:
-  a lend *may* escape a call and Precog proves it; the rule "a lend never
-  outlives its scope" was offered and declined.)
+- Whether a `#strict` file must write the `@` group on every returned
+  borrow (it cannot look into bodies), and whether it may be left out
+  elsewhere, as "optional, verified" (2026-09-14) suggests.

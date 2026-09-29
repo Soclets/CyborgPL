@@ -401,7 +401,7 @@ impl Parser {
             };
             let pname = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted operand name, found {other}")) };
             let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
-            params.push(Param { kind, mutability: None, ty, name: pname, variadic: false, line: pline });
+            params.push(Param { kind, mutability: None, ty, name: pname, variadic: false, life: None, line: pline });
             if *self.peek() == Tok::Comma { self.advance(); continue; }
             break;
         }
@@ -420,7 +420,7 @@ impl Parser {
             Vec::new()
         } else { self.block()? };
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails: Vec::new(), is_extern: false, is_op: true, bounds, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, bounds, params, body, line })
     }
 
     // struct := 'struct' Word '{' (('mut' | 'immut')? Word ':' type)* '}'   — no `;`, no `let`
@@ -493,10 +493,17 @@ impl Parser {
         self.expect(Tok::RBracket, "`]` to close the parameter list")?;
         // -> T | -> T or fail[…] | -> fail[…]   (decided 2026-09-19)
         let mut ret = None;
+        let mut ret_lent = None;
         let mut fails = Vec::new();
         match self.peek() {
             Tok::Arrow => {
                 self.advance();
+                // `-> lent@x str.utf8` — hands back a borrow (owner, 2026-09-29)
+                if self.is_word("lent") {
+                    self.advance();
+                    let m = if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "mut") { self.advance(); self.advance(); true } else { false };
+                    ret_lent = Some((m, self.life_label()?));
+                }
                 if self.is_word("fail") { fails = self.fail_list()?; }
                 else {
                     let saved = self.at_boundary; self.at_boundary = true;
@@ -531,7 +538,7 @@ impl Parser {
         } else { self.block()? };
         if self.strict && ret.is_none() && self.saw_value_return { return self.err(format!("`#strict`: `{name}` returns a value, so it says its type: `-> int32`")); }
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, bounds, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, bounds, params, body, line })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -558,8 +565,20 @@ impl Parser {
 
     // param := ('lent' ('.' 'mut')? | 'mut' | 'immut')? Var (':' type)?
     // An owning parameter has no keyword; `lent` / `lent.mut` mirror the caller's `lend` / `lend.mut`.
+    /// `@x` after `lent` / `lent.mut`: the lifetime group (owner, 2026-09-29) — introduced by
+    /// first use, like `<T>`
+    fn life_label(&mut self) -> PResult<Option<String>> {
+        if !matches!(self.peek(), Tok::Op(o) if o == "@") { return Ok(None); }
+        self.advance();
+        match self.advance().tok {
+            Tok::Word(w) => Ok(Some(w)),
+            other => self.err(format!("a lifetime group is named after `@`: `lent@x`, found {other}")),
+        }
+    }
+
     fn param(&mut self) -> PResult<Param> {
         let line = self.line();
+        let mut life = None;
         let mut kind = ParamKind::Owned;
         let mut mutability = None;
         match self.peek().clone() {
@@ -568,6 +587,7 @@ impl Parser {
                 kind = if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(m) if m == "mut") {
                     self.advance(); self.advance(); ParamKind::LentMut
                 } else { ParamKind::Lent };
+                life = self.life_label()?;
             }
             Tok::Op(o) if o == "&" => {
                 note_ampersand();
@@ -596,7 +616,7 @@ impl Parser {
         self.at_boundary = saved;
         let ty = match ty { Some(t) => Some(t?), None => None };
         if variadic && *self.peek() == Tok::Comma { return self.err(format!("`...'{name}'` takes the rest of the arguments, so it must be the last parameter")); }
-        Ok(Param { kind, mutability, ty, name, variadic, line })
+        Ok(Param { kind, mutability, ty, name, variadic, life, line })
     }
 
     // type := Word ('.' Word)* ('[' type (',' type)* ']')?
@@ -1449,7 +1469,7 @@ impl Parser {
         self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, fails, is_extern: false, is_op: false, bounds, params, body, line })
+        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, bounds, params, body, line })
     }
 
     /// `with [lend 'a', give 'b']` — explicit captures, for an anonymous fn and for `concur`.
