@@ -28,7 +28,9 @@ Owner, 2026-09-14.
   extension beside `.cpls` and `.limb`, and unclaimed anywhere. The
   file's contents are **TOML**: a manifest is data, TOML needs no parser
   of ours and every editor highlights it, so the extension says whose
-  the file is while the format stays standard. Proposed alternatives:
+  the file is while the format stays standard. *(Reopened 2026-09-29: the
+  TOML part had been bundled into the owner's "yes" to the extension, and
+  the owner now says Synthia will likely not be TOML inside.)* Proposed alternatives:
   `Synthia.toml` (Cargo's furniture); `.cpm`, which drops the family's
   `l` and brushes against CPM.cmake's world; the manifest written in
   CyborgPL itself as `pub const`s — the strongest "one language" story
@@ -50,7 +52,8 @@ Owner, 2026-09-14.
   pub const 'dependencies' := [cca.Dep[name = "geometry", version = "1.2"]];
   ```
 
-  Synthia stays the separate tool, its `Synthia.cplm` TOML. What goes in
+  Synthia stays the separate tool; what is inside `Synthia.cplm` is open
+  again (owner, 2026-09-29: "Synthia will likely not be TOML inside"). What goes in
   `CCA.cplr`, and how the two relate, is open.
 - **`.limb`** — a *published* Limb: the Limb's directory (`Synthia.cplm` +
   `.cpls` files) packaged as one file for Synthia to upload, download, and

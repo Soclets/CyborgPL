@@ -15,8 +15,9 @@ the manifest in CyborgPL as `pub const`s) were never chosen between. Shown
 the CyborgPL form, the owner: "Since, it's a hobby lang, and a hobby is
 supposed to be fun. There should be two package managers. Synthia is the
 not built-in one. Our built-in PM would have CyborgPL syntax deliberately."
-- **Synthia** stays the separate tool; `Synthia.cplm` stays TOML (design
-  claude's reading of the split, which the owner did not object to).
+- **Synthia** stays the separate tool. What is inside `Synthia.cplm` is
+  **open again**: design claude read the split as keeping TOML there, and
+  the owner corrected it: "Synthia will likely not be TOML inside." 
 - **CCA has a package manager built in** (owner, asked "idk, what do you
   suggest?"; design claude suggested the compiler, which already parses
   CyborgPL and evaluates constants, and keeps 2026-09-23's "dependencies
