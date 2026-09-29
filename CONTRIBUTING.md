@@ -1,3 +1,5 @@
 # Contributing
 
-CyborgPL™ is a hobby language. I only accept the pull requests and issues I want to.
+Just a small hobby lang 😊
+
+Pull requests and issues are accepted only when the owner wants them.
