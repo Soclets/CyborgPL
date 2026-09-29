@@ -784,6 +784,7 @@ impl<'p> Interp<'p> {
                     Some(b) => {
                         let (v, prov) = self.bracket(b, *line)?;
                         self.ret_kind = self.last_kind.take();
+                        self.ret_line = *line;
                         match prov {
                             Prov::Bare(n) => return rt(*line, format!("returning bare '{n}', which owns a {}: say `give '{n}'` (or `copy`)", v.kind())),
                             // a borrow handed back (owner, 2026-09-29): checked against `-> lent@x` by the caller
@@ -3284,7 +3285,8 @@ impl<'p> Interp<'p> {
         }
         match (&func.ret, &result) {
             (Some(t), Value::Nothing) => rt(c.line, format!("`{name}` is declared `-> {}` but returned nothing", ty_name(t))),
-            (Some(t), v) => { let k = self.ret_kind.take(); self.kind_clash(k, t, c.line)?; self.check_type(v, t, c.line)?; Ok(result) }
+            // the answer lands in the return type at the `return` (seed 3761, check claude, 2026-09-29)
+            (Some(t), v) => { let k = self.ret_kind.take(); self.kind_clash(k, t, self.ret_line)?; self.check_type(v, t, self.ret_line)?; Ok(result) }
             (None, _) => { self.ret_kind = None; Ok(result) }
         }
     }
