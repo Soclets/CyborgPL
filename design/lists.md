@@ -228,5 +228,3 @@ reading, not asked). Proposed alternative: leave it, looping over
 
 ## Open
 
-- Stating a length at a boundary (a list from input) — parked with input,
-  2026-09-17; it is the range-annotation question.
