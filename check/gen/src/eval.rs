@@ -216,6 +216,7 @@ impl<'a> Ev<'a> {
                 Val::I(v)
             }
             Expr::Len(n) => Val::I(Self::list(env, n).borrow().len() as i128),
+            Expr::Lend(n) => Self::lookup(env, n).map(|v| v.0).unwrap_or(Val::I(0)),
             Expr::Bin(op, a, b) => {
                 let t = self.ty_of(env, e).unwrap_or(Ty::I64);
                 let x = self.expr(env, a)?.i();
@@ -287,6 +288,24 @@ impl<'a> Ev<'a> {
             (self.node, self.stmt) = (addr(&args[0]), self.call_at);
             self.land(x, t.into())?;
             return Ok(Val::I(0));
+        }
+        if let Some(bf) = self.p.bfuncs.iter().find(|g| g.name == f) {
+            // A borrow function: its lists come in lent and a borrow goes out.
+            let mut fenv: Env = vec![HashMap::new()];
+            for (a, (n, _)) in args.iter().zip(&bf.params) {
+                let x = self.expr(env, a)?;
+                fenv[0].insert(n.clone(), (x, bf.elem.into()));
+            }
+            if self.depth >= MAX_DEPTH {
+                return Err(Stop((0, 0, "steps")));
+            }
+            self.depth += 1;
+            let r = self.block(&mut fenv, &bf.body);
+            self.depth -= 1;
+            return match r? {
+                Flow::Return(v) => Ok(v),
+                _ => Ok(Val::I(0)),
+            };
         }
         let Some(func) = self.p.funcs.iter().find(|g| g.name == f) else { return Ok(Val::I(0)) };
         let mut fenv: Env = vec![HashMap::new()];
@@ -374,6 +393,9 @@ impl<'a> Ev<'a> {
             }
             Stmt::Return(e) => {
                 let x = self.expr(env, e)?;
+                if let Val::L(_) = x {
+                    return Ok(Flow::Return(x));
+                }
                 (self.node, self.stmt) = (addr(e), addr(s));
                 // the enclosing function's return type
                 let rt = self.ret_ty.last().copied().unwrap_or(Ty::I64.into());
@@ -487,6 +509,21 @@ impl<'a> Ev<'a> {
                     }
                     k += 1;
                 }
+                Ok(Flow::Next)
+            }
+            Stmt::Borrow { name, value } => {
+                let x = self.expr(env, value)?;
+                let ty = match value {
+                    Expr::Call(f, _) => self.p.bfuncs.iter().find(|g| &g.name == f).map_or(Ty::I64, |g| g.elem),
+                    Expr::Lend(n) => Self::lookup(env, n).map_or(Ty::I64, |v| v.1.base),
+                    _ => Ty::I64,
+                };
+                env.last_mut().unwrap().insert(name.clone(), (x, ty.into()));
+                Ok(Flow::Next)
+            }
+            Stmt::Give { name, from } => {
+                let x = Self::lookup(env, from).unwrap_or((Val::I(0), Ty::I64.into()));
+                env.last_mut().unwrap().insert(name.clone(), x);
                 Ok(Flow::Next)
             }
             Stmt::Loop { body } => loop {

@@ -52,11 +52,20 @@ pub struct Config {
     /// Use a `for … in lend` item only through `to.T['x']`: the oracle gives
     /// the item no width for `+~` or `not.bit` (sent 2026-09-29).
     pub item_through_to: bool,
+    /// Functions that hand back a borrow (`-> lent@x list[T]`, 46faa74), and
+    /// chains of them in MAIN followed by a `give`, an append or a change of
+    /// one of the lists.
+    pub borrows: bool,
+    /// Per mille of programs with borrows that get one borrow mistake on
+    /// purpose (a borrow of a local, the wrong group, an unsaid borrow, or a
+    /// list changed while a borrow of it is still used); both engines must
+    /// refuse those (`Program::expect_refused`).
+    pub borrow_wrong: u64,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, borrows: true, borrow_wrong: 250 }
     }
 }
 
@@ -99,6 +108,17 @@ struct Sig {
     cost: u64,
 }
 
+/// A borrow function as its callers see it.
+#[derive(Clone, Debug)]
+struct BSig {
+    name: String,
+    arity: usize,
+    /// The parameters its result may borrow (by the signature's group, which
+    /// the generator makes equal to what the body can return).
+    deps: Vec<usize>,
+    wrong: bool,
+}
+
 #[derive(Clone, Copy, PartialEq)]
 enum LoopKind {
     None,
@@ -131,6 +151,8 @@ struct Gen {
     /// the list's type (design/operators.md, "context stops at … a
     /// construction"), so a shift's left operand is never bare there.
     in_item: bool,
+    bsigs: Vec<BSig>,
+    belem: Ty,
 }
 
 const MAIN_BUDGET: u64 = 20_000;
@@ -157,11 +179,28 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         in_check: 0,
         positioned: false,
         in_item: false,
+        bsigs: vec![],
+        belem: Ty::I32,
     };
     let nfns = g.rng.below(cfg.size as u64 + 1) as usize;
     let mut funcs = vec![];
     for i in 0..nfns {
         funcs.push(g.function(i));
+    }
+    // Borrow functions, and whether this program gets a mistake on purpose.
+    let mut bfuncs = vec![];
+    let mut wrong = None;
+    if cfg.borrows && g.rng.chance(35) {
+        g.belem = g.int_ty();
+        let n = 1 + g.rng.below(4) as usize;
+        let mistake = g.rng.below(1000) < cfg.borrow_wrong;
+        let bad = if mistake && g.rng.chance(50) { Some(g.rng.below(n as u64) as usize) } else { None };
+        for i in 0..n {
+            bfuncs.push(g.borrow_fn(i, bad == Some(i)));
+        }
+        if mistake {
+            wrong = Some(bad);
+        }
     }
     // MAIN
     g.callable = g.sigs.len();
@@ -186,13 +225,18 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
             g.declare(name, Ty::U64, Ty::U64.range(), false);
         }
     }
+    // The mistake goes first in MAIN, where it always runs (the oracle
+    // checks borrows only on the paths it runs, sent 2026-09-29).
+    if let Some(bad) = wrong {
+        main.push(g.episode(Some(bad)));
+    }
     // A few typed names first, so comparisons always have something typed.
     for _ in 0..1 + g.rng.below(3) {
         main.push(g.let_stmt());
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, main, loose }
+    Program { seed, printer, inputs, funcs, bfuncs, main, loose, expect_refused: wrong.is_some() }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -230,7 +274,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -487,6 +531,7 @@ impl Gen {
             if self.settable().is_empty() { 0 } else { 2 },   // change 'xs'[p]
             if self.appendable().is_empty() { 0 } else { 2 }, // list.append
             if nested && !self.walkable().is_empty() { 2 } else { 0 }, // for … in lend
+            if self.in_fn.is_none() && self.bsigs.iter().any(|b| !b.wrong) { 2 } else { 0 }, // borrows
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -499,6 +544,7 @@ impl Gen {
             9 => self.set_at(),
             10 => self.append(),
             11 => self.for_each(depth),
+            12 => self.episode(None),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -652,6 +698,180 @@ impl Gen {
         }
         (self.mult, self.in_loop) = saved;
         Stmt::ForEach { pos, item, list: v.name, body }
+    }
+
+    // ------------------------------------------------------------ borrows
+
+    /// `return lend 'p';` or `return b[lend …];`, and what it can borrow.
+    fn borrow_return(&mut self, index: usize, params: &[String]) -> (Expr, Vec<usize>) {
+        let callees: Vec<BSig> = self.bsigs[..index].iter().filter(|b| !b.wrong).cloned().collect();
+        if !callees.is_empty() && self.rng.chance(50) {
+            let c = self.rng.pick(&callees).clone();
+            let map: Vec<usize> = (0..c.arity).map(|_| self.rng.below(params.len() as u64) as usize).collect();
+            let args = map.iter().map(|&m| Expr::Lend(params[m].clone())).collect();
+            let mut deps: Vec<usize> = c.deps.iter().map(|&d| map[d]).collect();
+            deps.sort();
+            deps.dedup();
+            return (Expr::Call(c.name, args), deps);
+        }
+        let k = self.rng.below(params.len() as u64) as usize;
+        (Expr::Lend(params[k].clone()), vec![k])
+    }
+
+    fn borrow_fn(&mut self, index: usize, wrong: bool) -> BFunc {
+        let name = format!("b{}", index + 1);
+        let n = 1 + self.rng.below(3) as usize;
+        let params: Vec<String> = ["a", "b", "c"][..n].iter().map(|s| s.to_string()).collect();
+        let len = |p: &str| Box::new(Expr::Len(p.to_string()));
+        let mut body = vec![];
+        let mut deps = vec![];
+        if self.rng.chance(35) {
+            // Two ways out, chosen by the lists' lengths.
+            let a = self.rng.pick(&params).clone();
+            let cond = if self.rng.chance(50) {
+                let b = self.rng.pick(&params).clone();
+                Expr::Cmp(CmpOp::Ge, len(&a), len(&b))
+            } else {
+                Expr::Cmp(CmpOp::Gt, len(&a), Box::new(Expr::Lit(self.rng.range(0, 3))))
+            };
+            let (e, d) = self.borrow_return(index, &params);
+            body.push(Stmt::If { arms: vec![(cond, vec![Stmt::Return(e)])], otherwise: None });
+            deps.extend(d);
+        }
+        let (e, d) = self.borrow_return(index, &params);
+        body.push(Stmt::Return(e));
+        deps.extend(d);
+        deps.sort();
+        deps.dedup();
+        // The signature: no groups (Precog reads the body), or @x on exactly
+        // what the body can return and @y (or nothing) on the rest.
+        let annotated = self.rng.chance(65);
+        let mut groups: Vec<Option<String>> = (0..n)
+            .map(|i| if !annotated { None } else if deps.contains(&i) { Some("x".into()) } else if self.rng.chance(70) { Some("y".into()) } else { None })
+            .collect();
+        let mut ret_group = annotated.then(|| "x".to_string());
+        let mut unsaid = false;
+        if wrong {
+            match self.rng.below(3) {
+                0 => {
+                    // A borrow of a local, which dies at the return.
+                    let loc = "loc".to_string();
+                    let (v, _) = self.literal(self.belem);
+                    body = vec![Stmt::ListLet { name: loc.clone(), mutable: false, elem: self.belem, items: vec![v] }, Stmt::Return(Expr::Lend(loc))];
+                }
+                1 => {
+                    // One returned parameter left out of the result's group.
+                    let d = *self.rng.pick(&deps);
+                    for (i, g) in groups.iter_mut().enumerate() {
+                        *g = if i == d { Some("y".into()) } else if deps.contains(&i) { Some("x".into()) } else { g.clone() };
+                    }
+                    ret_group = Some("x".into());
+                }
+                _ => unsaid = true,
+            }
+        }
+        self.bsigs.push(BSig { name: name.clone(), arity: n, deps, wrong });
+        BFunc { name, params: params.into_iter().zip(groups).collect(), elem: self.belem, ret_group, unsaid, body }
+    }
+
+    /// Print a use of a borrowed list: its first item or its length.
+    fn use_borrow(&mut self, r: &str) -> Stmt {
+        if self.rng.chance(40) {
+            return Stmt::Print { signed: false, value: Expr::Len(r.to_string()) };
+        }
+        let at = Expr::At(r.to_string(), Box::new(Expr::Lit(1)));
+        if self.belem.signed() {
+            Stmt::Print { signed: true, value: Expr::To(Ty::I64, Box::new(at)) }
+        } else {
+            Stmt::Print { signed: false, value: Expr::To(Ty::U64, Box::new(at)) }
+        }
+    }
+
+    /// A block of lists, borrows of them handed back through the borrow
+    /// functions (some through earlier borrows), uses, and maybe a give, an
+    /// append or a change of one list. `mistake`: Some(Some(i)) calls the
+    /// wrong function b(i+1); Some(None) changes a list while a borrow of it
+    /// is used after; None is right by construction.
+    fn episode(&mut self, mistake: Option<Option<usize>>) -> Stmt {
+        let elem = self.belem;
+        let mut body = vec![];
+        let nown = 1 + self.rng.below(3) as usize;
+        let mut owners = vec![];
+        for _ in 0..nown {
+            let o = self.name("o");
+            let mutable = self.rng.chance(60) || mistake == Some(None);
+            let k = 1 + self.rng.below(3);
+            let items = (0..k).map(|_| self.literal(elem).0).collect();
+            body.push(Stmt::ListLet { name: o.clone(), mutable, elem, items });
+            owners.push((o, mutable));
+        }
+        // Each borrow: its name and the owners it may borrow.
+        let mut borrows: Vec<(String, Vec<usize>)> = vec![];
+        let usable: Vec<BSig> = match mistake {
+            Some(Some(bad)) => vec![self.bsigs[bad].clone()],
+            _ => self.bsigs.iter().filter(|b| !b.wrong).cloned().collect(),
+        };
+        let nb = if matches!(mistake, Some(Some(_))) { 1 } else { 1 + self.rng.below(3) as usize };
+        for _ in 0..nb {
+            let f = self.rng.pick(&usable).clone();
+            let mut args = vec![];
+            let mut arg_deps = vec![];
+            for _ in 0..f.arity {
+                if !borrows.is_empty() && self.rng.chance(35) {
+                    let (r, d) = self.rng.pick(&borrows).clone();
+                    args.push(Expr::Lend(r));
+                    arg_deps.push(d);
+                } else {
+                    let i = self.rng.below(nown as u64) as usize;
+                    args.push(Expr::Lend(owners[i].0.clone()));
+                    arg_deps.push(vec![i]);
+                }
+            }
+            let mut deps: Vec<usize> = f.deps.iter().flat_map(|&d| arg_deps[d].clone()).collect();
+            deps.sort();
+            deps.dedup();
+            let r = self.name("r");
+            body.push(Stmt::Borrow { name: r.clone(), value: Expr::Call(f.name.clone(), args) });
+            borrows.push((r, deps));
+        }
+        for _ in 0..self.rng.below(3) {
+            let r = self.rng.pick(&borrows).0.clone();
+            body.push(self.use_borrow(&r));
+        }
+        let kill = mistake == Some(None) || (mistake.is_none() && self.rng.chance(70));
+        let mut after: Vec<String> = borrows.iter().map(|b| b.0.clone()).collect();
+        if kill {
+            // The owner to give away or change; for a mistake, one some borrow depends on.
+            let pick: Vec<usize> = if mistake == Some(None) {
+                (0..nown).filter(|i| borrows.iter().any(|b| b.1.contains(i))).collect()
+            } else {
+                (0..nown).collect()
+            };
+            if let Some(&o) = (!pick.is_empty()).then(|| self.rng.pick(&pick)) {
+                let (oname, mutable) = owners[o].clone();
+                let kinds = if mutable { 3 } else { 1 };
+                body.push(match self.rng.below(kinds) {
+                    0 => Stmt::Give { name: self.name("g"), from: oname.clone() },
+                    1 => Stmt::Append { name: oname.clone(), value: self.literal(elem).0 },
+                    _ => Stmt::SetAt { tier: Tier::Default, name: oname.clone(), pos: Expr::Lit(1), value: self.literal(elem).0 },
+                });
+                let dependent: Vec<String> = borrows.iter().filter(|b| b.1.contains(&o)).map(|b| b.0.clone()).collect();
+                if mistake == Some(None) {
+                    after = vec![self.rng.pick(&dependent).clone()];
+                } else {
+                    // Right by construction: only borrows that do not need it are used after.
+                    after.retain(|r| !dependent.contains(r));
+                }
+            }
+        }
+        let nafter = if mistake == Some(None) { 1 } else { self.rng.below(3) as usize };
+        if !after.is_empty() {
+            for _ in 0..nafter {
+                let r = self.rng.pick(&after).clone();
+                body.push(self.use_borrow(&r));
+            }
+        }
+        Stmt::Block { tier: Tier::Default, body }
     }
 
     fn tier(&mut self, risky: bool) -> Tier {

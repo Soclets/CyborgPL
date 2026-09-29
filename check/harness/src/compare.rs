@@ -59,6 +59,57 @@ pub fn check(tools: &Tools, src: &str, dir: &Path, envs: &[Env]) -> Verdict {
     check_modes(tools, src, dir, envs, &BOTH)
 }
 
+/// A generated program: its expectations first, then the comparison. A
+/// program built with a borrow mistake on purpose must be refused by both
+/// engines (where each points is not compared: which line a borrow conflict
+/// is reported at is open with the owner, 2026-09-29). A program whose
+/// borrows are right by construction must not be refused for a borrow.
+pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, envs: &[Env]) -> Verdict {
+    let src = p.render();
+    if !p.expect_refused {
+        let v = check(tools, &src, dir, envs);
+        if !p.bfuncs.is_empty() {
+            let refused_borrow = |m: &str| ["borrow", "given away", "cannot be changed", "lives", "dies"].iter().any(|w| m.contains(w));
+            let hit = match &v {
+                Verdict::Agree { oracle_stopped: Some(m) } if refused_borrow(m) => Some(format!("oracle: {m}")),
+                Verdict::Finding(f) if f.detail.lines().any(|l| l.starts_with("cca build") && refused_borrow(l)) => Some(f.detail.clone()),
+                _ => None,
+            };
+            if let Some(d) = hit {
+                let kind = "refused-right-borrow";
+                return Verdict::Finding(Finding { kind, mode: Mode::Normal, sig: format!("{kind}: {}", crate::normalise(d.lines().last().unwrap_or(""))), env: vec![], detail: d });
+            }
+        }
+        return v;
+    }
+    std::fs::create_dir_all(dir).unwrap();
+    let file = dir.join("prog.cpls");
+    std::fs::write(&file, &src).unwrap();
+    let env: Env = envs.first().cloned().unwrap_or_default();
+    let mut d = String::new();
+    let o = oracle(tools, &file, dir, &env);
+    let _ = writeln!(d, "a borrow mistake on purpose; oracle: {}", oracle_text(&o));
+    let b = cca_build(tools, &file, dir, Mode::Normal);
+    match &b {
+        Build::Refused { line, msg } => {
+            let _ = writeln!(d, "cca build: refused at line {} — {msg}", opt(*line));
+        }
+        Build::Built(_) => {
+            let _ = writeln!(d, "cca build: built it");
+        }
+        Build::NotYet { msg } => return Verdict::NotYet(msg.clone()),
+        Build::Timeout => return Verdict::SlowBuild,
+    }
+    let kind = match (&o, &b) {
+        (Oracle::Ran { .. }, Build::Built(_)) => "both-accepted-borrow-mistake",
+        (Oracle::Ran { .. }, _) => "oracle-accepted-borrow-mistake",
+        (_, Build::Built(_)) => "cca-accepted-borrow-mistake",
+        (Oracle::Timeout, _) => "oracle-timeout",
+        _ => return Verdict::Agree { oracle_stopped: None },
+    };
+    Verdict::Finding(Finding { kind, mode: Mode::Normal, sig: kind.to_string(), env, detail: d })
+}
+
 pub fn check_modes(tools: &Tools, src: &str, dir: &Path, envs: &[Env], modes: &[Mode]) -> Verdict {
     std::fs::create_dir_all(dir).unwrap();
     let file = dir.join("prog.cpls");

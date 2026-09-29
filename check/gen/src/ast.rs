@@ -223,6 +223,8 @@ pub enum Expr {
     At(String, Box<Expr>),
     /// `list.length[lend 'xs']`, a `uint64`.
     Len(String),
+    /// `lend 'xs'`: an argument to a borrow function, or what one returns.
+    Lend(String),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -262,6 +264,10 @@ pub enum Stmt {
     /// `for 'x' in lend 'xs'`, or `for 'i', 'x' in lend 'xs'` with the
     /// position from 1 (owner, c7951d4).
     ForEach { pos: Option<String>, item: String, list: String, body: Vec<Stmt> },
+    /// `'r' := b1[lend 'xs', …];`: a borrow handed back by a call.
+    Borrow { name: String, value: Expr },
+    /// `'g' := give 'xs';`: 'xs' is dead after this.
+    Give { name: String, from: String },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -275,6 +281,22 @@ pub struct Func {
     pub name: String,
     pub params: Vec<Param>,
     pub ret: TyR,
+    pub body: Vec<Stmt>,
+}
+
+/// A function that hands back a borrow of one of its lists
+/// (design/ownership-syntax.md, 46faa74, 09044b6):
+/// `fn b1 [lent@x 'a': list[int32], lent@y 'b': list[int32]] -> lent@x list[int32]`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct BFunc {
+    pub name: String,
+    /// Each parameter's name and lifetime group (`@x`), if it has one.
+    pub params: Vec<(String, Option<String>)>,
+    pub elem: Ty,
+    /// `-> lent@g list[T]` (`Some(group)`), or `-> list[T]` when `unsaid`:
+    /// a deliberately wrong signature that hides the borrow.
+    pub ret_group: Option<String>,
+    pub unsaid: bool,
     pub body: Vec<Stmt>,
 }
 
@@ -294,7 +316,10 @@ pub struct Program {
     pub printer: String,
     pub inputs: Vec<Input>,
     pub funcs: Vec<Func>,
+    pub bfuncs: Vec<BFunc>,
     pub main: Vec<Stmt>,
+    /// Built with a borrow mistake on purpose: both engines must refuse it.
+    pub expect_refused: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
 }
@@ -311,7 +336,7 @@ fn q(name: &str) -> String {
 fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
-        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) => Some(0),
+        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
         Expr::Bin(BinOp::Mul | BinOp::Div, ..) => Some(3),
@@ -475,6 +500,7 @@ impl<'a> Wr<'a> {
                 self.out.push(']');
             }
             Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
+            Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
         }
     }
     fn block(&mut self, body: &[Stmt], indent: usize) {
@@ -598,6 +624,17 @@ impl<'a> Wr<'a> {
                 let head = format!("list.append[lend.mut {}, ", q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, "];");
             }
+            Stmt::Borrow { name, value } => {
+                let head = format!("{} := ", q(name));
+                self.simple(s, &pad, Tier::Default, &head, value, ";");
+            }
+            Stmt::Give { name, from } => {
+                self.out.push_str(&pad);
+                let s0 = self.out.len();
+                self.out.push_str(&format!("{} := give {};", q(name), q(from)));
+                self.stmt.push((addr(s), s0, s0, self.out.len()));
+                self.out.push('\n');
+            }
             Stmt::ForEach { pos, item, list, body } => {
                 let pos = pos.as_ref().map(|p| format!("{}, ", q(p))).unwrap_or_default();
                 self.out.push_str(&format!("{pad}for {pos}{} in lend {} {{\n", q(item), q(list)));
@@ -620,6 +657,15 @@ impl Program {
         }
         w.out.push('\n');
         w.out.push_str(&self.printer);
+        for f in &self.bfuncs {
+            let t = f.elem.name();
+            let group = |g: &Option<String>| g.as_ref().map(|g| format!("@{g}")).unwrap_or_default();
+            let params: Vec<String> = f.params.iter().map(|(n, g)| format!("lent{} {}: list[{t}]", group(g), q(n))).collect();
+            let ret = if f.unsaid { format!("list[{t}]") } else { format!("lent{} list[{t}]", group(&f.ret_group)) };
+            w.out.push_str(&format!("\nfn {} [{}] -> {ret} {{\n", f.name, params.join(", ")));
+            w.block(&f.body, 1);
+            w.out.push_str("}\n");
+        }
         for f in &self.funcs {
             let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.text())).collect();
             w.out.push_str(&format!("\nfn {} [{}] -> {} {{\n", f.name, params.join(", "), f.ret.text()));

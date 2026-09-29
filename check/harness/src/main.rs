@@ -69,7 +69,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,item-width".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -86,6 +86,8 @@ impl Args {
             exhaust: if self.has("exhaust") { self.num("domain", EXHAUST_CAP).max(2) } else { 0 },
             lists: !avoid.contains("lists"),
             item_through_to: avoid.contains("item-width"),
+            borrows: !avoid.contains("borrows"),
+            borrow_wrong: self.num("borrow-wrong", 250),
         }
     }
 }
@@ -167,7 +169,7 @@ fn main() {
             let t = tools();
             let p = generate(a.num("seed", 1), &a.config());
             let dir = work().join("one");
-            let v = check(&t, &p.render(), &dir, &envs(&p));
+            let v = compare::check_program(&t, &p, &dir, &envs(&p));
             println!("program: {}", dir.join("prog.cpls").display());
             report(&v);
         }
@@ -175,7 +177,7 @@ fn main() {
             let t = tools();
             let p = generate(a.num("seed", 1), &a.config());
             let dir = work().join("shrink");
-            match check(&t, &p.render(), &dir.join("0"), &envs(&p)) {
+            match compare::check_program(&t, &p, &dir.join("0"), &envs(&p)) {
                 Verdict::Finding(f) => {
                     let small = shrink(&t, p, &f.sig, f.mode, &f.env, &dir, a.num("jobs", default_jobs()).min(JOBS_CAP) as usize);
                     print!("{}{}", env_header(&f.env), small.render());
@@ -275,6 +277,9 @@ fn main() {
             let (mut same, mut differ) = (0, 0);
             for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 20) {
                 let p = generate(seed, &a.config());
+                if p.expect_refused {
+                    continue;
+                }
                 let (text, spans) = p.render_spans();
                 let dir = work().join("evaltest");
                 std::fs::create_dir_all(&dir).unwrap();
@@ -511,7 +516,7 @@ fn run(t: &Tools, a: &Args) {
                     }
                     let p = generate(seed, cfg);
                     let sets = if target { aimed_envs(&p, &dir, 32).0 } else { envs(&p) };
-                    let v = check(t, &p.render(), &dir, &sets);
+                    let v = compare::check_program(t, &p, &dir, &sets);
                     let mut tl = tally.lock().unwrap();
                     match v {
                         Verdict::Agree { oracle_stopped } => {
@@ -576,6 +581,11 @@ fn run(t: &Tools, a: &Args) {
     }
     if !a.has("no-shrink") {
         for (k, seeds) in &by_kind {
+            if k.contains("borrow") {
+                // Found against the program's own expectation, which a
+                // shrinking step would not keep up to date.
+                continue;
+            }
             let seed = seeds[0];
             let (_, f) = tl.findings.iter().find(|x| x.0 == seed).unwrap();
             let p = generate(seed, &cfg);

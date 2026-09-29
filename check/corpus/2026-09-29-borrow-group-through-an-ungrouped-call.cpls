@@ -1,0 +1,16 @@
+# Finding 2026-09-29 (check run, seeds 21, 98, 127, 175, 213, 280, cut down by hand): b1 has no
+# groups, so Precog works out from its body what its result borrows (ownership-syntax.md): only
+# 'b'. b2 lends its @x 'b' there, so b2's result is in @x. CCA refuses b2 ("returns a borrow
+# of 'a', which is not in @x"), as if b1's result could borrow every argument. The oracle runs it.
+fn b1 [lent 'a': list[int32], lent 'b': list[int32]] -> lent list[int32] {
+    return lend 'b';
+}
+fn b2 [lent@y 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
+    return b1[lend 'a', lend 'b'];
+}
+MAIN {
+    's': list[int32] = [1,];
+    't': list[int32] = [2, 3];
+    'r' := b2[lend 's', lend 't'];
+    'n' := list.length[lend 'r'];
+}

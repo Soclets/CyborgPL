@@ -231,7 +231,7 @@ impl<'a> Enc<'a> {
                 self.expr(ctx, p, Some(Ty::U64));
                 self.fresh_int()
             }
-            Expr::Len(_) => self.fresh_int(),
+            Expr::Len(_) | Expr::Lend(_) => self.fresh_int(),
             Expr::Lit(v) => bv(*v),
             Expr::Bool(b) => b.to_string(),
             Expr::Var(n) => self.lookup(n).map(|v| v.term).unwrap_or_else(|| self.fresh_int()),
@@ -476,7 +476,7 @@ impl<'a> Enc<'a> {
                     self.land(ctx, &v, (*elem).into(), &format!("item of '{name}'"));
                 }
             }
-            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } => {
+            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } => {
                 // Not modelled yet: the whole program is left to the other attacks.
                 self.too_big = true;
             }

@@ -42,6 +42,25 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   about the list's length that Precog need not see. The Precog oracle's
   analyses (b) and (c) do not model lists yet: a program with one has no
   complete interval answer, and the solver skips it once it changes a list.
+  **Returned borrows** (46faa74, 09044b6; `--avoid borrows` turns them
+  off): about a third of programs get borrow functions `b1…`, each handing
+  back a borrow of one of its `lent` list parameters — directly, through an
+  earlier borrow function, or either of two by the lists' lengths — with no
+  groups (Precog reads the body) or `@x` on exactly what the body can
+  return. MAIN gets blocks of lists, borrows of them through these functions
+  (some through earlier borrows, so the chains run several calls deep),
+  uses, and a `give`, an append or a change of one list, followed only by
+  uses of the borrows that do not depend on it. `--borrow-wrong` (per
+  mille, default 250) gives a program one mistake on purpose: a borrow of a
+  local handed back, a returned parameter left out of the group, an unsaid
+  borrow (`-> list[T]`), or a list changed while a borrow of it is used
+  after. Such a program must be refused by both engines
+  (`*-accepted-borrow-mistake`; where each points is not compared yet);
+  a right one must not be refused for a borrow (`refused-right-borrow`).
+  These findings are not shrunk: a step would not keep the program's own
+  expectation up to date. The mistake sits at the top of MAIN, where it
+  always runs (the oracle checked borrows only on the paths it ran;
+  mostly fixed in 061e1fc).
 - **Printing** (owner, 2026-09-23): every program carries its own printer in
   the base language — digits into a `list[uint8]`, then C's `write` under
   `nocheck` — varied by seed, compared like everything else.
@@ -121,15 +140,14 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits,item-width`.
+straight at them. Default: `exact-bits`.
 
 - `exact-bits`: CCA says "not yet" to a shift, bitwise or wrapping operator
   on an exact answer whose operands differ in size (2026-09-23); the
   generator gives such an operand a size with `to.T[…]`.
 
-- `item-width`: the oracle gives a `for … in lend` item no width for `+~`
-  or `not.bit` (sent 2026-09-29); the generator reads an item only as
-  `to.T['x']`.
+- `item-width`: read a `for … in lend` item only as `to.T['x']` (the
+  oracle gave the item no width for `+~` or `not.bit`; fixed in 5750ea6).
 - Always (no switch): a shift in a list item or an appended value never has
   a bare left operand. Whether a list's item type reaches its literal's
   items as a let's type does is with the owner (2026-09-29); the oracle

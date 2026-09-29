@@ -159,7 +159,7 @@ impl<'a> An<'a> {
         }
         match e {
             // Lists are not analysed yet: a program with one has no complete answer.
-            Expr::At(..) | Expr::Len(_) => {
+            Expr::At(..) | Expr::Len(_) | Expr::Lend(_) => {
                 self.incomplete = true;
                 R::TOP
             }
@@ -404,7 +404,7 @@ impl<'a> An<'a> {
 
     fn stmt(&mut self, mut env: Env, s: &Stmt) -> Option<Env> {
         match s {
-            Stmt::ListLet { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } => {
+            Stmt::ListLet { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } => {
                 self.incomplete = true;
                 Some(env)
             }

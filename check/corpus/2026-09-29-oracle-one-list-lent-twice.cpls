@@ -1,0 +1,12 @@
+# Finding 2026-09-29 (check run, seeds 16, 29, 73, 232, 238, 296, cut down by hand): one list lent
+# as both 'a' and 'b'. b1 returns lend 'b', which is in @x, but the oracle says "`b1` returns a
+# borrow of 'a', which is not in @x": it seems to find the parameter by the list, not by the name.
+# CCA builds and runs it.
+fn b1 [lent 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
+    return lend 'b';
+}
+MAIN {
+    's': list[int32] = [1,];
+    'r' := b1[lend 's', lend 's'];
+    'n' := list.length[lend 'r'];
+}

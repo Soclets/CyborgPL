@@ -65,12 +65,14 @@ fn stmt_size(s: &Stmt) -> usize {
         Stmt::SetAt { pos, value, .. } => expr_size(pos) + expr_size(value),
         Stmt::Append { value, .. } => expr_size(value),
         Stmt::ForEach { body, .. } => block_size(body),
+        Stmt::Borrow { value, .. } => expr_size(value),
+        Stmt::Give { .. } => 0,
     }
 }
 
 fn expr_size(e: &Expr) -> usize {
     1 + match e {
-        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::Len(_) => 0,
+        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::Len(_) | Expr::Lend(_) => 0,
         Expr::At(_, a) => expr_size(a),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_size(a) + expr_size(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_size(a),
@@ -247,6 +249,7 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 out.push(vec![Stmt::Append { name: name.clone(), value: e }]);
             }
         }
+        Stmt::Borrow { .. } | Stmt::Give { .. } => {}
         Stmt::ForEach { pos, item, list, body } => {
             let mk = |pos: Option<String>, body: Vec<Stmt>| Stmt::ForEach { pos, item: item.clone(), list: list.clone(), body };
             if pos.is_some() {
@@ -280,7 +283,7 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
             }
             return out;
         }
-        Expr::Bool(_) | Expr::Var(_) => return out,
+        Expr::Bool(_) | Expr::Var(_) | Expr::Lend(_) => return out,
         Expr::Len(_) => {
             out.push(Expr::Lit(1));
             return out;
@@ -340,6 +343,13 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
 /// shrinking steps that break a program break it this way.
 pub fn well_scoped(p: &Program) -> bool {
     let mut arity: Vec<(String, usize)> = vec![("put_i".into(), 1), ("put_u".into(), 1)];
+    for f in &p.bfuncs {
+        arity.push((f.name.clone(), f.params.len()));
+        let mut scopes = vec![f.params.iter().map(|x| x.0.clone()).collect::<Vec<_>>()];
+        if !block_ok(&f.body, &mut scopes, &arity) {
+            return false;
+        }
+    }
     for f in &p.funcs {
         let mut scopes = vec![f.params.iter().map(|x| x.name.clone()).collect::<Vec<_>>()];
         arity.push((f.name.clone(), f.params.len()));
@@ -397,6 +407,16 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
         }
         Stmt::SetAt { name, pos, value, .. } => known(scopes, name) && e(pos, scopes) && e(value, scopes),
         Stmt::Append { name, value } => known(scopes, name) && e(value, scopes),
+        Stmt::Borrow { name, value } => {
+            let ok = e(value, scopes);
+            scopes.last_mut().unwrap().push(name.clone());
+            ok
+        }
+        Stmt::Give { name, from } => {
+            let ok = known(scopes, from);
+            scopes.last_mut().unwrap().push(name.clone());
+            ok
+        }
         Stmt::ForEach { pos, item, list, body } => {
             known(scopes, list) && {
                 scopes.push(pos.iter().cloned().chain([item.clone()]).collect());
@@ -411,7 +431,7 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
 fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(n) | Expr::Len(n) => known(scopes, n),
+        Expr::Var(n) | Expr::Len(n) | Expr::Lend(n) => known(scopes, n),
         Expr::At(n, p) => known(scopes, n) && expr_ok(p, scopes, arity),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_ok(a, scopes, arity),
