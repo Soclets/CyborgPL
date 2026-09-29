@@ -618,18 +618,9 @@ impl Checker {
                 retype_literal_arith(&mut v, &to);
             }
         }
-        // So are a list literal's items, each landing in the element type
-        // (check claude, 2026-09-29: an item was worked out at 64 bits).
-        if let (K::List(items), Ty::Seq { elem, .. }) = (&mut v.kind, t.base()) {
-            if let Ty::Int(IntW::Fixed { .. }) = self.resolve(elem).base() {
-                for item in items.iter_mut() {
-                    let hir::Arg::Value(item) = item else { continue };
-                    if matches!(self.resolve(&item.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(item) && plain_group(item) && !matches!(item.kind, K::Int(_)) {
-                        retype_literal_arith(item, &Ty::exact());
-                    }
-                }
-            }
-        }
+        // A list literal's items take the element type as their context, as
+        // a declaration's value does (owner, 2026-09-29: a).
+        self.items_in_context(&mut v, t.base());
         // A pointer that may write is also one that reads: `ptr.mut[T]`
         // goes where `ptr[T]` is wanted, never the other way.
         if let (Ty::Ptr { mutable: true, elem: e1 }, Ty::Ptr { mutable: false, elem: e2 }) = (vt.base(), t.base()) {
@@ -1053,6 +1044,28 @@ impl Checker {
         // A comparison gives one answer per lane, never a single `bool`.
         let ty = if op.is_comparison() { Ty::Simd { elem: Box::new(Ty::Bool), lanes } } else { Ty::Simd { elem: Box::new(lane), lanes } };
         Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
+    }
+
+    /// A list literal's items, in the element type's context: bare numbers
+    /// with plain math between them are exact and checked where they land;
+    /// a shift, `not.bit` or wrapping operator takes the element's width;
+    /// a nested list passes its own element type down.
+    fn items_in_context(&mut self, v: &mut Expr, t: &Ty) {
+        let (K::List(items), Ty::Seq { elem, .. }) = (&mut v.kind, t) else { return };
+        let elem = self.resolve(elem);
+        for item in items.iter_mut() {
+            let hir::Arg::Value(item) = item else { continue };
+            match elem.base() {
+                Ty::Seq { .. } => self.items_in_context(item, &elem),
+                Ty::Int(IntW::Fixed { .. }) => {
+                    if matches!(self.resolve(&item.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(item) && !matches!(item.kind, K::Int(_)) {
+                        let to = if plain_group(item) { Ty::exact() } else { elem.base().clone() };
+                        retype_literal_arith(item, &to);
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 
     /// A vector whose lanes were left to its context (`simd.fill[…]`, and
@@ -1890,6 +1903,15 @@ impl Checker {
                             ParamKind::LentMut => err(Diagnostic::error(format!("{} may modify its value: write `lend.mut {}`", what, name)).at(e.span)),
                         };
                     }
+                }
+                // A call's argument takes no width from its parameter
+                // (`operators.md`: context stops at a call; `list.append`,
+                // owner 2026-09-29): a wrap, shift or `not.bit` of bare
+                // numbers must be given one before it is handed over.
+                if let Ty::Infer(_) = self.resolve(&v.ty) {
+                    let vt = self.resolve(&v.ty);
+                    let op = self.widths_pending.iter().find(|(t, _, _)| self.resolve(t) == vt).map(|(_, _, w)| w.clone()).unwrap_or_else(|| "this".into());
+                    return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and an argument takes none from its parameter: give an operand a type, or say it in a declaration first (`'x': uint8 = 0 -~ 1;`)", op)).at(e.span));
                 }
                 let v = self.expect_store(ctx, v, pty, &what)?;
                 Ok(Arg::Value(v))
