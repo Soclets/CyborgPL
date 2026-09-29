@@ -153,8 +153,6 @@ straight at them. Default: `exact-bits`.
 
 - `data-width`: read a `match` arm's data only as `to.T['d']` (the oracle
   gave it no width for `not.bit` or the wrapping operators; fixed 2eb7b2f).
-- Always (no switch): a `match` statement is never the only statement of an
-  arm — whether it is then the arm's value is with the owner (2026-09-29).
 - `item-width`: read a `for … in lend` item only as `to.T['x']` (the
   oracle gave the item no width for `+~` or `not.bit`; fixed in 5750ea6).
 

@@ -1052,12 +1052,9 @@ impl Gen {
         for c in 0..self.enums[ei].def.cases.len() {
             let bind = self.open_arm(ei, c);
             let n = if self.rng.chance(25) { 0 } else { self.stmt_count() / 3 + 1 };
-            let mut body = self.stmts(n, depth - 1);
-            if matches!(body.as_slice(), [Stmt::MatchStmt { .. }]) {
-                // A match alone in an arm: statement or the arm's value? Open
-                // with the owner (2026-09-29); give it a second statement.
-                body.push(Stmt::Print { signed: false, value: Expr::Lit(0) });
-            }
+            // A match statement may be an arm's only statement: the outer
+            // match decides that it is a statement (owner, a4bdac1).
+            let body = self.stmts(n, depth - 1);
             self.scopes.pop();
             arms.push(Arm { case: self.enums[ei].def.cases[c].0.clone(), bind, value: None, body });
         }
