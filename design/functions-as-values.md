@@ -1,6 +1,6 @@
 # Functions as values
 
-Decided 2026-09-21, three questions. What it is for (owner asked): handing
+Decided 2026-09-21, three questions; the fourth, operators, 2026-09-29. What it is for (owner asked): handing
 behaviour to someone else — a sort's comparison, a callback a library
 runs later, the test in a `keep`/`filter`, C's `qsort`. Without it every
 such thing is "copy the loop, change one line" — the problem generics
@@ -52,6 +52,38 @@ inference, as for a named lend), `copy` takes an independent copy,
 named-only and over inline-without-capture; every other language captures
 silently, which is where "why is this borrowed" bugs come from.
 
+## 4. An operator is a value as `op +` (owner, 2026-09-29)
+
+```
+'sum'     := fold[lend 'xs', 0, op +];
+'product' := fold[lend 'xs', 1, op x];
+'flipped' := map[lend 'xs', op neg];
+'f': fn[int32, int32] -> int32 = op mod;
+```
+
+`op` — the word that defines an operator — before any operator makes it
+a function value, for a `fold`, a sort's comparison, or a calculator
+that picks one at run time. It works for every operator, glyph or word:
+`op </==`, `op ++`, `op shl`, a custom `op dot`. Before this an inline
+`fn` did the same (`fn ['a': int32, 'b': int32] -> int32 { return 'a' +
+'b'; }`), and still does; design claude recommended keeping only that,
+and the owner chose `op`. Proposed spellings not chosen: `(+)` (Haskell,
+OCaml), `op[+]`.
+
+- **The type comes from where it goes**: a parameter's type, or a typed
+  declaration. `'f' := op +;` alone is refused: nothing says which `+`
+  (int32, bin64, a Vec). *(design claude's reading, not ruled)*
+- **`op -` is subtraction; negation is `op neg`** (owner). `neg` exists
+  only after `op`; in an expression negation is still `-'x'`. Proposed
+  alternatives: where it goes decides (a one-value slot negates); a
+  placeholder such as `op -_` (`_` is digit grouping already).
+- **`op and.then` and `op or.else` are refused** (owner): a function's
+  arguments are worked out before it runs, so they could skip nothing and
+  would secretly be `op and` / `op or`. The error says to write those.
+- A custom operator's operands are lent unless its definition says
+  `give`, so `op dot` is a `fn[lent Vec, lent Vec] -> bin64` *(the
+  oracle's reading)*.
+
 ## Consequences
 
 - A captured `lend` is visible inside as a lent variable, a `copy`/`give`
@@ -71,8 +103,7 @@ silently, which is where "why is this borrowed" bugs come from.
 ## Open
 
 - (Callbacks across the C boundary: decided 2026-09-21, `ffi.md`.)
-- An operator as a value: decided 2026-09-29, `op +` (DECISIONS.md); its
-  section here is still to be written.
+- (An operator as a value: decided 2026-09-29, section 4.)
 - (Returning a function that captured a `lend`: the 2026-09-21 rule, "a
   lend may leave its call and Precog proves it lives long enough", covers
   it. A function value is one more borrow leaving; `ownership-syntax.md`.)

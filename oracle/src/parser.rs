@@ -1223,6 +1223,10 @@ impl Parser {
             (other, _) => return self.err(format!("expected `:=` or `=`, found {other}")),
         }
         let value = self.rhs()?;
+        if let ([Value::Expr(Expr::OpValue(op, ..))], None) = (value.values.as_slice(), &ty) {
+            // design claude's reading, not ruled: nothing says which `+` (int32? bin64? a Vec?)
+            return self.err(format!("`op {op}` alone does not say which `{op}`: give '{name}' a function type, `'{name}': fn[int32, int32] -> int32 = op {op};`"));
+        }
         self.expect(Tok::Semi, "`;`")?;
         Ok(Stmt::Decl { name, mutability, ty, value, shadow, sealed, line })
     }
@@ -2135,6 +2139,45 @@ impl Parser {
                     if *self.peek() != Tok::LBrace { return self.err(format!("expected `{{` after the value to match, found {}", self.peek())); }
                     let arms = self.arms("match")?;
                     Ok(Expr::Match(value, arms, line))
+                }
+                "op" => {
+                    // `op +` — an operator as a value (owner, 2026-09-29); negation is `op neg`,
+                    // since `op -` is subtraction
+                    self.advance();
+                    let op = match self.peek().clone() {
+                        Tok::Word(w) if w == "neg" => { self.advance(); w }
+                        Tok::Word(w) if w == "not" => {
+                            self.advance();
+                            if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(b) if b == "bit") { self.advance(); self.advance(); "not.bit".to_string() } else { w }
+                        }
+                        _ => match self.binop() {
+                            Some(o) if o == "=" => return self.err("`=` is not an operator; equality is `op ==`"),
+                            Some(o) => { self.advance(); if o.contains('.') { self.advance(); self.advance(); } o }
+                            None => return self.err(format!("`op` is followed by an operator: `op +`, `op mod`, `op neg`; found {}", self.peek())),
+                        },
+                    };
+                    if op == "and.then" || op == "or.else" {
+                        let plain = op.split('.').next().unwrap();
+                        return self.err(format!("`op {op}` cannot skip anything: a function's arguments are worked out before it runs, so it would be `op {plain}`. Write `op {plain}` (owner, 2026-09-29)"));
+                    }
+                    let cmp = matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==");
+                    let src = match op.as_str() {
+                        "neg" => "fn ['a': <T>] -> <T> { return -'a'; }".to_string(),
+                        "not" => "fn ['a': bool] -> bool { return not 'a'; }".to_string(),
+                        "not.bit" => "fn ['a': <T>] -> <T> { return not.bit 'a'; }".to_string(),
+                        "and" | "or" => format!("fn ['a': bool, 'b': bool] -> bool {{ return 'a' {op} 'b'; }}"),
+                        "++" => "fn ['a': <A>, 'b': <B>] -> str.utf8 { return 'a' ++ 'b'; }".to_string(),
+                        "xx" | "xx~" | "shl" | "shr" => format!("fn ['a': <T>, 'b': <U>] -> <T> {{ return 'a' {op} 'b'; }}"),
+                        _ if cmp => format!("fn ['a': <T>, 'b': <T>] -> bool {{ return 'a' {op} 'b'; }}"),
+                        _ if Parser::level(&op) != 0 || OP_WORDS.contains(&op.as_str()) || BIT_OPS.contains(&op.as_str()) || op == "-~" || op == "+~" => format!("fn ['a': <T>, 'b': <T>] -> <T> {{ return 'a' {op} 'b'; }}"),
+                        _ => return Ok(Expr::OpValue(op, None, line)),
+                    };
+                    let toks = crate::lexer::lex(&src).map_err(|e| ParseError { line, col: 0, msg: e.msg })?;
+                    let mut p = Parser::new_in(toks, self.module.clone());
+                    let mut f = p.anon_func()?;
+                    f.name = format!("op {op}");
+                    f.bounds = p.bounds;
+                    Ok(Expr::OpValue(op, Some(std::rc::Rc::new(f)), line))
                 }
                 "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}[…]` is no call; a function named `{w}` is reached by path: `limb.{w}[…]`")),
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }

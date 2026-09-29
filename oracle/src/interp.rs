@@ -1009,6 +1009,7 @@ impl<'p> Interp<'p> {
             }
             (Ty::Fn(ps, ret, fails), Value::Func(fv)) => {
                 let f = &fv.def;
+                if f.name == "op -" && ps.len() == 1 { return rt(line, format!("expected {name}: `op -` subtracts two values; negation as a value is `op neg` (owner, 2026-09-29)")); }
                 if f.params.len() != ps.len() { return rt(line, format!("expected {name}, got a function taking {} argument(s)", f.params.len())); }
                 for (fp, (kind, t)) in f.params.iter().zip(ps) {
                     if fp.kind != *kind { return rt(line, format!("expected {name}: parameter '{}' is {} where {} is needed", fp.name, kind_word(fp.kind), kind_word(*kind))); }
@@ -1725,6 +1726,21 @@ impl<'p> Interp<'p> {
                 if f.is_op { return rt(line, format!("`{name}` is an operator; it is not a value")); }
                 if f.is_extern { return rt(line, format!("`{name}` is extern; a C function as a value is not decided")); }
                 Ok((Value::Func(FuncVal { def: Rc::new(f.clone()), captures: Vec::new(), owned: Vec::new() }), Prov::Plain))
+            }
+            Expr::OpValue(op, def, _) => {
+                let def = match def {
+                    Some(d) => d.clone(),
+                    None => {
+                        let ops: Vec<&Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == *op).collect();
+                        match ops.len() {
+                            0 => return rt(line, format!("no operator `{op}` to take as a value")),
+                            1 => Rc::new(ops[0].clone()),
+                            // oracle's limit: it does not pick by where the value goes
+                            _ => return rt(line, format!("there are several `op {op}`; the oracle cannot yet pick one by where the value goes")),
+                        }
+                    }
+                };
+                Ok((Value::Func(FuncVal { def, captures: Vec::new(), owned: Vec::new() }), Prov::Plain))
             }
             Expr::Lambda(def, caps, _) => {
                 // captures are taken now, each with its verb; nothing else from this scope is visible inside

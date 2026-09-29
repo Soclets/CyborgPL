@@ -389,6 +389,9 @@ pub enum Expr {
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
     FnRef(Vec<String>, Vec<String>, usize),
+    /// `op +` / `op neg` / `op dot` — an operator as a value (owner, 2026-09-29): the built-in
+    /// ones as a generic function the parser writes; a custom one (None) is looked up by name
+    OpValue(String, Option<std::rc::Rc<Func>>, usize),
     /// `5 seconds` — a duration literal, in nanoseconds (decided 2026-09-22)
     Duration(i128, usize),
     /// `channel[T]` / `channel[T][0, N]` — a new channel (hand-off, or a bounded queue)
@@ -437,7 +440,7 @@ impl Expr {
             Expr::ConstPath(_, _, _, l) => *l,
             Expr::Convert(_, _, _, l) => *l,
             Expr::SizeOf(_, _, l) => *l,
-            Expr::FnRef(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
+            Expr::FnRef(_, _, l) | Expr::OpValue(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
             Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) | Expr::MapLit(_, l) | Expr::Duration(_, l) | Expr::ChannelNew(_, _, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,
         }

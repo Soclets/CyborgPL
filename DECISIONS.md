@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `op and.then` / `op or.else` are refused (owner)
+
+Handed over as a value, a function's arguments are worked out before it
+runs, so `op and.then` could never skip its right side and would behave
+as `op and`. Design claude proposed refusing both, with an error naming
+`op and` / `op or`, which keeps to "the code isn't lying" (2026-09-25).
+The owner asked "what" and, after a simpler explanation with `'n' !== 0
+and.then 100 div 'n' > 2`, said "yeah, refuse them". This closes `op`:
+the oracle now takes `op` before any operator. `functions-as-values.md`
+section 4; `examples/operator_values.cpls`; reject tests
+op_value_untyped, op_value_and_then, op_value_minus.
+
 ### 2026-09-29 — `op -` is subtraction; negation as a value is `op neg` (owner)
 
 `-` is both subtraction and negation (the day's `neg` was dropped), so
@@ -45,8 +57,8 @@ asked whether operators can be words (yes, 2026-09-20: `x`, `mod`,
 `dot`), then "`op +` it is". The value's type comes from where it goes
 (`fold`'s parameter, a typed declaration); `'f' := op +;` alone cannot
 say which `+`, so it is refused (design claude's reading, not yet
-ruled). Still open: `op` on `and.then` / `or.else`. (`-` was settled the
-same day: `op -` subtracts, `op neg` negates.) `functions-as-values.md`.
+ruled). `op and.then` / `or.else` and `-` were settled the same day
+(entries above). `functions-as-values.md`.
 
 ### 2026-09-29 — `@x` on a returned borrow: required in `#strict`, optional elsewhere (owner)
 
