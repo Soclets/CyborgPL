@@ -83,4 +83,4 @@ The oracle and the verification harness use no crates.
 - **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
 
 Copyright 2026 Tankun Sriket.
-CyborgPL™, Precog™, Limb™ and Synthia™ are names of this project.
+CyborgPL™, Precog™ and Limb™ are names of this project.
