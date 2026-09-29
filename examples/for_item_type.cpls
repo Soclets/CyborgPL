@@ -5,8 +5,8 @@ MAIN {
     for 'x' in lend 'xs' {
         'v': int64 = to.int64['x' +~ 10];
         'w': int64 = to.int64[not.bit 'x'];
-        std::printu.stdout['v', " ", 'w', \n];
+        std::print.useful.stdout['v', " ", 'w', \n];
     }
     'ys': list[uint8] = [250, 3];
-    for 'i', 'y' in lend 'ys' { std::printu.stdout['i', " ", 'y' +~ 10, \n]; }
+    for 'i', 'y' in lend 'ys' { std::print.useful.stdout['i', " ", 'y' +~ 10, \n]; }
 }

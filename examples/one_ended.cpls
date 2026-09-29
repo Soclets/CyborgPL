@@ -5,5 +5,5 @@ MAIN {
     'small': int8[1, max] = 120;
     'whole': uint8[0, 255] = 200;          # the whole type: harmless, allowed (owner)
     'also': int32[min, max] = -7;
-    std::printu.stdout['pos', " ", 'score', " ", 'small', " ", 'whole', " ", 'also', \n];
+    std::print.useful.stdout['pos', " ", 'score', " ", 'small', " ", 'whole', " ", 'also', \n];
 }

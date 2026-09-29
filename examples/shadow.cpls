@@ -2,9 +2,9 @@ MAIN {
     'x' := 1;
     if true {
         'x' $:= 2;
-        std::printu.stdout['x', \n];
+        std::print.useful.stdout['x', \n];
     }
-    std::printu.stdout['x', \n];
+    std::print.useful.stdout['x', \n];
     'x': int32 $= 3;
-    std::printu.stdout['x', \n];
+    std::print.useful.stdout['x', \n];
 }

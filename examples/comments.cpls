@@ -8,5 +8,5 @@ MAIN {
     'e' := 5; #2ld this line and two more down
     'f' := 6;
     'g' := 7;
-    std::printu.stdout['a', " ", 'e', \n];
+    std::print.useful.stdout['a', " ", 'e', \n];
 }

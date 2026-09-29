@@ -107,7 +107,7 @@ return;                       # in a nothing-function
 ```
 MAIN {
     'sum' := add[10, 20];
-    std::printu.stdout["sum: ", 'sum', \n];
+    std::print.useful.stdout["sum: ", 'sum', \n];
 }
 ```
 

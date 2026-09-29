@@ -12,19 +12,19 @@ MAIN {
     'deadline' := std::time.after[5 seconds];
     for 'i' in range[1, 4] {
         whichever {
-            'msg' from lend 'inbox'    { std::printu.stdout["got ", 'msg', \n]; }
-            'why' from lend 'shutdown' { std::printu.stdout["shutdown", \n]; }
-            'now' from lend 'deadline' { std::printu.stdout["timed out after ", 'now', \n]; }
-        } otherwise { closed { std::printu.stdout["all closed", \n]; } };
+            'msg' from lend 'inbox'    { std::print.useful.stdout["got ", 'msg', \n]; }
+            'why' from lend 'shutdown' { std::print.useful.stdout["shutdown", \n]; }
+            'now' from lend 'deadline' { std::print.useful.stdout["timed out after ", 'now', \n]; }
+        } otherwise { closed { std::print.useful.stdout["all closed", \n]; } };
     }
     {
-        concur { std::printu.stdout["task in a block", \n]; }
-        std::printu.stdout["block body", \n];
+        concur { std::print.useful.stdout["task in a block", \n]; }
+        std::print.useful.stdout["block body", \n];
     }
-    std::printu.stdout["after the block", \n];
+    std::print.useful.stdout["after the block", \n];
     concur with [lend 'inbox'] { 'p' := fetch["down.com"] otherwise fail; channel.send[lend 'inbox', give 'p']; }
-        otherwise { no_network { std::printu.stdout["offline", \n]; } };
+        otherwise { no_network { std::print.useful.stdout["offline", \n]; } };
     'tick' := std::time.every[1 second];
     't' := channel.take[lend 'tick'] otherwise 0 seconds;
-    std::printu.stdout["tick ", 't', \n];
+    std::print.useful.stdout["tick ", 't', \n];
 }

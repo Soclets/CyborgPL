@@ -28,15 +28,15 @@ MAIN {
     for 'n' in lend 'names' {
         if stash[lend.mut 'mine', copy 'n'] { change 'stored' = 'stored' + 1; }
     }
-    std::printu.stdout[label[lend 'mine'], ": ", 'stored', " stored, ", free_slots[lend 'mine'], " free", \n];
+    std::print.useful.stdout[label[lend 'mine'], ": ", 'stored', " stored, ", free_slots[lend 'mine'], " free", \n];
 
     for 'i' in range[1, list.length[lend 'mine'.items]] {
-        check std::printu.stdout['i', ". ", 'mine'.items['i'], \n];
+        check std::print.useful.stdout['i', ". ", 'mine'.items['i'], \n];
     }
 
     'x': bin64 = 0.1;
     std::print.stdout['x', \n];
-    std::printu.stdout['x', \n];
+    std::print.useful.stdout['x', \n];
 
     'tag' := give 'mine'.owner;
     std::print.stdout['tag', \n];

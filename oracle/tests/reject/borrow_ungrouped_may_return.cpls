@@ -9,5 +9,5 @@ MAIN {
     't': list[int32] = [4,];
     'r' := longer[lend 's', lend 't'];
     'g' := give 't';
-    std::printu.stdout[list.length[lend 'r'], \n];
+    std::print.useful.stdout[list.length[lend 'r'], \n];
 }

@@ -1,4 +1,4 @@
-fn draw ['y': bin16] { std::printu.stdout["drawing ", 'y', \n]; }
+fn draw ['y': bin16] { std::print.useful.stdout["drawing ", 'y', \n]; }
 MAIN {
     # A guardrail the compiler can see: past the `if`, the value is inside bin16's range,
     # so the narrowing below is proven and `check` says so. A name never changes numeric
@@ -14,12 +14,12 @@ MAIN {
     'xs' := [1, 2, 3];
     check {
         for 'i' in range[1, list.length[lend 'xs']] {
-            std::printu.stdout['xs'['i'], " "];
+            std::print.useful.stdout['xs'['i'], " "];
         }
     }
     std::print.stdout[\n];
     nocheck change 'xs'[2] = 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
     check if 'x' > 0.0 { change 'xs'[1] = to.int32['x' div 2.0] otherwise 0; }
-    std::printu.stdout['xs', \n];
+    std::print.useful.stdout['xs', \n];
 }

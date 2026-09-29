@@ -18,15 +18,15 @@ fn describe [lent 'p': Pair[int32, str.utf8]] -> str.utf8 {
 }
 
 MAIN {
-    std::printu.stdout[max[3, 9], " ", max[2.5, 1.5], \n];       # int32 and bin64 versions, one source
+    std::print.useful.stdout[max[3, 9], " ", max[2.5, 1.5], \n];       # int32 and bin64 versions, one source
     'nums' := [4, 5, 6];
     'f' := first[lend 'nums'] otherwise 0;
-    std::printu.stdout['f', \n];
+    std::print.useful.stdout['f', \n];
     'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];
-    std::printu.stdout[describe[lend 'p'], \n];
+    std::print.useful.stdout[describe[lend 'p'], \n];
     'm' := Maybe.some[42];
     match 'm' {
         none     { std::print.stdout["nothing", \n]; }
-        some 'v' { std::printu.stdout["got ", 'v', \n]; }
+        some 'v' { std::print.useful.stdout["got ", 'v', \n]; }
     }
 }

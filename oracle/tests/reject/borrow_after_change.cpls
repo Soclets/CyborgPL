@@ -3,5 +3,5 @@ MAIN {
     mut 's': list[int32] = [1, 2, 3];
     'r' := lend 's';
     change 's'[1] = 99;
-    std::printu.stdout['r'[1], \n];
+    std::print.useful.stdout['r'[1], \n];
 }

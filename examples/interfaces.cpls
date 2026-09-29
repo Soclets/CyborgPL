@@ -33,7 +33,7 @@ MAIN {
     'u' := Vec[x = 1, y = 2];
     'v' := Vec[x = 3, y = 4];
     'm' := max[copy 'u', copy 'v'];             # Vec is Ordered: it has < and ==
-    std::printu.stdout[describe[lend 'm'], \n];
-    std::printu.stdout[max[3, 9], " ", max[2.5, 1.5], \n];   # numbers are Ordered by the language
-    std::printu.stdout['u' == 'v', " ", 'u' < 'v', \n];     # the operators work directly too
+    std::print.useful.stdout[describe[lend 'm'], \n];
+    std::print.useful.stdout[max[3, 9], " ", max[2.5, 1.5], \n];   # numbers are Ordered by the language
+    std::print.useful.stdout['u' == 'v', " ", 'u' < 'v', \n];     # the operators work directly too
 }

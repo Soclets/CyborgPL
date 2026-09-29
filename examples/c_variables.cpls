@@ -21,5 +21,5 @@ MAIN {
     nocheck ptr.write[ptr.at['mem', 1], 7];
     nocheck 'a' := mode_at['mem'];
     nocheck 'b' := mode_at[ptr.at['mem', 1]];
-    std::printu.stdout[to.int32['current'], " ", 'a', " ", 'b', \n];
+    std::print.useful.stdout[to.int32['current'], " ", 'a', " ", 'b', \n];
 }

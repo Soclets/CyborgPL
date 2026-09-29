@@ -3,21 +3,21 @@
 MAIN {
     mut 'phones': map[str.utf8, int32] = map["ann" = 5551, "bob" = 5552];   # a literal: key = value
     map.set[lend.mut 'phones', "ann", 5553];                          # same key: replaced
-    std::printu.stdout[map.length[lend 'phones'], " entries", \n];
+    std::print.useful.stdout[map.length[lend 'phones'], " entries", \n];
     'a' := map.get[lend 'phones', "ann"] otherwise 0;
     'c' := map.get[lend 'phones', "cat"] otherwise 0;             # missing → 0
-    std::printu.stdout["ann ", 'a', ", cat ", 'c', \n];
-    if map.has[lend 'phones', "bob"] { std::printu.stdout["bob is in", \n]; }
+    std::print.useful.stdout["ann ", 'a', ", cat ", 'c', \n];
+    if map.has[lend 'phones', "bob"] { std::print.useful.stdout["bob is in", \n]; }
     'gone' := map.remove[lend.mut 'phones', "bob"] otherwise 0;   # hands the value back
-    std::printu.stdout["removed ", 'gone', ", ", map.length[lend 'phones'], " left", \n];
-    map.remove[lend.mut 'phones', "nobody"] otherwise { missing { std::printu.stdout["nobody to remove", \n]; } };
+    std::print.useful.stdout["removed ", 'gone', ", ", map.length[lend 'phones'], " left", \n];
+    map.remove[lend.mut 'phones', "nobody"] otherwise { missing { std::print.useful.stdout["nobody to remove", \n]; } };
     map.set[lend.mut 'phones', "cat", 5554];
-    for 'k' in map.keys[lend 'phones'] { std::printu.stdout['k', " "]; }        # insertion order: ann cat
+    for 'k' in map.keys[lend 'phones'] { std::print.useful.stdout['k', " "]; }        # insertion order: ann cat
     std::print.stdout[\n];
-    for 'e' in map.pairs[lend 'phones'] { std::printu.stdout['e'.key, "=", 'e'.value, " "]; }
+    for 'e' in map.pairs[lend 'phones'] { std::print.useful.stdout['e'.key, "=", 'e'.value, " "]; }
     std::print.stdout[\n];
     mut 'fast': map.unordered[str.utf8, int32] = map.empty;                     # chosen: never walked
     map.set[lend.mut 'fast', "x", 1];
-    std::printu.stdout[map.has[lend 'fast', "x"], \n];
-    'who' := map.get[lend 'phones', "zed"] otherwise { missing { std::printu.stdout["no zed", \n]; std::exit[0]; } };
+    std::print.useful.stdout[map.has[lend 'fast', "x"], \n];
+    'who' := map.get[lend 'phones', "zed"] otherwise { missing { std::print.useful.stdout["no zed", \n]; std::exit[0]; } };
 }

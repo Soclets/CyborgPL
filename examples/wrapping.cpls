@@ -10,14 +10,14 @@ fn hash [lent 'text': str.utf8] -> uint32 {
 }
 
 MAIN {
-    std::printu.stdout[hash["hello"], \n];
+    std::print.useful.stdout[hash["hello"], \n];
     'c': uint8 = 250;
     change 'c' = 'c' +~ 10;                                # 260 wraps to 4
-    std::printu.stdout['c', \n];
+    std::print.useful.stdout['c', \n];
     'i': int8 = 127;
     change 'i' = 'i' +~ 1;                                 # 128 wraps to -128
-    std::printu.stdout['i', \n];
+    std::print.useful.stdout['i', \n];
     'p': uint16 = 3;
     change 'p' = 'p' xx~ 20;                               # 3^20 modulo 65536
-    std::printu.stdout['p', \n];
+    std::print.useful.stdout['p', \n];
 }

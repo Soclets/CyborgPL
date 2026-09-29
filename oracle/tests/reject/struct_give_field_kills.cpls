@@ -2,5 +2,5 @@ struct P { n: str.utf8  x: int32 }
 MAIN {
     'p' := P[n = "a", x = 2];
     't' := give 'p'.n;
-    std::printu.stdout['p'.x];
+    std::print.useful.stdout['p'.x];
 }

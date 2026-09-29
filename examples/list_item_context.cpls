@@ -8,5 +8,5 @@ MAIN {
     'zs': list[list[uint8]] = [[0 -~ 2,], [1,]];
     'big': list[uint64] = [9692729768110883998 - 3166240359165959856,];
     'inner' := copy 'zs'[1];
-    std::printu.stdout['xs'[1], " ", 'xs'[2], " ", 'xs'[3], " ", 'ys'[1], " ", 'ys'[2], " ", 'inner'[1], " ", 'big'[1], \n];
+    std::print.useful.stdout['xs'[1], " ", 'xs'[2], " ", 'xs'[3], " ", 'ys'[1], " ", 'ys'[2], " ", 'inner'[1], " ", 'big'[1], \n];
 }

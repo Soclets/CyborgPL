@@ -6,5 +6,5 @@ MAIN {
     'c': bool = 1 < (0 -~ 'w');          # wraps to 4294967293
     'n': uint64 = 5;
     'd': bool = 'n' > (0 -~ 1);          # but the other side sizes it: 0 -~ 1 wraps in uint64
-    std::printu.stdout['b', " ", 'c', " ", 0 -~ 'w', " ", 'd', \n];
+    std::print.useful.stdout['b', " ", 'c', " ", 0 -~ 'w', " ", 'd', \n];
 }

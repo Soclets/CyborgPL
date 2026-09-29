@@ -28,8 +28,8 @@ MAIN {
     nocheck 'buf' := malloc[4];                 # bytes nobody owns
     nocheck ptr.write['buf', 72];
     nocheck ptr.write[ptr.at['buf', 1], 105];
-    nocheck std::printu.stdout[ptr.read['buf'], " ", ptr.read[ptr.at['buf', 1]], \n];
+    nocheck std::print.useful.stdout[ptr.read['buf'], " ", ptr.read[ptr.at['buf', 1]], \n];
     nocheck free['buf'];
 
-    std::printu.stdout[size.of[int32], " ", size.of[Timeval], " ", align.of[int64], " ", size.of[ptr[uint8]], \n];
+    std::print.useful.stdout[size.of[int32], " ", size.of[Timeval], " ", align.of[int64], " ", size.of[ptr[uint8]], \n];
 }

@@ -5,7 +5,7 @@ fn helper [] -> str.utf8 { return "from the root"; }
 
 module report {
     pub.limb fn line ['label': str.utf8, 'v': bin64] {
-        std::printu.stdout['label', ": ", 'v', \n];
+        std::print.useful.stdout['label', ": ", 'v', \n];
     }
 }
 
@@ -13,7 +13,7 @@ MAIN {
     report.line["circle", shapes.circle.area[2.0]];
     report.line["square", shapes.square.area[3.0]];
     report.line["unit circle", shapes.circle.area['unit']];
-    std::printu.stdout[shapes.describe[], \n];
+    std::print.useful.stdout[shapes.describe[], \n];
     'r': shapes.circle.Circle = shapes.circle.Circle[radius = 1.5];
-    std::printu.stdout['r'.radius, " ", shapes.circle.'pi', \n];
+    std::print.useful.stdout['r'.radius, " ", shapes.circle.'pi', \n];
 }

@@ -21,10 +21,10 @@ MAIN {
     'u' := Vec[x = 1, y = 2];
     'v' := Vec[x = 3, y = 4];
     'w' := 'u' <+> 'v';                      # 'u' and 'v' both still here
-    std::printu.stdout['w'.x, " ", 'w'.y, \n];
-    std::printu.stdout['u' dot 'v', \n];
+    std::print.useful.stdout['w'.x, " ", 'w'.y, \n];
+    std::print.useful.stdout['u' dot 'v', \n];
     'd' := ('u' <+> 'v') dot 'v';            # custom operators have no precedence: parenthesise
-    std::printu.stdout['d', \n];
+    std::print.useful.stdout['d', \n];
     's' := give 'u' ** 10;                   # 'u' is gone after this
-    std::printu.stdout['s'.x, " ", 's'.y, \n];
+    std::print.useful.stdout['s'.x, " ", 's'.y, \n];
 }

@@ -3,9 +3,9 @@
 MAIN {
     'xs' := [10, 20, 30, 40, 50];
     'mid' := list.slice[lend 'xs', 2, 4];
-    std::printu.stdout['mid', " ", list.length[lend 'mid'], \n];
+    std::print.useful.stdout['mid', " ", list.length[lend 'mid'], \n];
     'fixed': array[int32] = [1, 2, 3];
-    std::printu.stdout[array.slice[lend 'fixed', 1, 2], \n];
+    std::print.useful.stdout[array.slice[lend 'fixed', 1, 2], \n];
     'none' := list.slice[lend 'xs', 3, 2];
-    std::printu.stdout['none', " ", 'xs', \n];
+    std::print.useful.stdout['none', " ", 'xs', \n];
 }

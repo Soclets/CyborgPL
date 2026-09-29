@@ -4,5 +4,5 @@ MAIN {
     mut 's': list[int32] = [1, 2, 3];
     'r' := first[lend 's'];
     list.append[lend.mut 's', 4];
-    std::printu.stdout[list.length[lend 'r'], \n];
+    std::print.useful.stdout[list.length[lend 'r'], \n];
 }

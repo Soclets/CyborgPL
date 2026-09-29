@@ -3739,14 +3739,17 @@ impl<'p> Interp<'p> {
                     (a, b) => rt(c.line, format!("std::{path} takes two integers, got {} and {}", a.kind(), b.kind())),
                 }
             }
-            "print.stdout" | "printu.stdout" | "print.stderr" | "printu.stderr"
+            "printu.stdout" | "printu.stderr" => rt(c.line, format!("std::{path} is spelled std::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
+            "printf.stdout" | "printf.stderr" => rt(c.line, format!("std::{path} is spelled std::print.format.{} now (owner, 2026-09-29)", &path[7..])),
+            "print.stdout" | "print.useful.stdout" | "print.stderr" | "print.useful.stderr"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" => {
                 // Since 2026-09-19 print takes any number of values and renders each —
-                // `print` in stored form, `printu` in useful form — with nothing between.
-                // The long form is the owner's answer to "printu is cryptic" (2026-09-21).
-                let useful = path.starts_with("printu") || path.starts_with("this_will_print_the_useful");
-                let path = if path.ends_with("standard_error") { "printu.stderr".to_string() } else { path };
+                // `print` in stored form, `print.useful` in useful form (`printu` until the owner
+                // renamed it, 2026-09-29) — with nothing between. The long form is the owner's
+                // answer to "printu is cryptic" (2026-09-21).
+                let useful = path.starts_with("print.useful") || path.starts_with("this_will_print_the_useful");
+                let path = if path.ends_with("standard_error") { "print.useful.stderr".to_string() } else { path };
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
                 let mut text = String::new();
                 for a in &c.args.values {
@@ -3762,8 +3765,8 @@ impl<'p> Interp<'p> {
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
             }
-            "printf.stdout" | "printf.stderr" => {
-                // C's print, in full (owner, 2026-09-22): escapes and `%` formatting, checked
+            "print.format.stdout" | "print.format.stderr" => {
+                // C's print, in full (owner, 2026-09-22; `printf` until 2026-09-29): escapes and `%` formatting, checked
                 // against the arguments' types because the format is a literal — a
                 // non-literal format is a nocheck site.
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes a format text first: `std::{path}[\"%d items\\n\", 'n']`")); }
@@ -3783,7 +3786,7 @@ impl<'p> Interp<'p> {
             }
             "printc.stdout" | "printc.stderr" | "printrs.stdout" | "printrs.stderr" | "c.printf" | "c.fprintf.stderr"
             | "rs.print" | "rs.println" | "rs.eprint" | "rs.eprintln" =>
-                rt(c.line, format!("std::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use std::print / std::printu")),
+                rt(c.line, format!("std::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use std::print / std::print.useful")),
             "exit" => {
                 let (v, _) = self.single(&c.args, c.line)?;
                 match v {
@@ -4033,7 +4036,7 @@ fn grapheme_count(s: &str) -> usize {
 
 
 
-/// C's format language, as `std::printf` accepts it (design/strings.md, 2026-09-22): the
+/// C's format language, as `std::print.format` accepts it (design/strings.md, 2026-09-22): the
 /// escapes that mean a character, and `%` with flags `-`, `0`, a width, `.precision`, and the
 /// conversions d i s f x X c %. Every `%` is checked against its argument's type and the
 /// count — the mismatch C leaves undefined is an error here.

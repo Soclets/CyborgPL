@@ -3,7 +3,7 @@
 MAIN {
     'xs' := ["ann", "bob", "cy"];
     for 'i', 'x' in lend 'xs' {
-        std::printu.stdout['i', ". ", 'x', \n];
+        std::print.useful.stdout['i', ". ", 'x', \n];
     }
     'scores' := [70, 95, 88];
     mut 'best_at': uint64 = 0;
@@ -11,7 +11,7 @@ MAIN {
     for 'i', 's' in lend 'scores' {
         if 's' > 'best' { change 'best' = 's'; change 'best_at' = 'i'; }
     }
-    std::printu.stdout["best is ", 'best', " at position ", 'best_at', \n];
+    std::print.useful.stdout["best is ", 'best', " at position ", 'best_at', \n];
     for perm 'n', 'y' in lend 'xs' { }
-    std::printu.stdout["after: ", 'n', " ", 'y', \n];
+    std::print.useful.stdout["after: ", 'n', " ", 'y', \n];
 }

@@ -1,7 +1,7 @@
 MAIN {
     'i' := 0;
     while 'i' < 3 {
-        std::printu.stdout["while ", 'i', \n];
+        std::print.useful.stdout["while ", 'i', \n];
         change 'i' = 'i' + 1;
     }
     'n' := 0;
@@ -13,7 +13,7 @@ MAIN {
         if 'n' > 4 {
             break;
         }
-        std::printu.stdout["loop ", 'n', \n];
+        std::print.useful.stdout["loop ", 'n', \n];
     }
     'chars' := [`a`, `é`, `🍎`];
     for seq 'c' in lend 'chars' {

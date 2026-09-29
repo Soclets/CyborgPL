@@ -13,7 +13,7 @@ concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend
 concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
 for 'i' in range[1, 2] {
     'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
-    std::printu.stdout[str.bytes[lend 'page'], \n];
+    std::print.useful.stdout[str.bytes[lend 'page'], \n];
 }
 ```
 
@@ -64,7 +64,7 @@ the goroutine leak).
 
 ```
 concur with [give 'url'] { 'p' := fetch['url'] otherwise fail; … }
-    otherwise { no_network { std::printu.stdout["offline", \n]; } };
+    otherwise { no_network { std::print.useful.stdout["offline", \n]; } };
 ```
 
 A task that can fail says so where it is written, like every failing
@@ -136,7 +136,7 @@ std::time.wait[5 seconds];
 'tick' := std::time.every[1 second];           # a channel that sends every second
 whichever {
     'msg' from lend 'inbox'     { … }
-    'now' from lend 'deadline'  { std::printu.stdout["timed out", \n]; }
+    'now' from lend 'deadline'  { std::print.useful.stdout["timed out", \n]; }
 }
 ```
 

@@ -44,7 +44,7 @@ MAIN {
     'msg' := "straight to fd 1 via write(2)";
     nocheck 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
 
-    std::printu.stdout[\n,
+    std::print.useful.stdout[\n,
         "third raw byte: ", 'third', \n,
         "fnv1a:          ", fnv1a[lend 'text'], \n,
         "popcount(0xF0F0): ", popcount[61680], \n,

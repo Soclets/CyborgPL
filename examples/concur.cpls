@@ -8,8 +8,8 @@ MAIN {
     concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
     for 'i' in range[1, 2] {
         'page' := channel.take[lend 'results'] otherwise "";
-        std::printu.stdout['page', \n];
+        std::print.useful.stdout['page', \n];
     }
     'd' := 5 seconds;
-    std::printu.stdout['d', " ", 1500 millis, " ", 1 hour, " ", 5 seconds == 5_000 millis, \n];
+    std::print.useful.stdout['d', " ", 1500 millis, " ", 1 hour, " ", 5 seconds == 5_000 millis, \n];
 }

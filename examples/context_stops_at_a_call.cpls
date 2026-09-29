@@ -5,5 +5,5 @@ MAIN {
     'x': int64 = 0;
     'v': uint8 = g[0 > (-1) - 'x'];       # the (-1) - 'x' is int64 arithmetic, not uint8
     'w': uint32 = 2 shl 3;                # but a bare literal still takes its width from here
-    std::printu.stdout['v', " ", 'w', \n];
+    std::print.useful.stdout['v', " ", 'w', \n];
 }

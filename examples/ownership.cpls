@@ -26,9 +26,9 @@ MAIN {
     std::print.stdout['u', \n];
     'words' := ["a", "b", "c"];
     'n' := count[lend 'words'];
-    std::printu.stdout['n', " words", \n];
+    std::print.useful.stdout['n', " words", \n];
     'm' := count[["x", "y"]];
-    std::printu.stdout['m', " fresh", \n];
+    std::print.useful.stdout['m', " fresh", \n];
     'r' := lend 'words';
-    std::printu.stdout['r', \n];
+    std::print.useful.stdout['r', \n];
 }

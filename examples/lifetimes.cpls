@@ -20,5 +20,5 @@ MAIN {
     'l' := longer[lend 's', lend 't'];
     'p' := pick[lend 't', lend 's'];
     'f' := first[lend 's'];
-    std::printu.stdout['l', " ", 'p', " ", 'f', \n];
+    std::print.useful.stdout['l', " ", 'p', " ", 'f', \n];
 }

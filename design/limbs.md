@@ -7,7 +7,7 @@ is still open is listed at the end.
 
 - **Dependencies are declared in `Synthia.cplm`**, never in source. A source
   file has no statement that loads a Limb.
-- **Every item is reached by its full path**: `std::printu.stdout[…]`,
+- **Every item is reached by its full path**: `std::print.useful.stdout[…]`,
   `mathstuff::pow[2, 64]`, `'r': std::uenr`, `crate_x::Locker[…]`. `::`
   crosses the boundary and the reader always sees where a thing comes from
   (decided 2026-09-14). This is Rust's model (Cargo lists, paths reach), not
@@ -18,7 +18,7 @@ is still open is listed at the end.
 ## No bare reach from another Limb (owner, 2026-09-23)
 
 Everything from another Limb is written with its path, always:
-`mathstuff::pow[2, 64]`, `crate_x::Locker[…]`, `std::printu.stdout[…]`.
+`mathstuff::pow[2, 64]`, `crate_x::Locker[…]`, `std::print.useful.stdout[…]`.
 No Limb can offer a shortcut, so a bare name like `pow[…]` always
 means something in your own module, and two Limbs can never clash over
 one.

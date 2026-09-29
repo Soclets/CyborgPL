@@ -7,10 +7,10 @@ MAIN {
     'c' := to.int64["99999999999999999999999999999999999999999999"] otherwise -1;  # too big for anything
     'd' := to.uint8["-1"] otherwise 0;                                         # below what uint8 holds
     'e' := to.int32["12x"] otherwise -2;                                      # not a number at all
-    std::printu.stdout['a', " ", 'b', " ", 'c', " ", 'd', " ", 'e', \n];
+    std::print.useful.stdout['a', " ", 'b', " ", 'c', " ", 'd', " ", 'e', \n];
     # text → bin: digits, an optional fraction, an optional exponent (owner, 2026-09-24: b)
     'f' := to.bin64["2.5e3"] otherwise -1.0;
     'g' := to.bin64["nan"] otherwise -1.0;      # not a number: a data file's "missing" lands here
     'h' := to.bin64["1e400"] otherwise -2.0;    # a number too big for bin64
-    std::printu.stdout['f', " ", 'g', " ", 'h', \n];
+    std::print.useful.stdout['f', " ", 'g', " ", 'h', \n];
 }

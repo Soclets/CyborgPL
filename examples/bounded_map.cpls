@@ -5,8 +5,8 @@ MAIN {
     map.set[lend.mut 'small', "cd", 7];
     'n' := map.length[lend 'small'];         # uint64[0, 2]
     'tiny': int8 = 'n';                      # proven by the bound
-    std::printu.stdout['tiny', " entries", \n];
+    std::print.useful.stdout['tiny', " entries", \n];
     map.remove[lend.mut 'small', "ab"] otherwise { missing { } };
     map.set[lend.mut 'small', "ef", 10];         # back to two: fits
-    std::printu.stdout[map.length[lend 'small'], \n];
+    std::print.useful.stdout[map.length[lend 'small'], \n];
 }

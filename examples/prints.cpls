@@ -7,14 +7,14 @@ MAIN {
     # print: any values, each in its stored form, nothing between
     std::print.stdout["x is ", 'x', \n];
 
-    # printu: the same, each in its useful form
-    std::printu.stdout["x is ", 'x', \n];
+    # print.useful: the same, each in its useful form
+    std::print.useful.stdout["x is ", 'x', \n];
 
-    # a joined text is already text: print and printu agree on it
+    # a joined text is already text: print and print.useful agree on it
     'line' := 'name' ++ " scored " ++ to.str.utf8['count'];
     std::print.stdout['line', \n];
-    std::printu.stdout['line', \n];
+    std::print.useful.stdout['line', \n];
 
     # stderr
-    std::printu.stderr["warning: ", 'count', " is low", \n];
+    std::print.useful.stderr["warning: ", 'count', " is low", \n];
 }

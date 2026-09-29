@@ -11,5 +11,5 @@ MAIN {
     'all': simd[bool, 4] = simd.fill[true];
     'both' := 'm' and 'all';
     'flip' := not 'm';
-    std::printu.stdout[simd.any['m'], " ", simd.all['m'], " ", count_on['both'], " ", simd.any['flip'], \n];
+    std::print.useful.stdout[simd.any['m'], " ", simd.all['m'], " ", count_on['both'], " ", simd.any['flip'], \n];
 }

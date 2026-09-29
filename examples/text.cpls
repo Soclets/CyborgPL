@@ -2,26 +2,26 @@ MAIN {
     's' := "héllo 👨‍👩‍👧 wörld";
 
     # a text has no single length — say which unit (decided 2026-09-20)
-    std::printu.stdout[str.bytes[lend 's'], " bytes, ", str.points[lend 's'], " points, ", str.graphemes[lend 's'], " graphemes", \n];
+    std::print.useful.stdout[str.bytes[lend 's'], " bytes, ", str.points[lend 's'], " points, ", str.graphemes[lend 's'], " graphemes", \n];
 
     # walking a text says the unit too
     'vowels' := 0;
     for 'g' in str.each.grapheme[lend 's'] {
         if 'g' == `o` or 'g' == `e` { change 'vowels' = 'vowels' + 1; }
     }
-    std::printu.stdout['vowels', " vowels", \n];
+    std::print.useful.stdout['vowels', " vowels", \n];
 
     # the toolbox is std's
     'words' := std::str.split[lend 's', " "];
-    std::printu.stdout[list.length[lend 'words'], " words; first is ", 'words'[1], \n];
-    std::printu.stdout[std::str.upper[lend 's'], \n];
-    std::printu.stdout[std::str.contains[lend 's', "wör"], " ", std::str.starts_with[lend 's', "hé"], \n];
+    std::print.useful.stdout[list.length[lend 'words'], " words; first is ", 'words'[1], \n];
+    std::print.useful.stdout[std::str.upper[lend 's'], \n];
+    std::print.useful.stdout[std::str.contains[lend 's', "wör"], " ", std::str.starts_with[lend 's', "hé"], \n];
     'third' := std::str.at.grapheme[lend 's', 3] otherwise `?`;
     'family' := std::str.at.grapheme[lend 's', 7] otherwise `?`;
-    std::printu.stdout['third', " ", 'family', \n];
+    std::print.useful.stdout['third', " ", 'family', \n];
     'where' := std::str.find.grapheme[lend 's', "wör"] otherwise 0;
-    std::printu.stdout["wör starts at grapheme ", 'where', \n];
+    std::print.useful.stdout["wör starts at grapheme ", 'where', \n];
     'head' := std::str.slice.grapheme[lend 's', 1, 5] otherwise "";
-    std::printu.stdout['head', \n];
-    std::printu.stdout[std::str.join[lend 'words', "_"], \n];
+    std::print.useful.stdout['head', \n];
+    std::print.useful.stdout[std::str.join[lend 'words', "_"], \n];
 }

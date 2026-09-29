@@ -31,14 +31,14 @@ MAIN {
 
     'count' := list.length[lend 'shelf'];
     'left': int8 = 4 - 'count';
-    std::printu.stdout['count', " items, room for ", 'left', " more", \n];
+    std::print.useful.stdout['count', " items, room for ", 'left', " more", \n];
 
-    'top' := heaviest[...copy 'shelf'] otherwise { none { std::printu.stdout["empty shelf", \n]; std::exit[0]; } };
-    std::printu.stdout["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, \n];
+    'top' := heaviest[...copy 'shelf'] otherwise { none { std::print.useful.stdout["empty shelf", \n]; std::exit[0]; } };
+    std::print.useful.stdout["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, \n];
 
     'kg' := kilos['top'.grams] otherwise -1;
-    std::printu.stdout['top'.name, " is ", 'kg', " kg", \n];
+    std::print.useful.stdout['top'.name, " is ", 'kg', " kg", \n];
 
     'gone' := list.remove[lend.mut 'shelf', 2];
-    std::printu.stdout["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", \n];
+    std::print.useful.stdout["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", \n];
 }

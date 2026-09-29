@@ -6,5 +6,5 @@ MAIN {
     'b': uint32 = ('v' mod 16) shl 2;
     'c': uint32 = not.bit ('v' + 1);
     'd': uint32 = ('v' + 1) +~ 5;
-    std::printu.stdout['a', " ", 'b', " ", 'c', " ", 'd', \n];
+    std::print.useful.stdout['a', " ", 'b', " ", 'c', " ", 'd', \n];
 }

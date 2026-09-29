@@ -5,5 +5,5 @@ fn true [] -> int32 { return 1; }
 MAIN {
     'x' := limb.to[];
     'y' := limb.true[];
-    std::printu.stdout['x', " ", 'y', \n];
+    std::print.useful.stdout['x', " ", 'y', \n];
 }

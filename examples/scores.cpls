@@ -34,16 +34,16 @@ MAIN {
     'average' := 'total' div 'count';
     'curved' := clamp['average' + 10, 0, 100];
 
-    std::printu.stdout["scored ", 'count', " tests", \n];
-    std::printu.stdout["total ", 'total', ", best ", 'best', \n];
-    std::printu.stdout["even scores: ", 'evens', \n];
-    std::printu.stdout["average ", 'average', ", curved ", 'curved', \n];
+    std::print.useful.stdout["scored ", 'count', " tests", \n];
+    std::print.useful.stdout["total ", 'total', ", best ", 'best', \n];
+    std::print.useful.stdout["even scores: ", 'evens', \n];
+    std::print.useful.stdout["average ", 'average', ", curved ", 'curved', \n];
 
     if 'average' >/== 90 {
-        std::printu.stdout["grade A", \n];
+        std::print.useful.stdout["grade A", \n];
     } else if 'average' >/== 75 {
-        std::printu.stdout["grade B", \n];
+        std::print.useful.stdout["grade B", \n];
     } else {
-        std::printu.stdout["keep going", \n];
+        std::print.useful.stdout["keep going", \n];
     }
 }

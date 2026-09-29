@@ -9,6 +9,6 @@ MAIN {
         'a': int32 = 10;
         'b': int32 = 2;
         'q' := 'a' div 'b';
-        std::printu.stdout[\n, 'q', \n];
+        std::print.useful.stdout[\n, 'q', \n];
     }
 }

@@ -1,5 +1,5 @@
 //! Runtime values and the two ways to print them (design/syntax-sketch.md:
-//! `print` shows the stored value, `printu` the useful one).
+//! `print` shows the stored value, `print.useful` the useful one).
 
 use crate::ast::{CharUnit, IntWidth, Ty};
 use std::rc::Rc;
@@ -121,7 +121,7 @@ impl Value {
         }
     }
 
-    /// `printu`: the useful value. For a bin, the shortest text that reads back
+    /// `print.useful`: the useful value. For a bin, the shortest text that reads back
     /// to the same stored value. Identical for every other type.
     pub fn show_useful(&self) -> String {
         match self {

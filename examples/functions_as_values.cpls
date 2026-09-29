@@ -26,13 +26,13 @@ MAIN {
     std::print.stdout[first_by[lend 'lockers', by_owner], \n];
 
     'f' := by_number;                                                 # held in a variable
-    std::printu.stdout['f'[lend 'lockers'[1], lend 'lockers'[2]], \n];   # called: 'f'[…]
+    std::print.useful.stdout['f'[lend 'lockers'[1], lend 'lockers'[2]], \n];   # called: 'f'[…]
 
     'limit' := 60;
     'scores' := [72, 40, 95, 55];
     'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
-    std::printu.stdout['passing', \n];
+    std::print.useful.stdout['passing', \n];
 
     'evens' := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
-    std::printu.stdout['evens', \n];
+    std::print.useful.stdout['evens', \n];
 }

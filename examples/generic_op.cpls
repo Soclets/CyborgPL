@@ -15,8 +15,8 @@ op <+> ['a': A, 'b': A] -> int32 { return 'a'.x + 'b'.x; }
 op <+> ['a': B, 'b': B] -> int32 { return 'a'.y x 'b'.y; }
 MAIN {
     'm': int32 = 100;
-    std::printu.stdout[95 ~= 'm', " ", 50 ~= 'm', \n];
+    std::print.useful.stdout[95 ~= 'm', " ", 50 ~= 'm', \n];
     'p' := A[x = 3];
     'q' := B[y = 3];
-    std::printu.stdout['p' <+> 'p', " ", 'q' <+> 'q', \n];
+    std::print.useful.stdout['p' <+> 'p', " ", 'q' <+> 'q', \n];
 }

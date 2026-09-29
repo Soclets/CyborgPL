@@ -5,6 +5,40 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — The prints are one family: `std::print`, `std::print.useful`, `std::print.format` (owner)
+
+Raised by the `deci` conversion's useful form (below): the owner made
+it `.useful`, and renamed the prints to match. `std::printu` is now
+`std::print.useful`, and `std::printf` (2026-09-22) is now
+`std::print.format`; the output stays last (`std::print.useful.stdout[…]`),
+and the long alias of 2026-09-21 still names the useful print. Design
+claude had called `print.format` new, forgetting `printf`; the owner
+pointed it out. The old names are refused with the new ones. Every
+example, test and note converted; `examples/print_vs_print_useful.cpls`,
+`examples/print_format.cpls`; reject tests printu_renamed, printf_renamed.
+
+### 2026-09-29 — `deci`: literals, rounding, and the conversion from `bin` (owner)
+
+`deci32` / `deci64` / `deci128` (7, 16, 34 digits) had a type and no
+behaviour; neither engine ran it. Three questions:
+1. **A literal with more digits than the type holds is a compile error**
+   (owner: b): `'q': deci32 = 3.14159265;` is refused, never rounded.
+   Proposed alternative: round once, as a `bin` literal does.
+2. **Each operation rounds to its width, IEEE's way, half to even** (owner:
+   "IEEE for deci too"), as `bin` does. The owner asked what an explicit
+   round would be (one call at the end, `std::deci.round[…]`, std's) and
+   whether `bin` rounds by itself (yes, half to even). Proposed
+   alternatives: half away from zero; an error whenever a result does not
+   fit.
+3. **`bin` → `deci`**: `to.deci64['w']` is the exact value rounded to the
+   width, the stored-form convention; `to.deci64.useful['w']` is the
+   shortest decimal that reads back as the same `bin` (owner: c, then
+   `.u`, then `.useful`). Design claude first recommended the shortest
+   form "as `bin` prints"; the owner pointed out that only `printu` prints
+   it, and the default prints the stored form.
+Still open: an integer with more digits than the `deci` holds; text; the
+exponent (a `deci` keeps `1.50` apart from `1.5`). `types.md`.
+
 ### 2026-09-29 — A generic `op`; one that overlaps a specific one is an error (owner: allow, a)
 
 Open since 2026-09-20. Proposed (a) an `op` may be generic, like a `fn`;

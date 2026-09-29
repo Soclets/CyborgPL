@@ -4,5 +4,5 @@ fn add ['a': int32, 'b': int32] -> int32 {
 
 MAIN {
     'sum' := add[10, 20];
-    std::printu.stdout["sum: ", 'sum', \n];
+    std::print.useful.stdout["sum: ", 'sum', \n];
 }

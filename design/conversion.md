@@ -43,12 +43,12 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   `lists.md`).
 - **`++` takes text on both sides.** This closes the language's last
   implicit conversion (two cold readers flagged it): `"n=" ++ 'n'` is an
-  error pointing at `to.str.utf8`. `print`/`printu` still render any value
+  error pointing at `to.str.utf8`. `print`/`print.useful` still render any value
   handed to them directly — rendering for output is what they are for, not
   a conversion.
 - A number becomes text in its **stored form**, always (2026-09-14). A
   useful-form conversion (`0.1` rather than the 55 digits) has no spelling
-  yet — `printu` is the only thing that produces it.
+  yet — `print.useful` is the only thing that produces it.
 - **bin → int fails unless the bin is whole** (decided 2026-09-21):
   `to.int32[2.0] otherwise …` is `2`; `to.int32[2.7]` fails `not_whole`.
   Nothing is thrown away silently — rounding is said first, and the

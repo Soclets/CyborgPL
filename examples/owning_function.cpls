@@ -8,5 +8,5 @@ MAIN {
     'moved' := give 'count';        # 'count' is gone after this
     'inc' := fn ['a': int32] -> int32 { return 'a' + 1; };
     'inc2' := 'inc';                # carries nothing: no word needed
-    std::printu.stdout['again'[], " ", 'moved'[], " ", 'inc2'[41], \n];
+    std::print.useful.stdout['again'[], " ", 'moved'[], " ", 'inc2'[41], \n];
 }

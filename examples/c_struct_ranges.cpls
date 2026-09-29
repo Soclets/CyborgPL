@@ -5,5 +5,5 @@ layout.c struct Rect { w: int32[0, 4096]  h: int32[0, 4096] }
 extern fn DrawRect ['r': Rect];
 MAIN {
     'r' := Rect[w = 640, h = 480];
-    std::printu.stdout['r'.w, "x", 'r'.h, " ", size.of[Rect], \n];
+    std::print.useful.stdout['r'.w, "x", 'r'.h, " ", size.of[Rect], \n];
 }

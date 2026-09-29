@@ -4,8 +4,8 @@ extern mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we may 
 
 MAIN {
     nocheck 'v' := 'lib_version';
-    std::printu.stdout["version ", 'v', \n];
+    std::print.useful.stdout["version ", 'v', \n];
     nocheck change 'lib_verbose' = 1;
     nocheck 'on' := 'lib_verbose';
-    std::printu.stdout["verbose ", 'on', \n];
+    std::print.useful.stdout["verbose ", 'on', \n];
 }

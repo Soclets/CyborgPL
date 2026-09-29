@@ -23,5 +23,5 @@ MAIN {
     'u' := Vec[x = 1.0, y = 2.0];
     'v' := Vec[x = 3.0, y = 4.0];
     'd' := both[lend 'u', lend 'v', op dot];
-    std::printu.stdout['sum', " ", 'product', " ", 'down', " ", 'n', " ", 'le', " ", 'm', " ", 'd', \n];
+    std::print.useful.stdout['sum', " ", 'product', " ", 'down', " ", 'n', " ", 'le', " ", 'm', " ", 'd', \n];
 }

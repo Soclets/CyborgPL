@@ -9,15 +9,15 @@ fn count_ints [...'nums': int32] -> uint64 {
 }
 
 fn show [lent 'label': str.utf8, lent ...'parts'] {
-    std::printu.stdout['label', ": "];
-    for 'p' in lend 'parts' { std::printu.stdout['p', " "]; }
+    std::print.useful.stdout['label', ": "];
+    for 'p' in lend 'parts' { std::print.useful.stdout['p', " "]; }
     std::print.stdout[\n];
 }
 
 MAIN {
-    std::printu.stdout[sum[1, 2.5, 3], \n];
-    std::printu.stdout[sum[], \n];
-    std::printu.stdout[count_ints[4, 5, 6], \n];
+    std::print.useful.stdout[sum[1, 2.5, 3], \n];
+    std::print.useful.stdout[sum[], \n];
+    std::print.useful.stdout[count_ints[4, 5, 6], \n];
     'name' := "Ann";
     show["mixed", lend 'name', 7, true, `x`];
     show["none"];

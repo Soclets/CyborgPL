@@ -12,5 +12,5 @@ fn on_key ['code': int32] -> int32 {
     }
 }
 MAIN {
-    std::printu.stdout[on_key[66], " ", on_key[302], " ", on_key[256], \n];
+    std::print.useful.stdout[on_key[66], " ", on_key[302], " ", on_key[256], \n];
 }

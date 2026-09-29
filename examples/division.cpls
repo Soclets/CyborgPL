@@ -1,10 +1,10 @@
 MAIN {
     # floor division and the mathematician's mod (decided 2026-09-20)
-    std::printu.stdout[7 div 2, " ", 7 mod 2, \n];
-    std::printu.stdout[-7 div 2, " ", -7 mod 2, \n];        # -4 and 1: the clock never goes negative
-    std::printu.stdout[7 div -2, " ", 7 mod -2, \n];        # -4 and -1: the result has the divisor's sign
+    std::print.useful.stdout[7 div 2, " ", 7 mod 2, \n];
+    std::print.useful.stdout[-7 div 2, " ", -7 mod 2, \n];        # -4 and 1: the clock never goes negative
+    std::print.useful.stdout[7 div -2, " ", 7 mod -2, \n];        # -4 and -1: the result has the divisor's sign
     'hour' := -1;
-    std::printu.stdout[('hour' mod 12) + 1, \n];         # an hour before 1 o'clock is 12
+    std::print.useful.stdout[('hour' mod 12) + 1, \n];         # an hour before 1 o'clock is 12
     # hardware truncation, by name, when a C library's answer must match bit for bit
-    std::printu.stdout[std::div.trunc[-7, 2], " ", std::mod.trunc[-7, 2], \n];
+    std::print.useful.stdout[std::div.trunc[-7, 2], " ", std::mod.trunc[-7, 2], \n];
 }

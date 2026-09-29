@@ -7,6 +7,6 @@ MAIN {
     nocheck 'a' := strlen[lend 'short'] otherwise 99;
     nocheck 'b' := strlen[lend 'long'] otherwise 99;    # 23 is outside 0..10: fails out_of_range
     'c': int8 = 'a';                                    # proven by the bound: at most 10
-    std::printu.stdout['a', " ", 'b', " ", 'c', \n];
-    nocheck 'd' := strlen[lend 'long'] otherwise { out_of_range { std::printu.stdout["C lied", \n]; std::exit[3]; } };
+    std::print.useful.stdout['a', " ", 'b', " ", 'c', \n];
+    nocheck 'd' := strlen[lend 'long'] otherwise { out_of_range { std::print.useful.stdout["C lied", \n]; std::exit[3]; } };
 }

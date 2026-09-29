@@ -8,24 +8,24 @@ fn sum [lent 'items': list[int32]] -> int32 {
 
 MAIN {
     'xs': list[int32] = [10, 20, 30];
-    std::printu.stdout["first ", 'xs'[1], ", last ", 'xs'[3], \n];
+    std::print.useful.stdout["first ", 'xs'[1], ", last ", 'xs'[3], \n];
     'n' := list.length[lend 'xs'];
-    std::printu.stdout["length ", 'n', \n];
+    std::print.useful.stdout["length ", 'n', \n];
     list.append[lend.mut 'xs', 40];
     list.remove[lend.mut 'xs', 1];
-    std::printu.stdout['xs', " length ", list.length[lend 'xs'], \n];
-    std::printu.stdout["sum ", sum[lend 'xs'], \n];
+    std::print.useful.stdout['xs', " length ", list.length[lend 'xs'], \n];
+    std::print.useful.stdout["sum ", sum[lend 'xs'], \n];
     for 'i' in range[1, list.length[lend 'xs']] {
-        std::printu.stdout['xs'['i'], " "];
+        std::print.useful.stdout['xs'['i'], " "];
     }
     std::print.stdout[\n];
     'days': array[str.utf8] = ["mon", "tue"];
     std::print.stdout['days'[2], " of ", array.length[lend 'days'], \n];
     'grid' := [[1, 2], [3, 4]];
-    std::printu.stdout['grid'[2], \n];
+    std::print.useful.stdout['grid'[2], \n];
     for perm 'i' in range[1, list.length[lend 'xs']] {
         if 'xs'['i'] == 30 { break; }
     }
     change 'xs'['i'] = 33;
-    std::printu.stdout['xs', \n];
+    std::print.useful.stdout['xs', \n];
 }

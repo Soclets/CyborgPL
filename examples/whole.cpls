@@ -7,6 +7,6 @@ MAIN {
     'c' := to.int32[std::round['y']] otherwise -1;        # said: 3
     'd' := to.int32[std::floor['y']] otherwise -1;        # said: 2
     'e' := to.int32[std::trunc[0.0 - 'y']] otherwise -1;  # said: -2
-    std::printu.stdout['a', " ", 'b', " ", 'c', " ", 'd', " ", 'e', \n];
-    'f' := to.int32['y'] otherwise { not_whole { std::printu.stdout["2.7 is not whole", \n]; std::exit[0]; } };
+    std::print.useful.stdout['a', " ", 'b', " ", 'c', " ", 'd', " ", 'e', \n];
+    'f' := to.int32['y'] otherwise { not_whole { std::print.useful.stdout["2.7 is not whole", \n]; std::exit[0]; } };
 }

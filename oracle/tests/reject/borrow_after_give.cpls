@@ -3,5 +3,5 @@ MAIN {
     's': list[int32] = [1, 2, 3];
     'r' := lend 's';
     't' := give 's';
-    std::printu.stdout['r'[1], \n];
+    std::print.useful.stdout['r'[1], \n];
 }

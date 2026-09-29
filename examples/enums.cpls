@@ -24,7 +24,7 @@ MAIN {
         Locker[number = 3, status = Status.locked]
     ];
     for 'l' in lend 'lockers' {
-        std::printu.stdout["#", 'l'.number, ": ", describe[lend 'l'], \n];
+        std::print.useful.stdout["#", 'l'.number, ": ", describe[lend 'l'], \n];
     }
     's' := Status.locked;
     if 's' == Status.locked { std::print.stdout["== works on a case", \n]; }

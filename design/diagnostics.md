@@ -117,7 +117,7 @@ Proposed alternative: the later use.
    "(decided 2026-09-20)" stays in the oracle).
 6. **Tone.** Errors and checks are dry: a person mid-bug wants the fix.
    Notes may carry the language's personality (the `&` remark, the long
-   `printu` name).
+   `print.useful` name).
 7. **Colour** in a terminal, plain text in a file, JSON when asked.
 8. **Say what would happen, and no borrowed furniture.** "'k' can be
    past the end of 'xs'", not "out of bounds"; "there is no element to

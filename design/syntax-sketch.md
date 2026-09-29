@@ -26,7 +26,7 @@ MAIN {
         else { continue; }
     }
     's' := "line 1" ++ \n ++ "line 2";
-    std::printu.stdout["total: ", 'total', \n];
+    std::print.useful.stdout["total: ", 'total', \n];
 }
 ```
 
@@ -65,7 +65,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 ## What the sample establishes
 
 - **Dot chains narrow general→specific inside a type and inside a Limb
-  path** — `str.utf8`, `char.grapheme`, `std::printu.stdout`, `lend.mut`.
+  path** — `str.utf8`, `char.grapheme`, `std::print.useful.stdout`, `lend.mut`.
   A *type parameter* is bracketed, not chained: `list[int32]`,
   `array[list[str.utf8]]` (decided 2026-09-19). They no longer carry the name-to-type job (that is `:`) and no
   longer hold keywords together (`else if`, `while`, `for`). The chains
@@ -122,22 +122,22 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   is legal — the name `'+'` and the operator `+` are different tokens.
 - **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,
   never a parameter list.
-- **`print` vs `printu`** (decided 2026-09-14): `std::print.stdout[…]`
+- **`print` vs `print.useful`** (decided 2026-09-14): `std::print.stdout[…]`
   prints the real stored value (a `bin32` `0.1` prints as
-  `0.100000001490116119384765625`); `std::printu.stdout[…]` prints the
+  `0.100000001490116119384765625`); `std::print.useful.stdout[…]` prints the
   useful value (`0.1`). Both take **any number of values, comma-separated**,
   render each and print them with nothing between (2026-09-19):
-  `std::printu.stdout["x is ", 'x', \n]` → `x is 0.1`. Alternative
-  spelling for `printu` (owner, 2026-09-21, after four readers called it
+  `std::print.useful.stdout["x is ", 'x', \n]` → `x is 0.1`. Alternative
+  spelling for `print.useful` (owner, 2026-09-21, after four readers called it
   cryptic): `std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output[…]`
-  (and `…standard_error`). `printu` stays. **A number joined
+  (and `…standard_error`). `print.useful` stays. **A number joined
   with `++` becomes text in its stored form, everywhere**:
-  `'s' := "x is " ++ 'x';` holds the full expansion, and `printu['s']`
-  cannot undo it. `printu` is the only thing that produces the useful form,
+  `'s' := "x is " ++ 'x';` holds the full expansion, and `print.useful['s']`
+  cannot undo it. `print.useful` is the only thing that produces the useful form,
   and only for the values handed to it directly.
 - Borrowed prints (`std::printc`/`std::c.printf`, `std::printrs`/`std::rs.println`)
   existed for a day (2026-09-19) and were removed by the owner on
-  2026-09-20; `print` and `printu` are the prints.
+  2026-09-20; `print` and `print.useful` are the prints.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; `'x' $:= 2;`. `immut` names cannot be shadowed.
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only

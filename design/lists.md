@@ -214,7 +214,7 @@ is an error.
 
 ```
 for 'i', 'x' in lend 'xs' {
-    std::printu.stdout['i', ". ", 'x', \n];      # 1. ann  2. bob  3. cy
+    std::print.useful.stdout['i', ". ", 'x', \n];      # 1. ann  2. bob  3. cy
 }
 ```
 

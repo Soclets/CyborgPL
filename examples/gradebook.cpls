@@ -30,7 +30,7 @@ MAIN {
 
     for 'm' in lend 'marks' {
         record[lend.mut 'a', 'm'] otherwise {
-            out_of_range 'bad' { std::printu.stdout["skipping ", 'bad', \n]; }
+            out_of_range 'bad' { std::print.useful.stdout["skipping ", 'bad', \n]; }
         };
     }
     record[lend.mut 'b', 65] otherwise std::exit[1];
@@ -42,5 +42,5 @@ MAIN {
         'avg' := average[lend 's'] otherwise 0;
         if 'avg' >/== 'passing' { change 'passed' = 'passed' + 1; }
     }
-    std::printu.stdout['passed', " of ", list.length[lend 'students'], " passed", \n];
+    std::print.useful.stdout['passed', " of ", list.length[lend 'students'], " passed", \n];
 }

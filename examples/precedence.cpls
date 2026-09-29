@@ -1,11 +1,11 @@
 MAIN {
-    std::printu.stdout[(1 + 2 x 3), \n];
-    std::printu.stdout[(2 x 3 xx 2), \n];
-    std::printu.stdout[(-2 xx 2), \n];
-    std::printu.stdout[((-2) xx 2), \n];
-    std::printu.stdout[(10 - 4 - 3), \n];
-    std::printu.stdout[(6 div (2 x 3)), \n];
-    std::printu.stdout[((6 div 2) x 3), \n];
+    std::print.useful.stdout[(1 + 2 x 3), \n];
+    std::print.useful.stdout[(2 x 3 xx 2), \n];
+    std::print.useful.stdout[(-2 xx 2), \n];
+    std::print.useful.stdout[((-2) xx 2), \n];
+    std::print.useful.stdout[(10 - 4 - 3), \n];
+    std::print.useful.stdout[(6 div (2 x 3)), \n];
+    std::print.useful.stdout[((6 div 2) x 3), \n];
     'a' := 5;
     'b' := 7;
     if 'a' + 1 > 'b' - 2 and not ('a' == 'b') or false {

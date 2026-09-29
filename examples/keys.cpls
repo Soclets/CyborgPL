@@ -14,9 +14,9 @@ MAIN {
     mut 'grid': map[Point, str.utf8] = map.empty;
     map.set[lend.mut 'grid', Point[x = 1, y = 2], "tree"];
     'at' := map.get[lend 'grid', Point[x = 1, y = 2]] otherwise "nothing";
-    std::printu.stdout['at', \n];
+    std::print.useful.stdout['at', \n];
     mut 'users': map[User, int32] = map.empty;
     map.set[lend.mut 'users', User[name = "Ann"], 1];
     'n' := map.get[lend 'users', User[name = "ANN"]] otherwise 0;     # same key by User's own ==
-    std::printu.stdout['n', \n];
+    std::print.useful.stdout['n', \n];
 }

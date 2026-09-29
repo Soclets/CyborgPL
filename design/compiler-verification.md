@@ -39,7 +39,7 @@ printer written in the base language**: the number turned into ASCII
 digits in a `list[uint8]`, handed to C's `write` under `nocheck`, as
 `examples/ffi.cpls` does. Both implementations already agree on it.
 The printer is ordinary CyborgPL, so a bug in *it* is a finding too.
-When std has a print, the generator switches to `std::printu` and the
+When std has a print, the generator switches to `std::print.useful` and the
 printer goes. Proposed alternative: wait for std, and compare only the
 exit code and where a check fired — which would delay every output bug
 until then.

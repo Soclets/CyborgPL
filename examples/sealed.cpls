@@ -8,5 +8,5 @@ MAIN {
     !mut 'b' := 3;              # !mut is immut written another way
     !$ mut 'total' := 0;        # changeable, and 'total' always means this one
     change 'total' = 'total' + 'a' + 'b';
-    std::printu.stdout['a', " ", 'b', " ", 'total', \n];
+    std::print.useful.stdout['a', " ", 'b', " ", 'total', \n];
 }

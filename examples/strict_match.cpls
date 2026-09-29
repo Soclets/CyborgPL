@@ -11,5 +11,5 @@ fn label ['s': Status] -> str.utf8 {
     return give 'text';
 }
 MAIN {
-    std::printu.stdout[label[Status.claimed["bo"]], \n];
+    std::print.useful.stdout[label[Status.claimed["bo"]], \n];
 }

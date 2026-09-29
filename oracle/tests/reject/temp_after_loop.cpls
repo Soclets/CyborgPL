@@ -1,5 +1,5 @@
 MAIN {
     for 'i' in range[0, 3] {
     }
-    std::printu.stdout['i'];
+    std::print.useful.stdout['i'];
 }

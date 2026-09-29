@@ -39,6 +39,23 @@ empty list, so no value ever appears from nowhere and `:=` always has
 something to infer from. Go, C# and Java fill zeroes in for fields;
 this does not.
 
+## `deci` (owner, 2026-09-29)
+
+IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
+`0.1 + 0.2` is exactly `0.3`.
+
+- **A literal with more digits than the type holds is a compile error**:
+  `'q': deci32 = 3.14159265;` is refused ("9 digits; `deci32` holds 7").
+- **Each operation rounds to its width, half to even**, IEEE's default,
+  as `bin` does. With 16 digits, money rarely reaches it; a receipt's
+  rounding is one explicit call at the end (std's, undesigned).
+- **From `bin`**: `to.deci64['w']` gives the exact value rounded to the
+  width (a `bin64` 0.1 is `0.1000000000000000` in a `deci64`, and shows
+  its binary tail in a `deci128`); `to.deci64.useful['w']` gives the
+  shortest decimal that reads back as the same `bin` (`0.1`).
+- `deci` is its own family: it never mixes with `bin` or an integer
+  without `to.…` (2026-09-14).
+
 ## Notes (Claude, 2026-09-14)
 
 - **Four numeric families, no implicit conversion between them.** `int32`

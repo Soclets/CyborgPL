@@ -5,5 +5,5 @@ MAIN {
     't': list[int32] = [6, 7];
     'r' := b1[lend 's', lend 't'];
     'g' := give 't';
-    std::printu.stdout['r'[1], \n];
+    std::print.useful.stdout['r'[1], \n];
 }

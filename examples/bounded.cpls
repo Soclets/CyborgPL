@@ -12,10 +12,10 @@ MAIN {
     mut 'squares': list[int32][0, 5] = fill[3] otherwise list.empty;
     'n' := list.length[lend 'squares'];    # a uint64[0, 5]
     'small': int8 = 'n';                   # proven: the bound says at most 5
-    std::printu.stdout['squares', " has ", 'small', \n];
+    std::print.useful.stdout['squares', " has ", 'small', \n];
     list.append[lend.mut 'squares', 16];
     list.append[lend.mut 'squares', 25];       # five: still inside
-    std::printu.stdout[list.length[lend 'squares'], \n];
-    'big' := fill[9] otherwise { too_many { std::printu.stdout["9 is too many", \n]; std::exit[0]; } };
-    std::printu.stdout[list.length[lend 'big'], \n];
+    std::print.useful.stdout[list.length[lend 'squares'], \n];
+    'big' := fill[9] otherwise { too_many { std::print.useful.stdout["9 is too many", \n]; std::exit[0]; } };
+    std::print.useful.stdout[list.length[lend 'big'], \n];
 }

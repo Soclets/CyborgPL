@@ -8,5 +8,5 @@ MAIN {
     mut 'counter' := 0;
     change 'counter' = 'counter' + 1;
     immut 'limit': int32 = 10;
-    std::printu.stdout['plain', " ", 'counter', " ", 'limit', " ", twice['limit'], \n];
+    std::print.useful.stdout['plain', " ", 'counter', " ", 'limit', " ", twice['limit'], \n];
 }
