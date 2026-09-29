@@ -467,6 +467,18 @@ pub fn simd_lane_bits(elem: &Ty) -> Option<u32> {
     }
 }
 
+/// The lanes a vector has once nothing more can give its lane a width: a
+/// lane still free (`'a' := simd.fill[5]`) is the natural width, as a lone
+/// number's is (`core-features.md`) and as codegen builds it — 64 bits. It
+/// had no shape at all: 0 lanes. While checking, a free lane stays open
+/// for its place to settle (`simd_shapes_for`).
+pub fn simd_final_lanes(elem: &Ty) -> u32 {
+    match elem.base() {
+        Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_)) => TARGET_SIMD_BITS / 64,
+        _ => simd_shapes_for(elem).unwrap_or(0),
+    }
+}
+
 /// Every shape this target has for a lane type, for the message that says so.
 pub fn simd_shapes_for(elem: &Ty) -> Option<u32> {
     simd_lane_bits(elem).map(|bits| TARGET_SIMD_BITS / bits)

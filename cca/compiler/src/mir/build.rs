@@ -155,7 +155,7 @@ pub fn resolved(t: &Ty, subst: &HashMap<crate::types::InferId, Ty>) -> Ty {
         Ty::Map { key, val, order } => Ty::Map { key: Box::new(resolved(key, subst)), val: Box::new(resolved(val, subst)), order: *order },
         Ty::Simd { elem, lanes } => {
             let e = resolved(elem, subst);
-            let n = if *lanes == 0 { crate::types::simd_shapes_for(&e).unwrap_or(0) } else { *lanes };
+            let n = if *lanes == 0 { crate::types::simd_final_lanes(&e) } else { *lanes };
             Ty::Simd { elem: Box::new(e), lanes: n }
         }
         Ty::Struct { id, args } => Ty::Struct { id: *id, args: args.iter().map(|a| resolved(a, subst)).collect() },
@@ -1492,7 +1492,11 @@ impl<'a> FnBuilder<'a> {
                 // Into a parameter is a store like any other: a `uint64`
                 // handed to a `uint8` parameter is a narrowing, and a
                 // narrowing is a check site (`conversion.md`). It was not one.
-                let wants = self.param_tys(callee);
+                let wants = match (callee, self.resolve_ty(&e.ty).base()) {
+                    // `simd.fill`'s value lands in every lane.
+                    (hir::Callee::Builtin(hir::Builtin::SimdFill), Ty::Simd { elem, .. }) => vec![(**elem).clone()],
+                    _ => self.param_tys(callee),
+                };
                 let mut i = 0usize;
                 for (a, m) in args.iter().zip(&margs) {
                     // An unpacked list stands for as many values as it holds.

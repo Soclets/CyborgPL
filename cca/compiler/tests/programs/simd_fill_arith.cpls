@@ -1,0 +1,18 @@
+# `simd.fill` of an answer of plain math (check claude, 163 of 300
+# programs): the answer is exact, and was made the lane type — 65-bit lanes,
+# one to a register, `simd[integer, 1]` — so a `simd[int32, 4]` refused it.
+# It now lands in every lane of the type the vector gets, and is asked there.
+# And a vector nothing gives a lane width (`:=` of bare numbers) has the
+# natural one, 64 bits, two lanes; it had none. 6 + 2 + 25 + 5 + 6 = 44.
+extern fn exit ['code': int32];
+MAIN {
+    'x': int32 = 5;
+    'a': simd[int32, 4] = simd.fill['x' + 1];
+    'b': simd[int32, 4] = simd.fill[('x' mod 7) - 3];
+    'c': simd[int16, 8] = simd.fill['x' xx 2];
+    'd' := simd.fill[5];
+    'e' := simd.fill['x' + 1];
+    'd2': int64 = 'd'[2];
+    'e1': int64 = 'e'[1];
+    nocheck exit['a'[4] + 'b'[1] + to.int32['c'[8]] + to.int32['d2'] + to.int32['e1']];
+}

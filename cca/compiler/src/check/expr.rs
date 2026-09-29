@@ -2842,11 +2842,22 @@ impl Checker {
             Builtin::SimdFill => {
                 arity(1, self)?;
                 let v = self.expr(ctx, positional[0])?;
-                // The lane type comes from where the vector is going.
-                let lane = self.fresh();
-                let v = self.expect_store(ctx, v, &lane, "every lane")?;
-                let ty = Ty::Simd { elem: Box::new(lane), lanes: 0 };
-                (vec![Arg::Value(v)], ty)
+                // An answer of plain math is exact, and lands where it is
+                // stored (owner, 2026-09-23): in every lane, whose type the
+                // vector takes from its place. As the lane type it made a
+                // vector of 65-bit lanes, one to a register — `simd.fill['x'
+                // + 1]` into a `simd[int32, 4]` was a `simd[integer, 1]`
+                // (check claude). MIR asks whether it fits the lane.
+                if self.resolve(&v.ty).is_exact() {
+                    let ty = Ty::Simd { elem: Box::new(Ty::Int(IntW::Free(InferId(0)))), lanes: 0 };
+                    (vec![Arg::Value(v)], ty)
+                } else {
+                    // The lane type comes from where the vector is going.
+                    let lane = self.fresh();
+                    let v = self.expect_store(ctx, v, &lane, "every lane")?;
+                    let ty = Ty::Simd { elem: Box::new(lane), lanes: 0 };
+                    (vec![Arg::Value(v)], ty)
+                }
             }
             Builtin::SimdLoad => {
                 arity(2, self)?;
