@@ -1507,7 +1507,11 @@ impl<'a> FnBuilder<'a> {
                     }
                     let have = self.arg_ty(a);
                     let op = arg_as_operand(m);
-                    self.narrow_arg(&op, &have, want, span);
+                    // At the argument's own place, not the call's: two
+                    // arguments of one call are two sites, and a message
+                    // (or check claude's matcher) has to tell them apart.
+                    let at = self.span_id(a.span());
+                    self.narrow_arg(&op, &have, want, at);
                 }
                 (c, margs, otherwise.as_deref(), fails.clone())
             }
