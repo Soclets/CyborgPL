@@ -630,6 +630,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                                 }
                             }
                         }
+                    } else if want.is_some() {
+                        // Never drop a store quietly: the place would be read
+                        // unset (a simd lane read did this).
+                        self.cannot("this value has no shape in the generated code yet", Some(f.span(s.span)));
                     }
                 }
                 StmtKind::Op { dest, op, args } => {
@@ -862,6 +866,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         BasicValueEnum::IntValue(i) => i,
                         _ => return None,
                     };
+                    // One lane of a vector (`simd.md`: `'v'[1]`, 1-based):
+                    // in memory a vector is its lanes one after another.
+                    // Only a list's index was known here, and a lane read
+                    // came back with nothing — the assignment was dropped
+                    // and the variable read unset (check claude).
+                    if let Ty::Simd { elem, .. } = ty.base().clone() {
+                        if elem.base() == &Ty::Bool {
+                            self.cannot("one lane of a mask (`simd[bool, N]`) has no shape in the generated code yet", None);
+                            return None;
+                        }
+                        let et = self.ty(&elem)?;
+                        let w = self.ctx.i64_type();
+                        let i = self.builder.build_int_cast_sign_flag(idx, w, false, "lane").ok()?;
+                        let zb = self.builder.build_int_sub(i, w.const_int(1, false), "zb").ok()?;
+                        slot = unsafe { self.builder.build_gep(et, slot, &[zb], "lane").ok()? };
+                        ty = (*elem).clone();
+                        continue;
+                    }
                     let (next, elem) = self.index_slot(slot, &ty, idx)?;
                     slot = next;
                     ty = elem;

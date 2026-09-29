@@ -225,3 +225,4 @@ range_answer 6
 range_answer_trusted 6
 strict_guard_called 7
 induction_reached 5
+simd_lane 58

@@ -1,0 +1,24 @@
+# One lane of a vector (simd.md: `'v'[1]`, 1-based; check claude found it
+# gave garbage): the lane read had no shape in the generated code, the
+# assignment was dropped without a word, and the variable was read unset.
+# Lanes of each width, a position worked out at run time, and a load whose
+# lanes differ, to see the order: 4 + 4 + (200 - 190) + (-5 + 10) +
+# 2.5 x 2 + 30 = 58.
+extern fn exit ['code': int32];
+MAIN {
+    'a': simd[int32, 4] = simd.fill[4];
+    'b': simd[uint8, 16] = simd.fill[200];
+    'c': simd[int64, 2] = simd.fill[-5];
+    'w': simd[bin64, 2] = simd.fill[2.5];
+    'xs': list[int32] = [10, 20, 30, 40];
+    'v': simd[int32, 4] = simd.load[lend 'xs', 1];
+    'k': int64 = 3;
+    'x1': int32 = 'a'[1];
+    'x2': uint8 = 'b'[16];
+    'x3': int64 = 'c'[2];
+    'x4': int32 = 'a'['k' - 1];
+    'x5': bin64 = 'w'[2];
+    'x6': int32 = 'v'['k'];
+    'half': int32 = to.int32['x5' x 2.0] otherwise 0;
+    nocheck exit['x1' + 'x4' + (to.int32['x2'] - 190) + to.int32['x3' + 10] + 'half' + 'x6'];
+}
