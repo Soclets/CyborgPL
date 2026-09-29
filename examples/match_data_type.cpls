@@ -1,0 +1,14 @@
+# A match arm's data name has the case's type (found by check claude, 2026-09-29): 'd' is an int32,
+# so not.bit and x~ know their width, and 'b' is a uint8, so +~ wraps at 8 bits.
+enum E1 { c1: int32  c2: uint8  c3 }
+MAIN {
+    'e' := E1.c1[5];
+    match 'e' {
+        c1 'd' { std::printu.stdout[not.bit 'd', " ", 'd' x~ 1000000000, \n]; }
+        c2 'b' { }
+        c3 { }
+    }
+    'f' := E1.c2[250];
+    'w' := match 'f' { c1 'd' { 0 } c2 'b' { to.int64['b' +~ 10] } c3 { 1 } };
+    std::printu.stdout['w', \n];
+}

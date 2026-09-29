@@ -96,6 +96,8 @@ pub struct Interp<'p> {
     pending_deps: Vec<usize>,
     /// the line of the `return` that ended the last call
     ret_line: usize,
+    /// the matched case's data type, for the name an arm binds
+    arm_ty: Option<Ty>,
     /// Limb-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
     consts: HashMap<String, Slot>,
     /// the module the running code was written in (for bare names and visibility)
@@ -143,7 +145,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -853,7 +855,8 @@ impl<'p> Interp<'p> {
             }
             Stmt::Match { value, arms, line } => {
                 let (v, _) = self.single(value, *line)?;
-                let (arm, data) = self.pick_arm(v, arms, *line)?;
+                let (arm, data, dty) = self.pick_arm(v, arms, *line)?;
+                self.arm_ty = dty;
                 if arm.value.is_some() { return rt(arm.line, format!("case `{}` gives a value, but this `match` is not used as one", arm.name)); }
                 match self.run_arm(arm, data)? {
                     Flow::Give(_) => rt(arm.line, format!("case `{}` gives a value, but this `match` is not used as one", arm.name)),
@@ -1504,7 +1507,7 @@ impl<'p> Interp<'p> {
     }
 
     /// The case of `v` among a `match`'s arms, after checking every case is covered.
-    fn pick_arm<'a>(&self, v: Value, arms: &'a [Arm], line: usize) -> Result<(&'a Arm, Option<Value>), RuntimeError> {
+    fn pick_arm<'a>(&self, v: Value, arms: &'a [Arm], line: usize) -> Result<(&'a Arm, Option<Value>, Option<Ty>), RuntimeError> {
         let (tname, case, data) = match v { Value::Enum(t, c, d) => (t, c, d), other => return rt(line, format!("`match` takes an enum value, got {} — for other types use `if`", other.kind())) };
         let def = match self.prog.enums.iter().find(|e| e.name == tname) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{tname}`")) };
         for a in arms {
@@ -1515,14 +1518,17 @@ impl<'p> Interp<'p> {
         }
         let missing: Vec<&str> = def.cases.iter().filter(|c| !arms.iter().any(|a| a.name == c.name)).map(|c| c.name.as_str()).collect();
         if !missing.is_empty() { return rt(line, format!("`match` on `{tname}` does not handle {}; every case must be covered", missing.join(", "))); }
-        Ok((arms.iter().find(|a| a.name == case).unwrap(), data.map(|d| *d)))
+        // the data's type, so a bound name has a width (check claude, 2026-09-29); a generic case's is left open
+        let dty = def.cases.iter().find(|c| c.name == case).and_then(|c| c.ty.clone()).filter(|t| !matches!(t, Ty::Var(_)) && def.params.is_empty());
+        Ok((arms.iter().find(|a| a.name == case).unwrap(), data.map(|d| *d), dty))
     }
 
     /// Run one case with its data bound: its value if it is one, else its statements' flow.
     fn run_arm(&mut self, arm: &Arm, data: Option<Value>) -> Result<Flow, RuntimeError> {
         self.push();
         if let (Some(b), Some(d)) = (&arm.bind, data) {
-            let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(d)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, arm.line);
+            let ty = self.arm_ty.take();
+            let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(d)), ty, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, arm.line);
             if let Err(e) = r { self.pop(); return Err(e); }
         }
         let r = match &arm.value {
@@ -2026,7 +2032,8 @@ impl<'p> Interp<'p> {
             }
             Expr::Match(value, arms, _) => {
                 let (v, _) = self.single(value, line)?;
-                let (arm, data) = self.pick_arm(v, arms, line)?;
+                let (arm, data, dty) = self.pick_arm(v, arms, line)?;
+                self.arm_ty = dty;
                 match self.run_arm(arm, data)? {
                     Flow::Give(v) => { let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
                     Flow::Normal => rt(arm.line, format!("case `{}` neither gives a value nor leaves (return, fail, break, continue)", arm.name)),
@@ -3253,6 +3260,7 @@ impl<'p> Interp<'p> {
             },
             Handler::Arms(arms) => {
                 let arm = arms.iter().find(|a| a.name == reason).unwrap();
+                self.arm_ty = None;
                 match self.run_arm(arm, payload)? {
                     // a case that gives a value is the value (owner, 2026-09-29)
                     Flow::Give(v) if value_used => Ok(v),
