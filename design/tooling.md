@@ -58,7 +58,8 @@ Owner, 2026-09-14.
   loops, a `MAIN`), which **never runs by itself** — a special command runs
   chosen ones or all of them, a dependency's included. Both package managers
   run it. The command is **`cca prepare`** (owner, 2026-09-29: b):
-  `cca prepare geometry money` runs those Limbs' `build.cplr`,
+  `cca prepare geometry, money` runs those Limbs' `build.cplr` (names
+  separated by commas, owner; a space after the comma or not),
   `cca prepare --all` runs every one; `synthia prepare` alike. Proposed
   alternatives: `build-script`, `run-build`. A
   **`cca::Dep` is a name plus a `version`** (from the registry) **or a
