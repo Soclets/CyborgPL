@@ -184,6 +184,9 @@ fn limbs_reach_their_dependencies() {
         let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }
+    // A version may be any text of at most 256 bytes (owner, 2026-09-29).
+    let r = Command::new(cca()).arg("check").arg(limbs.join("long_version")).output().unwrap();
+    assert!(r.status.success(), "a 256-byte version was refused:\n{}", String::from_utf8_lossy(&r.stderr));
     for (name, says) in [("cycle_a", "go round in a circle: cycle_a → cycle_b → cycle_a"), ("misnamed", "calls itself `areas` in its `CCA.cplr`, and the Limb that depends on it names it `geometry`")] {
         let r = Command::new(cca()).arg("check").arg(limbs.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);

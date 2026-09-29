@@ -219,8 +219,13 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         seen.push(setting.to_string());
         match setting {
             "name" => out.name = Some((text(&c.value, "'name'")?, c.value.span)),
+            // Any text, at most 256 bytes (owner, 2026-09-29), as in a
+            // Synthia.ttsr.
             "version" => {
-                text(&c.value, "'version'")?;
+                let v = text(&c.value, "'version'")?;
+                if v.len() > 256 {
+                    return err(Diagnostic::error(format!("'version' is at most 256 bytes, and this one is {}", v.len())).at(c.value.span));
+                }
             }
             // The targets a Limb is built for (owner, 2026-09-29): each a
             // `cca::Target` with a `name` and, for one this machine cannot
