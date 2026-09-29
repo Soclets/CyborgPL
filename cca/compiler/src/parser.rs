@@ -1798,6 +1798,65 @@ impl<'a> Parser<'a> {
     }
 
     /// Binding powers. `None` for a token that is not a binary operator here.
+    /// The operator after `op`: any a value can be, whatever follows it.
+    fn op_as_value(&mut self) -> Result<(BinOp, String)> {
+        let at = self.span();
+        let op = match self.peek().clone() {
+            Tok::Op(o) => {
+                self.bump();
+                match o.as_str() {
+                    "+" => BinOp::Add,
+                    "-" => BinOp::Sub,
+                    "/" => BinOp::Div,
+                    "++" => BinOp::Join,
+                    "==" => BinOp::Eq,
+                    "!==" => BinOp::Ne,
+                    "<" => BinOp::Lt,
+                    ">" => BinOp::Gt,
+                    "<==" => BinOp::Le,
+                    ">==" => BinOp::Ge,
+                    "+~" => BinOp::WrapAdd,
+                    "-~" => BinOp::WrapSub,
+                    "=" => return self.fail_at(at, "`=` is not an operator: equality is `op ==`"),
+                    other => BinOp::Custom(other.to_string()),
+                }
+            }
+            Tok::Word(w) => {
+                let wraps = self.is_op_at(1, "~") && self.adjacent(0, 1);
+                self.bump();
+                match w.as_str() {
+                    "x" | "xx" if wraps => {
+                        self.bump();
+                        if w == "x" { BinOp::WrapMul } else { BinOp::WrapPow }
+                    }
+                    "x" => BinOp::Mul,
+                    "xx" => BinOp::Pow,
+                    "mod" => BinOp::Mod,
+                    "and" | "or" if self.eat(&Tok::Dot) => {
+                        let what = self.ident("`then`, `else` or `bit`")?;
+                        match (w.as_str(), what.name.as_str()) {
+                            ("and", "then") => BinOp::AndThen,
+                            ("or", "else") => BinOp::OrElse,
+                            ("and", "bit") => BinOp::AndBit,
+                            ("or", "bit") => BinOp::OrBit,
+                            _ => return self.fail_at(what.span, format!("`{}.{}` is not an operator", w, what.name)),
+                        }
+                    }
+                    "and" => BinOp::And,
+                    "or" => BinOp::Or,
+                    "xor" => BinOp::Xor,
+                    "shl" => BinOp::Shl,
+                    "shr" => BinOp::Shr,
+                    other if is_keyword(other) => return self.fail_at(at, format!("`{}` is a keyword, not an operator: `op` takes one, as in `op +`", other)),
+                    other => BinOp::Custom(other.to_string()),
+                }
+            }
+            other => return self.fail(format!("`op` as a value takes an operator: `op +`, `op x`, `op <`, found {}", other.describe())),
+        };
+        let spelled = op.spelled().to_string();
+        Ok((op, spelled))
+    }
+
     fn binop(&self) -> Option<(BinOp, u8, u8, Span)> {
         let span = self.span();
         let (op, l, r) = match self.peek() {
@@ -2075,6 +2134,13 @@ impl<'a> Parser<'a> {
                     Ok(Expr { kind: ExprKind::Range { start: Box::new(s), stop: Box::new(e), step }, span })
                 }
                 "otherwise" => self.fail("`otherwise` follows a call that can fail: `'x' := f[] otherwise 0;`"),
+                // `op +` (owner, 2026-09-29): the operator as a value.
+                "op" if !matches!(self.peek_at(1), Tok::LBracket) => {
+                    let start = self.bump().span;
+                    let (op, spelled) = self.op_as_value()?;
+                    let span = start.to(self.prev_span());
+                    Ok(Expr { kind: ExprKind::OpValue { op, spelled }, span })
+                }
                 "match" => {
                     let start = self.bump().span;
                     let (value, arms) = self.match_parts()?;

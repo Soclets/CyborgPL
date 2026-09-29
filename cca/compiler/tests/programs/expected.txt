@@ -185,3 +185,5 @@ fresh_values_owned 3
 # A function hands back a borrow: -> lent@x T (owner, 2026-09-29).
 lifetimes 13
 lifetimes_mut 73
+# op + as a value (owner, 2026-09-29).
+op_values 47

@@ -181,6 +181,7 @@ impl Checker {
             }
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
+            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` needs to know which `{}`: hand it where a function is wanted — a parameter, or `'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
     }
@@ -1794,6 +1795,13 @@ impl Checker {
     /// A single written argument against a parameter.
     pub fn one_argument(&mut self, ctx: &mut FnCtx, e: &ast::Expr, kind: ParamKind, pty: &Ty, fname: &str, pname: &str) -> Result<Arg> {
         let what = if pname.starts_with("the ") { format!("`{}`'s {}", fname, pname) } else { format!("`{}`'s parameter '{}'", fname, pname) };
+        // `op +` takes its type from the parameter it goes to.
+        if let AK::OpValue { op, spelled } = &e.kind {
+            if let Ty::Fn(ft) = self.resolve(pty).base() {
+                let ft = (**ft).clone();
+                return Ok(Arg::Value(self.op_value(ctx, op, spelled, &ft, e.span)?));
+            }
+        }
         match &e.kind {
             AK::Verb { verb, amp, expr } => {
                 if *amp {
@@ -2088,6 +2096,36 @@ impl Checker {
         let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning }));
         let captures = caps.into_iter().map(|(outer, verb)| hir::CaptureBinding { verb, outer, inner: hir::LocalId(0) }).collect();
         Ok(Expr { kind: K::FnLit { inst, captures }, ty, span })
+    }
+
+    /// `op +` as a value of type `ft` (owner, 2026-09-29): a function of
+    /// two operands, written out as `fn ['a': T, 'b': T] -> R { return 'a'
+    /// + 'b'; }` with the types it is wanted at.
+    pub fn op_value(&mut self, ctx: &mut FnCtx, op: &crate::ast::BinOp, spelled: &str, ft: &FnTy, span: Span) -> Result<Expr> {
+        use crate::ast::BinOp as B;
+        if matches!(op, B::Sub | B::AndThen | B::OrElse) {
+            let why = if *op == B::Sub { "`-` is both negation and subtraction" } else { "it stops once the answer is known, which a function's arguments do not" };
+            return err(Diagnostic::error(format!("not yet: `op {}` as a value is open — {} — and asked", spelled, why)).at(span));
+        }
+        if ft.params.len() != 2 {
+            return err(Diagnostic::error(format!("`op {}` takes two operands, and this wants a function of {}", spelled, ft.params.len())).at(span));
+        }
+        if !ft.fails.is_empty() {
+            return err(Diagnostic::error(format!("`op {}` cannot fail, and this wants a function that can", spelled)).at(span));
+        }
+        let names = ["a", "b"];
+        let params: Vec<crate::resolve::ParamDecl> = ft.params.iter().zip(names).map(|((k, t), n)| crate::resolve::ParamDecl { kind: *k, group: None, amp: false, mutability: None, variadic: false, name: n.to_string(), ty: Some(t.clone()), from_blank: false, span }).collect();
+        let name = |n: &str| ast::Expr { kind: AK::Name(crate::ast::QName { name: n.to_string(), span }), span };
+        let value = ast::Expr { kind: AK::Binary { op: op.clone(), op_span: span, lhs: Box::new(name("a")), rhs: Box::new(name("b")) }, span };
+        let body = crate::ast::Block { stmts: vec![crate::ast::Stmt { kind: crate::ast::StmtKind::Return(Some(value)), span }], span };
+        let fn_id = FnId(self.items.fns.len() as u32);
+        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, span, name_span: span });
+        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
+        let inst = self.instance(key);
+        self.check_literal_now(inst, Vec::new())?;
+        let sig = self.instances[inst.0 as usize].sig.clone();
+        let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
+        Ok(Expr { kind: K::FnLit { inst, captures: Vec::new() }, ty, span })
     }
 
     fn check_literal_now(&mut self, inst: hir::FnInst, outer: Vec<(String, Verb, Ty, hir::LocalId)>) -> Result<()> {
