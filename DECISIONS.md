@@ -25,7 +25,12 @@ tooling, the name saying which), and design claude proposed
 owner: "yea". Both package managers run it (parity). The command is
 **`prepare`** (owner: b): `cca prepare geometry money`, `cca prepare --all`,
 `synthia prepare` alike; proposed alternatives `build-script`, `run-build`.
-`tooling.md`.
+Then compiler claude's four suggestions, which the owner accepted ("Yeah,
+but number 2 needs `,`"): `prepare` acts on the current directory's Limb
+or a folder given; names are dependencies' local names (or the Limb's
+own), **separated by commas** (`cca prepare geometry, money`); a
+`build.cplr` runs in its own Limb's folder; `--all` goes dependencies
+first, each once, stopping at the first failure. `tooling.md`.
 
 ### 2026-09-29 — One target is marked the default (owner: b)
 
