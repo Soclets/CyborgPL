@@ -1920,14 +1920,13 @@ impl Checker {
                         };
                     }
                 }
-                // A call's argument takes no width from its parameter
-                // (`operators.md`: context stops at a call; `list.append`,
-                // owner 2026-09-29): a wrap, shift or `not.bit` of bare
-                // numbers must be given one before it is handed over.
+                // Whether a call's argument takes its parameter's type as a
+                // width, as a list item does, is not ruled (912854a); both
+                // engines refuse it until it is.
                 if let Ty::Infer(_) = self.resolve(&v.ty) {
                     let vt = self.resolve(&v.ty);
                     let op = self.widths_pending.iter().find(|(t, _, _)| self.resolve(t) == vt).map(|(_, _, w)| w.clone()).unwrap_or_else(|| "this".into());
-                    return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and an argument takes none from its parameter: give an operand a type, or say it in a declaration first (`'x': uint8 = 0 -~ 1;`)", op)).at(e.span));
+                    return err(Diagnostic::error(format!("not yet: `{}` needs to know which width it works in, and whether an argument takes its parameter's is asked — give an operand a type, or say it in a declaration first (`'x': uint8 = 0 -~ 1;`)", op)).at(e.span));
                 }
                 let v = self.expect_store(ctx, v, pty, &what)?;
                 Ok(Arg::Value(v))
