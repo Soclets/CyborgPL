@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A Limb's name and a needed Limb's local name follow the module-name rule (owner: "yea")
+
+Relayed by synthia claude. In `Synthia.ttsr`, `name` and the key before
+`.id`, `.version` or `.path` in `[my needed things]` follow CyborgPL's rule
+for module names: lowercase ASCII letters, digits and `_`, starting with a
+letter, not a keyword, not a Windows device name. Synthia claude's reason:
+a local name is written in code as `geometry::`, and a Limb's own name
+becomes the local name of every Limb that needs it. The owner: "yea".
+Synthia gives the oracle's reasons word for word, and its keyword list is
+copied from `oracle/src/parser.rs` at 898ad6d: design claude tells synthia
+claude when a keyword is added.
+
+Found alongside, open: the oracle refuses a `path` dependency whose own
+`CCA.cplr` name differs from its local name ("the Limb at `../x` calls
+itself `a`, not `b`"), a check design claude added on 2026-09-29 (a `cca::Dep`
+entry above) before the owner ruled that names may repeat and the local
+name is each Limb's own label. The two disagree; which is right is the
+owner's.
+
 ### 2026-09-29 — A `Synthia.ttsr` needs `name`, `version` and a target; `id` and times only to publish (owner: b)
 
 Relayed by synthia claude. Proposed: (a) everything in the design's

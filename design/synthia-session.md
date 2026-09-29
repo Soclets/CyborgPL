@@ -55,6 +55,11 @@ bound (owner, 2026-09-29: "No core bounds, because Go only for now is
 stated"): Go's bursts are short, while a `cca` build uses LLVM on every core
 it can get.
 
+## What design claude owes you
+
+Word when a keyword is added to `oracle/src/parser.rs` (your copy of the
+list is from 898ad6d).
+
 ## What is open
 
 Commands other than `synthia show` (`synthia-manifest.md`) and
