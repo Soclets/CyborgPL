@@ -1,0 +1,2 @@
+const 'name' := "stops";
+const 'dependencies' := [cca::Dep[name = "bad", path = "../prep_bad"],];

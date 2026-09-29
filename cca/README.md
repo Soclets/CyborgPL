@@ -424,6 +424,18 @@ Dated, with the alternative, so each can become a question later.
   runner is open. Two Limbs that depend on the same folder share one
   copy of it. A `version` dependency is refused until the registry
   exists, as the oracle does.
+- **2026-09-29 — `cca prepare`: picks around the owner's rulings.** The
+  rulings (the current folder's Limb; names are local names or its own,
+  comma-separated with or without a space; a `build.cplr` runs in its own
+  Limb's folder; `--all` runs dependencies first, each once, stopping at the
+  first failure) are built as ruled. Picks beside them: named Limbs run in
+  the order given, each once; a named Limb with no `build.cplr` is refused,
+  while `--all` passes over those; each `build.cplr` is built as a program
+  of its own (the working build, no access to its Limb's code), with no
+  words, and the failing one's exit is cca's. A folder argument is refused
+  as "not yet (asked)", since `cca prepare money` cannot tell a folder
+  `money` from a dependency `money`; so is no names at all, as ruled.
+  Alternative: run named Limbs dependencies-first too.
 - **2026-09-29 — How `cca test` runs tests.** One test binary holds every
   `test fn` (and no `MAIN`); `cca test` runs it once per test, the test's
   number its argument, so a check that fires ends that test only. A `must`

@@ -191,6 +191,30 @@ fn limbs_reach_their_dependencies() {
     }
 }
 
+/// `cca prepare` (owner, 2026-09-29): the current folder's Limb; names are
+/// local names or its own, comma-separated with or without a space, run in
+/// the order given; `--all` runs dependencies first, each once, and stops
+/// at the first that fails. Each build.cplr stops with 9 unless it runs in
+/// its own Limb's folder.
+#[test]
+fn prepare_runs_build_scripts_in_their_folders() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let limbs = dir().parent().unwrap().join("limbs");
+    let prep = |at: &str, words: &[&str]| Command::new(cca()).arg("prepare").args(words).current_dir(limbs.join(at)).output().unwrap();
+    let said = |r: &std::process::Output| String::from_utf8_lossy(&r.stdout).lines().filter(|l| !l.starts_with("prepare:")).collect::<Vec<_>>().join(" ");
+    for (words, want) in [(&["--all"][..], "money geometry app"), (&["geometry,", "money"][..], "geometry money"), (&["geometry,money"][..], "geometry money"), (&["money,", "money"][..], "money"), (&["app"][..], "app")] {
+        let r = prep("prep_app", words);
+        assert!(r.status.success() && said(&r) == want, "`cca prepare {}` ran `{}`, not `{}`:\n{}", words.join(" "), said(&r), want, String::from_utf8_lossy(&r.stderr));
+    }
+    let r = prep("prep_stops", &["--all"]);
+    assert!(r.status.code() == Some(7) && said(&r) == "bad", "`--all` did not stop at the first that failed:\n{}{}", said(&r), String::from_utf8_lossy(&r.stderr));
+    for (words, says) in [(&[][..], "not yet: `cca prepare` with no names"), (&["geometry", "money"][..], "names are separated by commas"), (&["nope"][..], "`nope` is not a dependency of this Limb"), (&["../prep_money"][..], "for a Limb in another folder")] {
+        let r = prep("prep_app", words);
+        let err = String::from_utf8_lossy(&r.stderr);
+        assert!(!r.status.success() && err.contains(says), "`cca prepare {}` was not refused with {:?}:\n{}", words.join(" "), says, err);
+    }
+}
+
 /// `cca run` (owner, 2026-09-29): the program's exit is cca's, its stdout
 /// is only the program's (CCA's tally goes to stderr), and nothing is left
 /// behind.

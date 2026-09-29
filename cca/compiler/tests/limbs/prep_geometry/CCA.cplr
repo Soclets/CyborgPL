@@ -1,0 +1,2 @@
+const 'name' := "geometry";
+const 'dependencies' := [cca::Dep[name = "money", path = "../prep_money"],];

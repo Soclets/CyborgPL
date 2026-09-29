@@ -12,6 +12,7 @@ fn usage() -> ! {
     eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
+    eprintln!("       cca prepare <name>, <name>… | --all   run those Limbs' build.cplr, in their own folders");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -179,6 +180,7 @@ fn real_main() {
         // `cca test` (owner, 2026-09-29, `testing.md`): every `test fn`,
         // in the order written, each in a run of its own, so a check that
         // fires ends that test only. The report is the oracle's.
+        "prepare" => prepare(&args[1..]),
         "test" => {
             let mut file = None;
             let mut assert_proofs = false;
@@ -256,6 +258,88 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
 
 /// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
 /// stderr, for `cca run`, whose stdout is the program's.
+/// `cca prepare` (owner, 2026-09-29): the Limb in the current folder;
+/// names are its dependencies' local names or its own, separated by commas
+/// (`geometry, money` or `geometry,money`), run in the order given; `--all`
+/// runs every Limb's `build.cplr`, dependencies first. Each is built as a
+/// program of its own and run in its Limb's folder; the first that fails
+/// stops the rest, and its exit is cca's.
+fn prepare(rest: &[String]) {
+    if rest.is_empty() {
+        eprintln!("error: not yet: `cca prepare` with no names (asked) — name the Limbs, `cca prepare geometry, money`, or give `--all`");
+        exit(2);
+    }
+    let names: Option<Vec<String>> = if rest.len() == 1 && rest[0] == "--all" {
+        None
+    } else {
+        if let Some(a) = rest.iter().find(|a| a.starts_with('-')) {
+            eprintln!("error: `cca prepare` takes names separated by commas, or `--all` alone; `{}` is neither", a);
+            exit(2);
+        }
+        if let Some(a) = rest.iter().find(|a| a.contains('/') || *a == "." || *a == "..") {
+            eprintln!("error: not yet: `cca prepare` for a Limb in another folder (asked) — `{}` reads as one; run it in that Limb's folder", a);
+            exit(2);
+        }
+        let mut v = Vec::new();
+        for part in rest.join(" ").split(',') {
+            let n = part.trim();
+            if n.is_empty() {
+                eprintln!("error: a name is missing between two commas, or after the last: `cca prepare geometry, money`");
+                exit(2);
+            }
+            if n.contains(char::is_whitespace) {
+                eprintln!("error: names are separated by commas: `cca prepare {}`", n.split_whitespace().collect::<Vec<_>>().join(", "));
+                exit(2);
+            }
+            v.push(n.to_string());
+        }
+        Some(v)
+    };
+    let mut sources = SourceMap::default();
+    let plan = match cca::load::prepare_plan(&mut sources, Path::new("."), names.as_deref()) {
+        Ok(p) => p,
+        Err(d) => {
+            eprint!("{}", d.render(&sources));
+            exit(1);
+        }
+    };
+    if plan.is_empty() {
+        println!("no Limb here has a build.cplr");
+        return;
+    }
+    let dir = std::env::temp_dir().join(format!("cca-prepare-{}", std::process::id()));
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        eprintln!("error: cannot make {}: {}", dir.display(), e);
+        exit(1);
+    }
+    for (k, (name, folder)) in plan.iter().enumerate() {
+        println!("prepare: {}", name);
+        let exe = dir.join(format!("build-{}", k));
+        if let Err(d) = build_one(&folder.join("build.cplr"), &exe, false, false, true) {
+            let _ = std::fs::remove_dir_all(&dir);
+            eprint!("{}", d);
+            exit(1);
+        }
+        let status = std::process::Command::new(&exe).current_dir(folder).status();
+        match status {
+            Ok(s) if s.success() => {}
+            Ok(s) => {
+                use std::os::unix::process::ExitStatusExt;
+                let code = s.code().unwrap_or_else(|| 128 + s.signal().unwrap_or(0));
+                let _ = std::fs::remove_dir_all(&dir);
+                eprintln!("error: `{}`'s build.cplr exited with {}, and `cca prepare` stops there", name, code);
+                exit(code);
+            }
+            Err(e) => {
+                let _ = std::fs::remove_dir_all(&dir);
+                eprintln!("error: cannot run {}: {}", exe.display(), e);
+                exit(1);
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool) -> Result<(), String> {
     build_opts(path, out, assert_proofs, final_build, quiet, false).map(|_| ())
 }

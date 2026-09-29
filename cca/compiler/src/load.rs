@@ -23,6 +23,71 @@ pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     Ok(items)
 }
 
+/// What `cca prepare` runs, in order (owner, 2026-09-29): each Limb's
+/// `build.cplr` with the name it goes by and the folder it runs in. `names`
+/// are the local names this Limb's `CCA.cplr` gives its dependencies, or
+/// the Limb's own name, run in the order given, each once; `None` is
+/// `--all` — every Limb reached, dependencies before the Limbs that use
+/// them, each once. Nothing is loaded but manifests.
+pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, names: Option<&[String]>) -> Result<Vec<(String, PathBuf)>> {
+    if !dir.join("limb.cpls").is_file() {
+        return err(Diagnostic::error(format!("`cca prepare` acts on the Limb in this folder, and `{}` has no `limb.cpls`", short(dir))));
+    }
+    let manifest = read_manifest(sources, dir)?;
+    let own = manifest.name.as_ref().map(|(n, _)| n.clone());
+    let script = |d: &Path| d.join("build.cplr").is_file();
+    let Some(names) = names else {
+        // Dependencies first: a Limb is listed after everything under it.
+        fn walk(sources: &mut SourceMap, dir: &Path, shown: String, stack: &mut Vec<(PathBuf, String)>, done: &mut Vec<PathBuf>, out: &mut Vec<(String, PathBuf)>) -> Result<()> {
+            let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+            if done.contains(&key) {
+                return Ok(());
+            }
+            if let Some(at) = stack.iter().position(|(p, _)| *p == key) {
+                let mut names: Vec<String> = stack[at..].iter().map(|(_, n)| n.clone()).collect();
+                names.push(shown);
+                return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
+            }
+            let manifest = read_manifest(sources, dir)?;
+            stack.push((key.clone(), shown.clone()));
+            for d in &manifest.deps {
+                walk(sources, &dir.join(&d.path), d.name.clone(), stack, done, out)?;
+            }
+            stack.pop();
+            done.push(key);
+            if dir.join("build.cplr").is_file() {
+                out.push((shown, dir.to_path_buf()));
+            }
+            Ok(())
+        }
+        let shown = own.clone().unwrap_or_else(|| dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()));
+        let mut out = Vec::new();
+        walk(sources, dir, shown, &mut Vec::new(), &mut Vec::new(), &mut out)?;
+        return Ok(out);
+    };
+    let mut out: Vec<(String, PathBuf)> = Vec::new();
+    for n in names {
+        if out.iter().any(|(m, _)| m == n) {
+            continue;
+        }
+        let at = if own.as_deref() == Some(n.as_str()) {
+            dir.to_path_buf()
+        } else if let Some(d) = manifest.deps.iter().find(|d| d.name == *n) {
+            dir.join(&d.path)
+        } else {
+            let mut known: Vec<String> = own.iter().cloned().collect();
+            known.extend(manifest.deps.iter().map(|d| d.name.clone()));
+            let list = if known.is_empty() { "this Limb has no name and no dependencies in its `CCA.cplr`".to_string() } else { format!("the names here are {}", known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")) };
+            return err(Diagnostic::error(format!("`{}` is not a dependency of this Limb nor its own name: {}", n, list)));
+        };
+        if !script(&at) {
+            return err(Diagnostic::error(format!("`{}` has no `build.cplr` to run, at `{}`", n, at.display())));
+        }
+        out.push((n.clone(), at));
+    }
+    Ok(out)
+}
+
 /// Where loading has got to: the Limbs being loaded now (a dependency back
 /// to one of them is a cycle), and those loaded already (two Limbs that
 /// share a dependency share one copy of it).
