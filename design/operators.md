@@ -112,12 +112,15 @@ the compiler can work it out, so it should.
 1;` does, since each item lands in a `uint8` slot. So the "construction"
 below is a struct's or a call's, not a list literal. Raised by check
 claude; proposed alternative (b): the size stops at the brackets, so an
-item needing a size writes it (`[to.uint8[0] -~ 1,]`). Whether a call's
-argument takes its parameter's type the same way (`f[0 -~ 1]` with a
-`uint8` parameter) is **not ruled**: both engines refuse it for now.
+item needing a size writes it (`[to.uint8[0] -~ 1,]`). **An argument takes its
+parameter's type the same way** (owner, same day: a): `show[0 -~ 1]` into a
+`uint8` parameter wraps at 8 bits, and `list.append`'s value takes the
+element type. Proposed alternative: an argument has no context, and says
+its size itself.
 
 **Context stops at a call** (2026-09-23): the type a value is stored
-into reaches the arithmetic that produces it, but not through a call, a
+into reaches the arithmetic that produces it, but not through a call (an
+argument takes its parameter's type instead, 2026-09-29), a
 conversion or a construction — what `g[…]` *returns* says nothing about
 the arithmetic inside its arguments. So `'v': uint8 = g[0 > (-1) -
 'x'];` is fine when `'x'` is an `int64`, while `'w': uint32 = 2 shl

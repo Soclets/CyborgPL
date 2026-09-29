@@ -2442,7 +2442,14 @@ impl<'p> Interp<'p> {
                 let is_mut = matches!(prov, Prov::Borrowed(_, true));
                 if !is_mut { return rt(line, format!("`list.{op}` changes the list: pass `lend.mut '{var_name}'`")); }
                 let Some(cell) = cell else { return rt(line, "`list.append`/`remove` need a variable to change") };
-                let (arg, aprov) = self.value(&args.values[1])?;
+                // the appended value lands in an element slot: the element type is its context (owner, 2026-09-29: a)
+                let elem = if op == "append" { match self.lookup(&var_name).and_then(|s| s.ty.clone()) {
+                    Some(Ty::List(t)) => Some(*t), Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) => Some(*t), _ => None }, _ => None,
+                } } else { None };
+                let saved = std::mem::replace(&mut self.expected, elem);
+                let r = self.value(&args.values[1]);
+                self.expected = saved;
+                let (arg, aprov) = r?;
                 let mut items = items;
                 // `list.remove` hands the removed element back (decided 2026-09-21): the list
                 // stops owning it, so the caller does — or drops it, as a bare statement.
@@ -2960,7 +2967,18 @@ impl<'p> Interp<'p> {
         for (arg, param) in pairs {
             // the declared type of a variable handed over by a verb, to hold a lend to its layout
             let src_ty = match &arg { Arg::Ast(crate::ast::Value::Expr(Expr::Owned(_, n, _))) => self.lookup(n).and_then(|s| s.ty.clone()), _ => None };
-            let (v, prov) = match arg { Arg::Ast(a) => self.value(a)?, Arg::Val(v, p) => (v, p) };
+            // an argument lands in its parameter, so the parameter's type is its context, as a
+            // declaration's is (owner, 2026-09-29: a): `show[0 -~ 1]` into a uint8 wraps at 8 bits
+            let (v, prov) = match arg {
+                Arg::Ast(a) => {
+                    let pt = param.ty.clone().filter(|t| !matches!(t, Ty::Var(_) | Ty::Inst(..)));
+                    let saved = std::mem::replace(&mut self.expected, pt);
+                    let r = self.value(a);
+                    self.expected = saved;
+                    r?
+                }
+                Arg::Val(v, p) => (v, p),
+            };
             let pn = &param.name;
             let slot = match param.kind {
                 ParamKind::Owned => {

@@ -1,0 +1,12 @@
+# An argument takes its parameter's type as its context, as a declaration's value does (owner,
+# 2026-09-29: a): show[0 -~ 1] wraps at 8 bits, and list.append's value takes the element type.
+fn show ['b': uint8] { std::printu.stdout['b', \n]; }
+fn wide ['w': uint32] -> uint32 { return 'w'; }
+MAIN {
+    show[0 -~ 1];
+    'v': uint64 = to.uint64[wide[2 shl 3]];
+    std::printu.stdout['v', " ", wide[not.bit 0], \n];
+    mut 'xs': list[uint8] = [1,];
+    list.append[lend.mut 'xs', 0 -~ 2];
+    std::printu.stdout['xs'[2], \n];
+}

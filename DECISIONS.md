@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — An argument takes its parameter's type as its context (owner: a)
+
+The follow-up to the list-literal ruling. Design claude had written "a
+call's argument gets no context" into that entry from check claude's
+framing, and CCA had followed it (`f[0 -~ 1]` refused); the record was
+corrected (912854a) and the question put. Proposed (a) an argument lands
+in its parameter, so the parameter's type is its context, like a list
+item and a declaration; (b) none, the argument says its size. Design
+claude recommended a. Owner: a. `list.append`'s value takes the list's
+element type. What a call returns still says nothing about its arguments
+(2026-09-23). `operators.md`; `examples/argument_context.cpls`.
+
 ### 2026-09-29 — A borrow conflict is reported at the change (owner: a)
 
 Check claude asked which line the error names when what a borrow borrows is
@@ -31,8 +43,7 @@ The owner asked whether the `~` sat on the wrong side (no: `-~`, 2026-09-20),
 for an explanation, how a list says its item type (`list[uint8]` on the
 variable), confirmed `'xs': list[uint8] = [1, 2, 3];` is right, noted that
 b would open a follow-up question (how an item states its size), and chose
-a. Nested lists pass it down. Not ruled: whether a call's argument takes
-its parameter's type the same way (both engines refuse `f[0 -~ 1]` for now). The oracle had used the list type itself as
+a. Nested lists pass it down. Arguments were ruled next (entry above). The oracle had used the list type itself as
 the items' context and refused `[0 -~ 'i',]`; fixed. `operators.md`;
 `examples/list_item_context.cpls`.
 
