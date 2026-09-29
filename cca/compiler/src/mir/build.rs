@@ -996,6 +996,21 @@ impl<'a> FnBuilder<'a> {
         // A call fills its destination directly, so a failing call has one
         // edge rather than a value to test afterwards.
         if let hir::ExprKind::Call { .. } | hir::ExprKind::Conv { .. } = &value.kind {
+            // An answer narrower places cannot take as it is — an `int64`
+            // into an `int32`, anything into a range type — lands in a
+            // temporary first and is asked there, like any other value.
+            // Filled straight into the place, it was never asked: `'c':
+            // int32[0, 1] = twice[1]` held 2, and Precog believed the type.
+            let from = self.resolve_ty(&value.ty);
+            let to = self.resolve_ty(target);
+            if typed && needs_narrow_check(&from, &to) && to.base().is_numeric() {
+                let t = self.temp(&from, span);
+                self.call_into(Some(Place::local(t)), value, span);
+                self.site_of(SiteKind::Narrow { to: to.clone() }, vec![Operand::Read(Place::local(t))], Some(to), span);
+                self.assign(place.clone(), Rvalue::Use(Operand::Read(Place::local(t))), span);
+                self.store_site(&place, target, typed, span);
+                return;
+            }
             self.call_into(Some(place.clone()), value, span);
             self.store_site(&place, target, typed, span);
             return;

@@ -210,3 +210,4 @@ strict_nested_match 29
 generic_op 193
 # Layer 3 sees every case of a match (check claude, 2026-09-29).
 match_case_divisor trap
+call_into_range trap
