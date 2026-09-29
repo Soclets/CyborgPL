@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, walks: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -255,6 +255,14 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         let f = &mut p.functions[r.function];
         f.sites[r.site.0 as usize].verdict = r.verdict.clone();
     }
+    if std::env::var("CCA_PRECOG_STATS").is_ok() {
+        let mut w: Vec<(usize, (u64, u64))> = a.walks.iter().map(|(k, v)| (*k, *v)).collect();
+        w.sort_by_key(|(_, (n, _))| std::cmp::Reverse(*n));
+        for (fi, (n, blocks)) in w.iter().take(12) {
+            eprintln!("precog: {} walked {} time(s), {} block visit(s)", p.functions[*fi].name, n, blocks);
+        }
+        eprintln!("precog: {} step(s) in all", a.steps);
+    }
     let always_reached = if a.gave_up { std::collections::HashSet::new() } else { reached_every_run(p, &a.edges) };
     Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached }
 }
@@ -316,6 +324,10 @@ struct Precog {
     strict_fns: std::collections::HashSet<usize>,
     /// The strict function being walked on its own terms, if one is.
     own_terms: Option<usize>,
+    /// How often each function was walked, and how many blocks it walked
+    /// in all (`CCA_PRECOG_STATS=1` prints it: where a slow build's time
+    /// goes).
+    walks: HashMap<usize, (u64, u64)>,
 }
 
 /// What layer 3 may assume at the head of a loop, per function and block.
@@ -516,6 +528,7 @@ impl Precog {
     }
 
     fn run_function(&mut self, f: usize, entry: Env, depth: u32) -> Domain {
+        self.walks.entry(f).or_default().0 += 1;
         if depth > CALL_DEPTH {
             self.gave_up = true;
             let ret = self.prog().functions[f].ret.clone();
@@ -631,6 +644,7 @@ impl Precog {
             }
             let Some(mut env) = states[b].clone() else { continue };
             visits[b] += 1;
+            self.walks.entry(f).or_default().1 += 1;
             // Remember what arrived here, joined with everything that ever
             // did. A local missing from either side is unknown in the join.
             let skip = self.dry || !self.counts_for(f);

@@ -6,9 +6,9 @@ extern fn exit ['code': int32];
 enum Status { empty  claimed: str.utf8  locked }
 fn label ['s': Status] -> str.utf8 {
     immut 'text' := match 's' {
-        empty         { gives "free"; }
-        claimed 'who' { immut 'prefix' := "taken by "; gives 'prefix' ++ 'who'; }
-        locked        { gives "locked"; }
+        empty         { giveS "free"; }
+        claimed 'who' { immut 'prefix' := "taken by "; giveS 'prefix' ++ 'who'; }
+        locked        { giveS "locked"; }
     };
     return give 'text';
 }

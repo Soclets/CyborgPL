@@ -1303,12 +1303,14 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.match_rest()
             }
-            // `gives` (owner, 2026-09-29: b) is a strict file's; elsewhere
-            // a case's value stands alone. `gives[…]` is a call.
-            "gives" if !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot) => {
+            // Spelled `giveS` since 2026-09-29, to keep it apart from `give`.
+            "gives" if !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot) => self.fail("`gives` is spelled `giveS`: `{ giveS 1; }` in a `#strict` file"),
+            // `giveS` (owner, 2026-09-29: b) is a strict file's; elsewhere
+            // a case's value stands alone. `giveS[…]` is a call.
+            "giveS" if !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot) => {
                 let at = self.bump().span;
                 if !self.strict {
-                    return self.fail_at(at, "`gives` belongs to `#strict` files; elsewhere a case's value stands alone: `{ 1 }`");
+                    return self.fail_at(at, "`giveS` belongs to `#strict` files; elsewhere a case's value stands alone: `{ 1 }`");
                 }
                 let value = self.expr_top()?;
                 self.expect_semi("the case's value")?;
@@ -1664,7 +1666,7 @@ impl<'a> Parser<'a> {
         // case's or an `otherwise` arm's (owner, 2026-09-29: a).
         if self.is(&Tok::RBrace) {
             if self.strict {
-                return self.fail_at(e.span, "a case says its value with `gives`: `{ gives 1; }` — a `#strict` file writes it out");
+                return self.fail_at(e.span, "a case says its value with `giveS`: `{ giveS 1; }` — a `#strict` file writes it out");
             }
             return Ok(StmtKind::Gives { value: e, bare: true });
         }

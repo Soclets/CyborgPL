@@ -59,8 +59,17 @@ impl Checker {
             Some((l, r)) => (Some(l), r),
             None => (None, &b.stmts[..]),
         };
-        let Some(ast::Stmt { kind: ast::StmtKind::Gives { value, .. }, .. }) = last else {
-            return Ok((self.block(ctx, b)?, None));
+        // A `match` alone at the end of a case follows the outer match:
+        // here, a value one, so it is the case's value (owner, 2026-09-29:
+        // a) — except in a `#strict` file, which says `giveS match …;`.
+        let nested;
+        let value = match last {
+            Some(ast::Stmt { kind: ast::StmtKind::Gives { value, .. }, .. }) => value,
+            Some(ast::Stmt { kind: ast::StmtKind::Match { value, arms }, span }) if !self.items.strict_files.contains(&span.file) => {
+                nested = ast::Expr { kind: ast::ExprKind::Match { value: Box::new(value.clone()), arms: arms.clone() }, span: *span };
+                &nested
+            }
+            _ => return Ok((self.block(ctx, b)?, None)),
         };
         ctx.push_scope();
         let mut stmts = Vec::new();
@@ -129,7 +138,7 @@ impl Checker {
             // A value, or `gives`, anywhere but at the end of a case of a
             // `match` used as one (or of an `otherwise` arm).
             ast::StmtKind::Gives { bare: true, .. } => err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").at(s.span)),
-            ast::StmtKind::Gives { bare: false, .. } => err(Diagnostic::error("`gives` ends a case of a `match` used as a value, and says that value; this is not the end of one").at(s.span)),
+            ast::StmtKind::Gives { bare: false, .. } => err(Diagnostic::error("`giveS` ends a case of a `match` used as a value, and says that value; this is not the end of one").at(s.span)),
             ast::StmtKind::Tier { .. } => unreachable!("handled in stmt"),
             ast::StmtKind::Let { mutability, name, ty, shadow, value, sealed } => {
                 // Shadowing is never silent. What it may not shadow: a name

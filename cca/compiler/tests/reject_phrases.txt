@@ -188,7 +188,8 @@ generic_wrong_return [fnv:81336ef057ec73fd] :: the return type is an `integer` a
 give_plain [fnv:0b0079f7332adfe9] :: a `integer` is a plain value that owns nothing (no allocation behind it), so it copies by itself
 give_to_lent_param [fnv:a3589766a127e65e] :: `look` only looks at 'text' (it is `lent`); you tried to give it away
 give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing left to give
-gives_outside_strict [fnv:d5ee3746e712f21d] :: `gives` belongs to `#strict` files
+gives_outside_strict [fnv:04aa8251e7b6313d] :: `giveS` belongs to `#strict` files
+gives_renamed [fnv:27e786ca6ffe10f6] :: `gives` is spelled `giveS`
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
 grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 gte [fnv:695f5e2be2fe7158] :: greater-or-equal is `>/==`
@@ -383,7 +384,7 @@ str_toolbox_in_language [fnv:366a14926afb6c66] :: the language owns only the uni
 strict_decl [fnv:b8025f0c47e84bab] :: a declaration says whether it changes
 strict_for [fnv:06b3bea872c594a0] :: a `for` says whether its variable outlives it
 strict_lifetime [fnv:a1a89ccd784cb0b3] :: hands back a borrow, so it names what the borrow depends on
-strict_match_needs_gives [fnv:73a3f2c3ec563e4b] :: a case says its value with `gives`
+strict_match_needs_gives [fnv:7337f2c3ebfb1f6b] :: a case says its value with `giveS`
 strict_param [fnv:e284bfe1db8f2b9c] :: parameter 'n' says its type
 strict_pos [fnv:959c6fc995de9a2b] :: a list read says it is a position
 strict_range [fnv:47d9fd2ab1066781] :: each bound says what it is
