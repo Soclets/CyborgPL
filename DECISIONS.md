@@ -19,7 +19,10 @@ code writes in front of `::`, which its maker picks. The owner: "yea".
 In `CCA.cplr` it is **`const 'prefix' := "cash";`** (owner: b; proposed
 (a) `'code_name'`, design claude's pick, (b) `'prefix'`, (c) `'infront'`;
 dots are not allowed in a quoted name). The owner said to pass it to
-synthia claude, whose question the `Synthia.ttsr` spelling is.
+synthia claude, whose question the `Synthia.ttsr` spelling is. **Every
+`CCA.cplr` has a `'prefix'`** (owner: "required"; proposed (a) required,
+(b) optional with a fallback, which has no good source since `name` is a
+label; design claude recommended a).
 Open: the `Synthia.ttsr` spelling; how a
 user overrides it when two Limbs pick the same word; whether `name`, no
 longer written in code, still follows the module-name rule (entry below).

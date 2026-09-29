@@ -61,8 +61,8 @@ Owner, 2026-09-14.
   (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
   front of `::`** to reach this Limb, picked by its maker and apart from
   its `name` (owner, 2026-09-29: "yea", then b): `const 'prefix' :=
-  "cash";`. Not in the oracle yet; open: whether it is required, and
-  how a user overrides it when two Limbs pick the same one. **A
+  "cash";`. Required (owner: "required"). Not in the oracle yet;
+  open: how a user overrides it when two Limbs pick the same one. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
   computed lives in **`build.cplr`**, a full CyborgPL program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
