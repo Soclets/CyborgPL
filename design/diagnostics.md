@@ -69,6 +69,20 @@ C's"); rustc's caret drawing with `= note:` furniture (owner could not
 read it); the same as dense prose (owner: "a blob"). This shape is
 what came out.
 
+
+**A borrow conflict points at the change** (owner, 2026-09-29: a): when
+what a borrow borrows is changed, given away or lent mutably while the
+borrow is still used later, `where` is the change, the line to move or
+fix, and the message names the later use:
+
+```
+error: 's' cannot be changed here: 'r' still borrows it and is used on line 25
+where: shop.cpls, line 24, column 5 — in MAIN
+code:  list.append[lend.mut 's', 4]
+```
+
+Proposed alternative: the later use.
+
 ## The rules
 
 1. **The root, first.** When one thing causes a chain — an unbounded

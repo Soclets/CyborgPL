@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A borrow conflict is reported at the change (owner: a)
+
+Check claude asked which line the error names when what a borrow borrows is
+changed (or given away, or lent mutably) while the borrow is still used
+later: CCA named the change, the oracle the later use. Proposed (a) the
+change, with the later use in the message, as Rust does; (b) the later use.
+Design claude recommended a (the change is the line to move or fix). The
+owner asked why the program errors at all (the borrow is a bookmark into
+the list; an append can move the list and free the old spot, which CCA's
+binary really read before its fix) and chose a. The oracle now reports
+at the change: "'s' is lent mutably here while 'r' still borrows it and
+is used on line 25"; a list changed inside a `for … in lend` loop is
+reported at the change too. `diagnostics.md`.
+
 ### 2026-09-29 — A list literal's items take the element type as their context (owner: a)
 
 Check claude asked whether `'xs': list[uint8] = [0 -~ 1,];` wraps at 8

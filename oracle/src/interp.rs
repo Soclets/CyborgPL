@@ -89,7 +89,7 @@ pub struct Interp<'p> {
     /// Writes to borrowed things (check claude, 2026-09-29): each owner's cell → (write count, line, what).
     /// A lent slot made before the latest write is stale, and using it is refused: a borrow never
     /// aliases a mutation and never outlives its owner (core-features.md).
-    writes: HashMap<usize, (u64, usize, &'static str)>,
+    writes: HashMap<usize, (u64, usize, &'static str, String)>,
     write_count: u64,
     /// the group cells of the last returned `-> lent@x` borrow, until a declaration takes them
     call_deps: Vec<usize>,
@@ -689,8 +689,9 @@ impl<'p> Interp<'p> {
                     self.pop();
                     let r = r?;
                     if let Some((n, key)) = &walked {
-                        if let Some((w, at, what)) = self.writes.get(key) {
-                            if *w > started { return rt(*line, format!("'{n}' was {what} on line {at} while this loop was going through it: a loop over `lend '{n}'` borrows it until the loop ends")); }
+                        if let Some((w, at, what, _)) = self.writes.get(key) {
+                            // the error is at the change (owner, 2026-09-29: a)
+                            if *w > started { return rt(*at, format!("'{n}' is {what} here while the loop on line {line} is going through it: a loop over `lend '{n}'` borrows it until the loop ends")); }
                         }
                     }
                     match r {
@@ -1331,13 +1332,14 @@ impl<'p> Interp<'p> {
             flat(body, &mut ev, self);
             for (i, (_, _, b)) in ev.iter().enumerate() {
                 let Some((r, froms, via_call)) = b else { continue };
-                let whose = if *via_call { "something its result depends on" } else { "what it borrows" };
+                let rel = if *via_call { "depends on it" } else { "borrows it" };
                 for s in froms {
                     let mut wrote: Option<(usize, &str)> = None;
                     for (line, t, nb) in &ev[i + 1..] {
                         if matches!(nb, Some((n, _, _)) if n == r) { break; }   // a new 'r': the old borrow is over
                         if let Some((at, what)) = wrote { if uses(t, r) {
-                            return rt(*line, format!("'{r}' is a borrow, and {whose} was {what} on line {at} while '{r}' was still in use: a borrow never aliases a change and never outlives its owner"));
+                            // the error is at the change, the line to move or fix (owner, 2026-09-29: a)
+                            return rt(at, format!("'{s}' is {what} here while '{r}' still {rel} and is used on line {line}: a borrow never aliases a change and never outlives its owner"));
                         } }
                         if wrote.is_none() { if let Some(w) = writes(t, s) { wrote = Some((*line, w)); } }
                     }
@@ -1355,7 +1357,7 @@ impl<'p> Interp<'p> {
         if let Some(s) = self.lookup_mut(name) {
             let key = Rc::as_ptr(&s.cell) as *const () as usize;
             if s.kind == SlotKind::LentMut { s.since = n; }
-            self.writes.insert(key, (n, line, what));
+            self.writes.insert(key, (n, line, what, name.to_string()));
         }
     }
 
@@ -1364,10 +1366,11 @@ impl<'p> Interp<'p> {
         if !matches!(s.kind, SlotKind::Lent | SlotKind::LentMut) { return Ok(()); }
         let own = Rc::as_ptr(&s.cell) as *const () as usize;
         for key in std::iter::once(&own).chain(s.deps.iter()) {
-            if let Some((n, at, what)) = self.writes.get(key) {
+            if let Some((n, at, what, owner)) = self.writes.get(key) {
                 if *n > s.since {
-                    let whose = if *key == own { "what it borrows" } else { "something its result depends on" };
-                    return rt(line, format!("'{name}' is a borrow, and {whose} was {what} on line {at} while '{name}' was still in use: a borrow never aliases a change and never outlives its owner"));
+                    // the error is at the change, the line to move or fix (owner, 2026-09-29: a)
+                    let rel = if *key == own { "borrows it" } else { "depends on it" };
+                    return rt(*at, format!("'{owner}' is {what} here while '{name}' still {rel} and is used on line {line}: a borrow never aliases a change and never outlives its owner"));
                 }
             }
         }

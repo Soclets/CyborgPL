@@ -1,1 +1,1 @@
-line 8: 'q' is a borrow, and what it borrows was lent mutably on line 7
+line 7: 't' is lent mutably here while 'q' still borrows it and is used on line 8

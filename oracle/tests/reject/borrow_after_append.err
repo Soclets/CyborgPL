@@ -1,1 +1,1 @@
-was lent mutably on line 6 while 'r' was still in use
+line 6: 's' is lent mutably here while 'r' still depends on it and is used on line 7

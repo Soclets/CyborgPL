@@ -1,1 +1,1 @@
-was changed on line 5 while 'r' was still in use
+line 5: 's' is changed here while 'r' still borrows it and is used on line 6

@@ -1,1 +1,1 @@
-line 12: 'r' is a borrow, and something its result depends on was given away on line 11
+line 11: 't' is given away here while 'r' still depends on it and is used on line 12
