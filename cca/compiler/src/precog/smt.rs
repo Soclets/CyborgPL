@@ -172,7 +172,10 @@ pub fn disagreed(answers: &[(&'static str, Answer)]) -> bool {
 /// words. Only the query's inputs are worth showing — a parameter, what a
 /// call gave back, how long something was — never the working.
 fn model_of(text: &str, inputs: &[Input]) -> String {
-    let vals = defined_values(text);
+    let mut vals = asked_values(text);
+    if vals.is_empty() {
+        vals = defined_values(text);
+    }
     let mut out = Vec::new();
     for i in inputs {
         if let Some(v) = vals.get(&i.sym) {
@@ -182,6 +185,31 @@ fn model_of(text: &str, inputs: &[Input]) -> String {
         }
     }
     out.join(", ")
+}
+
+/// What `(get-value (a b …))` answered: `((a v) (b v) …)`, as name → value.
+fn asked_values(text: &str) -> HashMap<String, String> {
+    let mut out = HashMap::new();
+    let b = text.as_bytes();
+    // After the `sat` line, the first list is the answer.
+    let Some(at) = text.find("sat") else { return out };
+    let Some(open) = text[at..].find('(').map(|o| o + at) else { return out };
+    let Some((list, _)) = read_sexp(b, open) else { return out };
+    let lb = list.as_bytes();
+    let mut i = 1;
+    while let Some((pair, k)) = read_sexp(lb, i) {
+        if pair == ")" || !pair.starts_with('(') {
+            break;
+        }
+        let pb = pair.as_bytes();
+        if let (Some((name, j)), true) = (read_sexp(pb, 1), pair.len() > 2) {
+            if let Some((value, _)) = read_sexp(pb, j) {
+                out.insert(name, value);
+            }
+        }
+        i = k;
+    }
+    out
 }
 
 /// Every `(define-fun name () sort body)` a model holds, as name → body.
@@ -366,7 +394,12 @@ pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts)
     let assumptions = format!("{}(check-sat)\n", text);
     let _ = writeln!(text, "(assert (or {}))", e.reached.join(" "));
     let _ = writeln!(text, "(check-sat)");
-    let _ = writeln!(text, "(get-model)");
+    // Only the inputs' values, never the whole model: a model of a query
+    // with 95,000 definitions was printed as 3.9 GB, and reading it took
+    // twenty minutes of a build (check claude's slow builds, 2026-09-29).
+    if !e.inputs.is_empty() {
+        let _ = writeln!(text, "(get-value ({}))", e.inputs.iter().map(|i| i.sym.clone()).collect::<Vec<_>>().join(" "));
+    }
     Some(Query { text, assumptions, truncated: e.truncated, inputs: e.inputs })
 }
 
