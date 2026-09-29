@@ -1068,6 +1068,8 @@ impl<'p> Interp<'p> {
                 let inside = match (v, lo, hi) {
                     (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b,
                     (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b,
+                    // a deci range (owner, 2026-09-29: a); the oracle holds the bounds as bins
+                    (Value::Deci(d), Bound::Bin(a), Bound::Bin(b)) => { let x = d.to_f64(); *a <= x && x <= *b }
                     // a length bound on a list (decided 2026-09-21)
                     (Value::List(items), Bound::Int(a), Bound::Int(b)) => {
                         let n = items.len() as i128;
@@ -1885,6 +1887,8 @@ impl<'p> Interp<'p> {
                     let digits = |n: i128| n.unsigned_abs().to_string().len();
                     let may_exceed = match &v {
                         Value::Str(_) => true,
+                        // a wider deci into a narrower one (owner, 2026-09-29: a)
+                        Value::Deci(d) => d.width > *w,
                         Value::Int(_) => match b.values.first() { Some(crate::ast::Value::Expr(e)) => match self.expr_ty(e) {
                             Some(t @ (Ty::Int(_) | Ty::Uint(_))) => crate::value::int_range(&t).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                             Some(Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi))) => digits(lo).max(digits(hi)) > p,
@@ -2003,8 +2007,16 @@ impl<'p> Interp<'p> {
                         Value::Deci(d.or_else(|m| site(line, format!("{x} {m}")))?)
                     }
                     (Ty::Deci(w), Value::Deci(d)) => {
-                        if d.width > *w { return rt(line, format!("a deci{} into a deci{}: narrowing between deci widths is not decided", d.width, w)); }
-                        Value::Deci(d.widen(*w))
+                        if d.width <= *w { Value::Deci(d.widen(*w)) } else {
+                            match d.narrow(*w) {
+                                Ok(n) => Value::Deci(n),
+                                Err(why) => {
+                                    let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), why.into(), None, true)?;
+                                    let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                                    return Ok((v, prov));
+                                }
+                            }
+                        }
                     }
                     (Ty::Deci(w), Value::Str(s)) => match crate::deci::Deci::parse(s.trim_start_matches('+'), *w) {
                         Ok(Some(d)) => Value::Deci(d),
@@ -2051,7 +2063,7 @@ impl<'p> Interp<'p> {
                     }
                 }
                 if let Ty::Ranged(_, lo, hi) = full_ty {
-                    let inside = match (&out, lo, hi) { (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b, (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b, _ => true };
+                    let inside = match (&out, lo, hi) { (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b, (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b, (Value::Deci(d), Bound::Bin(a), Bound::Bin(b)) => { let x = d.to_f64(); a <= &x && &x <= b } _ => true };
                     if !inside {
                         let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{}", ty_name(full_ty)), "out_of_range".into(), None, true)?;
                         let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
@@ -2425,7 +2437,14 @@ impl<'p> Interp<'p> {
             (">", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_gt()),
             ("</==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_le()),
             (">/==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_ge()),
-            ("mod" | "xx", Deci(_), Deci(_)) => return rt(line, format!("`{op}` on deci is not decided")),
+            // `mod` takes the divisor's sign, as integer `mod`; `xx` takes a whole exponent and rounds
+            // like the other operations (owner, 2026-09-29: a, a)
+            ("mod", Deci(x), Deci(y)) => match x.rem_floor(&y) { None => return site(line, "`mod` by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
+            ("xx", Deci(x), Deci(y)) => {
+                let n = match y.to_int() { Some(Ok(n)) => n, _ => return rt(line, format!("a deci power takes a whole exponent, not {}: a fractional power is std's math", y.show_stored())) };
+                match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) }
+            }
+            ("xx", Deci(x), Int(n)) => match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
             (_, Deci(_), Int(_) | Bin(_)) | (_, Int(_) | Bin(_), Deci(_)) =>
                 return rt(line, format!("`{op}` between a deci and another number family: there is no implicit conversion between numeric families; `to.deci64[…]`")),
             ("+" | "-" | "x" | "div" | "mod" | "xx", Int(_), Bin(_)) | ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(_), Int(_)) =>
@@ -4061,6 +4080,11 @@ pub fn resolve_bound(base: &Ty, b: &Bound) -> Bound {
             }
             Ty::Bin(w) => {
                 let m = match w { 16 => 65504.0, 32 => f32::MAX as f64, _ => f64::MAX };
+                Bound::Bin(if high { m } else { -m })
+            }
+            // a deci's largest (9.999999e96 for deci32; past a bin64 for the wider ones)
+            Ty::Deci(w) => {
+                let m = if *w == 32 { 9.999999e96 } else { f64::INFINITY };
                 Bound::Bin(if high { m } else { -m })
             }
             // a list's, a map's or a channel's count: never negative, no natural ceiling

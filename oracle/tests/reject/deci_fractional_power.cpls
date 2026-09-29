@@ -1,0 +1,5 @@
+# a deci power takes a whole exponent (owner, 2026-09-29: a)
+MAIN {
+    'r': deci64 = 2.0;
+    'q' := 'r' xx 0.5;
+}

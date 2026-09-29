@@ -69,8 +69,18 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   `bin` math does.
 - `deci` is its own family: it never mixes with `bin` or an integer
   without `to.…` (2026-09-14).
-- Not decided: `mod` and `xx` on `deci`, narrowing between `deci` widths,
-  a `deci` in a range type.
+- **`mod` takes the divisor's sign**, as integer `mod`: `-7.50 mod 2` is
+  `0.50`. Exact, then rounded like the rest.
+- **`xx` takes a whole exponent** and rounds like the other operations:
+  `1.05 xx 10` is `1.628894626777441` in a `deci64`, exact in a `deci128`; a
+  negative exponent is one over the power. A fractional one (`2.0 xx 0.5`)
+  is refused: roots are std's math. An integer variable may be the exponent
+  (the oracle's reading: it is a count).
+- **A wider `deci` into a narrower one fails `too_many_digits`** when its
+  digits do not fit (`to.deci32['x'] otherwise …`); `2.50` converts exactly.
+- **A `deci` may be a range type**, with `bin`'s rules: `deci64[0.0, 1.0]`,
+  the bounds written with a point; a value outside is a check site, and
+  `to.deci64[0.0, 1.0][…]` fails `out_of_range`.
 
 ## Notes (Claude, 2026-09-14)
 

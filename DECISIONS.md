@@ -64,8 +64,23 @@ Then three more the same day:
    does (owner: "yeah, same as bin").
 The oracle now runs `deci` (`examples/deci.cpls`; reject tests
 deci_literal_digits, deci_int_needs_otherwise, deci_family_mix,
-deci_widths_mix). Not decided: `mod` and `xx` on `deci`, narrowing between
-`deci` widths, and a `deci` in a range type. `types.md`.
+deci_widths_mix). The leftovers, the same day:
+9. **`mod` takes the divisor's sign**, as integer `mod` (owner: a). The
+   owner asked whether there is a `div.trunc` (for integers, std's; a
+   `deci` `div` is ordinary division, so only a `mod.trunc` could apply,
+   std's later). Proposed alternatives: the dividend's sign; no `mod`.
+10. **`xx` takes a whole exponent and rounds like the rest** (owner: a).
+    The owner asked whether `deci` rounds by itself (yes, question 2) and
+    whether the others refuse (no: math rounds, numbers coming in refuse),
+    and kept a. Proposed alternatives: any exponent; no `xx`; a check site
+    when it does not fit exactly.
+11. **A wider `deci` into a narrower one fails `too_many_digits`** (owner:
+    a). Proposed alternative: round.
+12. **A `deci` may be a range type, with `bin`'s rules** (owner: a). Design
+    claude's example had written `deci64[0, 1]`; with `bin`'s rules the
+    bounds carry a point, `deci64[0.0, 1.0]`.
+`examples/deci_more.cpls`; reject tests deci_fractional_power,
+deci_narrow_needs_otherwise. `types.md`.
 
 ### 2026-09-29 — A generic `op`; one that overlaps a specific one is an error (owner: allow, a)
 

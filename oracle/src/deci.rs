@@ -237,3 +237,45 @@ impl Deci {
     /// a copy at another width: exact when it fits
     pub fn widen(&self, width: u8) -> Deci { let mut d = self.clone(); d.width = width; d }
 }
+
+impl Deci {
+    /// `mod`: the divisor's sign, as integer `mod` (owner, 2026-09-29: a) — exact before it is rounded.
+    /// None: `mod` by zero (a check site).
+    pub fn rem_floor(&self, b: &Deci) -> Option<Result<Deci, String>> {
+        if b.is_zero() { return None; }
+        let (x, y, e) = Deci::aligned(self, b);
+        let (_, r0) = divmod_mag(&x, &y);
+        let (neg, mag) = if is_zero(&r0) { (b.neg, vec![0]) }
+            else if self.neg == b.neg { (b.neg, r0) }
+            else { (b.neg, sub_mag(&y, &r0)) };
+        Some(Deci::round(neg, mag, e, self.width, false))
+    }
+
+    /// `xx` with a whole exponent (owner, 2026-09-29: a): the exact power, rounded once; a negative
+    /// exponent is one over it. None: zero to a negative power (division by zero). Err(why) past the
+    /// largest value, or past the oracle's limit on exact digits.
+    pub fn pow_int(&self, n: i128) -> Option<Result<Deci, String>> {
+        let k = n.unsigned_abs();
+        if k as usize * self.coef.len() > 20_000 { return Some(Err("is a power past the oracle's limit of exact digits".into())); }
+        let (mut coef, mut exp) = (vec![1u8], 0i64);
+        let (mut base, mut bexp, mut m) = (self.coef.clone(), self.exp as i64, k);
+        while m > 0 {
+            if m & 1 == 1 { coef = mul_mag(&coef, &base); exp += bexp; }
+            m >>= 1;
+            if m > 0 { base = mul_mag(&base, &base); bexp *= 2; }
+        }
+        let neg = self.neg && k % 2 == 1;
+        if exp > i32::MAX as i64 / 2 || exp < i32::MIN as i64 / 2 { return Some(Err(format!("does not fit deci{}: past the largest value", self.width))); }
+        if n >= 0 { return Some(Deci::round(neg, coef, exp as i32, self.width, false)); }
+        if self.is_zero() { return None; }
+        // one over the exact power, rounded once
+        let exact = Deci { neg, coef: trim(coef), exp: exp as i32, width: self.width };
+        Deci { neg: false, coef: vec![1], exp: 0, width: self.width }.div(&exact)
+    }
+
+    /// `to.deci32[a deci64]`: exact when its digits fit the narrower width, else `too_many_digits`
+    pub fn narrow(&self, width: u8) -> Result<Deci, &'static str> {
+        if self.coef.len() > precision(width) { return Err("too_many_digits"); }
+        Deci::round(self.neg, self.coef.clone(), self.exp, width, false).map_err(|_| "out_of_range")
+    }
+}
