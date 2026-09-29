@@ -1,0 +1,26 @@
+# Finding 2026-09-29 (by hand, probing borrows before generating them): 's' is appended to
+# while 'r', a lend of it, is still used. Both engines let it through: the oracle prints 4,
+# CCA's binary prints the stale length 3. Rust-style borrowing (core-features.md) refuses it,
+# as CCA already does for change 's'[1] = …
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+fn put_u ['m': uint64] {
+    mut 'buf': list[uint8] = [];
+    mut 'v': uint64 = 'm';
+    mut 'p': uint64 = 1;
+    while 'v' div 'p' >/== 10 { change 'p' = 'p' x 10; }
+    loop {
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
+        change 'v' = 'v' mod 'p';
+        if 'p' == 1 { break; }
+        change 'p' = 'p' div 10;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+MAIN {
+    mut 's': list[int32] = [1, 2, 3];
+    'r' := lend 's';
+    list.append[lend.mut 's', 4];
+    put_u[list.length[lend 'r']];
+}

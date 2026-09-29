@@ -1,0 +1,28 @@
+# Finding 2026-09-29 (by hand): a borrow handed back by a call, 'r' := first[lend 's'], is
+# used after 1000 appends to 's' have moved its storage. CCA's binary reads freed memory
+# (prints 1, then an empty line); the oracle prints 1 and 1003. Both should refuse the appends.
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+fn put_u ['m': uint64] {
+    mut 'buf': list[uint8] = [];
+    mut 'v': uint64 = 'm';
+    mut 'p': uint64 = 1;
+    while 'v' div 'p' >/== 10 { change 'p' = 'p' x 10; }
+    loop {
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
+        change 'v' = 'v' mod 'p';
+        if 'p' == 1 { break; }
+        change 'p' = 'p' div 10;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
+
+MAIN {
+    mut 's': list[int32] = [1, 2, 3];
+    'r' := first[lend 's'];
+    for 'k': int32 in range[1, 1000] { list.append[lend.mut 's', 'k']; }
+    put_u[to.uint64['r'[1]]];
+    put_u[list.length[lend 'r']];
+}
