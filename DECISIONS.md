@@ -17,8 +17,9 @@ with a character byte limit", "it doesn't require `.`". Weighed: 8, 16,
 Thai (byte counts checked by design claude). Synthia claude recommended
 256 if Thai matters. The owner: "256 bytes it is". This is the Limb's own
 `version` only; what `geometry.version = 1.2` means for a needed Limb is
-left for the registry. Open: `CCA.cplr`'s 'version' has no limit in the
-oracle, so a 300-byte version passes CCA and not Synthia.
+left for the registry. `CCA.cplr`'s 'version' had no limit in the
+oracle; asked whether CCA gets the same limit, the owner: "same". The
+oracle refuses one over 256 bytes (reject test manifest_long_version).
 
 ### 2026-09-29 — `CCA.cplr` needs `name`, `version` and a target too (owner: "yea")
 

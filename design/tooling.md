@@ -57,7 +57,8 @@ Owner, 2026-09-14.
 
   Every name and type is checked against the settings CCA knows.
   **`name`, `version` and at least one target are required** (owner,
-  2026-09-29: "yea"), as in `Synthia.ttsr`. **A
+  2026-09-29: "yea"), as in `Synthia.ttsr`. `version` is any text, at most 256 bytes
+  (owner: "same" as `Synthia.ttsr`). **A
   manifest is data only** (owner, 2026-09-29): anything that must be
   computed lives in **`build.cplr`**, a full CyborgPL program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs

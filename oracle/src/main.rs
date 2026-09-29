@@ -105,7 +105,12 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
         if c.vis != ast::Vis::Private { return Err(format!("{shown}: line {}: `pub` means nothing in CCA.cplr, which no Limb reads: `const '{}' := …;`", c.line, c.name)); }
         match c.name.as_str() {
             "name" => name = Some(text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?),
-            "version" => { text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'version' is a text", c.line))?; has_version = true; }
+            "version" => {
+                let v = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'version' is a text", c.line))?;
+                // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for CCA.cplr: "same")
+                if v.len() > 256 { return Err(format!("{shown}: line {}: 'version' is at most 256 bytes, and this one is {}", c.line, v.len())); }
+                has_version = true;
+            }
             "target" => return Err(format!("{shown}: line {}: a Limb builds for several targets, so the setting is 'targets': `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`", c.line)),
             // several targets, each with its settings (owner, 2026-09-29): CCA's package manager can do
             // whatever Synthia can, in its plainer way
