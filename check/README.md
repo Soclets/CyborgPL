@@ -57,6 +57,11 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   after. Such a program must be refused by both engines
   (`*-accepted-borrow-mistake`; where each points is not compared yet);
   a right one must not be refused for a borrow (`refused-right-borrow`).
+  **Enums** (design/enums.md; `--avoid enums` turns them off): about
+  half of programs get one or two, with integer data on some cases; enum
+  names, changes, `==` on them, `match` statements, and `match` giving a
+  value in a declaration, where an arm may leave instead. A case's data
+  has a range only the generator knows, so it is kept out of `check`.
   These findings are not shrunk: a step would not keep the program's own
   expectation up to date. The mistake sits at the top of MAIN, where it
   always runs (the oracle checked borrows only on the paths it ran;
@@ -146,11 +151,12 @@ straight at them. Default: `exact-bits`.
   on an exact answer whose operands differ in size (2026-09-23); the
   generator gives such an operand a size with `to.T[…]`.
 
+- `data-width`: read a `match` arm's data only as `to.T['d']` (the oracle
+  gave it no width for `not.bit` or the wrapping operators; fixed 2eb7b2f).
+- Always (no switch): a `match` statement is never the only statement of an
+  arm — whether it is then the arm's value is with the owner (2026-09-29).
 - `item-width`: read a `for … in lend` item only as `to.T['x']` (the
   oracle gave the item no width for `+~` or `not.bit`; fixed in 5750ea6).
-- Always (no switch): a shift in an appended value never has a bare left
-  operand: `list.append` is a call, so no width reaches its argument
-  (a list literal's items do take the item type, owner, 62186f1).
 
 - `mixed-width`: print through `to.int64[…]` / `to.uint64[…]`. Needed
   only while mixed widths were open; settled by the owner (dc83c05: plain

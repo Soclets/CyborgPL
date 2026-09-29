@@ -52,6 +52,10 @@ pub struct Config {
     /// Use a `for … in lend` item only through `to.T['x']`: the oracle gives
     /// the item no width for `+~` or `not.bit` (sent 2026-09-29).
     pub item_through_to: bool,
+    /// Use a `match` arm's data name only through `to.T['d']`: the oracle
+    /// gives it no width for `not.bit` or the wrapping operators (sent
+    /// 2026-09-29).
+    pub data_through_to: bool,
     /// Functions that hand back a borrow (`-> lent@x list[T]`, 46faa74), and
     /// chains of them in MAIN followed by a `give`, an append or a change of
     /// one of the lists.
@@ -68,7 +72,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, borrows: true, borrow_wrong: 250, enums: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true }
     }
 }
 
@@ -82,6 +86,8 @@ struct VarInfo {
     list: Option<ListInfo>,
     /// The item of a `for … in lend` (see `Config::item_through_to`).
     item: bool,
+    /// A `match` arm's data (see `Config::data_through_to`).
+    data: bool,
     /// Its range is known to the generator only: it comes from a self-call
     /// (whose result only an induction over the calls could bound), or from
     /// a value that used such a name, with no range type to say it. Never
@@ -164,10 +170,6 @@ struct Gen {
     /// `check` statement, since a guarded position is a fact about the
     /// list's length that Precog need not see.
     positioned: bool,
-    /// Building an appended value: `list.append` is a call, so no width
-    /// reaches its argument from the list's type (owner, 62186f1), and a
-    /// shift's left operand is never bare there.
-    in_item: bool,
     bsigs: Vec<BSig>,
     belem: Ty,
     enums: Vec<EnumGen>,
@@ -196,7 +198,6 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         risky: false,
         in_check: 0,
         positioned: false,
-        in_item: false,
         bsigs: vec![],
         belem: Ty::I32,
         enums: vec![],
@@ -323,7 +324,7 @@ impl Gen {
     }
 
     fn declare(&mut self, name: String, ty: Ty, iv: Iv, assignable: bool) {
-        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false, unseen: false, en: None });
+        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false, data: false, unseen: false, en: None });
     }
 
     /// Plain values in scope (never a list; inside a `check` block, never
@@ -331,6 +332,11 @@ impl Gen {
     fn vars(&self) -> impl Iterator<Item = &VarInfo> {
         let in_check = self.in_check > 0;
         self.scopes.iter().flatten().filter(move |v| v.list.is_none() && v.en.is_none() && !(in_check && v.unseen))
+    }
+
+    /// Whether `v` is read only through `to.T[…]` (an engine gives it no width).
+    fn through_to(&self, v: &VarInfo) -> bool {
+        (self.cfg.item_through_to && v.item) || (self.cfg.data_through_to && v.data)
     }
 
     fn enum_vars(&self) -> Vec<VarInfo> {
@@ -370,8 +376,7 @@ impl Gen {
     }
 
     fn vars_of(&self, t: Ty) -> Vec<VarInfo> {
-        let steer = self.cfg.item_through_to;
-        self.vars().filter(|v| v.ty == t && !(steer && v.item)).cloned().collect()
+        self.vars().filter(|v| v.ty == t && !self.through_to(v)).cloned().collect()
     }
 
     fn int_ty(&mut self) -> Ty {
@@ -517,6 +522,12 @@ impl Gen {
         self.scopes = vec![vec![]];
         for (n, t, iv) in &params {
             self.declare(n.clone(), *t, *iv, false);
+            // In a recursive function a parameter's range (other than the
+            // counter's range type) holds only by induction over the calls
+            // (seed 1520, 2026-09-29).
+            if rec.is_some() && n != "pr" {
+                self.mark_unseen(n);
+            }
         }
         let mut body = vec![];
         if let Some((_, top, up)) = rec {
@@ -678,7 +689,7 @@ impl Gen {
         let room = if mutable { self.rng.below(9) } else { 0 };
         let name = self.name("xs");
         let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
-        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, unseen: false, en: None });
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, data: false, unseen: false, en: None });
         Stmt::ListLet { name, mutable, elem, items }
     }
 
@@ -725,9 +736,9 @@ impl Gen {
         let mult = self.mult;
         let l = self.list_mut(&v.name);
         l.len_now += (mult / l.decl_mult.max(1)).max(1);
-        self.in_item = true;
+        // The value takes the item type as its context, as any argument
+        // takes its parameter's (owner, 1967d08).
         let (value, _) = self.value_in(v.ty, v.iv);
-        self.in_item = false;
         Stmt::Append { name: v.name, value }
     }
 
@@ -974,7 +985,7 @@ impl Gen {
         let value = self.case_value(ei);
         let name = self.name("e");
         let en = self.enums[ei].def.name.clone();
-        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: Ty::I64, iv: Iv::point(0), assignable: mutable, list: None, item: false, unseen: false, en: Some(ei) });
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: Ty::I64, iv: Iv::point(0), assignable: mutable, list: None, item: false, data: false, unseen: false, en: Some(ei) });
         Stmt::EnumLet { name, mutable, en, value }
     }
 
@@ -1003,6 +1014,7 @@ impl Gen {
         let (t, iv) = (e.def.cases[c].1?, e.ivs[c]?);
         let b = self.name("d");
         self.declare(b.clone(), t, iv, false);
+        self.scopes.last_mut().unwrap().last_mut().unwrap().data = true;
         // Only the generator knows the data's range.
         self.mark_unseen(&b);
         Some(b)
@@ -1040,7 +1052,12 @@ impl Gen {
         for c in 0..self.enums[ei].def.cases.len() {
             let bind = self.open_arm(ei, c);
             let n = if self.rng.chance(25) { 0 } else { self.stmt_count() / 3 + 1 };
-            let body = self.stmts(n, depth - 1);
+            let mut body = self.stmts(n, depth - 1);
+            if matches!(body.as_slice(), [Stmt::MatchStmt { .. }]) {
+                // A match alone in an arm: statement or the arm's value? Open
+                // with the owner (2026-09-29); give it a second statement.
+                body.push(Stmt::Print { signed: false, value: Expr::Lit(0) });
+            }
             self.scopes.pop();
             arms.push(Arm { case: self.enums[ei].def.cases[c].0.clone(), bind, value: None, body });
         }
@@ -1385,7 +1402,7 @@ impl Gen {
         let others = self.vars().any(|v| v.ty != t && v.ty != Ty::Bool);
         let can_call = self.sigs[..self.callable].iter().any(|s| s.ret == t);
         let readable = self.readable(Some(t));
-        let items: Vec<VarInfo> = if self.cfg.item_through_to { self.vars().filter(|v| v.item && v.ty == t).cloned().collect() } else { vec![] };
+        let items: Vec<VarInfo> = self.vars().filter(|v| v.ty == t && self.through_to(v)).cloned().collect();
         let has_list = !self.lists().is_empty();
         let w = [
             if same.is_empty() { 0 } else { 6 },
@@ -1481,12 +1498,11 @@ impl Gen {
         // `shl`'s left operand is a name or a conversion: CCA takes the width
         // only from those (question open with the design session, 2026-09-23).
         let named = matches!(a, Expr::Var(_) | Expr::To(..));
-        let bare_left = (op == Shl && !(self.cfg.width_from_context && !is_literal_only(&a))) || (self.in_item && matches!(op, Shl | Shr) && is_literal_only(&a));
+        let bare_left = op == Shl && !(self.cfg.width_from_context && !is_literal_only(&a));
         let (op, a, ia) = if matches!(op, Shl | Shr) && !named && bare_left {
             match self.typed_leaf(t) {
                 Some((v, iv)) => (op, v, iv),
-                None if op == Shl && !self.in_item => (Shr, a, ia),
-                None => return (a, ia),
+                None => (Shr, a, ia),
             }
         } else {
             (op, a, ia)

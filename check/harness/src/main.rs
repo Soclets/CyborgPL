@@ -86,6 +86,7 @@ impl Args {
             exhaust: if self.has("exhaust") { self.num("domain", EXHAUST_CAP).max(2) } else { 0 },
             lists: !avoid.contains("lists"),
             item_through_to: avoid.contains("item-width"),
+            data_through_to: avoid.contains("data-width"),
             borrows: !avoid.contains("borrows"),
             borrow_wrong: self.num("borrow-wrong", 250),
             enums: !avoid.contains("enums"),
@@ -528,7 +529,14 @@ fn run(t: &Tools, a: &Args) {
                             }
                         }
                         Verdict::NotYet(m) => *tl.not_yet.entry(normalise(&m)).or_default() += 1,
-                        Verdict::SlowBuild => tl.slow.push(seed),
+                        Verdict::SlowBuild => {
+                            // Kept for compiler claude: compile time is not a
+                            // finding, but a slow build is worth a look.
+                            let sd = work().join("slow");
+                            std::fs::create_dir_all(&sd).unwrap();
+                            std::fs::write(sd.join(format!("{seed}.cpls")), p.render()).unwrap();
+                            tl.slow.push(seed)
+                        }
                         Verdict::Finding(f) => {
                             println!("seed {seed}: FINDING ({})", f.kind);
                             let fd = work().join("findings").join(seed.to_string());
