@@ -175,11 +175,13 @@ impl<'a> An<'a> {
                 let x = self.expr(env, a);
                 R(1 - x.1, 1 - x.0)
             }
-            Expr::And(a, b) => {
+            // `and.then` / `or.else`: as `and` / `or` here; the right side's
+            // values are over-approximated (it may not run), which is safe.
+            Expr::And(a, b) | Expr::AndThen(a, b) => {
                 let (x, y) = (self.expr(env, a), self.expr(env, b));
                 R(x.0.min(y.0), x.1.min(y.1))
             }
-            Expr::Or(a, b) => {
+            Expr::Or(a, b) | Expr::OrElse(a, b) => {
                 let (x, y) = (self.expr(env, a), self.expr(env, b));
                 R(x.0.max(y.0), x.1.max(y.1))
             }

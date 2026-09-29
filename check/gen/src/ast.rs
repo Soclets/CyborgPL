@@ -217,6 +217,10 @@ pub enum Expr {
     Cmp(CmpOp, Box<Expr>, Box<Expr>),
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
+    /// `a and.then b`: `b` only if `a` held (owner, 2026-09-25).
+    AndThen(Box<Expr>, Box<Expr>),
+    /// `a or.else b`: `b` only if `a` failed.
+    OrElse(Box<Expr>, Box<Expr>),
     To(Ty, Box<Expr>),
     Call(String, Vec<Expr>),
     /// `'xs'[p]`: the item at a 1-based position (a check site).
@@ -376,8 +380,8 @@ fn level(e: &Expr) -> Option<u8> {
         Expr::Bin(BinOp::Add | BinOp::Sub, ..) => Some(4),
         Expr::Cmp(..) => Some(5),
         Expr::Not(_) => Some(6),
-        Expr::And(..) => Some(7),
-        Expr::Or(..) => Some(8),
+        Expr::And(..) | Expr::AndThen(..) => Some(7),
+        Expr::Or(..) | Expr::OrElse(..) => Some(8),
         _ => None,
     }
 }
@@ -409,6 +413,9 @@ fn bare_ok(parent: &Expr, child: &Expr, left: bool) -> bool {
         Expr::Cmp(..) => matches!(child, Expr::Bin(BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Pow, ..) | Expr::Neg(_)),
         Expr::And(..) => matches!(child, Expr::Cmp(..) | Expr::Not(_)) || (left && matches!(child, Expr::And(..))),
         Expr::Or(..) => matches!(child, Expr::Cmp(..) | Expr::Not(_) | Expr::And(..)) || (left && matches!(child, Expr::Or(..))),
+        // Same precedence as `and` / `or` (operators.md), but no mixing
+        // is left bare: only comparisons and `not` go without parentheses.
+        Expr::AndThen(..) | Expr::OrElse(..) => matches!(child, Expr::Cmp(..) | Expr::Not(_)),
         _ => false,
     }
 }
@@ -511,6 +518,16 @@ impl<'a> Wr<'a> {
             Expr::Or(a, b) => {
                 self.operand(e, a, true);
                 self.out.push_str(" or ");
+                self.operand(e, b, false);
+            }
+            Expr::AndThen(a, b) => {
+                self.operand(e, a, true);
+                self.out.push_str(" and.then ");
+                self.operand(e, b, false);
+            }
+            Expr::OrElse(a, b) => {
+                self.operand(e, a, true);
+                self.out.push_str(" or.else ");
                 self.operand(e, b, false);
             }
             Expr::To(t, a) => {

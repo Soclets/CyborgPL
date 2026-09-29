@@ -110,8 +110,9 @@ pub fn matches(c: &Claim, e: &Encoded, spans: &Spans) -> Vec<usize> {
                 return l == c.line && (a0 == c.col || a1 == c.col) && (b == c.end_col || b - 1 == c.end_col);
             }
             if s.stmt != 0 {
-                // an argument: the call's span
-                return hit(spans.expr.get(&s.stmt));
+                // an argument: its own span (CCA 034493a); before that, the
+                // call's, which two arguments of one type shared
+                return hit(spans.expr.get(&s.node)) || hit(spans.expr.get(&s.stmt));
             }
             // a conversion: its own span
             hit(spans.expr.get(&s.node))

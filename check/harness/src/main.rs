@@ -403,7 +403,10 @@ fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir:
     let kind = sig.split(':').next().unwrap_or("");
     engines::set_shrinking(true);
     let modes = [mode];
-    check_gen::shrink::STRUCTURAL_ONLY.store(sig.contains("cca build: check:"), std::sync::atomic::Ordering::Relaxed);
+    // A refused `check`, or anything in a strict file, leans on the
+    // generator's guards: simplifying an expression can remove one and make
+    // the refusal right (seed 2875: the `and.then` guard went).
+    check_gen::shrink::STRUCTURAL_ONLY.store(p.strict || sig.contains("cca build: check:"), std::sync::atomic::Ordering::Relaxed);
     let envs: Vec<Env> = if env.is_empty() { vec![] } else { vec![env.clone()] };
     let oracle_class = |src: &str, d: &Path| -> bool {
         std::fs::create_dir_all(d).unwrap();

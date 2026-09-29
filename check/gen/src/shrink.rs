@@ -77,7 +77,7 @@ fn expr_size(e: &Expr) -> usize {
         Expr::At(_, a) => expr_size(a),
         Expr::Case(_, _, d) => d.as_ref().map_or(0, |d| expr_size(d)),
         Expr::Match(s, arms) => expr_size(s) + arms_size(arms),
-        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_size(a) + expr_size(b),
+        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => expr_size(a) + expr_size(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_size(a),
         Expr::Call(_, args) => args.iter().map(expr_size).sum(),
     }
@@ -307,7 +307,7 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
         _ => {}
     }
     let parts: Vec<&Expr> = match e {
-        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => vec![a, b],
+        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => vec![a, b],
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => vec![a],
         Expr::Call(_, args) => args.iter().collect(),
         Expr::At(_, p) => vec![p],
@@ -317,7 +317,7 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
         out.push((*p).clone());
     }
     match e {
-        Expr::Cmp(..) | Expr::And(..) | Expr::Or(..) | Expr::Not(..) => {
+        Expr::Cmp(..) | Expr::And(..) | Expr::Or(..) | Expr::AndThen(..) | Expr::OrElse(..) | Expr::Not(..) => {
             out.push(Expr::Bool(true));
             out.push(Expr::Bool(false));
         }
@@ -333,6 +333,8 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
             Expr::Cmp(op, a, c) => if i == 0 { Expr::Cmp(*op, Box::new(x), b(c)) } else { Expr::Cmp(*op, b(a), Box::new(x)) },
             Expr::And(a, c) => if i == 0 { Expr::And(Box::new(x), b(c)) } else { Expr::And(b(a), Box::new(x)) },
             Expr::Or(a, c) => if i == 0 { Expr::Or(Box::new(x), b(c)) } else { Expr::Or(b(a), Box::new(x)) },
+            Expr::AndThen(a, c) => if i == 0 { Expr::AndThen(Box::new(x), b(c)) } else { Expr::AndThen(b(a), Box::new(x)) },
+            Expr::OrElse(a, c) => if i == 0 { Expr::OrElse(Box::new(x), b(c)) } else { Expr::OrElse(b(a), Box::new(x)) },
             Expr::Neg(_) => Expr::Neg(Box::new(x)),
             Expr::NotBit(_) => Expr::NotBit(Box::new(x)),
             Expr::Not(_) => Expr::Not(Box::new(x)),
@@ -457,7 +459,7 @@ fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bo
         Expr::At(n, p) => known(scopes, n) && expr_ok(p, scopes, arity),
         Expr::Case(_, _, d) => d.as_ref().map_or(true, |d| expr_ok(d, scopes, arity)),
         Expr::Match(s, arms) => expr_ok(s, scopes, arity) && arms_ok(arms, &mut scopes.clone(), arity),
-        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
+        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_ok(a, scopes, arity),
         Expr::Call(f, args) => arity.iter().any(|(n, k)| n == f && *k == args.len()) && args.iter().all(|a| expr_ok(a, scopes, arity)),
     }
@@ -476,7 +478,7 @@ fn calls_itself(f: &Func) -> bool {
     fn in_expr(e: &Expr, n: &str) -> bool {
         match e {
             Expr::Call(g, args) => g == n || args.iter().any(|a| in_expr(a, n)),
-            Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => in_expr(a, n) || in_expr(b, n),
+            Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => in_expr(a, n) || in_expr(b, n),
             Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) | Expr::At(_, a) => in_expr(a, n),
             _ => false,
         }

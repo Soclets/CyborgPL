@@ -190,6 +190,8 @@ impl<'a> Ev<'a> {
                 let y = self.expr(env, b)?.b();
                 Val::B(x || y)
             }
+            Expr::AndThen(a, b) => Val::B(self.expr(env, a)?.b() && self.expr(env, b)?.b()),
+            Expr::OrElse(a, b) => Val::B(self.expr(env, a)?.b() || self.expr(env, b)?.b()),
             Expr::Cmp(op, a, b) => {
                 let (x, y) = (self.expr(env, a)?, self.expr(env, b)?);
                 if let (Val::E(c, d), Val::E(c2, d2)) = (&x, &y) {

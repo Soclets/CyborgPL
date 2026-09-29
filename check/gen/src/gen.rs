@@ -311,7 +311,7 @@ fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
         Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) => false,
-        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => is_literal_only(a) && is_literal_only(b),
+        Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
 }
@@ -364,7 +364,7 @@ impl Gen {
                 Expr::Len(_) | Expr::At(..) | Expr::Match(..) => true,
                 Expr::Case(_, _, d) => d.as_ref().map_or(false, |d| walk(d, f)),
                 Expr::Lit(_) | Expr::Bool(_) | Expr::Lend(_) => false,
-                Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => walk(a, f) || walk(b, f),
+                Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => walk(a, f) || walk(b, f),
                 Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => walk(a, f),
                 Expr::Call(_, args) => args.iter().any(|a| walk(a, f)),
             }
@@ -1693,6 +1693,11 @@ impl Gen {
             let op = if self.rng.chance(50) { CmpOp::Eq } else { CmpOp::Ne };
             return Expr::Cmp(op, Box::new(Expr::Var(v.name)), Box::new(c));
         }
+        if self.rng.chance(6) {
+            if let Some(g) = self.guarded() {
+                return g;
+            }
+        }
         if depth == 0 || self.rng.chance(35) {
             let w = [1, if bools.is_empty() { 0 } else { 3 }, 6];
             return match self.rng.weighted(&w) {
@@ -1702,10 +1707,42 @@ impl Gen {
             };
         }
         match self.rng.below(5) {
-            0 | 1 => Expr::And(Box::new(self.bool_expr(depth - 1)), Box::new(self.bool_expr(depth - 1))),
-            2 | 3 => Expr::Or(Box::new(self.bool_expr(depth - 1)), Box::new(self.bool_expr(depth - 1))),
+            0 | 1 => {
+                let (a, b) = (Box::new(self.bool_expr(depth - 1)), Box::new(self.bool_expr(depth - 1)));
+                if self.rng.chance(30) { Expr::AndThen(a, b) } else { Expr::And(a, b) }
+            }
+            2 | 3 => {
+                let (a, b) = (Box::new(self.bool_expr(depth - 1)), Box::new(self.bool_expr(depth - 1)));
+                if self.rng.chance(30) { Expr::OrElse(a, b) } else { Expr::Or(a, b) }
+            }
             _ => Expr::Not(Box::new(self.bool_expr(depth - 1))),
         }
+    }
+
+    /// A division that only its guard makes safe: `'v' !== 0 and.then
+    /// (k div 'v') < m`, or `'v' == 0 or.else …` (owner, 2026-09-25). The
+    /// right side is left unguarded on purpose; Precog must see the left.
+    fn guarded(&mut self) -> Option<Expr> {
+        let vs: Vec<VarInfo> = self.vars().filter(|v| v.ty != Ty::Bool).cloned().collect();
+        if vs.is_empty() {
+            return None;
+        }
+        let v = self.rng.pick(&vs).clone();
+        let t = v.ty;
+        let r = t.range();
+        // The numerator: never the type's minimum, so `div -1` cannot overflow.
+        let k = self.rng.range(r.lo.max(-50), r.hi.min(50));
+        let op = if self.rng.chance(50) { BinOp::Div } else { BinOp::Mod };
+        let var = || Box::new(Expr::Var(v.name.clone()));
+        let q = Expr::Bin(op, Box::new(Expr::Lit(k)), var());
+        let m = self.rng.range(-3, 3).max(r.lo);
+        let cmp = *self.rng.pick(&[CmpOp::Lt, CmpOp::Ge, CmpOp::Eq, CmpOp::Ne]);
+        let right = Box::new(Expr::Cmp(cmp, Box::new(q), Box::new(Expr::Lit(m))));
+        Some(if self.rng.chance(50) {
+            Expr::AndThen(Box::new(Expr::Cmp(CmpOp::Ne, var(), Box::new(Expr::Lit(0)))), right)
+        } else {
+            Expr::OrElse(Box::new(Expr::Cmp(CmpOp::Eq, var(), Box::new(Expr::Lit(0)))), right)
+        })
     }
 
     fn comparison(&mut self) -> Expr {

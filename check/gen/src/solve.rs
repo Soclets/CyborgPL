@@ -262,6 +262,15 @@ impl<'a> Enc<'a> {
                 let (x, y) = (self.expr(ctx, a, None), self.expr(ctx, b, None));
                 self.boolean(format!("(or {x} {y})"))
             }
+            // The right side runs, and its sites are reached, only where the
+            // left side has not decided.
+            Expr::AndThen(a, b) | Expr::OrElse(a, b) => {
+                let x = self.expr(ctx, a, None);
+                let then = matches!(e, Expr::AndThen(..));
+                let pc = self.boolean(if then { format!("(and {} {x})", ctx.pc) } else { format!("(and {} (not {x}))", ctx.pc) });
+                let y = self.expr(&Ctx { pc }, b, None);
+                self.boolean(if then { format!("(and {x} {y})") } else { format!("(or {x} {y})") })
+            }
             Expr::Cmp(op, a, b) if self.is_enum(a) || self.is_enum(b) => {
                 let (k1, d1) = self.enum_val(ctx, a);
                 let (k2, d2) = self.enum_val(ctx, b);
