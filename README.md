@@ -18,6 +18,7 @@ Very slow at the development, fast &amp; safe at the final product.</p>
 - [`cca/`](cca/) — the compiler.
 - [`brand/`](brand/) — the mark (a circular C wrapping `:=`). On a pure white or pure black background use the single-colour versions, never the purple one.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
+- [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`): copy it, translate it, remix it, with credit. The site's code stays under `LICENSE`.
 
 ## Credits
 
