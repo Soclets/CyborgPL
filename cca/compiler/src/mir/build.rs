@@ -2060,6 +2060,10 @@ pub fn projected_ty(base: &Ty, proj: &[Proj], items: &crate::resolve::Items) -> 
             // of the arm it took (`enums.md`).
             (Proj::Field(i), Ty::Enum { id, args }) => items.enums[id.0 as usize].cases[*i].payload.clone().map(|t| t.subst(&args)).unwrap_or(Ty::Nothing),
             (Proj::Index(_), Ty::Seq { elem, .. }) => (*elem).clone(),
+            // One lane of a vector is its element type: without this a lane
+            // was `nothing`, and a `uint8` lane of 200 was widened by sign
+            // to 2^64 - 56 (check claude).
+            (Proj::Index(_), Ty::Simd { elem, .. }) => (*elem).clone(),
             (Proj::BundleElem(i), Ty::Bundle(ts)) => ts.get(*i).cloned().unwrap_or(Ty::Nothing),
             (Proj::Deref, Ty::Ptr { elem, .. }) => (*elem).clone(),
             _ => Ty::Nothing,

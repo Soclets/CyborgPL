@@ -1,0 +1,13 @@
+# An unsigned lane narrower than 64 bits, widened (check claude): a lane's
+# type was `nothing` below MIR, so it was widened by sign, and a `uint8` of
+# 200 read back as 2^64 - 56. 200 + 60000 + 4000000000 - 4000060000 = 200.
+extern fn exit ['code': int32];
+MAIN {
+    'b': simd[uint8, 16] = simd.fill[200];
+    'u': uint64 = to.uint64['b'[1]];
+    'h': simd[uint16, 8] = simd.fill[60000];
+    'v': uint64 = to.uint64['h'[8]];
+    'w': simd[uint32, 4] = simd.fill[4000000000];
+    'x': uint64 = to.uint64['w'[2]];
+    nocheck exit[to.int32[('u' + 'v' + 'x' - 4000060000) mod 256]];
+}
