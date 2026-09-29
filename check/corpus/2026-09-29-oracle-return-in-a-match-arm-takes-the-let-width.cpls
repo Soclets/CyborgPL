@@ -1,0 +1,61 @@
+# Finding 2026-09-29 (check run, seed 6868, shrunk): a return inside a match arm of 'v9': uint16 = match …
+# lands in f3's return type (uint64[min, 100]), but the oracle sizes its bare group by the declaration:
+# "`shr` by 42 on a 16-bit value". CCA runs it.
+# check claude generator, seed 6868
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    mut 'v': uint64 = 'm';
+    mut 'ds': list[uint8] = [];
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+    change 'v' = 'v' div 10;
+    while 'v' > 0 {
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+        change 'v' = 'v' div 10;
+    }
+    mut 'k': uint64 = list.length[lend 'ds'];
+    while 'k' >/== 1 {
+        list.append[lend.mut 'buf', 'ds'['k']];
+        change 'k' = 'k' - 1;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' >/== 0 {
+        emit[to.uint64['n'], false];
+    } else {
+        'up': int64 = -('n' + 1);
+        emit[to.uint64['up'] + 1, true];
+    }
+}
+
+enum E1 {
+    c1: int8
+    c2
+    c3: int64
+    c4: uint16
+}
+
+fn f3 [] -> uint64[min, 100] {
+    'v9': uint16 = match E1.c2 {
+        c1 'd6' { ((0 x 16852) mod 58) + 651 }
+        c2 {
+            return ((13 + (3628437621139716329 + 1)) mod ((8997704354644785536 shr 42) + (4 + 14))) mod 101;
+        }
+        c3 'd7' { ((to.uint16['d7' mod 65536] - ((((to.uint16['d7' mod 65536] shr 3) mod 4) xx (to.uint16['d7' mod 65536] mod 11)) mod 1)) mod 58) + 651 }
+        c4 'd8' { (('d8' x ('d8' div 9)) mod 58) + 651 }
+    };
+    return 0;
+}
+
+MAIN {
+    'v10': uint64 = f3[];
+}

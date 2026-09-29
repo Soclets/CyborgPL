@@ -1,0 +1,76 @@
+# Finding 2026-09-29 (check run, seed 6430, shrunk): in a #strict file's MAIN, 'v16' !== 0 and.then
+# (15 mod 'v16') is refused ("the divisor can be zero"); 'v16' is 1 from f1[1]. 7ef4341 stopped folds
+# inside strict functions; MAIN seems to still fold the guard away. The oracle runs it.
+# check claude generator, seed 6430
+#strict
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    mut 'started': bool = false;
+    mut 'p': uint64 = 10000000000000000000;
+    for temp 'k': int32 in range[from 1, to 20, by 1] {
+        if 'p' > 0 {
+            immut 'd': uint64 = ('m' div 'p') mod 10;
+            if 'd' !== 0 or 'started' or 'p' == 1 {
+                change 'started' = true;
+                list.append[lend.mut 'buf', to.uint8[48 + 'd']];
+            }
+            change 'p' = 'p' div 10;
+        }
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' >/== 0 {
+        emit[to.uint64['n'], false];
+    } else {
+        immut 'up': int64 = -('n' + 1);
+        emit[to.uint64['up'] + 1, true];
+    }
+}
+
+fn f1 ['p1': uint16] -> uint32 {
+    immut 'v1': uint8 = (to.uint8['p1' mod 256] mod 16) x (to.uint8['p1' mod 256] mod 16);
+    return to.uint32['v1'];
+}
+
+fn f2 ['p1': uint16] -> int32 {
+    return 2147483646;
+}
+
+MAIN {
+    mut 'v16': uint32 = f1[1] + 0;
+    mut 'v17': int64 = 19 - to.int64['v16'];
+    for temp 'i19': uint8 in range[from 33, to 42, by 1] {
+        mut 'w22': uint64 = 3;
+        loop {
+            if 'w22' </== 0 {
+                break;
+            }
+            change 'w22' = 'w22' - 1;
+        }
+    }
+    for temp 'i24': int8 in range[from 35, to 31, by 1] {
+    }
+    if ('v16' !== 0 and.then (15 mod 'v16') !== 3) or 16 div ((to.uint64['v16'] mod 9159883580958452947) + 1) > 0 {
+    } else if to.int32['v16' mod 2147483648] == ((to.int32['v16' mod 2147483648] mod 92681) - 46340) x ((f2[to.uint16['v17' mod 65536]] mod 92681) - 46340) {
+        for temp 'i37': uint16 in range[from 31, to 34, by 1] {
+        }
+    } else {
+        mut 'w42': uint32 = 9;
+        loop {
+            if 'w42' </== 0 {
+                break;
+            }
+            change 'w42' = 'w42' - 1;
+        }
+    }
+}
