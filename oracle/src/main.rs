@@ -86,7 +86,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
 
 /// A dependency from `CCA.cplr`: `cca::Dep[name = "geometry", path = "../geometry"]` (or a
 /// `version`, from the registry, which the oracle cannot fetch).
-struct Dep { name: String, path: Option<String>, version: Option<String> }
+struct Dep { name: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
 /// Read a Limb's `CCA.cplr` (owner, 2026-09-29): one plain `const` per setting, in CyborgPL syntax,
 /// the shapes from the built-in `cca` Limb. Returns its `name`, if set, and its dependencies.
@@ -133,14 +133,19 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                 for it in items {
                     let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a dependency is `cca::Dep[name = …, path = …]` or `cca::Dep[name = …, version = …]`", c.line)) };
                     if shape != "::cca.Dep" { return Err(format!("{shown}: line {line}: a dependency is a `cca::Dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
-                    let mut d = Dep { name: String::new(), path: None, version: None };
+                    let mut d = Dep { name: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
-                        match f.as_str() { "name" => d.name = t, "path" => d.path = Some(t), "version" => d.version = Some(t),
-                            other => return Err(format!("{shown}: line {line}: a `cca::Dep` has no `{other}`; it has `name`, and `path` or `version`")) }
+                        match f.as_str() { "name" => d.name = t, "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
+                            other => return Err(format!("{shown}: line {line}: a `cca::Dep` has no `{other}`; it has `name`, and `path`, or `id` and `version`")) }
                     }
                     if d.name.is_empty() { return Err(format!("{shown}: line {line}: a dependency needs its `name`")); }
                     if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: `{}` says where it comes from once: a `path` on this machine, or a `version` from the registry", d.name)); }
+                    // the registry knows a Limb by its ID, never its name (owner, 2026-09-29): names may repeat
+                    if d.version.is_some() {
+                        let ok = d.id.as_ref().map_or(false, |i| i.len() == 64 && i.bytes().all(|b| b.is_ascii_hexdigit()));
+                        if !ok { return Err(format!("{shown}: line {line}: `{}` comes from the registry, which knows a Limb by its ID: `id = \"…\"`, 64 hex digits", d.name)); }
+                    }
                     deps.push(d);
                 }
             }

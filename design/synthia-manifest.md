@@ -61,6 +61,16 @@ package manager could do "some Synthia shit", since otherwise "that feels
 like the base lang not being able to do inline ASM". So `CCA.cplr`'s
 `target` became `targets`, a list of `cca::Target[name = …, runner = …]`.
 
-Open: comments, what a registered name is for once IDs name Limbs, how an
-update proves it comes from the ID's owner, and which of `CCA.cplr`'s
-targets is the default.
+- **Comments are `#`**, a space after it, as in CyborgPL (owner).
+- **Names may repeat; IDs never do** (owner: "Names could be the same, IDs
+  can't"). A name is a label; the key before `.id` in `[my needed things]` is
+  what this Limb's code calls that dependency (`geometry.id = …` →
+  `geometry::area[…]`), so two Limbs both called "geometry" live side by
+  side as `geometry.id` and `geo2.id`, and a clash never breaks a build.
+  Proposed alternative: names unique in the registry too, first come.
+  `CCA.cplr` alike: a registry dependency is
+  `cca::Dep[name = "geometry", id = "…", version = "1.2"]`, `name` being the
+  local name.
+
+Open: how an update proves it comes from the ID's owner; which of
+`CCA.cplr`'s targets is the default.

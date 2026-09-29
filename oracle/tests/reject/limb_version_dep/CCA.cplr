@@ -1,1 +1,1 @@
-const 'dependencies' := [cca::Dep[name = "areas", version = "0.1.0"],];
+const 'dependencies' := [cca::Dep[name = "areas", id = "3f9a2c1d4e5b6a708192a3b4c5d6e7f8091a2b3c4d5e6f708a9b0c1d2e3f4a5b", version = "0.1.0"],];

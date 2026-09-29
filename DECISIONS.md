@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `Synthia.ttsr` comments are `#`; names may repeat, IDs never (owner)
+
+Comments are `#` with a space after it, as in CyborgPL (owner; proposed
+alternatives `//`, none). A Limb's name: proposed (a) unique in the registry
+too, first come, as crates.io; (b) a label only, the ID being the identity,
+with each manifest's key before `.id` naming the dependency for its own
+code. Design claude recommended b; owner: "Names could be the same, IDs
+can't." So a registry dependency in `CCA.cplr` carries its ID too,
+`cca::Dep[name = "geometry", id = "…", version = "1.2"]`, and the oracle
+refuses one without a 64-hex-digit ID (reject test limb_registry_needs_id).
+`synthia-manifest.md`.
+
 ### 2026-09-29 — Several targets; CCA's package manager can do whatever Synthia can (owner: b, "yea")
 
 `[my target]` in `Synthia.ttsr` holds several targets, each with its
