@@ -255,7 +255,7 @@ pub struct Expr {
 pub enum ExprKind {
     /// `op +`: an operator as a value, where a function goes (owner,
     /// 2026-09-29); its type comes from where it goes.
-    OpValue { op: BinOp, spelled: String },
+    OpValue { op: BinOp, spelled: String, unary: Option<UnOp> },
     /// `match 's' { empty { "free" } … }` used as a value (owner, 2026-09-29).
     Match { value: Box<Expr>, arms: Vec<MatchArm> },
     Int(String),

@@ -1,0 +1,30 @@
+# examples/operator_values.cpls as an exit code (owner, 2026-09-29): 10 + 24
+# + (-10) + (-5) + 2 + 11, and 100 when `op </==` said 3 </== 3 → 132.
+extern fn exit ['code': int32];
+struct Vec { x: bin64  y: bin64 }
+op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
+fn fold [lent 'xs': list[int32], 'start': int32, 'f': fn[int32, int32] -> int32] -> int32 {
+    mut 'acc' := 'start';
+    for 'x' in lend 'xs' { change 'acc' = 'f'['acc', 'x']; }
+    return 'acc';
+}
+fn apply1 ['v': int32, 'f': fn[int32] -> int32] -> int32 { return 'f'['v']; }
+fn test2 ['a': int32, 'b': int32, 'f': fn[int32, int32] -> bool] -> bool { return 'f'['a', 'b']; }
+fn both [lent 'a': Vec, lent 'b': Vec, 'f': fn[lent Vec, lent Vec] -> bin64] -> bin64 { return 'f'[lend 'a', lend 'b']; }
+MAIN {
+    'xs': list[int32] = [1, 2, 3, 4];
+    'sum' := fold[lend 'xs', 0, op +];
+    'product' := fold[lend 'xs', 1, op x];
+    'down' := fold[lend 'xs', 0, op -];
+    'n' := apply1[5, op neg];
+    'le' := test2[3, 3, op </==];
+    'f': fn[int32, int32] -> int32 = op mod;
+    'm' := 'f'[-7, 3];
+    'u' := Vec[x = 1.0, y = 2.0];
+    'v' := Vec[x = 3.0, y = 4.0];
+    'd' := both[lend 'u', lend 'v', op dot];
+    'dn' := to.int32['d'] otherwise 0;
+    mut 'bonus': int32 = 0;
+    if 'le' { change 'bonus' = 100; }
+    nocheck exit['sum' + 'product' + 'down' + 'n' + 'm' + 'dn' + 'bonus'];
+}

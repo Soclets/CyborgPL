@@ -2141,9 +2141,30 @@ impl<'a> Parser<'a> {
                 // `op +` (owner, 2026-09-29): the operator as a value.
                 "op" if !matches!(self.peek_at(1), Tok::LBracket) => {
                     let start = self.bump().span;
-                    let (op, spelled) = self.op_as_value()?;
+                    // `op neg` / `op not`: the operators of one operand.
+                    let unary = if self.is_word("neg") {
+                        self.bump();
+                        Some((UnOp::Neg, "neg"))
+                    } else if self.is_word("not") && !matches!(self.peek_at(1), Tok::Dot) {
+                        self.bump();
+                        Some((UnOp::Not, "not"))
+                    } else if self.is_word("not") && self.is_word_at(2, "bit") {
+                        self.bump();
+                        self.bump();
+                        self.bump();
+                        Some((UnOp::NotBit, "not.bit"))
+                    } else {
+                        None
+                    };
+                    let (op, spelled, unary) = match unary {
+                        Some((u, s)) => (BinOp::Custom(s.to_string()), s.to_string(), Some(u)),
+                        None => {
+                            let (op, spelled) = self.op_as_value()?;
+                            (op, spelled, None)
+                        }
+                    };
                     let span = start.to(self.prev_span());
-                    Ok(Expr { kind: ExprKind::OpValue { op, spelled }, span })
+                    Ok(Expr { kind: ExprKind::OpValue { op, spelled, unary }, span })
                 }
                 "match" => {
                     let start = self.bump().span;

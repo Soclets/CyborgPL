@@ -189,3 +189,5 @@ lifetimes_mut 73
 op_values 47
 # A borrow handed back through a call (check claude, 2026-09-29).
 borrow_through_a_call 2
+# op - subtracts, op neg negates, op and.then refused (owner, 2026-09-29).
+operator_values 132

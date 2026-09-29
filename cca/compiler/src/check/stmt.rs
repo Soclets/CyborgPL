@@ -177,7 +177,7 @@ impl Checker {
                 }
                 // `'f': fn[…] = op +;` takes its type from the declaration.
                 let v = match (&value.kind, declared.as_ref().map(|t| self.resolve(t))) {
-                    (ast::ExprKind::OpValue { op, spelled }, Some(Ty::Fn(ft))) => self.op_value(ctx, op, spelled, &ft, value.span),
+                    (ast::ExprKind::OpValue { op, spelled, unary }, Some(Ty::Fn(ft))) => self.op_value(ctx, op, spelled, *unary, &ft, value.span),
                     _ => self.expr_top(ctx, value, true),
                 };
                 ctx.lend_call_ok = saved;

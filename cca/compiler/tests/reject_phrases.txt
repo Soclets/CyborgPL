@@ -282,6 +282,9 @@ op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` 
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
 op_star_undefined [fnv:fc4c3293bd3689bb] :: `*` is not an operator here: multiply is `x`
 op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
+op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
+op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
+op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
 op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
 other_limb [fnv:426e314fd75e64c7] :: a Limb is a dependency listed in `Synthia.cplm`, and none is
 overflow_lands [fnv:106012fcbb102c23] :: the value can be outside what a `int8` holds
