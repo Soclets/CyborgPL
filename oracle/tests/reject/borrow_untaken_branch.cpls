@@ -1,0 +1,10 @@
+# the borrow rule holds on every path, not only the one a run takes (check claude, 2026-09-29)
+MAIN {
+    'n': int32 = 3;
+    mut 't': list[int32] = [5,];
+    if 'n' > 5 {
+        'q' := lend 't';
+        list.append[lend.mut 't', 1];
+        std::printu.stdout[list.length[lend 'q'], \n];
+    }
+}

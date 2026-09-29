@@ -152,6 +152,7 @@ impl<'p> Interp<'p> {
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
         self.check_returned_borrows()?;
+        self.check_borrow_order()?;
         self.check_fails()?;
         self.check_claims()?;
         self.check_boundary()?;
@@ -1218,6 +1219,69 @@ impl<'p> Interp<'p> {
                         if let (Some(p), Some(l)) = (param, life) {
                             if p.life.as_ref() != Some(l) { return rt(line, format!("`{}` returns a borrow of '{n}', which is not in @{l}: say `lent@{l} '{n}'`", f.name)); }
                         }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// The borrow rule on every path, not only the one a run takes (check claude, 2026-09-29):
+    /// in each body, read in source order, a borrow `'r' := lend 's'` (or a `-> lent@x` call's
+    /// result, for the arguments in @x) followed by a change, `give` or `lend.mut` of 's' and then a
+    /// use of 'r' is refused. Loops are read once, top to bottom; a second trip round is left to
+    /// the run-time check.
+    fn check_borrow_order(&self) -> Result<(), RuntimeError> {
+        // (line, the statement's own text, a new borrow: (name, what it borrows))
+        fn flat(b: &[Stmt], out: &mut Vec<(usize, String, Option<(String, Vec<String>, bool)>)>, prog: &Program) {
+            for st in b {
+                match st {
+                    Stmt::If { arms, otherwise, line } => { for (c, body) in arms { out.push((*line, format!("{c:?}"), None)); flat(body, out, prog); } if let Some(o) = otherwise { flat(o, out, prog); } }
+                    Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::Concur { body, .. } => flat(body, out, prog),
+                    Stmt::While { cond, body, line } => { out.push((*line, format!("{cond:?}"), None)); flat(body, out, prog); }
+                    Stmt::For { over, body, line, .. } => { out.push((*line, format!("{over:?}"), None)); flat(body, out, prog); }
+                    Stmt::Range { bounds, body, line, .. } => { out.push((*line, format!("{bounds:?}"), None)); flat(body, out, prog); }
+                    Stmt::Match { value, arms, line } => { out.push((*line, format!("{value:?}"), None)); for a in arms { flat(&a.body, out, prog); } }
+                    Stmt::Tier { body, .. } => flat(std::slice::from_ref(body), out, prog),
+                    Stmt::Decl { name, value, line, .. } => {
+                        let from = match value.values.as_slice() {
+                            [crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, s, _))] => Some(vec![s.clone()]),
+                            [crate::ast::Value::Expr(Expr::Call(c))] => prog.funcs.iter().find(|f| f.name == *c.path.last().unwrap() && f.module == c.path[..c.path.len() - 1]).and_then(|f| match &f.ret_lent {
+                                Some((_, Some(l))) => Some(f.params.iter().zip(&c.args.values).filter(|(p, _)| p.life.as_ref() == Some(l)).filter_map(|(_, a)| match a {
+                                    crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, s, _)) => Some(s.clone()), _ => None }).collect()),
+                                _ => None,
+                            }),
+                            _ => None,
+                        };
+                        let via_call = matches!(value.values.as_slice(), [crate::ast::Value::Expr(Expr::Call(_))]);
+                        out.push((*line, format!("{st:?}"), from.map(|f| (name.clone(), f, via_call))));
+                    }
+                    other => out.push((stmt_line(other), format!("{other:?}"), None)),
+                }
+            }
+        }
+        let uses = |t: &str, r: &str| ["Var", "Index", "Field", "FieldIndex", "CallValue", "Spread"].iter().any(|k| t.contains(&format!("{k}(\"{r}\""))) || t.contains(&format!("Lend, \"{r}\"")) || t.contains(&format!("Copy, \"{r}\""));
+        let writes = |t: &str, s: &str| -> Option<&'static str> {
+            if t.contains(&format!("Give, \"{s}\"")) { Some("given away") }
+            else if t.contains(&format!("LendMut, \"{s}\"")) { Some("lent mutably") }
+            else if ["Assign", "AssignElem", "AssignField"].iter().any(|k| t.starts_with(&format!("{k} {{ name: \"{s}\""))) { Some("changed") }
+            else { None }
+        };
+        let bodies = self.prog.funcs.iter().map(|f| &f.body).chain(self.prog.main.iter());
+        for body in bodies {
+            let mut ev = Vec::new();
+            flat(body, &mut ev, self.prog);
+            for (i, (_, _, b)) in ev.iter().enumerate() {
+                let Some((r, froms, via_call)) = b else { continue };
+                let whose = if *via_call { "something in its `@` group" } else { "what it borrows" };
+                for s in froms {
+                    let mut wrote: Option<(usize, &str)> = None;
+                    for (line, t, nb) in &ev[i + 1..] {
+                        if matches!(nb, Some((n, _, _)) if n == r) { break; }   // a new 'r': the old borrow is over
+                        if let Some((at, what)) = wrote { if uses(t, r) {
+                            return rt(*line, format!("'{r}' is a borrow, and {whose} was {what} on line {at} while '{r}' was still in use: a borrow never aliases a change and never outlives its owner"));
+                        } }
+                        if wrote.is_none() { if let Some(w) = writes(t, s) { wrote = Some((*line, w)); } }
                     }
                 }
             }
@@ -3917,4 +3981,10 @@ fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
     }
     if next < vals.len() { return Err(format!("the format has fewer `%`s than arguments ({} argument(s) unused)", vals.len() - next)); }
     Ok(out)
+}
+
+/// A statement's own line: every `Stmt` variant ends with `line`, so it is the last one printed.
+fn stmt_line(s: &Stmt) -> usize {
+    let t = format!("{s:?}");
+    t.rfind("line: ").and_then(|i| t[i + 6..].split(|c: char| !c.is_ascii_digit()).next().and_then(|d| d.parse().ok())).unwrap_or(0)
 }
