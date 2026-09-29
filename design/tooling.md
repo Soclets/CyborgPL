@@ -42,13 +42,18 @@ Owner, 2026-09-14.
   Its manifest is **`CCA.cplr`**, written in CyborgPL syntax on purpose:
   `.cplr` (*CyborgPL Related*) is the extension for CyborgPL-syntax files
   that belong to the tooling, and the file's name says which one it is.
-  For example (shape not decided):
+  One plain `const` per setting (owner, 2026-09-29), the shapes from
+  `cca`, a tiny built-in Limb only `CCA.cplr` can reach:
 
   ```
-  pub const 'name' := "shop";
-  pub const 'version' := "1.0.0";
-  pub const 'dependencies' := [cca::Dep[name = "geometry", version = "1.2"]];
+  const 'name' := "shop";
+  const 'version' := "1.0.0";
+  const 'dependencies' := [cca::Dep[name = "geometry", version = "1.2"]];
+  const 'target' := "aarch64-macos";
   ```
+
+  Every name and type is checked against the settings CCA knows. Open: the
+  full list of settings, and what a `cca::Dep` holds.
 
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
   (above). What goes in

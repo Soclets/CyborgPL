@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `CCA.cplr`: one plain `const` per setting, shapes from a built-in `cca` Limb (owner)
+
+```
+const 'name' := "shop";
+const 'version' := "1.0.0";
+const 'dependencies' := [cca::Dep[name = "geometry", version = "1.2"]];
+const 'target' := "aarch64-macos";
+```
+
+- **One `const` per setting** (owner: a). Proposed alternatives: one
+  struct holding everything (b); a block of its own mini-syntax (c),
+  which would not be CyborgPL syntax. Every name and type is checked
+  against the settings CCA knows, so a misspelling is an error.
+- **The shapes come from `cca`, a tiny built-in Limb only `CCA.cplr` can
+  reach** (owner: a), reached with `::` like `std::`. The owner asked
+  whether it was `cca::Dep` or `cca.Dep` (design claude's sketch had
+  `cca.Dep`, wrong: `::` crosses into another Limb), then whether `cca` was
+  a Limb. Proposed alternative: the shapes written bare in a `.cplr`
+  file, a name from nowhere.
+- **Plain `const`, not `pub const`** (owner). The owner asked which was
+  correct: both are legal; `pub` is for other Limbs, and the compiler
+  reading the file is not one.
+Open: the full list of settings, and what a `cca::Dep` holds (where a
+dependency comes from). `tooling.md`.
+
 ### 2026-09-29 — Synthia's manifest is `Synthia.ttsr`, in a syntax of its own (owner)
 
 Following the two-package-manager split (below), the owner said Synthia
