@@ -194,3 +194,5 @@ operator_values 132
 # Bare-number list items exact; a borrow's group through an ungrouped call (check claude, 2026-09-29).
 list_items_exact 92
 borrow_group_inferred 2
+# A borrow handed back through a local borrow (0e5c5b1).
+borrow_of_a_borrow 3

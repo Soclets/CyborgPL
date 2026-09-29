@@ -116,6 +116,9 @@ pub struct FnCtx {
     pub returned: std::collections::BTreeSet<usize>,
     /// The one call whose returned borrow a declaration is taking now.
     pub lend_call_ok: Option<crate::source::Span>,
+    /// What each borrowing local borrows, followed back to owners or
+    /// `lent` parameters: a borrow of one is a borrow of those.
+    pub borrow_src: HashMap<LocalId, Vec<LocalId>>,
 }
 
 impl FnCtx {
@@ -425,7 +428,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new() }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {

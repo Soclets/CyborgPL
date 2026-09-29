@@ -72,6 +72,22 @@ impl Checker {
         Ok((hir::Block { stmts, span: b.span }, Some(v)))
     }
 
+    /// Which arguments, by position, a call's returned borrow depends on:
+    /// its group's, or what its body hands back (checked first if it
+    /// waits), or, inside a recursion, every `lent` one.
+    pub fn call_deps(&mut self, inst: hir::FnInst, n: usize) -> Result<Vec<usize>> {
+        let key = self.instances[inst.0 as usize].key.clone();
+        let callee = self.items.fns[key.fn_id.0 as usize].clone();
+        let group = callee.ret_lent.as_ref().and_then(|(_, g)| g.clone());
+        if let Some(g) = group {
+            return Ok(callee.params.iter().enumerate().filter(|(_, p)| p.group.as_ref() == Some(&g)).map(|(i, _)| i).collect());
+        }
+        if let Some(d) = self.returned_deps(inst)? {
+            return Ok(d);
+        }
+        Ok((0..n).filter(|i| callee.params.get(*i).is_some_and(|p| matches!(p.kind, ParamKind::Lent | ParamKind::LentMut))).collect())
+    }
+
     /// Whether this is a call that hands back a borrow, and whether a
     /// `lent.mut` one.
     pub fn call_lends(&self, e: &hir::Expr) -> Option<bool> {
@@ -230,6 +246,28 @@ impl Checker {
                 if *sealed {
                     ctx.sealed.insert(id);
                 }
+                // A borrowing name remembers what it borrows.
+                if matches!(kind, LocalKind::Lent | LocalKind::LentMut) {
+                    let direct: Vec<LocalId> = match &v.kind {
+                        hir::ExprKind::Lend { place, .. } => vec![place.base],
+                        hir::ExprKind::Call { callee: hir::Callee::Fn(inst), args, .. } => {
+                            let deps = self.call_deps(*inst, args.len())?;
+                            args.iter().enumerate().filter(|(i, _)| deps.contains(i)).filter_map(|(_, a)| match a {
+                                hir::Arg::Lend { place, .. } => Some(place.base),
+                                _ => None,
+                            }).collect()
+                        }
+                        _ => Vec::new(),
+                    };
+                    let mut all = Vec::new();
+                    for d in direct {
+                        match ctx.borrow_src.get(&d) {
+                            Some(s) => all.extend(s.iter().copied()),
+                            None => all.push(d),
+                        }
+                    }
+                    ctx.borrow_src.insert(id, all);
+                }
                 match &v.kind {
                     hir::ExprKind::List(items) => {
                         ctx.literal_lengths.insert(id, items.len());
@@ -303,26 +341,30 @@ impl Checker {
                             };
                             let lend_mut = *verb == ast::Verb::LendMut;
                             let place = self.place(ctx, expr, if lend_mut { PlaceUse::LendMut } else { PlaceUse::Lend })?;
-                            let who = ctx.locals[place.base.0 as usize].name.clone();
-                            let Some((pi, pg)) = ctx.lent_params.get(&place.base).cloned() else {
-                                return err(Diagnostic::error(format!("`{}` hands back a borrow of '{}', which dies when it returns: only a borrow of a `lent` parameter outlives the call", ctx.name, who)).at(v.span));
-                            };
-                            if let Some(g) = &group {
-                                if pg.as_ref() != Some(g) {
-                                    let is = match &pg {
-                                        Some(p) => format!("'{}' is `lent@{}`", who, p),
-                                        None => format!("'{}' is in no group", who),
-                                    };
-                                    return err(Diagnostic::error(format!("`{}` returns a borrow of '{}', which is not in @{}: {}", ctx.name, who, g, is)).at(v.span));
+                            // A local borrow is a borrow of what it borrows.
+                            let owners: Vec<LocalId> = ctx.borrow_src.get(&place.base).cloned().unwrap_or_else(|| vec![place.base]);
+                            for owner in owners {
+                                let who = ctx.locals[owner.0 as usize].name.clone();
+                                let Some((pi, pg)) = ctx.lent_params.get(&owner).cloned() else {
+                                    return err(Diagnostic::error(format!("`{}` hands back a borrow of '{}', which dies when it returns: only a borrow of a `lent` parameter outlives the call", ctx.name, who)).at(v.span));
+                                };
+                                if let Some(g) = &group {
+                                    if pg.as_ref() != Some(g) {
+                                        let is = match &pg {
+                                            Some(p) => format!("'{}' is `lent@{}`", who, p),
+                                            None => format!("'{}' is in no group", who),
+                                        };
+                                        return err(Diagnostic::error(format!("`{}` returns a borrow of '{}', which is not in @{}: {}", ctx.name, who, g, is)).at(v.span));
+                                    }
                                 }
+                                ctx.returned.insert(pi);
                             }
                             if mutable && !lend_mut {
-                                return err(Diagnostic::error(format!("`{}` hands back `lent.mut`: `return lend.mut '{}';`", ctx.name, who)).at(v.span));
+                                return err(Diagnostic::error(format!("`{}` hands back `lent.mut`: `return lend.mut '{}';`", ctx.name, ctx.locals[place.base.0 as usize].name)).at(v.span));
                             }
                             if !mutable && lend_mut {
-                                return err(Diagnostic::error(format!("`{}` hands back a plain `lent`: `return lend '{}';`, or declare `-> lent.mut …`", ctx.name, who)).at(v.span));
+                                return err(Diagnostic::error(format!("`{}` hands back a plain `lent`: `return lend '{}';`, or declare `-> lent.mut …`", ctx.name, ctx.locals[place.base.0 as usize].name)).at(v.span));
                             }
-                            ctx.returned.insert(pi);
                             let ty = place.ty.clone();
                             return Ok(hir::StmtKind::Return(Some(hir::Expr { kind: hir::ExprKind::Lend { place, mutable: lend_mut }, ty, span: v.span })));
                         }
@@ -339,30 +381,28 @@ impl Checker {
                                 }
                                 let key = self.instances[inst.0 as usize].key.clone();
                                 let callee = self.items.fns[key.fn_id.0 as usize].clone();
-                                let cgroup = callee.ret_lent.as_ref().and_then(|(_, g)| g.clone());
+                                let _ = callee;
                                 // With no group written, what the callee's
                                 // body hands back (check claude, 2026-09-29).
-                                let inferred = if cgroup.is_none() { self.returned_deps(*inst)? } else { None };
-                                for (i, (a, p)) in args.iter().zip(&callee.params).enumerate() {
-                                    let depends = match (&cgroup, &inferred) {
-                                        (Some(g), _) => p.group.as_ref() == Some(g),
-                                        (None, Some(d)) => d.contains(&i),
-                                        (None, None) => matches!(p.kind, crate::types::ParamKind::Lent | crate::types::ParamKind::LentMut),
-                                    };
-                                    if !depends {
+                                let deps = self.call_deps(*inst, args.len())?;
+                                for (i, a) in args.iter().enumerate() {
+                                    if !deps.contains(&i) {
                                         continue;
                                     }
                                     let hir::Arg::Lend { place, .. } = a else { continue };
-                                    let who = ctx.locals[place.base.0 as usize].name.clone();
-                                    let Some((pi, pg)) = ctx.lent_params.get(&place.base).cloned() else {
-                                        return err(Diagnostic::error(format!("`{}` hands back a borrow of '{}', which dies when it returns: only a borrow of a `lent` parameter outlives the call", ctx.name, who)).at(v.span));
-                                    };
-                                    if let Some(g) = &group {
-                                        if pg.as_ref() != Some(g) {
-                                            return err(Diagnostic::error(format!("`{}` returns a borrow of '{}', which is not in @{}", ctx.name, who, g)).at(v.span));
+                                    let owners: Vec<LocalId> = ctx.borrow_src.get(&place.base).cloned().unwrap_or_else(|| vec![place.base]);
+                                    for owner in owners {
+                                        let who = ctx.locals[owner.0 as usize].name.clone();
+                                        let Some((pi, pg)) = ctx.lent_params.get(&owner).cloned() else {
+                                            return err(Diagnostic::error(format!("`{}` hands back a borrow of '{}', which dies when it returns: only a borrow of a `lent` parameter outlives the call", ctx.name, who)).at(v.span));
+                                        };
+                                        if let Some(g) = &group {
+                                            if pg.as_ref() != Some(g) {
+                                                return err(Diagnostic::error(format!("`{}` returns a borrow of '{}', which is not in @{}", ctx.name, who, g)).at(v.span));
+                                            }
                                         }
+                                        ctx.returned.insert(pi);
                                     }
-                                    ctx.returned.insert(pi);
                                 }
                                 return Ok(hir::StmtKind::Return(Some(e)));
                             }

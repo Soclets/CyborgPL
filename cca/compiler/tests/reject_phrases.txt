@@ -59,6 +59,7 @@ bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move every bit out
 borrow_after_append [fnv:9b170a0b5c7fb392] :: 's' cannot be changed here: 'r' still borrows it
 borrow_after_change [fnv:dd8963968cf2e918] :: 's' cannot be changed here: 'r' still borrows it
 borrow_after_give [fnv:f180241f2bdae36b] :: 's' cannot be given away here: 'r' still borrows it
+borrow_ungrouped_may_return [fnv:9612fa48a8b976d1] :: 't' cannot be given away here: 'r' still borrows it
 borrow_untaken_branch [fnv:c35b2be5fca54332] :: 't' cannot be changed here: 'q' still borrows it
 bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
 bound_backwards [fnv:eaa53671d88b43f0] :: the low bound comes first: `[2, 5]`
@@ -221,7 +222,7 @@ length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint
 let_chain [fnv:f0731a3b445878f7] :: `let` is gone
 let_removed [fnv:f0731a3b445878f7] :: `let` is gone
 let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
-lifetime_group_given [fnv:7d9e9805602b3e8f] :: 't' cannot be given away here: 'r' still borrows it
+lifetime_group_given [fnv:937f831510e751ec] :: 't' cannot be given away here: 'r' still borrows it
 lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
 lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
 lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
