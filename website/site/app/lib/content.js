@@ -51,8 +51,20 @@ export const SYNTAX = [
   { title: "Comments", text: "`#` runs to the end of the line.", code: "# like this" },
 ];
 
+// Each licence links to its official text, and to the exact file in the repo (the repo's
+// LICENSE is Apache-2.0 with the LLVM exception appended; LICENSE-CC-BY-4.0 is the site's text).
 export const LICENCE = [
-  { title: "Code", text: "The compiler, the tools, the libraries and this website’s code: Apache-2.0 with the LLVM exception. Using CyborgPL owes nothing — compiled programs carry no notice." },
-  { title: "This site’s text", text: "CC BY 4.0: copy, translate and reuse it, with credit." },
+  { title: "Code", text: "The compiler, the tools, the libraries and this website’s code: Apache-2.0 with the LLVM exception. Using CyborgPL owes nothing — compiled programs carry no notice.",
+    links: [
+      { label: "Apache License 2.0", href: "https://www.apache.org/licenses/LICENSE-2.0" },
+      { label: "LLVM exception", href: "https://spdx.org/licenses/LLVM-exception.html" },
+      { label: "LICENSE in the repo", href: `${REPO_URL}/blob/main/LICENSE` },
+    ] },
+  { title: "This site’s text", text: "CC BY 4.0: copy, translate and reuse it, with credit.",
+    links: [
+      { label: "CC BY 4.0", href: "https://creativecommons.org/licenses/by/4.0/" },
+      { label: "Legal code", href: "https://creativecommons.org/licenses/by/4.0/legalcode" },
+      { label: "LICENSE-CC-BY-4.0 in the repo", href: `${REPO_URL}/blob/main/LICENSE-CC-BY-4.0` },
+    ] },
   { title: "Names and logo", text: "CyborgPL, Precog, Limb and Synthia, and the logo, are trademarks. They aren’t licensed with the code: a fork can’t call itself CyborgPL." },
 ];

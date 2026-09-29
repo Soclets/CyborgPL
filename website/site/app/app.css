@@ -143,6 +143,10 @@ input { font: inherit; }
 .ri { width: 34px; height: 34px; border-radius: 10px; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; }
 .fineprint { margin: 18px 6px; font-size: 13px; line-height: 1.5; color: var(--muted); }
 .crumb { display: inline-block; margin: 4px 0 0; font: 600 16px var(--sans); color: var(--violet); }
+.lic-links { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--line-dash); display: flex; flex-wrap: wrap; gap: 8px; }
+.lic-links a { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 99px; background: var(--bg); color: var(--blue); font: 600 14px var(--sans); }
+.lic-links a:active { background: var(--pressed); }
+html.desktop .lic-links a:hover { background: var(--pressed); }
 .notice { background: var(--surface); border-radius: 20px; padding: 18px; }
 .notice b { font-size: 18px; color: var(--ink); }
 .notice p { margin: 6px 0 0; font-size: 15px; line-height: 1.5; }

@@ -488,8 +488,8 @@
         },
         {
           "name": "keyword.control.cyborgpl",
-          "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|gives|match|whichever|concur)\\b",
-          "comment": "`gives` is a `#strict` match arm's value (2026-09-29)."
+          "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|giveS|match|whichever|concur)\\b",
+          "comment": "`giveS` is a `#strict` match arm's value (2026-09-29; the capital S keeps it apart from `give`)."
         },
         {
           "name": "keyword.declaration.cyborgpl",
@@ -515,9 +515,9 @@
           "match": "\\b(?:true|false)\\b"
         },
         {
-          "comment": "Retired, still reserved so the error can point at the new spelling: var/func on 2026-09-19, let on 2026-09-25.",
+          "comment": "Retired, still reserved so the error can point at the new spelling: var/func on 2026-09-19, let on 2026-09-25, gives (now giveS) on 2026-09-29.",
           "name": "invalid.deprecated.cyborgpl",
-          "match": "\\b(?:var|func|let)\\b"
+          "match": "\\b(?:var|func|let|gives)\\b"
         }
       ]
     },

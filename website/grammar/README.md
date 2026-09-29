@@ -9,7 +9,7 @@ the token shapes and `oracle/src/parser.rs` for the keyword list and the type
 spellings — so it follows the same rules the reference interpreter enforces,
 including the 2026-09-19 syntax revision and the 2026-09-25/27/29 changes (no `let`,
 `change`, `!$`, `and.then` / `or.else`, `#strict`, `pos` only in strict files, `div`,
-`</==` / `>/==`, `@x` lifetime groups, `gives`, `op +` as a value).
+`</==` / `>/==`, `@x` lifetime groups, `giveS`, `op +` as a value).
 
 ## What it knows
 
@@ -46,7 +46,7 @@ including the 2026-09-19 syntax revision and the 2026-09-25/27/29 changes (no `l
   `div`, `mod`, `and`, `or`, `and.then`, `or.else`, plus the wrapping `+~` / `-~` / `x~` /
   `xx~` and the bitwise `and.bit` / `xor` / `shl` / `shr`. The comparisons `==`, `!==`, `<`,
   `>`, `</==`, `>/==`; the retired `/`, `<==`, `>==` are marked deprecated.
-- `@x` on a returned borrow (`-> lent@x T`), `gives` in a strict `match`, and an operator
+- `@x` on a returned borrow (`-> lent@x T`), `giveS` in a strict `match` (`gives` marked retired), and an operator
   handed over as a value (`op +`, `op neg`, `op </==`).
 - `#strict`'s range labels, `range[from 1, to 4, by 1]`, and `pos`.
 - `layout.c enum Key { a = 65 }`: a case and its number.
@@ -72,7 +72,7 @@ non-whitespace span left without a scope — there should be none — and, for e
 every distinct word it was given, which is the list to read by hand for words in the
 wrong class. `node website/grammar/audit.mjs <scope>` prints one class.
 
-Last run on 2026-09-29 against all 97 programs: no unscoped spans, and each class read
+Last run on 2026-09-29 against all 100 programs: no unscoped spans, and each class read
 by hand — every word coloured as an enum case is a real case or failure name, every
 capitalised word outside comments and strings is a declared type, generic or interface,
 and every bare word coloured as a function reference is one.
