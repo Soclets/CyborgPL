@@ -220,3 +220,4 @@ call_into_range trap
 bin_past_largest trap
 bin_zero_divisor trap
 bin_no_number trap
+fail_in_loop 7

@@ -336,7 +336,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             };
             let name = format!("cy_{}_{}", i, sanitise(&f.name));
-            let v = self.module.add_function(&name, fty, None);
+            // The program is one module and only `main` is called from
+            // outside it: its own functions are internal, which lets LLVM
+            // inline one into its caller and see what it checked (the range
+            // `read_n` in bench/sieve.cpls establishes). Their addresses
+            // still go to C and to tasks as values.
+            let v = self.module.add_function(&name, fty, Some(inkwell::module::Linkage::Internal));
             self.fns.insert(i, v);
         }
         for (i, e) in self.p.items.externs.iter().enumerate() {
@@ -475,7 +480,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // address, not a second copy of the value.
             if lent[li] {
                 let name = l.name.clone().unwrap_or_else(|| format!("t{}", li));
-                let slot = self.builder.build_alloca(self.ctx.ptr_type(AddressSpace::default()), &name).unwrap();
+                let slot = self.stack(self.ctx.ptr_type(AddressSpace::default()), &name).unwrap();
                 slots.push(Some(slot));
                 continue;
             }
@@ -488,7 +493,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             match self.ty_or_complain(&l.ty.clone(), span) {
                 Some(t) => {
                     let name = l.name.clone().unwrap_or_else(|| format!("t{}", li));
-                    let slot = self.builder.build_alloca(t, &name).unwrap();
+                    let slot = self.stack(t, &name).unwrap();
                     slots.push(Some(slot));
                 }
                 None => slots.push(None),
@@ -502,7 +507,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if lent[li] || !self.owns_memory(&l.ty) {
                 continue;
             }
-            let flag = self.builder.build_alloca(self.ctx.bool_type(), "alive").unwrap();
+            let flag = self.stack(self.ctx.bool_type(), "alive").unwrap();
             // A parameter arrives holding its value; everything else does
             // not hold one until something puts one there.
             let start = self.ctx.bool_type().const_int(is_param[li] as u64, false);
@@ -1017,8 +1022,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 if matches!(op, BinOp::Eq | BinOp::Ne) && a.is_struct_value() && b.is_struct_value() {
                     let ty = self.operand_cy_ty(fi, lhs).or_else(|| self.operand_cy_ty(fi, rhs))?;
                     let f = self.same_fn(&ty)?;
-                    let pa = self.builder.build_alloca(a.get_type(), "eq_a").ok()?;
-                    let pb = self.builder.build_alloca(b.get_type(), "eq_b").ok()?;
+                    let pa = self.stack(a.get_type(), "eq_a").ok()?;
+                    let pb = self.stack(b.get_type(), "eq_b").ok()?;
                     let _ = self.builder.build_store(pa, a);
                     let _ = self.builder.build_store(pb, b);
                     let same = basic_result(self.builder.build_call(f, &[pa.into(), pb.into()], "same").ok()?)?.into_int_value();
@@ -1341,7 +1346,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 match self.copy_fn(&ty) {
                     Some(copier) => {
                         let shape = self.ty(&ty)?;
-                        let tmp = self.builder.build_alloca(shape, "copy").ok()?;
+                        let tmp = self.stack(shape, "copy").ok()?;
                         let _ = self.builder.build_call(copier, &[tmp.into(), src.into()], "");
                         self.builder.build_load(shape, tmp, "copied").ok()
                     }
@@ -1984,7 +1989,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         match self.copy_fn(&ty) {
             Some(copier) => {
                 let shape = self.ty(&ty)?;
-                let tmp = self.builder.build_alloca(shape, "copy").ok()?;
+                let tmp = self.stack(shape, "copy").ok()?;
                 let _ = self.builder.build_call(copier, &[tmp.into(), src.into()], "");
                 self.builder.build_load(shape, tmp, "copied").ok()
             }
@@ -2078,6 +2083,23 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// Room on the stack made at the function's entry, so a loop does not
     /// make it again on every trip.
+    /// A stack slot for the function being generated, always made in its
+    /// entry block. Made where it is first needed, a slot is a *dynamic*
+    /// allocation: inside a loop it grows the stack every trip, and LLVM
+    /// will neither inline such a function nor promote its slots to
+    /// registers (`bench/sieve.cpls`: `read_n` stayed a call, and the range
+    /// it checks never reached the loop that needed it).
+    pub(super) fn stack<T: inkwell::types::BasicType<'ctx>>(&self, t: T, name: &str) -> Result<PointerValue<'ctx>, inkwell::builder::BuilderError> {
+        let Some(func) = self.builder.get_insert_block().and_then(|b| b.get_parent()) else { return self.builder.build_alloca(t, name) };
+        let Some(entry) = func.get_first_basic_block() else { return self.builder.build_alloca(t, name) };
+        let b = self.ctx.create_builder();
+        match entry.get_first_instruction() {
+            Some(i) => b.position_before(&i),
+            None => b.position_at_end(entry),
+        }
+        b.build_alloca(t, name)
+    }
+
     fn entry_alloca(&mut self, func: FunctionValue<'ctx>, t: BasicTypeEnum<'ctx>, name: &str) -> Option<PointerValue<'ctx>> {
         let entry = func.get_first_basic_block()?;
         let b = self.ctx.create_builder();
@@ -2107,7 +2129,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let Some(slot) = vals.get(i).copied() else { continue };
             let (Ok(v), Ok(t)) = (BasicValueEnum::try_from(slot), BasicTypeEnum::try_from(*w)) else { continue };
             if t.is_pointer_type() && !v.is_pointer_value() {
-                let tmp = self.builder.build_alloca(v.get_type(), "lent_value").ok()?;
+                let tmp = self.stack(v.get_type(), "lent_value").ok()?;
                 let _ = self.builder.build_store(tmp, v);
                 vals[i] = tmp.into();
                 continue;
@@ -2400,7 +2422,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if let (Some(slot), Ok(BasicTypeEnum::PointerType(_))) = (vals.get(i).copied(), BasicTypeEnum::try_from(*w)) {
                 if let Ok(v) = BasicValueEnum::try_from(slot) {
                     if !v.is_pointer_value() {
-                        let tmp = self.builder.build_alloca(v.get_type(), "lent_value").ok()?;
+                        let tmp = self.stack(v.get_type(), "lent_value").ok()?;
                         let _ = self.builder.build_store(tmp, v);
                         vals[i] = tmp.into();
                         continue;

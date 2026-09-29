@@ -61,7 +61,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// A 128-bit slot for the runtime's answer, read back at the width.
     fn deci_slot(&mut self) -> Option<inkwell::values::PointerValue<'ctx>> {
         let w = self.ctx.i128_type();
-        let slot = self.builder.build_alloca(w, "deci_out").ok()?;
+        let slot = self.stack(w, "deci_out").ok()?;
         let _ = self.builder.build_store(slot, w.const_zero());
         Some(slot)
     }
@@ -265,7 +265,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// (`useful`) without the zeros after the point.
     pub(super) fn deci_text_raw(&mut self, lo: IntValue<'ctx>, hi: IntValue<'ctx>, bits: u16, useful: bool) -> Option<BasicValueEnum<'ctx>> {
         let shape = self.handle(2);
-        let out = self.builder.build_alloca(shape, "text").ok()?;
+        let out = self.stack(shape, "text").ok()?;
         let i32t = self.ctx.i32_type();
         let f = self.rt_deci("cyborg_deci_to_text")?;
         let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into(), i32t.const_int(bits as u64, false).into(), i32t.const_int(useful as u64, false).into()], "");

@@ -1,0 +1,18 @@
+# A failing call in a loop, twenty million times. Its outcome had a stack
+# slot made where the call was, which LLVM reads as a new allocation each
+# trip: the stack grew until the program died (exit 139). Every slot is
+# now made once, in the function's first block. The sum of 1 to 10^7 is
+# 50000005000000; 0 mod 1000, and 7 is the exit.
+extern fn exit ['code': int32];
+fn half ['n': int64] -> int64 or fail[odd] {
+    if ('n' mod 2) == 1 { fail odd; }
+    return 'n' div 2;
+}
+MAIN {
+    mut 'acc': int64 = 0;
+    for 'i': int64 in range[1, 20000000] {
+        'h' := half['i'] otherwise 0;
+        change 'acc' = ('acc' + 'h') mod 1000;
+    }
+    nocheck exit[to.int32['acc' mod 100] + 7];
+}

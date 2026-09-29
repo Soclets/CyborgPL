@@ -479,7 +479,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     _ => rest.len() as u64,
                 };
                 let data = if cap == 0 { p.const_null() } else { self.alloc(w.const_int(cap * esize, false)) };
-                let cur = self.builder.build_alloca(w, "filled").ok()?;
+                let cur = self.stack(w, "filled").ok()?;
                 let _ = self.builder.build_store(cur, w.const_zero());
                 let copier = self.copy_fn(&elem);
                 for a in rest {
@@ -510,7 +510,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                                 let head = self.ctx.append_basic_block(func, "copy_each");
                                 let body = self.ctx.append_basic_block(func, "copy_one");
                                 let done = self.ctx.append_basic_block(func, "copied_all");
-                                let i = self.builder.build_alloca(w, "i").ok()?;
+                                let i = self.stack(w, "i").ok()?;
                                 let _ = self.builder.build_store(i, w.const_zero());
                                 let _ = self.builder.build_unconditional_branch(head);
                                 self.builder.position_at_end(head);
@@ -576,7 +576,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     agg = self.builder.build_insert_value(agg, w.const_int(cap, false), 2, "c").ok()?.into_struct_value();
                 }
                 if lent {
-                    let tmp = self.builder.build_alloca(shape, "bundle").ok()?;
+                    let tmp = self.stack(shape, "bundle").ok()?;
                     let _ = self.builder.build_store(tmp, agg);
                     vals.push(tmp.into());
                     if cap > 0 {
@@ -592,7 +592,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     BasicTypeEnum::StructType(s) => s,
                     _ => return None,
                 };
-                let tmp = self.builder.build_alloca(shape, "bundle").ok()?;
+                let tmp = self.stack(shape, "bundle").ok()?;
                 let mut k = 0usize;
                 let put = |this: &mut Self, k: usize, src: Option<PointerValue<'ctx>>, v: Option<BasicValueEnum<'ctx>>, copy: bool| -> Option<()> {
                     let et = ts.get(k)?.clone();
@@ -878,7 +878,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         F: FnOnce(&mut Self, PointerValue<'ctx>),
     {
         let w = self.ctx.i64_type();
-        let i_slot = self.builder.build_alloca(w, "i").unwrap();
+        let i_slot = self.stack(w, "i").unwrap();
         let _ = self.builder.build_store(i_slot, w.const_zero());
         let head = self.ctx.append_basic_block(func, "each");
         let step = self.ctx.append_basic_block(func, "each_body");
@@ -991,7 +991,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         // Built in memory, because the detail is stored at its own type
         // and read back at the enum's: a register cannot hold both views.
-        let tmp = self.builder.build_alloca(shape, "case").ok()?;
+        let tmp = self.stack(shape, "case").ok()?;
         let info = self.p.items.enums[id.0 as usize].clone();
         let _ = info;
         self.store_field(shape, tmp, 0, self.tag_of(id, case).into());
@@ -1092,7 +1092,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// Case 0 is the answer; reason `i` is case `i + 1`.
     fn variant_value(&mut self, shape: inkwell::types::StructType<'ctx>, case: usize, cases: usize, payload: Option<BasicValueEnum<'ctx>>) -> Option<BasicValueEnum<'ctx>> {
-        let tmp = self.builder.build_alloca(shape, "outcome").ok()?;
+        let tmp = self.stack(shape, "outcome").ok()?;
         let tag = self.enum_tag_type(cases);
         self.store_field(shape, tmp, 0, tag.const_int(case as u64, false).into());
         if let Some(v) = payload {
@@ -1197,9 +1197,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let data = self.load_field_ptr(shape, at, 0);
         let lp = self.builder.build_struct_gep(shape, at, 1, "len").ok()?;
         let n = self.builder.build_load(w, lp, "n").ok()?.into_int_value();
-        let flag = self.builder.build_alloca(self.ctx.bool_type(), "kept").ok()?;
+        let flag = self.stack(self.ctx.bool_type(), "kept").ok()?;
         let _ = self.builder.build_store(flag, self.ctx.bool_type().const_all_ones());
-        let iv = self.builder.build_alloca(w, "i").ok()?;
+        let iv = self.stack(w, "i").ok()?;
         let _ = self.builder.build_store(iv, w.const_zero());
         let head = self.ctx.append_basic_block(func, "door_head");
         let body = self.ctx.append_basic_block(func, "door_body");
@@ -1392,7 +1392,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let ptr = self.builder.build_extract_value(s, 0, "p").ok()?;
                 let raw = self.builder.build_extract_value(s, 1, "n").ok()?.into_int_value();
                 let len = self.real_length(raw);
-                let out = self.builder.build_alloca(w, "parsed").ok()?;
+                let out = self.stack(w, "parsed").ok()?;
                 let f = self.rt("cyborg_parse_int");
                 let status = basic_result(self.builder.build_call(f, &[ptr.into(), len.into(), out.into()], "status").ok()?)?.into_int_value();
                 // A number too big even for 128 bits is `out_of_range` like
@@ -1439,7 +1439,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // Whole, or it fails `not_whole` (owner, 2026-09-29); past
                 // 128 bits is past every integer type.
                 let (lo, hi) = self.deci_halves(v.into_int_value())?;
-                let out = self.builder.build_alloca(w, "whole").ok()?;
+                let out = self.stack(w, "whole").ok()?;
                 let f = self.rt_deci("cyborg_deci_to_int")?;
                 let status = basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), self.ctx.i32_type().const_int(*bits as u64, false).into(), out.into()], "status").ok()?)?.into_int_value();
                 let i8t = self.ctx.i8_type();
@@ -1636,7 +1636,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let v = self.operand(fi, &o, slots)?;
         let (p, n) = self.text_parts(v)?;
         let f64t = self.ctx.f64_type();
-        let out = self.builder.build_alloca(f64t, "parsed").ok()?;
+        let out = self.stack(f64t, "parsed").ok()?;
         let f = self.rt("cyborg_parse_bin");
         let w = self.ctx.i32_type().const_int(bits as u64, false);
         let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), w.into(), out.into()], "status").ok()?)?.into_int_value();
@@ -1695,7 +1695,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])
         };
         let w = self.ctx.i128_type();
-        let out = self.builder.build_alloca(w, "deci").ok()?;
+        let out = self.stack(w, "deci").ok()?;
         let _ = self.builder.build_store(out, w.const_zero());
         let i32t = self.ctx.i32_type();
         let width = i32t.const_int(bits as u64, false);
@@ -1845,7 +1845,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let outcome = self.call(fi, callee, args, slots)?;
         let cases = reasons.len() + 1;
-        let tmp = self.builder.build_alloca(shape, "outcome").ok()?;
+        let tmp = self.stack(shape, "outcome").ok()?;
         let _ = self.builder.build_store(tmp, outcome);
         let tag_ty = self.enum_tag_type(cases);
         let p = self.builder.build_struct_gep(shape, tmp, 0, "which").ok()?;
@@ -1922,7 +1922,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let (ap, alen) = self.text_parts(a)?;
         let (bp, blen) = self.text_parts(b)?;
-        let out = self.builder.build_alloca(shape, "joined").ok()?;
+        let out = self.stack(shape, "joined").ok()?;
         let f = self.rt("cyborg_str_concat");
         let _ = self.builder.build_call(f, &[out.into(), ap.into(), alen.into(), bp.into(), blen.into()], "");
         self.builder.build_load(shape, out, "text").ok()
@@ -1948,12 +1948,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         if let Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) = from.base() {
             let (p, n) = self.text_parts(v)?;
-            let out = self.builder.build_alloca(shape, "text").ok()?;
+            let out = self.stack(shape, "text").ok()?;
             let f = self.rt("cyborg_str_copy");
             let _ = self.builder.build_call(f, &[out.into(), p.into(), n.into()], "");
             return self.builder.build_load(shape, out, "text").ok();
         }
-        let out = self.builder.build_alloca(shape, "text").ok()?;
+        let out = self.stack(shape, "text").ok()?;
         let i64t = self.ctx.i64_type();
         match (from.base(), v) {
             (Ty::Char(_), BasicValueEnum::IntValue(c)) => {
@@ -2289,7 +2289,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 };
                 let data = self.load_field_ptr(shape, at, 0);
                 let len = self.load_field_int(shape, at, 1);
-                let acc = self.builder.build_alloca(w, "acc").ok()?;
+                let acc = self.stack(w, "acc").ok()?;
                 let _ = self.builder.build_store(acc, w.const_int(0x517c_c1b7, false));
                 let inner = self.hash_fn(&elem)?;
                 let mix = self.rt("cyborg_hash_mix");
@@ -2387,7 +2387,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let adata = self.load_field_ptr(shape, a, 0);
                 let bdata = self.load_field_ptr(shape, b, 0);
                 let w = self.ctx.i64_type();
-                let acc = self.builder.build_alloca(self.ctx.bool_type(), "same").ok()?;
+                let acc = self.stack(self.ctx.bool_type(), "same").ok()?;
                 let lens = self.builder.build_int_compare(IntPredicate::EQ, alen, blen, "lens").ok()?;
                 let _ = self.builder.build_store(acc, lens);
                 let inner = self.same_fn(&elem)?;
@@ -2431,7 +2431,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 if carried.is_empty() {
                     return Some(same_tag);
                 }
-                let acc = self.builder.build_alloca(self.ctx.bool_type(), "same").ok()?;
+                let acc = self.stack(self.ctx.bool_type(), "same").ok()?;
                 let _ = self.builder.build_store(acc, same_tag);
                 let done = self.ctx.append_basic_block(func, "same_done");
                 let check = self.ctx.append_basic_block(func, "same_case");
@@ -2498,7 +2498,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// A value in memory, which is what every map call wants.
     fn spill(&mut self, v: BasicValueEnum<'ctx>, name: &str) -> Option<PointerValue<'ctx>> {
-        let slot = self.builder.build_alloca(v.get_type(), name).ok()?;
+        let slot = self.stack(v.get_type(), name).ok()?;
         let _ = self.builder.build_store(slot, v);
         Some(slot)
     }
@@ -2516,7 +2516,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let spec = self.map_spec(ty)?;
         let w = self.ctx.i64_type();
         let null = self.ctx.ptr_type(AddressSpace::default()).const_null();
-        let tmp = self.builder.build_alloca(shape, "map").ok()?;
+        let tmp = self.stack(shape, "map").ok()?;
         // Empty: no table, nothing in it, nowhere to put anything yet.
         self.store_field(shape, tmp, 0, null.into());
         self.store_field(shape, tmp, 1, w.const_zero().into());
@@ -2599,7 +2599,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let kv = self.fit(kv, klt);
         let kp = self.spill(kv, "key")?;
-        let out = self.builder.build_alloca(vlt, "found").ok()?;
+        let out = self.stack(vlt, "found").ok()?;
         let there = match op {
             Op::MapRemove => {
                 let order = self.map_order_ptr(at, &ty);
@@ -2671,7 +2671,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let copy_k = self.copy_fn(&kt);
         let copy_v = self.copy_fn(&vt);
         // A counted walk over the entries, in order.
-        let i_slot = self.builder.build_alloca(w, "i").ok()?;
+        let i_slot = self.stack(w, "i").ok()?;
         let _ = self.builder.build_store(i_slot, w.const_zero());
         let head = self.ctx.append_basic_block(func, "entries");
         let body = self.ctx.append_basic_block(func, "entry");
@@ -2685,8 +2685,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let at = basic_result(self.builder.build_call(slot_of, &[src.into(), spec.into(), src_order.into(), i.into()], "at").ok()?)?.into_int_value();
         let kp = basic_result(self.builder.build_call(key_at, &[src.into(), spec.into(), at.into()], "k").ok()?)?.into_pointer_value();
         let vp = basic_result(self.builder.build_call(val_at, &[src.into(), spec.into(), at.into()], "v").ok()?)?.into_pointer_value();
-        let kfresh = self.builder.build_alloca(klt, "kcopy").ok()?;
-        let vfresh = self.builder.build_alloca(vlt, "vcopy").ok()?;
+        let kfresh = self.stack(klt, "kcopy").ok()?;
+        let vfresh = self.stack(vlt, "vcopy").ok()?;
         match copy_k {
             Some(f) => {
                 let _ = self.builder.build_call(f, &[kfresh.into(), kp.into()], "");
@@ -2753,7 +2753,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let slot_of = self.rt_map("cyborg_map_slot");
         let key_at = self.rt_map("cyborg_map_key_at");
         let val_at = self.rt_map("cyborg_map_val_at");
-        let i_slot = self.builder.build_alloca(w, "i").ok()?;
+        let i_slot = self.stack(w, "i").ok()?;
         let _ = self.builder.build_store(i_slot, w.const_zero());
         let head = self.ctx.append_basic_block(func, "walk");
         let body = self.ctx.append_basic_block(func, "walk_one");

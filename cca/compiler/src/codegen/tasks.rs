@@ -69,7 +69,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let room = self.ctx.i8_type().array_type(GROUP_BYTES);
         let init = self.rt_task("cyborg_group_init");
         for _ in 0..groups {
-            let g = self.builder.build_alloca(room, "group").unwrap();
+            let g = self.stack(room, "group").unwrap();
             if let Some(i) = g.as_instruction() {
                 let _ = i.set_alignment(16);
             }
@@ -78,7 +78,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         for (id, body) in failing {
             if let Some(shape) = self.fail_shape(body) {
-                let slot = self.builder.build_alloca(shape, "outcome").unwrap();
+                let slot = self.stack(shape, "outcome").unwrap();
                 self.cur_outcomes.insert(id, slot);
             }
         }
@@ -119,7 +119,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     match self.copy_fn(&ty) {
                         Some(copier) => {
                             let shape = self.ty(&ty)?;
-                            let tmp = self.builder.build_alloca(shape, "copy").ok()?;
+                            let tmp = self.stack(shape, "copy").ok()?;
                             let _ = self.builder.build_call(copier, &[tmp.into(), src.into()], "");
                             self.builder.build_load(shape, tmp, "copied").ok()?
                         }
@@ -331,7 +331,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let v = self.operand(fi, args.get(1)?, slots)?;
         let signed = self.operand_signed(fi, args.get(1)?).unwrap_or(true);
         let v = self.fit_as(v, et, signed);
-        let tmp = self.builder.build_alloca(et, "sent").ok()?;
+        let tmp = self.stack(et, "sent").ok()?;
         let _ = self.builder.build_store(tmp, v);
         let f = self.rt_chan("cyborg_chan_send");
         let _ = self.builder.build_call(f, &[ch.into(), tmp.into()], "");
@@ -349,7 +349,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let (ch, elem) = self.chan_of(fi, &Operand::Read(place), slots)?;
         let et = self.ty(&elem)?;
-        let tmp = self.builder.build_alloca(et, "taken").ok()?;
+        let tmp = self.stack(et, "taken").ok()?;
         let f = self.rt_chan("cyborg_chan_take");
         let got = basic_result(self.builder.build_call(f, &[ch.into(), tmp.into()], "got").ok()?)?.into_int_value();
         let yes = self.ctx.append_basic_block(func, "took");
@@ -376,13 +376,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let p = self.ctx.ptr_type(AddressSpace::default());
         let w = self.ctx.i64_type();
         let n = arms.len() as u32;
-        let chans = self.builder.build_alloca(p.array_type(n), "chans").ok()?;
-        let dests = self.builder.build_alloca(p.array_type(n), "dests").ok()?;
+        let chans = self.stack(p.array_type(n), "chans").ok()?;
+        let dests = self.stack(p.array_type(n), "dests").ok()?;
         let mut bufs = Vec::new();
         for (i, arm) in arms.iter().enumerate() {
             let (ch, elem) = self.chan_of(fi, &arm.channel, slots)?;
             let et = self.ty(&elem)?;
-            let buf = self.builder.build_alloca(et, "arm_value").ok()?;
+            let buf = self.stack(et, "arm_value").ok()?;
             let at = unsafe { self.builder.build_gep(p.array_type(n), chans, &[w.const_zero(), w.const_int(i as u64, false)], "c").ok()? };
             let _ = self.builder.build_store(at, ch);
             let at = unsafe { self.builder.build_gep(p.array_type(n), dests, &[w.const_zero(), w.const_int(i as u64, false)], "d").ok()? };
