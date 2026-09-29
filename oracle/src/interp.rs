@@ -205,9 +205,36 @@ impl<'p> Interp<'p> {
     /// Two items with one canonical name, or a module declared twice (a file and a block).
     fn check_duplicates(&self) -> Result<(), RuntimeError> {
         let mut seen: HashMap<String, usize> = HashMap::new();
-        for f in &self.prog.funcs {
+        for f in self.prog.funcs.iter().filter(|f| !f.is_op) {
             let k = format!("fn {}", join_path(&f.module, &f.name));
             if let Some(l) = seen.insert(k.clone(), f.line) { return rt(f.line, format!("`{}` is defined twice (first at line {l})", &k[3..])); }
+        }
+        // An operator may be defined for several types (2026-09-20), generic or not (owner,
+        // 2026-09-29), but two meanings for the same types are an error (2026-09-23), and so is a
+        // specific one a generic one already covers (owner, 2026-09-29: a — no quiet "specific wins").
+        let ops: Vec<&Func> = self.prog.funcs.iter().filter(|f| f.is_op).collect();
+        let generic = |f: &Func| -> Option<Option<String>> { match f.params.first().and_then(|p| p.ty.as_ref()) {
+            Some(Ty::Var(v)) => Some(f.bounds.iter().find(|(n, _)| n == v).map(|(_, i)| i.clone())), _ => None } };
+        let shapes = |f: &Func| -> Vec<String> { f.params.iter().map(|p| p.ty.as_ref().map(ty_shape).unwrap_or_default()).collect() };
+        for (j, g) in ops.iter().enumerate() {
+            for f in &ops[..j] {
+                if f.name != g.name { continue; }
+                let (later, earlier) = (*g, *f);
+                match (generic(earlier), generic(later)) {
+                    (None, None) => if shapes(earlier) == shapes(later) {
+                        return rt(later.line, format!("`{}` is defined twice for {} (first at line {}): two meanings of one operator for the same types", later.name, shapes(later).join(", "), earlier.line));
+                    },
+                    (Some(bound), None) | (None, Some(bound)) => {
+                        let (gen, spec) = if generic(earlier).is_some() { (earlier, later) } else { (later, earlier) };
+                        let shape = shapes(spec).first().cloned().unwrap_or_default();
+                        let covered = match &bound { None => true, Some(i) => self.satisfies(&shape, i, gen.line)?.is_ok() };
+                        let tname = spec.params.first().and_then(|p| p.ty.as_ref()).map(ty_name).unwrap_or_default();
+                        if covered { return rt(later.line, format!("`{}` for {tname} (line {}) and the generic `{}` (line {}) both cover {tname}: two meanings of one operator for the same types; narrow the generic one's bound so {tname} does not keep it, or drop one", gen.name, spec.line, gen.name, gen.line)); }
+                    }
+                    // the oracle's reading: two generic ones may always meet on some type
+                    (Some(_), Some(_)) => return rt(later.line, format!("two generic `{}` (lines {} and {}) could both cover one type", later.name, earlier.line, later.line)),
+                }
+            }
         }
         for d in &self.prog.structs {
             let k = format!("struct {}", d.name);
@@ -3189,7 +3216,9 @@ impl<'p> Interp<'p> {
         // operator may be defined for several types)
         let lshape = shape_of(&left.0);
         let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == op).cloned().collect();
-        let def = match candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| ty_shape(t) == lshape || matches!(t, Ty::Var(_))).unwrap_or(true)).or(candidates.first()) {
+        // the one written for this type, else a generic one (they never overlap: `check_duplicates`)
+        let def = match candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| ty_shape(t) == lshape).unwrap_or(false))
+            .or_else(|| candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| matches!(t, Ty::Var(_))).unwrap_or(true))).or(candidates.first()) {
             Some(f) => f.clone(),
             None => {
                 let hint = match op {

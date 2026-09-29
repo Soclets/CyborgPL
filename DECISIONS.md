@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A generic `op`; one that overlaps a specific one is an error (owner: allow, a)
+
+Open since 2026-09-20. Proposed (a) an `op` may be generic, like a `fn`;
+(b) not, one per type or a generic `fn` by name. Design claude
+recommended a, with the example `op ~= ['a': <T: Number>, 'b': <T>]`;
+the owner asked where `Number` was declared (nowhere: an example, std's
+interfaces are undesigned; declared by hand it lists `-` and `<`) and
+allowed it. Then an overlap with a specific `op ~=` for `bin64`: (a) an
+error, the 2026-09-23 two-meanings rule; (b) the specific one wins
+(specialisation). Design claude recommended a (b lets a new `op` change
+what old lines do); owner: a. A generic `op` may not use a language
+operator's name (design claude's consequence). The oracle had run a
+generic `op` though nothing decided it, and refused two `op`s of one name
+for different types, against 2026-09-20; both fixed. `generics.md`;
+`examples/generic_op.cpls`; reject tests generic_op_overlap,
+op_same_types_twice.
+
 ### 2026-09-29 — `gives` is spelled `giveS` (owner)
 
 While settling nested matches in `#strict`, the owner asked whether `give`
@@ -3134,7 +3151,7 @@ for JetPack, always containing analysable source, never an opaque binary
 
 **Language**
 - Lunae (formerly N%): its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
-- Generic `op`/`const`; std's standard interfaces; associated types. (2026-09-20)
+- Generic `const`; std's standard interfaces; associated types; an interface promising a `const` or field. (2026-09-20)
 - Concurrency: cancellation by hand; `whichever` with `send`; oracle support. (2026-09-22)
 - Conversion, still open parts: a useful-form (short) number → text. (2026-09-19)
 - A per-parameter `bare` flag (arguments written without quotes) — sketched for `std::c.printf`, advised against, shelved. (2026-09-19)

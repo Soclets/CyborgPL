@@ -52,9 +52,29 @@ enum Maybe { none  some: <T> }
 Generic code writes the verbs for the owned case (`return give 'a'`); for
 a plain `T` they do nothing (`interfaces.md`).
 
+## A generic `op` (owner, 2026-09-29)
+
+```
+op ~= ['a': <T: Number>, 'b': <T>] -> bool { … }   # once, for any type keeping Number's promises
+```
+
+An operator may be generic, with the rules of a generic `fn`: `<T>` on
+every mention, `<T: Interface>` to bound it (owner: allow). It cannot take
+one of the language's own names (`+`, `==` …): its `<T>` could be
+`int32`, and those are never changed for the language's own types
+(design claude's consequence of 2026-09-20). **A generic one and a
+specific one covering the same type are an error** (owner: a), like any
+two meanings of one operator for the same types (2026-09-23): the specific
+one does not quietly win, since adding it would change what existing lines
+do. To give one type its own meaning, bound the generic one so that type
+does not keep it. Proposed alternative: the specific one wins
+(specialisation, as C++ templates do and Rust is working towards). Two
+generic ones of one name are refused (the oracle's reading: they may meet
+on some type). `examples/generic_op.cpls`.
+
 ## Not decided
 
-- A generic `op`; a generic `const`.
+- A generic `const`.
 
 ## Oracle
 
