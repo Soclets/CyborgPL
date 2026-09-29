@@ -1141,16 +1141,26 @@ impl<'p> Interp<'p> {
             0 => rt(line, "an empty `[ ]` is not a value"),
             1 if !b.one_list => self.value(&b.values[0]),
             _ => {
+                // each item lands in an element slot, so the element type is its context, as a
+                // declaration's type is (owner, 2026-09-29: a): `[0 -~ 1,]` in a list[uint8] wraps at 8 bits
+                let elem = match &self.expected {
+                    Some(Ty::List(t)) | Some(Ty::Array(t)) => Some((**t).clone()),
+                    Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t) | Ty::Array(t) => Some((**t).clone()), _ => None },
+                    _ => None,
+                };
+                let saved = std::mem::replace(&mut self.expected, elem);
                 let mut items = Vec::new();
                 for v in &b.values {
-                    let (val, prov) = self.value(v)?;
+                    let r = self.value(v);
+                    let (val, prov) = match r { Ok(x) => x, Err(e) => { self.expected = saved; return Err(e); } };
                     match prov {
-                        Prov::Bare(name) => return rt(line, format!("bare '{name}' inside a list: say `give`, `copy`, or `lend`")),
-                        Prov::Borrowed(..) => return rt(line, "a lend inside a list: a list owns its elements (`copy` or `give`)"),
+                        Prov::Bare(name) => { self.expected = saved; return rt(line, format!("bare '{name}' inside a list: say `give`, `copy`, or `lend`")); }
+                        Prov::Borrowed(..) => { self.expected = saved; return rt(line, "a lend inside a list: a list owns its elements (`copy` or `give`)"); }
                         _ => {}
                     }
                     items.push(val);
                 }
+                self.expected = saved;
                 Ok((Value::List(items), Prov::Fresh))
             }
         }

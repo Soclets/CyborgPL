@@ -1,0 +1,12 @@
+# A list literal's items take the list's element type as their context, as a declaration's value
+# does (owner, 2026-09-29: a): 0 -~ 1 in a list[uint8] wraps at 8 bits, 2 shl 3 in a list[uint32]
+# is a 32-bit shift, and bare numbers alone are still exact.
+MAIN {
+    'i': uint8 = 5;
+    'xs': list[uint8] = [0 -~ 1, 0 -~ 'i', 250 +~ 10];
+    'ys': list[uint32] = [2 shl 3, not.bit 0];
+    'zs': list[list[uint8]] = [[0 -~ 2,], [1,]];
+    'big': list[uint64] = [9692729768110883998 - 3166240359165959856,];
+    'inner' := copy 'zs'[1];
+    std::printu.stdout['xs'[1], " ", 'xs'[2], " ", 'xs'[3], " ", 'ys'[1], " ", 'ys'[2], " ", 'inner'[1], " ", 'big'[1], \n];
+}

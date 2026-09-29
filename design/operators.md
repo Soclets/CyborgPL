@@ -107,6 +107,14 @@ operand must be a name or a `to.T[…]`, so the width is always visible
 in the operation itself; or that rule for bare literals only. Owner:
 the compiler can work it out, so it should.
 
+**A list literal's items take the element type** (owner, 2026-09-29: a):
+`'xs': list[uint8] = [0 -~ 1,];` holds 255, exactly as `'x': uint8 = 0 -~
+1;` does, since each item lands in a `uint8` slot. So the "construction"
+below is a struct's or a call's, not a list literal. Raised by check
+claude; proposed alternative (b): the size stops at the brackets, so an
+item needing a size writes it (`[to.uint8[0] -~ 1,]`). `list.append` is a
+call, so its argument still gets no context.
+
 **Context stops at a call** (2026-09-23): the type a value is stored
 into reaches the arithmetic that produces it, but not through a call, a
 conversion or a construction — what `g[…]` *returns* says nothing about

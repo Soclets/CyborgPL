@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A list literal's items take the element type as their context (owner: a)
+
+Check claude asked whether `'xs': list[uint8] = [0 -~ 1,];` wraps at 8
+bits like `'x': uint8 = 0 -~ 1;`. The 2026-09-23 wording ("context stops
+at a call, a conversion or a construction") could read a list literal as
+a construction. Proposed (a) items take the element type, as a
+declaration's value does; (b) the size stops at the brackets, and an item
+that needs one writes it. Check claude and design claude recommended a.
+The owner asked whether the `~` sat on the wrong side (no: `-~`, 2026-09-20),
+for an explanation, how a list says its item type (`list[uint8]` on the
+variable), confirmed `'xs': list[uint8] = [1, 2, 3];` is right, noted that
+b would open a follow-up question (how an item states its size), and chose
+a. Nested lists pass it down. The oracle had used the list type itself as
+the items' context and refused `[0 -~ 'i',]`; fixed. `operators.md`;
+`examples/list_item_context.cpls`.
+
 ### 2026-09-29 — `op and.then` / `op or.else` are refused (owner)
 
 Handed over as a value, a function's arguments are worked out before it
