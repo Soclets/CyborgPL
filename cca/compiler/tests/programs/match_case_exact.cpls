@@ -1,0 +1,11 @@
+# A `match` used as a value hands its type to each case (check claude,
+# 2026-09-29, seed 1011): the case's bare numbers are exact, as in a
+# declaration — (14576284062462565771 div 6) mod 51 is 25 — where they had
+# been worked out at 64 bits and the asserted build printed 16.
+extern fn exit ['code': int32];
+enum E { a  b }
+MAIN {
+    'v': uint64 = match E.a { a { (14576284062462565771 div 6) mod 51 } b { 1 } };
+    'c': int32 = to.int32['v'];
+    nocheck exit['c'];
+}

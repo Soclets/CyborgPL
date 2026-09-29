@@ -621,6 +621,22 @@ impl Checker {
         // A list literal's items take the element type as their context, as
         // a declaration's value does (owner, 2026-09-29: a).
         self.items_in_context(&mut v, t.base());
+        // And a `match` used as a value hands the type to each case's value
+        // (check claude, 2026-09-29: a case's bare numbers were worked out
+        // at 64 bits, and past it the asserted build printed 16 for 25).
+        if let K::Match { arms, .. } = &mut v.kind {
+            let mut arms = std::mem::take(arms);
+            for arm in arms.iter_mut() {
+                if let Some(g) = arm.gives.take() {
+                    arm.gives = Some(self.expect_store(ctx, g, &t, what)?);
+                }
+            }
+            if let K::Match { arms: slot, .. } = &mut v.kind {
+                *slot = arms;
+            }
+            v.ty = t.base().clone();
+            return Ok(v);
+        }
         // A pointer that may write is also one that reads: `ptr.mut[T]`
         // goes where `ptr[T]` is wanted, never the other way.
         if let (Ty::Ptr { mutable: true, elem: e1 }, Ty::Ptr { mutable: false, elem: e2 }) = (vt.base(), t.base()) {

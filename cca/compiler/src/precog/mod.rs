@@ -1551,14 +1551,38 @@ impl Precog {
                 // and folded `== 3` to false.
                 let variadic = self.prog().functions[i].variadic;
                 let fixed = if variadic { params.len().saturating_sub(1) } else { params.len() };
+                let mut arrives = true;
                 for (p, a) in params[..fixed].iter().zip(args) {
                     let d = self.arg_domain(f, env, a);
+                    // Only what passes the argument's own narrowing arrives
+                    // (check claude, 2026-09-29: a -1 that could never land
+                    // in a `uint64` was walked into the callee, which then
+                    // looked wrong every time).
+                    let pty = self.prog().functions[i].locals[p.0 as usize].ty.clone();
+                    let d = match (&d, Domain::of_ty(&pty, &self.prog().items)) {
+                        (Domain::Ints(s), Domain::Ints(limit)) => match limit.bounds() {
+                            Some((lo, hi)) => {
+                                let m = s.clamp(lo, hi);
+                                if m == ISet::Empty {
+                                    arrives = false;
+                                }
+                                Domain::Ints(m)
+                            }
+                            None => d,
+                        },
+                        _ => d,
+                    };
                     // `key`, never `describe`: a description is prose, and
                     // two different arguments that read the same would
                     // share one answer.
                     key.push_str(&d.key());
                     key.push(';');
                     callee_env.insert(*p, d);
+                }
+                // No value this call could hand over passes: the call stops
+                // at its own check, and the callee is never reached from it.
+                if !arrives {
+                    return Domain::Empty;
                 }
                 if variadic {
                     if let Some(bp) = params.last().copied() {
