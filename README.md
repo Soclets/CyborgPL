@@ -7,6 +7,9 @@
 <p align="center">Just a small hobby lang 😊<br>
 Very slow at the development, fast &amp; safe at the final product.</p>
 
+> [!WARNING]
+> Not family friendly. The language, its docs and its history swear — one keyword is literally `NO_FUCKING_CHECKS`.
+
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
