@@ -5,6 +5,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A `Synthia.ttsr` needs `name`, `version` and a target; `id` and times only to publish (owner: b)
+
+Relayed by synthia claude. Proposed: (a) everything in the design's
+example; (b) what a build needs, with the ID and times checked when
+publishing; (c) nothing, as CCA reads `CCA.cplr` today. Synthia claude
+recommended (b): a Limb that stays on one machine (`money` at `../money`)
+should not need a random 64-digit ID and times. The owner: "`b`". A
+missing one is refused with a `why:` line, CCA's label (synthia claude's,
+as built):
+
+```
+error: `[my identity]` has no `version`
+where: Synthia.ttsr, line 1, column 1 — in [my identity]
+code:  [my identity]
+
+why:   a build needs the Limb's `name` and `version`; only publishing needs its `id` and times
+```
+
+Open, noted by synthia claude: the oracle requires none of `name`,
+`version`, `targets` in `CCA.cplr`, so CCA accepts a manifest Synthia
+refuses. That keeps parity's direction (Synthia never does what CCA
+can't); whether `CCA.cplr` should match is the owner's.
+
 ### 2026-09-29 — `synthia show` prints the manifest exactly as written (owner: "Raw")
 
 Relayed by synthia claude. Proposed: (a) the file itself; (b) a

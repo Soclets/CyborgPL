@@ -70,6 +70,10 @@ package manager could do "some Synthia shit", since otherwise "that feels
 like the base lang not being able to do inline ASM". So `CCA.cplr`'s
 `target` became `targets`, a list of `cca::Target[name = …, runner = …]`.
 
+- **Needed in every manifest: `name`, `version`, and at least one
+  target** (owner, 2026-09-29: b). `id`, `time.created` and
+  `time.stated_ver.created` are needed only to publish, and checked then:
+  a Limb that never leaves its machine needs no ID.
 - **Comments are `#`**, a space after it, as in CyborgPL (owner).
 - **A line is written one way** (owner, 2026-09-29: "refuse"): `key =
   value` with one space each side of `=`, no indentation, and a comment on
