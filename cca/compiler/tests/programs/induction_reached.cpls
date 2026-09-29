@@ -1,0 +1,23 @@
+# Recursion by induction, two findings of check claude's (seeds 3593 and a
+# hand-cut one). f: a second parameter had its type looked up in MAIN, and
+# Precog panicked past MAIN's one local. g: the table is filled from each
+# type's floor, so g[0, 1] also ran p1 = 0, where -p1 is 0, and the
+# divisor was "always zero" though no call ever passes it. f[3, 587] is 1;
+# g[0, 1] is 100 mod -1, 0; g[2, 1] reaches p1 = 664 at pr = 0 (1 → 449 →
+# 664): 100 mod -664 is -564 by the divisor's sign. 1 + 0 + 564 - 560 = 5.
+extern fn exit ['code': int32];
+fn f ['pr': int32[0, 6], 'p1': uint64] -> int64 {
+    if 'pr' == 0 { return 1; }
+    'r': int64 = f['pr' - 1, 'p1'];
+    return 'r';
+}
+fn g ['pr': int32[0, 6], 'p1': uint64] -> int64 {
+    if 'pr' == 0 { return 100 mod (-to.int64['p1']); }
+    return g['pr' - 1, ('p1' mod 233) + 448];
+}
+MAIN {
+    'a': int64 = f[3, 587];
+    'b': int64 = g[0, 1];
+    'c': int64 = g[2, 1];
+    nocheck exit[to.int32['a' + 'b' - 'c' - 560]];
+}

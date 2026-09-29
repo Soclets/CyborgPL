@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, walks: HashMap::new(), induction_done: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -333,6 +333,10 @@ struct Precog {
     strict_fns: std::collections::HashSet<usize>,
     /// The strict function being walked on its own terms, if one is.
     own_terms: Option<usize>,
+    /// For a function whose induction table is being filled: the tuple its
+    /// body is being run for, and every tuple each run's calls asked for.
+    induction_at: HashMap<usize, Vec<i128>>,
+    induction_calls: HashMap<(usize, Vec<i128>), Vec<Vec<i128>>>,
     /// How often each function was walked, and how many blocks it walked
     /// in all (`CCA_PRECOG_STATS=1` prints it: where a slow build's time
     /// goes).
@@ -395,8 +399,13 @@ impl Precog {
         let mut out: Vec<Vec<i128>> = vec![Vec::new()];
         for p in params {
             let Some(Domain::Ints(s)) = env.get(p) else { return None };
-            let vals = match (from_type_floor, s.bounds(), int_limits(&self.local_ty(from_type_floor.unwrap_or(0), *p), &self.prog().items)) {
-                (Some(_), Some((_, hi)), Some((lo, _))) if hi >= lo && hi - lo < INDUCTION_CAP as i128 => (lo..=hi).collect(),
+            // `from_type_floor` is the function the parameters are in: its
+            // own locals, never function 0's. Read as function 0's, a second
+            // parameter was past the end of MAIN's locals and panicked, and
+            // a first one took whatever MAIN's first local's type was.
+            let floor = from_type_floor.and_then(|fi| int_limits(&self.local_ty(fi, *p), &self.prog().items));
+            let vals = match (floor, s.bounds()) {
+                (Some((lo, _)), Some((_, hi))) if hi >= lo && hi - lo < INDUCTION_CAP as i128 => (lo..=hi).collect(),
                 _ => s.values()?,
             };
             if out.len().saturating_mul(vals.len()) > INDUCTION_CAP {
@@ -427,6 +436,9 @@ impl Precog {
             self.induction_wide = true;
             return Some(whole);
         };
+        if let Some(from) = self.induction_at.get(&i).cloned() {
+            self.induction_calls.entry((i, from)).or_default().extend(tuples.iter().cloned());
+        }
         let mut out = Domain::Empty;
         let mut missing = Vec::new();
         for t in &tuples {
@@ -490,7 +502,16 @@ impl Precog {
                 for (p, v) in params.iter().zip(t) {
                     e.insert(*p, Domain::Ints(ISet::one(*v)));
                 }
+                let outer = this.induction_at.insert(i, t.clone());
                 let d = this.run_function(i, e, depth + 1);
+                match outer {
+                    Some(o) => {
+                        this.induction_at.insert(i, o);
+                    }
+                    None => {
+                        this.induction_at.remove(&i);
+                    }
+                }
                 this.induction.get_mut(&i).unwrap().0.insert(t.clone(), d);
             }
         };
@@ -524,6 +545,26 @@ impl Precog {
             self.induction.remove(&i);
             return None;
         }
+        // The real run is over the tuples a call can actually reach: those
+        // asked, and those their bodies call, and so on. The ones below
+        // them that only the type's floor added (the table filled from the
+        // bottom, so the dry run need not find 9, 8, 7, … one at a time)
+        // are never run for real, and their verdicts are not the program's:
+        // f2[0, 1] with 'p1' a `uint64` put p1 = 0 in the table, and the
+        // divisor -p1 was "always zero" (check claude, seed 3593).
+        let mut reached: std::collections::BTreeSet<Vec<i128>> = asked.iter().cloned().collect();
+        let mut todo: Vec<Vec<i128>> = asked.clone();
+        while let Some(t) = todo.pop() {
+            if let Some(next) = self.induction_calls.get(&(i, t)) {
+                for n in next.clone() {
+                    if needed.contains(&n) && reached.insert(n.clone()) {
+                        todo.push(n);
+                    }
+                }
+            }
+        }
+        self.induction_calls.retain(|(g, _), _| *g != i);
+        let needed = reached;
         self.induction.insert(i, (known, true));
         run_all(self, &needed);
         self.induction.get_mut(&i).unwrap().1 = false;
