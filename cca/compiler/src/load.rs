@@ -103,7 +103,7 @@ struct Dep {
     path: String,
 }
 
-const SETTINGS: [&str; 4] = ["name", "version", "dependencies", "target"];
+const SETTINGS: [&str; 4] = ["name", "version", "dependencies", "targets"];
 
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind, ItemKind};
@@ -128,6 +128,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             return err(Diagnostic::error(format!("`pub` means nothing in CCA.cplr: its settings are read by CCA, never reached from code — write `const '{}' := …;`", c.name.name)).at(item.span));
         }
         let setting = c.name.name.as_str();
+        // One target became a list (owner, 2026-09-29).
+        if setting == "target" {
+            return err(Diagnostic::error("the setting is 'targets', a list: `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`").at(c.name.span));
+        }
         if !SETTINGS.contains(&setting) {
             return err(Diagnostic::error(format!("CCA.cplr has no setting '{}': the settings are {}", setting, SETTINGS.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", "))).at(c.name.span));
         }
@@ -140,8 +144,43 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             "version" => {
                 text(&c.value, "'version'")?;
             }
-            "target" => {
-                return err(Diagnostic::error("not yet: CCA builds for this machine only, so a 'target' setting waits for cross targets").at(c.name.span));
+            // The targets a Limb is built for (owner, 2026-09-29): each a
+            // `cca::Target` with a `name` and, for one this machine cannot
+            // run, a `runner`. CCA reads them and still builds for this
+            // machine: which one is built when none is named is open.
+            "targets" => {
+                let ExprKind::List(entries) = &c.value.kind else {
+                    return err(Diagnostic::error("'targets' is a list of `cca::Target[…]`: `[cca::Target[name = \"aarch64-macos\"],]`").at(c.value.span));
+                };
+                let mut names: Vec<String> = Vec::new();
+                for e in entries {
+                    let ExprKind::Call { path, args, .. } = &e.kind else {
+                        return err(Diagnostic::error("each target is a `cca::Target[name = …]`, with a `runner = …` when this machine cannot run it").at(e.span));
+                    };
+                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("cca") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Target"]) {
+                        return err(Diagnostic::error(format!("each target is a `cca::Target[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    }
+                    let mut name = None;
+                    for a in args {
+                        let AArg::Named(field, v) = a else {
+                            return err(Diagnostic::error("a `cca::Target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
+                        };
+                        match field.name.as_str() {
+                            "name" => name = Some((text(v, "a target's `name`")?, field.span)),
+                            "runner" => {
+                                text(v, "a target's `runner`")?;
+                            }
+                            other => return err(Diagnostic::error(format!("a `cca::Target` has no field `{}`: it is a `name`, and a `runner` when this machine cannot run it", other)).at(field.span)),
+                        }
+                    }
+                    let Some((n, span)) = name else {
+                        return err(Diagnostic::error("a `cca::Target` needs its `name`: `cca::Target[name = \"aarch64-linux\"]`").at(e.span));
+                    };
+                    if names.contains(&n) {
+                        return err(Diagnostic::error(format!("the target `{}` is listed twice in 'targets'", n)).at(span));
+                    }
+                    names.push(n);
+                }
             }
             _ => {
                 let ExprKind::List(entries) = &c.value.kind else {
