@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A `#` inside a `Synthia.ttsr` value is part of it (owner: "yea")
+
+Synthia claude's fix for a comment after a value (acb3aa9): a `#` that
+starts a value, or follows a space or tab, is a comment in the wrong
+place and refused; a `#` inside a word stays in the value, so
+`money.path = ../money#2` is the folder `../money#2`. Design claude
+brought it to the owner as a rule users meet, recommending it, since a
+path or text can hold a `#`. The owner: "yea".
+
 ### 2026-09-29 — `synthia show` shows a manifest, times readably (owner: "opt 1")
 
 Relayed by synthia claude. Proposed: `synthia show`, `synthia info`,
