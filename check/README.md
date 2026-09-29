@@ -239,7 +239,10 @@ decision; dated, with the alternative.
 - **The Precog oracle's numbers** (2026-09-24): at most 4,096 input
   combinations for (a) (Kespar's number); inputs of at most 200,000
   characters when an input must be run (the environment's practical limit);
-  Z3 at `rlimit` 1,500,000 per question and 120 s per program; loops
+  Z3 at `rlimit` 20,000,000 per question (2026-09-29: 86% of claim
+  questions answered on 20 programs in 275 s, against 79% at 6,000,000 and
+  65% at 1,500,000 with the "nothing failed before" condition, now dropped;
+  `CHECK_RLIMIT` overrides) and 600 s per program for claims; loops
   unrolled to 14 trips, calls inlined to depth 12, translations cut at
   60,000 definitions (calls stop being inlined at 20,000); powers unrolled
   to exponent 16. Alternatives: bigger bounds, at more time per program.
