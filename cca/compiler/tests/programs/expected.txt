@@ -223,3 +223,4 @@ bin_no_number trap
 fail_in_loop 7
 range_answer 6
 range_answer_trusted 6
+strict_guard_called 7

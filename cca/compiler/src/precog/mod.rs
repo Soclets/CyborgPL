@@ -155,6 +155,15 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     let folds: Vec<((usize, usize, usize), Option<Const>)> = if a.gave_up || !fold { Vec::new() } else { a.folds.iter().map(|(k, v)| (*k, v.clone())).collect() };
     for ((f, b, si), known) in &folds {
         let Some(c) = known else { continue };
+        // Not in a `#strict` function: its sites are proven from what it
+        // writes, and layer 3 reads the graph after this. A branch every
+        // call settled, folded, took the function's own guard with it —
+        // `if 'p' !== 0 { … 16 mod 'p' … }` called as `f[5]` was asked
+        // with no `if`, and refused for p = 0 (check claude, seeds 2875
+        // and 2937).
+        if a.strict_fns.contains(f) {
+            continue;
+        }
         // The check sites guarding an instruction are the ones just before
         // it. Folding one that is not proven would take its check with it:
         // layer 1's answer is the mathematician's, worked out in 128 bits,
