@@ -18,7 +18,9 @@ Very slow at the development, fast &amp; safe at the final product.</p>
 - [`cca/`](cca/) — the compiler.
 - [`brand/`](brand/) — the mark (a circular C wrapping `:=`). On a pure white or pure black background use the single-colour versions, never the purple one.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
-- [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`): copy it, translate it, remix it, with credit. The site's code stays under `LICENSE`.
+- [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`): copy it, translate it, remix it, with credit. Credit it exactly as:
+  `Original: CyborgPL™ (product name) at (one of the product's locations) cyborgpl.dev (official website)`
+  The parentheses and what is inside them are part of the credit, not placeholders. As the licence asks, also say the text is under CC BY 4.0, and whether you changed it. The site's code stays under `LICENSE`.
 
 ## Credits
 
