@@ -33,8 +33,15 @@ synthia claude, whose question the `Synthia.ttsr` spelling is. **Every
 `CCA.cplr` has a `'prefix'`** (owner: "required"; proposed (a) required,
 (b) optional with a fallback, which has no good source since `name` is a
 label; design claude recommended a).
-Open: the `Synthia.ttsr` spelling; how a
-user overrides it when two Limbs pick the same word; whether `name`, no
+**No override: two Limbs with the same prefix are an error, and the fix
+is to edit one Limb's source** (owner: "Just edit the source code";
+proposed (a) a `prefix` in the dependency line only to override, design
+claude's pick, (b) no override, (c) every dependency line states its
+prefix). The owner pointed out a Limb's files can simply be edited; a
+registry Limb is copied to a folder first, since the downloaded one is
+checked against the registry's checksum. So a dependency line names no
+word: `cca::Dep[path = "../money"]` or `cca::Dep[id = "…", version = "…"]`.
+Open: the `Synthia.ttsr` spelling (synthia claude's); whether `name`, no
 longer written in code, still follows the module-name rule (entry below).
 
 ### 2026-09-29 — A Limb's own `version` is any text, at most 256 bytes (owner: "256 bytes it is")
