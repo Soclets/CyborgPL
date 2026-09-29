@@ -57,6 +57,17 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Opt
         }));
     }
     let manifest = read_manifest(sources, dir)?;
+    // What is built is the default target — from the manifest, never from
+    // the host (`reproducible-builds.md`). CCA writes code for one target
+    // so far, so another default is not built wrongly: it waits.
+    if as_dep.is_none() {
+        if let Some((t, span)) = &manifest.default_target {
+            let here = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
+            if *t != here {
+                return err(Diagnostic::error(format!("not yet: the default target is `{}`, and CCA writes code for `{}` only so far", t, here)).at(*span));
+            }
+        }
+    }
     if let (Some(want), Some((have, span))) = (as_dep, &manifest.name) {
         if want != have {
             return err(Diagnostic::error(format!("this Limb calls itself `{}` in its `CCA.cplr`, and the Limb that depends on it names it `{}`: the names must agree", have, want)).at(*span));
@@ -96,6 +107,8 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Opt
 struct Manifest {
     name: Option<(String, crate::source::Span)>,
     deps: Vec<Dep>,
+    /// The target built when none is named (owner, 2026-09-29: b).
+    default_target: Option<(String, crate::source::Span)>,
 }
 
 struct Dep {
@@ -107,7 +120,7 @@ const SETTINGS: [&str; 4] = ["name", "version", "dependencies", "targets"];
 
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind, ItemKind};
-    let mut out = Manifest { name: None, deps: Vec::new() };
+    let mut out = Manifest { name: None, deps: Vec::new(), default_target: None };
     let at = dir.join("CCA.cplr");
     if !at.is_file() {
         return Ok(out);
@@ -153,6 +166,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     return err(Diagnostic::error("'targets' is a list of `cca::Target[…]`: `[cca::Target[name = \"aarch64-macos\"],]`").at(c.value.span));
                 };
                 let mut names: Vec<String> = Vec::new();
+                let mut defaults: Vec<(String, crate::source::Span)> = Vec::new();
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
                         return err(Diagnostic::error("each target is a `cca::Target[name = …]`, with a `runner = …` when this machine cannot run it").at(e.span));
@@ -161,6 +175,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error(format!("each target is a `cca::Target[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
                     let mut name = None;
+                    let mut is_default = false;
                     for a in args {
                         let AArg::Named(field, v) = a else {
                             return err(Diagnostic::error("a `cca::Target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
@@ -170,7 +185,13 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             "runner" => {
                                 text(v, "a target's `runner`")?;
                             }
-                            other => return err(Diagnostic::error(format!("a `cca::Target` has no field `{}`: it is a `name`, and a `runner` when this machine cannot run it", other)).at(field.span)),
+                            // The one built when none is named (owner,
+                            // 2026-09-29: b).
+                            "default" => match &v.kind {
+                                ExprKind::Bool(b) => is_default = *b,
+                                _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
+                            },
+                            other => return err(Diagnostic::error(format!("a `cca::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, and `default = true` on the one built when none is named", other)).at(field.span)),
                         }
                     }
                     let Some((n, span)) = name else {
@@ -179,8 +200,23 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     if names.contains(&n) {
                         return err(Diagnostic::error(format!("the target `{}` is listed twice in 'targets'", n)).at(span));
                     }
+                    if is_default {
+                        defaults.push((n.clone(), span));
+                    }
                     names.push(n);
                 }
+                // A single target is the default by itself; of several,
+                // exactly one says so.
+                if defaults.len() > 1 {
+                    return err(Diagnostic::error(format!("`{}` and `{}` both say `default = true`: of several targets, exactly one says `default = true`", defaults[0].0, defaults[1].0)).at(defaults[1].1));
+                }
+                if names.len() > 1 && defaults.is_empty() {
+                    return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = true`", names.len())).at(c.value.span));
+                }
+                out.default_target = match defaults.first() {
+                    Some((n, s)) => Some((n.clone(), *s)),
+                    None => names.first().map(|n| (n.clone(), c.value.span)),
+                };
             }
             _ => {
                 let ExprKind::List(entries) = &c.value.kind else {

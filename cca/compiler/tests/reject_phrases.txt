@@ -254,6 +254,7 @@ main_args_one [fnv:a01f160c881421a0] :: `,` and the second parameter
 main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
+manifest_no_default [fnv:79ff64b431237349] :: exactly one says `default = true`
 manifest_one_target [fnv:1fb240781150aeaa] :: the setting is 'targets'
 manifest_pub [fnv:e04dd347852c3d54] :: `pub` means nothing in CCA.cplr
 manifest_unknown_setting [fnv:ca0a29678045f41c] :: CCA.cplr has no setting 'versoin'

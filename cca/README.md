@@ -415,14 +415,15 @@ Dated, with the alternative, so each can become a question later.
   the natural width a lone number has (`core-features.md`), 64 bits, so
   two lanes in a 128-bit register. Before, it had no shape at all.
   Alternative: refuse it and ask for a type, as `simd.shuffle` does.
-- **2026-09-29 — Limbs with dependencies: two picks.** `'targets'` in
-  `CCA.cplr` is read and checked (each a `cca::Target` with a `name` and
-  maybe a `runner`), and CCA still builds for this machine, whatever the
-  list says: which target is built when none is named, and using a
-  runner, are open. Two Limbs that depend on the same folder share one
+- **2026-09-29 — Limbs with dependencies: picks.** CCA builds the
+  default target (owner, 2026-09-29: b: `default = true`, or the only
+  one), and writes code for `aarch64-macos` only so far, so any other
+  default is refused as "not yet" rather than built for the wrong
+  machine; with no 'targets' at all it builds for `aarch64-macos`. A
+  dependency's own 'targets' are checked and not otherwise used. Using a
+  runner is open. Two Limbs that depend on the same folder share one
   copy of it. A `version` dependency is refused until the registry
-  exists, as the oracle does. Alternative: refuse a list that does not
-  name this machine.
+  exists, as the oracle does.
 - **2026-09-29 — How `cca test` runs tests.** One test binary holds every
   `test fn` (and no `MAIN`); `cca test` runs it once per test, the test's
   number its argument, so a check that fires ends that test only. A `must`
