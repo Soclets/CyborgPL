@@ -68,4 +68,5 @@ publishing, where Limbs are fetched from; how CCA takes the list of Limbs
 By their permanent session ids (`CLAUDE.md` in this repo): design claude
 `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`, compiler claude
 `local_bd7d62d4-5ac0-4ce0-8f9a-174b30357045`, check claude
-`local_ef7a2c2e-a6ee-44b5-a0bd-b5c9a62174ec`.
+`local_ef7a2c2e-a6ee-44b5-a0bd-b5c9a62174ec`. Yours is
+`local_0ecdeff6-f87d-4d75-a395-6fc8add64f08`.

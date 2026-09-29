@@ -25,7 +25,7 @@ the owner explicitly chooses it.
 
 - **Design session** ("design claude", this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: design claude <noreply@anthropic.com>`.
 - **Compiler session** ("compiler claude"): CCA, including its built-in package manager (`CCA.cplr`, owner 2026-09-29). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL v2 compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
-- **Synthia session** ("synthia claude", owner 2026-09-29): Synthia, the separate package manager, written in Go, in its own repo (`Cyborg-Assembly-Manufacturing-Site/Synthia`, checked out at `/Users/ts/Synthia`), not this one. Its brief is `design/synthia-session.md`. Not started: its brief, clone and share of the cores come when the owner starts it.
+- **Synthia session** ("synthia claude", owner 2026-09-29): Synthia, the separate package manager, written in Go, in its own repo (`Cyborg-Assembly-Manufacturing-Site/Synthia`, checked out at `/Users/ts/Synthia`), not this one. Its brief is `design/synthia-session.md`. Started 2026-09-29; Go only for now, and it never runs `cca`.
 - **Verification session** ("check claude"): the program generator, the differential harness, the Precog oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/CyborgPL v2 verification`, in `check/`. It reads `design/` and the tests, and **never `cca/` or `oracle/src`** — it is a different author from Precog's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
 - **Website session** ("website claude", owner, 2026-09-24): the open-source site. It works in its own clone at `/Users/ts/CyborgPL v2 website`, in `website/`, and updates the site only when the owner says so. Commits carry `Co-Authored-By: website claude <noreply@anthropic.com>`.
@@ -34,6 +34,7 @@ the owner explicitly chooses it.
   - compiler claude: `local_bd7d62d4-5ac0-4ce0-8f9a-174b30357045`
   - check claude: `local_ef7a2c2e-a6ee-44b5-a0bd-b5c9a62174ec`
   - website session: `local_c5cfe29e-4c8b-43d5-b06c-a1b7e2c93b90`
+  - synthia claude: `local_0ecdeff6-f87d-4d75-a395-6fc8add64f08`
 
 - **Cores** (owner, 2026-09-23: "How many cores do I have? Split it evenly"): the machine has 10 (4 performance, 6 efficiency). Each of the three sessions uses at most **3** at once, for builds, tests and any runs it starts, and 1 is left for the desktop. `oracle/.cargo/config.toml` holds this for the oracle, and each session holds it for its own work. Synthia claude has no bound, since it runs only Go for now (owner, 2026-09-29: "No core bounds, because Go only for now is stated").
 
