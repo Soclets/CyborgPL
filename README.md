@@ -8,7 +8,8 @@
 Very slow at the development, fast &amp; safe at the final product.</p>
 
 > [!WARNING]
-> Not family friendly. The language, its docs and its history swear — one keyword is literally `NO_FUCKING_CHECKS`.
+> **Not family friendly**.
+> "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
