@@ -52,7 +52,12 @@ Owner, 2026-09-14.
   const 'target' := "aarch64-macos";
   ```
 
-  Every name and type is checked against the settings CCA knows. A
+  Every name and type is checked against the settings CCA knows. **A
+  manifest is data only** (owner, 2026-09-29): anything that must be
+  computed lives in **`build.cplr`**, a full CyborgPL program (functions,
+  loops, a `MAIN`), which **never runs by itself** — a special command runs
+  chosen ones or all of them, a dependency's included. Both package managers
+  run it. The command's name is open. A
   **`cca::Dep` is a name plus a `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a):
   `cca::Dep[name = "money", path = "../money"]`. The settings the oracle

@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Manifests stay data; a Turing-complete `build.cplr` runs only when asked (owner)
+
+The owner felt the manifest "should be turing complete, like the built-in
+PM". Design claude pointed out `CCA.cplr` is not: it holds plain `const`
+settings only. Computable manifests (Gradle, `setup.py`, `build.zig`, Nix)
+run someone's code on install, cannot be read without running, and fight
+reproducible builds; Cargo, `package.json` and `go.mod` stay data. The
+owner: "Make it only run the not turing complete one? The turing could be
+separate." So **both manifests stay data**, read on fetch and install, and
+**a build program lives apart**. When it runs: proposed (a) only for your
+own Limb, (b) for dependencies too, as Cargo's `build.rs`, (c) dependencies
+only if allowed; the owner: "It's a special command to run, either run
+specific ones, or run everything" — **it never runs by itself**. Its file:
+proposed `build.cpls`, `setup.cpls`, or tied to the manifest's name; the
+owner asked whether `.cplr` must change (no: `.cplr` is CyborgPL-syntax
+tooling, the name saying which), and design claude proposed
+**`build.cplr`**, a full CyborgPL program beside the data-only `CCA.cplr`;
+owner: "yea". Both package managers run it (parity). The command's name is
+open. `tooling.md`.
+
 ### 2026-09-29 — One target is marked the default (owner: b)
 
 Asked by design claude and, the same moment, by compiler claude: with
