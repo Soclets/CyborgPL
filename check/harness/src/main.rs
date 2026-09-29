@@ -90,6 +90,7 @@ impl Args {
             borrows: !avoid.contains("borrows"),
             borrow_wrong: self.num("borrow-wrong", 250),
             enums: !avoid.contains("enums"),
+            strict: if avoid.contains("strict") { 0 } else { self.num("strict", 200) },
         }
     }
 }

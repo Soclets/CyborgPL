@@ -10,7 +10,7 @@
 //! `lo + (e mod w)`, which is a plain CyborgPL guardrail.
 
 use crate::ast::*;
-use crate::printer::printer;
+use crate::printer::{printer, strict_printer};
 use crate::rng::Rng;
 
 #[derive(Clone, Debug)]
@@ -68,11 +68,13 @@ pub struct Config {
     /// Enums with integer data, `==` on them, and `match` as a statement
     /// and as a value (design/enums.md; 23ab20b).
     pub enums: bool,
+    /// Per mille of programs written as `#strict` files.
+    pub strict: u64,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200 }
     }
 }
 
@@ -173,6 +175,10 @@ struct Gen {
     bsigs: Vec<BSig>,
     belem: Ty,
     enums: Vec<EnumGen>,
+    /// A `#strict` file: the whole program under the generator's `check`
+    /// rules (no risk, no positions, nothing unseen), since every site must
+    /// be proven in its own function, and promised ranges are whole types.
+    strict: bool,
 }
 
 const MAIN_BUDGET: u64 = 20_000;
@@ -181,7 +187,8 @@ const FN_BUDGET: u64 = 400;
 pub fn generate(seed: u64, cfg: &Config) -> Program {
     let mut root = Rng::new(seed);
     let mut prng = root.split();
-    let printer = printer(&mut prng);
+    let strict = cfg.strict > 0 && root.below(1000) < cfg.strict;
+    let printer = if strict { strict_printer(&mut prng) } else { printer(&mut prng) };
     let loose = root.chance(50);
     let mut g = Gen {
         rng: root.split(),
@@ -201,7 +208,11 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         bsigs: vec![],
         belem: Ty::I32,
         enums: vec![],
+        strict,
     };
+    if strict {
+        g.in_check = 1;
+    }
     if cfg.enums && g.rng.chance(45) {
         for k in 0..1 + g.rng.below(2) as usize {
             g.enum_def(k);
@@ -261,7 +272,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() }
+    Program { seed, printer, inputs, funcs, bfuncs, enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -389,6 +400,10 @@ impl Gen {
     /// A sub-interval of `t` to promise for a name, or the whole type.
     fn ghost(&mut self, t: Ty) -> Iv {
         let r = t.range();
+        if self.strict {
+            // Facts from callers and other bodies are not used in a strict file.
+            return r;
+        }
         if self.cfg.edge && self.rng.chance(60) {
             return r;
         }
@@ -820,7 +835,8 @@ impl Gen {
         deps.dedup();
         // The signature: no groups (Precog reads the body), or @x on exactly
         // what the body can return and @y (or nothing) on the rest.
-        let annotated = self.rng.chance(65);
+        // A strict file names the group (owner, 09044b6).
+        let annotated = self.strict || self.rng.chance(65);
         let mut groups: Vec<Option<String>> = (0..n)
             .map(|i| if !annotated { None } else if deps.contains(&i) { Some("x".into()) } else if self.rng.chance(70) { Some("y".into()) } else { None })
             .collect();
@@ -851,7 +867,9 @@ impl Gen {
 
     /// Print a use of a borrowed list: its first item or its length.
     fn use_borrow(&mut self, r: &str) -> Stmt {
-        if self.rng.chance(40) {
+        // A position in a borrowed list is proven only from its length,
+        // which a strict file cannot see from here.
+        if self.strict || self.rng.chance(40) {
             return Stmt::Print { signed: false, value: Expr::Len(r.to_string()) };
         }
         let at = Expr::At(r.to_string(), Box::new(Expr::Lit(1)));
@@ -1073,6 +1091,8 @@ impl Gen {
         let t = if self.rng.chance(12) { Ty::Bool } else { self.int_ty() };
         let mutability = *self.rng.pick(&[Mutability::Plain, Mutability::Plain, Mutability::Mut, Mutability::Immut]);
         let assignable = mutability != Mutability::Immut && self.rng.chance(70);
+        // A strict file says `mut` or `immut` on every declaration.
+        let mutability = if self.strict { if assignable { Mutability::Mut } else { Mutability::Immut } } else { mutability };
         self.risky = false;
         self.positioned = false;
         // `promise` covers every value the name will ever hold: each later
@@ -1407,7 +1427,7 @@ impl Gen {
             3,
             if can_call { 1 } else { 0 },
             if readable.is_empty() { 0 } else { 3 },
-            if t == Ty::U64 && has_list { 1 } else { 0 },
+            if t == Ty::U64 && has_list && self.in_check == 0 { 1 } else { 0 },
             if items.is_empty() { 0 } else { 4 },
         ];
         match self.rng.weighted(&w) {

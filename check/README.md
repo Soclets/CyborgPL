@@ -57,6 +57,14 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   after. Such a program must be refused by both engines
   (`*-accepted-borrow-mistake`; where each points is not compared yet);
   a right one must not be refused for a borrow (`refused-right-borrow`).
+  **`#strict` files** (owner, 2026-09-27; `--strict N` per mille, default
+  200; `--avoid strict`): `pos` on positions, labelled ranges with `by`,
+  `mut`/`immut` on every declaration, `temp`/`perm` on every `for`,
+  `giveS` in a match that gives a value, groups on returned borrows, and a
+  printer whose every site is proven in its own function. Since a strict
+  file refuses any site not proven from its own function, in every build,
+  the whole program is generated under the `check` rules (no risk, no
+  positions, nothing unseen), and promised ranges are whole types.
   **Enums** (design/enums.md; `--avoid enums` turns them off): about
   half of programs get one or two, with integer data on some cases; enum
   names, changes, `==` on them, `match` statements, and `match` giving a
