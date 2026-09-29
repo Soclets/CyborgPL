@@ -57,8 +57,9 @@ it can get.
 
 ## What is open
 
-Commands (`synthia build/final/run/test` are
-named in `tooling.md` from before CCA had its own); lock files,
+Commands other than `synthia show` (`synthia-manifest.md`) and
+`synthia prepare` (`tooling.md`); `synthia build/final/run/test` are
+named in `tooling.md` from before CCA had its own; lock files,
 publishing, where Limbs are fetched from; how CCA takes the list of Limbs
 (ask compiler claude, who owns CCA's command line). `design/tooling.md`,
 `design/limbs.md`, `design/reproducible-builds.md`.

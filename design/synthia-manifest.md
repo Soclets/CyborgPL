@@ -31,7 +31,9 @@ x86_64-windows.runner = wine
   registry's**, recorded in its index, never written into the manifest
   (owner: b). A readable form of a time is a Synthia command's job, not a
   second line in the file (the owner first chose a readable line, then:
-  "They could just run a Synthia CLI cmd"). Builds never read these times
+  "They could just run a Synthia CLI cmd"). That command is **`synthia
+  show`** (owner, 2026-09-29: "opt 1"), which shows the manifest with its
+  times readably; the readable form is open. Builds never read these times
   (reproducible builds).
 - **A dependency is dotted keys** (owner: b): `geometry.version = 1.2`,
   `money.path = ../money`. A published one is named by **its ID**, which

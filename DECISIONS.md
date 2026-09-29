@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `synthia show` shows a manifest, times readably (owner: "opt 1")
+
+Relayed by synthia claude. Proposed: `synthia show`, `synthia info`,
+`synthia manifest`; synthia claude recommended `show`, the plainest word,
+and one that could later show a needed Limb (`synthia show geometry`).
+The owner: "opt 1", which synthia claude reports as `show`. The owner
+added: "there should be a way to view the recorded time in an
+easier-to-read format", so `synthia show` gives the manifest's times
+readably. What that form looks like is open.
+
 ### 2026-09-29 — A refused `Synthia.ttsr` is reported in CCA's message shape (owner: "yea")
 
 Relayed by synthia claude. Proposed: a one-line form
