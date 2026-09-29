@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — One lane of a vector can be changed: `change 'v'[3] = 30;` (owner: a)
+
+Compiler claude asked: `simd.md` had the lane read `'v'[1]` but no write;
+both engines refused it. Proposed (a) a lane write like a list item, a
+position outside the vector a check site; (b) a vector only changes by
+being rebuilt (`simd.fill`, `simd.load`, `simd.shuffle`). Design claude
+recommended a. The owner asked the performance difference (a lane write is
+one instruction, `INS` on ARM; every workaround is the same or slower, a
+round trip through memory about ten cycles; lane-by-lane writes in a loop
+are slow in any language) and chose a. `examples/simd_lanes.cpls`; reject
+test simd_lane_write_range.
+
 ### 2026-09-29 — A vector's lanes are checked at every operation, at the lane's type (owner: b)
 
 Check claude asked whether lane arithmetic is exact in between like plain

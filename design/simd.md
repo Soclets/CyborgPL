@@ -65,6 +65,9 @@ that names the fold to use.
 ## The operations
 
 - `'v'[1]` — one lane, 1-based like every index; a check site.
+- `change 'v'[3] = 30;` — one lane written, like a list item; a position
+  outside the vector is a check site (owner, 2026-09-29: a). One
+  instruction (`INS` on ARM).
 - `simd.fill[7]` — every lane the same value.
 - `simd.load[lend 'xs', 'i']` — N elements of an `array` or `list`
   into a vector; a check site (is `'i' + N - 1` inside?).

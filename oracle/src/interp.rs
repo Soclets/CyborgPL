@@ -609,6 +609,8 @@ impl<'p> Interp<'p> {
                 }
                 let elem_ty = match &ty {
                     Some(Ty::List(t)) | Some(Ty::Array(t)) => Some((**t).clone()),
+                    // one lane of a vector (owner, 2026-09-29: a)
+                    Some(Ty::Simd(t, _)) => Some((**t).clone()),
                     Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t) | Ty::Array(t) => Some((**t).clone()), _ => None },
                     // An untyped list still has an element family: what is in it. Storing a bin
                     // into a list of integers is the cross-family store `types.md` refuses
@@ -623,7 +625,7 @@ impl<'p> Interp<'p> {
                 };
                 let v = self.fit(v, prov, elem_ty.as_ref(), *line)?;
                 let mut cur = cell.borrow_mut();
-                let items = match &mut *cur { Value::List(items) => items, other => return rt(*line, format!("'{name}' is {}, not a list or array", other.kind())) };
+                let items = match &mut *cur { Value::List(items) | Value::Simd(items) => items, other => return rt(*line, format!("'{name}' is {}, not a list, array or vector", other.kind())) };
                 if i < 1 || i as usize > items.len() {
                     return site(*line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {})", items.len(), items.len()));
                 }
