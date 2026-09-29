@@ -98,3 +98,4 @@ with the rest of Synthia.
 ## Open
 
 - Synthia's own syntax for `Synthia.ttsr`, and how Synthia and CCA's package manager relate.
+- A Limb registry (where published Limbs are fetched from) is undesigned. Its domain, when it exists: **`limbs.xxx`** (owner, 2026-09-29: "`limbs.xxx` it is, I'll just wait until there's a limbs registery"; $95 a year, so not bought yet). Looked at: `cpl-limbs.dev`, `limbs.network`, `limbs.wtf`, `limbs.fyi`, `limbs-reg`; `limbs.dev` and `limbs.io` are taken; there is no `.registry` ending.
