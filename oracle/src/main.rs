@@ -151,10 +151,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                     if d.name.is_empty() { return Err(format!("{shown}: line {line}: a dependency needs its `name`")); }
                     if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: `{}` says where it comes from once: a `path` on this machine, or a `version` from the registry", d.name)); }
                     // the registry knows a Limb by its ID, never its name (owner, 2026-09-29): names may repeat
-                    if d.version.is_some() {
-                        let ok = d.id.as_ref().map_or(false, |i| i.len() == 64 && i.bytes().all(|b| b.is_ascii_hexdigit()));
-                        if !ok { return Err(format!("{shown}: line {line}: `{}` comes from the registry, which knows a Limb by its ID: `id = \"…\"`, 64 hex digits", d.name)); }
+                    // an ID is 64 hex digits wherever it is written (the owner's definition; compiler claude, 2026-09-29)
+                    if let Some(i) = &d.id {
+                        if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: `{}`'s id is 64 hex digits, 256 random bits", d.name)); }
                     }
+                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: `{}` comes from the registry, which knows a Limb by its ID: `id = \"…\"`, 64 hex digits", d.name)); }
                     deps.push(d);
                 }
             }

@@ -1,0 +1,1 @@
+const 'dependencies' := [cca::Dep[name = "areas", id = "zz", path = "../../../../examples/limbs/areas"],];
