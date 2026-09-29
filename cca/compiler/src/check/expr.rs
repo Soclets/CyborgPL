@@ -2139,6 +2139,9 @@ impl Checker {
         // through `ptr.read`) — unless `NO_FUCKING_CHECKS` trusts C too.
         let writes_back = info.params.iter().zip(&hargs).any(|((_, t), a)| matches!(t.base(), Ty::Ptr { mutable: true, elem } if elem.checked_at_door(&self.items.structs, &self.items.enums)) && matches!(a, Arg::Lend { mutable: true, .. }));
         let fails: Vec<(String, Option<Ty>)> = if (info.ranged || writes_back) && ctx.tier != Some(ast::Tier::NoChecks) { vec![("out_of_range".into(), None)] } else { Vec::new() };
+        if (info.ranged || writes_back) && ctx.tier == Some(ast::Tier::NoChecks) {
+            self.items.trusted_door = true;
+        }
         let ow = match otherwise {
             Some(o) => {
                 if fails.is_empty() {
@@ -2768,6 +2771,9 @@ impl Checker {
                     // A C enum or range read from C's memory is checked as it
                     // comes in, unless `NO_FUCKING_CHECKS` (owner, 2026-09-27).
                     Builtin::PtrRead => {
+                        if elem.checked_at_door(&self.items.structs, &self.items.enums) && ctx.tier == Some(ast::Tier::NoChecks) {
+                            self.items.trusted_door = true;
+                        }
                         if elem.checked_at_door(&self.items.structs, &self.items.enums) && ctx.tier != Some(ast::Tier::NoChecks) {
                             if otherwise.is_none() {
                                 return err(Diagnostic::error(format!("`ptr.read` of a `{}` from C can fail (out_of_range): C may hold a number `{}` does not allow — say what happens with `otherwise`", self.spell(&elem), self.spell(&elem))).at(span));

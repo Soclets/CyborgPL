@@ -1870,6 +1870,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if let Some(t) = self.ty(&ret) {
                 if let Ok(at) = self.builder.build_struct_gep(shape, tmp, 1, "answer") {
                     if let Ok(v) = self.builder.build_load(t, at, "v") {
+                        let v = self.clamp_answer(v, &ret);
                         self.store_place(fi, d, v, slots);
                         if d.proj.is_empty() && self.owns_memory(&ret) {
                             self.mark_alive(d.local, true);

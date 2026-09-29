@@ -392,3 +392,11 @@ Dated, with the alternative, so each can become a question later.
   The oracle stops instead ("past the oracle's limit of exact digits"), so
   `1.0000001 xx 10000000` is 2.718281692544966 here and a stop there.
   Alternative: an exact power always (slow and large), or a stop.
+- **2026-09-29 — "A range is guaranteed" is decided for the whole program
+  at once** (for the owner's option c: `nsw`, and a call's answer of a
+  range type clamped to its range for LLVM). A range is handed to LLVM only
+  when nothing in the program took one on anyone's word: no `nocheck`
+  narrowing into a range type, no C door trusted under `NO_FUCKING_CHECKS`,
+  no C global of a range type. One such site anywhere turns the clamps off
+  everywhere. Alternative: follow each value to where its range was made,
+  which is more work and hands LLVM more.

@@ -77,7 +77,7 @@ pub fn lower_opts<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, na
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), cur_fi: 0, op_sites: Vec::new() };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, cur_fi: 0, op_sites: Vec::new() };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -129,6 +129,9 @@ struct Cg<'a, 'ctx> {
     /// The statement being lowered, (block, index): where Precog's ranges
     /// for it are kept.
     here: (u32, u32),
+    /// Whether any range in the program rests on someone's word
+    /// (`guaranteed_range`), worked out once.
+    ranges_trusted: Option<bool>,
     /// The function being written.
     cur_fi: usize,
     /// The check sites guarding the operation being lowered.
@@ -725,6 +728,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         let _ = self.builder.build_store(slot, v);
                     }
                 } else if let (Some(d), Some(v)) = (dest, v) {
+                    let v = match callee {
+                        Callee::Fn(idx) => {
+                            let ret = self.p.functions[idx.0 as usize].ret.clone();
+                            self.clamp_answer(v, &ret)
+                        }
+                        _ => v,
+                    };
                     self.store_place(fi, d, v, slots);
                     // What came back is here now, and is given back at the
                     // end like anything else held. Without this an owned
@@ -1098,6 +1108,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                                     // its own site; `binary` guards it.
                                     _ => self.binary(fi, op, x.into(), y.into(), sites, func, blocks, !unsigned)?.into_int_value(),
                                 };
+                                // Inside both ranges, both promises hold,
+                                // and LLVM needs the signed one to see a
+                                // counter is never negative (owner,
+                                // 2026-09-29: c): `'i' mod 1000` in
+                                // bench/lists.cpls was a signed floored `mod`
+                                // with only `nuw` on `'i' + 1`, 7% behind C.
+                                if unsigned && hi <= i64::MAX as i128 && matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul) {
+                                    if let Some(i) = r.as_instruction() {
+                                        let _ = i.set_no_signed_wrap_flag(true);
+                                    }
+                                }
                                 let t = self.ty(want_ty.as_ref()?)?.into_int_type();
                                 return Some(self.builder.build_int_cast_sign_flag(r, t, !unsigned, "exact").ok()?.into());
                             }
@@ -2785,6 +2806,57 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             _ => return None,
         };
         self.guard(fi, site, bad, func)
+    }
+
+    /// The range a call's answer is known to be in, when its type is an
+    /// integer range and nothing in the program could have put another
+    /// number there (owner, 2026-09-29: c): no range narrowing taken on
+    /// `nocheck`'s word, no C door trusted under `NO_FUCKING_CHECKS`, no C
+    /// global of a range type (C writes those unasked). Checked or proven,
+    /// never a claim.
+    fn guaranteed_range(&mut self, t: &Ty) -> Option<(i128, i128)> {
+        let Ty::Bounded { bound: crate::types::Bound::Int { lo, hi }, .. } = t else { return None };
+        let (lo, hi) = (*lo, *hi);
+        if self.ranges_trusted.is_none() {
+            let items = &self.p.items;
+            let trusted = items.trusted_door
+                || items.externs.iter().any(|e| e.is_let && matches!(e.ret, Ty::Bounded { .. }))
+                || self.p.functions.iter().any(|f| {
+                    f.sites.iter().any(|s| match (&s.kind, &s.verdict) {
+                        (SiteKind::Narrow { to } | SiteKind::LengthBound { to }, Verdict::Trusted) => to.bound().is_some(),
+                        _ => s.tier == Some(crate::ast::Tier::NoChecks),
+                    })
+                });
+            self.ranges_trusted = Some(trusted);
+        }
+        if self.ranges_trusted == Some(true) {
+            return None;
+        }
+        Some((lo, hi))
+    }
+
+    /// A call's answer, told its range: `min(max(v, lo), hi)`, which changes
+    /// nothing on a value already inside, and is a range LLVM's loop
+    /// analysis reads (`bench/sieve.cpls`: `n` came back from `read_n`
+    /// through the failure outcome, and without it LLVM worked the inner
+    /// loop's trip count out in 128 bits on every outer trip).
+    pub(super) fn clamp_answer(&mut self, v: BasicValueEnum<'ctx>, ret: &Ty) -> BasicValueEnum<'ctx> {
+        let BasicValueEnum::IntValue(x) = v else { return v };
+        let Some((lo, hi)) = self.guaranteed_range(ret) else { return v };
+        let signed = int_signed(ret).unwrap_or(true);
+        let t = x.get_type();
+        let (max, min) = if signed { ("llvm.smax", "llvm.smin") } else { ("llvm.umax", "llvm.umin") };
+        let mut out = x;
+        for (name, bound) in [(max, lo), (min, hi)] {
+            let Some(id) = inkwell::intrinsics::Intrinsic::find(name) else { return v };
+            let Some(f) = id.get_declaration(self.module, &[t.into()]) else { return v };
+            let c = const_i128(t, bound);
+            match self.builder.build_call(f, &[out.into(), c.into()], "in_range").ok().and_then(basic_result) {
+                Some(r) => out = r.into_int_value(),
+                None => return v,
+            }
+        }
+        out.into()
     }
 
     /// Trap at `site` when `bad` holds; carry on otherwise.

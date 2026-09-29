@@ -121,6 +121,10 @@ pub struct ConstInfo {
 
 #[derive(Debug, Default)]
 pub struct Items {
+    /// Somewhere a C door that is checked everywhere else is trusted under
+    /// `NO_FUCKING_CHECKS`: a range type may then hold what it does not
+    /// allow, and no range is a fact the code generator may hand LLVM.
+    pub trusted_door: bool,
     /// Files marked `#strict` (owner, 2026-09-27).
     pub strict_files: std::collections::HashSet<crate::source::FileId>,
     pub modules: Vec<Module>,

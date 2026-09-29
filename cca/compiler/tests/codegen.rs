@@ -126,6 +126,18 @@ fn a_proven_site_hands_its_fact_to_llvm() {
     assert!(ir.contains("nsw") || ir.contains("nuw"), "a proven addition reached LLVM without the fact that it cannot wrap:\n{}", ir);
 }
 
+/// A call's answer of a range type is told its range where nothing in the
+/// program took a range on anyone's word (owner, 2026-09-29: c), and a
+/// counter Precog proved in both ranges carries `nsw` beside `nuw`.
+#[test]
+fn a_checked_range_reaches_llvm_and_a_trusted_one_does_not() {
+    let ir = ir_of("range_answer");
+    assert!(ir.contains("@llvm.smin.i64") && ir.contains("i64 1000)"), "the answer of `pick` reached the caller without its range:\n{}", ir);
+    assert!(ir.contains("add nuw nsw i64"), "the proven counter reached LLVM without `nsw`:\n{}", ir);
+    let ir = ir_of("range_answer_trusted");
+    assert!(!ir.contains("@llvm.smin"), "a range taken on `nocheck`'s word was handed to LLVM:\n{}", ir);
+}
+
 /// Exact math at the machine's width where Precog proves it fits: no
 /// 128-bit multiply, no 65-bit remainder (a library call) in the loop.
 #[test]
