@@ -1,0 +1,50 @@
+# Finding 2026-09-29 (by hand, probing simd before generating it): a lane read gives the wrong value
+# in CCA's binary. simd.fill[4] into simd[int32, 4], then 'a'[1] prints garbage ("000"); a
+# simd[uint8, 16] of 200 reads back 144 in lane 1; an int64 lane prints nothing. simd.max and
+# simd.sum are right. The oracle refuses 'a'[1] ("'a'[pos …] indexes"): pos has been gone outside
+# #strict since 2026-09-27, so that is the oracle's to fix.
+# check claude generator, seed 1
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    mut 'v': uint64 = 'm';
+    mut 'ds': list[uint8] = [];
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+    change 'v' = 'v' div 10;
+    while 'v' > 0 {
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+        change 'v' = 'v' div 10;
+    }
+    mut 'k': uint64 = list.length[lend 'ds'];
+    while 'k' >/== 1 {
+        list.append[lend.mut 'buf', 'ds'['k']];
+        change 'k' = 'k' - 1;
+    }
+    list.append[lend.mut 'buf', 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' >/== 0 {
+        emit[to.uint64['n'], false];
+    } else {
+        'up': int64 = -('n' + 1);
+        emit[to.uint64['up'] + 1, true];
+    }
+}
+
+MAIN {
+    'a': simd[int32, 4] = simd.fill[4];
+    put_i[to.int64['a'[1]]];
+    put_i[to.int64['a'[4]]];
+    'b': simd[uint8, 16] = simd.fill[200];
+    put_u[to.uint64['b'[1]]];
+    'c': simd[int64, 2] = simd.fill[-5];
+    put_i['c'[2]];
+}
