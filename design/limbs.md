@@ -250,6 +250,10 @@ nothing, and a Limb's own code never names itself: it says `limb.`.
 Proposed alternative: `limb mathstuff;` at the top of `limb.cpls`, which
 would give the name two places to disagree.
 
+**A dependency may have a MAIN** (owner, 2026-09-29: a): it runs only when
+that Limb itself is run, and is ignored when another Limb uses it, so a
+library can ship its own demo or tool.
+
 ## Open
 
 - A file module's own visibility (provisionally public).

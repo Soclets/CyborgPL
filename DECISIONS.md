@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A dependency may have a MAIN, which runs only when that Limb itself is run (owner: a)
+
+CCA refused a MAIN in a Limb others depend on; the oracle dropped it;
+neither was ruled. Proposed (a) allowed and ignored when used as a
+dependency, so a library can ship its own demo or tool (Cargo's library
+plus binary); (b) refused, a dependency is a pure library. Design claude
+recommended a; owner: a. The oracle already does this. `limbs.md`.
+
 ### 2026-09-29 — Tests: `test fn`, and the `must` family (owner: b, a, "the fam")
 
 Compiler claude asked what `cca test` runs. Proposed (a) programs with
