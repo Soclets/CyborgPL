@@ -6,7 +6,7 @@ fn longer [lent 'a': list[int32], lent 'b': list[int32]] -> lent list[int32] {
 }
 MAIN {
     's': list[int32] = [1, 2, 3];
-    't': list[int32] = [4];
+    't': list[int32] = [4,];
     'r' := longer[lend 's', lend 't'];
     'g' := give 't';
     std::printu.stdout[list.length[lend 'r'], \n];
