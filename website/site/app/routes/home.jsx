@@ -117,7 +117,7 @@ export default function Home() {
     return (
       <div className="home">
         {search}
-        <div className="results">
+        <div className="home-view results" key="results">
           {source && <SourceHit />}
           {answer && <Answer a={answer} html={answers[answerIndex]} q={found.q} onGo={go} />}
           {results.map(({ entry: r, line }, i) => (
@@ -140,6 +140,7 @@ export default function Home() {
     return (
       <div className="home">
         {search}
+        <div className="home-view" key="suggest">
         {recent.length > 0 && (
           <>
             <div className="suggest-head"><h2 className="section">Recent</h2><button onMouseDown={keep} onClick={clear}>Clear</button></div>
@@ -149,6 +150,7 @@ export default function Home() {
         <h2 className="section">Try</h2>
         <div className="chips">{TRY.map((t) => <button key={t} className={/^[a-z ]+$/.test(t) ? "" : "mono"} onMouseDown={keep} onClick={() => setQ(t)}>{t}</button>)}</div>
         <p className="hint">Searches names, pages and every line of code in the examples. Enter opens the top result.</p>
+        </div>
       </div>
     );
   }
@@ -156,6 +158,7 @@ export default function Home() {
   return (
     <div className="home">
       {search}
+      <div className="home-view" key="hero">
       <h1 className="huge">For the <span>selfless</span> people</h1>
       <p className="lede">{DESCRIPTION}</p>
       <div className="actions">
@@ -172,6 +175,7 @@ export default function Home() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

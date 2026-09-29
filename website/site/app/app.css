@@ -298,3 +298,13 @@ html.desktop .more, html.desktop .plain { max-width: 720px; }
 @media (prefers-reduced-motion: reduce) { #boot, .boot-bar i { transition: none; } }
 /* An example's first lines, shown plain for the moment before its highlighted code arrives. */
 .sheet-pending pre { color: var(--code-dim); opacity: .75; min-height: 8em; }
+
+/* ---------------------------------------------------------------- Home's search, moving between views
+   The bar stays put; what's under it (the headline, suggestions, results) fades up when it
+   changes, instead of swapping in one frame (owner: make it smooth). "backwards", so once in
+   it keeps no transform or layer of its own. Typing within results doesn't restart it. */
+.home-view { animation: view-in .18s cubic-bezier(.2, .8, .2, 1) backwards; }
+@keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
+.search { transition: box-shadow .18s ease, background-color .18s ease; }
+.search:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--violet) 55%, transparent); }
+@media (prefers-reduced-motion: reduce) { .home-view { animation: none; } .search { transition: none; } }
