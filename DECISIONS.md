@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — The word in front of `::` is the Limb maker's, and apart from its name (owner: "yea")
+
+Asked whether a dependency found by folder may call itself something other
+than the word a user's manifest lists it under (the oracle refused that,
+design claude's pick from before names could repeat), the owner asked
+where the word in front of `::` is decided in a writer's code (nowhere:
+source never names Limbs; the manifest does), weighed the downsides, then
+asked whether the Limb maker could write it: "Infront and name are
+different things". Design claude restated: a Limb's manifest holds its
+`name`, a label for people that may repeat, and, separately, the word
+code writes in front of `::`, which its maker picks. The owner: "yea".
+Open: that setting's spelling, in `Synthia.ttsr` and `CCA.cplr`; how a
+user overrides it when two Limbs pick the same word; whether `name`, no
+longer written in code, still follows the module-name rule (entry below).
+
 ### 2026-09-29 — A Limb's own `version` is any text, at most 256 bytes (owner: "256 bytes it is")
 
 Relayed by synthia claude. Proposed: (a) three numbers, `1.0.0`; (b) one
