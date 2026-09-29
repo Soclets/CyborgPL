@@ -63,7 +63,15 @@ name is gone with the local name. Possibly reopening: asked by synthia claude wh
 `Synthia.ttsr` follows the no-override rule, the owner said "this is
 Synthia. So... You could do an easy override"; offered an override in
 both manifests (reopening this) or in neither, the owner: "Undecided yet,
-wait".
+wait". Then, asked by design claude how Synthia could offer
+an easy override: proposed (1) an override in both manifests, reopening
+this ruling, or (2) Synthia doing the edit for the user — copying that
+Limb into a folder of its own, changing `'prefix'` in the copy, and
+handing CCA an ordinary path dependency (design claude's pick). The
+owner: "I want the one that Synthia just does what the CyborgPL
+programmer had to do, when they were using CCA's PM" — (2). **CCA.cplr
+keeps no override; Synthia's override is the copy-and-edit a CCA user
+does by hand.** Open: its spelling in `Synthia.ttsr` (synthia claude's).
 Open: the `Synthia.ttsr` spelling (synthia claude's); whether `name`, no
 longer written in code, still follows the module-name rule (entry below).
 

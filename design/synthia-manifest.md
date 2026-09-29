@@ -82,7 +82,11 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   of `::` to reach this Limb (owner, 2026-09-29: "`prefix`"), as
   `CCA.cplr`'s `'prefix'`; its `name` is a label apart from it.
   Required, as in `CCA.cplr` (owner: "if it's not always required, it
-  could be weird to CyborgPL users").
+  could be weird to CyborgPL users"). **Synthia's easy override** for two Limbs with one
+  prefix does what a CCA user does by hand (owner, 2026-09-29: "Synthia
+  just does what the CyborgPL programmer had to do"): it copies that Limb
+  into a folder of its own, changes the `prefix` in the copy, and hands
+  CCA an ordinary path dependency. The override line's spelling is open.
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
   Limb's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,
