@@ -1,0 +1,3 @@
+const 'name' := "uses_a_limb";
+const 'version' := "1.0.0";
+const 'dependencies' := [cca::Dep[name = "areas", path = "../limbs/areas"],];

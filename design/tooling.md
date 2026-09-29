@@ -52,8 +52,11 @@ Owner, 2026-09-14.
   const 'target' := "aarch64-macos";
   ```
 
-  Every name and type is checked against the settings CCA knows. Open: the
-  full list of settings, and what a `cca::Dep` holds.
+  Every name and type is checked against the settings CCA knows. A
+  **`cca::Dep` is a name plus a `version`** (from the registry) **or a
+  `path`** (a folder on this machine) (owner, 2026-09-29: a):
+  `cca::Dep[name = "money", path = "../money"]`. The settings the oracle
+  knows: `name`, `version`, `dependencies`, `target`.
 
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
   (above). What goes in

@@ -1,0 +1,7 @@
+# A Limb that uses another (owner, 2026-09-29): CCA.cplr lists it, `cca::Dep[name = "areas", path =
+# "../limbs/areas"]`, and its `pub` items are reached with `::` (limbs.md).
+MAIN {
+    'c': areas::Circle = areas::Circle[radius = 2.0];
+    'a' := areas::circle[lend 'c'];
+    std::print.useful.stdout['a', " ", areas::shapes.square[4], " ", areas::'pi', \n];
+}

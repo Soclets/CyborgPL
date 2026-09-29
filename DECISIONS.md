@@ -5,6 +5,33 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A `cca::Dep` is a name plus a `version` or a `path`; the oracle runs Limbs with dependencies (owner: a)
+
+Asked whether Limbs were ready for compiler claude: the language rules
+were (`limbs.md`), but not what a dependency in `CCA.cplr` holds, and the
+oracle ran one Limb only. Proposed (a) a name plus either `version` (from
+the registry) or `path` (a folder on this machine), Cargo's model, so two
+Limbs can be developed together and CCA can learn dependencies before any
+registry exists; (b) registry only. Design claude recommended a; owner: a
+(after an `s`, which design claude asked about).
+
+```
+const 'dependencies' := [
+    cca::Dep[name = "geometry", version = "1.2"],
+    cca::Dep[name = "money", path = "../money"],
+];
+```
+
+The oracle now reads `CCA.cplr` and loads each `path` dependency (and
+theirs) beside the Limb being built: `areas::circle[…]`,
+`areas::Circle[radius = 2.0]`, `'c': areas::Circle`, `areas::'pi'`,
+`areas::shapes.square[…]`; only `pub` crosses a Limb's edge, and `limb.`
+inside a dependency is that dependency's root. It refuses a `version`
+dependency (it cannot fetch), an unknown setting, `pub const`, a
+dependency naming both a `path` and a `version`, a cycle, and a name that
+differs from the dependency's own `CCA.cplr`. `examples/uses_a_limb/` with
+`examples/limbs/areas/`; seven reject tests (limb_*, manifest_*).
+
 ### 2026-09-29 — The Limb registry is an index that links to each Limb's own release (owner)
 
 The owner asked how to host a Limb registry without paying, apart from

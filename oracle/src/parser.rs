@@ -63,19 +63,25 @@ pub struct Parser {
     bounds: Vec<(String, String)>,
     /// captures of the anonymous function just parsed
     pending_captures: Vec<(Verb, String)>,
+    /// where `limb.` points: `[]` for the Limb being built, `["::geometry"]` for a dependency
+    /// loaded beside it (a segment no source can write, so the two never meet)
+    limb_root: Vec<String>,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new() } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new() } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
+    /// A parser for a dependency Limb's file: its modules sit under `limb_root`.
+    pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self { let mut p = Parser::new_in(toks, module); p.limb_root = limb_root; p }
+
     fn resolve(&self, segs: &[String]) -> Vec<String> {
-        if segs.first().map(|s| s == "limb").unwrap_or(false) { return segs[1..].to_vec(); }
+        if segs.first().map(|s| s == "limb").unwrap_or(false) { let mut out = self.limb_root.clone(); out.extend(segs[1..].iter().cloned()); return out; }
         let mut out = self.module.clone();
         out.extend(segs.iter().cloned());
         out
@@ -689,6 +695,18 @@ impl Parser {
         if self.is_word("std") && *self.peek_at(1) == Tok::ColonColon {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
             return self.err("the only std type the oracle knows is `std::duration`");
+        }
+        // another Limb's type: `geometry::Circle` (limbs.md)
+        if matches!(self.peek(), Tok::Word(w) if w != "std") && *self.peek_at(1) == Tok::ColonColon {
+            let limb = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
+            self.advance();
+            let mut segs = vec![format!("::{limb}")];
+            loop {
+                match self.advance().tok { Tok::Word(w) => segs.push(w), other => return self.err(format!("expected a type name after `{limb}::`, found {other}")) }
+                if *self.peek() == Tok::Dot { self.advance(); continue; }
+                break;
+            }
+            return Ok(Ty::Struct(segs.join(".")));
         }
         let mut segs = Vec::new();
         loop {
@@ -1533,6 +1551,50 @@ impl Parser {
 
     /// Word ('.' Word)* '[' (Word | Var) ('=' | ':=' | ':')  — a struct construction
     /// (a Var here is the pre-2026-09-19 spelling, kept so the error can say so)
+    /// The fields of a struct value, after its name and `[`: `radius = 2.0, …]`.
+    fn construct_body(&mut self, w: String, line: usize) -> PResult<Expr> {
+        let mut fields = Vec::new();
+        loop {
+            let fname = match self.advance().tok {
+                Tok::Word(w) => w,
+                Tok::Var(v) => return self.err(format!("a field's name is bare: `{v} = …` (decided 2026-09-19)")),
+                other => return self.err(format!("expected a field name, found {other}")),
+            };
+            match self.peek() {
+                Tok::Eq => { self.advance(); }
+                Tok::Walrus => return self.err(format!("a field's type is fixed by the struct: `{fname} = …`, not `:=`")),
+                Tok::Colon => return self.err(format!("a field is given by name: `{fname} = value` (its type is fixed by the struct)")),
+                other => return self.err(format!("expected `=` after `{fname}`, found {other}")),
+            }
+            // one value; pieces join, `[ ]` builds a list (or just groups)
+            let vline = self.line();
+            let value = Bracket { values: vec![self.value()?], line: vline, one_list: false };
+            fields.push((fname, value));
+            if *self.peek() == Tok::Comma { self.advance(); continue; }
+            break;
+        }
+        self.expect(Tok::RBracket, "`]` to close the struct value")?;
+        Ok(Expr::Construct(w, fields, line))
+    }
+
+    /// `geometry::Circle[radius = …]` or `geometry::'pi'` (not `std::`, whose calls go through `call`)
+    fn is_limb_item(&self) -> bool {
+        if !matches!(self.peek(), Tok::Word(w) if w != "std") || *self.peek_at(1) != Tok::ColonColon { return false; }
+        let mut i = 2;
+        loop {
+            match self.peek_at(i) {
+                Tok::Var(_) => return true,
+                Tok::Word(_) => {}
+                _ => return false,
+            }
+            match self.peek_at(i + 1) {
+                Tok::Dot => { i += 2; }
+                Tok::LBracket => return matches!(self.peek_at(i + 2), Tok::Word(_)) && matches!(self.peek_at(i + 3), Tok::Eq),
+                _ => return false,
+            }
+        }
+    }
+
     fn is_construct(&self) -> bool {
         let mut i = 0;
         loop {
@@ -2243,6 +2305,25 @@ impl Parser {
                     let name = match self.advance().tok { Tok::Var(v) => v, _ => unreachable!() };
                     Ok(Expr::ConstPath(self.resolve(&segs), name, self.module.clone(), line))
                 }
+                // another Limb's struct or const: `geometry::Circle[radius = 2.0]`, `geometry::'pi'`
+                // (limbs.md: `::` crosses into another Limb)
+                _ if self.is_limb_item() => {
+                    let limb = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
+                    self.advance(); // ::
+                    let mut segs = vec![format!("::{limb}")];
+                    loop {
+                        match self.peek().clone() {
+                            Tok::Var(v) => { self.advance(); return Ok(Expr::ConstPath(segs, v, self.module.clone(), line)); }
+                            Tok::Word(w) => { self.advance(); segs.push(w); }
+                            other => return self.err(format!("expected a name after `{limb}::`, found {other}")),
+                        }
+                        if *self.peek() == Tok::Dot { self.advance(); continue; }
+                        break;
+                    }
+                    let w = segs.join(".");
+                    self.advance(); // [
+                    self.construct_body(w, line)
+                }
                 _ if self.is_construct() => {
                     let mut segs = Vec::new();
                     loop {
@@ -2252,28 +2333,7 @@ impl Parser {
                     }
                     let w = self.canonical(&segs);
                     self.advance(); // [
-                    let mut fields = Vec::new();
-                    loop {
-                        let fname = match self.advance().tok {
-                            Tok::Word(w) => w,
-                            Tok::Var(v) => return self.err(format!("a field's name is bare: `{v} = …` (decided 2026-09-19)")),
-                            other => return self.err(format!("expected a field name, found {other}")),
-                        };
-                        match self.peek() {
-                            Tok::Eq => { self.advance(); }
-                            Tok::Walrus => return self.err(format!("a field's type is fixed by the struct: `{fname} = …`, not `:=`")),
-                            Tok::Colon => return self.err(format!("a field is given by name: `{fname} = value` (its type is fixed by the struct)")),
-                            other => return self.err(format!("expected `=` after `{fname}`, found {other}")),
-                        }
-                        // one value; pieces join, `[ ]` builds a list (or just groups)
-                        let vline = self.line();
-                        let value = Bracket { values: vec![self.value()?], line: vline, one_list: false };
-                        fields.push((fname, value));
-                        if *self.peek() == Tok::Comma { self.advance(); continue; }
-                        break;
-                    }
-                    self.expect(Tok::RBracket, "`]` to close the struct value")?;
-                    Ok(Expr::Construct(w, fields, line))
+                    self.construct_body(w, line)
                 }
                 _ => Ok(Expr::Call(self.call()?)),
             },

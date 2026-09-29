@@ -1,0 +1,2 @@
+# `pub.limb` stays in its own Limb (limbs.md)
+MAIN { 'x' := areas::internal[]; }

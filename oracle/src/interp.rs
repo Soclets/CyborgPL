@@ -364,6 +364,8 @@ impl<'p> Interp<'p> {
     /// both count) or `from` is `owner` or a descendant of it. Every module on the
     /// way is checked the same way.
     fn reachable(&self, from: &[String], owner: &[String], vis: Vis) -> bool {
+        // across a Limb's edge only `pub` passes: `pub.limb` stays home (limbs.md)
+        if limb_of(from) != limb_of(owner) { return vis == Vis::Pub; }
         vis != Vis::Private || from.starts_with(owner)
     }
 
@@ -371,7 +373,7 @@ impl<'p> Interp<'p> {
         for i in 1..=module.len() {
             let path = &module[..i];
             let Some(m) = self.prog.modules.iter().find(|m| m.path == path) else {
-                return rt(line, format!("no module `{}` in this Limb", path.join(".")));
+                return rt(line, format!("no module `{}` in {}", path.iter().map(|p| p.trim_start_matches("::")).collect::<Vec<_>>().join("."), if limb_of(path).is_empty() { "this Limb".to_string() } else { format!("the Limb `{}`", &limb_of(path)[2..]) }));
             };
             if !self.reachable(from, &module[..i - 1], m.vis) {
                 return rt(line, format!("module `{}` is private to `{}`", path.join("."), root_or(&module[..i - 1])));
@@ -1811,7 +1813,7 @@ impl<'p> Interp<'p> {
                 let from = self.module.clone();
                 self.check_path(&from, &def.module, line)?;
                 if !self.reachable(&from, &def.module, def.vis) {
-                    return rt(line, format!("struct `{sname}` is private to `{}`; mark it `pub` or `pub.limb`", root_or(&def.module)));
+                    return rt(line, private_msg(&self.module, &def.module, &format!("struct `{sname}`")));
                 }
                 // a generic struct's blanks are filled by the values given (Precog: from use)
                 let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
@@ -3067,7 +3069,14 @@ impl<'p> Interp<'p> {
     fn call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         match &c.limb {
             Some(l) if l == "std" => self.std_call(c),
-            Some(l) => rt(c.line, format!("no Limb named `{l}` is loaded (the oracle only knows `std`)")),
+            // another Limb, loaded from `CCA.cplr` under its own root (owner, 2026-09-29)
+            Some(l) if self.prog.modules.iter().any(|m| m.path == [format!("::{l}")]) => {
+                let mut local = c.clone();
+                local.limb = None;
+                local.path.insert(0, format!("::{l}"));
+                self.user_call(&local)
+            }
+            Some(l) => rt(c.line, format!("no Limb named `{l}`: a Limb this one uses is listed in its `CCA.cplr` (`const 'dependencies' := [cca::Dep[name = \"{l}\", path = …],];`)")),
             None => self.user_call(c),
         }
     }
@@ -3090,7 +3099,7 @@ impl<'p> Interp<'p> {
             None => return rt(c.line, format!("no function `{name}` in `{}`", root_or(module))),
         };
         if !self.reachable(&c.from, &func.module, func.vis) {
-            return rt(c.line, format!("`{}` is private to `{}`; mark it `pub` or `pub.limb`", join_path(&func.module, name), root_or(&func.module)));
+            return rt(c.line, private_msg(&c.from, &func.module, &format!("`{}`", join_path(&func.module, name))));
         }
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
         if func.is_extern {
@@ -4319,5 +4328,20 @@ fn value_eq(a: &Value, b: &Value) -> bool {
         (Value::Struct(n, xs), Value::Struct(m, ys)) => n == m && xs.len() == ys.len() && xs.iter().zip(ys).all(|((k, p), (l, q))| k == l && value_eq(p, q)),
         (Value::Enum(t, c, d), Value::Enum(u, e, f)) => t == u && c == e && match (d, f) { (Some(p), Some(q)) => value_eq(p, q), (None, None) => true, _ => false },
         _ => a == b,
+    }
+}
+
+/// Which Limb a module path belongs to: `""` for the Limb being built, `"::geometry"` for a dependency.
+fn limb_of(path: &[String]) -> &str {
+    match path.first() { Some(p) if p.starts_with("::") => p.as_str(), _ => "" }
+}
+
+/// Why an item cannot be reached: across a Limb's edge only `pub` passes (limbs.md).
+fn private_msg(from: &[String], owner: &[String], what: &str) -> String {
+    let what = what.replace("::", "").replacen('.', "::", if limb_of(owner).is_empty() { 0 } else { 1 });
+    if limb_of(from) != limb_of(owner) {
+        format!("{what} is not `pub`, and another Limb reaches only `pub` items")
+    } else {
+        format!("{what} is private to `{}`; mark it `pub` or `pub.limb`", root_or(owner))
     }
 }
