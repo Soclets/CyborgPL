@@ -353,10 +353,11 @@ impl Checker {
                 let bt = self.resolve(&p.ty);
                 let elem = match bt.base() {
                     Ty::Seq { elem, .. } => (**elem).clone(),
-                    // A lane is read (`simd.md`: `'v'[1]`); writing one, or
-                    // lending one out to be written, is not in the design.
-                    Ty::Simd { .. } if matches!(use_, PlaceUse::Write | PlaceUse::LendMut) => {
-                        return err(Diagnostic::error("one lane of a vector is read (`'v'[1]`); writing one is not decided yet — build the vector anew (`simd.fill`, `simd.load`, `simd.shuffle`)").at(e.span));
+                    // A lane is read, and written like a list item (owner,
+                    // 2026-09-29: a: `change 'v'[3] = 30;`). Lending one out
+                    // to be written through is not in the ruling.
+                    Ty::Simd { .. } if use_ == PlaceUse::LendMut => {
+                        return err(Diagnostic::error("one lane of a vector is read (`'v'[1]`) and written (`change 'v'[3] = 30;`); lending one out to be changed is not decided yet").at(e.span));
                     }
                     Ty::Simd { elem, .. } => (**elem).clone(),
                     Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `std::str.at.<unit>` when std exists, or walk it with `str.each.<unit>`").at(e.span)),

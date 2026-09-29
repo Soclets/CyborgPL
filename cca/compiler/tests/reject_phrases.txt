@@ -368,6 +368,7 @@ shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to t
 short_name_one_limb [fnv:c62ad7b10088ce87] :: gives other Limbs a shorter name
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
 simd_lane_step [fnv:dd932d69d1ee5b6a] :: `+` can leave what the type holds
+simd_lane_write_range [fnv:b4f9f50732c31370] :: the position can be past the end
 simd_load_past_end [fnv:00802e6e1064a8bf] :: the 16 lanes can run past the end
 simd_mask_lanes [fnv:51d1f37b90e986ac] :: a mask has as many lanes as the vectors it compares
 simd_not_a_bool [fnv:cf5039b775bdbbc1] :: a vector is never a single answer

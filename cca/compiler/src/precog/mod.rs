@@ -2247,6 +2247,10 @@ fn put(whole: &Domain, proj: &[Proj], d: Domain) -> Domain {
             let inner = put(elem, rest, d);
             Domain::Seq { len: len.clone(), elem: Box::new(elem.union(&inner)) }
         }
+        // One lane of a vector (owner, 2026-09-29: a): a vector's domain is
+        // its lanes' union, so it is joined with what was written. Left as
+        // it was, `simd.fill[0]` with lane 3 set to 30 still read as 0.
+        (Proj::Index(_), lanes) => lanes.union(&put(lanes, rest, d)),
         _ => whole.clone(),
     }
 }
