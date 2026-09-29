@@ -1259,6 +1259,9 @@ impl Checker {
     /// A user `op` applied: operands lent by default, `give` when the op says so.
     fn user_op_call(&mut self, ctx: &mut FnCtx, fn_id: FnId, spelling: &str, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
         let decl = self.items.fns[fn_id.0 as usize].clone();
+        if !decl.blanks.is_empty() {
+            return self.generic_op_call(ctx, fn_id, spelling, lhs, rhs, span);
+        }
         let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
         let inst = self.instance(key);
         let sig = self.instances[inst.0 as usize].sig.clone();
@@ -1301,6 +1304,61 @@ impl Checker {
         let lhs_arg = operands.pop().unwrap();
         // types must match the declared operands
         let _ = op_span;
+        Ok(Expr { kind: K::UserOp { inst, lhs: Box::new(lhs_arg), rhs: Box::new(rhs_arg) }, ty: sig.ret, span })
+    }
+
+    /// A generic `op` (owner, 2026-09-29): its blanks filled by the
+    /// operands, as a generic `fn`'s are by its arguments — a typed operand
+    /// first, so a bare number beside it takes its type — then held to the
+    /// blank's interface.
+    fn generic_op_call(&mut self, ctx: &mut FnCtx, fn_id: FnId, spelling: &str, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
+        let decl = self.items.fns[fn_id.0 as usize].clone();
+        let named: Vec<Ty> = decl.blanks.iter().map(|_| self.fresh()).collect();
+        let ptys: Vec<Ty> = decl.params.iter().map(|p| match &p.ty {
+            Some(t) => t.subst(&named),
+            None => Ty::Nothing,
+        }).collect();
+        let mut vals = Vec::new();
+        for side in [lhs, rhs] {
+            if let AK::Verb { verb, .. } = &side.kind {
+                return err(Diagnostic::error(format!("an operand takes no `{}`: a generic operator's operands are lent", verb.spelled())).at(side.span));
+            }
+            vals.push(self.expr(ctx, side)?);
+        }
+        let free = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_)) | Ty::Infer(_));
+        for (v, pt) in vals.iter().zip(&ptys) {
+            let vt = self.resolve(&v.ty);
+            if !free(&vt) && !self.unify(&vt, pt) {
+                return err(Diagnostic::error(format!("one blank, one type: `{}` takes both operands as the same `<T>`, and this is a `{}` beside a `{}`", spelling, self.spell(&vt), self.spell(&self.resolve(pt)))).at(v.span));
+            }
+        }
+        let mut args = Vec::new();
+        for (v, pt) in vals.into_iter().zip(&ptys) {
+            let vt = self.resolve(&v.ty);
+            let v = self.expect_store(ctx, v, pt, "the operand")?;
+            args.push(match v.kind {
+                K::Read(place) if vt.is_owned() => Arg::Lend { place, mutable: false },
+                _ => Arg::Value(v),
+            });
+        }
+        let mut blank_tys = Vec::new();
+        for (i, t) in named.iter().enumerate() {
+            let r = self.resolve(t);
+            if matches!(r, Ty::Infer(_)) {
+                return err(Diagnostic::error(format!("the blank `<{}>` of `{}` is not filled: neither operand says what it is", decl.blanks[i].0, spelling)).at(span));
+            }
+            if let Some(iface) = decl.blanks[i].1 {
+                if let Err(reason) = self.satisfies(&r, iface) {
+                    let iname = self.items.ifaces[iface.0 as usize].name.clone();
+                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for a `<{}: {}>`", self.spell(&r), iname, reason, spelling, decl.blanks[i].0, iname)).at(span));
+                }
+            }
+            blank_tys.push(r);
+        }
+        let inst = self.instance(InstKey { fn_id, blanks: blank_tys, bundle: None, owning: Vec::new() });
+        let sig = self.instances[inst.0 as usize].sig.clone();
+        let rhs_arg = args.pop().unwrap();
+        let lhs_arg = args.pop().unwrap();
         Ok(Expr { kind: K::UserOp { inst, lhs: Box::new(lhs_arg), rhs: Box::new(rhs_arg) }, ty: sig.ret, span })
     }
 

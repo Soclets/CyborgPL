@@ -206,3 +206,7 @@ argument_context 15
 # A match alone in a case follows the outer match; giveS (owner, 2026-09-29).
 nested_match 29
 strict_nested_match 29
+# A generic op; one op for two types by name (owner, 2026-09-29).
+generic_op 193
+# Layer 3 sees every case of a match (check claude, 2026-09-29).
+match_case_divisor trap

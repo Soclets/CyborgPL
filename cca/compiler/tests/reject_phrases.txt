@@ -181,6 +181,7 @@ generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), an
 generic_inconsistent [fnv:81336ef057ec73fd] :: `<T>` is filled by an earlier argument as `integer`, and 'b' would make it something else
 generic_inst_mismatch [fnv:7d29ffc630950dd5] :: expected a value of the declared type (Box[int32]), found a `Box[str]`
 generic_no_space_arrow [fnv:436cf28ab247e3e5] :: put a space after `->` (`-> <T>`)
+generic_op_overlap [fnv:c1fa6ef0de5f1372] :: `~=` for int32 and the generic `~=` both cover int32
 generic_quoted_var [fnv:00d462dc38c9d0b4] :: a type variable's name is bare: `<T>`, not `<'T'>`
 generic_size_of [fnv:cf20c2fa7cc04da7] :: `size.of` takes a concrete type
 generic_to_c [fnv:89768fbb7f2f8a1a] :: a blank `<T>` cannot appear here
@@ -289,6 +290,7 @@ op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: rema
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op +` for itself, `int32` may not
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
+op_same_types_twice [fnv:b57d0aa0ded73c85] :: `<+>` is defined twice for A, A
 op_star_undefined [fnv:fc4c3293bd3689bb] :: `*` is not an operator here: multiply is `x`
 op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
 op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything

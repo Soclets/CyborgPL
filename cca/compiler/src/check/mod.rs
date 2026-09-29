@@ -322,6 +322,7 @@ impl Checker {
     }
 
     pub fn check_program(mut self) -> Result<Program> {
+        self.check_op_meanings()?;
         // Claims first: `Vec satisfies Ordered;` is checked at load.
         let claims = self.items.claims.clone();
         for (ty, iface, span) in &claims {
@@ -563,6 +564,61 @@ impl Checker {
             return true;
         }
         self.find_op(op, &base).is_some()
+    }
+
+    /// One meaning per operator and types (owner, 2026-09-29): two `op`s
+    /// of one name for the same types, a generic one covering a specific
+    /// one's type (the specific does not win), and two generic ones of one
+    /// name are each an error; ops of one name for different types are
+    /// fine. A generic op never takes a language operator's name.
+    fn check_op_meanings(&mut self) -> Result<()> {
+        let mut names: Vec<(String, Vec<FnId>)> = self.items.ops.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+        names.sort_by(|a, b| a.0.cmp(&b.0));
+        for (op, ids) in names {
+            let decls: Vec<(FnId, crate::resolve::FnDeclInfo)> = ids.iter().map(|id| (*id, self.items.fns[id.0 as usize].clone())).collect();
+            let language = matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "++" | "xor" | "shl" | "shr" | "+~" | "-~" | "x~" | "xx~");
+            for (_, d) in &decls {
+                if language && !d.blanks.is_empty() {
+                    return err(Diagnostic::error(format!("a generic operator cannot be `{}`: that is the language's own, and a generic one would take it over for every type", op)).at(d.name_span));
+                }
+            }
+            for (i, (_, a)) in decls.iter().enumerate() {
+                for (_, b) in decls.iter().skip(i + 1) {
+                    let (ag, bg) = (!a.blanks.is_empty(), !b.blanks.is_empty());
+                    let types = |d: &crate::resolve::FnDeclInfo| -> Vec<Ty> { d.params.iter().filter_map(|p| p.ty.clone()).collect() };
+                    match (ag, bg) {
+                        (false, false) => {
+                            let (ta, tb) = (types(a), types(b));
+                            if ta.len() == tb.len() && ta.iter().zip(&tb).all(|(x, y)| self.same(x, y)) {
+                                let spelled = ta.iter().map(|t| self.spell(t)).collect::<Vec<_>>().join(", ");
+                                return err(Diagnostic::error(format!("`{}` is defined twice for {}: one meaning per operator and types", op, spelled)).at(b.name_span).why_at(a.name_span, "the first is here"));
+                            }
+                        }
+                        (true, true) => {
+                            return err(Diagnostic::error(format!("`{}` is declared generic twice: one generic meaning per operator", op)).at(b.name_span).why_at(a.name_span, "the first is here"));
+                        }
+                        _ => {
+                            let (g, s) = if ag { (a, b) } else { (b, a) };
+                            // The specific op's left operand, held to the
+                            // generic's first blank's interface.
+                            let Some(Some(st)) = s.params.first().map(|p| p.ty.clone()) else { continue };
+                            let covers = match g.params.first().and_then(|p| p.ty.clone()) {
+                                Some(Ty::Var(v)) => match g.blanks.get(v as usize).and_then(|(_, i)| *i) {
+                                    Some(iface) => self.satisfies(&st, iface).is_ok(),
+                                    None => true,
+                                },
+                                _ => false,
+                            };
+                            if covers {
+                                let spelled = self.spell(&st);
+                                return err(Diagnostic::error(format!("`{}` for {} and the generic `{}` both cover {}: one meaning per operator and types, and the specific one does not win", op, spelled, op, spelled)).at(s.name_span).why_at(g.name_span, "the generic one is here"));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     /// A user `op` by spelling whose left operand is `left`.
