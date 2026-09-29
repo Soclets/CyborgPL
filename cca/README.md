@@ -409,3 +409,8 @@ Dated, with the alternative, so each can become a question later.
   its own. A program's arguments, `--input`, a cross target's runner and
   `cca test` wait for the owner (what a test is is not designed yet).
   Alternative: keep the binary beside the source, as `cca build` does.
+- **2026-09-29 — A vector nothing gives a lane width has 64-bit lanes.**
+  `'a' := simd.fill[5]` has no type to take its lanes from; CCA gives it
+  the natural width a lone number has (`core-features.md`), 64 bits, so
+  two lanes in a 128-bit register. Before, it had no shape at all.
+  Alternative: refuse it and ask for a type, as `simd.shuffle` does.
