@@ -61,11 +61,14 @@ pub struct Config {
     /// list changed while a borrow of it is still used); both engines must
     /// refuse those (`Program::expect_refused`).
     pub borrow_wrong: u64,
+    /// Enums with integer data, `==` on them, and `match` as a statement
+    /// and as a value (design/enums.md; 23ab20b).
+    pub enums: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, borrows: true, borrow_wrong: 250 }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, borrows: true, borrow_wrong: 250, enums: true }
     }
 }
 
@@ -84,6 +87,15 @@ struct VarInfo {
     /// a value that used such a name, with no range type to say it. Never
     /// used in a `check` statement or block (seed 137, 2026-09-29).
     unseen: bool,
+    /// Set for an enum value: the index of its enum in `Gen::enums`.
+    en: Option<usize>,
+}
+
+#[derive(Clone, Debug)]
+struct EnumGen {
+    def: EnumDef,
+    /// What each case's data can be (the generator's own promise).
+    ivs: Vec<Option<Iv>>,
 }
 
 #[derive(Clone, Debug)]
@@ -152,12 +164,13 @@ struct Gen {
     /// `check` statement, since a guarded position is a fact about the
     /// list's length that Precog need not see.
     positioned: bool,
-    /// Building a list item or an appended value: no width reaches it from
-    /// the list's type (design/operators.md, "context stops at … a
-    /// construction"), so a shift's left operand is never bare there.
+    /// Building an appended value: `list.append` is a call, so no width
+    /// reaches its argument from the list's type (owner, 62186f1), and a
+    /// shift's left operand is never bare there.
     in_item: bool,
     bsigs: Vec<BSig>,
     belem: Ty,
+    enums: Vec<EnumGen>,
 }
 
 const MAIN_BUDGET: u64 = 20_000;
@@ -186,7 +199,13 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         in_item: false,
         bsigs: vec![],
         belem: Ty::I32,
+        enums: vec![],
     };
+    if cfg.enums && g.rng.chance(45) {
+        for k in 0..1 + g.rng.below(2) as usize {
+            g.enum_def(k);
+        }
+    }
     let nfns = g.rng.below(cfg.size as u64 + 1) as usize;
     let mut funcs = vec![];
     for i in 0..nfns {
@@ -241,7 +260,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, main, loose, expect_refused: wrong.is_some() }
+    Program { seed, printer, inputs, funcs, bfuncs, enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -279,7 +298,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -304,14 +323,18 @@ impl Gen {
     }
 
     fn declare(&mut self, name: String, ty: Ty, iv: Iv, assignable: bool) {
-        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false, unseen: false });
+        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false, unseen: false, en: None });
     }
 
     /// Plain values in scope (never a list; inside a `check` block, never
     /// an unseen one).
     fn vars(&self) -> impl Iterator<Item = &VarInfo> {
         let in_check = self.in_check > 0;
-        self.scopes.iter().flatten().filter(move |v| v.list.is_none() && !(in_check && v.unseen))
+        self.scopes.iter().flatten().filter(move |v| v.list.is_none() && v.en.is_none() && !(in_check && v.unseen))
+    }
+
+    fn enum_vars(&self) -> Vec<VarInfo> {
+        self.scopes.iter().flatten().filter(|v| v.en.is_some()).cloned().collect()
     }
 
     /// Whether `e` reads an unseen name.
@@ -321,7 +344,8 @@ impl Gen {
             match e {
                 Expr::Var(n) => f(n),
                 // A length's bounds and an item's range are the generator's.
-                Expr::Len(_) | Expr::At(..) => true,
+                Expr::Len(_) | Expr::At(..) | Expr::Match(..) => true,
+                Expr::Case(_, _, d) => d.as_ref().map_or(false, |d| walk(d, f)),
                 Expr::Lit(_) | Expr::Bool(_) | Expr::Lend(_) => false,
                 Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => walk(a, f) || walk(b, f),
                 Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => walk(a, f),
@@ -563,6 +587,9 @@ impl Gen {
             if self.appendable().is_empty() { 0 } else { 2 }, // list.append
             if nested && !self.walkable().is_empty() { 2 } else { 0 }, // for … in lend
             if self.in_fn.is_none() && self.bsigs.iter().any(|b| !b.wrong) { 2 } else { 0 }, // borrows
+            if self.enums.is_empty() { 0 } else { 2 },                               // enum let
+            if self.enum_vars().iter().any(|v| v.assignable) { 1 } else { 0 },       // enum change
+            if nested && !self.enums.is_empty() { 2 } else { 0 },                    // match statement
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -576,6 +603,9 @@ impl Gen {
             10 => self.append(),
             11 => self.for_each(depth),
             12 => self.episode(None),
+            13 => self.enum_let(),
+            14 => self.enum_assign(),
+            15 => self.match_stmt(depth),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -640,15 +670,15 @@ impl Gen {
         let mut items = vec![];
         self.risky = false;
         self.positioned = false;
-        self.in_item = true;
+        // The items take the list's item type as their context, as a
+        // declaration's value does (owner, 62186f1).
         for _ in 0..n {
             items.push(self.value_in(elem, iv).0);
         }
-        self.in_item = false;
         let room = if mutable { self.rng.below(9) } else { 0 };
         let name = self.name("xs");
         let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
-        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, unseen: false });
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, unseen: false, en: None });
         Stmt::ListLet { name, mutable, elem, items }
     }
 
@@ -908,6 +938,115 @@ impl Gen {
         Stmt::Block { tier: Tier::Default, body }
     }
 
+    // ------------------------------------------------------------ enums
+
+    fn enum_def(&mut self, k: usize) {
+        let n = 2 + self.rng.below(3) as usize;
+        let mut cases = vec![];
+        let mut ivs = vec![];
+        for i in 0..n {
+            let (t, iv) = if self.rng.chance(55) {
+                let t = self.int_ty();
+                (Some(t), Some(self.ghost(t)))
+            } else {
+                (None, None)
+            };
+            cases.push((format!("c{}", i + 1), t));
+            ivs.push(iv);
+        }
+        self.enums.push(EnumGen { def: EnumDef { name: format!("E{}", k + 1), cases }, ivs });
+    }
+
+    /// `E1.c2[v]` or `E1.c1`, its data within the case's promise.
+    fn case_value(&mut self, ei: usize) -> Expr {
+        let e = self.enums[ei].clone();
+        let c = self.rng.below(e.def.cases.len() as u64) as usize;
+        let data = match (e.def.cases[c].1, e.ivs[c]) {
+            (Some(t), Some(iv)) => Some(Box::new(self.value_in(t, iv).0)),
+            _ => None,
+        };
+        Expr::Case(e.def.name.clone(), e.def.cases[c].0.clone(), data)
+    }
+
+    fn enum_let(&mut self) -> Stmt {
+        let ei = self.rng.below(self.enums.len() as u64) as usize;
+        let mutable = self.rng.chance(40);
+        let value = self.case_value(ei);
+        let name = self.name("e");
+        let en = self.enums[ei].def.name.clone();
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: Ty::I64, iv: Iv::point(0), assignable: mutable, list: None, item: false, unseen: false, en: Some(ei) });
+        Stmt::EnumLet { name, mutable, en, value }
+    }
+
+    fn enum_assign(&mut self) -> Stmt {
+        let vs: Vec<VarInfo> = self.enum_vars().into_iter().filter(|v| v.assignable).collect();
+        let v = self.rng.pick(&vs).clone();
+        let value = self.case_value(v.en.unwrap());
+        Stmt::Assign { tier: Tier::Default, name: v.name, value }
+    }
+
+    /// What to match on: an enum name in scope, or a case built right there.
+    fn scrutinee(&mut self) -> (Expr, usize) {
+        let evs = self.enum_vars();
+        if !evs.is_empty() && self.rng.chance(70) {
+            let v = self.rng.pick(&evs).clone();
+            return (Expr::Var(v.name), v.en.unwrap());
+        }
+        let ei = self.rng.below(self.enums.len() as u64) as usize;
+        (self.case_value(ei), ei)
+    }
+
+    /// Open an arm's scope, with its data's name if the case has data.
+    fn open_arm(&mut self, ei: usize, c: usize) -> Option<String> {
+        self.scopes.push(vec![]);
+        let e = self.enums[ei].clone();
+        let (t, iv) = (e.def.cases[c].1?, e.ivs[c]?);
+        let b = self.name("d");
+        self.declare(b.clone(), t, iv, false);
+        // Only the generator knows the data's range.
+        self.mark_unseen(&b);
+        Some(b)
+    }
+
+    /// `match … { … }` giving a value of type `t` within `target`; now and
+    /// then an arm leaves instead (`return`, `break`, `continue`).
+    fn match_value(&mut self, t: Ty, target: Iv) -> Expr {
+        let (scrut, ei) = self.scrutinee();
+        let mut arms = vec![];
+        for c in 0..self.enums[ei].def.cases.len() {
+            let bind = self.open_arm(ei, c);
+            let leave = self.rng.chance(12) && (self.in_fn.is_some() || self.in_loop != LoopKind::None);
+            let arm = if leave {
+                let s = match self.in_fn {
+                    Some((rt, riv)) if self.in_loop == LoopKind::None || self.rng.chance(50) => {
+                        Stmt::Return(if rt == Ty::Bool { self.bool_expr(1) } else { self.value_in(rt, riv).0 })
+                    }
+                    _ => if self.rng.chance(50) { Stmt::Break } else { Stmt::Continue },
+                };
+                Arm { case: self.enums[ei].def.cases[c].0.clone(), bind, value: None, body: vec![s] }
+            } else {
+                let (v, _) = self.value_in(t, target);
+                Arm { case: self.enums[ei].def.cases[c].0.clone(), bind, value: Some(v), body: vec![] }
+            };
+            self.scopes.pop();
+            arms.push(arm);
+        }
+        Expr::Match(Box::new(scrut), arms)
+    }
+
+    fn match_stmt(&mut self, depth: u32) -> Stmt {
+        let (scrut, ei) = self.scrutinee();
+        let mut arms = vec![];
+        for c in 0..self.enums[ei].def.cases.len() {
+            let bind = self.open_arm(ei, c);
+            let n = if self.rng.chance(25) { 0 } else { self.stmt_count() / 3 + 1 };
+            let body = self.stmts(n, depth - 1);
+            self.scopes.pop();
+            arms.push(Arm { case: self.enums[ei].def.cases[c].0.clone(), bind, value: None, body });
+        }
+        Stmt::MatchStmt { scrut, arms }
+    }
+
     fn tier(&mut self, risky: bool) -> Tier {
         match self.rng.below(20) {
             0 | 1 if !risky && !self.positioned => Tier::Check,
@@ -925,7 +1064,10 @@ impl Gen {
         // `promise` covers every value the name will ever hold: each later
         // assignment is fitted into it too.
         let (tr, range) = self.maybe_range(t);
-        let (value, promise) = if t == Ty::Bool {
+        let (value, promise) = if t != Ty::Bool && !self.enums.is_empty() && self.rng.chance(20) {
+            let target = range.unwrap_or_else(|| self.ghost(t));
+            (self.match_value(t, target), target)
+        } else if t == Ty::Bool {
             let d = self.expr_depth();
             (self.bool_expr(d), Iv::new(0, 1))
         } else if let Some(r) = range {
@@ -1511,6 +1653,13 @@ impl Gen {
 
     fn bool_expr(&mut self, depth: u32) -> Expr {
         let bools = self.vars_of(Ty::Bool);
+        let evs = self.enum_vars();
+        if !evs.is_empty() && self.rng.chance(8) {
+            let v = self.rng.pick(&evs).clone();
+            let c = self.case_value(v.en.unwrap());
+            let op = if self.rng.chance(50) { CmpOp::Eq } else { CmpOp::Ne };
+            return Expr::Cmp(op, Box::new(Expr::Var(v.name)), Box::new(c));
+        }
         if depth == 0 || self.rng.chance(35) {
             let w = [1, if bools.is_empty() { 0 } else { 3 }, 6];
             return match self.rng.weighted(&w) {

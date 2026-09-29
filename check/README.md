@@ -148,10 +148,9 @@ straight at them. Default: `exact-bits`.
 
 - `item-width`: read a `for … in lend` item only as `to.T['x']` (the
   oracle gave the item no width for `+~` or `not.bit`; fixed in 5750ea6).
-- Always (no switch): a shift in a list item or an appended value never has
-  a bare left operand. Whether a list's item type reaches its literal's
-  items as a let's type does is with the owner (2026-09-29); the oracle
-  gives them none today.
+- Always (no switch): a shift in an appended value never has a bare left
+  operand: `list.append` is a call, so no width reaches its argument
+  (a list literal's items do take the item type, owner, 62186f1).
 
 - `mixed-width`: print through `to.int64[…]` / `to.uint64[…]`. Needed
   only while mixed widths were open; settled by the owner (dc83c05: plain

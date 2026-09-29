@@ -88,6 +88,7 @@ impl Args {
             item_through_to: avoid.contains("item-width"),
             borrows: !avoid.contains("borrows"),
             borrow_wrong: self.num("borrow-wrong", 250),
+            enums: !avoid.contains("enums"),
         }
     }
 }

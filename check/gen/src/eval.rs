@@ -38,6 +38,8 @@ enum Val {
     B(bool),
     /// A list; a lend of it shares the storage.
     L(Rc<RefCell<Vec<i128>>>),
+    /// An enum value: its case's index and data (0 if none).
+    E(usize, i128),
 }
 
 impl Val {
@@ -45,14 +47,14 @@ impl Val {
         match self {
             Val::I(v) => v,
             Val::B(b) => b as i128,
-            Val::L(_) => 0,
+            Val::L(_) | Val::E(..) => 0,
         }
     }
     fn b(self) -> bool {
         match self {
             Val::B(b) => b,
             Val::I(v) => v != 0,
-            Val::L(_) => false,
+            Val::L(_) | Val::E(..) => false,
         }
     }
 }
@@ -64,8 +66,18 @@ enum Flow {
     Return(Val),
 }
 
-/// The program has stopped: at this site.
-struct Stop((usize, usize, &'static str));
+/// The program has stopped: at this site. Or, `Leave`, a `match` arm in an
+/// expression has left (`return`, `break`, `continue`): the statement around
+/// it turns that back into its flow.
+enum Stop {
+    At((usize, usize, &'static str)),
+    Leave(Flow),
+}
+
+#[allow(non_snake_case)]
+fn Stop(k: (usize, usize, &'static str)) -> Stop {
+    Stop::At(k)
+}
 
 struct Ev<'a> {
     p: &'a Program,
@@ -179,7 +191,12 @@ impl<'a> Ev<'a> {
                 Val::B(x || y)
             }
             Expr::Cmp(op, a, b) => {
-                let (x, y) = (self.expr(env, a)?.i(), self.expr(env, b)?.i());
+                let (x, y) = (self.expr(env, a)?, self.expr(env, b)?);
+                if let (Val::E(c, d), Val::E(c2, d2)) = (&x, &y) {
+                    let same = c == c2 && d == d2;
+                    return Ok(Val::B(if *op == CmpOp::Eq { same } else { !same }));
+                }
+                let (x, y) = (x.i(), y.i());
                 Val::B(match op {
                     CmpOp::Eq => x == y,
                     CmpOp::Ne => x != y,
@@ -217,6 +234,26 @@ impl<'a> Ev<'a> {
             }
             Expr::Len(n) => Val::I(Self::list(env, n).borrow().len() as i128),
             Expr::Lend(n) => Self::lookup(env, n).map(|v| v.0).unwrap_or(Val::I(0)),
+            Expr::Case(en, c, data) => {
+                let (idx, ty) = self.case(en, c);
+                let d = match data {
+                    Some(d) => {
+                        let x = self.expr(env, d)?.i();
+                        (self.node, self.stmt) = (addr(&**d), addr(e));
+                        self.land(x, ty.unwrap_or(Ty::I64).into())?
+                    }
+                    None => 0,
+                };
+                Val::E(idx, d)
+            }
+            Expr::Match(scrut, arms) => {
+                let x = self.expr(env, scrut)?;
+                match self.arm(env, &x, arms)? {
+                    Ok(v) => v,
+                    // An arm that leaves: carried out through the statement.
+                    Err(f) => return Err(Stop::Leave(f)),
+                }
+            }
             Expr::Bin(op, a, b) => {
                 let t = self.ty_of(env, e).unwrap_or(Ty::I64);
                 let x = self.expr(env, a)?.i();
@@ -356,6 +393,30 @@ impl<'a> Ev<'a> {
         }
     }
 
+    fn case(&self, en: &str, c: &str) -> (usize, Option<Ty>) {
+        let d = self.p.enums.iter().find(|d| d.name == en);
+        d.and_then(|d| d.cases.iter().position(|x| x.0 == c).map(|i| (i, d.cases[i].1))).unwrap_or((0, None))
+    }
+
+    /// Run the arm for `x`: Ok(value) for an arm that gives one, Err(flow)
+    /// for one that ran statements.
+    fn arm(&mut self, env: &mut Env, x: &Val, arms: &[Arm]) -> Result<Result<Val, Flow>, Stop> {
+        let Val::E(c, d) = x else { return Ok(Ok(Val::I(0))) };
+        let Some(a) = arms.get(*c) else { return Ok(Ok(Val::I(0))) };
+        let mut scope = HashMap::new();
+        if let Some(b) = &a.bind {
+            let ty = self.p.enums.iter().flat_map(|e| e.cases.iter()).find(|k| k.0 == a.case).and_then(|k| k.1).unwrap_or(Ty::I64);
+            scope.insert(b.clone(), (Val::I(*d), ty.into()));
+        }
+        env.push(scope);
+        let r = match &a.value {
+            Some(v) => self.expr(env, v).map(Ok),
+            None => self.block(env, &a.body).map(Err),
+        };
+        env.pop();
+        r
+    }
+
     fn set(env: &mut Env, n: &str, v: Val) {
         for s in env.iter_mut().rev() {
             if let Some(x) = s.get_mut(n) {
@@ -367,7 +428,27 @@ impl<'a> Ev<'a> {
 
     fn stmt(&mut self, env: &mut Env, s: &Stmt) -> Result<Flow, Stop> {
         self.tick()?;
+        match self.stmt_inner(env, s) {
+            // A `match` arm left from inside this statement's expression.
+            Err(Stop::Leave(f)) => Ok(f),
+            r => r,
+        }
+    }
+
+    fn stmt_inner(&mut self, env: &mut Env, s: &Stmt) -> Result<Flow, Stop> {
         match s {
+            Stmt::EnumLet { name, value, .. } => {
+                let x = self.expr(env, value)?;
+                env.last_mut().unwrap().insert(name.clone(), (x, Ty::I64.into()));
+                Ok(Flow::Next)
+            }
+            Stmt::MatchStmt { scrut, arms } => {
+                let x = self.expr(env, scrut)?;
+                match self.arm(env, &x, arms)? {
+                    Ok(_) => Ok(Flow::Next),
+                    Err(f) => Ok(f),
+                }
+            }
             Stmt::Let { name, ty, value, .. } => {
                 let x = self.expr(env, value)?;
                 (self.node, self.stmt) = (addr(value), addr(s));
@@ -378,6 +459,10 @@ impl<'a> Ev<'a> {
             Stmt::Assign { name, value, .. } => {
                 let ty = Self::lookup(env, name).map(|v| v.1).unwrap_or(Ty::I64.into());
                 let x = self.expr(env, value)?;
+                if let Val::E(..) = x {
+                    Self::set(env, name, x);
+                    return Ok(Flow::Next);
+                }
                 (self.node, self.stmt) = (addr(value), addr(s));
                 let v = if ty.base == Ty::Bool { x } else { Val::I(self.land(x.i(), ty)?) };
                 Self::set(env, name, v);
@@ -555,9 +640,9 @@ pub fn run(p: &Program, inputs: &[u64]) -> Run {
     }
     let r = ev.block(&mut env, &p.main);
     let (stopped, exhausted) = match r {
-        Err(Stop((0, 0, "steps"))) => (None, true),
-        Err(Stop(k)) => (Some(k), false),
-        Ok(_) => (None, false),
+        Err(Stop::At((0, 0, "steps"))) => (None, true),
+        Err(Stop::At(k)) => (Some(k), false),
+        Err(Stop::Leave(_)) | Ok(_) => (None, false),
     };
     Run { seen: ev.seen, stopped, exhausted }
 }

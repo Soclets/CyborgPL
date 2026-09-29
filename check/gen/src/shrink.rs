@@ -65,7 +65,8 @@ fn stmt_size(s: &Stmt) -> usize {
         Stmt::SetAt { pos, value, .. } => expr_size(pos) + expr_size(value),
         Stmt::Append { value, .. } => expr_size(value),
         Stmt::ForEach { body, .. } => block_size(body),
-        Stmt::Borrow { value, .. } => expr_size(value),
+        Stmt::Borrow { value, .. } | Stmt::EnumLet { value, .. } => expr_size(value),
+        Stmt::MatchStmt { scrut, arms } => expr_size(scrut) + arms_size(arms),
         Stmt::Give { .. } => 0,
     }
 }
@@ -74,10 +75,16 @@ fn expr_size(e: &Expr) -> usize {
     1 + match e {
         Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::Len(_) | Expr::Lend(_) => 0,
         Expr::At(_, a) => expr_size(a),
+        Expr::Case(_, _, d) => d.as_ref().map_or(0, |d| expr_size(d)),
+        Expr::Match(s, arms) => expr_size(s) + arms_size(arms),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_size(a) + expr_size(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_size(a),
         Expr::Call(_, args) => args.iter().map(expr_size).sum(),
     }
+}
+
+fn arms_size(arms: &[Arm]) -> usize {
+    arms.iter().map(|a| a.value.as_ref().map_or(0, expr_size) + block_size(&a.body)).sum()
 }
 
 fn block_variants(b: &[Stmt]) -> Vec<Vec<Stmt>> {
@@ -249,7 +256,16 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 out.push(vec![Stmt::Append { name: name.clone(), value: e }]);
             }
         }
-        Stmt::Borrow { .. } | Stmt::Give { .. } => {}
+        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } => {}
+        Stmt::MatchStmt { scrut, arms } => {
+            for i in 0..arms.len() {
+                for b in block_variants(&arms[i].body) {
+                    let mut a = arms.clone();
+                    a[i].body = b;
+                    out.push(vec![Stmt::MatchStmt { scrut: scrut.clone(), arms: a }]);
+                }
+            }
+        }
         Stmt::ForEach { pos, item, list, body } => {
             let mk = |pos: Option<String>, body: Vec<Stmt>| Stmt::ForEach { pos, item: item.clone(), list: list.clone(), body };
             if pos.is_some() {
@@ -283,7 +299,7 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
             }
             return out;
         }
-        Expr::Bool(_) | Expr::Var(_) | Expr::Lend(_) => return out,
+        Expr::Bool(_) | Expr::Var(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) => return out,
         Expr::Len(_) => {
             out.push(Expr::Lit(1));
             return out;
@@ -417,6 +433,12 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
             scopes.last_mut().unwrap().push(name.clone());
             ok
         }
+        Stmt::EnumLet { name, value, .. } => {
+            let ok = e(value, scopes);
+            scopes.last_mut().unwrap().push(name.clone());
+            ok
+        }
+        Stmt::MatchStmt { scrut, arms } => e(scrut, scopes) && arms_ok(arms, scopes, arity),
         Stmt::ForEach { pos, item, list, body } => {
             known(scopes, list) && {
                 scopes.push(pos.iter().cloned().chain([item.clone()]).collect());
@@ -433,10 +455,21 @@ fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bo
         Expr::Lit(_) | Expr::Bool(_) => true,
         Expr::Var(n) | Expr::Len(n) | Expr::Lend(n) => known(scopes, n),
         Expr::At(n, p) => known(scopes, n) && expr_ok(p, scopes, arity),
+        Expr::Case(_, _, d) => d.as_ref().map_or(true, |d| expr_ok(d, scopes, arity)),
+        Expr::Match(s, arms) => expr_ok(s, scopes, arity) && arms_ok(arms, &mut scopes.clone(), arity),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_ok(a, scopes, arity),
         Expr::Call(f, args) => arity.iter().any(|(n, k)| n == f && *k == args.len()) && args.iter().all(|a| expr_ok(a, scopes, arity)),
     }
+}
+
+fn arms_ok(arms: &[Arm], scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -> bool {
+    arms.iter().all(|a| {
+        scopes.push(a.bind.iter().cloned().collect());
+        let ok = a.value.as_ref().map_or(true, |v| expr_ok(v, scopes, arity)) && block_ok(&a.body, scopes, arity);
+        scopes.pop();
+        ok
+    })
 }
 
 fn calls_itself(f: &Func) -> bool {

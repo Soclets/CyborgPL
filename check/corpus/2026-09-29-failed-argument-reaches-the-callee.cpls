@@ -1,0 +1,51 @@
+# Finding 2026-09-29 (check run, seed 1027, shrunk): put_u[0 - 1] in a loop fails at the call (the
+# argument -1 does not fit uint64), and CCA rightly notes it as a check that may never run. But it
+# also carries that -1 into put_u -> emit as if it had arrived, and with the real call put_u[0] after
+# the loop it refuses emit's 'v' div 10 as failing "every time it reaches here" (line 15). From
+# put_u[0] it is 0 div 10. The oracle stops at line 47, the call, as it should.
+# check claude generator, seed 1027
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    mut 'v': uint64 = 'm';
+    mut 'ds': list[uint8] = [];
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+    change 'v' = 'v' div 10;
+    while 'v' > 0 {
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+        change 'v' = 'v' div 10;
+    }
+    mut 'k': uint64 = list.length[lend 'ds'];
+    while 'k' >/== 1 {
+        list.append[lend.mut 'buf', 'ds'['k']];
+        change 'k' = 'k' - 1;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' >/== 0 {
+        emit[to.uint64['n'], false];
+    } else {
+        'up': int64 = -('n' + 1);
+        emit[to.uint64['up'] + 1, true];
+    }
+}
+
+MAIN {
+    'w3': int8 = 6;
+    while 'w3' > 0 {
+        change 'w3' = 'w3' - 1;
+        for 'i5': int64 in range[0, 0] {
+            put_u[0 - 1];
+        }
+    }
+    put_u[0];
+}

@@ -1,0 +1,25 @@
+# Finding 2026-09-29 (check run, seed 1011, shrunk then cut by hand): in a match arm's value,
+# (14576284062462565771 div 6) mod 51 is 25 (bare numbers alone are exact, dc83c05). CCA's
+# --assert-proofs binary prints 16, as if the literal were a signed int64; its normal build, the
+# oracle, and the same group in a let, a list item or an argument all give 25. Only the build
+# with --assert-proofs is wrong. In the generated program it printed 126 for 110.
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+fn put_u ['m': uint64] {
+    mut 'buf': list[uint8] = [];
+    mut 'v': uint64 = 'm';
+    mut 'p': uint64 = 1;
+    while 'v' div 'p' >/== 10 { change 'p' = 'p' x 10; }
+    loop {
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
+        change 'v' = 'v' mod 'p';
+        if 'p' == 1 { break; }
+        change 'p' = 'p' div 10;
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+enum E { a  b }
+MAIN {
+    'v': uint64 = match E.a { a { (14576284062462565771 div 6) mod 51 } b { 1 } };
+    put_u['v'];
+}

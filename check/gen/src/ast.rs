@@ -225,6 +225,29 @@ pub enum Expr {
     Len(String),
     /// `lend 'xs'`: an argument to a borrow function, or what one returns.
     Lend(String),
+    /// `E1.c2[v]`, or `E1.c1` for a case with no data (design/enums.md).
+    Case(String, String, Option<Box<Expr>>),
+    /// `match 'e' { c1 { v } c2 'd' { return w; } }`: every case covered;
+    /// an arm gives a value, or holds statements that leave (23ab20b).
+    Match(Box<Expr>, Vec<Arm>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Arm {
+    pub case: String,
+    /// The name for the case's data, if it has any.
+    pub bind: Option<String>,
+    /// The value the arm gives (a `match` that gives a value) …
+    pub value: Option<Expr>,
+    /// … or its statements (a `match` statement, or an arm that leaves).
+    pub body: Vec<Stmt>,
+}
+
+/// `enum E1 { c1  c2: int32 }`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EnumDef {
+    pub name: String,
+    pub cases: Vec<(String, Option<Ty>)>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -268,6 +291,10 @@ pub enum Stmt {
     Borrow { name: String, value: Expr },
     /// `'g' := give 'xs';`: 'xs' is dead after this.
     Give { name: String, from: String },
+    /// `mut 'e': E1 = E1.c2[5];`
+    EnumLet { name: String, mutable: bool, en: String, value: Expr },
+    /// `match 'e' { … }` as a statement: every arm a block.
+    MatchStmt { scrut: Expr, arms: Vec<Arm> },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -317,6 +344,7 @@ pub struct Program {
     pub inputs: Vec<Input>,
     pub funcs: Vec<Func>,
     pub bfuncs: Vec<BFunc>,
+    pub enums: Vec<EnumDef>,
     pub main: Vec<Stmt>,
     /// Built with a borrow mistake on purpose: both engines must refuse it.
     pub expect_refused: bool,
@@ -336,7 +364,7 @@ fn q(name: &str) -> String {
 fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
-        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) => Some(0),
+        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
         Expr::Bin(BinOp::Mul | BinOp::Div, ..) => Some(3),
@@ -418,6 +446,8 @@ struct Wr<'a> {
     /// byte offsets while writing
     expr: Vec<(usize, usize, usize)>,
     stmt: Vec<(usize, usize, usize, usize)>,
+    /// The indent of the statement being written, for a `match` inside it.
+    indent: usize,
     _p: std::marker::PhantomData<&'a ()>,
 }
 
@@ -501,6 +531,46 @@ impl<'a> Wr<'a> {
             }
             Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
             Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
+            Expr::Case(en, c, data) => {
+                self.out.push_str(&format!("{en}.{c}"));
+                if let Some(d) = data {
+                    self.out.push('[');
+                    self.e(d);
+                    self.out.push(']');
+                }
+            }
+            Expr::Match(scrut, arms) => {
+                self.out.push_str("match ");
+                self.e(scrut);
+                self.out.push_str(" {\n");
+                let indent = self.indent;
+                self.arms(arms, indent + 1);
+                self.out.push_str(&"    ".repeat(indent));
+                self.out.push('}');
+            }
+        }
+    }
+    fn arms(&mut self, arms: &[Arm], indent: usize) {
+        let pad = "    ".repeat(indent);
+        for a in arms {
+            self.out.push_str(&pad);
+            self.out.push_str(&a.case);
+            if let Some(b) = &a.bind {
+                self.out.push_str(&format!(" {}", q(b)));
+            }
+            if let Some(v) = &a.value {
+                self.out.push_str(" { ");
+                let saved = std::mem::replace(&mut self.indent, indent);
+                self.e(v);
+                self.indent = saved;
+                self.out.push_str(" }\n");
+            } else if a.body.is_empty() {
+                self.out.push_str(" { }\n");
+            } else {
+                self.out.push_str(" {\n");
+                self.block(&a.body, indent + 1);
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
         }
     }
     fn block(&mut self, body: &[Stmt], indent: usize) {
@@ -522,7 +592,19 @@ impl<'a> Wr<'a> {
     }
     fn s(&mut self, s: &Stmt, indent: usize) {
         let pad = "    ".repeat(indent);
+        self.indent = indent;
         match s {
+            Stmt::EnumLet { name, mutable, en, value } => {
+                let head = format!("{}{}: {en} = ", if *mutable { "mut " } else { "" }, q(name));
+                self.simple(s, &pad, Tier::Default, &head, value, ";");
+            }
+            Stmt::MatchStmt { scrut, arms } => {
+                self.out.push_str(&format!("{pad}match "));
+                self.e(scrut);
+                self.out.push_str(" {\n");
+                self.arms(arms, indent + 1);
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
             Stmt::Let { tier, name, mutability, ty, value } => {
                 let m = match mutability {
                     Mutability::Plain => "",
@@ -648,7 +730,7 @@ impl<'a> Wr<'a> {
 impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
-        let mut w = Wr { out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], _p: std::marker::PhantomData };
+        let mut w = Wr { out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         w.out.push_str("extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n");
         if !self.inputs.is_empty() {
@@ -657,6 +739,16 @@ impl Program {
         }
         w.out.push('\n');
         w.out.push_str(&self.printer);
+        for e in &self.enums {
+            w.out.push_str(&format!("\nenum {} {{\n", e.name));
+            for (c, t) in &e.cases {
+                match t {
+                    Some(t) => w.out.push_str(&format!("    {c}: {}\n", t.name())),
+                    None => w.out.push_str(&format!("    {c}\n")),
+                }
+            }
+            w.out.push_str("}\n");
+        }
         for f in &self.bfuncs {
             let t = f.elem.name();
             let group = |g: &Option<String>| g.as_ref().map(|g| format!("@{g}")).unwrap_or_default();
