@@ -57,7 +57,10 @@ Owner, 2026-09-14.
   computed lives in **`build.cplr`**, a full CyborgPL program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
   chosen ones or all of them, a dependency's included. Both package managers
-  run it. The command's name is open. A
+  run it. The command is **`cca prepare`** (owner, 2026-09-29: b):
+  `cca prepare geometry money` runs those Limbs' `build.cplr`,
+  `cca prepare --all` runs every one; `synthia prepare` alike. Proposed
+  alternatives: `build-script`, `run-build`. A
   **`cca::Dep` is a name plus a `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a):
   `cca::Dep[name = "money", path = "../money"]`. The settings the oracle

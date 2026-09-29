@@ -22,8 +22,10 @@ proposed `build.cpls`, `setup.cpls`, or tied to the manifest's name; the
 owner asked whether `.cplr` must change (no: `.cplr` is CyborgPL-syntax
 tooling, the name saying which), and design claude proposed
 **`build.cplr`**, a full CyborgPL program beside the data-only `CCA.cplr`;
-owner: "yea". Both package managers run it (parity). The command's name is
-open. `tooling.md`.
+owner: "yea". Both package managers run it (parity). The command is
+**`prepare`** (owner: b): `cca prepare geometry money`, `cca prepare --all`,
+`synthia prepare` alike; proposed alternatives `build-script`, `run-build`.
+`tooling.md`.
 
 ### 2026-09-29 — One target is marked the default (owner: b)
 
