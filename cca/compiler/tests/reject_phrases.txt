@@ -56,6 +56,10 @@ bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing h
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
 bit_shl_overflow [fnv:c5fefa909a258208] :: the shift can move every bit out
 bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move every bit out
+borrow_after_append [fnv:9b170a0b5c7fb392] :: 's' cannot be changed here: 'r' still borrows it
+borrow_after_change [fnv:dd8963968cf2e918] :: 's' cannot be changed here: 'r' still borrows it
+borrow_after_give [fnv:f180241f2bdae36b] :: 's' cannot be given away here: 'r' still borrows it
+borrow_untaken_branch [fnv:c35b2be5fca54332] :: 't' cannot be changed here: 'q' still borrows it
 bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
 bound_backwards [fnv:eaa53671d88b43f0] :: the low bound comes first: `[2, 5]`
 bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
@@ -217,7 +221,9 @@ length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint
 let_chain [fnv:f0731a3b445878f7] :: `let` is gone
 let_removed [fnv:f0731a3b445878f7] :: `let` is gone
 let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
+lifetime_group_given [fnv:7d9e9805602b3e8f] :: 't' cannot be given away here: 'r' still borrows it
 lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
+lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
 lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
 lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
@@ -225,6 +231,7 @@ list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot p
 list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `integer` and this value is text: convert it first
 list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
+loop_list_changed [fnv:45ea1a1bbc40344b] :: 's' cannot be changed here: a borrow still in use here — a `for` walking it
 lte_retired [fnv:be35669e815daffa] :: less-or-equal is `</==`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys

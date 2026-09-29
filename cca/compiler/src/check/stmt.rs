@@ -340,12 +340,15 @@ impl Checker {
                                 let key = self.instances[inst.0 as usize].key.clone();
                                 let callee = self.items.fns[key.fn_id.0 as usize].clone();
                                 let cgroup = callee.ret_lent.as_ref().and_then(|(_, g)| g.clone());
+                                // With no group written, what the callee's
+                                // body hands back (check claude, 2026-09-29).
+                                let inferred = if cgroup.is_none() { self.returned_deps(*inst)? } else { None };
                                 for (i, (a, p)) in args.iter().zip(&callee.params).enumerate() {
-                                    let depends = match &cgroup {
-                                        Some(g) => p.group.as_ref() == Some(g),
-                                        None => matches!(p.kind, crate::types::ParamKind::Lent | crate::types::ParamKind::LentMut),
+                                    let depends = match (&cgroup, &inferred) {
+                                        (Some(g), _) => p.group.as_ref() == Some(g),
+                                        (None, Some(d)) => d.contains(&i),
+                                        (None, None) => matches!(p.kind, crate::types::ParamKind::Lent | crate::types::ParamKind::LentMut),
                                     };
-                                    let _ = i;
                                     if !depends {
                                         continue;
                                     }

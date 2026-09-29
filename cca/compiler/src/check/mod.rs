@@ -64,6 +64,9 @@ pub struct Checker {
     inst_index: HashMap<InstKey, FnInst>,
     /// Instances whose bodies still wait to be checked.
     pending: Vec<FnInst>,
+    /// Instances being checked right now: a body checked early to learn
+    /// what its returned borrow depends on must not be entered twice.
+    checking: std::collections::HashSet<FnInst>,
     /// Inference variables: what each `Infer` has been unified with.
     pub subst: HashMap<InferId, Ty>,
     next_infer: u32,
@@ -153,7 +156,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), amp_count: 0, literal_fns: Vec::new(), std_stubs: false, widths_pending: Vec::new() }
+        Checker { items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), amp_count: 0, literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {
@@ -426,6 +429,23 @@ impl Checker {
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {
+        self.checking.insert(inst);
+        let r = self.check_instance_body(inst);
+        self.checking.remove(&inst);
+        r
+    }
+
+    /// Check a callee now, if it waits, so what its returned borrow depends
+    /// on is known: the parameters its body hands back (owner, 2026-09-29).
+    pub fn returned_deps(&mut self, inst: FnInst) -> Result<Option<Vec<usize>>> {
+        if self.instances[inst.0 as usize].body.is_none() && !self.checking.contains(&inst) {
+            self.pending.retain(|i| *i != inst);
+            self.check_instance(inst)?;
+        }
+        Ok(self.instances[inst.0 as usize].body.as_ref().and_then(|b| b.ret_lent.as_ref().map(|(_, d)| d.clone())))
+    }
+
+    fn check_instance_body(&mut self, inst: FnInst) -> Result<()> {
         let key = self.instances[inst.0 as usize].key.clone();
         let sig = self.instances[inst.0 as usize].sig.clone();
         let decl = self.items.fns[key.fn_id.0 as usize].clone();

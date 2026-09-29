@@ -618,6 +618,18 @@ impl Checker {
                 retype_literal_arith(&mut v, &to);
             }
         }
+        // So are a list literal's items, each landing in the element type
+        // (check claude, 2026-09-29: an item was worked out at 64 bits).
+        if let (K::List(items), Ty::Seq { elem, .. }) = (&mut v.kind, t.base()) {
+            if let Ty::Int(IntW::Fixed { .. }) = self.resolve(elem).base() {
+                for item in items.iter_mut() {
+                    let hir::Arg::Value(item) = item else { continue };
+                    if matches!(self.resolve(&item.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(item) && plain_group(item) && !matches!(item.kind, K::Int(_)) {
+                        retype_literal_arith(item, &Ty::exact());
+                    }
+                }
+            }
+        }
         // A pointer that may write is also one that reads: `ptr.mut[T]`
         // goes where `ptr[T]` is wanted, never the other way.
         if let (Ty::Ptr { mutable: true, elem: e1 }, Ty::Ptr { mutable: false, elem: e2 }) = (vt.base(), t.base()) {

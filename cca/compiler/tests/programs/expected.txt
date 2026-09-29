@@ -191,3 +191,6 @@ op_values 47
 borrow_through_a_call 2
 # op - subtracts, op neg negates, op and.then refused (owner, 2026-09-29).
 operator_values 132
+# Bare-number list items exact; a borrow's group through an ungrouped call (check claude, 2026-09-29).
+list_items_exact 92
+borrow_group_inferred 2

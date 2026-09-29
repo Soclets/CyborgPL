@@ -1,0 +1,13 @@
+# A list literal's bare-number items are worked out exactly and checked where
+# they land, like any typed store (owner, dc83c05; check claude, 2026-09-29,
+# seed 197: an item was worked out at 64 bits, and 9692729768110883998 did
+# not fit). 9692729768110883998 - 3166240359165959856 = 6526489408944924142,
+# and (100 + 100) - 150 = 50 in a uint8: 42 + 50 = 92 (the oracle agrees).
+extern fn exit ['code': int32];
+MAIN {
+    'big': list[uint64] = [9692729768110883998 - 3166240359165959856, 9692729768110883998 - 1];
+    'small': list[uint8] = [(100 + 100) - 150, 7];
+    mut 'k': int32 = 0;
+    if 'big'[1] == 6526489408944924142 { change 'k' = 42; }
+    nocheck exit['k' + to.int32['small'[1]]];
+}

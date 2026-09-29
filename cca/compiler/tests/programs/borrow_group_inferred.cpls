@@ -1,0 +1,15 @@
+# A borrow handed back through a call with no group (check claude,
+# 2026-09-29): `b1`'s body hands back only 'b', so `b2`'s result is in @x.
+fn b1 [lent 'a': list[int32], lent 'b': list[int32]] -> lent list[int32] {
+    return lend 'b';
+}
+fn b2 [lent@y 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
+    return b1[lend 'a', lend 'b'];
+}
+extern fn exit ['code': int32];
+MAIN {
+    's': list[int32] = [1,];
+    't': list[int32] = [2, 3];
+    'r' := b2[lend 's', lend 't'];
+    nocheck exit[to.int32[list.length[lend 'r']]];
+}
