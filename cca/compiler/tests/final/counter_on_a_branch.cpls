@@ -14,7 +14,7 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
     mut 'acc': int64 = 0;
     mut 'i': int64 = 0;
-    while 'i' <== 'n' {
+    while 'i' </== 'n' {
         if ('n' mod 2) == 0 { change 'i' = 'i' + 1; }
         change 'acc' = 'acc' + 1_000_000_000_000;
     }

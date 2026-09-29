@@ -10,11 +10,11 @@ fn stale [lent 'xs': list[int32], 'n': int32] -> int32 {
     'v' := lend 'xs';
     mut 'i' := 1;
     'x' := 'v'['i'];
-    while 'i' <== 'n' {
+    while 'i' </== 'n' {
         change 'total' = 'total' + 'x';
         change 'i' = 'i' + 1;
     }
-    return 'total' / list.length[lend 'xs'];
+    return 'total' div list.length[lend 'xs'];
 }
 MAIN {
     'k' := "N";

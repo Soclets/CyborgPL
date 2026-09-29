@@ -529,10 +529,10 @@ impl Checker {
         let base = self.resolve(ty);
         let base = base.base().clone();
         let builtin = match &base {
-            Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) => matches!(op, "+" | "-" | "x" | "xx" | "/" | "mod" | "==" | "!==" | "<" | ">" | "<==" | ">=="),
+            Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) => matches!(op, "+" | "-" | "x" | "xx" | "div" | "mod" | "==" | "!==" | "<" | ">" | "</==" | ">/=="),
             Ty::Bool => matches!(op, "==" | "!=="),
             Ty::Str(_) | Ty::Char(_) => matches!(op, "==" | "!=="),
-            Ty::Duration => matches!(op, "==" | "!==" | "<" | ">" | "<==" | ">==" | "+" | "-"),
+            Ty::Duration => matches!(op, "==" | "!==" | "<" | ">" | "</==" | ">/==" | "+" | "-"),
             Ty::Enum { .. } => op == "==" || op == "!==",
             _ => false,
         };

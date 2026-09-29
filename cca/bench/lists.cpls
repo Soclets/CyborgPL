@@ -19,7 +19,7 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
     mut 'xs': list[int64] = [];
     mut 'i': int64 = 1;
-    while 'i' <== 'n' {
+    while 'i' </== 'n' {
         list.append[lend.mut 'xs', 'i' mod 1000];
         change 'i' = 'i' + 1;
     }
@@ -27,7 +27,7 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     mut 'r': int64 = 0;
     while 'r' < 10 {
         mut 'j': uint64 = 1;
-        while 'j' <== list.length[lend 'xs'] {
+        while 'j' </== list.length[lend 'xs'] {
             change 'acc' = 'acc' + 'xs'['j'];
             change 'j' = 'j' + 1;
         }

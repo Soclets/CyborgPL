@@ -1,7 +1,7 @@
 # Plain math is exact, and "Precog still uses narrow sizes where it proves
 # they fit" (operators.md): 'i' is at most 'n', an `int32`'s value, so
 # `'i' x 'i'` and its `mod` are 64-bit instructions, not 128-bit ones and a
-# library call. Widening at every busy block had thrown `'i' <== 'n'` away.
+# library call. Widening at every busy block had thrown `'i' </== 'n'` away.
 extern fn exit ['code': int32];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
@@ -9,7 +9,7 @@ MAIN {
     nocheck 'n': int32 = to.int32[strlen[lend 's']];
     mut 'acc': int64 = 0;
     mut 'i': int64 = 1;
-    while 'i' <== to.int64['n'] {
+    while 'i' </== to.int64['n'] {
         change 'acc' = ('acc' + (('i' x 'i') mod 7)) mod 1000000007;
         change 'i' = 'i' + 1;
     }

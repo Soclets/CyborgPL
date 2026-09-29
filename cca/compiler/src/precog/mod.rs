@@ -836,7 +836,7 @@ impl Precog {
                             // else: every cycle passes one, so it still ends,
                             // and a block inside the loop keeps what its
                             // condition just established. Widening at any
-                            // busy block threw `'i' <== 'n'` away in the
+                            // busy block threw `'i' </== 'n'` away in the
                             // body — `'i'` went back to `int64`'s top — and
                             // lost an interval across nested loops (check
                             // claude, seed 316).

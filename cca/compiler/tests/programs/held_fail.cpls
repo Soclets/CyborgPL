@@ -5,11 +5,11 @@ extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn half ['n': int32] -> int32 or fail[odd: int32] {
     if ('n' mod 2) == 1 { fail odd['n']; }
-    return 'n' / 2;
+    return 'n' div 2;
 }
 fn third ['n': int32] -> int32 or fail[odd: int32] {
     if ('n' mod 3) !== 0 { fail odd['n']; }
-    return 'n' / 3;
+    return 'n' div 3;
 }
 fn apply ['f': fn[int32] -> int32 or fail[odd: int32], 'n': int32] -> int32 {
     'v' := 'f'['n'] otherwise { odd 'x' { return 0 - 'x'; } };

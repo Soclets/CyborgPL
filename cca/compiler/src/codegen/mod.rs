@@ -1111,7 +1111,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         // Only a place's width limits this: a literal is
                         // written at its value whatever width it was built
                         // at, and 2^63 is built at 128 bits — counted, it
-                        // sent `2^63 <== 'v1'` to a 16-bit compare with 0
+                        // sent `2^63 </== 'v1'` to a 16-bit compare with 0
                         // (check claude, seed 1086).
                         let widest = match (la, lb) {
                             (Some(_), None) => yw,

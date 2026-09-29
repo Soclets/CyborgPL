@@ -8,13 +8,13 @@ MAIN {
     nocheck 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
     mut 'xs': list[bool] = [];
     mut 'i': int64 = 0;
-    while 'i' <== 'n' {
+    while 'i' </== 'n' {
         if ('i' mod 2) == 0 { list.append[lend.mut 'xs', true]; }
         change 'i' = 'i' + 1;
     }
     mut 'p': int64 = 1;
     mut 'c': int64 = 0;
-    while 'p' <== 'n' {
+    while 'p' </== 'n' {
         if 'xs'[to.uint64['p']] { change 'c' = 'c' + 1; }
         change 'p' = 'p' + 1;
     }

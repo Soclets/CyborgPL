@@ -896,7 +896,7 @@ impl<'a> Enc<'a> {
     fn forget(&mut self, env: &mut Env, l: LocalId) {
         self.forget_lengths(env, l);
         // Not removed: one unknown of its type, the same one for every read
-        // that follows, so a later test of it (a loop's `'i' <== n`) still
+        // that follows, so a later test of it (a loop's `'i' </== n`) still
         // constrains the value the site sees.
         match self.unknown_of(l) {
             Some(v) => {
@@ -1394,7 +1394,7 @@ fn resized_in(b: &BasicBlock, out: &mut std::collections::HashSet<LocalId>) {
 /// list exactly once and adds 1 to the counter exactly once, with nothing
 /// else resizing the list or writing the counter. Then the length minus the
 /// counter never changes: `length = length on entry + (counter - counter on
-/// entry)` at the head, on every trip. `while 'i' <== 'n' { list.append[…];
+/// entry)` at the head, on every trip. `while 'i' </== 'n' { list.append[…];
 /// 'i' = 'i' + 1; }` builds a list of exactly n + 1.
 fn lockstep_pairs(f: &Function, head: usize, body: &std::collections::HashSet<usize>) -> Vec<(LocalId, LocalId)> {
     let inside = |t: &BlockId| body.contains(&(t.0 as usize));

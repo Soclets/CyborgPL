@@ -12,7 +12,7 @@ MAIN {
     }
     mut 'w': uint16 = 4;
     loop {
-        if 'w' <== 0 { break; }
+        if 'w' </== 0 { break; }
         change 'w' = 'w' - 1;
         'v': uint64 = 0 - 'n';
     }

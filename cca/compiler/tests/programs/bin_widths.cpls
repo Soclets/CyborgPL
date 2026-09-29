@@ -19,7 +19,7 @@ MAIN {
     'd' := 'c' x 10.0;
     if 'd' > 0.99 and 'd' < 1.01 { change 'got' = 'got' + 8; }
     mut 'h': int32 = 0;
-    check if 'x' > 0.0 { change 'h' = to.int32['x' / 2.0] otherwise 0; }
+    check if 'x' > 0.0 { change 'h' = to.int32['x' div 2.0] otherwise 0; }
     if 'h' == 8388608 { change 'got' = 'got' + 16; }
     nocheck exit['got'];
 }

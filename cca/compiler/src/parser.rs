@@ -18,7 +18,7 @@ pub const KEYWORDS: &[&str] = &[
 ];
 
 /// The word operators; bare, but never reserved (functions.md).
-pub const WORD_OPS: &[&str] = &["x", "xx", "mod", "and", "or", "not", "xor", "shl", "shr"];
+pub const WORD_OPS: &[&str] = &["x", "xx", "mod", "div", "and", "or", "not", "xor", "shl", "shr"];
 
 pub const DURATION_UNITS: &[&str] = &["nanos", "micros", "millis", "seconds", "minutes", "hours", "nano", "micro", "milli", "second", "minute", "hour"];
 
@@ -1807,14 +1807,16 @@ impl<'a> Parser<'a> {
                 match o.as_str() {
                     "+" => BinOp::Add,
                     "-" => BinOp::Sub,
-                    "/" => BinOp::Div,
+                    "/" => return self.fail_at(at, "division is `div`: `op div`"),
                     "++" => BinOp::Join,
                     "==" => BinOp::Eq,
                     "!==" => BinOp::Ne,
                     "<" => BinOp::Lt,
                     ">" => BinOp::Gt,
-                    "<==" => BinOp::Le,
-                    ">==" => BinOp::Ge,
+                    "</==" => BinOp::Le,
+                    ">/==" => BinOp::Ge,
+                    "<==" => return self.fail_at(at, "less-or-equal is `</==`: `op </==`"),
+                    ">==" => return self.fail_at(at, "greater-or-equal is `>/==`: `op >/==`"),
                     "+~" => BinOp::WrapAdd,
                     "-~" => BinOp::WrapSub,
                     "=" => return self.fail_at(at, "`=` is not an operator: equality is `op ==`"),
@@ -1832,6 +1834,7 @@ impl<'a> Parser<'a> {
                     "x" => BinOp::Mul,
                     "xx" => BinOp::Pow,
                     "mod" => BinOp::Mod,
+                    "div" => BinOp::Div,
                     "and" | "or" if self.eat(&Tok::Dot) => {
                         let what = self.ident("`then`, `else` or `bit`")?;
                         match (w.as_str(), what.name.as_str()) {
@@ -1863,14 +1866,13 @@ impl<'a> Parser<'a> {
             Tok::Op(o) => match o.as_str() {
                 "+" => (BinOp::Add, 6, 7),
                 "-" => (BinOp::Sub, 6, 7),
-                "/" => (BinOp::Div, 7, 8),
                 "++" => (BinOp::Join, 5, 6),
                 "==" => (BinOp::Eq, 4, 5),
                 "!==" => (BinOp::Ne, 4, 5),
                 "<" => (BinOp::Lt, 4, 5),
                 ">" => (BinOp::Gt, 4, 5),
-                "<==" => (BinOp::Le, 4, 5),
-                ">==" => (BinOp::Ge, 4, 5),
+                "</==" => (BinOp::Le, 4, 5),
+                ">/==" => (BinOp::Ge, 4, 5),
                 "+~" => (BinOp::WrapAdd, 6, 7),
                 "-~" => (BinOp::WrapSub, 6, 7),
                 "=" => return None,
@@ -1884,6 +1886,7 @@ impl<'a> Parser<'a> {
                     "x" => (BinOp::Mul, 7, 8),
                     "xx" => (BinOp::Pow, 9, 9),
                     "mod" => (BinOp::Mod, 7, 8),
+                    "div" => (BinOp::Div, 7, 8),
                     "and" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "then") => (BinOp::AndThen, 2, 3),
                     "or" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "else") => (BinOp::OrElse, 1, 2),
                     "and" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::AndBit, 0, 1),
@@ -1938,8 +1941,9 @@ impl<'a> Parser<'a> {
             if let BinOp::Custom(c) = &op {
                 let hint = match c.as_str() {
                     "!=" => Some("not-equal is `!==`"),
-                    ">=" => Some("greater-or-equal is `>==` — a lone `=` is assignment and never sits inside a comparison"),
-                    "<=" => Some("less-or-equal is `<==` — a lone `=` is assignment and never sits inside a comparison"),
+                    ">=" | ">==" => Some("greater-or-equal is `>/==`, the slash read as \"or\""),
+                    "<=" | "<==" => Some("less-or-equal is `</==`, the slash read as \"or\""),
+                    "/" => Some("division is `div`: `'a' div 'b'`"),
                     "--" => Some("there is no decrement: write `change 'i' = 'i' - 1;`"),
                     "+=" | "-=" => Some("there is no compound assignment: write `change 'i' = 'i' + 1;`"),
                     _ => None,
@@ -1981,7 +1985,7 @@ impl<'a> Parser<'a> {
                     return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `mod` beside another operator — parenthesise (`('i' mod 2) == 0`)", inner.spelled(), op.spelled()));
                 }
                 if (*op == BinOp::Div && inner.is_multiplicative()) || (op.is_multiplicative() && *inner == BinOp::Div) {
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 / 2 x 3`) — parenthesise one side", inner.spelled(), op.spelled()));
+                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div 2 x 3`) — parenthesise one side", inner.spelled(), op.spelled()));
                 }
                 if op.is_comparison() && inner.is_comparison() {
                     return self.fail_at(op_span, format!("`{}` next to `{}`: comparisons do not chain — write `('a' < 'b') and ('b' < 'c')`", inner.spelled(), op.spelled()));

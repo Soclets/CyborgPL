@@ -198,7 +198,7 @@ const PROGRAMS: &[&str] = &[
      MAIN {\n\
      \x20   nocheck 'n': int32 = getpid[];\n\
      \x20   'r': int32[1, 10] = 'n';\n\
-     \x20   'q': int32 = 100 / 'n';\n\
+     \x20   'q': int32 = 100 div 'n';\n\
      \x20   'm': int32 = 100 mod 'n';\n\
      }\n",
     "extern fn getpid [] -> int32;\n\

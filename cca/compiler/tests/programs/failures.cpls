@@ -2,7 +2,7 @@ extern fn exit ['code': int32];
 fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
     if 'n' < 0 { fail negative['n']; }
     if ('n' mod 2) == 1 { fail odd; }
-    return 'n' / 2;
+    return 'n' div 2;
 }
 MAIN {
     'a' := half[10] otherwise 0;

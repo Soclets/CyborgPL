@@ -186,7 +186,7 @@ give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing
 gives_outside_strict [fnv:d5ee3746e712f21d] :: `gives` belongs to `#strict` files
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
 grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
-gte [fnv:e252ab2c27694e53] :: greater-or-equal is `>==`
+gte [fnv:695f5e2be2fe7158] :: greater-or-equal is `>/==`
 iface_empty [fnv:f5b372b2009be52e] :: list at least one `fn` or `op` signature
 iface_false_claim [fnv:6d0a1bbebbb84659] :: the claim `V satisfies Ordered` is false: no `op <` for it
 iface_false_claim_fn [fnv:099e7904d43c98bb] :: no `fn show` for it
@@ -225,6 +225,7 @@ list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot p
 list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `integer` and this value is text: convert it first
 list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
+lte_retired [fnv:be35669e815daffa] :: less-or-equal is `</==`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
@@ -260,7 +261,7 @@ ne [fnv:ef1c886d3712dd70] :: `!=` is not an operator here: not-equal is `!==`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
 no_checks_lied [fnv:25a223b72a20f04f] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
-no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 / 2 x 3`)
+no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div 2 x 3`)
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
 nocheck_lied [fnv:ee1996e7ba5a0e26] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
@@ -350,6 +351,7 @@ simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past 
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is followed by `.of`: `size.of[int32]`
+slash_retired [fnv:e0da6f74f7c02643] :: division is `div`
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list
 spread_lent_no_verb [fnv:4aeae176b5f51db7] :: `...` with no verb lends each element
 spread_lent_unbounded [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call

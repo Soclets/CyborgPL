@@ -1171,7 +1171,7 @@ impl<'a> FnBuilder<'a> {
             // `and.then` / `or.else` (owner, 2026-09-25): the right side only
             // when the left has not decided — a branch, so Precog narrows the
             // right side by the left the way an `if` narrows its body
-            // (`'i' <== list.length[…] and.then 'xs'['i']` is proven).
+            // (`'i' </== list.length[…] and.then 'xs'['i']` is proven).
             hir::ExprKind::Binary { op: op @ (crate::ast::BinOp::AndThen | crate::ast::BinOp::OrElse), lhs, rhs, .. } => {
                 let and = *op == crate::ast::BinOp::AndThen;
                 let t = self.temp(&Ty::Bool, span);

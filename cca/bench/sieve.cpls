@@ -18,17 +18,17 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
     mut 'comp': list[bool] = [];
     mut 'i': int64 = 0;
-    while 'i' <== 'n' {
+    while 'i' </== 'n' {
         list.append[lend.mut 'comp', false];
         change 'i' = 'i' + 1;
     }
     mut 'count': int64 = 0;
     mut 'p': int64 = 2;
-    while 'p' <== 'n' {
+    while 'p' </== 'n' {
         if not 'comp'[to.uint64['p' + 1]] {
             change 'count' = 'count' + 1;
             mut 'm': int64 = 'p' x 'p';
-            while 'm' <== 'n' {
+            while 'm' </== 'n' {
                 change 'comp'[to.uint64['m' + 1]] = true;
                 change 'm' = 'm' + 'p';
             }

@@ -8,7 +8,7 @@ fn average [lent 'xs': list[int32]] -> int32 or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     mut 'total' := 0;
     for 'x' in lend 'xs' { change 'total' = 'total' + 'x'; }
-    return 'total' / list.length[lend 'xs'];
+    return 'total' div list.length[lend 'xs'];
 }
 MAIN {
     'k' := "N";
