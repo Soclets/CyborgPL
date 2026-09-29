@@ -130,6 +130,8 @@ struct Sig {
     params: Vec<(String, Ty, Iv)>,
     ret: Ty,
     ret_iv: Iv,
+    /// The return has a range type, so a caller sees what it can be.
+    ret_ranged: bool,
     cost: u64,
 }
 
@@ -356,6 +358,11 @@ impl Gen {
 
     /// Whether `e` reads an unseen name.
     fn uses_unseen(&self, e: &Expr) -> bool {
+        // A call's result is unseen unless its return has a range type: the
+        // generator's promise for it is its own (seed 3118, 2026-09-29).
+        if self.calls_unseen(e) {
+            return true;
+        }
         let unseen = |n: &str| self.scopes.iter().flatten().rev().find(|v| v.name == n).map_or(false, |v| v.unseen);
         fn walk(e: &Expr, f: &dyn Fn(&str) -> bool) -> bool {
             match e {
@@ -370,6 +377,16 @@ impl Gen {
             }
         }
         walk(e, &unseen)
+    }
+
+    fn calls_unseen(&self, e: &Expr) -> bool {
+        match e {
+            // In a strict file every promise is the whole type: nothing unseen.
+            Expr::Call(f, args) => (!self.strict && !self.sigs.iter().any(|s| &s.name == f && s.ret_ranged)) || args.iter().any(|a| self.calls_unseen(a)),
+            Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => self.calls_unseen(a) || self.calls_unseen(b),
+            Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) | Expr::At(_, a) => self.calls_unseen(a),
+            _ => false,
+        }
     }
 
     fn mark_unseen(&mut self, name: &str) {
@@ -571,7 +588,7 @@ impl Gen {
         body.push(Stmt::Return(e));
         // A recursive function runs its body once per step of its counter.
         let calls = rec.map_or(1, |(_, top, _)| top as u64 + 1);
-        self.sigs.push(Sig { name: name.clone(), params: params.clone(), ret, ret_iv, cost: self.spent.max(1).saturating_mul(calls) });
+        self.sigs.push(Sig { name: name.clone(), params: params.clone(), ret, ret_iv, ret_ranged: ret_tr.range.is_some(), cost: self.spent.max(1).saturating_mul(calls) });
         Func { name, params: params.into_iter().zip(param_tys).map(|((name, _, _), ty)| Param { name, ty }).collect(), ret: ret_tr, body }
     }
 
@@ -638,13 +655,20 @@ impl Gen {
                 Stmt::Print { signed: t.signed(), value: e }
             }
             _ => {
-                let tier = if self.rng.chance(50) { Tier::Check } else { Tier::Default };
+                let tier = match self.rng.below(10) {
+                    0..=3 => Tier::Check,
+                    4 => Tier::Nocheck,
+                    5 => Tier::NoChecks,
+                    _ => Tier::Default,
+                };
                 let n = self.stmt_count() / 2 + 1;
-                if tier == Tier::Check {
+                // No risk inside a vouch either: what it vouches for must hold.
+                let guarded = tier != Tier::Default;
+                if guarded {
                     self.in_check += 1;
                 }
                 let body = self.block(n, depth - 1);
-                if tier == Tier::Check {
+                if guarded {
                     self.in_check -= 1;
                 }
                 Stmt::Block { tier, body }
@@ -888,7 +912,7 @@ impl Gen {
     fn episode(&mut self, mistake: Option<Option<usize>>) -> Stmt {
         let elem = self.belem;
         let mut body = vec![];
-        let nown = 1 + self.rng.below(3) as usize;
+        let nown = if matches!(mistake, Some(Some(_))) { 3 } else { 1 + self.rng.below(3) as usize };
         let mut owners = vec![];
         for _ in 0..nown {
             let o = self.name("o");
@@ -910,7 +934,13 @@ impl Gen {
             let mut args = vec![];
             let mut arg_deps = vec![];
             for _ in 0..f.arity {
-                if !borrows.is_empty() && self.rng.chance(35) {
+                if matches!(mistake, Some(Some(_))) {
+                    // Distinct lists, so the mistake shows even to a check
+                    // made when the call runs (seed 3143, 2026-09-29).
+                    let i = args.len() % nown;
+                    args.push(Expr::Lend(owners[i].0.clone()));
+                    arg_deps.push(vec![i]);
+                } else if !borrows.is_empty() && self.rng.chance(35) {
                     let (r, d) = self.rng.pick(&borrows).clone();
                     args.push(Expr::Lend(r));
                     arg_deps.push(d);
@@ -1082,7 +1112,8 @@ impl Gen {
     fn tier(&mut self, risky: bool) -> Tier {
         match self.rng.below(20) {
             0 | 1 if !risky && !self.positioned => Tier::Check,
-            2 if !risky => Tier::Nocheck,
+            // A vouch, never on anything left unguarded on purpose.
+            2 if !risky => if self.rng.chance(50) { Tier::Nocheck } else { Tier::NoChecks },
             _ => Tier::Default,
         }
     }
@@ -1398,7 +1429,7 @@ impl Gen {
     fn call(&mut self, t: Ty) -> Option<(Expr, Iv)> {
         let fits: Vec<Sig> = self.sigs[..self.callable]
             .iter()
-            .filter(|s| s.ret == t && self.spent + s.cost.saturating_mul(self.mult) <= self.budget)
+            .filter(|s| s.ret == t && (self.in_check == 0 || self.strict || s.ret_ranged) && self.spent + s.cost.saturating_mul(self.mult) <= self.budget)
             .cloned()
             .collect();
         if fits.is_empty() {
@@ -1417,7 +1448,7 @@ impl Gen {
     fn leaf(&mut self, t: Ty) -> (Expr, Iv) {
         let same = self.vars_of(t);
         let others = self.vars().any(|v| v.ty != t && v.ty != Ty::Bool);
-        let can_call = self.sigs[..self.callable].iter().any(|s| s.ret == t);
+        let can_call = self.sigs[..self.callable].iter().any(|s| s.ret == t && (self.in_check == 0 || self.strict || s.ret_ranged));
         let readable = self.readable(Some(t));
         let items: Vec<VarInfo> = self.vars().filter(|v| v.ty == t && self.through_to(v)).cloned().collect();
         let has_list = !self.lists().is_empty();

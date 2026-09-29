@@ -12,8 +12,9 @@ pub fn printer(rng: &mut Rng) -> String {
         _ => DIGITS_POWER_OF_TEN,
     };
     let put_i = if rng.chance(50) { PUT_I_IF } else { PUT_I_ELSE_FIRST };
+    let vouch = if rng.chance(50) { "nocheck" } else { "NO_FUCKING_CHECKS" };
     format!(
-        "fn emit ['m': uint64, 'neg': bool] {{\n    mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{digits}    list.append[lend.mut 'buf', 10];\n    nocheck write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}"
+        "fn emit ['m': uint64, 'neg': bool] {{\n    mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{digits}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}"
     )
 }
 
@@ -22,7 +23,8 @@ pub fn printer(rng: &mut Rng) -> String {
 /// strict files, and the one C call under `nocheck`.
 pub fn strict_printer(rng: &mut Rng) -> String {
     let put_i = if rng.chance(50) { STRICT_PUT_I_IF } else { STRICT_PUT_I_ELSE_FIRST };
-    format!("fn emit ['m': uint64, 'neg': bool] {{\n    mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{STRICT_DIGITS}    list.append[lend.mut 'buf', 10];\n    nocheck write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}")
+    let vouch = if rng.chance(50) { "nocheck" } else { "NO_FUCKING_CHECKS" };
+    format!("fn emit ['m': uint64, 'neg': bool] {{\n    mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{STRICT_DIGITS}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}")
 }
 
 const STRICT_DIGITS: &str = "    mut 'started': bool = false;

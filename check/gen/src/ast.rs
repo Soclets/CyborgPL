@@ -259,6 +259,9 @@ pub enum Tier {
     Default,
     Check,
     Nocheck,
+    /// `NO_FUCKING_CHECKS`: what `nocheck` turns off, and C's answers
+    /// trusted too (owner, 2026-09-27).
+    NoChecks,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -425,6 +428,7 @@ fn tier_prefix(t: Tier) -> &'static str {
         Tier::Default => "",
         Tier::Check => "check ",
         Tier::Nocheck => "nocheck ",
+        Tier::NoChecks => "NO_FUCKING_CHECKS ",
     }
 }
 
