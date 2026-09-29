@@ -33,7 +33,9 @@ fn examples_produce_expected_output() {
         let want = fs::read_to_string(src.with_extension("out")).unwrap_or_else(|_| panic!("{} has no .out", src.display()));
         let want_code: i32 = fs::read_to_string(src.with_extension("exit")).ok()
             .and_then(|s| s.trim().strip_prefix("exit:").and_then(|n| n.parse().ok())).unwrap_or(0);
-        let out = Command::new(oracle()).arg(&src).output().unwrap();
+        // a `.args` beside it: the words after `--`, one per line, for MAIN's argc/argv (owner, 2026-09-29)
+        let words: Vec<String> = fs::read_to_string(src.with_extension("args")).map(|t| t.lines().map(str::to_string).collect()).unwrap_or_default();
+        let out = Command::new(oracle()).arg(&src).args(if words.is_empty() { vec![] } else { std::iter::once("--".to_string()).chain(words).collect() }).output().unwrap();
         let got = String::from_utf8_lossy(&out.stdout).to_string();
         let code = out.status.code().unwrap_or(-1);
         // a `.test-out` beside it: its `test fn`s, run by `oracle --test` (owner, 2026-09-29), print that

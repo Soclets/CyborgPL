@@ -114,7 +114,7 @@ impl Parser {
     // program := item* Eof
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
-        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, strict_modules: Vec::new() };
+        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() };
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -313,7 +313,26 @@ impl Parser {
                     if self.module != self.limb_root { return self.err("MAIN lives at the root of the Limb (`limb.cpls`, outside any module)"); }
                     if prog.main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
-                    if *self.peek() == Tok::LBracket { return self.err("MAIN is a block, not a function: `MAIN { … }`, no parameter list"); }
+                    // the command line, as C hands it over: a count and the words (owner, 2026-09-29:
+                    // "low-level shit, decided"); anything friendlier is written in CyborgPL on top
+                    if *self.peek() == Tok::LBracket {
+                        self.advance();
+                        let mut names = Vec::new();
+                        let want = ["int32", "ptr[ptr[uint8]]"];
+                        for (k, w) in want.iter().enumerate() {
+                            let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("MAIN's parameters are C's: `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`; found {other}")) };
+                            self.expect(Tok::Colon, "`:` and the type")?;
+                            self.at_boundary = true;
+                            let t = self.ty();
+                            self.at_boundary = false;
+                            let t = t?;
+                            if ty_name(&t) != *w { return self.err(format!("MAIN's parameters are C's: '{name}' is `{w}`, not `{}`", ty_name(&t))); }
+                            names.push(name);
+                            if k == 0 { self.expect(Tok::Comma, "`,` and the second parameter, `'argv': ptr[ptr[uint8]]`")?; }
+                        }
+                        self.expect(Tok::RBracket, "`]` after MAIN's two parameters")?;
+                        prog.main_args = Some((names[0].clone(), names[1].clone()));
+                    }
                     prog.main = Some(self.block()?);
                 }
                 Tok::Word(w) if w == "op" => { let mut f = self.op_decl()?; f.vis = vis; prog.funcs.push(f); }

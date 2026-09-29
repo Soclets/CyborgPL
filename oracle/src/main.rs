@@ -154,6 +154,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         let mut dep = load_limb(&depdir, root.clone())?;
         // a dependency's MAIN never runs: only the Limb being built has one (the oracle's reading)
         dep.main = None;
+        dep.main_args = None;
         prog.modules.push(ast::ModuleDef { path: root, vis: ast::Vis::Pub, line: 0 });
         prog.funcs.extend(dep.funcs); prog.structs.extend(dep.structs); prog.enums.extend(dep.enums);
         prog.interfaces.extend(dep.interfaces); prog.claims.extend(dep.claims); prog.consts.extend(dep.consts);
@@ -194,6 +195,11 @@ pub fn run_path(path: &Path, out: Box<dyn std::io::Write>) -> Result<u8, String>
 
 /// `tests`: run every `test fn` instead of MAIN (`cca test`, owner 2026-09-29).
 pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Result<u8, String> {
+    run_with_args(path, out, tests, Vec::new())
+}
+
+/// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
+pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
     let prog = load(path)?;
     let mut out = out;
     for _ in 0..parser::AMPERSANDS.swap(0, std::sync::atomic::Ordering::Relaxed) {
@@ -201,18 +207,23 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
         writeln!(out, "What are you? Rust programmer or Claude?").map_err(|e| e.to_string())?;
     }
     let mut interp = interp::Interp::new(&prog, out);
+    let mut argv = vec![path.display().to_string()];
+    argv.extend(args);
+    interp.set_args(argv);
     let r = if tests { interp.run_tests() } else { interp.run() };
     r.map_err(|e| if e.line == 0 { format!("{}: {}", path.display(), e.msg) } else { format!("{}: line {}: {}", path.display(), e.line, e.msg) })
 }
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let (tests, target) = match args.as_slice() {
+    // `oracle [--test] <program> [-- words for the program's argv]`
+    let (head, rest) = match args.iter().position(|a| a == "--") { Some(i) => (&args[..i], args[i + 1..].to_vec()), None => (&args[..], Vec::new()) };
+    let (tests, target) = match head {
         [_, t] => (false, t),
         [_, flag, t] if flag == "--test" => (true, t),
-        _ => { eprintln!("usage: oracle [--test] <file.cpls | limb-directory>"); exit(2); }
+        _ => { eprintln!("usage: oracle [--test] <file.cpls | limb-directory> [-- program arguments]"); exit(2); }
     };
-    match run_path_as(Path::new(target), Box::new(std::io::stdout()), tests) {
+    match run_with_args(Path::new(target), Box::new(std::io::stdout()), tests, rest) {
         Ok(code) => exit(code as i32),
         Err(msg) => { eprintln!("{msg}"); exit(1); }
     };

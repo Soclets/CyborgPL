@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Command-line arguments: `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`, C's own (owner: "low-level shit, decided")
+
+`cca run` could not pass arguments: the language had no door for them. The
+owner asked what they are (the words after a program's name), whether
+reading them is not written in CyborgPL (the understanding is — flags,
+subcommands, a friendly list, in std or a Limb; the raw words reach only
+the runtime at start-up, so the language needs one door), and why not
+"the low-level shit". Proposed: (a) `std::args[]` (a std question, so
+out); (b) `MAIN ['args': list[str.utf8]]`, a ready list (design claude's
+recommendation); (c) `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`, C's
+own data; (d) nothing until std. The owner: "isn't it the base lang, it's
+even lower than std. It's not like we're in the Lua level, we're at Rust,
+C, C++ level", then "low-level shit, decided". So MAIN may take the two
+parameters, exactly these types (names free); as in C, the program's name
+comes first, each word ends in a NUL, and `argv[argc]` is a null pointer
+(design claude's reading of "C's own"). Reading them is `nocheck`. A MAIN
+without parameters stays as it was. `examples/args.cpls` (its `.args`
+holds the words the test passes; `oracle file -- words`); reject tests
+main_args_type, main_args_one. `functions.md`.
+
 ### 2026-09-29 — A dependency may have a MAIN, which runs only when that Limb itself is run (owner: a)
 
 CCA refused a MAIN in a Limb others depend on; the oracle dropped it;

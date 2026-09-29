@@ -123,8 +123,28 @@ whole-program analysis and owns the program's top-level values. Next to
 that reason: its distinctness is the feature, and Rust's `fn main` being an
 ordinary callable function was the thing disliked.
 
-A Limb with a `MAIN` is a program; without one, a library. Command-line
-arguments come from the std Limb.
+A Limb with a `MAIN` is a program; without one, a library. A Limb another
+depends on may have one too, run only when that Limb is run itself
+(owner, 2026-09-29).
+
+**Command-line arguments arrive as C has them** (owner, 2026-09-29:
+"low-level shit, decided" — "we're at Rust, C, C++ level"):
+
+```
+MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
+    nocheck 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
+    …
+}
+```
+
+Exactly these two types (the names are free); the program's name comes
+first, each word ends in a NUL, and `argv[argc]` is a null pointer. Reading
+them is C's world, so `nocheck`. Anything friendlier — a list of text,
+flags, `--help` — is written in CyborgPL on top, in std or a Limb. The
+2026-09-14 line here said the arguments "come from the std Limb"; the
+owner put the door in the base language instead. Proposed alternatives: a
+ready `list[str.utf8]` (design claude's recommendation); `std::args[]`;
+nothing until std. `examples/args.cpls`.
 
 History: first decided as `func.int32 MAIN` with a mandatory `return`, then
 simplified the same day; `func` became `fn` on 2026-09-19.

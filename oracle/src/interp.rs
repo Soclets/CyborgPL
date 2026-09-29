@@ -98,6 +98,8 @@ pub struct Interp<'p> {
     ret_line: usize,
     /// inside `must.fail`: a failure passes up to it whatever the test's own `fail[…]`
     must_fail_depth: u32,
+    /// the command line, program name first, as C's argv has it
+    args: Vec<String>,
     /// the matched case's data type, for the name an arm binds
     arm_ty: Option<Ty>,
     /// Limb-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
@@ -147,17 +149,36 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
+    pub fn set_args(&mut self, args: Vec<String>) { self.args = args; }
+
     pub fn run(&mut self) -> Result<u8, RuntimeError> {
         self.prepare()?;
         let main = match &self.prog.main {
             Some(m) => m,
             None => return rt(0, "this Limb has no MAIN, so it is a library, not a program"),
         };
-        match self.block(main) {
+        // `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`: C's own view of the command line — the
+        // program's name first, each word NUL-ended, and a null pointer after the last (owner, 2026-09-29)
+        self.push();
+        if let Some((argc, argv)) = &self.prog.main_args {
+            let words: Vec<Value> = self.args.iter()
+                .map(|w| Value::Ptr(Ptr { cell: Some(Rc::new(RefCell::new(Value::Str(w.clone())))), index: 0, mutable: false }))
+                .chain(std::iter::once(Value::Ptr(Ptr { cell: None, index: 0, mutable: false })))
+                .collect();
+            let n = Value::Int(self.args.len() as i128);
+            let vec = Value::Ptr(Ptr { cell: Some(Rc::new(RefCell::new(Value::List(words)))), index: 0, mutable: false });
+            let int32 = Ty::Int(crate::ast::IntWidth::W32);
+            let pp = Ty::Ptr(Box::new(Ty::Ptr(Box::new(Ty::Uint(crate::ast::IntWidth::W8)), false)), false);
+            self.declare(argc, Slot { cell: Rc::new(RefCell::new(n)), ty: Some(int32), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: false, since: 0, deps: Vec::new() }, 0)?;
+            self.declare(argv, Slot { cell: Rc::new(RefCell::new(vec)), ty: Some(pp), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: false, since: 0, deps: Vec::new() }, 0)?;
+        }
+        let r = self.block(main);
+        self.pop();
+        match r {
             Ok(Flow::Normal) => Ok(0),
             Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
             Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
