@@ -36,8 +36,30 @@ behaviour; neither engine ran it. Three questions:
    `.u`, then `.useful`). Design claude first recommended the shortest
    form "as `bin` prints"; the owner pointed out that only `printu` prints
    it, and the default prints the stored form.
-Still open: an integer with more digits than the `deci` holds; text; the
-exponent (a `deci` keeps `1.50` apart from `1.5`). `types.md`.
+Then three more the same day:
+4. **An integer that could have more digits than the `deci` holds converts
+   with `otherwise`, failing `too_many_digits`** (owner: c): `to.deci64['c']
+   otherwise …` for an `int64`; an `int32` into a `deci64` always fits and
+   takes none. The owner asked what (a 20-digit `int64` into 16 digits),
+   whether design claude knew what Precog was (the first answer had said
+   "the program stops", which is only the working build), what the other
+   `to`s do (`to.bin64[int]` rounds silently; `bin` → integer fails
+   `not_whole`), what (b) would do, and whether `otherwise` was needed, which
+   raised (c). Proposed alternatives: round, as `to.bin64` does (a); a check
+   site like narrowing (b, design claude's first recommendation).
+5. **Text with more digits than the `deci` holds fails `too_many_digits`**
+   (owner: a), beside `not_a_number` and `out_of_range`; the grammar is
+   `bin`'s. Proposed alternative: round.
+6. **A `deci` keeps its trailing zeros, as IEEE does** (owner: a): `1.50`
+   stays `1.50`, `2.50 x 2` is `5.00`, and `1.50 == 1.5`. `print` shows
+   `1.50`; `print.useful` shows `1.5`. Proposed alternative: always drop
+   them.
+7. **Each machine lays a `deci` out its own usual way** (owner): DPD on IBM
+   POWER and z, whose hardware uses it; BID elsewhere, as C's `_Decimal64`
+   does there, so a `deci` passed to C always matches. Proposed
+   alternatives: always DPD; always BID. The owner asked when
+   hardware-compatible `deci` comes: using the decimal instructions needs a
+   POWER or z target, compiler work for if-and-when. `types.md`.
 
 ### 2026-09-29 — A generic `op`; one that overlaps a specific one is an error (owner: allow, a)
 

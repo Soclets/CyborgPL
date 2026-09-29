@@ -53,6 +53,18 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   width (a `bin64` 0.1 is `0.1000000000000000` in a `deci64`, and shows
   its binary tail in a `deci128`); `to.deci64.useful['w']` gives the
   shortest decimal that reads back as the same `bin` (`0.1`).
+- **From an integer**: `to.deci64['c'] otherwise …` fails
+  `too_many_digits` when the integer's type could have more digits than
+  the `deci` holds (an `int64` into a `deci64`); an `int32` into a
+  `deci64` always fits and takes no `otherwise`.
+- **From text**: `bin`'s grammar; more digits than the width fails
+  `too_many_digits`, beside `not_a_number` and `out_of_range`.
+- **Trailing zeros are kept**, as IEEE does: `1.50` stays `1.50`, `2.50 x
+  2` is `5.00`, `1.50 == 1.5` is true. `print` shows `1.50`, `print.useful`
+  `1.5`.
+- **The bit layout is each machine's own**: DPD on IBM POWER and z (their
+  decimal hardware), BID elsewhere (as C's `_Decimal64` there), so a `deci`
+  handed to C always matches.
 - `deci` is its own family: it never mixes with `bin` or an integer
   without `to.…` (2026-09-14).
 
