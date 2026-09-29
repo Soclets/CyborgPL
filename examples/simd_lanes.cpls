@@ -1,0 +1,9 @@
+# A vector's lane is read like a list's item, 'v'[1], 1-based; the wrapping forms work lane by lane at
+# the element's size (simd.md; found by check claude, 2026-09-29).
+MAIN {
+    'a': simd[int32, 4] = simd.fill[4];
+    'x': int32 = 'a'[1];
+    'u': simd[uint8, 16] = simd.fill[200];
+    'w' := 'u' +~ 'u';
+    std::print.stdout['x', " ", 'w'[1], " ", 'w'[16], \n];
+}

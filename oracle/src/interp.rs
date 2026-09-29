@@ -1512,7 +1512,7 @@ impl<'p> Interp<'p> {
 
     /// `'xs'[i]` when `'xs'` holds a list or array: the one position inside, as an index.
     fn as_index(&self, name: &str, args: &Bracket, has_handler: bool, line: usize) -> Result<Option<Expr>, RuntimeError> {
-        let holds_list = self.lookup(name).map(|s| matches!(&*s.cell.borrow(), Value::List(_) | Value::Str(_))).unwrap_or(false);
+        let holds_list = self.lookup(name).map(|s| matches!(&*s.cell.borrow(), Value::List(_) | Value::Str(_) | Value::Simd(_))).unwrap_or(false);
         if !holds_list { return Ok(None); }
         if self.prog.strict_modules.iter().any(|m| *m == self.module) { return rt(line, format!("`#strict`: a list read says it is a position: `'{name}'[pos 2]`")); }
         if has_handler { return rt(line, format!("reading '{name}'[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`")); }
@@ -1713,7 +1713,8 @@ impl<'p> Interp<'p> {
             Expr::Index(name, idx, _) => {
                 let v = self.read_var(name, line)?;
                 let items = match v {
-                    Value::List(items) => items,
+                    // a vector's lane, 1-based like every position (simd.md; check claude, 2026-09-29)
+                    Value::List(items) | Value::Simd(items) => items,
                     Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `std::str.at.grapheme[lend '{name}', pos …]` (decided 2026-09-20)")),
                     other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())),
                 };
@@ -2225,6 +2226,8 @@ impl<'p> Interp<'p> {
                 };
                 if let Some(m) = mixed { return rt(line, format!("`{op}` wraps at one size, and this mixes {m}: say which, `to.int16[…]` around a side")); }
                 let width = if op == "xx~" { self.expr_ty(l) } else { self.expr_ty(l).or_else(|| self.expr_ty(r)) };
+                // a vector wraps lane by lane at its element's size (simd.md; check claude, 2026-09-29)
+                let width = match width { Some(Ty::Simd(e, _)) => Some(*e), w => w };
                 let (bits, signed) = match width {
                     Some(Ty::Int(w)) => (int_bits(&w), true),
                     Some(Ty::Uint(w)) => (int_bits(&w), false),
@@ -2235,17 +2238,30 @@ impl<'p> Interp<'p> {
                 };
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
-                let (x, y) = match (a, b) { (Value::Int(x), Value::Int(y)) => (x, y), (a, b) => return rt(line, format!("`{op}` is integer arithmetic, got {} and {}", a.kind(), b.kind())) };
-                let raw = match op.as_str() {
-                    "+~" => x.wrapping_add(y),
-                    "-~" => x.wrapping_sub(y),
-                    "x~" => x.wrapping_mul(y),
-                    _ => { if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
+                let wrap = |x: i128, y: i128| -> Result<i128, RuntimeError> {
+                    let raw = match op.as_str() {
+                        "+~" => x.wrapping_add(y),
+                        "-~" => x.wrapping_sub(y),
+                        "x~" => x.wrapping_mul(y),
+                        _ => { if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
+                    };
+                    let m: i128 = 1i128 << bits;
+                    let mut v = raw.rem_euclid(m);
+                    if signed && v >= m / 2 { v -= m; }
+                    Ok(v)
                 };
-                let m: i128 = 1i128 << bits;
-                let mut v = raw.rem_euclid(m);
-                if signed && v >= m / 2 { v -= m; }
-                Ok((Value::Int(v), Prov::Plain))
+                let lane = |v: &Value| match v { Value::Int(i) => Some(*i), _ => None };
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => Ok((Value::Int(wrap(x, y)?), Prov::Plain)),
+                    (Value::Simd(xs), Value::Simd(ys)) if xs.len() == ys.len() => {
+                        let mut out = Vec::with_capacity(xs.len());
+                        for (p, q) in xs.iter().zip(&ys) { match (lane(p), lane(q)) { (Some(x), Some(y)) => out.push(Value::Int(wrap(x, y)?)), _ => return rt(line, format!("`{op}` is integer arithmetic, lane by lane")) } }
+                        Ok((Value::Simd(out), Prov::Plain))
+                    }
+                    (Value::Simd(xs), Value::Int(y)) => { let mut out = Vec::new(); for p in &xs { match lane(p) { Some(x) => out.push(Value::Int(wrap(x, y)?)), None => return rt(line, format!("`{op}` is integer arithmetic, lane by lane")) } } Ok((Value::Simd(out), Prov::Plain)) }
+                    (Value::Int(x), Value::Simd(ys)) => { let mut out = Vec::new(); for q in &ys { match lane(q) { Some(y) => out.push(Value::Int(wrap(x, y)?)), None => return rt(line, format!("`{op}` is integer arithmetic, lane by lane")) } } Ok((Value::Simd(out), Prov::Plain)) }
+                    (a, b) => rt(line, format!("`{op}` is integer arithmetic, got {} and {}", a.kind(), b.kind())),
+                }
             }
             // Bitwise (decided 2026-09-21): integers only; `shl` past the width is a check site.
             Expr::Binary(op, l, r, _) if matches!(op.as_str(), "and.bit" | "or.bit" | "xor" | "shl" | "shr") => {
