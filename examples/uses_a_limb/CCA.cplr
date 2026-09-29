@@ -5,6 +5,6 @@ const 'dependencies' := [
     cca::Dep[name = "runnable", path = "../limbs/runnable"],
 ];
 const 'targets' := [
-    cca::Target[name = "aarch64-macos"],
+    cca::Target[name = "aarch64-macos", default = true],
     cca::Target[name = "aarch64-linux", runner = "qemu-aarch64"],
 ];

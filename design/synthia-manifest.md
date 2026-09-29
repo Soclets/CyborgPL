@@ -72,5 +72,12 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   `cca::Dep[name = "geometry", id = "…", version = "1.2"]`, `name` being the
   local name.
 
-Open: how an update proves it comes from the ID's owner; which of
-`CCA.cplr`'s targets is the default.
+- **One target is marked the default** (owner, 2026-09-29: b), the one
+  built when none is named: `aarch64-macos.default = yes` here, `default =
+  true` on one `cca::Target` in `CCA.cplr`. With several targets exactly one
+  is marked; a single target is the default by itself. Proposed
+  alternatives: this machine's, if listed (compiler claude's suggestion,
+  which takes the target from the host, against reproducible builds); the
+  first listed; none.
+
+Open: how an update proves it comes from the ID's owner.

@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — One target is marked the default (owner: b)
+
+Asked by design claude and, the same moment, by compiler claude: with
+several targets and none named, which is built? Proposed (a) this
+machine's, if listed (compiler claude's suggestion; it takes the target
+from the host, which reproducible builds forbid); (b) one marked
+default; (c) the first listed; (d) none. Design claude recommended b;
+owner: b. `aarch64-macos.default = yes` in `Synthia.ttsr`, `default =
+true` on one `cca::Target` in `CCA.cplr` (a CyborgPL bool, design
+claude's spelling there). With several targets exactly one is marked; the
+oracle refuses otherwise (reject test manifest_no_default).
+`synthia-manifest.md`.
+
 ### 2026-09-29 — `Synthia.ttsr` comments are `#`; names may repeat, IDs never (owner)
 
 Comments are `#` with a space after it, as in CyborgPL (owner; proposed

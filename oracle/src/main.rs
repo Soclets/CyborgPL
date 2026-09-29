@@ -114,15 +114,24 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                 }
                 let mut items = Vec::new();
                 for v in &c.value.values { let ast::Value::Expr(x) = v; each(x, &mut items); }
+                let count = items.len();
+                let mut defaults = 0;
                 for it in items {
                     let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a target is `cca::Target[name = …]`, with a `runner` if it has one", c.line)) };
                     if shape != "::cca.Target" { return Err(format!("{shown}: line {line}: a target is a `cca::Target`")); }
                     if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a target needs its `name`")); }
                     for (f, b) in &fields {
-                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cca::Target` has no `{f}`; it has `name` and `runner`")); }
+                        // the one built when none is named (owner, 2026-09-29: b)
+                        if f == "default" {
+                            match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Bool(true, _))] => defaults += 1, [ast::Value::Expr(ast::Expr::Bool(false, _))] => {},
+                                _ => return Err(format!("{shown}: line {line}: `default` is `true` or `false`")) }
+                            continue;
+                        }
+                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cca::Target` has no `{f}`; it has `name`, `runner` and `default`")); }
                         text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                     }
                 }
+                if count > 1 && defaults != 1 { return Err(format!("{shown}: line {}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)", c.line)); }
             }
             "dependencies" => {
                 fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {

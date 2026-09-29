@@ -1,0 +1,1 @@
+const 'targets' := [cca::Target[name = "aarch64-macos"], cca::Target[name = "aarch64-linux"]];
