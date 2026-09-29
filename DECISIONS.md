@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `synthia show` prints the manifest exactly as written (owner: "Raw")
+
+Relayed by synthia claude. Proposed: (a) the file itself; (b) a
+plain-words summary ("needs: geometry 1.2, from the registry", the
+targets and the default). Synthia claude recommended (b). The owner:
+"Raw"; asked whether that means exactly as written rather than tidied:
+"exactly, because there's `--readable` for the more readable ver". So
+`synthia show` prints the checked manifest with its comments, blank lines
+and order kept, and `--readable` changes only the time values
+(`time.created = 29 September 2026, 17:40 (UTC+7), 2 hours ago`). As
+synthia claude built it (feature.cli.show), not ruled: every other byte
+stays, line endings included; a wrong manifest prints its problems in
+CCA's shape and exits 1; it reads `Synthia.ttsr` in the current folder.
+Its wording for no command, an unknown command or flag, and no manifest
+("error: there is no Synthia.ttsr in this folder") is provisional,
+not yet asked.
+
 ### 2026-09-29 — Readable times come from `synthia show --readable` (owner)
 
 Relayed by synthia claude. Replaces the "another command" part of the

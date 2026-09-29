@@ -37,7 +37,10 @@ x86_64-windows.runner = wine
   separate command, just not exactly the same one", replacing "`c`, but it
   should be another command"): in the zone written in the file, plus how
   long ago — `29 September 2026, 17:40 (UTC+7), 2 hours ago`. The clock is
-  read only for "ago", on display. Open: the layout of `synthia show`. Builds never read these times
+  read only for "ago", on display. `synthia show` prints the manifest
+  **exactly as written**, comments, blank lines and order kept, once it is
+  checked (owner: "Raw", "exactly, because there's `--readable` for the
+  more readable ver"); `--readable` changes only the time values. Builds never read these times
   (reproducible builds).
 - **A dependency is dotted keys** (owner: b): `geometry.version = 1.2`,
   `money.path = ../money`. A published one is named by **its ID**, which
