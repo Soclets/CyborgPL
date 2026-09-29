@@ -1,0 +1,15 @@
+# In a `#strict` file a case says its value with `gives` (owner, 2026-09-29: b), and may do
+# other work first.
+#strict
+enum Status { empty  claimed: str.utf8  locked }
+fn label ['s': Status] -> str.utf8 {
+    immut 'text' := match 's' {
+        empty         { gives "free"; }
+        claimed 'who' { immut 'prefix' := "taken by "; gives 'prefix' ++ 'who'; }
+        locked        { gives "locked"; }
+    };
+    return give 'text';
+}
+MAIN {
+    std::printu.stdout[label[Status.claimed["bo"]], \n];
+}

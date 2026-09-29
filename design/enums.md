@@ -65,7 +65,32 @@ same shape; the oracle resolves by name at run time, the compiler by the
 symbol table — no ambiguity, since a type and a module cannot share a name
 in one scope (open: state that rule).
 
+## A `match` that gives a value (owner, 2026-09-29)
+
+```
+'label' := match 's' {
+    empty         { "free" }
+    claimed 'who' { "taken by " ++ 'who' }
+    locked        { return "(locked)"; }      # a case may still leave instead
+};
+```
+
+A case whose block holds only a value is that value (a). A block is
+either one value or statements that leave, never a mix, so there is no
+question of which line was the value. Every case is still covered, and a
+case that gives a value in a `match` used as a statement is an error.
+The same holds for `otherwise` with several reasons:
+`to.int32['t'] otherwise { not_a_number { -2 } out_of_range { -1 } }`.
+
+**In a `#strict` file a case says it with `gives`** (b): `empty { gives
+"free"; }`, and it may do other work first. `gives` belongs to strict
+files, as `pos` does, and the bare value is refused there. Proposed
+alternative: an arrow, `empty -> "free"`, which collides with `->` for
+return types. "`match` is a statement" (2026-09-20) was design claude's
+detail, not a ruling. The owner asked what `match` is for and why the
+word, since that is `enums.md` above. `examples/match_value.cpls`,
+`examples/strict_match.cpls`.
+
 ## Open
 
 - A catch-all arm — deliberately not offered; exhaustiveness is the point.
-- A `match` that yields a value.

@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A `match` gives a value: `{ "free" }`, and `{ gives "free"; }` in `#strict` (owner: a, b)
+
+The first everyday item on the base-language list. The owner asked what
+`match` is for (a branch per enum case, every case covered, the data
+unpacked) and why the word (chosen 2026-09-20: matched against shapes;
+`switch` has fall-through baggage, `when` reads as time). How a case gives
+a value: (a) a block holding only a value is that value; (b) a word,
+`empty { gives "free"; }`; (c) an arrow, `empty -> "free"`. Design claude
+recommended a. The owner asked why `};` ends the line (the declaration
+ends there, as after `5`). Owner: "`a` for normal, `b` for `#strict`".
+Following the `pos` pattern, `gives` is strict-only and the bare value is
+refused in strict files. In strict files statements may come before
+`gives`. A case may leave instead of giving. The same rule gives
+`otherwise` with several reasons a value. "`match` is a statement" had
+been design claude's detail, not a ruling. `enums.md`, `core-features.md`;
+`examples/match_value.cpls`, `examples/strict_match.cpls`; reject tests
+strict_match_needs_gives, gives_outside_strict, match_value_unused.
+
 ### 2026-09-28 — `synthia tune`: CPU-or-GPU measured once, saved to `tune.cplt` (owner)
 
 The owner asked whether Precog would run a loop on CPU and on GPU at

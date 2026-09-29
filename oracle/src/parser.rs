@@ -12,7 +12,7 @@ use crate::value::ty_name;
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
+    "fn", "let", "change", "gives", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
     "temp", "perm", "range", "seq", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
@@ -51,6 +51,8 @@ pub struct Parser {
     strict: bool,
     /// a `return <value>` seen in the body being parsed (a `#strict` fn must then write `-> T`)
     saw_value_return: bool,
+    /// inside a `match` / `otherwise` case's block: `gives` may appear
+    arm_depth: usize,
     /// set while parsing a map literal's key: the `=` after it pairs, it is not an assignment
     in_map_key: bool,
     /// set while parsing an extern signature or a layout.c struct: `ptr[T]` is allowed
@@ -66,9 +68,9 @@ pub struct Parser {
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new() } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -1029,6 +1031,14 @@ impl Parser {
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
                 "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20)"),
+                "gives" => {
+                    if !self.strict { return self.err("`gives` belongs to `#strict` files; elsewhere a case's value is written alone: `empty { \"free\" }`"); }
+                    if self.arm_depth == 0 { return self.err("`gives` gives a `match` or `otherwise` case its value; there is no case here"); }
+                    self.advance();
+                    let value = self.rhs()?;
+                    self.expect(Tok::Semi, "`;` after the value")?;
+                    Ok(Stmt::Gives { value, line })
+                }
                 "match" => {
                     // match v { case ['bind'] { … } … }   (design/enums.md, 2026-09-20)
                     self.advance();
@@ -1511,9 +1521,29 @@ impl Parser {
                 other => return self.err(format!("expected a case name to handle, found {other}")),
             };
             let bind = if let Tok::Var(v) = self.peek().clone() { self.advance(); Some(v) } else { None };
-            let body = self.block()?;
+            // `{ "free" }` — a block holding only a value is that value (owner, 2026-09-29: a); in a
+            // `#strict` file the value is said with `gives` instead (b)
+            let mut value = None;
+            if *self.peek() == Tok::LBrace && *self.peek_at(1) != Tok::RBrace {
+                let save = self.pos;
+                self.advance();
+                let try_value = self.expr();
+                if matches!(try_value, Ok(_)) && *self.peek() == Tok::RBrace {
+                    if self.strict { return self.err(format!("`#strict`: a case says its value with `gives`: `{name} {{ gives …; }}`")); }
+                    self.advance();
+                    value = try_value.ok();
+                } else {
+                    self.pos = save;
+                }
+            }
+            let body = if value.is_some() { Vec::new() } else {
+                self.arm_depth += 1;
+                let b = self.block();
+                self.arm_depth -= 1;
+                b?
+            };
             if arms.iter().any(|a: &Arm| a.name == name) { return self.err(format!("`{name}` is handled twice")); }
-            arms.push(Arm { name, bind, body, line });
+            arms.push(Arm { name, bind, value, body, line });
         }
         self.advance();
         Ok(arms)
@@ -2066,6 +2096,14 @@ impl Parser {
                 }
                 // bare `true[…]` is the boolean followed by a bracket; a function named `true` is
                 // legal and reached by path (keywords may name functions, 2026-09-19)
+                "match" => {
+                    // 'label' := match 's' { empty { "free" } … };   (owner, 2026-09-29)
+                    self.advance();
+                    let value = self.rhs()?;
+                    if *self.peek() != Tok::LBrace { return self.err(format!("expected `{{` after the value to match, found {}", self.peek())); }
+                    let arms = self.arms("match")?;
+                    Ok(Expr::Match(value, arms, line))
+                }
                 "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}[…]` is no call; a function named `{w}` is reached by path: `limb.{w}[…]`")),
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }

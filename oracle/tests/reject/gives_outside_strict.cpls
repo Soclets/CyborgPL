@@ -1,0 +1,3 @@
+# gives belongs to #strict files (owner, 2026-09-29)
+enum S { a  b }
+MAIN { 'x' := match S.a { a { gives 1; } b { gives 2; } }; }

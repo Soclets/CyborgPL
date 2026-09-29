@@ -1,0 +1,21 @@
+# A `match` that gives a value (owner, 2026-09-29: a): a case whose block holds only a value is
+# that value; a case may still leave instead (`return`, `fail`, `break`). The same holds for
+# `otherwise` with several reasons. Every case is still covered.
+enum Status { empty  claimed: str.utf8  locked }
+fn label ['s': Status] -> str.utf8 {
+    'text' := match 's' {
+        empty         { "free" }
+        claimed 'who' { "taken by " ++ 'who' }
+        locked        { return "(locked)"; }
+    };
+    return give 'text';
+}
+MAIN {
+    'n' := to.int32["12x"] otherwise { not_a_number { -2 } out_of_range { -1 } };
+    std::printu.stdout[label[Status.empty], " / ", label[Status.claimed["ann"]], " / ", label[Status.locked], " / ", 'n', \n];
+    match Status.empty {
+        empty { std::printu.stdout["statement match still works", \n]; }
+        claimed 'w' { }
+        locked { }
+    }
+}

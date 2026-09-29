@@ -56,7 +56,7 @@ struct Slot {
 }
 
 #[derive(Debug)]
-pub enum Flow { Normal, Break, Continue, Return(Value), Fail(String, Option<Value>) }
+pub enum Flow { Normal, Break, Continue, Return(Value), Fail(String, Option<Value>), Give(Value) }
 
 /// A started, not-yet-run task (design/concurrency.md).
 struct Task {
@@ -168,6 +168,7 @@ impl<'p> Interp<'p> {
             Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
             Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
+            Ok(Flow::Give(_)) => rt(0, "`gives` outside a case"),
             Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
             Err(e) => Err(e),
         }
@@ -411,6 +412,7 @@ impl<'p> Interp<'p> {
             }
             Ok(Flow::Return(_)) => rt(task.line, "`return` inside a task: a task is a block, not a function"),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(task.line, "`break`/`continue` inside a task reach no loop"),
+            Ok(Flow::Give(_)) => rt(task.line, "`gives` outside a case"),
             Ok(Flow::Normal) => Ok(()),
             Err(e) => Err(e),
         }
@@ -609,7 +611,7 @@ impl<'p> Interp<'p> {
             Stmt::Loop { body, .. } => loop {
                 match self.block(body)? {
                     Flow::Break => return Ok(Flow::Normal),
-                    f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
+                    f @ (Flow::Return(_) | Flow::Fail(..) | Flow::Give(_)) => return Ok(f),
                     Flow::Normal | Flow::Continue => {}
                 }
             },
@@ -617,7 +619,7 @@ impl<'p> Interp<'p> {
                 while self.cond(cond, *line)? {
                     match self.block(body)? {
                         Flow::Break => break,
-                        f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
+                        f @ (Flow::Return(_) | Flow::Fail(..) | Flow::Give(_)) => return Ok(f),
                         Flow::Normal | Flow::Continue => {}
                     }
                 }
@@ -637,7 +639,7 @@ impl<'p> Interp<'p> {
                     self.pop();
                     match r? {
                         Flow::Break => break,
-                        f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
+                        f @ (Flow::Return(_) | Flow::Fail(..) | Flow::Give(_)) => return Ok(f),
                         Flow::Normal | Flow::Continue => {}
                     }
                 }
@@ -675,7 +677,7 @@ impl<'p> Interp<'p> {
                     self.pop();
                     match r? {
                         Flow::Break => { broke = true; break; }
-                        f @ (Flow::Return(_) | Flow::Fail(..)) => return Ok(f),
+                        f @ (Flow::Return(_) | Flow::Fail(..) | Flow::Give(_)) => return Ok(f),
                         Flow::Normal | Flow::Continue => {}
                     }
                     match i.checked_add(step) { Some(n) => i = n, None => break }
@@ -794,25 +796,16 @@ impl<'p> Interp<'p> {
             }
             Stmt::Match { value, arms, line } => {
                 let (v, _) = self.single(value, *line)?;
-                let (tname, case, data) = match v { Value::Enum(t, c, d) => (t, c, d), other => return rt(*line, format!("`match` takes an enum value, got {} — for other types use `if`", other.kind())) };
-                let def = match self.prog.enums.iter().find(|e| e.name == tname) { Some(d) => d.clone(), None => return rt(*line, format!("no enum named `{tname}`")) };
-                for a in arms {
-                    match def.cases.iter().find(|c| c.name == a.name) {
-                        None => return rt(a.line, format!("`{tname}` has no case `{}` (it has {})", a.name, def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
-                        Some(c) => if a.bind.is_some() && c.ty.is_none() { return rt(a.line, format!("`{}` carries nothing; there is no value to name", a.name)); },
-                    }
+                let (arm, data) = self.pick_arm(v, arms, *line)?;
+                if arm.value.is_some() { return rt(arm.line, format!("case `{}` gives a value, but this `match` is not used as one", arm.name)); }
+                match self.run_arm(arm, data)? {
+                    Flow::Give(_) => rt(arm.line, format!("case `{}` gives a value, but this `match` is not used as one", arm.name)),
+                    f => Ok(f),
                 }
-                let missing: Vec<&str> = def.cases.iter().filter(|c| !arms.iter().any(|a| a.name == c.name)).map(|c| c.name.as_str()).collect();
-                if !missing.is_empty() { return rt(*line, format!("`match` on `{tname}` does not handle {}; every case must be covered", missing.join(", "))); }
-                let arm = arms.iter().find(|a| a.name == case).unwrap();
-                self.push();
-                if let (Some(b), Some(d)) = (&arm.bind, data) {
-                    let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(*d)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false }, arm.line);
-                    if let Err(e) = r { self.pop(); return Err(e); }
-                }
-                let r = self.stmts(&arm.body);
-                self.pop();
-                r
+            }
+            Stmt::Gives { value, line } => {
+                let (v, _) = self.bracket(value, *line)?;
+                Ok(Flow::Give(v))
             }
             Stmt::Asm { text, binds, line } => {
                 if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a nocheck site: the compiler cannot see inside it"); }
@@ -1262,6 +1255,36 @@ impl<'p> Interp<'p> {
             (Ty::Ranged(..), _) => if self.check_type(&v, t, 0).is_ok() { Some(v) } else { None },
             _ => Some(v),
         }
+    }
+
+    /// The case of `v` among a `match`'s arms, after checking every case is covered.
+    fn pick_arm<'a>(&self, v: Value, arms: &'a [Arm], line: usize) -> Result<(&'a Arm, Option<Value>), RuntimeError> {
+        let (tname, case, data) = match v { Value::Enum(t, c, d) => (t, c, d), other => return rt(line, format!("`match` takes an enum value, got {} — for other types use `if`", other.kind())) };
+        let def = match self.prog.enums.iter().find(|e| e.name == tname) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{tname}`")) };
+        for a in arms {
+            match def.cases.iter().find(|c| c.name == a.name) {
+                None => return rt(a.line, format!("`{tname}` has no case `{}` (it has {})", a.name, def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
+                Some(c) => if a.bind.is_some() && c.ty.is_none() { return rt(a.line, format!("`{}` carries nothing; there is no value to name", a.name)); },
+            }
+        }
+        let missing: Vec<&str> = def.cases.iter().filter(|c| !arms.iter().any(|a| a.name == c.name)).map(|c| c.name.as_str()).collect();
+        if !missing.is_empty() { return rt(line, format!("`match` on `{tname}` does not handle {}; every case must be covered", missing.join(", "))); }
+        Ok((arms.iter().find(|a| a.name == case).unwrap(), data.map(|d| *d)))
+    }
+
+    /// Run one case with its data bound: its value if it is one, else its statements' flow.
+    fn run_arm(&mut self, arm: &Arm, data: Option<Value>) -> Result<Flow, RuntimeError> {
+        self.push();
+        if let (Some(b), Some(d)) = (&arm.bind, data) {
+            let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(d)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false }, arm.line);
+            if let Err(e) = r { self.pop(); return Err(e); }
+        }
+        let r = match &arm.value {
+            Some(e) => self.eval(e).map(|(v, _)| Flow::Give(v)),
+            None => self.stmts(&arm.body),
+        };
+        self.pop();
+        r
     }
 
     fn kind_clash(&self, have: Option<bool>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
@@ -1731,6 +1754,15 @@ impl<'p> Interp<'p> {
                 let v = self.builtin(head, op, args, line)?;
                 match self.from_c(v, &t) { Some(v) => { let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
                     None => site(line, format!("`NO_FUCKING_CHECKS` trusted C, and C sent no `{n}` here — the compiled program would be undefined")) }
+            }
+            Expr::Match(value, arms, _) => {
+                let (v, _) = self.single(value, line)?;
+                let (arm, data) = self.pick_arm(v, arms, line)?;
+                match self.run_arm(arm, data)? {
+                    Flow::Give(v) => { let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
+                    Flow::Normal => rt(arm.line, format!("case `{}` neither gives a value nor leaves (return, fail, break, continue)", arm.name)),
+                    f => Err(RuntimeError { line, msg: String::new(), exit: None, site: false, leave: Some(f) }),
+                }
             }
             Expr::PtrReadChecked(args, handler, _) => {
                 let t = args.values.first().and_then(|a| self.ptr_elem(a));
@@ -2716,6 +2748,7 @@ impl<'p> Interp<'p> {
             Flow::Return(v) => v,
             Flow::Normal => Value::Nothing,
             Flow::Break | Flow::Continue => return rt(func.line, "`break`/`continue` outside a loop"),
+            Flow::Give(_) => return rt(func.line, "`gives` outside a case"),
             Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
         match (&func.ret, &result) {
@@ -2792,6 +2825,7 @@ impl<'p> Interp<'p> {
             Flow::Normal => Ok(Value::Nothing),
             Flow::Fail(..) => rt(line, "a callback cannot fail"),
             Flow::Break | Flow::Continue => rt(line, "`break`/`continue` outside a loop"),
+            Flow::Give(_) => rt(line, "`gives` outside a case"),
         }
     }
 
@@ -2865,6 +2899,7 @@ impl<'p> Interp<'p> {
             Flow::Return(v) => v,
             Flow::Normal => return rt(line, format!("`op {op}` fell off the end without returning a value")),
             Flow::Break | Flow::Continue => return rt(def.line, "`break`/`continue` outside a loop"),
+            Flow::Give(_) => return rt(def.line, "`gives` outside a case"),
             Flow::Fail(..) => return rt(line, "an operator cannot fail"),
         };
         let k = self.ret_kind.take();
@@ -2918,14 +2953,10 @@ impl<'p> Interp<'p> {
             },
             Handler::Arms(arms) => {
                 let arm = arms.iter().find(|a| a.name == reason).unwrap();
-                self.push();
-                if let (Some(b), Some(v)) = (&arm.bind, payload) {
-                    let r = self.declare(b, Slot { cell: Rc::new(RefCell::new(v)), ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false }, arm.line);
-                    if let Err(e) = r { self.pop(); return Err(e); }
-                }
-                let r = self.stmts(&arm.body);
-                self.pop();
-                match r? {
+                match self.run_arm(arm, payload)? {
+                    // a case that gives a value is the value (owner, 2026-09-29)
+                    Flow::Give(v) if value_used => Ok(v),
+                    Flow::Give(_) => rt(arm.line, format!("the `{reason}` case gives a value, but the value of `{name}` is not used")),
                     Flow::Normal if value_used => rt(arm.line, format!("the `{reason}` arm must leave (return, fail, break, continue, or std::exit) because the value of `{name}` is used")),
                     Flow::Normal => Ok(Value::Nothing),
                     f => Err(leave(f)),

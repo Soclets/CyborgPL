@@ -212,6 +212,8 @@ pub enum Handler {
 pub struct Arm {
     pub name: String,
     pub bind: Option<String>,
+    /// `empty { "free" }` — a case that is just a value (owner, 2026-09-29)
+    pub value: Option<Expr>,
     pub body: Vec<Stmt>,
     pub line: usize,
 }
@@ -286,6 +288,8 @@ pub enum Stmt {
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
     /// `match v { case ['bind'] { … } … }` — every case covered (decided 2026-09-20)
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
+    /// `gives v;` — a case's value, in a `#strict` file (owner, 2026-09-29)
+    Gives { value: Bracket, line: usize },
     /// `concur [with […]] { … }` / `concur f[…];` — start a task (design/concurrency.md, 2026-09-22)
     Concur { detached: bool, caps: Vec<(Verb, String)>, body: Vec<Stmt>, handler: Option<Handler>, line: usize },
     /// `whichever { 'v' from lend 'c' { … } … }` — wait on several channels, take from whichever first
@@ -391,6 +395,8 @@ pub enum Expr {
     /// `ptr.read['p'] otherwise …` — a read of a C enum or range type from C, which can fail
     /// `out_of_range` (owner, 2026-09-27/28)
     PtrReadChecked(Bracket, Option<Handler>, usize),
+    /// `'x' := match v { case { value } … }` — a match that gives a value (owner, 2026-09-29)
+    Match(Bracket, Vec<Arm>, usize),
     /// `char.point.from_code[n]` / `char.byte.from_code[n]`: a number to a character, fails `not_a_char` (decided 2026-09-21)
     CharFromCode(CharUnit, Bracket, Option<Handler>, usize),
     /// `...'xs'` in a call: unpack the list into the variadic part (decided 2026-09-21)
@@ -413,6 +419,7 @@ impl Expr {
             | Expr::Newline(l) | Expr::Var(_, l) | Expr::Owned(_, _, l)
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,
+            Expr::Match(_, _, l) => *l,
             Expr::PtrReadChecked(_, _, l) => *l,
             Expr::Nested(b) => b.line,
             Expr::Index(_, _, l) => *l,
