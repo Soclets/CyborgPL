@@ -18,6 +18,14 @@ fn is_ascii [lent 'bytes': array[uint8]] -> bool {
 }
 ```
 
+
+**Lanes are checked at every operation, at the lane's type** (owner,
+2026-09-29: b) — not exact in between as plain numbers are (2026-09-23),
+since wider lanes would halve what a register holds. `('a' + 'a') - 'a'`
+on `simd[uint8, 16]` of 200s is a check site at the `+`. The wrapping
+forms (`+~` …) wrap lane by lane and never check. For exact maths in
+between, use a plain loop.
+
 ## The spelling — `simd[T, N]` (owner)
 
 The language's bracket rule for type parameters, as `list[int32]` and

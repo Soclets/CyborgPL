@@ -2384,6 +2384,21 @@ impl<'p> Interp<'p> {
                     return rt(line, "a deci power's exponent is an integer or a whole literal, not a deci that may hold a fraction: `'r' xx to.int32['k'] otherwise …`");
                 }
                 let v = self.binary(op, a, b, line)?;
+                // a vector's lanes are checked at every operation, at the lane's type — not exact in
+                // between as plain numbers are: wider lanes would halve what a register holds
+                // (owner, 2026-09-29: b)
+                if let Value::Simd(lanes) = &v {
+                    if matches!(op.as_str(), "+" | "-" | "x" | "xx") {
+                        let elem = match self.expr_ty(l).or_else(|| self.expr_ty(r)) { Some(Ty::Simd(e, _)) => Some(*e), _ => None };
+                        if let Some(e) = elem {
+                            for (k, lane) in lanes.iter().enumerate() {
+                                if self.check_type(lane, &e, line).is_err() {
+                                    return site(line, format!("lane {} of `{op}` is {}, which does not fit {}: a vector's lanes are checked at every operation", k + 1, lane.show_stored(), ty_name(&e)));
+                                }
+                            }
+                        }
+                    }
+                }
                 // bin16/bin32 math rounds after every operation, at its values' width, as the
                 // hardware does (owner, 2026-09-24: a — "the programmer could've chose a better one")
                 if let Value::Bin(x) = v {

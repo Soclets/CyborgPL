@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — A vector's lanes are checked at every operation, at the lane's type (owner: b)
+
+Check claude asked whether lane arithmetic is exact in between like plain
+numbers (2026-09-23) or checked per operation: `('a' + 'a') - 'a'` on
+`simd[uint8, 16]` of 200s gave 200 in the oracle and stopped at the `+` in
+CCA; `simd.md`'s "the scalar rule applied lane-wise" read either way.
+Proposed (a) exact, which needs wider lanes (a `uint8` sum in 16-bit
+lanes, half as many per register); (b) each lane operation checked at the
+lane's type. Check claude and design claude recommended b: the plain rule's
+reason ("a 16-bit and a 64-bit add cost the same") does not hold for
+vectors, and exact maths is a plain loop away. The owner asked "what",
+then chose b. The oracle now checks each `+ - x xx` lane at the lane type;
+the wrapping forms stay defined. Reject test simd_lane_step.
+
 ### 2026-09-29 — `CCA.cplr`: one plain `const` per setting, shapes from a built-in `cca` Limb (owner)
 
 ```
