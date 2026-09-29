@@ -209,6 +209,9 @@ load is set aside in `work/flaky/` with both runs' details.
 
 ## Provisional
 
+- **A shrink stops after 15 minutes** (2026-09-29), keeping the smallest
+  program so far: shrinking a program that made CCA overflow its stack ran
+  79 minutes on one core. Alternative: no limit.
 - **An oracle stop before CCA's refusal agrees** (2026-09-29, seed 4091):
   CCA refuses at compile time a site that fails whenever it is reached,
   while an earlier failure it keeps as a run-time check (it may never run)

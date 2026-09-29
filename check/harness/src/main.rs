@@ -402,6 +402,9 @@ fn corpus(t: &Tools) {
 /// on which thread finished first.
 /// A step is kept only if it shows the same finding: the same kind and the
 /// same messages from both engines (numbers aside), not merely the same kind.
+/// How long one shrink may take (provisional, 2026-09-29).
+const SHRINK_LIMIT: std::time::Duration = std::time::Duration::from_secs(15 * 60);
+
 fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir: &Path, jobs: usize) -> Program {
     let kind = sig.split(':').next().unwrap_or("");
     engines::set_shrinking(true);
@@ -420,11 +423,19 @@ fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir:
     let want_ran = oracle_class(&p.render(), &dir.join("o"));
     let mut cur = p;
     let mut cur_len = cur.render().len();
+    // A time limit, so a program that makes an engine crash slowly cannot
+    // keep a core busy for hours (seed 6241, 2026-09-29: 79 minutes).
+    let deadline = std::time::Instant::now() + SHRINK_LIMIT;
     loop {
+        if std::time::Instant::now() > deadline {
+            eprintln!("shrink: stopped at the {} min limit; kept the smallest so far", SHRINK_LIMIT.as_secs() / 60);
+            engines::set_shrinking(false);
+            return cur;
+        }
         let cands: Vec<Program> = candidates(&cur).into_iter().filter(|c| c.render().len() < cur_len && well_scoped(c)).collect();
         let mut next = None;
         let mut i = 0;
-        while i < cands.len() && next.is_none() {
+        while i < cands.len() && next.is_none() && std::time::Instant::now() < deadline {
             let mut batch = vec![];
             while i < cands.len() && batch.len() < jobs.max(1) {
                 if oracle_class(&cands[i].render(), &dir.join("o")) == want_ran {
