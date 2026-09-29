@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `CCA.cplr` needs `name`, `version` and a target too (owner: "yea")
+
+Synthia claude noted that the oracle required none of these in `CCA.cplr`
+while `Synthia.ttsr` now does (entry below), so CCA accepted a manifest
+Synthia refuses. Design claude recommended matching, so a Limb that
+builds under one package manager builds under the other. The owner:
+"yea". The oracle refuses a `CCA.cplr` without `name`, `version`, or a
+target (reject tests manifest_no_name, manifest_no_version,
+manifest_no_target); a folder with no `CCA.cplr` is still a plain program.
+`tooling.md`.
+
 ### 2026-09-29 — A Limb's name and a needed Limb's local name follow the module-name rule (owner: "yea")
 
 Relayed by synthia claude. In `Synthia.ttsr`, `name` and the key before
@@ -42,10 +53,8 @@ code:  [my identity]
 why:   a build needs the Limb's `name` and `version`; only publishing needs its `id` and times
 ```
 
-Open, noted by synthia claude: the oracle requires none of `name`,
-`version`, `targets` in `CCA.cplr`, so CCA accepts a manifest Synthia
-refuses. That keeps parity's direction (Synthia never does what CCA
-can't); whether `CCA.cplr` should match is the owner's.
+Noted by synthia claude: the oracle required none of `name`, `version`,
+`targets` in `CCA.cplr`. Settled the same day: it matches (entry above).
 
 ### 2026-09-29 — `synthia show` prints the manifest exactly as written (owner: "Raw")
 

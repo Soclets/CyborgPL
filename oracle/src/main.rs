@@ -89,7 +89,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
 struct Dep { name: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
 /// Read a Limb's `CCA.cplr` (owner, 2026-09-29): one plain `const` per setting, in CyborgPL syntax,
-/// the shapes from the built-in `cca` Limb. Returns its `name`, if set, and its dependencies.
+/// the shapes from the built-in `cca` Limb. Returns its `name` (none when there is no `CCA.cplr`) and its dependencies.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
     let file = dir.join("CCA.cplr");
     if !file.is_file() { return Ok((None, Vec::new())); }
@@ -100,11 +100,12 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
     }
     let text = |b: &ast::Bracket| -> Option<String> { match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Text(t, _))] => Some(t.clone()), _ => None } };
     let (mut name, mut deps) = (None, Vec::new());
+    let (mut has_version, mut targets) = (false, 0);
     for c in &prog.consts {
         if c.vis != ast::Vis::Private { return Err(format!("{shown}: line {}: `pub` means nothing in CCA.cplr, which no Limb reads: `const '{}' := …;`", c.line, c.name)); }
         match c.name.as_str() {
             "name" => name = Some(text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?),
-            "version" => { text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'version' is a text", c.line))?; }
+            "version" => { text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'version' is a text", c.line))?; has_version = true; }
             "target" => return Err(format!("{shown}: line {}: a Limb builds for several targets, so the setting is 'targets': `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`", c.line)),
             // several targets, each with its settings (owner, 2026-09-29): CCA's package manager can do
             // whatever Synthia can, in its plainer way
@@ -115,6 +116,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                 let mut items = Vec::new();
                 for v in &c.value.values { let ast::Value::Expr(x) = v; each(x, &mut items); }
                 let count = items.len();
+                targets += count;
                 let mut defaults = 0;
                 for it in items {
                     let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a target is `cca::Target[name = …]`, with a `runner` if it has one", c.line)) };
@@ -162,6 +164,12 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
             other => return Err(format!("{shown}: line {}: CCA.cplr has no setting '{other}'; its settings are 'name', 'version', 'dependencies' and 'targets'", c.line)),
         }
     }
+    // a build needs the Limb's name, version and a target; only publishing needs more (owner, 2026-09-29:
+    // "yea", matching Synthia.ttsr)
+    let why = "a build needs the Limb's 'name', 'version' and at least one target";
+    if name.is_none() { return Err(format!("{shown}: CCA.cplr has no 'name': {why}: `const 'name' := \"shop\";`")); }
+    if !has_version { return Err(format!("{shown}: CCA.cplr has no 'version': {why}: `const 'version' := \"1.0.0\";`")); }
+    if targets == 0 { return Err(format!("{shown}: CCA.cplr has no target: {why}: `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`")); }
     Ok((name, deps))
 }
 

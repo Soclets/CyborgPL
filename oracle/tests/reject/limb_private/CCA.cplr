@@ -1,1 +1,4 @@
+const 'name' := "limb_private";
+const 'version' := "1.0.0";
+const 'targets' := [cca::Target[name = "aarch64-macos"],];
 const 'dependencies' := [cca::Dep[name = "areas", path = "../../../../examples/limbs/areas"],];

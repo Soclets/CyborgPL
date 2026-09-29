@@ -48,11 +48,16 @@ Owner, 2026-09-14.
   ```
   const 'name' := "shop";
   const 'version' := "1.0.0";
-  const 'dependencies' := [cca::Dep[name = "geometry", version = "1.2"]];
-  const 'target' := "aarch64-macos";
+  const 'dependencies' := [
+      cca::Dep[name = "geometry", id = "3f9a…4a5b", version = "1.2"],
+      cca::Dep[name = "money", path = "../money"],
+  ];
+  const 'targets' := [cca::Target[name = "aarch64-macos"],];
   ```
 
-  Every name and type is checked against the settings CCA knows. **A
+  Every name and type is checked against the settings CCA knows.
+  **`name`, `version` and at least one target are required** (owner,
+  2026-09-29: "yea"), as in `Synthia.ttsr`. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
   computed lives in **`build.cplr`**, a full CyborgPL program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
