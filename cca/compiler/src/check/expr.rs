@@ -1200,6 +1200,28 @@ impl Checker {
                 }
             }
         }
+        // Bare numbers alone are worked out exactly (dc83c05), a group of
+        // them as `div`'s or `mod`'s other side too: `'p' mod (((221 x 2)
+        // mod 5) + 1)` with 'p' a `uint8` divides by 3, where the group took
+        // `uint8` and its `221 x 2` was refused (check claude, seed 4698).
+        // The division is then exact as well, and lands where it is stored
+        // — as `'p' + (…)` already does. A lone literal still takes the
+        // other side's type.
+        if matches!(op, BinOp::Div | BinOp::Mod) {
+            let group = |e: &Expr, t: &Ty| matches!(t.base(), Ty::Int(IntW::Free(_))) && literal_only(e) && !is_int_literal(e);
+            let fixed = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { .. }));
+            if (group(&l, &lt) && fixed(&rt)) || (group(&r, &rt) && fixed(&lt)) {
+                let (mut l, mut r) = (l, r);
+                let exact = Ty::exact();
+                if group(&l, &lt) {
+                    retype_literal_arith(&mut l, &exact);
+                }
+                if group(&r, &rt) {
+                    retype_literal_arith(&mut r, &exact);
+                }
+                return Ok((l, r, exact));
+            }
+        }
         // A parenthesised group of literals — `(0 + 10702988103728947458)` —
         // has no family either, so it takes the other side's the same way,
         // every step of it.
