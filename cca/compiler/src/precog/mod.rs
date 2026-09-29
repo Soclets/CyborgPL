@@ -1849,6 +1849,9 @@ impl Precog {
                     Some(t) => t,
                     None => return Verdict::Unproven,
                 };
+                if let Ty::Bin(w) = ty.base() {
+                    return bin_finite(op, ds, *w, &self.spell(&ty));
+                }
                 let Some((lo, hi)) = int_limits(&ty, &self.prog().items) else { return Verdict::Unproven };
                 let (Some(Domain::Ints(a)), b) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
                 let result = match (op, b) {
@@ -1864,6 +1867,17 @@ impl Precog {
                 self.fit(&result, lo, hi, &ty)
             }
             SiteKind::DivZero | SiteKind::ModZero => {
+                // A bin divisor: an interval, and 0.0 is the one to miss.
+                if let Some(Domain::Bins { lo, hi }) = ds.first() {
+                    let (Some(lo), Some(hi)) = (lo, hi) else { return Verdict::Fails { counterexample: "the divisor can be 0.0".into() } };
+                    return if *lo > 0.0 || *hi < 0.0 {
+                        Verdict::Proven { how: "the divisor is never zero" }
+                    } else if *lo == 0.0 && *hi == 0.0 {
+                        Verdict::Fails { counterexample: "every time: the divisor is always 0.0".into() }
+                    } else {
+                        Verdict::Fails { counterexample: "the divisor can be 0.0".into() }
+                    };
+                }
                 let Some(Domain::Ints(d)) = ds.first() else { return Verdict::Unproven };
                 if d.misses(0, 0) {
                     Verdict::Proven { how: "the divisor is never zero" }
@@ -2770,6 +2784,54 @@ fn reached_every_run(p: &Program, edges: &std::collections::HashSet<(usize, usiz
     out
 }
 
+/// Whether a bin `+ - x div xx` stays a real number (owner, 2026-09-29: a
+/// bin never holds an infinity or a NaN): proven when the answer over the
+/// operands' intervals is a finite one, failing every time when both are
+/// known and the answer is not, and otherwise a check.
+fn bin_finite(op: &BinOp, ds: &[Domain], w: crate::types::BinW, spelled: &str) -> Verdict {
+    let bits = match w {
+        crate::types::BinW::Fixed(b) => b,
+        crate::types::BinW::Free(_) => 64,
+    };
+    let (Some(Domain::Bins { lo: Some(a1), hi: Some(a2) }), Some(Domain::Bins { lo: Some(b1), hi: Some(b2) })) = (ds.first(), ds.get(1)) else {
+        return Verdict::Fails { counterexample: format!("the answer can go past the largest `{}`", spelled) };
+    };
+    if bin_interval(op, (*a1, *a2), (*b1, *b2), bits).is_some() {
+        return Verdict::Proven { how: "layer 2" };
+    }
+    // Over the box the answer lies between the corners' (rounding is
+    // monotone): every corner past the largest on one side is every
+    // answer past it.
+    let f = |x: f64, y: f64| -> f64 {
+        let v = match op {
+            BinOp::Add => x + y,
+            BinOp::Sub => x - y,
+            BinOp::Mul => x * y,
+            BinOp::Div => x / y,
+            BinOp::Pow => x.powf(y),
+            _ => f64::NAN,
+        };
+        match bits {
+            32 => v as f32 as f64,
+            16 => if v.abs() >= 65520.0 { v * f64::INFINITY } else { v },
+            _ => v,
+        }
+    };
+    // 0.0 div 0.0, and anything by 0.0, is the divisor's own site.
+    if *op == BinOp::Div && *b1 <= 0.0 && *b2 >= 0.0 {
+        return Verdict::Fails { counterexample: format!("the answer can go past the largest `{}`", spelled) };
+    }
+    let corners = [f(*a1, *b1), f(*a1, *b2), f(*a2, *b1), f(*a2, *b2)];
+    let monotone = *op != BinOp::Pow || (a1 == a2 && b1 == b2);
+    if monotone && corners.iter().all(|v| v.is_nan()) {
+        return Verdict::Fails { counterexample: format!("every time: {} xx {} has no number", a1, b1) };
+    }
+    if monotone && (corners.iter().all(|v| *v == f64::INFINITY) || corners.iter().all(|v| *v == f64::NEG_INFINITY)) {
+        return Verdict::Fails { counterexample: format!("every time: the answer goes past the largest `{}` (it would be infinity)", spelled) };
+    }
+    Verdict::Fails { counterexample: format!("the answer can go past the largest `{}`", spelled) }
+}
+
 /// Bin `+ - x /` over two intervals at a width of `bits`, or `None` when the
 /// answer is not a finite interval Precog can stand behind.
 pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Option<Domain> {
@@ -2780,6 +2842,8 @@ pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Opti
             BinOp::Sub => x - y,
             BinOp::Mul => x * y,
             BinOp::Div => x / y,
+            // A power only between two known values: it is not monotone.
+            BinOp::Pow if a.0 == a.1 && b.0 == b.1 => x.powf(y),
             _ => f64::NAN,
         }
     };

@@ -48,7 +48,9 @@ bare_owned_assign [fnv:53ce1c0805c37af3] :: say what happens to it
 bare_str [fnv:b78f2a1f98dce47b] :: `str` is never bare: say the encoding
 bin16_rounds_past [fnv:10faad936b06526e] :: the value can be outside what a `bin16` holds
 bin32_literal_past [fnv:0d44a148ed0c4e0f] :: the value can be outside what a `bin32` holds
+bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be infinity)
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
+bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
 bin_to_int_unhandled [fnv:35eafe76bee6cdb3] :: `to.int32` can fail (not_whole): say what happens
 bit_ampersand [fnv:41b7e0e05bfa1187] :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
 bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
@@ -99,10 +101,11 @@ const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
-deci_fractional_power [fnv:bb5918d5dddef02d] :: a deci power takes a whole exponent
+deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
 deci_int_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
 deci_literal_digits [fnv:1d5b181bc964df20] :: has 9 digits; deci32 holds 7
 deci_narrow_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
+deci_power_deci_exponent [fnv:d453e77170273b0b] :: exponent is an integer or a whole literal
 deci_widths_mix [fnv:557616dea39aac01] :: between a deci64 and a deci32: say which width
 detached_lend [fnv:3faba8a8fbccffe8] :: no scope protects it, so 'x' could be gone while the task still looks at it
 dir_badname [fnv:bfe56ff8eb188642] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter

@@ -1517,6 +1517,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         if let (BasicValueEnum::FloatValue(x), BasicValueEnum::FloatValue(y)) = (a, b) {
             use inkwell::FloatPredicate as FP;
+            // A bin never holds an infinity or a NaN (owner, 2026-09-29):
+            // a zero divisor is asked first, then whether the answer is a
+            // real number — `r - r` is 0 only for a finite `r`.
+            if let (BinOp::Div, Some(s)) = (op, divzero) {
+                let zero = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
+                self.guard(fi, s, zero, func)?;
+            }
+            if matches!(op, BinOp::Pow) {
+                let id = inkwell::intrinsics::Intrinsic::find("llvm.pow")?;
+                let f = id.get_declaration(self.module, &[x.get_type().into()])?;
+                let r = basic_result(self.builder.build_call(f, &[x.into(), y.into()], "fpow").ok()?)?.into_float_value();
+                if let Some(s) = overflow {
+                    self.bin_finite_guard(fi, s, r, func)?;
+                }
+                return Some(r.into());
+            }
             let r: BasicValueEnum = match op {
                 BinOp::Add => self.builder.build_float_add(x, y, "fadd").ok()?.into(),
                 BinOp::Sub => self.builder.build_float_sub(x, y, "fsub").ok()?.into(),
@@ -1533,6 +1549,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     return None;
                 }
             };
+            if let (Some(s), BasicValueEnum::FloatValue(rv)) = (overflow, r) {
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div) {
+                    self.bin_finite_guard(fi, s, rv, func)?;
+                }
+            }
             return Some(r);
         }
         // Never skip an instruction quietly: whatever reaches here would
@@ -1719,6 +1740,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     return None;
                 }
             };
+            // No lane holds an infinity or a NaN (owner, 2026-09-29): a
+            // zero divisor in any lane, then any lane's answer not a real
+            // number, stops it.
+            if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div) {
+                if let (BinOp::Div, Some(s)) = (op, open(self, &|k| matches!(k, SiteKind::DivZero))) {
+                    let m = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
+                    let bad = any(self, m)?;
+                    self.guard(fi, s, bad, func)?;
+                }
+                if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(_))) {
+                    self.bin_finite_guard(fi, s, r.into_vector_value(), func)?;
+                }
+            }
             return Some(r);
         }
         let signed = lane.as_ref().and_then(int_signed).unwrap_or(true);
@@ -2703,6 +2737,32 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Verdict::Proven { .. } => self.assert_proofs,
             _ => true,
         }
+    }
+
+    /// Trap at `site` unless `r` is a real number: an infinity or a NaN is
+    /// no bin (owner, 2026-09-29). `r - r` is 0 only for a finite `r`, lane
+    /// by lane for a vector.
+    fn bin_finite_guard<V: inkwell::values::FloatMathValue<'ctx> + Copy>(&mut self, fi: usize, site: SiteId, r: V, func: FunctionValue<'ctx>) -> Option<()> {
+        let z = self.builder.build_float_sub(r, r, "rz").ok()?;
+        let zero = z.as_basic_value_enum().get_type();
+        let cmp: BasicValueEnum = match z.as_basic_value_enum() {
+            BasicValueEnum::FloatValue(v) => self.builder.build_float_compare(inkwell::FloatPredicate::UNE, v, v.get_type().const_zero(), "not_finite").ok()?.into(),
+            BasicValueEnum::VectorValue(v) => {
+                let _ = zero;
+                self.builder.build_float_compare(inkwell::FloatPredicate::UNE, v, v.get_type().const_zero(), "not_finite").ok()?.into()
+            }
+            _ => return None,
+        };
+        let bad = match cmp {
+            BasicValueEnum::IntValue(b) => b,
+            BasicValueEnum::VectorValue(m) => {
+                let id = inkwell::intrinsics::Intrinsic::find("llvm.vector.reduce.or")?;
+                let f = id.get_declaration(self.module, &[m.get_type().into()])?;
+                basic_result(self.builder.build_call(f, &[m.into()], "any_lane").ok()?)?.into_int_value()
+            }
+            _ => return None,
+        };
+        self.guard(fi, site, bad, func)
     }
 
     /// Trap at `site` when `bad` holds; carry on otherwise.

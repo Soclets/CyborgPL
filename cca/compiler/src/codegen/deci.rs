@@ -240,7 +240,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let over = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(1, false), "past_largest").ok()?;
                 self.deci_stop(fi, over, &format!("this bin is past what a `deci{}` holds", b), func)?;
                 let odd = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "not_finite").ok()?;
-                self.deci_stop(fi, odd, "not yet: an infinity or NaN into a deci is not decided (asked)", func)?;
+                // A bin never holds one (owner, 2026-09-29): only a value that got
+                // past its checks unchecked (`nocheck`, C) can be one here.
+                self.deci_stop(fi, odd, "this bin is an infinity or a NaN, which no bin may hold, so it has no deci", func)?;
                 Some(self.deci_read(slot, *b)?.into())
             }
             (Ty::Deci(b), Ty::Bin(_)) => {

@@ -1,0 +1,19 @@
+# A bin never holds an infinity (owner, 2026-09-29: a): doubling a value
+# the program only learns at run time goes past the largest bin64 on the
+# 1024th step, and the check there stops it. Before, it became infinity
+# and the loop ran on.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+fn start [] -> bin64 {
+    'key' := "CCA_NO_SUCH_VARIABLE";
+    nocheck 'p' := getenv[lend 'key'];
+    if ptr.is_null['p'] { return 1.0; }
+    return 0.5;
+}
+MAIN {
+    mut 'x': bin64 = start[];
+    for 'i': int32 in range[1, 2000] {
+        change 'x' = 'x' x 2.0;
+    }
+    nocheck exit[7];
+}

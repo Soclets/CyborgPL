@@ -1251,9 +1251,9 @@ impl Checker {
                 return Ok((l, r, Ty::Deci(*b)));
             }
             if matches!(lt.base(), Ty::Deci(_)) {
-                return err(Diagnostic::error(format!("a deci power takes a whole exponent, and this one is a `{}`: roots are std's math", self.spell(&rt))).at(r.span));
+                return err(Diagnostic::error(format!("a deci power's exponent is an integer or a whole literal, and this one is a `{}`: roots are std's math", self.spell(&rt))).at(r.span));
             }
-            return err(Diagnostic::error("a deci power takes a whole exponent: the deci goes on the left of `xx`").at(op_span));
+            return err(Diagnostic::error("a deci power's exponent is an integer or a whole literal: the deci goes on the left of `xx`").at(op_span));
         }
         match (lt.base(), rt.base()) {
             (Ty::Deci(b), other) if !matches!(other, Ty::Deci(_)) && deci_group(&r) => into_deci(&mut r, *b)?,

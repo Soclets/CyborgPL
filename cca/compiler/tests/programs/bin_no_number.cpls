@@ -1,0 +1,16 @@
+# A bin power with no number (owner, 2026-09-29: a): -1.0 xx 0.5 would be
+# a NaN, so the power's site stops the program; 2.0 xx 0.5 is fine.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+fn base [] -> bin64 {
+    'key' := "CCA_NO_SUCH_VARIABLE";
+    nocheck 'p' := getenv[lend 'key'];
+    if ptr.is_null['p'] { return -1.0; }
+    return 2.0;
+}
+MAIN {
+    'r': bin64 = 2.0 xx 0.5;
+    'b' := base[];
+    'q': bin64 = 'b' xx 0.5;
+    nocheck exit[7];
+}

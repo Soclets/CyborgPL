@@ -119,6 +119,11 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
                         B::Div => x / y,
                         _ => return None,
                     };
+                    // No infinity or NaN is a bin (owner, 2026-09-29): left
+                    // to run, where its site says so.
+                    if !v.is_finite() {
+                        return None;
+                    }
                     Some(Const::Bin(format!("{:?}", v)))
                 }
                 (Const::Str(x), Const::Str(y)) if *op == B::Join => Some(Const::Str(x + &y)),
@@ -1299,6 +1304,16 @@ impl<'a> FnBuilder<'a> {
         };
         let int = ty.is_int();
         match op {
+            // A bin never holds an infinity or a NaN (owner, 2026-09-29:
+            // a): an answer that would be one is a check site, like integer
+            // overflow — past the largest bin, a division by zero, a power
+            // with no number (`-1.0 xx 0.5`).
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Pow if matches!(ty.base(), Ty::Bin(_)) => {
+                if *op == BinOp::Div {
+                    self.site(SiteKind::DivZero, vec![r.clone()], span);
+                }
+                self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
+            }
             // A negative exponent is a fraction, for the wrapping power too
             // (the oracle's reading; the design is silent — cca/README.md).
             BinOp::WrapPow if int => {

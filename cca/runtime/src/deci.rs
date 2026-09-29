@@ -503,8 +503,8 @@ fn from_digits(neg: bool, digits: &[u8], exp: i64, fill: bool, w: Width) -> Resu
 /// A bin into a `deci` (`types.md`): `useful` 0 is the exact value
 /// rounded to the width, every digit of it; 64, 32 or 16 is the shortest
 /// decimal that reads back as that bin, from a bin of that width. 0 and
-/// the value; 1 past the largest; 2 for an infinity or NaN, which a `deci`
-/// here does not hold (not decided).
+/// the value; 1 past the largest; 2 for an infinity or NaN, which no bin
+/// holds (owner, 2026-09-29) unless one got past its checks unchecked.
 ///
 /// # Safety
 /// `out` must be writable.

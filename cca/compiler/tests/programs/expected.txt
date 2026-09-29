@@ -216,3 +216,7 @@ deci_divide_zero trap
 deci_more 19
 deci_range_store trap
 call_into_range trap
+# A bin never holds an infinity or a NaN (owner, 2026-09-29: a).
+bin_past_largest trap
+bin_zero_divisor trap
+bin_no_number trap

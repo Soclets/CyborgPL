@@ -392,14 +392,3 @@ Dated, with the alternative, so each can become a question later.
   The oracle stops instead ("past the oracle's limit of exact digits"), so
   `1.0000001 xx 10000000` is 2.718281692544966 here and a stop there.
   Alternative: an exact power always (slow and large), or a stop.
-- **2026-09-29 — Questions the `deci` rulings leave open, CCA's reading
-  meanwhile** (asked): a bin infinity or NaN into a `deci` stops the
-  program ("not yet … asked"; the oracle panics on an infinity and makes a
-  NaN); a parenthesised group of bare numbers beside a `deci` takes its
-  width, as an integer group does (the oracle refuses `'a' + (1.5 x 2)` but
-  takes `'a' + 1.5 x 2`); a `deci` exponent in `xx` is refused ("a whole
-  exponent"; the oracle takes one); a `deci` map key is found by value, as
-  `op ==` compares (`maps.md`), so `1.50` and `1.5` are one key (the
-  oracle keeps two); `to.deci64.useful[…]` of a `bin32` is the shortest
-  decimal that reads back as that `bin32` (the oracle widens to 64 bits
-  first: `0.1000000014901161`).
