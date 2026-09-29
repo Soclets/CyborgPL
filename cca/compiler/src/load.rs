@@ -193,7 +193,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     if path.limb.as_ref().map(|l| l.name.as_str()) != Some("cca") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Dep"]) {
                         return err(Diagnostic::error(format!("each dependency is a `cca::Dep[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
-                    let (mut name, mut dpath, mut version) = (None, None, None);
+                    let (mut name, mut dpath, mut version, mut id) = (None, None, None, None);
                     for a in args {
                         let AArg::Named(field, v) = a else {
                             return err(Diagnostic::error("a `cca::Dep` names its fields: `name = …`, and a `path = …` or a `version = …`").at(a.span()));
@@ -202,16 +202,29 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             "name" => &mut name,
                             "path" => &mut dpath,
                             "version" => &mut version,
-                            other => return err(Diagnostic::error(format!("a `cca::Dep` has no field `{}`: it is a `name`, and a `path` or a `version`", other)).at(field.span)),
+                            "id" => &mut id,
+                            other => return err(Diagnostic::error(format!("a `cca::Dep` has no field `{}`: it is a `name`, and a `path` or an `id` and a `version`", other)).at(field.span)),
                         };
                         *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
                     }
                     let Some((dname, dspan)) = name else {
                         return err(Diagnostic::error("a `cca::Dep` needs its `name`: the name its code reaches it by, `name::…`").at(e.span));
                     };
+                    // The registry knows a Limb by the ID its creator made —
+                    // 256 random bits, 64 hex digits — never by its name
+                    // (owner, 2026-09-29: "Names could be the same, IDs
+                    // can't").
+                    if let Some((i, ispan)) = &id {
+                        if i.len() != 64 || !i.chars().all(|c| c.is_ascii_hexdigit()) {
+                            return err(Diagnostic::error(format!("`{}`'s `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", dname, i)).at(*ispan));
+                        }
+                    }
                     match (dpath, version) {
                         (Some(_), Some((_, vspan))) => {
                             return err(Diagnostic::error(format!("`{}` says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both", dname)).at(vspan));
+                        }
+                        (None, Some(_)) if id.is_none() => {
+                            return err(Diagnostic::error(format!("`{}` comes from the registry, which knows a Limb by its ID, never its name: add `id = \"…\"`, the 64 hex digits its creator made", dname)).at(e.span));
                         }
                         (None, Some((_, vspan))) => {
                             return err(Diagnostic::error(format!("not yet: `{}` asks the registry for a `version`, and the registry does not exist yet — give its folder with `path = \"…\"`", dname)).at(vspan));

@@ -241,6 +241,7 @@ lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', 
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
 limb_private [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_pub_limb [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
+limb_registry_needs_id [fnv:59952df433346243] :: which knows a Limb by its ID
 limb_unlisted [fnv:e83a614a6a1b6ee5] :: there is no Limb named `geometry`
 limb_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
