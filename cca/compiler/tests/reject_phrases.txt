@@ -239,6 +239,7 @@ lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', 
 lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
 lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
+limb_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
 limb_private [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_pub_limb [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_registry_needs_id [fnv:59952df433346243] :: which knows a Limb by its ID
