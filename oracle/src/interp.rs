@@ -98,6 +98,8 @@ pub struct Interp<'p> {
     ret_line: usize,
     /// inside `must.fail`: a failure passes up to it whatever the test's own `fail[…]`
     must_fail_depth: u32,
+    /// the running function's return type: what a `return` lands in, whatever surrounds it
+    cur_ret: Option<Ty>,
     /// the command line, program name first, as C's argv has it
     args: Vec<String>,
     /// the matched case's data type, for the name an arm binds
@@ -149,7 +151,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -870,7 +872,13 @@ impl<'p> Interp<'p> {
                 let v = match value {
                     None => Value::Nothing,
                     Some(b) => {
-                        let (v, prov) = self.bracket(b, *line)?;
+                        // a `return` lands in the function's return type, never in a declaration it sits
+                        // inside (a `match` arm's; check claude, seed 6868)
+                        let ctx = self.cur_ret.clone();
+                        let saved = std::mem::replace(&mut self.expected, ctx);
+                        let r = self.bracket(b, *line);
+                        self.expected = saved;
+                        let (v, prov) = r?;
                         self.ret_kind = self.last_kind.take();
                         self.ret_line = *line;
                         match prov {
@@ -3477,6 +3485,13 @@ impl<'p> Interp<'p> {
     /// Run a function's body with its parameters bound. A function's scopes are its
     /// own: it cannot see the caller's variables.
     fn run_body(&mut self, func: &Func, bound: Vec<(String, Slot)>) -> Result<Flow, RuntimeError> {
+        let saved_ret = std::mem::replace(&mut self.cur_ret, func.ret.clone().filter(|t| !matches!(t, Ty::Var(_) | Ty::Inst(..))));
+        let r = self.run_body_inner(func, bound);
+        self.cur_ret = saved_ret;
+        r
+    }
+
+    fn run_body_inner(&mut self, func: &Func, bound: Vec<(String, Slot)>) -> Result<Flow, RuntimeError> {
         let saved = std::mem::replace(&mut self.scopes, vec![HashMap::new()]);
         let saved_module = std::mem::replace(&mut self.module, func.module.clone());
         let saved_fails = std::mem::replace(&mut self.fails, func.fails.clone());
