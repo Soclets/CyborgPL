@@ -15,7 +15,7 @@ fn emit ['m': uint64, 'neg': bool] {
     mut 'ds': list[uint8] = [];
     loop {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' / 10;
+        change 'v' = 'v' div 10;
         if 'v' == 0 { break; }
     }
     for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
@@ -30,7 +30,7 @@ fn put_u ['n': uint64] {
 }
 
 fn put_i ['n': int64] {
-    if 'n' >== 0 {
+    if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
         'up': int64 = -('n' + 1);
@@ -49,7 +49,7 @@ MAIN {
     while 'w3' > 0 {
         change 'w3' = 'w3' - 1;
         for 'i4': uint16 in range[29, 3, -3] {
-            check change 'v2' = ((((126 or.bit 'v2') / (not.bit 'v2')) shl 6) mod 7) - 102;
+            check change 'v2' = ((((126 or.bit 'v2') div (not.bit 'v2')) shl 6) mod 7) - 102;
         }
     }
 }

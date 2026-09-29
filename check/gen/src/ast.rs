@@ -166,7 +166,7 @@ impl BinOp {
             BinOp::Add => "+",
             BinOp::Sub => "-",
             BinOp::Mul => "x",
-            BinOp::Div => "/",
+            BinOp::Div => "div",
             BinOp::Mod => "mod",
             BinOp::Pow => "xx",
             BinOp::AndBit => "and.bit",
@@ -198,8 +198,8 @@ impl CmpOp {
             CmpOp::Ne => "!==",
             CmpOp::Lt => "<",
             CmpOp::Gt => ">",
-            CmpOp::Le => "<==",
-            CmpOp::Ge => ">==",
+            CmpOp::Le => "</==",
+            CmpOp::Ge => ">/==",
         }
     }
 }

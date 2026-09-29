@@ -21,7 +21,7 @@ const DIGITS_REVERSED_FOR: &str = "    mut 'v': uint64 = 'm';
     mut 'ds': list[uint8] = [];
     loop {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' / 10;
+        change 'v' = 'v' div 10;
         if 'v' == 0 { break; }
     }
     for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
@@ -32,13 +32,13 @@ const DIGITS_REVERSED_FOR: &str = "    mut 'v': uint64 = 'm';
 const DIGITS_REVERSED_WHILE: &str = "    mut 'v': uint64 = 'm';
     mut 'ds': list[uint8] = [];
     list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-    change 'v' = 'v' / 10;
+    change 'v' = 'v' div 10;
     while 'v' > 0 {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' / 10;
+        change 'v' = 'v' div 10;
     }
     mut 'k': uint64 = list.length[lend 'ds'];
-    while 'k' >== 1 {
+    while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
         change 'k' = 'k' - 1;
     }
@@ -46,14 +46,14 @@ const DIGITS_REVERSED_WHILE: &str = "    mut 'v': uint64 = 'm';
 
 const DIGITS_POWER_OF_TEN: &str = "    mut 'v': uint64 = 'm';
     mut 'p': uint64 = 1;
-    while 'v' / 'p' >== 10 {
+    while 'v' div 'p' >/== 10 {
         change 'p' = 'p' x 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 + ('v' / 'p')]];
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
         change 'v' = 'v' mod 'p';
         if 'p' == 1 { break; }
-        change 'p' = 'p' / 10;
+        change 'p' = 'p' div 10;
     }
 ";
 
@@ -67,7 +67,7 @@ const PUT_I_IF: &str = "fn put_i ['n': int64] {
 ";
 
 const PUT_I_ELSE_FIRST: &str = "fn put_i ['n': int64] {
-    if 'n' >== 0 {
+    if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
         'up': int64 = -('n' + 1);
