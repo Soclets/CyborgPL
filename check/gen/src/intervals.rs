@@ -159,7 +159,7 @@ impl<'a> An<'a> {
         }
         match e {
             // Lists are not analysed yet: a program with one has no complete answer.
-            Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => {
+            Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => {
                 self.incomplete = true;
                 R::TOP
             }

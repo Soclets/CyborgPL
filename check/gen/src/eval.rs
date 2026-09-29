@@ -253,6 +253,14 @@ impl<'a> Ev<'a> {
             }
             Expr::Len(n) => Val::I(Self::list(env, n).borrow().len() as i128),
             Expr::Lend(n) => Self::lookup(env, n).map(|v| v.0).unwrap_or(Val::I(0)),
+            Expr::ToEnum(en, x, fallback) => {
+                let v = self.expr(env, x)?.i();
+                let vals = self.p.enums.iter().find(|d| &d.name == en).and_then(|d| d.values.clone()).unwrap_or_default();
+                match vals.iter().position(|w| *w == v) {
+                    Some(i) => Val::E(i, 0),
+                    None => self.expr(env, fallback)?,
+                }
+            }
             Expr::Case(en, c, data) => {
                 let (idx, ty) = self.case(en, c);
                 let d = match data {

@@ -233,7 +233,7 @@ impl<'a> Enc<'a> {
             }
             Expr::Len(_) | Expr::Lend(_) => self.fresh_int(),
             // An enum value alone as an integer: only its case (see `enum_val`).
-            Expr::Case(..) => self.enum_val(ctx, e).0,
+            Expr::Case(..) | Expr::ToEnum(..) => self.enum_val(ctx, e).0,
             // A match giving a value is encoded by its statement (`Let`),
             // which sees arms that leave; anywhere else it is not modelled.
             Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => {
@@ -460,7 +460,7 @@ impl<'a> Enc<'a> {
 
     fn is_enum(&self, e: &Expr) -> bool {
         match e {
-            Expr::Case(..) => true,
+            Expr::Case(..) | Expr::ToEnum(..) => true,
             Expr::Var(n) => self.lookup(&format!("{n}#d")).is_some(),
             _ => false,
         }
@@ -472,6 +472,21 @@ impl<'a> Enc<'a> {
             Expr::Var(n) => {
                 let k = self.lookup(n).map(|v| v.term).unwrap_or_else(|| bv(0));
                 let d = self.lookup(&format!("{n}#d")).map(|v| v.term).unwrap_or_else(|| bv(0));
+                (k, d)
+            }
+            Expr::ToEnum(en, x, fallback) => {
+                // The case whose number it is, else the fallback, whose sites
+                // are reached only where no case matched.
+                let v = self.expr(ctx, x, Some(Ty::I64));
+                let vals = self.p.enums.iter().find(|d| &d.name == en).and_then(|d| d.values.clone()).unwrap_or_default();
+                let hit = if vals.is_empty() { "false".to_string() } else { format!("(or {})", vals.iter().map(|w| format!("(= {v} {})", bv(*w))).collect::<Vec<_>>().join(" ")) };
+                let miss = self.boolean(format!("(and {} (not {hit}))", ctx.pc));
+                let (fk, fd) = self.enum_val(&Ctx { pc: miss }, fallback);
+                let mut k = fk;
+                for (i, w) in vals.iter().enumerate().rev() {
+                    k = self.int(format!("(ite (= {v} {}) {} {k})", bv(*w), bv(i as i128)));
+                }
+                let d = self.int(format!("(ite {hit} {} {fd})", bv(0)));
                 (k, d)
             }
             Expr::Case(en, c, data) => {

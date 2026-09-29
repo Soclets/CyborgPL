@@ -324,7 +324,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -387,6 +387,7 @@ impl Gen {
                 // A lane's range is the generator's too.
                 Expr::Len(_) | Expr::At(..) | Expr::Match(..) | Expr::SimdFold(..) => true,
                 Expr::SimdFill(a) => walk(a, f),
+                Expr::ToEnum(_, a, b) => walk(a, f) || walk(b, f),
                 Expr::Case(_, _, d) => d.as_ref().map_or(false, |d| walk(d, f)),
                 Expr::Lit(_) | Expr::Bool(_) | Expr::Lend(_) => false,
                 Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => walk(a, f) || walk(b, f),
@@ -1027,8 +1028,17 @@ impl Gen {
         let n = 2 + self.rng.below(3) as usize;
         let mut cases = vec![];
         let mut ivs = vec![];
+        // A `layout.c enum` (owner, 2026-09-27): a distinct number per case, no data.
+        let c_enum = self.rng.chance(30);
+        let mut values: Vec<i128> = vec![];
+        while c_enum && values.len() < n {
+            let v = if self.rng.chance(20) { self.rng.range(-2147483648, 2147483647) } else { self.rng.range(-300, 300) };
+            if !values.contains(&v) {
+                values.push(v);
+            }
+        }
         for i in 0..n {
-            let (t, iv) = if self.rng.chance(55) {
+            let (t, iv) = if !c_enum && self.rng.chance(55) {
                 let t = self.int_ty();
                 (Some(t), Some(self.ghost(t)))
             } else {
@@ -1037,13 +1047,27 @@ impl Gen {
             cases.push((format!("c{}", i + 1), t));
             ivs.push(iv);
         }
-        self.enums.push(EnumGen { def: EnumDef { name: format!("E{}", k + 1), cases }, ivs });
+        self.enums.push(EnumGen { def: EnumDef { name: format!("E{}", k + 1), cases, values: c_enum.then_some(values) }, ivs });
     }
 
     /// `E1.c2[v]` or `E1.c1`, its data within the case's promise.
-    fn case_value(&mut self, ei: usize) -> Expr {
+    /// `whole`: the value is a declaration's or a change's whole value, the
+    /// only place `… otherwise { … }` may stand.
+    fn case_value(&mut self, ei: usize, whole: bool) -> Expr {
         let e = self.enums[ei].clone();
         let c = self.rng.below(e.def.cases.len() as u64) as usize;
+        if let Some(vals) = &e.def.values {
+            if whole && self.rng.chance(50) {
+                // A number into the C enum: mostly one a case has, sometimes
+                // one next to it, so the fallback runs.
+                let w = vals[c] + if self.rng.chance(25) { 1 } else { 0 };
+                let t = if Ty::I32.range().has(w) && self.rng.chance(60) { Ty::I32 } else { Ty::I64 };
+                let (x, _) = if self.rng.chance(40) { (Expr::Lit(w), Iv::point(w)) } else { self.value_in(t, Iv::point(w)) };
+                let fb = self.rng.below(vals.len() as u64) as usize;
+                let fallback = Expr::Case(e.def.name.clone(), e.def.cases[fb].0.clone(), None);
+                return Expr::ToEnum(e.def.name.clone(), Box::new(x), Box::new(fallback));
+            }
+        }
         let data = match (e.def.cases[c].1, e.ivs[c]) {
             (Some(t), Some(iv)) => Some(Box::new(self.value_in(t, iv).0)),
             _ => None,
@@ -1054,7 +1078,7 @@ impl Gen {
     fn enum_let(&mut self) -> Stmt {
         let ei = self.rng.below(self.enums.len() as u64) as usize;
         let mutable = self.rng.chance(40);
-        let value = self.case_value(ei);
+        let value = self.case_value(ei, true);
         let name = self.name("e");
         let en = self.enums[ei].def.name.clone();
         self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: Ty::I64, iv: Iv::point(0), assignable: mutable, list: None, item: false, data: false, unseen: false, en: Some(ei), simd: None });
@@ -1064,7 +1088,7 @@ impl Gen {
     fn enum_assign(&mut self) -> Stmt {
         let vs: Vec<VarInfo> = self.enum_vars().into_iter().filter(|v| v.assignable).collect();
         let v = self.rng.pick(&vs).clone();
-        let value = self.case_value(v.en.unwrap());
+        let value = self.case_value(v.en.unwrap(), true);
         Stmt::Assign { tier: Tier::Default, name: v.name, value }
     }
 
@@ -1076,7 +1100,7 @@ impl Gen {
             return (Expr::Var(v.name), v.en.unwrap());
         }
         let ei = self.rng.below(self.enums.len() as u64) as usize;
-        (self.case_value(ei), ei)
+        (self.case_value(ei, false), ei)
     }
 
     /// Open an arm's scope, with its data's name if the case has data.
@@ -1884,7 +1908,7 @@ impl Gen {
         let evs = self.enum_vars();
         if !evs.is_empty() && self.rng.chance(8) {
             let v = self.rng.pick(&evs).clone();
-            let c = self.case_value(v.en.unwrap());
+            let c = self.case_value(v.en.unwrap(), false);
             let op = if self.rng.chance(50) { CmpOp::Eq } else { CmpOp::Ne };
             return Expr::Cmp(op, Box::new(Expr::Var(v.name)), Box::new(c));
         }

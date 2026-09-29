@@ -231,6 +231,9 @@ pub enum Expr {
     Lend(String),
     /// `E1.c2[v]`, or `E1.c1` for a case with no data (design/enums.md).
     Case(String, String, Option<Box<Expr>>),
+    /// `to.K[v] otherwise { out_of_range { K.c1 } }`: a number into a
+    /// `layout.c enum`, the fallback where no case has it (owner, 2026-09-27).
+    ToEnum(String, Box<Expr>, Box<Expr>),
     /// `simd.fill[v]`: every lane `v` (design/simd.md).
     SimdFill(Box<Expr>),
     /// `simd.max[v]`, `simd.min`, `simd.sum` (a check site), `simd.all`,
@@ -257,6 +260,8 @@ pub struct Arm {
 pub struct EnumDef {
     pub name: String,
     pub cases: Vec<(String, Option<Ty>)>,
+    /// A `layout.c enum`: each case's number (no case has data).
+    pub values: Option<Vec<i128>>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -383,7 +388,7 @@ fn q(name: &str) -> String {
 fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
-        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) => Some(0),
+        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
         Expr::Bin(BinOp::Mul | BinOp::Div, ..) => Some(3),
@@ -565,6 +570,13 @@ impl<'a> Wr<'a> {
             }
             Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
             Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
+            Expr::ToEnum(en, v, fallback) => {
+                self.out.push_str(&format!("to.{en}["));
+                self.e(v);
+                self.out.push_str(if self.strict { "] otherwise { out_of_range { giveS " } else { "] otherwise { out_of_range { " });
+                self.e(fallback);
+                self.out.push_str(if self.strict { "; } }" } else { " } }" });
+            }
             Expr::SimdFill(v) => {
                 self.out.push_str("simd.fill[");
                 self.e(v);
@@ -803,11 +815,13 @@ impl Program {
         w.out.push('\n');
         w.out.push_str(&self.printer);
         for e in &self.enums {
-            w.out.push_str(&format!("\nenum {} {{\n", e.name));
-            for (c, t) in &e.cases {
-                match t {
-                    Some(t) => w.out.push_str(&format!("    {c}: {}\n", t.name())),
-                    None => w.out.push_str(&format!("    {c}\n")),
+            let layout = if e.values.is_some() { "layout.c " } else { "" };
+            w.out.push_str(&format!("\n{layout}enum {} {{\n", e.name));
+            for (i, (c, t)) in e.cases.iter().enumerate() {
+                match (t, &e.values) {
+                    (_, Some(vs)) => w.out.push_str(&format!("    {c} = {}\n", vs[i])),
+                    (Some(t), None) => w.out.push_str(&format!("    {c}: {}\n", t.name())),
+                    (None, None) => w.out.push_str(&format!("    {c}\n")),
                 }
             }
             w.out.push_str("}\n");
