@@ -13,8 +13,9 @@ line. Synthia claude asked whether `name=shop`, an indented line, or a
 comment after a value (`geometry.version = 1.2  # pinned`) should be
 refused or accepted, and recommended refusing: loosening later breaks no
 manifest, tightening would. The owner: "refuse". Synthia's refusal shows
-the corrected line where there is one (`name=shop` → `name = shop`);
-that is synthia claude's, as reported, not a ruling.
+the corrected line where there is one (`name=shop` → `name = shop`):
+synthia claude's, and the owner, asked afterwards, did not recall ruling
+it but agreed: "I think it's correct".
 
 ### 2026-09-29 — Manifests stay data; a Turing-complete `build.cplr` runs only when asked (owner)
 
