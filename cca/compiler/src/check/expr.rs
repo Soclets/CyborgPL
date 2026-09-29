@@ -2863,7 +2863,14 @@ impl Checker {
             }
             Builtin::SimdFill => {
                 arity(1, self)?;
-                let v = self.expr(ctx, positional[0])?;
+                let mut v = self.expr(ctx, positional[0])?;
+                // Bare numbers alone are worked out exactly (dc83c05): left
+                // with an open width, `15059671820752541943 div 3` was done
+                // at a signed 64 bits, where the literal is negative, in any
+                // build that did not fold it (check claude, seed 5120).
+                if literal_only(&v) && !is_int_literal(&v) && matches!(self.resolve(&v.ty).base(), Ty::Int(IntW::Free(_))) {
+                    retype_literal_arith(&mut v, &Ty::exact());
+                }
                 // An answer of plain math is exact, and lands where it is
                 // stored (owner, 2026-09-23): in every lane, whose type the
                 // vector takes from its place. As the lane type it made a

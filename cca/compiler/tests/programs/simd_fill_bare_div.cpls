@@ -1,0 +1,10 @@
+# Bare numbers alone in a fill are worked out exactly (check claude, seed
+# 5120): 15059671820752541943 div 3 was left with an open width, done at a
+# signed 64 bits where the literal is negative, and the asserted build
+# stopped on it. 5019890606917513981 mod 256 is 253.
+extern fn exit ['code': int32];
+MAIN {
+    's': simd[uint64, 2] = simd.fill[15059671820752541943 div 3];
+    'x': uint64 = 's'[1];
+    nocheck exit[to.int32['x' mod 256]];
+}
