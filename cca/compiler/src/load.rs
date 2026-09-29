@@ -70,11 +70,11 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, as_dep: Opt
             id
         }
     };
-    let file = parse_file(sources, &root)?;
+    let mut file = parse_file(sources, &root)?;
+    // A dependency's `MAIN` runs only when that Limb itself is run, and
+    // is left out when another Limb uses it (owner, 2026-09-29: a).
     if as_dep.is_some() {
-        if let Some(main) = file.items.iter().find(|i| matches!(i.kind, crate::ast::ItemKind::Main(_))) {
-            return err(Diagnostic::error(format!("`{}` is used as a dependency, and a dependency has no `MAIN`: only the Limb being built runs", shown)).at(main.span));
-        }
+        file.items.retain(|i| !matches!(i.kind, crate::ast::ItemKind::Main(_)));
     }
     items.collect_file(&file, m, as_dep.is_none())?;
     load_dir(sources, items, dir, m, true)?;

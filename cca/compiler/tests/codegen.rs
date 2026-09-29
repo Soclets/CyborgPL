@@ -154,6 +154,12 @@ fn limbs_reach_their_dependencies() {
     let limbs = dir().parent().unwrap().join("limbs");
     let r = Command::new(cca()).arg("run").arg(limbs.join("uses_areas")).output().unwrap();
     assert_eq!(r.status.code(), Some(31), "uses_areas did not run to 31:\n{}", String::from_utf8_lossy(&r.stderr));
+    // A dependency's MAIN runs when that Limb is run itself, and is left
+    // out when another uses it (owner, 2026-09-29: a).
+    for (name, code) in [("uses_runnable", 8), ("runnable", 99)] {
+        let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
+        assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
+    }
     for (name, says) in [("cycle_a", "go round in a circle: cycle_a → cycle_b → cycle_a"), ("misnamed", "calls itself `areas` in its `CCA.cplr`, and the Limb that depends on it names it `geometry`")] {
         let r = Command::new(cca()).arg("check").arg(limbs.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
