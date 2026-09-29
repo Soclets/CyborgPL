@@ -22,6 +22,18 @@ Very slow at the development, fast &amp; safe at the final product.</p>
   `Original: CyborgPL™ (product name) at (one of the product's locations) cyborgpl.dev (official website)`
   The parentheses and what is inside them are part of the credit, not placeholders. As the licence asks, also say the text is under CC BY 4.0, and whether you changed it. The site's code stays under `LICENSE`.
 
+## Contributing
+
+Pull requests and issues are accepted only when the owner wants them.
+
+## Code of Conduct
+
+The Code of Conduct depends on the owner, and likely won't be statically stated.
+
+## Security
+
+No security support. No private reports, no fixes promised, no supported versions. Use at your own risk.
+
 ## Credits
 
 CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
