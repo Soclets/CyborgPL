@@ -135,6 +135,12 @@ or reasoning with CCA:
 - **(d) Proofs as assertions**: every program is also built with
   `cca build --assert-proofs` (see below).
 
+A claim whose span and type fit more than one of my sites — two arguments
+of one call with the same type, which CCA gives the call's span — is
+counted as ambiguous and not asked (2026-09-29: four "refutations" in a
+100-program batch were such pairings, not CCA's). Instances of one site in
+several inlined calls share its node and are still asked together.
+
 ## Which build a run uses
 
 Every program is built twice: `cca build` (the working build: unproven

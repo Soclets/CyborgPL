@@ -144,6 +144,10 @@ pub struct Outcome {
     /// input: artefacts of the translation's approximations, not findings.
     pub unconfirmed: usize,
     pub unmatched: Vec<Claim>,
+    /// Claims whose span and type fit more than one of my sites (two
+    /// arguments of one call with the same type): not asked, since the
+    /// claim is about only one of them (seed 8049, 2026-09-29).
+    pub ambiguous: usize,
     /// Claims with nothing to ask: a negative number's minus, a `for`
     /// counter over literal bounds, the program's own printer.
     pub literal: usize,
@@ -165,7 +169,7 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
     let mut questions = vec![];
     let mut about = vec![];
     let ranges = check_gen::intervals::analyse(p, u64::MAX as u128);
-    let mut out = Outcome { proven: 0, matched: 0, justified: 0, intervals_complete: ranges.is_some(), asked: 0, unknown: 0, unasked: 0, refuted: vec![], unconfirmed: 0, unmatched: vec![], literal: 0 };
+    let mut out = Outcome { proven: 0, matched: 0, justified: 0, intervals_complete: ranges.is_some(), asked: 0, unknown: 0, unasked: 0, refuted: vec![], unconfirmed: 0, unmatched: vec![], literal: 0, ambiguous: 0 };
     let lines: Vec<&str> = text.lines().collect();
     // The text a claim's span covers.
     let span_text = |c: &Claim| -> String {
@@ -193,6 +197,15 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
             continue;
         }
         out.matched += 1;
+        // Several instances of one site (a function inlined at each call)
+        // share its node and statement; different sites do not.
+        let mut groups: Vec<(usize, usize)> = ks.iter().map(|k| (enc.sites[*k].node, enc.sites[*k].stmt)).collect();
+        groups.sort();
+        groups.dedup();
+        if groups.len() > 1 {
+            out.ambiguous += 1;
+            continue;
+        }
         // Attack (b): does the simple analysis keep every instance's value
         // inside what Precog claims? Then the claim is justified.
         let inside = |k: usize| -> bool {
