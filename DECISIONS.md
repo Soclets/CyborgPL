@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — Several targets; CCA's package manager can do whatever Synthia can (owner: b, "yea")
+
+`[my target]` in `Synthia.ttsr` holds several targets, each with its
+settings as dotted keys (`aarch64-linux.runner = qemu-aarch64`) (owner:
+b; alternative: one target). The owner then asked whether CCA's package
+manager can do "some Synthia shit": not yet — `CCA.cplr` had one `target`,
+which CCA refused as "not yet" — and "if not, that feels like the base lang
+not being able to do inline ASM". Design claude proposed the rule that
+CCA's package manager can do everything Synthia can, in its plainer
+CyborgPL-syntax way, Synthia's edge being convenience, never capability
+(which also keeps "CCA never depends on Synthia"); owner: "yea". So
+`CCA.cplr`'s `target` became `targets`, a list of `cca::Target[name = …,
+runner = …]`; the oracle checks their shape and refuses the old `target`
+(reject test manifest_one_target). `synthia-manifest.md`, `tooling.md`.
+
 ### 2026-09-29 — A Limb states its own ID; a registered ID is refused twice and kept for good (owner)
 
 `id = …` sits in `[my identity]` (owner: a; alternative: only in the

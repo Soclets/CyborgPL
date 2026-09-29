@@ -17,6 +17,9 @@ geometry.version = 1.2
 money.path = ../money
 
 [my target]
+aarch64-macos.default = yes
+aarch64-linux.runner = qemu-aarch64
+x86_64-windows.runner = wine
 ```
 
 - **The sections are the owner's**: `[my identity]` (proposed by the owner
@@ -47,5 +50,17 @@ money.path = ../money
   ≈ 2.8 × 10⁻⁴⁰ — so the rule is against a copied ID, someone passing their
   Limb off as another.
 
-Open: `[my target]`, comments, what a registered name is for once IDs
-name Limbs, and how an update proves it comes from the ID's owner.
+- **`[my target]` holds several targets, each with its settings** (owner:
+  b), as dotted keys: a `runner` for a cross target's tests, `default` for
+  the one built when none is named. One target is one line.
+
+**CCA's package manager can do whatever Synthia can** (owner, 2026-09-29:
+"yea"), in its plainer CyborgPL-syntax way; Synthia's edge is convenience,
+never capability, so CCA never needs it. The owner asked whether CCA's
+package manager could do "some Synthia shit", since otherwise "that feels
+like the base lang not being able to do inline ASM". So `CCA.cplr`'s
+`target` became `targets`, a list of `cca::Target[name = …, runner = …]`.
+
+Open: comments, what a registered name is for once IDs name Limbs, how an
+update proves it comes from the ID's owner, and which of `CCA.cplr`'s
+targets is the default.

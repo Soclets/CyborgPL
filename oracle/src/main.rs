@@ -104,7 +104,26 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
         if c.vis != ast::Vis::Private { return Err(format!("{shown}: line {}: `pub` means nothing in CCA.cplr, which no Limb reads: `const '{}' := …;`", c.line, c.name)); }
         match c.name.as_str() {
             "name" => name = Some(text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?),
-            "version" | "target" => { text(&c.value).ok_or_else(|| format!("{shown}: line {}: '{}' is a text", c.line, c.name))?; }
+            "version" => { text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'version' is a text", c.line))?; }
+            "target" => return Err(format!("{shown}: line {}: a Limb builds for several targets, so the setting is 'targets': `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`", c.line)),
+            // several targets, each with its settings (owner, 2026-09-29): CCA's package manager can do
+            // whatever Synthia can, in its plainer way
+            "targets" => {
+                fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {
+                    match e { ast::Expr::Nested(b) => for v in &b.values { let ast::Value::Expr(x) = v; each(x, out) }, other => out.push(other.clone()) }
+                }
+                let mut items = Vec::new();
+                for v in &c.value.values { let ast::Value::Expr(x) = v; each(x, &mut items); }
+                for it in items {
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a target is `cca::Target[name = …]`, with a `runner` if it has one", c.line)) };
+                    if shape != "::cca.Target" { return Err(format!("{shown}: line {line}: a target is a `cca::Target`")); }
+                    if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a target needs its `name`")); }
+                    for (f, b) in &fields {
+                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cca::Target` has no `{f}`; it has `name` and `runner`")); }
+                        text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
+                    }
+                }
+            }
             "dependencies" => {
                 fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {
                     match e { ast::Expr::Nested(b) => for v in &b.values { let ast::Value::Expr(x) = v; each(x, out) }, other => out.push(other.clone()) }
@@ -125,7 +144,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                     deps.push(d);
                 }
             }
-            other => return Err(format!("{shown}: line {}: CCA.cplr has no setting '{other}'; its settings are 'name', 'version', 'dependencies' and 'target'", c.line)),
+            other => return Err(format!("{shown}: line {}: CCA.cplr has no setting '{other}'; its settings are 'name', 'version', 'dependencies' and 'targets'", c.line)),
         }
     }
     Ok((name, deps))

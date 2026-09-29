@@ -56,7 +56,10 @@ Owner, 2026-09-14.
   **`cca::Dep` is a name plus a `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a):
   `cca::Dep[name = "money", path = "../money"]`. The settings the oracle
-  knows: `name`, `version`, `dependencies`, `target`.
+  knows: `name`, `version`, `dependencies`, `targets` (a list of
+  `cca::Target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
+  targets, since CCA's package manager can do whatever Synthia can, owner
+  2026-09-29).
 
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
   (above). What goes in
