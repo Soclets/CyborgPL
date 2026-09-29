@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-29 — `Synthia.ttsr` lines are written one way; anything else is refused (owner: "refuse")
+
+Relayed by synthia claude. `synthia-manifest.md` shows `key = value` with
+one space each side of `=`, no indentation, and comments on their own
+line. Synthia claude asked whether `name=shop`, an indented line, or a
+comment after a value (`geometry.version = 1.2  # pinned`) should be
+refused or accepted, and recommended refusing: loosening later breaks no
+manifest, tightening would. The owner: "refuse". Synthia's refusal shows
+the corrected line where there is one (`name=shop` → `name = shop`);
+that is synthia claude's, as reported, not a ruling.
+
 ### 2026-09-29 — Manifests stay data; a Turing-complete `build.cplr` runs only when asked (owner)
 
 The owner felt the manifest "should be turing complete, like the built-in

@@ -62,6 +62,10 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
 `target` became `targets`, a list of `cca::Target[name = …, runner = …]`.
 
 - **Comments are `#`**, a space after it, as in CyborgPL (owner).
+- **A line is written one way** (owner, 2026-09-29: "refuse"): `key =
+  value` with one space each side of `=`, no indentation, and a comment on
+  its own line. `name=shop`, an indented line, and a comment after a value
+  are refused.
 - **Names may repeat; IDs never do** (owner: "Names could be the same, IDs
   can't"). A name is a label; the key before `.id` in `[my needed things]` is
   what this Limb's code calls that dependency (`geometry.id = …` →
