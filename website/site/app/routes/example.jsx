@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLoaderData, useLocation, useNavigate } from "react-router";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Await, useLoaderData, useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
@@ -7,21 +7,40 @@ import Md from "../components/Md.jsx";
 import { plain } from "../lib/md.js";
 import { seo } from "../lib/seo.js";
 
-export const meta = ({ loaderData: ex, params }) => seo({
+// The grid's entry for this example: title, summary, lines and its first few lines of code.
+const briefOf = (list, id) => list?.examples?.find((e) => e.id === id);
+
+export const meta = ({ loaderData, params, matches }) => {
+  const list = matches.find((m) => m?.id === "routes/examples");
+  const ex = loaderData?.title ? loaderData : briefOf(list?.loaderData ?? list?.data, params.id);
+  return seo({
   title: `${ex?.title ? plain(ex.title) : "Example"} · CyborgPL`,
   description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.cpls — a CyborgPL program and the output it prints.`,
   path: `/examples/${params.id}`,
-});
+  });
+};
 
 export async function loader({ params }) {
   const { getExample } = await import("../lib/examples.server.js");
   return getExample(params.id);
 }
 
+// Opening doesn't wait for the example's data (owner: they took a while to pop up). The
+// window opens at once with what the grid already has, and the highlighted code and the
+// output follow as a promise. A direct link is pre-rendered whole, as before.
+export function clientLoader({ serverLoader, params }) {
+  return { id: params.id, full: serverLoader() };
+}
+
 // The example opens as a bottom sheet over the grid. Swipe it down to put it away
 // (tapping the dimmed strip above it, or Escape, also works).
 export default function Example() {
-  const ex = useLoaderData();
+  const data = useLoaderData();
+  const id = data.id;
+  const full = data.full ?? data;   // the whole example, or a promise of it
+  const list = useRouteLoaderData("routes/examples");
+  const brief = data.full ? briefOf(list, id) : data;
+  const title = brief?.title ?? id;
   const navigate = useNavigate();
   const location = useLocation();
   const [tab, setTab] = useState("code");
@@ -84,10 +103,10 @@ export default function Example() {
     return () => { [root.style.overflow, body.style.paddingRight] = before; root.style.removeProperty("--lock-gap"); removeEventListener("keydown", onKey); };
   }, []);
 
-  useEffect(() => setTab("code"), [ex.id]);
+  useEffect(() => setTab("code"), [id]);
 
   return (
-    <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={plain(ex.title)}>
+    <div className="sheet-layer" role="dialog" aria-modal="true" aria-label={plain(title)}>
       <motion.div className="scrim" onClick={() => close()} style={{ opacity: tint }} />
       <motion.section
         className="sheet"
@@ -104,29 +123,34 @@ export default function Example() {
           <div className="grabber" />
           <div className="sheet-head">
             <div>
-              <b><Md text={ex.title} /></b>
-              <small>{ex.file} · {ex.lines} lines</small>
+              <b><Md text={title} /></b>
+              <small>examples/{id}.cpls{brief?.lines ? ` · ${brief.lines} lines` : ""}</small>
             </div>
             {/* On a phone there is no visible close button: swipe down (owner, 2026-09-25), and this
                 one is for screen readers only. A computer can't swipe, so there it shows (app.css). */}
             <button className="sheet-close" onClick={() => close()} aria-label="Close"><Icon name="x" size={20} /></button>
           </div>
-          {ex.summary && <p className="sheet-summary"><Md text={ex.summary} /></p>}
+          {brief?.summary && <p className="sheet-summary"><Md text={brief.summary} /></p>}
           <div className="seg" role="tablist">
             <button role="tab" aria-selected={tab === "code"} className={tab === "code" ? "on" : ""} onClick={() => setTab("code")}>Code</button>
             <button role="tab" aria-selected={tab === "output"} className={tab === "output" ? "on" : ""} onClick={() => setTab("output")}>Output</button>
           </div>
         </div>
         <div className="sheet-body">
-          {tab === "code" ? (
-            <Code html={ex.html} className="sheet-code" />
-          ) : (
-            <div className="output">
-              <pre>{ex.out || "(prints nothing)"}</pre>
-              {ex.exit && <p className="exit">Exits with code {ex.exit}.</p>}
-              <p className="checked">This is the output the reference interpreter’s tests check for.</p>
-            </div>
-          )}
+          {/* Until the example arrives: its first lines, plain, where the code will be. */}
+          <Suspense fallback={<div className="code sheet-code sheet-pending"><pre>{brief?.preview}</pre></div>}>
+            <Await resolve={full} errorElement={<p className="empty">This example didn’t load. Close it and try again.</p>}>
+              {(ex) => tab === "code" ? (
+                <Code html={ex.html} className="sheet-code" />
+              ) : (
+                <div className="output">
+                  <pre>{ex.out || "(prints nothing)"}</pre>
+                  {ex.exit && <p className="exit">Exits with code {ex.exit}.</p>}
+                  <p className="checked">This is the output the reference interpreter’s tests check for.</p>
+                </div>
+              )}
+            </Await>
+          </Suspense>
         </div>
       </motion.section>
     </div>

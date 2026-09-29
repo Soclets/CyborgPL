@@ -18,7 +18,22 @@ export async function loader() {
 // The query outlives the page, so coming back from a result finds it still there.
 let lastQ = "";
 
+// The example window's code (and the animation library in it) is fetched once the grid is
+// idle, so even the first opening doesn't wait for it. Asked of the route manifest, so it is
+// exactly the built chunk.
+function useWarmExampleWindow() {
+  useEffect(() => {
+    const warm = () => {
+      const m = window.__reactRouterManifest?.routes?.["routes/example"];
+      if (m?.module) import(/* @vite-ignore */ m.module).catch(() => {});
+    };
+    const id = "requestIdleCallback" in window ? requestIdleCallback(warm, { timeout: 2000 }) : setTimeout(warm, 800);
+    return () => ("cancelIdleCallback" in window ? cancelIdleCallback(id) : clearTimeout(id));
+  }, []);
+}
+
 export default function Examples() {
+  useWarmExampleWindow();
   const { examples } = useLoaderData();
   const [q, setQState] = useState(lastQ);
   const setQ = (v) => { lastQ = v; setQState(v); };

@@ -27,9 +27,9 @@ export async function highlight(code) {
 // Code in a title is marked `like this` (shown as code; plain in a browser tab).
 const TITLES = {
   hello: "Hello, World", fizzbuzz: "FizzBuzz", enums: "Enums & `match`", concur: "Concurrency",
-  ffi: "Talking to C", simd: "SIMD", printf: "`printf`", pi: "Digits of pi", whichever: "`whichever`",
+  ffi: "Talking to C", simd: "SIMD", pi: "Digits of pi", whichever: "`whichever`",
   and_runs_both: "`and` runs both sides", and_then_or_else: "`and.then` / `or.else`", no_checks: "`NO_FUCKING_CHECKS`",
-  strict: "`#strict`", print_vs_printu: "`print` vs `printu`", c_enum: "C enums", list_array: "`list` and `array`",
+  strict: "`#strict`", print_vs_print_useful: "`print` vs `print.useful`", print_format: "`print.format`", c_enum: "C enums", list_array: "`list` and `array`",
   match_value: "`match` gives a value", strict_match: "`match` in `#strict`", operator_values: "Operators as values",
   lifetimes: "Lifetimes: `@x`", for_position: "Position and item",
 };

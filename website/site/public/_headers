@@ -6,3 +6,4 @@
 # on the network after the first visit (owner: switching felt slow).
 /*.data
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
+  Content-Type: text/x-script; charset=utf-8
