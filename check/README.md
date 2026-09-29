@@ -31,7 +31,17 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   comparisons, `and or not`, `to.<int>[…]` narrowing and widening, range
   types on names, parameters and returns (`int32[0, 100]`, `int32[1, max]`,
   `int32[min, 100]`), and both parenthesised and "loose" spellings of the
-  precedence rules.
+  precedence rules. **Lists** (design/lists.md, 2026-09-29): typed literals
+  (`[]`, `[7,]`, `[a, b]`), items read by position, `change 'xs'[p] = v`,
+  `list.append`, `list.length`, and `for 'x'` / `for 'i', 'x' in lend 'xs'`.
+  The generator keeps each list's shortest and longest possible length, so a
+  position is guarded (a literal within the shortest, `1 + (e mod
+  list.length[lend 'xs'])`, or the walk's own position) unless it is left
+  unguarded on purpose. A list being walked is never changed. Positions stay
+  out of `check` blocks and `check` statements: a guarded position is a fact
+  about the list's length that Precog need not see. The Precog oracle's
+  analyses (b) and (c) do not model lists yet: a program with one has no
+  complete interval answer, and the solver skips it once it changes a list.
 - **Printing** (owner, 2026-09-23): every program carries its own printer in
   the base language — digits into a `list[uint8]`, then C's `write` under
   `nocheck` — varied by seed, compared like everything else.
@@ -111,11 +121,19 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits`.
+straight at them. Default: `exact-bits,item-width`.
 
 - `exact-bits`: CCA says "not yet" to a shift, bitwise or wrapping operator
   on an exact answer whose operands differ in size (2026-09-23); the
   generator gives such an operand a size with `to.T[…]`.
+
+- `item-width`: the oracle gives a `for … in lend` item no width for `+~`
+  or `not.bit` (sent 2026-09-29); the generator reads an item only as
+  `to.T['x']`.
+- Always (no switch): a shift in a list item or an appended value never has
+  a bare left operand. Whether a list's item type reaches its literal's
+  items as a let's type does is with the owner (2026-09-29); the oracle
+  gives them none today.
 
 - `mixed-width`: print through `to.int64[…]` / `to.uint64[…]`. Needed
   only while mixed widths were open; settled by the owner (dc83c05: plain

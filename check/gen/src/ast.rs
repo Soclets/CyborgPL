@@ -219,6 +219,10 @@ pub enum Expr {
     Or(Box<Expr>, Box<Expr>),
     To(Ty, Box<Expr>),
     Call(String, Vec<Expr>),
+    /// `'xs'[p]`: the item at a 1-based position (a check site).
+    At(String, Box<Expr>),
+    /// `list.length[lend 'xs']`, a `uint64`.
+    Len(String),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -249,6 +253,15 @@ pub enum Stmt {
     /// Print one integer through the program's own printer.
     Print { signed: bool, value: Expr },
     Return(Expr),
+    /// `mut 'xs': list[T] = [a, b];` (design/lists.md).
+    ListLet { name: String, mutable: bool, elem: Ty, items: Vec<Expr> },
+    /// `change 'xs'[p] = v;`
+    SetAt { tier: Tier, name: String, pos: Expr, value: Expr },
+    /// `list.append[lend.mut 'xs', v];`
+    Append { name: String, value: Expr },
+    /// `for 'x' in lend 'xs'`, or `for 'i', 'x' in lend 'xs'` with the
+    /// position from 1 (owner, c7951d4).
+    ForEach { pos: Option<String>, item: String, list: String, body: Vec<Stmt> },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -298,7 +311,7 @@ fn q(name: &str) -> String {
 fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
-        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) => Some(0),
+        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
         Expr::Bin(BinOp::Mul | BinOp::Div, ..) => Some(3),
@@ -342,35 +355,6 @@ fn bare_ok(parent: &Expr, child: &Expr, left: bool) -> bool {
     }
 }
 
-pub fn render_expr(e: &Expr, loose: bool) -> String {
-    let operand = |child: &Expr, left: bool| -> String {
-        let s = render_expr(child, loose);
-        let bare = level(child) == Some(0) || (loose && bare_ok(e, child, left));
-        if bare {
-            s
-        } else {
-            format!("({s})")
-        }
-    };
-    match e {
-        Expr::Lit(v) => v.to_string(),
-        Expr::Bool(b) => b.to_string(),
-        Expr::Var(n) => q(n),
-        Expr::Bin(op, a, b) => format!("{} {} {}", operand(a, true), op.text(), operand(b, false)),
-        Expr::Neg(a) => format!("-{}", operand(a, false)),
-        Expr::NotBit(a) => format!("not.bit {}", operand(a, false)),
-        Expr::Not(a) => format!("not {}", operand(a, false)),
-        Expr::Cmp(op, a, b) => format!("{} {} {}", operand(a, true), op.text(), operand(b, false)),
-        Expr::And(a, b) => format!("{} and {}", operand(a, true), operand(b, false)),
-        Expr::Or(a, b) => format!("{} or {}", operand(a, true), operand(b, false)),
-        Expr::To(t, a) => format!("to.{}[{}]", t.name(), render_expr(a, loose)),
-        Expr::Call(f, args) => {
-            let args: Vec<String> = args.iter().map(|a| render_expr(a, loose)).collect();
-            format!("{f}[{}]", args.join(", "))
-        }
-    }
-}
-
 fn tier_prefix(t: Tier) -> &'static str {
     match t {
         Tier::Default => "",
@@ -379,112 +363,9 @@ fn tier_prefix(t: Tier) -> &'static str {
     }
 }
 
-fn render_block(out: &mut String, body: &[Stmt], indent: usize, loose: bool) {
-    for s in body {
-        render_stmt(out, s, indent, loose);
-    }
-}
-
-fn render_stmt(out: &mut String, s: &Stmt, indent: usize, loose: bool) {
-    let pad = "    ".repeat(indent);
-    let ex = |e: &Expr| render_expr(e, loose);
-    match s {
-        Stmt::Let { tier, name, mutability, ty, value } => {
-            let m = match mutability {
-                Mutability::Plain => "",
-                Mutability::Mut => "mut ",
-                Mutability::Immut => "immut ",
-            };
-            out.push_str(&format!("{pad}{}{m}{}: {} = {};\n", tier_prefix(*tier), q(name), ty.text(), ex(value)));
-        }
-        Stmt::Assign { tier, name, value } => {
-            out.push_str(&format!("{pad}{}change {} = {};\n", tier_prefix(*tier), q(name), ex(value)));
-        }
-        Stmt::If { arms, otherwise } => {
-            for (i, (c, body)) in arms.iter().enumerate() {
-                if i == 0 {
-                    out.push_str(&format!("{pad}if {} {{\n", ex(c)));
-                } else {
-                    out.push_str(&format!("{pad}}} else if {} {{\n", ex(c)));
-                }
-                render_block(out, body, indent + 1, loose);
-            }
-            if let Some(body) = otherwise {
-                out.push_str(&format!("{pad}}} else {{\n"));
-                render_block(out, body, indent + 1, loose);
-            }
-            out.push_str(&format!("{pad}}}\n"));
-        }
-        Stmt::For { perm, name, ty, start, stop, step, body } => {
-            let perm = if *perm { "perm " } else { "" };
-            let step = step.map(|s| format!(", {s}")).unwrap_or_default();
-            out.push_str(&format!(
-                "{pad}for {perm}{}: {} in range[{}, {}{step}] {{\n",
-                q(name),
-                ty.name(),
-                ex(start),
-                ex(stop)
-            ));
-            render_block(out, body, indent + 1, loose);
-            out.push_str(&format!("{pad}}}\n"));
-        }
-        Stmt::While { cond, body } => {
-            out.push_str(&format!("{pad}while {} {{\n", ex(cond)));
-            render_block(out, body, indent + 1, loose);
-            out.push_str(&format!("{pad}}}\n"));
-        }
-        Stmt::Loop { body } => {
-            out.push_str(&format!("{pad}loop {{\n"));
-            render_block(out, body, indent + 1, loose);
-            out.push_str(&format!("{pad}}}\n"));
-        }
-        Stmt::Block { tier, body } => {
-            out.push_str(&format!("{pad}{}{{\n", tier_prefix(*tier)));
-            render_block(out, body, indent + 1, loose);
-            out.push_str(&format!("{pad}}}\n"));
-        }
-        Stmt::Break => out.push_str(&format!("{pad}break;\n")),
-        Stmt::Continue => out.push_str(&format!("{pad}continue;\n")),
-        Stmt::Print { signed, value } => {
-            let (f, to) = if *signed { ("put_i", "int64") } else { ("put_u", "uint64") };
-            if PRINT_THROUGH_TO.load(Ordering::Relaxed) {
-                // The value's own width decides its arithmetic; the
-                // conversion stops the parameter's width reaching in.
-                out.push_str(&format!("{pad}{f}[to.{to}[{}]];\n", ex(value)));
-            } else {
-                out.push_str(&format!("{pad}{f}[{}];\n", ex(value)));
-            }
-        }
-        Stmt::Return(e) => out.push_str(&format!("{pad}return {};\n", ex(e))),
-    }
-}
-
 impl Program {
     pub fn render(&self) -> String {
-        let mut out = String::new();
-        out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
-        out.push_str("extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n");
-        if !self.inputs.is_empty() {
-            out.push_str("extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];\n");
-            out.push_str("extern fn strlen ['s': ptr[uint8]] -> uint64;\n");
-        }
-        out.push('\n');
-        out.push_str(&self.printer);
-        for f in &self.funcs {
-            let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.text())).collect();
-            out.push_str(&format!("\nfn {} [{}] -> {} {{\n", f.name, params.join(", "), f.ret.text()));
-            render_block(&mut out, &f.body, 1, self.loose);
-            out.push_str("}\n");
-        }
-        out.push_str("\nMAIN {\n");
-        for i in &self.inputs {
-            let key = format!("{}_key", i.name);
-            out.push_str(&format!("    {} := \"{}\";\n", q(&key), i.var));
-            out.push_str(&format!("    nocheck {}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
-        }
-        render_block(&mut out, &self.main, 1, self.loose);
-        out.push_str("}\n");
-        out
+        self.render_spans().0
     }
 }
 
@@ -587,6 +468,13 @@ impl<'a> Wr<'a> {
                 }
                 self.out.push(']');
             }
+            Expr::At(n, p) => {
+                self.out.push_str(&q(n));
+                self.out.push('[');
+                self.e(p);
+                self.out.push(']');
+            }
+            Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
         }
     }
     fn block(&mut self, body: &[Stmt], indent: usize) {
@@ -677,6 +565,45 @@ impl<'a> Wr<'a> {
                 }
             }
             Stmt::Return(e) => self.simple(s, &pad, Tier::Default, "return ", e, ";"),
+            Stmt::ListLet { name, mutable, elem, items } => {
+                let m = if *mutable { "mut " } else { "" };
+                self.out.push_str(&pad);
+                let s0 = self.out.len();
+                self.out.push_str(&format!("{m}{}: list[{}] = [", q(name), elem.name()));
+                for (i, x) in items.iter().enumerate() {
+                    if i > 0 {
+                        self.out.push_str(", ");
+                    }
+                    self.e(x);
+                }
+                // `[7]` is the number seven; a one-item list is `[7,]`.
+                self.out.push_str(if items.len() == 1 { ",];" } else { "];" });
+                self.stmt.push((addr(s), s0, s0, self.out.len()));
+                self.out.push('\n');
+            }
+            Stmt::SetAt { tier, name, pos, value } => {
+                self.out.push_str(&pad);
+                let s0 = self.out.len();
+                self.out.push_str(tier_prefix(*tier));
+                let s1 = self.out.len();
+                self.out.push_str(&format!("change {}[", q(name)));
+                self.e(pos);
+                self.out.push_str("] = ");
+                self.e(value);
+                self.out.push(';');
+                self.stmt.push((addr(s), s0, s1, self.out.len()));
+                self.out.push('\n');
+            }
+            Stmt::Append { name, value } => {
+                let head = format!("list.append[lend.mut {}, ", q(name));
+                self.simple(s, &pad, Tier::Default, &head, value, "];");
+            }
+            Stmt::ForEach { pos, item, list, body } => {
+                let pos = pos.as_ref().map(|p| format!("{}, ", q(p))).unwrap_or_default();
+                self.out.push_str(&format!("{pad}for {pos}{} in lend {} {{\n", q(item), q(list)));
+                self.block(body, indent + 1);
+                self.out.push_str(&format!("{pad}}}\n"));
+            }
         }
     }
 }

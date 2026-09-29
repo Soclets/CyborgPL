@@ -69,7 +69,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,item-width".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -84,6 +84,8 @@ impl Args {
             sized_bits: avoid.contains("exact-bits"),
             recursion: !avoid.contains("recursion"),
             exhaust: if self.has("exhaust") { self.num("domain", EXHAUST_CAP).max(2) } else { 0 },
+            lists: !avoid.contains("lists"),
+            item_through_to: avoid.contains("item-width"),
         }
     }
 }
@@ -295,7 +297,11 @@ fn main() {
                         same += 1;
                     } else {
                         differ += 1;
-                        println!("seed {seed} inputs {vals:?}: oracle stops at {oline:?}, eval at {eline:?} ({:?})", r.stopped.map(|x| x.2));
+                        let msg = match &o {
+                            engines::Oracle::Stopped { msg, .. } => msg.lines().next().unwrap_or("").to_string(),
+                            _ => String::new(),
+                        };
+                        println!("seed {seed} inputs {vals:?}: oracle stops at {oline:?}, eval at {eline:?} ({:?}) {msg}", r.stopped.map(|x| x.2));
                     }
                 }
             }

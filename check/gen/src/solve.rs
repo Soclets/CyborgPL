@@ -225,6 +225,13 @@ impl<'a> Enc<'a> {
             }
         }
         match e {
+            // A list's items and length are not modelled: any value, which
+            // the evaluator's confirmation of every refutation makes safe.
+            Expr::At(_, p) => {
+                self.expr(ctx, p, Some(Ty::U64));
+                self.fresh_int()
+            }
+            Expr::Len(_) => self.fresh_int(),
             Expr::Lit(v) => bv(*v),
             Expr::Bool(b) => b.to_string(),
             Expr::Var(n) => self.lookup(n).map(|v| v.term).unwrap_or_else(|| self.fresh_int()),
@@ -462,6 +469,17 @@ impl<'a> Enc<'a> {
 
     fn stmt(&mut self, ctx: &Ctx, s: &Stmt, leave: &mut Leave) {
         match s {
+            Stmt::ListLet { name, elem, items, .. } => {
+                for x in items {
+                    let v = self.expr(ctx, x, Some(*elem));
+                    (self.node, self.stmt) = (addr(x), addr(s));
+                    self.land(ctx, &v, (*elem).into(), &format!("item of '{name}'"));
+                }
+            }
+            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } => {
+                // Not modelled yet: the whole program is left to the other attacks.
+                self.too_big = true;
+            }
             Stmt::Let { name, ty, value, .. } => {
                 let v = self.expr(ctx, value, Some(ty.base));
                 (self.node, self.stmt) = (addr(value), addr(s));

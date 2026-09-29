@@ -158,6 +158,11 @@ impl<'a> An<'a> {
             }
         }
         match e {
+            // Lists are not analysed yet: a program with one has no complete answer.
+            Expr::At(..) | Expr::Len(_) => {
+                self.incomplete = true;
+                R::TOP
+            }
             Expr::Lit(v) => R::point(*v),
             Expr::Bool(b) => R::point(*b as i128),
             Expr::Var(n) => self.lookup(env, n).map(|v| v.r).unwrap_or(R::TOP),
@@ -399,6 +404,10 @@ impl<'a> An<'a> {
 
     fn stmt(&mut self, mut env: Env, s: &Stmt) -> Option<Env> {
         match s {
+            Stmt::ListLet { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } => {
+                self.incomplete = true;
+                Some(env)
+            }
             Stmt::Let { name, ty, value, .. } => {
                 let x = self.expr(&mut env, value);
                 (self.node, self.stmt) = (addr(value), addr(s));

@@ -12,7 +12,9 @@
 //! `and` / `or` evaluated, left then right (owner, fc04c70).
 
 use crate::ast::*;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 /// Values seen per site, keyed like check_gen::intervals (node, stmt, kind).
 pub type Seen = HashMap<(usize, usize, &'static str), Vec<i128>>;
@@ -30,10 +32,12 @@ const LIMIT_HI: i128 = (1i128 << 64) - 1;
 const MAX_STEPS: u64 = 5_000_000;
 const MAX_DEPTH: usize = 64;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum Val {
     I(i128),
     B(bool),
+    /// A list; a lend of it shares the storage.
+    L(Rc<RefCell<Vec<i128>>>),
 }
 
 impl Val {
@@ -41,12 +45,14 @@ impl Val {
         match self {
             Val::I(v) => v,
             Val::B(b) => b as i128,
+            Val::L(_) => 0,
         }
     }
     fn b(self) -> bool {
         match self {
             Val::B(b) => b,
             Val::I(v) => v != 0,
+            Val::L(_) => false,
         }
     }
 }
@@ -129,13 +135,15 @@ impl<'a> Ev<'a> {
     }
 
     fn lookup(env: &Env, n: &str) -> Option<(Val, TyR)> {
-        env.iter().rev().find_map(|s| s.get(n).copied())
+        env.iter().rev().find_map(|s| s.get(n).cloned())
     }
 
     fn ty_of(&self, env: &Env, e: &Expr) -> Option<Ty> {
         match e {
             Expr::Var(n) => Self::lookup(env, n).map(|v| v.1.base),
             Expr::To(t, _) => Some(*t),
+            Expr::At(n, _) => Self::lookup(env, n).map(|v| v.1.base),
+            Expr::Len(_) => Some(Ty::U64),
             Expr::Call(f, _) => self.p.funcs.iter().find(|g| &g.name == f).map(|g| g.ret.base),
             Expr::Bin(_, a, b) => self.ty_of(env, a).or_else(|| self.ty_of(env, b)),
             Expr::Neg(a) | Expr::NotBit(a) => self.ty_of(env, a),
@@ -198,6 +206,16 @@ impl<'a> Ev<'a> {
                 self.call_at = saved;
                 r?
             }
+            Expr::At(n, p) => {
+                let x = self.expr(env, p)?.i();
+                let l = Self::list(env, n);
+                let len = l.borrow().len() as i128;
+                (self.node, self.stmt) = (addr(e), 0);
+                self.check("position", x, 1 <= x && x <= len)?;
+                let v = l.borrow()[(x - 1) as usize];
+                Val::I(v)
+            }
+            Expr::Len(n) => Val::I(Self::list(env, n).borrow().len() as i128),
             Expr::Bin(op, a, b) => {
                 let t = self.ty_of(env, e).unwrap_or(Ty::I64);
                 let x = self.expr(env, a)?.i();
@@ -312,6 +330,13 @@ impl<'a> Ev<'a> {
         Ok(out)
     }
 
+    fn list(env: &Env, n: &str) -> Rc<RefCell<Vec<i128>>> {
+        match Self::lookup(env, n) {
+            Some((Val::L(l), _)) => l,
+            _ => Rc::new(RefCell::new(vec![])),
+        }
+    }
+
     fn set(env: &mut Env, n: &str, v: Val) {
         for s in env.iter_mut().rev() {
             if let Some(x) = s.get_mut(n) {
@@ -400,6 +425,67 @@ impl<'a> Ev<'a> {
                         Flow::Return(v) => return Ok(Flow::Return(v)),
                         _ => {}
                     }
+                }
+                Ok(Flow::Next)
+            }
+            Stmt::ListLet { name, elem, items, .. } => {
+                let mut v = vec![];
+                for x in items {
+                    let y = self.expr(env, x)?.i();
+                    (self.node, self.stmt) = (addr(x), addr(s));
+                    v.push(self.land(y, (*elem).into())?);
+                }
+                env.last_mut().unwrap().insert(name.clone(), (Val::L(Rc::new(RefCell::new(v))), (*elem).into()));
+                Ok(Flow::Next)
+            }
+            Stmt::SetAt { name, pos, value, .. } => {
+                let (l, ty) = match Self::lookup(env, name) {
+                    Some((Val::L(l), t)) => (l, t),
+                    _ => return Ok(Flow::Next),
+                };
+                let x = self.expr(env, pos)?.i();
+                let len = l.borrow().len() as i128;
+                (self.node, self.stmt) = (addr(pos), addr(s));
+                self.check("position", x, 1 <= x && x <= len)?;
+                let y = self.expr(env, value)?.i();
+                (self.node, self.stmt) = (addr(value), addr(s));
+                let y = self.land(y, ty)?;
+                l.borrow_mut()[(x - 1) as usize] = y;
+                Ok(Flow::Next)
+            }
+            Stmt::Append { name, value } => {
+                let (l, ty) = match Self::lookup(env, name) {
+                    Some((Val::L(l), t)) => (l, t),
+                    _ => return Ok(Flow::Next),
+                };
+                let y = self.expr(env, value)?.i();
+                (self.node, self.stmt) = (addr(value), addr(s));
+                let y = self.land(y, ty)?;
+                l.borrow_mut().push(y);
+                Ok(Flow::Next)
+            }
+            Stmt::ForEach { pos, item, list, body } => {
+                let (l, ty) = match Self::lookup(env, list) {
+                    Some((Val::L(l), t)) => (l, t),
+                    _ => return Ok(Flow::Next),
+                };
+                let mut k = 0;
+                while k < l.borrow().len() {
+                    let x = l.borrow()[k];
+                    let mut scope = HashMap::new();
+                    if let Some(p) = pos {
+                        scope.insert(p.clone(), (Val::I(k as i128 + 1), Ty::U64.into()));
+                    }
+                    scope.insert(item.clone(), (Val::I(x), ty));
+                    env.push(scope);
+                    let f = self.block(env, body);
+                    env.pop();
+                    match f? {
+                        Flow::Break => break,
+                        Flow::Return(v) => return Ok(Flow::Return(v)),
+                        _ => {}
+                    }
+                    k += 1;
                 }
                 Ok(Flow::Next)
             }

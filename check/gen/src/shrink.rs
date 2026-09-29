@@ -61,12 +61,17 @@ fn stmt_size(s: &Stmt) -> usize {
         Stmt::While { cond, body } => expr_size(cond) + block_size(body),
         Stmt::Loop { body } | Stmt::Block { body, .. } => block_size(body),
         Stmt::Break | Stmt::Continue => 0,
+        Stmt::ListLet { items, .. } => items.iter().map(expr_size).sum(),
+        Stmt::SetAt { pos, value, .. } => expr_size(pos) + expr_size(value),
+        Stmt::Append { value, .. } => expr_size(value),
+        Stmt::ForEach { body, .. } => block_size(body),
     }
 }
 
 fn expr_size(e: &Expr) -> usize {
     1 + match e {
-        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) => 0,
+        Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::Len(_) => 0,
+        Expr::At(_, a) => expr_size(a),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_size(a) + expr_size(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_size(a),
         Expr::Call(_, args) => args.iter().map(expr_size).sum(),
@@ -202,6 +207,55 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
             }
         }
         Stmt::Break | Stmt::Continue => {}
+        Stmt::ListLet { name, mutable, elem, items } => {
+            let mk = |mutable: bool, items: Vec<Expr>| Stmt::ListLet { name: name.clone(), mutable, elem: *elem, items };
+            for i in 0..items.len() {
+                let mut v = items.clone();
+                v.remove(i);
+                out.push(vec![mk(*mutable, v)]);
+            }
+            if structural() {
+                return out;
+            }
+            if *mutable {
+                out.push(vec![mk(false, items.clone())]);
+            }
+            for i in 0..items.len() {
+                for x in expr_variants(&items[i]) {
+                    let mut v = items.clone();
+                    v[i] = x;
+                    out.push(vec![mk(*mutable, v)]);
+                }
+            }
+        }
+        Stmt::SetAt { tier, name, pos, value } => {
+            if structural() {
+                return out;
+            }
+            if *tier != Tier::Default {
+                out.push(vec![Stmt::SetAt { tier: Tier::Default, name: name.clone(), pos: pos.clone(), value: value.clone() }]);
+            }
+            for e in expr_variants(pos) {
+                out.push(vec![Stmt::SetAt { tier: *tier, name: name.clone(), pos: e, value: value.clone() }]);
+            }
+            for e in expr_variants(value) {
+                out.push(vec![Stmt::SetAt { tier: *tier, name: name.clone(), pos: pos.clone(), value: e }]);
+            }
+        }
+        Stmt::Append { name, value } => {
+            for e in expr_variants(value) {
+                out.push(vec![Stmt::Append { name: name.clone(), value: e }]);
+            }
+        }
+        Stmt::ForEach { pos, item, list, body } => {
+            let mk = |pos: Option<String>, body: Vec<Stmt>| Stmt::ForEach { pos, item: item.clone(), list: list.clone(), body };
+            if pos.is_some() {
+                out.push(vec![mk(None, body.clone())]);
+            }
+            for b in block_variants(body) {
+                out.push(vec![mk(pos.clone(), b)]);
+            }
+        }
     }
     out
 }
@@ -227,12 +281,17 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
             return out;
         }
         Expr::Bool(_) | Expr::Var(_) => return out,
+        Expr::Len(_) => {
+            out.push(Expr::Lit(1));
+            return out;
+        }
         _ => {}
     }
     let parts: Vec<&Expr> = match e {
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => vec![a, b],
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => vec![a],
         Expr::Call(_, args) => args.iter().collect(),
+        Expr::At(_, p) => vec![p],
         _ => vec![],
     };
     for p in &parts {
@@ -259,6 +318,7 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
             Expr::NotBit(_) => Expr::NotBit(Box::new(x)),
             Expr::Not(_) => Expr::Not(Box::new(x)),
             Expr::To(t, _) => Expr::To(*t, Box::new(x)),
+            Expr::At(n, _) => Expr::At(n.clone(), Box::new(x)),
             Expr::Call(f, args) => {
                 let mut a = args.clone();
                 a[i] = x;
@@ -330,13 +390,29 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
         Stmt::While { cond, body } => e(cond, scopes) && block_ok(body, scopes, arity),
         Stmt::Loop { body } | Stmt::Block { body, .. } => block_ok(body, scopes, arity),
         Stmt::Break | Stmt::Continue => true,
+        Stmt::ListLet { name, items, .. } => {
+            let ok = items.iter().all(|x| e(x, scopes));
+            scopes.last_mut().unwrap().push(name.clone());
+            ok
+        }
+        Stmt::SetAt { name, pos, value, .. } => known(scopes, name) && e(pos, scopes) && e(value, scopes),
+        Stmt::Append { name, value } => known(scopes, name) && e(value, scopes),
+        Stmt::ForEach { pos, item, list, body } => {
+            known(scopes, list) && {
+                scopes.push(pos.iter().cloned().chain([item.clone()]).collect());
+                let ok = block_ok(body, scopes, arity);
+                scopes.pop();
+                ok
+            }
+        }
     }
 }
 
 fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(n) => known(scopes, n),
+        Expr::Var(n) | Expr::Len(n) => known(scopes, n),
+        Expr::At(n, p) => known(scopes, n) && expr_ok(p, scopes, arity),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_ok(a, scopes, arity),
         Expr::Call(f, args) => arity.iter().any(|(n, k)| n == f && *k == args.len()) && args.iter().all(|a| expr_ok(a, scopes, arity)),
@@ -348,7 +424,7 @@ fn calls_itself(f: &Func) -> bool {
         match e {
             Expr::Call(g, args) => g == n || args.iter().any(|a| in_expr(a, n)),
             Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => in_expr(a, n) || in_expr(b, n),
-            Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => in_expr(a, n),
+            Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) | Expr::At(_, a) => in_expr(a, n),
             _ => false,
         }
     }

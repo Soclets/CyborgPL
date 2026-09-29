@@ -46,11 +46,17 @@ pub struct Config {
     /// MAIN into a small typed value, so that the whole input domain (at most
     /// this many combinations) can be run. 0 = off.
     pub exhaust: u64,
+    /// Lists (design/lists.md): literals, positions (check sites), `change
+    /// 'xs'[p]`, `list.append`, `list.length`, `for 'i', 'x' in lend 'xs'`.
+    pub lists: bool,
+    /// Use a `for … in lend` item only through `to.T['x']`: the oracle gives
+    /// the item no width for `+~` or `not.bit` (sent 2026-09-29).
+    pub item_through_to: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0 }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: true }
     }
 }
 
@@ -60,6 +66,28 @@ struct VarInfo {
     ty: Ty,
     iv: Iv,
     assignable: bool,
+    /// Set for a list: `ty` and `iv` are then its items'.
+    list: Option<ListInfo>,
+    /// The item of a `for … in lend` (see `Config::item_through_to`).
+    item: bool,
+}
+
+#[derive(Clone, Debug)]
+struct ListInfo {
+    /// Its length is never below this (nothing is ever removed) …
+    lo: u64,
+    /// … and never above this: appends stop there.
+    cap: u64,
+    /// The most items the appends generated so far can have made.
+    len_now: u64,
+    mutable: bool,
+    /// `mult` where it was declared: an append runs mult / decl_mult times
+    /// per life of the list.
+    decl_mult: u64,
+    /// Being walked by a `for … in lend`: nothing may change it.
+    frozen: u32,
+    /// The walk's position name, while inside one that has it.
+    walk_pos: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -95,6 +123,14 @@ struct Gen {
     /// Inside a `check` block: no operation is left unguarded here, since
     /// CCA must (rightly) refuse a `check` it cannot prove.
     in_check: u32,
+    /// The statement being built reads or writes a list by position: not a
+    /// `check` statement, since a guarded position is a fact about the
+    /// list's length that Precog need not see.
+    positioned: bool,
+    /// Building a list item or an appended value: no width reaches it from
+    /// the list's type (design/operators.md, "context stops at … a
+    /// construction"), so a shift's left operand is never bare there.
+    in_item: bool,
 }
 
 const MAIN_BUDGET: u64 = 20_000;
@@ -119,6 +155,8 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         spent: 0,
         risky: false,
         in_check: 0,
+        positioned: false,
+        in_item: false,
     };
     let nfns = g.rng.below(cfg.size as u64 + 1) as usize;
     let mut funcs = vec![];
@@ -192,7 +230,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -217,15 +255,25 @@ impl Gen {
     }
 
     fn declare(&mut self, name: String, ty: Ty, iv: Iv, assignable: bool) {
-        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable });
+        self.scopes.last_mut().unwrap().push(VarInfo { name, ty, iv, assignable, list: None, item: false });
     }
 
+    /// Plain values in scope (never a list).
     fn vars(&self) -> impl Iterator<Item = &VarInfo> {
-        self.scopes.iter().flatten()
+        self.scopes.iter().flatten().filter(|v| v.list.is_none())
+    }
+
+    fn lists(&self) -> Vec<VarInfo> {
+        self.scopes.iter().flatten().filter(|v| v.list.is_some()).cloned().collect()
+    }
+
+    fn list_mut(&mut self, name: &str) -> &mut ListInfo {
+        self.scopes.iter_mut().flatten().rev().find(|v| v.name == name).and_then(|v| v.list.as_mut()).unwrap()
     }
 
     fn vars_of(&self, t: Ty) -> Vec<VarInfo> {
-        self.vars().filter(|v| v.ty == t).cloned().collect()
+        let steer = self.cfg.item_through_to;
+        self.vars().filter(|v| v.ty == t && !(steer && v.item)).cloned().collect()
     }
 
     fn int_ty(&mut self) -> Ty {
@@ -435,6 +483,10 @@ impl Gen {
             if nested { 1 } else { 0 },             // loop
             4,                                      // print
             if nested { 1 } else { 0 },             // block
+            if self.cfg.lists { 2 } else { 0 },     // list let
+            if self.settable().is_empty() { 0 } else { 2 },   // change 'xs'[p]
+            if self.appendable().is_empty() { 0 } else { 2 }, // list.append
+            if nested && !self.walkable().is_empty() { 2 } else { 0 }, // for … in lend
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -443,6 +495,10 @@ impl Gen {
             3 => self.for_stmt(depth),
             4 => self.counted_loop(depth, false),
             5 => self.counted_loop(depth, true),
+            8 => self.list_let(),
+            9 => self.set_at(),
+            10 => self.append(),
+            11 => self.for_each(depth),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -463,9 +519,144 @@ impl Gen {
         }
     }
 
+    // ------------------------------------------------------------ lists
+
+    /// Lists whose items may be read by position without a guard failing:
+    /// never empty, or walked right now with a position name.
+    fn readable(&self, t: Option<Ty>) -> Vec<VarInfo> {
+        if self.in_check > 0 {
+            return vec![];
+        }
+        self.lists().into_iter().filter(|v| t.map_or(true, |t| v.ty == t)).filter(|v| {
+            let l = v.list.as_ref().unwrap();
+            l.lo >= 1 || l.walk_pos.is_some()
+        }).collect()
+    }
+
+    fn settable(&self) -> Vec<VarInfo> {
+        if self.in_check > 0 {
+            return vec![];
+        }
+        self.lists().into_iter().filter(|v| {
+            let l = v.list.as_ref().unwrap();
+            l.mutable && l.frozen == 0 && l.lo >= 1
+        }).collect()
+    }
+
+    fn appendable(&self) -> Vec<VarInfo> {
+        self.lists().into_iter().filter(|v| {
+            let l = v.list.as_ref().unwrap();
+            l.mutable && l.frozen == 0 && l.len_now + (self.mult / l.decl_mult.max(1)).max(1) <= l.cap
+        }).collect()
+    }
+
+    fn walkable(&self) -> Vec<VarInfo> {
+        let left = self.trips_allowed();
+        self.lists().into_iter().filter(|v| v.list.as_ref().unwrap().cap <= left.max(1)).collect()
+    }
+
+    fn list_let(&mut self) -> Stmt {
+        let elem = self.int_ty();
+        let n = self.rng.below(5);
+        let mutable = n == 0 || self.rng.chance(60);
+        let iv = self.ghost(elem);
+        let mut items = vec![];
+        self.risky = false;
+        self.positioned = false;
+        self.in_item = true;
+        for _ in 0..n {
+            items.push(self.value_in(elem, iv).0);
+        }
+        self.in_item = false;
+        let room = if mutable { self.rng.below(9) } else { 0 };
+        let name = self.name("xs");
+        let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false });
+        Stmt::ListLet { name, mutable, elem, items }
+    }
+
+    /// A position in `v`: guarded unless the generator takes a risk.
+    fn position(&mut self, v: &VarInfo) -> Expr {
+        self.positioned = true;
+        let l = v.list.clone().unwrap();
+        if self.take_risk() {
+            // Unguarded: may be 0 or past the end, so the check can fire.
+            let top = l.cap as i128 + 2;
+            return if self.rng.chance(50) { Expr::Lit(self.rng.range(0, top)) } else { self.value_in(Ty::U64, Iv::new(0, top)).0 };
+        }
+        if let Some(p) = &l.walk_pos {
+            if l.lo == 0 || self.rng.chance(40) {
+                return Expr::Var(p.clone());
+            }
+        }
+        if self.rng.chance(35) {
+            return Expr::Lit(self.rng.range(1, l.lo as i128));
+        }
+        // 1 + (e mod list.length[lend 'xs']): in 1..length whatever e is.
+        let (e, _) = self.value_in(Ty::U64, Ty::U64.range());
+        let m = Expr::Bin(BinOp::Mod, Box::new(e), Box::new(Expr::Len(v.name.clone())));
+        if self.rng.chance(50) {
+            Expr::Bin(BinOp::Add, Box::new(Expr::Lit(1)), Box::new(m))
+        } else {
+            Expr::Bin(BinOp::Add, Box::new(m), Box::new(Expr::Lit(1)))
+        }
+    }
+
+    fn set_at(&mut self) -> Stmt {
+        let v = self.rng.pick(&self.settable()).clone();
+        self.risky = false;
+        self.positioned = false;
+        let pos = self.position(&v);
+        let (value, _) = self.value_in(v.ty, v.iv);
+        let tier = self.tier(self.risky);
+        Stmt::SetAt { tier, name: v.name, pos, value }
+    }
+
+    fn append(&mut self) -> Stmt {
+        let v = self.rng.pick(&self.appendable()).clone();
+        let mult = self.mult;
+        let l = self.list_mut(&v.name);
+        l.len_now += (mult / l.decl_mult.max(1)).max(1);
+        self.in_item = true;
+        let (value, _) = self.value_in(v.ty, v.iv);
+        self.in_item = false;
+        Stmt::Append { name: v.name, value }
+    }
+
+    fn for_each(&mut self, depth: u32) -> Stmt {
+        let v = self.rng.pick(&self.walkable()).clone();
+        let cap = v.list.as_ref().unwrap().cap;
+        let item = self.name("x");
+        let pos = self.rng.chance(50).then(|| self.name("i"));
+        let saved = (self.mult, self.in_loop);
+        self.mult = self.mult.saturating_mul(cap.max(1));
+        self.in_loop = LoopKind::Loop;
+        let old_pos = {
+            let l = self.list_mut(&v.name);
+            l.frozen += 1;
+            std::mem::replace(&mut l.walk_pos, pos.clone())
+        };
+        self.scopes.push(vec![]);
+        self.declare(item.clone(), v.ty, v.iv, false);
+        self.scopes.last_mut().unwrap().last_mut().unwrap().item = true;
+        if let Some(p) = &pos {
+            self.declare(p.clone(), Ty::U64, Iv::new(1, cap.max(1) as i128), false);
+        }
+        let nb = self.stmt_count() / 2 + 1;
+        let body = self.stmts(nb, depth - 1);
+        self.scopes.pop();
+        {
+            let l = self.list_mut(&v.name);
+            l.frozen -= 1;
+            l.walk_pos = old_pos;
+        }
+        (self.mult, self.in_loop) = saved;
+        Stmt::ForEach { pos, item, list: v.name, body }
+    }
+
     fn tier(&mut self, risky: bool) -> Tier {
         match self.rng.below(20) {
-            0 | 1 if !risky => Tier::Check,
+            0 | 1 if !risky && !self.positioned => Tier::Check,
             2 if !risky => Tier::Nocheck,
             _ => Tier::Default,
         }
@@ -476,6 +667,7 @@ impl Gen {
         let mutability = *self.rng.pick(&[Mutability::Plain, Mutability::Plain, Mutability::Mut, Mutability::Immut]);
         let assignable = mutability != Mutability::Immut && self.rng.chance(70);
         self.risky = false;
+        self.positioned = false;
         // `promise` covers every value the name will ever hold: each later
         // assignment is fitted into it too.
         let (tr, range) = self.maybe_range(t);
@@ -503,6 +695,7 @@ impl Gen {
         let targets: Vec<VarInfo> = self.vars().filter(|v| v.assignable).cloned().collect();
         let v = self.rng.pick(&targets).clone();
         self.risky = false;
+        self.positioned = false;
         let value = if v.ty == Ty::Bool { { let d = self.expr_depth(); self.bool_expr(d) } } else { self.value_in(v.ty, v.iv).0 };
         let tier = self.tier(self.risky);
         Stmt::Assign { tier, name: v.name, value }
@@ -782,8 +975,34 @@ impl Gen {
         let same = self.vars_of(t);
         let others = self.vars().any(|v| v.ty != t && v.ty != Ty::Bool);
         let can_call = self.sigs[..self.callable].iter().any(|s| s.ret == t);
-        let w = [if same.is_empty() { 0 } else { 6 }, if others { 2 } else { 0 }, 3, if can_call { 1 } else { 0 }];
+        let readable = self.readable(Some(t));
+        let items: Vec<VarInfo> = if self.cfg.item_through_to { self.vars().filter(|v| v.item && v.ty == t).cloned().collect() } else { vec![] };
+        let has_list = !self.lists().is_empty();
+        let w = [
+            if same.is_empty() { 0 } else { 6 },
+            if others { 2 } else { 0 },
+            3,
+            if can_call { 1 } else { 0 },
+            if readable.is_empty() { 0 } else { 3 },
+            if t == Ty::U64 && has_list { 1 } else { 0 },
+            if items.is_empty() { 0 } else { 4 },
+        ];
         match self.rng.weighted(&w) {
+            4 => {
+                let v = self.rng.pick(&readable).clone();
+                let p = self.position(&v);
+                (Expr::At(v.name, Box::new(p)), v.iv)
+            }
+            6 => {
+                let v = self.rng.pick(&items).clone();
+                (Expr::To(t, Box::new(Expr::Var(v.name))), v.iv)
+            }
+            5 => {
+                let ls = self.lists();
+                let v = self.rng.pick(&ls).clone();
+                let l = v.list.unwrap();
+                (Expr::Len(v.name), Iv::new(l.lo as i128, l.cap as i128))
+            }
             0 => {
                 let v = self.rng.pick(&same).clone();
                 (Expr::Var(v.name), v.iv)
@@ -853,10 +1072,12 @@ impl Gen {
         // `shl`'s left operand is a name or a conversion: CCA takes the width
         // only from those (question open with the design session, 2026-09-23).
         let named = matches!(a, Expr::Var(_) | Expr::To(..));
-        let (op, a, ia) = if op == Shl && !named && !(self.cfg.width_from_context && !is_literal_only(&a)) {
+        let bare_left = (op == Shl && !(self.cfg.width_from_context && !is_literal_only(&a))) || (self.in_item && matches!(op, Shl | Shr) && is_literal_only(&a));
+        let (op, a, ia) = if matches!(op, Shl | Shr) && !named && bare_left {
             match self.typed_leaf(t) {
                 Some((v, iv)) => (op, v, iv),
-                None => (Shr, a, ia),
+                None if op == Shl && !self.in_item => (Shr, a, ia),
+                None => return (a, ia),
             }
         } else {
             (op, a, ia)
