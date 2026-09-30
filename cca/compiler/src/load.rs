@@ -86,10 +86,15 @@ pub fn targets() -> Vec<&'static str> {
 pub enum Pick {
     /// `--all`: every Limb reached, dependencies first.
     All,
-    /// Limbs by their `name`: this Limb's own or a dependency's.
-    Names(Vec<String>),
-    /// `--prefix geo2`: the one Limb with that prefix, for a name two
-    /// Limbs share.
+    /// Limbs named, in the order given.
+    Listed(Vec<Wanted>),
+}
+
+/// One Limb asked for by `cca prepare`.
+pub enum Wanted {
+    /// By its `name`: this Limb's own or a dependency's.
+    Name(String),
+    /// By its prefix (`--prefix geo2`), for a name two Limbs share.
     Prefix(String),
 }
 
@@ -153,8 +158,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
             walk(sources, dir, label(&own_name, &own_prefix), &mut Vec::new(), &mut Vec::new(), &mut out)?;
             return Ok(out);
         }
-        Pick::Names(n) => n.clone(),
-        Pick::Prefix(p) => vec![p.clone()],
+        Pick::Listed(w) => w,
     };
     // This Limb and its dependencies: name, prefix, folder.
     let mut known: Vec<(String, String, PathBuf)> = vec![(own_name, own_prefix, dir.to_path_buf())];
@@ -163,9 +167,13 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
         let (n, p) = words_of(sources, &at, Some((&manifest_at, &d.path)))?;
         known.push((n, p, at));
     }
-    let by_prefix = matches!(pick, Pick::Prefix(_));
     let mut out: Vec<(String, PathBuf)> = Vec::new();
-    for n in &names {
+    let mut ran: Vec<PathBuf> = Vec::new();
+    for w in names {
+        let (n, by_prefix) = match w {
+            Wanted::Name(n) => (n, false),
+            Wanted::Prefix(p) => (p, true),
+        };
         let found: Vec<&(String, String, PathBuf)> = known.iter().filter(|(name, prefix, _)| if by_prefix { prefix == n } else { name == n }).collect();
         let at = match found.as_slice() {
             [] if by_prefix => return err(Diagnostic::error(format!("no Limb here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(_, p, _)| format!("`{}`", p)).collect::<Vec<_>>().join(", ")))),
@@ -187,9 +195,12 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
             }
         };
         let (shown, at) = at;
-        if out.iter().any(|(m, _)| *m == shown) {
+        // Each Limb once, however it was asked for.
+        let key = std::fs::canonicalize(&at).unwrap_or_else(|_| at.clone());
+        if ran.contains(&key) {
             continue;
         }
+        ran.push(key);
         if !at.join("build.cplr").is_file() {
             return err(Diagnostic::error(format!("`{}` has no `build.cplr` to run, at `{}`", n, at.display())));
         }

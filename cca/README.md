@@ -455,8 +455,10 @@ Dated, with the alternative, so each can become a question later.
   over those; each `build.cplr` is built as a program of its own (the
   working build, no access to its Limb's code), with no words, and the
   failing one's exit is cca's; a Limb whose prefix differs from its name
-  is shown as `geometry (prefix `geo2`)`. `--prefix` takes exactly one
-  prefix, alone; a list, or `--prefix` beside names, is "not yet (asked)".
+  is shown as `geometry (prefix `geo2`)`. `--prefix` takes a comma list
+  and mixes with names (owner, 2026-09-30); the names come before it and
+  every word after it is a prefix (`cca prepare money --prefix geo2,
+  geo3`), run in the order written, each Limb once.
   A folder is a word with a `/` (owner, 2026-09-30), taken as the first
   word, as a program is in `cca run`; a folder given later is refused. A
   folder with no names (`cca prepare ./money`) is refused like no names at

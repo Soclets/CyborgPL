@@ -225,7 +225,9 @@ fn prepare_runs_build_scripts_in_their_folders() {
     let r = prep("prep_shared", &["geometry"]);
     let err = String::from_utf8_lossy(&r.stderr);
     assert!(!r.status.success() && err.contains("2 Limbs here are named `geometry`, with the prefixes `geometry`, `geo2`"), "a shared name was not refused with its prefixes:\n{}", err);
-    for (words, want) in [(&["--prefix", "geo2"][..], "geo2"), (&["--prefix", "geometry"][..], "geometry"), (&["--all"][..], "money geometry geo2")] {
+    // `--prefix` takes a comma list, and follows names in one command
+    // (owner, 2026-09-30: "yea", "yea").
+    for (words, want) in [(&["--prefix", "geo2"][..], "geo2"), (&["--prefix", "geometry"][..], "geometry"), (&["--prefix", "geo2,", "geometry"][..], "geo2 geometry"), (&["shared", "--prefix", "geo2"][..], "shared geo2"), (&["shared,", "shared", "--prefix", "geo2,", "shared"][..], "shared geo2"), (&["--all"][..], "money geometry geo2 shared")] {
         let r = prep("prep_shared", words);
         assert!(r.status.success() && said(&r) == want, "`cca prepare {}` ran `{}`, not `{}`:\n{}", words.join(" "), said(&r), want, String::from_utf8_lossy(&r.stderr));
     }

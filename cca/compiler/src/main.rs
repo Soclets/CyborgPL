@@ -12,7 +12,7 @@ fn usage() -> ! {
     eprintln!("       cca build <file.cpls | limb-dir> [-o out] [--target t]   …then generate, assemble and link");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
-    eprintln!("       cca prepare [folder/] <name>, <name>… | --prefix <prefix> | --all   run those Limbs' build.cplr, in their own folders");
+    eprintln!("       cca prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Limbs' build.cplr, in their own folders");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -266,7 +266,7 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
 /// folder, or in a folder given first, written with a `/`; names are Limbs' `name`s, its own or its dependencies',
 /// separated by commas (`geometry, money` or `geometry,money`), run in the
 /// order given; a name two Limbs share is refused with their prefixes, and
-/// `--prefix geo2` picks one; `--all` runs every Limb's `build.cplr`,
+/// `--prefix geo2, geo3` after the names picks by prefix; `--all` runs every Limb's `build.cplr`,
 /// dependencies first. Each is built as a program of its own and run in
 /// its Limb's folder; the first that fails stops the rest, and its exit is
 /// cca's.
@@ -284,46 +284,28 @@ fn prepare(rest: &[String]) {
     }
     let pick = if rest.len() == 1 && rest[0] == "--all" {
         cca::load::Pick::All
-    } else if rest.first().map(|a| a == "--prefix").unwrap_or(false) {
-        // One Limb, by the prefix it alone has (owner, 2026-09-30: "flag").
-        match &rest[1..] {
-            [p] if !p.contains(',') && !p.starts_with('-') => cca::load::Pick::Prefix(p.clone()),
-            [] => {
-                eprintln!("error: `--prefix` is followed by the prefix of the one Limb to prepare: `cca prepare --prefix geo2`");
-                exit(2);
-            }
-            _ => {
-                eprintln!("error: not yet: `--prefix` with more than one prefix, or beside names (asked) — `cca prepare --prefix geo2` prepares one Limb");
-                exit(2);
-            }
-        }
     } else {
-        if let Some(a) = rest.iter().find(|a| a.starts_with('-')) {
-            eprintln!("error: `cca prepare` takes names separated by commas, `--prefix` and one prefix, or `--all` alone; `{}` is none of them", a);
-            exit(2);
+        // Names, then `--prefix` and prefixes, each a comma list (owner,
+        // 2026-09-30: "yea", "yea"): `cca prepare money --prefix geo2, geo3`.
+        let at = rest.iter().position(|a| a == "--prefix");
+        let (names, prefixes) = match at {
+            Some(i) => (&rest[..i], Some(&rest[i + 1..])),
+            None => (rest, None),
+        };
+        let mut wanted = Vec::new();
+        for n in words_list(names, "name", "cca prepare geometry, money") {
+            wanted.push(cca::load::Wanted::Name(n));
         }
-        if let Some(a) = rest.iter().find(|a| a.contains('/')) {
-            eprintln!("error: `{}` is a folder, and the folder comes first: `cca prepare {} …`", a, a);
-            exit(2);
-        }
-        if let Some(a) = rest.iter().find(|a| *a == "." || *a == "..") {
-            eprintln!("error: a folder is written with a `/`, and a bare word is a Limb's name: `cca prepare {}/ …`", a);
-            exit(2);
-        }
-        let mut v = Vec::new();
-        for part in rest.join(" ").split(',') {
-            let n = part.trim();
-            if n.is_empty() {
-                eprintln!("error: a name is missing between two commas, or after the last: `cca prepare geometry, money`");
+        if let Some(ps) = prefixes {
+            if ps.is_empty() {
+                eprintln!("error: `--prefix` is followed by prefixes, separated by commas: `cca prepare --prefix geo2, geo3`");
                 exit(2);
             }
-            if n.contains(char::is_whitespace) {
-                eprintln!("error: names are separated by commas: `cca prepare {}`", n.split_whitespace().collect::<Vec<_>>().join(", "));
-                exit(2);
+            for p in words_list(ps, "prefix", "cca prepare --prefix geo2, geo3") {
+                wanted.push(cca::load::Wanted::Prefix(p));
             }
-            v.push(n.to_string());
         }
-        cca::load::Pick::Names(v)
+        cca::load::Pick::Listed(wanted)
     };
     let mut sources = SourceMap::default();
     let plan = match cca::load::prepare_plan(&mut sources, Path::new(&dir), &pick) {
@@ -396,6 +378,45 @@ fn take_target(args: &[String]) -> (Vec<String>, Option<String>) {
         }
     }
     (rest, target)
+}
+
+/// A comma-separated list of names or prefixes for `cca prepare`, with or
+/// without a space after each comma (owner, 2026-09-29).
+fn words_list(words: &[String], what: &str, example: &str) -> Vec<String> {
+    if let Some(a) = words.iter().find(|a| *a == "--prefix") {
+        eprintln!("error: one `{}`, with its prefixes separated by commas: `cca prepare --prefix geo2, geo3`", a);
+        exit(2);
+    }
+    if let Some(a) = words.iter().find(|a| a.starts_with('-')) {
+        eprintln!("error: `cca prepare` takes names separated by commas, then `--prefix` and prefixes, or `--all` alone; `{}` is none of them", a);
+        exit(2);
+    }
+    if let Some(a) = words.iter().find(|a| a.contains('/')) {
+        eprintln!("error: `{}` is a folder, and the folder comes first: `cca prepare {} …`", a, a);
+        exit(2);
+    }
+    if let Some(a) = words.iter().find(|a| *a == "." || *a == "..") {
+        eprintln!("error: a folder is written with a `/`, and a bare word is a Limb's name: `cca prepare {}/ …`", a);
+        exit(2);
+    }
+    let mut v = Vec::new();
+    if words.is_empty() {
+        return v;
+    }
+    for part in words.join(" ").split(',') {
+        let n = part.trim();
+        if n.is_empty() {
+            eprintln!("error: a {} is missing between two commas, or after the last: `{}`", what, example);
+            exit(2);
+        }
+        if n.contains(char::is_whitespace) {
+            let plural = if what == "prefix" { "prefixes" } else { "names" };
+            eprintln!("error: {} are separated by commas: `{}`", plural, n.split_whitespace().collect::<Vec<_>>().join(", "));
+            exit(2);
+        }
+        v.push(n.to_string());
+    }
+    v
 }
 
 /// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
