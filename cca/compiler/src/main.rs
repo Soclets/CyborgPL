@@ -9,7 +9,7 @@ fn usage() -> ! {
     eprintln!("       cca check <file.cpls | limb-dir>…   parse and check");
     eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
     eprintln!("       cca precog <file.cpls | limb-dir>    check, lower, prove, and report");
-    eprintln!("       cca build <file.cpls | limb-dir> [-o out] [--target t]   …then generate, assemble and link");
+    eprintln!("       cca build <file.cpls | limb-dir> [-o out] [--target t] [--emit-llvm dir]   …then generate, assemble and link; dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       cca prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Limbs' build.cplr, in their own folders");
@@ -101,9 +101,13 @@ fn real_main() {
             let mut target: Option<String> = None;
             let mut assert_proofs = false;
             let mut final_build = false;
+            let mut emit: Option<String> = None;
             let mut i = 1;
             while i < args.len() {
-                if args[i] == "--assert-proofs" {
+                if args[i] == "--emit-llvm" && i + 1 < args.len() {
+                    emit = Some(args[i + 1].clone());
+                    i += 2;
+                } else if args[i] == "--assert-proofs" {
                     assert_proofs = true;
                     i += 1;
                 } else if args[i] == "--final" {
@@ -124,7 +128,7 @@ fn real_main() {
             let mut failed = false;
             for f in &files {
                 let dest = out.clone().unwrap_or_else(|| Path::new(f).file_stem().unwrap().to_string_lossy().to_string());
-                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs, final_build, false, target.as_deref()) {
+                if let Err(d) = build_opts(Path::new(f), Path::new(&dest), assert_proofs, final_build, false, false, target.as_deref(), emit.as_deref().map(Path::new)) {
                     failed = true;
                     eprint!("{}", d);
                 }
@@ -212,7 +216,7 @@ fn real_main() {
                 exit(1);
             }
             let exe = dir.join("tests");
-            let names = match build_opts(path, &exe, assert_proofs, false, true, true, target.as_deref()) {
+            let names = match build_opts(path, &exe, assert_proofs, false, true, true, target.as_deref(), None) {
                 Ok(n) => n,
                 Err(d) => {
                     let _ = std::fs::remove_dir_all(&dir);
@@ -429,13 +433,16 @@ fn words_list(words: &[String], what: &str, example: &str) -> Vec<String> {
 /// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
 /// stderr, for `cca run`, whose stdout is the program's.
 fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, target: Option<&str>) -> Result<(), String> {
-    build_opts(path, out, assert_proofs, final_build, quiet, false, target).map(|_| ())
+    build_opts(path, out, assert_proofs, final_build, quiet, false, target, None).map(|_| ())
 }
 
 /// `tests`: the test binary (`cca test`), and the names of its tests in
 /// the order its first argument numbers them.
 /// `target`: the one named with `--target`, or the Limb's default.
-fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, tests: bool, target: Option<&str>) -> Result<Vec<String>, String> {
+/// `emit`: a folder for the LLVM IR as CCA hands it over and as LLVM's
+/// passes leave it (`--emit-llvm`, for translation validation).
+#[allow(clippy::too_many_arguments)]
+fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, tests: bool, target: Option<&str>, emit: Option<&Path>) -> Result<Vec<String>, String> {
     let say = |s: String| {
         if quiet {
             eprint!("{}", s);
@@ -505,7 +512,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         println!("{}", lowered.module.print_to_string().to_string());
     }
     let obj = out.with_extension("o");
-    cca::codegen::write_object(&lowered.module, &obj).map_err(|e| format!("error: {}\n", e))?;
+    cca::codegen::write_object(&lowered.module, &obj, emit).map_err(|e| format!("error: {}\n", e))?;
     cca::codegen::link(&obj, out).map_err(|e| format!("error: {}\n", e))?;
     let _ = std::fs::remove_file(&obj);
     // `nocheck` sites carry no check: counted apart, not as "checked".

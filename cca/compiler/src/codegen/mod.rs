@@ -3605,18 +3605,41 @@ fn machine() -> Result<TargetMachine, String> {
         .ok_or_else(|| "this machine has no target description".to_string())
 }
 
-pub fn write_object(module: &Module, path: &Path) -> Result<(), String> {
+/// The passes `write_object` runs, as `opt -passes=…` spells them.
+pub const PASSES: &str = "default<O3>";
+
+/// With `emit`, the module is written there twice as text: `before.ll`, as
+/// CCA hands it to LLVM (Precog's `nsw`/`nuw` and facts in it), and
+/// `after.ll`, what LLVM's passes made of it and the backend gets.
+pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result<(), String> {
     let machine = machine()?;
     module.set_triple(&host_triple());
     module.set_data_layout(&machine.get_target_data().get_data_layout());
+    let write_ll = |name: &str, what: &str| -> Result<(), String> {
+        let Some(dir) = emit else { return Ok(()) };
+        std::fs::create_dir_all(dir).map_err(|e| format!("cannot make {}: {}", dir.display(), e))?;
+        let text = format!(
+            "; {}\n; passes: opt -passes='{}' (TargetMachine: {}, cpu {}, features {}, -O3, PIC)\n{}",
+            what,
+            PASSES,
+            host_triple().as_str().to_string_lossy(),
+            TargetMachine::get_host_cpu_name().to_string(),
+            TargetMachine::get_host_cpu_features().to_string(),
+            module.print_to_string().to_string()
+        );
+        let file = dir.join(name);
+        std::fs::write(&file, text).map_err(|e| format!("cannot write {}: {}", file.display(), e))
+    };
+    write_ll("before.ll", "as CCA hands it to LLVM, before any pass")?;
     // LLVM's whole pipeline, as clang -O3 runs it (owner: optimised
     // everywhere). Without it the module went to the backend as written —
     // every local in memory, nothing inlined, no loop touched — and ran at
     // up to 5.6x C's time. Precog's proofs reach it as `nsw`/`nuw` and as
     // checks that are simply not there.
     module
-        .run_passes("default<O3>", &machine, inkwell::passes::PassBuilderOptions::create())
+        .run_passes(PASSES, &machine, inkwell::passes::PassBuilderOptions::create())
         .map_err(|e| e.to_string())?;
+    write_ll("after.ll", "after LLVM's passes, as the backend gets it")?;
     machine.write_to_file(module, FileType::Object, path).map_err(|e| e.to_string())
 }
 
