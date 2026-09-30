@@ -277,6 +277,8 @@ nocheck inline.ASM {
 
 ## Open
 
-- Reading a C string into a `str.utf8` — std's, behind one intrinsic.
+- Reading a C string into a `str.utf8`: decided as build-it-yourself —
+  walk the bytes to the 0 into a `list[uint8]`, then `to.str.utf8[…]
+  otherwise …` (`conversion.md`, owner 2026-09-30); std may wrap it.
 - A text's length is decided (`strings.md`: `str.bytes`, `str.points`,
   `str.graphemes`); this line is kept only to say so.

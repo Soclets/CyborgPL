@@ -2016,8 +2016,19 @@ impl<'p> Interp<'p> {
                 }
                 // text into ASCII fails `not_ascii` unless every character is ASCII (owner, 2026-09-30: "`otherwise`
                 // exists"); from ASCII text, a number or a byte it cannot
+                // bytes into text (owner, 2026-09-30: "yea"): a list or array of uint8 read as UTF-8, failing
+                // `not_utf8` when they are not; only utf8 reads bytes so far
+                let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
+                let from_bytes = matches!(&src_ty, Some(Ty::List(t) | Ty::Array(t)) if **t == Ty::Uint(IntWidth::W8));
+                if from_bytes {
+                    match base {
+                        Ty::Str(Encoding::Utf8) => fails.push(FailCase { name: "not_utf8".into(), ty: None }),
+                        Ty::Str(_) => return rt(line, format!("only `to.str.utf8` reads bytes as text (owner, 2026-09-30); `to.{target}` from bytes is not decided — convert to utf8 first")),
+                        _ => {}
+                    }
+                }
                 if matches!(base, Ty::Str(Encoding::Ascii)) {
-                    let src = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
+                    let src = src_ty.clone();
                     let may_fail = match (&v, &src) {
                         (_, Some(Ty::Str(Encoding::Ascii))) => false,
                         (Value::Str(_), _) => true,
@@ -2042,6 +2053,17 @@ impl<'p> Interp<'p> {
                 } }
                 let out = match (ty, &v) {
                     (Ty::Str(_), Value::Nothing) => return rt(line, "a call that returns nothing has no text"),
+                    (Ty::Str(Encoding::Utf8), Value::List(items)) if from_bytes => {
+                        let bytes: Vec<u8> = items.iter().map(|x| match x { Value::Int(n) => *n as u8, _ => 0 }).collect();
+                        match String::from_utf8(bytes) {
+                            Ok(t) => Value::Str(t),
+                            Err(_) => {
+                                let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_utf8".into(), None, true)?;
+                                let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                                return Ok((v, prov));
+                            }
+                        }
+                    }
                     (Ty::Str(Encoding::Ascii), Value::Str(s) | Value::Char(_, s)) if !s.is_ascii() => {
                         let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_ascii".into(), None, true)?;
                         let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };

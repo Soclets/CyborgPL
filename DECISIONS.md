@@ -16,9 +16,16 @@ same text through, leaving `é` in ASCII text. Proposed: (a) fail
 site, as narrowing. Design claude recommended a. The owner: "`otherwise`
 exists". From ASCII text, a number or a byte it cannot fail and takes no
 `otherwise`; into `utf16`/`utf32` never fails. `examples/to_ascii.cpls`,
-reject test to_ascii_needs_otherwise. Still open, and next: bytes into
-text, `to.str.utf8[list of uint8]` failing `not_utf8` (C's text is walked
-by hand into such a list; `examples/args.cpls` mangles non-ASCII today).
+reject test to_ascii_needs_otherwise. Then **bytes into text**: `to.str.utf8['bytes']` reads a `list[uint8]`
+or `array[uint8]` as UTF-8, failing `not_utf8` (owner: "yea", after
+"what" and a plainer explanation: `é` is two bytes, and reading byte by
+byte printed `héllo` as `hÃ©llo`). Only `utf8` reads bytes so far
+(`to.str.ascii` from bytes is refused as undecided). This settles C's
+text: walked by hand into a list, converted once — `examples/args.cpls`
+now prints `héllo` and `🍎` whole. `examples/bytes_to_text.cpls`; reject
+tests bytes_to_text_needs_otherwise, bytes_to_ascii. A list of wider
+integers still converts to its printed form (`[1, 2]`), the oracle's
+accident, unasked.
 
 ### 2026-09-30 — A pointer changes what it points at with `ptr.cast[T]['p']` (owner: a)
 

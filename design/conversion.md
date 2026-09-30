@@ -47,6 +47,13 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   `otherwise`; into `utf16` or `utf32` never fails. The text encodings
   are the four of 2026-09-14 (`utf8`, `utf16`, `utf32`, `ascii`), each a
   conversion target. `examples/to_ascii.cpls`.
+- **Bytes into text** (owner, 2026-09-30: "yea"): `to.str.utf8['bytes']`
+  reads a `list[uint8]` or `array[uint8]` as UTF-8 and fails `not_utf8`
+  when it is not: `[104, 195, 169, 108, 108, 111]` is `"héllo"` (`é` is
+  the two bytes 195, 169). Only `utf8` reads bytes so far. C's text is
+  walked by hand into such a list, then converted once
+  (`examples/args.cpls`); a one-call shortcut is std's to write.
+  `examples/bytes_to_text.cpls`.
 - **`++` takes text on both sides.** This closes the language's last
   implicit conversion (two cold readers flagged it): `"n=" ++ 'n'` is an
   error pointing at `to.str.utf8`. `print`/`print.useful` still render any value

@@ -8,14 +8,14 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     while 'i' < 'argc' {
         nocheck 'word' := ptr.read[ptr.at['argv', 'i']];
         mut 'k': int32 = 0;
-        mut 'text' := "";
+        mut 'bytes': list[uint8] = [];
         loop {
             nocheck 'b' := ptr.read[ptr.at['word', 'k']];
             if 'b' == 0 { break; }
-            'c' := char.byte.from_code['b'] otherwise `?`;
-            change 'text' = 'text' ++ 'c';
+            list.append[lend.mut 'bytes', 'b'];
             change 'k' = 'k' + 1;
         }
+        'text' := to.str.utf8['bytes'] otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
         std::print.stdout["argument ", 'i', ": ", 'text', \n];
         change 'i' = 'i' + 1;
     }
