@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — CyborgPL is paused for the RRx2 Verifier Collection: RRx2-TV and RRx2-lang (owner)
+
+The owner: "CyborgPL progress is paused for RRx2 Verifier Collection. Two
+sessions, RRx2-TV claude, and RRx2-lang claude". The collection is the
+two verifiers named earlier the same day: RRx2-TV, our own translation
+validation (above), and RRx2-lang, the exact-math reference language
+("it doesn't give a flying fuck about runtime perf"), with numbers like
+`std::uenr`. The name "RRx2 VC", floated earlier, is now the owner's.
+Each gets its own Claude session. Open: what the pause means for
+compiler claude, check claude and synthia claude now; each session's
+brief, repo and language.
+
 ### 2026-09-30 — Translation validation becomes our own, `RRx2-TV`, reversing "Borrow it" (owner)
 
 Check claude's Alive2 run (93c6e49) worked: 211 rewrites proven, 0
