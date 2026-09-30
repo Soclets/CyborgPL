@@ -37,6 +37,10 @@ Apache-2.0 code, which the LGPL allows. **RRx2-lang is interpreted
 only** (owner: "interpreted only"): no compiler backend, and no
 transpiling into another language, whose own number rules would then
 stand between a program and its answer.
+The owner then weighed a GNU licence for RRx2 ("we might wanna change the
+license to GNU shit"); told that GPLv3's point is copyleft (no closed
+version of RRx2, ever) and that GMP/MPFR's LGPL does not require it:
+"No, not copyleft". RRx2 stays Apache-2.0 WITH LLVM-exception.
 
 ### 2026-09-30 — RRx2-TV's solver is Bitwuzla, alone (owner)
 
