@@ -94,6 +94,18 @@ MIR — a few hundred to a few thousand lines. The Precog oracle can sit
 on an SMT solver (Z3), asking the dumb literal question where Precog
 asks the clever one. The interpreter stays ours — it is the spec.
 
+**Our own: `RRx2-TV`** (owner, 2026-09-30: "Nah, `RRx2-TV` seems more
+fun"). Translation validation for the LLVM half becomes ours, not
+borrowed: a checker named RRx2-TV, which can check a whole program where
+Alive2 checks one function at a time (CCA folds most of a program into
+`main`), and can read Precog's facts directly. Check claude runs
+Alive2 today (93c6e49); whether it stays until RRx2-TV works is open. The paragraph above is why "Borrow it"
+was chosen, and it still holds as the cost: most of Alive2 is an exact
+meaning for every LLVM instruction, and a mistake there says "proven"
+where nothing is. Like check claude's tools, it must not share Precog's
+author. Open: who writes it, in what language, in which repo, and
+whether it starts from Alive2's code (MIT) or from nothing.
+
 **Sessions** (owner, 2026-09-22): (1) this one — design and the
 oracle, never a line of the compiler; (2) a fresh session — CCA
 (front end, checker, MIR, Precog, lowering, runtime) and Synthia,

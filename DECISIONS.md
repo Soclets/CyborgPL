@@ -5,6 +5,36 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Translation validation becomes our own, `RRx2-TV`, reversing "Borrow it" (owner)
+
+Check claude's Alive2 run (93c6e49) worked: 211 rewrites proven, 0
+wrong. It hit two limits. Alive2's own optimiser crashes on Homebrew's
+build: Alive2 21.0 was written for LLVM 21, and Homebrew builds it
+against LLVM 23. Design claude reproduced this on a one-function file,
+and on LLVM 23.1.0 too, so it predates the install's update. Check claude
+works around it by running `opt` itself. The other limit: Alive2 checks
+one function at a time, and CCA folds nearly everything into `main`. The
+owner asked whether to change Alive2's code or build our own. Design
+claude listed, cheapest first: report it (a public post), build Alive2
+against LLVM 21, patch it, or write our own, noting that "Borrow it"
+(2026-09-22) had turned that last one down. The owner suggested patching
+Alive2 and renaming it `RRx2-TV`. Design claude advised against a
+renamed fork: it would be ours to keep, and LLVM breaks it every major
+version, so it suggested sending a patch upstream instead. The owner,
+"we'll probably fix Alive2", then pointed out that Synthia is Go in its
+own repo, so the Rust-only rule need not bind a separate tool. Then:
+"Or we could make our own for our own purpose". Design claude set out
+the gains (whole programs, Precog's facts read directly, Rust, our own
+pace) and the cost (an exact meaning for all of LLVM IR, where a mistake
+says "proven" falsely). It recommended a CCA build that keeps functions
+apart, so Alive2 can judge them, with our own as an if-and-when. The
+owner: "Nah, `RRx2-TV` seems more fun". Recorded in
+compiler-verification.md. Open (not asked yet): whether Alive2 stays in use until RRx2-TV works,
+who writes it, the language, the repo, starting from Alive2's code or
+from nothing. `RRx2` is also the owner's name for a planned exact-math
+language, and "RRx2 VC" (Verifier Collection) was floated for the two;
+not decided.
+
 ### 2026-09-30 — In a list literal, a bare number takes its family from the other items (owner: a)
 
 Compiler claude's question. The oracle accepted `'xs' := [1, 2.5]` as
