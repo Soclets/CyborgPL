@@ -75,7 +75,11 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   comparisons printing 1 or 0, and `str.bytes` of the text. My exact
   evaluator and the solver do not model deci: such programs are compared
   between the engines only (`Program::unevaluable`). Not yet in `check`
-  or strict code.
+  or strict code. Text and characters too: text into ASCII (`not_ascii`),
+  byte lists read as UTF-8 (`not_utf8`, from a stray byte or 255),
+  `char.point.from_code` (`not_a_char` past the last point), one
+  character of text (`not_one_char`), a digit read through text, and text
+  into utf16/utf32, seen as lengths and codes.
   **Enums** (design/enums.md; `--avoid enums` turns them off): about
   half of programs get one or two, with integer data on some cases; enum
   names, changes, `==` on them, `match` statements, and `match` giving a

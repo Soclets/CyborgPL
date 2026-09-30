@@ -236,7 +236,7 @@ impl<'a> Enc<'a> {
             Expr::Case(..) | Expr::ToEnum(..) => self.enum_val(ctx, e).0,
             // A match giving a value is encoded by its statement (`Let`),
             // which sees arms that leave; anywhere else it is not modelled.
-            Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => {
+            Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) => {
                 self.too_big = true;
                 self.fresh_int()
             }

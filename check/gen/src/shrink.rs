@@ -79,7 +79,7 @@ fn expr_size(e: &Expr) -> usize {
         Expr::SimdFill(a) | Expr::SimdFold(_, a) => expr_size(a),
         Expr::ToEnum(_, a, b) => expr_size(a) + expr_size(b),
         Expr::Conv(_, a, b) => expr_size(a) + b.as_ref().map_or(0, |b| expr_size(b)),
-        Expr::Num(_) | Expr::Text(_) | Expr::StrBytes(_) => 0,
+        Expr::Num(_) | Expr::Text(_) | Expr::StrBytes(_) | Expr::Src(_) => 0,
         Expr::Match(s, arms) => expr_size(s) + arms_size(arms),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => expr_size(a) + expr_size(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_size(a),
@@ -303,7 +303,7 @@ fn expr_variants(e: &Expr) -> Vec<Expr> {
             }
             return out;
         }
-        Expr::Bool(_) | Expr::Var(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => return out,
+        Expr::Bool(_) | Expr::Var(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) => return out,
         Expr::Len(_) => {
             out.push(Expr::Lit(1));
             return out;
@@ -466,7 +466,7 @@ fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bo
         Expr::ToEnum(_, a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
         Expr::Conv(_, a, b) => expr_ok(a, scopes, arity) && b.as_ref().map_or(true, |b| expr_ok(b, scopes, arity)),
         Expr::StrBytes(n) => known(scopes, n),
-        Expr::Num(_) | Expr::Text(_) => true,
+        Expr::Num(_) | Expr::Text(_) | Expr::Src(_) => true,
         Expr::Match(s, arms) => expr_ok(s, scopes, arity) && arms_ok(arms, &mut scopes.clone(), arity),
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) => expr_ok(a, scopes, arity),

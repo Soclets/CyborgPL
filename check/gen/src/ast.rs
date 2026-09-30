@@ -241,6 +241,9 @@ pub enum Expr {
     Conv(String, Box<Expr>, Option<Box<Expr>>),
     /// `str.bytes[lend 's']`
     StrBytes(String),
+    /// Source text as written, for leaves nothing else models (a char
+    /// literal, a list of bytes, `str.points[lend 't']`).
+    Src(String),
     /// `to.K[v] otherwise { out_of_range { K.c1 } }`: a number into a
     /// `layout.c enum`, the fallback where no case has it (owner, 2026-09-27).
     ToEnum(String, Box<Expr>, Box<Expr>),
@@ -406,7 +409,7 @@ fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
         Expr::Num(t) if t.starts_with('-') => Some(2),
-        Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => Some(0),
+        Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) => Some(0),
         Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
@@ -589,7 +592,7 @@ impl<'a> Wr<'a> {
             }
             Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
             Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
-            Expr::Num(t) => self.out.push_str(t),
+            Expr::Num(t) | Expr::Src(t) => self.out.push_str(t),
             Expr::Text(t) => self.out.push_str(&format!("{t:?}")),
             Expr::StrBytes(n) => self.out.push_str(&format!("str.bytes[lend {}]", q(n))),
             Expr::Conv(t, v, fb) => {

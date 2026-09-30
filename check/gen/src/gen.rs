@@ -333,7 +333,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -398,7 +398,7 @@ impl Gen {
                 Expr::SimdFill(a) => walk(a, f),
                 Expr::ToEnum(_, a, b) => walk(a, f) || walk(b, f),
                 // a conversion's result is the generator's guess at most
-                Expr::Conv(..) | Expr::StrBytes(_) => true,
+                Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) => true,
                 Expr::Num(_) | Expr::Text(_) => false,
                 Expr::Case(_, _, d) => d.as_ref().map_or(false, |d| walk(d, f)),
                 Expr::Lit(_) | Expr::Bool(_) | Expr::Lend(_) => false,
@@ -1433,6 +1433,11 @@ impl Gen {
                 }
             }
         }
+        // text and characters (design/conversion.md): into ASCII, bytes
+        // read as UTF-8, codes and one-character text, seen as lengths and codes
+        if self.rng.chance(60) {
+            self.text_part(&mut body);
+        }
         // text into an integer
         if self.rng.chance(50) {
             let t = *self.rng.pick(&INTS);
@@ -1442,6 +1447,64 @@ impl Gen {
             body.push(Stmt::Print { signed: t.signed(), value: Expr::To(if t.signed() { Ty::I64 } else { Ty::U64 }, Box::new(Expr::Var(k))) });
         }
         Stmt::Block { tier: Tier::Default, body }
+    }
+
+    fn text_part(&mut self, body: &mut Vec<Stmt>) {
+        const TEXTS: &[&str] = &["hello", "h\u{e9}llo", "", "Z", "ZZ", "7", "a b", "\u{65e5}\u{672c}", "caf\u{e9}!", "\u{e9}"];
+        let q = |n: &str| format!("'{n}'");
+        match self.rng.below(5) {
+            0 => {
+                let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
+                let (s, a) = (self.name("t"), self.name("t"));
+                body.push(Stmt::TypedLet { name: s.clone(), mutable: false, ty: "str.utf8".into(), value: Expr::Text(t.into()) });
+                body.push(Stmt::AutoLet { name: a.clone(), value: Expr::Conv("str.ascii".into(), Box::new(Expr::Var(s)), Some(Box::new(Expr::Text("?".into())))) });
+                body.push(Stmt::Print { signed: false, value: Expr::StrBytes(a) });
+            }
+            1 => {
+                // bytes: UTF-8 or not (a stray continuation byte, 255)
+                let n = 1 + self.rng.below(6);
+                let mut bytes: Vec<u8> = (0..n).map(|_| self.rng.range(97, 122) as u8).collect();
+                match self.rng.below(4) {
+                    0 => bytes.extend([195, 169]),
+                    1 => bytes.push(255),
+                    2 => bytes.push(self.rng.range(128, 191) as u8),
+                    _ => {}
+                }
+                let list = if bytes.len() == 1 { format!("[{},]", bytes[0]) } else { format!("[{}]", bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", ")) };
+                let (l, t) = (self.name("l"), self.name("t"));
+                body.push(Stmt::TypedLet { name: l.clone(), mutable: false, ty: "list[uint8]".into(), value: Expr::Src(list) });
+                body.push(Stmt::AutoLet { name: t.clone(), value: Expr::Conv("str.utf8".into(), Box::new(Expr::Var(l)), Some(Box::new(Expr::Text("?".into())))) });
+                let count = if self.rng.chance(50) { "bytes" } else { "points" };
+                body.push(Stmt::Print { signed: false, value: Expr::Src(format!("str.{count}[lend {}]", q(&t))) });
+            }
+            2 => {
+                // a code into a character, not_a_char past the last point
+                let code = *self.rng.pick(&[65i128, 97, 233, 26085, 1114111, 1114112, 55296]);
+                let c = self.name("c");
+                body.push(Stmt::AutoLet { name: c.clone(), value: Expr::Src(format!("char.point.from_code[{code}] otherwise `?`")) });
+                body.push(Stmt::Print { signed: false, value: Expr::To(Ty::U64, Box::new(Expr::Src(format!("char.code[{}]", q(&c))))) });
+            }
+            3 => {
+                // one character of text, or not_one_char
+                let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
+                let c = self.name("c");
+                body.push(Stmt::AutoLet { name: c.clone(), value: Expr::Conv("char.point".into(), Box::new(Expr::Text(t.into())), Some(Box::new(Expr::Src("`?`".into())))) });
+                body.push(Stmt::Print { signed: false, value: Expr::To(Ty::U64, Box::new(Expr::Src(format!("char.code[{}]", q(&c))))) });
+            }
+            _ => {
+                // a digit's value is a text parse; other encodings never fail
+                let d = *self.rng.pick(&["7", "0", "x", "9"]);
+                let k = self.name("k");
+                body.push(Stmt::AutoLet { name: k.clone(), value: Expr::Conv("int32".into(), Box::new(Expr::Conv("str.utf8".into(), Box::new(Expr::Src(format!("`{d}`"))), None)), Some(Box::new(Expr::Lit(-1)))) });
+                body.push(Stmt::Print { signed: true, value: Expr::To(Ty::I64, Box::new(Expr::Var(k))) });
+                let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
+                let (s, w) = (self.name("t"), self.name("t"));
+                body.push(Stmt::TypedLet { name: s.clone(), mutable: false, ty: "str.utf8".into(), value: Expr::Text(t.into()) });
+                let enc = *self.rng.pick(&["str.utf16", "str.utf32"]);
+                body.push(Stmt::AutoLet { name: w.clone(), value: Expr::Conv(enc.into(), Box::new(Expr::Var(s)), None) });
+                body.push(Stmt::Print { signed: false, value: Expr::Src(format!("str.points[lend {}]", q(&w))) });
+            }
+        }
     }
 
     fn tier(&mut self, risky: bool) -> Tier {
