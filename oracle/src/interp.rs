@@ -4204,6 +4204,7 @@ impl<'p> Interp<'p> {
             "printu.stdout" | "printu.stderr" => rt(c.line, format!("std::{path} is spelled std::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
             "printf.stdout" | "printf.stderr" => rt(c.line, format!("std::{path} is spelled std::print.format.{} now (owner, 2026-09-29)", &path[7..])),
             "print.stdout" | "print.useful.stdout" | "print.stderr" | "print.useful.stderr"
+            | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" => {
                 // Since 2026-09-19 print takes any number of values and renders each —
@@ -4223,6 +4224,8 @@ impl<'p> Interp<'p> {
                     if matches!(v, Value::Nothing) { return rt(c.line, "a call that returns nothing cannot be printed"); }
                     text.push_str(&if useful { show_useful_as(&v, ty.as_ref()) } else { v.show_stored() });
                 }
+                // `.auto_newline` ends the line after the values (owner, 2026-09-30)
+                if path.contains(".auto_newline.") { text.push('\n'); }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
@@ -4257,7 +4260,7 @@ impl<'p> Interp<'p> {
                     o => rt(c.line, format!("std::exit takes a uint8, got {}", o.kind())),
                 }
             }
-            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print, print.useful and print.format, each .stdout/.stderr; input.line/all; exit; round/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
+            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print, print.useful, print.useful.auto_newline and print.format, each .stdout/.stderr; input.line/all; exit; round/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
         }
     }
 }

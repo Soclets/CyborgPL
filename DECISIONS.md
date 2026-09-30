@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — `std::print.useful.auto_newline` ends the line itself (owner)
+
+The owner, comparing the Hello World with Java's `System.out.println`,
+asked what `ln` stands for ("line"), then: "I might just add this for fun"
+with `std::print.useful.auto_newline.stdout["Hello, World!"];`. Design
+claude pointed out that `std::rs.println` had done this and was removed
+on 2026-09-20. It also noted that `_` would be new in a chain word, and
+that there would then be two ways to end a line. The owner answered that
+`print.format` already takes `\n` inside its text, so the two ways already
+exist. Asked "Want it added?", the owner said "yes, add that shi.". Asked
+which of two open questions that answered, the owner said "num `".
+Design claude read the backtick as a slip for 1, the key beside it, and
+added it. Only `print.useful` has it; `print` and `print.format` do not.
+`design/strings.md`; `examples/print_auto_newline.cpls`.
+
 ### 2026-09-30 — On Metal, CCA writes Metal Shading Language itself; Vulkan goes through LLVM to SPIR-V (owner: direct text)
 
 The owner asked whether GPU loops would need C++. Design claude: no. Vulkan

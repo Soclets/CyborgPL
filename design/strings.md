@@ -14,6 +14,20 @@ and `\\`. A newline is written outside the quotes and joined:
 (Restated after Claude wrote `"hello\n"` in an example and the owner
 asked whether it works; it doesn't — the oracle stores the backslash.)
 
+## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
+
+```
+std::print.useful.auto_newline.stdout["Hello, World!"];
+```
+
+`print.useful` with a newline after the values, the same as writing `\n`
+last. The name says what it adds, where `println`'s `ln` hides it. It is
+the first chain word with `_` in it. The owner wrote it "for fun", after
+comparing the Hello World with Java's; `std::rs.println` (2026-09-19,
+removed a day later) had done the same as a borrowed Rust print. Only this
+form is decided: `print` and `print.format` have no `auto_newline`.
+`examples/print_auto_newline.cpls`.
+
 ## `std::print.format` — C's print, in full (decided 2026-09-22)
 
 ```
