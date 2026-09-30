@@ -1023,6 +1023,23 @@ impl Domain {
                 let hi = if n2 > o2 { steps.iter().copied().find(|t| *t >= n2 && *t <= top.1).unwrap_or(top.1) } else { n2 };
                 Domain::Ints(ISet::range(lo, hi))
             }
+            // A bin bound that moved goes to the type's end: a sum of bins
+            // grows by its step each time round and never settles.
+            (Domain::Bins { lo: n1, hi: n2 }, Domain::Bins { lo: o1, hi: o2 }) => {
+                let (tlo, thi) = match Domain::of_ty(ty, items) {
+                    Domain::Bins { lo, hi } => (lo, hi),
+                    _ => (None, None),
+                };
+                let lo = match (n1, o1) {
+                    (Some(n), Some(o)) if n >= o => Some(*n),
+                    _ => tlo,
+                };
+                let hi = match (n2, o2) {
+                    (Some(n), Some(o)) if n <= o => Some(*n),
+                    _ => thi,
+                };
+                Domain::Bins { lo, hi }
+            }
             (Domain::Seq { len, elem }, Domain::Seq { len: old, .. }) => {
                 let (Some((n1, n2)), Some((o1, o2))) = (len.bounds(), old.bounds()) else { return joined.clone() };
                 let lo = if n1 < o1 { 0 } else { n1 };

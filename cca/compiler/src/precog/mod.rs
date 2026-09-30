@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), borrows: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), borrows: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, ran_out: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -219,6 +219,19 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         })
         .collect();
     sites.sort_by_key(|r| (r.function, r.site.0));
+    // A walk cut short by the step budget saw only some of the states:
+    // what held on those is no proof. Layer 3 is asked instead. (A call
+    // not followed is not this: its answer is all its type holds.)
+    if a.ran_out {
+        for r in sites.iter_mut() {
+            if let Verdict::Proven { how } = &r.verdict {
+                if !how.starts_with("structured") && *how != "layer 3" {
+                    r.verdict = Verdict::Unproven;
+                    r.note = "Precog reached its step budget before it had followed every trip".into();
+                }
+            }
+        }
+    }
     let certain: Vec<usize> = sites.iter().enumerate().filter(|(_, r)| matches!(&r.verdict, Verdict::Fails { counterexample } if counterexample.starts_with("every"))).map(|(i, _)| i).collect();
     let mut certain_under_nocheck = a.lies;
     certain_under_nocheck.sort_by_key(|(f, s, _)| (*f, s.0));
@@ -325,7 +338,7 @@ struct Precog {
     /// each accumulator adds per trip (joined over every visit).
     loop_entry: HashMap<(usize, usize), Env>,
     loop_bound: HashMap<(usize, usize), i128>,
-    acc_step: HashMap<(usize, usize, usize), ISet>,
+    acc_step: HashMap<(usize, usize, usize), Domain>,
     /// Recursive functions summed up by induction on their arguments: for
     /// each function, the return found for each argument tuple, and whether
     /// its table is being filled right now (so a recursive call reads it).
@@ -348,6 +361,9 @@ struct Precog {
     /// settled might only have looked that way because the contexts that
     /// would have disagreed were never walked.
     gave_up: bool,
+    /// The step budget ran out mid-walk, so some states were never seen.
+    /// Kept across the strict functions' own walks.
+    ran_out: bool,
     /// What a function returns, for one set of argument domains.
     cache: HashMap<(usize, String), Domain>,
     reads_outside: bool,
@@ -758,6 +774,7 @@ impl Precog {
             self.steps += 1;
             if self.steps > STEP_BUDGET {
                 self.gave_up = true;
+                self.ran_out = true;
                 break;
             }
             let Some(mut env) = states[b].clone() else { continue };
@@ -805,8 +822,8 @@ impl Precog {
                                 let x = counted.values().flat_map(|c| c.accs.iter()).find(|(_, at)| *at == (b, si)).map(|(x, _)| *x);
                                 let e = if lhs.place().map(|p| Some(p.local) == x).unwrap_or(false) { rhs } else { lhs };
                                 let step = match self.read_operand(f, &env, e) {
-                                    Domain::Ints(s) => s,
-                                    _ => ISet::Range { lo: i128::MIN / 4, hi: i128::MAX / 4 },
+                                    d @ (Domain::Ints(_) | Domain::Bins { .. }) => d,
+                                    _ => Domain::Ints(ISet::Range { lo: i128::MIN / 4, hi: i128::MAX / 4 }),
                                 };
                                 let joined = match self.acc_step.get(&(f, b, si)) {
                                     Some(old) => old.union(&step),
@@ -1001,12 +1018,36 @@ impl Precog {
                             if widen_now {
                                 if let (Some(c), Some(t)) = (counted.get(&i), trips_bound) {
                                     for (x, at) in &c.accs {
-                                        let (Some(Domain::Ints(xe)), Some(step)) = (this.loop_entry.get(&(f, i)).and_then(|en| en.get(x)).cloned(), this.acc_step.get(&(f, at.0, at.1)).cloned()) else { continue };
-                                        let (Some((e1, e2)), Some((s1, s2))) = (xe.bounds(), step.bounds()) else { continue };
-                                        let lo = e1.saturating_add(t.saturating_mul(s1.min(0)));
-                                        let hi = e2.saturating_add(t.saturating_mul(s2.max(0)));
-                                        if let Some(Domain::Ints(_)) = m.get(x) {
-                                            m.insert(*x, Domain::Ints(ISet::range(lo, hi)));
+                                        let (Some(entry), Some(step)) = (this.loop_entry.get(&(f, i)).and_then(|en| en.get(x)).cloned(), this.acc_step.get(&(f, at.0, at.1)).cloned()) else { continue };
+                                        match (entry, step, m.get(x)) {
+                                            (Domain::Ints(xe), Domain::Ints(step), Some(Domain::Ints(_))) => {
+                                                let (Some((e1, e2)), Some((s1, s2))) = (xe.bounds(), step.bounds()) else { continue };
+                                                let lo = e1.saturating_add(t.saturating_mul(s1.min(0)));
+                                                let hi = e2.saturating_add(t.saturating_mul(s2.max(0)));
+                                                m.insert(*x, Domain::Ints(ISet::range(lo, hi)));
+                                            }
+                                            // A bin sum the same way, with room for what each
+                                            // add rounds: half a unit in the last place of the
+                                            // largest running total, every trip.
+                                            (Domain::Bins { lo: Some(e1), hi: Some(e2) }, Domain::Bins { lo: Some(s1), hi: Some(s2) }, Some(Domain::Bins { .. })) => {
+                                                let Some(w) = crate::mir::domain::bin_width(&this.local_ty(f, *x)) else { continue };
+                                                let tf = t as f64;
+                                                let lo = e1 + tf * s1.min(0.0);
+                                                let hi = e2 + tf * s2.max(0.0);
+                                                let eps = match w {
+                                                    crate::types::BinW::Fixed(16) => 2f64.powi(-10),
+                                                    crate::types::BinW::Fixed(32) => 2f64.powi(-23),
+                                                    _ => 2f64.powi(-52),
+                                                };
+                                                let slack = tf * eps * lo.abs().max(hi.abs()) * 2.0 + f64::MIN_POSITIVE;
+                                                let (lo, hi) = (lo - slack, hi + slack);
+                                                let top = crate::mir::domain::bin_max(w);
+                                                let fits = |v: f64| v.is_finite() && top.map_or(true, |m| v.abs() <= m);
+                                                if fits(lo) && fits(hi) {
+                                                    m.insert(*x, Domain::Bins { lo: Some(lo), hi: Some(hi) });
+                                                }
+                                            }
+                                            _ => {}
                                         }
                                     }
                                     for l in &c.grows {
@@ -2707,6 +2748,8 @@ fn counted_loop(f: &crate::mir::Function, head: usize, latch: usize, body: &[usi
                     // many times a trip: never counted.
                     let w = match rvalue {
                         Rvalue::Use(Operand::Read(t) | Operand::Move(t)) if t.proj.is_empty() && !inner.contains(&b) => plus.get(&t.local).filter(|(x, _, _)| *x == place.local).cloned(),
+                        // `c = c + e` in one statement, as a `for` counts.
+                        Rvalue::Binary { op: BinOp::Add, .. } if !inner.contains(&b) => plus.get(&place.local).filter(|(x, _, at)| *x == place.local && *at == (b, si)).cloned(),
                         _ => None,
                     };
                     if w.is_some() && place.local == counter {

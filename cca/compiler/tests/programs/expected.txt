@@ -251,3 +251,4 @@ par_trap trap
 par_extern 40
 for_lend_mut 56
 lend_mut_through trap
+bin_sum_long trap
