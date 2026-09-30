@@ -434,6 +434,16 @@ Dated, with the alternative, so each can become a question later.
   runner is open. Two Limbs that depend on the same folder share one
   copy of it. A `version` dependency is refused until the registry
   exists, as the oracle does.
+- **2026-09-30 — `--target <name>` names the target to build.** A lone
+  target saying `default = false` leaves the Limb no default (owner,
+  2026-09-30), and a compile (`cca build`, `cca run`, `cca test`) with no
+  target named is then refused; checking (`cca check`, `cca mir`, `cca
+  precog`) is not. How a target is named on the command line was left to
+  CCA: `--target aarch64-macos`, the spelling cargo and clang use, once
+  per command. A named target must be one the Limb's `CCA.cplr` lists (a
+  plain `.cpls` file: one in `cca/targets.txt`), and is built only on its
+  own machine so far, as the default is. Alternative: a bare word, as
+  `synthia` might take it.
 - **2026-09-29 — `cca prepare`: picks around the owner's rulings.** The
   rulings (the current folder's Limb; names are Limbs' `name`s, its own or
   its dependencies', comma-separated with or without a space; a name two of

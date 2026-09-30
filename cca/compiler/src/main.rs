@@ -9,7 +9,7 @@ fn usage() -> ! {
     eprintln!("       cca check <file.cpls | limb-dir>…   parse and check");
     eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
     eprintln!("       cca precog <file.cpls | limb-dir>    check, lower, prove, and report");
-    eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
+    eprintln!("       cca build <file.cpls | limb-dir> [-o out] [--target t]   …then generate, assemble and link");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       cca prepare [folder/] <name>, <name>… | --prefix <prefix> | --all   run those Limbs' build.cplr, in their own folders");
@@ -94,6 +94,7 @@ fn real_main() {
         "build" => {
             let mut files = Vec::new();
             let mut out = None;
+            let mut target: Option<String> = None;
             let mut assert_proofs = false;
             let mut final_build = false;
             let mut i = 1;
@@ -108,6 +109,9 @@ fn real_main() {
                 } else if args[i] == "-o" && i + 1 < args.len() {
                     out = Some(args[i + 1].clone());
                     i += 2;
+                } else if args[i] == "--target" && i + 1 < args.len() {
+                    target = Some(args[i + 1].clone());
+                    i += 2;
                 } else {
                     files.push(args[i].clone());
                     i += 1;
@@ -116,7 +120,7 @@ fn real_main() {
             let mut failed = false;
             for f in &files {
                 let dest = out.clone().unwrap_or_else(|| Path::new(f).file_stem().unwrap().to_string_lossy().to_string());
-                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs, final_build, false) {
+                if let Err(d) = build_one(Path::new(f), Path::new(&dest), assert_proofs, final_build, false, target.as_deref()) {
                     failed = true;
                     eprint!("{}", d);
                 }
@@ -138,13 +142,14 @@ fn real_main() {
             let mut final_build = false;
             let split = args.iter().position(|a| a == "--").unwrap_or(args.len());
             let words: Vec<String> = args.get(split + 1..).map(|w| w.to_vec()).unwrap_or_default();
-            for a in &args[1..split] {
+            let (rest, target) = take_target(&args[1..split]);
+            for a in &rest {
                 match a.as_str() {
                     "--assert-proofs" => assert_proofs = true,
                     "--final" => final_build = true,
                     f if file.is_none() && !f.starts_with('-') => file = Some(f.to_string()),
                     other => {
-                        eprintln!("error: `cca run` takes one program and `--final` or `--assert-proofs`; `{}` is not one of them — the program's own words go after `--` (`--input` is not decided yet)", other);
+                        eprintln!("error: `cca run` takes one program, `--target <name>`, and `--final` or `--assert-proofs`; `{}` is not one of them — the program's own words go after `--` (`--input` is not decided yet)", other);
                         exit(2);
                     }
                 }
@@ -158,7 +163,7 @@ fn real_main() {
             }
             let stem = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "program".into());
             let exe = dir.join(&stem);
-            if let Err(d) = build_one(path, &exe, assert_proofs, final_build, true) {
+            if let Err(d) = build_one(path, &exe, assert_proofs, final_build, true, target.as_deref()) {
                 let _ = std::fs::remove_dir_all(&dir);
                 eprint!("{}", d);
                 exit(1);
@@ -184,12 +189,13 @@ fn real_main() {
         "test" => {
             let mut file = None;
             let mut assert_proofs = false;
-            for a in &args[1..] {
+            let (rest, target) = take_target(&args[1..]);
+            for a in &rest {
                 match a.as_str() {
                     "--assert-proofs" => assert_proofs = true,
                     f if file.is_none() && !f.starts_with('-') => file = Some(f.to_string()),
                     other => {
-                        eprintln!("error: `cca test` takes one program or Limb and `--assert-proofs`; `{}` is not one of them", other);
+                        eprintln!("error: `cca test` takes one program or Limb, `--target <name>` and `--assert-proofs`; `{}` is not one of them", other);
                         exit(2);
                     }
                 }
@@ -202,7 +208,7 @@ fn real_main() {
                 exit(1);
             }
             let exe = dir.join("tests");
-            let names = match build_opts(path, &exe, assert_proofs, false, true, true) {
+            let names = match build_opts(path, &exe, assert_proofs, false, true, true, target.as_deref()) {
                 Ok(n) => n,
                 Err(d) => {
                     let _ = std::fs::remove_dir_all(&dir);
@@ -339,7 +345,7 @@ fn prepare(rest: &[String]) {
     for (k, (name, folder)) in plan.iter().enumerate() {
         println!("prepare: {}", name);
         let exe = dir.join(format!("build-{}", k));
-        if let Err(d) = build_one(&folder.join("build.cplr"), &exe, false, false, true) {
+        if let Err(d) = build_one(&folder.join("build.cplr"), &exe, false, false, true, None) {
             let _ = std::fs::remove_dir_all(&dir);
             eprint!("{}", d);
             exit(1);
@@ -364,15 +370,44 @@ fn prepare(rest: &[String]) {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// `--target <name>` taken out of a command's words: the target to build,
+/// one the Limb lists (provisional spelling; the owner left it to CCA).
+fn take_target(args: &[String]) -> (Vec<String>, Option<String>) {
+    let mut rest = Vec::new();
+    let mut target = None;
+    let mut i = 0;
+    while i < args.len() {
+        if args[i] == "--target" {
+            match args.get(i + 1) {
+                Some(t) if target.is_none() => target = Some(t.clone()),
+                Some(_) => {
+                    eprintln!("error: one `--target` at a time: CCA builds one target per build");
+                    exit(2);
+                }
+                None => {
+                    eprintln!("error: `--target` is followed by the target's name: `--target aarch64-macos`");
+                    exit(2);
+                }
+            }
+            i += 2;
+        } else {
+            rest.push(args[i].clone());
+            i += 1;
+        }
+    }
+    (rest, target)
+}
+
 /// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
 /// stderr, for `cca run`, whose stdout is the program's.
-fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool) -> Result<(), String> {
-    build_opts(path, out, assert_proofs, final_build, quiet, false).map(|_| ())
+fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, target: Option<&str>) -> Result<(), String> {
+    build_opts(path, out, assert_proofs, final_build, quiet, false, target).map(|_| ())
 }
 
 /// `tests`: the test binary (`cca test`), and the names of its tests in
 /// the order its first argument numbers them.
-fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, tests: bool) -> Result<Vec<String>, String> {
+/// `target`: the one named with `--target`, or the Limb's default.
+fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, tests: bool, target: Option<&str>) -> Result<Vec<String>, String> {
     let say = |s: String| {
         if quiet {
             eprint!("{}", s);
@@ -381,7 +416,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         }
     };
     let mut sources = SourceMap::default();
-    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let items = cca::load::load_for(path, &mut sources, cca::load::Purpose::Compile(target)).map_err(|d| d.render(&sources))?;
     let mut checker = cca::check::Checker::new(items);
     checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;

@@ -9,12 +9,65 @@ use crate::diag::{err, Diagnostic, Result};
 use crate::resolve::{Items, ModuleId};
 use crate::source::{FileId, SourceMap};
 
+/// What a Limb is loaded for: checking reads it whatever its targets;
+/// compiling builds one target — the one named on the command line, or
+/// the Limb's default.
+pub enum Purpose<'a> {
+    Check,
+    Compile(Option<&'a str>),
+}
+
 pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
+    load_for(path, sources, Purpose::Check)
+}
+
+pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Result<Items> {
     let mut items = Items::default();
+    // The root Limb's targets and default, when it has a `CCA.cplr`.
+    let mut root: Option<(Vec<String>, Option<(String, crate::source::Span)>)> = None;
     if path.is_dir() {
-        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new() };
+        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None };
         load_limb(sources, &mut items, path, None, &mut state)?;
-    } else {
+        root = state.root;
+    }
+    // What is built is a target from the manifest, never the host
+    // (`reproducible-builds.md`): the one named, or the default. A lone
+    // target saying `default = false` leaves none, and a compile must then
+    // name it (owner, 2026-09-30). Every target is in `cca/targets.txt`
+    // (`read_manifest`), and CCA writes code on its own machine only so far.
+    let chosen: Option<(String, Option<crate::source::Span>)> = match (&purpose, &root) {
+        (Purpose::Check, Some((_, d))) => d.as_ref().map(|(t, s)| (t.clone(), Some(*s))),
+        (Purpose::Check, None) => None,
+        (Purpose::Compile(Some(t)), Some((listed, _))) => {
+            if !listed.iter().any(|l| l == t) {
+                return err(Diagnostic::error(format!("`{}` is not one of this Limb's targets: its `CCA.cplr` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
+            }
+            Some((t.to_string(), None))
+        }
+        (Purpose::Compile(Some(t)), None) => {
+            let known = targets();
+            if !known.contains(t) {
+                return err(Diagnostic::error(format!("`{}` is not a target CCA can build; it builds for {}", t, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
+            }
+            Some((t.to_string(), None))
+        }
+        (Purpose::Compile(None), Some((listed, None))) => {
+            return err(Diagnostic::error(format!("this Limb has no default target — its one target says `default = false` — so a build names the target: `--target {}`", listed.first().map(String::as_str).unwrap_or("aarch64-macos"))));
+        }
+        (Purpose::Compile(None), Some((_, Some((t, s))))) => Some((t.clone(), Some(*s))),
+        (Purpose::Compile(None), None) => None,
+    };
+    if let Some((t, span)) = chosen {
+        let here = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
+        if t != here {
+            let d = Diagnostic::error(format!("not yet: the target is `{}`, and CCA builds it only on a `{}` machine so far — this one is `{}`", t, t, here));
+            return err(match span {
+                Some(s) => d.at(s),
+                None => d,
+            });
+        }
+    }
+    if !path.is_dir() {
         let m = new_module(&mut items, "limb", None, Vis::Pub);
         let file = parse_file(sources, path)?;
         items.collect_file(&file, m, true)?;
@@ -153,6 +206,8 @@ struct Loading {
     stack: Vec<(PathBuf, String)>,
     done: std::collections::HashMap<PathBuf, (ModuleId, String)>,
     prefixes: std::collections::HashMap<String, PathBuf>,
+    /// The Limb being built: its targets and default, from its `CCA.cplr`.
+    root: Option<(Vec<String>, Option<(String, crate::source::Span)>)>,
 }
 
 /// One Limb directory and, through its `CCA.cplr`, its dependencies: each
@@ -203,19 +258,8 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
         }
         state.prefixes.insert(prefix.clone(), key.clone());
     }
-    // What is built is the default target — from the manifest, never from
-    // the host (`reproducible-builds.md`). CCA writes code for the targets
-    // in `cca/targets.txt`, and only on that machine so far, so another
-    // default is not built wrongly: it waits.
-    if from.is_none() {
-        if let Some((t, span)) = &manifest.default_target {
-            let here = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
-            // Every target is in `cca/targets.txt` already (`read_manifest`);
-            // CCA writes code on its own machine only so far.
-            if *t != here {
-                return err(Diagnostic::error(format!("not yet: the default target is `{}`, and CCA builds it only on a `{}` machine so far — this one is `{}`", t, t, here)).at(*span));
-            }
-        }
+    if from.is_none() && dir.join("CCA.cplr").is_file() {
+        state.root = Some((manifest.targets.clone(), manifest.default_target.clone()));
     }
     let m = match from {
         None => new_module(items, "limb", None, Vis::Pub),
@@ -258,6 +302,8 @@ struct Manifest {
     deps: Vec<Dep>,
     /// The target built when none is named (owner, 2026-09-29: b).
     default_target: Option<(String, crate::source::Span)>,
+    /// Every target listed.
+    targets: Vec<String>,
 }
 
 struct Dep {
@@ -268,7 +314,7 @@ const SETTINGS: [&str; 5] = ["name", "prefix", "version", "dependencies", "targe
 
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind, ItemKind};
-    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new() };
     let at = dir.join("CCA.cplr");
     if !at.is_file() {
         return Ok(out);
@@ -329,6 +375,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 };
                 let mut names: Vec<String> = Vec::new();
                 let mut name_spans: Vec<crate::source::Span> = Vec::new();
+                let mut lone_says_not = false;
                 let mut defaults: Vec<(String, crate::source::Span)> = Vec::new();
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
@@ -339,6 +386,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     }
                     let mut name = None;
                     let mut is_default = false;
+                    let mut said_not = false;
                     for a in args {
                         let AArg::Named(field, v) = a else {
                             return err(Diagnostic::error("a `cca::Target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
@@ -351,7 +399,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             // The one built when none is named (owner,
                             // 2026-09-29: b).
                             "default" => match &v.kind {
-                                ExprKind::Bool(b) => is_default = *b,
+                                ExprKind::Bool(b) => {
+                                    is_default = *b;
+                                    said_not = !*b;
+                                }
                                 _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
                             },
                             other => return err(Diagnostic::error(format!("a `cca::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, and `default = true` on the one built when none is named", other)).at(field.span)),
@@ -368,6 +419,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     }
                     names.push(n);
                     name_spans.push(span);
+                    lone_says_not = said_not;
                 }
                 // A single target is the default by itself; of several,
                 // exactly one says so.
@@ -385,10 +437,14 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error(format!("`{}` is not a target CCA can build; it builds for {}", n, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).at(*span));
                     }
                 }
+                // A lone target is the default unless it says
+                // `default = false` (owner, 2026-09-30): then there is none.
                 out.default_target = match defaults.first() {
                     Some((n, s)) => Some((n.clone(), *s)),
+                    None if names.len() == 1 && lone_says_not => None,
                     None => names.first().map(|n| (n.clone(), c.value.span)),
                 };
+                out.targets = names.clone();
             }
             _ => {
                 let ExprKind::List(entries) = &c.value.kind else {
@@ -458,7 +514,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             return err(Diagnostic::error(format!("CCA.cplr has no '{}'{}: a build needs the Limb's 'name', 'prefix', 'version' and at least one target{}", need, what, example)).place(at.display().to_string()));
         }
     }
-    if out.default_target.is_none() {
+    if out.targets.is_empty() {
         return err(Diagnostic::error("CCA.cplr has no target: a build needs the Limb's 'name', 'prefix', 'version' and at least one target, `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`").place(at.display().to_string()));
     }
     Ok(out)

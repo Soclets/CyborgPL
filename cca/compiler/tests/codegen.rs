@@ -184,6 +184,17 @@ fn limbs_reach_their_dependencies() {
         let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }
+    // A lone target saying `default = false` leaves no default (owner,
+    // 2026-09-30): checking is fine, a build with no `--target` is
+    // refused, and one naming it builds.
+    let r = Command::new(cca()).arg("check").arg(limbs.join("no_default")).output().unwrap();
+    assert!(r.status.success(), "checking a Limb with no default target was refused:\n{}", String::from_utf8_lossy(&r.stderr));
+    let r = Command::new(cca()).arg("run").arg(limbs.join("no_default")).output().unwrap();
+    assert!(r.status.code() == Some(1) && String::from_utf8_lossy(&r.stderr).contains("has no default target"), "a build of a Limb with no default target and no `--target` was not refused:\n{}", String::from_utf8_lossy(&r.stderr));
+    let r = Command::new(cca()).arg("run").arg("--target").arg("aarch64-macos").arg(limbs.join("no_default")).output().unwrap();
+    assert_eq!(r.status.code(), Some(5), "`--target aarch64-macos` did not build and run it:\n{}", String::from_utf8_lossy(&r.stderr));
+    let r = Command::new(cca()).arg("run").arg("--target").arg("x86_64-linux").arg(limbs.join("no_default")).output().unwrap();
+    assert!(!r.status.success() && String::from_utf8_lossy(&r.stderr).contains("is not one of this Limb's targets"), "a target the Limb does not list was built:\n{}", String::from_utf8_lossy(&r.stderr));
     // A version may be any text of at most 256 bytes (owner, 2026-09-29).
     let r = Command::new(cca()).arg("check").arg(limbs.join("long_version")).output().unwrap();
     assert!(r.status.success(), "a 256-byte version was refused:\n{}", String::from_utf8_lossy(&r.stderr));
