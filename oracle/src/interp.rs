@@ -2267,6 +2267,15 @@ impl<'p> Interp<'p> {
                     f => Err(RuntimeError { line, msg: String::new(), exit: None, site: false, leave: Some(f) }),
                 }
             }
+            Expr::PtrCast(ty, args, line) => {
+                let line = *line;
+                if self.nocheck_depth == 0 { return rt(line, "`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a nocheck site"); }
+                if let Err(m) = self.c_shaped(ty) { return rt(line, format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {m}")); }
+                let (pv, _) = self.value(&args.values[0])?;
+                // the address and whether it may write stay as they were: a `ptr` stays read-only
+                // (owner, 2026-09-30: a); the oracle's pointers carry no element type, so the rest is a relabel
+                match pv { Value::Ptr(p) => Ok((Value::Ptr(p), Prov::Plain)), other => rt(line, format!("`ptr.cast` needs a pointer, got {}", other.kind())) }
+            }
             Expr::PtrReadChecked(args, handler, _) => {
                 let t = args.values.first().and_then(|a| self.ptr_elem(a));
                 let Some(n) = t.as_ref().and_then(|t| self.c_checked(t)) else { return rt(line, "`ptr.read` of a plain type cannot fail, so it takes no `otherwise`") };

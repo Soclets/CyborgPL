@@ -1,0 +1,5 @@
+extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+MAIN {
+    nocheck 'raw' := malloc[4];
+    'p' := ptr.cast[int32]['raw'];
+}

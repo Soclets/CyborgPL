@@ -1,0 +1,7 @@
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+MAIN {
+    'key' := "HOME";
+    nocheck 'home' := getenv[lend 'key'];
+    nocheck 'p' := ptr.cast[int8]['home'];
+    nocheck ptr.write['p', 0];
+}

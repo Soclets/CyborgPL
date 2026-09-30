@@ -415,6 +415,8 @@ pub enum Expr {
     /// `ptr.read['p'] otherwise …` — a read of a C enum or range type from C, which can fail
     /// `out_of_range` (owner, 2026-09-27/28)
     PtrReadChecked(Bracket, Option<Handler>, usize),
+    /// `ptr.cast[T]['p']` — the same address, seen as pointing at a T (owner, 2026-09-30: a)
+    PtrCast(Ty, Bracket, usize),
     /// `'x' := match v { case { value } … }` — a match that gives a value (owner, 2026-09-29)
     Match(Bracket, Vec<Arm>, usize),
     /// `char.point.from_code[n]` / `char.byte.from_code[n]`: a number to a character, fails `not_a_char` (decided 2026-09-21)
@@ -441,6 +443,7 @@ impl Expr {
             Expr::Call(c) => c.line,
             Expr::Match(_, _, l) => *l,
             Expr::PtrReadChecked(_, _, l) => *l,
+            Expr::PtrCast(_, _, l) => *l,
             Expr::Nested(b) => b.line,
             Expr::Index(_, _, l) => *l,
             Expr::Builtin(_, _, _, l) => *l,

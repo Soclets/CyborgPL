@@ -111,6 +111,7 @@ had to make to run at all; none is a decision.
 | `lend.mut 'x'.field` writes back at the end of the statement; `'x'.field[i] = v` is refused (lend the list to a name first) | `interp.rs` `stmt` | A statement is the unit of a lend here; the compiler tracks the borrow itself |
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |
+| `ptr.cast[T]` relabels: the oracle's pointers carry no element type and its memory is a list of values, so a cast never reinterprets bytes (a `Point` written through a cast pointer reads back as that `Point`, never as its bytes) | `interp.rs` `PtrCast` | The oracle has no memory |
 | A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.limb`; open in `design/limbs.md` |
 | `shl`/`shr`/`not.bit` on an exact plain sum of mixed sizes take the left operand's declared type | `interp.rs` bitwise branch | Wrapping was ruled (write the size, 2026-09-23); shifts were not asked |
 | `xx~` wraps at the base's size, and its exponent's size does not count as mixing | `interp.rs` wrapping branch | By analogy with a shift's count; the owner ruled mixing for values, not for a power's exponent |

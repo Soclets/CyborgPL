@@ -1787,7 +1787,7 @@ impl Parser {
         self.expect_word("ptr")?;
         self.expect(Tok::Dot, "`.` after `ptr` (`ptr.read[…]`, `ptr.write[…]`, `ptr.at[…]`, `ptr.is_null[…]`)")?;
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `ptr.`, found {other}")) };
-        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null")) };
+        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `nocheck 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast")) };
         if *self.peek() != Tok::LBracket { return self.err(format!("`ptr.{op}` is a call and needs `[…]`")); }
         let args = self.bracket()?;
         if args.values.len() != want { return self.err(format!("`ptr.{op}` takes {want} argument(s), given {}", args.values.len())); }
@@ -2197,6 +2197,17 @@ impl Parser {
                     let (h, o, a) = self.builtin()?;
                     if o == "get" || o == "remove" { return Ok(Expr::MapFail(o, a, None, line)); }   // can fail `missing`
                     Ok(Expr::Builtin(h, o, a, line))
+                }
+                // `ptr.cast[T]['p']` (owner, 2026-09-30: a): the type in its own brackets, then the pointer
+                "ptr" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "cast") => {
+                    self.advance(); self.advance(); self.advance();
+                    self.expect(Tok::LBracket, "`[` and the type a pointer is cast to: `ptr.cast[Point]['p']`")?;
+                    let ty = self.ty()?;
+                    self.expect(Tok::RBracket, "`]` after the type: `ptr.cast[Point]['p']`")?;
+                    if *self.peek() != Tok::LBracket { return self.err("`ptr.cast[T]` then the pointer in its own brackets: `ptr.cast[Point]['p']`"); }
+                    let args = self.bracket()?;
+                    if args.values.len() != 1 { return self.err(format!("`ptr.cast[T]` takes one pointer, given {}", args.values.len())); }
+                    Ok(Expr::PtrCast(ty, args, line))
                 }
                 "ptr" => { let (h, o, a) = self.ptr_op()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "str" if matches!(self.peek_at(1), Tok::Dot) && !matches!(self.peek_at(2), Tok::Word(u) if u == "utf8" || u == "utf16" || u == "utf32" || u == "ascii") => {

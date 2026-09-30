@@ -52,6 +52,15 @@ extern fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
   ```
   All `nocheck` sites. No pointer↔integer conversion; a pointer comes
   only from a lend or from C.
+- **`ptr.cast[T]['p']` sees the same address as pointing at a `T`**
+  (owner, 2026-09-30: a): `malloc`'s `ptr.mut[uint8]` becomes a
+  `ptr.mut[Point]`. No byte moves and nothing converts — `ptr.read` then
+  reads a `T`, `ptr.at` steps whole `T`s. Always a `nocheck` site: only
+  the programmer can say the bytes really are a `T`. The target is
+  C-shaped, as anything a pointer points at. **A cast keeps whether the
+  pointer may write** (owner: a): a `ptr` stays read-only, a `ptr.mut`
+  stays writable. It compiles to nothing — LLVM has one pointer type.
+  `examples/ptr_cast.cpls`.
 - No raw-allocation primitive: bytes you can name are a `list[uint8]` /
   `array[uint8]` (owned, checked, lent to C); bytes nobody owns are
   `malloc`/`free`, two externs.

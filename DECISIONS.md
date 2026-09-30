@@ -14,8 +14,14 @@ from C", `ffi.md`); what was open is a pointer seen as another type, as
 the conversion family; (c) no casts, the extern declared with the wanted
 type. Design claude recommended a: no value changes, so it is a pointer
 operation, and `to.` means a real conversion that can fail or round. The
-owner: "`a`". Always a `nocheck` site. Open: whether a cast can change
-`ptr` to `ptr.mut`.
+owner: "`a`". Always a `nocheck` site. **A cast keeps whether the pointer
+may write**: proposed (a) a `ptr` stays read-only, (b) a visible
+`ptr.cast.mut` may make it writable; design claude recommended a, and
+said, asked, that neither costs anything at run time (a cast compiles to
+nothing; LLVM has one pointer type). The owner: "`a`". In the oracle:
+the target must be C-shaped; the oracle's pointers carry no element
+type, so a cast relabels; `examples/ptr_cast.cpls`, reject tests
+ptr_cast_needs_nocheck, ptr_cast_not_c, ptr_cast_keeps_readonly.
 
 ### 2026-09-30 — An asm binding can take a lend: `lend 'text' -> x1` (owner: a)
 
