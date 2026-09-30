@@ -752,6 +752,9 @@ impl Gen {
     }
 
     fn list_let(&mut self) -> Stmt {
+        if self.rng.chance(30) {
+            return self.list_fill();
+        }
         let elem = self.int_ty();
         let n = self.rng.below(5);
         let mutable = n == 0 || self.rng.chance(60);
@@ -769,6 +772,31 @@ impl Gen {
         let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
         self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, data: false, unseen: false, en: None, simd: None });
         Stmt::ListLet { name, mutable, elem, items }
+    }
+
+    /// `list.fill[v, n]` (owner, 2026-09-30): a literal count, or one
+    /// computed and kept in 0..8 — or, when a risk is taken, one that may
+    /// be below 0, so the count's check fires.
+    fn list_fill(&mut self) -> Stmt {
+        let elem = self.int_ty();
+        let mutable = self.rng.chance(60);
+        let iv = self.ghost(elem);
+        self.risky = false;
+        let (value, _) = self.value_in(elem, iv);
+        let (count, civ) = if self.rng.chance(40) {
+            let n = self.rng.range(0, 8);
+            (Expr::Lit(n), Iv::point(n))
+        } else {
+            let t = *self.rng.pick(&[Ty::I32, Ty::I64, Ty::U8, Ty::U64]);
+            let target = if t.signed() && self.take_risk() { Iv::new(-3, 8) } else { Iv::new(0, 8) };
+            self.value_in(t, target)
+        };
+        let (lo, cap) = (civ.lo.max(0) as u64, civ.hi.max(0) as u64);
+        let room = if mutable { self.rng.below(5) } else { 0 };
+        let name = self.name("xs");
+        let list = ListInfo { lo, cap: cap + room, len_now: cap, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
+        self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, data: false, unseen: false, en: None, simd: None });
+        Stmt::ListFill { name, mutable, elem, value, count }
     }
 
     /// A position in `v`: guarded unless the generator takes a risk.

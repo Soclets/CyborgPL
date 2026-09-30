@@ -310,6 +310,9 @@ pub enum Stmt {
     Return(Expr),
     /// `mut 'xs': list[T] = [a, b];` (design/lists.md).
     ListLet { name: String, mutable: bool, elem: Ty, items: Vec<Expr> },
+    /// `mut 'xs': list[T] = list.fill[v, n];` — n copies of v; a count below
+    /// 0 is a check site; `count n` in a strict file (owner, 2026-09-30).
+    ListFill { name: String, mutable: bool, elem: Ty, value: Expr, count: Expr },
     /// `change 'xs'[p] = v;`
     SetAt { tier: Tier, name: String, pos: Expr, value: Expr },
     /// `list.append[lend.mut 'xs', v];`
@@ -687,6 +690,18 @@ impl<'a> Wr<'a> {
             Stmt::EnumLet { name, mutable, en, value } => {
                 let head = format!("{}{}: {en} = ", if *mutable { "mut " } else if self.strict { "immut " } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
+            }
+            Stmt::ListFill { name, mutable, elem, value, count } => {
+                let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
+                self.out.push_str(&pad);
+                let s0 = self.out.len();
+                self.out.push_str(&format!("{m}{}: list[{}] = list.fill[", q(name), elem.name()));
+                self.e(value);
+                self.out.push_str(if self.strict { ", count " } else { ", " });
+                self.e(count);
+                self.out.push_str("];");
+                self.stmt.push((addr(s), s0, s0, self.out.len()));
+                self.out.push('\n');
             }
             Stmt::TypedLet { name, mutable, ty, value } => {
                 let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };

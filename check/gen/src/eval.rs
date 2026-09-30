@@ -497,6 +497,16 @@ impl<'a> Ev<'a> {
 
     fn stmt_inner(&mut self, env: &mut Env, s: &Stmt) -> Result<Flow, Stop> {
         match s {
+            Stmt::ListFill { name, elem, value, count, .. } => {
+                let v = self.expr(env, value)?.i();
+                (self.node, self.stmt) = (addr(value), addr(s));
+                let v = self.land(v, (*elem).into())?;
+                let n = self.expr(env, count)?.i();
+                (self.node, self.stmt) = (addr(count), addr(s));
+                self.check("count", n, n >= 0)?;
+                env.last_mut().unwrap().insert(name.clone(), (Val::L(Rc::new(RefCell::new(vec![v; n as usize]))), (*elem).into()));
+                Ok(Flow::Next)
+            }
             Stmt::TypedLet { name, .. } | Stmt::AutoLet { name, .. } => {
                 env.last_mut().unwrap().insert(name.clone(), (Val::I(0), Ty::I64.into()));
                 Ok(Flow::Next)
