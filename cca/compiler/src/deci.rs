@@ -167,8 +167,7 @@ pub fn conv_fails(from: &crate::types::Ty, to: &crate::types::Ty, literal_digits
             }
         }
         // Too big for the integer fails too (owner, 2026-09-30: a).
-        (Ty::Deci(_), Ty::Int(_)) if !to.is_exact() => vec!["not_whole", "out_of_range"],
-        (Ty::Deci(_), Ty::Int(_)) => vec!["not_whole"],
+        (Ty::Deci(_), Ty::Int(_)) => vec!["not_whole", "out_of_range"],
         (Ty::Deci(_), Ty::Bin(_) | Ty::Str(_)) => vec![],
         (Ty::Str(_), Ty::Deci(_)) => vec!["not_a_number", "out_of_range", "too_many_digits"],
         _ => return None,
