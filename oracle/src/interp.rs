@@ -1330,10 +1330,26 @@ impl<'p> Interp<'p> {
                         Prov::Borrowed(..) => { self.expected = saved; return rt(line, "a lend inside a list: a list owns its elements (`copy` or `give`)"); }
                         _ => {}
                     }
-                    items.push(val);
+                    items.push((val, matches!(prov, Prov::Literal)));
+                }
+                // with no declared element type, a bare number takes its family from the other
+                // items (owner, 2026-09-30: a): `[1, 2.5]` is bins, `[1, 'q']` with 'q' a deci is decis
+                if elem.is_none() {
+                    let deci = items.iter().find_map(|(v, _)| if let Value::Deci(d) = v { Some(d.width) } else { None });
+                    let bin = items.iter().any(|(v, _)| matches!(v, Value::Bin(_)));
+                    if let Some(w) = deci {
+                        self.expected = Some(Ty::Deci(w));
+                        for (k, v) in b.values.iter().enumerate() {
+                            if items[k].1 && !matches!(items[k].0, Value::Deci(_)) {
+                                match self.value(v) { Ok((val, _)) => items[k].0 = val, Err(e) => { self.expected = saved; return Err(e); } }
+                            }
+                        }
+                    } else if bin {
+                        for it in items.iter_mut() { if it.1 { if let Value::Int(i) = it.0 { it.0 = Value::Bin(i as f64); } } }
+                    }
                 }
                 self.expected = saved;
-                Ok((Value::List(items), Prov::Fresh))
+                Ok((Value::List(items.into_iter().map(|(v, _)| v).collect()), Prov::Fresh))
             }
         }
     }
