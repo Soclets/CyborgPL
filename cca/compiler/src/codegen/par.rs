@@ -299,7 +299,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let start = self.fold_identity(fi, fd)?;
             let _ = self.builder.build_store(part, start);
             partials.push(part);
-            if fd.kind == FoldKind::Int && fd.op == BinOp::Mul {
+            if fd.kind == FoldKind::Int && fd.op == BinOp::Mul && !fd.wrap {
                 let flag = self.stack(self.ctx.bool_type(), "overflowed").ok()?;
                 let _ = self.builder.build_store(flag, self.ctx.bool_type().const_zero());
                 flags_own.push(Some(flag));
@@ -394,8 +394,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// variable's own type for a bin or a deci.
     fn fold_ty(&mut self, fi: usize, fd: &Fold) -> Option<BasicTypeEnum<'ctx>> {
         match fd.kind {
-            FoldKind::Int => Some(self.ctx.i128_type().into()),
-            FoldKind::Bin | FoldKind::Deci(_) => {
+            FoldKind::Int if !fd.wrap => Some(self.ctx.i128_type().into()),
+            FoldKind::Int | FoldKind::Bin | FoldKind::Deci(_) => {
                 let t = self.p.functions[fi].locals[fd.acc.0 as usize].ty.clone();
                 self.ty(&t)
             }
@@ -406,7 +406,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn fold_identity(&mut self, fi: usize, fd: &Fold) -> Option<BasicValueEnum<'ctx>> {
         let one = fd.op == BinOp::Mul;
         Some(match fd.kind {
-            FoldKind::Int => self.ctx.i128_type().const_int(one as u64, false).into(),
+            FoldKind::Int => self.fold_ty(fi, fd)?.into_int_type().const_int(one as u64, false).into(),
             FoldKind::Bin => match self.fold_ty(fi, fd)? {
                 BasicTypeEnum::FloatType(t) => t.const_float(if one { 1.0 } else { 0.0 }).into(),
                 _ => return None,
@@ -424,6 +424,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn fold_step(&mut self, fi: usize, fd: &Fold, acc: BasicValueEnum<'ctx>, x: BasicValueEnum<'ctx>, x_signed: bool, func: FunctionValue<'ctx>) -> Option<(BasicValueEnum<'ctx>, Option<IntValue<'ctx>>)> {
         let w = self.ctx.i128_type();
         match fd.kind {
+            FoldKind::Int if fd.wrap => {
+                // Modulo 2^width: the proven total is what comes out.
+                let a = acc.into_int_value();
+                let b = self.builder.build_int_cast_sign_flag(x.into_int_value(), a.get_type(), x_signed, "term").ok()?;
+                let v = if fd.op == BinOp::Mul { self.builder.build_int_mul(a, b, "product").ok()? } else { self.builder.build_int_add(a, b, "sum").ok()? };
+                Some((v.into(), None))
+            }
             FoldKind::Int => {
                 let a = acc.into_int_value();
                 let b = self.builder.build_int_cast_sign_flag(x.into_int_value(), w, x_signed, "term").ok()?;
@@ -460,13 +467,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let lt = self.ty(&acc_ty)?;
         let held = self.builder.build_load(lt, slot, "held").ok()?;
         let (start, signed) = match fd.kind {
+            FoldKind::Int if fd.wrap => (held, true),
             FoldKind::Int => {
                 let (_, signed) = crate::precog::smt::int_shape(&acc_ty)?;
                 (self.builder.build_int_cast_sign_flag(held.into_int_value(), w, signed, "held").ok()?.into(), signed)
             }
             _ => (held, true),
         };
-        let product = fd.kind == FoldKind::Int && fd.op == BinOp::Mul;
+        let product = fd.kind == FoldKind::Int && fd.op == BinOp::Mul && !fd.wrap;
         let start_zero = match (product, start) {
             (true, BasicValueEnum::IntValue(v)) => self.builder.build_int_compare(IntPredicate::EQ, v, w.const_zero(), "zero").ok()?,
             _ => boolt.const_zero(),
@@ -519,6 +527,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         self.builder.position_at_end(done);
         let total = total.as_basic_value();
         match fd.kind {
+            // Proven to fit: the wrapped total is the total.
+            FoldKind::Int if fd.wrap => {
+                let _ = self.builder.build_store(slot, total);
+            }
             FoldKind::Int => {
                 let (bits, _) = crate::precog::smt::int_shape(&acc_ty)?;
                 let mut t = total.into_int_value();

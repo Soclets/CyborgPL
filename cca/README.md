@@ -450,8 +450,11 @@ Dated, with the alternative, so each can become a question later.
   - *Sums and products* (`+` or `x`, one of them throughout, into an
     integer, a bin or a deci): each slice folds its own trips from 0 (or
     1), and the parent folds the partials into the variable in slice
-    order, once. An integer's partials are 128 bits, checked once at the
-    end; a product's also remember going past 128 bits and meeting a 0. A
+    order, once. An integer fold whose every site is proven folds at the
+    variable's own width, wrapping (arithmetic modulo 2^width lands on the
+    true total, which fits); otherwise its partials are 128 bits, checked
+    once at the end, and a product's also remember going past 128 bits and
+    meeting a 0. A
     bin or deci partial is the variable's own type, so the rounding moves
     with the slicing (owner, 2026-09-30: c), and a bin total is always
     asked once whether it is still a real number. Every site on the fold

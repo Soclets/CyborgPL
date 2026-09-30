@@ -56,6 +56,10 @@ pub struct Fold {
     /// the running total then only moves one way, and the loop stops at a
     /// store that does not fit exactly when the total does not.
     pub one_signed: bool,
+    /// Every site on an integer fold is proven, so the total fits: the
+    /// slices can add (or multiply) at the variable's own width, wrapping,
+    /// since arithmetic modulo 2^width lands on the true total when it fits.
+    pub wrap: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -735,7 +739,7 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
     let mut folds = Vec::new();
     for l in folds_wanted {
         match fold(f, &lb, &defs, l) {
-            Some(fd) => {
+            Some(mut fd) => {
                 // The sequential total has to be one no check stops: every
                 // site on the fold proven, so the slices' sum is that total.
                 // Or the only one left is the store into 'acc', and the
@@ -754,6 +758,7 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
                     let what = if fd.op == BinOp::Mul { "product" } else { "sum" };
                     return conflict(format!("the {} into {} is not proven to fit, so slices could not stop where the loop would", what, name(f, l)));
                 }
+                fd.wrap = fd.kind == FoldKind::Int && open.is_empty();
                 folds.push(fd);
             }
             None => {
@@ -888,7 +893,7 @@ fn fold(f: &Function, lb: &[usize], defs: &HashMap<u32, Vec<(usize, usize)>>, ac
             return None;
         }
     }
-    Some(Fold { acc: LocalId(acc), op: the_op?, kind, adds, skip, one_signed: matches!(sign, Some(Some(_))) })
+    Some(Fold { acc: LocalId(acc), op: the_op?, kind, adds, skip, one_signed: matches!(sign, Some(Some(_))), wrap: false })
 }
 
 fn uses(o: &Operand, l: u32) -> bool {
