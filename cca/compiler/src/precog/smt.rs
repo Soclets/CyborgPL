@@ -828,7 +828,7 @@ impl<'a> Enc<'a> {
                     } else {
                         let mut late = e.clone();
                         let grows = resized.get(&ti).cloned().unwrap_or_default();
-                        for l in last_trip.get(&ti).cloned().unwrap_or_default() {
+                        for l in sorted(last_trip.get(&ti).cloned().unwrap_or_default()) {
                             if grows.contains(&l) {
                                 this.forget(&mut late, l);
                             } else {
@@ -847,9 +847,9 @@ impl<'a> Enc<'a> {
                     this.entries.entry(ti).or_default().push(e.clone());
                 }
                 if lvl == UNROLL_PER_LOOP {
-                    if let Some(written) = last_trip.get(&ti) {
+                    if let Some(written) = last_trip.get(&ti).cloned() {
                         let grows = resized.get(&ti).cloned().unwrap_or_default();
-                        for l in written {
+                        for l in &sorted(written) {
                             if grows.contains(l) {
                                 this.forget(&mut e, *l);
                             } else {
@@ -1112,7 +1112,7 @@ impl<'a> Enc<'a> {
     /// Everything that can be reached through a borrow held somewhere in
     /// this function may have changed behind the query's back.
     fn forget_aliased(&mut self, env: &mut Env) {
-        for l in self.aliased.clone() {
+        for l in sorted(self.aliased.clone()) {
             self.forget(env, l);
         }
     }
@@ -1538,6 +1538,16 @@ fn compare(op: &BinOp, signed: bool, a: &str, b: &str) -> String {
 /// Locals bound exactly once, to a shared borrow of a place reached by
 /// fields alone, or to another such local. Anything bound twice may name a
 /// different place the second time, so it is left out.
+/// A set's locals in their order: the query is written the same way on
+/// every run, so the solvers' step budgets end in the same place (a set's
+/// own order changes from one process to the next, and a sieve proved in
+/// 13 builds of 20).
+fn sorted(set: std::collections::HashSet<LocalId>) -> Vec<LocalId> {
+    let mut v: Vec<LocalId> = set.into_iter().collect();
+    v.sort();
+    v
+}
+
 fn shared_borrows(f: &Function) -> HashMap<LocalId, Place> {
     let mut count: HashMap<LocalId, u32> = HashMap::new();
     let mut target: HashMap<LocalId, Place> = HashMap::new();
