@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Synthia is an automatic programmer: it does what a CCA user would, writing `CCA.cplr` too (owner: "yea")
+
+Synthia claude, at the owner's asking, raised how CCA learns about a Limb
+that has only a `Synthia.ttsr`, since CCA never reads one. Proposed: (a)
+Synthia writes a `CCA.cplr` for each Limb that has none; (b) `cca build`
+takes Limbs on its command line (`--limb cash2=.synthia/money`); (c) a
+Limb must carry a `CCA.cplr` to be used. The owner: "`CCA.cplr` is
+already hella built-in. So, you could just go the programmer way ...
+Synthia just becomes like an automatic programmer". Design claude
+restated it as (a), as a general rule — Synthia does whatever a
+programmer using CCA would do by hand, writing a `CCA.cplr` where one is
+needed, and CCA never knows Synthia exists (as the override, 2026-09-29) —
+and the owner: "yea". Open: where Synthia writes the `CCA.cplr` for the
+project itself, which CCA looks for beside its source.
+
 ### 2026-09-30 — A `Synthia.ttsr` target's `default` is `yes` or `no` (owner: b)
 
 Relayed by synthia claude. Proposed: (a) only `yes`, the line left out

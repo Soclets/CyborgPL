@@ -36,6 +36,10 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   a syntax of Synthia's own (owner). Its syntax is designed:
   `design/synthia-manifest.md` (owner, 2026-09-29), and its one open point
   is there.
+- **Synthia is an automatic programmer** (owner, 2026-09-30): it does
+  whatever a programmer using CCA would do by hand, writing a `CCA.cplr`
+  for a Limb that has only a `Synthia.ttsr`. CCA never knows Synthia
+  exists.
 - **How it connects**: Synthia reads its manifest, fetches the Limbs,
   and calls `cca build …` saying where each is. CCA never reads
   `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): CCA
