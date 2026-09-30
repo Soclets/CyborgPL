@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — RRx2 is for CyborgPL, not a general tool; its repo, layout and domain (owner)
+
+"By specific, I meant it's for CyborgPL, not an Alive2 competitor": RRx2-TV
+checks what CCA hands LLVM, and RRx2-lang serves CyborgPL's number rules;
+neither aims at other languages. The repo is
+`Cyborg-Assembly-Manufacturing-Site/RRx2-VC` (private; "RRx2 VC" with the
+space GitHub does not allow), with the RRx2 logo from
+`website/brand/rrx2/` in its README, `lang/` and `tv/` for the two
+sessions (owner: "yea"), and ™ on RRx2 VC, RRx2-TV and RRx2-lang. Local
+clones, one per session: `/Users/ts/RRx2 VC lang` and `/Users/ts/RRx2 VC
+tv` (owner: "local folder split lang & tv"). The domain will be
+`rrx2.com`, available on 2026-09-30, bought later by the owner ("`.dev`
+tells more, but its character looks kinda fighting with `rrx2`").
+
 ### 2026-09-30 — CyborgPL is paused for the RRx2 Verifier Collection: RRx2-TV and RRx2-lang (owner)
 
 The owner: "CyborgPL progress is paused for RRx2 Verifier Collection. Two
