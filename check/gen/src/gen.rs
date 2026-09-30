@@ -140,6 +140,9 @@ struct ListInfo {
     frozen: u32,
     /// The walk's position name, while inside one that has it.
     walk_pos: Option<String>,
+    /// Walked with `lend.mut`: while the walk lasts nothing else may use it,
+    /// not even to read (Rust-style borrowing; seed 9512, 2026-09-30).
+    lent_mut: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -427,7 +430,7 @@ impl Gen {
     }
 
     fn lists(&self) -> Vec<VarInfo> {
-        self.scopes.iter().flatten().filter(|v| v.list.is_some()).cloned().collect()
+        self.scopes.iter().flatten().filter(|v| v.list.as_ref().map_or(false, |l| !l.lent_mut)).cloned().collect()
     }
 
     fn list_mut(&mut self, name: &str) -> &mut ListInfo {
@@ -659,7 +662,7 @@ impl Gen {
             if self.cfg.lists { 2 } else { 0 },     // list let
             if self.settable().is_empty() { 0 } else { 2 },   // change 'xs'[p]
             if self.appendable().is_empty() { 0 } else { 2 }, // list.append
-            if nested && !self.walkable().is_empty() { 2 } else { 0 }, // for … in lend
+            if nested && !self.walkable().is_empty() { 4 } else { 0 }, // for … in lend
             if self.in_fn.is_none() && self.bsigs.iter().any(|b| !b.wrong) { 2 } else { 0 }, // borrows
             if self.enums.is_empty() { 0 } else { 2 },                               // enum let
             if self.enum_vars().iter().any(|v| v.assignable) { 1 } else { 0 },       // enum change
@@ -668,6 +671,7 @@ impl Gen {
             if self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 },   // simd change
             if self.cfg.simd_lanes && self.in_check == 0 && self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 }, // lane change
             if self.cfg.deci { 2 } else { 0 },                                       // deci and conversions
+            if self.in_check == 0 && !self.lists().is_empty() { 6 } else { 0 },    // loop over a list's positions
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -688,6 +692,7 @@ impl Gen {
             17 => self.simd_assign(),
             18 => self.lane_write(),
             19 => self.deci_episode(),
+            20 => self.list_loop(),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -769,9 +774,43 @@ impl Gen {
         }
         let room = if mutable { self.rng.below(9) } else { 0 };
         let name = self.name("xs");
-        let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
+        let list = ListInfo { lo: n, cap: n + room, len_now: n, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None, lent_mut: false };
         self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, data: false, unseen: false, en: None, simd: None });
         Stmt::ListLet { name, mutable, elem, items }
+    }
+
+    /// A loop over every position of a list whose trips are independent,
+    /// which CCA may run in slices on several threads (34d9c18): each item
+    /// rewritten from itself, or all of them added into one sum printed
+    /// after. Either way the answer is the in-order one.
+    fn list_loop(&mut self) -> Stmt {
+        let ls = self.lists();
+        let v = self.rng.pick(&ls).clone();
+        let l = v.list.clone().unwrap();
+        let i = self.name("i");
+        let at = || Box::new(Expr::At(v.name.clone(), Box::new(Expr::Var(i.clone()))));
+        let bounds = |body: Vec<Stmt>| Stmt::For { perm: false, name: i.clone(), ty: Ty::U64, start: Expr::Lit(1), stop: Expr::Len(v.name.clone()), step: None, body };
+        self.positioned = true;
+        if l.mutable && l.frozen == 0 && self.rng.chance(35) {
+            // the same through the item: for 'x' in lend.mut 'xs' { change 'x' = … }
+            let x = self.name("x");
+            let (plus, piv) = (Expr::Bin(BinOp::Add, Box::new(Expr::To(v.ty, Box::new(Expr::Var(x.clone())))), Box::new(Expr::Lit(1))), Iv::new(v.iv.lo + 1, v.iv.hi + 1));
+            let (value, _) = self.fit(plus, piv, v.iv, v.ty);
+            let set = Stmt::Assign { tier: Tier::Default, name: x.clone(), value };
+            return Stmt::ForEach { pos: None, item: x, list: v.name.clone(), body: vec![set], mutable: true };
+        }
+        if l.mutable && l.frozen == 0 && self.rng.chance(50) {
+            // 'xs'['i'] = ('xs'['i'] + 1), folded back into what the items promise
+            let (plus, piv) = (Expr::Bin(BinOp::Add, at(), Box::new(Expr::Lit(1))), Iv::new(v.iv.lo + 1, v.iv.hi + 1));
+            let (value, _) = self.fit(plus, piv, v.iv, v.ty);
+            let set = Stmt::SetAt { tier: Tier::Default, name: v.name.clone(), pos: Expr::Var(i.clone()), value };
+            return bounds(vec![set]);
+        }
+        let acc = self.name("v");
+        let init = Stmt::Let { tier: Tier::Default, name: acc.clone(), mutability: Mutability::Mut, ty: Ty::I64.into(), value: Expr::Lit(0) };
+        let item = Expr::To(Ty::I64, Box::new(Expr::Bin(BinOp::Mod, at(), Box::new(Expr::Lit(100)))));
+        let add = Stmt::Assign { tier: Tier::Default, name: acc.clone(), value: Expr::Bin(BinOp::Add, Box::new(Expr::Var(acc.clone())), Box::new(item)) };
+        Stmt::Block { tier: Tier::Default, body: vec![init, bounds(vec![add]), Stmt::Print { signed: true, value: Expr::Var(acc) }] }
     }
 
     /// `list.fill[v, n]` (owner, 2026-09-30): a literal count, or one
@@ -794,7 +833,7 @@ impl Gen {
         let (lo, cap) = (civ.lo.max(0) as u64, civ.hi.max(0) as u64);
         let room = if mutable { self.rng.below(5) } else { 0 };
         let name = self.name("xs");
-        let list = ListInfo { lo, cap: cap + room, len_now: cap, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None };
+        let list = ListInfo { lo, cap: cap + room, len_now: cap, mutable, decl_mult: self.mult, frozen: 0, walk_pos: None, lent_mut: false };
         self.scopes.last_mut().unwrap().push(VarInfo { name: name.clone(), ty: elem, iv, assignable: false, list: Some(list), item: false, data: false, unseen: false, en: None, simd: None });
         Stmt::ListFill { name, mutable, elem, value, count }
     }
@@ -849,8 +888,15 @@ impl Gen {
     }
 
     fn for_each(&mut self, depth: u32) -> Stmt {
-        let v = self.rng.pick(&self.walkable()).clone();
+        let walkable = self.walkable();
+        let changeable: Vec<VarInfo> = walkable.iter().filter(|v| v.list.as_ref().map_or(false, |l| l.mutable && l.frozen == 0)).cloned().collect();
+        let v = if !changeable.is_empty() && self.rng.chance(60) { self.rng.pick(&changeable).clone() } else { self.rng.pick(&walkable).clone() };
         let cap = v.list.as_ref().unwrap().cap;
+        // `for 'x' in lend.mut 'xs'`: the item is changed and written back
+        // (owner, 2026-09-30); only over a list that may change and is not
+        // being walked already.
+        let l = v.list.as_ref().unwrap();
+        let mutable = l.mutable && l.frozen == 0 && self.rng.chance(60);
         let item = self.name("x");
         let pos = self.rng.chance(50).then(|| self.name("i"));
         let saved = (self.mult, self.in_loop);
@@ -859,10 +905,11 @@ impl Gen {
         let old_pos = {
             let l = self.list_mut(&v.name);
             l.frozen += 1;
+            l.lent_mut = mutable;
             std::mem::replace(&mut l.walk_pos, pos.clone())
         };
         self.scopes.push(vec![]);
-        self.declare(item.clone(), v.ty, v.iv, false);
+        self.declare(item.clone(), v.ty, v.iv, mutable);
         self.scopes.last_mut().unwrap().last_mut().unwrap().item = true;
         self.mark_unseen(&item);
         if let Some(p) = &pos {
@@ -870,15 +917,23 @@ impl Gen {
             self.mark_unseen(p);
         }
         let nb = self.stmt_count() / 2 + 1;
-        let body = self.stmts(nb, depth - 1);
+        let mut body = vec![];
+        if mutable {
+            self.risky = false;
+            self.positioned = true;
+            let (value, _) = self.value_in(v.ty, v.iv);
+            body.push(Stmt::Assign { tier: Tier::Default, name: item.clone(), value });
+        }
+        body.extend(self.stmts(nb, depth - 1));
         self.scopes.pop();
         {
             let l = self.list_mut(&v.name);
             l.frozen -= 1;
+            l.lent_mut = false;
             l.walk_pos = old_pos;
         }
         (self.mult, self.in_loop) = saved;
-        Stmt::ForEach { pos, item, list: v.name, body }
+        Stmt::ForEach { pos, item, list: v.name, body, mutable }
     }
 
     // ------------------------------------------------------------ borrows

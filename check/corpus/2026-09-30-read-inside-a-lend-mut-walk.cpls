@@ -1,0 +1,54 @@
+# Question 2026-09-30 (check run, seed 9621, shrunk): inside for 'x26' in lend.mut 'xs25', the body reads
+# 'xs25'['i30'] right after change 'x26' = 'x26' + 1. CCA reads the new value (15; the element is the
+# list's own, 4ef0ed8); the oracle the old one (14) until the trip ends. Rust-style borrowing would
+# refuse the read while 'x26' borrows the list mutably; CCA refused it in seeds 9512, 9542, 9663 and
+# ran it here. Whether it is allowed is with the owner.
+# check claude generator, seed 9621
+extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    mut 'v': uint64 = 'm';
+    mut 'ds': list[uint8] = [];
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+    change 'v' = 'v' div 10;
+    while 'v' > 0 {
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
+        change 'v' = 'v' div 10;
+    }
+    mut 'k': uint64 = list.length[lend 'ds'];
+    while 'k' >/== 1 {
+        list.append[lend.mut 'buf', 'ds'['k']];
+        change 'k' = 'k' - 1;
+    }
+    list.append[lend.mut 'buf', 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' < 0 {
+        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+    } else {
+        emit[to.uint64['n'], false];
+    }
+}
+
+MAIN {
+    'v22': uint8 = 1;
+    for 'i24': int8 in range[120, 127] {
+        mut 'xs25': list[uint8] = list.fill[((('v22' + 0) mod (((('v22' mod 4) xx (to.uint8['i24'] mod 6)) mod 122) + 1)) mod 110) + 13, ((-2147483647) - (-190277311)) mod 9];
+        for 'x26' in lend.mut 'xs25' {
+            change 'x26' = 'x26' + 1;
+            'v31': int64 = 0;
+            for 'i30': uint64 in range[1, 1] {
+                change 'v31' = 'xs25'['i30'];
+            }
+            put_i['v31'];
+        }
+    }
+}

@@ -106,6 +106,14 @@ impl Args {
     }
 }
 
+/// A CCA binary's threads: `--threads`, but never more than the share left
+/// by the jobs running beside it (3 jobs: 1 thread; `--jobs 1`: up to 3).
+fn set_threads(a: &Args, jobs: u64) {
+    let room = (JOBS_CAP / jobs.max(1)).max(1);
+    let t = a.num("threads", room).min(room).max(1);
+    engines::THREADS.store(t as usize, std::sync::atomic::Ordering::Relaxed);
+}
+
 fn die(m: &str) -> ! {
     eprintln!("check: {m}");
     std::process::exit(2)
@@ -515,6 +523,7 @@ fn run(t: &Tools, a: &Args) {
     let cases = a.num("cases", 100);
     let from = a.num("from", 1);
     let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
+    set_threads(a, jobs);
     let keep_going = a.has("keep-going");
     let target = a.has("target");
     let next = AtomicU64::new(from);

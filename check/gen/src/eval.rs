@@ -597,7 +597,8 @@ impl<'a> Ev<'a> {
                 }
             }
             Stmt::For { perm, name, ty, start, stop, step, body } => {
-                let (Expr::Lit(a), Expr::Lit(b)) = (start, stop) else { return Ok(Flow::Next) };
+                let (a, b) = (self.expr(env, start)?.i(), self.expr(env, stop)?.i());
+                let (a, b) = (&a, &b);
                 let st = step.unwrap_or(1);
                 let mut i = *a;
                 let mut last = *a;
@@ -678,7 +679,7 @@ impl<'a> Ev<'a> {
                 l.borrow_mut().push(y);
                 Ok(Flow::Next)
             }
-            Stmt::ForEach { pos, item, list, body } => {
+            Stmt::ForEach { pos, item, list, body, mutable } => {
                 let (l, ty) = match Self::lookup(env, list) {
                     Some((Val::L(l), t)) => (l, t),
                     _ => return Ok(Flow::Next),
@@ -693,7 +694,14 @@ impl<'a> Ev<'a> {
                     scope.insert(item.clone(), (Val::I(x), ty));
                     env.push(scope);
                     let f = self.block(env, body);
+                    // `lend.mut`: the item is written back (owner, 2026-09-30)
+                    let back = env.last().and_then(|s| s.get(item)).map(|v| v.0.clone().i());
                     env.pop();
+                    if *mutable {
+                        if let Some(v) = back {
+                            l.borrow_mut()[k] = v;
+                        }
+                    }
                     match f? {
                         Flow::Break => break,
                         Flow::Return(v) => return Ok(Flow::Return(v)),

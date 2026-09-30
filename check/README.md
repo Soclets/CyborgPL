@@ -65,6 +65,14 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   file refuses any site not proven from its own function, in every build,
   the whole program is generated under the `check` rules (no risk, no
   positions, nothing unseen), and promised ranges are whole types.
+  **Parallel-friendly loops** (2026-09-30): `for 'x' in lend.mut 'xs' {
+  change 'x' = … }` (the item written back, owner 4ef0ed8; the walked
+  list is not touched otherwise while it lasts), and loops over every
+  position of a list whose trips are independent: each item rewritten
+  from itself, or all added into a sum printed after. CCA may run these in
+  slices (34d9c18). A CCA binary gets `CYBORG_THREADS` so that jobs ×
+  threads stays within the three-core share: 1 by default, `--jobs 1
+  --threads 3` for a run aimed at the slicing.
   **deci and conversions** (owner "yea", 2026-09-30; `--avoid deci`):
   blocks of deci32/64/128 values from literals (some with trailing zeros)
   and from each other through `+ - x div mod xx` and negation; conversions

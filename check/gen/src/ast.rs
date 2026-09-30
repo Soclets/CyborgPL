@@ -319,7 +319,7 @@ pub enum Stmt {
     Append { name: String, value: Expr },
     /// `for 'x' in lend 'xs'`, or `for 'i', 'x' in lend 'xs'` with the
     /// position from 1 (owner, c7951d4).
-    ForEach { pos: Option<String>, item: String, list: String, body: Vec<Stmt> },
+    ForEach { pos: Option<String>, item: String, list: String, body: Vec<Stmt>, mutable: bool },
     /// `'r' := b1[lend 'xs', …];`: a borrow handed back by a call.
     Borrow { name: String, value: Expr },
     /// `'g' := give 'xs';`: 'xs' is dead after this.
@@ -846,10 +846,11 @@ impl<'a> Wr<'a> {
                 self.stmt.push((addr(s), s0, s0, self.out.len()));
                 self.out.push('\n');
             }
-            Stmt::ForEach { pos, item, list, body } => {
+            Stmt::ForEach { pos, item, list, body, mutable } => {
                 let pos = pos.as_ref().map(|p| format!("{}, ", q(p))).unwrap_or_default();
                 let temp = if self.strict { "temp " } else { "" };
-                self.out.push_str(&format!("{pad}for {temp}{pos}{} in lend {} {{\n", q(item), q(list)));
+                let lend = if *mutable { "lend.mut" } else { "lend" };
+                self.out.push_str(&format!("{pad}for {temp}{pos}{} in {lend} {} {{\n", q(item), q(list)));
                 self.block(body, indent + 1);
                 self.out.push_str(&format!("{pad}}}\n"));
             }

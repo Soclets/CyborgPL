@@ -250,8 +250,14 @@ pub enum Exec {
     Timeout,
 }
 
+/// Threads a CCA binary may use for its parallel `for` (CCA 34d9c18), set
+/// by the harness so that jobs × threads stays within the three-core share.
+pub static THREADS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
+
 pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
-    let r = run(&mut Command::new(bin), dir, env, true, RUN_LIMIT);
+    let mut env = env.to_vec();
+    env.push(("CYBORG_THREADS".into(), THREADS.load(Ordering::Relaxed).to_string()));
+    let r = run(&mut Command::new(bin), dir, &env, true, RUN_LIMIT);
     if r.timed_out {
         return Exec::Timeout;
     }

@@ -672,7 +672,11 @@ impl<'a> Enc<'a> {
                 }
             }
             Stmt::For { perm, name, ty, start, stop, step, body } => {
-                let (Expr::Lit(a), Expr::Lit(b)) = (start, stop) else { return };
+                let (Expr::Lit(a), Expr::Lit(b)) = (start, stop) else {
+                    // a computed bound (a list's length): not modelled
+                    self.too_big = true;
+                    return;
+                };
                 let st = step.unwrap_or(1);
                 let mut vals = vec![];
                 let mut i = *a;

@@ -271,8 +271,8 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 }
             }
         }
-        Stmt::ForEach { pos, item, list, body } => {
-            let mk = |pos: Option<String>, body: Vec<Stmt>| Stmt::ForEach { pos, item: item.clone(), list: list.clone(), body };
+        Stmt::ForEach { pos, item, list, body, mutable } => {
+            let mk = |pos: Option<String>, body: Vec<Stmt>| Stmt::ForEach { pos, item: item.clone(), list: list.clone(), body, mutable: *mutable };
             if pos.is_some() {
                 out.push(vec![mk(None, body.clone())]);
             }
@@ -451,7 +451,7 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
             ok
         }
         Stmt::MatchStmt { scrut, arms } => e(scrut, scopes) && arms_ok(arms, scopes, arity),
-        Stmt::ForEach { pos, item, list, body } => {
+        Stmt::ForEach { pos, item, list, body, .. } => {
             known(scopes, list) && {
                 scopes.push(pos.iter().cloned().chain([item.clone()]).collect());
                 let ok = block_ok(body, scopes, arity);
