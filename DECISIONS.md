@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — RRx2-TV's solver is Bitwuzla, alone (owner)
+
+The owner asked, of design claude's "RRx2-TV asks Z3": "Should it really?"
+Design claude: a solver, yes, since "the same for every input" cannot be
+tested over 2¹²⁸ inputs and writing one would outweigh RRx2-TV; Z3 alone,
+no, since Precog already puts Z3 and CVC5 to its proofs (2026-09-22), so a
+bug in one could fool both. Recommended Bitwuzla, a solver for
+fixed-width machine numbers (LLVM's kind) that Precog does not use, with
+Z3 or CVC5 as a second opinion. Sizes, counted: Z3 4.12.1 is 644,980
+lines of C/C++ (the copy under z3-sys 0.8.1 on this machine; about
+720,000 today by GitHub's byte count); Bitwuzla about 140,000 by the same
+estimate. The owner: "We could use `Bitwuzla`", then "Bitwuzla alone" (no
+second solver). Open: RRx2-TV's and RRx2-lang's implementation languages
+(design claude recommended Rust for both, Python as RRx2-lang's
+alternative).
+
 ### 2026-09-30 — RRx2 is for CyborgPL, not a general tool; its repo, layout and domain (owner)
 
 "By specific, I meant it's for CyborgPL, not an Alive2 competitor": RRx2-TV
