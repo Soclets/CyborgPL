@@ -29,81 +29,118 @@ pub fn targets() -> Vec<&'static str> {
     include_str!("../../targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect()
 }
 
-/// What `cca prepare` runs, in order (owner, 2026-09-29): each Limb's
-/// `build.cplr` with the prefix it goes by and the folder it runs in.
-/// `names` are prefixes — this Limb's own or a dependency's — run in the
-/// order given, each once; `None` is `--all` — every Limb reached,
-/// dependencies before the Limbs that use them, each once. Nothing is
-/// loaded but manifests.
-pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, names: Option<&[String]>) -> Result<Vec<(String, PathBuf)>> {
+/// Which Limbs `cca prepare` runs (owner, 2026-09-29 and 2026-09-30).
+pub enum Pick {
+    /// `--all`: every Limb reached, dependencies first.
+    All,
+    /// Limbs by their `name`: this Limb's own or a dependency's.
+    Names(Vec<String>),
+    /// `--prefix geo2`: the one Limb with that prefix, for a name two
+    /// Limbs share.
+    Prefix(String),
+}
+
+/// What `cca prepare` runs, in order: each Limb's `build.cplr` with the
+/// name it goes by and the folder it runs in. Names run in the order given,
+/// each once; `--all` runs dependencies before the Limbs that use them,
+/// each once. Nothing is loaded but manifests.
+pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<Vec<(String, PathBuf)>> {
     if !dir.join("limb.cpls").is_file() {
         return err(Diagnostic::error(format!("`cca prepare` acts on the Limb in this folder, and `{}` has no `limb.cpls`", short(dir))));
     }
-    // A Limb's prefix, from its own `CCA.cplr`; a dependency without one
-    // has none to be named by.
-    fn prefix_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<String> {
+    // A Limb's name and prefix, from its own `CCA.cplr`; a dependency
+    // without one has neither.
+    fn words_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<(String, String)> {
         if let Some((manifest_at, written)) = from {
             if !dir.join("CCA.cplr").is_file() {
                 return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no 'prefix' for code to reach it by", written)).place(manifest_at.display().to_string()));
             }
         }
-        Ok(match read_manifest(sources, dir)?.prefix {
-            Some((p, _)) => p,
-            None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()),
-        })
+        let m = read_manifest(sources, dir)?;
+        let folder = dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into());
+        Ok((m.name.map(|(n, _)| n).unwrap_or_else(|| folder.clone()), m.prefix.map(|(p, _)| p).unwrap_or(folder)))
+    }
+    // How a Limb is shown: its name, and its prefix too where that differs,
+    // since two Limbs may share a name.
+    fn label(name: &str, prefix: &str) -> String {
+        if name == prefix { name.to_string() } else { format!("{} (prefix `{}`)", name, prefix) }
     }
     let manifest = read_manifest(sources, dir)?;
     let manifest_at = dir.join("CCA.cplr");
-    let own = prefix_of(sources, dir, None)?;
-    let Some(names) = names else {
-        // Dependencies first: a Limb is listed after everything under it.
-        fn walk(sources: &mut SourceMap, dir: &Path, shown: String, stack: &mut Vec<(PathBuf, String)>, done: &mut Vec<PathBuf>, out: &mut Vec<(String, PathBuf)>) -> Result<()> {
-            let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
-            if done.contains(&key) {
-                return Ok(());
+    let (own_name, own_prefix) = words_of(sources, dir, None)?;
+    let names = match pick {
+        Pick::All => {
+            // Dependencies first: a Limb is listed after everything under it.
+            fn walk(sources: &mut SourceMap, dir: &Path, shown: String, stack: &mut Vec<(PathBuf, String)>, done: &mut Vec<PathBuf>, out: &mut Vec<(String, PathBuf)>) -> Result<()> {
+                let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
+                if done.contains(&key) {
+                    return Ok(());
+                }
+                if let Some(at) = stack.iter().position(|(p, _)| *p == key) {
+                    let mut names: Vec<String> = stack[at..].iter().map(|(_, n)| n.clone()).collect();
+                    names.push(shown);
+                    return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
+                }
+                let manifest = read_manifest(sources, dir)?;
+                let manifest_at = dir.join("CCA.cplr");
+                stack.push((key.clone(), shown.clone()));
+                for d in &manifest.deps {
+                    let at = dir.join(&d.path);
+                    let (n, p) = words_of(sources, &at, Some((&manifest_at, &d.path)))?;
+                    walk(sources, &at, label(&n, &p), stack, done, out)?;
+                }
+                stack.pop();
+                done.push(key);
+                if dir.join("build.cplr").is_file() {
+                    out.push((shown, dir.to_path_buf()));
+                }
+                Ok(())
             }
-            if let Some(at) = stack.iter().position(|(p, _)| *p == key) {
-                let mut names: Vec<String> = stack[at..].iter().map(|(_, n)| n.clone()).collect();
-                names.push(shown);
-                return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
-            }
-            let manifest = read_manifest(sources, dir)?;
-            let manifest_at = dir.join("CCA.cplr");
-            stack.push((key.clone(), shown.clone()));
-            for d in &manifest.deps {
-                let at = dir.join(&d.path);
-                let p = prefix_of(sources, &at, Some((&manifest_at, &d.path)))?;
-                walk(sources, &at, p, stack, done, out)?;
-            }
-            stack.pop();
-            done.push(key);
-            if dir.join("build.cplr").is_file() {
-                out.push((shown, dir.to_path_buf()));
-            }
-            Ok(())
+            let mut out = Vec::new();
+            walk(sources, dir, label(&own_name, &own_prefix), &mut Vec::new(), &mut Vec::new(), &mut out)?;
+            return Ok(out);
         }
-        let mut out = Vec::new();
-        walk(sources, dir, own, &mut Vec::new(), &mut Vec::new(), &mut out)?;
-        return Ok(out);
+        Pick::Names(n) => n.clone(),
+        Pick::Prefix(p) => vec![p.clone()],
     };
-    let mut known: Vec<(String, PathBuf)> = vec![(own, dir.to_path_buf())];
+    // This Limb and its dependencies: name, prefix, folder.
+    let mut known: Vec<(String, String, PathBuf)> = vec![(own_name, own_prefix, dir.to_path_buf())];
     for d in &manifest.deps {
         let at = dir.join(&d.path);
-        let p = prefix_of(sources, &at, Some((&manifest_at, &d.path)))?;
-        known.push((p, at));
+        let (n, p) = words_of(sources, &at, Some((&manifest_at, &d.path)))?;
+        known.push((n, p, at));
     }
+    let by_prefix = matches!(pick, Pick::Prefix(_));
     let mut out: Vec<(String, PathBuf)> = Vec::new();
-    for n in names {
-        if out.iter().any(|(m, _)| m == n) {
+    for n in &names {
+        let found: Vec<&(String, String, PathBuf)> = known.iter().filter(|(name, prefix, _)| if by_prefix { prefix == n } else { name == n }).collect();
+        let at = match found.as_slice() {
+            [] if by_prefix => return err(Diagnostic::error(format!("no Limb here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(_, p, _)| format!("`{}`", p)).collect::<Vec<_>>().join(", ")))),
+            [] => {
+                let mut names: Vec<String> = Vec::new();
+                for (k, _, _) in &known {
+                    if !names.contains(k) {
+                        names.push(k.clone());
+                    }
+                }
+                return err(Diagnostic::error(format!("no Limb here is named `{}`: the names here are {}", n, names.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
+            }
+            [one] => (label(&one.0, &one.1), one.2.clone()),
+            // Two Limbs may share a name, never a prefix: which one is
+            // meant is said by prefix (owner, 2026-09-30: a, "flag").
+            many => {
+                let prefixes: Vec<String> = many.iter().map(|(_, p, _)| format!("`{}`", p)).collect();
+                return err(Diagnostic::error(format!("{} Limbs here are named `{}`, with the prefixes {}: pick one with `cca prepare --prefix {}`", many.len(), n, prefixes.join(", "), many[0].1)));
+            }
+        };
+        let (shown, at) = at;
+        if out.iter().any(|(m, _)| *m == shown) {
             continue;
         }
-        let Some((_, at)) = known.iter().find(|(p, _)| p == n) else {
-            return err(Diagnostic::error(format!("no Limb here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(k, _)| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
-        };
         if !at.join("build.cplr").is_file() {
             return err(Diagnostic::error(format!("`{}` has no `build.cplr` to run, at `{}`", n, at.display())));
         }
-        out.push((n.clone(), at.clone()));
+        out.push((shown, at));
     }
     Ok(out)
 }

@@ -434,17 +434,22 @@ Dated, with the alternative, so each can become a question later.
   copy of it. A `version` dependency is refused until the registry
   exists, as the oracle does.
 - **2026-09-29 — `cca prepare`: picks around the owner's rulings.** The
-  rulings (the current folder's Limb; names are prefixes, its own or its
-  dependencies', comma-separated with or without a space; a `build.cplr` runs in its own
-  Limb's folder; `--all` runs dependencies first, each once, stopping at the
-  first failure) are built as ruled. Picks beside them: named Limbs run in
-  the order given, each once; a named Limb with no `build.cplr` is refused,
-  while `--all` passes over those; each `build.cplr` is built as a program
-  of its own (the working build, no access to its Limb's code), with no
-  words, and the failing one's exit is cca's. A folder argument is refused
-  as "not yet (asked)", since `cca prepare money` cannot tell a folder
-  `money` from a prefix `money`; so is no names at all, as ruled.
-  Alternative: run named Limbs dependencies-first too.
+  rulings (the current folder's Limb; names are Limbs' `name`s, its own or
+  its dependencies', comma-separated with or without a space; a name two of
+  them share is refused with their prefixes listed, and `--prefix geo2`
+  picks one; a `build.cplr` runs in its own Limb's folder; `--all` runs
+  dependencies first, each once, stopping at the first failure) are built
+  as ruled. Picks beside them: named Limbs run in the order given, each
+  once; a named Limb with no `build.cplr` is refused, while `--all` passes
+  over those; each `build.cplr` is built as a program of its own (the
+  working build, no access to its Limb's code), with no words, and the
+  failing one's exit is cca's; a Limb whose prefix differs from its name
+  is shown as `geometry (prefix `geo2`)`. `--prefix` takes exactly one
+  prefix, alone; a list, or `--prefix` beside names, is "not yet (asked)".
+  A folder argument is refused as "not yet (asked)", since `cca prepare
+  money` cannot tell a folder `money` from a Limb named `money`; so is no
+  names at all, as ruled. Alternative: run named Limbs dependencies-first
+  too.
 - **2026-09-29 — How `cca test` runs tests.** One test binary holds every
   `test fn` (and no `MAIN`); `cca test` runs it once per test, the test's
   number its argument, so a check that fires ends that test only. A `must`

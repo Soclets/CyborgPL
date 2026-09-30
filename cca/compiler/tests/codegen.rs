@@ -194,9 +194,9 @@ fn limbs_reach_their_dependencies() {
     }
 }
 
-/// `cca prepare` (owner, 2026-09-29): the current folder's Limb; names are
-/// local names or its own, comma-separated with or without a space, run in
-/// the order given; `--all` runs dependencies first, each once, and stops
+/// `cca prepare` (owner, 2026-09-29, 2026-09-30): the current folder's
+/// Limb; names are Limbs' `name`s, comma-separated with or without a space,
+/// run in the order given; a shared name is refused and `--prefix` picks; `--all` runs dependencies first, each once, and stops
 /// at the first that fails. Each build.cplr stops with 9 unless it runs in
 /// its own Limb's folder.
 #[test]
@@ -209,9 +209,18 @@ fn prepare_runs_build_scripts_in_their_folders() {
         let r = prep("prep_app", words);
         assert!(r.status.success() && said(&r) == want, "`cca prepare {}` ran `{}`, not `{}`:\n{}", words.join(" "), said(&r), want, String::from_utf8_lossy(&r.stderr));
     }
+    // Two dependencies named `geometry`: the name is refused with their
+    // prefixes, and `--prefix` picks one (owner, 2026-09-30).
+    let r = prep("prep_shared", &["geometry"]);
+    let err = String::from_utf8_lossy(&r.stderr);
+    assert!(!r.status.success() && err.contains("2 Limbs here are named `geometry`, with the prefixes `geometry`, `geo2`"), "a shared name was not refused with its prefixes:\n{}", err);
+    for (words, want) in [(&["--prefix", "geo2"][..], "geo2"), (&["--prefix", "geometry"][..], "geometry"), (&["--all"][..], "money geometry geo2")] {
+        let r = prep("prep_shared", words);
+        assert!(r.status.success() && said(&r) == want, "`cca prepare {}` ran `{}`, not `{}`:\n{}", words.join(" "), said(&r), want, String::from_utf8_lossy(&r.stderr));
+    }
     let r = prep("prep_stops", &["--all"]);
     assert!(r.status.code() == Some(7) && said(&r) == "bad", "`--all` did not stop at the first that failed:\n{}{}", said(&r), String::from_utf8_lossy(&r.stderr));
-    for (words, says) in [(&[][..], "not yet: `cca prepare` with no names"), (&["geometry", "money"][..], "names are separated by commas"), (&["nope"][..], "no Limb here has the prefix `nope`"), (&["../prep_money"][..], "for a Limb in another folder")] {
+    for (words, says) in [(&[][..], "not yet: `cca prepare` with no names"), (&["geometry", "money"][..], "names are separated by commas"), (&["nope"][..], "no Limb here is named `nope`"), (&["../prep_money"][..], "for a Limb in another folder")] {
         let r = prep("prep_app", words);
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "`cca prepare {}` was not refused with {:?}:\n{}", words.join(" "), says, err);

@@ -12,7 +12,7 @@ fn usage() -> ! {
     eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
-    eprintln!("       cca prepare <name>, <name>… | --all   run those Limbs' build.cplr, in their own folders");
+    eprintln!("       cca prepare <name>, <name>… | --prefix <prefix> | --all   run those Limbs' build.cplr, in their own folders");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -256,24 +256,37 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
     }
 }
 
-/// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
-/// stderr, for `cca run`, whose stdout is the program's.
-/// `cca prepare` (owner, 2026-09-29): the Limb in the current folder;
-/// names are its dependencies' local names or its own, separated by commas
-/// (`geometry, money` or `geometry,money`), run in the order given; `--all`
-/// runs every Limb's `build.cplr`, dependencies first. Each is built as a
-/// program of its own and run in its Limb's folder; the first that fails
-/// stops the rest, and its exit is cca's.
+/// `cca prepare` (owner, 2026-09-29, 2026-09-30): the Limb in the current
+/// folder; names are Limbs' `name`s, its own or its dependencies',
+/// separated by commas (`geometry, money` or `geometry,money`), run in the
+/// order given; a name two Limbs share is refused with their prefixes, and
+/// `--prefix geo2` picks one; `--all` runs every Limb's `build.cplr`,
+/// dependencies first. Each is built as a program of its own and run in
+/// its Limb's folder; the first that fails stops the rest, and its exit is
+/// cca's.
 fn prepare(rest: &[String]) {
     if rest.is_empty() {
         eprintln!("error: not yet: `cca prepare` with no names (asked) — name the Limbs, `cca prepare geometry, money`, or give `--all`");
         exit(2);
     }
-    let names: Option<Vec<String>> = if rest.len() == 1 && rest[0] == "--all" {
-        None
+    let pick = if rest.len() == 1 && rest[0] == "--all" {
+        cca::load::Pick::All
+    } else if rest.first().map(|a| a == "--prefix").unwrap_or(false) {
+        // One Limb, by the prefix it alone has (owner, 2026-09-30: "flag").
+        match &rest[1..] {
+            [p] if !p.contains(',') && !p.starts_with('-') => cca::load::Pick::Prefix(p.clone()),
+            [] => {
+                eprintln!("error: `--prefix` is followed by the prefix of the one Limb to prepare: `cca prepare --prefix geo2`");
+                exit(2);
+            }
+            _ => {
+                eprintln!("error: not yet: `--prefix` with more than one prefix, or beside names (asked) — `cca prepare --prefix geo2` prepares one Limb");
+                exit(2);
+            }
+        }
     } else {
         if let Some(a) = rest.iter().find(|a| a.starts_with('-')) {
-            eprintln!("error: `cca prepare` takes names separated by commas, or `--all` alone; `{}` is neither", a);
+            eprintln!("error: `cca prepare` takes names separated by commas, `--prefix` and one prefix, or `--all` alone; `{}` is none of them", a);
             exit(2);
         }
         if let Some(a) = rest.iter().find(|a| a.contains('/') || *a == "." || *a == "..") {
@@ -293,10 +306,10 @@ fn prepare(rest: &[String]) {
             }
             v.push(n.to_string());
         }
-        Some(v)
+        cca::load::Pick::Names(v)
     };
     let mut sources = SourceMap::default();
-    let plan = match cca::load::prepare_plan(&mut sources, Path::new("."), names.as_deref()) {
+    let plan = match cca::load::prepare_plan(&mut sources, Path::new("."), &pick) {
         Ok(p) => p,
         Err(d) => {
             eprint!("{}", d.render(&sources));
@@ -340,6 +353,8 @@ fn prepare(rest: &[String]) {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
+/// stderr, for `cca run`, whose stdout is the program's.
 fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool) -> Result<(), String> {
     build_opts(path, out, assert_proofs, final_build, quiet, false).map(|_| ())
 }
