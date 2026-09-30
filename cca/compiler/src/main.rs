@@ -12,7 +12,7 @@ fn usage() -> ! {
     eprintln!("       cca build <file.cpls | limb-dir> [-o out]   …then generate, assemble and link");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
-    eprintln!("       cca prepare <name>, <name>… | --prefix <prefix> | --all   run those Limbs' build.cplr, in their own folders");
+    eprintln!("       cca prepare [folder/] <name>, <name>… | --prefix <prefix> | --all   run those Limbs' build.cplr, in their own folders");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -257,7 +257,7 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
 }
 
 /// `cca prepare` (owner, 2026-09-29, 2026-09-30): the Limb in the current
-/// folder; names are Limbs' `name`s, its own or its dependencies',
+/// folder, or in a folder given first, written with a `/`; names are Limbs' `name`s, its own or its dependencies',
 /// separated by commas (`geometry, money` or `geometry,money`), run in the
 /// order given; a name two Limbs share is refused with their prefixes, and
 /// `--prefix geo2` picks one; `--all` runs every Limb's `build.cplr`,
@@ -265,6 +265,13 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
 /// its Limb's folder; the first that fails stops the rest, and its exit is
 /// cca's.
 fn prepare(rest: &[String]) {
+    // A word with a `/` is a folder, a bare word a Limb's name (owner,
+    // 2026-09-30: "`/`"): `cca prepare ../app geometry`. The folder comes
+    // first, as a program does in `cca run`.
+    let (dir, rest) = match rest.first() {
+        Some(f) if f.contains('/') => (f.clone(), &rest[1..]),
+        _ => (".".to_string(), rest),
+    };
     if rest.is_empty() {
         eprintln!("error: not yet: `cca prepare` with no names (asked) — name the Limbs, `cca prepare geometry, money`, or give `--all`");
         exit(2);
@@ -289,8 +296,12 @@ fn prepare(rest: &[String]) {
             eprintln!("error: `cca prepare` takes names separated by commas, `--prefix` and one prefix, or `--all` alone; `{}` is none of them", a);
             exit(2);
         }
-        if let Some(a) = rest.iter().find(|a| a.contains('/') || *a == "." || *a == "..") {
-            eprintln!("error: not yet: `cca prepare` for a Limb in another folder (asked) — `{}` reads as one; run it in that Limb's folder", a);
+        if let Some(a) = rest.iter().find(|a| a.contains('/')) {
+            eprintln!("error: `{}` is a folder, and the folder comes first: `cca prepare {} …`", a, a);
+            exit(2);
+        }
+        if let Some(a) = rest.iter().find(|a| *a == "." || *a == "..") {
+            eprintln!("error: a folder is written with a `/`, and a bare word is a Limb's name: `cca prepare {}/ …`", a);
             exit(2);
         }
         let mut v = Vec::new();
@@ -309,7 +320,7 @@ fn prepare(rest: &[String]) {
         cca::load::Pick::Names(v)
     };
     let mut sources = SourceMap::default();
-    let plan = match cca::load::prepare_plan(&mut sources, Path::new("."), &pick) {
+    let plan = match cca::load::prepare_plan(&mut sources, Path::new(&dir), &pick) {
         Ok(p) => p,
         Err(d) => {
             eprint!("{}", d.render(&sources));

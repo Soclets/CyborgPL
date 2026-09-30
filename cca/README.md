@@ -446,9 +446,10 @@ Dated, with the alternative, so each can become a question later.
   failing one's exit is cca's; a Limb whose prefix differs from its name
   is shown as `geometry (prefix `geo2`)`. `--prefix` takes exactly one
   prefix, alone; a list, or `--prefix` beside names, is "not yet (asked)".
-  A folder argument is refused as "not yet (asked)", since `cca prepare
-  money` cannot tell a folder `money` from a Limb named `money`; so is no
-  names at all, as ruled. Alternative: run named Limbs dependencies-first
+  A folder is a word with a `/` (owner, 2026-09-30), taken as the first
+  word, as a program is in `cca run`; a folder given later is refused. A
+  folder with no names (`cca prepare ./money`) is refused like no names at
+  all, which is still open (asked). Alternative: run named Limbs dependencies-first
   too.
 - **2026-09-29 — How `cca test` runs tests.** One test binary holds every
   `test fn` (and no `MAIN`); `cca test` runs it once per test, the test's

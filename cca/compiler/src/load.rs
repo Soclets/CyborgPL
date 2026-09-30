@@ -46,7 +46,7 @@ pub enum Pick {
 /// each once. Nothing is loaded but manifests.
 pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<Vec<(String, PathBuf)>> {
     if !dir.join("limb.cpls").is_file() {
-        return err(Diagnostic::error(format!("`cca prepare` acts on the Limb in this folder, and `{}` has no `limb.cpls`", short(dir))));
+        return err(Diagnostic::error(format!("`cca prepare` acts on a Limb, and `{}` has no `limb.cpls`", dir.display())));
     }
     // A Limb's name and prefix, from its own `CCA.cplr`; a dependency
     // without one has neither.
