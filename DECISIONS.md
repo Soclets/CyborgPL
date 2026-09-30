@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — "RRx2 VC" is now just "RRx2" (owner)
+
+"Change RRx2 VC to RRx2". The repo is renamed
+`Cyborg-Assembly-Manufacturing-Site/RRx2` (GitHub redirects the old
+`RRx2-VC` address); its README title is "RRx2™", its line "Verifiers for
+CyborgPL: RRx2-TV™ and RRx2-lang™"; the local clones are `/Users/ts/RRx2
+lang` and `/Users/ts/RRx2 tv`. RRx2-TV and RRx2-lang keep their names.
+Earlier entries say "RRx2 VC" as it was then.
+
 ### 2026-09-30 — RRx2's C and C++ keep Clang's checkers on in every build, the final one too (owner)
 
 Design claude's safety net for RRx2 in C and C++: AddressSanitizer and
