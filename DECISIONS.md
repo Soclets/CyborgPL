@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — A loop that prints, reads input or calls C stays in order by itself; a keyword forces parallel, `seq` forces order (owner)
+
+Compiler claude's third question for parallel `for`. Proposed (a) Precog
+keeps any loop with an effect it cannot see into (printing, input, an
+`extern` call) in order automatically; (b) such a loop must say `seq` or
+is an error; (c) Precog may run it in parallel unless it says `seq`.
+Design claude recommended a. Asked for a useful case of (c): pure,
+thread-safe C (hashing, `sin` over a list) gains from parallel, but (c)
+would also parallelise C that is not thread-safe; design claude suggested
+a per-`extern` mark later. The owner: "`a`, overridable with <abbriev of
+pararell> and `seq`": a loop may be forced parallel with a keyword
+abbreviating "parallel", or forced in order with `seq`. Open: that
+keyword's spelling, and what it may override.
+
 ### 2026-09-30 — Precog estimates whether a loop is worth cores; `tune.cplr` overrules it when it has a measurement (owner: a)
 
 Compiler claude's second question for parallel `for`. Proposed (a) a fixed
