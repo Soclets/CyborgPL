@@ -33,9 +33,10 @@ numbers and correctly rounded floats. The owner: "yeah". Design claude's
 discipline for both, for the briefs: every test build with
 `-fsanitize=address,undefined`, warnings as errors, and in C++ no raw
 `new`/`delete`. GMP and MPFR are LGPL: used as linked libraries beside
-Apache-2.0 code, which the LGPL allows. Not yet answered: whether
-RRx2-lang is interpreted only (design claude recommended it, over
-transpiling).
+Apache-2.0 code, which the LGPL allows. **RRx2-lang is interpreted
+only** (owner: "interpreted only"): no compiler backend, and no
+transpiling into another language, whose own number rules would then
+stand between a program and its answer.
 
 ### 2026-09-30 — RRx2-TV's solver is Bitwuzla, alone (owner)
 
