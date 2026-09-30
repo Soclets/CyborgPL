@@ -127,7 +127,9 @@ record first also gave `cca prepare ./money`, a folder with no names; that
 is the still-open question of `cca prepare` with no names, not part of
 this ruling.) `--prefix` takes a comma list, as names do: `cca prepare
 --prefix geo2, geo3` (compiler claude asked; design claude recommended
-it; the owner, 2026-09-30: "yea").
+it; the owner, 2026-09-30: "yea"). Names and `--prefix` mix in one command: `cca prepare money
+--prefix geo2` (compiler claude asked; design claude recommended it; the
+owner: "yea").
 
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
 
