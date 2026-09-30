@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — `list.fill[value, count]` makes a list of n copies; a strict file writes `count` (owner)
+
+Found benchmarking against LuaJIT: its sieve (0.431 s) and C's (0.455 s)
+beat CyborgPL's (0.509 s) at N = 100 million, where CyborgPL builds its
+100 million `false`s one `list.append` at a time and the others take
+memory already zeroed (unconfirmed: compiler claude is profiling it).
+"A list of N copies" was open. Proposed (a) `list.fill[false, 'n']`, as
+`simd.fill`; (b) `list.repeat[…]`; (c) `[false; 'n']`. Design claude
+recommended a; the owner asked "What even is this?", then: "`list.fill`
+it is". For `#strict`: proposed (a) label the count, `list.fill[0, count
+10]`, since `list.fill[0, 10]` reads either way; (b) label both; (c) no
+change. Design claude recommended a; the owner: "count". Outside strict
+files `count` is refused, as `pos`. A count below 0 is a check site
+(design claude's reading, as a position out of range). `lists.md`,
+`examples/list_fill.cpls`, `list_fill_strict.cpls`; reject tests
+fill_count_outside_strict, fill_strict_needs_count, fill_negative.
+
 ### 2026-09-30 — Text in two forms: `to.str.utf8` exact, `to.useful.str.utf8` useful; `.useful` follows the verb (owner)
 
 Taking the last things `to.str.utf8` turned into text by accident (the

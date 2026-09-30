@@ -1804,14 +1804,14 @@ impl Parser {
             self.advance(); self.advance(); op = format!("{op}.some");
         }
         let ok = match (head.as_str(), op.as_str()) {
-            ("list", "length" | "append" | "remove" | "empty" | "slice") | ("array", "length" | "slice") => true,
+            ("list", "length" | "append" | "remove" | "empty" | "slice" | "fill") | ("array", "length" | "slice") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
             ("channel", "send" | "take") => true,
             ("simd", "fill" | "load" | "store" | "load.some" | "store.some" | "all" | "any" | "max" | "min" | "sum" | "shuffle") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };
-        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty/slice, array has length/slice, map has empty/length/has/get/set/remove/keys/values/pairs, simd has fill/load/store/all/any/max/min/sum")); }
+        if !ok { return self.err(format!("`{head}.{op}` does not exist; list has length/append/remove/empty/slice/fill, array has length/slice, map has empty/length/has/get/set/remove/keys/values/pairs, simd has fill/load/store/all/any/max/min/sum")); }
         if op == "empty" {
             // `[list.empty]` — a value, not a call (decided 2026-09-17)
             let line = self.line();
@@ -1831,6 +1831,19 @@ impl Parser {
                 values.push(self.value()?);
             }
             self.expect(Tok::RBracket, "`]`")?;
+            return Ok((head, op, Bracket { values, line, one_list: false }));
+        }
+        // `list.fill[0, 10]`: ten copies of 0 (owner, 2026-09-30); a strict file labels the count,
+        // `list.fill[0, count 10]` (owner: "count"), as a position says `pos`
+        if head == "list" && op == "fill" {
+            let line = self.line();
+            self.advance();
+            let mut values = vec![self.value()?];
+            self.expect(Tok::Comma, "`,` before the count: `list.fill[0, 10]`")?;
+            if self.strict { if !self.is_word("count") { return self.err("`#strict`: the count says `count`: `list.fill[0, count 10]`"); } self.advance(); }
+            else if self.is_word("count") { return self.err("`count` belongs to `#strict` files: `list.fill[0, 10]`"); }
+            values.push(self.value()?);
+            self.expect(Tok::RBracket, "`]` after the count: `list.fill[0, 10]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
         if head == "simd" && op.starts_with("load") || head == "simd" && op.starts_with("store") {

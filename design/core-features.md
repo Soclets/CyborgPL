@@ -173,6 +173,8 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
     shows at a glance that it never runs. Proposed alternative words:
     `start` / `end` / `step`. Outside strict files the labels are not
     used, as with `pos`.
+  - the count of a `list.fill` labelled: `list.fill[0, count 10]`
+    (2026-09-30, `lists.md`).
   Proposed and not chosen: a type on every variable, since `:=` letting
   Precog pick the best type is a pillar and a written type can be a worse
   choice. Also proposed for mutability: `mut` only on variables that

@@ -2762,6 +2762,14 @@ impl<'p> Interp<'p> {
         if head == "channel" { return self.chan_send(args, line); }
         if head == "simd" { return self.simd_op(op, args, line); }
         if op == "empty" { return Ok(Value::List(Vec::new())); }
+        // `list.fill[v, n]`: n copies of v (owner, 2026-09-30); a count below 0 is a check site
+        if op == "fill" {
+            let (v, prov) = self.value(&args.values[0])?;
+            if let Prov::Bare(n) = &prov { if v.is_owned() { return rt(line, format!("`list.fill` makes copies of '{n}': `copy '{n}'`")); } }
+            let n = match self.value(&args.values[1])?.0 { Value::Int(n) => n, other => return rt(line, format!("`list.fill`'s count is an integer, got {}", other.kind())) };
+            if n < 0 { return site(line, format!("`list.fill` of {n} copies: a count is 0 or more")); }
+            return Ok(Value::List(vec![v; n as usize]));
+        }
         if op == "slice" {
             // A slice owns its elements, as a list always does (owner, 2026-09-23): the copy is
             // the meaning, and Precog elides it where nobody can tell. 1-based and inclusive,
