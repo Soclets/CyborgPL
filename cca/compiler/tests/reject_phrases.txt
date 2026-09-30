@@ -129,6 +129,7 @@ enum_bare_owned [fnv:463b06aecdfd81cb] :: say what happens to it
 enum_bind_without_data [fnv:85d1b2a55dade2b9] :: `a` carries nothing, so there is no value to name 'x'
 enum_comma_cases [fnv:935f43a00064d8d3] :: one per line, nothing between
 enum_data_missing [fnv:0547a7200940802f] :: write `S.a[…]` with the value
+enum_data_to_text [fnv:7e06b56a8f8949ce] :: `Status.claimed` carries data, so it is not text
 enum_data_unexpected [fnv:9ab7d8b2b03a72b6] :: `S.a` carries nothing; write it bare
 enum_data_wrong_type [fnv:7d29ffc630950dd5] :: `a`'s data is an `int32` and this value is text: convert it first
 enum_in_body [fnv:9b3a6a83cc747ff7] :: an `enum` sits at the top level of a file or a module, not inside a body
@@ -285,6 +286,7 @@ map_literal_dup_key [fnv:2c22ea3aaf3284e2] :: this key is written twice in the l
 map_literal_empty [fnv:49c9f3063523764e] :: an empty map is `map.empty`; `map[]` builds nothing
 map_literal_no_pair [fnv:29d9d93486c67e90] :: `map["ann" = 5551, "bob" = 5552]`
 map_set_needs_mut [fnv:0522b20ca28e7b3b] :: `map.set` changes the collection, so it takes `lend.mut`, not `lend`
+map_to_text [fnv:a985b1bfd8ca8afa] :: a map is not text
 map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
 map_value_out_of_range [fnv:da58956c39843392] :: the value can be outside what a `int32[0, 10]` holds
 match_value_unused [fnv:dd91724a0b94c519] :: gives a value, but this `match` is not used as one
@@ -452,6 +454,7 @@ struct_keyword_field [fnv:d10a27914bc3ae70] :: `return` is a keyword and cannot 
 struct_missing_field [fnv:81a9a1f64a8049f6] :: every field must be given
 struct_quoted_field [fnv:7597065160c99b01] :: a field's name is bare
 struct_semicolon_field [fnv:3b257eb63d7b8bb9] :: fields are not statements
+struct_to_text [fnv:eb005d494bc23a16] :: a `Point` is not text
 struct_undeclared [fnv:2d477e42508272da] :: there is no struct named `Nope` here
 struct_unknown_field [fnv:7f2b848787e41330] :: `P` has no field `z`: its fields are x
 struct_var_in_field [fnv:dfa77d3a540c2949] :: a struct always owns its fields
