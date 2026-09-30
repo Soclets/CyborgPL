@@ -13,8 +13,11 @@ two verifiers named earlier the same day: RRx2-TV, our own translation
 validation (above), and RRx2-lang, the exact-math reference language
 ("it doesn't give a flying fuck about runtime perf"), with numbers like
 `std::uenr`. The name "RRx2 VC", floated earlier, is now the owner's.
-Each gets its own Claude session. Open: what the pause means for
-compiler claude, check claude and synthia claude now; each session's
+Each gets its own Claude session. Compiler claude, check claude and
+synthia claude finished what they were in, committed, and stopped (owner:
+"yea" to that). **CyborgPL resumes only when RRx2-TV exists** (owner: "It
+would only unpause when RRx2-TV exists"), so whether check claude keeps
+running Alive2 in the meantime needs no answer. Open: each new session's
 brief, repo and language.
 
 ### 2026-09-30 — Translation validation becomes our own, `RRx2-TV`, reversing "Borrow it" (owner)
@@ -41,7 +44,7 @@ pace) and the cost (an exact meaning for all of LLVM IR, where a mistake
 says "proven" falsely). It recommended a CCA build that keeps functions
 apart, so Alive2 can judge them, with our own as an if-and-when. The
 owner: "Nah, `RRx2-TV` seems more fun". Recorded in
-compiler-verification.md. Open (not asked yet): whether Alive2 stays in use until RRx2-TV works,
+compiler-verification.md. Open:
 who writes it, the language, the repo, starting from Alive2's code or
 from nothing. `RRx2` is also the owner's name for a planned exact-math
 language, and "RRx2 VC" (Verifier Collection) was floated for the two;

@@ -98,8 +98,8 @@ asks the clever one. The interpreter stays ours — it is the spec.
 fun"). Translation validation for the LLVM half becomes ours, not
 borrowed: a checker named RRx2-TV, which can check a whole program where
 Alive2 checks one function at a time (CCA folds most of a program into
-`main`), and can read Precog's facts directly. Check claude runs
-Alive2 today (93c6e49); whether it stays until RRx2-TV works is open. The paragraph above is why "Borrow it"
+`main`), and can read Precog's facts directly. Check claude ran
+Alive2 first (93c6e49); CyborgPL is paused until RRx2-TV exists (owner). The paragraph above is why "Borrow it"
 was chosen, and it still holds as the cost: most of Alive2 is an exact
 meaning for every LLVM instruction, and a mistake there says "proven"
 where nothing is. Like check claude's tools, it must not share Precog's
