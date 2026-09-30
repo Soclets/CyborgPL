@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — `cca tune` measures and writes `tune.cplr`; `synthia tune` runs it, and Synthia shows the results readably (owner: a)
+
+`gpu.md` gave tuning to Synthia alone, written 2026-09-28 when Synthia was
+to be CyborgPL's one package manager ("time changes", owner). Against
+parity and "Synthia is an automatic programmer", proposed: (a) `cca tune`
+does the work, `cca build --final` reads `tune.cplr`, `synthia tune` runs
+`cca tune`; (b) both implement it; (c) Synthia only. Design claude
+recommended a. The owner: "`a`, but synthia should have a readable
+version". Open: the readable view's spelling (synthia claude's to ask).
+`gpu.md`.
+
 ### 2026-09-30 — The tuning file is `tune.cplr`, in CyborgPL syntax (owner: a)
 
 `tune.cplt` (design claude's name, 2026-09-28) came a day before `.cplr`

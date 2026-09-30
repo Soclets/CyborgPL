@@ -69,20 +69,29 @@ CUDA; all three. Owner: Metal and Vulkan.
 A line per `for` Precog considered — offloaded, parallel on cores,
 sequential and why (`diagnostics.md`).
 
-## Measured once, on purpose: `synthia tune` (owner, 2026-09-28)
+## Measured once, on purpose: `cca tune` (owner, 2026-09-28; CCA's since 2026-09-30)
 
 By default a cost model decides CPU or GPU: the loop's work (trips times
 the body's cost) against the GPU's launch cost. The owner asked whether
 Precog could instead run both at compile time when the building machine
 is the target. Not inside a build: Precog uses no wall-clock
-(`reproducible-builds.md`), and CCA never runs what it builds. Instead,
-as profile-guided optimisation:
+(`reproducible-builds.md`), so a build never times anything. Instead, as
+profile-guided optimisation, a separate command measures once:
 
 ```
-synthia tune        # builds a measuring version, runs it on this machine with the inputs given,
-                    # times each undecided loop on CPU and GPU, and writes tune.cplr
-synthia final       # reads tune.cplr as an input, like the lock file
+cca tune              # builds a measuring version, runs it on this machine with the inputs given,
+                      # times each undecided loop on CPU and GPU, and writes tune.cplr
+cca build --final     # reads tune.cplr as an input, like the lock file
 ```
+
+**The measuring is CCA's** (owner, 2026-09-30: a): CCA's package manager
+can do whatever Synthia can, and Synthia does what a CCA user would, so
+`synthia tune` runs `cca tune`. **Synthia also shows the results
+readably** (owner: "synthia should have a readable version"), as
+`synthia show --readable` does a manifest's times; its spelling is open.
+Proposed and not chosen: both implementing the measuring; Synthia only,
+as this section first had it (written 2026-09-28, when Synthia was to be
+CyborgPL's one package manager).
 
 `tune.cplr` records the target, the compiler version and, per loop, the
 winner and its times. It is committed with the code, so a build of the
