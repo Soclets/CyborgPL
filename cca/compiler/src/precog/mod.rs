@@ -2416,8 +2416,22 @@ fn classes_of(s: &str) -> Vec<Class> {
 /// both, so the worse one wins.
 fn worse(a: Verdict, b: Verdict) -> Verdict {
     use Verdict::*;
+    // "Every time" is about every visit: one call whose values always fail,
+    // beside another whose values never do, is a site that *can* fail. It
+    // kept the first visit's words, and a site reached from two calls was
+    // refused as failing "every time it reaches here" (check claude, seed
+    // 7194), with layer 3 never asked.
+    let every = |v: &Verdict| matches!(v, Fails { counterexample } if counterexample.starts_with("every time: "));
+    let can = |v: Verdict| match v {
+        Fails { counterexample } if counterexample.starts_with("every time: ") => Fails { counterexample: format!("on some calls: {}", &counterexample["every time: ".len()..]) },
+        other => other,
+    };
     match (&a, &b) {
         (Trusted, _) | (_, Trusted) => Trusted,
+        (Fails { .. }, Fails { .. }) if every(&a) && every(&b) => a,
+        (Fails { .. }, Fails { .. }) if every(&a) => b,
+        (Fails { .. }, _) if every(&a) => can(a),
+        (_, Fails { .. }) if every(&b) => can(b),
         (Fails { .. }, _) => a,
         (_, Fails { .. }) => b,
         (Unproven, _) | (_, Unproven) => Unproven,

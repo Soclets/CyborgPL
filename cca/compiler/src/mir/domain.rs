@@ -669,6 +669,17 @@ impl ISet {
         if matches!(op, B::Shl | B::Shr) && b1 >= 0 && b2 < 127 {
             return Some(corners(self, o, f));
         }
+        // `x and.bit m` with one side never negative: that side's sign bit
+        // is 0, so the answer's is, and its bits are some of that side's —
+        // 0 to its largest, whatever the other side is (check claude, seed
+        // 7141: `('x' and.bit 16383)` of any int16 is 0 to 16383).
+        if *op == B::AndBit && (a1 < 0 || b1 < 0) {
+            return match (a1 >= 0, b1 >= 0) {
+                (true, _) => Some(ISet::range(0, a2)),
+                (_, true) => Some(ISet::range(0, b2)),
+                _ => None,
+            };
+        }
         if a1 < 0 || b1 < 0 {
             return None;
         }
@@ -1032,6 +1043,29 @@ impl Domain {
                 }
             }
             _ => joined,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::BinOp;
+
+    /// `and.bit` with one side never negative is 0 to that side's largest,
+    /// whatever the other (check claude, seed 7141).
+    #[test]
+    fn and_bit_with_a_mask_is_never_negative() {
+        let any_int16 = ISet::range(-32768, 32767);
+        let mask = ISet::one(16383);
+        assert_eq!(any_int16.bitwise(&mask, &BinOp::AndBit), Some(ISet::range(0, 16383)));
+        assert_eq!(mask.bitwise(&any_int16, &BinOp::AndBit), Some(ISet::range(0, 16383)));
+        // Both sides possibly negative: nothing short of the type.
+        assert_eq!(any_int16.bitwise(&ISet::range(-5, 5), &BinOp::AndBit), None);
+        // And every pair it covers agrees with the machine.
+        for x in [-32768i128, -20000, -1, 0, 1, 12768, 32767] {
+            let got = x & 16383;
+            assert!((0..=16383).contains(&got), "{} and.bit 16383 is {}", x, got);
         }
     }
 }

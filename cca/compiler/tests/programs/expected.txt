@@ -240,3 +240,5 @@ to_ascii 90
 bytes_to_text 91
 to_text_forms 22
 list_fill 140
+strict_guard_masked 7
+every_time_one_call 2
