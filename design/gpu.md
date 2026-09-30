@@ -80,17 +80,20 @@ as profile-guided optimisation:
 
 ```
 synthia tune        # builds a measuring version, runs it on this machine with the inputs given,
-                    # times each undecided loop on CPU and GPU, and writes tune.cplt
-synthia final       # reads tune.cplt as an input, like the lock file
+                    # times each undecided loop on CPU and GPU, and writes tune.cplr
+synthia final       # reads tune.cplr as an input, like the lock file
 ```
 
-`tune.cplt` records the target, the compiler version and, per loop, the
+`tune.cplr` records the target, the compiler version and, per loop, the
 winner and its times. It is committed with the code, so a build of the
 same source and the same file is always the same program. An entry is
 ignored, and the build says so, when its loop has changed since it was
 measured, or when the file was made for a different target. Then the cost
 model decides. Proposed alternative: the cost model only. The file name
-and its extension were design claude's proposal, accepted with the rest.
+was design claude's proposal, accepted with the rest; it was `tune.cplt`
+until the owner made it **`tune.cplr`** (2026-09-30: a), CyborgPL syntax
+like `CCA.cplr`, plain `const`s only, as `.cplr` is the extension for
+CyborgPL-syntax tooling files.
 
 ## Open
 

@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — The tuning file is `tune.cplr`, in CyborgPL syntax (owner: a)
+
+`tune.cplt` (design claude's name, 2026-09-28) came a day before `.cplr`
+became the extension for CyborgPL-syntax tooling files. Proposed (a)
+`tune.cplr`, plain `const`s like `CCA.cplr`, data only; (b) keep
+`tune.cplt` in a format of its own. Design claude recommended a. The
+owner: "`a`". `gpu.md`, `reproducible-builds.md`.
+
 ### 2026-09-30 — An enum with any data-carrying case is not text, whichever case a value holds (owner: a)
 
 Asked by compiler claude: the oracle judged by the value, so
