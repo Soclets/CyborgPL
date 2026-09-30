@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -158,6 +158,11 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         for ((f, b, si), r) in &a.ranges {
             if let (Some(r), Some(func)) = (r, p.functions.get_mut(*f)) {
                 func.ranges.insert((*b as u32, *si as u32), *r);
+            }
+        }
+        for ((f, b, si), r) in &a.operand_ranges {
+            if let (Some(r), Some(func)) = (r, p.functions.get_mut(*f)) {
+                func.operand_ranges.insert((*b as u32, *si as u32), *r);
             }
         }
     }
@@ -308,6 +313,9 @@ struct Precog {
     claims: HashMap<(usize, u32), (Option<Domain>, Vec<Domain>)>,
     /// Exact instructions' value ranges, `None` once one visit could not say.
     ranges: HashMap<(usize, usize, usize), Option<(i128, i128)>>,
+    /// Each operand's own values at an exact instruction, joined like
+    /// `ranges` — what parallel `for` asks of a fold's term (`crate::par`).
+    operand_ranges: HashMap<(usize, usize, usize), Option<[(i128, i128); 2]>>,
     /// Counted loops: the state each head was entered with from outside
     /// (joined), the largest value its bound took, and the range of what
     /// each accumulator adds per trip (joined over every visit).
@@ -818,7 +826,17 @@ impl Precog {
                                     (Some(Some((a, z))), Some((c, y))) => Some((*a.min(&c), *z.max(&y))),
                                     (None, h) => h,
                                 };
+                                let each = match (self.read_operand(f, &env, lhs), self.read_operand(f, &env, rhs)) {
+                                    (Domain::Ints(a), Domain::Ints(b)) => a.bounds().zip(b.bounds()).map(|(x, y)| [x, y]),
+                                    _ => None,
+                                };
+                                let each = match (self.operand_ranges.get(&key), each) {
+                                    (Some(None), _) | (_, None) => None,
+                                    (Some(Some([a, b])), Some([c, d])) => Some([(a.0.min(c.0), a.1.max(c.1)), (b.0.min(d.0), b.1.max(d.1))]),
+                                    (None, e) => e,
+                                };
                                 if !self.dry {
+                                    self.operand_ranges.insert(key, each);
                                     self.ranges.insert(key, merged);
                                 }
                             }

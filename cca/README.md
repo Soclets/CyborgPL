@@ -437,6 +437,30 @@ Dated, with the alternative, so each can become a question later.
   runner is open. Two Limbs that depend on the same folder share one
   copy of it. A `version` dependency is refused until the registry
   exists, as the oracle does.
+- **2026-09-30 — Parallel `for`: how CCA builds it.** The rules are the
+  owner's (`parallelism.md`); these are CCA's picks within them, all
+  provisional. A loop runs in slices when every iteration writes only
+  what is its own — locals it makes, the element at its own position (the
+  counter plus one constant, the same one for every read of that list),
+  or a sum into one integer — and nothing leaves the loop early.
+  - *Worth it*: decided as the loop starts, from its actual trips times
+    the statements of one trip (an inner loop's weighed sixteen times, a
+    call ten): at 64,000 or more, slices. Never from timing the machine;
+    `tune.cplr` will override it once `cca tune` exists.
+  - *Sums*: each slice adds its trips from 0 in 128 bits, and the parent
+    adds the partials to the variable once, checking the total there.
+    That needs the add proven, and the store into the variable proven
+    too — or every term the same sign, so the in-order loop would stop
+    exactly when the total does not fit. Only integer `+` so far: sums of
+    bins and decis, and products, stay in order until they are built.
+  - *In order*, silently (an error under `for para`): `perm` loops, a
+    `break`, `return` or `fail` out of a trip, tasks, channels, `must`, a
+    call through a held function, and any conflict. A loop that prints or
+    calls C stays in order unless `para`.
+  - *The pool*: threads made at the first sliced loop, one per core (the
+    caller is one), at most 64 slices; a loop sliced inside another runs
+    inline. `CYBORG_THREADS` in the environment caps the threads; the
+    tests set 3, this session's share of the machine.
 - **2026-09-30 — `--target <name>` names the target to build (ruled:
   owner, 2026-09-30, "yea").** A lone
   target saying `default = false` leaves the Limb no default (owner,

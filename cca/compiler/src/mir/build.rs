@@ -207,6 +207,8 @@ struct FnBuilder<'a> {
     /// falls out of — which cannot know where to go until the wait it
     /// belongs to exists, so it is patched when the block ends.
     task_fails: Vec<Vec<(u32, FnIdx, Vec<FailArm>, BlockId)>>,
+    /// Every `for` lowered so far (`ForLoop`).
+    fors: Vec<ForLoop>,
     /// Per scope: the group its tasks join, made when the first one starts.
     task_group: Vec<Option<u32>>,
     next_group: u32,
@@ -248,6 +250,7 @@ impl<'a> FnBuilder<'a> {
             captures: Vec::new(),
             hir_locals: body.locals.clone(),
             task_fails: vec![Vec::new()],
+            fors: Vec::new(),
             task_group: vec![None],
             next_group: 0,
             next_task: 0,
@@ -513,6 +516,8 @@ impl<'a> FnBuilder<'a> {
             variadic: self.inst.map_or(false, |i| self.arena.instances[i.0 as usize].key.bundle.is_some()),
             captures: self.captures,
             ranges: Default::default(),
+            operand_ranges: Default::default(),
+            fors: self.fors,
         }
     }
 
@@ -638,11 +643,11 @@ impl<'a> FnBuilder<'a> {
                 self.loops.pop();
                 self.cur = exit;
             }
-            hir::StmtKind::ForRange { counter, start, stop, step, body, perm, seq } => {
-                self.for_range(*counter, start, stop, step.as_ref(), body, *perm, *seq, span);
+            hir::StmtKind::ForRange { counter, start, stop, step, body, perm, seq, para } => {
+                self.for_range(*counter, start, stop, step.as_ref(), body, *perm, *seq, *para, span);
             }
-            hir::StmtKind::ForEach { elem, pos, iter, body, perm, seq } => {
-                self.for_each(*elem, *pos, iter, body, *perm, *seq, span);
+            hir::StmtKind::ForEach { elem, pos, iter, body, perm, seq, para } => {
+                self.for_each(*elem, *pos, iter, body, *perm, *seq, *para, span);
             }
             hir::StmtKind::Return(v) => {
                 match v {
@@ -702,7 +707,7 @@ impl<'a> FnBuilder<'a> {
     /// `for 'i' in range[a, b, s]` — the counter moves by the step and the
     /// body cannot assign to it, so the header alone says the trip count.
     #[allow(clippy::too_many_arguments)]
-    fn for_range(&mut self, counter: hir::LocalId, start: &hir::Expr, stop: &hir::Expr, step: Option<&hir::Expr>, body: &hir::Block, perm: bool, _seq: bool, span: SpanId) {
+    fn for_range(&mut self, counter: hir::LocalId, start: &hir::Expr, stop: &hir::Expr, step: Option<&hir::Expr>, body: &hir::Block, perm: bool, seq: bool, para: bool, span: SpanId) {
         let c = LocalId(counter.0);
         let ty = self.locals[c.0 as usize].ty.clone();
         // The counter holds every value the range names, so each end of the
@@ -732,6 +737,7 @@ impl<'a> FnBuilder<'a> {
         let body_b = self.new_block();
         let next = self.new_block();
         let exit = self.new_block();
+        let pre = self.cur;
         self.terminate(Terminator::Goto(head));
 
         // The stop is inclusive, and a negative step counts down.
@@ -791,6 +797,7 @@ impl<'a> FnBuilder<'a> {
         let room_down = self.new_block();
         let step_b = self.new_block();
         self.terminate(Terminator::If { cond: up2, then: room_up, else_: room_down });
+        self.fors.push(ForLoop { pre, head, exit, counter: c, stop: stop_t, step: Some(step_t), exits_from: vec![up_b, down_b, room_up, room_down], seq, para, perm, span });
         self.cur = room_up;
         let more_up = self.into_temp(Rvalue::Binary { op: BinOp::Ge, lhs: rem.clone(), rhs: by.clone() }, &Ty::Bool, span);
         self.terminate(Terminator::If { cond: more_up, then: step_b, else_: exit });
@@ -816,7 +823,7 @@ impl<'a> FnBuilder<'a> {
     /// A `for` over a list, a text walk or a map walk: by position, so the
     /// element's own bounds check is the one the loop already proves.
     #[allow(clippy::too_many_arguments)]
-    fn for_each(&mut self, elem: hir::LocalId, pos: Option<hir::LocalId>, iter: &hir::Expr, body: &hir::Block, perm: bool, _seq: bool, span: SpanId) {
+    fn for_each(&mut self, elem: hir::LocalId, pos: Option<hir::LocalId>, iter: &hir::Expr, body: &hir::Block, perm: bool, seq_word: bool, para: bool, span: SpanId) {
         let e = LocalId(elem.0);
         let iter_op = self.eval(iter, span);
         let iter_ty = self.resolve_ty(&iter.ty);
@@ -842,7 +849,9 @@ impl<'a> FnBuilder<'a> {
         let body_b = self.new_block();
         let next = self.new_block();
         let exit = self.new_block();
+        let pre = self.cur;
         self.terminate(Terminator::Goto(head));
+        self.fors.push(ForLoop { pre, head, exit, counter: i, stop: len, step: None, exits_from: vec![head], seq: seq_word, para, perm, span });
 
         self.cur = head;
         let cmp = self.into_temp(
@@ -1918,6 +1927,8 @@ fn placeholder(body: &hir::Body) -> Function {
         variadic: false,
         captures: Vec::new(),
         ranges: Default::default(),
+        operand_ranges: Default::default(),
+        fors: Vec::new(),
     }
 }
 

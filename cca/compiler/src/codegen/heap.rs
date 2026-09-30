@@ -31,6 +31,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let w = self.ctx.i64_type();
         let t = match name {
             "cyborg_alloc" | "cyborg_alloc_zeroed" => p.fn_type(&[w.into()], false),
+            "cyborg_par_for" => w.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_realloc" => p.fn_type(&[p.into(), w.into()], false),
             "cyborg_free" => self.ctx.void_type().fn_type(&[p.into()], false),
             "cyborg_copy" | "cyborg_move" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),

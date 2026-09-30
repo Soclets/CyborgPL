@@ -1,0 +1,30 @@
+# Parallel `for` (owner, 2026-09-30: "do para for"): loops whose iterations
+# are proven apart run in slices on the cores — each writes its own element,
+# or adds into one total — and give what the loop in order gives. The sum
+# is 0 or more every time, so its one check at the end is the loop's.
+# (Their total mod 256, as the oracle computes it: 160.)
+extern fn exit ['code': int32];
+MAIN {
+    'n': int64 = 300000;
+    mut 'xs': list[int64] = list.fill[3, 'n'];
+    for 'i': int64 in range[1, 'n'] {
+        change 'xs'['i'] = ('xs'['i'] x 7) mod 11;
+    }
+    mut 'total': int64 = 0;
+    for 'x' in lend 'xs' {
+        change 'total' = 'total' + ('x' mod 7);
+    }
+    mut 'grid': list[int64] = list.fill[0, 2000];
+    for 'r': int64 in range[1, 2000] {
+        mut 'row': int64 = 0;
+        for 'c': int64 in range[1, 200] {
+            change 'row' = 'row' + (('r' x 'c') mod 5);
+        }
+        change 'grid'['r'] = 'row';
+    }
+    mut 'g': int64 = 0;
+    for 'v' in lend 'grid' {
+        change 'g' = 'g' + 'v';
+    }
+    nocheck exit[to.int32[('total' + 'g') mod 256]];
+}

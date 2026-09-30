@@ -19,5 +19,6 @@ pub mod load;
 pub mod mir;
 
 pub mod precog;
+pub mod par;
 
 pub mod codegen;

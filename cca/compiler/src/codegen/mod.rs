@@ -41,6 +41,7 @@ use crate::types::{BinW, IntW, Ty};
 mod cabi;
 mod deci;
 mod heap;
+mod par;
 mod tasks;
 
 /// Something the lowering cannot do yet, named so the writer knows what
@@ -84,7 +85,7 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, op_sites: Vec::new() };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, op_sites: Vec::new(), par: crate::par::plan(p), par_child: None };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -145,6 +146,10 @@ struct Cg<'a, 'ctx> {
     cur_fi: usize,
     /// The check sites guarding the operation being lowered.
     op_sites: Vec<SiteId>,
+    /// Parallel `for` (`crate::par`): the loops that run in slices.
+    par: crate::par::Plan,
+    /// The slice being written, when one is.
+    par_child: Option<par::ParChild<'ctx>>,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -678,6 +683,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let mut pending: Vec<SiteId> = Vec::new();
         for (si, s) in stmts.iter().enumerate() {
             self.here = (b as u32, si as u32);
+            // In a slice: a fold's store and sites are left out, and its
+            // add goes to the slice's own partial (`codegen::par`).
+            if let Some(pc) = &self.par_child {
+                if pc.skip.contains(&(b, si)) {
+                    continue;
+                }
+                if let Some((which, x)) = pc.adds.get(&(b, si)).cloned() {
+                    if self.par_fold_add(fi, which, &x, slots).is_none() {
+                        self.cannot("this sum in a slice has no shape in the generated code yet", Some(f.span(s.span)));
+                    }
+                    continue;
+                }
+            }
             match &s.kind {
                 StmtKind::Site(id) => match f.site(*id).kind {
                     // These stand on their own: they guard a value that is
@@ -788,7 +806,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let term = f.blocks[b].term.clone();
         match &term {
             Terminator::Goto(t) => {
-                let _ = self.builder.build_unconditional_branch(blocks[t.0 as usize]);
+                // Into a loop that may run in slices (`crate::par`).
+                let planned = self.par.loops.get(&(fi, b)).filter(|pl| pl.fl.head == *t).cloned();
+                match planned {
+                    Some(pl) => {
+                        if self.par_dispatch(fi, &pl, blocks, slots, func).is_none() {
+                            self.cannot("this parallel `for` has no shape in the generated code yet", Some(f.span(pl.fl.span)));
+                            let _ = self.builder.build_unconditional_branch(blocks[t.0 as usize]);
+                        }
+                    }
+                    None => {
+                        let _ = self.builder.build_unconditional_branch(blocks[t.0 as usize]);
+                    }
+                }
             }
             Terminator::If { cond, then, else_ } => {
                 let c = self.operand(fi, cond, slots);

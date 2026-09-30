@@ -9,6 +9,7 @@
 #![no_std]
 
 pub mod tasks;
+pub mod par;
 pub mod channels;
 pub mod deci;
 

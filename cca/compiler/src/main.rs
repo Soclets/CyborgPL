@@ -462,6 +462,30 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     if !refusals.is_empty() {
         return Err(refusals.join(""));
     }
+    // Parallel `for` (`parallelism.md`): a `for para` whose iterations
+    // conflict is an error; the rest is decided as the loops are written.
+    let plan = cca::par::plan(&mir);
+    if std::env::var("CCA_PAR").is_ok() {
+        for ((fi, pre), pl) in &plan.loops {
+            let f = &mir.functions[*fi];
+            let sp = f.span(pl.fl.span);
+            let at = format!("line {}", sources.get(sp.file).line_col(sp.start).0);
+            eprintln!("par: {} (in {}, entered from b{}): {} block(s), {} private, {} fold(s), work {} per trip", at, f.name, pre, pl.blocks.len(), pl.private.len(), pl.folds.len(), pl.work);
+        }
+        for (fi, span, why) in &plan.declined {
+            let f = &mir.functions[*fi];
+            let sp = f.span(*span);
+            eprintln!("par: line {} (in {}) stays in order: {}", sources.get(sp.file).line_col(sp.start).0, f.name, why);
+        }
+    }
+    if !plan.errors.is_empty() {
+        let mut s = String::new();
+        for (fi, span, why) in &plan.errors {
+            let d = cca::diag::Diagnostic::error(format!("this `for para` cannot run in slices: {}", why)).at(mir.functions[*fi].span(*span));
+            s.push_str(&d.render(&sources));
+        }
+        return Err(s);
+    }
     let ctx = cca::codegen::inkwell::context::Context::create();
     let name = path.file_stem().unwrap().to_string_lossy().to_string();
     let test_names: Vec<String> = mir.functions.iter().filter(|f| f.is_test).map(|f| f.name.clone()).collect();

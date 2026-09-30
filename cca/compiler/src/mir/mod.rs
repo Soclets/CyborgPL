@@ -475,6 +475,30 @@ pub struct Function {
     /// math is exact, and "Precog still uses narrow sizes where it proves
     /// they fit" (`operators.md`): inside 64 bits, codegen works at 64.
     pub ranges: std::collections::HashMap<(u32, u32), (i128, i128)>,
+    /// Each operand's own values at those instructions, from Precog.
+    pub operand_ranges: std::collections::HashMap<(u32, u32), [(i128, i128); 2]>,
+    /// Every `for`, as it was lowered: what parallel `for` needs to run one
+    /// in slices (`parallelism.md`).
+    pub fors: Vec<ForLoop>,
+}
+
+/// A lowered `for`: the counter walks from its value at `pre`'s jump into
+/// `head` to `stop` (inclusive) by `step` — or, over a list, from 1 to its
+/// length by 1. The loop leaves normally only from `exits_from`.
+#[derive(Debug, Clone)]
+pub struct ForLoop {
+    pub pre: BlockId,
+    pub head: BlockId,
+    pub exit: BlockId,
+    pub counter: LocalId,
+    pub stop: LocalId,
+    /// A range's step (a signed 64-bit local); `None` over a list: 1.
+    pub step: Option<LocalId>,
+    pub exits_from: Vec<BlockId>,
+    pub seq: bool,
+    pub para: bool,
+    pub perm: bool,
+    pub span: SpanId,
 }
 
 impl Function {

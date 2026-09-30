@@ -17,6 +17,9 @@ fn dir() -> PathBuf {
 }
 
 fn cca() -> PathBuf {
+    // Programs built here run parallel `for` loops on at most this
+    // session's share of the machine's cores (CLAUDE.md: 3 each).
+    std::env::set_var("CYBORG_THREADS", "3");
     PathBuf::from(env!("CARGO_BIN_EXE_cca"))
 }
 
@@ -460,4 +463,25 @@ fn borrows_keep_what_they_borrow_while_in_use() {
     }
     let ok = final_build(&tests.join("borrow_given_after.cpls"));
     assert!(ok.status.success(), "borrow_given_after.cpls should build:\n{}", String::from_utf8_lossy(&ok.stderr));
+}
+
+/// Parallel `for` (owner, 2026-09-30: "do para for"): a loop whose
+/// iterations are proven apart gets a slice of its own and a call into the
+/// runtime's pool; a loop that calls C gets one only under `for para`, and
+/// `for seq` never does. What they compute is the in-order answer at any
+/// thread count (tests/programs/par_*.cpls, run at 3).
+#[test]
+fn parallel_for_runs_in_slices() {
+    let ir = ir_of("par_for");
+    let slices = ir.matches("define internal void @cy_slice_").count();
+    assert!(slices >= 3 && ir.contains("@cyborg_par_for"), "par_for.cpls should run three loops in slices, and has {}:\n{}", slices, indent(&ir));
+    let ir = ir_of("par_extern");
+    assert_eq!(ir.matches("define internal void @cy_slice_").count(), 1, "only the `for para` loop over C should run in slices:\n{}", indent(&ir));
+    for threads in ["1", "2", "3"] {
+        let exe = std::env::temp_dir().join("cca-codegen-tests/par_for");
+        let r = Command::new(cca()).arg("build").arg(dir().join("par_for.cpls")).arg("-o").arg(&exe).output().unwrap();
+        assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
+        let r = Command::new(&exe).env("CYBORG_THREADS", threads).output().unwrap();
+        assert_eq!(r.status.code(), Some(160), "par_for gave another answer on {} thread(s)", threads);
+    }
 }

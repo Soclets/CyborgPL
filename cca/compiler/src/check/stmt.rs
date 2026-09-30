@@ -442,7 +442,7 @@ impl Checker {
                 ctx.loop_depth -= 1;
                 Ok(hir::StmtKind::While { cond: c, body: b })
             }
-            ast::StmtKind::For { seq, para: _, perm, name, pos, ty, iter, body } => self.for_stmt(ctx, *seq, *perm, name, pos.as_ref(), ty.as_ref(), iter, body),
+            ast::StmtKind::For { seq, para, perm, name, pos, ty, iter, body } => self.for_stmt(ctx, *seq, *para, *perm, name, pos.as_ref(), ty.as_ref(), iter, body),
             ast::StmtKind::Return(value) => {
                 if ctx.is_task {
                     return err(Diagnostic::error("a task is a block, not a function: `return` cannot leave it").at(s.span));
@@ -676,7 +676,7 @@ impl Checker {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn for_stmt(&mut self, ctx: &mut FnCtx, seq: bool, perm: bool, name: &ast::QName, pos: Option<&ast::QName>, ty: Option<&ast::Type>, iter: &ast::ForIter, body: &ast::Block) -> Result<hir::StmtKind> {
+    fn for_stmt(&mut self, ctx: &mut FnCtx, seq: bool, para: bool, perm: bool, name: &ast::QName, pos: Option<&ast::QName>, ty: Option<&ast::Type>, iter: &ast::ForIter, body: &ast::Block) -> Result<hir::StmtKind> {
         if let Some(prev) = ctx.lookup(&name.name) {
             let p = &ctx.locals[prev.0 as usize];
             return err(Diagnostic::error(format!("'{}' is already declared; a loop variable is a new name (shadowing is never silent)", name.name)).at(name.span).why_at(p.span, "declared here"));
@@ -727,7 +727,7 @@ impl Checker {
                     ctx.pop_scope();
                 }
                 debug_assert!(ctx.scopes.len() == outer_scope_len);
-                Ok(hir::StmtKind::ForRange { counter: id, start: s, stop: e, step: st, body: b, perm, seq })
+                Ok(hir::StmtKind::ForRange { counter: id, start: s, stop: e, step: st, body: b, perm, seq, para })
             }
             ast::ForIter::Over(e) => {
                 if ty.is_some() {
@@ -807,7 +807,7 @@ impl Checker {
                 if !perm {
                     ctx.pop_scope();
                 }
-                Ok(hir::StmtKind::ForEach { elem: id, pos: pos_id, iter: it, body: b, perm, seq })
+                Ok(hir::StmtKind::ForEach { elem: id, pos: pos_id, iter: it, body: b, perm, seq, para })
             }
         }
     }
