@@ -8,8 +8,10 @@ Nothing here is final until the owner says so; open questions live at the bottom
 ### 2026-09-30 — Over `lend.mut 'xs'`, a loop's element is the list's own, and changing it changes the list (owner)
 
 Compiler claude's question with parallel `for` (landed, 34d9c18): CCA
-accepted `for 'x' in lend.mut 'xs' { change 'x' = …; }` and wrote the
-element; the oracle refused ("a loop's counter or element, which belong to
+accepted `for 'x' in lend.mut 'xs' { change 'x' = …; }` (it turned out
+never to write the list — two CCA bugs, a borrow re-pointed at a
+temporary and a wrong Precog proof after the write, found testing this
+ruling and fixed at eee6dee); the oracle refused ("a loop's counter or element, which belong to
 the loop"). Nothing had decided it. Proposed (a) legal, the element lent
 mutably, as Rust's `iter_mut`, and the shape parallel `for` slices best;
 (b) refused, the element only passable to `lent.mut` functions. Design
