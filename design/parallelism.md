@@ -15,6 +15,16 @@ parallel:
 - **Whether it should:** Precog usually knows the trip count or its bound;
   a short loop is not worth waking a thread for.
 
+**Reductions** (owner, 2026-09-30: c): a loop that folds into one variable
+(`change 'total' = 'total' + 'x';`) may run in parallel, each core folding
+its own slice and the slices combined at the end — for every type,
+`bin` and `deci` included. For those the order changes the rounding, so
+the same binary may give a total that differs in its last digits from run
+to run; integers, exact, give the same answer every time. Proposed: (a) no
+reductions; (b) integers only, the answer never changing; design claude
+recommended b. Reproducible builds (the same binary) are untouched: this is
+about a program's output, which no rule had fixed.
+
 No threads, pools, or locks in user code. There is nothing for a lock to
 protect, because only conflict-free loops are parallelised.
 

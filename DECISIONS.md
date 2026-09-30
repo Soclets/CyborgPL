@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Parallel `for` may fold into one variable, for every type (owner: c)
+
+Compiler claude's first question for parallel `for` (not started): a loop
+summing into one variable conflicts by the "can" rule, so it would never
+be parallel. Proposed (a) no reductions; (b) integer reductions only,
+exact so the answer never changes, `bin`/`deci` in order; (c) reductions
+for everything. Design claude recommended b, first arguing that (c) broke
+"same source, same program"; the owner asked "Who said same source, same
+program?" — the rule of 2026-09-14 is Claude's wording, adopted with the
+owner's "Yup", and it is about the binary (byte-identical), not a
+program's output. The owner: "`c`". So a `bin` or `deci` total may differ
+in its last digits from run to run; the binary does not. `parallelism.md`.
+
 ### 2026-09-30 — `cca tune` measures and writes `tune.cplr`; `synthia tune` runs it, and Synthia shows the results readably (owner: a)
 
 `gpu.md` gave tuning to Synthia alone, written 2026-09-28 when Synthia was
