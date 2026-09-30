@@ -33,7 +33,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - `channel[T]` / `channel[T][0, N]`, `channel.send` (a value is given, never lent), `channel.take … otherwise` (fails `closed` when nothing can ever send), `whichever { 'v' from lend 'c' { } … } otherwise` (fails `closed`); `std::time.after/every` are channels, `std::time.wait` a no-op; duration literals `5 seconds` (nanos…hours, singular/plural) with `== < + - x` (2026-09-22)
 - an untyped list still has an element family (what is in it): storing a bin into a list of integers is refused, as into a declared `list[int32]` (hole found by the compiler session, 2026-09-22)
 - `list.slice` / `array.slice` with bare positions, 1-based and inclusive, owning the elements; out of range and a backwards span are check sites (2026-09-23)
-- `bin` is 16/32/64 — `bin128` is refused by name (2026-09-23); `deci` and `std::uenr` remain unimplemented
+- `bin` is 16/32/64 — `bin128` is refused by name (2026-09-23); `deci32/64/128` are exact decimals (2026-09-29, `examples/deci*.cpls`); `std::uenr` waits for the std Limb
 - plain integer math (`+ - x xx`) is **exact, and checked where the value lands**: a typed declaration, a `change`, an argument, a return (owner, 2026-09-23). `'v' > ('v' + 'v')` on an `int8` of 112 compares 112 with 224. In between, a value no 64-bit type holds (below `int64`'s minimum or above `uint64`'s maximum) is a check site; bare numbers alone are worked out exactly. This reverses the morning's "checked where it happens" (seed 23), which was a reading, never a ruling
 - a shift's, `not.bit`'s and a wrapping operator's width comes from any operand whose type is known — a declared name, a `to.T[…]`, either side of an operator, or the type the value is being stored into; only a bare literal with no context has none (2026-09-23)
 - a `for` range's step is its own signed number: `for 'i': uint64 in range[3, 1, -1]` is legal, and `range[3, 0, -1]` stops at 0 without underflowing (2026-09-23, fixed after the verification session found the oracle refusing it)
@@ -110,7 +110,6 @@ had to make to run at all; none is a decision.
 | A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them). Confirmed a gap, not the design, 2026-09-21 |
 | `lend.mut 'x'.field` writes back at the end of the statement; `'x'.field[i] = v` is refused (lend the list to a name first) | `interp.rs` `stmt` | A statement is the unit of a lend here; the compiler tracks the borrow itself |
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
-| `deci`, `bin128`, `uint128`'s top half, `std::uenr` | — | Parsed, refused at run time as not implemented |
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |
 | A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.limb`; open in `design/limbs.md` |
 | `shl`/`shr`/`not.bit` on an exact plain sum of mixed sizes take the left operand's declared type | `interp.rs` bitwise branch | Wrapping was ruled (write the size, 2026-09-23); shifts were not asked |
@@ -130,7 +129,8 @@ had to make to run at all; none is a decision.
 
 ## Not implemented because not designed
 
-String iteration,
-custom operators (`op`),
-boundary range annotations, Limb declaration and other Limbs, input,
-concurrency, a general variant type. Each is refused with a message naming it.
+Whatever `design/` has not decided is refused with a message naming it —
+e.g. `inline.C`, a C function as a value, a bin NaN or infinity into a
+`deci`. The std Limb is not written yet (owner, 2026-09-30: a new session
+will write it, not soon), so `std::` holds only the few names above; the
+rest, `std::uenr` among them, are refused.

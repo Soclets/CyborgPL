@@ -4099,7 +4099,7 @@ impl<'p> Interp<'p> {
                     o => rt(c.line, format!("std::exit takes a uint8, got {}", o.kind())),
                 }
             }
-            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print/printu .stdout/.stderr, exit, div.trunc, mod.trunc, str.*)")),
+            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print, print.useful and print.format, each .stdout/.stderr; input.line/all; exit; round/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
         }
     }
 }
