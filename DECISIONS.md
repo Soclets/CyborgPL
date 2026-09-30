@@ -48,8 +48,16 @@ a shared name an error for the whole build. Design claude recommended a;
 the owner: "`a`". Then one is picked by a flag, `cca prepare --prefix
 geo2` (proposed (a) the bare prefix, which a name can collide with, (b)
 the flag, design claude's pick, (c) the Limb's folder, not there for
-registry Limbs; the owner answered "`v`", asked b or c: "flag"). Open:
-compiler claude's folder-or-name question.
+registry Limbs; the owner answered "`v`", asked b or c: "flag"). Then
+compiler claude's question: `cca prepare money` with a folder `money/`
+beside it. Proposed (a) a folder always has a `/` (`./money`, `../app`),
+(b) a flag, (c) CCA guesses from the folders there. The owner offered
+`--folder`; asked how `cca run` takes a folder (a plain path, its first
+word, since only a program can stand there), design claude set out
+`--folder` on `cca prepare` only against a `/` in both commands, leaning
+to the `/`. The owner: "`/`". **A word with a `/` is a folder; a bare word
+is a Limb's name**: `cca prepare ../app geometry`, `cca prepare
+./money`.
 
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
 
