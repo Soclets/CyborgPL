@@ -1,0 +1,12 @@
+# `for para` makes a loop parallel by its writer's word (owner,
+# 2026-09-30); CCA runs every loop in order so far, so this is 1 + 2 + 3 +
+# 4 = 10, as the oracle gives.
+extern fn exit ['code': int32];
+MAIN {
+    'xs': list[int64] = [1, 2, 3, 4];
+    mut 'total': int64 = 0;
+    for para 'x' in lend 'xs' {
+        change 'total' = 'total' + 'x';
+    }
+    nocheck exit[to.int32['total']];
+}

@@ -245,3 +245,4 @@ every_time_one_call 2
 too_big_to_int 212
 strict_deci_literal 3
 shl_in_a_loop trap
+for_para 10

@@ -194,6 +194,7 @@ for_bare_list [fnv:18b1a4df3e7b57c4] :: `for 'i' in lend 'xs'` looks at each ele
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`
 for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the position
+for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`
 func_keyword [fnv:06228e3da7cced76] :: `fn name [params] -> type { … }`
 generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), and 1 type(s) were given
@@ -401,7 +402,7 @@ return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it h
 return_type_colon [fnv:940ae1aff445aa14] :: the return type is `-> int32`, not `: int32`
 return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the parameters
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
-seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` goes first, then `temp` / `perm`, then the name
+seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
 shadow [fnv:6f58e8bff03be94f] :: 'x' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`
 shadow_nothing [fnv:21615fa293366dc7] :: `$` shadows a visible 'y', and none is visible here: write `:=`
 shadow_sealed [fnv:89d14c915689d264] :: cannot be shadowed: it is `!$`

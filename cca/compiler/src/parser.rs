@@ -10,7 +10,7 @@ use crate::source::Span;
 /// through a path (`limb.to[…]`); a bare `to[…]` is the keyword.
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
-    "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "list", "array", "struct", "pub",
+    "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "para", "list", "array", "struct", "pub",
     "const", "module", "limb", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
     "layout", "size", "align", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
     "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "bin16", "bin32", "bin64",
@@ -1411,19 +1411,27 @@ impl<'a> Parser<'a> {
 
     fn for_rest(&mut self) -> Result<StmtKind> {
         let mut seq = false;
+        let mut para = false;
         let mut perm = false;
+        // `seq` keeps a loop in order, `para` makes it parallel (owner,
+        // 2026-09-30); never both. CCA runs every loop in order so far.
         if self.eat_word("seq") {
             seq = true;
+        } else if self.eat_word("para") {
+            para = true;
+        }
+        if self.is_word("seq") || self.is_word("para") {
+            return self.fail("a `for` is `seq` or `para`, not both");
         }
         if self.eat_word("perm") {
             perm = true;
         } else if self.eat_word("temp") {
             perm = false;
-        } else if self.strict && !self.is_word("seq") {
+        } else if self.strict && !self.is_word("seq") && !self.is_word("para") {
             return self.fail("a `for` says whether its variable outlives it: `for temp 'i' in …` or `for perm 'i' in …` — a `#strict` file writes it out");
         }
-        if self.is_word("seq") {
-            return self.fail("expected a quoted loop variable: `seq` goes first, then `temp` / `perm`, then the name — `for seq perm 'i' in …`");
+        if self.is_word("seq") || self.is_word("para") {
+            return self.fail("expected a quoted loop variable: `seq` or `para` goes first, then `temp` / `perm`, then the name — `for seq perm 'i' in …`");
         }
         let name = match self.peek().clone() {
             Tok::Name(n) => {
@@ -1505,7 +1513,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(p.span, format!("a range's counter already is the position: `for '{}' in range[…]`, one name", p.name));
         }
         let body = self.block("`for`")?;
-        Ok(StmtKind::For { seq, perm, name, pos, ty, iter, body })
+        Ok(StmtKind::For { seq, para, perm, name, pos, ty, iter, body })
     }
 
     /// `from`, `to` or `by` heading a range bound; `to.int32[…]` is a

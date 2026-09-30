@@ -425,7 +425,9 @@ pub enum StmtKind {
     While { cond: Expr, body: Block },
     /// `pos`: `for 'i', 'x' in lend 'xs'` — the position beside the item
     /// (owner, 2026-09-29).
-    For { seq: bool, perm: bool, name: QName, pos: Option<QName>, ty: Option<Type>, iter: ForIter, body: Block },
+    /// `para`: made parallel by its writer (owner, 2026-09-30); not yet
+    /// acted on — every loop runs in order so far.
+    For { seq: bool, para: bool, perm: bool, name: QName, pos: Option<QName>, ty: Option<Type>, iter: ForIter, body: Block },
     Return(Option<Expr>),
     Fail { name: Ident, payload: Option<Expr> },
     Break,

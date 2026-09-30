@@ -442,7 +442,7 @@ impl Checker {
                 ctx.loop_depth -= 1;
                 Ok(hir::StmtKind::While { cond: c, body: b })
             }
-            ast::StmtKind::For { seq, perm, name, pos, ty, iter, body } => self.for_stmt(ctx, *seq, *perm, name, pos.as_ref(), ty.as_ref(), iter, body),
+            ast::StmtKind::For { seq, para: _, perm, name, pos, ty, iter, body } => self.for_stmt(ctx, *seq, *perm, name, pos.as_ref(), ty.as_ref(), iter, body),
             ast::StmtKind::Return(value) => {
                 if ctx.is_task {
                     return err(Diagnostic::error("a task is a block, not a function: `return` cannot leave it").at(s.span));
