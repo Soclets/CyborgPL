@@ -210,10 +210,8 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if from.is_none() {
         if let Some((t, span)) = &manifest.default_target {
             let here = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
-            let known = targets();
-            if !known.contains(&t.as_str()) {
-                return err(Diagnostic::error(format!("not yet: the default target is `{}`, and CCA writes code for {} only so far", t, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).at(*span));
-            }
+            // Every target is in `cca/targets.txt` already (`read_manifest`);
+            // CCA writes code on its own machine only so far.
             if *t != here {
                 return err(Diagnostic::error(format!("not yet: the default target is `{}`, and CCA builds it only on a `{}` machine so far — this one is `{}`", t, t, here)).at(*span));
             }
@@ -330,6 +328,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     return err(Diagnostic::error("'targets' is a list of `cca::Target[…]`: `[cca::Target[name = \"aarch64-macos\"],]`").at(c.value.span));
                 };
                 let mut names: Vec<String> = Vec::new();
+                let mut name_spans: Vec<crate::source::Span> = Vec::new();
                 let mut defaults: Vec<(String, crate::source::Span)> = Vec::new();
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
@@ -368,6 +367,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         defaults.push((n.clone(), span));
                     }
                     names.push(n);
+                    name_spans.push(span);
                 }
                 // A single target is the default by itself; of several,
                 // exactly one says so.
@@ -376,6 +376,14 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 }
                 if names.len() > 1 && defaults.is_empty() {
                     return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = true`", names.len())).at(c.value.span));
+                }
+                // Only a target CCA can build (owner, 2026-09-30: "refuse"),
+                // as in a Synthia.ttsr; the default count is said first.
+                let known = targets();
+                for (n, span) in names.iter().zip(&name_spans) {
+                    if !known.contains(&n.as_str()) {
+                        return err(Diagnostic::error(format!("`{}` is not a target CCA can build; it builds for {}", n, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).at(*span));
+                    }
                 }
                 out.default_target = match defaults.first() {
                     Some((n, s)) => Some((n.clone(), *s)),

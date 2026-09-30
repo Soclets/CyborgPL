@@ -420,8 +420,9 @@ Dated, with the alternative, so each can become a question later.
   one), and writes code for `aarch64-macos` only so far, so any other
   default is refused as "not yet" rather than built for the wrong
   machine. The targets CCA writes code for are listed in `cca/targets.txt`,
-  the one list (Synthia copies it); a default not in it, or not this
-  machine's, is "not yet". A `CCA.cplr` without a 'name', a 'prefix', a
+  the one list (Synthia copies it, and the oracle reads it); any target
+  not in it is refused (owner, 2026-09-30: "refuse"), and a default that
+  is not this machine's is "not yet". A `CCA.cplr` without a 'name', a 'prefix', a
   'version' or a target is refused (owner, 2026-09-29), a dependency's
   too; a folder with no `CCA.cplr` is a plain program, and a dependency
   must have one. Its 'name' and 'prefix' both follow the module-name rule
