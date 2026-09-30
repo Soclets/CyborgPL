@@ -9,7 +9,7 @@ fn heaviest [...'items': Item] -> Item or fail[none] {
     return give 'best';
 }
 
-fn kilos ['grams': int32] -> int32 or fail[not_whole] {
+fn kilos ['grams': int32] -> int32 or fail[not_whole, out_of_range] {
     'k': bin64 = to.bin64['grams'] div 1000.0;
     return to.int32['k'] otherwise fail;
 }

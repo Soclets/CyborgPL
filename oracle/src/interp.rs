@@ -1990,6 +1990,9 @@ impl<'p> Interp<'p> {
                 // integer with more digits than the width fails `too_many_digits` — an integer only when its
                 // type could have that many (an int32 into a deci64 always fits)
                 if matches!(v, Value::Deci(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
+                // a whole bin or deci too big for the integer fails `out_of_range`, as text does (owner,
+                // 2026-09-30: a); one `otherwise` handles both
+                if matches!(v, Value::Bin(_) | Value::Deci(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) && !ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
                 if let Ty::Deci(w) = base {
                     let p = crate::deci::precision(*w);
                     let digits = |n: i128| n.unsigned_abs().to_string().len();
@@ -2094,7 +2097,11 @@ impl<'p> Interp<'p> {
                             return Ok((v, prov));
                         }
                         let i = Value::Int(*x as i128);
-                        fit_base!(i.clone());
+                        if x.abs() >= 1.7e38 || self.check_type(&i, ty, line).is_err() {
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "out_of_range".into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
                         i
                     }
                     (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_), Value::Str(s)) => {
@@ -2196,8 +2203,12 @@ impl<'p> Interp<'p> {
                             let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                             return Ok((v, prov));
                         }
-                        Some(Err(())) => return site(line, format!("{} does not fit {target}", d.show_stored())),
-                        Some(Ok(i)) => { fit_base!(Value::Int(i)); Value::Int(i) }
+                        Some(Ok(i)) if self.check_type(&Value::Int(i), ty, line).is_ok() => Value::Int(i),
+                        Some(_) => {
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "out_of_range".into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
                     },
                     (Ty::Bin(w), Value::Deci(d)) => {
                         // rounded once, from the digits, straight to the width

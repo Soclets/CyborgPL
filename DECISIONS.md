@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — A whole bin or deci too big for the integer fails `out_of_range` (owner: a)
+
+Asked by check claude (seed 8008): `to.int64['d' x 10] otherwise -1` with
+the deci too big. `conversion.md` settled `not_whole` only. The oracle
+disagreed with itself (a too-big deci failed; a too-big bin was a check
+site), and CCA made both check sites. Proposed: (a) fail `out_of_range`
+beside `not_whole`, as text too big for the type does (2026-09-24); (b) a
+check site, as narrowing between integers. Check claude and design claude
+recommended a. The owner: "`a`" (after a keyboard slip). So `to.int32`
+of a bin or deci can fail `not_whole, out_of_range`, and a function
+passing it up lists both: `examples/inventory.cpls`'s `kilos` and
+`examples/whole.cpls` updated, `examples/too_big_to_int.cpls`; reject
+test bin_to_int_unhandled now names both.
+
 ### 2026-09-30 — `list.fill[value, count]` makes a list of n copies; a strict file writes `count` (owner)
 
 Found benchmarking against LuaJIT: its sieve (0.431 s) and C's (0.455 s)

@@ -73,6 +73,9 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   "refuse"): build the text from its parts, or print it directly.
 - **bin → int fails unless the bin is whole** (decided 2026-09-21):
   `to.int32[2.0] otherwise …` is `2`; `to.int32[2.7]` fails `not_whole`.
+  **A whole bin or deci too big for the integer fails `out_of_range`**
+  (owner, 2026-09-30: a), as text does: `to.int32[10000000000.0]
+  otherwise -1` is `-1`, and one `otherwise` handles both reasons.
   Nothing is thrown away silently — rounding is said first, and the
   reader sees where: `to.int32[std::round['x']]`. The rounding toolbox
   (`std::round`, `floor`, `ceil`, `trunc`: a bin in, a whole bin out) is
