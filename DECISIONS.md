@@ -129,7 +129,10 @@ this ruling.) `--prefix` takes a comma list, as names do: `cca prepare
 --prefix geo2, geo3` (compiler claude asked; design claude recommended
 it; the owner, 2026-09-30: "yea"). Names and `--prefix` mix in one command: `cca prepare money
 --prefix geo2` (compiler claude asked; design claude recommended it; the
-owner: "yea").
+owner: "yea"). The folder comes first, as the program does in `cca run`:
+`cca prepare geometry ../app` is refused, "the folder comes first"
+(compiler claude's provisional pick; design claude recommended keeping
+it; the owner: "yea").
 
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
 
