@@ -53,7 +53,14 @@ for seq 'line' in lend 'lines' {
 }
 ```
 
-This is the entire parallelism syntax of v1: one word, for saying no.
+A loop that prints, reads input or calls C stays in order by itself
+(owner, 2026-09-30: a); `seq` is then for loops Precog would run in
+parallel but you want in order, like an exact `bin` total. The other way,
+**`for para`** forces a loop parallel (owner: "`para`"); what it may
+override is open.
+
+This was the entire parallelism syntax of v1 — one word for saying no —
+until `para` joined it.
 (`seq` sits after `temp`/`perm` in the chain — see `control-flow.md`.)
 
 ## The GPU (owner, 2026-09-21: automatic)

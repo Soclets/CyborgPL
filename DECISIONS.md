@@ -16,8 +16,16 @@ thread-safe C (hashing, `sin` over a list) gains from parallel, but (c)
 would also parallelise C that is not thread-safe; design claude suggested
 a per-`extern` mark later. The owner: "`a`, overridable with <abbriev of
 pararell> and `seq`": a loop may be forced parallel with a keyword
-abbreviating "parallel", or forced in order with `seq`. Open: that
-keyword's spelling, and what it may override.
+abbreviating "parallel", or forced in order with `seq`. **The keyword is
+`para`** (owner; design claude offered `par`, `para`, `pll` and recommended
+`par`, noting others use `par` — Occam's `PAR`/`SEQ`, Haskell's `par`,
+Rayon's `par_iter`; the owner first asked about `paral`, checked for
+collisions — none — then chose "`para`"): `for para 'x' in …`, where
+`seq` stands, never both. It is reserved as `seq` is: a module or Limb may
+not be named `para`; a quoted variable `'para'` is unaffected. The oracle
+reads it and runs every loop in order, one valid schedule
+(`examples/for_para.cpls`, reject test for_seq_and_para). Open: what
+`para` may override.
 
 ### 2026-09-30 — Precog estimates whether a loop is worth cores; `tune.cplr` overrules it when it has a measurement (owner: a)
 

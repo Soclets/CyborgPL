@@ -1,0 +1,13 @@
+# `for para` forces a loop parallel, `for seq` forces it in order (owner, 2026-09-30); without either,
+# Precog decides, and a loop that prints stays in order by itself. The oracle runs every loop in order.
+MAIN {
+    'xs': list[int64] = [1, 2, 3, 4];
+    mut 'total': int64 = 0;
+    for para 'x' in lend 'xs' {
+        change 'total' = 'total' + 'x';
+    }
+    for seq 'x' in lend 'xs' {
+        std::print.stdout['x', " "];
+    }
+    std::print.stdout['total', \n];
+}
