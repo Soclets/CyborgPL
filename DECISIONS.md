@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — RRx2's C and C++ keep Clang's checkers on in every build, the final one too (owner)
+
+Design claude's safety net for RRx2 in C and C++: AddressSanitizer and
+UndefinedBehaviorSanitizer on test builds, warnings as errors, Clang's
+static analyzer, fuzzing with libFuzzer, and RRx2-lang's arithmetic
+checked against Python's exact numbers. The owner: "we better remove it
+at final". Design claude argued the opposite for RRx2: speed is the
+checks' only cost (about 2×), RRx2-lang "doesn't give a flying fuck
+about runtime perf", and with them on a C mistake can only crash, never
+give a quietly wrong answer; RRx2-TV spends most of its time in
+Bitwuzla. (AddressSanitizer is not hardening against attackers, which
+does not matter for a local tool.) The owner: "Oh yeah, I forgot about
+that." So the checkers stay on everywhere, always.
+
 ### 2026-09-30 — RRx2 is built with the latest stable Clang (owner)
 
 "We'll be using the latest stable Clang version" (LLVM 23.1.2 today,
