@@ -2084,6 +2084,12 @@ impl<'p> Interp<'p> {
                     // (owner, 2026-09-30: "refuse")
                     (Ty::Str(_), Value::Struct(n, _)) => return rt(line, format!("a `{n}` is not text: build the text you want from its fields, e.g. `to.str.utf8['p'.x] ++ …`, or print it directly (owner, 2026-09-30)")),
                     (Ty::Str(_), Value::Map(_)) => return rt(line, "a map is not text: build the text you want from its entries, or print it directly (owner, 2026-09-30)"),
+                    // an enum with any data-carrying case is not text, whichever case this value is: the rule
+                    // comes from the type, as every conversion's does (owner, 2026-09-30: a)
+                    (Ty::Str(_), Value::Enum(t, _, None)) if self.prog.enums.iter().find(|e| &e.name == t).is_some_and(|e| e.cases.iter().any(|k| k.ty.is_some())) => {
+                        let dc = self.prog.enums.iter().find(|e| &e.name == t).and_then(|e| e.cases.iter().find(|k| k.ty.is_some())).map(|k| k.name.clone()).unwrap_or_default();
+                        return rt(line, format!("a `{t}` is not text: its case `{dc}` carries data, so no `{t}` converts, whichever case it holds; `match` it and build the text you want, or print it directly (owner, 2026-09-30)"));
+                    }
                     (Ty::Str(_), Value::Enum(t, c, Some(_))) => return rt(line, format!("`{t}.{c}` carries data, so it is not text: `match` it and build the text you want, or print it directly (owner, 2026-09-30)")),
                     // `to.useful.str…` is `print.useful`'s text, `to.str…` is `print`'s (owner, 2026-09-30)
                     (Ty::Str(_), other) => Value::Str(if *useful { show_useful_as(other, src_ty.as_ref()) } else { other.show_stored() }),

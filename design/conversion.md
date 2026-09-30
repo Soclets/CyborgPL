@@ -70,7 +70,10 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   `print.useful`): `to.useful.str.utf8`, `to.useful.deci64` (moved from
   `to.deci64.useful`). `examples/to_text_forms.cpls`. **A struct, a map,
   or an enum case carrying data is not text** (owner, 2026-09-30:
-  "refuse"): build the text from its parts, or print it directly.
+  "refuse"): build the text from its parts, or print it directly. **An
+  enum with any data-carrying case is not text at all**, even a value that
+  is a plain case (owner: a): the rule comes from the type, as every
+  conversion's does. Printing still shows any value.
 - **bin → int fails unless the bin is whole** (decided 2026-09-21):
   `to.int32[2.0] otherwise …` is `2`; `to.int32[2.7]` fails `not_whole`.
   **A whole bin or deci too big for the integer fails `out_of_range`**

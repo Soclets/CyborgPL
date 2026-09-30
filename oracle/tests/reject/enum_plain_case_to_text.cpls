@@ -1,0 +1,8 @@
+enum Status {
+    empty
+    claimed: str.utf8
+}
+MAIN {
+    's' := Status.empty;
+    't' := to.str.utf8['s'];
+}

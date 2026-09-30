@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — An enum with any data-carrying case is not text, whichever case a value holds (owner: a)
+
+Asked by compiler claude: the oracle judged by the value, so
+`to.str.utf8[Status.empty]` gave `"Status.empty"` though `Status` has a
+data case, while CCA, knowing only the type, refused. Proposed: (a) refuse
+any enum with a data case, by type, as every conversion is decided; (b)
+decide when the program runs, a plain case converting and a data case
+stopping it; (c) reopen the "refuse" of data cases and give them text.
+Design claude recommended a. The owner asked whether the exact and useful
+forms helped (no: both need a text for every value) and whether (a) left
+another way (yes: a `match`, or printing directly, which (a) does not
+touch). The owner: "a". An enum with no data case (`Size { small, big }`)
+converts as before. Reject test enum_plain_case_to_text.
+
 ### 2026-09-30 — A whole bin or deci too big for the integer fails `out_of_range` (owner: a)
 
 Asked by check claude (seed 8008): `to.int64['d' x 10] otherwise -1` with
