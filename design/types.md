@@ -51,7 +51,7 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   rounding is one explicit call at the end (std's, undesigned).
 - **From `bin`**: `to.deci64['w']` gives the exact value rounded to the
   width (a `bin64` 0.1 is `0.1000000000000000` in a `deci64`, and shows
-  its binary tail in a `deci128`); `to.deci64.useful['w']` gives the
+  its binary tail in a `deci128`); `to.useful.deci64['w']` gives the
   shortest decimal that reads back as the same `bin` (`0.1`).
 - **From an integer**: `to.deci64['c'] otherwise …` fails
   `too_many_digits` when the integer's type could have more digits than

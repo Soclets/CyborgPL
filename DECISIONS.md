@@ -5,6 +5,33 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Text in two forms: `to.str.utf8` exact, `to.useful.str.utf8` useful; `.useful` follows the verb (owner)
+
+Taking the last things `to.str.utf8` turned into text by accident (the
+oracle's "as `print` shows it"). `bool`: proposed (a) `"true"`/`"false"`,
+(b) refused; the owner: "a". Enums: proposed `"Size.big"`, `"big"`, or
+refused; the owner asked whether conversions give what is actually stored
+("stored form" means the exact value, nothing rounded — a bin's 55 digits
+— not the bits), then how an enum is stored (CCA: a one-byte tag, the
+case's place in the list; a `layout.c` enum its 32-bit C number; a bool
+one bit), then proposed: **`to.str.utf8` gives the exact form and a
+`.useful` form gives the useful one**. Design claude laid it out — bin
+`0.1000…625` / `0.1`, deci `1.50` / `1.5`, int `42` both, bool `true`
+both, enum `Size.big` / `big`, always matching `print` / `print.useful`
+(so `print.useful` of a case is now `big`) — closing the open "useful-form
+number → text" (2026-09-19). The owner: "yea, but where should the
+`.useful` be?" Proposed (a) last before `[` (`to.str.utf8.useful`, as
+`to.deci64.useful`), (b) right after the verb (`to.useful.str.utf8`, as
+`print.useful.stdout`); design claude first recommended (a), then (A) —
+`print.stdout.useful` everywhere. The owner: "`print` has `useful`
+there, because it once was `printu`", then "it does modify the action,
+though"; design claude switched to (b), `.useful` following the verb, which
+moves `to.deci64.useful` to `to.useful.deci64`. The owner: "`b`". Only text
+and decis have a useful form (`to.useful.int32` refused). Open: structs,
+maps and enum cases that carry data, as text. `examples/to_text_forms.cpls`;
+reject tests useful_after_type, useful_to_int; `deci.cpls`,
+`deci_context.cpls`, `types.md` renamed.
+
 ### 2026-09-30 — Text into ASCII fails `not_ascii` (owner: "`otherwise` exists")
 
 Asked "Why no `to.str.ascii`?" — design claude had said so, going by

@@ -1,0 +1,20 @@
+# Text in two forms (owner, 2026-09-30): `to.str.utf8` is the exact value, as `print` shows it;
+# `to.useful.str.utf8` is the useful one, as `print.useful` shows it. `.useful` follows the verb.
+enum Size {
+    small
+    big
+}
+
+MAIN {
+    'x': bin64 = 0.1;
+    'd': deci64 = 1.50;
+    'n': int32 = 42;
+    'ok' := true;
+    's' := Size.big;
+    std::print.stdout[to.str.utf8['x'], " | ", to.useful.str.utf8['x'], \n];
+    std::print.stdout[to.str.utf8['d'], " | ", to.useful.str.utf8['d'], \n];
+    std::print.stdout[to.str.utf8['n'], " | ", to.useful.str.utf8['n'], \n];
+    std::print.stdout[to.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], \n];
+    std::print.stdout[to.str.utf8['s'], " | ", to.useful.str.utf8['s'], \n];
+    std::print.useful.stdout['s', \n];
+}

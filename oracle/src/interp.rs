@@ -2072,7 +2072,8 @@ impl<'p> Interp<'p> {
                     // a list or array is not text (owner, 2026-09-30: b): bytes read as UTF-8 above, any other
                     // list is joined or printed by the writer
                     (Ty::Str(_), Value::List(_)) => return rt(line, format!("a list is not text: only a list of `uint8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `++`, or print the list directly (owner, 2026-09-30)")),
-                    (Ty::Str(_), other) => Value::Str(other.show_stored()),
+                    // `to.useful.str…` is `print.useful`'s text, `to.str…` is `print`'s (owner, 2026-09-30)
+                    (Ty::Str(_), other) => Value::Str(if *useful { show_useful_as(other, src_ty.as_ref()) } else { other.show_stored() }),
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }
                     (Ty::Bin(_), Value::Bin(x)) => { fit_base!(Value::Bin(*x)); Value::Bin(*x) }

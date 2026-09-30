@@ -134,7 +134,9 @@ impl Value {
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
             Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_useful(), v.show_useful())).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_useful())).collect::<Vec<_>>().join(", ")),
-            Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_useful()), None => format!("{t}.{c}") },
+            // a case alone is its bare word for people, `big`; `print` and `to.str.utf8` give `Size.big`
+            // (owner, 2026-09-30)
+            Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_useful()), None => c.clone() },
             other => other.show_stored(),
         }
     }

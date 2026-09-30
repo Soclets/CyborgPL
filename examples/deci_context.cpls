@@ -5,7 +5,7 @@ MAIN {
     'a': deci64 = 1.00;
     std::print.stdout['a' + (1.5 x 2), " ", 'a' + 1.5 x 2, \n];
     'f': bin32 = 0.1;
-    std::print.stdout[to.deci64.useful['f'], " ", to.deci64['f'], \n];
+    std::print.stdout[to.useful.deci64['f'], " ", to.deci64['f'], \n];
     mut 'm': map[deci64, int32] = map.empty;
     map.set[lend.mut 'm', 1.50, 7];
     std::print.stdout[map.has[lend 'm', 1.5], \n];

@@ -61,9 +61,14 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   error pointing at `to.str.utf8`. `print`/`print.useful` still render any value
   handed to them directly — rendering for output is what they are for, not
   a conversion.
-- A number becomes text in its **stored form**, always (2026-09-14). A
-  useful-form conversion (`0.1` rather than the 55 digits) has no spelling
-  yet — `print.useful` is the only thing that produces it.
+- A number becomes text in its **stored form**, always (2026-09-14):
+  `to.str.utf8[…]` is what `print` shows. **`to.useful.str.utf8[…]` is
+  what `print.useful` shows** (owner, 2026-09-30): `0.1` for the bin whose
+  exact value is 55 digits, `1.5` for the deci `1.50`, and an enum case's
+  bare word, `big`, where the exact form is `Size.big`. A `bool` is
+  `true`/`false` in both. **`.useful` follows the verb** (owner: b, as in
+  `print.useful`): `to.useful.str.utf8`, `to.useful.deci64` (moved from
+  `to.deci64.useful`). `examples/to_text_forms.cpls`.
 - **bin → int fails unless the bin is whole** (decided 2026-09-21):
   `to.int32[2.0] otherwise …` is `2`; `to.int32[2.7]` fails `not_whole`.
   Nothing is thrown away silently — rounding is said first, and the

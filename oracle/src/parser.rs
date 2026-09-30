@@ -2281,6 +2281,8 @@ impl Parser {
                             return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, false, line));
                         }
                     }
+                    // `.useful` follows the verb (owner, 2026-09-30: b): `to.useful.str.utf8[…]`, `to.useful.deci64[…]`
+                    let useful_first = if matches!(self.peek(), Tok::Word(w) if w == "useful") && matches!(self.peek_at(1), Tok::Dot) { self.advance(); self.advance(); true } else { false };
                     self.to_target = true;
                     let ty = self.ty();
                     self.to_target = false;
@@ -2295,10 +2297,11 @@ impl Parser {
                         Ty::Struct(n) if n.ends_with(".useful") && matches!(&n[..n.len() - 7], "deci32" | "deci64" | "deci128") => (Ty::Deci(n[4..n.len() - 7].parse().unwrap()), true),
                         _ => (ty, false),
                     };
-                    let useful = dotted_useful || if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "useful") {
-                        if !matches!(ty, Ty::Deci(_)) { return self.err(format!("`.useful` is a deci conversion's: `to.deci64.useful[…]`; `to.{}` has none", ty_name(&ty))); }
-                        self.advance(); self.advance(); true
-                    } else { false };
+                    if dotted_useful || (*self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "useful")) {
+                        return self.err(format!("`.useful` follows the verb: `to.useful.{}[…]` (owner, 2026-09-30)", ty_name(&ty)));
+                    }
+                    if useful_first && !matches!(ty, Ty::Deci(_) | Ty::Str(_)) { return self.err(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.deci64[…]`; `to.{}` has no useful form", ty_name(&ty))); }
+                    let useful = useful_first;
                     if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     let b = self.bracket()?;

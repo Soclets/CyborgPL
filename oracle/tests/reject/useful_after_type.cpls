@@ -1,0 +1,4 @@
+MAIN {
+    'x': bin64 = 0.5;
+    'd' := to.deci64.useful['x'];
+}
