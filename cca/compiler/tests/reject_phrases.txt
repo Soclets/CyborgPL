@@ -129,7 +129,7 @@ enum_bare_owned [fnv:463b06aecdfd81cb] :: say what happens to it
 enum_bind_without_data [fnv:85d1b2a55dade2b9] :: `a` carries nothing, so there is no value to name 'x'
 enum_comma_cases [fnv:935f43a00064d8d3] :: one per line, nothing between
 enum_data_missing [fnv:0547a7200940802f] :: write `S.a[…]` with the value
-enum_data_to_text [fnv:7e06b56a8f8949ce] :: `Status.claimed` carries data, so it is not text
+enum_data_to_text [fnv:7e06b56a8f8949ce] :: a `Status` is not text: its case `claimed` carries data
 enum_data_unexpected [fnv:9ab7d8b2b03a72b6] :: `S.a` carries nothing; write it bare
 enum_data_wrong_type [fnv:7d29ffc630950dd5] :: `a`'s data is an `int32` and this value is text: convert it first
 enum_in_body [fnv:9b3a6a83cc747ff7] :: an `enum` sits at the top level of a file or a module, not inside a body
@@ -139,6 +139,7 @@ enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
 enum_not_c [fnv:290fed975360e9b3] :: the `extern fn f` parameter 'k' is not C-shaped
 enum_number_not_c [fnv:5cd2bb5264276a44] :: only a `layout.c enum` has numbers
+enum_plain_case_to_text [fnv:0cb6696c30a5f896] :: a `Status` is not text: its case `claimed` carries data
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
 eq_in_value [fnv:5a99b3d49669530b] :: gives a declaration its value once; equality is `==`

@@ -2515,13 +2515,13 @@ impl Checker {
             (Ty::Int(_) | Ty::Bin(_) | Ty::Bool | Ty::Char(_), Ty::Str(_)) => {}
             // An enum case as text: `Size.big` exactly, `big` usefully
             // (owner, 2026-09-30). One that carries data is open.
-            // A case that carries data is not text (owner, 2026-09-30:
-            // "refuse"). Which case a value is, the compiler does not know,
-            // so an enum with any such case is refused, naming it.
+            // An enum with a case that carries data is not text, whichever
+            // case a value holds (owner, 2026-09-30: "refuse", then "a" —
+            // decided by the type).
             (Ty::Enum { id, .. }, Ty::Str(_)) => {
                 let info = &self.items.enums[id.0 as usize];
                 if let Some(c) = info.cases.iter().find(|c| c.payload.is_some()) {
-                    return err(Diagnostic::error(format!("`{}.{}` carries data, so it is not text: `match` it and build the text you want, or print it directly (owner, 2026-09-30)", info.name, c.name)).at(span));
+                    return err(Diagnostic::error(format!("a `{}` is not text: its case `{}` carries data, so no `{}` converts, whichever case it holds; `match` it and build the text you want, or print it directly (owner, 2026-09-30)", info.name, c.name, info.name)).at(span));
                 }
             }
             (Ty::Struct { id, .. }, Ty::Str(_)) => {
