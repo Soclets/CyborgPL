@@ -39,7 +39,9 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
 - **Synthia is an automatic programmer** (owner, 2026-09-30): it does
   whatever a programmer using CCA would do by hand, writing a `CCA.cplr`
   for a Limb that has only a `Synthia.ttsr`. CCA never knows Synthia
-  exists.
+  exists. The project's own `CCA.cplr` goes beside `Synthia.ttsr`,
+  rewritten from it each time, its first line saying it is generated
+  (owner, 2026-09-30: a).
 - **How it connects**: Synthia reads its manifest, fetches the Limbs,
   and calls `cca build …` saying where each is. CCA never reads
   `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): CCA

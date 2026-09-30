@@ -17,8 +17,12 @@ Synthia just becomes like an automatic programmer". Design claude
 restated it as (a), as a general rule — Synthia does whatever a
 programmer using CCA would do by hand, writing a `CCA.cplr` where one is
 needed, and CCA never knows Synthia exists (as the override, 2026-09-29) —
-and the owner: "yea". Open: where Synthia writes the `CCA.cplr` for the
-project itself, which CCA looks for beside its source.
+and the owner: "yea". **The project's own `CCA.cplr` is written beside `Synthia.ttsr`**
+(owner: "`a`"; proposed (a) there, rewritten from `Synthia.ttsr` each
+time with a first line saying it is generated, design claude's pick; (b)
+in `.synthia/`, with a new `cca build --manifest …` flag; (c) a copy of
+the whole project in `.synthia/`, which would point messages at the
+copy). Edits go in `Synthia.ttsr`.
 
 ### 2026-09-30 — A `Synthia.ttsr` target's `default` is `yes` or `no` (owner: b)
 
