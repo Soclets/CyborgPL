@@ -250,6 +250,13 @@ nocheck inline.ASM {
   copies the variable in before the block, `'v' <- x0` stores the
   register into `'v'` after (declaring it, like `'v' := …`), `'v' <-> x0`
   both; `clobber x16` says a register was overwritten.
+- **A lend goes into a register as the address of the lent data**
+  (owner, 2026-09-30: a): `lend 'text' -> x1`, and `lend.mut 'buf' -> x1`
+  for data the assembly may write through — the rule an `extern` call
+  already has, "a lend satisfies a pointer". Into a register only: a
+  `<-` or `<->` after a lend is refused. A plain pointer variable (`'buf'
+  -> x1`, from `malloc`) still works, for memory the program manages
+  itself. The length, if the code needs one, is bound separately.
 - **Compiler rule (2026-09-21):** on AArch64 the lowering spells `x29` as
   `fp` and `x30` as `lr` in what it hands LLVM — the ABI names. LLVM 22
   ignores a clobber of those two when written as `xN` (fixed in 23; Clang

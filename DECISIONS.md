@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — An asm binding can take a lend: `lend 'text' -> x1` (owner: a)
+
+A Hello World through `inline.ASM` had to spell the text as bytes, copy
+them into `malloc`ed memory and bind that pointer, because CCA refused
+`lend 'text' -> x1` (a binding took a plain variable only). Measured in
+Rust as a stand-in, handing the pointer over takes ~0.44 ns against ~16
+ns for malloc, copy and free. Proposed: (a) `lend 'x' -> reg` and
+`lend.mut 'x' -> reg` put the address of the lent data in the register,
+as a lend satisfies a pointer in an `extern` call, into a register only;
+(b) plain variables only. Design claude recommended a; asked whether the
+`malloc` way would still work (yes: a pointer variable stays a plain
+binding), the owner: "`a`". In the oracle (145886a): `lend` / `lend.mut`
+bindings parse and check (declared; `lend.mut` of an `immut` or
+shared-lent name refused); a `<-` after a lend is refused. Reject tests
+asm_lend (checks, then "cannot run assembly"), asm_lend_out,
+asm_lend_mut_immut. `ffi.md`.
+
 ### 2026-09-30 — `build.cplr` is an ordinary program, with no limits and no shortcut to Limbs (owner)
 
 Open since 2026-09-29: what a `build.cplr` may produce or pass to the
