@@ -103,7 +103,10 @@ Owner, 2026-09-14.
   payload, or be a good person …"): the build has no channel from it, and
   it reaches a Limb only as any program would, by reading its files — no
   `limb.` or prefix into code (owner: "not a shortcut to reach a limb.
-  It's turing complete, so you build that yourself"). A
+  It's turing complete, so you build that yourself"), and `cca prepare`
+  hands it no words: settings come as any program gets them, from
+  environment variables or files (owner: "Might aswell build shit
+  yourself"). A
   **`cca::Dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
   was dropped when the prefix became the Limb's own):

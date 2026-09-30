@@ -23,8 +23,13 @@ the owner: "No, not a shortcut to reach a limb. It's turing complete, so
 you build that yourself." So **it reaches a Limb as any program would, by
 reading its files; the language gives it no `limb.` or prefix into
 code.** Compiler claude's provisional pick — built standalone, with none
-of its Limb's code — stands as ruled. Open: whether it takes command-line
-words.
+of its Limb's code — stands as ruled. **`cca prepare` hands it no
+words**: proposed (a) the words after `--`, as `cca run`; (b) none, a
+`build.cplr` getting settings as any program can (environment variables
+through `extern fn getenv`, a file it reads); design claude leaned to (a).
+The owner asked "can't `build.cplr` just do some `ptr` shit?" (pointers
+read only what the process was given), then: "we already gave you the
+entire fucking language. Might aswell build shit yourself. lol" — (b).
 
 ### 2026-09-30 — The std Limb will be written in CyborgPL by a new session, not soon (owner)
 
