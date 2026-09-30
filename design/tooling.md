@@ -80,7 +80,7 @@ Owner, 2026-09-14.
   a Limb's `name` (owner, 2026-09-30: "I think name's better"; at first
   the local name, then briefly the prefix), and when two dependencies
   share that name, `cca prepare` refuses and lists them by prefix (owner:
-  a); a `build.cplr` runs in its own Limb's folder; `--all` runs
+  a), and `cca prepare --prefix geo2` picks one (owner: "flag"); a `build.cplr` runs in its own Limb's folder; `--all` runs
   dependencies before the Limbs that use them, each once, stopping at the
   first that fails. Open: what a `build.cplr` may produce or pass to the
   build, and `cca prepare` with no names (refused until ruled). A

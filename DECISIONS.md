@@ -34,9 +34,11 @@ because why would there even be a name? Only for search?", then made names
 strict (entry below). For two dependencies sharing a name, proposed (a)
 refuse and list the matching Limbs by prefix, (b) run all of them, (c) make
 a shared name an error for the whole build. Design claude recommended a;
-the owner: "`a`". Open: how the refusal's user then picks one (design
-claude's option said "run it again more precisely"; by prefix is the
-likely form, unruled), and compiler claude's folder-or-name question.
+the owner: "`a`". Then one is picked by a flag, `cca prepare --prefix
+geo2` (proposed (a) the bare prefix, which a name can collide with, (b)
+the flag, design claude's pick, (c) the Limb's folder, not there for
+registry Limbs; the owner answered "`v`", asked b or c: "flag"). Open:
+compiler claude's folder-or-name question.
 
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
 
