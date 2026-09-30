@@ -997,6 +997,11 @@ impl<'p> Interp<'p> {
                 for b in binds {
                     match b {
                         AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("'{v}' is not declared")); } }
+                        AsmBind::Lend(v, _, mutable) => {
+                            let Some(s) = self.lookup(v) else { return rt(*line, format!("'{v}' is not declared")) };
+                            if *mutable && s.kind == SlotKind::Lent { return rt(*line, format!("'{v}' is lent (shared); it cannot be lent mutably")); }
+                            if *mutable && s.immut { return rt(*line, format!("'{v}' is `immut`, so `lend.mut '{v}'` cannot hand the assembly its address to write through")); }
+                        }
                         _ => {}
                     }
                 }

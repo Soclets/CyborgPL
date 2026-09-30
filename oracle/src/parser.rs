@@ -1193,12 +1193,28 @@ impl Parser {
                                             other => return self.err(format!("after '{v}' comes an arrow: `-> reg` (in), `<- reg` (out), `<-> reg` (both); found {other}")),
                                         });
                                     }
+                                    // a lend satisfies a pointer, as in an extern call (owner, 2026-09-30: a)
+                                    Tok::Word(w) if w == "lend" => {
+                                        let mutable = if *self.peek() == Tok::Dot {
+                                            self.advance();
+                                            match self.advance().tok { Tok::Word(m) if m == "mut" => true, other => return self.err(format!("the only narrowing of `lend` is `.mut`, found {other}")) }
+                                        } else { false };
+                                        let lend = if mutable { "lend.mut" } else { "lend" };
+                                        let v = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a variable after `{lend}`, found {other}")) };
+                                        match self.advance().tok {
+                                            Tok::Arrow => {}
+                                            Tok::LeftArrow | Tok::BothArrow => return self.err(format!("a lend goes into a register only: `{lend} '{v}' -> x1` puts the address of '{v}' there")),
+                                            other => return self.err(format!("after `{lend} '{v}'` comes `-> register`, found {other}")),
+                                        }
+                                        let reg = match self.advance().tok { Tok::Word(r) => r, other => return self.err(format!("expected a register name, found {other}")) };
+                                        binds.push(AsmBind::Lend(v, reg, mutable));
+                                    }
                                     Tok::Word(w) if w == "clobber" => {
                                         let reg = match self.advance().tok { Tok::Word(r) => r, other => return self.err(format!("expected a register after `clobber`, found {other}")) };
                                         binds.push(AsmBind::Clobber(reg));
                                     }
                                     Tok::Word(w) if w == "in" || w == "out" || w == "inout" => return self.err(format!("no `{w}` word: the arrow says the direction — `'v' -> x0`, `'v' <- x0`, `'v' <-> x0`")),
-                                    other => return self.err(format!("expected `'variable' -> register`, `'variable' <- register`, or `clobber register`, found {other}")),
+                                    other => return self.err(format!("expected `'variable' -> register`, `'variable' <- register`, `lend 'variable' -> register`, or `clobber register`, found {other}")),
                                 }
                                 if *self.peek() == Tok::Comma { self.advance(); continue; }
                                 break;

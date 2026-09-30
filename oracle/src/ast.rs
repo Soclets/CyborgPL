@@ -324,6 +324,7 @@ pub enum AsmBind {
     Out(String, String),     // 'v' <- reg   (declares 'v')
     InOut(String, String),   // 'v' <-> reg
     Clobber(String),         // clobber reg
+    Lend(String, String, bool), // lend 'v' -> reg: the address of the lent data (bool = lend.mut; owner, 2026-09-30: a)
 }
 
 /// The three check tiers (decided 2026-09-14): default is written as nothing.
