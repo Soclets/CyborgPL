@@ -176,10 +176,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let env_ty = p.array_type((shared.len() + 2 * nfolds) as u32);
         let env = self.stack(env_ty, "slices_env").ok()?;
         let env_at = |this: &mut Self, k: usize| unsafe { this.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int(k as u64, false)], "env_at").ok() };
+        // A copy of each, and of what a borrow among them points at: a loop
+        // in slices never changes a shared local itself (only elements, through
+        // the list's own memory), and handing over the originals' addresses
+        // kept LLVM from holding them in registers anywhere in the function —
+        // the list built just before stored its length on every append.
         for (k, l) in shared.iter().enumerate() {
             let at = env_at(self, k)?;
             let addr = match slots[*l as usize] {
-                Some(s) => s,
+                Some(slot) => self.par_snapshot(fi, *l, slot).unwrap_or(slot),
                 None => p.const_null(),
             };
             let _ = self.builder.build_store(at, addr);
@@ -368,6 +373,33 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             self.builder.position_at_end(b);
         }
         Some(child)
+    }
+
+    /// A shared local's value in a slot of its own; for a borrow, a slot
+    /// holding the address of a copy of what it borrows.
+    fn par_snapshot(&mut self, fi: usize, l: u32, slot: PointerValue<'ctx>) -> Option<PointerValue<'ctx>> {
+        let f = &self.p.functions[fi];
+        let local = &f.locals[l as usize];
+        let ty = local.ty.clone();
+        // A lent parameter's slot is the address it borrows already; a
+        // lent local's holds that address.
+        let lent = matches!(local.kind, LocalKind::Lent { .. }) && !f.params.contains(&LocalId(l));
+        let t = self.ty(&ty)?;
+        if lent {
+            let p = self.ctx.ptr_type(AddressSpace::default());
+            let target = self.builder.build_load(p, slot, "borrowed").ok()?.into_pointer_value();
+            let v = self.builder.build_load(t, target, "shared").ok()?;
+            let copy = self.stack(t, "shared_copy").ok()?;
+            let _ = self.builder.build_store(copy, v);
+            let at = self.stack(p, "shared_borrow").ok()?;
+            let _ = self.builder.build_store(at, copy);
+            Some(at)
+        } else {
+            let v = self.builder.build_load(t, slot, "shared").ok()?;
+            let copy = self.stack(t, "shared_copy").ok()?;
+            let _ = self.builder.build_store(copy, v);
+            Some(copy)
+        }
     }
 
     /// In a slice: a fold's add (or multiply) goes to the slice's partial.

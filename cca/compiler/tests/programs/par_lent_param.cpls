@@ -1,0 +1,22 @@
+# Loops in slices over a lent parameter: its slot is the address it borrows
+# already, so the slices take a copy of what is there, not of the address.
+# The oracle: 64.
+extern fn exit ['code': int32];
+fn total [lent 'xs': list[int64]] -> int64 {
+    mut 'acc': int64 = 0;
+    for 'x' in lend 'xs' {
+        change 'acc' = 'acc' + ('x' mod 7);
+    }
+    return 'acc';
+}
+fn scale [lent.mut 'xs': list[int64], 'k': int64] {
+    for 'i': uint64 in range[1, list.length[lend 'xs']] {
+        change 'xs'['i'] = ('xs'['i'] x 'k') mod 1000;
+    }
+}
+MAIN {
+    mut 'xs': list[int64] = list.fill[3, 200000];
+    scale[lend.mut 'xs', 5];
+    'a' := total[lend 'xs'];
+    nocheck exit[to.int32['a' mod 256]];
+}
