@@ -93,7 +93,8 @@ Owner, 2026-09-14.
   share that name, `cca prepare` refuses and lists them by prefix (owner:
   a), and `cca prepare --prefix geo2` picks one (owner: "flag"),
   several as a comma list, `--prefix geo2, geo3` (owner: "yea"),
-  mixed with names, `cca prepare money --prefix geo2` (owner: "yea"); a `build.cplr` runs in its own Limb's folder; `--all` runs
+  mixed with names, `cca prepare money --prefix geo2` (owner: "yea"),
+  names first and every word after `--prefix` a prefix (owner: "yea"); a `build.cplr` runs in its own Limb's folder; `--all` runs
   dependencies before the Limbs that use them, each once, stopping at the
   first that fails. Open: what a `build.cplr` may produce or pass to the
   build, and `cca prepare` with no names (refused until ruled). A
