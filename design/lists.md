@@ -139,6 +139,24 @@ change 'xs'['i'] = 5;
 
 — which the `perm` counter makes three plain lines.
 
+**Changing elements in a walk** (owner, 2026-09-30). Over `lend.mut 'xs'`,
+the loop's element is the list's own: changing it changes the list. Over
+`lend`, it cannot be changed.
+
+```
+for 'x' in lend.mut 'prices' {
+    change 'x' = 'x' x 2;
+}
+```
+
+Inside such a loop, the list itself may be read (`'xs'[1]`,
+`list.length[lend 'xs']`) only after the element's last use in that trip,
+and the read sees the values as changed so far. A read with the element
+still to be used after it is refused. This is Rust's borrow rule applied
+trip by trip: a borrow lasts until its last use. Rust's `iter_mut` is
+stricter and refuses any read of the list inside the loop. Changing,
+growing or giving away the list inside stays refused for the whole loop.
+
 ## Operations — the type name as the chain's head
 
 ```

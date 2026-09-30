@@ -84,6 +84,17 @@ enum Prov {
     Bare(String),                        // a bare reference to an owned variable: readable, not storable
 }
 
+/// One `for 'x' in lend.mut 'xs'` loop in progress.
+struct MutWalk {
+    list: Rc<RefCell<Value>>,
+    elem: Rc<RefCell<Value>>,
+    name: String,
+    elem_name: String,
+    pos: std::cell::Cell<usize>,
+    /// the line where this trip first read the list, if it has
+    read_at: std::cell::Cell<Option<usize>>,
+}
+
 pub struct Interp<'p> {
     prog: &'p Program,
     /// Writes to borrowed things (check claude, 2026-09-29): each owner's cell → (write count, line, what).
@@ -148,13 +159,16 @@ pub struct Interp<'p> {
     /// `lend.mut 'x'.field` hands out a temporary cell; at the end of the statement
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
+    /// `for 'x' in lend.mut 'xs'` loops running now: the list may be read while 'x' is finished
+    /// for the trip, and sees the new values (owner, 2026-09-30: a, CCA's liveness rule)
+    mut_walks: Vec<MutWalk>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
 }
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -800,35 +814,44 @@ impl<'p> Interp<'p> {
                 // perm: the variable outlives the loop, holding whatever the loop last gave it.
                 let cell = Rc::new(RefCell::new(Value::Nothing));
                 let pos_cell = Rc::new(RefCell::new(Value::Int(0)));
+                if let (Some(list), Some(crate::ast::Value::Expr(Expr::Owned(_, n, _)))) = (&mut_list, over.values.first()) {
+                    self.mut_walks.push(MutWalk { list: list.clone(), elem: cell.clone(), name: n.clone(), elem_name: name.clone(), pos: std::cell::Cell::new(0), read_at: std::cell::Cell::new(None) });
+                }
                 let mut ran = false;
-                for (k, item) in items.into_iter().enumerate() {
-                    ran = true;
-                    *cell.borrow_mut() = item;
-                    *pos_cell.borrow_mut() = Value::Int(k as i128 + 1);
-                    self.push();
-                    let r = match index {
-                        Some(ix) => self.declare(ix, Slot { cell: pos_cell.clone(), ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0, deps: Vec::new() }, *line),
-                        None => Ok(()),
-                    }
-                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: elem_ty.clone(), kind, alive: true, immut: mut_list.is_none(), sized: false, sealed: true , since: 0, deps: Vec::new() }, *line))
-                    .and_then(|_| self.stmts(body));
-                    self.pop();
-                    if let Some(list) = &mut_list {
-                        if let Value::List(xs) = &mut *list.borrow_mut() { if let Some(slot) = xs.get_mut(k) { *slot = cell.borrow().clone(); } }
-                    }
-                    let r = r?;
-                    if let Some((n, key)) = &walked {
-                        if let Some((w, at, what, _)) = self.writes.get(key) {
-                            // the error is at the change (owner, 2026-09-29: a)
-                            if *w > started { return rt(*at, format!("'{n}' is {what} here while the loop on line {line} is going through it: a loop over `lend '{n}'` borrows it until the loop ends")); }
+                let trips = (|| -> Result<Option<Flow>, RuntimeError> {
+                    for (k, item) in items.into_iter().enumerate() {
+                        ran = true;
+                        *cell.borrow_mut() = item;
+                        *pos_cell.borrow_mut() = Value::Int(k as i128 + 1);
+                        if mut_list.is_some() { if let Some(w) = self.mut_walks.last() { w.pos.set(k); w.read_at.set(None); } }
+                        self.push();
+                        let r = match index {
+                            Some(ix) => self.declare(ix, Slot { cell: pos_cell.clone(), ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0, deps: Vec::new() }, *line),
+                            None => Ok(()),
+                        }
+                        .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: elem_ty.clone(), kind, alive: true, immut: mut_list.is_none(), sized: false, sealed: true , since: 0, deps: Vec::new() }, *line))
+                        .and_then(|_| self.stmts(body));
+                        self.pop();
+                        if let Some(list) = &mut_list {
+                            if let Value::List(xs) = &mut *list.borrow_mut() { if let Some(slot) = xs.get_mut(k) { *slot = cell.borrow().clone(); } }
+                        }
+                        let r = r?;
+                        if let Some((n, key)) = &walked {
+                            if let Some((w, at, what, _)) = self.writes.get(key) {
+                                // the error is at the change (owner, 2026-09-29: a)
+                                if *w > started { return rt(*at, format!("'{n}' is {what} here while the loop on line {line} is going through it: a loop over `lend '{n}'` borrows it until the loop ends")); }
+                            }
+                        }
+                        match r {
+                            Flow::Break => break,
+                            f @ (Flow::Return(_) | Flow::Fail(..) | Flow::Give(_)) => return Ok(Some(f)),
+                            Flow::Normal | Flow::Continue => {}
                         }
                     }
-                    match r {
-                        Flow::Break => break,
-                        f @ (Flow::Return(_) | Flow::Fail(..) | Flow::Give(_)) => return Ok(f),
-                        Flow::Normal | Flow::Continue => {}
-                    }
-                }
+                    Ok(None)
+                })();
+                if mut_list.is_some() { self.mut_walks.pop(); }
+                if let Some(f) = trips? { return Ok(f); }
                 if *perm {
                     if !ran { return rt(*line, format!("`perm` '{name}' would outlive a loop over an empty list, but was never given a value")); }
                     self.declare(name, Slot { cell, ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }, *line)?;
@@ -1085,7 +1108,7 @@ impl<'p> Interp<'p> {
         let kind = match prov {
             Prov::Bare(n) => return rt(line, format!("'{n}' is owned: say how the loop takes it — `lend '{n}'`, `copy '{n}'`, or `give '{n}'`")),
             Prov::Borrowed(_, false) => SlotKind::Lent,
-            Prov::Borrowed(_, true) => SlotKind::LentMut, // elements are copies; element write-back is not modelled
+            Prov::Borrowed(_, true) => SlotKind::LentMut, // written back after each trip, and on a read of the list (the `for` arm)
             _ => SlotKind::Owned,
         };
         Ok((items, kind))
@@ -1520,6 +1543,18 @@ impl<'p> Interp<'p> {
 
     /// A borrow used after what it borrows was changed or given away (check claude's finding, 2026-09-29).
     fn stale(&self, name: &str, s: &Slot, line: usize) -> Result<(), RuntimeError> {
+        // over `lend.mut 'xs'`: a read of 'xs' sees the element as changed so far, and after it
+        // the element may not be used again in that trip (owner, 2026-09-30: a)
+        for w in &self.mut_walks {
+            if Rc::ptr_eq(&s.cell, &w.list) {
+                if let Value::List(xs) = &mut *w.list.borrow_mut() { if let Some(slot) = xs.get_mut(w.pos.get()) { *slot = w.elem.borrow().clone(); } }
+                if w.read_at.get().is_none() { w.read_at.set(Some(line)); }
+            } else if Rc::ptr_eq(&s.cell, &w.elem) {
+                if let Some(at) = w.read_at.get() {
+                    return rt(at, format!("'{}' is used here while '{}', the loop's element, still borrows it `lend.mut` and is used on line {line}: inside `for '{}' in lend.mut '{}'`, the list can be read only after the element's last use in that trip", w.name, w.elem_name, w.elem_name, w.name));
+                }
+            }
+        }
         if !matches!(s.kind, SlotKind::Lent | SlotKind::LentMut) { return Ok(()); }
         let own = Rc::as_ptr(&s.cell) as *const () as usize;
         for key in std::iter::once(&own).chain(s.deps.iter()) {

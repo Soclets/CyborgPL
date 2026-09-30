@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Inside `for 'x' in lend.mut 'xs'`, the list may be read after the element's last use in that trip (owner: a)
+
+Check claude and compiler claude asked whether a loop body may read the list
+during its own `lend.mut` walk. CCA already applied its liveness rule; the
+oracle accepted every read and showed the old values until the trip ended.
+Proposed (a) CCA's rule: a read of 'xs' is allowed once 'x' has no more uses
+in that trip, and it sees the new values; (b) never anywhere inside the
+loop, as Rust's `iter_mut`; (c) always. Design claude recommended a. It
+first said Rust matched (a), as the other sessions had, then corrected
+itself: Rust's `iter_mut` holds the borrow for the whole loop, which is (b).
+Asked the safety and speed difference: none either way. Both are checked
+at compile time, and a read cannot move or free the list. The one knock-on:
+a loop that reads another element is kept in order by Precog, while under
+(b) it would not compile at all. The owner: "`a`". The oracle now refuses
+the read when the element is used after it, reporting at the read
+(`examples/for_lend_mut_read.cpls`; reject tests
+for_lend_mut_read_then_element, for_lend_mut_length_then_element). It
+checks along the path that runs, where CCA checks every path.
+
 ### 2026-09-30 — Over `lend.mut 'xs'`, a loop's element is the list's own, and changing it changes the list (owner)
 
 Compiler claude's question with parallel `for` (landed, 34d9c18): CCA
