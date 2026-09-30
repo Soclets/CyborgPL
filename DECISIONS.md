@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Text into ASCII fails `not_ascii` (owner: "`otherwise` exists")
+
+Asked "Why no `to.str.ascii`?" — design claude had said so, going by
+`conversion.md`'s examples; it exists, as each of the 2026-09-14
+encodings (`utf8`, `utf16`, `utf32`, `ascii`) is a conversion target. The
+oracle refused `'s': str.ascii = "héllo"` yet let `to.str.ascii` of the
+same text through, leaving `é` in ASCII text. Proposed: (a) fail
+`not_ascii`, handled with `otherwise`, as text into a number; (b) a check
+site, as narrowing. Design claude recommended a. The owner: "`otherwise`
+exists". From ASCII text, a number or a byte it cannot fail and takes no
+`otherwise`; into `utf16`/`utf32` never fails. `examples/to_ascii.cpls`,
+reject test to_ascii_needs_otherwise. Still open, and next: bytes into
+text, `to.str.utf8[list of uint8]` failing `not_utf8` (C's text is walked
+by hand into such a list; `examples/args.cpls` mangles non-ASCII today).
+
 ### 2026-09-30 — A pointer changes what it points at with `ptr.cast[T]['p']` (owner: a)
 
 Pointer↔integer was already refused ("a pointer comes only from a lend or

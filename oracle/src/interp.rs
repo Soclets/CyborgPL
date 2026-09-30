@@ -2014,6 +2014,18 @@ impl<'p> Interp<'p> {
                         _ => {}
                     }
                 }
+                // text into ASCII fails `not_ascii` unless every character is ASCII (owner, 2026-09-30: "`otherwise`
+                // exists"); from ASCII text, a number or a byte it cannot
+                if matches!(base, Ty::Str(Encoding::Ascii)) {
+                    let src = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
+                    let may_fail = match (&v, &src) {
+                        (_, Some(Ty::Str(Encoding::Ascii))) => false,
+                        (Value::Str(_), _) => true,
+                        (Value::Char(u, _), _) => *u != CharUnit::Byte,
+                        _ => false,
+                    };
+                    if may_fail { fails.push(FailCase { name: "not_ascii".into(), ty: None }); }
+                }
                 // into a range type, a value out of range is a failure, not a check (decided 2026-09-20)
                 if ranged && !from_text { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
                 let ty = base;
@@ -2030,6 +2042,11 @@ impl<'p> Interp<'p> {
                 } }
                 let out = match (ty, &v) {
                     (Ty::Str(_), Value::Nothing) => return rt(line, "a call that returns nothing has no text"),
+                    (Ty::Str(Encoding::Ascii), Value::Str(s) | Value::Char(_, s)) if !s.is_ascii() => {
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_ascii".into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        return Ok((v, prov));
+                    }
                     (Ty::Str(_), other) => Value::Str(other.show_stored()),
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }

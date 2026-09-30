@@ -41,6 +41,12 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
 - **Between `list` and `array`**: `to.array[give 'l']`, `to.list[copy
   'a']`, and the element type is not written (owner, 2026-09-23;
   `lists.md`).
+- **Text into ASCII fails `not_ascii`** unless every character is ASCII
+  (owner, 2026-09-30: "`otherwise` exists"): `to.str.ascii['t'] otherwise
+  …`. From ASCII text, a number or a byte it cannot fail and takes no
+  `otherwise`; into `utf16` or `utf32` never fails. The text encodings
+  are the four of 2026-09-14 (`utf8`, `utf16`, `utf32`, `ascii`), each a
+  conversion target. `examples/to_ascii.cpls`.
 - **`++` takes text on both sides.** This closes the language's last
   implicit conversion (two cold readers flagged it): `"n=" ++ 'n'` is an
   error pointing at `to.str.utf8`. `print`/`print.useful` still render any value
