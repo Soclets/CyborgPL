@@ -125,7 +125,9 @@ to the `/`. The owner: "`/`". **A word with a `/` is a folder; a bare word
 is a Limb's name**: `cca prepare ../app geometry`. (Design claude's
 record first also gave `cca prepare ./money`, a folder with no names; that
 is the still-open question of `cca prepare` with no names, not part of
-this ruling.)
+this ruling.) `--prefix` takes a comma list, as names do: `cca prepare
+--prefix geo2, geo3` (compiler claude asked; design claude recommended
+it; the owner, 2026-09-30: "yea").
 
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
 
