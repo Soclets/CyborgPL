@@ -782,6 +782,12 @@ impl<'p> Interp<'p> {
                     _ => None,
                 };
                 let started = self.write_count;
+                // over `lend.mut 'xs'`, the element is the list's own: `change 'x'` writes into 'xs'
+                // (owner, 2026-09-30: "the program looks legal to me. `mut`'s already there")
+                let mut_list = match over.values.first() {
+                    Some(crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n, _))) => self.lookup(n).map(|s| s.cell.clone()),
+                    _ => None,
+                };
                 // the item has the list's element type (check claude, 2026-09-29: `'x' +~ 10` had no width)
                 let elem_ty = match over.values.first() {
                     Some(crate::ast::Value::Expr(Expr::Owned(_, n, _) | Expr::Var(n, _))) => match self.lookup(n).and_then(|s| s.ty.clone()) {
@@ -804,9 +810,12 @@ impl<'p> Interp<'p> {
                         Some(ix) => self.declare(ix, Slot { cell: pos_cell.clone(), ty: Some(Ty::Uint(crate::ast::IntWidth::W64)), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true , since: 0, deps: Vec::new() }, *line),
                         None => Ok(()),
                     }
-                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: elem_ty.clone(), kind, alive: true, immut: true, sized: false, sealed: true , since: 0, deps: Vec::new() }, *line))
+                    .and_then(|_| self.declare(name, Slot { cell: cell.clone(), ty: elem_ty.clone(), kind, alive: true, immut: mut_list.is_none(), sized: false, sealed: true , since: 0, deps: Vec::new() }, *line))
                     .and_then(|_| self.stmts(body));
                     self.pop();
+                    if let Some(list) = &mut_list {
+                        if let Value::List(xs) = &mut *list.borrow_mut() { if let Some(slot) = xs.get_mut(k) { *slot = cell.borrow().clone(); } }
+                    }
                     let r = r?;
                     if let Some((n, key)) = &walked {
                         if let Some((w, at, what, _)) = self.writes.get(key) {

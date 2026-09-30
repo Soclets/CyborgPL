@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Over `lend.mut 'xs'`, a loop's element is the list's own, and changing it changes the list (owner)
+
+Compiler claude's question with parallel `for` (landed, 34d9c18): CCA
+accepted `for 'x' in lend.mut 'xs' { change 'x' = …; }` and wrote the
+element; the oracle refused ("a loop's counter or element, which belong to
+the loop"). Nothing had decided it. Proposed (a) legal, the element lent
+mutably, as Rust's `iter_mut`, and the shape parallel `for` slices best;
+(b) refused, the element only passable to `lent.mut` functions. Design
+claude recommended a (its first example wrote `*`, which is not
+CyborgPL's multiplication; `x` is). Asked why it should be illegal: only a
+"loop names belong to the loop" rule, and `lend.mut` already marks the
+write. The owner: "the program looks legal to me. `mut`'s already there,
+and stuff". The oracle now writes the element back after each trip
+(`examples/for_lend_mut.cpls`); over plain `lend` it stays unchangeable
+(reject test for_lend_element_change).
+
 ### 2026-09-30 — A loop that prints, reads input or calls C stays in order by itself; a keyword forces parallel, `seq` forces order (owner)
 
 Compiler claude's third question for parallel `for`. Proposed (a) Precog
