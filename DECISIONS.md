@@ -16,7 +16,11 @@ when building?", "No, when compiling", and, asked which of `cca build`
 with no target and with the target named errors: "no CLI target
 specified with def false errors" — (b). Reading the manifest (`synthia
 show`, the oracle's runs, which name no target) does not complain. The
-several-targets rule (exactly one `default = true`) stands.
+several-targets rule (exactly one `default = true`) stands. A compile names its target with **`--target <name>`**, as in Cargo
+and clang, once per command (compiler claude's spelling, left to it by
+design claude; design claude recommended keeping it; the owner: "yea").
+A named target must be one the Limb's `CCA.cplr` lists, or, for a plain
+`.cpls` file, one in `cca/targets.txt` (compiler claude's reading).
 
 ### 2026-09-30 — `CCA.cplr` refuses a target CCA cannot build, as `Synthia.ttsr` does (owner: "refuse")
 

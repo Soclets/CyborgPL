@@ -63,7 +63,9 @@ Owner, 2026-09-14.
   "refuse", as `Synthia.ttsr`); today that is `aarch64-macos` alone, so a
   cross target and its `runner` wait until CCA builds for one. A lone target marked `default = false` means the
   Limb has no default: a compile that names no target on the command line
-  errors, and one that names it builds (owner, 2026-09-30). `version` is any text, at most 256 bytes
+  errors, and one that names it builds (owner, 2026-09-30). A target is
+  named with `--target <name>`: `cca build --target aarch64-macos`
+  (owner: "yea"). `version` is any text, at most 256 bytes
   (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
   front of `::`** to reach this Limb, picked by its maker and apart from
   its `name` (owner, 2026-09-29: "yea", then b): `const 'prefix' :=
