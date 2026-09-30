@@ -77,8 +77,10 @@ Owner, 2026-09-14.
   alternatives: `build-script`, `run-build`. Compiler claude's four
   suggestions, accepted by the owner: `cca prepare` acts on the Limb in
   the current directory, or a folder given as `cca run` takes one; a name is
-  a dependency's prefix, or the Limb's own (at first "local name"; the
-  prefix replaced it, owner 2026-09-29); a `build.cplr` runs in its own Limb's folder; `--all` runs
+  a Limb's `name` (owner, 2026-09-30: "I think name's better"; at first
+  the local name, then briefly the prefix), and when two dependencies
+  share that name, `cca prepare` refuses and lists them by prefix (owner:
+  a); a `build.cplr` runs in its own Limb's folder; `--all` runs
   dependencies before the Limbs that use them, each once, stopping at the
   first that fails. Open: what a `build.cplr` may produce or pass to the
   build, and `cca prepare` with no names (refused until ruled). A

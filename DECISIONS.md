@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — `cca prepare` names Limbs by their `name`; a shared name is refused, listing the prefixes (owner: a)
+
+After the prefix replaced the local name, `cca prepare`'s names had become
+prefixes (design claude's reading, 2026-09-29). The owner: "Shouldn't it
+be name, not prefix?". Design claude recommended the prefix, being
+unique in a build and one word; the owner: "I think name's better,
+because why would there even be a name? Only for search?", then made names
+strict (entry below). For two dependencies sharing a name, proposed (a)
+refuse and list the matching Limbs by prefix, (b) run all of them, (c) make
+a shared name an error for the whole build. Design claude recommended a;
+the owner: "`a`". Open: how the refusal's user then picks one (design
+claude's option said "run it again more precisely"; by prefix is the
+likely form, unruled), and compiler claude's folder-or-name question.
+
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
 
 The module-name rule for `name` (2026-09-29, entry below) had as its reason
