@@ -142,6 +142,9 @@ them with a hint to write `./`; design claude recommended accepting them;
 the owner: "yea"). Names come before `--prefix`, and every word after it is a
 prefix, once per command: `cca prepare --prefix geo2 money` is refused
 (compiler claude's provisional pick; design claude recommended keeping
+it; the owner: "yea"). The Limbs run in the order written, each once, whether named
+by name or by prefix (`--all` orders them itself, dependencies first)
+(compiler claude's provisional pick; design claude recommended keeping
 it; the owner: "yea").
 
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
