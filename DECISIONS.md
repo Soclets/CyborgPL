@@ -23,9 +23,13 @@ byte printed `héllo` as `hÃ©llo`). Only `utf8` reads bytes so far
 (`to.str.ascii` from bytes is refused as undecided). This settles C's
 text: walked by hand into a list, converted once — `examples/args.cpls`
 now prints `héllo` and `🍎` whole. `examples/bytes_to_text.cpls`; reject
-tests bytes_to_text_needs_otherwise, bytes_to_ascii. A list of wider
-integers still converts to its printed form (`[1, 2]`), the oracle's
-accident, unasked.
+tests bytes_to_text_needs_otherwise, bytes_to_ascii. A list of any
+other element type converted to its printed form (`"[1, 2]"`), the
+oracle's accident; asked, proposed (a) keep it, (b) refuse it, the writer
+joining items with `++` or printing the list; design claude recommended
+b, since `[104, 105]` would be `"hi"` as bytes and `"[104, 105]"` as
+`int32`s. The owner: "`b`". **Only a list or array of `uint8` converts
+to text**; reject test list_to_text.
 
 ### 2026-09-30 — A pointer changes what it points at with `ptr.cast[T]['p']` (owner: a)
 

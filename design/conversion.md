@@ -53,7 +53,9 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   the two bytes 195, 169). Only `utf8` reads bytes so far. C's text is
   walked by hand into such a list, then converted once
   (`examples/args.cpls`); a one-call shortcut is std's to write.
-  `examples/bytes_to_text.cpls`.
+  `examples/bytes_to_text.cpls`. **Any other list or array is not text**
+  (owner, 2026-09-30: b): no `"[1, 2]"`; join the items with `++`, or
+  print the list.
 - **`++` takes text on both sides.** This closes the language's last
   implicit conversion (two cold readers flagged it): `"n=" ++ 'n'` is an
   error pointing at `to.str.utf8`. `print`/`print.useful` still render any value
