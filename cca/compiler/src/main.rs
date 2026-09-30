@@ -354,7 +354,7 @@ fn prepare(rest: &[String]) {
 }
 
 /// `--target <name>` taken out of a command's words: the target to build,
-/// one the Limb lists (provisional spelling; the owner left it to CCA).
+/// one the Limb lists (owner, 2026-09-30).
 fn take_target(args: &[String]) -> (Vec<String>, Option<String>) {
     let mut rest = Vec::new();
     let mut target = None;
