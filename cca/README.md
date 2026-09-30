@@ -160,8 +160,11 @@ Dated, with the alternative, so each can become a question later.
 - **2026-09-22 — The solver budget is 10,000,000 `rlimit`.** A step
   count, never a clock, so the same program gives the same answer on
   every machine (`precog.md`). It rides in the query text as
-  `(set-option :rlimit …)`, which both Z3 and CVC5 honour, so no member
-  of the portfolio is held to a budget the others were not. Alternative:
+  `(set-option :rlimit …)`, which both Z3 and CVC5 honour. CVC5 counts
+  far coarser steps than Z3 — a query Z3 answered in 0.04 s at 10,000,000
+  kept CVC5 working for minutes at that number — so since 2026-09-30 it
+  is asked with its own 1,000,000, about the same work, still a step
+  count. Both members are always asked, to their own budgets. Alternative:
   a wall-clock timeout, which would make a proof depend on what else the
   machine was doing.
 - **2026-09-22 — CVC5 installed by hand.** Homebrew has no `cvc5`

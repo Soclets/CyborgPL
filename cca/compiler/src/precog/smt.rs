@@ -33,6 +33,11 @@ pub const UNROLL_PER_LOOP: u32 = 16;
 pub const UNROLL_TOTAL: usize = 64;
 /// Provisional: the solver's own step budget, never a clock.
 pub const RLIMIT: u64 = 10_000_000;
+/// CVC5's, in its own steps, which are far coarser than Z3's: a query Z3
+/// answered in 0.04 s at 10,000,000 had CVC5 working for minutes at the
+/// same number, and 1,000,000 of CVC5's took 2.7 s (a word-reading loop,
+/// 2026-09-30). Still a step count, so still the same answer everywhere.
+pub const CVC5_RLIMIT: u64 = 1_000_000;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Answer {
@@ -111,13 +116,21 @@ fn run(s: &Solver, q: &Query) -> Answer {
     // is stopped halfway used to leave its queries in the temp directory,
     // some of them megabytes. `CCA_KEEP_SMT=1` still writes each one out,
     // for reading. The step budget rides in the query itself
-    // (`set-option :rlimit`), so every member is held to the same one.
+    // (`set-option :rlimit`): Z3's `RLIMIT`, and CVC5's own `CVC5_RLIMIT`
+    // in its coarser steps.
+    let cvc5_text;
+    let text: &str = if s.name == "CVC5" {
+        cvc5_text = q.text.replacen(&format!("(set-option :rlimit {})", RLIMIT), &format!("(set-option :rlimit {})", CVC5_RLIMIT), 1);
+        &cvc5_text
+    } else {
+        &q.text
+    };
     if std::env::var("CCA_KEEP_SMT").is_ok() {
         static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let dir = std::env::temp_dir().join("cca-smt");
         let _ = std::fs::create_dir_all(&dir);
-        let _ = std::fs::write(dir.join(format!("q{}-{}-{}.smt2", std::process::id(), n, s.name)), &q.text);
+        let _ = std::fs::write(dir.join(format!("q{}-{}-{}.smt2", std::process::id(), n, s.name)), text);
     }
     let mut cmd = std::process::Command::new(s.program);
     match s.name {
@@ -132,7 +145,7 @@ fn run(s: &Solver, q: &Query) -> Answer {
     let Ok(mut child) = cmd.spawn() else { return Answer::Unknown };
     if let Some(mut input) = child.stdin.take() {
         use std::io::Write as _;
-        let _ = input.write_all(q.text.as_bytes());
+        let _ = input.write_all(text.as_bytes());
     }
     let Ok(out) = child.wait_with_output() else { return Answer::Unknown };
     let text = String::from_utf8_lossy(&out.stdout).to_string();
