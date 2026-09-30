@@ -253,3 +253,4 @@ for_lend_mut 56
 lend_mut_through trap
 par_folds 47
 bin_sum_long trap
+par_range_sum 85

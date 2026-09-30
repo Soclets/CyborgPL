@@ -1,0 +1,18 @@
+# Sums over a `range` with a constant step: Precog bounds each total by its
+# start plus the trips times the largest term (a bin's with room for its
+# rounding), so both adds are proven and both loops run in slices.
+# 300000 x 0.5 = 150000, and the i x i mod 7 terms total 599999: 600149 mod 256 = 85.
+extern fn exit ['code': int32];
+MAIN {
+    'n': int64 = 300000;
+    mut 'half': bin64 = 0.0;
+    for 'i': int64 in range[1, 'n'] {
+        change 'half' = 'half' + 0.5;
+    }
+    mut 'acc': int64 = 0;
+    for 'i': int64 in range[1, 'n'] {
+        change 'acc' = 'acc' + (('i' x 'i') mod 7);
+    }
+    'h': int32 = to.int32['half' div 1000.0] otherwise 1;
+    nocheck exit[to.int32[('acc' + to.int64['h']) mod 256]];
+}

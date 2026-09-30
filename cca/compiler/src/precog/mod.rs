@@ -2667,21 +2667,47 @@ struct Counted {
 /// can happen many times a trip, so nothing written there is counted.
 fn counted_loop(f: &crate::mir::Function, head: usize, latch: usize, body: &[usize], inner: &std::collections::HashSet<usize>) -> Option<Counted> {
     let inside = |b: usize| body.contains(&b);
-    // The head tests `c <= bound` and goes into the loop when it holds.
     let hb = &f.blocks[head];
-    let Terminator::If { cond: Operand::Read(cv), then, else_ } = &hb.term else { return None };
-    if !cv.proj.is_empty() || !inside(then.0 as usize) || inside(else_.0 as usize) {
-        return None;
-    }
-    let mut test = None;
-    for (si, s) in hb.stmts.iter().enumerate() {
-        if let StmtKind::Assign { place, rvalue: Rvalue::Binary { op, lhs: Operand::Read(c), rhs } } = &s.kind {
-            if place.local == cv.local && place.proj.is_empty() && c.proj.is_empty() && matches!(op, BinOp::Le | BinOp::Lt) {
-                test = Some((c.local, rhs.clone(), *op == BinOp::Lt, si));
+    // A `for` over a `range` with a step that is a constant above 0: MIR
+    // says which local counts and where it stops, and its lowering goes
+    // up by the step while the step still fits below the stop — at most
+    // (stop - first) / step + 1 trips, as for the loops below.
+    let range_step = f.fors.iter().find(|fl| fl.head.0 as usize == head).and_then(|fl| {
+        let s = fl.step?;
+        let mut k = None;
+        for blk in &f.blocks {
+            for st in &blk.stmts {
+                match &st.kind {
+                    StmtKind::Assign { place, rvalue } if place.local == s => {
+                        k = match (k, rvalue) {
+                            (None, Rvalue::Use(Operand::Const(Const::Int(v)))) if *v > 0 => Some(*v),
+                            _ => return None,
+                        };
+                    }
+                    _ => {}
+                }
             }
         }
-    }
-    let (counter, bound, strict, _) = test?;
+        Some((fl.counter, fl.stop, k?))
+    });
+    let (counter, bound, strict) = if let Some((c, stop, _)) = range_step {
+        (c, Operand::Read(Place::local(stop)), false)
+    } else {
+        // The head tests `c <= bound` and goes into the loop when it holds.
+        let Terminator::If { cond: Operand::Read(cv), then, else_ } = &hb.term else { return None };
+        if !cv.proj.is_empty() || !inside(then.0 as usize) || inside(else_.0 as usize) {
+            return None;
+        }
+        let mut test = None;
+        for s in hb.stmts.iter() {
+            if let StmtKind::Assign { place, rvalue: Rvalue::Binary { op, lhs: Operand::Read(c), rhs } } = &s.kind {
+                if place.local == cv.local && place.proj.is_empty() && c.proj.is_empty() && matches!(op, BinOp::Le | BinOp::Lt) {
+                    test = Some((c.local, rhs.clone(), *op == BinOp::Lt));
+                }
+            }
+        }
+        test?
+    };
     // Where the bound comes from, if the head computes it, and that nothing
     // in the body can change it.
     let mut bound_src: Option<LocalId> = None;
@@ -2783,10 +2809,18 @@ fn counted_loop(f: &crate::mir::Function, head: usize, latch: usize, body: &[usi
     // The counter: one write, `c = c + k` with k a positive constant, on
     // every way round — so the trips are bounded by how far it can go.
     let cw = writes.get(&counter)?;
-    let [Some((_, Operand::Const(Const::Int(k)), _))] = cw.as_slice() else { return None };
-    if *k <= 0 || !counter_block.map_or(false, on_every_trip) {
-        return None;
-    }
+    let k = match range_step {
+        // The range's own increment, its only write.
+        Some((_, _, k)) if cw.len() == 1 => k,
+        Some(_) => return None,
+        None => {
+            let [Some((_, Operand::Const(Const::Int(k)), _))] = cw.as_slice() else { return None };
+            if *k <= 0 || !counter_block.map_or(false, on_every_trip) {
+                return None;
+            }
+            *k
+        }
+    };
     if let Some(src) = bound_src {
         if writes.contains_key(&src) {
             return None;
@@ -2802,7 +2836,7 @@ fn counted_loop(f: &crate::mir::Function, head: usize, latch: usize, body: &[usi
         .collect();
     // One append a trip and no other change: the list's only write is it.
     let grows = appends.iter().filter(|(l, n)| **n == 1 && writes.get(*l).map_or(false, |w| w.len() == 1)).map(|(l, _)| *l).collect();
-    Some(Counted { counter, step: *k, bound, strict, accs, grows })
+    Some(Counted { counter, step: k, bound, strict, accs, grows })
 }
 
 /// The constants a function mentions, each with its neighbours, and below a
