@@ -97,8 +97,9 @@ Owner, 2026-09-14.
   names first and every word after `--prefix` a prefix (owner: "yea"),
   run in the order written, each once (owner: "yea"); a `build.cplr` runs in its own Limb's folder; `--all` runs
   dependencies before the Limbs that use them, each once, stopping at the
-  first that fails. Open: what a `build.cplr` may produce or pass to the
-  build, and `cca prepare` with no names (refused until ruled). A
+  first that fails. With no names it is refused, saying to name Limbs or use
+  `--all` (owner, 2026-09-30: a). Open: what a `build.cplr` may produce or
+  pass to the build. A
   **`cca::Dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
   was dropped when the prefix became the Limb's own):

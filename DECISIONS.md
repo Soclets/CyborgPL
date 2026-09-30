@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — `cca prepare` with no names is refused (owner: a)
+
+Open since 2026-09-29: `cca prepare`, or a folder alone (`cca prepare
+./money`), with no names. Proposed (a) refuse, saying to name Limbs or use
+`--all`, as the owner's "either run specific ones, or run everything";
+(b) run this Limb's own `build.cplr`, design claude's pick; (c) the same
+as `--all`. The owner: "`a`".
+
 ### 2026-09-30 — A lone target marked `default = false` means no default: a compile naming no target errors (owner)
 
 Synthia claude found it: a lone target marked `default = no` (`false`) was
