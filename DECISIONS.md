@@ -132,7 +132,10 @@ it; the owner, 2026-09-30: "yea"). Names and `--prefix` mix in one command: `cca
 owner: "yea"). The folder comes first, as the program does in `cca run`:
 `cca prepare geometry ../app` is refused, "the folder comes first"
 (compiler claude's provisional pick; design claude recommended keeping
-it; the owner: "yea").
+it; the owner: "yea"). A bare `.` or `..` is a folder too, the one exception to the
+`/` rule, since no Limb can be named that (compiler claude had refused
+them with a hint to write `./`; design claude recommended accepting them;
+the owner: "yea").
 
 ### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
 
