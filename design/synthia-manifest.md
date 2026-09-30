@@ -86,7 +86,13 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   prefix does what a CCA user does by hand (owner, 2026-09-29: "Synthia
   just does what the CyborgPL programmer had to do"): it copies that Limb
   into a folder of its own, changes the `prefix` in the copy, and hands
-  CCA an ordinary path dependency. The override line's spelling is open.
+  CCA an ordinary path dependency. The override is a dotted `prefix` line
+  on the needed Limb's key (owner, 2026-09-30: "Prefix shall be narrowed
+  using a dot", "yea"): `money.path = ../money` with `money.prefix =
+  cash2`, and code writes `cash2::`. The key (`money`) is this
+  manifest's label for the Limb, following the name rule; without a
+  `prefix` line code writes the Limb's own prefix. Open: where the copy
+  lives.
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
   Limb's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,

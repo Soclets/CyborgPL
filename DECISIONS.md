@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Synthia's prefix override is a dotted `prefix` line on the needed Limb's key (owner: "Prefix shall be narrowed using a dot", "yea")
+
+Relayed by synthia claude. Proposed: (a) the word before the dot is
+always what code writes (`cash2.path = ../money`); (b) that word is this
+manifest's label for the needed Limb, and a `prefix` line overrides.
+Synthia claude recommended (a). The owner: "Prefix shall be narrowed using
+a dot"; asked whether that means (b): "yea".
+
+```
+[my needed things]
+money.path = ../money
+money.prefix = cash2
+```
+
+Code writes `cash2::`; Synthia copies `money`, sets `prefix = cash2` in the
+copy and hands CCA the copy (entry of 2026-09-29, 6bdcb33). Without the
+line, code writes `money`'s own prefix. The label (`money`) keeps the name
+rule. Open: where the renamed copy lives (synthia claude's, next).
+
 ### 2026-09-30 — `cca prepare` names Limbs by their `name`; a shared name is refused, listing the prefixes (owner: a)
 
 After the prefix replaced the local name, `cca prepare`'s names had become
