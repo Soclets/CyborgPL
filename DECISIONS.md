@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — A lone target marked `default = false` means no default: a compile naming no target errors (owner)
+
+Synthia claude found it: a lone target marked `default = no` (`false`) was
+still the default by itself. Proposed (a) refuse the manifest when read;
+(b) `false` means this Limb has no default, so only a compile that names
+no target errors. Design claude recommended (a), since several targets
+must have exactly one default. The owner: "`default = false` should error
+when building?", "No, when compiling", and, asked which of `cca build`
+with no target and with the target named errors: "no CLI target
+specified with def false errors" — (b). Reading the manifest (`synthia
+show`, the oracle's runs, which name no target) does not complain. The
+several-targets rule (exactly one `default = true`) stands.
+
 ### 2026-09-30 — `CCA.cplr` refuses a target CCA cannot build, as `Synthia.ttsr` does (owner: "refuse")
 
 Compiler claude asked: CCA refused only a default target it could not
