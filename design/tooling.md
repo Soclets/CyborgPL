@@ -98,8 +98,11 @@ Owner, 2026-09-14.
   run in the order written, each once (owner: "yea"); a `build.cplr` runs in its own Limb's folder; `--all` runs
   dependencies before the Limbs that use them, each once, stopping at the
   first that fails. With no names it is refused, saying to name Limbs or use
-  `--all` (owner, 2026-09-30: a). Open: what a `build.cplr` may produce or
-  pass to the build. A
+  `--all` (owner, 2026-09-30: a). A `build.cplr` is an ordinary program with
+  no limits (owner, 2026-09-30: "It's for fun. You can make a malware
+  payload, or be a good person …"): the build has no channel from it, and
+  it can reach Limbs (owner: "it can access a limb, though"); which, and
+  how, are open. A
   **`cca::Dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
   was dropped when the prefix became the Limb's own):

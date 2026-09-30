@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — `build.cplr` is an ordinary program, with no limits, and it can reach Limbs (owner)
+
+Open since 2026-09-29: what a `build.cplr` may produce or pass to the
+build. The owner: "It's for fun. You can make a malware payload, or be a
+good person by making an auto set up that activates when activated."
+Design claude restated: no special powers and no limits — what it does,
+it does as any program does, through files and the system, and the build
+has no channel from it (a `.cpls` it writes is simply there for the next
+build); the safety is that it never runs by itself, and `cca prepare
+--all` is a deliberate trust of every dependency's, as the registry
+promises no freedom from malware. The owner: "yea, but it can access a
+limb, though. If it's turing complete" — overturning compiler claude's
+provisional pick that a `build.cplr` sees none of its Limb's code. Open:
+which Limbs it reaches (its own, its Limb's dependencies) and how it
+writes them; and whether it takes command-line words.
+
 ### 2026-09-30 — The std Limb will be written in CyborgPL by a new session, not soon (owner)
 
 The owner: "a new Claude will be writing the stdlimb in CyborgPL." This
