@@ -30,7 +30,13 @@ is left alone: Synthia refuses to write, saying to delete or move it, and
 a command overrides that (relayed by synthia claude; proposed (a) refuse,
 (b) overwrite, (c) back it up to `.synthia/` and overwrite; synthia claude
 recommended a; the owner: "`a`, and there should be an override command").
-Open: that command's name (synthia claude's, next).
+The command is **`synthia takeover`** (relayed by synthia claude;
+proposed (a) `takeover`, (b) `overwrite`, (c) `claim`; synthia claude
+recommended a, a one-time handover; the owner: "`a`"): it writes
+`CCA.cplr` from `Synthia.ttsr`, replacing any file there, and the header
+marks it Synthia's from then on. A `CCA.cplr` is Synthia's when its first
+line begins `# Written by Synthia`. Its success message is synthia
+claude's provisional wording.
 
 ### 2026-09-30 — A `Synthia.ttsr` target's `default` is `yes` or `no` (owner: b)
 
