@@ -124,6 +124,8 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   no word (`cca::Dep[id = "…", version = "1.2"]`); see `tooling.md`. The
   `Synthia.ttsr` side is synthia claude's to ask.
 
+- **`default` is `yes` or `no`** (owner, 2026-09-30: b), as `CCA.cplr`'s
+  `true` or `false`.
 - **A target must be one CCA can build** (owner, 2026-09-29: "Only
   what's actually doable"), from CCA's own list, not any
   `architecture-system` name.

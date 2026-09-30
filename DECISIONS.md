@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — A `Synthia.ttsr` target's `default` is `yes` or `no` (owner: b)
+
+Relayed by synthia claude. Proposed: (a) only `yes`, the line left out
+for "not the default"; (b) `yes` or `no`, as `CCA.cplr`'s `true` or
+`false`. Synthia claude recommended (a). The owner: "`b`". Open, the same
+in both manifests: a lone target marked `default = no` (`false`) is still
+the default by itself, as the oracle counts defaults only among several;
+whether that contradiction is refused has not been asked.
+
 ### 2026-09-30 — A renamed copy lives in the project, in Synthia's own `.synthia/` folder (owner: a)
 
 Relayed by synthia claude. Where the copy made by `money.prefix = cash2`
