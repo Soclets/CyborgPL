@@ -48,6 +48,10 @@ the owner explicitly chooses it.
   the website session, which updates it only when the owner says so.
   cyborgpl.dev is live as a one-line placeholder (`website/placeholder/`,
   Cloudflare); the real site is not being built for now (owner, 2026-09-24).
+- `bench/` — CyborgPL against every other language installed here (the owner's
+  own languages excepted, contributed-to ones like Lust included), the same four
+  programs each, checked against C's answers (owner, 2026-09-30). The design
+  session's; `python3 bench/run.py`, results in `bench/RESULTS.md`.
 - `oracle/` — the reference interpreter (Rust): the executable spec. It
   implements only what `design/` decides and refuses the rest. When a note
   and the oracle disagree, fix whichever is wrong and add a test. Its

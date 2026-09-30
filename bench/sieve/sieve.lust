@@ -1,0 +1,23 @@
+local n: int = {{N}}
+local comp: Array<bool> = []
+local i: int = 0
+while i <= n do
+    array.push(comp, false)
+    i = i + 1
+end
+local count: int = 0
+local p: int = 2
+while p <= n do
+    if comp[p] is Ok(c) then
+        if not c then
+            count = count + 1
+            local m: int = p * p
+            while m <= n do
+                comp[m] = true
+                m = m + p
+            end
+        end
+    end
+    p = p + 1
+end
+println(count % 256)

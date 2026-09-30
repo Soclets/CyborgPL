@@ -1,0 +1,8 @@
+local n: int = {{N}}
+local acc: int = 0
+local i: int = 1
+while i <= n do
+    acc = (acc + (i * i) % 7) % 1000000007
+    i = i + 1
+end
+println(acc % 256)

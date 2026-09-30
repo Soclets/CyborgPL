@@ -1,0 +1,5 @@
+n <- suppressWarnings(as.numeric(Sys.getenv("N")))
+if (is.na(n) || n < 0 || n > 92) quit(status = 2)
+options(expressions = 500000)
+fib <- function(k) if (k < 2) k else fib(k - 1) + fib(k - 2)
+quit(status = fib(n) %% 256)
