@@ -354,6 +354,9 @@ print_format_u [fnv:ad5ce70c98510511] :: !pending
 printf_renamed [fnv:1732984806b6cbb0] :: std::printf.stdout is spelled std::print.format.stdout now
 printu_renamed [fnv:a2613067643c96b3] :: std::printu.stdout is spelled std::print.useful.stdout now
 ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_null`
+ptr_cast_keeps_readonly [fnv:8094e2137b68463e] :: `ptr.write` needs a `ptr.mut`
+ptr_cast_needs_nocheck [fnv:e2d596a2bd4a2610] :: `ptr.cast` says the bytes are a different type
+ptr_cast_not_c [fnv:4cf595f3bcc2be7a] :: casts only to a C-shaped type
 ptr_declared [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.c` field
 ptr_in_let_still_refused [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.c` field
 ptr_lend_mut_needed [fnv:ed12d99652ef7144] :: C may write through it, so write `lend.mut`

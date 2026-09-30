@@ -2188,6 +2188,21 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::Channel { elem, bound }, span })
                 }
+                // `ptr.cast[T]['p']` (owner, 2026-09-30: a); the other
+                // `ptr.` operations are ordinary calls.
+                "ptr" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "cast") => {
+                    self.bump();
+                    self.bump();
+                    self.bump();
+                    self.expect(&Tok::LBracket, "`[` and the type it points at, after `ptr.cast`: `ptr.cast[Point]['p']`")?;
+                    let ty = self.type_()?;
+                    self.expect(&Tok::RBracket, "`]`")?;
+                    self.expect(&Tok::LBracket, "`[` and the pointer: `ptr.cast[Point]['p']`")?;
+                    let value = self.expr(0)?;
+                    self.expect(&Tok::RBracket, "`]`")?;
+                    let span = start.to(self.prev_span());
+                    Ok(Expr { kind: ExprKind::PtrCast { ty, value: Box::new(value) }, span })
+                }
                 "size" | "align" => {
                     self.bump();
                     if !self.eat(&Tok::Dot) {

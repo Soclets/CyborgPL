@@ -1,0 +1,23 @@
+# `ptr.cast[T]['p']` sees the same address as pointing at a T (owner,
+# 2026-09-30: a): malloc's bytes as a `layout.c` Point, written and read
+# whole, then as int32s one at a time. 3 x 10 + 4 = 34, and the second
+# int32 is y, 4: 34 + 4 = 38.
+extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern fn free ['p': ptr.mut[uint8]];
+extern fn exit ['code': int32];
+
+layout.c struct Point {
+    x: int32
+    y: int32
+}
+
+MAIN {
+    nocheck 'raw' := malloc[size.of[Point]];
+    nocheck 'p' := ptr.cast[Point]['raw'];
+    nocheck ptr.write['p', Point[x = 3, y = 4]];
+    nocheck 'q' := ptr.read['p'];
+    nocheck 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
+    'code' := 'q'.x x 10 + 'q'.y + 'second';
+    nocheck free['raw'];
+    nocheck exit['code'];
+}

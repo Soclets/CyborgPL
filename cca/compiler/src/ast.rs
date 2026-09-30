@@ -304,6 +304,9 @@ pub enum ExprKind {
     Pos(Box<Expr>),
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
+    /// `ptr.cast[T]['p']`: the same address, seen as pointing at a T
+    /// (owner, 2026-09-30: a).
+    PtrCast { ty: Type, value: Box<Expr> },
     /// `pos i` where an argument goes: a position, not a value
     /// (`simd.load[lend 'xs', 'i']`).
     /// `range[start, stop, step]` — only what a `for` runs over.

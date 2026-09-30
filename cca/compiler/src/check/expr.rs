@@ -179,6 +179,33 @@ impl Checker {
                 }
                 Ok(Expr { kind: K::SizeOf { align: *align, ty: t }, ty: Ty::u64(), span })
             }
+            AK::PtrCast { ty, value } => {
+                // Nothing proves what the bytes are (owner, 2026-09-30).
+                if !ctx.tier.is_some_and(ast::Tier::trusts) {
+                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a nocheck site: write `nocheck` in front of the statement").at(span));
+                }
+                let mut blanks = Vec::new();
+                let t = self.items.resolve_type(ty, ctx.module, &mut blanks, true)?;
+                if t.contains_var() || !blanks.is_empty() {
+                    return err(Diagnostic::error("`ptr.cast` takes a concrete type: a blank has no layout").at(ty.span));
+                }
+                if !t.is_c_shaped(&self.items.structs, &self.items.enums) {
+                    let why = match t.base() {
+                        Ty::Struct { id, .. } => format!("struct `{}` is not `layout.c`; its layout is Precog's, not C's", self.items.structs[id.0 as usize].name),
+                        Ty::Enum { id, .. } => format!("enum `{}` is not `layout.c`; its layout is Precog's, not C's", self.items.enums[id.0 as usize].name),
+                        other => format!("`{}` is not C-shaped", self.spell(other)),
+                    };
+                    return err(Diagnostic::error(format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {}", why)).at(ty.span));
+                }
+                let v = self.expr(ctx, value)?;
+                let vt = self.resolve(&v.ty);
+                // Whether it may write stays as it was (owner, 2026-09-30: a).
+                let mutable = match vt.base() {
+                    Ty::Ptr { mutable, .. } => *mutable,
+                    other => return err(Diagnostic::error(format!("`ptr.cast` takes a pointer, and this is a `{}`: a pointer and a number never turn into each other", self.spell(other))).at(value.span)),
+                };
+                Ok(Expr { kind: K::PtrCast(Box::new(v)), ty: Ty::Ptr { mutable, elem: Box::new(t) }, span })
+            }
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
             AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),

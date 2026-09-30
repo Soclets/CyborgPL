@@ -1138,6 +1138,14 @@ impl<'a> FnBuilder<'a> {
                 None => Operand::Const(Const::Const(*c)),
             },
             hir::ExprKind::SizeOf { align, ty } => Operand::Const(Const::SizeOf { align: *align, ty: ty.clone() }),
+            // The same address in a temporary of the new pointer type, so
+            // what reads through it reads a whole T.
+            hir::ExprKind::PtrCast(v) => {
+                let o = self.eval(v, span);
+                let t = self.temp(&e.ty, span);
+                self.assign(Place::local(t), Rvalue::Use(o), span);
+                Operand::Read(Place::local(t))
+            }
             hir::ExprKind::Nothing => Operand::Const(Const::Nothing),
             hir::ExprKind::Local(l) => Operand::Read(Place::local(LocalId(l.0))),
             hir::ExprKind::Read(p) => {

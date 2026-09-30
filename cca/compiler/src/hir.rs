@@ -301,6 +301,8 @@ pub enum ExprKind {
     /// An anonymous function with its captures.
     FnLit { inst: FnInst, captures: Vec<CaptureBinding> },
     SizeOf { align: bool, ty: Ty },
+    /// The same address, at the expression's own pointer type.
+    PtrCast(Box<Expr>),
     /// Element `index` of a mixed variadic bundle (an unrolled walk).
     BundleElem { place: Place, index: usize },
     /// A range as a `for` iterable is a statement form; this never reaches MIR.
