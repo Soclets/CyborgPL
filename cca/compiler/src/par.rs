@@ -572,7 +572,13 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
             let r = match &s.kind {
                 StmtKind::Assign { place, rvalue } => {
                     let lent = matches!(f.locals[place.local.0 as usize].kind, LocalKind::Lent { .. });
-                    let binds = place.proj.is_empty() && lent && matches!(rvalue, Rvalue::Lend { .. } | Rvalue::Use(Operand::Read(_)));
+                    let binds = place.proj.is_empty()
+                        && lent
+                        && match rvalue {
+                            Rvalue::Lend { .. } => true,
+                            Rvalue::Use(Operand::Read(p)) => p.proj.is_empty() && matches!(f.locals[p.local.0 as usize].kind, LocalKind::Lent { .. }),
+                            _ => false,
+                        };
                     if !place.proj.is_empty() {
                         write_to(place, false)
                     } else if lent && !binds {

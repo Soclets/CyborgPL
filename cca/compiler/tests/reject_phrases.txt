@@ -191,6 +191,7 @@ fnval_wrong_return [fnv:13cc98448e4ae7f5] :: expected `apply`'s parameter 'f' (f
 fnval_wrong_shape [fnv:6250f1a435863168] :: expected `apply`'s parameter 'f' (fn[int32, int32] -> int32), found a `fn[int32] -> int32`
 fnval_wrong_verb [fnv:e7a82c8acfe26976] :: expected `apply`'s parameter 'f' (fn[str.utf8] -> int32), found a `fn[lent str.utf8] -> int32`
 for_bare_list [fnv:18b1a4df3e7b57c4] :: `for 'i' in lend 'xs'` looks at each element, `give 'xs'` consumes the list
+for_lend_element_change [fnv:be5f6615821c3f27] :: 'x' belongs to the loop and cannot be changed
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`
 for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the position

@@ -832,7 +832,15 @@ impl<'a> FnBuilder<'a> {
             Operand::Move(_) => LocalKind::Owned,
             _ => LocalKind::Lent { mutable: false },
         };
-        self.assign(Place::local(seq), Rvalue::Use(iter_op), span);
+        // A borrow is bound by a lend, or by another borrow passed along;
+        // a plain read into a borrow writes *through* it (`codegen`: the
+        // store into `for 'x' in lend.mut 'xs'`'s 'x'). A walk over a value
+        // made for it (`str.each.byte[…]`) borrows that value, so it says so.
+        let rv = match &iter_op {
+            Operand::Read(p) if !matches!(self.locals[p.local.0 as usize].kind, LocalKind::Lent { .. }) => Rvalue::Lend { place: p.clone(), mutable: false },
+            _ => Rvalue::Use(iter_op),
+        };
+        self.assign(Place::local(seq), rv, span);
 
         let u64_ty = Ty::u64();
         let len = self.temp(&u64_ty, span);

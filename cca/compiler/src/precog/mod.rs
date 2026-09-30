@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), borrows: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -316,6 +316,10 @@ struct Precog {
     /// Each operand's own values at an exact instruction, joined like
     /// `ranges` — what parallel `for` asks of a fold's term (`crate::par`).
     operand_ranges: HashMap<(usize, usize, usize), Option<[(i128, i128); 2]>>,
+    /// What a borrowed local of a function points at, as a place of a
+    /// local that is not itself a borrow: a write through the borrow is a
+    /// write there (`for 'x' in lend.mut 'xs'`, owner 2026-09-30).
+    borrows: HashMap<(usize, LocalId), Place>,
     /// Counted loops: the state each head was entered with from outside
     /// (joined), the largest value its bound took, and the range of what
     /// each accumulator adds per trip (joined over every visit).
@@ -859,6 +863,7 @@ impl Precog {
                                 }
                             }
                         }
+                        self.through_borrow(f, &mut env, place, rvalue, &d);
                         self.store(f, &mut env, place, d);
                         lengths.retain(|k, (_, p)| *k != place.local && p.local != place.local);
                     }
@@ -1209,6 +1214,63 @@ impl Precog {
             Const::Nothing => Domain::Any,
         }
         .clone_with(f)
+    }
+
+    /// A store into a borrowed local: binding it (a lend, or another
+    /// borrow passed along) says where it points; anything else is written
+    /// where it points. Precog wrote only the borrow, so a list changed
+    /// through `for 'x' in lend.mut` kept its old elements here, and a
+    /// narrowing of one was "proven" (`'xs'[1] x 50` into an int8 after
+    /// the 2s became 6s).
+    fn through_borrow(&mut self, f: usize, env: &mut Env, place: &Place, rvalue: &Rvalue, d: &Domain) {
+        let func = &self.prog().functions[f];
+        let lent = |l: LocalId| matches!(func.locals[l.0 as usize].kind, LocalKind::Lent { .. });
+        if !place.proj.is_empty() || !lent(place.local) {
+            return;
+        }
+        let is_param = func.params.contains(&place.local);
+        match rvalue {
+            Rvalue::Lend { place: t, .. } => {
+                match self.borrow_root(f, t) {
+                    Some(r) => self.borrows.insert((f, place.local), r),
+                    None => self.borrows.remove(&(f, place.local)),
+                };
+            }
+            Rvalue::Use(Operand::Read(p)) if p.proj.is_empty() && lent(p.local) => {
+                match self.borrows.get(&(f, p.local)).cloned() {
+                    Some(r) => self.borrows.insert((f, place.local), r),
+                    None => self.borrows.remove(&(f, place.local)),
+                };
+            }
+            _ => match self.borrows.get(&(f, place.local)).cloned() {
+                Some(t) => self.store(f, env, &t, d.clone()),
+                // A borrowed parameter: what it points at is the caller's,
+                // and nothing else here can reach it.
+                None if is_param => {}
+                // Where it points is not known: nothing that could hold the
+                // value is known any more.
+                None => {
+                    let keep: Vec<LocalId> = env.keys().copied().filter(|l| matches!(self.local_ty(f, *l).base(), Ty::Int(_) | Ty::Bin(_) | Ty::Bool | Ty::Char(_))).collect();
+                    env.retain(|l, _| keep.contains(l));
+                }
+            },
+        }
+    }
+
+    /// A place through any borrows, down to one that is not a borrow.
+    fn borrow_root(&self, f: usize, t: &Place) -> Option<Place> {
+        let func = &self.prog().functions[f];
+        let mut cur = t.clone();
+        for _ in 0..16 {
+            if !matches!(func.locals[cur.local.0 as usize].kind, LocalKind::Lent { .. }) {
+                return Some(cur);
+            }
+            let base = self.borrows.get(&(f, cur.local))?.clone();
+            let mut proj = base.proj.clone();
+            proj.extend(cur.proj.iter().cloned());
+            cur = Place { local: base.local, proj };
+        }
+        None
     }
 
     fn store(&mut self, f: usize, env: &mut Env, p: &Place, d: Domain) {

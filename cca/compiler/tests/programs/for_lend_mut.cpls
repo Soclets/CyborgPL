@@ -1,0 +1,24 @@
+# Over `lend.mut 'xs'`, the loop's element is the list's own: changing it
+# changes the list (owner, 2026-09-30: "the program looks legal to me").
+# [10, 20, 30] doubled sums to 120; 100000 twos made sixes, in slices,
+# sum to 600000, 192 mod 256; (120 + 192) mod 256 is 56.
+extern fn exit ['code': int32];
+MAIN {
+    mut 'prices': list[int32] = [10, 20, 30];
+    for 'x' in lend.mut 'prices' {
+        change 'x' = 'x' x 2;
+    }
+    'n': int64 = 100000;
+    mut 'xs': list[int64] = list.fill[2, 'n'];
+    for 'x' in lend.mut 'xs' {
+        change 'x' = 'x' x 3;
+    }
+    mut 'total': int64 = 0;
+    for 'k': int64 in range[1, 3] {
+        change 'total' = 'total' + to.int64['prices'['k']];
+    }
+    for 'v' in lend 'xs' {
+        change 'total' = 'total' + 'v';
+    }
+    nocheck exit[to.int32['total' mod 256]];
+}

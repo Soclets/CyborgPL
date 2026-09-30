@@ -726,6 +726,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let binds_borrow = place.proj.is_empty()
                         && matches!(f.locals[place.local.0 as usize].kind, LocalKind::Lent { .. })
                         && !f.params.iter().any(|q| *q == place.local);
+                    // A borrow passed along is a read of another borrow; a
+                    // read of a plain value (`change 'x' = 'x' x 2` over
+                    // `lend.mut 'xs'`) writes *through* the borrow. Taking
+                    // every read for a rebinding pointed 'x' at the
+                    // temporary and left the list as it was (owner,
+                    // 2026-09-30, `for 'x' in lend.mut`).
+                    let binds_borrow = binds_borrow
+                        && match rvalue {
+                            Rvalue::Lend { .. } => true,
+                            Rvalue::Use(o) => o.place().is_some_and(|p| p.proj.is_empty() && matches!(f.locals[p.local.0 as usize].kind, LocalKind::Lent { .. })),
+                            _ => false,
+                        };
                     if binds_borrow {
                         let src = match rvalue {
                             Rvalue::Lend { place, .. } => Some(place.clone()),
