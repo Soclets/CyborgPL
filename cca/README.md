@@ -456,11 +456,12 @@ Dated, with the alternative, so each can become a question later.
   every word after it is a prefix, so `cca prepare --prefix geo2 money`
   and a second `--prefix` are refused. Picks beside them, still
   provisional: a named Limb with no `build.cplr` is refused, while `--all` passes
-  over those; it gets no command-line words (open, asked); and the
-  failing one's exit is cca's. Ruled (owner, 2026-09-30): each
-  `build.cplr` is an ordinary program with no limits and no channel into
-  the build, built as a program of its own with no language access to
-  its Limb's code — it reads a Limb's files as any program would; a Limb whose prefix differs from its name
+  over those; and the failing one's exit is cca's. Ruled (owner,
+  2026-09-30): each `build.cplr` is an ordinary program with no limits
+  and no channel into the build, built as a program of its own with no
+  language access to its Limb's code — it reads a Limb's files as any
+  program would — and given no command-line words: its settings come as
+  any program's do, from the environment or files; a Limb whose prefix differs from its name
   is shown as `geometry (prefix `geo2`)`. `--prefix` takes a comma list
   and mixes with names (owner, 2026-09-30): `cca prepare money --prefix
   geo2, geo3`.
