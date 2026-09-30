@@ -148,6 +148,12 @@ fn main_takes_the_command_line() {
     let src = dir().parent().unwrap().join("args/words.cpls");
     let r = Command::new(cca()).arg("run").arg(&src).arg("--").args(["apples", "3", "hello world"]).output().unwrap();
     assert_eq!(r.status.code(), Some(212), "the arguments did not arrive as C hands them over:\n{}", String::from_utf8_lossy(&r.stderr));
+    // Each word's bytes read as UTF-8 once (owner, 2026-09-30): a word past
+    // ASCII arrives whole, and bytes that are not UTF-8 fail `not_utf8`.
+    use std::os::unix::ffi::OsStrExt;
+    let src = dir().parent().unwrap().join("args/words_text.cpls");
+    let r = Command::new(cca()).arg("run").arg(&src).arg("--").arg("héllo").arg("ab").arg(std::ffi::OsStr::from_bytes(&[0xff])).output().unwrap();
+    assert_eq!(r.status.code(), Some(178), "the words' bytes were not read as UTF-8:\n{}", String::from_utf8_lossy(&r.stderr));
 }
 
 /// `cca test` (owner, 2026-09-29, `testing.md`): examples/testing.cpls

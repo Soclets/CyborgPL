@@ -70,6 +70,8 @@ bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound i
 bound_backwards [fnv:eaa53671d88b43f0] :: the low bound comes first: `[2, 5]`
 bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
 bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][3, 5]`)
+bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
+bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
 c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
 c_enum_number_missing [fnv:3721994c1fc31d28] :: of the C enum `K` says its number
 c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number

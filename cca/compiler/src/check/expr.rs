@@ -2499,6 +2499,13 @@ impl Checker {
             (Ty::Char(_), Ty::Int(_)) => return err(Diagnostic::error("a character does not convert to a number: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit) — `char.code[…]` gives the code, `to.int32[to.str.utf8[…]] otherwise …` the digit").at(span)),
             (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.point.from_code[…] otherwise …` builds one from a code").at(span)),
             (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`'n' !== 0`)").at(span)),
+            // Bytes read as text (owner, 2026-09-30: "yea"): UTF-8 only.
+            (Ty::Seq { elem, .. }, Ty::Str(enc)) if matches!(elem.base(), Ty::Int(IntW::Fixed { signed: false, bits: 8 })) => {
+                if *enc != Enc::Utf8 {
+                    return err(Diagnostic::error(format!("only `to.str.utf8` reads bytes as text (owner, 2026-09-30); `to.{}` from bytes is not decided — convert to utf8 first", target_spelling)).at(span));
+                }
+                fails.push("not_utf8");
+            }
             (_, Ty::Seq { .. }) => return err(Diagnostic::error("there is no conversion to a list").at(span)),
             // A number from C becomes a C enum only through a check (owner,
             // 2026-09-27): one no case has fails `out_of_range`.

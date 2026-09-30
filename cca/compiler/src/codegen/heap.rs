@@ -41,6 +41,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_int_to_text" => self.ctx.void_type().fn_type(&[p.into(), w.into(), w.into()], false),
             "cyborg_str_points" | "cyborg_str_graphemes" => w.fn_type(&[p.into(), w.into()], false),
             "cyborg_str_is_ascii" => self.ctx.i8_type().fn_type(&[p.into(), w.into()], false),
+            "cyborg_str_from_bytes" => self.ctx.i8_type().fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_str_decode_points" | "cyborg_str_split_graphemes" => w.fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_parse_bin" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), self.ctx.i32_type().into(), p.into()], false),
             "cyborg_char_to_text" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.i32_type().into()], false),
@@ -1326,6 +1327,36 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             (None, Arg::Value(Operand::Const(Const::Bool(_)))) => Ty::Bool,
             _ => return None,
         };
+        // Bytes read as UTF-8 (owner, 2026-09-30): a new text, or
+        // `not_utf8` with nothing made.
+        if let (Ty::Seq { .. }, Ty::Str(_), None) = (from.base(), to.base(), to.bound()) {
+            let place = match arg {
+                Arg::Value(Operand::Read(p) | Operand::Move(p)) | Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => p.clone(),
+                _ => return None,
+            };
+            let (slot, ty) = self.slot_of(fi, &place, slots)?;
+            let st = match self.ty(&ty)? {
+                BasicTypeEnum::StructType(s) => s,
+                _ => return None,
+            };
+            let data = self.load_field_ptr(st, slot, 0);
+            let n = self.load_field_int(st, slot, 1);
+            let text_ty = self.ty(to)?;
+            let out = self.stack(text_ty, "text").ok()?;
+            let f = self.rt("cyborg_str_from_bytes");
+            let status = basic_result(self.builder.build_call(f, &[out.into(), data.into(), n.into()], "status").ok()?)?.into_int_value();
+            let bad = self.builder.build_int_compare(IntPredicate::NE, status, self.ctx.i8_type().const_zero(), "not_utf8").ok()?;
+            let good = self.ctx.append_basic_block(func, "utf8");
+            let arm = fail.iter().find(|a| a.index == 0).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])?;
+            let _ = self.builder.build_conditional_branch(bad, arm, good);
+            self.builder.position_at_end(good);
+            if let Some(d) = dest {
+                let t = self.builder.build_load(text_ty, out, "t").ok()?;
+                self.store_place(fi, d, t, slots);
+            }
+            let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
+            return Some(());
+        }
         if let Ty::Str(_) = to.base() {
             return self.emit_bounded_text(fi, &from, to, arg, dest, ok, fail, blocks, slots, func);
         }

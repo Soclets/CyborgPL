@@ -264,6 +264,26 @@ pub unsafe extern "C" fn cyborg_str_concat(out: *mut Text, ap: *const u8, alen: 
     (*out).len = total;
 }
 
+/// Bytes read as UTF-8 (owner, 2026-09-30): a new text holding them, and
+/// 0; or 1, `not_utf8`, with nothing made.
+///
+/// # Safety
+/// `src` must point at `len` readable bytes, and `out` at a text to fill.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_str_from_bytes(out: *mut Text, src: *const u8, len: u64) -> u8 {
+    let b = if len == 0 { &[][..] } else { core::slice::from_raw_parts(src, len as usize) };
+    if core::str::from_utf8(b).is_err() {
+        return 1;
+    }
+    let p = cyborg_alloc(len);
+    if len != 0 {
+        memcpy(p, src, len as usize);
+    }
+    (*out).ptr = p;
+    (*out).len = len;
+    0
+}
+
 /// A second, independent text. A constant one is already independent —
 /// nothing can write to it — so it is handed back as it is.
 ///

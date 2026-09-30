@@ -30,7 +30,11 @@ fn main() {
 }
 
 fn real_main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+    // As the system hands them over: a program's own words (after `--`)
+    // may be any bytes, and `std::env::args` stops the compiler on one
+    // that is not UTF-8. CCA's own words are read as text.
+    let raw: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    let args: Vec<String> = raw.iter().map(|a| a.to_string_lossy().into_owned()).collect();
     let Some(cmd) = args.first() else { usage() };
     match cmd.as_str() {
         // "One Unicode version per build, recorded in the lock file beside the
@@ -141,7 +145,7 @@ fn real_main() {
             let mut assert_proofs = false;
             let mut final_build = false;
             let split = args.iter().position(|a| a == "--").unwrap_or(args.len());
-            let words: Vec<String> = args.get(split + 1..).map(|w| w.to_vec()).unwrap_or_default();
+            let words: Vec<std::ffi::OsString> = raw.get(split + 1..).map(|w| w.to_vec()).unwrap_or_default();
             let (rest, target) = take_target(&args[1..split]);
             for a in &rest {
                 match a.as_str() {
