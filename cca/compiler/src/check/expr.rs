@@ -696,7 +696,8 @@ impl Checker {
         }
         // A list literal's items take the element type as their context, as
         // a declaration's value does (owner, 2026-09-29: a).
-        self.items_in_context(&mut v, t.base());
+        // Items that took a bin or deci family change the list's type.
+        let vt = if self.items_in_context(&mut v, t.base())? { self.resolve(&v.ty) } else { vt };
         // And a `match` used as a value hands the type to each case's value
         // (check claude, 2026-09-29: a case's bare numbers were worked out
         // at 64 bits, and past it the asserted build printed 16 for 25).
@@ -1142,22 +1143,61 @@ impl Checker {
     /// with plain math between them are exact and checked where they land;
     /// a shift, `not.bit` or wrapping operator takes the element's width;
     /// a nested list passes its own element type down.
-    fn items_in_context(&mut self, v: &mut Expr, t: &Ty) {
-        let (K::List(items), Ty::Seq { elem, .. }) = (&mut v.kind, t) else { return };
+    fn items_in_context(&mut self, v: &mut Expr, t: &Ty) -> Result<bool> {
+        let (K::List(items), Ty::Seq { elem, .. }) = (&mut v.kind, t) else { return Ok(false) };
         let elem = self.resolve(elem);
+        let mut moved = false;
         for item in items.iter_mut() {
             let hir::Arg::Value(item) = item else { continue };
             match elem.base() {
-                Ty::Seq { .. } => self.items_in_context(item, &elem),
+                Ty::Seq { .. } => {
+                    moved |= self.items_in_context(item, &elem)?;
+                }
                 Ty::Int(IntW::Fixed { .. }) => {
                     if matches!(self.resolve(&item.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(item) && !matches!(item.kind, K::Int(_)) {
                         let to = if plain_group(item) { Ty::exact() } else { elem.base().clone() };
                         retype_literal_arith(item, &to);
                     }
                 }
+                // A bare whole number among bins is a bin, and bare numbers
+                // among decis are decimals, as in a declaration of one
+                // (`types.md`: a literal takes its context's family).
+                Ty::Bin(_) => {
+                    let lit = match &item.kind {
+                        K::Int(i) => Some(i.to_string()),
+                        K::Unary { op: UnOp::Neg, expr } => match &expr.kind {
+                            K::Int(i) => Some(format!("-{}", i)),
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                    if let Some(text) = lit {
+                        *item = Expr { kind: K::Bin(text), ty: elem.base().clone(), span: item.span };
+                        moved = true;
+                    }
+                }
+                Ty::Deci(bits) => {
+                    if !matches!(self.resolve(&item.ty).base(), Ty::Deci(_)) && deci_group(item) {
+                        into_deci(item, *bits)?;
+                        moved = true;
+                    }
+                }
                 _ => {}
             }
         }
+        // The list is then of the element type, when every item now is.
+        if moved {
+            let all = items.iter().all(|a| match a {
+                hir::Arg::Value(x) => self.resolve(&x.ty).base() == elem.base(),
+                _ => false,
+            });
+            if all {
+                if let Ty::Seq { kind, .. } = self.resolve(&v.ty).base().clone() {
+                    v.ty = Ty::Seq { elem: Box::new(elem.base().clone()), kind };
+                }
+            }
+        }
+        Ok(moved)
     }
 
     /// A vector whose lanes were left to its context (`simd.fill[…]`, and

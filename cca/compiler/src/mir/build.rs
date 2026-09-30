@@ -1668,6 +1668,13 @@ impl<'a> FnBuilder<'a> {
             Op::ListFill => {
                 let count = args.get(1).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(0)));
                 self.site(SiteKind::FillCount, vec![count], span);
+                // And the value fits what the list holds, as an append's
+                // does: `list.fill[300, 2]` is no `list[int8]`.
+                if let (Ty::Seq { elem, .. }, Some(a)) = (self.resolve_ty(ty).base().clone(), args.first()) {
+                    let have = self.arg_mir_ty(a);
+                    let o = arg_as_operand(a);
+                    self.narrow_arg(&o, &have, &elem, span);
+                }
             }
             // 1 <= first <= last + 1 <= length + 1 (`lists.md`).
             Op::ListSlice => {

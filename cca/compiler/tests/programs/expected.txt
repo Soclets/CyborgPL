@@ -254,3 +254,4 @@ lend_mut_through trap
 par_folds 47
 bin_sum_long trap
 par_range_sum 85
+list_literal_family 14

@@ -263,6 +263,7 @@ limb_registry_needs_id [fnv:59952df433346243] :: which knows a Limb by its ID
 limb_unlisted [fnv:7b3deec9ecbae94d] :: no Limb with the prefix `geometry`
 limb_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
+list_fill_too_big [fnv:8e5c8e7e946ba51c] :: the value can be outside what a `int8` holds
 list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `integer` and this value is text: convert it first
 list_to_text [fnv:0534c45cc9322638] :: a list is not text
