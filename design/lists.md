@@ -98,6 +98,12 @@ capacity in `types.md`.
 `[72, 95, 38]` — comma-separated values in a bracket. `[7,]` is a one-element
 list (`[7]` is the number seven). `[[1, 2], [3, 4]]` nests.
 
+A bare number in a literal takes its family from the other items (owner,
+2026-09-30: a): `[1, 2.5]` is a list of bins, the `1` a bin like the `2.5`
+beside it; a list still holds one element type. With `:=`, Precog picks
+list or array and the width, as ever. Proposed alternative: a mixed
+literal needs a declared type or `1.0`.
+
 ## Indexing — `'xs'[2]`, 1-based
 
 `'xs'[1]` is the first element; `'xs'[0]` does not exist and is an

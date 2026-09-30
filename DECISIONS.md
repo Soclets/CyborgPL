@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — In a list literal, a bare number takes its family from the other items (owner: a)
+
+Compiler claude's question. The oracle accepted `'xs' := [1, 2.5]` as
+bins, reading the other items as the `1`'s context, and CCA refused it,
+fixing the element type from the first item. types.md's "a bare literal
+takes the family of its context" did not say whether a list's other items
+count. Proposed (a) yes; (b) no, a mixed literal needs a declared type or
+`1.0`. Compiler claude and design claude recommended a. The owner asked
+whether lists.md allowed it (it said nothing) and whether it made a new
+type (no: a list still holds one element type, so the `1` becomes a bin).
+The owner: "`a`", and confirmed that with `:=` Precog still picks list or
+array and the width from the whole program. The oracle already did this.
+`examples/list_literal_mixed.cpls`; lists.md "Literals".
+
 ### 2026-09-30 — `std::print.useful.auto_newline` ends the line itself (owner)
 
 The owner, comparing the Hello World with Java's `System.out.println`,
