@@ -1319,11 +1319,12 @@ impl<'p> Interp<'p> {
                     Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t) | Ty::Array(t) => Some((**t).clone()), _ => None },
                     _ => None,
                 };
-                let saved = std::mem::replace(&mut self.expected, elem);
+                let saved = std::mem::replace(&mut self.expected, elem.clone());
                 let mut items = Vec::new();
                 for v in &b.values {
                     let r = self.value(v);
                     let (val, prov) = match r { Ok(x) => x, Err(e) => { self.expected = saved; return Err(e); } };
+                    let val = elem_literal(elem.as_ref(), val, &prov);
                     match prov {
                         Prov::Bare(name) => { self.expected = saved; return rt(line, format!("bare '{name}' inside a list: say `give`, `copy`, or `lend`")); }
                         Prov::Borrowed(..) => { self.expected = saved; return rt(line, "a lend inside a list: a list owns its elements (`copy` or `give`)"); }
@@ -1588,7 +1589,9 @@ impl<'p> Interp<'p> {
         // operands, which take their width from each other (verification session, seed 93).
         // …except `simd.load` / `simd.fill`, which take their lane count from the declared type
         // (design/simd.md) — the stop had cut that off, so a `simd[int32, 4]` loaded 16 lanes
-        let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if h == "simd" && (op == "load" || op == "fill" || op == "load.some"));
+        // …and `list.fill`, whose value takes the element type, as a list literal's values do
+        // (compiler claude, 2026-09-30: `list.fill[0.25, 'n']` into `list[deci64]` was refused)
+        let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if (h == "simd" && (op == "load" || op == "fill" || op == "load.some")) || (h == "list" && op == "fill"));
         let fresh = !simd_shape && matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
             | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
@@ -2832,9 +2835,20 @@ impl<'p> Interp<'p> {
         if op == "empty" { return Ok(Value::List(Vec::new())); }
         // `list.fill[v, n]`: n copies of v (owner, 2026-09-30); a count below 0 is a check site
         if op == "fill" {
-            let (v, prov) = self.value(&args.values[0])?;
-            if let Prov::Bare(n) = &prov { if v.is_owned() { return rt(line, format!("`list.fill` makes copies of '{n}': `copy '{n}'`")); } }
-            let n = match self.value(&args.values[1])?.0 { Value::Int(n) => n, other => return rt(line, format!("`list.fill`'s count is an integer, got {}", other.kind())) };
+            let elem = match self.expected.take() {
+                Some(Ty::List(t)) | Some(Ty::Array(t)) => Some(*t),
+                Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(t.as_ref().clone()), _ => None },
+                _ => None,
+            };
+            let saved = std::mem::replace(&mut self.expected, elem.clone());
+            let r = self.value(&args.values[0]);
+            self.expected = None;
+            let (v, prov) = match r { Ok(x) => x, Err(e) => { self.expected = saved; return Err(e); } };
+            if let Prov::Bare(n) = &prov { if v.is_owned() { self.expected = saved; return rt(line, format!("`list.fill` makes copies of '{n}': `copy '{n}'`")); } }
+            let v = elem_literal(elem.as_ref(), v, &prov);
+            let counted = self.value(&args.values[1]);
+            self.expected = saved;
+            let n = match counted?.0 { Value::Int(n) => n, other => return rt(line, format!("`list.fill`'s count is an integer, got {}", other.kind())) };
             if n < 0 { return site(line, format!("`list.fill` of {n} copies: a count is 0 or more")); }
             return Ok(Value::List(vec![v; n as usize]));
         }
@@ -4589,5 +4603,16 @@ fn private_msg(from: &[String], owner: &[String], what: &str) -> String {
         format!("{what} is not `pub`, and another Limb reaches only `pub` items")
     } else {
         format!("{what} is private to `{}`; mark it `pub` or `pub.limb`", root_or(owner))
+    }
+}
+
+/// A bare integer literal landing in a `bin` element slot takes the bin family, as it does in a
+/// declaration (types.md: a literal takes the family of its context). A deci literal is made
+/// deci where it is read (`deci_ctx`); an integer fits an integer slot by its range check.
+fn elem_literal(elem: Option<&Ty>, v: Value, prov: &Prov) -> Value {
+    let bin = match elem { Some(Ty::Bin(_)) => true, Some(Ty::Ranged(b, _, _)) => matches!(**b, Ty::Bin(_)), _ => false };
+    match (v, prov) {
+        (Value::Int(i), Prov::Literal) if bin => Value::Bin(i as f64),
+        (v, _) => v,
     }
 }

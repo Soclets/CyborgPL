@@ -1,0 +1,3 @@
+MAIN {
+    'xs': list[int8] = list.fill[300, 2];
+}

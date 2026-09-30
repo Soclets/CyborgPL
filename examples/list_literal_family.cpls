@@ -1,0 +1,10 @@
+# A bare literal takes the family of its context (types.md), inside a list too: each value lands in
+# an element slot. `list.fill`'s value is the same. Here 1 and 2 are bins, 0.25 a deci64.
+MAIN {
+    'bs': list[bin64] = [1, 2];
+    'more': list[bin64] = list.fill[1, 3];
+    'ds': list[deci64] = list.fill[0.25, 3];
+    std::print.stdout['bs', \n];
+    std::print.stdout['more', \n];
+    std::print.stdout['ds', \n];
+}
