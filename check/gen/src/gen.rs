@@ -667,9 +667,7 @@ impl Gen {
             if self.cfg.simd { 2 } else { 0 },                                       // simd let
             if self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 },   // simd change
             if self.cfg.simd_lanes && self.in_check == 0 && self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 }, // lane change
-            // not in `check` or strict code yet: a deci range literal is not
-            // proven there, and deci → integer's kind of failure is asked
-            if self.cfg.deci && self.in_check == 0 { 2 } else { 0 },                 // deci and conversions
+            if self.cfg.deci { 2 } else { 0 },                                       // deci and conversions
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -2178,6 +2176,21 @@ impl Gen {
         let k = self.rng.range(r.lo.max(-50), r.hi.min(50));
         let op = if self.rng.chance(50) { BinOp::Div } else { BinOp::Mod };
         let var = || Box::new(Expr::Var(v.name.clone()));
+        // Sometimes the excluded value sits inside the range, `'v' == j
+        // or.else … div ('v' - j)`, where an interval cannot leave it out
+        // (compiler claude, 2026-09-30); only below 64 bits, so 'v' - j
+        // cannot pass the 64-bit limit in between.
+        let j = if t.bits() < 64 && self.rng.chance(35) { self.rng.range(r.lo.max(-50), r.hi.min(50)) } else { 0 };
+        if j != 0 {
+            let q = Expr::Bin(op, Box::new(Expr::Lit(k)), Box::new(Expr::Bin(BinOp::Sub, var(), Box::new(Expr::Lit(j)))));
+            let m = self.rng.range(-3, 3);
+            let right = Box::new(Expr::Cmp(CmpOp::Lt, Box::new(q), Box::new(Expr::Lit(m))));
+            return Some(if self.rng.chance(50) {
+                Expr::AndThen(Box::new(Expr::Cmp(CmpOp::Ne, var(), Box::new(Expr::Lit(j)))), right)
+            } else {
+                Expr::OrElse(Box::new(Expr::Cmp(CmpOp::Eq, var(), Box::new(Expr::Lit(j)))), right)
+            });
+        }
         let q = Expr::Bin(op, Box::new(Expr::Lit(k)), var());
         let m = self.rng.range(-3, 3).max(r.lo);
         let cmp = *self.rng.pick(&[CmpOp::Lt, CmpOp::Ge, CmpOp::Eq, CmpOp::Ne]);

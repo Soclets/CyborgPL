@@ -66,10 +66,16 @@ impl Args {
     fn has(&self, k: &str) -> bool {
         self.flags.contains_key(k)
     }
+    /// For the evaluator and the solver: no deci or text, which they do not
+    /// model (a program with them would be skipped whole).
+    fn config_modelled(&self) -> Config {
+        Config { deci: false, ..self.config() }
+    }
+
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,deci-useful".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -223,7 +229,7 @@ fn main() {
         }
         "claims" => {
             let t = tools();
-            let p = generate(a.num("seed", 1), &a.config());
+            let p = generate(a.num("seed", 1), &a.config_modelled());
             let dir = work().join("claims");
             match claims::check_claims(&t, &p, &dir) {
                 Err(e) => println!("seed {}: {e}", p.seed),
@@ -267,7 +273,7 @@ fn main() {
         "claims-run" => claims_run(&tools(), &a),
         "evalsite" => {
             // What the exact evaluator saw at every site on one line.
-            let p = generate(a.num("seed", 1), &a.config());
+            let p = generate(a.num("seed", 1), &a.config_modelled());
             let (_, spans) = p.render_spans();
             let vals: Vec<u64> = a.flags.get("values").map(|v| v.split(',').filter_map(|x| x.parse().ok()).collect()).unwrap_or_default();
             let r = check_gen::eval::run(&p, &vals);
@@ -285,7 +291,7 @@ fn main() {
             let t = tools();
             let (mut same, mut differ) = (0, 0);
             for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 20) {
-                let p = generate(seed, &a.config());
+                let p = generate(seed, &a.config_modelled());
                 if p.expect_refused || p.unevaluable {
                     continue;
                 }
@@ -632,7 +638,7 @@ fn run(t: &Tools, a: &Args) {
 /// The Precog oracle's claim check over many programs: every proven claim,
 /// (b) first, then (c); every refuted claim printed as it is found.
 fn claims_run(t: &Tools, a: &Args) {
-    let cfg = a.config();
+    let cfg = a.config_modelled();
     let cases = a.num("cases", 20);
     let from = a.num("from", 1);
     let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);

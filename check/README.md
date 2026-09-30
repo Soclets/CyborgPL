@@ -74,8 +74,7 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   All is seen through printed integers: `to.int64[d x 10^k] otherwise -1`,
   comparisons printing 1 or 0, and `str.bytes` of the text. My exact
   evaluator and the solver do not model deci: such programs are compared
-  between the engines only (`Program::unevaluable`). Not yet in `check`
-  or strict code. Text and characters too: text into ASCII (`not_ascii`),
+  between the engines only (`Program::unevaluable`). Text and characters too: text into ASCII (`not_ascii`),
   byte lists read as UTF-8 (`not_utf8`, from a stray byte or 255),
   `char.point.from_code` (`not_a_char` past the last point), one
   character of text (`not_one_char`), a digit read through text, and text
@@ -178,10 +177,10 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits,deci-useful`.
+straight at them. Default: `exact-bits`.
 
-- `deci-useful`: no `to.useful.…` forms (CCA does not take the 2026-09-30
-  spelling yet).
+- `deci-useful`: no `to.useful.…` forms (CCA took the 2026-09-30 spelling
+  in 32b7039).
 
 - `exact-bits`: CCA says "not yet" to a shift, bitwise or wrapping operator
   on an exact answer whose operands differ in size (2026-09-23); the
