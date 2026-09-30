@@ -101,8 +101,9 @@ Owner, 2026-09-14.
   `--all` (owner, 2026-09-30: a). A `build.cplr` is an ordinary program with
   no limits (owner, 2026-09-30: "It's for fun. You can make a malware
   payload, or be a good person …"): the build has no channel from it, and
-  it can reach Limbs (owner: "it can access a limb, though"); which, and
-  how, are open. A
+  it reaches a Limb only as any program would, by reading its files — no
+  `limb.` or prefix into code (owner: "not a shortcut to reach a limb.
+  It's turing complete, so you build that yourself"). A
   **`cca::Dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
   was dropped when the prefix became the Limb's own):
