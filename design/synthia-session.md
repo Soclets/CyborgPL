@@ -41,7 +41,8 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   for a Limb that has only a `Synthia.ttsr`. CCA never knows Synthia
   exists. The project's own `CCA.cplr` goes beside `Synthia.ttsr`,
   rewritten from it each time, its first line saying it is generated
-  (owner, 2026-09-30: a).
+  (owner, 2026-09-30: a): `# Written by Synthia from Synthia.ttsr, and
+  rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea").
 - **How it connects**: Synthia reads its manifest, fetches the Limbs,
   and calls `cca build …` saying where each is. CCA never reads
   `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): CCA

@@ -22,7 +22,9 @@ and the owner: "yea". **The project's own `CCA.cplr` is written beside `Synthia.
 time with a first line saying it is generated, design claude's pick; (b)
 in `.synthia/`, with a new `cca build --manifest …` flag; (c) a copy of
 the whole project in `.synthia/`, which would point messages at the
-copy). Edits go in `Synthia.ttsr`.
+copy). Edits go in `Synthia.ttsr`. Its first line (relayed by synthia claude, which
+proposed it; the owner: "yea"):
+`# Written by Synthia from Synthia.ttsr, and rewritten each time: edit Synthia.ttsr, not this file.`
 
 ### 2026-09-30 — A `Synthia.ttsr` target's `default` is `yes` or `no` (owner: b)
 
