@@ -1561,29 +1561,9 @@ impl<'a> FnBuilder<'a> {
                     }
                     return;
                 }
-                // A bin into a plain whole-number type: its whole value, then
-                // landed like any store — a narrowing site (`conversion.md`:
-                // "narrowing is a check site"). A range type instead fails
-                // `out_of_range`, one of its listed reasons, and so does text,
-                // however big its number (owner, 2026-09-24: c).
-                let from = from_ty;
-                let to = self.resolve_ty(target);
-                let plain_int = matches!(to, Ty::Int(IntW::Fixed { .. })) && !to.is_exact();
-                if plain_int && matches!(from.base(), Ty::Bin(_) | Ty::Deci(_)) {
-                    let t = self.temp(&Ty::exact(), span);
-                    let parsed = self.new_block();
-                    let join = self.new_block();
-                    let fail_arms = self.fail_blocks_for_call(otherwise.as_deref(), &f, dest.clone(), join, span);
-                    self.terminate_at(Terminator::Call { callee: Callee::Convert(Ty::exact()), args: vec![Arg::Value(op)], dest: Some(Place::local(t)), ok: parsed, fail: fail_arms }, span);
-                    self.cur = parsed;
-                    self.site_of(SiteKind::Narrow { to: to.clone() }, vec![Operand::Read(Place::local(t))], Some(to.clone()), span);
-                    if let Some(p) = dest {
-                        self.assign(p, Rvalue::Use(Operand::Read(Place::local(t))), span);
-                    }
-                    self.terminate_at(Terminator::Goto(join), span);
-                    self.cur = join;
-                    return;
-                }
+                // A bin or deci into a whole-number type fails `not_whole`, or
+                // `out_of_range` when it is too big (owner, 2026-09-30: a) —
+                // one failing call, as text into a number is; no site.
                 (Callee::Convert(target.clone()), vec![Arg::Value(op)], otherwise.as_deref(), f)
             }
             _ => unreachable!("call_into on {:?}", e.kind),

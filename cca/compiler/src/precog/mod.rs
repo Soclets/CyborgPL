@@ -2066,6 +2066,19 @@ impl Precog {
                         return if fits { Verdict::Proven { how: "layer 2" } } else { Verdict::Fails { counterexample: format!("every time: {} rounds past the largest `{}`", text, self.spell(to)) } };
                     }
                 }
+                // A deci literal into a deci range (check claude, seed 8049):
+                // compared exactly with the range's written ends. Precog
+                // follows no deci value, so this was never proven, and a
+                // `#strict` file refused `deci64[0.0, 1.0] = 0.79`.
+                if let (Some(Operand::Const(Const::Deci { bits, value })), Ty::Deci(_), Some(crate::types::Bound::Bin { lo, hi })) = (site.operands.first(), to.base(), to.bound()) {
+                    let v = crate::deci::decode(*value, *bits);
+                    let end = |t: &str| crate::deci::literal(t, 128).ok().map(|x| crate::deci::decode(x, 128));
+                    if let (Some(l), Some(h)) = (end(lo), end(hi)) {
+                        use std::cmp::Ordering::*;
+                        let inside = crate::deci::compare(v, l) != Less && crate::deci::compare(v, h) != Greater;
+                        return if inside { Verdict::Proven { how: "layer 2" } } else { Verdict::Fails { counterexample: format!("every time: the literal is outside {} to {}", lo, hi) } };
+                    }
+                }
                 let Some(d) = ds.first() else { return Verdict::Unproven };
                 self.fits_type(d, to)
             }

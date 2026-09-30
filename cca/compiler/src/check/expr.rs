@@ -2504,7 +2504,14 @@ impl Checker {
             }
             (Ty::Int(_), Ty::Int(_)) => {}
             (Ty::Int(_), Ty::Bin(_)) => {}
-            (Ty::Bin(_), Ty::Int(_)) => fails.push("not_whole"),
+            // Not whole, or whole and too big for the integer (owner,
+            // 2026-09-30: a) — a failure, as text too big is, not a site.
+            (Ty::Bin(_), Ty::Int(_)) => {
+                fails.push("not_whole");
+                if !t.is_exact() {
+                    fails.push("out_of_range");
+                }
+            }
             (Ty::Bin(_), Ty::Bin(_)) => {}
             // Into ASCII, only an ASCII character is one (owner,
             // 2026-09-30: "`otherwise` exists"); a number, a `bool` or a

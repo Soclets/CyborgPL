@@ -54,7 +54,7 @@ bin32_literal_past [fnv:0d44a148ed0c4e0f] :: the value can be outside what a `bi
 bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be infinity)
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
-bin_to_int_unhandled [fnv:35eafe76bee6cdb3] :: `to.int32` can fail (not_whole): say what happens
+bin_to_int_unhandled [fnv:19f1e20a8a83665c] :: `to.int32` can fail (not_whole, out_of_range)
 bit_ampersand [fnv:41b7e0e05bfa1187] :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
 bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
 bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one

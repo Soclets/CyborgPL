@@ -51,6 +51,61 @@ pub fn encode(neg: bool, coef: u128, exp: i64, bits: u16) -> u128 {
     }
 }
 
+/// `neg x coef x 10^exp` back out of the layout `encode` writes.
+pub fn decode(v: u128, bits: u16) -> (bool, u128, i64) {
+    let w = bits as u32;
+    let mask = |n: u32| -> u128 { if n >= 128 { u128::MAX } else { (1u128 << n) - 1 } };
+    let neg = (v >> (w - 1)) & 1 == 1;
+    let eb = ebits(bits);
+    let (e, coef) = if (v >> (w - 3)) & 3 == 3 {
+        let low = w - 3 - eb;
+        ((v >> low) & mask(eb), (4u128 << low) | (v & mask(low)))
+    } else {
+        let small = w - 1 - eb;
+        ((v >> small) & mask(eb), v & mask(small))
+    };
+    (neg, coef, e as i64 + qmin(bits))
+}
+
+/// Two decimals compared exactly, however far apart their exponents:
+/// by sign, then by where the leading digit sits, then digit by digit.
+pub fn compare(a: (bool, u128, i64), b: (bool, u128, i64)) -> std::cmp::Ordering {
+    use std::cmp::Ordering::*;
+    let norm = |(neg, mut c, mut e): (bool, u128, i64)| {
+        if c == 0 {
+            return (false, String::new(), 0i64);
+        }
+        while c % 10 == 0 {
+            c /= 10;
+            e += 1;
+        }
+        let s = c.to_string();
+        let lead = s.len() as i64 + e;
+        (neg, s, lead)
+    };
+    let (an, ad, al) = norm(a);
+    let (bn, bd, bl) = norm(b);
+    let magnitude = || -> std::cmp::Ordering {
+        match (ad.is_empty(), bd.is_empty()) {
+            (true, true) => return Equal,
+            (true, false) => return Less,
+            (false, true) => return Greater,
+            _ => {}
+        }
+        if al != bl {
+            return al.cmp(&bl);
+        }
+        let n = ad.len().max(bd.len());
+        format!("{:0<n$}", ad, n = n).cmp(&format!("{:0<n$}", bd, n = n))
+    };
+    match (an && !ad.is_empty(), bn && !bd.is_empty()) {
+        (false, true) => Greater,
+        (true, false) => Less,
+        (false, false) => magnitude(),
+        (true, true) => magnitude().reverse(),
+    }
+}
+
 /// A literal as written (`19.99`, `-1.5`, `1_000`) at `bits`.
 pub fn literal(text: &str, bits: u16) -> Result<u128, LitErr> {
     let t: String = text.chars().filter(|c| *c != '_').collect();
@@ -111,6 +166,8 @@ pub fn conv_fails(from: &crate::types::Ty, to: &crate::types::Ty, literal_digits
                 vec![]
             }
         }
+        // Too big for the integer fails too (owner, 2026-09-30: a).
+        (Ty::Deci(_), Ty::Int(_)) if !to.is_exact() => vec!["not_whole", "out_of_range"],
         (Ty::Deci(_), Ty::Int(_)) => vec!["not_whole"],
         (Ty::Deci(_), Ty::Bin(_) | Ty::Str(_)) => vec![],
         (Ty::Str(_), Ty::Deci(_)) => vec!["not_a_number", "out_of_range", "too_many_digits"],
@@ -120,4 +177,30 @@ pub fn conv_fails(from: &crate::types::Ty, to: &crate::types::Ty, literal_digits
         fails.push("out_of_range");
     }
     Some(fails)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cmp::Ordering::*;
+
+    fn d(t: &str, bits: u16) -> (bool, u128, i64) {
+        decode(literal(t, bits).ok().unwrap(), bits)
+    }
+
+    #[test]
+    fn decode_undoes_encode_and_compare_is_exact() {
+        for (t, bits) in [("0.79", 64), ("-1.5", 64), ("19.99", 32), ("9999999999999999", 64), ("0", 128), ("-0.000001", 128)] {
+            let v = literal(t, bits).ok().unwrap();
+            let (n, c, e) = decode(v, bits);
+            assert_eq!(encode(n, c, e, bits), v, "{}", t);
+        }
+        assert_eq!(compare(d("0.79", 64), d("0.0", 128)), Greater);
+        assert_eq!(compare(d("0.79", 64), d("1.0", 128)), Less);
+        assert_eq!(compare(d("1.00", 64), d("1", 128)), Equal);
+        assert_eq!(compare(d("-0.5", 64), d("0.0", 128)), Less);
+        assert_eq!(compare(d("-2", 64), d("-10", 128)), Greater);
+        assert_eq!(compare(d("0.0001", 64), d("0.001", 128)), Less);
+        assert_eq!(compare(d("-0", 64), d("0", 128)), Equal);
+    }
 }

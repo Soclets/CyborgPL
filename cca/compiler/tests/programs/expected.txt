@@ -242,3 +242,5 @@ to_text_forms 22
 list_fill 140
 strict_guard_masked 7
 every_time_one_call 2
+too_big_to_int 212
+strict_deci_literal 3

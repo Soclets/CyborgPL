@@ -1,0 +1,19 @@
+# A whole bin or deci too big for the integer fails `out_of_range`, beside
+# `not_whole` (owner, 2026-09-30: a): one `otherwise` handles both, as the
+# oracle's examples/too_big_to_int.cpls prints "-1 -2 42 99". 42, then 100
+# for -1, 50 for -2 and 20 for 99: 212.
+extern fn exit ['code': int32];
+MAIN {
+    'b': bin64 = 10000000000.0;
+    'd': deci128 = 99999999999999999999.0;
+    'small': deci64 = 42.0;
+    'x' := to.int32['b'] otherwise -1;
+    'y' := to.int64['d' x 1000] otherwise -2;
+    'z' := to.int64['small'] otherwise -3;
+    'w' := to.int32['d'] otherwise 99;
+    mut 'code': int64 = 'z';
+    if 'x' == -1 { change 'code' = 'code' + 100; }
+    if 'y' == -2 { change 'code' = 'code' + 50; }
+    if 'w' == 99 { change 'code' = 'code' + 20; }
+    nocheck exit[to.int32['code']];
+}
