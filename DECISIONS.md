@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — The std Limb is written now, in CyborgPL, by a new session (owner)
+
+The owner: "a new Claude will be writing the stdlimb in CyborgPL." This
+answers what 2026-09-22's "No `std::` for now" left open ("The std Limb's
+author and timing stay open"): its author is a new Claude session, and
+its time is now. Written in CyborgPL, as decided before
+(`implementation-languages.md`). Open: the session's setup (brief, clone,
+house name, cores), and each part of std's surface, which the owner
+decides as the session proposes it.
+
 ### 2026-09-30 — `cca prepare` with no names is refused (owner: a)
 
 Open since 2026-09-29: `cca prepare`, or a folder alone (`cca prepare
