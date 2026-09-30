@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — A pointer changes what it points at with `ptr.cast[T]['p']` (owner: a)
+
+Pointer↔integer was already refused ("a pointer comes only from a lend or
+from C", `ffi.md`); what was open is a pointer seen as another type, as
+`malloc`'s `ptr.mut[uint8]` seen as a `ptr.mut[Point]`. Proposed: (a)
+`ptr.cast[T]['p']`, one more of the `ptr.` family; (b) `to.ptr.mut[T]['p']`,
+the conversion family; (c) no casts, the extern declared with the wanted
+type. Design claude recommended a: no value changes, so it is a pointer
+operation, and `to.` means a real conversion that can fail or round. The
+owner: "`a`". Always a `nocheck` site. Open: whether a cast can change
+`ptr` to `ptr.mut`.
+
 ### 2026-09-30 — An asm binding can take a lend: `lend 'text' -> x1` (owner: a)
 
 A Hello World through `inline.ASM` had to spell the text as bytes, copy
