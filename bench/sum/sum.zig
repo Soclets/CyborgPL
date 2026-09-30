@@ -6,6 +6,6 @@ pub fn main(init: std.process.Init) void {
     if (n < 0 or n > 1_000_000_000) std.process.exit(2);
     var acc: i64 = 0;
     var i: i64 = 1;
-    while (i <= n) : (i += 1) acc = @mod(acc + @mod(i * i, 7), 1_000_000_007);
-    std.process.exit(@intCast(@mod(acc, 256)));
+    while (i <= n) : (i += 1) acc += @mod(i * i, 7);
+    std.process.exit(@intCast(@mod(@mod(acc, 1_000_000_007), 256)));
 }

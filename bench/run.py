@@ -80,7 +80,8 @@ def ts_build(src, d, b):
 
 
 LANGS = {
-    "cyborgpl": ("CyborgPL (CCA, final build)", None, "{b}.cpls", cca_build, lambda s, d, b: [os.path.join(d, b)]),
+    "cyborgpl": ("CyborgPL (CCA, final build, 3 threads)", None, "{b}.cpls", cca_build, lambda s, d, b: [os.path.join(d, b)]),
+    "cyborgpl1": ("CyborgPL (CCA, final build, 1 thread)", None, "{b}.cpls", cca_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O2)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O2", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O2)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O2", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "rust": ("Rust (rustc -O)", "rustc", "{b}.rs", native(lambda s, o: ["rustc", "-C", "opt-level=3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
@@ -112,15 +113,22 @@ LANGS = {
 
 def available(key):
     label, tool, *_ = LANGS[key]
-    if key == "cyborgpl":
+    if key.startswith("cyborgpl"):
         return os.path.exists(CCA)
     if key == "lust":
         return shutil.which(LUST) is not None or os.path.exists(LUST)
     return shutil.which(tool) is not None
 
 
-def run_once(cmd, n, lust):
+# CyborgPL spreads a `for` over the cores by itself (parallelism.md); every other language runs
+# its plain code. It gets this session's share, 3 threads, and a second row pins it to 1.
+THREADS = {"cyborgpl": "3", "cyborgpl1": "1"}
+
+
+def run_once(cmd, n, lust, key=""):
     env = dict(os.environ, N=str(n))
+    if key in THREADS:
+        env["CYBORG_THREADS"] = THREADS[key]
     t = time.perf_counter()
     try:
         r = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=TIMEOUT)
@@ -163,9 +171,9 @@ def main():
                 continue
             best, answer = None, None
             if build:  # warm-up, untimed: macOS scans a freshly built program on its first run
-                run_once(run(src, d, name), n, key == "lust")
+                run_once(run(src, d, name), n, key == "lust", key)
             for _ in range(RUNS):
-                took, got = run_once(run(src, d, name), n, key == "lust")
+                took, got = run_once(run(src, d, name), n, key == "lust", key)
                 if took is None:
                     best = None if best is None else best
                     answer = "timeout" if best is None else answer

@@ -12,7 +12,7 @@ func main() {
 	}
 	var acc int64
 	for i := int64(1); i <= n; i++ {
-		acc = (acc + (i*i)%7) % 1000000007
+		acc += (i * i) % 7
 	}
-	os.Exit(int(acc % 256))
+	os.Exit(int(acc % 1000000007 % 256))
 }

@@ -19,17 +19,13 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
     mut 'comp': list[bool] = list.fill[false, 'n' + 1];
     mut 'count': int64 = 0;
-    mut 'p': int64 = 2;
-    while 'p' </== 'n' {
+    for 'p': int64 in range[2, 'n'] {
         if not 'comp'[to.uint64['p' + 1]] {
             change 'count' = 'count' + 1;
-            mut 'm': int64 = 'p' x 'p';
-            while 'm' </== 'n' {
+            for 'm': int64 in range['p' x 'p', 'n', 'p'] {
                 change 'comp'[to.uint64['m' + 1]] = true;
-                change 'm' = 'm' + 'p';
             }
         }
-        change 'p' = 'p' + 1;
     }
     return to.int32['count' mod 256];
 }

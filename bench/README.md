@@ -6,7 +6,7 @@ left out; languages the owner only contributed to are in. Results: [`RESULTS.md`
 
 | Program | What it does | N |
 |---|---|---|
-| `sum` | Σ (i × i mod 7) for i = 1..N, kept below 1 000 000 007 | 300 000 000 |
+| `sum` | Σ (i × i mod 7) for i = 1..N, then mod 1 000 000 007 once | 300 000 000 |
 | `fib` | naive recursive Fibonacci | 35 |
 | `lists` | append N numbers to a growable list, then sum it 10 times | 20 000 000 |
 | `sieve` | count the primes up to N (sieve of Eratosthenes) | 100 000 000 |
@@ -30,12 +30,22 @@ left out; languages the owner only contributed to are in. Results: [`RESULTS.md`
   answer with less work.
 - **R** has no growable vector, so `lists` fills a preallocated one.
 - **Lust** cannot read the environment or set an exit code, so the runner writes N
-  into its source and reads the answer it prints.
+  into its source and reads the answer it prints. Use its fresh release build
+  (`LUST=`): an old `lust` on the PATH ran fib 360× slower.
 - **Elixir and Erlang** have no mutable array: `lists` uses `:array` and `sieve`
   uses `:atomics`.
 - **Nim** exits through C's `exit`, since Nim's `quit` caps exit codes at 127.
 - **C#** runs as `dotnet sum.dll`: Homebrew's .NET is not where the apphost looks.
 - **CyborgPL** is `cca build --final`, the build with every check proven.
+  Its loops are written as `for`, which CCA runs in slices on several cores
+  when it proves the iterations apart (`parallelism.md`); no other language
+  here does that with plain code. It runs twice: on 3 threads, this session's
+  share of the machine, and pinned to 1, so both are in the table.
+- **`sum` takes its `mod 1 000 000 007` once, after the loop** (owner,
+  2026-09-30). Each term is at most 6 and N at most a billion, so the total
+  never passes 6 000 000 000, far inside 64 bits; the `mod` on every trip
+  was wasted work, and it tied each trip to the one before. The answer is
+  the same.
 
 ## Running it
 
@@ -43,11 +53,11 @@ left out; languages the owner only contributed to are in. Results: [`RESULTS.md`
 python3 run.py                     # every installed language
 python3 run.py cyborgpl c rust     # only these
 python3 run.py --quick             # tiny sizes: does everything build and agree?
-CCA=/path/to/cca LUST=/path/to/lust python3 run.py
+CCA=/path/to/cca LUST=/path/to/lust-lang/target/release/lust python3 run.py
 ```
 
 It needs CCA built (`cca/target/release/cca`, or `CCA=`), and runs one program at
-a time, on one core.
+a time: every language on one core, CyborgPL also on 3 threads.
 
 ## GPU: Clang C against Metal
 
