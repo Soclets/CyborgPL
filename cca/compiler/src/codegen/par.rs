@@ -13,21 +13,25 @@
 use std::collections::{HashMap, HashSet};
 
 use inkwell::basic_block::BasicBlock as LlBlock;
-use inkwell::types::BasicTypeEnum;
-use inkwell::values::{FunctionValue, IntValue, PointerValue};
+use inkwell::types::{BasicType, BasicTypeEnum};
+use inkwell::values::{BasicValueEnum, FunctionValue, IntValue, PointerValue};
 use inkwell::{AddressSpace, IntPredicate};
 
 use super::Cg;
 use crate::mir::*;
-use crate::par::{ParLoop, MAX_SLICES, WORTH};
+use crate::ast::BinOp;
+use crate::par::{Fold, FoldKind, ParLoop, MAX_SLICES, WORTH};
 
 /// What the slice being written leaves out, and where its folds go.
 pub(super) struct ParChild<'ctx> {
     pub skip: HashSet<(usize, usize)>,
     /// (block, statement) of a fold's add: which fold, and the term added.
     pub adds: HashMap<(usize, usize), (usize, Operand)>,
-    /// Each fold's 128-bit partial, in the slice's frame.
+    /// Each fold's partial, in the slice's frame, and for a product of
+    /// whole numbers whether it went past 128 bits.
     pub partials: Vec<PointerValue<'ctx>>,
+    pub flags: Vec<Option<PointerValue<'ctx>>>,
+    pub folds: Vec<Fold>,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -166,62 +170,42 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let shared = self.par_shared(fi, pl);
         let child = self.par_child_fn(fi, pl, &shared)?;
         let p = self.ctx.ptr_type(AddressSpace::default());
-        // The addresses: every shared local's, then each fold's partials.
+        // The addresses: every shared local's, then each fold's partials
+        // and overflow flags (one per slice).
         let nfolds = pl.folds.len();
-        let env_ty = p.array_type((shared.len() + nfolds) as u32);
+        let env_ty = p.array_type((shared.len() + 2 * nfolds) as u32);
         let env = self.stack(env_ty, "slices_env").ok()?;
+        let env_at = |this: &mut Self, k: usize| unsafe { this.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int(k as u64, false)], "env_at").ok() };
         for (k, l) in shared.iter().enumerate() {
-            let at = unsafe { self.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int(k as u64, false)], "env_at").ok()? };
+            let at = env_at(self, k)?;
             let addr = match slots[*l as usize] {
                 Some(s) => s,
                 None => p.const_null(),
             };
             let _ = self.builder.build_store(at, addr);
         }
-        let parts_ty = w.array_type(MAX_SLICES as u32);
+        let flags_ty = self.ctx.i8_type().array_type(MAX_SLICES as u32);
         let mut partials = Vec::new();
-        for r in 0..nfolds {
-            let arr = self.stack(parts_ty, "partials").ok()?;
-            let _ = self.builder.build_store(arr, parts_ty.const_zero());
-            let at = unsafe { self.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int((shared.len() + r) as u64, false)], "env_at").ok()? };
+        let mut flag_arrays = Vec::new();
+        for (r, fd) in pl.folds.iter().enumerate() {
+            let pt = self.fold_ty(fi, fd)?;
+            let arr = self.stack(pt.array_type(MAX_SLICES as u32), "partials").ok()?;
+            let at = env_at(self, shared.len() + 2 * r)?;
             let _ = self.builder.build_store(at, arr);
-            partials.push(arr);
+            let flags = self.stack(flags_ty, "overflowed").ok()?;
+            let _ = self.builder.build_store(flags, flags_ty.const_zero());
+            let at = env_at(self, shared.len() + 2 * r + 1)?;
+            let _ = self.builder.build_store(at, flags);
+            partials.push((arr, pt));
+            flag_arrays.push(flags);
         }
         let run = self.rt("cyborg_par_for");
         let trips64 = self.builder.build_int_truncate(trips, i64t, "trips").ok()?;
-        let _ = self.builder.build_call(run, &[child.as_global_value().as_pointer_value().into(), env.into(), trips64.into()], "slices");
-        // Each fold: what the variable held, plus every slice's partial,
-        // once checked.
+        let used = super::basic_result(self.builder.build_call(run, &[child.as_global_value().as_pointer_value().into(), env.into(), trips64.into()], "slices").ok()?)?.into_int_value();
+        // Each fold: what the variable held, folded with every slice's
+        // partial in slice order, then checked once.
         for (r, fd) in pl.folds.iter().enumerate() {
-            let acc_ty = f.locals[fd.acc.0 as usize].ty.clone();
-            let (bits, signed) = crate::precog::smt::int_shape(&acc_ty)?;
-            let mut sum = load_wide(self, fd.acc, signed)?;
-            for k in 0..MAX_SLICES {
-                let at = unsafe { self.builder.build_gep(parts_ty, partials[r], &[i64t.const_zero(), i64t.const_int(k, false)], "part").ok()? };
-                let v = self.builder.build_load(w, at, "part").ok()?.into_int_value();
-                sum = self.builder.build_int_add(sum, v, "sum").ok()?;
-            }
-            let (lo, hi) = crate::resolve::int_range(signed, bits as u16);
-            // The site the loop would have stopped at: the store into the
-            // variable when that is the one left to check, else the add.
-            let mut sites: Vec<SiteId> = fd.skip.iter().filter_map(|(b, si)| match &f.blocks[*b].stmts[*si].kind {
-                StmtKind::Site(id) if matches!(f.site(*id).kind, SiteKind::Overflow(_) | SiteKind::Narrow { .. }) => Some(*id),
-                _ => None,
-            }).collect();
-            sites.sort_by_key(|id| (!self.gets_check(&f.site(*id).verdict), !matches!(f.site(*id).kind, SiteKind::Narrow { .. }), id.0));
-            let site = sites.first().copied();
-            if let Some(id) = site {
-                if self.gets_check(&f.site(id).verdict) {
-                    let below = self.builder.build_int_compare(IntPredicate::SLT, sum, super::const_i128(w, lo), "below").ok()?;
-                    let above = self.builder.build_int_compare(IntPredicate::SGT, sum, super::const_i128(w, hi), "above").ok()?;
-                    let bad = self.builder.build_or(below, above, "outside").ok()?;
-                    self.guard(fi, id, bad, func)?;
-                }
-            }
-            let slot = slots[fd.acc.0 as usize]?;
-            let t = self.ty(&acc_ty)?.into_int_type();
-            let v = self.builder.build_int_truncate(sum, t, "total").ok()?;
-            let _ = self.builder.build_store(slot, v);
+            self.par_combine(fi, fd, partials[r], flag_arrays[r], used, slots, func)?;
         }
         let _ = self.builder.build_unconditional_branch(exit);
         Some(())
@@ -250,7 +234,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let first = child.get_nth_param(1)?.into_int_value();
         let end = child.get_nth_param(2)?.into_int_value();
         let slice = child.get_nth_param(3)?.into_int_value();
-        let env_ty = p.array_type((shared.len() + pl.folds.len()) as u32);
+        let env_ty = p.array_type((shared.len() + 2 * pl.folds.len()) as u32);
         let mut slots: Vec<Option<PointerValue<'ctx>>> = vec![None; f.locals.len()];
         let mut flags: Vec<Option<PointerValue<'ctx>>> = vec![None; f.locals.len()];
         for (li, l) in f.locals.iter().enumerate() {
@@ -306,12 +290,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let _ = self.builder.build_store(slots[pl.fl.counter.0 as usize]?, self.builder.build_int_truncate(c_first, ct, "c").ok()?);
         let stop_ty = self.ty(&f.locals[pl.fl.stop.0 as usize].ty.clone())?.into_int_type();
         let _ = self.builder.build_store(slots[pl.fl.stop.0 as usize]?, self.builder.build_int_truncate(c_last, stop_ty, "stop").ok()?);
-        // The folds' partials, from 0.
+        // The folds' partials, from nothing: 0 for a sum, 1 for a product.
         let mut partials: Vec<PointerValue<'ctx>> = Vec::new();
-        for _ in &pl.folds {
-            let part = self.stack(w, "partial").ok()?;
-            let _ = self.builder.build_store(part, w.const_zero());
+        let mut flags_own: Vec<Option<PointerValue<'ctx>>> = Vec::new();
+        for fd in &pl.folds {
+            let t = self.fold_ty(fi, fd)?;
+            let part = self.stack(t, "partial").ok()?;
+            let start = self.fold_identity(fi, fd)?;
+            let _ = self.builder.build_store(part, start);
             partials.push(part);
+            if fd.kind == FoldKind::Int && fd.op == BinOp::Mul {
+                let flag = self.stack(self.ctx.bool_type(), "overflowed").ok()?;
+                let _ = self.builder.build_store(flag, self.ctx.bool_type().const_zero());
+                flags_own.push(Some(flag));
+            } else {
+                flags_own.push(None);
+            }
         }
         let mut skip = HashSet::new();
         let mut adds = HashMap::new();
@@ -321,7 +315,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 adds.insert((*b, *si), (r, x.clone()));
             }
         }
-        self.par_child = Some(ParChild { skip, adds, partials: partials.clone() });
+        self.par_child = Some(ParChild { skip, adds, partials: partials.clone(), flags: flags_own.clone(), folds: pl.folds.clone() });
         self.cur_flags = flags;
 
         let done = self.ctx.append_basic_block(child, "done");
@@ -346,14 +340,23 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         self.builder.position_at_end(nowhere);
         let _ = self.builder.build_unreachable();
         self.builder.position_at_end(done);
-        let parts_ty = w.array_type(MAX_SLICES as u32);
         for (r, part) in partials.iter().enumerate() {
-            let part = *part;
-            let at = unsafe { self.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int((shared.len() + r) as u64, false)], "env_at").ok()? };
+            let t = self.fold_ty(fi, &pl.folds[r])?;
+            let parts_ty = t.array_type(MAX_SLICES as u32);
+            let at = unsafe { self.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int((shared.len() + 2 * r) as u64, false)], "env_at").ok()? };
             let arr = self.builder.build_load(p, at, "partials").ok()?.into_pointer_value();
             let slot = unsafe { self.builder.build_gep(parts_ty, arr, &[i64t.const_zero(), slice], "mine").ok()? };
-            let v = self.builder.build_load(w, part, "partial").ok()?;
+            let v = self.builder.build_load(t, *part, "partial").ok()?;
             let _ = self.builder.build_store(slot, v);
+            if let Some(flag) = flags_own[r] {
+                let at = unsafe { self.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int((shared.len() + 2 * r + 1) as u64, false)], "env_at").ok()? };
+                let arr = self.builder.build_load(p, at, "flags").ok()?.into_pointer_value();
+                let ft = self.ctx.i8_type().array_type(MAX_SLICES as u32);
+                let slot = unsafe { self.builder.build_gep(ft, arr, &[i64t.const_zero(), slice], "mine").ok()? };
+                let b = self.builder.build_load(self.ctx.bool_type(), flag, "overflowed").ok()?.into_int_value();
+                let b = self.builder.build_int_z_extend(b, self.ctx.i8_type(), "overflowed").ok()?;
+                let _ = self.builder.build_store(slot, b);
+            }
         }
         let _ = self.builder.build_return(None);
 
@@ -367,16 +370,205 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(child)
     }
 
-    /// In a slice: a fold's add becomes an add to the slice's partial.
-    pub(super) fn par_fold_add(&mut self, fi: usize, which: usize, x: &Operand, slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
-        let w = self.ctx.i128_type();
-        let part = self.par_child.as_ref()?.partials.get(which).copied()?;
-        let v = self.operand(fi, x, slots)?.into_int_value();
+    /// In a slice: a fold's add (or multiply) goes to the slice's partial.
+    pub(super) fn par_fold_add(&mut self, fi: usize, which: usize, x: &Operand, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let pc = self.par_child.as_ref()?;
+        let part = pc.partials.get(which).copied()?;
+        let flag = pc.flags.get(which).copied().flatten();
+        let fd = pc.folds.get(which)?.clone();
+        let t = self.fold_ty(fi, &fd)?;
+        let xv = self.operand(fi, x, slots)?;
         let signed = self.operand_signed(fi, x).unwrap_or(true);
-        let v = self.builder.build_int_cast_sign_flag(v, w, signed, "term").ok()?;
-        let cur = self.builder.build_load(w, part, "partial").ok()?.into_int_value();
-        let next = self.builder.build_int_add(cur, v, "partial").ok()?;
+        let cur = self.builder.build_load(t, part, "partial").ok()?;
+        let (next, over) = self.fold_step(fi, &fd, cur, xv, signed, func)?;
         let _ = self.builder.build_store(part, next);
+        if let (Some(flag), Some(o)) = (flag, over) {
+            let was = self.builder.build_load(self.ctx.bool_type(), flag, "overflowed").ok()?.into_int_value();
+            let now = self.builder.build_or(was, o, "overflowed").ok()?;
+            let _ = self.builder.build_store(flag, now);
+        }
+        Some(())
+    }
+
+    /// What a fold's partial is held in: 128 bits for a whole number, the
+    /// variable's own type for a bin or a deci.
+    fn fold_ty(&mut self, fi: usize, fd: &Fold) -> Option<BasicTypeEnum<'ctx>> {
+        match fd.kind {
+            FoldKind::Int => Some(self.ctx.i128_type().into()),
+            FoldKind::Bin | FoldKind::Deci(_) => {
+                let t = self.p.functions[fi].locals[fd.acc.0 as usize].ty.clone();
+                self.ty(&t)
+            }
+        }
+    }
+
+    /// Where a partial starts: 0 for a sum, 1 for a product.
+    fn fold_identity(&mut self, fi: usize, fd: &Fold) -> Option<BasicValueEnum<'ctx>> {
+        let one = fd.op == BinOp::Mul;
+        Some(match fd.kind {
+            FoldKind::Int => self.ctx.i128_type().const_int(one as u64, false).into(),
+            FoldKind::Bin => match self.fold_ty(fi, fd)? {
+                BasicTypeEnum::FloatType(t) => t.const_float(if one { 1.0 } else { 0.0 }).into(),
+                _ => return None,
+            },
+            FoldKind::Deci(bits) => {
+                let v = crate::deci::literal(if one { "1" } else { "0" }, bits).ok()?;
+                let t = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(bits as u32)?).ok()?;
+                t.const_int_arbitrary_precision(&[v as u64, (v >> 64) as u64]).into()
+            }
+        })
+    }
+
+    /// One step of a fold: `acc op x`, and for a whole-number product
+    /// whether it went past 128 bits.
+    fn fold_step(&mut self, fi: usize, fd: &Fold, acc: BasicValueEnum<'ctx>, x: BasicValueEnum<'ctx>, x_signed: bool, func: FunctionValue<'ctx>) -> Option<(BasicValueEnum<'ctx>, Option<IntValue<'ctx>>)> {
+        let w = self.ctx.i128_type();
+        match fd.kind {
+            FoldKind::Int => {
+                let a = acc.into_int_value();
+                let b = self.builder.build_int_cast_sign_flag(x.into_int_value(), w, x_signed, "term").ok()?;
+                if fd.op == BinOp::Mul {
+                    let f = inkwell::intrinsics::Intrinsic::find("llvm.smul.with.overflow")?.get_declaration(self.module, &[w.into()])?;
+                    let r = super::basic_result(self.builder.build_call(f, &[a.into(), b.into()], "product").ok()?)?.into_struct_value();
+                    let v = self.builder.build_extract_value(r, 0, "product").ok()?;
+                    let o = self.builder.build_extract_value(r, 1, "past").ok()?.into_int_value();
+                    Some((v, Some(o)))
+                } else {
+                    Some((self.builder.build_int_add(a, b, "sum").ok()?.into(), None))
+                }
+            }
+            FoldKind::Bin => {
+                let a = acc.into_float_value();
+                let b = self.fit(x, a.get_type().into()).into_float_value();
+                let v = if fd.op == BinOp::Mul { self.builder.build_float_mul(a, b, "product").ok()? } else { self.builder.build_float_add(a, b, "sum").ok()? };
+                Some((v.into(), None))
+            }
+            FoldKind::Deci(bits) => Some((self.deci_binary(fi, &fd.op, acc, x, bits, false, func)?, None)),
+        }
+    }
+
+    /// The parent's fold of the partials into the variable, in slice
+    /// order, over the `used` slices, then the one check.
+    #[allow(clippy::too_many_arguments)]
+    fn par_combine(&mut self, fi: usize, fd: &Fold, (arr, pt): (PointerValue<'ctx>, BasicTypeEnum<'ctx>), flags: PointerValue<'ctx>, used: IntValue<'ctx>, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+        let f = &self.p.functions[fi];
+        let i64t = self.ctx.i64_type();
+        let w = self.ctx.i128_type();
+        let boolt = self.ctx.bool_type();
+        let acc_ty = f.locals[fd.acc.0 as usize].ty.clone();
+        let slot = slots[fd.acc.0 as usize]?;
+        let lt = self.ty(&acc_ty)?;
+        let held = self.builder.build_load(lt, slot, "held").ok()?;
+        let (start, signed) = match fd.kind {
+            FoldKind::Int => {
+                let (_, signed) = crate::precog::smt::int_shape(&acc_ty)?;
+                (self.builder.build_int_cast_sign_flag(held.into_int_value(), w, signed, "held").ok()?.into(), signed)
+            }
+            _ => (held, true),
+        };
+        let product = fd.kind == FoldKind::Int && fd.op == BinOp::Mul;
+        let start_zero = match (product, start) {
+            (true, BasicValueEnum::IntValue(v)) => self.builder.build_int_compare(IntPredicate::EQ, v, w.const_zero(), "zero").ok()?,
+            _ => boolt.const_zero(),
+        };
+        // for k in 0..used
+        let before = self.builder.get_insert_block()?;
+        let head = self.ctx.append_basic_block(func, "fold");
+        let body = self.ctx.append_basic_block(func, "fold_one");
+        let done = self.ctx.append_basic_block(func, "folded");
+        let _ = self.builder.build_unconditional_branch(head);
+        self.builder.position_at_end(head);
+        let k = self.builder.build_phi(i64t, "k").ok()?;
+        let total = self.builder.build_phi(pt, "total").ok()?;
+        let past = self.builder.build_phi(boolt, "past").ok()?;
+        let zero = self.builder.build_phi(boolt, "zero").ok()?;
+        k.add_incoming(&[(&i64t.const_zero(), before)]);
+        total.add_incoming(&[(&start, before)]);
+        past.add_incoming(&[(&boolt.const_zero(), before)]);
+        zero.add_incoming(&[(&start_zero, before)]);
+        let kv = k.as_basic_value().into_int_value();
+        let more = self.builder.build_int_compare(IntPredicate::ULT, kv, used, "more").ok()?;
+        let _ = self.builder.build_conditional_branch(more, body, done);
+        self.builder.position_at_end(body);
+        let at = unsafe { self.builder.build_gep(pt.array_type(MAX_SLICES as u32), arr, &[i64t.const_zero(), kv], "part").ok()? };
+        let pv = self.builder.build_load(pt, at, "part").ok()?;
+        let fa = unsafe { self.builder.build_gep(self.ctx.i8_type().array_type(MAX_SLICES as u32), flags, &[i64t.const_zero(), kv], "flag").ok()? };
+        let fv = self.builder.build_load(self.ctx.i8_type(), fa, "flag").ok()?.into_int_value();
+        let fl = self.builder.build_int_compare(IntPredicate::NE, fv, self.ctx.i8_type().const_zero(), "part_past").ok()?;
+        let (next, o) = self.fold_step(fi, fd, total.as_basic_value(), pv, true, func)?;
+        let body_end = self.builder.get_insert_block()?;
+        let mut past_next = self.builder.build_or(past.as_basic_value().into_int_value(), fl, "past").ok()?;
+        if let Some(o) = o {
+            past_next = self.builder.build_or(past_next, o, "past").ok()?;
+        }
+        let zero_next = match (product, pv) {
+            (true, BasicValueEnum::IntValue(v)) => {
+                let z = self.builder.build_int_compare(IntPredicate::EQ, v, w.const_zero(), "is_zero").ok()?;
+                let not_past = self.builder.build_not(fl, "exact").ok()?;
+                let z = self.builder.build_and(z, not_past, "zero_part").ok()?;
+                self.builder.build_or(zero.as_basic_value().into_int_value(), z, "zero").ok()?
+            }
+            _ => zero.as_basic_value().into_int_value(),
+        };
+        let k_next = self.builder.build_int_add(kv, i64t.const_int(1, false), "k").ok()?;
+        let _ = self.builder.build_unconditional_branch(head);
+        k.add_incoming(&[(&k_next, body_end)]);
+        total.add_incoming(&[(&next, body_end)]);
+        past.add_incoming(&[(&past_next, body_end)]);
+        zero.add_incoming(&[(&zero_next, body_end)]);
+        self.builder.position_at_end(done);
+        let total = total.as_basic_value();
+        match fd.kind {
+            FoldKind::Int => {
+                let (bits, _) = crate::precog::smt::int_shape(&acc_ty)?;
+                let mut t = total.into_int_value();
+                let mut bad_past = past.as_basic_value().into_int_value();
+                if product {
+                    // A zero anywhere makes the product 0, whatever the
+                    // other slices reached.
+                    let z = zero.as_basic_value().into_int_value();
+                    t = self.builder.build_select(z, w.const_zero(), t, "product").ok()?.into_int_value();
+                    let nz = self.builder.build_not(z, "no_zero").ok()?;
+                    bad_past = self.builder.build_and(bad_past, nz, "past").ok()?;
+                } else {
+                    bad_past = boolt.const_zero();
+                }
+                let (lo, hi) = crate::resolve::int_range(signed, bits as u16);
+                // The site the loop would have stopped at: the store into the
+                // variable when that is the one left to check, else the op.
+                let mut sites: Vec<SiteId> = fd.skip.iter().filter_map(|(b, si)| match &f.blocks[*b].stmts[*si].kind {
+                    StmtKind::Site(id) if matches!(f.site(*id).kind, SiteKind::Overflow(_) | SiteKind::Narrow { .. }) => Some(*id),
+                    _ => None,
+                }).collect();
+                sites.sort_by_key(|id| (!self.gets_check(&f.site(*id).verdict), !matches!(f.site(*id).kind, SiteKind::Narrow { .. }), id.0));
+                if let Some(id) = sites.first().copied() {
+                    if self.gets_check(&f.site(id).verdict) {
+                        let below = self.builder.build_int_compare(IntPredicate::SLT, t, super::const_i128(w, lo), "below").ok()?;
+                        let above = self.builder.build_int_compare(IntPredicate::SGT, t, super::const_i128(w, hi), "above").ok()?;
+                        let bad = self.builder.build_or(below, above, "outside").ok()?;
+                        let bad = self.builder.build_or(bad, bad_past, "outside").ok()?;
+                        self.guard(fi, id, bad, func)?;
+                    }
+                }
+                let v = self.builder.build_int_truncate(t, lt.into_int_type(), "total").ok()?;
+                let _ = self.builder.build_store(slot, v);
+            }
+            FoldKind::Bin => {
+                // In slices a bin total is grouped otherwise than in order,
+                // and can reach infinity where the loop did not: it is
+                // always checked, whatever was proven of the loop.
+                let t = total.into_float_value();
+                let diff = self.builder.build_float_sub(t, t, "finite").ok()?;
+                let finite = self.builder.build_float_compare(inkwell::FloatPredicate::OEQ, diff, t.get_type().const_zero(), "finite").ok()?;
+                let bad = self.builder.build_not(finite, "infinite").ok()?;
+                let what = if fd.op == BinOp::Mul { "product" } else { "sum" };
+                self.deci_stop(fi, bad, &format!("the {} this parallel `for`'s slices made went past the largest bin (it would be infinity or not a number)", what), func)?;
+                let _ = self.builder.build_store(slot, t);
+            }
+            FoldKind::Deci(_) => {
+                let _ = self.builder.build_store(slot, total);
+            }
+        }
         Some(())
     }
 }

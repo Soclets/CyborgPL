@@ -447,12 +447,17 @@ Dated, with the alternative, so each can become a question later.
     the statements of one trip (an inner loop's weighed sixteen times, a
     call ten): at 64,000 or more, slices. Never from timing the machine;
     `tune.cplr` will override it once `cca tune` exists.
-  - *Sums*: each slice adds its trips from 0 in 128 bits, and the parent
-    adds the partials to the variable once, checking the total there.
-    That needs the add proven, and the store into the variable proven
-    too — or every term the same sign, so the in-order loop would stop
-    exactly when the total does not fit. Only integer `+` so far: sums of
-    bins and decis, and products, stay in order until they are built.
+  - *Sums and products* (`+` or `x`, one of them throughout, into an
+    integer, a bin or a deci): each slice folds its own trips from 0 (or
+    1), and the parent folds the partials into the variable in slice
+    order, once. An integer's partials are 128 bits, checked once at the
+    end; a product's also remember going past 128 bits and meeting a 0. A
+    bin or deci partial is the variable's own type, so the rounding moves
+    with the slicing (owner, 2026-09-30: c), and a bin total is always
+    asked once whether it is still a real number. Every site on the fold
+    must be proven, so the loop in order never stops — except an integer
+    sum whose terms keep one sign, whose store may stay checked: the one
+    check at the end stops exactly when the loop would have.
   - *In order*, silently (an error under `for para`): `perm` loops, a
     `break`, `return` or `fail` out of a trip, tasks, channels, `must`, a
     call through a held function, and any conflict. A loop that prints or

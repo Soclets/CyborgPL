@@ -36,12 +36,17 @@ pub struct ParLoop {
     pub work: u64,
 }
 
-/// `change 'acc' = 'acc' + x;` in every trip: each slice sums its own
-/// trips from 0, in 128 bits, and the parent adds the partials to what
-/// 'acc' held and checks the total fits (owner, 2026-09-30: reductions).
+/// `change 'acc' = 'acc' + x;` (or `x`) in every trip: each slice folds
+/// its own trips from nothing — 0 for a sum, 1 for a product — and the
+/// parent folds the partials into what 'acc' held (owner, 2026-09-30:
+/// reductions, for every type). Integers fold in 128 bits and are checked
+/// once at the end; a bin or deci folds in its own type, and its total may
+/// round differently from run to run (the owner's ruling).
 #[derive(Debug, Clone)]
 pub struct Fold {
     pub acc: LocalId,
+    pub op: BinOp,
+    pub kind: FoldKind,
     /// Where `t = acc + x` is, (block, statement), and the `x`.
     pub adds: Vec<(usize, usize, Operand)>,
     /// What a slice leaves out: the store back into 'acc', and the sites
@@ -51,6 +56,16 @@ pub struct Fold {
     /// the running total then only moves one way, and the loop stops at a
     /// store that does not fit exactly when the total does not.
     pub one_signed: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FoldKind {
+    /// A whole number, folded in 128 bits.
+    Int,
+    /// A bin, folded in its own type.
+    Bin,
+    /// A deci of these bits, folded by the runtime's arithmetic.
+    Deci(u16),
 }
 
 pub struct Plan {
@@ -731,9 +746,13 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
                     StmtKind::Site(id) if !matches!(f.site(*id).verdict, Verdict::Proven { .. } | Verdict::Trusted) => Some(&f.site(*id).kind),
                     _ => None,
                 }).collect();
-                let settled = open.is_empty() || (fd.one_signed && open.iter().all(|k| matches!(k, SiteKind::Narrow { .. })));
+                // A sum of integers may leave its store checked when its
+                // terms keep one sign; a product, a bin or a deci needs
+                // every site proven, so the loop in order never stops.
+                let settled = open.is_empty() || (fd.kind == FoldKind::Int && fd.op == BinOp::Add && fd.one_signed && open.iter().all(|k| matches!(k, SiteKind::Narrow { .. })));
                 if !settled {
-                    return conflict(format!("the sum into {} is not proven to fit, so slices could not stop where the loop would", name(f, l)));
+                    let what = if fd.op == BinOp::Mul { "product" } else { "sum" };
+                    return conflict(format!("the {} into {} is not proven to fit, so slices could not stop where the loop would", what, name(f, l)));
                 }
                 folds.push(fd);
             }
@@ -783,35 +802,53 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
     Ok(pl)
 }
 
-/// `acc = t` after `t = acc + x` in the same block, and 'acc' read nowhere
-/// else in the loop: a sum each slice can take on its own. Integers only,
-/// so far (bins, decis and products are the owner's too, and follow).
+/// `acc = t` after `t = acc + x` (or `x`) in the same block — or the add
+/// written straight into 'acc', as a deci's is — and 'acc' read nowhere
+/// else in the loop: a fold each slice can take on its own. Whole numbers,
+/// bins and decis of a plain type (a range type's bounds would need their
+/// own check at the end, not yet built).
 fn fold(f: &Function, lb: &[usize], defs: &HashMap<u32, Vec<(usize, usize)>>, acc: u32) -> Option<Fold> {
-    if !matches!(f.locals[acc as usize].ty.base(), Ty::Int(IntW::Fixed { .. })) {
+    let ty = &f.locals[acc as usize].ty;
+    if ty.bound().is_some() {
         return None;
     }
+    let kind = match ty.base() {
+        Ty::Int(IntW::Fixed { .. }) if !ty.is_exact() => FoldKind::Int,
+        Ty::Bin(crate::types::BinW::Fixed(_)) => FoldKind::Bin,
+        Ty::Deci(bits) => FoldKind::Deci(*bits),
+        _ => return None,
+    };
     let mut adds = Vec::new();
     let mut skip: HashSet<(usize, usize)> = HashSet::new();
     let mut temps: HashSet<u32> = HashSet::new();
+    let mut the_op: Option<BinOp> = None;
     // The sign every term keeps: Some(true) never below 0, Some(false)
     // never above, None either way or unknown.
     let mut sign: Option<Option<bool>> = None;
+    let is_acc = |o: &Operand| matches!(o, Operand::Read(pl) if pl.proj.is_empty() && pl.local.0 == acc);
     for &(b, si) in defs.get(&acc)? {
         let blk = &f.blocks[b];
         let Some(Statement { kind: StmtKind::Assign { rvalue, .. }, .. }) = blk.stmts.get(si) else { return None };
-        let Rvalue::Use(Operand::Read(tp)) = rvalue else { return None };
-        if !tp.proj.is_empty() || f.locals[tp.local.0 as usize].name.is_some() {
+        // Where the add is: this statement, or the temporary it stores.
+        let ai = match rvalue {
+            Rvalue::Binary { .. } => si,
+            Rvalue::Use(Operand::Read(tp)) if tp.proj.is_empty() && f.locals[tp.local.0 as usize].name.is_none() => {
+                let t = tp.local.0;
+                let tdefs = defs.get(&t)?;
+                if tdefs.len() != 1 || tdefs[0].0 != b || tdefs[0].1 >= si {
+                    return None;
+                }
+                skip.insert((b, si));
+                temps.insert(t);
+                tdefs[0].1
+            }
+            _ => return None,
+        };
+        let Some(Statement { kind: StmtKind::Assign { rvalue: Rvalue::Binary { op, lhs, rhs }, .. }, .. }) = blk.stmts.get(ai) else { return None };
+        if !matches!(op, BinOp::Add | BinOp::Mul) || the_op.as_ref().is_some_and(|o| o != op) {
             return None;
         }
-        let t = tp.local.0;
-        // `t = acc + x` before it, in the same block, t's only definition.
-        let tdefs = defs.get(&t)?;
-        if tdefs.len() != 1 || tdefs[0].0 != b || tdefs[0].1 >= si {
-            return None;
-        }
-        let ai = tdefs[0].1;
-        let Some(Statement { kind: StmtKind::Assign { rvalue: Rvalue::Binary { op: BinOp::Add, lhs, rhs }, .. }, .. }) = blk.stmts.get(ai) else { return None };
-        let is_acc = |o: &Operand| matches!(o, Operand::Read(pl) if pl.proj.is_empty() && pl.local.0 == acc);
+        the_op = Some(op.clone());
         let (x, side) = if is_acc(lhs) && !uses(rhs, acc) {
             (rhs.clone(), 1)
         } else if is_acc(rhs) && !uses(lhs, acc) {
@@ -826,10 +863,8 @@ fn fold(f: &Function, lb: &[usize], defs: &HashMap<u32, Vec<(usize, usize)>>, ac
             Some(_) => None,
         });
         adds.push((b, ai, x));
-        skip.insert((b, si));
-        temps.insert(t);
     }
-    // 'acc' and each t read nowhere else; the sites that name them go too.
+    // 'acc' and each temporary read nowhere else; the sites that name them go too.
     for &b in lb {
         for (si, s) in f.blocks[b].stmts.iter().enumerate() {
             if skip.contains(&(b, si)) || adds.iter().any(|(ab, ai, _)| *ab == b && *ai == si) {
@@ -853,7 +888,7 @@ fn fold(f: &Function, lb: &[usize], defs: &HashMap<u32, Vec<(usize, usize)>>, ac
             return None;
         }
     }
-    Some(Fold { acc: LocalId(acc), adds, skip, one_signed: matches!(sign, Some(Some(_))) })
+    Some(Fold { acc: LocalId(acc), op: the_op?, kind, adds, skip, one_signed: matches!(sign, Some(Some(_))) })
 }
 
 fn uses(o: &Operand, l: u32) -> bool {

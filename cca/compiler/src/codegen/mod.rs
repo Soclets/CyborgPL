@@ -690,7 +690,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     continue;
                 }
                 if let Some((which, x)) = pc.adds.get(&(b, si)).cloned() {
-                    if self.par_fold_add(fi, which, &x, slots).is_none() {
+                    if self.par_fold_add(fi, which, &x, slots, func).is_none() {
                         self.cannot("this sum in a slice has no shape in the generated code yet", Some(f.span(s.span)));
                     }
                     continue;
