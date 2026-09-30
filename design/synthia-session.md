@@ -42,7 +42,9 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   exists. The project's own `CCA.cplr` goes beside `Synthia.ttsr`,
   rewritten from it each time, its first line saying it is generated
   (owner, 2026-09-30: a): `# Written by Synthia from Synthia.ttsr, and
-  rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea").
+  rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea"). A `CCA.cplr` there without that line is not Synthia's: Synthia
+  refuses to write and leaves it, and a command overrides (owner: "`a`,
+  and there should be an override command").
 - **How it connects**: Synthia reads its manifest, fetches the Limbs,
   and calls `cca build …` saying where each is. CCA never reads
   `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): CCA

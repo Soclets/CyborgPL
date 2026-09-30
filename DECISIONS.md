@@ -25,6 +25,12 @@ the whole project in `.synthia/`, which would point messages at the
 copy). Edits go in `Synthia.ttsr`. Its first line (relayed by synthia claude, which
 proposed it; the owner: "yea"):
 `# Written by Synthia from Synthia.ttsr, and rewritten each time: edit Synthia.ttsr, not this file.`
+A `CCA.cplr` beside `Synthia.ttsr` that lacks that line (not Synthia's)
+is left alone: Synthia refuses to write, saying to delete or move it, and
+a command overrides that (relayed by synthia claude; proposed (a) refuse,
+(b) overwrite, (c) back it up to `.synthia/` and overwrite; synthia claude
+recommended a; the owner: "`a`, and there should be an override command").
+Open: that command's name (synthia claude's, next).
 
 ### 2026-09-30 — A `Synthia.ttsr` target's `default` is `yes` or `no` (owner: b)
 
