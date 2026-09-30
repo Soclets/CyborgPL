@@ -24,8 +24,15 @@ collisions — none — then chose "`para`"): `for para 'x' in …`, where
 `seq` stands, never both. It is reserved as `seq` is: a module or Limb may
 not be named `para`; a quoted variable `'para'` is unaffected. The oracle
 reads it and runs every loop in order, one valid schedule
-(`examples/for_para.cpls`, reject test for_seq_and_para). Open: what
-`para` may override.
+(`examples/for_para.cpls`, reject test for_seq_and_para). **What `para`
+overrides** (owner: "`a`, because `nocheck` exists"): only the automatic
+"keep it in order" of a loop that prints, reads input or calls C — an
+`extern` call is a `nocheck` site already, and under `para` that
+`nocheck` is also the writer's word that the C is safe on many cores at
+once. A conflict Precog can see (two iterations writing the same place,
+other than a reduction) stays an error, `para` or not. Proposed: (b)
+everything, conflicts included; (c) only the "worth it" estimate. The
+oracle does not model conflicts; CCA's proof does.
 
 ### 2026-09-30 — Precog estimates whether a loop is worth cores; `tune.cplr` overrules it when it has a measurement (owner: a)
 

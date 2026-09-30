@@ -56,8 +56,12 @@ for seq 'line' in lend 'lines' {
 A loop that prints, reads input or calls C stays in order by itself
 (owner, 2026-09-30: a); `seq` is then for loops Precog would run in
 parallel but you want in order, like an exact `bin` total. The other way,
-**`for para`** forces a loop parallel (owner: "`para`"); what it may
-override is open.
+**`for para`** forces a loop parallel (owner: "`para`"). It overrides
+only that automatic order (owner: "`a`, because `nocheck` exists"): the
+`nocheck` every C call already carries is also the writer's word that the
+C is safe on many cores at once, and printing under `para` may come out in
+any order. A conflict Precog can see — two iterations writing the same
+place, other than a reduction — stays an error, `para` or not.
 
 This was the entire parallelism syntax of v1 — one word for saying no —
 until `para` joined it.
