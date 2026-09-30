@@ -105,7 +105,12 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
         if c.vis != ast::Vis::Private { return Err(format!("{shown}: line {}: `pub` means nothing in CCA.cplr, which no Limb reads: `const '{}' := …;`", c.line, c.name)); }
         match c.name.as_str() {
             // a label for people; code writes the 'prefix' (owner, 2026-09-29: "Infront and name are different things")
-            "name" => { text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?; name = true; }
+            // strict: the module-name rule (owner, 2026-09-30: "strict"), though code writes the prefix
+            "name" => {
+                let n = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?;
+                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {}: `{n}` cannot name a Limb: {m}", c.line))?;
+                name = true;
+            }
             // the word code writes in front of `::` to reach this Limb, its maker's pick (owner, 2026-09-29: b, "required")
             "prefix" => {
                 let p = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'prefix' is a text: `const 'prefix' := \"shop\";`", c.line))?;

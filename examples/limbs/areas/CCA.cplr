@@ -1,4 +1,4 @@
-const 'name' := "Areas of shapes";
+const 'name' := "areas_of_shapes";
 const 'prefix' := "areas";
 const 'version' := "0.1.0";
 const 'targets' := [cca::Target[name = "aarch64-macos"],];

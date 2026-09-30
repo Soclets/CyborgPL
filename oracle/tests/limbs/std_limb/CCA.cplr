@@ -1,4 +1,4 @@
-const 'name' := "Not the standard Limb";
+const 'name' := "not_the_standard_limb";
 const 'prefix' := "std";
 const 'version' := "1.0.0";
 const 'targets' := [cca::Target[name = "aarch64-macos"],];

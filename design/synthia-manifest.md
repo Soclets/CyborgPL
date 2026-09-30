@@ -91,6 +91,8 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   Limb's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,
   not a Windows device name — each is written in code as `name::`.
+  The prefix later took that job; `name` stays strict all the same, in
+  both manifests (owner, 2026-09-30: "strict").
 - **Comments are `#`**, a space after it, as in CyborgPL (owner).
 - **A line is written one way** (owner, 2026-09-29: "refuse"): `key =
   value` with one space each side of `=`, no indentation, and a comment on

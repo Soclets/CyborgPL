@@ -1,4 +1,4 @@
-const 'name' := "Another areas";
+const 'name' := "another_areas";
 const 'prefix' := "areas";
 const 'version' := "1.0.0";
 const 'targets' := [cca::Target[name = "aarch64-macos"],];

@@ -57,7 +57,8 @@ Owner, 2026-09-14.
 
   Every name and type is checked against the settings CCA knows.
   **`name`, `version` and at least one target are required** (owner,
-  2026-09-29: "yea"), as in `Synthia.ttsr`. `version` is any text, at most 256 bytes
+  2026-09-29: "yea"), as in `Synthia.ttsr`. `name` follows the module-name rule, as
+  in `Synthia.ttsr` (owner, 2026-09-30: "strict"). `version` is any text, at most 256 bytes
   (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
   front of `::`** to reach this Limb, picked by its maker and apart from
   its `name` (owner, 2026-09-29: "yea", then b): `const 'prefix' :=

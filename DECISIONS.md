@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — A Limb's `name` stays strict, in both manifests (owner: "strict")
+
+The module-name rule for `name` (2026-09-29, entry below) had as its reason
+that code writes the name before `::`; the prefix took that job, and the
+oracle accepted any text in `CCA.cplr`'s 'name' while Synthia refused it.
+Asked, while weighing whether `cca prepare` takes names or prefixes, "Is
+the limb name rules strict?", design claude laid out strict (one plain
+word, no quoting on a command line; two dependencies may still share one)
+against free ("Areas of shapes", easier to search, awkward to type). The
+owner: "strict". So in `Synthia.ttsr` and `CCA.cplr` alike a Limb's `name`
+is lowercase ASCII letters, digits and `_`, starting with a letter, not a
+keyword, not a Windows device name. The oracle refuses one otherwise
+(reject test manifest_bad_name); the example Limb is `areas_of_shapes`,
+prefix `areas`.
+
 ### 2026-09-29 — In `Synthia.ttsr` the word before `::` is `prefix = cash`, in `[my identity]` (owner: "`prefix`")
 
 Relayed by synthia claude. Proposed: (a) `prefix`; (b) a phrase in the
