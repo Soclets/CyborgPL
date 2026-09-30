@@ -58,7 +58,10 @@ Owner, 2026-09-14.
   Every name and type is checked against the settings CCA knows.
   **`name`, `version` and at least one target are required** (owner,
   2026-09-29: "yea"), as in `Synthia.ttsr`. `name` follows the module-name rule, as
-  in `Synthia.ttsr` (owner, 2026-09-30: "strict"). `version` is any text, at most 256 bytes
+  in `Synthia.ttsr` (owner, 2026-09-30: "strict"). A target must be one CCA can
+  build, from its one list, `cca/targets.txt` (owner, 2026-09-30:
+  "refuse", as `Synthia.ttsr`); today that is `aarch64-macos` alone, so a
+  cross target and its `runner` wait until CCA builds for one. `version` is any text, at most 256 bytes
   (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
   front of `::`** to reach this Limb, picked by its maker and apart from
   its `name` (owner, 2026-09-29: "yea", then b): `const 'prefix' :=

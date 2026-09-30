@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — `CCA.cplr` refuses a target CCA cannot build, as `Synthia.ttsr` does (owner: "refuse")
+
+Compiler claude asked: CCA refused only a default target it could not
+build, and accepted any other name (`x86_64-linux` with a runner) unused.
+Design claude recommended matching `Synthia.ttsr`'s "Only what's actually
+doable". The owner: "refuse". The one list is CCA's, `cca/targets.txt`,
+which the oracle reads when it is built (`include_str!`) and Synthia
+copies; today it holds `aarch64-macos` alone. Reject test
+manifest_undoable_target; `examples/uses_a_limb` lost its `aarch64-linux`
+target, which no longer passes.
+
 ### 2026-09-30 — Synthia is an automatic programmer: it does what a CCA user would, writing `CCA.cplr` too (owner: "yea")
 
 Synthia claude, at the owner's asking, raised how CCA learns about a Limb

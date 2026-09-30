@@ -135,6 +135,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                 let count = items.len();
                 targets += count;
                 let mut defaults = 0;
+                let mut names = Vec::new();
                 for it in items {
                     let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a target is `cca::Target[name = …]`, with a `runner` if it has one", c.line)) };
                     if shape != "::cca.Target" { return Err(format!("{shown}: line {line}: a target is a `cca::Target`")); }
@@ -147,10 +148,17 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                             continue;
                         }
                         if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cca::Target` has no `{f}`; it has `name`, `runner` and `default`")); }
-                        text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
+                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
+                        if f == "name" { names.push((t, line)); }
                     }
                 }
                 if count > 1 && defaults != 1 { return Err(format!("{shown}: line {}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)", c.line)); }
+                // only a target CCA can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
+                // actually doable"); the one list is CCA's
+                let doable: Vec<&str> = include_str!("../../cca/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
+                for (t, line) in names {
+                    if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target CCA can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
+                }
             }
             "dependencies" => {
                 fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {
