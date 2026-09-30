@@ -621,6 +621,19 @@ impl Checker {
                 return Ok(Expr { kind: K::Bin(format!("-{}", i)), ty: t.base().clone(), span: v.span });
             }
         }
+        // A text written out is ASCII or it is not, before anything runs.
+        if let (Ty::Str(Enc::Ascii), Ty::Str(Enc::Free(_))) = (t.base(), vt.base()) {
+            fn first_wide(e: &Expr) -> Option<Span> {
+                match &e.kind {
+                    K::Str(s) if !s.is_ascii() => Some(e.span),
+                    K::Binary { lhs, rhs, .. } => first_wide(lhs).or_else(|| first_wide(rhs)),
+                    _ => None,
+                }
+            }
+            if let Some(at) = first_wide(&v) {
+                return err(Diagnostic::error("this text is not ASCII, so it cannot be str.ascii").at(at));
+            }
+        }
         if let (K::Char(c), Ty::Char(u)) = (&v.kind, t.base()) {
             let need = narrowest_unit(c);
             let fits = match u {
@@ -2466,10 +2479,15 @@ impl Checker {
             (Ty::Int(_), Ty::Bin(_)) => {}
             (Ty::Bin(_), Ty::Int(_)) => fails.push("not_whole"),
             (Ty::Bin(_), Ty::Bin(_)) => {}
+            // Into ASCII, only an ASCII character is one (owner,
+            // 2026-09-30: "`otherwise` exists"); a number, a `bool` or a
+            // `char.byte` always is.
+            (Ty::Char(u), Ty::Str(Enc::Ascii)) if *u != Unit::Byte => fails.push("not_ascii"),
             (Ty::Int(_) | Ty::Bin(_) | Ty::Bool | Ty::Char(_), Ty::Str(_)) => {}
             // Not a number, or a number the type cannot hold however many
             // digits it has (owner, 2026-09-24: c). Never a check site.
             (Ty::Str(_), Ty::Int(_) | Ty::Bin(_)) => fails.extend(["not_a_number", "out_of_range"]),
+            (Ty::Str(from), Ty::Str(Enc::Ascii)) if *from != Enc::Ascii => fails.push("not_ascii"),
             (Ty::Str(_), Ty::Str(_)) => {}
             (Ty::Str(_), Ty::Char(_)) => fails.push("not_one_char"),
             (Ty::Char(from), Ty::Char(to)) => {

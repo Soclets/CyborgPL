@@ -40,6 +40,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_parse_int" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_int_to_text" => self.ctx.void_type().fn_type(&[p.into(), w.into(), w.into()], false),
             "cyborg_str_points" | "cyborg_str_graphemes" => w.fn_type(&[p.into(), w.into()], false),
+            "cyborg_str_is_ascii" => self.ctx.i8_type().fn_type(&[p.into(), w.into()], false),
             "cyborg_str_decode_points" | "cyborg_str_split_graphemes" => w.fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_parse_bin" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), self.ctx.i32_type().into(), p.into()], false),
             "cyborg_char_to_text" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.i32_type().into()], false),
@@ -1780,8 +1781,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// or graphemes has to walk its bytes, which waits with std.
     #[allow(clippy::too_many_arguments)]
     fn emit_bounded_text(&mut self, fi: usize, from: &Ty, to: &Ty, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
-        let Some(crate::types::Bound::Len { lo, hi, unit }) = to.bound() else { return None };
-        let walk = matches!(from.base(), Ty::Str(_) | Ty::Char(_)) && matches!(unit, Some(crate::types::Unit::Point) | Some(crate::types::Unit::Grapheme));
+        use crate::types::Enc;
+        // Into ASCII from what may not be (owner, 2026-09-30): `not_ascii`
+        // is the first reason, before a bound's `out_of_range`.
+        let ascii = matches!(to.base(), Ty::Str(Enc::Ascii))
+            && match from.base() {
+                Ty::Str(e) => *e != Enc::Ascii,
+                Ty::Char(u) => *u != crate::types::Unit::Byte,
+                _ => false,
+            };
+        let bound = match to.bound() {
+            Some(crate::types::Bound::Len { lo, hi, unit }) => Some((*lo, *hi, *unit)),
+            _ => None,
+        };
+        if !ascii && bound.is_none() {
+            return None;
+        }
         let operand = match arg {
             Arg::Value(o) => o.clone(),
             Arg::Copy(p) | Arg::Give(p) | Arg::Lend { place: p, .. } => Operand::Read(p.clone()),
@@ -1790,25 +1805,41 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let v = self.operand(fi, &operand, slots)?;
         let text = self.to_text(fi, &operand, v, &to.base().clone())?;
         let (p, raw) = self.text_parts(text)?;
-        let mut n = self.real_length(raw);
-        // Text or a character counted in points or graphemes: a walk.
-        if walk {
-            let f = self.rt(if *unit == Some(crate::types::Unit::Point) { "cyborg_str_points" } else { "cyborg_str_graphemes" });
-            n = basic_result(self.builder.build_call(f, &[p.into(), raw.into()], "count").ok()?)?.into_int_value();
+        let arm = |index: usize| fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize]);
+        // Each reason: the text built is given back, then its arm.
+        let mut reason = 0usize;
+        let mut leave_if = |this: &mut Self, bad: IntValue<'ctx>, name: &str| -> Option<()> {
+            let fits = this.ctx.append_basic_block(func, "fits");
+            let give_back = this.ctx.append_basic_block(func, name);
+            let _ = this.builder.build_conditional_branch(bad, give_back, fits);
+            this.builder.position_at_end(give_back);
+            let free = this.rt("cyborg_str_free");
+            let _ = this.builder.build_call(free, &[p.into(), raw.into()], "");
+            let _ = this.builder.build_unconditional_branch(arm(reason)?);
+            this.builder.position_at_end(fits);
+            reason += 1;
+            Some(())
+        };
+        if ascii {
+            let f = self.rt("cyborg_str_is_ascii");
+            let is = basic_result(self.builder.build_call(f, &[p.into(), raw.into()], "is_ascii").ok()?)?.into_int_value();
+            let bad = self.builder.build_int_compare(IntPredicate::EQ, is, self.ctx.i8_type().const_zero(), "not_ascii").ok()?;
+            leave_if(self, bad, "not_ascii")?;
         }
-        let i64t = self.ctx.i64_type();
-        let below = self.builder.build_int_compare(IntPredicate::ULT, n, i64t.const_int(*lo, false), "below").ok()?;
-        let above = self.builder.build_int_compare(IntPredicate::UGT, n, i64t.const_int(*hi, false), "above").ok()?;
-        let out = self.builder.build_or(below, above, "out_of_range").ok()?;
-        let fits = self.ctx.append_basic_block(func, "fits");
-        let give_back = self.ctx.append_basic_block(func, "does_not_fit");
-        let _ = self.builder.build_conditional_branch(out, give_back, fits);
-        self.builder.position_at_end(give_back);
-        let free = self.rt("cyborg_str_free");
-        let _ = self.builder.build_call(free, &[p.into(), raw.into()], "");
-        let arm = fail.iter().find(|a| a.index == 0).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize])?;
-        let _ = self.builder.build_unconditional_branch(arm);
-        self.builder.position_at_end(fits);
+        if let Some((lo, hi, unit)) = bound {
+            let walk = matches!(from.base(), Ty::Str(_) | Ty::Char(_)) && matches!(unit, Some(crate::types::Unit::Point) | Some(crate::types::Unit::Grapheme));
+            let mut n = self.real_length(raw);
+            // Text or a character counted in points or graphemes: a walk.
+            if walk {
+                let f = self.rt(if unit == Some(crate::types::Unit::Point) { "cyborg_str_points" } else { "cyborg_str_graphemes" });
+                n = basic_result(self.builder.build_call(f, &[p.into(), raw.into()], "count").ok()?)?.into_int_value();
+            }
+            let i64t = self.ctx.i64_type();
+            let below = self.builder.build_int_compare(IntPredicate::ULT, n, i64t.const_int(lo, false), "below").ok()?;
+            let above = self.builder.build_int_compare(IntPredicate::UGT, n, i64t.const_int(hi, false), "above").ok()?;
+            let out = self.builder.build_or(below, above, "out_of_range").ok()?;
+            leave_if(self, out, "does_not_fit")?;
+        }
         if let Some(d) = dest {
             self.store_place(fi, d, text, slots);
         }

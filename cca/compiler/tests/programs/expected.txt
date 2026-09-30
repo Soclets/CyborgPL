@@ -236,3 +236,4 @@ nested_loop_exit trap
 asm_lend_mut_scalar trap
 asm_lend_write 42
 ptr_cast 38
+to_ascii 90

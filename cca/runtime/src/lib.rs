@@ -1196,6 +1196,19 @@ pub unsafe extern "C" fn cyborg_str_points(p: *const u8, len: u64) -> u64 {
     b.iter().filter(|&&c| c & 0xc0 != 0x80).count() as u64
 }
 
+/// Whether every byte of a text is ASCII: `to.str.ascii` fails
+/// `not_ascii` otherwise (owner, 2026-09-30). Any text is UTF-8 inside,
+/// so a byte of 0x80 or more is a character past ASCII.
+///
+/// # Safety
+/// `p` must have `len` readable bytes.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_str_is_ascii(p: *const u8, len: u64) -> u8 {
+    let len = len & !STATIC;
+    let b = if len == 0 { &[][..] } else { core::slice::from_raw_parts(p, len as usize) };
+    b.iter().all(|&c| c < 0x80) as u8
+}
+
 /// A text's code points, decoded into `dst` (room for as many as
 /// `cyborg_str_points` counted). `str.each.point`.
 ///

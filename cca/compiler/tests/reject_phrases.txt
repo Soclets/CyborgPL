@@ -464,6 +464,7 @@ text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say whic
 text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[0, 20 bytes]`)
 text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.point` can fail (not_one_char): say what happens
 to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so
+to_ascii_needs_otherwise [fnv:44581da139b15bb0] :: `to.str.ascii` can fail (not_ascii)
 to_bool [fnv:fef2b7077f153711] :: there is no truthiness
 to_c_enum_unhandled [fnv:d5c360ddcb700642] :: `to.Key` can fail (out_of_range)
 to_list [fnv:fe57458270798005] :: keeps the element type, so it is not written
