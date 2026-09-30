@@ -47,7 +47,7 @@ pub fn set_shrinking(on: bool) {
     SHRINKING.store(on, Ordering::SeqCst);
 }
 
-fn build_limit() -> Duration {
+pub fn build_limit() -> Duration {
     if SHRINKING.load(Ordering::SeqCst) {
         SHRINK_BUILD_LIMIT
     } else {

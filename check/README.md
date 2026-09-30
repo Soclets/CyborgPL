@@ -171,6 +171,22 @@ counted as ambiguous and not asked (2026-09-29: four "refutations" in a
 100-program batch were such pairings, not CCA's). Instances of one site in
 several inlined calls share its node and are still asked together.
 
+## Translation validation (Alive2)
+
+`check tv --cases N` (owner: Alive2 installed 2026-09-30; CCA's
+`--emit-llvm`, ae478cd): for each program, Alive2 checks that LLVM's
+rewrites of CCA's IR keep its meaning, with the flags and facts CCA added
+from Precog's proofs. Two checks, in `harness/src/tv.rs`: **per function**
+(every function made external, LLVM's function-level O3 passes without
+inlining or attribute inference, each function against its own rewrite:
+the meaningful one), and **CCA's own pipeline** (`before.ll` against
+`after.ll`), judged only for functions that call none of the module's own
+functions, since an inlined callee always reads as "source more defined"
+there. An incorrect transformation's files are kept in `work/tv/<seed>/`.
+Alive2's own optimiser crashes on this Homebrew LLVM, so `opt` makes the
+per-function target. First run (30 programs): 211 correct, 0 incorrect,
+70 not proved (functions that never return, solver timeouts).
+
 ## Which build a run uses
 
 Every program is built twice: `cca build` (the working build: unproven

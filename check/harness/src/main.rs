@@ -11,6 +11,7 @@ mod claims;
 mod compare;
 mod engines;
 mod json;
+mod tv;
 
 use check_gen::rng::Rng;
 use check_gen::shrink::{candidates, well_scoped};
@@ -279,6 +280,7 @@ fn main() {
             }
         }
         "claims-run" => claims_run(&tools(), &a),
+        "tv" => tv_run(&tools(), &a),
         "evalsite" => {
             // What the exact evaluator saw at every site on one line.
             let p = generate(a.num("seed", 1), &a.config_modelled());
@@ -731,6 +733,74 @@ fn claims_run(t: &Tools, a: &Args) {
     println!(
         "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched ({} of them ambiguous, not asked), {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions: {} answered, {} given up by Z3, {} not reached in time; REFUTED {} (confirmed by running the program exactly; {} solver answers not confirmed)",
         tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.ambiguous, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.asked - tl.unknown - tl.unasked, tl.unknown, tl.unasked, tl.refuted, tl.unconfirmed
+    );
+}
+
+/// Translation validation over many programs (check/src/tv.rs): every
+/// incorrect transformation printed as it is found, its files kept in
+/// work/tv/<seed>/.
+fn tv_run(t: &Tools, a: &Args) {
+    let cfg = a.config();
+    let cases = a.num("cases", 20);
+    let from = a.num("from", 1);
+    let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
+    let next = AtomicU64::new(from);
+    #[derive(Default)]
+    struct T {
+        programs: u64,
+        failed: u64,
+        f: tv::Counts,
+        p: tv::Counts,
+        incorrect: u64,
+    }
+    let tally = Mutex::new(T::default());
+    std::thread::scope(|s| {
+        for w in 0..jobs {
+            let (next, tally, cfg) = (&next, &tally, &cfg);
+            big_stack()
+                .spawn_scoped(s, move || loop {
+                    let seed = next.fetch_add(1, Ordering::SeqCst);
+                    if seed >= from + cases {
+                        return;
+                    }
+                    let p = generate(seed, cfg);
+                    let dir = work().join(format!("tv{w}"));
+                    let r = tv::validate(t, &p.render(), &dir);
+                    let mut tl = tally.lock().unwrap();
+                    tl.programs += 1;
+                    match r {
+                        Err(e) => {
+                            tl.failed += 1;
+                            eprintln!("seed {seed}: {e}");
+                        }
+                        Ok(o) => {
+                            let add = |c: &mut tv::Counts, d: &tv::Counts| {
+                                c.correct += d.correct;
+                                c.incorrect += d.incorrect;
+                                c.unproved += d.unproved;
+                                c.errors += d.errors;
+                            };
+                            add(&mut tl.f, &o.per_function);
+                            add(&mut tl.p, &o.pipeline);
+                            tl.incorrect += o.incorrect.len() as u64;
+                            if !o.incorrect.is_empty() {
+                                let keep = work().join("tv").join(seed.to_string());
+                                let _ = std::fs::create_dir_all(&keep);
+                                let _ = std::process::Command::new("cp").arg("-R").arg(dir.join("prog.cpls")).arg(dir.join("ir")).arg(&keep).status();
+                                for (which, report) in &o.incorrect {
+                                    println!("seed {seed}: INCORRECT ({which}), files in {}\n{}", keep.display(), report.lines().take(12).collect::<Vec<_>>().join("\n"));
+                                }
+                            }
+                        }
+                    }
+                })
+                .expect("spawn");
+        }
+    });
+    let tl = tally.into_inner().unwrap();
+    println!(
+        "\n{} programs ({} not validated); per function: {} correct, {} incorrect, {} not proved, {} Alive2 errors; CCA's pipeline: {} correct, {} incorrect, {} not proved, {} Alive2 errors",
+        tl.programs, tl.failed, tl.f.correct, tl.f.incorrect, tl.f.unproved, tl.f.errors, tl.p.correct, tl.p.incorrect, tl.p.unproved, tl.p.errors
     );
 }
 
