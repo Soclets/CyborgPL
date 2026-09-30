@@ -797,7 +797,18 @@ impl Gen {
             let (plus, piv) = (Expr::Bin(BinOp::Add, Box::new(Expr::To(v.ty, Box::new(Expr::Var(x.clone())))), Box::new(Expr::Lit(1))), Iv::new(v.iv.lo + 1, v.iv.hi + 1));
             let (value, _) = self.fit(plus, piv, v.iv, v.ty);
             let set = Stmt::Assign { tier: Tier::Default, name: x.clone(), value };
-            return Stmt::ForEach { pos: None, item: x, list: v.name.clone(), body: vec![set], mutable: true };
+            let mut body = vec![set];
+            // after the item's last use, the list may be read, and shows the
+            // change already made (owner: a, 257bde8)
+            match self.rng.below(3) {
+                0 => body.push(Stmt::Print { signed: false, value: Expr::Len(v.name.clone()) }),
+                1 => {
+                    let t = if v.ty.signed() { Ty::I64 } else { Ty::U64 };
+                    body.push(Stmt::Print { signed: v.ty.signed(), value: Expr::To(t, Box::new(Expr::At(v.name.clone(), Box::new(Expr::Lit(1))))) });
+                }
+                _ => {}
+            }
+            return Stmt::ForEach { pos: None, item: x, list: v.name.clone(), body, mutable: true };
         }
         if l.mutable && l.frozen == 0 && self.rng.chance(50) {
             // 'xs'['i'] = ('xs'['i'] + 1), folded back into what the items promise

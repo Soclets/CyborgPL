@@ -91,6 +91,9 @@ struct Ev<'a> {
     depth: usize,
     /// The return type of each function being run.
     ret_ty: Vec<TyR>,
+    /// The `lend.mut` walks running: the item's name, its list, its index.
+    /// A change to the item changes the list at once (owner: a, 257bde8).
+    walks: Vec<(String, Rc<RefCell<Vec<i128>>>, usize)>,
 }
 
 fn range_of(t: TyR) -> (i128, i128) {
@@ -560,6 +563,10 @@ impl<'a> Ev<'a> {
                 }
                 (self.node, self.stmt) = (addr(value), addr(s));
                 let v = if ty.base == Ty::Bool { x } else { Val::I(self.land(x.i(), ty)?) };
+                // the item of a `lend.mut` walk is the list's own
+                if let Some((_, l, k)) = self.walks.iter().rev().find(|w| &w.0 == name) {
+                    l.borrow_mut()[*k] = v.clone().i();
+                }
                 Self::set(env, name, v);
                 Ok(Flow::Next)
             }
@@ -693,15 +700,14 @@ impl<'a> Ev<'a> {
                     }
                     scope.insert(item.clone(), (Val::I(x), ty));
                     env.push(scope);
-                    let f = self.block(env, body);
-                    // `lend.mut`: the item is written back (owner, 2026-09-30)
-                    let back = env.last().and_then(|s| s.get(item)).map(|v| v.0.clone().i());
-                    env.pop();
                     if *mutable {
-                        if let Some(v) = back {
-                            l.borrow_mut()[k] = v;
-                        }
+                        self.walks.push((item.clone(), l.clone(), k));
                     }
+                    let f = self.block(env, body);
+                    if *mutable {
+                        self.walks.pop();
+                    }
+                    env.pop();
                     match f? {
                         Flow::Break => break,
                         Flow::Return(v) => return Ok(Flow::Return(v)),
@@ -766,7 +772,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 
 /// Run `p` on these input values (one per input, in order).
 pub fn run(p: &Program, inputs: &[u64]) -> Run {
-    let mut ev = Ev { p, seen: HashMap::new(), node: 0, stmt: 0, call_at: 0, steps: 0, depth: 0, ret_ty: vec![] };
+    let mut ev = Ev { p, seen: HashMap::new(), node: 0, stmt: 0, call_at: 0, steps: 0, depth: 0, ret_ty: vec![], walks: vec![] };
     let mut env: Env = vec![HashMap::new()];
     for (i, v) in p.inputs.iter().zip(inputs) {
         env[0].insert(i.name.clone(), (Val::I(*v as i128), Ty::U64.into()));
