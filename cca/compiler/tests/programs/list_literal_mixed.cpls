@@ -1,0 +1,18 @@
+# In a list literal, a bare number takes its family from the other items
+# (owner, 2026-09-30: a), whichever comes first: [1, 2.5] is two bins, and
+# [1, 'q'] with 'q' a deci is two decis. Worked out by hand, as the oracle
+# still reads the 1 as an integer when it is used:
+# (1 + 5) + (1 + 0.5) x 2 + (1 + 5 - 3 + 10) + (0.1 + 1) x 10 = 6 + 3 + 13 + 11 = 33.
+extern fn exit ['code': int32];
+MAIN {
+    'xs' := [1, 2.5];
+    'q': deci64 = 0.5;
+    'ds' := [1, 'q'];
+    'ys': list[bin64] = [1, 2.5, -3];
+    'es': list[deci64] = [0.1, 1];
+    'a': int32 = to.int32['xs'[1] + ('xs'[2] x 2.0)] otherwise 90;
+    'b': int32 = to.int32[('ds'[1] + 'ds'[2]) x 2] otherwise 91;
+    'c': int32 = to.int32[('ys'[2] x 2.0) + 'ys'[3] + 'ys'[1] + 10.0] otherwise 92;
+    'd': int32 = to.int32[('es'[1] + 'es'[2]) x 10] otherwise 93;
+    nocheck exit['a' + 'b' + 'c' + 'd'];
+}

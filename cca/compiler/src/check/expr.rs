@@ -1564,8 +1564,24 @@ impl Checker {
         }
         let mut out = Vec::new();
         let mut elem: Option<Ty> = None;
+        let mut vals = Vec::new();
         for it in items {
-            let v = self.expr(ctx, it)?;
+            vals.push(self.expr(ctx, it)?);
+        }
+        // A bare whole number takes its family from the other items (owner,
+        // 2026-09-30: a): `[1, 2.5]` is two bins, whichever comes first.
+        let bare = |e: &Expr| match &e.kind {
+            K::Int(_) => true,
+            K::Unary { op: UnOp::Neg, expr } => matches!(expr.kind, K::Int(_)),
+            _ => false,
+        };
+        if let Some(lead) = vals.iter().find(|v| !bare(v)) {
+            let lt = self.resolve(&lead.ty);
+            if matches!(lt.base(), Ty::Bin(_) | Ty::Deci(_)) && vals.iter().any(|v| bare(v)) {
+                elem = Some(lt);
+            }
+        }
+        for v in vals {
             let v = match &elem {
                 Some(t) => {
                     let t = t.clone();
