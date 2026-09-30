@@ -68,7 +68,9 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   bare word, `big`, where the exact form is `Size.big`. A `bool` is
   `true`/`false` in both. **`.useful` follows the verb** (owner: b, as in
   `print.useful`): `to.useful.str.utf8`, `to.useful.deci64` (moved from
-  `to.deci64.useful`). `examples/to_text_forms.cpls`.
+  `to.deci64.useful`). `examples/to_text_forms.cpls`. **A struct, a map,
+  or an enum case carrying data is not text** (owner, 2026-09-30:
+  "refuse"): build the text from its parts, or print it directly.
 - **bin → int fails unless the bin is whole** (decided 2026-09-21):
   `to.int32[2.0] otherwise …` is `2`; `to.int32[2.7]` fails `not_whole`.
   Nothing is thrown away silently — rounding is said first, and the

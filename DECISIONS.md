@@ -27,8 +27,11 @@ number → text" (2026-09-19). The owner: "yea, but where should the
 there, because it once was `printu`", then "it does modify the action,
 though"; design claude switched to (b), `.useful` following the verb, which
 moves `to.deci64.useful` to `to.useful.deci64`. The owner: "`b`". Only text
-and decis have a useful form (`to.useful.int32` refused). Open: structs,
-maps and enum cases that carry data, as text. `examples/to_text_forms.cpls`;
+and decis have a useful form (`to.useful.int32` refused). Then **structs, maps
+and enum cases that carry data are not text**: proposed keep
+`"Point[x = 3, y = 4]"` or refuse, the writer building the text they want
+from the parts; design claude recommended refusing, as lists. The owner:
+"refuse". Reject tests struct_to_text, map_to_text, enum_data_to_text. `examples/to_text_forms.cpls`;
 reject tests useful_after_type, useful_to_int; `deci.cpls`,
 `deci_context.cpls`, `types.md` renamed.
 

@@ -1,0 +1,8 @@
+struct Point {
+    x: int32
+    y: int32
+}
+MAIN {
+    'p' := Point[x = 3, y = 4];
+    't' := to.str.utf8['p'];
+}

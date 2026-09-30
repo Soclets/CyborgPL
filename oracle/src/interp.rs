@@ -2072,6 +2072,11 @@ impl<'p> Interp<'p> {
                     // a list or array is not text (owner, 2026-09-30: b): bytes read as UTF-8 above, any other
                     // list is joined or printed by the writer
                     (Ty::Str(_), Value::List(_)) => return rt(line, format!("a list is not text: only a list of `uint8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `++`, or print the list directly (owner, 2026-09-30)")),
+                    // a struct, a map, or a case carrying data has no one text; the writer builds the text they want
+                    // (owner, 2026-09-30: "refuse")
+                    (Ty::Str(_), Value::Struct(n, _)) => return rt(line, format!("a `{n}` is not text: build the text you want from its fields, e.g. `to.str.utf8['p'.x] ++ …`, or print it directly (owner, 2026-09-30)")),
+                    (Ty::Str(_), Value::Map(_)) => return rt(line, "a map is not text: build the text you want from its entries, or print it directly (owner, 2026-09-30)"),
+                    (Ty::Str(_), Value::Enum(t, c, Some(_))) => return rt(line, format!("`{t}.{c}` carries data, so it is not text: `match` it and build the text you want, or print it directly (owner, 2026-09-30)")),
                     // `to.useful.str…` is `print.useful`'s text, `to.str…` is `print`'s (owner, 2026-09-30)
                     (Ty::Str(_), other) => Value::Str(if *useful { show_useful_as(other, src_ty.as_ref()) } else { other.show_stored() }),
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
