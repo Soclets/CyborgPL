@@ -281,6 +281,7 @@ fn main() {
         }
         "claims-run" => claims_run(&tools(), &a),
         "tv" => tv_run(&tools(), &a),
+        "same" => same_run(&tools(), &a),
         "evalsite" => {
             // What the exact evaluator saw at every site on one line.
             let p = generate(a.num("seed", 1), &a.config_modelled());
@@ -734,6 +735,52 @@ fn claims_run(t: &Tools, a: &Args) {
         "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched ({} of them ambiguous, not asked), {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions: {} answered, {} given up by Z3, {} not reached in time; REFUTED {} (confirmed by running the program exactly; {} solver answers not confirmed)",
         tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.ambiguous, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.asked - tl.unknown - tl.unasked, tl.unknown, tl.unasked, tl.refuted, tl.unconfirmed
     );
+}
+
+/// Two runs of `cca precog --json` on one program must give the same
+/// report (CCA c8cd316: a query that depended on hash-set order proved in
+/// some builds and not in others).
+fn same_run(t: &Tools, a: &Args) {
+    let cfg = a.config();
+    let cases = a.num("cases", 50);
+    let from = a.num("from", 1);
+    let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
+    let next = AtomicU64::new(from);
+    let differ = Mutex::new(vec![]);
+    std::thread::scope(|s| {
+        for w in 0..jobs {
+            let (next, differ, cfg) = (&next, &differ, &cfg);
+            big_stack()
+                .spawn_scoped(s, move || loop {
+                    let seed = next.fetch_add(1, Ordering::SeqCst);
+                    if seed >= from + cases {
+                        return;
+                    }
+                    let p = generate(seed, cfg);
+                    let dir = work().join(format!("same{w}"));
+                    let _ = std::fs::create_dir_all(&dir);
+                    let f = dir.join("prog.cpls");
+                    std::fs::write(&f, p.render()).unwrap();
+                    let once = || engines::run(std::process::Command::new(&t.cca).arg("precog").arg("--json").arg(&f), &dir, &[], false, engines::build_limit());
+                    let (x, y) = (once(), once());
+                    if x.timed_out || y.timed_out {
+                        continue;
+                    }
+                    if x.stdout != y.stdout {
+                        let keep = work().join("same").join(seed.to_string());
+                        let _ = std::fs::create_dir_all(&keep);
+                        let _ = std::fs::write(keep.join("prog.cpls"), p.render());
+                        let _ = std::fs::write(keep.join("first.json"), &x.stdout);
+                        let _ = std::fs::write(keep.join("second.json"), &y.stdout);
+                        println!("seed {seed}: the two reports differ; kept in {}", keep.display());
+                        differ.lock().unwrap().push(seed);
+                    }
+                })
+                .expect("spawn");
+        }
+    });
+    let d = differ.into_inner().unwrap();
+    println!("{cases} programs from seed {from}: {} gave two different reports {:?}", d.len(), d);
 }
 
 /// Translation validation over many programs (check/src/tv.rs): every
