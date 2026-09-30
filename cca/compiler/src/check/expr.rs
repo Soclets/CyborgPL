@@ -3514,7 +3514,7 @@ impl Checker {
         let mut hargs = Vec::new();
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let ty = match name.as_str() {
-            "print.stdout" | "print.stderr" | "print.useful.stdout" | "print.useful.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
+            "print.stdout" | "print.stderr" | "print.useful.stdout" | "print.useful.stderr" | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
                 for e in &positional {
                     let v = self.expr(ctx, e)?;
                     let v = self.as_operand(ctx, v)?;
