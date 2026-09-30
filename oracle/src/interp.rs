@@ -116,6 +116,9 @@ pub struct Interp<'p> {
     /// the type the value being evaluated is being stored into, when there is one:
     /// a bare literal takes its width from its context (owner, 2026-09-23)
     expected: Option<Ty>,
+    /// a conversion's target, which a bare literal in its `otherwise` takes as its family (`types.md`:
+    /// a literal takes its context's; check claude, 2026-09-30)
+    fallback_ty: Option<Ty>,
     /// whether the last value evaluated is statically a list (false) or an array (true), and
     /// the same for the value a `return` handed back: a list never becomes an array by itself
     /// ("nothing converts by itself", 2026-09-19; owner, 2026-09-23: `to.array[…]`, `to.list[…]`)
@@ -151,7 +154,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), scopes: vec![HashMap::new()], out }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -1966,6 +1969,8 @@ impl<'p> Interp<'p> {
             }
             Expr::Convert(ty, b, handler, useful, _) => {
                 let (v, _) = self.single(b, line)?;
+                // a fallback takes the conversion's type: `to.deci32['x'] otherwise 0` is a deci32 0
+                self.fallback_ty = match ty { Ty::Ranged(bt, ..) => Some((**bt).clone()), Ty::TextRanged(e, ..) => Some(Ty::Str(e.clone())), t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Char(_) | Ty::Bool) => Some(t.clone()), _ => None };
                 let target = ty_name(ty);
                 let full_ty = ty;
                 let text_base;
@@ -2714,6 +2719,8 @@ impl<'p> Interp<'p> {
                 Some(u64)
             }
             // `let 'a' := to.array[give 'l']` is an array of what 'l' held
+            // `'y' := to.deci32['x'] otherwise 0` is a deci32, whatever its fallback (check claude, 2026-09-30)
+            [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_)), _, _, _, _))] => Some(t.clone()),
             [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::List(_) | Ty::Array(_)), b, _, _, _))] => {
                 let elem = match b.values.first() {
                     Some(crate::ast::Value::Expr(Expr::Owned(_, n, _) | Expr::Var(n, _))) => match self.lookup(n).and_then(|s| s.ty.clone()) {
@@ -3674,10 +3681,16 @@ impl<'p> Interp<'p> {
         let leave = |f: Flow| RuntimeError { line, msg: String::new(), exit: None, site: false, leave: Some(f) };
         match handler {
             Handler::Value(b) => {
-                let (v, prov) = self.bracket(b, line)?;
+                // only a conversion's own failure: a type left by an earlier conversion that did not fail
+                // must not reach another call's fallback
+                let fty = self.fallback_ty.take().filter(|_| name.starts_with("to."));
+                let saved = if fty.is_some() { Some(std::mem::replace(&mut self.expected, fty.clone())) } else { None };
+                let r = self.bracket(b, line);
+                if let Some(s) = saved { self.expected = s; }
+                let (v, prov) = r?;
                 match prov {
                     Prov::Bare(n) => rt(line, format!("the fallback is bare '{n}', which owns a {}: say `give '{n}'` or `copy '{n}'`", v.kind())),
-                    _ => Ok(v),
+                    _ => match &fty { Some(t) => self.fit(v, prov, Some(t), line), None => Ok(v) },
                 }
             }
             Handler::Propagate => Err(leave(Flow::Fail(reason, payload))),
