@@ -1493,11 +1493,29 @@ impl<'a> Enc<'a> {
                 let (lo, hi) = int_bounds(to)?;
                 Some(format!("(or {} {})", self.cmp_const(&v, "bvsgt", hi)?, self.cmp_const(&v, "bvslt", lo)?))
             }
+            // The count outside 0 to width - 1, for `shl` and `shr`; and for
+            // `shl`, an answer that no longer fits the type — as layer 2
+            // asks. Only the count was asked here, and a `shl` that moved
+            // bits out of a uint32 in a loop was "proven" and wrapped at run
+            // time (check claude, seed 9148). The width is the result
+            // type's, not the operand's.
             SiteKind::ShiftWidth | SiteKind::ShiftCount => {
                 let a = ops.first().cloned().flatten()?;
                 let b = ops.get(1).cloned().flatten()?;
-                let width = a.bits as i128;
-                Some(format!("(or {} {})", self.cmp_const(&b, "bvsge", width)?, self.cmp_const(&b, "bvslt", 0)?))
+                let (bits, _) = site.result_ty.as_ref().and_then(int_shape)?;
+                let (lo, hi) = site.result_ty.as_ref().and_then(int_bounds)?;
+                let width = bits as i128;
+                let count = format!("(or {} {})", self.cmp_const(&b, "bvsge", width)?, self.cmp_const(&b, "bvslt", 0)?);
+                if matches!(site.kind, SiteKind::ShiftCount) {
+                    return Some(count);
+                }
+                // Shifted wide enough that nothing falls off: the operand's
+                // bits and the type's, plus the largest count that passes.
+                let wide = a.bits.max(bits) + bits + 2;
+                let x = self.resize(a, wide, true);
+                let by = self.resize(b, wide, false);
+                let r = self.define(wide, &format!("(bvshl {} {})", x.term, by.term), true);
+                Some(format!("(or {} {} {})", count, self.cmp_const(&r, "bvsgt", hi)?, self.cmp_const(&r, "bvslt", lo)?))
             }
             _ => None,
         }

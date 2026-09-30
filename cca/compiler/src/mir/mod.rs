@@ -269,7 +269,7 @@ impl SiteKind {
             SiteKind::Narrow { to } if *to == Ty::Duration => "a duration is a length of time, and this can take it below zero".to_string(),
             SiteKind::Narrow { to } => format!("the value can be outside what a `{}` holds", spell(to)),
             SiteKind::LengthBound { to } => format!("this can take it outside the bound its type gives it (`{}`)", spell(to)),
-            SiteKind::ShiftWidth => "the shift can move every bit out".into(),
+            SiteKind::ShiftWidth => "the shift can move bits out of the type: too far, or a value too big to shift".into(),
             SiteKind::ShiftCount => "the shift count can be outside 0 to the width - 1".into(),
             SiteKind::SliceRange => "the slice can run outside the list, or backwards".into(),
             SiteKind::NegativeExponent => "a negative exponent on integers would produce a fraction".into(),
