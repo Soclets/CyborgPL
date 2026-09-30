@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — Precog estimates whether a loop is worth cores; `tune.cplr` overrules it when it has a measurement (owner: a)
+
+Compiler claude's second question for parallel `for`. Proposed (a) a fixed
+trip threshold; (b) a cost estimate, trips times the body's cost, against
+waking threads; (c) b, with `tune.cplr` able to overrule it per loop, as
+for the GPU. The owner: "Bro, Precog exists" — the estimate is Precog's.
+Asked whether `tune` is Precog's: no — Precog never times anything (no
+clock, so builds reproduce); `cca tune` runs outside the build and Precog
+reads its file. (The owner then asked whether Precog runs loops at all: it
+does, at compile time in its own model, whenever the inputs are known —
+seeing a sum pass `int8`'s maximum at compile time — and proves instead
+when a loop depends on input that only exists at run time; design claude's
+"Yes, when it can" to "so it never runs the loop?" read backwards, and was
+corrected.) Then, whether a measurement overrules the estimate for cores
+too: the owner: "`a`". `parallelism.md`.
+
 ### 2026-09-30 — Parallel `for` may fold into one variable, for every type (owner: c)
 
 Compiler claude's first question for parallel `for` (not started): a loop

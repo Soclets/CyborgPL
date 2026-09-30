@@ -13,7 +13,14 @@ parallel:
   cannot both own the same value — rather than the guess a C or Go compiler
   has to make.
 - **Whether it should:** Precog usually knows the trip count or its bound;
-  a short loop is not worth waking a thread for.
+  a short loop is not worth waking a thread for. **Precog estimates it
+  itself** (owner, 2026-09-30: "Bro, Precog exists"), from the trips and
+  the work of each, never from a number someone picks or from timing the
+  machine — and **a measurement in `tune.cplr` wins where there is one**
+  (owner: a), as for the GPU: `cca tune` times the undecided loops once,
+  outside the build (`gpu.md`). A missing or stale entry only costs speed,
+  never correctness. Proposed: a fixed trip threshold; the estimate alone
+  for cores, tuning for the GPU only.
 
 **Reductions** (owner, 2026-09-30: c): a loop that folds into one variable
 (`change 'total' = 'total' + 'x';`) may run in parallel, each core folding
