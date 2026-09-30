@@ -231,6 +231,16 @@ pub enum Expr {
     Lend(String),
     /// `E1.c2[v]`, or `E1.c1` for a case with no data (design/enums.md).
     Case(String, String, Option<Box<Expr>>),
+    /// A deci or bin literal as written (`2.50`, `-0.125`): its digits and
+    /// trailing zeros are part of the value (design/types.md, deci).
+    Num(String),
+    /// A text literal, `"1.250"`.
+    Text(String),
+    /// `to.T[v]`, or `to.T[v] otherwise fb` (design/conversion.md); `T` as
+    /// written (`deci64`, `useful.deci64`, `int32`, `str.utf8`, `deci64[0.0, 1.0]`).
+    Conv(String, Box<Expr>, Option<Box<Expr>>),
+    /// `str.bytes[lend 's']`
+    StrBytes(String),
     /// `to.K[v] otherwise { out_of_range { K.c1 } }`: a number into a
     /// `layout.c enum`, the fallback where no case has it (owner, 2026-09-27).
     ToEnum(String, Box<Expr>, Box<Expr>),
@@ -312,6 +322,10 @@ pub enum Stmt {
     EnumLet { name: String, mutable: bool, en: String, value: Expr },
     /// `match 'e' { … }` as a statement: every arm a block.
     MatchStmt { scrut: Expr, arms: Vec<Arm> },
+    /// `mut 'd': deci64 = …;` (the type as written, a range type included).
+    TypedLet { name: String, mutable: bool, ty: String, value: Expr },
+    /// `'z' := …;`
+    AutoLet { name: String, value: Expr },
     /// `mut 's': simd[int32, 4] = …;`
     SimdLet { name: String, mutable: bool, elem: Ty, lanes: usize, value: Expr },
 }
@@ -374,6 +388,9 @@ pub struct Program {
     pub strict: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
+    /// Holds values my exact evaluator does not model (deci, bin, text):
+    /// compared between the engines only.
+    pub unevaluable: bool,
 }
 
 // ---------------------------------------------------------------- rendering
@@ -388,6 +405,8 @@ fn q(name: &str) -> String {
 fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
+        Expr::Num(t) if t.starts_with('-') => Some(2),
+        Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => Some(0),
         Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
@@ -570,6 +589,18 @@ impl<'a> Wr<'a> {
             }
             Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
             Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
+            Expr::Num(t) => self.out.push_str(t),
+            Expr::Text(t) => self.out.push_str(&format!("{t:?}")),
+            Expr::StrBytes(n) => self.out.push_str(&format!("str.bytes[lend {}]", q(n))),
+            Expr::Conv(t, v, fb) => {
+                self.out.push_str(&format!("to.{t}["));
+                self.e(v);
+                self.out.push(']');
+                if let Some(fb) = fb {
+                    self.out.push_str(" otherwise ");
+                    self.e(fb);
+                }
+            }
             Expr::ToEnum(en, v, fallback) => {
                 self.out.push_str(&format!("to.{en}["));
                 self.e(v);
@@ -652,6 +683,15 @@ impl<'a> Wr<'a> {
         match s {
             Stmt::EnumLet { name, mutable, en, value } => {
                 let head = format!("{}{}: {en} = ", if *mutable { "mut " } else if self.strict { "immut " } else { "" }, q(name));
+                self.simple(s, &pad, Tier::Default, &head, value, ";");
+            }
+            Stmt::TypedLet { name, mutable, ty, value } => {
+                let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
+                let head = format!("{m}{}: {ty} = ", q(name));
+                self.simple(s, &pad, Tier::Default, &head, value, ";");
+            }
+            Stmt::AutoLet { name, value } => {
+                let head = format!("{}{} := ", if self.strict { "immut " } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::SimdLet { name, mutable, elem, lanes, value } => {

@@ -80,11 +80,17 @@ pub struct Config {
     /// 2026-09-29); without them a lane that could leave its type is made
     /// by a bitwise operator instead.
     pub simd_wrap: bool,
+    /// deci values, their arithmetic and conversions, and text into
+    /// numbers (design/types.md, design/conversion.md; owner "yea",
+    /// 2026-09-30), watched through printed integers.
+    pub deci: bool,
+    /// The `to.useful.…` forms (CCA does not take the 2026-09-30 spelling yet).
+    pub deci_useful: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true }
     }
 }
 
@@ -189,6 +195,8 @@ struct Gen {
     bsigs: Vec<BSig>,
     belem: Ty,
     enums: Vec<EnumGen>,
+    /// The program holds something my exact evaluator does not model.
+    unevaluable: bool,
     /// A `#strict` file: the whole program under the generator's `check`
     /// rules (no risk, no positions, nothing unseen), since every site must
     /// be proven in its own function, and promised ranges are whole types.
@@ -223,6 +231,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         belem: Ty::I32,
         enums: vec![],
         strict,
+        unevaluable: false,
     };
     if strict {
         g.in_check = 1;
@@ -286,7 +295,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict }
+    Program { seed, printer, inputs, funcs, bfuncs, enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict, unevaluable: g.unevaluable }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -324,7 +333,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -388,6 +397,9 @@ impl Gen {
                 Expr::Len(_) | Expr::At(..) | Expr::Match(..) | Expr::SimdFold(..) => true,
                 Expr::SimdFill(a) => walk(a, f),
                 Expr::ToEnum(_, a, b) => walk(a, f) || walk(b, f),
+                // a conversion's result is the generator's guess at most
+                Expr::Conv(..) | Expr::StrBytes(_) => true,
+                Expr::Num(_) | Expr::Text(_) => false,
                 Expr::Case(_, _, d) => d.as_ref().map_or(false, |d| walk(d, f)),
                 Expr::Lit(_) | Expr::Bool(_) | Expr::Lend(_) => false,
                 Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => walk(a, f) || walk(b, f),
@@ -655,6 +667,9 @@ impl Gen {
             if self.cfg.simd { 2 } else { 0 },                                       // simd let
             if self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 },   // simd change
             if self.cfg.simd_lanes && self.in_check == 0 && self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 }, // lane change
+            // not in `check` or strict code yet: a deci range literal is not
+            // proven there, and deci → integer's kind of failure is asked
+            if self.cfg.deci && self.in_check == 0 { 2 } else { 0 },                 // deci and conversions
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -674,6 +689,7 @@ impl Gen {
             16 => self.simd_let(),
             17 => self.simd_assign(),
             18 => self.lane_write(),
+            19 => self.deci_episode(),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -1280,6 +1296,152 @@ impl Gen {
             2 => (Expr::SimdFold("min", var), v.iv),
             _ => (Expr::SimdFold("max", var), v.iv),
         }
+    }
+
+    // ------------------------------------------------------------ deci
+
+    /// A deci literal of at most `max` significant digits, sometimes with
+    /// trailing zeros (kept, as IEEE keeps them).
+    fn deci_lit(&mut self, max: usize) -> String {
+        let n = 1 + self.rng.below(max.min(6) as u64) as usize;
+        let mut digits: String = (0..n).map(|i| {
+            let d = self.rng.below(10) as u8;
+            (b'0' + if i == 0 && d == 0 { 1 } else { d }) as char
+        }).collect();
+        if n >= 2 && self.rng.chance(25) {
+            digits.replace_range(n - 1.., "0");
+        }
+        let point = self.rng.below(n as u64 + 1) as usize;
+        let mut t = if point == 0 { format!("0.{digits}") } else if point == n { format!("{digits}.0") } else { format!("{}.{}", &digits[..point], &digits[point..]) };
+        // `0.xyz` has a leading zero that is not a digit of the value, but
+        // stay clear of the edge: keep it within `max` characters of digits.
+        if t.chars().filter(|c| c.is_ascii_digit()).count() > max {
+            t = digits[..1].to_string() + ".0";
+        }
+        if self.rng.chance(20) { format!("-{t}") } else { t }
+    }
+
+    /// Text to read as a number: well-formed, badly formed, too long, too big.
+    fn number_text(&mut self) -> String {
+        const POOL: &[&str] = &["42", "-7", "0", "1.250", "-0.5", "2.5e3", "1e400", "abc", "", "12x", " 5", "+3", "3.", ".5", "0.12345678901234567", "99999999999", "-1", "1e-3", "inf", "nan", "00012", "1_000", "7.0"];
+        if self.rng.chance(70) {
+            POOL[self.rng.below(POOL.len() as u64) as usize].to_string()
+        } else {
+            let v = self.rng.range(-100000, 100000);
+            if self.rng.chance(50) { v.to_string() } else { format!("{}.{}", v, self.rng.below(1000)) }
+        }
+    }
+
+    /// A block of deci work: values from literals and from each other,
+    /// conversions from integers, text, bins and other widths, and what is
+    /// seen of them as integers (scaled `to.int64[…] otherwise -1`, a
+    /// comparison, the length of its text), plus text read as integers.
+    fn deci_episode(&mut self) -> Stmt {
+        self.unevaluable = true;
+        let w = *self.rng.pick(&[32u32, 64, 64, 128]);
+        let ty = format!("deci{w}");
+        let digits = match w { 32 => 7, 64 => 16, _ => 34 };
+        let mut body = vec![];
+        let mut decis: Vec<String> = vec![];
+        let first = self.name("d");
+        body.push(Stmt::TypedLet { name: first.clone(), mutable: false, ty: ty.clone(), value: Expr::Num(self.deci_lit(digits)) });
+        decis.push(first);
+        for _ in 0..1 + self.rng.below(4) {
+            let a = Expr::Var(self.rng.pick(&decis).clone());
+            let value = match self.rng.below(9) {
+                0..=4 => {
+                    let op = *self.rng.pick(&[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div, BinOp::Mod]);
+                    let b = if self.rng.chance(50) { Expr::Var(self.rng.pick(&decis).clone()) } else { Expr::Num(self.deci_lit(digits)) };
+                    // a divisor of 0 stops both engines alike; keep it rare
+                    let b = match (&b, op) {
+                        (Expr::Num(t), BinOp::Div | BinOp::Mod) if t.trim_start_matches('-').chars().all(|c| c == '0' || c == '.') => Expr::Num("1.5".into()),
+                        (Expr::Var(_), BinOp::Div | BinOp::Mod) if !self.take_risk() => Expr::Num("2.5".into()),
+                        _ => b,
+                    };
+                    Expr::Bin(op, Box::new(a), Box::new(b))
+                }
+                5 => Expr::Bin(BinOp::Pow, Box::new(a), Box::new(Expr::Lit(self.rng.range(-3, 12)))),
+                6 => Expr::Neg(Box::new(a)),
+                7 => {
+                    // from an integer in scope: `otherwise` only when its type
+                    // could have more digits than the deci holds
+                    let ints: Vec<VarInfo> = self.vars().filter(|v| v.ty != Ty::Bool).cloned().collect();
+                    if ints.is_empty() {
+                        Expr::Num(self.deci_lit(digits))
+                    } else {
+                        let v = self.rng.pick(&ints).clone();
+                        let most = match v.ty { Ty::I8 | Ty::U8 => 3, Ty::I16 | Ty::U16 => 5, Ty::I32 | Ty::U32 => 10, Ty::I64 => 19, _ => 20 };
+                        let fb = (most > digits).then(|| Box::new(Expr::Num(self.deci_lit(digits))));
+                        Expr::Conv(ty.clone(), Box::new(Expr::Var(v.name)), fb)
+                    }
+                }
+                _ => Expr::Conv(ty.clone(), Box::new(Expr::Text(self.number_text())), Some(Box::new(Expr::Num(self.deci_lit(digits))))),
+            };
+            let name = self.name("d");
+            let typed = !matches!(value, Expr::Conv(..));
+            body.push(if typed { Stmt::TypedLet { name: name.clone(), mutable: false, ty: ty.clone(), value } } else { Stmt::AutoLet { name: name.clone(), value } });
+            decis.push(name);
+        }
+        // between widths, and from a bin
+        if self.rng.chance(40) {
+            let (to, to_digits) = if w == 32 { ("deci64", 16) } else { ("deci32", 7) };
+            let src = Expr::Var(self.rng.pick(&decis).clone());
+            let name = self.name("d");
+            let fb = Box::new(Expr::Num(self.deci_lit(to_digits)));
+            body.push(Stmt::AutoLet { name: name.clone(), value: Expr::Conv(to.into(), Box::new(src), (to == "deci32").then_some(fb)) });
+            let z = self.name("z");
+            body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(Expr::Var(name)), Box::new(Expr::Num("1000".into())))), Some(Box::new(Expr::Lit(-1)))) });
+            body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
+        }
+        if self.rng.chance(35) {
+            let b = self.name("b");
+            let bin = *self.rng.pick(&["0.1", "0.2", "2.5", "-1.75", "3.0", "0.001", "123.456"]);
+            body.push(Stmt::TypedLet { name: b.clone(), mutable: false, ty: "bin64".into(), value: Expr::Num(bin.into()) });
+            let conv = if self.cfg.deci_useful && self.rng.chance(50) { format!("useful.{ty}") } else { ty.clone() };
+            let name = self.name("d");
+            body.push(Stmt::AutoLet { name: name.clone(), value: Expr::Conv(conv, Box::new(Expr::Var(b)), None) });
+            decis.push(name);
+        }
+        // a range type, sometimes pushed outside by a risk taken
+        if w == 64 && self.rng.chance(30) {
+            let name = self.name("d");
+            let inside = format!("0.{}", self.rng.range(1, 99));
+            let value = if self.take_risk() { Expr::Bin(BinOp::Mul, Box::new(Expr::Var(self.rng.pick(&decis).clone())), Box::new(Expr::Num("3.0".into()))) } else { Expr::Num(inside) };
+            body.push(Stmt::TypedLet { name: name.clone(), mutable: false, ty: "deci64[0.0, 1.0]".into(), value });
+            decis.push(name);
+        }
+        // what is seen: scaled into an integer, compared, and as text
+        for _ in 0..1 + self.rng.below(3) {
+            let d = Expr::Var(self.rng.pick(&decis).clone());
+            match self.rng.below(3) {
+                0 => {
+                    let scale = *self.rng.pick(&["1", "10", "100", "1000", "1000000"]);
+                    let z = self.name("z");
+                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(d), Box::new(Expr::Num(scale.into())))), Some(Box::new(Expr::Lit(-1)))) });
+                    body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
+                }
+                1 => {
+                    let op = *self.rng.pick(&[CmpOp::Eq, CmpOp::Lt, CmpOp::Ge]);
+                    let c = Expr::Cmp(op, Box::new(d), Box::new(Expr::Num(self.deci_lit(digits))));
+                    body.push(Stmt::If { arms: vec![(c, vec![Stmt::Print { signed: false, value: Expr::Lit(1) }])], otherwise: Some(vec![Stmt::Print { signed: false, value: Expr::Lit(0) }]) });
+                }
+                _ => {
+                    let s = self.name("t");
+                    let form = if self.cfg.deci_useful && self.rng.chance(50) { "useful.str.utf8" } else { "str.utf8" };
+                    body.push(Stmt::AutoLet { name: s.clone(), value: Expr::Conv(form.into(), Box::new(d), None) });
+                    body.push(Stmt::Print { signed: false, value: Expr::StrBytes(s) });
+                }
+            }
+        }
+        // text into an integer
+        if self.rng.chance(50) {
+            let t = *self.rng.pick(&INTS);
+            let k = self.name("k");
+            let fb = if t.signed() { -2 } else { 7 };
+            body.push(Stmt::AutoLet { name: k.clone(), value: Expr::Conv(t.name().into(), Box::new(Expr::Text(self.number_text())), Some(Box::new(Expr::Lit(fb)))) });
+            body.push(Stmt::Print { signed: t.signed(), value: Expr::To(if t.signed() { Ty::I64 } else { Ty::U64 }, Box::new(Expr::Var(k))) });
+        }
+        Stmt::Block { tier: Tier::Default, body }
     }
 
     fn tier(&mut self, risky: bool) -> Tier {

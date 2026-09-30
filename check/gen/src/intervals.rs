@@ -159,7 +159,7 @@ impl<'a> An<'a> {
         }
         match e {
             // Lists are not analysed yet: a program with one has no complete answer.
-            Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => {
+            Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => {
                 self.incomplete = true;
                 R::TOP
             }
@@ -406,7 +406,7 @@ impl<'a> An<'a> {
 
     fn stmt(&mut self, mut env: Env, s: &Stmt) -> Option<Env> {
         match s {
-            Stmt::ListLet { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::MatchStmt { .. } | Stmt::SimdLet { .. } => {
+            Stmt::ListLet { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::MatchStmt { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } => {
                 self.incomplete = true;
                 Some(env)
             }

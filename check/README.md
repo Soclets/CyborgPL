@@ -65,6 +65,17 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   file refuses any site not proven from its own function, in every build,
   the whole program is generated under the `check` rules (no risk, no
   positions, nothing unseen), and promised ranges are whole types.
+  **deci and conversions** (owner "yea", 2026-09-30; `--avoid deci`):
+  blocks of deci32/64/128 values from literals (some with trailing zeros)
+  and from each other through `+ - x div mod xx` and negation; conversions
+  from integers (with `otherwise` only where the integer type could have
+  more digits), from text (good and bad), from bins, and between widths; a
+  deci range type, sometimes pushed out of it; and text read as integers.
+  All is seen through printed integers: `to.int64[d x 10^k] otherwise -1`,
+  comparisons printing 1 or 0, and `str.bytes` of the text. My exact
+  evaluator and the solver do not model deci: such programs are compared
+  between the engines only (`Program::unevaluable`). Not yet in `check`
+  or strict code.
   **Enums** (design/enums.md; `--avoid enums` turns them off): about
   half of programs get one or two, with integer data on some cases; enum
   names, changes, `==` on them, `match` statements, and `match` giving a
@@ -163,7 +174,10 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits`.
+straight at them. Default: `exact-bits,deci-useful`.
+
+- `deci-useful`: no `to.useful.…` forms (CCA does not take the 2026-09-30
+  spelling yet).
 
 - `exact-bits`: CCA says "not yet" to a shift, bitwise or wrapping operator
   on an exact answer whose operands differ in size (2026-09-23); the

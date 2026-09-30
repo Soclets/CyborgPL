@@ -69,7 +69,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,deci-useful".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -94,6 +94,8 @@ impl Args {
             simd: !avoid.contains("simd"),
             simd_lanes: !avoid.contains("simd-lanes"),
             simd_wrap: !avoid.contains("simd-wrap"),
+            deci: !avoid.split(',').any(|a| a == "deci"),
+            deci_useful: !avoid.contains("deci-useful"),
         }
     }
 }
@@ -284,7 +286,7 @@ fn main() {
             let (mut same, mut differ) = (0, 0);
             for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 20) {
                 let p = generate(seed, &a.config());
-                if p.expect_refused {
+                if p.expect_refused || p.unevaluable {
                     continue;
                 }
                 let (text, spans) = p.render_spans();

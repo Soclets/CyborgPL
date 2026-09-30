@@ -253,6 +253,8 @@ impl<'a> Ev<'a> {
             }
             Expr::Len(n) => Val::I(Self::list(env, n).borrow().len() as i128),
             Expr::Lend(n) => Self::lookup(env, n).map(|v| v.0).unwrap_or(Val::I(0)),
+            // Not modelled (the program is marked unevaluable and skipped).
+            Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) => Val::I(0),
             Expr::ToEnum(en, x, fallback) => {
                 let v = self.expr(env, x)?.i();
                 let vals = self.p.enums.iter().find(|d| &d.name == en).and_then(|d| d.values.clone()).unwrap_or_default();
@@ -495,6 +497,10 @@ impl<'a> Ev<'a> {
 
     fn stmt_inner(&mut self, env: &mut Env, s: &Stmt) -> Result<Flow, Stop> {
         match s {
+            Stmt::TypedLet { name, .. } | Stmt::AutoLet { name, .. } => {
+                env.last_mut().unwrap().insert(name.clone(), (Val::I(0), Ty::I64.into()));
+                Ok(Flow::Next)
+            }
             Stmt::SimdLet { name, elem, lanes: n, value, .. } => {
                 let x = self.expr(env, value)?;
                 let xs = lanes(&x);

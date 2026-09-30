@@ -157,6 +157,9 @@ pub struct Outcome {
 
 /// Ask CCA for its claims on `p`, and Z3 whether each proven one holds.
 pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, String> {
+    if p.unevaluable {
+        return Err("holds values the solver does not model (deci, bin, text)".into());
+    }
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     let (text, spans) = p.render_spans();
     let file = dir.join("prog.cpls");
