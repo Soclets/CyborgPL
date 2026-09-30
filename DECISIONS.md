@@ -5,6 +5,38 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — RRx2-TV in C++, RRx2-lang in C; RRx2-lang's math (owner)
+
+**What RRx2-lang has** (owner: "1 to 3's second", of design claude's three
+tiers; read as tiers 1 and 2 and the first two of tier 3):
+1. an exact model of CyborgPL's numbers: big whole numbers and true
+   fractions (as `std::uenr`); the fixed-width integers with CyborgPL's
+   wrapping, overflow, flooring `/` and `mod`; `bin` as the exact fraction
+   each float is, with correctly rounded results; `deci` with CyborgPL's
+   rounding;
+2. judging Precog: interval arithmetic with guaranteed bounds, and "for
+   all" over finite types, checked exhaustively;
+3. algebraic numbers (`√2` as the positive root of x² − 2, so `√2 × √2`
+   is exactly 2) and exact real numbers (`π`, `e`, `sin` to any asked
+   precision, with a guaranteed error bound).
+Left out: continued fractions, modular and finite-field numbers, exact
+complex numbers and matrices, symbolic polynomials.
+
+**Languages.** Design claude recommended Rust for both (Go close behind
+for RRx2-lang, for `math/big`; C refused as a risk to a reference's
+trust). The owner: "RRx2 feels like a big old thing. Kinda like how we
+did Synthia corporate-like, and CyborgPL non family friendly", then "C's
+calling for me, C++ also". Design claude proposed the split: RRx2-TV in
+C++, since LLVM and Bitwuzla are C++ themselves (Alive2's choice too);
+RRx2-lang in C, on GMP and MPFR, the classic C libraries for exact
+numbers and correctly rounded floats. The owner: "yeah". Design claude's
+discipline for both, for the briefs: every test build with
+`-fsanitize=address,undefined`, warnings as errors, and in C++ no raw
+`new`/`delete`. GMP and MPFR are LGPL: used as linked libraries beside
+Apache-2.0 code, which the LGPL allows. Not yet answered: whether
+RRx2-lang is interpreted only (design claude recommended it, over
+transpiling).
+
 ### 2026-09-30 — RRx2-TV's solver is Bitwuzla, alone (owner)
 
 The owner asked, of design claude's "RRx2-TV asks Z3": "Should it really?"
