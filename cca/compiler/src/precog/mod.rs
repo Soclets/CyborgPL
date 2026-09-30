@@ -1278,10 +1278,17 @@ impl Precog {
                 }
                 r
             }
-            Rvalue::Convert { to, operand, .. } => {
+            Rvalue::Convert { to, operand, useful } => {
                 let d = self.read_operand(f, env, operand);
+                let from = operand.place().map(|p| self.place_ty(f, p)).map(|t| t.base().clone());
+                // An enum case as text is its name, and the useful text of a
+                // bin, deci or case is not modelled: any text of the type,
+                // never a number's digits folded in (owner, 2026-09-30).
+                if matches!(to.base(), Ty::Str(_)) && (*useful || matches!(from, Some(Ty::Enum { .. }))) {
+                    return Domain::of_ty(to, &self.prog().items);
+                }
                 // A C enum's number: the numbers of the cases it can be.
-                if let Some(Ty::Enum { id, .. }) = operand.place().map(|p| self.place_ty(f, p)).map(|t| t.base().clone()) {
+                if let Some(Ty::Enum { id, .. }) = from {
                     if let Some(ns) = self.prog().items.enums[id.0 as usize].numbers.clone() {
                         let picked: Vec<i64> = match &d {
                             Domain::Enum(cases) => cases.iter().filter_map(|(c, _)| ns.get(*c).copied()).collect(),

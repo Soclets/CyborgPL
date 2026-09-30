@@ -238,3 +238,4 @@ asm_lend_write 42
 ptr_cast 38
 to_ascii 90
 bytes_to_text 91
+to_text_forms 22

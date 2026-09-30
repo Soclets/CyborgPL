@@ -596,6 +596,88 @@ impl core::fmt::Write for Buf<'_> {
     }
 }
 
+/// A bin's useful text (owner, 2026-09-30: `to.useful.str.utf8`): the
+/// shortest decimal that reads back as `x` at its own width, written out
+/// in full — `0.1`, `100`, `0.000001`, `123456789012345680` — as
+/// `print.useful` shows it.
+///
+/// # Safety
+/// `out` must be writable.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_bin_to_text_useful(out: *mut Text, x: f64, bits: u32) {
+    if x.is_nan() || x.is_infinite() {
+        let mut buf = [0u8; 1080];
+        let n = expand(x, &mut buf);
+        text_of(out, &buf[..n]);
+        return;
+    }
+    // `d.ddde±N`: the digits and where the point goes.
+    let mut sci = [0u8; 64];
+    let n = shortest(x.abs(), bits, &mut sci);
+    let s = &sci[..n];
+    let e_at = s.iter().position(|&c| c == b'e').unwrap_or(n);
+    let digits: [u8; 64] = {
+        let mut d = [0u8; 64];
+        let mut k = 0;
+        for &c in &s[..e_at] {
+            if c.is_ascii_digit() {
+                d[k] = c;
+                k += 1;
+            }
+        }
+        d
+    };
+    let nd = s[..e_at].iter().filter(|c| c.is_ascii_digit()).count();
+    let mut exp: i64 = 0;
+    let mut neg_exp = false;
+    for &c in &s[(e_at + 1).min(n)..] {
+        match c {
+            b'-' => neg_exp = true,
+            b'0'..=b'9' => exp = exp * 10 + (c - b'0') as i64,
+            _ => {}
+        }
+    }
+    if neg_exp {
+        exp = -exp;
+    }
+    let mut buf = [0u8; 400];
+    let mut k = 0;
+    let mut put = |c: u8, k: &mut usize| {
+        buf[*k] = c;
+        *k += 1;
+    };
+    if x.is_sign_negative() && x != 0.0 {
+        put(b'-', &mut k);
+    }
+    // Where the point falls after the first digit.
+    let point = exp + 1;
+    if point <= 0 {
+        put(b'0', &mut k);
+        put(b'.', &mut k);
+        for _ in 0..(-point) {
+            put(b'0', &mut k);
+        }
+        for &c in &digits[..nd] {
+            put(c, &mut k);
+        }
+    } else if point as usize >= nd {
+        for &c in &digits[..nd] {
+            put(c, &mut k);
+        }
+        for _ in 0..(point as usize - nd) {
+            put(b'0', &mut k);
+        }
+    } else {
+        for (i, &c) in digits[..nd].iter().enumerate() {
+            if i == point as usize {
+                put(b'.', &mut k);
+            }
+            put(c, &mut k);
+        }
+    }
+    text_of(out, &buf[..k]);
+}
+
 /// The shortest decimal that reads back as `x` at `bits`, in scientific
 /// form (`1.5e-7`).
 fn shortest(x: f64, bits: u32, out: &mut [u8]) -> usize {

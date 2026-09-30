@@ -1536,7 +1536,8 @@ impl<'a> FnBuilder<'a> {
                 // A C enum is its number, C's `int` (owner, 2026-09-28): that
                 // first, and the rest is a conversion from an `int32`.
                 if let Ty::Enum { id, .. } = from_ty.base() {
-                    if self.arena.items.enums[id.0 as usize].numbers.is_some() {
+                    // As text it is its case's name (owner, 2026-09-30).
+                    if self.arena.items.enums[id.0 as usize].numbers.is_some() && !matches!(self.resolve_ty(target).base(), Ty::Str(_)) {
                         let n = Ty::Int(IntW::Fixed { signed: true, bits: 32 });
                         op = self.into_temp(Rvalue::Convert { to: n.clone(), operand: op, useful: false }, &n, span);
                         from_ty = n;

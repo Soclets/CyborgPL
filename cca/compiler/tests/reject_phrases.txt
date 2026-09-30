@@ -256,6 +256,7 @@ limb_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
 list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `integer` and this value is text: convert it first
+list_to_text [fnv:0534c45cc9322638] :: a list is not text
 list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
 loop_list_changed [fnv:6d53a59f1655981d] :: 's' cannot be changed here: the loop on line 4 is still going through it
 lte_retired [fnv:be35669e815daffa] :: less-or-equal is `</==`
@@ -483,6 +484,8 @@ type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name
 uint_negative [fnv:66ac7011902821d4] :: the value can be outside what a `uint8` holds
 unknown_std [fnv:46c62b9861ef3858] :: `std::println` does not exist
 use_after_give [fnv:7b0240d30516a476] :: was given away and no longer owns anything
+useful_after_type [fnv:9996cbd34a84574b] :: `.useful` follows the verb: `to.useful.deci64[…]`
+useful_to_int [fnv:a30aee9b51a7b709] :: `to.useful` makes text or a deci
 var_keyword [fnv:aa699dd452726953] :: `var` is gone
 variadic_ellipsis_after_name [fnv:a6d51e15cd0b1ed9] :: the dots go before the name
 variadic_not_last [fnv:e0b808d1821a4725] :: the rest of the arguments go to it

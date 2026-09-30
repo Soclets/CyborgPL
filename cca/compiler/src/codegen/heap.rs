@@ -41,6 +41,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_int_to_text" => self.ctx.void_type().fn_type(&[p.into(), w.into(), w.into()], false),
             "cyborg_str_points" | "cyborg_str_graphemes" => w.fn_type(&[p.into(), w.into()], false),
             "cyborg_str_is_ascii" => self.ctx.i8_type().fn_type(&[p.into(), w.into()], false),
+            "cyborg_bin_to_text_useful" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.f64_type().into(), self.ctx.i32_type().into()], false),
             "cyborg_str_from_bytes" => self.ctx.i8_type().fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_str_decode_points" | "cyborg_str_split_graphemes" => w.fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_parse_bin" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), self.ctx.i32_type().into(), p.into()], false),
@@ -1996,6 +1997,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// expansion for a bin, `true`/`false` — as a new text on the heap. A
     /// text converts to itself.
     pub(super) fn to_text(&mut self, fi: usize, operand: &Operand, v: BasicValueEnum<'ctx>, to: &Ty) -> Option<BasicValueEnum<'ctx>> {
+        self.to_text_as(fi, operand, v, to, false)
+    }
+
+    /// `useful`: the useful form (`to.useful.str.utf8`, owner 2026-09-30) —
+    /// a bin's shortest decimal, a deci without trailing zeros, an enum
+    /// case's bare name — where the plain form is the exact one.
+    pub(super) fn to_text_as(&mut self, fi: usize, operand: &Operand, v: BasicValueEnum<'ctx>, to: &Ty, useful: bool) -> Option<BasicValueEnum<'ctx>> {
         let from = match operand {
             Operand::Const(Const::Int(_)) => Ty::exact(),
             Operand::Const(Const::Bool(_)) => Ty::Bool,
@@ -2041,12 +2049,61 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             (Ty::Deci(bits), BasicValueEnum::IntValue(d)) => {
                 let (lo, hi) = self.deci_halves(d)?;
-                return self.deci_text_raw(lo, hi, *bits, false);
+                return self.deci_text_raw(lo, hi, *bits, useful);
             }
-            (Ty::Bin(_), BasicValueEnum::FloatValue(x)) => {
+            (Ty::Bin(w), BasicValueEnum::FloatValue(x)) => {
                 let wide = if x.get_type() == self.ctx.f64_type() { x } else { self.builder.build_float_ext(x, self.ctx.f64_type(), "wide").ok()? };
-                let f = self.rt("cyborg_bin_to_text");
-                let _ = self.builder.build_call(f, &[out.into(), wide.into()], "");
+                if useful {
+                    let bits = match w {
+                        crate::types::BinW::Fixed(b) => *b as u64,
+                        _ => 64,
+                    };
+                    let f = self.rt("cyborg_bin_to_text_useful");
+                    let _ = self.builder.build_call(f, &[out.into(), wide.into(), self.ctx.i32_type().const_int(bits, false).into()], "");
+                } else {
+                    let f = self.rt("cyborg_bin_to_text");
+                    let _ = self.builder.build_call(f, &[out.into(), wide.into()], "");
+                }
+            }
+            // An enum case: `Size.big`, or usefully `big` (owner,
+            // 2026-09-30). Its tag is its place in the list, or a
+            // `layout.c` enum's C number.
+            (Ty::Enum { id, .. }, BasicValueEnum::IntValue(tag)) => {
+                let info = self.p.items.enums[id.0 as usize].clone();
+                let names: Vec<String> = info.cases.iter().map(|c| if useful { c.name.clone() } else { format!("{}.{}", info.name, c.name) }).collect();
+                // A C number no case has — only past a trusted door — shows
+                // as the number, made only then.
+                let mut any = self.ctx.bool_type().const_zero();
+                let mut named = self.const_text("");
+                for (k, name) in names.iter().enumerate().rev() {
+                    let n = match &info.numbers {
+                        Some(ns) => ns[k] as u64,
+                        None => k as u64,
+                    };
+                    let is = self.builder.build_int_compare(IntPredicate::EQ, tag, tag.get_type().const_int(n, true), "is_case").ok()?;
+                    any = self.builder.build_or(any, is, "a_case").ok()?;
+                    let t = self.const_text(name);
+                    named = self.builder.build_select(is, t, named, "name").ok()?;
+                }
+                let func = self.builder.get_insert_block()?.get_parent()?;
+                let here = self.builder.get_insert_block()?;
+                let odd = self.ctx.append_basic_block(func, "no_case");
+                let join = self.ctx.append_basic_block(func, "named");
+                let _ = self.builder.build_conditional_branch(any, join, odd);
+                self.builder.position_at_end(odd);
+                let w = self.builder.build_int_s_extend_or_bit_cast(tag, self.ctx.i128_type(), "wide").ok()?;
+                let lo = self.builder.build_int_truncate(w, i64t, "lo").ok()?;
+                let sh = self.builder.build_right_shift(w, self.ctx.i128_type().const_int(64, false), true, "shifted").ok()?;
+                let hi = self.builder.build_int_truncate(sh, i64t, "hi").ok()?;
+                let f = self.rt("cyborg_int_to_text");
+                let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into()], "");
+                let number = self.builder.build_load(shape, out, "number").ok()?;
+                let odd_end = self.builder.get_insert_block()?;
+                let _ = self.builder.build_unconditional_branch(join);
+                self.builder.position_at_end(join);
+                let phi = self.builder.build_phi(shape, "text").ok()?;
+                phi.add_incoming(&[(&named, here), (&number, odd_end)]);
+                return Some(phi.as_basic_value());
             }
             _ => {
                 self.cannot("this conversion has no shape in the generated code yet", None);

@@ -2435,21 +2435,30 @@ impl Checker {
 
     fn conversion(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let mut blanks = Vec::new();
-        // `to.deci64.useful[…]`: a bin's shortest decimal (owner,
-        // 2026-09-29), where `to.deci64[…]` is its exact value.
+        // `to.useful.deci64[…]`: a bin's shortest decimal (owner,
+        // 2026-09-29), where `to.deci64[…]` is its exact value; and
+        // `to.useful.str.utf8[…]`, the useful text, where `to.str.utf8` is
+        // the exact one. `.useful` follows the verb (owner, 2026-09-30).
         let mut useful = false;
         let stripped;
         let target = match &target.kind {
-            ast::TypeKind::Path { path, args } if args.is_empty() && path.segs.len() == 2 && path.segs[1].name == "useful" && path.segs[0].name.starts_with("deci") => {
+            ast::TypeKind::Path { path, args } if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "useful") => {
+                let rest: Vec<&str> = path.segs[..path.segs.len() - 1].iter().map(|s| s.name.as_str()).collect();
+                return err(Diagnostic::error(format!("`.useful` follows the verb: `to.useful.{}[…]` (owner, 2026-09-30)", rest.join("."))).at(target.span));
+            }
+            ast::TypeKind::Path { path, args } if path.segs.len() >= 2 && path.segs[0].name == "useful" => {
                 useful = true;
                 let mut p = path.clone();
-                p.segs.pop();
-                stripped = ast::Type { kind: ast::TypeKind::Path { path: p, args: Vec::new() }, span: target.span };
+                p.segs.remove(0);
+                stripped = ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span };
                 &stripped
             }
             _ => target,
         };
         let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
+        if useful && !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
+            return err(Diagnostic::error(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.deci64[…]`; `to.{}` has no useful form", self.spell(&t))).at(span));
+        }
         let mut v = self.expr(ctx, operand)?;
         // Bare numbers alone are worked out exactly, whatever is between
         // them: `to.uint64[0 / ((2 / 10047273927188643194) + 1)]` divides by
@@ -2461,8 +2470,8 @@ impl Checker {
         let vt = self.resolve(&v.ty);
         let target_spelling = self.spell(&t);
         let mut fails: Vec<&str> = Vec::new();
-        if useful && !matches!(vt.base(), Ty::Bin(_) | Ty::Int(_)) {
-            return err(Diagnostic::error(format!("`to.{}.useful` is a bin's shortest decimal, and this is a `{}`: write `to.{}[…]`", target_spelling, self.spell(&vt), target_spelling)).at(span));
+        if useful && matches!(t.base(), Ty::Deci(_)) && !matches!(vt.base(), Ty::Bin(_) | Ty::Int(_)) {
+            return err(Diagnostic::error(format!("`to.useful.{}` is a bin's shortest decimal, and this is a `{}`: write `to.{}[…]`", target_spelling, self.spell(&vt), target_spelling)).at(span));
         }
         match (vt.base(), t.base()) {
             // Into or out of a `deci` (owner, 2026-09-29): the list is
@@ -2484,6 +2493,13 @@ impl Checker {
             // `char.byte` always is.
             (Ty::Char(u), Ty::Str(Enc::Ascii)) if *u != Unit::Byte => fails.push("not_ascii"),
             (Ty::Int(_) | Ty::Bin(_) | Ty::Bool | Ty::Char(_), Ty::Str(_)) => {}
+            // An enum case as text: `Size.big` exactly, `big` usefully
+            // (owner, 2026-09-30). One that carries data is open.
+            (Ty::Enum { id, .. }, Ty::Str(_)) => {
+                if self.items.enums[id.0 as usize].cases.iter().any(|c| c.payload.is_some()) {
+                    return err(Diagnostic::error(format!("not yet: `{}` has cases that carry data, and how those become text is open (asked)", self.spell(&vt))).at(span));
+                }
+            }
             // Not a number, or a number the type cannot hold however many
             // digits it has (owner, 2026-09-24: c). Never a check site.
             (Ty::Str(_), Ty::Int(_) | Ty::Bin(_)) => fails.extend(["not_a_number", "out_of_range"]),
@@ -2506,6 +2522,7 @@ impl Checker {
                 }
                 fails.push("not_utf8");
             }
+            (Ty::Seq { .. }, Ty::Str(_)) => return err(Diagnostic::error("a list is not text: only a list of `uint8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `++`, or print the list directly (owner, 2026-09-30)").at(span)),
             (_, Ty::Seq { .. }) => return err(Diagnostic::error("there is no conversion to a list").at(span)),
             // A number from C becomes a C enum only through a check (owner,
             // 2026-09-27): one no case has fails `out_of_range`.
@@ -2522,6 +2539,9 @@ impl Checker {
         // Into a range type: fails out_of_range (never a check site).
         if t.bound().is_some() && !fails.contains(&"out_of_range") {
             fails.push("out_of_range");
+        }
+        if useful && !fails.is_empty() && matches!(t.base(), Ty::Str(_)) && matches!(vt.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Enum { .. }) {
+            return err(Diagnostic::error(format!("not yet: `to.useful.{}` of a `{}` into text that can fail has no shape in the generated code yet", target_spelling, self.spell(&vt))).at(span));
         }
         let fail_list: Vec<(String, Option<Ty>)> = fails.iter().map(|f| (f.to_string(), None)).collect();
         let ow = match otherwise {

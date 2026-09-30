@@ -294,7 +294,7 @@ pub enum ExprKind {
     /// A user `op`: a call under an operator's spelling.
     UserOp { inst: FnInst, lhs: Box<Arg>, rhs: Box<Arg> },
     /// `to.T[e]`: `fails` non-empty when the conversion can fail.
-    /// `useful`: `to.deci64.useful[…]`, a bin's shortest decimal.
+    /// `useful`: `to.useful.deci64[…]` or `to.useful.str.utf8[…]`, the useful form.
     Conv { target: Ty, expr: Box<Expr>, otherwise: Option<Box<Otherwise>>, fails: Vec<String>, useful: bool },
     /// A named function as a value.
     FnRef(FnInst),

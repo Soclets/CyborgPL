@@ -26,7 +26,7 @@ MAIN {
     'w': bin64 = 0.1;
     change 'got' = 'got' + same[to.deci64['w'], "0.1000000000000000"];
     if to.str.utf8[to.deci128['w']] == "0.1000000000000000055511151231257827" { change 'got' = 'got' + 1; }
-    if to.str.utf8[to.deci128.useful['w']] == "0.1" { change 'got' = 'got' + 1; }
+    if to.str.utf8[to.useful.deci128['w']] == "0.1" { change 'got' = 'got' + 1; }
     'n': int32 = 12345;
     change 'got' = 'got' + same[to.deci64['n'], "12345"];
     'big': int64 = 12345678901234567;

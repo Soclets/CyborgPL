@@ -1358,7 +1358,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
                 if let Ty::Str(_) | Ty::Char(crate::types::Unit::Grapheme) = to.base() {
-                    return self.to_text(fi, operand, v, to);
+                    return self.to_text_as(fi, operand, v, to, *useful);
                 }
                 let t = self.ty(&to.clone())?;
                 // Widening extends by what the value *is*, not by what it

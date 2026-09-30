@@ -197,7 +197,7 @@ pub enum Rvalue {
     Binary { op: BinOp, lhs: Operand, rhs: Operand },
     /// `to.T[…]` that cannot fail (the failing ones are a `Call`).
     /// `useful`: a bin into a `deci` as its shortest decimal
-    /// (`to.deci64.useful[…]`), not its exact value.
+    /// (`to.useful.deci64[…]`), not its exact value; into text, the useful form.
     Convert { to: Ty, operand: Operand, useful: bool },
     MakeList(Vec<Operand>),
     MakeMap(Vec<(Operand, Operand)>),
