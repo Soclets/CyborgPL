@@ -16,8 +16,9 @@ space GitHub does not allow), with the RRx2 logo from
 sessions (owner: "yea"), and ™ on RRx2 VC, RRx2-TV and RRx2-lang. Local
 clones, one per session: `/Users/ts/RRx2 VC lang` and `/Users/ts/RRx2 VC
 tv` (owner: "local folder split lang & tv"). The domain will be
-`rrx2.com`, available on 2026-09-30, bought later by the owner ("`.dev`
-tells more, but its character looks kinda fighting with `rrx2`").
+`rrx2.com`, which the owner bought the same day ("`.dev`
+tells more, but its character looks kinda fighting with `rrx2`"). It is
+the repo's website on GitHub (owner: "add it there").
 
 ### 2026-09-30 — CyborgPL is paused for the RRx2 Verifier Collection: RRx2-TV and RRx2-lang (owner)
 
