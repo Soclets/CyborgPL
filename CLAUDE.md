@@ -46,8 +46,9 @@ the owner explicitly chooses it.
   expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
 - `website/` — the open-source CyborgPL website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.
-  cyborgpl.dev is live as a one-line placeholder (`website/placeholder/`,
-  Cloudflare); the real site is not being built for now (owner, 2026-09-24).
+  cyborgpl.dev serves the real site from `website/site/` (Cloudflare), no
+  longer a placeholder (owner, 2026-09-30: "`cyborgpl.dev` isn't a
+  placeholder").
 - `bench/` — CyborgPL against every other language installed here (the owner's
   own languages excepted, contributed-to ones like Lust included), the same four
   programs each, checked against C's answers (owner, 2026-09-30). The design
