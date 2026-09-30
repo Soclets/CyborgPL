@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — RRx2 is built with the latest stable Clang (owner)
+
+"We'll be using the latest stable Clang version" (LLVM 23.1.2 today,
+Homebrew's `/opt/homebrew/opt/llvm/bin/clang`, not Apple's clang 21 on
+the PATH), then, after design claude listed where GCC still leads (old
+processors, more languages, glibc, GNU C extensions, some x86 speed):
+"Clang it is". For a README line saying RRx2 switched from GCC, the owner
+had design claude build RRx2-lang's first program, Hello World, with real
+GCC (`gcc-16`; plain `gcc` on this Mac is Apple's clang), then switch the
+build to Clang (RRx2-VC fecd088, 45503e7). "Better performance" was
+dropped from the line as unmeasured; design claude offered "better support
+of the devices we build for: Apple Silicon, GPUs and WebAssembly" instead.
+
 ### 2026-09-30 — RRx2-TV in C++, RRx2-lang in C; RRx2-lang's math (owner)
 
 **What RRx2-lang has** (owner: "1 to 3's second", of design claude's three
