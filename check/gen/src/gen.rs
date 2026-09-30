@@ -2127,6 +2127,15 @@ impl Gen {
                 if op == Shl {
                     // Bound the shift, not the operand, so the operand stays a name.
                     let fits = |k: i128| corners(ia, Iv::new(0, k), |x, s| x.checked_mul(1i128 << s)).map_or(false, |o| o.within(r));
+                    // A risk taken: often a small, valid count on a value that
+                    // may be too big to shift, so only the answer can leave the
+                    // type (a wrong layer-3 proof hid there, seed 9148).
+                    let (b, ib) = if risk && ib.hi >= 1 && self.rng.chance(50) {
+                        let k = self.rng.range(1, 3.min(bits - 1));
+                        (Expr::Lit(k), Iv::point(k))
+                    } else {
+                        (b, ib)
+                    };
                     let (b, ib) = if fits(ib.hi) || risk { (b, ib) } else {
                         let mut k = 0;
                         while k + 1 < bits && fits(k + 1) {
