@@ -78,8 +78,7 @@ Owner, 2026-09-14.
   suggestions, accepted by the owner: `cca prepare` acts on the Limb in
   the current directory, or a folder given as `cca run` takes one — a
   word with a `/` is a folder, a bare word a Limb's name (owner,
-  2026-09-30: "`/`"): `cca prepare ../app geometry`, `cca prepare
-  ./money`; a name is
+  2026-09-30: "`/`"): `cca prepare ../app geometry`; a name is
   a Limb's `name` (owner, 2026-09-30: "I think name's better"; at first
   the local name, then briefly the prefix), and when two dependencies
   share that name, `cca prepare` refuses and lists them by prefix (owner:
