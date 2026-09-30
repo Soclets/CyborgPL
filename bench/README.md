@@ -48,3 +48,11 @@ CCA=/path/to/cca LUST=/path/to/lust python3 run.py
 
 It needs CCA built (`cca/target/release/cca`, or `CCA=`), and runs one program at
 a time, on one core.
+
+## GPU: Clang C against Metal
+
+`gpu/` is separate: three loops in C (on 1 and 3 threads) and as Metal
+kernels, to see what kind of work is worth a GPU. It is plain C and Metal,
+not CyborgPL, since CCA has no GPU target yet. It needs Xcode's Metal
+Toolchain. `python3 gpu/run.py` (`--quick` for tiny sizes); results in
+[`gpu/RESULTS.md`](gpu/RESULTS.md).
