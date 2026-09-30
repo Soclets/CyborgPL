@@ -3,8 +3,9 @@
 Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
 `parallelism.md`'s, extended: the programmer writes `for`, Precog
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
-the loop body is compiled by LLVM for the GPU target and the runtime
-launches it and moves the data. This document is what Precog needs to
+the loop body is compiled for the GPU target (by LLVM for Vulkan, by
+CCA's own Metal generator for Metal) and the runtime launches it and
+moves the data. This document is what Precog needs to
 decide, and what the runtime does.
 
 ## What a body may contain — plain values, and failures (owner: b)
@@ -63,6 +64,16 @@ to test on. Precog's decisions are the same for any GPU; a target is a
 runtime module for launching and memory plus a the manifest (`Synthia.ttsr` / `CCA.cplr`) line, so
 CUDA later is an addition, not a change. Proposed: Metal only; Metal +
 CUDA; all three. Owner: Metal and Vulkan.
+
+**How each is compiled** (owner, 2026-09-30: direct text). Vulkan: LLVM
+compiles the body to SPIR-V. Metal: CCA writes Metal Shading Language
+text straight from its own MIR, which Apple's compiler then builds. This
+takes the place of making SPIR-V once and converting it. Direct text can
+use Metal-only features (operations across a SIMD group, threadgroup
+memory) and carry Precog's facts into the code, where a converter loses
+some of both. It costs a second code generator, and so a second place
+Precog's proofs must be carried correctly and tested. The speed edge is
+expected, not measured. No C++: the Metal runtime is reached from Rust.
 
 ## The report (owner: yes)
 

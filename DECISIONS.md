@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — On Metal, CCA writes Metal Shading Language itself; Vulkan goes through LLVM to SPIR-V (owner: direct text)
+
+The owner asked whether GPU loops would need C++. Design claude: no. Vulkan
+is LLVM to SPIR-V, launched from Rust. Metal needs either (a) a converter,
+SPIR-V to Metal (SPIRV-Cross, borrowed C++, or naga, Rust), or (b) CCA
+writing Metal Shading Language text from its own MIR. Design claude first
+recommended (a), one path for both GPUs, as gpu.md assumed. Asked which is
+faster: probably close, since Apple's compiler optimises last in both and
+data movement is shared, with a small edge to (b), from Metal-only features
+and Precog's facts surviving (not measured). Design claude then kept (a)
+while citing the motto for both. The owner: "did you just contradicted
+yourself?" Design claude agreed: (a)'s only advantage is less work, a
+development cost the motto discounts, and changed its recommendation to
+(b). The owner: "direct text". Recorded in gpu.md. Also asked, "when
+C++?": only when CCA wants an LLVM pass using Precog's facts that the C
+API cannot express. None is needed now, and CCA has no C++.
+
 ### 2026-09-30 — Inside `for 'x' in lend.mut 'xs'`, the list may be read after the element's last use in that trip (owner: a)
 
 Check claude and compiler claude asked whether a loop body may read the list
