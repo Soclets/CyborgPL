@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-09-30 — A renamed copy lives in the project, in Synthia's own `.synthia/` folder (owner: a)
+
+Relayed by synthia claude. Where the copy made by `money.prefix = cash2`
+lives: proposed (a) inside the project, in a folder of Synthia's own next
+to `Synthia.ttsr`, shown as `.synthia/`; (b) a shared folder in the home
+directory, `~/.synthia/`; (c) next to the original, `../money-cash2`.
+Synthia claude recommended (a): the rename is the project's choice, and
+all Synthia makes stays in one deletable folder. The owner: "`a`".
+Deleting it is always safe (Synthia remakes the copy), and it is kept out
+of git.
+
 ### 2026-09-30 — Synthia's prefix override is a dotted `prefix` line on the needed Limb's key (owner: "Prefix shall be narrowed using a dot", "yea")
 
 Relayed by synthia claude. Proposed: (a) the word before the dot is

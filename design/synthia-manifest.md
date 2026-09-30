@@ -91,8 +91,10 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   using a dot", "yea"): `money.path = ../money` with `money.prefix =
   cash2`, and code writes `cash2::`. The key (`money`) is this
   manifest's label for the Limb, following the name rule; without a
-  `prefix` line code writes the Limb's own prefix. Open: where the copy
-  lives.
+  `prefix` line code writes the Limb's own prefix. The copy lives in the
+  project, in Synthia's own `.synthia/` folder beside `Synthia.ttsr`
+  (owner, 2026-09-30: a): always safe to delete, since Synthia remakes
+  it, and kept out of git.
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
   Limb's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,
