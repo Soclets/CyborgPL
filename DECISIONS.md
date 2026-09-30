@@ -4163,7 +4163,7 @@ for JetPack, always containing analysable source, never an opaque binary
 - SIMD: shuffling two vectors together (interleave). The other leftovers were decided 2026-09-27. (`design/simd.md`)
 
 
-- GPU offload (owner chose automatic, 2026-09-21): the offload test, the runtime, target descriptions for GPUs, what the body may contain. Not designed.
+- GPU offload (owner chose automatic, 2026-09-21): designed in `gpu.md` (body contents, data crossing, Metal and Vulkan, the report, `synthia tune`). Open: the offload threshold (a benchmark), a loop-nest model if offload gets serious, and whether CCA's package manager has its own `tune` (parity).
 
 **Language**
 - Lunae (formerly N%): its syntax (undesigned), boundary defaults in the translation, translator verification. (owner's direction, 2026-09-18)
