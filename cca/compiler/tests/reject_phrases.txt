@@ -25,6 +25,9 @@ array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is a `arra
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 asm_bare_word [fnv:c83c99fb8348768d] :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
+asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
+asm_lend_mut_immut [fnv:af116253c2e3ddaf] :: is `immut`, so `lend.mut 'buf'`
+asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
 asm_lowercase [fnv:675e6a4df23aee31] :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
 asm_strings [fnv:c9b7ee31e6eab60e] :: `inline.ASM { mov x16, #4 }`

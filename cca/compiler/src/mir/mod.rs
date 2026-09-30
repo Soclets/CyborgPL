@@ -344,7 +344,9 @@ pub enum StmtKind {
     /// `group` — one per block that starts tasks — and `id` names it for
     /// its outcome check; a detached one belongs to no group.
     Task { detached: bool, body: FnIdx, captures: Vec<(crate::ast::Verb, Place)>, group: u32, id: u32 },
-    Asm { text: String, ins: Vec<(Place, String)>, outs: Vec<(Place, String)>, clobbers: Vec<String> },
+    /// `lends`: the address of each lent place, into its register; `true`
+    /// when the assembly may write through it.
+    Asm { text: String, ins: Vec<(Place, String)>, outs: Vec<(Place, String)>, lends: Vec<(Place, bool, String)>, clobbers: Vec<String> },
     Nop,
 }
 

@@ -683,10 +683,11 @@ impl<'a> FnBuilder<'a> {
             hir::StmtKind::Whichever { arms, otherwise } => {
                 self.whichever(arms, otherwise.as_ref(), span);
             }
-            hir::StmtKind::InlineAsm { text, ins, outs, clobbers } => {
+            hir::StmtKind::InlineAsm { text, ins, outs, lends, clobbers } => {
                 let ins = ins.iter().map(|(l, r)| (Place::local(LocalId(l.0)), r.clone())).collect();
                 let outs = outs.iter().map(|(l, r)| (Place::local(LocalId(l.0)), r.clone())).collect();
-                self.push(StmtKind::Asm { text: text.clone(), ins, outs, clobbers: clobbers.clone() }, span);
+                let lends = lends.iter().map(|(l, m, r)| (Place::local(LocalId(l.0)), *m, r.clone())).collect();
+                self.push(StmtKind::Asm { text: text.clone(), ins, outs, lends, clobbers: clobbers.clone() }, span);
             }
         }
     }

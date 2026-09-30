@@ -775,8 +775,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         self.cannot("this task has no shape in the generated code yet", span);
                     }
                 }
-                StmtKind::Asm { text, ins, outs, clobbers } => {
-                    if self.inline_asm(fi, text, ins, outs, clobbers, slots).is_none() {
+                StmtKind::Asm { text, ins, outs, lends, clobbers } => {
+                    if self.inline_asm(fi, text, ins, outs, lends, clobbers, slots).is_none() {
                         self.cannot("this `inline.ASM` has no shape in the generated code yet", Some(f.span(s.span)));
                     }
                 }
@@ -2153,7 +2153,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// through a pointer it was handed — which costs optimisation, never
     /// correctness. Whole registers: a value goes in widened to 64 bits by
     /// its own sign, and comes out narrowed to its place.
-    fn inline_asm(&mut self, fi: usize, text: &str, ins: &[(Place, String)], outs: &[(Place, String)], clobbers: &[String], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+    fn inline_asm(&mut self, fi: usize, text: &str, ins: &[(Place, String)], outs: &[(Place, String)], lends: &[(Place, bool, String)], clobbers: &[String], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
         let abi = |r: &str| -> String {
             match r {
                 "x29" | "w29" => "fp".into(),
@@ -2182,6 +2182,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 other => self.fit_as(other, t, signed),
             };
             args.push(v.into());
+            arg_tys.push(t.into());
+        }
+        // A lend is an address, as at an extern call: the data of a text,
+        // list or other handle, or the variable itself.
+        for (p, _, r) in lends {
+            constraints.push(format!("{{{}}}", abi(r)));
+            let (slot, ty) = self.slot_of(fi, p, slots)?;
+            let addr: PointerValue = if is_handle(&ty) {
+                let st = match self.ty(&ty)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let field = self.builder.build_struct_gep(st, slot, 0, "data").ok()?;
+                self.builder.build_load(self.ctx.ptr_type(AddressSpace::default()), field, "p").ok()?.into_pointer_value()
+            } else {
+                slot
+            };
+            let t = self.ctx.i64_type();
+            args.push(self.builder.build_ptr_to_int(addr, t, "addr").ok()?.into());
             arg_tys.push(t.into());
         }
         for c in clobbers {

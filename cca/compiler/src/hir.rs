@@ -98,7 +98,7 @@ pub enum StmtKind {
     Match { value: Expr, arms: Vec<MatchArm> },
     Concur { detached: bool, captures: Vec<CaptureBinding>, body: Block, otherwise: Option<Otherwise>, fails: Vec<(String, Option<Ty>)> },
     Whichever { arms: Vec<WhicheverArm>, otherwise: Option<Otherwise> },
-    InlineAsm { text: String, ins: Vec<(LocalId, String)>, outs: Vec<(LocalId, String)>, clobbers: Vec<String> },
+    InlineAsm { text: String, ins: Vec<(LocalId, String)>, outs: Vec<(LocalId, String)>, lends: Vec<(LocalId, bool, String)>, clobbers: Vec<String> },
 }
 
 #[derive(Debug, Clone)]

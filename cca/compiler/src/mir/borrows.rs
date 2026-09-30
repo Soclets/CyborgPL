@@ -124,8 +124,9 @@ fn stmt_acc(s: &StmtKind) -> (Vec<(Place, Acc)>, Option<LocalId>) {
             };
             place_acc(p, how, &mut out)
         }),
-        StmtKind::Asm { ins, outs, .. } => {
+        StmtKind::Asm { ins, outs, lends, .. } => {
             ins.iter().for_each(|(p, _)| place_acc(p, Acc::Read, &mut out));
+            lends.iter().for_each(|(p, m, _)| place_acc(p, if *m { Acc::LendMut } else { Acc::Lend }, &mut out));
             outs.iter().for_each(|(p, _)| place_acc(p, Acc::Write, &mut out));
         }
         StmtKind::Drop(_) | StmtKind::EndLend(_) | StmtKind::Site(_) | StmtKind::Nop => {}

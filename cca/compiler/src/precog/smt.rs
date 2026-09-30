@@ -747,10 +747,18 @@ impl<'a> Enc<'a> {
                         }
                         self.forget_aliased(&mut env);
                     }
-                    StmtKind::Asm { outs, .. } => {
+                    StmtKind::Asm { outs, lends, .. } => {
                         for (p, _) in outs {
                             self.forget(&mut env, p.local);
                         }
+                        // Written through its address: the values, never
+                        // the length, which the assembly cannot reach.
+                        for (p, m, _) in lends {
+                            if *m {
+                                self.forget_value(&mut env, p.local);
+                            }
+                        }
+                        self.forget_aliased(&mut env);
                     }
                     StmtKind::Site(id) if *id == site => {
                         match self.bad_value(*id, &env) {
@@ -1639,9 +1647,14 @@ fn written_in(b: &BasicBlock, out: &mut std::collections::HashSet<LocalId>) {
                     out.insert(p.local);
                 }
             }
-            StmtKind::Asm { outs, .. } => {
+            StmtKind::Asm { outs, lends, .. } => {
                 for (p, _) in outs {
                     out.insert(p.local);
+                }
+                for (p, m, _) in lends {
+                    if *m {
+                        out.insert(p.local);
+                    }
                 }
             }
             _ => {}

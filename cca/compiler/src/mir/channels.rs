@@ -107,8 +107,9 @@ fn stmt_reads(s: &Statement) -> Vec<LocalId> {
         }
         StmtKind::Site(_) => {}
         StmtKind::Task { captures, .. } => captures.iter().for_each(|(_, p)| place_locals(p, &mut out)),
-        StmtKind::Asm { ins, outs, .. } => {
+        StmtKind::Asm { ins, outs, lends, .. } => {
             ins.iter().for_each(|(p, _)| place_locals(p, &mut out));
+            lends.iter().for_each(|(p, _, _)| place_locals(p, &mut out));
             outs.iter().for_each(|(p, _)| place_locals(p, &mut out));
         }
         StmtKind::Drop(_) | StmtKind::EndLend(_) | StmtKind::Nop => {}

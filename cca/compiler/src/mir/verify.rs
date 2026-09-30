@@ -85,8 +85,11 @@ pub fn function(f: &Function, n_functions: usize) -> Result<(), Vec<String>> {
                         check_place(pl, &w, &mut p);
                     }
                 }
-                StmtKind::Asm { ins, outs, .. } => {
+                StmtKind::Asm { ins, outs, lends, .. } => {
                     for (pl, _) in ins.iter().chain(outs) {
+                        check_place(pl, &w, &mut p);
+                    }
+                    for (pl, _, _) in lends {
                         check_place(pl, &w, &mut p);
                     }
                 }

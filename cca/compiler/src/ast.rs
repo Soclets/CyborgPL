@@ -387,6 +387,10 @@ pub enum AsmDir {
 #[derive(Debug, Clone, PartialEq)]
 pub enum AsmBinding {
     Reg { name: QName, dir: AsmDir, reg: Ident },
+    /// `lend 'text' -> x1`: the address of the lent data goes into the
+    /// register (owner, 2026-09-30: a); `lend.mut` lets the assembly write
+    /// through it.
+    Lend { name: QName, mutable: bool, reg: Ident },
     Clobber(Ident),
 }
 

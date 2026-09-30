@@ -570,10 +570,32 @@ impl Checker {
                 }
                 let mut ins = Vec::new();
                 let mut outs = Vec::new();
+                let mut lends = Vec::new();
                 let mut clobbers = Vec::new();
                 for b in bindings {
                     match b {
                         ast::AsmBinding::Clobber(r) => clobbers.push(r.name.clone()),
+                        ast::AsmBinding::Lend { name, mutable, reg } => {
+                            let Some(id) = ctx.lookup(&name.name) else {
+                                return err(Diagnostic::error(format!("'{}' is not declared", name.name)).at(name.span));
+                            };
+                            if *mutable {
+                                let local = &ctx.locals[id.0 as usize];
+                                let why = if local.mutability == Some(ast::Mutability::Immut) {
+                                    Some("is `immut`")
+                                } else if local.kind == LocalKind::Lent {
+                                    Some("is lent (shared)")
+                                } else if local.kind == LocalKind::LoopVar {
+                                    Some("is the loop's element")
+                                } else {
+                                    None
+                                };
+                                if let Some(why) = why {
+                                    return err(Diagnostic::error(format!("'{}' {}, so `lend.mut '{}'` cannot hand the assembly its address to write through", name.name, why, name.name)).at(name.span));
+                                }
+                            }
+                            lends.push((id, *mutable, reg.name.clone()));
+                        }
                         ast::AsmBinding::Reg { name, dir, reg } => {
                             match dir {
                                 ast::AsmDir::In => {
@@ -598,7 +620,7 @@ impl Checker {
                         }
                     }
                 }
-                Ok(hir::StmtKind::InlineAsm { text: text.clone(), ins, outs, clobbers })
+                Ok(hir::StmtKind::InlineAsm { text: text.clone(), ins, outs, lends, clobbers })
             }
         }
     }

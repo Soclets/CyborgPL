@@ -1688,6 +1688,31 @@ impl<'a> Parser<'a> {
                     Tok::Word(w) if w == "in" || w == "out" || w == "inout" => {
                         return self.fail(format!("there is no `{}` word: the arrow is the direction — `'v' -> x0` copies in, `'v' <- x0` stores out, `'v' <-> x0` both", w));
                     }
+                    // A lend satisfies a pointer, as at an extern call
+                    // (owner, 2026-09-30: a): `lend 'text' -> x1`.
+                    Tok::Word(w) if w == "lend" => {
+                        self.bump();
+                        let mutable = if self.eat(&Tok::Dot) {
+                            let m = self.ident("`mut`")?;
+                            if m.name != "mut" {
+                                return self.fail_at(m.span, "`lend` or `lend.mut`");
+                            }
+                            true
+                        } else {
+                            false
+                        };
+                        let name = self.qname("the variable lent")?;
+                        match self.peek().clone() {
+                            Tok::Op(o) if o == "->" => {}
+                            Tok::Op(o) if o == "<-" || o == "<->" => {
+                                return self.fail(format!("a lend goes into a register only: `{} '{}' -> x1` puts the address of '{}' there", if mutable { "lend.mut" } else { "lend" }, name.name, name.name));
+                            }
+                            other => return self.fail(format!("expected `->` after `lend '{}'`: its address goes into a register, found {}", name.name, other.describe())),
+                        }
+                        self.bump();
+                        let reg = self.ident("a register")?;
+                        bindings.push(AsmBinding::Lend { name, mutable, reg });
+                    }
                     Tok::Name(_) => {
                         let name = self.qname("a variable")?;
                         let dir = match self.peek().clone() {
@@ -1700,7 +1725,7 @@ impl<'a> Parser<'a> {
                         let reg = self.ident("a register")?;
                         bindings.push(AsmBinding::Reg { name, dir, reg });
                     }
-                    other => return self.fail(format!("expected a binding (`'v' -> x0`, `'n' <- x0`, `clobber x16`), found {}", other.describe())),
+                    other => return self.fail(format!("expected a binding (`'v' -> x0`, `'n' <- x0`, `lend 'text' -> x1`, `clobber x16`), found {}", other.describe())),
                 }
                 if !self.eat(&Tok::Comma) {
                     break;

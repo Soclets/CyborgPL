@@ -899,12 +899,15 @@ impl Precog {
                         let lent: Vec<Place> = captures.iter().filter(|(v, _)| *v == crate::ast::Verb::LendMut).map(|(_, p)| p.clone()).collect();
                         self.forget_mutable_lends(f, &mut env, lent.into_iter());
                     }
-                    StmtKind::Asm { outs, .. } => {
-                        // Nothing about assembly can be known.
+                    StmtKind::Asm { outs, lends, .. } => {
+                        // Nothing about assembly can be known: what it
+                        // stores, and what it may write through a lend.
                         for (pl, _) in outs {
                             let ty = self.place_ty(f, pl);
                             self.store(f, &mut env, pl, Domain::of_ty(&ty, &self.prog().items));
                         }
+                        let written: Vec<Place> = lends.iter().filter(|(_, m, _)| *m).map(|(p, _, _)| p.clone()).collect();
+                        self.forget_mutable_lends(f, &mut env, written.into_iter());
                     }
                 }
             }
