@@ -302,6 +302,9 @@ pub enum ExprKind {
     Spread { verb: Option<Verb>, expr: Box<Expr> },
     /// `pos i` in a `#strict` file: a position, where one goes.
     Pos(Box<Expr>),
+    /// `count n`: `list.fill`'s count, labelled in a `#strict` file (owner,
+    /// 2026-09-30).
+    Count(Box<Expr>),
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
     /// `ptr.cast[T]['p']`: the same address, seen as pointing at a T

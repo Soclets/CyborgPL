@@ -684,7 +684,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     // already there, not the instruction after them.
                     SiteKind::Bounds => self.bounds_check(fi, *id, slots, func),
                     SiteKind::SliceRange => self.slice_check(fi, *id, slots, func),
-                    SiteKind::NegativeExponent => self.negative_exponent_check(fi, *id, slots, func),
+                    // Both ask only whether a number is below 0.
+                    SiteKind::NegativeExponent | SiteKind::FillCount => self.negative_exponent_check(fi, *id, slots, func),
                     SiteKind::SimdRange { lanes } => self.simd_range_check(fi, *id, lanes, slots, func),
                     SiteKind::SimdSome { lanes } => self.simd_some_check(fi, *id, lanes, slots, func),
                     SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
@@ -2637,6 +2638,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 self.list_append(fi, args, slots, func)?;
                 Some(None)
             }
+            Op::ListFill => Some(Some(self.list_fill(fi, args, &dest_ty?, slots, func)?)),
             Op::ListRemove => Some(Some(self.list_remove(fi, args, slots)?)),
             // SIMD (`simd.md`): a vector is N lanes of T in one register.
             Op::SimdFill => {

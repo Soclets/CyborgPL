@@ -30,7 +30,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let p = self.ctx.ptr_type(AddressSpace::default());
         let w = self.ctx.i64_type();
         let t = match name {
-            "cyborg_alloc" => p.fn_type(&[w.into()], false),
+            "cyborg_alloc" | "cyborg_alloc_zeroed" => p.fn_type(&[w.into()], false),
             "cyborg_realloc" => p.fn_type(&[p.into(), w.into()], false),
             "cyborg_free" => self.ctx.void_type().fn_type(&[p.into()], false),
             "cyborg_copy" | "cyborg_move" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),
@@ -1877,6 +1877,70 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
         Some(())
+    }
+
+    /// `list.fill[value, count]` (owner, 2026-09-30): room for exactly
+    /// `count`, then the value in every place. A zero — `0`, `false` — is
+    /// the system's zeroed pages, as C's `calloc` gives them, never written
+    /// one by one; anything else is one store per place, a loop LLVM makes
+    /// a `memset` where it can. The count's own site has already said it
+    /// is not below 0.
+    pub(super) fn list_fill(&mut self, fi: usize, args: &[Operand], out: &Ty, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<BasicValueEnum<'ctx>> {
+        let elem = Self::elem_of(out)?;
+        if elem.is_owned() {
+            self.cannot("`list.fill` of a value that owns memory (text, a list, a map) has no shape in the generated code yet", None);
+            return None;
+        }
+        let shape = match self.ty(out)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        let lty = self.ty(&elem)?;
+        let esize = self.size_of_ty(&elem)?;
+        let w = self.ctx.i64_type();
+        let c = self.operand(fi, args.get(1)?, slots)?.into_int_value();
+        let signed = self.operand_signed(fi, args.get(1)?).unwrap_or(true);
+        let n = self.builder.build_int_cast_sign_flag(c, w, signed, "count").ok()?;
+        let bytes = self.builder.build_int_mul(n, w.const_int(esize, false), "bytes").ok()?;
+        let zero = match args.first()? {
+            Operand::Const(Const::Int(0)) | Operand::Const(Const::Bool(false)) => true,
+            Operand::Const(Const::Bin(t)) => t.parse::<f64>().is_ok_and(|x| x == 0.0 && x.is_sign_positive()),
+            _ => false,
+        };
+        let data = if zero {
+            let f = self.rt("cyborg_alloc_zeroed");
+            basic_result(self.builder.build_call(f, &[bytes.into()], "zeroed").ok()?)?.into_pointer_value()
+        } else {
+            let f = self.rt("cyborg_alloc");
+            let p = basic_result(self.builder.build_call(f, &[bytes.into()], "room").ok()?)?.into_pointer_value();
+            let v = self.operand(fi, args.first()?, slots)?;
+            let v = self.fit(v, lty);
+            let before = self.builder.get_insert_block()?;
+            let head = self.ctx.append_basic_block(func, "fill");
+            let body = self.ctx.append_basic_block(func, "fill_one");
+            let done = self.ctx.append_basic_block(func, "filled");
+            let _ = self.builder.build_unconditional_branch(head);
+            self.builder.position_at_end(head);
+            let i = self.builder.build_phi(w, "i").ok()?;
+            i.add_incoming(&[(&w.const_zero(), before)]);
+            let iv = i.as_basic_value().into_int_value();
+            let more = self.builder.build_int_compare(IntPredicate::ULT, iv, n, "more").ok()?;
+            let _ = self.builder.build_conditional_branch(more, body, done);
+            self.builder.position_at_end(body);
+            let off = self.builder.build_int_mul(iv, w.const_int(esize, false), "off").ok()?;
+            let at = unsafe { self.builder.build_gep(self.ctx.i8_type(), p, &[off], "at").ok()? };
+            let _ = self.builder.build_store(at, v);
+            let next = self.builder.build_int_add(iv, w.const_int(1, false), "next").ok()?;
+            i.add_incoming(&[(&next, body)]);
+            let _ = self.builder.build_unconditional_branch(head);
+            self.builder.position_at_end(done);
+            p
+        };
+        let mut l = shape.get_undef();
+        l = self.builder.build_insert_value(l, data, 0, "data").ok()?.into_struct_value();
+        l = self.builder.build_insert_value(l, n, 1, "len").ok()?.into_struct_value();
+        l = self.builder.build_insert_value(l, n, 2, "cap").ok()?.into_struct_value();
+        Some(l.into())
     }
 
     pub(super) fn emit_failing_call(&mut self, fi: usize, callee: &Callee, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {

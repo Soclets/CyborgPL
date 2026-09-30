@@ -16,6 +16,7 @@ extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;
     fn exit(code: i32) -> !;
     fn malloc(bytes: usize) -> *mut u8;
+    fn calloc(count: usize, size: usize) -> *mut u8;
     fn realloc(p: *mut u8, bytes: usize) -> *mut u8;
     fn free(p: *mut u8);
     fn memcpy(dst: *mut u8, src: *const u8, bytes: usize) -> *mut u8;
@@ -197,6 +198,21 @@ pub unsafe extern "C" fn cyborg_realloc(p: *mut u8, bytes: u64) -> *mut u8 {
         out_of_memory();
     }
     q
+}
+
+/// Zeroed memory for `list.fill` of a zero (owner, 2026-09-30): the
+/// system's own zero pages, as `calloc` hands them, never written byte by
+/// byte. 0 bytes is the empty list's null pointer.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_alloc_zeroed(bytes: u64) -> *mut u8 {
+    if bytes == 0 {
+        return core::ptr::null_mut();
+    }
+    let p = calloc(bytes as usize, 1);
+    if p.is_null() {
+        out_of_memory();
+    }
+    p
 }
 
 /// Give memory back. A null pointer is an empty value and is not an error.

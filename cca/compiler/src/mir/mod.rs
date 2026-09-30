@@ -140,6 +140,8 @@ pub enum Op {
     MustStopDone,
     ListLength,
     ListAppend,
+    /// `list.fill[value, count]`: a new list of `count` copies.
+    ListFill,
     ListRemove,
     ListSlice,
     /// The same elements, as the other kind of sequence: a list's length
@@ -234,6 +236,8 @@ pub enum SiteKind {
     /// `xx` (and `xx~`): a negative exponent makes a fraction, which no
     /// integer holds.
     NegativeExponent,
+    /// `list.fill`'s count: a count is 0 or more (owner, 2026-09-30).
+    FillCount,
     /// `list.slice[…, a, b]`: `1 <= a <= b + 1 <= length + 1` —
     /// inside the list, and not backwards; `pos n, n - 1` is empty.
     SliceRange,
@@ -269,6 +273,7 @@ impl SiteKind {
             SiteKind::ShiftCount => "the shift count can be outside 0 to the width - 1".into(),
             SiteKind::SliceRange => "the slice can run outside the list, or backwards".into(),
             SiteKind::NegativeExponent => "a negative exponent on integers would produce a fraction".into(),
+            SiteKind::FillCount => "`list.fill` of fewer than 0 copies: a count is 0 or more".into(),
             SiteKind::SimdRange { lanes } => format!("the {} lanes can run past the end", lanes),
             SiteKind::SimdSome { lanes } => format!("the items for {} lanes can run past the end, or be more than the lanes", lanes),
             SiteKind::KeyHashAgrees => "two keys this says are equal can hash differently, and the map would hold both".into(),

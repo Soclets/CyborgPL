@@ -206,6 +206,7 @@ impl Checker {
                 };
                 Ok(Expr { kind: K::PtrCast(Box::new(v)), ty: Ty::Ptr { mutable, elem: Box::new(t) }, span })
             }
+            AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[0, count 10]`").at(span)),
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
             AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),
@@ -632,6 +633,23 @@ impl Checker {
             }
             if let Some(at) = first_wide(&v) {
                 return err(Diagnostic::error("this text is not ASCII, so it cannot be str.ascii").at(at));
+            }
+        }
+        // `list.fill` of a bare number takes the list's element type.
+        if let (K::Call { callee: Callee::Builtin(Builtin::ListFill), .. }, Ty::Seq { elem, .. }) = (&v.kind, t.base()) {
+            if let Ty::Seq { elem: have, .. } = vt.base() {
+                if !matches!(have.base(), Ty::Struct { .. } | Ty::Enum { .. } | Ty::Seq { .. } | Ty::Map { .. }) && have.base() != elem.base() {
+                    let mut v = v;
+                    let span = v.span;
+                    if let K::Call { args, .. } = &mut v.kind {
+                        if let Some(Arg::Value(x)) = args.first_mut() {
+                            let taken = std::mem::replace(x, Expr { kind: K::Nothing, ty: Ty::Nothing, span });
+                            *x = self.expect_store(ctx, taken, elem, "each copy")?;
+                        }
+                    }
+                    v.ty = t.base().clone();
+                    return Ok(v);
+                }
             }
         }
         if let (K::Char(c), Ty::Char(u)) = (&v.kind, t.base()) {
@@ -2584,6 +2602,7 @@ impl Checker {
         let b = match (head, rest.as_slice()) {
             ("list", ["length"]) => BuiltinHead::B(Builtin::ListLength),
             ("list", ["append"]) => BuiltinHead::B(Builtin::ListAppend),
+            ("list", ["fill"]) => BuiltinHead::B(Builtin::ListFill),
             ("list", ["remove"]) => BuiltinHead::B(Builtin::ListRemove),
             ("list", ["slice"]) => BuiltinHead::B(Builtin::ListSlice),
             ("list", ["empty"]) => return err(Diagnostic::error("`list.empty` is a value, not a call: write it without brackets").at(span)),
@@ -2700,6 +2719,43 @@ impl Checker {
                     ty = Ty::Bounded { inner: Box::new(Ty::u64()), bound: Bound::Int { lo: *lo as i128, hi: *hi as i128 } };
                 }
                 (vec![a], ty)
+            }
+            // A list of `count` copies of one value (owner, 2026-09-30). A
+            // strict file labels the count; an owned value is copied, so a
+            // bare name of one says `copy`.
+            Builtin::ListFill => {
+                arity(2, self)?;
+                let strict = self.items.strict_files.contains(&positional[1].span.file);
+                let ce = match &positional[1].kind {
+                    AK::Count(inner) => &**inner,
+                    _ if strict => return err(Diagnostic::error("`#strict`: the count says `count`: `list.fill[0, count 10]`").at(positional[1].span)),
+                    _ => positional[1],
+                };
+                let value_e = positional[0];
+                if let AK::Name(n) = &value_e.kind {
+                    if self.peek_ty(ctx, value_e).is_some_and(|t| self.resolve(&t).is_owned()) {
+                        return err(Diagnostic::error(format!("`list.fill` makes copies of '{}': `copy '{}'`", n.name, n.name)).at(value_e.span));
+                    }
+                }
+                let v = match &value_e.kind {
+                    AK::Verb { expr, .. } => {
+                        let Some(pt) = self.peek_ty(ctx, expr) else {
+                            return err(Diagnostic::error("`list.fill` fills with a value, or a `copy` or `give` of one").at(value_e.span));
+                        };
+                        self.one_argument(ctx, value_e, ParamKind::Owned, &pt, "list.fill", "the value")?
+                    }
+                    _ => {
+                        let v = self.expr(ctx, value_e)?;
+                        let v = self.as_operand(ctx, v)?;
+                        Arg::Value(v)
+                    }
+                };
+                let elem = self.resolve(&self.arg_type(&v));
+                let c = self.expr(ctx, ce)?;
+                if !self.resolve(&c.ty).is_int() {
+                    return err(Diagnostic::error(format!("`list.fill`'s count is a whole number, and this is a `{}`", self.spell(&self.resolve(&c.ty)))).at(ce.span));
+                }
+                (vec![v, Arg::Value(c)], Ty::Seq { elem: Box::new(elem), kind: SeqKind::List })
             }
             Builtin::ListAppend => {
                 arity(2, self)?;
@@ -3218,7 +3274,7 @@ pub enum FlatArg {
 
 fn builtin_subject(b: &Builtin) -> &'static str {
     match b {
-        Builtin::ListLength | Builtin::ListAppend | Builtin::ListRemove | Builtin::ListSlice => "list",
+        Builtin::ListLength | Builtin::ListAppend | Builtin::ListRemove | Builtin::ListSlice | Builtin::ListFill => "list",
         Builtin::ArrayLength | Builtin::ArraySlice => "array",
         Builtin::MapLength | Builtin::MapHas | Builtin::MapGet | Builtin::MapSet | Builtin::MapRemove | Builtin::MapKeys | Builtin::MapValues | Builtin::MapPairs => "map",
         Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes | Builtin::StrEach(_) => "text",

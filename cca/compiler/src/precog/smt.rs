@@ -748,6 +748,18 @@ impl<'a> Enc<'a> {
                         }
                         if let Some(d) = dest {
                             self.assign(&mut env, d, v);
+                            // `list.fill`: as long as its count, which its
+                            // site has said is not below 0 (owner,
+                            // 2026-09-30) — tied, so `'xs'[n]` after
+                            // `list.fill[…, 'n']` is inside.
+                            if *op == Op::ListFill && d.proj.is_empty() && !self.aliased.contains(&d.local) {
+                                // At 64 bits, as the code generator takes it.
+                                if let Some(c) = args.get(1).and_then(|a| self.operand(a, &env)) {
+                                    let n = self.resize(c, 64, false);
+                                    let key = Key::Len(d.local, format!("{:?}{:?}", Vec::<Proj>::new(), Op::ListLength));
+                                    env.insert(key, n);
+                                }
+                            }
                         }
                     }
                     StmtKind::Task { captures, .. } => {
@@ -1453,7 +1465,7 @@ impl<'a> Enc<'a> {
                 // 1-based: legal is 1 ..= len.
                 Some(format!("(not (and {} {}))", self.cmp_const(&i, "bvsge", 1)?, self.cmp_vals(&i, "bvsle", &len)?))
             }
-            SiteKind::NegativeExponent => {
+            SiteKind::NegativeExponent | SiteKind::FillCount => {
                 let e = ops.first().cloned().flatten()?;
                 self.cmp_const(&e, "bvslt", 0)
             }

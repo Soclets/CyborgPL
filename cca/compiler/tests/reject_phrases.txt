@@ -176,6 +176,9 @@ fail_payload_wrong_type [fnv:7d29ffc630950dd5] :: the failure's payload is an `i
 fail_propagate_unlisted [fnv:f6414896eca05a40] :: its signature says fail[b]
 fail_quoted_name [fnv:a24dda5e1530d482] :: a failure's name is bare
 fail_unhandled [fnv:65aeb77203450837] :: `f` can fail (oops): say what happens
+fill_count_outside_strict [fnv:b4aee1fa16748ea8] :: `count` belongs to `#strict` files
+fill_negative [fnv:4596c7fcd5b0d0ef] :: a count is 0 or more
+fill_strict_needs_count [fnv:7e5fb3ba7331a198] :: `#strict`: the count says `count`
 fnval_call_not_function [fnv:aebd5e80ae2bdfd7] :: 'n' is a `integer`, neither a list nor a function
 fnval_capture_without_verb [fnv:6651c83f112f16d2] :: say how 'limit' comes in
 fnval_give_captured_used [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything

@@ -178,6 +178,9 @@ pub enum Callee {
 /// The language's own operations, spelled as calls.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Builtin {
+    /// `list.fill[value, count]`: a list of that many copies (owner,
+    /// 2026-09-30).
+    ListFill,
     /// A `must` that does not hold, in a `test fn` (owner, 2026-09-29):
     /// the message, reported at the statement's line; the test ends.
     MustReport,

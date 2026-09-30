@@ -16,12 +16,8 @@ fn read_n ['text': ptr[uint8]] -> int64[0, 200_000_000] or fail[missing, out_of_
 fn run [] -> int32 or fail[missing, out_of_range] {
     'key' := "N";
     nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
-    mut 'comp': list[bool] = [];
-    mut 'i': int64 = 0;
-    while 'i' </== 'n' {
-        list.append[lend.mut 'comp', false];
-        change 'i' = 'i' + 1;
-    }
+    # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
+    mut 'comp': list[bool] = list.fill[false, 'n' + 1];
     mut 'count': int64 = 0;
     mut 'p': int64 = 2;
     while 'p' </== 'n' {

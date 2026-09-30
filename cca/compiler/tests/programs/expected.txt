@@ -239,3 +239,4 @@ ptr_cast 38
 to_ascii 90
 bytes_to_text 91
 to_text_forms 22
+list_fill 140

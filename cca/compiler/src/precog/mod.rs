@@ -1570,6 +1570,15 @@ impl Precog {
                 d @ Domain::Seq { .. } => d,
                 _ => Domain::Seq { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, elem: Box::new(Domain::Any) },
             },
+            // As long as its count, never below 0 past its site; every
+            // element the one value.
+            Op::ListFill => {
+                let n = match arg(self, 1) {
+                    Domain::Ints(s) => s.clamp(0, i64::MAX as i128),
+                    _ => ISet::Range { lo: 0, hi: i64::MAX as i128 },
+                };
+                Domain::Seq { len: n, elem: Box::new(arg(self, 0)) }
+            }
             // As long as its positions say, and never longer than the list;
             // its elements are the list's.
             Op::ListSlice => {
@@ -2106,6 +2115,17 @@ impl Precog {
                     Verdict::Fails { counterexample: format!("every time: the exponent is {}", describe_ints(e)) }
                 } else {
                     Verdict::Fails { counterexample: format!("the exponent can be {}", lo) }
+                }
+            }
+            SiteKind::FillCount => {
+                let Some(Domain::Ints(c)) = ds.first() else { return Verdict::Unproven };
+                let Some((lo, hi)) = c.bounds() else { return Verdict::Unproven };
+                if lo >= 0 {
+                    Verdict::Proven { how: "the count is never negative" }
+                } else if hi < 0 {
+                    Verdict::Fails { counterexample: format!("every time: the count is {}", describe_ints(c)) }
+                } else {
+                    Verdict::Fails { counterexample: format!("the count can be {}", lo) }
                 }
             }
             SiteKind::SliceRange => {
@@ -3113,7 +3133,7 @@ fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
             };
             Some(Domain::Ints(r))
         }
-        SiteKind::Narrow { .. } | SiteKind::LengthBound { .. } | SiteKind::DivZero | SiteKind::ModZero | SiteKind::Bounds | SiteKind::NegativeExponent => ds.first().cloned(),
+        SiteKind::Narrow { .. } | SiteKind::LengthBound { .. } | SiteKind::DivZero | SiteKind::ModZero | SiteKind::Bounds | SiteKind::NegativeExponent | SiteKind::FillCount => ds.first().cloned(),
         SiteKind::ShiftWidth | SiteKind::ShiftCount => ds.get(1).cloned(),
         _ => None,
     }

@@ -1667,6 +1667,11 @@ impl<'a> FnBuilder<'a> {
                 let k = args.get(2).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(0)));
                 self.site(SiteKind::SimdSome { lanes }, vec![idx, list, k], span);
             }
+            // A count below 0 is a check site (owner, 2026-09-30).
+            Op::ListFill => {
+                let count = args.get(1).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(0)));
+                self.site(SiteKind::FillCount, vec![count], span);
+            }
             // 1 <= first <= last + 1 <= length + 1 (`lists.md`).
             Op::ListSlice => {
                 let Some(Arg::Lend { place, .. }) = args.first() else { return };
@@ -2030,6 +2035,7 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::MustStopDone => Op::MustStopDone,
         Builtin::ListLength => Op::ListLength,
         Builtin::ListAppend => Op::ListAppend,
+        Builtin::ListFill => Op::ListFill,
         Builtin::ListSlice | Builtin::ArraySlice => Op::ListSlice,
         Builtin::ToList => Op::ToList,
         Builtin::ToArray => Op::ToArray,

@@ -2491,6 +2491,22 @@ impl<'a> Parser<'a> {
                     return self.fail(format!("a field's name is bare in a construction: `{} = …`, not `'{}' = …`", n, n));
                 }
             }
+            // `list.fill[0, count 10]`: a strict file labels the count
+            // (owner, 2026-09-30); elsewhere it is refused, as `pos` is.
+            if self.is_word("count") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket) {
+                if !self.strict {
+                    return self.fail("`count` belongs to `#strict` files: `list.fill[0, 10]`");
+                }
+                let start = self.span();
+                self.bump();
+                let inner = self.expr(0)?;
+                let span = start.to(self.prev_span());
+                args.push(Arg::Positional(Expr { kind: ExprKind::Count(Box::new(inner)), span }));
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+                continue;
+            }
             // `pos` the old keyword, not a function someone named `pos`.
             if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket) {
                 if !self.strict {
