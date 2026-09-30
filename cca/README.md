@@ -464,9 +464,8 @@ Dated, with the alternative, so each can become a question later.
   geo2, geo3`.
   A folder is a word with a `/`, or `.` or `..` (owner, 2026-09-30), and
   comes first, as a program does in `cca run` (owner: "yea"); a folder
-  given later is refused. A
-  folder with no names (`cca prepare ./money`) is refused like no names at
-  all, which is still open (asked).
+  given later is refused. `cca prepare` with no names, or a folder alone, is
+  refused, pointing to names or `--all` (owner, 2026-09-30: "`a`").
 - **2026-09-29 — How `cca test` runs tests.** One test binary holds every
   `test fn` (and no `MAIN`); `cca test` runs it once per test, the test's
   number its argument, so a check that fires ends that test only. A `must`

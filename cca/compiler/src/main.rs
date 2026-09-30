@@ -280,7 +280,8 @@ fn prepare(rest: &[String]) {
         _ => (".".to_string(), rest),
     };
     if rest.is_empty() {
-        eprintln!("error: not yet: `cca prepare` with no names (asked) — name the Limbs, `cca prepare geometry, money`, or give `--all`");
+        // Refused, a folder alone too (owner, 2026-09-30: "`a`").
+        eprintln!("error: `cca prepare` needs to be told which Limbs to prepare: name them, `cca prepare geometry, money`, or give `--all` for every one");
         exit(2);
     }
     let pick = if rest.len() == 1 && rest[0] == "--all" {

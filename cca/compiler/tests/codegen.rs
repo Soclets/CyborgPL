@@ -243,7 +243,7 @@ fn prepare_runs_build_scripts_in_their_folders() {
     }
     let r = prep("prep_stops", &["--all"]);
     assert!(r.status.code() == Some(7) && said(&r) == "bad", "`--all` did not stop at the first that failed:\n{}{}", said(&r), String::from_utf8_lossy(&r.stderr));
-    for (words, says) in [(&[][..], "not yet: `cca prepare` with no names"), (&["geometry", "money"][..], "names are separated by commas"), (&["nope"][..], "no Limb here is named `nope`"), (&["../prep_money"][..], "not yet: `cca prepare` with no names"), (&["geometry", "../prep_money"][..], "the folder comes first")] {
+    for (words, says) in [(&[][..], "`cca prepare` needs to be told which Limbs"), (&["geometry", "money"][..], "names are separated by commas"), (&["nope"][..], "no Limb here is named `nope`"), (&["../prep_money"][..], "`cca prepare` needs to be told which Limbs"), (&["geometry", "../prep_money"][..], "the folder comes first")] {
         let r = prep("prep_app", words);
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "`cca prepare {}` was not refused with {:?}:\n{}", words.join(" "), says, err);
