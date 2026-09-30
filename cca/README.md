@@ -424,7 +424,8 @@ Dated, with the alternative, so each can become a question later.
   machine's, is "not yet". A `CCA.cplr` without a 'name', a 'prefix', a
   'version' or a target is refused (owner, 2026-09-29), a dependency's
   too; a folder with no `CCA.cplr` is a plain program, and a dependency
-  must have one. A dependency is reached by its own 'prefix' and names no
+  must have one. Its 'name' and 'prefix' both follow the module-name rule
+  (owner, 2026-09-30: "strict"), with the oracle's reasons. A dependency is reached by its own 'prefix' and names no
   word; two different folders with one prefix, or a dependency whose
   prefix is `std` or `cca`, are refused, as the oracle does; the root
   Limb's own prefix is checked against neither, as in the oracle. A

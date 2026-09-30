@@ -266,10 +266,14 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         }
         seen.push(setting.to_string());
         match setting {
-            "name" => out.name = Some((text(&c.value, "'name'")?, c.value.span)),
+            "name" => {
+                let n = text(&c.value, "'name'")?;
+                check_word(&n, c.value.span, "name a Limb")?;
+                out.name = Some((n, c.value.span));
+            }
             "prefix" => {
                 let p = text(&c.value, "'prefix'")?;
-                check_prefix(&p, c.value.span)?;
+                check_word(&p, c.value.span, &format!("be a prefix, written in code as `{}::`", p))?;
                 out.prefix = Some((p, c.value.span));
             }
             // Any text, at most 256 bytes (owner, 2026-09-29), as in a
@@ -501,21 +505,24 @@ fn check_name(name: &str, at: &Path) -> Result<()> {
     Ok(())
 }
 
-/// A 'prefix' is written in code as `prefix::`, so it follows the
-/// module-name rule (owner, 2026-09-29).
-fn check_prefix(p: &str, span: crate::source::Span) -> Result<()> {
-    let why = if p.chars().any(|c| c.is_ascii_uppercase()) {
-        "lowercase only — macOS and Windows file systems do not tell `Shapes` from `shapes`"
-    } else if !(p.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) && p.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')) {
-        "lowercase ASCII letters, digits and `_`, starting with a letter"
-    } else if crate::parser::is_device_name(p) {
-        "a reserved device name on Windows"
-    } else if crate::parser::is_keyword(p) {
-        "a keyword"
+/// A Limb's 'name' and 'prefix' follow the module-name rule (owner,
+/// 2026-09-29 for the prefix, written in code as `prefix::`; 2026-09-30
+/// for the name, "strict"). `what` finishes "cannot …".
+fn check_word(w: &str, span: crate::source::Span, what: &str) -> Result<()> {
+    let why = if w.chars().any(|c| c.is_ascii_uppercase()) {
+        "lowercase only — macOS and Windows file systems do not tell `Shapes` from `shapes`".to_string()
+    } else if !w.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) {
+        "it must start with a lowercase ASCII letter".to_string()
+    } else if let Some(c) = w.chars().find(|c| !(c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '_')) {
+        format!("`{}` is not allowed — lowercase ASCII letters, digits, and `_` only", c)
+    } else if crate::parser::is_device_name(w) {
+        "it is a reserved device name on Windows".to_string()
+    } else if crate::parser::is_keyword(w) {
+        "it is a keyword".to_string()
     } else {
         return Ok(());
     };
-    err(Diagnostic::error(format!("`{}` cannot be a prefix, written in code as `{}::`: {}", p, p, why)).at(span))
+    err(Diagnostic::error(format!("`{}` cannot {}: {}", w, what, why)).at(span))
 }
 
 /// The file's own name, for a message: a full path is noise and differs per machine.
