@@ -1,7 +1,6 @@
 # In a list literal, a bare number takes its family from the other items
 # (owner, 2026-09-30: a), whichever comes first: [1, 2.5] is two bins, and
-# [1, 'q'] with 'q' a deci is two decis. Worked out by hand, as the oracle
-# still reads the 1 as an integer when it is used:
+# [1, 'q'] with 'q' a deci is two decis. The oracle (9b29d6f):
 # (1 + 5) + (1 + 0.5) x 2 + (1 + 5 - 3 + 10) + (0.1 + 1) x 10 = 6 + 3 + 13 + 11 = 33.
 extern fn exit ['code': int32];
 MAIN {
