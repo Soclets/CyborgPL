@@ -272,10 +272,11 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
 /// cca's.
 fn prepare(rest: &[String]) {
     // A word with a `/` is a folder, a bare word a Limb's name (owner,
-    // 2026-09-30: "`/`"): `cca prepare ../app geometry`. The folder comes
-    // first, as a program does in `cca run`.
+    // 2026-09-30: "`/`"): `cca prepare ../app geometry`; `.` and `..` are
+    // folders too, since no Limb is named that (owner: "yea"). The folder
+    // comes first, as a program does in `cca run` (owner: "yea").
     let (dir, rest) = match rest.first() {
-        Some(f) if f.contains('/') => (f.clone(), &rest[1..]),
+        Some(f) if is_folder(f) => (f.clone(), &rest[1..]),
         _ => (".".to_string(), rest),
     };
     if rest.is_empty() {
@@ -380,6 +381,11 @@ fn take_target(args: &[String]) -> (Vec<String>, Option<String>) {
     (rest, target)
 }
 
+/// A folder for `cca prepare`: a word with a `/`, or `.` or `..`.
+fn is_folder(w: &str) -> bool {
+    w.contains('/') || w == "." || w == ".."
+}
+
 /// A comma-separated list of names or prefixes for `cca prepare`, with or
 /// without a space after each comma (owner, 2026-09-29).
 fn words_list(words: &[String], what: &str, example: &str) -> Vec<String> {
@@ -391,12 +397,8 @@ fn words_list(words: &[String], what: &str, example: &str) -> Vec<String> {
         eprintln!("error: `cca prepare` takes names separated by commas, then `--prefix` and prefixes, or `--all` alone; `{}` is none of them", a);
         exit(2);
     }
-    if let Some(a) = words.iter().find(|a| a.contains('/')) {
+    if let Some(a) = words.iter().find(|a| is_folder(a)) {
         eprintln!("error: `{}` is a folder, and the folder comes first: `cca prepare {} …`", a, a);
-        exit(2);
-    }
-    if let Some(a) = words.iter().find(|a| *a == "." || *a == "..") {
-        eprintln!("error: a folder is written with a `/`, and a bare word is a Limb's name: `cca prepare {}/ …`", a);
         exit(2);
     }
     let mut v = Vec::new();

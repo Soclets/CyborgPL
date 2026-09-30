@@ -459,8 +459,9 @@ Dated, with the alternative, so each can become a question later.
   and mixes with names (owner, 2026-09-30); the names come before it and
   every word after it is a prefix (`cca prepare money --prefix geo2,
   geo3`), run in the order written, each Limb once.
-  A folder is a word with a `/` (owner, 2026-09-30), taken as the first
-  word, as a program is in `cca run`; a folder given later is refused. A
+  A folder is a word with a `/`, or `.` or `..` (owner, 2026-09-30), and
+  comes first, as a program does in `cca run` (owner: "yea"); a folder
+  given later is refused. A
   folder with no names (`cca prepare ./money`) is refused like no names at
   all, which is still open (asked). Alternative: run named Limbs dependencies-first
   too.

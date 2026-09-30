@@ -233,6 +233,10 @@ fn prepare_runs_build_scripts_in_their_folders() {
     }
     // A word with a `/` is a folder (owner, 2026-09-30): the Limb there,
     // from anywhere.
+    // `.` and `..` are folders too, since no Limb is named that (owner,
+    // 2026-09-30).
+    let r = prep("prep_app", &[".", "geometry"]);
+    assert!(r.status.success() && said(&r) == "geometry", "`cca prepare . geometry` ran `{}`:\n{}", said(&r), String::from_utf8_lossy(&r.stderr));
     for (words, want) in [(&["../prep_app", "geometry,", "money"][..], "geometry money"), (&["../prep_shared/", "--prefix", "geo2"][..], "geo2")] {
         let r = prep("prep_stops", words);
         assert!(r.status.success() && said(&r) == want, "`cca prepare {}` ran `{}`, not `{}`:\n{}", words.join(" "), said(&r), want, String::from_utf8_lossy(&r.stderr));
