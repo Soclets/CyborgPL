@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — RRx2-TV judges threaded code piece by piece, plus a check that LLVM adds no data race (owner: b)
+
+RRx2-TV claude's question: CyborgPL's parallel `for` and `spawn` run
+program code on several threads at once. Proposed (a) run the pieces one
+after another in its model — simplest, but it would miss an LLVM bug that
+only shows when pieces run together, such as LLVM adding a data race, so
+a "proven" could be wrong; (b) the same, plus a check that the optimised
+code adds no data race the original did not have; (c) leave threaded
+programs "not judged" for now. RRx2-TV claude recommended b. The owner:
+"`b`". RRx2-TV claude adds, as its own: until that is built, threaded
+programs stay "not judged", and callbacks on the same thread (map specs,
+`qsort`) come first.
+
 ### 2026-10-01 — The first public GitHub release needs only Metal on the GPU side (owner)
 
 "Btw, first pub GH Release only has to support Metal in GPU". Vulkan stays
