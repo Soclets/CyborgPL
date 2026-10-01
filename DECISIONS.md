@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — GPU loops: Metal is built before Vulkan (owner)
+
+"Btw, it's gonna be Metal before Vulkan." Both stay the v1 targets
+(2026-09-21); the order is Metal first — CCA's own Metal Shading Language
+text — then Vulkan through LLVM's SPIR-V. Metal is the GPU on this
+machine, so it can be built and tested here. `gpu.md`.
+
 ### 2026-10-01 — "Rust throughout" is about code we write; borrowing Clang inside CCA is fine (owner)
 
 Asked what `inline.C` would bring (C's headers and macros, no separate

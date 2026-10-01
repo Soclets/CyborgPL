@@ -65,6 +65,10 @@ runtime module for launching and memory plus a the manifest (`Synthia.ttsr` / `C
 CUDA later is an addition, not a change. Proposed: Metal only; Metal +
 CUDA; all three. Owner: Metal and Vulkan.
 
+**Metal is built first, Vulkan after** (owner, 2026-10-01: "it's gonna be
+Metal before Vulkan"): Metal is this machine's GPU, so it can be built
+and tested here.
+
 **How each is compiled** (owner, 2026-09-30: direct text). Vulkan: LLVM
 compiles the body to SPIR-V. Metal: CCA writes Metal Shading Language
 text straight from its own MIR, which Apple's compiler then builds. This
