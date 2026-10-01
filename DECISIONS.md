@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — CyborgPL is unstable, forever (owner)
+
+Design claude noted that CyborgPL can rename freely (`/` → `div`, every
+use converted the same day) because nobody outside the project depends on
+it yet, not because of Apache 2.0's "AS IS" — C++ is held still by its
+users, not its licence — and that languages usually state a policy, as
+Rust's "anything may change before 1.0, nothing that breaks code after".
+The owner: "CyborgPL will be, and I quote myself 'unstable' forever". So
+there is no stability promise, before or after any version: anything may
+change, and old spellings are refused with errors naming the new ones,
+as they are now.
+
 ### 2026-10-01 — `std::print.weird`: C++'s `cout <<` with `<-` arrows (owner)
 
 The owner, after asking how C++ prints: "Let's design a C++ print".
