@@ -1,1 +1,0 @@
-MAIN { std::print.format.stdout["50%% off\n"]; }

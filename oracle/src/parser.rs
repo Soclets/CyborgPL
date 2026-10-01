@@ -1768,7 +1768,14 @@ impl Parser {
             if limb.is_none() && shown == "lang" && *self.peek() == Tok::Colon { return self.err("`lang:` was removed (2026-09-14): keywords are bare — `let`, not `lang:let`"); }
             return self.err(format!("`{shown}` is followed by {}; a call needs `[…]`", self.peek()));
         }
-        let args = self.bracket()?;
+        // `print.format` reads its format text as typed, with its own escapes, in one pass
+        // (owner, 2026-10-01: "Format print has its own rules"): `\\` there is one backslash
+        let raw_format = match (limb.as_deref(), path.first().map(|s| s.as_str()), path.get(1).map(|s| s.as_str()), self.peek_at(1)) {
+            (Some("std"), Some("print"), Some("format"), Tok::Text(_, raw)) => Some(raw.clone()),
+            _ => None,
+        };
+        let mut args = self.bracket()?;
+        if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
         let path = if limb.is_none() { self.resolve(&path) } else { path };
         Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line })
     }
@@ -1912,7 +1919,7 @@ impl Parser {
 
     fn starts_primary(&self) -> bool {
         match self.peek() {
-            Tok::Int(_) | Tok::Bin(..) | Tok::Text(_) | Tok::Char(_) | Tok::Newline | Tok::Var(_) | Tok::LParen => true,
+            Tok::Int(_) | Tok::Bin(..) | Tok::Text(..) | Tok::Char(_) | Tok::Newline | Tok::Var(_) | Tok::LParen => true,
             Tok::Word(w) => !OP_WORDS.contains(&w.as_str()) && w != "not" && w != "otherwise",
             _ => false,
         }
@@ -2070,7 +2077,7 @@ impl Parser {
                 Ok(Expr::Int(i, line))
             }
             Tok::Bin(b, t) => { self.advance(); Ok(Expr::Bin(b, t, line)) }
-            Tok::Text(t) => { self.advance(); Ok(Expr::Text(t, line)) }
+            Tok::Text(t, _) => { self.advance(); Ok(Expr::Text(t, line)) }
             Tok::Char(c) => { self.advance(); Ok(Expr::Char(c, line)) }
             Tok::Newline => { self.advance(); Ok(Expr::Newline(line)) }
             Tok::Var(v) => {

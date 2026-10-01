@@ -28,37 +28,55 @@ removed a day later) had done the same as a borrowed Rust print. Only this
 form is decided: `print` and `print.format` have no `auto_newline`.
 `examples/print_auto_newline.cpls`.
 
-## `std::print.format` — C's print, in full (decided 2026-09-22)
+## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-std::print.format.stdout["%s has %d items at $%.2f each\n", 'name', 'count', 'price'];
-std::print.format.stdout["hex %x, padded %5d, %3d\%\n", 255, 42, 90];
-std::print.format.stderr["error: %s\n", 'msg'];
+std::print.format.stdout["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
+std::print.format.stdout["0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5];
+std::print.format.stdout["{2} vs {1}, and {2} wins\n", "a", "b"];
+std::print.format.stderr["error: {}\n", 'msg'];
 ```
 
-A third print beside `print` (stored form) and `print.useful` (useful form):
-the format text *is* processed. Escapes — `\n \t \r \\ \" \' \0`,
-`\xHH`, `\uHHHH`, `\UHHHHHHHH` (not the museum pieces `\a \b \f \v`
-or octal), plus `\%` for a literal percent — and C's `%` formatting:
-`%d %i %x %X %o %f %e %g %s %c`,
-with `-` and `0` flags, a width, and `.precision`. Named `printf`
-until 2026-09-29, when the owner made the three prints one family:
-`std::print`, `std::print.useful` (was `printu`), `std::print.format`
-(was `printf`); the old names are refused with the new ones. The rules
-come from C. What C leaves undefined is an error here: the format is a
-literal, so each `%` is checked against its argument's type and the
-count (`%d` given a text; a `%` without an argument; an argument
-without a `%`). `%u` is refused (`%d` prints any integer); `%p` and
-`%n` do not exist. A non-literal format cannot be checked and is a
-`nocheck` site. **A literal percent is `\%`, never C's `%%`** (owner,
-2026-10-01: "`\%` only"): C doubles it only because its backslash escapes
-are gone by the time `printf` reads the text, and here `print.format`
-reads both itself; `\%\%` prints two, and `%%` is refused with that hint.
-Owner: "adding another print version", then asked for
-C's list and "full-on"; chose escapes plus formatting over escapes
-only. `examples/print_format.cpls`, five reject tests. The borrowed
-`std::c.printf` / `std::rs.println` of 2026-09-19 stay removed — this
-is Cyborg's own call with C's format language inside it.
+The third print, beside `print` (stored form) and `print.useful` (useful
+form), and the only one that shapes its output — hex, padding, places —
+so it keeps its own job (owner: "print is print, print useful is print
+useful"). Decided 2026-10-01, replacing C's `%` codes (owner: "yea, {}
+holes"):
+
+- **A hole is `{}`**: the next value, in its **readable form**, as
+  `print.useful` shows it (owner: "If you can change it inside, then go
+  with readable"). The compiler knows every value's type, so no type
+  letters.
+- **Numbered holes** `{1}`, `{2}`… take a value by position, to use one
+  twice (owner: "allow num"). They count **from 1**, as positions do —
+  `{0}` is refused, like `'xs'[0]` (owner: "Position 0 doesn't exist").
+  A format uses plain or numbered holes, **never both** (owner: "no
+  mixing"). Every value fills a hole and every hole has a value, or it is
+  a compile error.
+- **A shape follows `:`**, Rust's set without `#`: fill and alignment
+  `<` `^` `>` (`{:*^7}`), `+` for a sign, `0` padding, a width, `.places`
+  (for text, the first characters), and a kind — `x` `X` `o` `b` for bases,
+  `e` for scientific, and **`?` for the stored form** (`{:?}` of a `bin`
+  `0.1` is `0.1000000000000000055…`). `#` is refused: type the prefix,
+  `0x{:x}` (owner: "drop it"; `#` already means comments and `#strict`).
+  `{:.2}` of a `deci` is exact, from its decimal digits, half to even.
+- **Lists, structs and maps** fill a plain `{}` or `{:?}`, as `print.useful`
+  and `print` show them; number shapes are refused for them (owner:
+  "allow").
+- **The format text has its own escapes, read in one pass** (owner:
+  "Format print has its own rules"): `\n \t \r \\ \" \' \0`, `\xHH`,
+  `\uHHHH`, `\UHHHHHHHH`, and **`\{` `\}`** for literal braces (owner:
+  "`\`", over Rust's `{{ }}`). The language's own text rules do not run on
+  it first, so `\\` is one backslash: `"C:\\temp"` prints `C:\temp`. An
+  unknown escape is an error (owner: "Fine") — so `\%` is refused and
+  `\\%` prints a backslash and a percent. **`%` is plain text.**
+- A format that is not a literal cannot be checked and is a `nocheck`
+  site; it is read as stored text.
+
+Before 2026-10-01 it was C's `printf` language (`%d %x %.2f`, `%%`, then
+`\%`), named `printf` until 2026-09-29. The borrowed `std::c.printf` /
+`std::rs.println` of 2026-09-19 stay removed. `examples/print_format.cpls`;
+reject tests `print_format_*`.
 
 ## A length bound names its unit (decided 2026-09-22)
 

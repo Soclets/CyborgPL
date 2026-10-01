@@ -5,7 +5,42 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-01 — In `print.format`, a literal percent is `\%`, never `%%` (owner)
+### 2026-10-01 — `std::print.format` uses `{}` holes, with its own escapes read in one pass (owner)
+
+Supersedes the two entries below of the same day (`%` codes, `\%`). The
+owner asked how every type's `%` code should look; design claude laid
+out a full table (C's letters, plus `%b`, `%t`, `%v`, `deci` under `%f`).
+Piece by piece: `%b` for base 2 raised "binary or `bin`?"; the owner
+weighed renaming `bin`/`deci` to `bfp`/`dfp` and kept them ("keep them";
+IEEE 754 names them binary64/decimal64, so both names are accurate, and
+they appear ~1,100 times in 123 files); asked for `%bin`, which design
+claude showed is ambiguous after `%b`; asked whether CyborgPL's writers
+are C people — design claude: probably not mostly, so C's letters are not
+owed — and "it's not like it's called `std::c.printf`". Then: "Or just go
+with {} holes?" The owner: "yea, {} holes". The six questions after:
+1. a bare `{}` prints the **readable** form, as `print.useful` (owner:
+   "If you can change it inside, then go with readable");
+2. shapes are Rust's set — fill/align, `+`, `0`, width, `.places`, kinds
+   `x X o b e` — plus **`?` for the stored form**, and **without `#`**
+   (owner asked "doesn't `#` mean comment… `#strict`", then about another
+   symbol — only `%` was free — then "drop it": the prefix is typed);
+3. literal braces are **`\{` `\}`** (owner: "`\`");
+4. `\%` is refused, unknown escapes stay errors (owner: "Fine");
+5. **numbered holes** allowed (owner: "allow num"), **counted from 1**
+   (owner: "Position 0 doesn't exist, it's before 1"), **never mixed** with
+   plain holes (owner: "no mixing");
+6. **lists, structs and maps** fill `{}` and `{:?}` (owner: "allow").
+Testing it, design claude found that backslashes were read twice — the
+language's text rules (`\\` → `\`), then the format's — so a literal
+backslash took `\\\\`, and its own earlier answer (`\\%`) was wrong. The
+owner: "Format print has its own rules": the format literal is read **as
+typed, in one pass**, with only its own escapes; a non-literal (`nocheck`)
+format is read as stored. `{:.2}` of a `deci` now prints `465.00`, the
+question this began with. Oracle: `hole_format`; `design/strings.md`;
+`examples/print_format.cpls`; ten `print_format_*` reject tests (`%u` and
+`%%` tests removed).
+
+### 2026-10-01 — In `print.format`, a literal percent is `\%`, never `%%` (owner) — superseded the same day: `{}` holes, `%` plain text
 
 The owner: "Why not `\%` for literal `%`?" Design claude: C doubles it
 only because C's backslash escapes are resolved when the string is read,
@@ -16,7 +51,7 @@ owner: "`\%` only", and asked how to write two: `\%\%`. The oracle
 refuses `%%` with that hint (reject test print_format_double_percent);
 `examples/print_format.cpls` uses `\%`; `design/strings.md`.
 
-### 2026-10-01 — `std::print.format` stays C's codes with `%` (owner)
+### 2026-10-01 — `std::print.format` stays C's codes with `%` (owner) — superseded the same day: `{}` holes
 
 The owner, finding `print.format` refuses a `deci` (`%.2f` cannot print
 `$465.00`): "let's redesign `std::print.format` entirely". Proposed (a)

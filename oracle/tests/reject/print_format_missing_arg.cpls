@@ -1,1 +1,1 @@
-MAIN { std::print.format.stdout["%d %d\n", 1]; }
+MAIN { std::print.format.stdout["{} {}\n", 1]; }

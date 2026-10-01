@@ -4247,20 +4247,24 @@ impl<'p> Interp<'p> {
                 Ok(Value::Nothing)
             }
             "print.format.stdout" | "print.format.stderr" => {
-                // C's print, in full (owner, 2026-09-22; `printf` until 2026-09-29): escapes and `%` formatting, checked
-                // against the arguments' types because the format is a literal — a
-                // non-literal format is a nocheck site.
-                if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes a format text first: `std::{path}[\"%d items\\n\", 'n']`")); }
+                // The formatting print (owner, 2026-09-22; `printf` until 2026-09-29; `{}` holes since
+                // 2026-10-01, C's `%` codes before): escapes and holes, checked against the values'
+                // types because the format is a literal — a non-literal format is a nocheck site.
+                if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes a format text first: `std::{path}[\"{{}} items\\n\", 'n']`")); }
                 let fmt = match &c.args.values[0] {
                     crate::ast::Value::Expr(Expr::Text(t, _)) => t.clone(),
                     _ => {
-                        if self.nocheck_depth == 0 { return rt(c.line, format!("std::{path}: the format is not a literal, so its `%`s cannot be checked against the arguments — that is a nocheck site: `nocheck std::{path}[…]`")); }
+                        if self.nocheck_depth == 0 { return rt(c.line, format!("std::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a nocheck site: `nocheck std::{path}[…]`")); }
                         match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("std::{path} takes a text as its format, got {}", other.kind())) }
                     }
                 };
                 let mut vals = Vec::new();
-                for a in &c.args.values[1..] { vals.push(self.value(a)?.0); }
-                let text = c_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("std::{path}: {m}"), exit: None, site: false, leave: None })?;
+                for a in &c.args.values[1..] {
+                    let crate::ast::Value::Expr(e) = a;
+                    let saved = self.expected.take(); let ty = self.expr_ty(e); self.expected = saved;
+                    vals.push((self.value(a)?.0, ty));
+                }
+                let text = hole_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("std::{path}: {m}"), exit: None, site: false, leave: None })?;
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
@@ -4526,11 +4530,17 @@ fn grapheme_count(s: &str) -> usize {
 /// escapes that mean a character, and `%` with flags `-`, `0`, a width, `.precision`, and the
 /// conversions d i s f x X c %. Every `%` is checked against its argument's type and the
 /// count — the mismatch C leaves undefined is an error here.
-fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
+/// `std::print.format`'s holes (owner, 2026-10-01; C's `%` codes until then): `{}` takes the next
+/// value in its readable form, `{1}`, `{2}`… a numbered one (counted from 1, never mixed with `{}`),
+/// and `:` adds a shape — `[[fill]align][+][0][width][.precision][kind]`, kind one of x X o b e `?`
+/// (`?` is the stored form). `\{` and `\}` are literal braces; unknown escapes are errors.
+fn hole_format(fmt: &str, vals: &[(Value, Option<Ty>)]) -> Result<String, String> {
     let chars: Vec<char> = fmt.chars().collect();
     let mut out = String::new();
     let mut i = 0;
     let mut next = 0usize;
+    let mut used = vec![false; vals.len()];
+    let (mut plain, mut numbered) = (false, false);
     while i < chars.len() {
         let ch = chars[i];
         if ch == '\\' {
@@ -4539,8 +4549,8 @@ fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
             match e {
                 'n' => out.push('\n'), 't' => out.push('\t'), 'r' => out.push('\r'), '\\' => out.push('\\'),
                 '"' => out.push('"'), '\'' => out.push('\''), '0' => out.push('\0'),
-                // a literal percent is `\%`, never C's `%%` (owner, 2026-10-01: "`\%` only")
-                '%' => out.push('%'),
+                '{' => out.push('{'), '}' => out.push('}'),
+                '%' => return Err("`\\%` is not an escape: `%` is plain text in a format, so write `%` (and `\\\\%` for a backslash and a percent)".into()),
                 'x' => {
                     let hex: String = chars[i + 1..].iter().take(2).collect();
                     let b = u8::from_str_radix(&hex, 16).map_err(|_| format!("`\\x` needs two hex digits, found `\\x{hex}`"))?;
@@ -4552,46 +4562,155 @@ fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
                     let cp = u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32).ok_or_else(|| format!("`\\{e}` needs {n} hex digits naming a character, found `\\{e}{hex}`"))?;
                     out.push(cp); i += n;
                 }
-                other => return Err(format!("`\\{other}` is not an escape (n t r \\\\ \\\" \\' 0 % xHH uHHHH UHHHHHHHH are)")),
+                other => return Err(format!("`\\{other}` is not an escape (n t r \\\\ \\\" \\' 0 {{ }} xHH uHHHH UHHHHHHHH are)")),
             }
             i += 1; continue;
         }
-        if ch != '%' { out.push(ch); i += 1; continue; }
+        if ch == '}' { return Err("a `}` with no `{` before it; a literal brace is `\\}`".into()); }
+        if ch != '{' { out.push(ch); i += 1; continue; }
+        // a hole: {[n][:shape]}
         i += 1;
-        if chars.get(i) == Some(&'%') { return Err("`%%` is C's literal percent; here it is `\\%` (and `\\%\\%` for two)".into()); }
-        let mut left = false; let mut zero = false;
-        while let Some(&f) = chars.get(i) { match f { '-' => left = true, '0' => zero = true, '+' | ' ' | '#' => {}, _ => break } i += 1; }
-        let mut width = String::new(); while let Some(&d) = chars.get(i) { if d.is_ascii_digit() { width.push(d); i += 1; } else { break; } }
-        let mut prec: Option<usize> = None;
-        if chars.get(i) == Some(&'.') { i += 1; let mut p = String::new(); while let Some(&d) = chars.get(i) { if d.is_ascii_digit() { p.push(d); i += 1; } else { break; } } prec = Some(p.parse().unwrap_or(0)); }
-        while let Some(&l) = chars.get(i) { if l == 'l' || l == 'h' || l == 'z' { i += 1; } else { break; } }   // C's length modifiers: ignored, types are known
-        let conv = *chars.get(i).ok_or("a `%` at the end of the format converts nothing")?; i += 1;
-        let v = vals.get(next).ok_or_else(|| format!("the format has more `%`s than arguments (argument {} is missing)", next + 1))?; next += 1;
-        let body = match (conv, v) {
-            ('d' | 'i', Value::Int(n)) => n.to_string(),
-            ('u', _) => return Err("`%u` is refused; `%d` prints any integer, unsigned included".into()),
-            ('x', Value::Int(n)) => format!("{:x}", n), ('X', Value::Int(n)) => format!("{:X}", n), ('o', Value::Int(n)) => format!("{:o}", n),
-            ('f' | 'F', Value::Bin(b)) => format!("{:.*}", prec.unwrap_or(6), b),
-            ('e', Value::Bin(b)) => format!("{:.*e}", prec.unwrap_or(6), b),
-            ('g', Value::Bin(b)) => format!("{}", b),
-            ('s', Value::Str(t)) => match prec { Some(p) => t.chars().take(p).collect(), None => t.clone() },
-            ('s', Value::Char(_, t)) => t.clone(),
-            ('c', Value::Char(_, t)) => t.clone(),
-            ('c', Value::Int(n)) => char::from_u32(*n as u32).map(|c| c.to_string()).ok_or("`%c` of a number that is not a character")?,
-            ('p' | 'n', _) => return Err(format!("`%{conv}` does not exist here (no pointers to print, no `%n`)")),
-            (c, v) => return Err(format!("`%{c}` does not take a {} (argument {})", v.kind(), next)),
+        let close = chars[i..].iter().position(|c| *c == '}').ok_or("a `{` that never closes; a literal brace is `\\{`")?;
+        let inner: String = chars[i..i + close].iter().collect();
+        i += close + 1;
+        let (index, shape) = match inner.split_once(':') { Some((a, b)) => (a.to_string(), Some(b.to_string())), None => (inner.clone(), None) };
+        let at = if index.is_empty() {
+            plain = true; next += 1; next
+        } else {
+            numbered = true;
+            let n: usize = index.parse().map_err(|_| format!("`{{{inner}}}`: a hole is `{{}}`, `{{1}}`, `{{2}}`…, optionally with `:` and a shape"))?;
+            if n == 0 { return Err("`{0}` does not exist: holes count from `{1}`, as positions do".into()); }
+            n
         };
-        let w: usize = width.parse().unwrap_or(0);
-        if body.chars().count() >= w { out.push_str(&body); }
-        else if left { out.push_str(&body); out.push_str(&" ".repeat(w - body.chars().count())); }
-        else if zero && matches!(conv, 'd' | 'i' | 'x' | 'X' | 'f' | 'F' | 'o') {
-            let (sign, digits) = if let Some(rest) = body.strip_prefix('-') { ("-", rest.to_string()) } else { ("", body.clone()) };
-            out.push_str(sign); out.push_str(&"0".repeat(w - body.chars().count())); out.push_str(&digits);
-        }
-        else { out.push_str(&" ".repeat(w - body.chars().count())); out.push_str(&body); }
+        if plain && numbered { return Err("this format mixes `{}` with numbered holes; use one or the other".into()); }
+        let (v, ty) = vals.get(at - 1).ok_or_else(|| if numbered { format!("`{{{at}}}` names value {at}, but only {} were given", vals.len()) } else { format!("the format has more holes than values (value {at} is missing)") })?;
+        used[at - 1] = true;
+        out.push_str(&fill_hole(v, ty.as_ref(), shape.as_deref().unwrap_or(""))?);
     }
-    if next < vals.len() { return Err(format!("the format has fewer `%`s than arguments ({} argument(s) unused)", vals.len() - next)); }
+    if let Some(k) = used.iter().position(|u| !u) {
+        return Err(if numbered { format!("value {} is never used by a hole", k + 1) } else { format!("the format has fewer holes than values ({} value(s) unused)", vals.len() - next) });
+    }
     Ok(out)
+}
+
+/// One hole's text: the value's readable form, or its shape.
+fn fill_hole(v: &Value, ty: Option<&Ty>, shape: &str) -> Result<String, String> {
+    let sc: Vec<char> = shape.chars().collect();
+    let mut j = 0;
+    let (mut fill, mut align) = (' ', None::<char>);
+    if sc.len() >= 2 && matches!(sc[1], '<' | '^' | '>') { fill = sc[0]; align = Some(sc[1]); j = 2; }
+    else if sc.first().map_or(false, |c| matches!(c, '<' | '^' | '>')) { align = Some(sc[0]); j = 1; }
+    let plus = sc.get(j) == Some(&'+'); if plus { j += 1; }
+    if sc.get(j) == Some(&'#') { return Err("`#` is not a shape here: type the prefix in the text, `0x{:x}`".into()); }
+    let zero = sc.get(j) == Some(&'0') && align.is_none(); if zero { j += 1; }
+    let mut width = String::new(); while let Some(d) = sc.get(j) { if d.is_ascii_digit() { width.push(*d); j += 1; } else { break; } }
+    let mut prec: Option<usize> = None;
+    if sc.get(j) == Some(&'.') { j += 1; let mut p = String::new(); while let Some(d) = sc.get(j) { if d.is_ascii_digit() { p.push(*d); j += 1; } else { break; } } if p.is_empty() { return Err(format!("`{{:{shape}}}`: a `.` needs a number of places")); } prec = Some(p.parse().unwrap()); }
+    let kind: String = sc[j..].iter().collect();
+    if !matches!(kind.as_str(), "" | "x" | "X" | "o" | "b" | "e" | "?") { return Err(format!("`{{:{shape}}}`: `{kind}` is not a shape kind (x X o b e ? are)")); }
+    let ty = match ty { Some(Ty::Ranged(b, _, _)) => Some(&**b), t => t };
+    let numeric = matches!(v, Value::Int(_) | Value::Bin(_) | Value::Deci(_));
+    let refuse = |what: &str| Err(format!("{what} does not apply to a {}", v.kind()));
+    if (plus || zero) && !numeric { return refuse(if plus { "`+`" } else { "`0` padding" }); }
+    let body = match (v, kind.as_str()) {
+        (_, "?") => { if prec.is_some() { return refuse("a precision with `?`"); } v.show_stored() }
+        (Value::Int(n), k) => {
+            if prec.is_some() { return refuse("a precision"); }
+            let bits = match ty { Some(Ty::Int(w) | Ty::Uint(w)) => match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, _ => 64 };
+            let raw = if *n < 0 && bits < 128 { (*n as u128) & ((1u128 << bits) - 1) } else { *n as u128 };
+            match k { "" => n.to_string(), "x" => format!("{raw:x}"), "X" => format!("{raw:X}"), "o" => format!("{raw:o}"), "b" => format!("{raw:b}"), _ => return refuse("`e`") }
+        }
+        (Value::Bin(x), k) => match (k, prec) {
+            ("", None) => show_useful_as(v, ty),
+            ("", Some(p)) => format!("{:.*}", p, x),
+            ("e", None) => format!("{:e}", x),
+            ("e", Some(p)) => format!("{:.*e}", p, x),
+            _ => return refuse(&format!("`{k}`")),
+        },
+        (Value::Deci(d), k) => match (k, prec) {
+            ("", None) => d.show_useful(),
+            ("", Some(p)) => deci_fixed(d, p),
+            ("e", p) => deci_sci(d, p),
+            _ => return refuse(&format!("`{k}`")),
+        },
+        (Value::Str(t), "") => match prec { Some(p) => t.chars().take(p).collect(), None => t.clone() },
+        (Value::Char(_, t), "") => { if prec.is_some() { return refuse("a precision"); } t.clone() }
+        (_, "") => { if prec.is_some() { return refuse("a precision"); } show_useful_as(v, ty) }
+        (_, k) => return refuse(&format!("`{k}`")),
+    };
+    let body = if plus && !body.starts_with('-') { format!("+{body}") } else { body };
+    let w: usize = width.parse().unwrap_or(0);
+    let n = body.chars().count();
+    if n >= w { return Ok(body); }
+    let pad = w - n;
+    if zero {
+        let (sign, rest) = if body.starts_with('-') || body.starts_with('+') { body.split_at(1) } else { ("", body.as_str()) };
+        return Ok(format!("{sign}{}{rest}", "0".repeat(pad)));
+    }
+    let f = fill.to_string();
+    Ok(match align.unwrap_or(if numeric { '>' } else { '<' }) {
+        '<' => format!("{body}{}", f.repeat(pad)),
+        '>' => format!("{}{body}", f.repeat(pad)),
+        _ => { let l = pad / 2; format!("{}{body}{}", f.repeat(l), f.repeat(pad - l)) }
+    })
+}
+
+/// A deci's digits rounded half to even at `keep` digits from the left; returns the digits and
+/// whether rounding carried into a new leading digit.
+fn round_digits(digits: &[u8], keep: usize) -> (Vec<u8>, bool) {
+    if keep >= digits.len() { let mut d = digits.to_vec(); d.resize(keep, 0); return (d, false); }
+    let mut kept = digits[..keep].to_vec();
+    let first = digits[keep];
+    let rest_nonzero = digits[keep + 1..].iter().any(|d| *d != 0);
+    let last_odd = kept.last().map_or(false, |d| d % 2 == 1);
+    let up = first > 5 || (first == 5 && (rest_nonzero || last_odd));
+    if !up { return (kept, false); }
+    let mut k = kept.len();
+    loop {
+        if k == 0 { kept.insert(0, 1); return (kept, true); }
+        k -= 1;
+        if kept[k] == 9 { kept[k] = 0; } else { kept[k] += 1; return (kept, false); }
+    }
+}
+
+/// `{:.p}` of a deci: exactly p places, from its decimal digits, half to even (`deci`'s own rule).
+fn deci_fixed(d: &crate::deci::Deci, p: usize) -> String {
+    // value = coef × 10^exp; the digits we want are coef × 10^(exp + p), rounded to a whole number
+    let shift = d.exp as i64 + p as i64;
+    let mut whole: Vec<u8> = if shift >= 0 {
+        let mut c = d.coef.clone(); c.extend(std::iter::repeat(0).take(shift as usize)); c
+    } else {
+        let drop = (-shift) as usize;
+        if drop > d.coef.len() {
+            let mut padded = vec![0u8; drop - d.coef.len()]; padded.extend(&d.coef);
+            let (r, carry) = round_digits(&padded, 0);
+            if carry { r } else { vec![0] }
+        } else {
+            let keep = d.coef.len() - drop;
+            let (r, _) = round_digits(&d.coef, keep);
+            if r.is_empty() { vec![0] } else { r }
+        }
+    };
+    while whole.len() > 1 && whole[0] == 0 { whole.remove(0); }
+    if whole.len() <= p { let mut z = vec![0u8; p + 1 - whole.len()]; z.extend(&whole); whole = z; }
+    let text: String = whole.iter().map(|x| (b'0' + x) as char).collect();
+    let (a, b) = text.split_at(text.len() - p);
+    let body = if p == 0 { a.to_string() } else { format!("{a}.{b}") };
+    if d.neg && whole.iter().any(|x| *x != 0) { format!("-{body}") } else { body }
+}
+
+/// `{:e}` of a deci: `d.ddde±n`, all its significant digits, or p after the point, half to even.
+fn deci_sci(d: &crate::deci::Deci, p: Option<usize>) -> String {
+    let mut digits = d.coef.clone();
+    while digits.len() > 1 && digits[0] == 0 { digits.remove(0); }
+    if digits.iter().all(|x| *x == 0) { return match p { Some(p) if p > 0 => format!("0.{}e0", "0".repeat(p)), _ => "0e0".into() }; }
+    let mut e = digits.len() as i64 - 1 + d.exp as i64;
+    let keep = match p { Some(p) => p + 1, None => { let mut k = digits.len(); while k > 1 && digits[k - 1] == 0 { k -= 1; } k } };
+    let (mut r, carry) = round_digits(&digits, keep);
+    if carry { r.pop(); e += 1; }
+    let t: String = r.iter().map(|x| (b'0' + x) as char).collect();
+    let body = if t.len() > 1 { format!("{}.{}e{e}", &t[..1], &t[1..]) } else { format!("{t}e{e}") };
+    if d.neg { format!("-{body}") } else { body }
 }
 
 /// A statement's own line: every `Stmt` variant ends with `line`, so it is the last one printed.

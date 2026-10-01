@@ -16,7 +16,7 @@ use std::fmt;
 pub enum Tok {
     Word(String),   // bare identifier: keyword / function / operator word / chain segment
     Var(String),    // 'name'
-    Text(String),   // "…"
+    Text(String, String),   // "…": the stored text, and the text as typed (`print.format` reads that)
     Char(String),   // `…`
     Int(i128),
     Bin(f64, String),   // the value, and its digits as written (to round once, at a narrower width)
@@ -49,7 +49,7 @@ impl fmt::Display for Tok {
         match self {
             Tok::Word(w) => write!(f, "`{w}`"),
             Tok::Var(v) => write!(f, "'{v}'"),
-            Tok::Text(t) => write!(f, "\"{t}\""),
+            Tok::Text(t, _) => write!(f, "\"{t}\""),
             Tok::Char(c) => write!(f, "`{c}`"),
             Tok::Int(i) => write!(f, "{i}"),
             Tok::Bin(b, _) => write!(f, "{b}"),
@@ -130,6 +130,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         // "text"
         if c == '"' {
             let mut s = String::new();
+            let mut raw = String::new();
             i += 1; col += 1;
             loop {
                 if i >= chars.len() { return err(tl, tc, "unterminated text literal".into()); }
@@ -141,13 +142,15 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 // newline is the bare `\n` outside quotes).
                 if d == '\\' && i + 1 < chars.len() && (chars[i + 1] == '"' || chars[i + 1] == '\\') {
                     s.push(chars[i + 1]);
+                    raw.push('\\'); raw.push(chars[i + 1]);
                     i += 2; col += 2; continue;
                 }
                 if d == '\n' { line += 1; col = 0; }
                 s.push(d);
+                raw.push(d);
                 i += 1; col += 1;
             }
-            push(Tok::Text(s), &mut toks);
+            push(Tok::Text(s, raw), &mut toks);
             continue;
         }
 

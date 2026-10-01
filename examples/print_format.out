@@ -1,3 +1,7 @@
-rope has 3 items at $12.50 each
-hex ff, padded    42, zero 00042, left [ab    ],  90%
-tab	here, unicode ก, byte A
+rope: 3 at $12.50, 50% off
+pay $465.00, readable 465, stored 465.000
+tenth 0.1 is really 0.1000000000000000055511151231257827021181583404541015625
+0xff 0x00FF 0o10 0b00001010
+[    42] [42    ] [**ab***] [+5] [00042] 1.25e1
+b vs a, and b wins
+{ "count": 3 } in C:\temp, tab[	]
