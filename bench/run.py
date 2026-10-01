@@ -83,6 +83,7 @@ LANGS = {
     "cyborgpl": ("CyborgPL (CCA, final build, 3 threads)", None, "{b}.cpls", cca_build, lambda s, d, b: [os.path.join(d, b)]),
     "cyborgpl1": ("CyborgPL (CCA, final build, 1 thread)", None, "{b}.cpls", cca_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O2)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O2", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
+    "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O2)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O2", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "rust": ("Rust (rustc -O)", "rustc", "{b}.rs", native(lambda s, o: ["rustc", "-C", "opt-level=3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "go": ("Go", "go", "{b}.go", native(lambda s, o: ["go", "build", "-o", o, s]), lambda s, d, b: [os.path.join(d, b)]),

@@ -15,6 +15,7 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 | Swift (-O) | 0.143 s | 3.54× |
 | Zig (ReleaseFast) | 0.147 s | 3.64× |
 | Lust | 0.151 s | 3.77× |
+| Assembly (AArch64, hand-written) | 0.153 s | 3.82× |
 | Dart (AOT) | 0.156 s | 3.86× |
 | C# (.NET) | 0.159 s | 3.93× |
 | Java | 0.168 s | 4.17× |
@@ -49,6 +50,7 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 | OCaml (ocamlopt) | 0.022 s | 1.27× |
 | Go | 0.023 s | 1.31× |
 | Swift (-O) | 0.025 s | 1.41× |
+| Assembly (AArch64, hand-written) | 0.025 s | 1.39× |
 | LuaJIT | 0.033 s | 1.89× |
 | C# (.NET) | 0.038 s | 2.14× |
 | Nim (release) | 0.041 s | 2.36× |
@@ -78,6 +80,7 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 | Rust (rustc -O) | 0.053 s | 1.37× |
 | C++ (clang++ -O2) | 0.064 s | 1.67× |
 | Zig (ReleaseFast) | 0.070 s | 1.83× |
+| Assembly (AArch64, hand-written) | 0.077 s | 2.03× |
 | Fortran (gfortran -O2) | 0.092 s | 2.40× |
 | Swift (-O) | 0.107 s | 2.80× |
 | Go | 0.108 s | 2.81× |
@@ -111,6 +114,7 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 | Go | 0.394 s | 0.80× |
 | Dart (AOT) | 0.396 s | 0.80× |
 | C# (.NET) | 0.396 s | 0.80× |
+| Assembly (AArch64, hand-written) | 0.399 s | 0.81× |
 | Rust (rustc -O) | 0.404 s | 0.82× |
 | Nim (release) | 0.405 s | 0.82× |
 | Java | 0.410 s | 0.83× |
@@ -137,3 +141,8 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 The sieve's `for` ran in 0.26 s on 3 threads with CCA just before f497869, which sped up
 `lists` by handing slices a copy of a shared list's header; with it, 0.44 s. Noted for
 compiler claude when CyborgPL resumes (paused 2026-09-30 until RRx2-TV exists).
+
+The Assembly rows were measured later, on 2026-10-01, with C alongside (C: sum 0.102 s, fib
+0.017 s, lists 0.044 s, sieve 0.436 s), while another session used most of the machine, so
+they are noisier than the rest. The hand-written loops use a plain hardware divide for
+`mod 7` and `mod 1000`, where clang turns it into a faster multiply (`umulh`, checked in its output for `sum`) and handles four numbers per trip.

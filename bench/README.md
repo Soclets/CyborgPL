@@ -41,6 +41,8 @@ left out; languages the owner only contributed to are in. Results: [`RESULTS.md`
   when it proves the iterations apart (`parallelism.md`); no other language
   here does that with plain code. It runs twice: on 3 threads, this session's
   share of the machine, and pinned to 1, so both are in the table.
+- **Assembly** is hand-written AArch64 for Apple Silicon (macOS, Mach-O, Apple's
+  arm64 calling convention) only, assembled with `clang`; it runs nowhere else.
 - **`sum` takes its `mod 1 000 000 007` once, after the loop** (owner,
   2026-09-30). Each term is at most 6 and N at most a billion, so the total
   never passes 6 000 000 000, far inside 64 bits; the `mod` on every trip
