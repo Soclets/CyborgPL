@@ -25,8 +25,16 @@ which stay syntax-free (`gpu.md`). What it holds: design claude offered
 — moving data to GPU memory and back, and forcing a loop onto the GPU
 over Precog's choice, as `for para` forces cores; (c) raw GPU programs,
 Metal Shading Language written and launched by hand, a `nocheck` world as
-`inline.ASM` is; and recommended a and b. The owner: "`b` & `c`". Open:
-the spellings, and std's full contents.
+`inline.ASM` is; and recommended a and b. The owner: "`b` & `c`". Raw GPU
+code is written **inline**, a block like `inline.ASM`, so the Metal
+toolchain checks it at build time (owner: "inline", over a text string
+given to std) — and, the owner: "shouldn't it be in the base lang?": yes,
+as `limbs.md` already has `extern`, pointers and inline asm in the base
+language with std only "the library everyone uses for them". So the
+inline GPU block is base language, `nocheck`; std holds the easy parts
+around it — moving data, launching a block with N threads, forcing a loop
+onto the GPU. Open: the block's name, the other spellings, std's full
+contents.
 
 ### 2026-10-01 — CyborgPL is unstable, forever (owner)
 
