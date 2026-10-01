@@ -44,10 +44,13 @@ CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECI
 - [Rust](https://www.rust-lang.org) and Cargo: the oracle, CCA and the verification harness.
 - [LLVM](https://llvm.org) 22: CCA's code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
 - [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Precog™'s proofs, and the independent check of them.
-- [Clang](https://clang.llvm.org): the C programs CCA is benchmarked against (`cca/bench/`).
-- [Python](https://www.python.org): the benchmark runner.
+- [Alive2](https://github.com/AliveToolkit/alive2): check claude's first translation validation, proving LLVM's rewrites of CCA's code.
+- [Clang](https://clang.llvm.org): the C programs CCA is benchmarked against (`cca/bench/`, `bench/`), and the C side of `bench/gpu/`.
+- Metal and Xcode's Metal Toolchain, by Apple: the GPU side of `bench/gpu/`.
+- The compilers and runtimes of `bench/`'s other languages (26 with C): C++, Rust, Go, Zig, Swift, Nim, Fortran (gfortran), OCaml, Dart, Java, Kotlin, C# (.NET), JavaScript and TypeScript (Node), Julia, LuaJIT, PyPy, Elixir, Erlang, Lust, Python, Ruby, Lua, Perl and R.
+- [Python](https://www.python.org): the benchmark runners.
 - [Node.js](https://nodejs.org) and npm: the website's build.
-- [Homebrew](https://brew.sh): LLVM, Z3 and cvc5 on the build machine.
+- [Homebrew](https://brew.sh): LLVM, Z3, cvc5, Alive2 and most of the benchmark's toolchains on the build machine.
 - [Git](https://git-scm.com), [GitHub](https://github.com) and the [GitHub CLI](https://cli.github.com): hosting and history.
 - [Cloudflare](https://www.cloudflare.com) Workers and Wrangler: cyborgpl.dev.
 - macOS and Xcode's command-line tools, by Apple.
