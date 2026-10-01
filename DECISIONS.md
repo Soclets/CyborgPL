@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — "RRx2-TV exists" when it covers what CyborgPL supports today (owner)
+
+The RRx2-TV brief's question 2, which decides when CyborgPL resumes.
+RRx2-TV claude offered (A) soon, after a soundness review, with coverage
+growing once CyborgPL resumes; (B) later, a verdict on nearly every
+program CCA builds, decimals and threads included; (C) something else;
+and recommended A. The owner: "It should cover what CyborgPL currently
+supports". RRx2-TV claude's reading, not yet the owner's words: every
+feature CCA compiles at the pause (f497869) is modelled, so no program
+is refused for an unmodelled feature.
+
+Status then (RRx2-TV claude's runs): of check claude's corpus, 73
+programs, CCA builds 61; RRx2-TV takes 47 — 43 proven, 3 not judged (2
+recurse deeper than it follows, 1 needs more than 4,096 outside calls), 1
+undecided (solver time), 0 wrong — and refuses 14 for features not yet
+modelled: `bin` floats, SIMD vectors, threads and parallel `for`, function
+pointers, a local's address reaching the runtime. RRx2 5245afc fixed a
+soundness hole (a write into `getenv`'s string kept `strlen`'s old length,
+so a planted bug came out "proven"); no verdict had depended on it.
+
 ### 2026-10-01 — LNIR is built with GPU loops, and never makes a program slower (owner)
 
 The owner: "Could we have LNIR when we do GPU loops? It's a hobby lang,

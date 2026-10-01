@@ -148,7 +148,9 @@ Ask these, one at a time, when the work reaches them:
    from nothing, never reading Alive2's code; it reads LLVM's Language
    Reference, test files and IR library, and the optimiser only for the
    shapes of its output (`DECISIONS.md`).
-2. **What "RRx2-TV exists" means**, since CyborgPL resumes then: for
-   example, judging whole programs from `examples/` end to end.
+2. ~~What "RRx2-TV exists" means~~ Decided 2026-10-01: it covers what
+   CyborgPL supports at the pause (owner: "It should cover what CyborgPL
+   currently supports"); read as no program refused for an unmodelled
+   feature (`DECISIONS.md`).
 3. How check claude runs it, and what it reports, once CyborgPL resumes.
 4. The command-line shape, and the output format.
