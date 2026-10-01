@@ -4539,6 +4539,8 @@ fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
             match e {
                 'n' => out.push('\n'), 't' => out.push('\t'), 'r' => out.push('\r'), '\\' => out.push('\\'),
                 '"' => out.push('"'), '\'' => out.push('\''), '0' => out.push('\0'),
+                // a literal percent is `\%`, never C's `%%` (owner, 2026-10-01: "`\%` only")
+                '%' => out.push('%'),
                 'x' => {
                     let hex: String = chars[i + 1..].iter().take(2).collect();
                     let b = u8::from_str_radix(&hex, 16).map_err(|_| format!("`\\x` needs two hex digits, found `\\x{hex}`"))?;
@@ -4550,13 +4552,13 @@ fn c_format(fmt: &str, vals: &[Value]) -> Result<String, String> {
                     let cp = u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32).ok_or_else(|| format!("`\\{e}` needs {n} hex digits naming a character, found `\\{e}{hex}`"))?;
                     out.push(cp); i += n;
                 }
-                other => return Err(format!("`\\{other}` is not an escape (n t r \\\\ \\\" \\' 0 xHH uHHHH UHHHHHHHH are)")),
+                other => return Err(format!("`\\{other}` is not an escape (n t r \\\\ \\\" \\' 0 % xHH uHHHH UHHHHHHHH are)")),
             }
             i += 1; continue;
         }
         if ch != '%' { out.push(ch); i += 1; continue; }
         i += 1;
-        if chars.get(i) == Some(&'%') { out.push('%'); i += 1; continue; }
+        if chars.get(i) == Some(&'%') { return Err("`%%` is C's literal percent; here it is `\\%` (and `\\%\\%` for two)".into()); }
         let mut left = false; let mut zero = false;
         while let Some(&f) = chars.get(i) { match f { '-' => left = true, '0' => zero = true, '+' | ' ' | '#' => {}, _ => break } i += 1; }
         let mut width = String::new(); while let Some(&d) = chars.get(i) { if d.is_ascii_digit() { width.push(d); i += 1; } else { break; } }

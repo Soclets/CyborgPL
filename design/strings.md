@@ -32,14 +32,15 @@ form is decided: `print` and `print.format` have no `auto_newline`.
 
 ```
 std::print.format.stdout["%s has %d items at $%.2f each\n", 'name', 'count', 'price'];
-std::print.format.stdout["hex %x, padded %5d, %3d%%\n", 255, 42, 90];
+std::print.format.stdout["hex %x, padded %5d, %3d\%\n", 255, 42, 90];
 std::print.format.stderr["error: %s\n", 'msg'];
 ```
 
 A third print beside `print` (stored form) and `print.useful` (useful form):
 the format text *is* processed. Escapes — `\n \t \r \\ \" \' \0`,
 `\xHH`, `\uHHHH`, `\UHHHHHHHH` (not the museum pieces `\a \b \f \v`
-or octal) — and C's `%` formatting: `%d %i %x %X %o %f %e %g %s %c %%`,
+or octal), plus `\%` for a literal percent — and C's `%` formatting:
+`%d %i %x %X %o %f %e %g %s %c`,
 with `-` and `0` flags, a width, and `.precision`. Named `printf`
 until 2026-09-29, when the owner made the three prints one family:
 `std::print`, `std::print.useful` (was `printu`), `std::print.format`
@@ -49,7 +50,11 @@ literal, so each `%` is checked against its argument's type and the
 count (`%d` given a text; a `%` without an argument; an argument
 without a `%`). `%u` is refused (`%d` prints any integer); `%p` and
 `%n` do not exist. A non-literal format cannot be checked and is a
-`nocheck` site. Owner: "adding another print version", then asked for
+`nocheck` site. **A literal percent is `\%`, never C's `%%`** (owner,
+2026-10-01: "`\%` only"): C doubles it only because its backslash escapes
+are gone by the time `printf` reads the text, and here `print.format`
+reads both itself; `\%\%` prints two, and `%%` is refused with that hint.
+Owner: "adding another print version", then asked for
 C's list and "full-on"; chose escapes plus formatting over escapes
 only. `examples/print_format.cpls`, five reject tests. The borrowed
 `std::c.printf` / `std::rs.println` of 2026-09-19 stay removed — this

@@ -1,9 +1,10 @@
 # std::print.format — C's print in full (decided 2026-09-22): escapes and % formatting, checked against the arguments.
+# A literal percent is `\%` (owner, 2026-10-01); `\%\%` prints two.
 MAIN {
     'name' := "rope";
     'count' := 3;
     'price': bin64 = 12.5;
     std::print.format.stdout["%s has %d items at $%.2f each\n", 'name', 'count', 'price'];
-    std::print.format.stdout["hex %x, padded %5d, zero %05d, left [%-6s], %3d%%\n", 255, 42, 42, "ab", 90];
+    std::print.format.stdout["hex %x, padded %5d, zero %05d, left [%-6s], %3d\%\n", 255, 42, 42, "ab", 90];
     std::print.format.stdout["tab\there, unicode ก, byte \x41\n"];
 }

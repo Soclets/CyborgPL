@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — In `print.format`, a literal percent is `\%`, never `%%` (owner)
+
+The owner: "Why not `\%` for literal `%`?" Design claude: C doubles it
+only because C's backslash escapes are resolved when the string is read,
+before `printf` ever sees it; `print.format` handles its escapes and its
+codes itself, in one pass, so `\%` is doable and matches backslash meaning
+"literal" (`\"`, `\\`). Recommended `\%` only, with `%%` refused. The
+owner: "`\%` only", and asked how to write two: `\%\%`. The oracle
+refuses `%%` with that hint (reject test print_format_double_percent);
+`examples/print_format.cpls` uses `\%`; `design/strings.md`.
+
 ### 2026-10-01 — `std::print.format` stays C's codes with `%` (owner)
 
 The owner, finding `print.format` refuses a `deci` (`%.2f` cannot print
