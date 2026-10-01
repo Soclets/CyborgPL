@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — RRx2-lang's file extension is `.RR`, either case accepted (owner)
+
+The owner asked about `.rx2`; design claude noted it is already ReCycle's
+REX2 audio-loop format (Reason, Ableton) and offered `.rrx2` and `.rr2`,
+recommending `.rrx2`. The owner asked about `.rr` (no common clash known;
+`rr` is Mozilla's debugger, a program not a file type), then whether it
+could be capitalized: yes, as R's `.R` and assembly's `.S`, but macOS and
+Windows usually ignore case in file names and Linux does not (C's `.C`
+for C++ against `.c` is the cautionary tale), so the question was
+whether `.rr` is accepted too. The owner: "`.RR`, accept either case.
+Mimics `.R`". RRx2-lang session brief, open question 2.
+
 ### 2026-10-01 — RRx2-TV may use CCA's own test programs as inputs (owner)
 
 RRx2-TV claude asked: "May I use CCA's test programs as inputs? I'd run

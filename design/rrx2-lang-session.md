@@ -125,5 +125,6 @@ Ask these, one at a time, when the work reaches them:
 1. **The syntax**, all of it: what a program looks like, how numbers and
    their kinds are written, how a "for all" is written. Propose small
    pieces with examples; the owner picks.
-2. File extension and the command that runs a program.
+2. ~~File extension~~ **`.RR`**, either case accepted, as R's `.R`
+   (owner, 2026-10-01). Still open: the command that runs a program.
 3. How CyborgPL's tools will ask it questions once CyborgPL resumes.
