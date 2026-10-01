@@ -68,6 +68,7 @@ CUDA; all three. Owner: Metal and Vulkan.
 **Metal is built first, Vulkan after** (owner, 2026-10-01: "it's gonna be
 Metal before Vulkan"): Metal is this machine's GPU, so it can be built
 and tested here.
+The first public GitHub release needs only Metal (owner, 2026-10-01).
 
 **How each is compiled** (owner, 2026-09-30: direct text). Vulkan: LLVM
 compiles the body to SPIR-V. Metal: CCA writes Metal Shading Language

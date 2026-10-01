@@ -5,6 +5,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — The first public GitHub release needs only Metal on the GPU side (owner)
+
+"Btw, first pub GH Release only has to support Metal in GPU". Vulkan stays
+a v1 target (2026-09-21) and comes after Metal (same day), but the first
+public release does not wait for it. `gpu.md`.
+
 ### 2026-10-01 — The std Limb makes low-level things easier; higher-level things are other Limbs (owner)
 
 Asked what std should hold, design claude listed what is already `std::`
