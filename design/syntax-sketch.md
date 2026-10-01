@@ -79,12 +79,13 @@ grow[lend.mut 'xs', 5];           # calls keep commas
 
 - **`decl` starts every declaration**; `change` changes. The name comes
   right after `decl`, and everything about it after the colon.
-- **`mut` goes after the colon**, typed (`mut, int64`) or not (`mut :=`).
+- **`mut` goes after the colon**, typed (`mut, int64`) or not (`mut :=`),
+  and so do `immut` and `!mut`: `decl 'limit': immut := 10;`.
 - **`|` separates the lists that hold types** — function and `extern fn`
   parameters, function types (`fn[int64 | int64] -> bool`). Lists of
   values — calls, list literals, building a struct — keep `,`.
 - **Borrow modes stay in front** of a parameter's name: `lent 'xs': T`.
-- Open: `immut`, `!mut` and `!$` under `decl`; shadowing; `extern`
+- Open: `!$` under `decl`; shadowing; `extern`
   variables and `pub const`; an owning parameter's `immut`.
 
 ## What the sample establishes

@@ -55,8 +55,13 @@ Design claude notes, as its own: `|` stays free as a custom operator on
 values (`operators.md`), since lists that hold types contain no
 expressions.
 
-Not ruled yet: where `immut`, `!mut` and `!$` go under `decl` (today
-they stand before the name, like `mut` did); how shadowing (`'x' $:=
+**`immut` and `!mut` go after the colon too**, where `mut` went:
+`decl 'limit': immut := 10;`, `decl 'limit': !mut := 10;`. Design claude
+asked (after the colon, recommended, or in front); the owner: "Lol, bro,
+`mut`'s already behind".
+
+Not ruled yet: where `!$` goes under `decl` (today it stands before the
+name, like `mut` did); how shadowing (`'x' $:=
 2000;`) is written with `decl`; `extern 'errno': int32;` and `pub const
 'max' := 8;`; and whether an owning parameter's `immut` moves after the
 colon. Nothing is built yet: the oracle, `examples/`, the reject tests and
