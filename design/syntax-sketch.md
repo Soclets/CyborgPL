@@ -62,39 +62,8 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   (2026-09-21).
 - Style: a space after `:`, none around `::`.
 
-### Coming: `decl` (owner, 2026-10-01)
-
-Recorded, not yet built: the oracle, the examples and the samples in this
-folder still use the form above until the switch-over.
-
-```
-decl 'x' := 1000;
-decl 'x': int32 = 1000;
-decl 'total': mut, int64 = 0;     # mut after the colon, then the type
-decl 'n': mut := 0;
-fn grow ['xs': mut, list[int32] | 'n': int64] { … }
-fn total [lent 'xs': list[int64] | 'keep': fn[int64] -> bool] -> int64 { … }
-grow[lend.mut 'xs', 5];           # calls keep commas
-```
-
-- **`decl` starts every declaration**; `change` changes. The name comes
-  right after `decl`, and everything about it after the colon.
-- **`mut` goes after the colon**, typed (`mut, int64`) or not (`mut :=`),
-  and so do `immut` and `!mut` (`decl 'limit': immut := 10;`) and `!$`,
-  first in the list (`decl 'total': !$, mut, int64 = 0;`).
-- **`|` separates the lists that hold types** — function and `extern fn`
-  parameters, function types (`fn[int64 | int64] -> bool`). Lists of
-  values — calls, list literals, building a struct — keep `,`.
-- **Borrow modes stay in front** of a parameter's name: `lent 'xs': T`.
-- **Shadowing keeps `$` on the `:=` / `=`**: `decl 'x' $:= 2000;`,
-  `decl 'x': int32 $= 2000;`. It marks what the line does, not a property.
-- **The rule:** a quoted name (variable, parameter, const) comes first
-  and everything about it goes after the colon, `pub` included —
-  `const 'max': pub := 8;`. A bare name (`fn`, `struct`, `module`) has
-  no colon, so `pub` stays in front: `pub fn`, `pub struct`. `const`
-  keeps its own starting word; `decl` is only inside bodies.
-- C variables and owning parameters too: `extern 'lib_verbose': mut,
-  int32;`, `fn f ['n': immut, int64]`. `extern fn` changes only by `|`.
+A `decl` redesign was recorded and dropped on 2026-10-01 (owner: "let's
+just go back to the no `let` era"); see `DECISIONS.md`.
 
 ## What the sample establishes
 

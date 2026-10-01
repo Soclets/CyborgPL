@@ -5,7 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-01 — `decl` starts a declaration; `mut` goes after the colon; `|` separates lists that hold types (owner)
+### 2026-10-01 — The `decl` redesign is dropped; the 2026-09-25 syntax stays (owner)
+
+The owner, after the function-type question ("wtf are fn types?"): "Nvm,
+let's just go back to the no `let` era". The whole `decl` redesign below
+is withdrawn: `decl`, `mut`/`immut`/`!mut`/`!$` after the colon, `|`
+between parameters, `const 'max': pub`, and the quoted-name rule. What
+stays is the 2026-09-25 form: `'x' := 1;`, `mut 'x': int64 = 0;`,
+`!$ mut 'total' := 0;`, `'x' $:= 2;`, `change`, `pub const`, commas in
+every bracket list. Nothing had been built, so only `DECISIONS.md` and
+`syntax-sketch.md` change. The redesign's entry stays below as history.
+
+### 2026-10-01 — `decl` starts a declaration; `mut` goes after the colon; `|` separates lists that hold types (owner) — reverted the same day: the 2026-09-25 syntax stays
 
 ```
 decl 'x' := 1000;                     # was  'x' := 1000;
