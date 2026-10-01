@@ -140,12 +140,14 @@ nocheck inline.MSL threads list.length[lend 'xs'] {
     kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
         xs[id] = xs[id] * 2;
     }
-} with [lend.mut 'xs' <-> buffer(0)];
+} with [lend.mut 'xs' -> buffer(0)];
 ```
 
 How the block runs comes first; `with` holds what it touches. The code
-inside the braces is Metal's, passed to Apple's compiler unchanged. The
-binding list's spelling is open (`DECISIONS.md`, 2026-10-01).
+inside the braces is Metal's, passed to Apple's compiler unchanged. A lent
+list binds with **`->`**, as in `inline.ASM`: `lend.mut` says the kernel
+may write it, and the changes are in `'xs'` when the block ends (owner,
+2026-10-01: a). Open: `buffer(0)` and its parentheses.
 
 ## Open
 

@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — `inline.MSL` binds a lent list with `->`, as `inline.ASM` does (owner: a)
+
+```
+nocheck inline.MSL threads 'n' { … } with [lend.mut 'xs' -> buffer(0)];
+```
+
+Design claude's sketch had `lend.mut 'xs' <-> buffer(0)`, written
+without checking `ffi.md`: in `inline.ASM` a lend goes in with `->`,
+`lend.mut` says the code may write through it, and `<->` after a lend is
+refused (owner, 2026-09-30: a) — `->`/`<-` move a plain variable's value,
+while a lend only passes access to data used in place. Offered (a) `->`,
+as `inline.ASM`, recommended, or (b) `<->`, the sketch. The owner asked
+why `<->` had been given (design claude had pictured the data's trip to
+the GPU and back, which is what `<->` means for a plain variable), then:
+"`a`". Still open: `buffer(0)` and its parentheses. `gpu.md`.
+
 ### 2026-10-01 — `inline.MSL`'s thread count goes after the name: `inline.MSL threads 'n' { … }` (owner: b)
 
 ```
@@ -12,7 +28,7 @@ nocheck inline.MSL threads list.length[lend 'xs'] {
     kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
         xs[id] = xs[id] * 2;
     }
-} with [lend.mut 'xs' <-> buffer(0)];
+} with [lend.mut 'xs' -> buffer(0)];      # `->`: decided after, see above
 ```
 
 The thread count, how many copies of the kernel the GPU runs (in plain
@@ -29,8 +45,8 @@ the count is a variable (it need not be), whether `clobber` should move
 too (no: it is something the block touches, so `inline.ASM` is
 unchanged), and whether `threads` inside the braces makes sense (no: the
 braces go to Apple's compiler untouched, and a shader cannot set its own
-count). The owner: "Okay, `b`". Still open: the binding list's spelling
-(`lend.mut 'xs' <-> buffer(0)` is design claude's sketch). `gpu.md`.
+count). The owner: "Okay, `b`". Still open then: the binding list's
+spelling (design claude's sketch had `<->`; settled next as `->`). `gpu.md`.
 
 ### 2026-10-01 — The `decl` redesign is dropped; the 2026-09-25 syntax stays (owner)
 
