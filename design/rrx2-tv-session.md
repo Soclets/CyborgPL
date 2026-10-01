@@ -125,9 +125,10 @@ You read CyborgPL's repo at `/Users/ts/CyborgPL v2` and never edit it.
   better approach exists, say so in a sentence and carry on with what was
   decided. Do not install, download, publish, or change GitHub settings
   without the owner's yes.
-- **Cores**: the machine has 10. Keep builds, tests and runs to at most 3
-  at once, as every heavy session does (`-j3`), unless the owner says
-  otherwise.
+- **Cores**: the machine has 10. You may use up to **8** at once for
+  builds, tests and runs (`-j8`), leaving 1 for the desktop and 1 for the
+  design session (owner, 2026-10-01: "raise", since RRx2-TV is the only
+  session working while CyborgPL is paused).
 - **When you write to the owner**, lead with the outcome in plain
   sentences, spell out terms, and keep it short. They read your messages,
   not your tool output.
