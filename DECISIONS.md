@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — The std Limb makes low-level things easier; higher-level things are other Limbs (owner)
+
+Asked what std should hold, design claude listed what is already `std::`
+(the prints, `input`, `exit`, rounding, `div.trunc`/`mod.trunc`, `uenr`,
+`str.*`, `time`, `duration`) and the usual missing ground (files,
+arguments and environment, collections, sorting, random, maths,
+networking, parsing and JSON). The owner: "I think the stdlimb should just
+make lower-level things easier". Design claude read it as a thin layer
+over what the machine and the operating system already offer — what a
+program could do itself with `extern fn` and `inline.ASM` — such as
+files and folders, arguments and environment, memory, time, printing and
+input, processes; and JSON, HTTP and network protocols, big data
+structures and higher maths left to other Limbs from the registry. The
+owner: "yea, though it might want to have GPU stuff". So std also holds a
+low-level GPU layer — explicit control beside the automatic GPU loops,
+which stay syntax-free (`gpu.md`). Open: what that GPU layer holds, and
+std's full contents.
+
 ### 2026-10-01 — CyborgPL is unstable, forever (owner)
 
 Design claude noted that CyborgPL can rename freely (`/` → `div`, every
