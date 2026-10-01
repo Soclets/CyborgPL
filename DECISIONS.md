@@ -76,8 +76,20 @@ shadowing is something the line does. Design claude confirmed from the
 with nothing to shadow are both refused). The owner: "The current one
 makes sense, right?", then "yea, record a".
 
-Not ruled yet: `extern 'errno': int32;` and `pub const
-'max' := 8;`; and whether an owning parameter's `immut` moves after the
+**`const` stays its own starting word, without `decl`, and `pub` goes
+after its colon**: `const 'max': pub := 8;`, `const 'max': pub, int32 =
+8;`, `const 'inner': pub.limb := 8;`. Design claude recommended keeping
+`pub const` as it is, then explained why `pub decl` cannot happen (`decl`
+is only inside bodies, `pub` only at the top level). The owner: "const
+'max': pub?". Design claude noted `pub fn`, `pub struct` and `pub.limb
+module` have no colon to move behind and recommended one place for
+`pub`; the owner: "I mean, `const` is kinda like a var, though." Design
+claude then put it as a rule: **quoted names** (variables, parameters,
+consts) — the name, then everything about it after the colon, `pub`
+included; **bare names** (`fn`, `struct`, `module`) — `pub` in front,
+having no colon. The owner: "Ah, yes. I think your rule is good."
+
+Not ruled yet: `extern 'errno': int32;`; and whether an owning parameter's `immut` moves after the
 colon. Nothing is built yet: the oracle, `examples/`, the reject tests and
 `design/` samples still use the 2026-09-25 form, and CyborgPL is paused.
 `syntax-sketch.md`.
