@@ -5,6 +5,34 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — RRx2-TV is written from nothing; it reads LLVM's manual, tests and IR library, never the optimiser's meanings (owner)
+
+RRx2-TV claude's first question. Proposed (a) start from Alive2's code;
+(b) write from nothing and never read Alive2's code, keeping Alive2 as an
+independent cross-check; (c) from nothing, reading Alive2's code where
+LLVM's manual is unclear. RRx2-TV claude recommended b. The owner: "Could
+you do `b`, but look at LLVM's source code?" RRx2-TV claude split LLVM's
+source: it reads LLVM's Language Reference, LLVM's test files (as known
+answers, not taken on trust), and the C++ library it uses to read IR; it
+does not read the optimiser's code to learn what instructions mean,
+since that is the code it judges and it would copy its mistakes. Reading
+the optimiser only to see what shapes its output takes is allowed: a
+mistake there can only cost "not judged", never a false "proven". Where
+the manual is unclear: the stricter reading, or "not judged". The owner:
+"`B plus the manual, tests and library`".
+
+Found on the way (RRx2-TV claude, this session): **Alive2 at its default
+(`--src-unroll=0`) passed a planted rewrite that is wrong only when a loop
+runs more than 5 rounds**; it passed at unroll 2 and 4 too, and caught
+it at 8. Check claude's 93c6e49 run used the default, so its 211
+"correct" hold only for runs that never repeat a loop, in any function
+with one. Also: only 1 of the 121 examples builds with CCA today (the
+rest need `std`); check claude's corpus builds 61 of 73 (12 refused on
+purpose); LLVM 23.1.2 parses all 124 of CCA's before/after files (CCA
+emits LLVM 22.1.8); and the only facts Precog hands LLVM there are
+`nsw`/`nuw` and `getelementptr inbounds nuw` (no `!range`, no
+`llvm.assume`).
+
 ### 2026-10-01 — RRx2-TV's final build has no checkers; RRx2-lang keeps them always (owner)
 
 Corrects the 2026-09-30 entry below, which design claude recorded as

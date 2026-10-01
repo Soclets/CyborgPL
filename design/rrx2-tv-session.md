@@ -143,10 +143,10 @@ yours.
 
 Ask these, one at a time, when the work reaches them:
 
-1. **Start from Alive2's code (MIT) or from nothing?** Borrowing its
-   model of LLVM's instructions saves the hardest, most error-prone part;
-   writing it fresh keeps RRx2-TV wholly ours and independent of Alive2's
-   mistakes.
+1. ~~Start from Alive2's code or from nothing?~~ Decided 2026-10-01:
+   from nothing, never reading Alive2's code; it reads LLVM's Language
+   Reference, test files and IR library, and the optimiser only for the
+   shapes of its output (`DECISIONS.md`).
 2. **What "RRx2-TV exists" means**, since CyborgPL resumes then: for
    example, judging whole programs from `examples/` end to end.
 3. How check claude runs it, and what it reports, once CyborgPL resumes.
