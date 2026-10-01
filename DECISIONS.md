@@ -65,8 +65,18 @@ asked (after the colon, recommended, or in front); the owner: "Lol, bro,
 offered that (recommended) or `decl !$ 'total': …` in front of the name;
 the owner: "Behind".
 
-Not ruled yet: how shadowing (`'x' $:=
-2000;`) is written with `decl`; `extern 'errno': int32;` and `pub const
+**Shadowing keeps its `$` on the `:=` / `=`**, with `decl` in front:
+`decl 'x' $:= 2000;`, `decl 'x': int32 $= 2000;`, `decl 'x': mut, int32
+$= 2000;`. Design claude first recommended `$` after the colon
+(`decl 'x': $ := 2000;`), beside `!$`; the owner checked that `$=` means
+"this line shadows", not "can be shadowed", and design claude switched:
+after the colon it would read as a property of the variable, while
+shadowing is something the line does. Design claude confirmed from the
+2026-09-14 entry and the oracle (an unmarked redeclaration and a `$:=`
+with nothing to shadow are both refused). The owner: "The current one
+makes sense, right?", then "yea, record a".
+
+Not ruled yet: `extern 'errno': int32;` and `pub const
 'max' := 8;`; and whether an owning parameter's `immut` moves after the
 colon. Nothing is built yet: the oracle, `examples/`, the reject tests and
 `design/` samples still use the 2026-09-25 form, and CyborgPL is paused.

@@ -86,7 +86,9 @@ grow[lend.mut 'xs', 5];           # calls keep commas
   parameters, function types (`fn[int64 | int64] -> bool`). Lists of
   values — calls, list literals, building a struct — keep `,`.
 - **Borrow modes stay in front** of a parameter's name: `lent 'xs': T`.
-- Open: shadowing; `extern`
+- **Shadowing keeps `$` on the `:=` / `=`**: `decl 'x' $:= 2000;`,
+  `decl 'x': int32 $= 2000;`. It marks what the line does, not a property.
+- Open: `extern`
   variables and `pub const`; an owning parameter's `immut`.
 
 ## What the sample establishes
