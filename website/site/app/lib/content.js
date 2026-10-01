@@ -2,6 +2,10 @@
 // the description is design claude's, reviewed by the owner on the page.
 export const REPO_URL = "https://github.com/Cyborg-Assembly-Manufacturing-Site/CyborgPL";
 
+// RRx2, CyborgPL's own verifiers (owner, 2026-10-01: link it). Its repo for now — rrx2.com, which
+// will be its site, doesn't resolve yet; switch to it once it does.
+export const RRX2_URL = "https://github.com/Cyborg-Assembly-Manufacturing-Site/RRx2";
+
 export const DESCRIPTION =
   "CyborgPL is a compiled language where Precog, a whole-program analyser, proves every overflow and bounds check at compile time. The final build carries none of them, or it doesn’t build.";
 

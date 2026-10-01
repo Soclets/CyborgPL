@@ -137,6 +137,11 @@ input { font: inherit; }
 .list { background: var(--surface); border-radius: 20px; overflow: hidden; }
 .row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--line); color: var(--ink); }
 .row:last-child { border-bottom: 0; }
+.row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.row-text b { flex: none; }
+.row-text small { font-size: 13px; color: var(--text); margin-top: 1px; }
+.ri.ri-logo { background: #fff; }
+.ri-logo img { display: block; }
 .row b { flex: 1; font-size: 17px; font-weight: 600; }
 .row > .icon:last-child { color: var(--muted); }
 .row:active { background: var(--pressed); }

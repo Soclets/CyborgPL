@@ -12,6 +12,8 @@ for (const [name, size] of [["icon-192.png", 192], ["icon-512.png", 512], ["appl
   writeFileSync(path.join("public/icons", name), png);
 }
 copyFileSync(path.join(brand, "logo.svg"), "public/favicon.svg");
+// RRx2's logo, for its row on More (the light version: RR and heart red, 2 and arrow black).
+copyFileSync(path.join(brand, "rrx2/logo.svg"), "public/icons/rrx2.svg");
 
 // The tab logo as PNG and ICO too: Safari doesn't reliably use an SVG tab icon, and
 // browsers ask for /favicon.ico whatever the page links.
