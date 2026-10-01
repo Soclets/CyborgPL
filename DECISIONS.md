@@ -5,6 +5,64 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — `decl` starts a declaration; `mut` goes after the colon; `|` separates lists that hold types (owner)
+
+```
+decl 'x' := 1000;                     # was  'x' := 1000;
+decl 'x': int32 = 1000;               # was  'x': int32 = 1000;
+decl 'total': mut, int64 = 0;         # was  mut 'total': int64 = 0;
+decl 'n': mut := 0;                   # was  mut 'n' := 0;
+change 'total' = 'total' + 1;         # unchanged
+
+fn grow ['xs': mut, list[int32] | 'n': int64] { … }      # was  ['xs': list[int32], 'n': int64]
+fn total [lent 'xs': list[int64] | 'keep': fn[int64] -> bool] -> int64 { … }
+extern fn write ['fd': int32 | 'buf': ptr[uint8] | 'len': uint64];
+fn[lent Locker | lent Locker] -> bool                    # a function type
+
+grow[lend.mut 'xs', 5];               # calls keep commas
+decl 'xs' := [1, 2, 3];               # lists keep commas
+Locker[name = "A", size = 3]          # building a struct keeps commas
+```
+
+The owner: "Honestly, I might change no `let` to `decl`". Design claude
+set out the case: every statement that touches a variable would start
+with a word (`decl` creates, `change` changes), declarations become easy
+to search for; against, it is the third swing (`let` added 2026-09-19,
+removed 2026-09-25) and the churn, counted at 1,783 declaration lines in
+572 program files plus `design/` and the website. Then the owner:
+"`decl 'total': mut, int64 = 0;` might be the new one, honestly" — `mut`
+moves out of the front into the description after the colon. Without a
+type, design claude offered `decl 'x': mut := 1;` (one rule: the name,
+then everything about it after the colon) against `decl mut 'x' := 1;`
+and recommended the first. Owner: "yea, `decl 'x': mut := 1;`".
+
+The comma after `mut` clashes with the commas between parameters
+(`['xs': mut, list[int32], 'n': int64]` reads as three items). Design
+claude recommended a space instead (`mut int64`). The owner: "Or swap
+`fn`'s `,` with `|`", then "Consistent", and, asked which lists, "The ones
+that clash with `,`": the lists that hold **types** — function
+definitions, `extern fn` definitions and function types. Lists of
+**values** — calls, list literals, building a struct — keep commas. So a
+definition (`|`) and its call (`,`) now look different, which the
+2026-09-19 "at least the insides look alike" had avoided. Struct fields
+are one per line, with no separator, and do not change.
+
+Borrow modes on parameters stay in front of the name, `lent 'xs':
+list[int64]`; design claude asked whether they should move after the
+colon like `mut`. Owner: "stay in front, record".
+
+Design claude notes, as its own: `|` stays free as a custom operator on
+values (`operators.md`), since lists that hold types contain no
+expressions.
+
+Not ruled yet: where `immut`, `!mut` and `!$` go under `decl` (today
+they stand before the name, like `mut` did); how shadowing (`'x' $:=
+2000;`) is written with `decl`; `extern 'errno': int32;` and `pub const
+'max' := 8;`; and whether an owning parameter's `immut` moves after the
+colon. Nothing is built yet: the oracle, `examples/`, the reject tests and
+`design/` samples still use the 2026-09-25 form, and CyborgPL is paused.
+`syntax-sketch.md`.
+
 ### 2026-10-01 — RRx2-TV judges threaded code piece by piece, plus a check that LLVM adds no data race (owner: b)
 
 RRx2-TV claude's question: CyborgPL's parallel `for` and `spawn` run
