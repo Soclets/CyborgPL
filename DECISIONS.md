@@ -89,6 +89,15 @@ consts) — the name, then everything about it after the colon, `pub`
 included; **bare names** (`fn`, `struct`, `module`) — `pub` in front,
 having no colon. The owner: "Ah, yes. I think your rule is good."
 
+**No `decl var` / `decl const`, and no `var` on parameters.** The owner
+asked: "Should it be `decl var 'x'` & `decl const 'x'`? And the fn params
+could be like `var 'x'`, if it's actually a variable. idk". Design claude
+recommended against: `decl` (only inside bodies) and the quoted name
+already say "variable", and `const` alone already says "constant"; a
+named kind would be `var 'x'` instead of `decl`, not beside it; an owning
+parameter is a variable, but "owning is bare" (2026-09-19) already marks
+it, and `var` would sit on nearly every parameter. The owner: "keep".
+
 Not ruled yet: `extern 'errno': int32;`; and whether an owning parameter's `immut` moves after the
 colon. Nothing is built yet: the oracle, `examples/`, the reject tests and
 `design/` samples still use the 2026-09-25 form, and CyborgPL is paused.
