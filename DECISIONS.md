@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — RRx2-TV may use CCA's own test programs as inputs (owner)
+
+RRx2-TV claude asked: "May I use CCA's test programs as inputs? I'd run
+CCA on them and read the IR it produces and the programs themselves,
+never CCA's own code", and recommended yes: "cover what CyborgPL
+currently supports" needs a measure of what CCA compiles, and its tests
+are the widest set. The owner: "yes, use them". The rule against reading
+`cca/` otherwise stands: only the `.cpls` test programs under
+`cca/compiler/tests/` and the IR CCA writes from them. Design claude adds:
+those programs' comments carry expected answers written by CCA's author,
+so they are inputs, not truth.
+
 ### 2026-10-01 — "RRx2-TV exists" when it covers what CyborgPL supports today (owner)
 
 The RRx2-TV brief's question 2, which decides when CyborgPL resumes.

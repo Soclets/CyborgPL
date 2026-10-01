@@ -102,7 +102,11 @@ You read CyborgPL's repo at `/Users/ts/CyborgPL v2` and never edit it.
   `/Users/ts/CyborgPL v2/cca/target/release/cca`; running it is fine,
   reading its source is not. CCA emits LLVM 22 IR (it builds against
   `llvm@22`); you read it with LLVM 23. Check that this holds.
-- **Programs to run it on**: `examples/*.cpls` in CyborgPL's repo, and
+- **Programs to run it on**: CCA's own test programs,
+  `cca/compiler/tests/**/*.cpls` (owner, 2026-10-01: "yes, use them") —
+  the programs and the IR CCA writes from them only, never CCA's code, and
+  their comments' expected answers are CCA's author's, not truth;
+  `examples/*.cpls` in CyborgPL's repo, and
   check claude's corpus in `/Users/ts/CyborgPL v2
   verification/check/corpus/` (read-only).
 - **What CCA's IR may rely on**: `design/precog.md` (what Precog proves),
