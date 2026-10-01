@@ -93,7 +93,8 @@ grow[lend.mut 'xs', 5];           # calls keep commas
   `const 'max': pub := 8;`. A bare name (`fn`, `struct`, `module`) has
   no colon, so `pub` stays in front: `pub fn`, `pub struct`. `const`
   keeps its own starting word; `decl` is only inside bodies.
-- Open: `extern` variables; an owning parameter's `immut`.
+- C variables and owning parameters too: `extern 'lib_verbose': mut,
+  int32;`, `fn f ['n': immut, int64]`. `extern fn` changes only by `|`.
 
 ## What the sample establishes
 

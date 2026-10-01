@@ -98,8 +98,15 @@ named kind would be `var 'x'` instead of `decl`, not beside it; an owning
 parameter is a variable, but "owning is bare" (2026-09-19) already marks
 it, and `var` would sit on nearly every parameter. The owner: "keep".
 
-Not ruled yet: `extern 'errno': int32;`; and whether an owning parameter's `immut` moves after the
-colon. Nothing is built yet: the oracle, `examples/`, the reject tests and
+**C variables and owning parameters follow the same rule**:
+`extern 'lib_verbose': mut, int32;` (was `extern mut 'lib_verbose':
+int32;`), with `extern` as the starting word as `const` is, and `fn f
+['n': immut, int64]` (was `[immut 'n': int64]`). `extern fn` has a bare
+name and changes only by `|`. Design claude proposed both as following
+from the rule; the owner asked "Is it extern or extern fn?" (both exist;
+only the variable form was in question), then "yea, record both."
+
+Every declaration question is now ruled. Nothing is built yet: the oracle, `examples/`, the reject tests and
 `design/` samples still use the 2026-09-25 form, and CyborgPL is paused.
 `syntax-sketch.md`.
 
