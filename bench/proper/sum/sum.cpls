@@ -1,0 +1,30 @@
+# The sum of i x i mod 7 for i = 1 to N, then mod 1_000_000_007; the exit
+# code is the sum's low byte. N comes from the environment and must be 0 to
+# 1_000_000_000: `atoll`'s answer is checked at the door, and anything else
+# ends the program with exit code 2, as does no N at all.
+extern fn exit ['code': int32];
+extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern fn atoll ['s': ptr[uint8]] -> int64[0, 1_000_000_000];
+
+# N, from the text in the environment: missing when there is none, and out
+# of range when it is not a number this program takes.
+fn read_n ['text': ptr[uint8]] -> int64[0, 1_000_000_000] or fail[missing, out_of_range] {
+    if ptr.is_null['text'] { fail missing; }
+    nocheck 'n' := atoll['text'] otherwise fail;
+    return 'n';
+}
+
+fn run [] -> int32 or fail[missing, out_of_range] {
+    'key' := "N";
+    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    mut 'acc': int64 = 0;
+    for 'i': int64 in range[1, 'n'] {
+        change 'acc' = 'acc' + (('i' x 'i') mod 7);
+    }
+    return to.int32[('acc' mod 1_000_000_007) mod 256];
+}
+
+MAIN {
+    'code' := run[] otherwise 2;
+    nocheck exit['code'];
+}
