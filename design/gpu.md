@@ -127,8 +127,10 @@ moves data to GPU memory and back, launches GPU code with N threads, and
 forces a loop onto the GPU over Precog's choice (as `for para` forces
 cores); the **base language** has **`inline.MSL { … }`**, Metal Shading
 Language written inline — a `nocheck` site like `inline.ASM`, checked by
-Apple's Metal compiler at build time. Spellings beyond `inline.MSL` are
-open (`DECISIONS.md`, 2026-10-01).
+Apple's Metal compiler at build time. A block runs where it is
+written, as `inline.ASM` does, and needs no std (owner): reuse is a
+function holding it. Spellings beyond `inline.MSL` are open
+(`DECISIONS.md`, 2026-10-01).
 
 ## Open
 

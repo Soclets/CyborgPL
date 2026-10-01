@@ -43,6 +43,13 @@ onto the GPU. **The block is `inline.MSL`** (owner: "`MSL`", over
 `inline.METAL`): the family names the language inside, as `ASM` does, and
 Metal is also the API's name. Open: the other spellings, std's full
 contents, and Vulkan's block when Vulkan comes.
+**An `inline.MSL` block runs where it is written**, as `inline.ASM`
+does — not a named kernel that std launches later (owner: "It doesn't
+need std"; design claude had recommended the same). Running it many
+times is a function that holds it; the Metal code is compiled once, at
+build time, and each run launches it. Design claude's sketch:
+`nocheck inline.MSL { kernel void … } with [lend.mut 'xs' <-> buffer(0)],
+threads …;` — the binding list and the thread count's place still open.
 
 ### 2026-10-01 — CyborgPL is unstable, forever (owner)
 
