@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — `std::print.format` stays C's codes with `%` (owner)
+
+The owner, finding `print.format` refuses a `deci` (`%.2f` cannot print
+`$465.00`): "let's redesign `std::print.format` entirely". Proposed (a)
+codes in the text, as C; (b) holes in the text (`{'price':.2}`), which
+would break the rule that quotes hold exactly what is stored; (c) the
+values as a list, as in the other prints, with a shape word around a value
+that needs one. Design claude recommended c; the owner first heard it as
+folding formatting into plain `print` ("print is print, print useful is
+print useful… print in CyborgPL is pretty literal"), so `print.format`
+keeps its own job. The owner: "`a`, but we'll have to choose the less
+used symbol to replace `%`". Design claude counted candidates in ~300,000
+characters of local text (`^` 8, `$` 14, `@` 19, `&` 27, `%` 42, `~` 51,
+`|` 188, `#` 793) and recommended `^`. The owner chose `@` ("it's really
+just a matter of what's faster"), then, before it was committed: "`@` is
+used" (lifetime groups, `lent@x`), then "maybe we'll just go `%`".
+`%` is no CyborgPL operator (remainder is `mod`), so nothing clashes.
+`print.format` is unchanged; a literal `%` stays `%%`. Still open:
+whether `%f`/`%e`/`%g` take a `deci`.
+
 ### 2026-10-01 — RRx2-TV builds with CMake and Ninja (owner)
 
 The owner asked design claude what CMake was and whether it would be "a
