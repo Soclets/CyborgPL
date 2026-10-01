@@ -29,6 +29,8 @@ export const TRADEOFFS = [
     cost: "The caller must handle every one; forgetting is a compile error." },
   { get: "`and` / `or` always work out both sides: nothing written is skipped.",
     cost: "A check that guards the next step takes two `if`s, or `and.then`." },
+  { get: "An old spelling is refused with an error that names the new one.",
+    cost: "No stability promise, ever: CyborgPL is unstable, and stays that way." },
   { get: "Native code, through LLVM.",
     cost: "In development: no release yet, nothing to download." },
 ];

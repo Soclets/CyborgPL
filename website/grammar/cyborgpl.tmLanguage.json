@@ -457,6 +457,39 @@
     "keyword": {
       "patterns": [
         {
+          "comment": "A loop's modifiers come right after `for`, the strongest first: `for !c seq 'i' in …`, `for para 'x' in …` (2026-09-30). `seq` here is a word, not the type.",
+          "match": "\\b(for)(\\s+!c\\b)?(\\s+(?:seq|para)\\b)?",
+          "captures": {
+            "1": {
+              "name": "keyword.control.cyborgpl"
+            },
+            "2": {
+              "name": "storage.modifier.cyborgpl"
+            },
+            "3": {
+              "name": "storage.modifier.cyborgpl"
+            }
+          }
+        },
+        {
+          "comment": "`test fn name [] { … }` and its assertions (2026-09-29): `must`, `must.fail` (something fails; `.reason` names which), `must.stop` (a check site fires).",
+          "match": "\\b(test)(?=\\s+fn\\b)|\\b(must(?:\\.fail|\\.stop)?)\\b(?:(\\.)([a-z_][A-Za-z0-9_]*))?",
+          "captures": {
+            "1": {
+              "name": "keyword.other.test.cyborgpl"
+            },
+            "2": {
+              "name": "keyword.other.test.cyborgpl"
+            },
+            "3": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "4": {
+              "name": "entity.name.tag.failure.cyborgpl"
+            }
+          }
+        },
+        {
           "comment": "Ownership verbs, at the call site.",
           "name": "keyword.other.ownership.cyborgpl",
           "match": "\\b(?:give|copy|lend|lent)(?:\\.mut)?\\b"
@@ -472,9 +505,9 @@
           "match": "\\bchange\\b"
         },
         {
-          "comment": "`!$` in front: the name cannot be shadowed. `!mut` is `immut` (2026-09-25).",
+          "comment": "`!$` in front: the name cannot be shadowed. `!mut` is `immut` (2026-09-25). `!c` on a `for`: no cheating, every round runs (2026-09-30).",
           "name": "storage.modifier.cyborgpl",
-          "match": "!\\$|!mut\\b"
+          "match": "!\\$|!mut\\b|!c\\b"
         },
         {
           "comment": "`&` and `&mut` are lend / lend.mut, and lent / lent.mut on a parameter.",

@@ -48,6 +48,8 @@ including the 2026-09-19 syntax revision and the 2026-09-25/27/29 changes (no `l
   `>`, `</==`, `>/==`; the retired `/`, `<==`, `>==` are marked deprecated.
 - `@x` on a returned borrow (`-> lent@x T`), `giveS` in a strict `match` (`gives` marked retired), and an operator
   handed over as a value (`op +`, `op neg`, `op </==`).
+- A loop's modifiers, strongest first: `for !c seq …`, `for para …` (`seq` there is a word,
+  not the type); tests: `test fn`, `must`, `must.fail.reason`, `must.stop`; `print.weird`'s `<-`.
 - `#strict`'s range labels, `range[from 1, to 4, by 1]`, and `pos`.
 - `layout.c enum Key { a = 65 }`: a case and its number.
 - A library call through a built-in type as one name: `str.each.grapheme[…]`,
@@ -72,7 +74,7 @@ non-whitespace span left without a scope — there should be none — and, for e
 every distinct word it was given, which is the list to read by hand for words in the
 wrong class. `node website/grammar/audit.mjs <scope>` prints one class.
 
-Last run on 2026-09-29 against all 100 programs: no unscoped spans, and each class read
+Last run on 2026-10-01 against all 123 programs: no unscoped spans, and each class read
 by hand — every word coloured as an enum case is a real case or failure name, every
 capitalised word outside comments and strings is a declared type, generic or interface,
 and every bare word coloured as a function reference is one.
