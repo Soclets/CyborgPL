@@ -264,6 +264,11 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         let rest: String = chars[i..chars.len().min(i + 3)].iter().collect();
         let two: String = rest.chars().take(2).collect();
         if two == "!$" { push(Tok::NoShadow, &mut toks); i += 2; col += 2; continue; }
+        // `!c`, "no cheat", a loop's first modifier (owner, 2026-10-01): kept as its own word, so no
+        // name can spell it
+        if two == "!c" && !chars.get(i + 2).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
+            push(Tok::Word("!c".into()), &mut toks); i += 2; col += 2; continue;
+        }
         // `!mut` is `immut` written another way (owner, 2026-09-25)
         if rest.starts_with("!mu") && chars[i..].iter().take(4).collect::<String>() == "!mut" && !chars.get(i + 4).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("immut".into()), &mut toks); i += 4; col += 4; continue;

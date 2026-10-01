@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — `for !c`, "no cheat": a loop whose every round really runs; strongest modifier first (owner)
+
+The owner's "cheating" benchmark (N baked into the source) showed clang
+folding `acc += i` over 1..300 000 000 to `mov w0, #128; ret`, and CCA's
+sliced loop folding the same way (0.00 s); an empty `inline.ASM` passing
+'acc' through a register forced the real run (0.50 s). The owner: "Is
+there a way to always run the loop in CyborgPL?", then "let's design it".
+Design claude offered (a) a value-level barrier, as Rust's `black_box`
+(recommended); (b) a loop word; (c) a block. The owner: "`for !c` means
+nocheat". What it forbids: (1) skipping work — folding to the answer,
+dropping rounds — while SIMD and cores stay allowed (recommended); (2)
+any change at all. The owner: "Skipping work, because `seq` could be used
+with `!c`". Word order: design claude first suggested `seq`/`para`
+before `!c`, then, when the owner said "They both modify hard, like
+`.useful`", the `.useful` rule — the modifier that changes the action
+most sits next to it — which puts `!c` first. The owner: "Ah yes, so the
+strongest modifer comes firts?", "yeah, strongest first": a general rule,
+`for !c seq`, `for !c para`. Open: whether `while` and `loop` take `!c`
+too. `parallelism.md`; `examples/for_no_cheat.cpls`; reject test
+for_no_cheat_order.
+
 ### 2026-10-01 — RRx2-lang's file extension is `.RR`, either case accepted (owner)
 
 The owner asked about `.rx2`; design claude noted it is already ReCycle's

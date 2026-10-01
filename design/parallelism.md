@@ -67,6 +67,31 @@ This was the entire parallelism syntax of v1 — one word for saying no —
 until `para` joined it.
 (`seq` sits after `temp`/`perm` in the chain — see `control-flow.md`.)
 
+## No cheating: `for !c` (owner, 2026-10-01)
+
+```
+for !c 'i': int64 in range[1, 'n'] { change 'acc' = 'acc' + 'i'; }
+for !c seq 'i' in lend 'xs' { … }
+for !c para 'i' in range[1, 'n'] { … }
+```
+
+**`!c`, "no cheat"**: every round's work really happens at run time. The
+compiler may not replace the loop with its answer (clang turns
+`acc += i` over a known range into n(n+1)/2, and CCA's slices fold the
+same way) nor drop rounds whose results look unused. It may still do the
+work faster — SIMD, or across cores — so `!c` is about whether the work
+happens, not how; add `seq` for one round at a time, in order (owner:
+"Skipping work, because `seq` could be used with `!c`"). Written in
+CyborgPL for timing code and the like, where today an empty
+`inline.ASM` passing the value through a register does the job.
+
+**The strongest modifier comes first** (owner: "yeah, strongest first"):
+`!c` changes what the loop must do, `seq` and `para` only how its rounds
+are scheduled, so `for !c seq`, never `for seq !c` (refused). It is the
+rule `.useful` already follows in `print.useful.stdout` and
+`to.useful.str.utf8`. `!c` is a token of its own, not a reserved name.
+`examples/for_no_cheat.cpls`; reject test for_no_cheat_order.
+
 ## The GPU (owner, 2026-09-21: automatic)
 
 Same rule, one more place to run: the programmer writes `for`, Precog

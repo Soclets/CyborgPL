@@ -1,0 +1,14 @@
+# `for !c` — "no cheat" (owner, 2026-10-01): every round's work really happens, so the compiler may
+# not replace the loop with its answer (here n(n+1)/2) or drop rounds; SIMD and cores are still
+# allowed. The strongest modifier comes first: `for !c seq`, `for !c para`.
+MAIN {
+    mut 'acc': int64 = 0;
+    for !c 'i': int64 in range[1, 1000] {
+        change 'acc' = 'acc' + 'i';
+    }
+    mut 'more': int64 = 0;
+    for !c seq 'i': int64 in range[1, 10] {
+        change 'more' = 'more' + 'i';
+    }
+    std::print.useful.auto_newline.stdout['acc', " ", 'more'];
+}
