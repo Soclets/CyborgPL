@@ -60,8 +60,12 @@ expressions.
 asked (after the colon, recommended, or in front); the owner: "Lol, bro,
 `mut`'s already behind".
 
-Not ruled yet: where `!$` goes under `decl` (today it stands before the
-name, like `mut` did); how shadowing (`'x' $:=
+**`!$` goes after the colon as well**, first in the list:
+`decl 'total': !$, mut, int64 = 0;`, `decl 'c': !$ := 1;`. Design claude
+offered that (recommended) or `decl !$ 'total': …` in front of the name;
+the owner: "Behind".
+
+Not ruled yet: how shadowing (`'x' $:=
 2000;`) is written with `decl`; `extern 'errno': int32;` and `pub const
 'max' := 8;`; and whether an owning parameter's `immut` moves after the
 colon. Nothing is built yet: the oracle, `examples/`, the reject tests and
