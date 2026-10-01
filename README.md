@@ -38,7 +38,7 @@ No security support. No private reports, no fixes promised, no supported version
 
 CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
 
-**Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as four [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log and the oracle), *compiler claude* (CCA), *check claude* (the program generator and differential testing in `check/`) and *website claude* (`website/`). Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
+**Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as four [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log, the oracle and the benchmarks in `bench/`), *compiler claude* (CCA), *check claude* (the program generator, differential testing and translation validation in `check/`) and *website claude* (`website/`). Two more work in their own repos: *synthia claude* on [Synthia](https://github.com/Cyborg-Assembly-Manufacturing-Site/Synthia), and *RRx2-TV claude* on RRx2's translation validator. Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
 
 **Languages and tools**
 - [Rust](https://www.rust-lang.org) and Cargo: the oracle, CCA and the verification harness.
