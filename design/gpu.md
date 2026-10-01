@@ -147,7 +147,9 @@ How the block runs comes first; `with` holds what it touches. The code
 inside the braces is Metal's, passed to Apple's compiler unchanged. A lent
 list binds with **`->`**, as in `inline.ASM`: `lend.mut` says the kernel
 may write it, and the changes are in `'xs'` when the block ends (owner,
-2026-10-01: a). Open: `buffer(0)` and its parentheses.
+2026-10-01: a). The slot is named as Metal names it, `buffer(0)`,
+matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
+(owner, 2026-10-01).
 
 ## Open
 

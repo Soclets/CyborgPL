@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — `inline.MSL` names a slot as Metal does: `buffer(0)` (owner)
+
+The right side of a binding is the slot's name in Metal, copied exactly,
+so `with [lend.mut 'xs' -> buffer(0)]` matches the kernel's
+`[[buffer(0)]]` letter for letter, as `inline.ASM` writes `x0` the way
+ARM does. Design claude offered (a) `buffer(0)`, recommended; (b)
+`buffer 0`; (c) `buffer[0]`, noting CyborgPL's `( )` otherwise only
+group; the owner: "what", then, put plainly, "okay". The `inline.MSL`
+block is now spelled in full:
+
+```
+nocheck inline.MSL threads 'n' { … } with [lend.mut 'xs' -> buffer(0)];
+```
+
+`gpu.md`.
+
 ### 2026-10-01 — `inline.MSL` binds a lent list with `->`, as `inline.ASM` does (owner: a)
 
 ```
@@ -19,7 +35,8 @@ while a lend only passes access to data used in place. Offered (a) `->`,
 as `inline.ASM`, recommended, or (b) `<->`, the sketch. The owner asked
 why `<->` had been given (design claude had pictured the data's trip to
 the GPU and back, which is what `<->` means for a plain variable), then:
-"`a`". Still open: `buffer(0)` and its parentheses. `gpu.md`.
+"`a`". Still open then: `buffer(0)` and its parentheses (settled next).
+`gpu.md`.
 
 ### 2026-10-01 — `inline.MSL`'s thread count goes after the name: `inline.MSL threads 'n' { … }` (owner: b)
 
