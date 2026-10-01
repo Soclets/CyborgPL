@@ -129,8 +129,23 @@ cores); the **base language** has **`inline.MSL { … }`**, Metal Shading
 Language written inline — a `nocheck` site like `inline.ASM`, checked by
 Apple's Metal compiler at build time. A block runs where it is
 written, as `inline.ASM` does, and needs no std (owner): reuse is a
-function holding it. Spellings beyond `inline.MSL` are open
-(`DECISIONS.md`, 2026-10-01).
+function holding it.
+
+The **thread count** — how many copies of the kernel run, which plain
+Metal sets from the host with `dispatchThreads` — comes **after the name**
+(owner, 2026-10-01: b), as any number:
+
+```
+nocheck inline.MSL threads list.length[lend 'xs'] {
+    kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
+        xs[id] = xs[id] * 2;
+    }
+} with [lend.mut 'xs' <-> buffer(0)];
+```
+
+How the block runs comes first; `with` holds what it touches. The code
+inside the braces is Metal's, passed to Apple's compiler unchanged. The
+binding list's spelling is open (`DECISIONS.md`, 2026-10-01).
 
 ## Open
 

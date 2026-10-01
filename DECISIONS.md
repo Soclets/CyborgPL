@@ -5,6 +5,33 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — `inline.MSL`'s thread count goes after the name: `inline.MSL threads 'n' { … }` (owner: b)
+
+```
+nocheck inline.MSL threads list.length[lend 'xs'] {
+    kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
+        xs[id] = xs[id] * 2;
+    }
+} with [lend.mut 'xs' <-> buffer(0)];
+```
+
+The thread count, how many copies of the kernel the GPU runs (in plain
+Metal, the host's `dispatchThreads` call), is any number: a literal, a
+variable, or worked out on the spot. Design claude offered (a) in the
+`with` list, beside the bindings, as `inline.ASM` keeps `clobber x16`
+there; (b) after `inline.MSL`, bare, before the code; and recommended b:
+how the block runs is read first, as `for para` puts its modifier before
+the body, `with` keeps one job (what the block touches), and no `[ ]` is
+needed where nothing is built (2026-09-19). The owner asked whether
+`inline.MSL` is Metal's syntax (the code inside the braces is; the header,
+`threads` and `with` are CyborgPL, standing in for the host program), why
+the count is a variable (it need not be), whether `clobber` should move
+too (no: it is something the block touches, so `inline.ASM` is
+unchanged), and whether `threads` inside the braces makes sense (no: the
+braces go to Apple's compiler untouched, and a shader cannot set its own
+count). The owner: "Okay, `b`". Still open: the binding list's spelling
+(`lend.mut 'xs' <-> buffer(0)` is design claude's sketch). `gpu.md`.
+
 ### 2026-10-01 — The `decl` redesign is dropped; the 2026-09-25 syntax stays (owner)
 
 The owner, after the function-type question ("wtf are fn types?"): "Nvm,
@@ -189,7 +216,8 @@ need std"; design claude had recommended the same). Running it many
 times is a function that holds it; the Metal code is compiled once, at
 build time, and each run launches it. Design claude's sketch:
 `nocheck inline.MSL { kernel void … } with [lend.mut 'xs' <-> buffer(0)],
-threads …;` — the binding list and the thread count's place still open.
+threads …;` — the binding list and the thread count's place still open
+(the count: after the name, owner, the same day).
 
 ### 2026-10-01 — CyborgPL is unstable, forever (owner)
 
