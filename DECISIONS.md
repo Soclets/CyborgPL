@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — A fourth, loop-nest IR, if one is ever built, is our own, not MLIR (owner)
+
+The owner asked how many IRs CyborgPL has (three: AST/typed AST, MIR,
+LLVM's — 2026-09-22), whether that is enough (yes, the shape of Swift's
+AST → SIL → LLVM; nothing in CCA has needed a fourth), and what the next
+would be: the loop-nest (polyhedral) IR `gpu.md` names for GPU tiling,
+fusion and thread mapping, between MIR + proofs and the Metal / SPIR-V
+output. Proposed: MLIR (mature passes, likely faster programs sooner;
+C++; its loop analysis sees only simple shapes; no Metal output) or our
+own (starts behind; reads Precog's proofs directly, so it can go further
+on loops MLIR cannot analyse; Rust). Design claude gave no number —
+building both is the only honest measure — and noted the motto fits our
+own. The owner: "our own". Still only if GPU work proves MIR is not
+enough. `gpu.md`, Open.
+
 ### 2026-10-01 — `std::print.format` uses `{}` holes, with its own escapes read in one pass (owner)
 
 Supersedes the two entries below of the same day (`%` codes, `\%`). The

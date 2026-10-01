@@ -120,4 +120,9 @@ CyborgPL-syntax tooling files.
 - Precog's offload threshold: how many iterations, of what body, before
   the launch cost is worth it — a number for the bench.
 - A loop-nest model (the polyhedral kind) for tiling and fusion — a
-  fourth IR only if offload gets serious (`precog.md`, three IRs).
+  fourth IR only if offload gets serious (`precog.md`, three IRs). If it
+  is built, **it is our own, in Rust, not MLIR** (owner, 2026-10-01: "our
+  own"): built from MIR after Precog, it reads Precog's proofs directly,
+  so it can transform loops MLIR's analysis could not see into; MLIR's
+  ready-made passes would be faster to get, and it has no Metal output
+  anyway (Metal is CCA's own text).
