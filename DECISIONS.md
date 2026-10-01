@@ -20,8 +20,13 @@ input, processes; and JSON, HTTP and network protocols, big data
 structures and higher maths left to other Limbs from the registry. The
 owner: "yea, though it might want to have GPU stuff". So std also holds a
 low-level GPU layer — explicit control beside the automatic GPU loops,
-which stay syntax-free (`gpu.md`). Open: what that GPU layer holds, and
-std's full contents.
+which stay syntax-free (`gpu.md`). What it holds: design claude offered
+(a) looking only — which GPU, its memory and cores; (b) explicit control
+— moving data to GPU memory and back, and forcing a loop onto the GPU
+over Precog's choice, as `for para` forces cores; (c) raw GPU programs,
+Metal Shading Language written and launched by hand, a `nocheck` world as
+`inline.ASM` is; and recommended a and b. The owner: "`b` & `c`". Open:
+the spellings, and std's full contents.
 
 ### 2026-10-01 — CyborgPL is unstable, forever (owner)
 
