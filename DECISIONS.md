@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — RRx2-TV's final build has no checkers; RRx2-lang keeps them always (owner)
+
+Corrects the 2026-09-30 entry below, which design claude recorded as
+"the checkers stay on everywhere, always" for both tools. The owner: "Ha,
+I said 2x slower for the lang" — the speed point was RRx2-lang's, which
+"doesn't give a flying fuck about runtime perf". For RRx2-TV, design
+claude recommended keeping them on (most of its time is Bitwuzla, which
+they do not slow), then deciding by measuring both builds; the owner,
+noting its runs "might just be hella longer than our current oracle
+testings": "Nah, no final check". So RRx2-TV builds with
+AddressSanitizer and UndefinedBehaviorSanitizer for every test run and
+without them for its final build; RRx2-lang keeps them in every build.
+Warnings as errors stay for both.
+
 ### 2026-09-30 — "RRx2 VC" is now just "RRx2" (owner)
 
 "Change RRx2 VC to RRx2". The repo is renamed

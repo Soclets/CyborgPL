@@ -69,10 +69,11 @@ mistakes instead of catching them.
 - **The latest stable Clang** (owner): Homebrew's
   `/opt/homebrew/opt/llvm/bin/clang++` (LLVM 23.1.2 today), not Apple's
   `clang` on the PATH.
-- **Clang's checkers stay on in every build, the final one too** (owner,
-  2026-09-30): `-fsanitize=address,undefined`, warnings as errors
-  (`-Wall -Wextra -Werror`), and no raw `new`/`delete`. Speed is their
-  only cost, and a crash beats a wrong verdict.
+- **Clang's checkers on every test build, off in the final build**
+  (owner, 2026-10-01: "no final check"): tests run with
+  `-fsanitize=address,undefined`; the final build goes without them,
+  since RRx2-TV's runs are long. Warnings are errors in both (`-Wall
+  -Wextra -Werror`), and no raw `new`/`delete`.
 - **Licence**: Apache-2.0 WITH LLVM-exception, as CyborgPL; not copyleft
   (owner: "No, not copyleft"). Alive2's code is MIT and may be borrowed,
   with its notice kept, if the owner rules that way (see Open).
