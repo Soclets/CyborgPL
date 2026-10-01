@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — RRx2-TV builds with CMake and Ninja (owner)
+
+The owner asked design claude what CMake was and whether it would be "a
+lot better" than RRx2-TV's hand-written Makefile; design claude said not
+yet, worth it once the build got painful (two builds, finding LLVM). The
+owner then asked RRx2-TV claude: "Should we use Cmake?", then "Switch now"
+(RRx2 b689699). LLVM's flags come from LLVM's own CMake file; the
+`test` preset builds with the sanitizers and the `final` one without, each
+at most 8 jobs; `ctest` runs the known answers and the Alive2 comparison.
+
 ### 2026-10-01 — RRx2-TV is written from nothing; it reads LLVM's manual, tests and IR library, never the optimiser's meanings (owner)
 
 RRx2-TV claude's first question. Proposed (a) start from Alive2's code;
