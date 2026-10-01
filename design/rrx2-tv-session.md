@@ -77,7 +77,9 @@ mistakes instead of catching them.
 - **Licence**: Apache-2.0 WITH LLVM-exception, as CyborgPL; not copyleft
   (owner: "No, not copyleft"). Alive2's code is MIT and may be borrowed,
   with its notice kept, if the owner rules that way (see Open).
-- **Marks**: RRx2™, RRx2-TV™, RRx2-lang™.
+- **Names and marks**: the validator is **RRx2** and the language is
+  **RR** (owner, 2026-10-01); RRx2™ and RR™. The session keeps its
+  name, RRx2-TV claude.
 
 ## Where you work
 

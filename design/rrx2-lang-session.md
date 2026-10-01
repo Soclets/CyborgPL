@@ -73,7 +73,7 @@ read `cca/` or `oracle/src` in CyborgPL's repo.
   `-fsanitize=address,undefined` and `-Wall -Wextra -Werror`. Speed is
   their only cost, and RR does not care about speed.
 - **Licence**: Apache-2.0 WITH LLVM-exception; not copyleft. **Marks**:
-  RRx2™, RRx2-TV™, RRx2-lang™.
+  RRx2™ (the validator) and RR™ (owner, 2026-10-01).
 
 ## Where you work
 

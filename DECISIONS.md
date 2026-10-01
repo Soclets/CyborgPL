@@ -11,9 +11,15 @@ The owner, asking whether it would be in C: "`RR` (the name of
 RRx2-lang)". Design claude asked whether that made `RR` the language's
 name, with RRx2-lang only the folder and the session; the owner: "yea, RR
 is the name". Programs stay `.RR` (either case). The session is still
-RRx2-lang claude, working in `lang/`. Not asked: whether the marks change
-(today RRx2™, RRx2-TV™, RRx2-lang™) and the RRx2 README's wording.
-`rrx2-lang-session.md`.
+RRx2-lang claude, working in `lang/`. `rrx2-lang-session.md`.
+
+**And the validator is RRx2** (owner: "`RRx2` is the TV"). Design claude
+put back the reading: the validator RRx2 (no "-TV"), the language RR, the
+README's line "Verifiers for CyborgPL: RRx2™ and RR™", the repo keeping
+its name `RRx2`, and the sessions keeping theirs (RRx2-TV claude,
+RRx2-lang claude); the owner: "yea". The marks are now RRx2™ and RR™.
+The RRx2 README and `lang/README.md` are changed; `tv/README.md`, RRx2-TV
+claude's, is left for it.
 
 ### 2026-10-01 — `inline.MSL` names a slot as Metal does: `buffer(0)` (owner)
 
