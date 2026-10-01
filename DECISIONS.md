@@ -106,6 +106,17 @@ name and changes only by `|`. Design claude proposed both as following
 from the rule; the owner asked "Is it extern or extern fn?" (both exist;
 only the variable form was in question), then "yea, record both."
 
+**Calls keep commas, confirmed.** The owner later asked "isn't it
+`grow[lend.mut 'list' | 5];`?". Design claude owned that "calls keep
+commas" had been its own narrowing of "The ones that clash with `,`",
+never said by the owner, and asked again. Asked what made more sense,
+design claude recommended commas: they never clashed in a call (which
+holds values, as a list does); `|` in calls would take it from custom
+operators (`f['a' | 'b']` would read two ways); and every call would
+change. The owner: "Hm... I think you might be right, because
+`std::print.useful.stdout["total: " | 'total' | \n];` genuinely looks
+like it's seperated, even though it isn't".
+
 Every declaration question is now ruled. Nothing is built yet: the oracle, `examples/`, the reject tests and
 `design/` samples still use the 2026-09-25 form, and CyborgPL is paused.
 `syntax-sketch.md`.
