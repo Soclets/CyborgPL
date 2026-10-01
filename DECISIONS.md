@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — `std::print.weird`: C++'s `cout <<` with `<-` arrows (owner)
+
+The owner, after asking how C++ prints: "Let's design a C++ print".
+Design claude noted the borrowed prints of 2026-09-19 (removed the next
+day) and that `<<` is free (shifts are `shl`/`shr`), and offered (a)
+the arrow style or (b) C++23's `std::println` (nearly `print.format`
+already). The owner: "`std::print.weird` seems like a good name, maybe
+use `->` arrows". Design claude: `->` would point away from the output,
+against "the arrow points where the value goes" (return types,
+`inline.ASM`); `<-` points in, like C++'s `<<`. The owner: "`<-`". Form:
+design claude offered stored or readable; the owner: "what if we add a
+way to use `.useful` with `.weird`?" — `.weird` stored as `print`,
+`.weird.useful` readable as `print.useful`, `.weird` first by the
+strongest-first rule (owner: "yea"). `design/strings.md`;
+`examples/print_weird.cpls`; reject tests print_weird_brackets,
+print_weird_order.
+
 ### 2026-10-01 — GPU loops: Metal is built before Vulkan (owner)
 
 "Btw, it's gonna be Metal before Vulkan." Both stay the v1 targets

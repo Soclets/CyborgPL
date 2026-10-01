@@ -1767,6 +1767,19 @@ impl Parser {
             self.advance();
             match self.advance().tok { Tok::Word(w) => path.push(w), other => return self.err(format!("expected a name after `.`, found {other}")) }
         }
+        // `std::print.weird.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
+        // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
+        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
+            return self.err("`.weird` comes first, the strongest modifier: `std::print.weird.useful.stdout <- …`");
+        }
+        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.get(1).map(|s| s.as_str()) == Some("weird") {
+            if *self.peek() == Tok::LBracket { return self.err(format!("`std::{}` takes its values with arrows, not `[…]`: `std::{} <- \"text\" <- 'n' <- \\n;`", path.join("."), path.join("."))); }
+            let bline = self.line();
+            let mut values = Vec::new();
+            while *self.peek() == Tok::LeftArrow { self.advance(); values.push(self.value()?); }
+            if values.is_empty() { return self.err(format!("`std::{}` needs at least one value: `std::{} <- \"text\";`", path.join("."), path.join("."))); }
+            return Ok(Call { handler: None, limb, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line });
+        }
         if *self.peek() != Tok::LBracket {
             let shown = match &limb { Some(l) => format!("{l}::{}", path.join(".")), None => path.join(".") };
             if limb.is_none() && path.len() >= 2 { return self.err(format!("`{shown}`: a call needs `[…]`; an enum case with no data is written bare (`Status.empty`) — is `{}` an enum?", path[path.len() - 2])); }

@@ -4221,13 +4221,15 @@ impl<'p> Interp<'p> {
             "printf.stdout" | "printf.stderr" => rt(c.line, format!("std::{path} is spelled std::print.format.{} now (owner, 2026-09-29)", &path[7..])),
             "print.stdout" | "print.useful.stdout" | "print.stderr" | "print.useful.stderr"
             | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr"
+            | "print.weird.stdout" | "print.weird.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" => {
                 // Since 2026-09-19 print takes any number of values and renders each —
                 // `print` in stored form, `print.useful` in useful form (`printu` until the owner
                 // renamed it, 2026-09-29) — with nothing between. The long form is the owner's
                 // answer to "printu is cryptic" (2026-09-21).
-                let useful = path.starts_with("print.useful") || path.starts_with("this_will_print_the_useful");
+                // `print.weird` is `print` with arrows, `print.weird.useful` is `print.useful` (owner, 2026-10-01)
+                let useful = path.starts_with("print.useful") || path.starts_with("print.weird.useful") || path.starts_with("this_will_print_the_useful");
                 let path = if path.ends_with("standard_error") { "print.useful.stderr".to_string() } else { path };
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
                 let mut text = String::new();

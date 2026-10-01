@@ -1,0 +1,1 @@
+MAIN { std::print.useful.weird.stdout <- "hi"; }

@@ -28,6 +28,28 @@ removed a day later) had done the same as a borrowed Rust print. Only this
 form is decided: `print` and `print.format` have no `auto_newline`.
 `examples/print_auto_newline.cpls`.
 
+## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
+
+```
+std::print.weird.useful.stdout <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- \n;
+std::print.weird.stdout <- "stored: " <- 'tenth' <- \n;
+```
+
+A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
+seems like a good name, maybe use `->` arrows"). Each value follows a
+**`<-`**, pointing into the output, as C++'s `<<` points into `cout`
+and as `<-` points into a variable in `inline.ASM` (owner: "`<-`", over
+`->`, which would point away from the screen — CyborgPL's arrows point
+where the value goes). It takes no `[ ]`, and at least one value. Plain
+**`.weird`** shows the stored form, as `print`; **`.weird.useful`** the
+useful form, as `print.useful` (owner: "what if we add a way to use
+`.useful` with `.weird`?", then "yea"). The strongest modifier first:
+`.weird` changes the whole call's shape, `.useful` only how values
+look, so `print.useful.weird` is refused. The first borrowed-language
+print since `std::c.printf` / `std::rs.println` were removed
+(2026-09-20). `examples/print_weird.cpls`; reject tests
+print_weird_brackets, print_weird_order.
+
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
