@@ -33,8 +33,10 @@ as `limbs.md` already has `extern`, pointers and inline asm in the base
 language with std only "the library everyone uses for them". So the
 inline GPU block is base language, `nocheck`; std holds the easy parts
 around it — moving data, launching a block with N threads, forcing a loop
-onto the GPU. Open: the block's name, the other spellings, std's full
-contents.
+onto the GPU. **The block is `inline.MSL`** (owner: "`MSL`", over
+`inline.METAL`): the family names the language inside, as `ASM` does, and
+Metal is also the API's name. Open: the other spellings, std's full
+contents, and Vulkan's block when Vulkan comes.
 
 ### 2026-10-01 — CyborgPL is unstable, forever (owner)
 

@@ -119,6 +119,16 @@ until the owner made it **`tune.cplr`** (2026-09-30: a), CyborgPL syntax
 like `CCA.cplr`, plain `const`s only, as `.cplr` is the extension for
 CyborgPL-syntax tooling files.
 
+## Explicit control and raw GPU code (owner, 2026-10-01)
+
+Beside the automatic loops, a program may take the GPU in hand: **std**
+moves data to GPU memory and back, launches GPU code with N threads, and
+forces a loop onto the GPU over Precog's choice (as `for para` forces
+cores); the **base language** has **`inline.MSL { … }`**, Metal Shading
+Language written inline — a `nocheck` site like `inline.ASM`, checked by
+Apple's Metal compiler at build time. Spellings beyond `inline.MSL` are
+open (`DECISIONS.md`, 2026-10-01).
+
 ## Open
 
 - Precog's offload threshold: how many iterations, of what body, before
