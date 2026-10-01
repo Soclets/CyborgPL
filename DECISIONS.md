@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — "Rust throughout" is about code we write; borrowing Clang inside CCA is fine (owner)
+
+Asked what `inline.C` would bring (C's headers and macros, no separate
+files, inlining across the boundary through one LLVM module, Clang's
+built-ins; every block a `nocheck` site), design claude listed as a cost
+that Clang is a large C++ library, against "Rust throughout, C++ only
+for the LLVM wrapper". The owner: "Clang inside CCA is fine. Like, mf, we
+ain't writing Clang in Rust". So the rule (`implementation-languages.md`)
+governs the code this project writes; a borrowed library in another
+language — LLVM already, Clang if `inline.C` is built — is a dependency,
+not a breach. `inline.C` itself stays "feasible later" (`ffi.md`).
+
 ### 2026-10-01 — `for !c`, "no cheat": a loop whose every round really runs; strongest modifier first (owner)
 
 The owner's "cheating" benchmark (N baked into the source) showed clang
