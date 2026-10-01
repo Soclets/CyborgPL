@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — The loop-nest IR, if built, is named LNIR, *Loop-Nest IR* (owner)
+
+Design claude proposed LNIR, NIR (Nest IR), Lattice, Loom and Grid, and
+recommended Loom. The owner first chose NIR ("NIR, I guess"; Mesa, the
+Linux GPU drivers, already has a shader IR called NIR), then floated
+`GIR`, GPU IR; design claude noted the IR would serve CPU loops too
+(tiling for the cache), so a GPU name undersells it, and that GIR is
+GObject Introspection's format. The owner: "Switch to `LNIR`". `gpu.md`,
+Open.
+
 ### 2026-10-01 — A fourth, loop-nest IR, if one is ever built, is our own, not MLIR (owner)
 
 The owner asked how many IRs CyborgPL has (three: AST/typed AST, MIR,
