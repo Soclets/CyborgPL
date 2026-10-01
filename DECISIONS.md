@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — RRx2's exact-math language is called RR (owner)
+
+The owner, asking whether it would be in C: "`RR` (the name of
+RRx2-lang)". Design claude asked whether that made `RR` the language's
+name, with RRx2-lang only the folder and the session; the owner: "yea, RR
+is the name". Programs stay `.RR` (either case). The session is still
+RRx2-lang claude, working in `lang/`. Not asked: whether the marks change
+(today RRx2™, RRx2-TV™, RRx2-lang™) and the RRx2 README's wording.
+`rrx2-lang-session.md`.
+
 ### 2026-10-01 — `inline.MSL` names a slot as Metal does: `buffer(0)` (owner)
 
 The right side of a binding is the slot's name in Metal, copied exactly,

@@ -1,7 +1,9 @@
 # The RRx2-lang session — a brief
 
-For the session that builds **RRx2-lang**, the exact-math reference
-language ("RRx2-lang claude"). Written 2026-10-01 by the design session,
+For the session that builds **RR**, the exact-math reference language
+("RRx2-lang claude"). **RR is the language's name** (owner, 2026-10-01:
+"yea, RR is the name"); RRx2-lang names only the session and its `lang/`
+folder. Written 2026-10-01 by the design session,
 at the owner's request. Read this first; then everything it points at.
 
 ## Who decides
@@ -10,7 +12,7 @@ The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
 the docs do not say, it is a question, not a pick. **That includes
-RRx2-lang's syntax, which is entirely undecided**: propose, never
+RR's syntax, which is entirely undecided**: propose, never
 choose. RRx2 is a hobby project: no timeline, no obligation. The design
 session ("design claude") records decisions in CyborgPL's
 `DECISIONS.md`; your questions go to the owner, directly or through it.
@@ -18,14 +20,14 @@ session ("design claude") records decisions in CyborgPL's
 The owner answers "what" when a question is too dense. Ask in plain
 words, with what each option means in practice.
 
-## Why RRx2-lang exists
+## Why RR exists
 
 A language that never rounds, used to judge CyborgPL's numbers. It is
 the opposite of CyborgPL on speed — in the owner's words, it "doesn't
 give a flying fuck about runtime perf" — and exact on everything:
 `1/3 + 1/3 + 1/3` is exactly 1, and what `0.1 + 0.2` must give in a
 `bin64` is known to the last bit. When CyborgPL resumes, its tools can
-ask RRx2-lang what a computation should give and compare.
+ask RR what a computation should give and compare.
 
 **It is for CyborgPL** (owner, 2026-09-30), not a general maths system.
 Its character, the owner's: "RRx2 feels like a big old thing" — the old,
@@ -36,7 +38,7 @@ crash is a nuisance; a calm wrong answer is worse than no reference,
 because CyborgPL would be judged against it. Everything below serves
 that.
 
-**You are a different author from CyborgPL's.** RRx2-lang must share no
+**You are a different author from CyborgPL's.** RR must share no
 code with CyborgPL's `std::uenr` or with CCA, or it cannot judge them.
 Learn CyborgPL's number rules from `design/` and `DECISIONS.md`; never
 read `cca/` or `oracle/src` in CyborgPL's repo.
@@ -69,7 +71,7 @@ read `cca/` or `oracle/src` in CyborgPL's repo.
   and then switched to Clang, deliberately: leave it.
 - **Clang's checkers stay on in every build, the final one too**:
   `-fsanitize=address,undefined` and `-Wall -Wextra -Werror`. Speed is
-  their only cost, and RRx2-lang does not care about speed.
+  their only cost, and RR does not care about speed.
 - **Licence**: Apache-2.0 WITH LLVM-exception; not copyleft. **Marks**:
   RRx2™, RRx2-TV™, RRx2-lang™.
 
@@ -93,7 +95,7 @@ CyborgPL's number rules: `design/types.md`, `design/operators.md`,
 
 ## How to work
 
-- **Every answer RRx2-lang gives should be checkable from outside.** Its
+- **Every answer RR gives should be checkable from outside.** Its
   fractions and big numbers can be compared with Python's (`fractions`
   and its unbounded integers, written separately); its rounded floats
   with MPFR-independent cases worked by hand; its "for all" checks with
