@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-01 — LNIR is built with GPU loops, and never makes a program slower (owner)
+
+The owner: "Could we have LNIR when we do GPU loops? It's a hobby lang,
+and I think that's more fun. Only if it doesn't reduce perf, though".
+Design claude: an IR costs nothing at run time (it exists only while
+compiling, and compile time is free); only a bad transformation could
+cost speed, so the rule is that LNIR changes a loop only when Precog's
+estimate or a `tune.cplr` measurement says the change wins, and passes it
+through untouched otherwise — the worst case is the program without
+LNIR, and the bench can build both ways to check. Replaces "a fourth IR
+only if offload gets serious". `gpu.md`, Open.
+
 ### 2026-10-01 — The loop-nest IR, if built, is named LNIR, *Loop-Nest IR* (owner)
 
 Design claude proposed LNIR, NIR (Nest IR), Lattice, Loom and Grid, and
