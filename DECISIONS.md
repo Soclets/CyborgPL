@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — C's exact type names are aliases too (owner; not built yet)
+
+| C alias | CyborgPL type |
+|---|---|
+| `int8_t` `int16_t` `int32_t` `int64_t` | `int8` … `int64` |
+| `uint8_t` `uint16_t` `uint32_t` `uint64_t` | `uint8` … `uint64` |
+| `_Decimal32` `_Decimal64` `_Decimal128` | `deci32` `deci64` `deci128` (C23, IEEE 754 decimal) |
+| `float` `double` | `bin32` `bin64` |
+
+After the Rust aliases, the owner: "Now, what about C's?" Design claude
+split C's names by how exact they are. Left out: `int`, `short`, `long`,
+`long long` and the `unsigned` forms (sizes are the machine's: `long` is
+64 bits on Mac and Linux, 32 on Windows; most are two words; "no bare
+`int`" since 2026-09-14), `char` (its sign is the machine's), `long double`
+(64, 80 or 128 bits), `size_t`, `bool` (the same word) and `__int128` (an
+extension; standard C has no 128-bit integer). `float` / `double` are
+the nearly exact pair: C does not require IEEE, but every target uses
+it. Design claude leaned towards no C aliases, the `_t` names adding
+nothing over CyborgPL's own; the owner, shown the everyday C types ("That's
+awkward... For a lower-level lang") and then these: "record, don't
+implement yet". `types.md`.
+
 ### 2026-10-02 — Rust's number type names are aliases (owner; not built yet)
 
 | Rust alias | CyborgPL type |
