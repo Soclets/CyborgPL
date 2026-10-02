@@ -1940,6 +1940,7 @@ impl Checker {
         if self.items.fns[id.0 as usize].ret_lent.is_some() && ctx.lend_call_ok != Some(span) {
             return err(Diagnostic::error(format!("`{}` hands back a borrow, which is held by a name (`let 'l' := {}[…];`) or handed straight to a parameter: here it would be a second owner of what it borrows", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).at(span));
         }
+        self.lends_apart(ctx, &hargs, span)?;
         Ok(Expr { kind: K::Call { callee: Callee::Fn(inst), args: hargs, otherwise: ow, fails: sig.fails.clone() }, ty: sig.ret, span })
     }
 
@@ -2311,6 +2312,7 @@ impl Checker {
             K::Local(id) => Callee::Value(Box::new(Expr { kind: K::Local(id), ty: c.ty.clone(), span: c.span })),
             _ => Callee::Value(Box::new(c)),
         };
+        self.lends_apart(ctx, &hargs, span)?;
         Ok(Expr { kind: K::Call { callee, args: hargs, otherwise: ow, fails: ft.fails.clone() }, ty: ft.ret, span })
     }
 
@@ -2372,6 +2374,7 @@ impl Checker {
                 None
             }
         };
+        self.lends_apart(ctx, &hargs, span)?;
         Ok(Expr { kind: K::Call { callee: Callee::Extern(id), args: hargs, otherwise: ow, fails: fails.clone() }, ty: info.ret.clone(), span })
     }
 
@@ -2561,6 +2564,54 @@ impl Checker {
     }
 
     // ------------------------------------------------------------ conversions
+
+    /// While something is lent to change, nothing else in the same call
+    /// borrows it (owner, 2026-10-02: a): `two[lend.mut 'u', lend 'u']`,
+    /// and a borrow a call hands back counts as a lend of what it borrows.
+    /// A borrow inside an argument that ends before the call (`list.length[lend 'u']`)
+    /// is not one.
+    fn lends_apart(&self, ctx: &FnCtx, args: &[Arg], span: Span) -> Result<()> {
+        let per: Vec<Vec<(hir::LocalId, bool, Span)>> = args.iter().map(|a| {
+            let mut v = Vec::new();
+            self.arg_borrows(ctx, a, &mut v);
+            v
+        }).collect();
+        for (i, bs) in per.iter().enumerate() {
+            for (root, m, at) in bs {
+                if !*m {
+                    continue;
+                }
+                let again = per.iter().enumerate().any(|(j, other)| j != i && other.iter().any(|(r, _, _)| r == root));
+                if again {
+                    let name = ctx.locals[root.0 as usize].name.clone();
+                    return err(Diagnostic::error(format!("'{}' is lent `lend.mut` and lent again in the same call: while something is lent to change, nothing else may borrow it", name)).at(span).why_at(*at, "lent to change here"));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// What an argument still borrows when the call starts: a lend, or the
+    /// lends of a call whose borrow it hands back.
+    fn arg_borrows(&self, ctx: &FnCtx, a: &Arg, out: &mut Vec<(hir::LocalId, bool, Span)>) {
+        match a {
+            Arg::Lend { place, mutable } => {
+                for root in ctx.borrow_src.get(&place.base).cloned().unwrap_or_else(|| vec![place.base]) {
+                    out.push((root, *mutable, place.span));
+                }
+            }
+            Arg::Value(e) => {
+                if let (Some(m), K::Call { args, .. }) = (self.call_lends(e), &e.kind) {
+                    let mut inner = Vec::new();
+                    for x in args {
+                        self.arg_borrows(ctx, x, &mut inner);
+                    }
+                    out.extend(inner.into_iter().map(|(r, _, s)| (r, m, s)));
+                }
+            }
+            _ => {}
+        }
+    }
 
     /// A value's family in a message: "integer", "bool", "deci".
     fn family_word(&self, t: &Ty) -> String {
@@ -3297,6 +3348,7 @@ impl Checker {
             None => b,
         };
         let ow = self.call_otherwise(ctx, otherwise, &fails, &ty, used, span, &name)?;
+        self.lends_apart(ctx, &hargs, span)?;
         Ok(Expr { kind: K::Call { callee: Callee::Builtin(b), args: hargs, otherwise: ow, fails }, ty, span })
     }
 
