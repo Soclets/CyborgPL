@@ -51,3 +51,23 @@ Low-level control without losing portability. C has a weaker form
 one chosen at startup); a JIT can choose per machine, build only the copy
 it needs, and look at more (cache sizes) before choosing. The owner:
 "yea", to recording it.
+
+## Who decides a variable's type: the writer picks, per variable (owner, 2026-10-02)
+
+The owner: "The types are chosen by the writer", then "It depends on the
+programmer, they could choose if the var is chosen by who", and, of the
+three choices design claude laid out, "three":
+
+1. **The writer** writes the type. Fastest and simplest for the JIT:
+   nothing to guess.
+2. **An analysis before running** decides it (like CyborgPL's Precog, or
+   C#'s `var`). As fast, less to type; works where the analysis can see
+   the answer.
+3. **The JIT while running** decides it: it watches which types come,
+   compiles for them behind cheap guards, and backs out
+   ("deoptimises") when a guess turns out wrong. Most flexible, paid for
+   in guards.
+
+C# has the same three (`int`, `var`, `dynamic`). With the per-machine
+assembly above, Lilith's theme so far: the writer chooses who is in
+control. Spelling not designed.
