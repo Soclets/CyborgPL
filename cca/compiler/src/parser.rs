@@ -239,7 +239,7 @@ impl<'a> Parser<'a> {
                 return self.fail("`MAIN` is never `pub`: it is the program's block, not something another Limb can reach");
             }
             if self.is_word("let") {
-                return self.fail("`let` is gone, and a Limb's top-level value is a `const`: `pub const 'name' := …;`");
+                return self.fail("a Limb-level value is a `const`, not a `let`: `pub const 'name' := …;`");
             }
             if let Tok::Name(n) = self.peek().clone() {
                 return self.fail(format!("a Limb-level value is a `const`, not a variable: `pub const '{}' := …;`", n));
@@ -386,7 +386,7 @@ impl<'a> Parser<'a> {
                 Ok(ItemKind::Module { name, items })
             }
             "mod" => self.fail("`mod` is the remainder operator; a module is `module name { … }`"),
-            "let" => self.fail("`let` is gone, and a Limb-level value is a `const`: `const 'name' := …;`"),
+            "let" => self.fail("a Limb-level value is a `const`, not a `let`: `const 'name' := …;`"),
             "check" | "nocheck" => {
                 if self.is_word_at(1, "fn") {
                     self.fail(format!("`{}` cannot go on a `fn`: the tiers are never global — there is no file-wide or Limb-wide tier; put `{}` in front of the statements inside", w, w))
@@ -898,7 +898,7 @@ impl<'a> Parser<'a> {
             }
         } else if self.eat_op("=") {
             if ty.is_none() {
-                return self.fail_at(self.prev_span(), "`=` means you said everything, so it needs the type: `'x': int32 = …;` — or `:=` to let Precog choose");
+                return self.fail_at(self.prev_span(), "`=` means you said everything, so it needs the type: `let 'x': int32 = …;` — or `:=` to let Precog choose");
             }
         } else if self.is(&Tok::Semi) {
             return self.fail(format!("a {} needs a value: there is no implicit zero — write `= 0` (or whatever it should hold)", what));
@@ -1138,10 +1138,13 @@ impl<'a> Parser<'a> {
         Ok(Stmt { kind, span: start.to(self.prev_span()) })
     }
 
-    /// A declaration, from its front words to its `;` (owner, 2026-09-25):
-    /// `'x' := …`, `'x': T = …`, `mut`/`immut`/`!mut` and `!$` in front,
-    /// `$` before the `:=`/`=` to shadow.
+    /// A declaration, from `let` to its `;` (owner, 2026-10-02): `let 'x'
+    /// := …`, `let 'x': T = …`, `mut`/`immut`/`!mut` and `!$` between `let`
+    /// and the name, `$` before the `:=`/`=` to shadow.
     fn declaration(&mut self) -> Result<StmtKind> {
+        if self.is(&Tok::Dot) {
+            return self.fail("`let` is a word of its own: `let mut 'x' := …;`");
+        }
         let mut sealed = false;
         let mut mutability = None;
         loop {
@@ -1164,7 +1167,7 @@ impl<'a> Parser<'a> {
         }
         if self.strict && mutability.is_none() {
             if let Tok::Name(n) = self.peek().clone() {
-                return self.fail(format!("a declaration says whether it changes: `mut '{}' := …;` or `immut '{}' := …;` — a `#strict` file writes it out", n, n));
+                return self.fail(format!("a declaration says whether it changes: `let mut '{}' := …;` or `let immut '{}' := …;` — a `#strict` file writes it out", n, n));
             }
         }
         let name = match self.peek().clone() {
@@ -1173,13 +1176,13 @@ impl<'a> Parser<'a> {
                 QName { name: n, span }
             }
             Tok::Word(w) if is_primitive_head(&w) || matches!(self.peek_at(1), Tok::Name(_)) => {
-                return self.fail(format!("a type goes after the name: `'x': {} = …;`", w));
+                return self.fail(format!("a type goes after the name: `let 'x': {} = …;`", w));
             }
-            Tok::Word(w) => return self.fail(format!("a variable's name is quoted: `'{}' := …;`", w)),
+            Tok::Word(w) => return self.fail(format!("a variable's name is quoted: `let '{}' := …;`", w)),
             other => return self.fail(format!("expected the variable's name, found {}", other.describe())),
         };
         if self.is_word("mut") || self.is_word("immut") {
-            return self.fail(format!("`{}` goes before the name: `{} '{}' := …;`", self.word_text(), self.word_text(), name.name));
+            return self.fail(format!("`{}` goes before the name: `let {} '{}' := …;`", self.word_text(), self.word_text(), name.name));
         }
         let (ty, shadow) = self.let_type_and_marker("declaration")?;
         let value = self.expr_top()?;
@@ -1199,21 +1202,24 @@ impl<'a> Parser<'a> {
             }
             Tok::Semi => return self.fail("expected a statement, found `;` — there are no empty statements"),
             Tok::Strict => return self.fail("`#strict` goes once, at the top of the file, before any item"),
-            // A declaration starts with its name (owner, 2026-09-25).
+            // A declaration starts with `let` (owner, 2026-10-02).
             Tok::Name(n) => {
                 return match self.peek_at(1) {
-                    Tok::Colon | Tok::Walrus | Tok::Dollar => self.declaration(),
-                    Tok::Word(m) if m == "mut" || m == "immut" => self.fail_at(self.span(), format!("`{}` goes before the name: `{} '{}' := …;`", m, m, n)),
+                    Tok::Colon | Tok::Walrus | Tok::Dollar => self.fail(format!("a declaration starts with `let`: `let '{}' := …;`", n)),
+                    Tok::Word(m) if m == "mut" || m == "immut" => self.fail_at(self.span(), format!("a declaration starts with `let`, and `{}` goes before the name: `let {} '{}' := …;`", m, m, n)),
                     _ => self.expr_stmt(),
                 };
             }
-            Tok::Op(o) if o == "!" => return self.declaration(),
+            Tok::Op(o) if o == "!" => return self.fail("a declaration starts with `let`: `let !$ 'x' := …;`, `let !mut 'x' := …;`"),
             _ => return self.expr_stmt(),
         };
         match w.as_str() {
-            "let" => self.fail("`let` is gone: a declaration starts with its name — `'x' := …;`, `mut 'x' := …;`"),
-            "var" => self.fail("`var` is gone: a declaration starts with its name — `'x' := …;`"),
-            "mut" | "immut" => self.declaration(),
+            "let" => {
+                self.bump();
+                self.declaration()
+            }
+            "var" => self.fail("`var` is gone: a declaration starts with `let` — `let 'x' := …;`"),
+            "mut" | "immut" => self.fail(format!("a declaration starts with `let`: `let {} 'x' := …;`", w)),
             // Changing says so (owner, 2026-09-25): `change 'x' = …;`.
             "change" => {
                 self.bump();
@@ -1233,7 +1239,7 @@ impl<'a> Parser<'a> {
                 self.expect_semi("the change")?;
                 Ok(StmtKind::Assign { target, value })
             }
-            w if is_primitive_head(w) && matches!(self.peek_at(1), Tok::Name(_)) => self.fail(format!("a type goes after the name: `'x': {} = …;`", w)),
+            w if is_primitive_head(w) && matches!(self.peek_at(1), Tok::Name(_)) => self.fail(format!("a type goes after the name: `let 'x': {} = …;`", w)),
             "check" | "nocheck" | "NO_FUCKING_CHECKS" => {
                 let tier_span = self.bump().span;
                 let tier = match w.as_str() {
@@ -1374,15 +1380,15 @@ impl<'a> Parser<'a> {
                 self.inline_rest()
             }
             "asm" => self.fail("an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`"),
-            "otherwise" => self.fail("`otherwise` follows a call that can fail: `'x' := f[] otherwise 0;`"),
+            "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
             "fn" | "struct" | "interface" | "op" => self.fail(format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
             "enum" => self.fail("an `enum` sits at the top level of a file or a module, not inside a body"),
-            "const" => self.fail("a `const` sits at the top level: inside a body a declaration is `'x' := …;`, and Precog finds the constants itself"),
+            "const" => self.fail("a `const` sits at the top level: inside a body a declaration is `let 'x' := …;`, and Precog finds the constants itself"),
             "module" => self.fail("a `module` sits at the top level of a file, not inside a body"),
             "pub" => self.fail("`pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`"),
             "extern" => self.fail("an `extern` declaration sits at the top level, not inside a body"),
             "MAIN" => self.fail("`MAIN` cannot be nested or called: it is the program's one block"),
-            "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare — `'x' := 1;`"),
+            "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare — `let 'x' := 1;`"),
             _ => self.expr_stmt(),
         }
     }
@@ -1758,7 +1764,7 @@ impl<'a> Parser<'a> {
         }
         if self.is(&Tok::Colon) {
             if let ExprKind::Name(n) = &e.kind {
-                return self.fail(format!("a declaration is the name, its type, then `=`: `'{}': int32 = …;`", n.name));
+                return self.fail(format!("a declaration is the name, its type, then `=`: `let '{}': int32 = …;`", n.name));
             }
         }
         if self.is_op("=") {
@@ -1769,7 +1775,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(e.span, format!("changing a variable says so: `change {} = …;`", spelled));
         }
         if self.is(&Tok::Walrus) {
-            return self.fail("a declaration is a name alone: `'x' := …;`");
+            return self.fail("a declaration is a name alone: `let 'x' := …;`");
         }
         match &e.kind {
             ExprKind::Call { .. } | ExprKind::CallValue { .. } | ExprKind::Conv { .. } => {}
@@ -2240,7 +2246,7 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::Range { start: Box::new(s), stop: Box::new(e), step }, span })
                 }
-                "otherwise" => self.fail("`otherwise` follows a call that can fail: `'x' := f[] otherwise 0;`"),
+                "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
                 // `op +` (owner, 2026-09-29): the operator as a value.
                 "op" if !matches!(self.peek_at(1), Tok::LBracket) => {
                     let start = self.bump().span;

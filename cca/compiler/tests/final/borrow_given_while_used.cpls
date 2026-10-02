@@ -5,8 +5,8 @@ fn eat ['s': str.utf8] { }
 fn first [lent 'a': str.utf8] -> lent str.utf8 { return lend 'a'; }
 fn len [lent 's': str.utf8] -> uint64 { return str.bytes[lend 's']; }
 MAIN {
-    's' := "hello";
-    'l' := first[lend 's'];
+    let 's' := "hello";
+    let 'l' := first[lend 's'];
     eat[give 's'];
-    'n' := len[lend 'l'];
+    let 'n' := len[lend 'l'];
 }

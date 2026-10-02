@@ -14,44 +14,44 @@ layout.c enum Mode {
 }
 
 MAIN {
-    mut 'got': int32 = 0;
-    'x': bin64 = 0.1;
+    let mut 'got': int32 = 0;
+    let 'x': bin64 = 0.1;
     if to.str.utf8['x'] == "0.1000000000000000055511151231257827021181583404541015625" { change 'got' = 'got' + 1; }
     if to.useful.str.utf8['x'] == "0.1" { change 'got' = 'got' + 1; }
-    'd': deci64 = 1.50;
+    let 'd': deci64 = 1.50;
     if to.str.utf8['d'] == "1.50" { change 'got' = 'got' + 1; }
     if to.useful.str.utf8['d'] == "1.5" { change 'got' = 'got' + 1; }
-    'm': deci64 = 100;
+    let 'm': deci64 = 100;
     if to.useful.str.utf8['m'] == "100" { change 'got' = 'got' + 1; }
-    'n': int32 = 42;
+    let 'n': int32 = 42;
     if to.str.utf8['n'] == "42" { change 'got' = 'got' + 1; }
     if to.useful.str.utf8['n'] == "42" { change 'got' = 'got' + 1; }
-    'ok' := true;
+    let 'ok' := true;
     if to.str.utf8['ok'] == "true" { change 'got' = 'got' + 1; }
     if to.useful.str.utf8['ok'] == "true" { change 'got' = 'got' + 1; }
-    's' := Size.big;
+    let 's' := Size.big;
     if to.str.utf8['s'] == "Size.big" { change 'got' = 'got' + 1; }
     if to.useful.str.utf8['s'] == "big" { change 'got' = 'got' + 1; }
-    'o' := Mode.on;
+    let 'o' := Mode.on;
     if to.str.utf8['o'] == "Mode.on" { change 'got' = 'got' + 1; }
     if to.useful.str.utf8['o'] == "on" { change 'got' = 'got' + 1; }
-    'g': bin32 = 0.1;
+    let 'g': bin32 = 0.1;
     if to.useful.str.utf8['g'] == "0.1" { change 'got' = 'got' + 1; }
-    'b': bin64 = 100.0;
+    let 'b': bin64 = 100.0;
     if to.useful.str.utf8['b'] == "100" { change 'got' = 'got' + 1; }
-    'c': bin64 = 0.000001;
+    let 'c': bin64 = 0.000001;
     if to.useful.str.utf8['c'] == "0.000001" { change 'got' = 'got' + 1; }
-    'e': bin64 = -2.25;
+    let 'e': bin64 = -2.25;
     if to.useful.str.utf8['e'] == "-2.25" { change 'got' = 'got' + 1; }
-    'f': bin64 = 123456789012345678.0;
+    let 'f': bin64 = 123456789012345678.0;
     if to.useful.str.utf8['f'] == "123456789012345680" { change 'got' = 'got' + 1; }
-    'h': bin64 = 0.0;
+    let 'h': bin64 = 0.0;
     if to.useful.str.utf8['h'] == "0" { change 'got' = 'got' + 1; }
-    'k': bin64 = 10000000000000000.0;
+    let 'k': bin64 = 10000000000000000.0;
     if to.useful.str.utf8['k'] == "10000000000000000" { change 'got' = 'got' + 1; }
-    'l': bin64 = 0.0001;
+    let 'l': bin64 = 0.0001;
     if to.useful.str.utf8['l'] == "0.0001" { change 'got' = 'got' + 1; }
-    'p': bin64 = 1000000000000000000000000000000.0;
+    let 'p': bin64 = 1000000000000000000000000000000.0;
     if to.useful.str.utf8['p'] == "1000000000000000000000000000000" { change 'got' = 'got' + 1; }
     nocheck exit['got'];
 }

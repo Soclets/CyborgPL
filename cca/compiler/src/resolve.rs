@@ -1077,7 +1077,7 @@ impl Items {
 
     fn type_args(&self, args: &[ast::Type], declared: &[String], name: &str, m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Vec<Ty>> {
         if args.is_empty() && !declared.is_empty() {
-            // Left to inference where a value fills the blanks (`'m' := Maybe.some[42]`).
+            // Left to inference where a value fills the blanks (`let 'm' := Maybe.some[42]`).
             return Ok(declared.iter().map(|_| Ty::Infer(InferId(u32::MAX))).collect());
         }
         if args.len() != declared.len() {

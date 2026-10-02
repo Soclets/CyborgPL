@@ -5,9 +5,9 @@ fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
     return 'n' div 2;
 }
 MAIN {
-    'a' := half[10] otherwise 0;
-    'b' := half[7] otherwise 100;
-    mut 'c': int32 = 0;
+    let 'a' := half[10] otherwise 0;
+    let 'b' := half[7] otherwise 100;
+    let mut 'c': int32 = 0;
     half[-4] otherwise {
         odd          { change 'c' = 1; }
         negative 'v' { change 'c' = 0 - 'v'; }

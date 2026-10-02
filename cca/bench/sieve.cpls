@@ -9,21 +9,21 @@ extern fn atoll ['s': ptr[uint8]] -> int64[0, 200_000_000];
 # of range when it is not a number this program takes.
 fn read_n ['text': ptr[uint8]] -> int64[0, 200_000_000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck 'n' := atoll['text'] otherwise fail;
+    nocheck let 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 
 fn run [] -> int32 or fail[missing, out_of_range] {
-    'key' := "N";
-    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    let 'key' := "N";
+    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
-    mut 'comp': list[bool] = list.fill[false, 'n' + 1];
-    mut 'count': int64 = 0;
-    mut 'p': int64 = 2;
+    let mut 'comp': list[bool] = list.fill[false, 'n' + 1];
+    let mut 'count': int64 = 0;
+    let mut 'p': int64 = 2;
     while 'p' </== 'n' {
         if not 'comp'[to.uint64['p' + 1]] {
             change 'count' = 'count' + 1;
-            mut 'm': int64 = 'p' x 'p';
+            let mut 'm': int64 = 'p' x 'p';
             while 'm' </== 'n' {
                 change 'comp'[to.uint64['m' + 1]] = true;
                 change 'm' = 'm' + 'p';
@@ -35,6 +35,6 @@ fn run [] -> int32 or fail[missing, out_of_range] {
 }
 
 MAIN {
-    'code' := run[] otherwise 2;
+    let 'code' := run[] otherwise 2;
     nocheck exit['code'];
 }

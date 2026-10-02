@@ -4,9 +4,9 @@
 # best at 2, and after the loop 3 and 88 → 2 x 100 + 3 x 10 + 8 = 238).
 extern fn exit ['code': int32];
 MAIN {
-    'scores': list[int32] = [70, 95, 88];
-    mut 'best_at': uint64 = 0;
-    mut 'best': int32 = 0;
+    let 'scores': list[int32] = [70, 95, 88];
+    let mut 'best_at': uint64 = 0;
+    let mut 'best': int32 = 0;
     for 'i', 's' in lend 'scores' {
         if 's' > 'best' { change 'best' = 's'; change 'best_at' = 'i'; }
     }

@@ -4,14 +4,14 @@
 # 4 + 3 + 2 + 1.25 x 4 = 14.
 extern fn exit ['code': int32];
 MAIN {
-    'bs': list[bin64] = [1, -2, 5];
-    'ds': list[deci64] = [1, 2];
-    'fs': list[bin64] = list.fill[2, 3];
-    'q': deci64 = 1.25;
-    'qs': list[deci64] = list.fill['q', 2];
-    'b': int32 = to.int32['bs'[1] + 'bs'[2] + 'bs'[3]] otherwise 90;
-    'd': int32 = to.int32['ds'[1] + 'ds'[2]] otherwise 91;
-    'f': int32 = to.int32['fs'[3]] otherwise 92;
-    'e': int32 = to.int32['qs'[2] x 4] otherwise 93;
+    let 'bs': list[bin64] = [1, -2, 5];
+    let 'ds': list[deci64] = [1, 2];
+    let 'fs': list[bin64] = list.fill[2, 3];
+    let 'q': deci64 = 1.25;
+    let 'qs': list[deci64] = list.fill['q', 2];
+    let 'b': int32 = to.int32['bs'[1] + 'bs'[2] + 'bs'[3]] otherwise 90;
+    let 'd': int32 = to.int32['ds'[1] + 'ds'[2]] otherwise 91;
+    let 'f': int32 = to.int32['fs'[3]] otherwise 92;
+    let 'e': int32 = to.int32['qs'[2] x 4] otherwise 93;
     nocheck exit['b' + 'd' + 'f' + 'e'];
 }

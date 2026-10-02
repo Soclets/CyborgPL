@@ -5,10 +5,10 @@ fn inc ['n': int32] -> int32 { return 'n' + 1; }
 fn add ['a': int32, 'b': int32] -> int32 { return 'a' + 'b'; }
 extern fn exit ['code': int32];
 MAIN {
-    'f' := inc;
-    'g' := add;
-    'xs': list[int32] = [4, 5, 6];
-    'a' := 'f'[2];
-    'c' := 'g'[10, 20];
+    let 'f' := inc;
+    let 'g' := add;
+    let 'xs': list[int32] = [4, 5, 6];
+    let 'a' := 'f'[2];
+    let 'c' := 'g'[10, 20];
     nocheck exit['a' + 'c' + 'xs'['xs'[1] - 3]];
 }

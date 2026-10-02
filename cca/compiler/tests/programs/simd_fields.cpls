@@ -10,9 +10,9 @@ fn step ['p': Particle] -> Particle {
 }
 
 MAIN {
-    'p' := Particle[place = simd.fill[1], vel = simd.fill[2]];
-    'q' := step[give 'p'];
-    mut 'history': list[simd[int32, 4]] = [];
+    let 'p' := Particle[place = simd.fill[1], vel = simd.fill[2]];
+    let 'q' := step[give 'p'];
+    let mut 'history': list[simd[int32, 4]] = [];
     list.append[lend.mut 'history', 'q'.place];
     list.append[lend.mut 'history', 'q'.place + 'q'.vel];
     list.append[lend.mut 'history', simd.shuffle['q'.vel, [1, 2, 3, 4]]];

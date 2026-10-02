@@ -3,8 +3,8 @@
 extern fn exit ['code': int32];
 fn put_u ['n': uint64] -> uint64 { return 'n'; }
 fn f3 ['p1': uint32] -> uint16 {
-    mut 'w6': int32 = 1;
-    mut 'got': uint64 = 0;
+    let mut 'w6': int32 = 1;
+    let mut 'got': uint64 = 0;
     while 'w6' > 0 {
         change 'w6' = 0;
         change 'got' = put_u[2 x 7726793855274730819];

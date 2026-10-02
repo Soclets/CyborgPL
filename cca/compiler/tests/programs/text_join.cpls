@@ -3,9 +3,9 @@ fn greet [lent 'who': str.utf8] -> str.utf8 {
     return "hello, " ++ 'who';
 }
 MAIN {
-    'name': str.utf8 = "world";
-    'msg' := greet[lend 'name'];
-    'n': int32 = str.bytes[lend 'msg'];
-    'plain': int32 = str.bytes[lend 'name'];
+    let 'name': str.utf8 = "world";
+    let 'msg' := greet[lend 'name'];
+    let 'n': int32 = str.bytes[lend 'msg'];
+    let 'plain': int32 = str.bytes[lend 'name'];
     nocheck exit['n' + 'plain'];
 }

@@ -3,8 +3,8 @@
 extern fn exit ['code': int32];
 extern mut 'optind': int32;
 MAIN {
-    nocheck 'first' := 'optind';
+    nocheck let 'first' := 'optind';
     nocheck change 'optind' = 5;
-    nocheck 'after' := 'optind';
+    nocheck let 'after' := 'optind';
     nocheck exit['first' x 10 + 'after'];
 }

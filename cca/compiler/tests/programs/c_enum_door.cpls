@@ -20,11 +20,11 @@ fn code ['k': Key] -> int32 {
 }
 
 MAIN {
-    nocheck 'n': int32 = abs[Key.escape];                        # 256
-    nocheck 'up': Key = toupper[97] otherwise Key.escape;        # a
-    nocheck 'same': Key = toupper[66] otherwise Key.escape;      # b
-    nocheck 'none': Key = toupper[50] otherwise Key.escape;      # '2' is no case: escape
-    nocheck 'q': Div = div[7, 2] otherwise Div[quot = 0, rem = 9];
-    nocheck 'big': Div = div[100, 2] otherwise Div[quot = 0, rem = 9];
+    nocheck let 'n': int32 = abs[Key.escape];                        # 256
+    nocheck let 'up': Key = toupper[97] otherwise Key.escape;        # a
+    nocheck let 'same': Key = toupper[66] otherwise Key.escape;      # b
+    nocheck let 'none': Key = toupper[50] otherwise Key.escape;      # '2' is no case: escape
+    nocheck let 'q': Div = div[7, 2] otherwise Div[quot = 0, rem = 9];
+    nocheck let 'big': Div = div[100, 2] otherwise Div[quot = 0, rem = 9];
     nocheck exit[('n' - 256) + code[give 'up'] x 1000 + code[give 'same'] x 100 + code[give 'none'] x 10 + 'q'.quot + 'q'.rem + 'big'.rem];
 }

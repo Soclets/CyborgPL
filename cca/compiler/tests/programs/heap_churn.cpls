@@ -5,25 +5,25 @@
 extern fn exit ['code': int32];
 
 fn round ['n': int32] -> int32 {
-    mut 'xs': list[int32] = [];
+    let mut 'xs': list[int32] = [];
     for 'i': int32 in range[1, 20] {
         list.append[lend.mut 'xs', 'i' + 'n'];
     }
-    mut 'text': str.utf8 = "";
+    let mut 'text': str.utf8 = "";
     for 'j': int32 in range[1, 5] {
         change 'text' = copy 'text' ++ "ab";
     }
-    mut 'm': map[str.utf8, list[int32]] = map.empty;
+    let mut 'm': map[str.utf8, list[int32]] = map.empty;
     map.set[lend.mut 'm', copy 'text', copy 'xs'];
     map.set[lend.mut 'm', "other", copy 'xs'];
-    'entries': int32 = map.length[lend 'm'];
-    'bytes': int32 = str.bytes[lend 'text'];
-    'count': int32 = list.length[lend 'xs'];
+    let 'entries': int32 = map.length[lend 'm'];
+    let 'bytes': int32 = str.bytes[lend 'text'];
+    let 'count': int32 = list.length[lend 'xs'];
     return 'entries' + 'bytes' + 'count';
 }
 
 MAIN {
-    mut 'total': int32 = 0;
+    let mut 'total': int32 = 0;
     for 'k': int32 in range[1, 500] {
         change 'total' = round['k'];
     }

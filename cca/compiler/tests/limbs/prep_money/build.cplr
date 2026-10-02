@@ -4,12 +4,12 @@ extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 extern fn access ['path': ptr[uint8], 'mode': int32] -> int32;
 extern fn exit ['code': int32];
 MAIN {
-    'at' := "here-money";
-    nocheck 'found' := access[lend 'at', 0];
+    let 'at' := "here-money";
+    nocheck let 'found' := access[lend 'at', 0];
     if 'found' !== 0 { nocheck exit[9]; }
-    'say' := "money";
-    'nl': list[uint8] = [10,];
-    nocheck 'w' := write[1, lend 'say', 5];
-    nocheck 'e' := write[1, lend 'nl', 1];
+    let 'say' := "money";
+    let 'nl': list[uint8] = [10,];
+    nocheck let 'w' := write[1, lend 'say', 5];
+    nocheck let 'e' := write[1, lend 'nl', 1];
     nocheck exit[0];
 }

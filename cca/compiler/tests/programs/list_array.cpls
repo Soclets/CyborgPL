@@ -4,19 +4,19 @@
 # leak check frees each once.
 extern fn exit ['code': int32];
 MAIN {
-    mut 'l': list[int32] = [1, 2];
+    let mut 'l': list[int32] = [1, 2];
     list.append[lend.mut 'l', 3];
-    'a' := to.array[give 'l'];
-    mut 'm' := to.list[copy 'a'];
+    let 'a' := to.array[give 'l'];
+    let mut 'm' := to.list[copy 'a'];
     list.append[lend.mut 'm', 4];
-    mut 's': list[int32] = array.slice[lend 'a', 2, 3];
+    let mut 's': list[int32] = array.slice[lend 'a', 2, 3];
     list.append[lend.mut 's', 9];
-    mut 'w': list[str.utf8] = ["x", "yy"];
+    let mut 'w': list[str.utf8] = ["x", "yy"];
     list.append[lend.mut 'w', "zzz"];
-    'fw' := to.array[copy 'w'];
-    'back' := to.list[give 'fw'];
+    let 'fw' := to.array[copy 'w'];
+    let 'back' := to.list[give 'fw'];
     # 3 + 4 x 10 + 3 x 100 + 3 + (1 + 4 + 9)
-    'n': uint64 = array.length[lend 'a'] + list.length[lend 'm'] x 10 + list.length[lend 's'] x 100 + list.length[lend 'back'];
-    'v': int32 = 'a'[1] + 'm'[4] + 's'[3];
+    let 'n': uint64 = array.length[lend 'a'] + list.length[lend 'm'] x 10 + list.length[lend 's'] x 100 + list.length[lend 'back'];
+    let 'v': int32 = 'a'[1] + 'm'[4] + 's'[3];
     nocheck exit[to.int32['n'] + 'v'];
 }

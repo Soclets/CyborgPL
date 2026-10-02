@@ -5,12 +5,12 @@
 extern fn exit ['code': int32];
 fn half ['n': uint64] -> uint64 { return ('n' div 10) + 1; }
 MAIN {
-    mut 'k': int32 = 2;
-    mut 'total': uint64 = 0;
+    let mut 'k': int32 = 2;
+    let mut 'total': uint64 = 0;
     while 'k' > 0 {
         change 'k' = 'k' - 1;
         if 'k' == 0 { change 'total' = half[0 - 1]; }
     }
-    'c': int32 = to.int32['total'];
+    let 'c': int32 = to.int32['total'];
     nocheck exit['c'];
 }

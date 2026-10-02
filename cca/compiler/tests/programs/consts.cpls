@@ -10,15 +10,15 @@ const 'big': int64 = 'max' xx 20;
 pub struct P { x: int32 }
 pub fn area ['r': bin64] -> bin64 { return 'pi' x 'r' x 'r'; }
 MAIN {
-    mut 'got': int32 = 0;
+    let mut 'got': int32 = 0;
     if 'twice_max' == 16 { change 'got' = 'got' + 1; }
-    's' := 'greeting';
+    let 's' := 'greeting';
     nocheck if strlen[lend 's'] == 11 { change 'got' = 'got' + 2; }
-    'p' := P[x = 'max'];
+    let 'p' := P[x = 'max'];
     if 'p'.x == 8 { change 'got' = 'got' + 4; }
-    'a' := area[2.0];
+    let 'a' := area[2.0];
     if 'a' > 12.56 and 'a' < 12.57 { change 'got' = 'got' + 8; }
-    mut 'n': int32 = 0;
+    let mut 'n': int32 = 0;
     for 'i' in range[1, 'max', 4] { change 'n' = 'n' + 1; }
     if 'n' == 2 { change 'got' = 'got' + 16; }
     if 'big' == 1152921504606846976 { change 'got' = 'got' + 32; }

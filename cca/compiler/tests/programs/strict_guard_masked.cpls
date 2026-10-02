@@ -8,9 +8,9 @@
 extern fn exit ['code': int32];
 extern fn getpid [] -> int32;
 MAIN {
-    nocheck immut 'p': int32 = getpid[];
-    immut 'v': int32 = 'p' and.bit 16383;
-    mut 'code': int32 = 0;
+    nocheck let immut 'p': int32 = getpid[];
+    let immut 'v': int32 = 'p' and.bit 16383;
+    let mut 'code': int32 = 0;
     if 'v' == 0 or.else (18 mod 'v') < 20 {
         change 'code' = 7;
     }

@@ -7,14 +7,14 @@ extern fn exit ['code': int32];
 extern fn getpid [] -> int32;
 fn pick ['n': int64] -> int64 { return 'n' x 10; }
 MAIN {
-    nocheck 'p' := getpid[];
-    'b': bool = 'p' > 0;
-    mut 'got': int64 = 0;
-    mut 'w': int64 = 1;
+    nocheck let 'p' := getpid[];
+    let 'b': bool = 'p' > 0;
+    let mut 'got': int64 = 0;
+    let mut 'w': int64 = 1;
     while 'w' > 0 {
         change 'w' = 0;
         if 'b' { change 'got' = pick[3]; }
     }
-    'last' := pick[1];
+    let 'last' := pick[1];
     nocheck exit[to.int32['got' + 'last']];
 }

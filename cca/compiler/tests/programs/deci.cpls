@@ -7,51 +7,51 @@ fn same ['v': deci64, 'want': str.utf8] -> int32 {
     return 0;
 }
 MAIN {
-    mut 'got': int32 = 0;
-    'a': deci64 = 0.1;
-    'b': deci64 = 'a' + 0.2;
+    let mut 'got': int32 = 0;
+    let 'a': deci64 = 0.1;
+    let 'b': deci64 = 'a' + 0.2;
     change 'got' = 'got' + same['b', "0.3"];
     if 'b' == 0.3 { change 'got' = 'got' + 1; }
-    'price': deci64 = 19.99;
-    'sub': deci64 = 'price' x 3;
-    'tax': deci64 = 'sub' x 0.075;
+    let 'price': deci64 = 19.99;
+    let 'sub': deci64 = 'price' x 3;
+    let 'tax': deci64 = 'sub' x 0.075;
     change 'got' = 'got' + same['sub', "59.97"] + same['tax', "4.49775"] + same['sub' + 'tax', "64.46775"];
-    'h': deci64 = 2.50;
+    let 'h': deci64 = 2.50;
     change 'got' = 'got' + same['h' x 2, "5.00"] + same['h', "2.50"];
     if 'h' x 2 == 5 { change 'got' = 'got' + 1; }
-    'third': deci64 = 1;
+    let 'third': deci64 = 1;
     change 'got' = 'got' + same['third' div 3, "0.3333333333333333"] + same['h' div 2, "1.25"];
-    'e1': deci32 = 1.000005;
+    let 'e1': deci32 = 1.000005;
     if to.str.utf8['e1' + 0.0000005] == "1.000006" { change 'got' = 'got' + 1; }
-    'w': bin64 = 0.1;
+    let 'w': bin64 = 0.1;
     change 'got' = 'got' + same[to.deci64['w'], "0.1000000000000000"];
     if to.str.utf8[to.deci128['w']] == "0.1000000000000000055511151231257827" { change 'got' = 'got' + 1; }
     if to.str.utf8[to.useful.deci128['w']] == "0.1" { change 'got' = 'got' + 1; }
-    'n': int32 = 12345;
+    let 'n': int32 = 12345;
     change 'got' = 'got' + same[to.deci64['n'], "12345"];
-    'big': int64 = 12345678901234567;
-    'bd' := to.deci64['big'] otherwise 'price';
-    'fits': int64 = 1234567890123456;
-    'fd' := to.deci64['fits'] otherwise 'price';
+    let 'big': int64 = 12345678901234567;
+    let 'bd' := to.deci64['big'] otherwise 'price';
+    let 'fits': int64 = 1234567890123456;
+    let 'fd' := to.deci64['fits'] otherwise 'price';
     change 'got' = 'got' + same['bd', "19.99"] + same['fd', "1234567890123456"];
-    't' := to.deci64["1.250"] otherwise 'price';
-    'u' := to.deci64["0.12345678901234567"] otherwise { too_many_digits { 'a' } not_a_number { 'h' } out_of_range { 'h' } };
-    'v' := to.deci64["abc"] otherwise { not_a_number { 'h' } too_many_digits { 'a' } out_of_range { 'a' } };
-    'x' := to.deci64["1e999"] otherwise { out_of_range { 'third' } too_many_digits { 'a' } not_a_number { 'a' } };
+    let 't' := to.deci64["1.250"] otherwise 'price';
+    let 'u' := to.deci64["0.12345678901234567"] otherwise { too_many_digits { 'a' } not_a_number { 'h' } out_of_range { 'h' } };
+    let 'v' := to.deci64["abc"] otherwise { not_a_number { 'h' } too_many_digits { 'a' } out_of_range { 'a' } };
+    let 'x' := to.deci64["1e999"] otherwise { out_of_range { 'third' } too_many_digits { 'a' } not_a_number { 'a' } };
     change 'got' = 'got' + same['t', "1.250"] + same['u', "0.1"] + same['v', "2.50"] + same['x', "1"];
-    'i' := to.int32['h' x 2] otherwise -1;
-    'j' := to.int32['h'] otherwise -1;
+    let 'i' := to.int32['h' x 2] otherwise -1;
+    let 'j' := to.int32['h'] otherwise -1;
     if 'i' == 5 and 'j' == -1 { change 'got' = 'got' + 1; }
     if to.bin64['h'] == 2.5 { change 'got' = 'got' + 1; }
-    'neg': deci64 = -1.5;
+    let 'neg': deci64 = -1.5;
     change 'got' = 'got' + same[-'neg', "1.5"] + same['neg', "-1.5"];
     if 'neg' < 'h' and not ('h' < 'neg') and 'h' >/== 2.5 { change 'got' = 'got' + 1; }
-    'g': deci64 = 0.1 + 0.2;
+    let 'g': deci64 = 0.1 + 0.2;
     change 'got' = 'got' + same['g', "0.3"];
-    'r': deci32 = 2.5;
-    'wide' := to.deci64['r'];
+    let 'r': deci32 = 2.5;
+    let 'wide' := to.deci64['r'];
     change 'got' = 'got' + same['wide' x 'h', "6.250"];
-    'z': deci64 = 0;
+    let 'z': deci64 = 0;
     change 'got' = 'got' + same[-'z', "-0"] + same['h' - 'h', "0.00"];
     nocheck exit['got'];
 }

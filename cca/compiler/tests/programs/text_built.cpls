@@ -1,12 +1,12 @@
 extern fn exit ['code': int32];
 MAIN {
-    mut 'out': str.utf8 = "";
+    let mut 'out': str.utf8 = "";
     for 'i': int32 in range[1, 20] {
         change 'out' = copy 'out' ++ "ab";
     }
-    'n': int32 = str.bytes[lend 'out'];
-    'lit': str.utf8 = "fixed";
-    'dup': str.utf8 = copy 'lit';
-    'm': int32 = str.bytes[lend 'dup'];
+    let 'n': int32 = str.bytes[lend 'out'];
+    let 'lit': str.utf8 = "fixed";
+    let 'dup': str.utf8 = copy 'lit';
+    let 'm': int32 = str.bytes[lend 'dup'];
     nocheck exit['n' + 'm'];
 }

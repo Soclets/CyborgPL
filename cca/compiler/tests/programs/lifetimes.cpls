@@ -15,16 +15,16 @@ fn first [lent 'a': str.utf8] -> lent str.utf8 {
     return lend 'a';
 }
 fn width [lent 's': str.utf8] -> int32 {
-    'n' := str.bytes[lend 's'];
+    let 'n' := str.bytes[lend 's'];
     if 'n' > 1000 { return 0; }
     return to.int32['n'];
 }
 fn run [] -> int32 {
-    's' := "hello";
-    't' := "hi";
-    'l' := longer[lend 's', lend 't'];
-    'p' := pick[lend 't', lend 's'];
-    'f' := first[lend 's'];
+    let 's' := "hello";
+    let 't' := "hi";
+    let 'l' := longer[lend 's', lend 't'];
+    let 'p' := pick[lend 't', lend 's'];
+    let 'f' := first[lend 's'];
     return width[lend 'l'] x 100 + width[lend 'p'] x 10 + width[lend 'f'];
 }
 MAIN {

@@ -5,12 +5,12 @@
 # seed 6313). 'v' is 1 x 100000 with one word, which no int16 holds, so
 # the program stops at the narrowing.
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    'v': int64 = to.int64['argc'] x 100000;
-    mut 'w': int32 = 8;
+    let 'v': int64 = to.int64['argc'] x 100000;
+    let mut 'w': int32 = 8;
     while 'w' > 0 {
         change 'w' = 'w' - 1;
         for 'i': int8 in range[-13, -36, -2] {
         }
     }
-    'z': int16 = to.int16['v'];
+    let 'z': int16 = to.int16['v'];
 }

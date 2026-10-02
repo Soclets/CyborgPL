@@ -7,8 +7,8 @@ fn half ['n': int32] -> int32 { return 100 div 'n'; }
 fn four [] -> int32 { return 4; }
 fn ratio ['n': int32[1, max]] -> int32 { return 100 div 'n'; }
 MAIN {
-    immut 'a' := half[4];
-    immut 'b' := 100 div four[];
-    immut 'c' := ratio[5];
+    let immut 'a' := half[4];
+    let immut 'b' := 100 div four[];
+    let immut 'c' := ratio[5];
     nocheck exit['a' + 'b' + 'c'];
 }

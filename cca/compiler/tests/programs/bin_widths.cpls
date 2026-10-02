@@ -4,21 +4,21 @@
 # comparison stays at 64 bits: a bin32 0.1 is a little more than 0.1.
 extern fn exit ['code': int32];
 MAIN {
-    'x': bin32 = 16777216.0;
-    mut 'got': int32 = 0;
-    'a' := 'x' + 1.0;
-    'na' := to.int32['a' - 16777216.0] otherwise 99;
+    let 'x': bin32 = 16777216.0;
+    let mut 'got': int32 = 0;
+    let 'a' := 'x' + 1.0;
+    let 'na' := to.int32['a' - 16777216.0] otherwise 99;
     if 'na' == 0 { change 'got' = 'got' + 1; }
-    'b': bin32 = 'x' + 1.0 + 1.0;
-    'nb' := to.int32['b' - 16777216.0] otherwise 99;
-    'w': bin64 = 1.0;
-    'nw' := to.int32['x' + 'w' - 16777216.0] otherwise 99;
+    let 'b': bin32 = 'x' + 1.0 + 1.0;
+    let 'nb' := to.int32['b' - 16777216.0] otherwise 99;
+    let 'w': bin64 = 1.0;
+    let 'nw' := to.int32['x' + 'w' - 16777216.0] otherwise 99;
     if 'nb' == 0 and 'nw' == 1 { change 'got' = 'got' + 2; }
-    'c': bin32 = 0.1;
+    let 'c': bin32 = 0.1;
     if 'c' > 0.1 and not ('c' == 0.1) { change 'got' = 'got' + 4; }
-    'd' := 'c' x 10.0;
+    let 'd' := 'c' x 10.0;
     if 'd' > 0.99 and 'd' < 1.01 { change 'got' = 'got' + 8; }
-    mut 'h': int32 = 0;
+    let mut 'h': int32 = 0;
     check if 'x' > 0.0 { change 'h' = to.int32['x' div 2.0] otherwise 0; }
     if 'h' == 8388608 { change 'got' = 'got' + 16; }
     nocheck exit['got'];

@@ -4,16 +4,16 @@ extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn atoi ['s': ptr[uint8]] -> int32;
 MAIN {
-    'k' := "N";
-    nocheck 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
-    mut 'xs': list[bool] = [];
-    mut 'i': int64 = 0;
+    let 'k' := "N";
+    nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
+    let mut 'xs': list[bool] = [];
+    let mut 'i': int64 = 0;
     while 'i' </== 'n' {
         if ('i' mod 2) == 0 { list.append[lend.mut 'xs', true]; }
         change 'i' = 'i' + 1;
     }
-    mut 'p': int64 = 1;
-    mut 'c': int64 = 0;
+    let mut 'p': int64 = 1;
+    let mut 'c': int64 = 0;
     while 'p' </== 'n' {
         if 'xs'[to.uint64['p']] { change 'c' = 'c' + 1; }
         change 'p' = 'p' + 1;

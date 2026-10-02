@@ -3,8 +3,8 @@
 # 's''s storage from under it — CCA's binary read freed memory. Refused.
 fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
 MAIN {
-    mut 's': list[int32] = [1, 2, 3];
-    'r' := first[lend 's'];
+    let mut 's': list[int32] = [1, 2, 3];
+    let 'r' := first[lend 's'];
     for 'k': int32 in range[1, 1000] { list.append[lend.mut 's', 'k']; }
-    'n' := list.length[lend 'r'];
+    let 'n' := list.length[lend 'r'];
 }

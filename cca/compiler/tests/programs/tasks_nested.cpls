@@ -1,18 +1,18 @@
 extern fn exit ['code': int32];
 fn total [lent 'xs': list[int32]] -> int32 {
-    mut 's': int32 = 0;
+    let mut 's': int32 = 0;
     for 'x' in lend 'xs' { change 's' = 's' + 'x'; }
     return 's';
 }
 MAIN {
-    'xs': list[int32] = [1, 2, 3];
-    'name': str.utf8 = "task" ++ "s";
-    mut 'out': list[int32] = [];
+    let 'xs': list[int32] = [1, 2, 3];
+    let 'name': str.utf8 = "task" ++ "s";
+    let mut 'out': list[int32] = [];
     for 'k': int32 in range[1, 50] {
         concur with [copy 'xs', give 'name', lend.mut 'out'] {
-            'inner' := total[lend 'xs'];
+            let 'inner' := total[lend 'xs'];
             {
-                concur with [lend 'xs'] { 'again' := total[lend 'xs']; }
+                concur with [lend 'xs'] { let 'again' := total[lend 'xs']; }
             }
             list.append[lend.mut 'out', 'inner' + str.bytes[lend 'name']];
         }

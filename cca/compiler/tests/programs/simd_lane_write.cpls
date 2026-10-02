@@ -5,13 +5,13 @@
 # 4 + 144 + 30 + 30 = 208.
 extern fn exit ['code': int32];
 MAIN {
-    'a': simd[int32, 4] = simd.fill[4];
-    'x': int32 = 'a'[1];
-    'u': simd[uint8, 16] = simd.fill[200];
-    'w' := 'u' +~ 'u';
-    mut 'v': simd[int32, 4] = simd.fill[0];
+    let 'a': simd[int32, 4] = simd.fill[4];
+    let 'x': int32 = 'a'[1];
+    let 'u': simd[uint8, 16] = simd.fill[200];
+    let 'w' := 'u' +~ 'u';
+    let mut 'v': simd[int32, 4] = simd.fill[0];
     change 'v'[3] = 30;
-    'y': int32 = 'v'[3];
-    's': int32 = simd.sum['v'];
+    let 'y': int32 = 'v'[3];
+    let 's': int32 = simd.sum['v'];
     nocheck exit['x' + to.int32['w'[16]] + 'y' + 's'];
 }

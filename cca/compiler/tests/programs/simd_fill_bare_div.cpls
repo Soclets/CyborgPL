@@ -4,7 +4,7 @@
 # stopped on it. 5019890606917513981 mod 256 is 253.
 extern fn exit ['code': int32];
 MAIN {
-    's': simd[uint64, 2] = simd.fill[15059671820752541943 div 3];
-    'x': uint64 = 's'[1];
+    let 's': simd[uint64, 2] = simd.fill[15059671820752541943 div 3];
+    let 'x': uint64 = 's'[1];
     nocheck exit[to.int32['x' mod 256]];
 }

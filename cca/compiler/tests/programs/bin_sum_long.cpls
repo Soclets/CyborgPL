@@ -4,12 +4,12 @@
 # proven; the check is kept, and the program stops there.
 extern fn exit ['code': int32];
 MAIN {
-    'n': int64 = 400000000;
-    'big': bin64 = 10.0 xx 300.0;
-    mut 't': bin64 = 0.0;
+    let 'n': int64 = 400000000;
+    let 'big': bin64 = 10.0 xx 300.0;
+    let mut 't': bin64 = 0.0;
     for 'i': int64 in range[1, 'n'] {
         change 't' = 't' + 'big';
     }
-    'r': int32 = to.int32['big' div 't'] otherwise 7;
+    let 'r': int32 = to.int32['big' div 't'] otherwise 7;
     nocheck exit['r'];
 }

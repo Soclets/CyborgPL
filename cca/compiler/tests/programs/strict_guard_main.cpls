@@ -9,8 +9,8 @@ fn pick ['n': uint32] -> uint32 {
     return 'n';
 }
 MAIN {
-    immut 'v': uint32 = pick[1];
-    mut 'code': int32 = 0;
+    let immut 'v': uint32 = pick[1];
+    let mut 'code': int32 = 0;
     if 'v' !== 0 and.then (15 mod 'v') !== 3 {
         change 'code' = 5;
     }

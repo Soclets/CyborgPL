@@ -13,13 +13,13 @@ fn flag ['b': bool, 'v': int32] -> int32 {
 }
 
 MAIN {
-    'xs': array[int32] = [5, 20, 30, 40];
-    'a': simd[int32, 4] = simd.load[lend 'xs', 1];
-    'm': simd[bool, 4] = 'a' > simd.fill[10];
-    'all': simd[bool, 4] = simd.fill[true];
-    'both' := 'm' and 'all';
-    'flip' := not 'm';
-    'either' := 'flip' or 'm';
-    'few': simd[bool, 16] = simd.fill[false];
+    let 'xs': array[int32] = [5, 20, 30, 40];
+    let 'a': simd[int32, 4] = simd.load[lend 'xs', 1];
+    let 'm': simd[bool, 4] = 'a' > simd.fill[10];
+    let 'all': simd[bool, 4] = simd.fill[true];
+    let 'both' := 'm' and 'all';
+    let 'flip' := not 'm';
+    let 'either' := 'flip' or 'm';
+    let 'few': simd[bool, 16] = simd.fill[false];
     nocheck exit[flag[simd.any['m'], 1] + flag[simd.all['m'], 2] + flag[all_on['both'], 4] + flag[simd.any['flip'], 8] + flag[simd.all['either'], 16] + flag[simd.any['few'], 32]];   # 1 + 8 + 16 = 25
 }

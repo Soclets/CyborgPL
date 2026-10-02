@@ -10,11 +10,11 @@ fn flag ['b': bool, 'v': int32] -> int32 {
     return 0;
 }
 MAIN {
-    'i': uint8 = 5;
-    'xs': list[uint8] = [0 -~ 1, 0 -~ 'i', 250 +~ 10];
-    'ys': list[uint32] = [2 shl 3, not.bit 0];
-    'zs': list[list[uint8]] = [[0 -~ 2,], [1,]];
-    'big': list[uint64] = [9692729768110883998 - 3166240359165959856,];
-    'inner' := copy 'zs'[1];
+    let 'i': uint8 = 5;
+    let 'xs': list[uint8] = [0 -~ 1, 0 -~ 'i', 250 +~ 10];
+    let 'ys': list[uint32] = [2 shl 3, not.bit 0];
+    let 'zs': list[list[uint8]] = [[0 -~ 2,], [1,]];
+    let 'big': list[uint64] = [9692729768110883998 - 3166240359165959856,];
+    let 'inner' := copy 'zs'[1];
     nocheck exit[flag['xs'[1] == 255, 1] + flag['xs'[2] == 251, 2] + flag['xs'[3] == 4, 4] + flag['ys'[1] == 16, 8] + flag['ys'[2] == 4294967295, 16] + flag['inner'[1] == 254, 32] + flag['big'[1] == 6526489408944924142, 64]];
 }

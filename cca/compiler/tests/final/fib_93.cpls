@@ -9,15 +9,15 @@ fn fib ['n': int64[0, 93]] -> int64 {
 }
 fn read_n ['text': ptr[uint8]] -> int64[0, 93] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck 'n' := atoll['text'] otherwise fail;
+    nocheck let 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 fn run [] -> int32 or fail[missing, out_of_range] {
-    'key' := "N";
-    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    let 'key' := "N";
+    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     return to.int32[fib['n'] mod 256];
 }
 MAIN {
-    'code' := run[] otherwise 2;
+    let 'code' := run[] otherwise 2;
     nocheck exit['code'];
 }

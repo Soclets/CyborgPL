@@ -6,9 +6,9 @@
 # by 0, and said a proof had failed (seed 371).
 extern fn exit ['code': int32];
 MAIN {
-    mut 'got': int32 = 0;
+    let mut 'got': int32 = 0;
     if 3876992840477302775 + 7782534087963747351 > 0 { change 'got' = 'got' + 1; }
-    'q': uint64 = to.uint64[0 div ((2 div 10047273927188643194) + 1)];
+    let 'q': uint64 = to.uint64[0 div ((2 div 10047273927188643194) + 1)];
     if 'q' == 0 { change 'got' = 'got' + 2; }
     nocheck exit['got'];
 }

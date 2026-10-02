@@ -3,9 +3,9 @@
 extern fn getpid [] -> int32;
 extern fn exit ['code': int32];
 MAIN {
-    'xs': list[int32] = [1, 2, 3];
-    nocheck 'p': int32 = getpid[];
-    'k': uint64 = to.uint64[('p' - 'p') + 3];
-    'v': simd[int32, 4] = simd.load.some[lend 'xs', 2, 'k'];
+    let 'xs': list[int32] = [1, 2, 3];
+    nocheck let 'p': int32 = getpid[];
+    let 'k': uint64 = to.uint64[('p' - 'p') + 3];
+    let 'v': simd[int32, 4] = simd.load.some[lend 'xs', 2, 'k'];
     nocheck exit[simd.sum['v']];
 }

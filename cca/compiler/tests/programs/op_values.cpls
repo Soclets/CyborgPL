@@ -5,17 +5,17 @@ extern fn exit ['code': int32];
 struct V { x: int32  y: int32 }
 op dot ['a': V, 'b': V] -> int32 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
 fn fold [lent 'xs': list[int32], 'start': int32, 'f': fn[int32, int32] -> int32] -> int32 {
-    mut 'acc' := 'start';
+    let mut 'acc' := 'start';
     for 'x' in lend 'xs' { change 'acc' = 'f'['acc', 'x']; }
     return 'acc';
 }
 fn pairwise ['a': V, 'b': V, 'f': fn[lent V, lent V] -> int32] -> int32 { return 'f'[lend 'a', lend 'b']; }
 MAIN {
-    'xs': list[int32] = [1, 2, 3, 4];
-    'sum' := fold[lend 'xs', 0, op +];
-    'prod' := fold[lend 'xs', 1, op x];
-    'm': fn[int32, int32] -> int32 = op mod;
-    'r' := 'm'[17, 5];
-    'd' := pairwise[V[x = 1, y = 2], V[x = 3, y = 4], op dot];
+    let 'xs': list[int32] = [1, 2, 3, 4];
+    let 'sum' := fold[lend 'xs', 0, op +];
+    let 'prod' := fold[lend 'xs', 1, op x];
+    let 'm': fn[int32, int32] -> int32 = op mod;
+    let 'r' := 'm'[17, 5];
+    let 'd' := pairwise[V[x = 1, y = 2], V[x = 3, y = 4], op dot];
     nocheck exit['sum' + 'prod' + 'r' + 'd'];
 }

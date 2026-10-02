@@ -6,15 +6,15 @@ fn fill [lent.mut 'into': list[int32], 'from': int32] {
     }
 }
 MAIN {
-    mut 'a': list[int32] = [];
-    mut 'b': list[int32] = [];
+    let mut 'a': list[int32] = [];
+    let mut 'b': list[int32] = [];
     {
         concur with [lend.mut 'a'] { fill[lend.mut 'a', 10]; }
         concur with [lend.mut 'b'] { fill[lend.mut 'b', 20]; }
         concur work[4];
     }
-    'la': int32 = list.length[lend 'a'];
-    'lb': int32 = list.length[lend 'b'];
-    'last': int32 = 'b'[5];
+    let 'la': int32 = list.length[lend 'a'];
+    let 'lb': int32 = list.length[lend 'b'];
+    let 'last': int32 = 'b'[5];
     nocheck exit['la' + 'lb' + 'last'];
 }

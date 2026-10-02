@@ -4,14 +4,14 @@
 # (1 + 5) + (1 + 0.5) x 2 + (1 + 5 - 3 + 10) + (0.1 + 1) x 10 = 6 + 3 + 13 + 11 = 33.
 extern fn exit ['code': int32];
 MAIN {
-    'xs' := [1, 2.5];
-    'q': deci64 = 0.5;
-    'ds' := [1, 'q'];
-    'ys': list[bin64] = [1, 2.5, -3];
-    'es': list[deci64] = [0.1, 1];
-    'a': int32 = to.int32['xs'[1] + ('xs'[2] x 2.0)] otherwise 90;
-    'b': int32 = to.int32[('ds'[1] + 'ds'[2]) x 2] otherwise 91;
-    'c': int32 = to.int32[('ys'[2] x 2.0) + 'ys'[3] + 'ys'[1] + 10.0] otherwise 92;
-    'd': int32 = to.int32[('es'[1] + 'es'[2]) x 10] otherwise 93;
+    let 'xs' := [1, 2.5];
+    let 'q': deci64 = 0.5;
+    let 'ds' := [1, 'q'];
+    let 'ys': list[bin64] = [1, 2.5, -3];
+    let 'es': list[deci64] = [0.1, 1];
+    let 'a': int32 = to.int32['xs'[1] + ('xs'[2] x 2.0)] otherwise 90;
+    let 'b': int32 = to.int32[('ds'[1] + 'ds'[2]) x 2] otherwise 91;
+    let 'c': int32 = to.int32[('ys'[2] x 2.0) + 'ys'[3] + 'ys'[1] + 10.0] otherwise 92;
+    let 'd': int32 = to.int32[('es'[1] + 'es'[2]) x 10] otherwise 93;
     nocheck exit['a' + 'b' + 'c' + 'd'];
 }

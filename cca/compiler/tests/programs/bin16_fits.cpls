@@ -3,11 +3,11 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
-    'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
-    mut 'x': bin64 = 1.0;
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'x': bin64 = 1.0;
     if 'there' { change 'x' = 65519.0; }
-    'h': bin16 = 'x';
+    let 'h': bin16 = 'x';
     if 'h' == 65504.0 { nocheck exit[3]; }
     nocheck exit[4];
 }

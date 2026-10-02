@@ -16,11 +16,11 @@ struct B { y: int32 }
 op <+> ['a': A, 'b': A] -> int32 { return 'a'.x + 'b'.x; }
 op <+> ['a': B, 'b': B] -> int32 { return 'a'.y x 'b'.y; }
 MAIN {
-    'm': int32 = 100;
-    mut 'k': int32 = 0;
+    let 'm': int32 = 100;
+    let mut 'k': int32 = 0;
     if 95 ~= 'm' { change 'k' = 1; }
     if 50 ~= 'm' { change 'k' = 'k' + 2; }
-    'p' := A[x = 3];
-    'q' := B[y = 3];
+    let 'p' := A[x = 3];
+    let 'q' := B[y = 3];
     nocheck exit['k' + ('p' <+> 'p') x 10 + ('q' <+> 'q') x 100];
 }

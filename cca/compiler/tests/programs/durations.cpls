@@ -3,15 +3,15 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
-    'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
-    mut 'a' := 5 seconds;
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'a' := 5 seconds;
     if 'there' { change 'a' = 1500 millis; }
-    'b' := 'a' + 500 millis;
-    mut 'got': int32 = 0;
+    let 'b' := 'a' + 500 millis;
+    let mut 'got': int32 = 0;
     if 'b' == 2 seconds { change 'got' = 'got' + 1; }
     if 'b' > 1999999999 nanos and 'b' < 2001 millis { change 'got' = 'got' + 2; }
-    'c' := 'b' - 1 second;
+    let 'c' := 'b' - 1 second;
     if 'c' == 1000 millis { change 'got' = 'got' + 4; }
     nocheck exit['got'];
 }

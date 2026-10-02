@@ -369,7 +369,7 @@ impl<'a> FnBuilder<'a> {
         // A list or map written out in full: each element going into the
         // element type is a store like any other, so a narrower one is a
         // check site (as a struct's fields are). Without it
-        // `'xs': list[int8] = [1, 300];` kept 44.
+        // `let 'xs': list[int8] = [1, 300];` kept 44.
         let dest_ty = {
             let base = self.locals[place.local.0 as usize].ty.clone();
             self.resolve_ty(&projected_ty(&base, &place.proj, &self.arena.items))

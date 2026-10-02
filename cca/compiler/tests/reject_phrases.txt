@@ -100,7 +100,7 @@ const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
 const_bare_name [fnv:c290386092499bc9] :: `const 'max' := …;`
 const_effect_value [fnv:1221654939803659] :: `std::exit` has an effect, so it cannot make one
 const_from_variable [fnv:652fb6ee6f955c44] :: 'y' is not declared
-const_in_body [fnv:9b3a6a83cc747ff7] :: a `const` sits at the top level: inside a body a declaration is `'x' := …;`
+const_in_body [fnv:9b3a6a83cc747ff7] :: a `const` sits at the top level: inside a body a declaration is `let 'x' := …;`
 const_mut [fnv:9f30cb564f340919] :: it is a value known at compile time, never assigned
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
@@ -168,7 +168,7 @@ fail_in_main [fnv:2fc68f9bf7a1593d] :: `MAIN` cannot fail: it exits
 fail_no_list [fnv:57cd3eb8a3ffa049] :: its signature has no `fail[…]`
 fail_not_listed [fnv:c5ee76c688706bfd] :: its signature says fail[oops]
 fail_or_keyword_collision [fnv:65aeb77203450837] :: `f` can fail (a): say what happens
-fail_otherwise_alone [fnv:372a37a4f5b11cb7] :: `'x' := f[] otherwise 0;`
+fail_otherwise_alone [fnv:372a37a4f5b11cb7] :: `let 'x' := f[] otherwise 0;`
 fail_otherwise_empty [fnv:1a46eb3395cc974a] :: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms
 fail_otherwise_on_safe [fnv:da3b3f11872f9179] :: `f` cannot fail; drop the `otherwise`
 fail_payload_missing [fnv:4028eeeae43379a3] :: `why` carries a `str.utf8`, and `fail why` needs it: `fail why[…]`
@@ -244,8 +244,8 @@ lend_to_var_param [fnv:17f65879404b0710] :: write `give` (it moves) or `copy` (a
 lend_width_mismatch [fnv:ec3345969ad6a916] :: a lend hands over the value where it is, so the sizes must match
 length_bare [fnv:db83e090996e37b9] :: `list.length` takes a lend: write `lend 'xs'`
 length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint64` holds
-let_chain [fnv:f0731a3b445878f7] :: `let` is gone
-let_removed [fnv:f0731a3b445878f7] :: `let` is gone
+let_chain [fnv:4d7d73671053951c] :: `let` is a word of its own
+let_missing [fnv:ccd63909d593c858] :: a declaration starts with `let`
 let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
 lifetime_group_given [fnv:d0ed618004b47c50] :: 't' cannot be given away here: 'r' still borrows it and is used on line 8
 lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns

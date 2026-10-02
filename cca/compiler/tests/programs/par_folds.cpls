@@ -4,27 +4,27 @@
 # exact, so the rounding the order may change never shows here.
 extern fn exit ['code': int32];
 MAIN {
-    'n': int64 = 300000;
-    mut 'bs': list[bin64] = list.fill[0.5, 'n'];
-    mut 'bsum': bin64 = 0.0;
+    let 'n': int64 = 300000;
+    let mut 'bs': list[bin64] = list.fill[0.5, 'n'];
+    let mut 'bsum': bin64 = 0.0;
     for 'x' in lend 'bs' {
         change 'bsum' = 'bsum' + 'x';
     }
-    'q': deci64 = 0.25;
-    mut 'ds': list[deci64] = list.fill['q', 'n'];
-    mut 'dsum': deci64 = 0;
+    let 'q': deci64 = 0.25;
+    let mut 'ds': list[deci64] = list.fill['q', 'n'];
+    let mut 'dsum': deci64 = 0;
     for 'x' in lend 'ds' {
         change 'dsum' = 'dsum' + 'x';
     }
-    mut 'dprod': deci64 = 2;
+    let mut 'dprod': deci64 = 2;
     for 'y' in lend 'ds' {
         change 'dprod' = 'dprod' x 1;
     }
-    mut 'sign': int64 = 1;
+    let mut 'sign': int64 = 1;
     for 'i': int64 in range[1, 'n'] {
         change 'sign' = 'sign' x (('i' mod 2) x 2 - 1);
     }
-    'b': int32 = to.int32['bsum' div 1000.0] otherwise 1;
-    'd': int32 = to.int32[('dsum' x 'dprod') div 1000] otherwise 1;
+    let 'b': int32 = to.int32['bsum' div 1000.0] otherwise 1;
+    let 'd': int32 = to.int32[('dsum' x 'dprod') div 1000] otherwise 1;
     nocheck exit['b' + 'd' + to.int32['sign' + 2]];
 }

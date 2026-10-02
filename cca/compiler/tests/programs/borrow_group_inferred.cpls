@@ -8,8 +8,8 @@ fn b2 [lent@y 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
 }
 extern fn exit ['code': int32];
 MAIN {
-    's': list[int32] = [1,];
-    't': list[int32] = [2, 3];
-    'r' := b2[lend 's', lend 't'];
+    let 's': list[int32] = [1,];
+    let 't': list[int32] = [2, 3];
+    let 'r' := b2[lend 's', lend 't'];
     nocheck exit[to.int32[list.length[lend 'r']]];
 }

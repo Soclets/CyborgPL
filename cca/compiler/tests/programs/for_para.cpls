@@ -3,8 +3,8 @@
 # 4 = 10, as the oracle gives.
 extern fn exit ['code': int32];
 MAIN {
-    'xs': list[int64] = [1, 2, 3, 4];
-    mut 'total': int64 = 0;
+    let 'xs': list[int64] = [1, 2, 3, 4];
+    let mut 'total': int64 = 0;
     for para 'x' in lend 'xs' {
         change 'total' = 'total' + 'x';
     }

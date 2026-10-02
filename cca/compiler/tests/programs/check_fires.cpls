@@ -4,8 +4,8 @@ extern fn exit ['code': int32];
 extern fn getpid [] -> int32;
 
 MAIN {
-    nocheck 'pid' := getpid[];
-    'huge': int32 = 2_000_000_000;
-    'boom': int32 = 'pid' x 'huge';
+    nocheck let 'pid' := getpid[];
+    let 'huge': int32 = 2_000_000_000;
+    let 'boom': int32 = 'pid' x 'huge';
     nocheck exit['boom'];
 }

@@ -2,14 +2,14 @@
 extern fn exit ['code': int32];
 extern fn labs ['v': int64] -> int64;
 MAIN {
-    nocheck 'x': int64 = labs[1];
-    'a': int64 = 1 mod (-3);
-    'b': int64 = 7 mod (-3);
-    'd': int64 = 'x' mod (-3);
-    'e': int64 = 1 mod (-2982098350919537422);
-    'g': int32 = 1 mod (-2000000000);
-    'c': int64 = -7 mod 3;
-    'ok': int32 = 0;
+    nocheck let 'x': int64 = labs[1];
+    let 'a': int64 = 1 mod (-3);
+    let 'b': int64 = 7 mod (-3);
+    let 'd': int64 = 'x' mod (-3);
+    let 'e': int64 = 1 mod (-2982098350919537422);
+    let 'g': int32 = 1 mod (-2000000000);
+    let 'c': int64 = -7 mod 3;
+    let 'ok': int32 = 0;
     if 'a' == -2 and 'b' == -2 and 'd' == -2 and 'e' == -2982098350919537421 and 'g' == -1999999999 and 'c' == 2 { nocheck exit[42]; }
     nocheck exit[1];
 }

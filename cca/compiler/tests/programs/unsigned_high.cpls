@@ -3,15 +3,15 @@
 extern fn exit ['code': int32];
 extern fn labs ['v': int64] -> int64;
 MAIN {
-    nocheck 'one': int64 = labs[-1];
-    nocheck 'u': uint64 = to.uint64['one'];
-    'big': uint64 = 'u' x 10000000000000000000;     # 10^19: above 2^63
-    mut 'score': int32 = 0;
+    nocheck let 'one': int64 = labs[-1];
+    nocheck let 'u': uint64 = to.uint64['one'];
+    let 'big': uint64 = 'u' x 10000000000000000000;     # 10^19: above 2^63
+    let mut 'score': int32 = 0;
     if 'big' > 'u' { change 'score' = 'score' + 1; }             # unsigned compare
-    'half': uint64 = 'big' div 2;                      # unsigned divide
+    let 'half': uint64 = 'big' div 2;                      # unsigned divide
     if 'half' == 5000000000000000000 { change 'score' = 'score' + 10; }
-    'small': uint8 = 250;
-    mut 'n': int32 = 0;
+    let 'small': uint8 = 250;
+    let mut 'n': int32 = 0;
     for 'i': uint8 in range['small', 255, 3] { change 'n' = 'n' + 1; }   # 250, 253: widening a uint8 is not sign-extending it
     nocheck exit['score' + 'n' x 100];
 }

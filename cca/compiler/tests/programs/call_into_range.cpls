@@ -9,12 +9,12 @@ fn twice ['d': int32] -> int32 {
     return 'd' x 2;
 }
 fn one [] -> int32 {
-    'key' := "CCA_NO_SUCH_VARIABLE";
-    nocheck 'p' := getenv[lend 'key'];
+    let 'key' := "CCA_NO_SUCH_VARIABLE";
+    nocheck let 'p' := getenv[lend 'key'];
     if ptr.is_null['p'] { return 1; }
     return 0;
 }
 MAIN {
-    'c': int32[0, 1] = twice[one[]];
+    let 'c': int32[0, 1] = twice[one[]];
     nocheck exit[7];
 }

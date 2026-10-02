@@ -313,7 +313,7 @@ impl Checker {
                 if let ast::ExprKind::Call { .. } = &value.kind {
                     ctx.lend_call_ok = Some(value.span);
                 }
-                // `'f': fn[…] = op +;` takes its type from the declaration.
+                // `let 'f': fn[…] = op +;` takes its type from the declaration.
                 let v = match (&value.kind, declared.as_ref().map(|t| self.resolve(t))) {
                     (ast::ExprKind::OpValue { op, spelled, unary }, Some(Ty::Fn(ft))) => self.op_value(ctx, op, spelled, *unary, &ft, value.span),
                     _ => self.expr_top(ctx, value, true),
@@ -826,7 +826,7 @@ impl Checker {
         // A case that gives a value needs a `match` used as one.
         for arm in arms {
             if let Some(g @ ast::Stmt { kind: ast::StmtKind::Gives { .. }, .. }) = arm.body.stmts.last() {
-                return err(Diagnostic::error(format!("the `{}` case gives a value, but this `match` is not used as one: `'x' := match … {{ … }};`", arm.case.name)).at(g.span));
+                return err(Diagnostic::error(format!("the `{}` case gives a value, but this `match` is not used as one: `let 'x' := match … {{ … }};`", arm.case.name)).at(g.span));
             }
         }
         let (v, out) = self.match_arms(ctx, value, arms, None)?;

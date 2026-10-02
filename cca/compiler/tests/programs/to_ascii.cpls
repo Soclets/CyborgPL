@@ -4,14 +4,14 @@
 # stays (1): 5 x 16 + 2 x 4 + 1 + 1 = 90.
 extern fn exit ['code': int32];
 MAIN {
-    'plain': str.utf8 = "hello";
-    'accented': str.utf8 = "héllo";
-    'e': char.point = `é`;
-    'k': char.byte = `a`;
-    'a' := to.str.ascii['plain'] otherwise "?";
-    'b' := to.str.ascii['accented'] otherwise "no";
-    'c' := to.str.ascii['e'] otherwise "x";
-    'd' := to.str.ascii['k'];
-    'n': uint64 = str.bytes[lend 'a'] x 16 + str.bytes[lend 'b'] x 4 + str.bytes[lend 'c'] + str.bytes[lend 'd'];
+    let 'plain': str.utf8 = "hello";
+    let 'accented': str.utf8 = "héllo";
+    let 'e': char.point = `é`;
+    let 'k': char.byte = `a`;
+    let 'a' := to.str.ascii['plain'] otherwise "?";
+    let 'b' := to.str.ascii['accented'] otherwise "no";
+    let 'c' := to.str.ascii['e'] otherwise "x";
+    let 'd' := to.str.ascii['k'];
+    let 'n': uint64 = str.bytes[lend 'a'] x 16 + str.bytes[lend 'b'] x 4 + str.bytes[lend 'c'] + str.bytes[lend 'd'];
     nocheck exit[to.int32['n']];
 }

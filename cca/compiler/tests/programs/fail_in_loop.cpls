@@ -9,9 +9,9 @@ fn half ['n': int64] -> int64 or fail[odd] {
     return 'n' div 2;
 }
 MAIN {
-    mut 'acc': int64 = 0;
+    let mut 'acc': int64 = 0;
     for 'i': int64 in range[1, 20000000] {
-        'h' := half['i'] otherwise 0;
+        let 'h' := half['i'] otherwise 0;
         change 'acc' = ('acc' + 'h') mod 1000;
     }
     nocheck exit[to.int32['acc' mod 100] + 7];

@@ -5,13 +5,13 @@
 extern fn exit ['code': int32];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
-    's' := "three hundred characters are too many to type, so this is fewer";
-    nocheck 'n': uint64 = strlen[lend 's'];
-    'x': int64 = to.int64['n'] + 135;
-    'u': uint8 = to.uint8['n'] + 138;
-    'big': uint64 = 'n' + 18446744073709551000;
-    'neg': int64 = to.int64['n'] - 100;
-    mut 'got': int32 = 0;
+    let 's' := "three hundred characters are too many to type, so this is fewer";
+    nocheck let 'n': uint64 = strlen[lend 's'];
+    let 'x': int64 = to.int64['n'] + 135;
+    let 'u': uint8 = to.uint8['n'] + 138;
+    let 'big': uint64 = 'n' + 18446744073709551000;
+    let 'neg': int64 = to.int64['n'] - 100;
+    let mut 'got': int32 = 0;
     if 'x' > 'u' { change 'got' = 'got' + 1; }
     if 'u' > 'x' { change 'got' = 'got' + 2; }
     if 'big' > 'neg' { change 'got' = 'got' + 4; }

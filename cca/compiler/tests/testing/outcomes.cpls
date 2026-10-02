@@ -6,37 +6,37 @@ fn half ['n': int32] -> int32 or fail[odd] {
     return 'n' div 2;
 }
 test fn plain_bool [] {
-    'b': bool = false;
+    let 'b': bool = false;
     must 'b';
 }
 test fn no_fail [] {
     must.fail to.int32["12"];
 }
 test fn no_stop [] {
-    'xs': list[int32] = [1, 2, 3];
+    let 'xs': list[int32] = [1, 2, 3];
     must.stop 'xs'[2];
 }
 test fn stops_anyway [] {
-    'xs': list[int32] = [1, 2, 3];
-    'i': int64 = 7;
-    'y' := 'xs'['i'];
+    let 'xs': list[int32] = [1, 2, 3];
+    let 'i': int64 = 7;
+    let 'y' := 'xs'['i'];
     must 'y' == 1;
 }
 test fn fails_ok [] {
     must.fail half[3];
     must.fail.odd half[3];
-    'h' := half[4] otherwise 0;
+    let 'h' := half[4] otherwise 0;
     must 'h' == 2;
 }
 test fn and_expr [] {
     must 1 < 2 and 3 < 2;
 }
 test fn texts [] {
-    's': str.utf8 = "abc";
+    let 's': str.utf8 = "abc";
     must 's' == "abd";
 }
 test fn after_stop [] {
-    'xs': list[int32] = [1, 2, 3];
+    let 'xs': list[int32] = [1, 2, 3];
     must.stop 'xs'[99];
     must 'xs'[1] == 1;
     must 'xs'[2] == 5;

@@ -3,8 +3,8 @@ fn fill [lent.mut 'into': list[int32]] {
     list.append[lend.mut 'into', 7];
 }
 MAIN {
-    mut 'b': list[int32] = [];
+    let mut 'b': list[int32] = [];
     fill[lend.mut 'b'];
-    'first': int32 = 'b'[1];
+    let 'first': int32 = 'b'[1];
     nocheck exit['first'];
 }

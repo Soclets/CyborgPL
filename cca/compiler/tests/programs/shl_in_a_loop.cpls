@@ -4,17 +4,17 @@
 # the shift, and the binary printed wrapped values. It stops at the first.
 extern fn exit ['code': int32];
 fn f1 ['p1': int64] -> int32 {
-    mut 'w10': int8 = 6;
-    mut 'sum': uint64 = 0;
+    let mut 'w10': int8 = 6;
+    let mut 'sum': uint64 = 0;
     loop {
         if 'w10' == 0 { break; }
         change 'w10' = 'w10' - 1;
-        'v': uint32 = to.uint32['p1' mod 4294967296] shl to.uint32['w10'];
+        let 'v': uint32 = to.uint32['p1' mod 4294967296] shl to.uint32['w10'];
         change 'sum' = 'sum' + to.uint64['v'];
     }
     return to.int32['sum' mod 100];
 }
 MAIN {
-    'x': int32 = f1[2030534677];
+    let 'x': int32 = f1[2030534677];
     nocheck exit['x'];
 }

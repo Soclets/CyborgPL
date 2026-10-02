@@ -5,9 +5,9 @@ fn pickmut [lent.mut@x 'a': list[int32], lent 'b': list[int32]] -> lent.mut@x li
     return lend.mut 'a';
 }
 fn run [] -> int32 {
-    mut 'xs': list[int32] = [1, 2];
-    'ys': list[int32] = [5, 6];
-    'm' := pickmut[lend.mut 'xs', lend 'ys'];
+    let mut 'xs': list[int32] = [1, 2];
+    let 'ys': list[int32] = [5, 6];
+    let 'm' := pickmut[lend.mut 'xs', lend 'ys'];
     change 'm'[1] = 7;
     list.append[lend.mut 'm', 9];
     return 'xs'[1] x 10 + to.int32[list.length[lend 'xs']];

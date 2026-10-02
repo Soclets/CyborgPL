@@ -5,11 +5,11 @@
 extern fn exit ['code': int32];
 fn page [lent 'u': str.utf8] -> str.utf8 { return "page of " ++ 'u'; }
 fn run [] -> int32 {
-    mut 'xs': list[str.utf8] = [];
-    'a' := "a";
+    let mut 'xs': list[str.utf8] = [];
+    let 'a' := "a";
     list.append[lend.mut 'xs', page[lend 'a']];
     list.append[lend.mut 'xs', page["b"]];
-    mut 'm': map[str.utf8, str.utf8] = map.empty;
+    let mut 'm': map[str.utf8, str.utf8] = map.empty;
     map.set[lend.mut 'm', page["k"], page["v"]];
     return to.int32[list.length[lend 'xs']] + to.int32[map.length[lend 'm']];
 }

@@ -138,7 +138,7 @@ fn deep_nesting_is_checked() {
     let src = dir.join("deep.cpls");
     let depth = 5000;
     let expr = format!("{}1{}", "(1 + ".repeat(depth), ")".repeat(depth));
-    std::fs::write(&src, format!("MAIN {{\n    'x': int64 = {};\n}}\n", expr)).unwrap();
+    std::fs::write(&src, format!("MAIN {{\n    let 'x': int64 = {};\n}}\n", expr)).unwrap();
     let r = Command::new(cca()).arg("check").arg(&src).output().unwrap();
     assert!(r.status.success(), "a deep expression was not checked:\n{}", String::from_utf8_lossy(&r.stderr));
 }

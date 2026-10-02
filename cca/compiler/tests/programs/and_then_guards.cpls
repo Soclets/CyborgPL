@@ -4,10 +4,10 @@
 extern fn exit ['code': int32];
 
 MAIN {
-    'xs' := [3, 5, 8];
-    mut 'i': uint64 = 0;
-    mut 'hits': int32 = 0;
-    mut 'kept': int32 = 0;
+    let 'xs' := [3, 5, 8];
+    let mut 'i': uint64 = 0;
+    let mut 'hits': int32 = 0;
+    let mut 'kept': int32 = 0;
     while 'i' < 10 {
         if 'i' >/== 1 and.then 'i' </== list.length[lend 'xs'] and.then 'xs'['i'] == 5 {
             change 'hits' = 'hits' + 1;

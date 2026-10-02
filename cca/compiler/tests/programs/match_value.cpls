@@ -6,7 +6,7 @@
 extern fn exit ['code': int32];
 enum Status { empty  claimed: str.utf8  locked }
 fn label ['s': Status] -> str.utf8 {
-    'text' := match 's' {
+    let 'text' := match 's' {
         empty         { "free" }
         claimed 'who' { "taken by " ++ 'who' }
         locked        { return "(locked)"; }
@@ -14,12 +14,12 @@ fn label ['s': Status] -> str.utf8 {
     return give 'text';
 }
 fn width ['s': Status] -> int32 {
-    'l' := label[give 's'];
+    let 'l' := label[give 's'];
     return to.int32[str.bytes[lend 'l']];
 }
 MAIN {
-    'n' := to.int32["12x"] otherwise { not_a_number { -2 } out_of_range { -1 } };
-    'k': int32 = match Status.empty {
+    let 'n' := to.int32["12x"] otherwise { not_a_number { -2 } out_of_range { -1 } };
+    let 'k': int32 = match Status.empty {
         empty { 100 }
         claimed 'w' { 0 }
         locked { 0 }

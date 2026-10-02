@@ -12,8 +12,8 @@ fn measure ['s': Shape] -> int32 {
     }
 }
 MAIN {
-    'a' := Shape.dot;
-    'b' := Shape.line[5];
-    'c' := Shape.box[7];
+    let 'a' := Shape.dot;
+    let 'b' := Shape.line[5];
+    let 'c' := Shape.box[7];
     nocheck exit[measure[give 'a'] + measure[give 'b'] + measure[give 'c']];
 }

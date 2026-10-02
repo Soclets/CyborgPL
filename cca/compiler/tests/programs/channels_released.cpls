@@ -1,12 +1,12 @@
 extern fn exit ['code': int32];
 MAIN {
-    'c' := channel[int32];
-    mut 'got': int32 = 0;
+    let 'c' := channel[int32];
+    let mut 'got': int32 = 0;
     {
         concur with [lend 'c'] { channel.send[lend 'c', 5]; }
         concur with [lend 'c', lend.mut 'got'] {
-            'x' := channel.take[lend 'c'] otherwise 0;
-            'y' := channel.take[lend 'c'] otherwise 100;
+            let 'x' := channel.take[lend 'c'] otherwise 0;
+            let 'y' := channel.take[lend 'c'] otherwise 100;
             change 'got' = 'x' + 'y';
         }
     }

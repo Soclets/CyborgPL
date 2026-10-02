@@ -3,7 +3,7 @@
 # writes 42 over the first, and the program exits with it.
 extern fn exit ['code': int32];
 MAIN {
-    mut 'buf': list[uint8] = [7, 8,];
+    let mut 'buf': list[uint8] = [7, 8,];
     nocheck inline.ASM {
         mov w2, #42
         strb w2, [x1]

@@ -4,10 +4,10 @@ extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn atoi ['s': ptr[uint8]] -> int32;
 MAIN {
-    'k' := "N";
-    nocheck 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
-    mut 'acc': int64 = 0;
-    mut 'i': int64 = 1;
+    let 'k' := "N";
+    nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];
+    let mut 'acc': int64 = 0;
+    let mut 'i': int64 = 1;
     while 'i' </== 'n' {
         change 'acc' = 'acc' + 4611686018427387904;
         change 'i' = 'i' + 1;

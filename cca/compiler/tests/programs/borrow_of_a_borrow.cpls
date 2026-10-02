@@ -3,11 +3,11 @@
 # 's' itself, so 'r'[3] is 3.
 extern fn exit ['code': int32];
 fn first [lent 'a': list[int32]] -> lent list[int32] {
-    'l' := lend 'a';
+    let 'l' := lend 'a';
     return lend 'l';
 }
 MAIN {
-    's': list[int32] = [1, 2, 3];
-    'r' := first[lend 's'];
+    let 's': list[int32] = [1, 2, 3];
+    let 'r' := first[lend 's'];
     nocheck exit['r'[3]];
 }

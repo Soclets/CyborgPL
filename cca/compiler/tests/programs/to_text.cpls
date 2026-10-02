@@ -6,32 +6,32 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn short ['n': int64] -> str.utf8 {
-    's' := to.str.utf8[0, 3 bytes]['n'] otherwise { out_of_range { return "?"; } };
+    let 's' := to.str.utf8[0, 3 bytes]['n'] otherwise { out_of_range { return "?"; } };
     return give 's';
 }
 MAIN {
-    'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
-    mut 'got': int32 = 0;
-    mut 'n': int64 = -9223372036854775807;
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'got': int32 = 0;
+    let mut 'n': int64 = -9223372036854775807;
     if 'there' { change 'n' = 'n' - 1; }
     if to.str.utf8['n'] == "-9223372036854775808" { change 'got' = 'got' + 1; }
-    mut 'u': uint64 = 18446744073709551614;
+    let mut 'u': uint64 = 18446744073709551614;
     if 'there' { change 'u' = 'u' + 1; }
     if to.str.utf8['u'] == "18446744073709551615" and to.str.utf8[7] == "7" { change 'got' = 'got' + 2; }
-    mut 'x': bin64 = 0.1;
+    let mut 'x': bin64 = 0.1;
     if 'there' { change 'x' = 'x' x 1.0; }
     if to.str.utf8['x'] == "0.1000000000000000055511151231257827021181583404541015625" { change 'got' = 'got' + 4; }
-    mut 'f': bin32 = 0.1;
+    let mut 'f': bin32 = 0.1;
     if 'there' { change 'f' = 'f' x 1.0; }
     if to.str.utf8['f'] == "0.100000001490116119384765625" { change 'got' = 'got' + 8; }
-    mut 'z': bin64 = -0.5;
+    let mut 'z': bin64 = -0.5;
     if 'there' { change 'z' = 'z' x 0.0; }
     if to.str.utf8['z'] == "-0" and to.str.utf8['there'] == "true" and to.str.utf8[not 'there'] == "false" { change 'got' = 'got' + 16; }
-    mut 'small': int64 = 999;
+    let mut 'small': int64 = 999;
     if 'there' { change 'small' = 'small' + 1; }
     if short['small'] == "?" and short[-12] == "-12" { change 'got' = 'got' + 32; }
-    'joined' := "n=" ++ to.str.utf8['small' + 4];
+    let 'joined' := "n=" ++ to.str.utf8['small' + 4];
     if 'joined' == "n=1004" { change 'got' = 'got' + 64; }
     nocheck exit['got'];
 }

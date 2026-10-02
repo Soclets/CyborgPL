@@ -3,7 +3,7 @@
 # The oracle: 64.
 extern fn exit ['code': int32];
 fn total [lent 'xs': list[int64]] -> int64 {
-    mut 'acc': int64 = 0;
+    let mut 'acc': int64 = 0;
     for 'x' in lend 'xs' {
         change 'acc' = 'acc' + ('x' mod 7);
     }
@@ -15,8 +15,8 @@ fn scale [lent.mut 'xs': list[int64], 'k': int64] {
     }
 }
 MAIN {
-    mut 'xs': list[int64] = list.fill[3, 200000];
+    let mut 'xs': list[int64] = list.fill[3, 200000];
     scale[lend.mut 'xs', 5];
-    'a' := total[lend 'xs'];
+    let 'a' := total[lend 'xs'];
     nocheck exit[to.int32['a' mod 256]];
 }

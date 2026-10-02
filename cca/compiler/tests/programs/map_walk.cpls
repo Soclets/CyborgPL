@@ -1,15 +1,15 @@
 extern fn exit ['code': int32];
 MAIN {
-    mut 'm': map[str.utf8, int32] = map.empty;
+    let mut 'm': map[str.utf8, int32] = map.empty;
     map.set[lend.mut 'm', "seven", 7];
     map.set[lend.mut 'm', "three", 3];
     map.set[lend.mut 'm', "five", 5];
     map.set[lend.mut 'm', "three", 9];
-    mut 'acc': int32 = 0;
+    let mut 'acc': int32 = 0;
     for 'v' in map.values[lend 'm'] {
         change 'acc' = ('acc' x 3) + 'v';
     }
-    mut 'keylen': int32 = 0;
+    let mut 'keylen': int32 = 0;
     for 'k' in map.keys[lend 'm'] {
         change 'keylen' = 'keylen' + str.bytes[lend 'k'];
     }

@@ -26,25 +26,25 @@ fn flag ['b': bool, 'v': int32] -> int32 {
 }
 
 fn by_memset [] -> int32 {
-    mut 'keys': list[Key] = [Key.a, Key.a];
-    nocheck 'q' := memset[lend.mut 'keys', 65, 8] otherwise { out_of_range { return 3; } };
+    let mut 'keys': list[Key] = [Key.a, Key.a];
+    nocheck let 'q' := memset[lend.mut 'keys', 65, 8] otherwise { out_of_range { return 3; } };
     return 0;
 }
 
 fn by_memcpy [] -> int32 {
-    'src': list[Key] = [Key.b, Key.a];
-    mut 'dst': list[Key] = [Key.escape, Key.escape];
-    nocheck 'q' := memcpy[lend.mut 'dst', lend 'src', 8] otherwise { out_of_range { return 9; } };
+    let 'src': list[Key] = [Key.b, Key.a];
+    let mut 'dst': list[Key] = [Key.escape, Key.escape];
+    nocheck let 'q' := memcpy[lend.mut 'dst', lend 'src', 8] otherwise { out_of_range { return 9; } };
     return num[copy 'dst'[1]] + num[copy 'dst'[2]] x 2;
 }
 
 MAIN {
-    nocheck 'p' := calloc[1, 4];
-    nocheck 'zero' := ptr.read['p'] otherwise Key.escape;
+    nocheck let 'p' := calloc[1, 4];
+    nocheck let 'zero' := ptr.read['p'] otherwise Key.escape;
     nocheck ptr.write['p', Key.b];
-    nocheck 'two' := ptr.read['p'] otherwise Key.escape;
-    NO_FUCKING_CHECKS 'trusted' := ptr.read['p'];
+    nocheck let 'two' := ptr.read['p'] otherwise Key.escape;
+    NO_FUCKING_CHECKS let 'trusted' := ptr.read['p'];
     nocheck free['p'];
-    'bits' := flag[num[give 'zero'] == 3, 1] + flag[num[give 'two'] == 2, 2] + flag[by_memset[] == 3, 4] + flag[by_memcpy[] == 4, 8] + flag[num[give 'trusted'] == 2, 16];
+    let 'bits' := flag[num[give 'zero'] == 3, 1] + flag[num[give 'two'] == 2, 2] + flag[by_memset[] == 3, 4] + flag[by_memcpy[] == 4, 8] + flag[num[give 'trusted'] == 2, 16];
     nocheck exit['bits'];
 }

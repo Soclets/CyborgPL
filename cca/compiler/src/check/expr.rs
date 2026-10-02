@@ -209,7 +209,7 @@ impl Checker {
             AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[0, count 10]`").at(span)),
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
-            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),
+            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
     }
@@ -606,7 +606,7 @@ impl Checker {
         // width, list or array, map order, which checks survive — never over
         // meaning, and 70000 in a `bin16` would silently become 69984.
         // Bare numbers in a `deci` place are decimals, exactly as written
-        // (owner, 2026-09-29): `'a': deci64 = 0.1 + 0.2;` is 0.3.
+        // (owner, 2026-09-29): `let 'a': deci64 = 0.1 + 0.2;` is 0.3.
         if let Ty::Deci(bits) = t.base() {
             if !matches!(vt.base(), Ty::Deci(_)) && deci_group(&v) {
                 let mut v = v;
@@ -687,7 +687,7 @@ impl Checker {
             if literal_only(&v) {
                 // Bare numbers with only plain math between them are worked
                 // out exactly and checked where they land (owner,
-                // 2026-09-23): `'tiny': int8 = (100 + 100) - 150;` is
+                // 2026-09-23): `let 'tiny': int8 = (100 + 100) - 150;` is
                 // 50, and the 200 in between is fine. A shift, `not.bit` or
                 // wrapping operator still takes its width from here.
                 let to = if plain_group(&v) { Ty::exact() } else { t.base().clone() };
@@ -785,7 +785,7 @@ impl Checker {
                         self.widths_pending.push((t.clone(), span, "not.bit".to_string()));
                         return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`'x': uint8 = …`)").at(span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let 'x': uint8 = …`)").at(span)),
                     other => return err(Diagnostic::error(format!("`not.bit` works on integers, and this is a `{}`", self.spell(other))).at(span)),
                 }
                 let ty = vt.base().clone();
@@ -894,7 +894,7 @@ impl Checker {
                         self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
                         return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`'x': uint32 = …`)", op.spelled())).at(op_span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let 'x': uint32 = …`)", op.spelled())).at(op_span)),
                     other => return err(Diagnostic::error(format!("`{}` wraps an integer, and this is a `{}`: it only knows a declared integer width", op.spelled(), self.spell(other))).at(op_span)),
                 }
                 if !rt.is_int() {
@@ -1888,7 +1888,7 @@ impl Checker {
         // A borrow handed back is held by a new name, which then borrows
         // what the call lent (owner, 2026-09-29).
         if self.items.fns[id.0 as usize].ret_lent.is_some() && ctx.lend_call_ok != Some(span) {
-            return err(Diagnostic::error(format!("`{}` hands back a borrow, and a borrow is held by a name: `'l' := {}[…];`", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).at(span));
+            return err(Diagnostic::error(format!("`{}` hands back a borrow, and a borrow is held by a name: `let 'l' := {}[…];`", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).at(span));
         }
         Ok(Expr { kind: K::Call { callee: Callee::Fn(inst), args: hargs, otherwise: ow, fails: sig.fails.clone() }, ty: sig.ret, span })
     }
@@ -3169,7 +3169,7 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 let lanes = match vt.base() {
                     Ty::Simd { lanes, .. } if *lanes > 0 => *lanes,
-                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`'v': simd[int32, 4] = …`)").at(positional[0].span)),
+                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let 'v': simd[int32, 4] = …`)").at(positional[0].span)),
                     other => return err(Diagnostic::error(format!("`simd.shuffle` rearranges a vector's lanes, and this is a `{}`", self.spell(other))).at(positional[0].span)),
                 };
                 let fixed = "`simd.shuffle` takes the new order as fixed lane numbers, known when compiling: `[4, 3, 2, 1]`";

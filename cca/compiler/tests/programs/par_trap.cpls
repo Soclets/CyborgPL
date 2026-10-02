@@ -3,8 +3,8 @@
 # gets there first.
 extern fn exit ['code': int32];
 MAIN {
-    'n': int64 = 200000;
-    mut 'xs': list[int8] = list.fill[0, 'n'];
+    let 'n': int64 = 200000;
+    let mut 'xs': list[int8] = list.fill[0, 'n'];
     for 'i': int64 in range[1, 'n'] {
         change 'xs'['i'] = to.int8['i'];
     }

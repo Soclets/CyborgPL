@@ -6,13 +6,13 @@ extern fn exit ['code': int32];
 enum Order { cancelled  paid }
 enum Ship { pickup  post }
 MAIN {
-    'o' := Order.paid;
-    's' := Ship.post;
-    mut 'went': int32 = 0;
+    let 'o' := Order.paid;
+    let 's' := Ship.post;
+    let mut 'went': int32 = 0;
     match 'o' {
         cancelled { }
         paid { match 's' { pickup { change 'went' = 1; } post { change 'went' = 2; } } }
     }
-    'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
+    let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
     nocheck exit['went' x 10 + 'price'];
 }

@@ -5,10 +5,10 @@
 extern fn exit ['code': int32];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
-    's' := "seven!!";
-    nocheck 'n': uint64 = strlen[lend 's'];
-    mut 'v2': int8 = (to.int8['n' mod 100] mod 7) - 102;
-    mut 'w3': int16 = 7;
+    let 's' := "seven!!";
+    nocheck let 'n': uint64 = strlen[lend 's'];
+    let mut 'v2': int8 = (to.int8['n' mod 100] mod 7) - 102;
+    let mut 'w3': int16 = 7;
     while 'w3' > 0 {
         change 'w3' = 'w3' - 1;
         for 'i4': uint16 in range[29, 3, -3] {

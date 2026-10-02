@@ -5,12 +5,12 @@
 # 5 x 16 + 6 + 3 + 2 = 91.
 extern fn exit ['code': int32];
 MAIN {
-    'good': list[uint8] = [104, 195, 169, 108, 108, 111];
-    'bad': list[uint8] = [104, 255, 105];
-    'arr': array[uint8] = [104, 105];
-    'a' := to.str.utf8['good'] otherwise "?";
-    'b' := to.str.utf8['bad'] otherwise "not";
-    'c' := to.str.utf8['arr'] otherwise "?";
-    'n': uint64 = str.points[lend 'a'] x 16 + str.bytes[lend 'a'] + str.bytes[lend 'b'] + str.bytes[lend 'c'];
+    let 'good': list[uint8] = [104, 195, 169, 108, 108, 111];
+    let 'bad': list[uint8] = [104, 255, 105];
+    let 'arr': array[uint8] = [104, 105];
+    let 'a' := to.str.utf8['good'] otherwise "?";
+    let 'b' := to.str.utf8['bad'] otherwise "not";
+    let 'c' := to.str.utf8['arr'] otherwise "?";
+    let 'n': uint64 = str.points[lend 'a'] x 16 + str.bytes[lend 'a'] + str.bytes[lend 'b'] + str.bytes[lend 'c'];
     nocheck exit[to.int32['n']];
 }

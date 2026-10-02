@@ -4,11 +4,11 @@
 # not keep what it knew of 'x' before the assembly.
 extern fn exit ['code': int32];
 MAIN {
-    mut 'x': int64 = 1;
+    let mut 'x': int64 = 1;
     nocheck inline.ASM {
         mov x2, #100
         str x2, [x1]
     } with [lend.mut 'x' -> x1, clobber x2];
-    'y': uint8 = to.uint8['x' x 3];
+    let 'y': uint8 = to.uint8['x' x 3];
     nocheck exit[to.int32['y']];
 }

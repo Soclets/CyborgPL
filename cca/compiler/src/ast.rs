@@ -414,7 +414,7 @@ pub struct Stmt {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum StmtKind {
-    /// A declaration: `'x' := …;`, `mut 'x': T = …;`, `'x' $:= …;` (owner,
+    /// A declaration: `let 'x' := …;`, `let mut 'x': T = …;`, `let 'x' $:= …;` (owner,
     /// 2026-09-25: no `let`). `sealed` is `!$` in front: the name may not
     /// be shadowed.
     Let { mutability: Option<Mutability>, name: QName, ty: Option<Type>, shadow: bool, value: Expr, sealed: bool },

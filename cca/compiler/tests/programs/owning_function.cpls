@@ -8,20 +8,20 @@ extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn look [lent 'f': fn[] -> uint64] -> uint64 { return 'f'[]; }
 fn run ['f': fn[] -> uint64] -> uint64 { return 'f'[]; }
 MAIN {
-    'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck 'there' := ptr.is_null[getenv[lend 'k']];
-    mut 'xs' := [1, 2, 3];
+    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    let mut 'xs' := [1, 2, 3];
     if 'there' { list.append[lend.mut 'xs', 4]; }
-    'count' := fn [] -> uint64 with [copy 'xs'] { return list.length[lend 'xs']; };
+    let 'count' := fn [] -> uint64 with [copy 'xs'] { return list.length[lend 'xs']; };
     list.append[lend.mut 'xs', 5];
-    'again' := copy 'count';
-    'moved' := give 'count';
-    'words' := ["a", "bb"];
-    'size' := fn [] -> uint64 with [give 'words'] { return str.bytes[lend 'words'[2]]; };
-    'inc' := fn ['a': int32] -> int32 { return 'a' + 1; };
-    'inc2' := 'inc';
-    'inc3' := fn [] -> uint64 { return 7; };
-    mut 'got': int32 = 0;
+    let 'again' := copy 'count';
+    let 'moved' := give 'count';
+    let 'words' := ["a", "bb"];
+    let 'size' := fn [] -> uint64 with [give 'words'] { return str.bytes[lend 'words'[2]]; };
+    let 'inc' := fn ['a': int32] -> int32 { return 'a' + 1; };
+    let 'inc2' := 'inc';
+    let 'inc3' := fn [] -> uint64 { return 7; };
+    let mut 'got': int32 = 0;
     if 'again'[] == 4 and 'moved'[] == 4 { change 'got' = 'got' + 1; }
     if list.length[lend 'xs'] == 5 and 'size'[] == 2 { change 'got' = 'got' + 2; }
     if 'inc2'[41] == 42 and look[lend 'again'] == 4 { change 'got' = 'got' + 4; }

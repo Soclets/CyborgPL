@@ -4,16 +4,16 @@
 extern fn exit ['code': int32];
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn pick [] -> int64[0, 1000] or fail[missing] {
-    'key' := "CCA_NO_SUCH_VARIABLE";
-    nocheck 'p' := getenv[lend 'key'];
+    let 'key' := "CCA_NO_SUCH_VARIABLE";
+    nocheck let 'p' := getenv[lend 'key'];
     if ptr.is_null['p'] { return 3; }
     fail missing;
 }
 fn widen ['w': int64] -> int64 {
-    nocheck 'r': int64[0, 1000] = 'w';
+    nocheck let 'r': int64[0, 1000] = 'w';
     return 'r';
 }
 MAIN {
-    'n' := pick[] otherwise 0;
+    let 'n' := pick[] otherwise 0;
     nocheck exit[to.int32['n' + widen[3]]];
 }

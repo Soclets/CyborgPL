@@ -6,14 +6,14 @@ extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn atoll ['s': ptr[uint8]] -> int64[0, 1000];
 fn read_n ['text': ptr[uint8]] -> int64[0, 1000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck 'n' := atoll['text'] otherwise fail;
+    nocheck let 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 fn run [] -> int32 or fail[missing, out_of_range] {
-    'key' := "N";
-    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
-    mut 'acc': int64 = 0;
-    mut 'i': int64 = 0;
+    let 'key' := "N";
+    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    let mut 'acc': int64 = 0;
+    let mut 'i': int64 = 0;
     while 'i' </== 'n' {
         if ('n' mod 2) == 0 { change 'i' = 'i' + 1; }
         change 'acc' = 'acc' + 1_000_000_000_000;
@@ -21,6 +21,6 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     return to.int32['acc' mod 256];
 }
 MAIN {
-    'code' := run[] otherwise 2;
+    let 'code' := run[] otherwise 2;
     nocheck exit['code'];
 }

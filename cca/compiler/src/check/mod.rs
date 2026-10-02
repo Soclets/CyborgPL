@@ -410,7 +410,7 @@ impl Checker {
             if matches!(got, Ty::Infer(_)) {
                 return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what))
                     .at(span)
-                    .try_(format!("give the result a type (`'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));
+                    .try_(format!("give the result a type (`let 'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));
             }
         }
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();

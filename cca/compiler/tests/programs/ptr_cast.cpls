@@ -12,12 +12,12 @@ layout.c struct Point {
 }
 
 MAIN {
-    nocheck 'raw' := malloc[size.of[Point]];
-    nocheck 'p' := ptr.cast[Point]['raw'];
+    nocheck let 'raw' := malloc[size.of[Point]];
+    nocheck let 'p' := ptr.cast[Point]['raw'];
     nocheck ptr.write['p', Point[x = 3, y = 4]];
-    nocheck 'q' := ptr.read['p'];
-    nocheck 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
-    'code' := 'q'.x x 10 + 'q'.y + 'second';
+    nocheck let 'q' := ptr.read['p'];
+    nocheck let 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
+    let 'code' := 'q'.x x 10 + 'q'.y + 'second';
     nocheck free['raw'];
     nocheck exit['code'];
 }

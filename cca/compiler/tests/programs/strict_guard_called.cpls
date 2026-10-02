@@ -16,7 +16,7 @@ fn h ['p': int32] -> bool {
     return 'p' == 0 or.else ((16 mod 'p') >/== 3);
 }
 MAIN {
-    mut 'code': int32 = 0;
+    let mut 'code': int32 = 0;
     if not f[5] { change 'code' = 'code' + 1; }
     if not g[5] { change 'code' = 'code' + 2; }
     if not h[5] { change 'code' = 'code' + 4; }

@@ -10,17 +10,17 @@ enum Status {
 }
 struct P { x: int32  y: int32 }
 MAIN {
-    'k' := "abc";
-    nocheck 'n': uint64 = strlen[lend 'k'];
-    mut 'got': int32 = 0;
-    mut 's' := Status.empty;
+    let 'k' := "abc";
+    nocheck let 'n': uint64 = strlen[lend 'k'];
+    let mut 'got': int32 = 0;
+    let mut 's' := Status.empty;
     if 'n' > 2 { change 's' = Status.locked; }
     if 's' == Status.locked { change 'got' = 'got' + 1; }
     if 's' !== Status.empty { change 'got' = 'got' + 2; }
-    't' := Status.claimed["Bo"];
+    let 't' := Status.claimed["Bo"];
     if 't' == Status.claimed["Bo"] { change 'got' = 'got' + 4; }
     if 't' !== Status.claimed["Al"] { change 'got' = 'got' + 8; }
-    'a' := P[x = to.int32['n'], y = 2];
+    let 'a' := P[x = to.int32['n'], y = 2];
     if 'a' == P[x = 3, y = 2] { change 'got' = 'got' + 16; }
     if "a" ++ "bc" == 'k' { change 'got' = 'got' + 32; }
     nocheck exit['got'];

@@ -8,7 +8,7 @@
 extern fn exit ['code': int32];
 fn f ['pr': int32[0, 6], 'p1': uint64] -> int64 {
     if 'pr' == 0 { return 1; }
-    'r': int64 = f['pr' - 1, 'p1'];
+    let 'r': int64 = f['pr' - 1, 'p1'];
     return 'r';
 }
 fn g ['pr': int32[0, 6], 'p1': uint64] -> int64 {
@@ -16,8 +16,8 @@ fn g ['pr': int32[0, 6], 'p1': uint64] -> int64 {
     return g['pr' - 1, ('p1' mod 233) + 448];
 }
 MAIN {
-    'a': int64 = f[3, 587];
-    'b': int64 = g[0, 1];
-    'c': int64 = g[2, 1];
+    let 'a': int64 = f[3, 587];
+    let 'b': int64 = g[0, 1];
+    let 'c': int64 = g[2, 1];
     nocheck exit[to.int32['a' + 'b' - 'c' - 560]];
 }

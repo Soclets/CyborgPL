@@ -1,19 +1,19 @@
 extern fn exit ['code': int32];
 fn produce [lent 'out': channel[list[int32]][0, 4], 'base': int32] {
     for 'i': int32 in range[1, 50] {
-        'batch': list[int32] = ['base', 'i'];
+        let 'batch': list[int32] = ['base', 'i'];
         channel.send[lend 'out', give 'batch'];
     }
 }
 MAIN {
-    'pipe' := channel[list[int32]][0, 4];
-    'quiet' := channel[int32];
+    let 'pipe' := channel[list[int32]][0, 4];
+    let 'quiet' := channel[int32];
     concur with [lend 'pipe'] { produce[lend 'pipe', 1000]; }
     concur with [lend 'pipe'] { produce[lend 'pipe', 2000]; }
     concur with [lend 'quiet'] { channel.send[lend 'quiet', 7]; }
-    mut 'batches': int32 = 0;
-    mut 'sevens': int32 = 0;
-    mut 'closed': int32 = 0;
+    let mut 'batches': int32 = 0;
+    let mut 'sevens': int32 = 0;
+    let mut 'closed': int32 = 0;
     for 'k': int32 in range[1, 102] {
         whichever {
             'b' from lend 'pipe'  { change 'batches' = 'batches' + to.int32[list.length[lend 'b']] - 1; }

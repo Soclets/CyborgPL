@@ -3,12 +3,12 @@
 # exact width, the callee read the wrong layout and summed garbage.
 extern fn exit ['code': int32];
 fn total [lent 'xs': list[int32]] -> int32 {
-    mut 'n': int32 = 0;
+    let mut 'n': int32 = 0;
     for 'x' in lend 'xs' { change 'n' = 'n' + 'x'; }
     return 'n';
 }
 MAIN {
-    'scores' := [72, 40, 95, 55];
-    'first' := 'scores'[1] + 1;
+    let 'scores' := [72, 40, 95, 55];
+    let 'first' := 'scores'[1] + 1;
     nocheck exit[(total[lend 'scores'] + to.int32['first']) mod 256];
 }

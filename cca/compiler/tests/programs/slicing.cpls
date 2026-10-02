@@ -4,16 +4,16 @@
 # shared: the leak check frees each list's texts once.
 extern fn exit ['code': int32];
 MAIN {
-    'xs': list[int64] = [10, 20, 30, 40, 50];
-    mut 'mid' := list.slice[lend 'xs', 2, 4];
+    let 'xs': list[int64] = [10, 20, 30, 40, 50];
+    let mut 'mid' := list.slice[lend 'xs', 2, 4];
     list.append[lend.mut 'mid', 7];
-    'none' := list.slice[lend 'xs', 3, 2];
-    'fixed': array[int32] = [1, 2, 3];
-    'head' := array.slice[lend 'fixed', 1, 2];
-    'words': list[str.utf8] = ["a", "bb", "ccc"];
-    'tail' := list.slice[lend 'words', 2, 3];
+    let 'none' := list.slice[lend 'xs', 3, 2];
+    let 'fixed': array[int32] = [1, 2, 3];
+    let 'head' := array.slice[lend 'fixed', 1, 2];
+    let 'words': list[str.utf8] = ["a", "bb", "ccc"];
+    let 'tail' := list.slice[lend 'words', 2, 3];
     # 20 + 30 + 40 + 7, four elements, the original's five, none, two, two
-    'sum': int64 = 'mid'[1] + 'mid'[2] + 'mid'[3] + 'mid'[4];
-    'n': uint64 = list.length[lend 'mid'] x 10 + list.length[lend 'xs'] + list.length[lend 'none'] + list.length[lend 'head'] + list.length[lend 'tail'];
+    let 'sum': int64 = 'mid'[1] + 'mid'[2] + 'mid'[3] + 'mid'[4];
+    let 'n': uint64 = list.length[lend 'mid'] x 10 + list.length[lend 'xs'] + list.length[lend 'none'] + list.length[lend 'head'] + list.length[lend 'tail'];
     nocheck exit[to.int32['sum' + to.int64['n']]];
 }
