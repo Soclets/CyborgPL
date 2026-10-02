@@ -4,9 +4,9 @@
 # env CHK_IN1 0
 # env CHK_IN2 0
 # check claude generator, seed 316
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];

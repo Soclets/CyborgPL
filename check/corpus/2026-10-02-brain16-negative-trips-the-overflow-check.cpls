@@ -1,0 +1,44 @@
+# Finding 2026-10-02 (check run, seeds 12026 and 14 more, cut down by hand): a negative brain16 value
+# trips CCA's run-time overflow check: -0.3 x 10.0 is -3 (the oracle prints -3, then -7 for -1.75 x 4.0),
+# but the CCA binary stops: "`x` can go past the largest brain16 (it would be infinity)". The same with
+# `+`, `-` and `div` on negative values (-1.75 + -1.75); positive values agree.
+# check claude generator, seed 11045
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    let mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
+    while 'v' div 'p' >/== 10 {
+        change 'p' = 'p' x 10;
+    }
+    loop {
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
+        change 'v' = 'v' mod 'p';
+        if 'p' == 1 { break; }
+        change 'p' = 'p' div 10;
+    }
+    list.append[lend.mut 'buf', 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' < 0 {
+        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+    } else {
+        emit[to.uint64['n'], false];
+    }
+}
+MAIN {
+    let 'a': bf16 = -0.3;
+    let 'z' := to.int64['a' x 10.0] otherwise -1;
+    put_i['z'];
+    let 'b': bf16 = -1.75;
+    let 'y' := to.int64['b' x 4.0] otherwise -1;
+    put_i['y'];
+}

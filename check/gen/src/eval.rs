@@ -604,7 +604,7 @@ impl<'a> Ev<'a> {
                     None => Ok(Flow::Next),
                 }
             }
-            Stmt::For { perm, name, ty, start, stop, step, body } => {
+            Stmt::For { perm, name, ty, start, stop, step, body, .. } => {
                 let (a, b) = (self.expr(env, start)?.i(), self.expr(env, stop)?.i());
                 let (a, b) = (&a, &b);
                 let st = step.unwrap_or(1);

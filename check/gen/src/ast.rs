@@ -299,7 +299,9 @@ pub enum Stmt {
     Let { tier: Tier, name: String, mutability: Mutability, ty: TyR, value: Expr },
     Assign { tier: Tier, name: String, value: Expr },
     If { arms: Vec<(Expr, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>> },
-    For { perm: bool, name: String, ty: Ty, start: Expr, stop: Expr, step: Option<i128>, body: Vec<Stmt> },
+    /// `cheat`: `for !c` (owner, 2026-10-01): every round really runs; same
+    /// answers as a plain `for`. 0 plain, 1 `!c`, 2 `!c seq`.
+    For { perm: bool, cheat: u8, name: String, ty: Ty, start: Expr, stop: Expr, step: Option<i128>, body: Vec<Stmt> },
     While { cond: Expr, body: Vec<Stmt> },
     Loop { body: Vec<Stmt> },
     Block { tier: Tier, body: Vec<Stmt> },
@@ -757,9 +759,11 @@ impl<'a> Wr<'a> {
                 }
                 self.out.push_str(&format!("{pad}}}\n"));
             }
-            Stmt::For { perm, name, ty, start, stop, step, body } => {
+            Stmt::For { perm, cheat, name, ty, start, stop, step, body } => {
                 let perm = if *perm { "perm " } else if self.strict { "temp " } else { "" };
-                self.out.push_str(&format!("{pad}for {perm}{}: {} in range[", q(name), ty.name()));
+                // the strongest modifier first: `for !c seq perm` (owner, 2026-10-01)
+                let cheat = ["", "!c ", "!c seq "][*cheat as usize];
+                self.out.push_str(&format!("{pad}for {cheat}{perm}{}: {} in range[", q(name), ty.name()));
                 if self.strict {
                     // labelled, and `by` always written (owner, 2026-09-27)
                     self.out.push_str("from ");
@@ -871,10 +875,13 @@ impl Program {
         if self.strict {
             w.out.push_str("#strict\n");
         }
-        w.out.push_str("extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n");
-        if !self.inputs.is_empty() {
-            w.out.push_str("extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];\n");
-            w.out.push_str("extern fn strlen ['s': ptr[uint8]] -> uint64;\n");
+        // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
+        // the block where there are three, so both forms are written
+        let write = "fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n";
+        if self.inputs.is_empty() {
+            w.out.push_str(&format!("extern.C {write}"));
+        } else {
+            w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[uint8]] -> ptr[uint8];\n    fn strlen ['s': ptr[uint8]] -> uint64;\n}}\n"));
         }
         w.out.push('\n');
         w.out.push_str(&self.printer);

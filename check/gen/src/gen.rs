@@ -86,11 +86,16 @@ pub struct Config {
     pub deci: bool,
     /// The `to.useful.…` forms (CCA does not take the 2026-09-30 spelling yet).
     pub deci_useful: bool,
+    /// `for !c` / `for !c seq` on some range loops (owner, 2026-10-01).
+    pub no_cheat: bool,
+    /// `brain16` (owner, 2026-10-02): its own family, each step rounded,
+    /// seen through conversions; never inside a `check`.
+    pub brain16: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true }
     }
 }
 
@@ -684,6 +689,8 @@ impl Gen {
             if self.cfg.simd_lanes && self.in_check == 0 && self.simd_vars(None).iter().any(|v| v.assignable) { 1 } else { 0 }, // lane change
             if self.cfg.deci { 2 } else { 0 },                                       // deci and conversions
             if self.in_check == 0 && !self.lists().is_empty() { 6 } else { 0 },    // loop over a list's positions
+            // no Precog domain yet: every site is a run-time check, which a `check` must not hold
+            if self.cfg.brain16 && self.in_check == 0 { 2 } else { 0 },             // brain16
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -705,6 +712,7 @@ impl Gen {
             18 => self.lane_write(),
             19 => self.deci_episode(),
             20 => self.list_loop(),
+            21 => self.brain_episode(),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -801,7 +809,7 @@ impl Gen {
         let l = v.list.clone().unwrap();
         let i = self.name("i");
         let at = || Box::new(Expr::At(v.name.clone(), Box::new(Expr::Var(i.clone()))));
-        let bounds = |body: Vec<Stmt>| Stmt::For { perm: false, name: i.clone(), ty: Ty::U64, start: Expr::Lit(1), stop: Expr::Len(v.name.clone()), step: None, body };
+        let bounds = |body: Vec<Stmt>| Stmt::For { perm: false, cheat: 0, name: i.clone(), ty: Ty::U64, start: Expr::Lit(1), stop: Expr::Len(v.name.clone()), step: None, body };
         self.positioned = true;
         if l.mutable && l.frozen == 0 && self.rng.chance(35) {
             // the same through the item: for 'x' in lend.mut 'xs' { change 'x' = … }
@@ -1574,6 +1582,100 @@ impl Gen {
         Stmt::Block { tier: Tier::Default, body }
     }
 
+    /// A `brain16` episode (design/types.md): values from literals, integers,
+    /// text, a deci and a bin, worked on with `+ - x div mod xx` (each step
+    /// rounded), and seen as integers: `to.int64[…] otherwise -1`, a deci in
+    /// either form scaled, a comparison, the length of its text. A risk
+    /// taken: a value past `bin16`'s largest converted into one.
+    fn brain_episode(&mut self) -> Stmt {
+        self.unevaluable = true;
+        const LITS: &[&str] = &["0.1", "0.2", "0.5", "1.5", "2.5", "-1.75", "3.0", "12.75", "300.7", "0.001", "1000.0", "-0.3"];
+        let names = ["brain16", "bfloat16", "bf16"];
+        let mut body = vec![];
+        let mut bs: Vec<String> = vec![];
+        let first = self.name("w");
+        let lit = self.rng.pick(LITS).to_string();
+        body.push(Stmt::TypedLet { name: first.clone(), mutable: false, ty: self.rng.pick(&names).to_string(), value: Expr::Num(lit) });
+        bs.push(first);
+        for _ in 0..1 + self.rng.below(4) {
+            let a = Expr::Var(self.rng.pick(&bs).clone());
+            let value = match self.rng.below(8) {
+                0..=3 => {
+                    let op = *self.rng.pick(&[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div, BinOp::Mod]);
+                    let b = if self.rng.chance(50) { Expr::Var(self.rng.pick(&bs).clone()) } else { Expr::Num(self.rng.pick(LITS).to_string()) };
+                    // a divisor of 0 stops both engines alike; keep it rare
+                    let b = match (&b, op) {
+                        (Expr::Var(_), BinOp::Div | BinOp::Mod) if !self.take_risk() => Expr::Num("2.5".into()),
+                        _ => b,
+                    };
+                    Expr::Bin(op, Box::new(a), Box::new(b))
+                }
+                4 => Expr::Bin(BinOp::Pow, Box::new(a), Box::new(Expr::Lit(self.rng.range(0, 3)))),
+                5 => {
+                    let ints: Vec<VarInfo> = self.vars().filter(|v| v.ty != Ty::Bool).cloned().collect();
+                    match ints.is_empty() {
+                        true => Expr::Conv("brain16".into(), Box::new(Expr::Text(self.number_text())), Some(Box::new(Expr::Num("1.0".into())))),
+                        false => Expr::Conv("brain16".into(), Box::new(Expr::Var(self.rng.pick(&ints).name.clone())), None),
+                    }
+                }
+                6 => Expr::Conv("brain16".into(), Box::new(Expr::Text(self.number_text())), Some(Box::new(Expr::Num(self.rng.pick(LITS).to_string())))),
+                _ => {
+                    // from a deci or a bin, rounding
+                    let (d, ty) = if self.rng.chance(50) { (self.name("d"), "deci64") } else { (self.name("g"), "bin64") };
+                    body.push(Stmt::TypedLet { name: d.clone(), mutable: false, ty: ty.into(), value: Expr::Num(self.rng.pick(LITS).to_string()) });
+                    Expr::Conv("brain16".into(), Box::new(Expr::Var(d)), None)
+                }
+            };
+            let name = self.name("w");
+            let typed = !matches!(value, Expr::Conv(..));
+            body.push(if typed { Stmt::TypedLet { name: name.clone(), mutable: false, ty: self.rng.pick(&names).to_string(), value } } else { Stmt::AutoLet { name: name.clone(), value } });
+            bs.push(name);
+        }
+        if self.rng.chance(25) {
+            let w = Expr::Var(self.rng.pick(&bs).clone());
+            // bin16's largest is 65504: past it, a check site
+            let w = if self.take_risk() { Expr::Bin(BinOp::Mul, Box::new(w), Box::new(Expr::Num("70000.0".into()))) } else { w };
+            let (v, h) = (self.name("w"), self.name("h"));
+            body.push(Stmt::TypedLet { name: v.clone(), mutable: false, ty: "brain16".into(), value: w });
+            body.push(Stmt::AutoLet { name: h.clone(), value: Expr::Conv("bin16".into(), Box::new(Expr::Var(v)), None) });
+            let d = self.name("d");
+            body.push(Stmt::AutoLet { name: d.clone(), value: Expr::Conv("useful.deci64".into(), Box::new(Expr::Var(h)), None) });
+            let z = self.name("z");
+            body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Var(d)), Some(Box::new(Expr::Lit(-1)))) });
+            body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
+        }
+        for _ in 0..1 + self.rng.below(3) {
+            let w = Expr::Var(self.rng.pick(&bs).clone());
+            match self.rng.below(4) {
+                0 => {
+                    let z = self.name("z");
+                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(w), Some(Box::new(Expr::Lit(-1)))) });
+                    body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
+                }
+                1 => {
+                    let form = if self.rng.chance(50) { "useful.deci64" } else { "stored.deci64" };
+                    let scale = *self.rng.pick(&["1", "100", "1000000"]);
+                    let (d, z) = (self.name("d"), self.name("z"));
+                    body.push(Stmt::AutoLet { name: d.clone(), value: Expr::Conv(form.into(), Box::new(w), None) });
+                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(Expr::Var(d)), Box::new(Expr::Num(scale.into())))), Some(Box::new(Expr::Lit(-1)))) });
+                    body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
+                }
+                2 => {
+                    let op = *self.rng.pick(&[CmpOp::Eq, CmpOp::Lt, CmpOp::Ge]);
+                    let c = Expr::Cmp(op, Box::new(w), Box::new(Expr::Num(self.rng.pick(LITS).to_string())));
+                    body.push(Stmt::If { arms: vec![(c, vec![Stmt::Print { signed: false, value: Expr::Lit(1) }])], otherwise: Some(vec![Stmt::Print { signed: false, value: Expr::Lit(0) }]) });
+                }
+                _ => {
+                    let s = self.name("t");
+                    let form = if self.rng.chance(50) { "useful.str.utf8" } else { "stored.str.utf8" };
+                    body.push(Stmt::AutoLet { name: s.clone(), value: Expr::Conv(form.into(), Box::new(w), None) });
+                    body.push(Stmt::Print { signed: false, value: Expr::StrBytes(s) });
+                }
+            }
+        }
+        Stmt::Block { tier: Tier::Default, body }
+    }
+
     fn text_part(&mut self, body: &mut Vec<Stmt>) {
         const TEXTS: &[&str] = &["hello", "h\u{e9}llo", "", "Z", "ZZ", "7", "a b", "\u{65e5}\u{672c}", "caf\u{e9}!", "\u{e9}"];
         let q = |n: &str| format!("'{n}'");
@@ -1791,7 +1893,8 @@ impl Gen {
             self.declare(name.clone(), t, iv.join(Iv::point(start)), false);
         }
         let step = if step == 1 && self.rng.chance(60) { None } else { Some(step) };
-        Stmt::For { perm, name, ty: t, start: Expr::Lit(start), stop: Expr::Lit(stop), step, body }
+        let cheat = if self.cfg.no_cheat && self.rng.chance(15) { 1 + self.rng.below(2) as u8 } else { 0 };
+        Stmt::For { perm, cheat, name, ty: t, start: Expr::Lit(start), stop: Expr::Lit(stop), step, body }
     }
 
     /// `while` or `loop`, driven by a counter the body cannot touch.

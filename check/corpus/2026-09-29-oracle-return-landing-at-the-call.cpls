@@ -2,7 +2,7 @@
 # return. The oracle reports it at the call (line 44, "301 does not fit uint8"), not at the
 # return (line 41), where the value lands in the return type. CCA points at the return.
 # check claude generator, seed 1
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];

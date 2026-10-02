@@ -87,6 +87,15 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   `char.point.from_code` (`not_a_char` past the last point), one
   character of text (`not_one_char`), a digit read through text, and text
   into utf16/utf32, seen as lengths and codes.
+  **brain16** (owner, 2026-10-02; `--avoid brain16`): blocks of `brain16`
+  / `bfloat16` / `bf16` values from literals, integers, text, a deci and a
+  bin, worked on with `+ - x div mod xx`, seen as `to.int64[…] otherwise
+  -1`, either deci form scaled, comparisons and the length of either text
+  form; sometimes into a `bin16`, past its 65504 as a risk. Never inside a
+  `check` (Precog has no brain16 domain, so every site is a run-time
+  check), and, like deci, compared between the engines only.
+  **`for !c`** (owner, 2026-10-01; `--avoid no-cheat`): about one range
+  loop in seven is `for !c` or `for !c seq`; same answers as a plain `for`.
   **Enums** (design/enums.md; `--avoid enums` turns them off): about
   half of programs get one or two, with integer data on some cases; enum
   names, changes, `==` on them, `match` statements, and `match` giving a
@@ -104,7 +113,7 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   the base language — digits into a `list[uint8]`, then C's `write` under
   `nocheck` — varied by seed, compared like everything else.
 - **Input** (owner, 2026-09-23): `--inputs K` makes MAIN read K values as the
-  lengths of environment variables `CHK_IN1…` through `extern` `getenv` +
+  lengths of environment variables `CHK_IN1…` through `extern.C` `getenv` +
   `strlen`. The harness picks four input sets per program from the seed
   (all zero, then edges and random lengths); a finding records the
   variables and their lengths. Program runs see only those variables.
@@ -207,7 +216,12 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits`.
+straight at them. Default: `exact-bits,brain16`.
+
+- `brain16`: no brain16 blocks. CCA says "not yet" to `mod` on them, and a
+  negative brain16 trips its overflow check and comes out as one byte of
+  text (2026-10-02; corpus `2026-10-02-brain16-*`). `--avoid exact-bits`
+  turns them on.
 
 - `deci-useful`: no `to.useful.…` forms (CCA took the 2026-09-30 spelling
   in 32b7039).

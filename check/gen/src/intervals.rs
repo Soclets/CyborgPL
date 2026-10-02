@@ -473,7 +473,7 @@ impl<'a> An<'a> {
                     None => join_env(out, rest),
                 }
             }
-            Stmt::For { perm, name, ty, start, stop, step, body } => {
+            Stmt::For { perm, name, ty, start, stop, step, body, .. } => {
                 let (Expr::Lit(a), Expr::Lit(b)) = (start, stop) else {
                     // a computed bound (a list's length): not followed
                     self.incomplete = true;

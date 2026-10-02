@@ -4,7 +4,7 @@
 # refuse the read while 'x26' borrows the list mutably; CCA refused it in seeds 9512, 9542, 9663 and
 # ran it here. Whether it is allowed is with the owner.
 # check claude generator, seed 9621
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];

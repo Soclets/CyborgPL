@@ -2,7 +2,7 @@
 # by a match value. Precog claims 5 div 'v' has a nonzero divisor (division_by_zero, layer 3,
 # solver), while its own operand range for 'v' is 0 to 536870911. The normal build divides by zero
 # and prints 5; the --assert-proofs build stops (proof failed). The oracle stops: division by zero.
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 fn put_u ['m': uint64] {
     let mut 'buf': list[uint8] = [];
     let mut 'v': uint64 = 'm';

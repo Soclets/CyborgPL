@@ -189,8 +189,11 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 }
             }
         }
-        Stmt::For { perm, name, ty, start, stop, step, body } => {
-            let mk = |perm: bool, start: Expr, stop: Expr, step: Option<i128>, body: Vec<Stmt>| Stmt::For { perm, name: name.clone(), ty: *ty, start, stop, step, body };
+        Stmt::For { perm, cheat, name, ty, start, stop, step, body } => {
+            let mk = |perm: bool, start: Expr, stop: Expr, step: Option<i128>, body: Vec<Stmt>| Stmt::For { perm, cheat: *cheat, name: name.clone(), ty: *ty, start, stop, step, body };
+            if *cheat > 0 {
+                out.push(vec![Stmt::For { perm: *perm, cheat: 0, name: name.clone(), ty: *ty, start: start.clone(), stop: stop.clone(), step: *step, body: body.clone() }]);
+            }
             if *perm {
                 out.push(vec![mk(false, start.clone(), stop.clone(), *step, body.clone())]);
             }

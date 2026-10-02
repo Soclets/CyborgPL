@@ -2,7 +2,7 @@
 # change 'x' = 'v' copies a uint8; CCA then treats 'x' as borrowing 'v' and refuses a later read of
 # 'v' ("'v' cannot be used here: 'x' still borrows it lent.mut"). The oracle prints 5 7 5 7 7.
 # check claude generator, seed 1
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];

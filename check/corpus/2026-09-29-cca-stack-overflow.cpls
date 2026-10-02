@@ -1,7 +1,7 @@
 # Finding 2026-09-29 (check run, seed 6241, not shrunk: shrinking it ran 79 minutes): cca build aborts
 # with "thread 'main' has overflowed its stack" (exit 134). The oracle runs it until a division by zero.
 # check claude generator, seed 6241
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];

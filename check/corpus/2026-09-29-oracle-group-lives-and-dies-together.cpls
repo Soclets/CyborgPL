@@ -2,7 +2,7 @@
 # "everything marked @x lives and dies together"), so giving away 't', lent as 'b', while 'r'
 # is used is refused. CCA refuses it at the give; the oracle follows the body (only 'a' is
 # returned) and prints 1.
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 fn put_u ['m': uint64] {
     let mut 'buf': list[uint8] = [];
     let mut 'v': uint64 = 'm';

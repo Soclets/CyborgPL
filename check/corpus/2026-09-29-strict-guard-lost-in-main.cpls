@@ -3,7 +3,7 @@
 # inside strict functions; MAIN seems to still fold the guard away. The oracle runs it.
 # check claude generator, seed 6430
 #strict
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];

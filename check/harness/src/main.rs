@@ -70,13 +70,13 @@ impl Args {
     /// For the evaluator and the solver: no deci or text, which they do not
     /// model (a program with them would be skipped whole).
     fn config_modelled(&self) -> Config {
-        Config { deci: false, ..self.config() }
+        Config { deci: false, brain16: false, ..self.config() }
     }
 
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,brain16".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -103,6 +103,8 @@ impl Args {
             simd_wrap: !avoid.contains("simd-wrap"),
             deci: !avoid.split(',').any(|a| a == "deci"),
             deci_useful: !avoid.contains("deci-useful"),
+            no_cheat: !avoid.contains("no-cheat"),
+            brain16: !avoid.contains("brain16"),
         }
     }
 }

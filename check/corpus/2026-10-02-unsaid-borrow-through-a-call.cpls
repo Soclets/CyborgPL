@@ -3,7 +3,7 @@
 # and aborts (exit 134, as if both 'r' and 's' freed one list). The oracle refuses it: `g` returns
 # a borrow, so its signature must say so. CCA does refuse a direct `return lend 'a'` under -> list[T].
 # check claude generator, seed 1
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];

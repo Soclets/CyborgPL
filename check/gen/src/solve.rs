@@ -671,7 +671,7 @@ impl<'a> Enc<'a> {
                     self.block(&Ctx { pc }, body, leave);
                 }
             }
-            Stmt::For { perm, name, ty, start, stop, step, body } => {
+            Stmt::For { perm, name, ty, start, stop, step, body, .. } => {
                 let (Expr::Lit(a), Expr::Lit(b)) = (start, stop) else {
                     // a computed bound (a list's length): not modelled
                     self.too_big = true;

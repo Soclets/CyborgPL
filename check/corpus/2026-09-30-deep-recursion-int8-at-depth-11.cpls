@@ -1,6 +1,6 @@
 # Regression (2026-09-30): an int8 overflow only at depth 11, past the call-depth cap of 8: a run-time check.
 # check claude generator, seed 1
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
