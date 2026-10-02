@@ -904,9 +904,6 @@ impl Checker {
             let Some(outer) = ctx.lookup(&c.name.name) else {
                 return err(Diagnostic::error(format!("'{}' is not declared", c.name.name)).at(c.name.span));
             };
-            if c.amp {
-                self.amp_count += 1;
-            }
             if detached && matches!(c.verb, ast::Verb::Lend | ast::Verb::LendMut) {
                 return err(Diagnostic::error(format!("a detached task may not lend: no scope protects it, so '{}' could be gone while the task still looks at it — `give` or `copy` it", c.name.name)).at(c.span));
             }

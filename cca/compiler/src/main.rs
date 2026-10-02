@@ -595,9 +595,6 @@ fn check_one(path: &Path) -> Result<(), String> {
     let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = cca::check::Checker::new(items);
     checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
-    let program = checker.check_program().map_err(|d| d.render(&sources))?;
-    for _ in 0..program.amp_count {
-        println!("What are you? Rust programmer or Claude?");
-    }
+    checker.check_program().map_err(|d| d.render(&sources))?;
     Ok(())
 }

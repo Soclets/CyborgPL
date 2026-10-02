@@ -490,6 +490,8 @@ pub struct RetLent {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FnDecl {
     pub name: Ident,
+    /// `<T>: Number`, `| @x`: announced after the name (owner, 2026-10-02).
+    pub announce: Announce,
     pub params: Vec<Param>,
     pub ret: Option<Type>,
     /// `-> lent@x T`: the function hands back a borrow (owner, 2026-09-29).
@@ -512,6 +514,7 @@ pub struct Field {
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructDecl {
     pub name: Ident,
+    pub announce: Announce,
     pub layout_c: bool,
     pub fields: Vec<Field>,
 }
@@ -527,6 +530,7 @@ pub struct EnumCase {
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumDecl {
     pub name: Ident,
+    pub announce: Announce,
     pub cases: Vec<EnumCase>,
     /// `layout.c enum`: C's enum, a number per case (owner, 2026-09-27: a).
     pub layout_c: bool,
@@ -550,16 +554,40 @@ pub struct IfaceEntry {
 #[derive(Debug, Clone, PartialEq)]
 pub struct IfaceDecl {
     pub name: Ident,
+    /// `interface Ordered <T> { … }`: the type the operations are about,
+    /// with no bound of its own.
+    pub own: Option<Ident>,
     pub entries: Vec<IfaceEntry>,
+    /// The types it accepts, one per line (owner, 2026-10-02): a closed
+    /// list, beside or instead of operations.
+    pub types: Vec<Type>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpDecl {
     /// The operator's spelling: `<+>`, `dot`, `<`, `+`.
     pub op: Ident,
+    pub announce: Announce,
     pub params: Vec<Param>,
     pub ret: Option<Type>,
     pub body: Block,
+}
+
+/// A generic, announced right after its declaration's name with what it
+/// accepts (owner, 2026-10-02): `<T>: Number and Hashable`, `<A>: any`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Generic {
+    pub name: Ident,
+    /// The interfaces it must satisfy, every one; none for `any`.
+    pub bounds: Vec<Path>,
+}
+
+/// What a declaration announces after its name: its generics, one bracket
+/// each, then its lifetime groups (`| @x @y`, the bar only between kinds).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Announce {
+    pub generics: Vec<Generic>,
+    pub groups: Vec<Ident>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -3,11 +3,11 @@
 # ~= 100 false, A 3 <+> A 3 is 6 and B 3 <+> B 3 is 9 → 1 + 60 + 9 x 100 = 961,
 # which exits as 961 mod 256 = 193.
 extern fn exit ['code': int32];
-interface Number {
+interface Number <T> {
     op - ['a': <T>, 'b': <T>] -> <T>;
     op < ['a': <T>, 'b': <T>] -> bool;
 }
-op ~= ['a': <T: Number>, 'b': <T>] -> bool {
+op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool {
     if 'a' < 'b' { return 'b' - 'a' < 10; }
     return 'a' - 'b' < 10;
 }

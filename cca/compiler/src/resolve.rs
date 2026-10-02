@@ -85,7 +85,7 @@ pub struct FnDeclInfo {
     pub ret_lent: Option<(bool, Option<String>)>,
     pub fails: Vec<(String, Option<Ty>)>,
     /// Generic blanks by first appearance: name and interface bound.
-    pub blanks: Vec<(String, Option<IfaceId>)>,
+    pub blanks: Vec<(String, Vec<IfaceId>)>,
     pub body: Option<ast::Block>,
     /// `op` declarations: the operator's spelling.
     pub op: Option<String>,
@@ -244,7 +244,7 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false };
+                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -267,19 +267,19 @@ impl Items {
             }
             ItemKind::Struct(decl) => {
                 let id = StructId(self.structs.len() as u32);
-                self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, fields: Vec::new(), blanks: Vec::new(), span: decl.name.span });
+                self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Struct(id), vis, decl.name.span)?;
                 self.pending_structs.push((id, decl.clone(), m));
             }
             ItemKind::Enum(decl) => {
                 let id = EnumId(self.enums.len() as u32);
-                self.enums.push(EnumInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), cases: Vec::new(), numbers: decl.layout_c.then(Vec::new), blanks: Vec::new(), span: decl.name.span });
+                self.enums.push(EnumInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), cases: Vec::new(), numbers: decl.layout_c.then(Vec::new), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Enum(id), vis, decl.name.span)?;
                 self.pending_enums.push((id, decl.clone(), m));
             }
             ItemKind::Interface(decl) => {
                 let id = IfaceId(self.ifaces.len() as u32);
-                self.ifaces.push(IfaceInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), entries: Vec::new(), span: decl.name.span });
+                self.ifaces.push(IfaceInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), entries: Vec::new(), types: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Iface(id), vis, decl.name.span)?;
                 self.pending_ifaces.push((id, decl.clone(), m));
             }
@@ -311,7 +311,7 @@ impl Items {
     pub fn resolve_all(&mut self) -> Result<()> {
         let structs = std::mem::take(&mut self.pending_structs);
         for (id, decl, m) in &structs {
-            let mut blanks = Vec::new();
+            let mut blanks = self.announced(&decl.announce, *m)?;
             let mut fields = Vec::new();
             for f in &decl.fields {
                 let ty = self.resolve_type(&f.ty, *m, &mut blanks, true)?;
@@ -327,11 +327,12 @@ impl Items {
             }
             let s = &mut self.structs[id.0 as usize];
             s.fields = fields;
+            s.bounds = blanks.iter().map(|(_, b)| b.clone()).collect();
             s.blanks = blanks.into_iter().map(|(n, _)| n).collect();
         }
         let enums = std::mem::take(&mut self.pending_enums);
         for (id, decl, m) in &enums {
-            let mut blanks = Vec::new();
+            let mut blanks = self.announced(&decl.announce, *m)?;
             let mut cases = Vec::new();
             let mut numbers: Vec<i64> = Vec::new();
             for c in &decl.cases {
@@ -368,13 +369,20 @@ impl Items {
                 e.numbers = Some(numbers);
             }
             e.cases = cases;
+            e.bounds = blanks.iter().map(|(_, b)| b.clone()).collect();
             e.blanks = blanks.into_iter().map(|(n, _)| n).collect();
         }
         let ifaces = std::mem::take(&mut self.pending_ifaces);
         for (id, decl, m) in &ifaces {
             let mut entries = Vec::new();
+            let mut types = Vec::new();
+            for t in &decl.types {
+                let mut none = Vec::new();
+                types.push(self.resolve_type(t, *m, &mut none, false)?);
+            }
+            self.ifaces[id.0 as usize].types = types;
             for e in &decl.entries {
-                let mut blanks = Vec::new();
+                let mut blanks: Vec<(String, Vec<IfaceId>)> = decl.own.iter().map(|t| (t.name.clone(), Vec::new())).collect();
                 let mut params = Vec::new();
                 for p in &e.params {
                     let ty = match &p.ty {
@@ -521,7 +529,14 @@ impl Items {
                 return err(Diagnostic::error(format!("the `test fn {}` returns nothing and cannot fail: what it checks, it says with `must`", decl.name.name)).at(decl.name.span));
             }
         }
-        let mut blanks: Vec<(String, Option<IfaceId>)> = Vec::new();
+        let mut blanks = self.announced(&decl.announce, m)?;
+        // A borrow's group is one the function announced (owner, 2026-10-02).
+        let groups = decl.params.iter().filter_map(|p| p.group.as_ref()).chain(decl.ret_lent.iter().filter_map(|r| r.group.as_ref()));
+        for g in groups {
+            if !decl.announce.groups.iter().any(|a| a.name == g.name) {
+                return err(Diagnostic::error(format!("`@{}` was never announced: a lifetime group is announced right after the name — `fn {} @{} […]`, or after the generics and a `|`", g.name, decl.name.name, g.name)).at(g.span));
+            }
+        }
         let mut params = Vec::new();
         for p in &decl.params {
             let (ty, from_blank) = match &p.ty {
@@ -573,7 +588,7 @@ impl Items {
         Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, span, name_span: decl.name.span })
     }
 
-    pub fn resolve_fails(&mut self, fails: &[ast::FailSpec], m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>) -> Result<Vec<(String, Option<Ty>)>> {
+    pub fn resolve_fails(&mut self, fails: &[ast::FailSpec], m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>) -> Result<Vec<(String, Option<Ty>)>> {
         let mut out: Vec<(String, Option<Ty>)> = Vec::new();
         for f in fails {
             if out.iter().any(|(n, _)| *n == f.name.name) {
@@ -720,33 +735,39 @@ impl Items {
 
     /// Resolve a written type in module `m`. `blanks` collects `<T>` by first
     /// appearance; `allow_blanks` is false where a blank cannot appear.
-    pub fn resolve_type(&self, t: &ast::Type, m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>, allow_blanks: bool) -> Result<Ty> {
+    /// The generics a declaration announced, in order, each with the
+    /// interfaces it must satisfy (none for `any`).
+    pub fn announced(&self, a: &ast::Announce, m: ModuleId) -> Result<Vec<(String, Vec<IfaceId>)>> {
+        let mut out: Vec<(String, Vec<IfaceId>)> = Vec::new();
+        for g in &a.generics {
+            if out.iter().any(|(n, _)| *n == g.name.name) {
+                return err(Diagnostic::error(format!("`<{}>` is announced twice", g.name.name)).at(g.name.span));
+            }
+            let mut bounds = Vec::new();
+            for p in &g.bounds {
+                match self.lookup_path(p, m) {
+                    Ok(ItemRef::Iface(i)) => bounds.push(i),
+                    Ok(other) => return err(Diagnostic::error(format!("`{}` is a {}, not an interface: what a generic accepts is an interface — `<{}>: Ordered` — or `any`", p.spelled(), other.what(), g.name.name)).at(p.span)),
+                    Err(_) => return err(Diagnostic::error(format!("there is no interface named `{}`", p.spelled())).at(p.span)),
+                }
+            }
+            out.push((g.name.name.clone(), bounds));
+        }
+        Ok(out)
+    }
+
+    pub fn resolve_type(&self, t: &ast::Type, m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>, allow_blanks: bool) -> Result<Ty> {
         match &t.kind {
             ast::TypeKind::Var { name, bound } => {
                 if !allow_blanks {
                     return err(Diagnostic::error(format!("a blank `<{}>` cannot appear here", name.name)).at(t.span));
                 }
-                let bound_id = match bound {
-                    Some(p) => match self.lookup_path(p, m) {
-                        Ok(ItemRef::Iface(i)) => Some(i),
-                        Ok(other) => return err(Diagnostic::error(format!("`{}` is a {}, not an interface: a bound names an interface — `<{}: Ordered>`", p.spelled(), other.what(), name.name)).at(p.span)),
-                        Err(_) => return err(Diagnostic::error(format!("there is no interface named `{}`", p.spelled())).at(p.span)),
-                    },
-                    None => None,
-                };
-                if let Some(pos) = blanks.iter().position(|(n, _)| *n == name.name) {
-                    if let Some(b) = bound_id {
-                        match blanks[pos].1 {
-                            Some(prev) if prev != b => {
-                                return err(Diagnostic::error(format!("one blank, one interface: `<{}>` is already bound to `{}`, and cannot also be `{}`", name.name, self.ifaces[prev.0 as usize].name, self.ifaces[b.0 as usize].name)).at(t.span));
-                            }
-                            _ => blanks[pos].1 = Some(b),
-                        }
-                    }
-                    Ok(Ty::Var(pos as u32))
-                } else {
-                    blanks.push((name.name.clone(), bound_id));
-                    Ok(Ty::Var((blanks.len() - 1) as u32))
+                let _ = bound;
+                // Every generic is announced right after its declaration's
+                // name (owner, 2026-10-02), so a mention names one of those.
+                match blanks.iter().position(|(n, _)| *n == name.name) {
+                    Some(pos) => Ok(Ty::Var(pos as u32)),
+                    None => err(Diagnostic::error(format!("`<{}>` was never announced: a generic is announced right after the name, with what it accepts — `fn f <{}>: any […]`", name.name, name.name)).at(t.span)),
                 }
             }
             ast::TypeKind::Fn { params, ret, fails } => {
@@ -904,7 +925,7 @@ impl Items {
         Ok(Ty::Bounded { inner: Box::new(base), bound })
     }
 
-    fn resolve_type_path(&self, path: &ast::Path, args: &[ast::Type], m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Ty> {
+    fn resolve_type_path(&self, path: &ast::Path, args: &[ast::Type], m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Ty> {
         let head = path.head();
         let no_args = |what: &str| -> Result<()> {
             if !args.is_empty() {
@@ -912,6 +933,19 @@ impl Items {
             }
             Ok(())
         };
+        if path.limb.is_none() {
+            // Rust's names that have no CyborgPL type of their own (owner,
+            // 2026-10-02), with what to write instead.
+            let refused = match head {
+                "usize" | "isize" => Some(format!("`{}` is as big as the machine, and a CyborgPL type's size never depends on it: write the width — `{}64` (or `{}32`)", head, if head == "usize" { "uint" } else { "int" }, if head == "usize" { "uint" } else { "int" })),
+                "String" => Some("text is `str.utf8` (or `str.ascii`), and there is one kind of it: owned by default, lent with `lend` — Rust's `String` and `&str` are both `str.utf8`".to_string()),
+                "f128" => Some("there is no `f128`, as there is no `bin128`: quad precision is software arithmetic on every machine — `f64`, or `deci128` for more digits".to_string()),
+                _ => None,
+            };
+            if let Some(why) = refused {
+                return err(Diagnostic::error(why).at(span));
+            }
+        }
         if path.limb.is_none() && head == "bin128" {
             return err(Diagnostic::error("there is no `bin128`: quad precision is software arithmetic on every machine — `bin64`, or `deci128` for more digits (owner, 2026-09-23)").at(span));
         }
@@ -1075,7 +1109,7 @@ impl Items {
         }
     }
 
-    fn type_args(&self, args: &[ast::Type], declared: &[String], name: &str, m: ModuleId, blanks: &mut Vec<(String, Option<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Vec<Ty>> {
+    fn type_args(&self, args: &[ast::Type], declared: &[String], name: &str, m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Vec<Ty>> {
         if args.is_empty() && !declared.is_empty() {
             // Left to inference where a value fills the blanks (`let 'm' := Maybe.some[42]`).
             return Ok(declared.iter().map(|_| Ty::Infer(InferId(u32::MAX))).collect());
@@ -1155,7 +1189,28 @@ pub fn spell(t: &Ty, items: &Items) -> String {
     TySpelling { ty: t, structs: &items.structs, enums: &items.enums }.to_string()
 }
 
+/// Rust's number type names, read as CyborgPL's (owner, 2026-10-02).
+pub fn rust_alias(w: &str) -> Option<&'static str> {
+    Some(match w {
+        "i8" => "int8",
+        "i16" => "int16",
+        "i32" => "int32",
+        "i64" => "int64",
+        "i128" => "int128",
+        "u8" => "uint8",
+        "u16" => "uint16",
+        "u32" => "uint32",
+        "u64" => "uint64",
+        "u128" => "uint128",
+        "f16" => "bin16",
+        "f32" => "bin32",
+        "f64" => "bin64",
+        _ => return None,
+    })
+}
+
 pub fn primitive(head: &str) -> Option<Ty> {
+    let head = rust_alias(head).unwrap_or(head);
     if head == "bool" {
         return Some(Ty::Bool);
     }

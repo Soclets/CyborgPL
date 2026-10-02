@@ -302,6 +302,9 @@ pub struct StructInfo {
     pub fields: Vec<FieldInfo>,
     /// The generic blanks, in order of first appearance.
     pub blanks: Vec<String>,
+    /// What each blank must satisfy, by the same position (owner,
+    /// 2026-10-02); none for `any`.
+    pub bounds: Vec<Vec<IfaceId>>,
     pub span: crate::source::Span,
 }
 
@@ -320,6 +323,9 @@ pub struct EnumInfo {
     /// 2026-09-27: a). Its tag is that number, 32 bits.
     pub numbers: Option<Vec<i64>>,
     pub blanks: Vec<String>,
+    /// What each blank must satisfy, by the same position (owner,
+    /// 2026-10-02); none for `any`.
+    pub bounds: Vec<Vec<IfaceId>>,
     pub span: crate::source::Span,
 }
 
@@ -338,6 +344,9 @@ pub struct IfaceInfo {
     pub name: String,
     pub path: String,
     pub entries: Vec<IfaceEntryInfo>,
+    /// The types it accepts, a closed list (owner, 2026-10-02); none for
+    /// an interface that only lists operations.
+    pub types: Vec<Ty>,
     pub span: crate::source::Span,
 }
 

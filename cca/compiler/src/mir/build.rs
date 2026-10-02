@@ -1186,6 +1186,15 @@ impl<'a> FnBuilder<'a> {
                     Operand::Const(Const::Nothing)
                 } else {
                     let t = self.temp(&ty, span);
+                    // A borrow handed back and used where it stands (`total[first[&'s']]`):
+                    // the temporary holds it as a named one would — the address, and
+                    // what the call lent stays borrowed while it is in use.
+                    if let hir::ExprKind::Call { callee: hir::Callee::Fn(inst), .. } = &e.kind {
+                        let fid = self.arena.instances[inst.0 as usize].key.fn_id;
+                        if let Some((mutable, _)) = &self.arena.items.fns[fid.0 as usize].ret_lent {
+                            self.locals[t.0 as usize].kind = LocalKind::Lent { mutable: *mutable };
+                        }
+                    }
                     self.call_into(Some(Place::local(t)), e, span);
                     Operand::Read(Place::local(t))
                 }

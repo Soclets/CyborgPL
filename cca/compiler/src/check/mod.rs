@@ -54,8 +54,6 @@ pub struct Program {
     /// Consts, evaluated in order before MAIN.
     pub const_values: Vec<hir::Expr>,
     pub notes: Vec<Diagnostic>,
-    /// `&` spellings seen: one remark per occurrence (owner, 2026-09-21).
-    pub amp_count: usize,
 }
 
 pub struct Checker {
@@ -72,7 +70,6 @@ pub struct Checker {
     next_infer: u32,
     pub const_values: Vec<Option<hir::Expr>>,
     pub notes: Vec<Diagnostic>,
-    pub amp_count: usize,
     /// Anonymous `fn` literals get a synthetic FnId each.
     literal_fns: Vec<(ast::FnLit, ModuleId)>,
     /// A testing aid only: type `std::` calls as the oracle emulates them, so the
@@ -163,7 +160,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), amp_count: 0, literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new() }
+        Checker { items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {
@@ -414,7 +411,7 @@ impl Checker {
             }
         }
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();
-        Ok(Program { items: self.items, instances: self.instances, subst: self.subst, main, const_values, notes: self.notes, amp_count: self.amp_count })
+        Ok(Program { items: self.items, instances: self.instances, subst: self.subst, main, const_values, notes: self.notes })
     }
 
     fn check_const_value(&self, e: &hir::Expr) -> Result<()> {
@@ -498,9 +495,6 @@ impl Checker {
                 ParamKind::Lent => LocalKind::Lent,
                 ParamKind::LentMut => LocalKind::LentMut,
             };
-            if p.amp {
-                self.amp_count += 1;
-            }
             let id = ctx.declare(&p.name, Local { name: p.name.clone(), ty: ty.clone(), mutability: p.mutability, kind: lk, from_blank: p.from_blank, span: p.span });
             if matches!(kind, ParamKind::Lent | ParamKind::LentMut) {
                 ctx.lent_params.insert(id, (pi, p.group.clone()));
@@ -557,6 +551,18 @@ impl Checker {
     pub fn satisfies(&mut self, ty: &Ty, iface: IfaceId) -> std::result::Result<(), String> {
         let ty = self.resolve(ty);
         let info = self.items.ifaces[iface.0 as usize].clone();
+        // A type list is closed: the type is one of them. A listed integer
+        // admits every integer, as the width is Precog's to pick.
+        if !info.types.is_empty() {
+            let same_family = |listed: &Ty| match (listed.base(), ty.base()) {
+                (Ty::Int(_), Ty::Int(_)) | (Ty::Bin(_), Ty::Bin(_)) | (Ty::Deci(_), Ty::Deci(_)) => true,
+                (a, b) => a == b,
+            };
+            if !info.types.iter().any(same_family) {
+                let listed: Vec<String> = info.types.iter().map(|t| self.spell(t)).collect();
+                return Err(format!("it is not one of the types it lists ({})", listed.join(", ")));
+            }
+        }
         for e in &info.entries {
             if e.is_op {
                 if !self.has_op(&ty, &e.name) {
@@ -624,8 +630,8 @@ impl Checker {
                             // generic's first blank's interface.
                             let Some(Some(st)) = s.params.first().map(|p| p.ty.clone()) else { continue };
                             let covers = match g.params.first().and_then(|p| p.ty.clone()) {
-                                Some(Ty::Var(v)) => match g.blanks.get(v as usize).and_then(|(_, i)| *i) {
-                                    Some(iface) => self.satisfies(&st, iface).is_ok(),
+                                Some(Ty::Var(v)) => match g.blanks.get(v as usize).map(|(_, b)| b.clone()) {
+                                    Some(bounds) => bounds.iter().all(|i| self.satisfies(&st, *i).is_ok()),
                                     None => true,
                                 },
                                 _ => false,

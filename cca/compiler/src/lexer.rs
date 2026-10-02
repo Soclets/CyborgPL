@@ -78,6 +78,9 @@ impl Tok {
 pub struct Token {
     pub tok: Tok,
     pub span: Span,
+    /// The first token on its line: an interface's types go one per line
+    /// (owner, 2026-10-02).
+    pub line_first: bool,
 }
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
@@ -126,7 +129,8 @@ impl<'a> Lexer<'a> {
     }
     fn push(&mut self, tok: Tok, start: usize) {
         let span = self.span(start);
-        self.toks.push(Token { tok, span });
+        let line_first = self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..start).is_some_and(|gap| gap.contains('\n')));
+        self.toks.push(Token { tok, span, line_first });
     }
     fn fail<T>(&self, start: usize, msg: impl Into<String>) -> Result<T> {
         err(Diagnostic::error(msg).at(self.span(start)))
@@ -257,7 +261,7 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end) });
+        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true });
         Ok(())
     }
 

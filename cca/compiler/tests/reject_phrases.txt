@@ -15,6 +15,7 @@
 amp_binary_undefined [fnv:8b81ac388cbba9c1] :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
 amp_mut_word [fnv:7e931924847dd7d4] :: `&'x'` or `&mut 'x'`; `&mutt` is neither
 amp_needs_var [fnv:7e931924847dd7d4] :: write `&'x'` (`lend 'x'`) or `&mut 'x'` (`lend.mut 'x'`)
+ampersand_group_unnamed [fnv:a2e7523dea803765] :: a lifetime group is named after `@`: `&@x`
 and_does_not_guard [fnv:73a43ee7964ee933] :: the position can be past the end
 append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
 append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
@@ -200,14 +201,19 @@ for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the po
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`
 func_keyword [fnv:06228e3da7cced76] :: `fn name [params] -> type { … }`
+generic_any_and [fnv:a8a533fe624275bd] :: `any` stands alone
 generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), and 1 type(s) were given
+generic_bound_on_mention [fnv:2425d9af29f34ce4] :: is said once, where it is announced
+generic_groups_no_bar [fnv:d9285d1150420b1d] :: a `|` separates the generics from the lifetime groups
 generic_inconsistent [fnv:81336ef057ec73fd] :: `<T>` is filled by an earlier argument as `integer`, and 'b' would make it something else
 generic_inst_mismatch [fnv:7d29ffc630950dd5] :: expected a value of the declared type (Box[int32]), found a `Box[str]`
+generic_no_bound [fnv:ea71e74c4327a5eb] :: says what it accepts
 generic_no_space_arrow [fnv:436cf28ab247e3e5] :: put a space after `->` (`-> <T>`)
 generic_op_overlap [fnv:c1fa6ef0de5f1372] :: `~=` for int32 and the generic `~=` both cover int32
 generic_quoted_var [fnv:00d462dc38c9d0b4] :: a type variable's name is bare: `<T>`, not `<'T'>`
 generic_size_of [fnv:cf20c2fa7cc04da7] :: `size.of` takes a concrete type
 generic_to_c [fnv:89768fbb7f2f8a1a] :: a blank `<T>` cannot appear here
+generic_unannounced [fnv:767c6e1b89d185ef] :: `<T>` was never announced
 generic_wrong_return [fnv:81336ef057ec73fd] :: the return type is an `integer` and this value is text: convert it first
 give_plain [fnv:0b0079f7332adfe9] :: a `integer` is a plain value that owns nothing (no allocation behind it), so it copies by itself
 give_to_lent_param [fnv:a3589766a127e65e] :: `look` only looks at 'text' (it is `lent`); you tried to give it away
@@ -217,10 +223,13 @@ gives_renamed [fnv:27e786ca6ffe10f6] :: `gives` is spelled `giveS`
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
 grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 gte [fnv:695f5e2be2fe7158] :: greater-or-equal is `>/==`
+iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
 iface_empty [fnv:f5b372b2009be52e] :: list at least one `fn` or `op` signature
 iface_false_claim [fnv:6d0a1bbebbb84659] :: the claim `V satisfies Ordered` is false: no `op <` for it
 iface_false_claim_fn [fnv:099e7904d43c98bb] :: no `fn show` for it
-iface_two_bounds [fnv:fd1a352f496ec0a0] :: `<T>` is already bound to `A`, and cannot also be `B`
+iface_named_any [fnv:ce7427091dbe0bbc] :: `any` is the built-in
+iface_type_not_listed [fnv:c02c556b784e5ed9] :: is not one of the types it lists
+iface_types_one_line [fnv:4426b1eae38e25b6] :: one per line
 iface_unknown_in_bound [fnv:2d41798402b31028] :: there is no interface named `Nope`
 iface_unsatisfied_bound [fnv:f047b3b93b1031a0] :: `str` is not `Ordered`: no `op <` for it
 iface_with_body [fnv:7529b88ba149365d] :: end the signature with `;` and leave the body out
@@ -250,6 +259,7 @@ let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
 lifetime_group_given [fnv:d0ed618004b47c50] :: 't' cannot be given away here: 'r' still borrows it and is used on line 8
 lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
 lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
+lifetime_unannounced [fnv:a45d01df7619f11b] :: `@x` was never announced
 lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
 lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
@@ -405,6 +415,8 @@ range_type_on_range [fnv:bde7b04c0713065f] :: int32 in range[0, 3]`
 return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
 return_type_colon [fnv:940ae1aff445aa14] :: the return type is `-> int32`, not `: int32`
 return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the parameters
+rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
+rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
 seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
 shadow [fnv:6f58e8bff03be94f] :: 'x' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`
@@ -453,6 +465,7 @@ strict_range_by [fnv:71fa87accabcbe2b] :: a range writes its step too
 strict_ret [fnv:c79ad4f458e579d7] :: `f` returns a value, so it says its type
 strict_top [fnv:c550bed1c222dbe5] :: `#strict` goes once, at the top of the file
 struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it
+struct_bound_unkept [fnv:91778bbd2a224911] :: needs `<T>: Number`
 struct_field_no_colon [fnv:1b310f9423971d5e] :: a field's type follows its name after `:`
 struct_field_unbracketed [fnv:3a5e01bd7a977ab9] :: a field is written name first, then its type: `x: int32`
 struct_field_walrus [fnv:009d28a4f96e3205] :: the blueprint fixed the types
@@ -461,6 +474,7 @@ struct_immut_chain [fnv:e46e498118fabc2a] :: `immut` is a bare word before the f
 struct_immut_field_write [fnv:0b060e4d362187e5] :: `id` is an `immut` field of `P` and cannot be written
 struct_keyword_field [fnv:d10a27914bc3ae70] :: `return` is a keyword and cannot name a field
 struct_missing_field [fnv:81a9a1f64a8049f6] :: every field must be given
+struct_named_rust_alias [fnv:beb39da82ede1c74] :: another name for `int32`
 struct_quoted_field [fnv:7597065160c99b01] :: a field's name is bare
 struct_semicolon_field [fnv:3b257eb63d7b8bb9] :: fields are not statements
 struct_to_text [fnv:eb005d494bc23a16] :: a `Point` is not text

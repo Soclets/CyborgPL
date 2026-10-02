@@ -132,10 +132,7 @@ impl Checker {
                 let ty = place.ty.clone();
                 Ok(Expr { kind: K::Read(place), ty, span })
             }
-            AK::Verb { verb, amp, expr } => {
-                if *amp {
-                    self.amp_count += 1;
-                }
+            AK::Verb { verb, expr, .. } => {
                 self.verb_expr(ctx, *verb, expr, span)
             }
             AK::Unary { op, expr } => self.unary(ctx, *op, expr, span),
@@ -172,9 +169,11 @@ impl Checker {
             AK::FnLit(lit) => self.fn_literal(ctx, lit, span),
             AK::Spread { .. } => err(Diagnostic::error("`...` has no meaning here: it unpacks a list into a call's arguments — `sum[...'xs']`").at(span)),
             AK::SizeOf { align, ty } => {
-                let mut blanks = Vec::new();
+                // The function's own generics are announced, so naming one
+                // here is no typo — it just has no size or layout yet.
+                let mut blanks: Vec<(String, Vec<crate::types::IfaceId>)> = ctx.blank_names.iter().map(|n| (n.clone(), Vec::new())).collect();
                 let t = self.items.resolve_type(ty, ctx.module, &mut blanks, true)?;
-                if t.contains_var() || !blanks.is_empty() {
+                if t.contains_var() {
                     return err(Diagnostic::error("a blank has no size until it is filled: `size.of` takes a concrete type").at(ty.span));
                 }
                 Ok(Expr { kind: K::SizeOf { align: *align, ty: t }, ty: Ty::u64(), span })
@@ -184,9 +183,11 @@ impl Checker {
                 if !ctx.tier.is_some_and(ast::Tier::trusts) {
                     return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a nocheck site: write `nocheck` in front of the statement").at(span));
                 }
-                let mut blanks = Vec::new();
+                // The function's own generics are announced, so naming one
+                // here is no typo — it just has no size or layout yet.
+                let mut blanks: Vec<(String, Vec<crate::types::IfaceId>)> = ctx.blank_names.iter().map(|n| (n.clone(), Vec::new())).collect();
                 let t = self.items.resolve_type(ty, ctx.module, &mut blanks, true)?;
-                if t.contains_var() || !blanks.is_empty() {
+                if t.contains_var() {
                     return err(Diagnostic::error("`ptr.cast` takes a concrete type: a blank has no layout").at(ty.span));
                 }
                 if !t.is_c_shaped(&self.items.structs, &self.items.enums) {
@@ -1531,10 +1532,10 @@ impl Checker {
             if matches!(r, Ty::Infer(_)) {
                 return err(Diagnostic::error(format!("the blank `<{}>` of `{}` is not filled: neither operand says what it is", decl.blanks[i].0, spelling)).at(span));
             }
-            if let Some(iface) = decl.blanks[i].1 {
+            for iface in decl.blanks[i].1.clone() {
                 if let Err(reason) = self.satisfies(&r, iface) {
                     let iname = self.items.ifaces[iface.0 as usize].name.clone();
-                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for a `<{}: {}>`", self.spell(&r), iname, reason, spelling, decl.blanks[i].0, iname)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for `<{}>: {}`", self.spell(&r), iname, reason, spelling, decl.blanks[i].0, iname)).at(span));
                 }
             }
             blank_tys.push(r);
@@ -1614,6 +1615,26 @@ impl Checker {
         }
     }
 
+    /// A struct's or enum's filled blanks keep what it announced they
+    /// accept (owner, 2026-10-02). A blank not filled yet is asked later,
+    /// where it is.
+    fn kept_bounds(&mut self, owner: &str, names: &[String], bounds: &[Vec<IfaceId>], args: &[Ty], span: Span) -> Result<()> {
+        for (i, bs) in bounds.iter().enumerate() {
+            let Some(t) = args.get(i) else { continue };
+            let r = self.resolve(t);
+            if matches!(r, Ty::Infer(_) | Ty::Var(_)) {
+                continue;
+            }
+            for iface in bs {
+                if let Err(reason) = self.satisfies(&r, *iface) {
+                    let iname = self.items.ifaces[iface.0 as usize].name.clone();
+                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` needs `<{}>: {}`", self.spell(&r), iname, reason, owner, names.get(i).cloned().unwrap_or_default(), iname)).at(span));
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn enum_case(&mut self, ctx: &mut FnCtx, id: EnumId, case: &ast::Ident, payload: Option<&[AArg]>, span: Span) -> Result<Expr> {
         let info = self.items.enums[id.0 as usize].clone();
         let Some(ci) = info.cases.iter().position(|c| c.name == case.name) else {
@@ -1638,6 +1659,7 @@ impl Checker {
             (None, Some(t)) => return err(Diagnostic::error(format!("`{}.{}` carries a `{}`: write `{}.{}[…]` with the value", info.name, case.name, self.spell(&t), info.name, case.name)).at(span)),
             (Some(_), None) => return err(Diagnostic::error(format!("`{}.{}` carries nothing; write it bare — `{}.{}`", info.name, case.name, info.name, case.name)).at(span)),
         };
+        self.kept_bounds(&info.name, &info.blanks, &info.bounds, &args, span)?;
         Ok(Expr { kind: K::EnumCase { id, case: ci, payload }, ty: Ty::Enum { id, args }, span })
     }
 
@@ -1669,6 +1691,7 @@ impl Checker {
             return err(Diagnostic::error(format!("`{}` is missing {}: every field must be given — there are no zero values", info.name, missing.iter().map(|m| format!("`{}`", m)).collect::<Vec<_>>().join(", "))).at(span));
         }
         let fields = given.into_iter().map(|g| g.unwrap()).collect();
+        self.kept_bounds(&info.name, &info.blanks, &info.bounds, &targs, span)?;
         Ok(Expr { kind: K::Construct { id, fields }, ty: Ty::Struct { id, args: targs }, span })
     }
 
@@ -1865,10 +1888,10 @@ impl Checker {
                 return err(Diagnostic::error(format!("the blank `<{}>` of `{}` is not filled by this call: no argument says what it is", decl.blanks[i].0, decl.name)).at(span));
             }
             // interface bound
-            if let Some(iface) = decl.blanks[i].1 {
+            for iface in decl.blanks[i].1.clone() {
                 if let Err(reason) = self.satisfies(&r, iface) {
                     let iname = self.items.ifaces[iface.0 as usize].name.clone();
-                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for a `<{}: {}>`", self.spell(&r), iname, reason, decl.name, decl.blanks[i].0, iname)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for `<{}>: {}`", self.spell(&r), iname, reason, decl.name, decl.blanks[i].0, iname)).at(span));
                 }
             }
             blank_tys.push(r);
@@ -1885,11 +1908,6 @@ impl Checker {
         let sig = self.instances[inst.0 as usize].sig.clone();
         let _ = path;
         let ow = self.call_otherwise(ctx, otherwise, &sig.fails, &sig.ret, used, span, &decl.name)?;
-        // A borrow handed back is held by a new name, which then borrows
-        // what the call lent (owner, 2026-09-29).
-        if self.items.fns[id.0 as usize].ret_lent.is_some() && ctx.lend_call_ok != Some(span) {
-            return err(Diagnostic::error(format!("`{}` hands back a borrow, and a borrow is held by a name: `let 'l' := {}[…];`", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).at(span));
-        }
         Ok(Expr { kind: K::Call { callee: Callee::Fn(inst), args: hargs, otherwise: ow, fails: sig.fails.clone() }, ty: sig.ret, span })
     }
 
@@ -2122,10 +2140,7 @@ impl Checker {
             }
         }
         match &e.kind {
-            AK::Verb { verb, amp, expr } => {
-                if *amp {
-                    self.amp_count += 1;
-                }
+            AK::Verb { verb, expr, .. } => {
                 let use_ = match verb {
                     Verb::Give => PlaceUse::Give,
                     Verb::Copy => PlaceUse::Copy,
@@ -2187,6 +2202,17 @@ impl Checker {
             }
             _ => {
                 let v = self.expr(ctx, e)?;
+                // A borrow a call hands back, used where it stands, goes to a
+                // parameter as a `lend` (or `lend.mut`) written there would.
+                if let (Some(mutable), K::Call { callee: Callee::Fn(inst), .. }) = (self.call_lends(&v), &v.kind) {
+                    let callee = self.items.fns[self.instances[inst.0 as usize].key.fn_id.0 as usize].name.clone();
+                    match (kind, mutable) {
+                        (ParamKind::Owned, _) => return err(Diagnostic::error(format!("`{}` takes ownership of '{}', and `{}` hands back a borrow: hold it by a name and `copy` it, or pass what it borrows", fname, pname, callee)).at(e.span)),
+                        (ParamKind::Lent, true) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `{}` hands back a `lent.mut` borrow, which offers more than it takes", fname, pname, callee)).at(e.span)),
+                        (ParamKind::LentMut, false) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): `{}` hands back a `lent` borrow, which only looks", fname, pname, callee)).at(e.span)),
+                        _ => {}
+                    }
+                }
                 let vt = self.resolve(&v.ty);
                 if let K::Read(place) = &v.kind {
                     if vt.is_owned() && !(ctx.locals[place.base.0 as usize].from_blank && place.proj.is_empty()) {
@@ -2328,10 +2354,7 @@ impl Checker {
     fn c_argument(&mut self, ctx: &mut FnCtx, e: &ast::Expr, pty: &Ty, fname: &str, pname: &str) -> Result<Arg> {
         if let Ty::Ptr { mutable, elem } = pty {
             match &e.kind {
-                AK::Verb { verb: Verb::Lend, expr, amp } => {
-                    if *amp {
-                        self.amp_count += 1;
-                    }
+                AK::Verb { verb: Verb::Lend, expr, .. } => {
                     if *mutable {
                         return err(Diagnostic::error(format!("`{}`'s parameter '{}' is a `ptr.mut`: C may write through it, so write `lend.mut`", fname, pname)).at(e.span));
                     }
@@ -2340,10 +2363,7 @@ impl Checker {
                     self.adopt_from_ptr(ctx, &place, pty);
                     return Ok(Arg::Lend { place, mutable: false });
                 }
-                AK::Verb { verb: Verb::LendMut, expr, amp } => {
-                    if *amp {
-                        self.amp_count += 1;
-                    }
+                AK::Verb { verb: Verb::LendMut, expr, .. } => {
                     let place = self.place(ctx, expr, PlaceUse::LendMut)?;
                     self.check_lend_as_ptr(ctx, &place, elem, e.span)?;
                     self.adopt_from_ptr(ctx, &place, pty);
@@ -2406,9 +2426,6 @@ impl Checker {
             let Some(outer) = ctx.lookup(&c.name.name) else {
                 return err(Diagnostic::error(format!("'{}' is not declared", c.name.name)).at(c.name.span));
             };
-            if c.amp {
-                self.amp_count += 1;
-            }
             let ty = self.resolve(&ctx.locals[outer.0 as usize].ty);
             if lit.params.iter().any(|p| p.name.name == c.name.name) {
                 return err(Diagnostic::error(format!("'{}' is both a capture and a parameter: they cannot share a name", c.name.name)).at(c.name.span));
@@ -3235,7 +3252,7 @@ impl Checker {
             Some(i) => StructId(i as u32),
             None => {
                 let id = StructId(self.items.structs.len() as u32);
-                self.items.structs.push(StructInfo { name: name.into(), path: name.into(), layout_c: false, fields: vec![FieldInfo { name: "key".into(), immut: true, ty: kt }, FieldInfo { name: "value".into(), immut: true, ty: vt }], blanks: Vec::new(), span: Span::new(crate::source::FileId(0), 0, 0) });
+                self.items.structs.push(StructInfo { name: name.into(), path: name.into(), layout_c: false, fields: vec![FieldInfo { name: "key".into(), immut: true, ty: kt }, FieldInfo { name: "value".into(), immut: true, ty: vt }], blanks: Vec::new(), bounds: Vec::new(), span: Span::new(crate::source::FileId(0), 0, 0) });
                 id
             }
         };
@@ -3245,10 +3262,7 @@ impl Checker {
     /// A builtin's collection argument: `lend 'xs'` (or `lend.mut` when it changes it).
     fn lent_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str, mutates: bool) -> Result<Arg> {
         match &e.kind {
-            AK::Verb { verb, amp, expr } => {
-                if *amp {
-                    self.amp_count += 1;
-                }
+            AK::Verb { verb, expr, .. } => {
                 match (verb, mutates) {
                     (Verb::Lend, false) => {
                         let place = self.place(ctx, expr, PlaceUse::Lend)?;

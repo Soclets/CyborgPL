@@ -28,7 +28,8 @@ pub fn is_keyword(w: &str) -> bool {
 
 /// Words that name a built-in type when they head a type path.
 pub fn is_primitive_head(w: &str) -> bool {
-    matches!(w, "str" | "char" | "bool" | "int" | "uint" | "bin" | "deci")
+    crate::resolve::rust_alias(w).is_some()
+        || matches!(w, "str" | "char" | "bool" | "int" | "uint" | "bin" | "deci")
         || (w.starts_with("int") && w[3..].parse::<u32>().is_ok())
         || (w.starts_with("uint") && w[4..].parse::<u32>().is_ok())
         || (w.starts_with("bin") && w[3..].parse::<u32>().is_ok())
@@ -433,6 +434,76 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
+    /// `>` closing a `<T>`.
+    fn expect_close_angle(&mut self, name: &str) -> Result<()> {
+        match self.peek().clone() {
+            Tok::Op(o) if o == ">" => {
+                self.bump();
+                Ok(())
+            }
+            Tok::Op(o) if o.starts_with('>') => self.fail(format!("`{}` is one operator: put a space after the `>` closing `<{}>`", o, name)),
+            Tok::Colon => self.fail(format!("the bound goes after the bracket: `<{}>: any`, not `<{}: any>`", name, name)),
+            other => self.fail(format!("expected `>` closing `<{}>`, found {}", name, other.describe())),
+        }
+    }
+
+    /// What a declaration announces right after its name (owner,
+    /// 2026-10-02): each generic in its own `< >` with what it accepts
+    /// after a `:` — `<T>: Number and Hashable`, `<A>: any` — then the
+    /// lifetime groups, `@x @y`, with a `|` between the two kinds only.
+    fn announce(&mut self, owner: &str, what: &str) -> Result<Announce> {
+        let mut a = Announce::default();
+        while self.is_op("<") && matches!(self.peek_at(1), Tok::Word(_)) {
+            self.bump();
+            let name = self.ident("the generic's name")?;
+            self.expect_close_angle(&name.name)?;
+            if !self.eat(&Tok::Colon) {
+                return self.fail_at(name.span, format!("`<{}>` says what it accepts, never every type by default: `{} {} <{}>: any`, or an interface — `<{}>: Number`", name.name, what, owner, name.name, name.name));
+            }
+            let mut bounds = Vec::new();
+            if self.is_word("any") {
+                let any = self.bump().span;
+                if self.is_word("and") {
+                    return self.fail_at(any, format!("`any` stands alone: `<{}>: any` accepts every type, so nothing joins it with `and`", name.name));
+                }
+            } else {
+                loop {
+                    if self.is_word("any") {
+                        return self.fail(format!("`any` stands alone: `<{}>: any` accepts every type, so nothing joins it with `and`", name.name));
+                    }
+                    bounds.push(self.path()?);
+                    if !self.eat_word("and") {
+                        break;
+                    }
+                }
+            }
+            a.generics.push(Generic { name, bounds });
+        }
+        let bar = if self.is_op("|") {
+            let at = self.bump().span;
+            if a.generics.is_empty() {
+                return self.fail_at(at, format!("a `|` only separates generics from lifetime groups; with groups alone they follow the name: `{} {} @x […]`", what, owner));
+            }
+            true
+        } else {
+            false
+        };
+        while self.is_op("@") {
+            let at = self.bump().span;
+            match self.peek().clone() {
+                Tok::Word(_) => a.groups.push(self.ident("the lifetime group's name")?),
+                _ => return self.fail_at(at, "a lifetime group is named after `@`: `@x`"),
+            }
+            if !bar && !a.generics.is_empty() {
+                return self.fail_at(at, format!("a `|` separates the generics from the lifetime groups: `{} {} <{}>: … | @{} […]`", what, owner, a.generics[0].name.name, a.groups[0].name));
+            }
+        }
+        if bar && a.groups.is_empty() {
+            return self.fail(format!("a lifetime group follows the `|`: `| @x`, found {}", self.peek().describe()));
+        }
+        Ok(a)
+    }
+
     fn fn_decl(&mut self, has_body: bool) -> Result<FnDecl> {
         if let Tok::Name(n) = self.peek().clone() {
             return self.fail(format!("function names are bare: `fn {} […]`, not `fn '{}'` — quotes mark a value you hold, and a function is not one", n, n));
@@ -443,6 +514,7 @@ impl<'a> Parser<'a> {
         // A keyword may name a function — `fn true`, `fn to` — reached by
         // path, never bare (limbs.md, 2026-09-19): `limb.true[…]`.
         let name = self.ident("the function's name")?;
+        let announce = self.announce(&name.name, "fn")?;
         let params = self.params(if has_body { ParamContext::Fn } else { ParamContext::Extern })?;
         if self.is(&Tok::Colon) {
             return self.fail("the return type is `-> int32`, not `: int32` — `:` attaches a type to a name, and a result is not the function's type");
@@ -471,7 +543,15 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, params, ret, ret_lent, fails, body, test: false })
+        Ok(FnDecl { name, announce, params, ret, ret_lent, fails, body, test: false })
+    }
+
+    /// The group's name, right after its `@`.
+    fn group_after_at(&mut self, shape: &str) -> Result<Ident> {
+        match self.peek().clone() {
+            Tok::Word(_) => self.ident("the lifetime group's name after `@`"),
+            _ => self.fail(format!("a lifetime group is named after `@`: `{}`", shape)),
+        }
     }
 
     /// `-> T`, `-> T or fail[…]`, `-> fail[…]`, or nothing.
@@ -487,7 +567,21 @@ impl<'a> Parser<'a> {
         }
         // `-> lent T`, `-> lent.mut@x T`: a borrow handed back (owner,
         // 2026-09-29). `lent[…]` would be a call, and never follows `->`.
-        if self.is_word("lent") {
+        if let Tok::Op(o) = self.peek().clone() {
+            if o == "&" || o == "&@" {
+                let start = self.bump().span;
+                let mutable = o == "&" && self.eat_word("mut");
+                let group = if o == "&@" {
+                    Some(self.group_after_at("&@x")?)
+                } else if self.eat_op("@") {
+                    Some(self.group_after_at(if mutable { "&mut@x" } else { "&@x" })?)
+                } else {
+                    None
+                };
+                self.ret_lent = Some(RetLent { mutable, group, span: start.to(self.prev_span()) });
+            }
+        }
+        if self.ret_lent.is_none() && self.is_word("lent") {
             let start = self.bump().span;
             let mutable = if self.eat(&Tok::Dot) {
                 let m = self.ident("`mut` after `lent.`")?;
@@ -498,7 +592,7 @@ impl<'a> Parser<'a> {
             } else {
                 false
             };
-            let group = if self.eat_op("@") { Some(self.ident("the lifetime group's name after `@`")?) } else { None };
+            let group = if self.eat_op("@") { Some(self.group_after_at("lent@x")?) } else { None };
             self.ret_lent = Some(RetLent { mutable, group, span: start.to(self.prev_span()) });
         }
         if self.is_word("fail") {
@@ -594,7 +688,7 @@ impl<'a> Parser<'a> {
                     kind = ParamKind::Lent;
                 }
                 if self.eat_op("@") {
-                    group = Some(self.ident("the lifetime group's name after `@`")?);
+                    group = Some(self.group_after_at("lent@x")?);
                 }
                 if ctx == ParamContext::Op {
                     return self.fail_at(start, "an operator's operands are lent by default: write `'a': T` with no `lent`; `give 'a': T` takes it by value");
@@ -603,11 +697,18 @@ impl<'a> Parser<'a> {
                     return self.fail_at(start, "an `extern fn` parameter is not `lent`: C receives values and pointers, so write `'p': ptr[T]` and hand it a lend at the call");
                 }
             }
-            Tok::Op(o) if o == "&" => {
+            // `&` is `lent` everywhere (owner, 2026-10-02): `&@x`, `&mut@x`.
+            Tok::Op(o) if o == "&" || o == "&@" => {
                 self.bump();
                 amp = true;
-                if self.eat_word("mut") {
+                if o == "&@" {
+                    kind = ParamKind::Lent;
+                    group = Some(self.group_after_at("&@x")?);
+                } else if self.eat_word("mut") {
                     kind = ParamKind::LentMut;
+                    if self.eat_op("@") {
+                        group = Some(self.group_after_at("&mut@x")?);
+                    }
                 } else {
                     kind = ParamKind::Lent;
                 }
@@ -682,6 +783,13 @@ impl<'a> Parser<'a> {
 
     fn struct_decl(&mut self, layout_c: bool) -> Result<StructDecl> {
         let name = self.ident("the struct's name")?;
+        if let Some(t) = crate::resolve::rust_alias(&name.name) {
+            return self.fail_at(name.span, format!("`{}` is another name for `{}` (Rust's spelling of it), so it cannot name a struct", name.name, t));
+        }
+        let announce = self.announce(&name.name, "struct")?;
+        if !announce.groups.is_empty() {
+            return self.fail_at(announce.groups[0].span, "not yet: a struct holding a borrow, and so a lifetime group, is not decided (asked)");
+        }
         self.expect(&Tok::LBrace, "`{` after the struct's name")?;
         let mut fields = Vec::new();
         while !self.is(&Tok::RBrace) {
@@ -729,11 +837,18 @@ impl<'a> Parser<'a> {
             fields.push(Field { immut, name: fname, ty });
         }
         self.bump();
-        Ok(StructDecl { name, layout_c, fields })
+        Ok(StructDecl { name, announce, layout_c, fields })
     }
 
     fn enum_decl(&mut self, layout_c: bool) -> Result<EnumDecl> {
         let name = self.ident("the enum's name")?;
+        if let Some(t) = crate::resolve::rust_alias(&name.name) {
+            return self.fail_at(name.span, format!("`{}` is another name for `{}` (Rust's spelling of it), so it cannot name a enum", name.name, t));
+        }
+        let announce = self.announce(&name.name, "enum")?;
+        if !announce.groups.is_empty() {
+            return self.fail_at(announce.groups[0].span, "not yet: an enum holding a borrow, and so a lifetime group, is not decided (asked)");
+        }
         self.expect(&Tok::LBrace, "`{` after the enum's name")?;
         let mut cases = Vec::new();
         while !self.is(&Tok::RBrace) {
@@ -782,13 +897,33 @@ impl<'a> Parser<'a> {
         if cases.is_empty() {
             return self.fail_at(name.span, format!("enum `{}` has no cases: an enum is one of a few named cases, so name at least one", name.name));
         }
-        Ok(EnumDecl { name, cases, layout_c })
+        Ok(EnumDecl { name, announce, cases, layout_c })
     }
 
     fn iface_decl(&mut self) -> Result<IfaceDecl> {
         let name = self.ident("the interface's name")?;
+        if let Some(t) = crate::resolve::rust_alias(&name.name) {
+            return self.fail_at(name.span, format!("`{}` is another name for `{}` (Rust's spelling of it), so it cannot name a interface", name.name, t));
+        }
+        if name.name == "any" {
+            return self.fail_at(name.span, "`any` is the built-in that accepts every type (`<T>: any`), so it cannot name an interface");
+        }
+        // Its own `<T>`, which accepts nothing in particular: the bound is
+        // the interface itself (owner, 2026-10-02).
+        let own = if self.is_op("<") {
+            self.bump();
+            let t = self.ident("the interface's type's name")?;
+            self.expect_close_angle(&t.name)?;
+            if self.is(&Tok::Colon) {
+                return self.fail(format!("an interface's own `<{}>` accepts nothing in particular — the interface is what it accepts: `interface {} <{}> {{ … }}`", t.name, name.name, t.name));
+            }
+            Some(t)
+        } else {
+            None
+        };
         let open = self.expect(&Tok::LBrace, "`{` after the interface's name")?;
         let mut entries = Vec::new();
+        let mut types: Vec<Type> = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
                 return self.fail(format!("interface `{}` is never closed", name.name));
@@ -798,8 +933,15 @@ impl<'a> Parser<'a> {
                 IfaceEntryName::Fn(self.ident("the function's name")?)
             } else if self.eat_word("op") {
                 IfaceEntryName::Op(self.op_name()?)
+            } else if matches!(self.peek(), Tok::Word(_)) {
+                // A type it accepts, one per line, as enum cases go.
+                if !types.is_empty() && !self.toks[self.pos].line_first {
+                    return self.fail(format!("an interface lists its types one per line, as an enum lists its cases: `interface {} {{` and then each type on a line of its own", name.name));
+                }
+                types.push(self.type_()?);
+                continue;
             } else {
-                return self.fail(format!("an interface lists `fn` and `op` signatures, found {}", self.peek().describe()));
+                return self.fail(format!("an interface lists types, one per line, and `fn` and `op` signatures; found {}", self.peek().describe()));
             };
             let params = self.params(ParamContext::Iface)?;
             let (ret, fails) = self.return_spec()?;
@@ -814,10 +956,13 @@ impl<'a> Parser<'a> {
             entries.push(IfaceEntry { name: ename, params, ret, fails, span });
         }
         self.bump();
-        if entries.is_empty() {
-            return self.fail_at(open.to(self.prev_span()), format!("interface `{}` promises nothing: list at least one `fn` or `op` signature", name.name));
+        if entries.is_empty() && types.is_empty() {
+            return self.fail_at(open.to(self.prev_span()), format!("interface `{}` promises nothing: list at least one `fn` or `op` signature, or the types it accepts, one per line", name.name));
         }
-        Ok(IfaceDecl { name, entries })
+        if own.is_none() && !entries.is_empty() {
+            return self.fail_at(name.span, format!("interface `{}` lists operations, so it announces the type they are about: `interface {} <T> {{ … }}`", name.name, name.name));
+        }
+        Ok(IfaceDecl { name, own, entries, types })
     }
 
     fn op_name(&mut self) -> Result<Ident> {
@@ -843,6 +988,7 @@ impl<'a> Parser<'a> {
 
     fn op_decl(&mut self) -> Result<OpDecl> {
         let op = self.op_name()?;
+        let announce = self.announce(&op.name, "op")?;
         let params = self.params(ParamContext::Op)?;
         if params.len() != 2 {
             return self.fail_at(op.span, format!("an operator takes exactly two operands; `{}` is declared with {}", op.name, params.len()));
@@ -861,7 +1007,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(op.span, format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
         }
         let body = self.block("the operator")?;
-        Ok(OpDecl { op, params, ret, body })
+        Ok(OpDecl { op, announce, params, ret, body })
     }
 
     fn const_decl(&mut self) -> Result<ConstDecl> {
@@ -944,7 +1090,10 @@ impl<'a> Parser<'a> {
                     Tok::Name(n) => return self.fail(format!("a type variable's name is bare: `<{}>`, not `<'{}'>`", n, n)),
                     other => return self.fail(format!("expected the blank's name after `<`, found {}", other.describe())),
                 };
-                let bound = if self.eat(&Tok::Colon) { Some(self.path()?) } else { None };
+                if self.is(&Tok::Colon) {
+                    return self.fail(format!("what `<{}>` accepts is said once, where it is announced (`fn f <{}>: any […]`): a mention is `<{}>` alone", name.name, name.name, name.name));
+                }
+                let bound = None;
                 match self.peek().clone() {
                     Tok::Op(o) if o == ">" => {
                         self.bump();
