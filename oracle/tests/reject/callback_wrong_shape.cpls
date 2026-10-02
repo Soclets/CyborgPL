@@ -1,4 +1,4 @@
-extern fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64, 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
+extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64, 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
 fn one ['a': ptr[int32]] -> int32 { return 0; }
 MAIN {
     let 'nums' := [3, 1, 2];

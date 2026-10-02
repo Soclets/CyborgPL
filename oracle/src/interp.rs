@@ -372,25 +372,25 @@ impl<'p> Interp<'p> {
         }
         // `extern let` (decided 2026-09-21): C-shaped, like an extern parameter
         for x in &self.prog.externs {
-            if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`extern '{}'`: {m}", x.name)); }
+            if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`extern.C '{}'`: {m}", x.name)); }
             // a C variable is read by its name, and a read never fails, so it holds C's plain
             // number; convert it with `to.Key[…] otherwise …` (owner, 2026-09-28: b)
-            if let Some(n) = self.c_checked(&x.ty) { return rt(x.line, format!("`extern '{}'`: a C variable cannot be `{n}` — reading a variable never fails, so it holds C's plain number: declare it `int32` and convert, `to.{n}['{}'] otherwise …`", x.name, x.name)); }
+            if let Some(n) = self.c_checked(&x.ty) { return rt(x.line, format!("`extern.C '{}'`: a C variable cannot be `{n}` — reading a variable never fails, so it holds C's plain number: declare it `int32` and convert, `to.{n}['{}'] otherwise …`", x.name, x.name)); }
         }
         for f in self.prog.funcs.iter().filter(|f| f.is_extern) {
             for p in &f.params {
                 match &p.ty {
-                    None if !p.variadic => return rt(f.line, format!("`extern fn {}`: parameter '{}' needs a type; C has no inference", f.name, p.name)),
-                    Some(t) => if let Err(m) = self.c_shaped(t) { return rt(f.line, format!("`extern fn {}`: parameter '{}' — {m}", f.name, p.name)); },
+                    None if !p.variadic => return rt(f.line, format!("`extern.C fn {}`: parameter '{}' needs a type; C has no inference", f.name, p.name)),
+                    Some(t) => if let Err(m) = self.c_shaped(t) { return rt(f.line, format!("`extern.C fn {}`: parameter '{}' — {m}", f.name, p.name)); },
                     None => {}
                 }
-                if p.kind != ParamKind::Owned { return rt(f.line, format!("`extern fn {}`: C receives values and pointers, not `lent`; a lend is written at the call, against a `ptr` parameter", f.name)); }
+                if p.kind != ParamKind::Owned { return rt(f.line, format!("`extern.C fn {}`: C receives values and pointers, not `lent`; a lend is written at the call, against a `ptr` parameter", f.name)); }
             }
             // A ranged return (`-> uint64[0, 1_000_000]`) is a contract checked at the door: the call
             // fails `out_of_range` when C returns outside it (decided 2026-09-22). The base must be C-shaped.
             if let Some(t) = &f.ret {
                 let base = match t { Ty::Ranged(b, _, _) => &**b, t => t };
-                if let Err(m) = self.c_shaped(base) { return rt(f.line, format!("`extern fn {}`: return type — {m}", f.name)); }
+                if let Err(m) = self.c_shaped(base) { return rt(f.line, format!("`extern.C fn {}`: return type — {m}", f.name)); }
             }
         }
         Ok(())

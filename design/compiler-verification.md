@@ -52,7 +52,7 @@ exercises Precog's compile-time execution and nothing else — not the
 machine code, not the runtime checks, not layers 2 and 3. Generated
 programs therefore need a value the compiler cannot see, and until std
 has input they get it as **the length of an environment variable**,
-through `extern fn getenv` and `strlen`, which both implementations
+through `extern.C fn getenv` and `strlen`, which both implementations
 already run. The harness sets the variable to N characters; the program
 builds whatever value it wants from N, bounded by a range type or a
 conversion. It switches to `std::input` when std has one. Proposed

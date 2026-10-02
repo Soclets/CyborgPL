@@ -1,7 +1,10 @@
 # Low level: raw memory from C, bits, a wrapping hash, SIMD, C layout, and the OS through `write`.
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
-extern fn free ['p': ptr.mut[uint8]];
+# a block of C's functions (owner, 2026-10-02); one alone may be a line, `extern.C fn exit ['code': int32];`
+extern.C {
+    fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+    fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+    fn free ['p': ptr.mut[uint8]];
+}
 
 layout.C struct Header { magic: uint32  flags: uint8  length: uint64 }
 

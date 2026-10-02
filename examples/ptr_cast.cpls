@@ -1,7 +1,7 @@
 # A pointer seen as pointing at another type (owner, 2026-09-30: a): `ptr.cast[T]['p']` keeps the
 # address and whether it may write, and changes only what it claims to point at. Always nocheck.
-extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
-extern fn free ['p': ptr.mut[uint8]];
+extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern.C fn free ['p': ptr.mut[uint8]];
 
 layout.C struct Point {
     x: int32

@@ -1,6 +1,6 @@
-# extern 'x': T — a C global (decided 2026-09-21). Reading or writing it is a nocheck site.
-extern 'lib_version': int32;              # C: extern int lib_version;
-extern mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we may write it)
+# extern.C 'x': T — a C global (decided 2026-09-21). Reading or writing it is a nocheck site.
+extern.C 'lib_version': int32;              # C: extern int lib_version;
+extern.C mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we may write it)
 
 MAIN {
     nocheck let 'v' := 'lib_version';

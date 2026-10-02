@@ -161,7 +161,7 @@ pub struct Func {
     /// `-> T or fail[a, b: type]` (decided 2026-09-19): the ways this function can fail.
     /// Empty = cannot fail.
     pub fails: Vec<FailCase>,
-    /// `extern fn …;` — the body is somewhere else (design/ffi.md); a call is a nocheck site
+    /// `extern.C fn …;` — the body is somewhere else (design/ffi.md); a call is a nocheck site
     pub is_extern: bool,
     /// `op NAME ['a': T, 'b': T] -> R { }` — a custom operator (design/operators.md, 2026-09-20):
     /// used between two operands, never called with `[…]`; operands lent unless `give`

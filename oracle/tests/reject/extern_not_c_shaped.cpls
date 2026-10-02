@@ -1,2 +1,2 @@
-extern 'a': str.utf8;
+extern.C 'a': str.utf8;
 MAIN { }

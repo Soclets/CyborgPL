@@ -1,5 +1,5 @@
 # Callbacks (design/ffi.md, 2026-09-21): a capture-free, C-shaped Cyborg function handed to C.
-extern fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
+extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
                  'cmp': fn[ptr[int32], ptr[int32]] -> int32];
 
 fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {

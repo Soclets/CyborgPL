@@ -1,4 +1,4 @@
-extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
 MAIN {
     nocheck let 'raw' := malloc[4];
     let 'p' := ptr.cast[int32]['raw'];

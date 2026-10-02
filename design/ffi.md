@@ -9,13 +9,29 @@ not yet designed. In the oracle since 2026-09-20: every rule below is
 enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 `getenv`, `strlen`, `malloc`, `free` (`examples/ffi.cpls`).
 
-## `extern` — a function whose body is somewhere else
+## `extern.C` — a function whose body is somewhere else
 
 ```
-extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern fn exit ['code': int32];
-extern fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn exit ['code': int32];
+extern.C fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
+
+extern.C {                                  # a library's worth at once
+    fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+    fn free ['p': ptr.mut[uint8]];
+    'lib_version': int32;
+    mut 'lib_verbose': int32;
+}
 ```
+
+**`extern` names its language, `extern.C`, and may be a block** (owner,
+2026-10-02: "both", then "`extern.C`, and one line too"). One line, or a
+block of `fn` lines and C globals with `extern.C` written once; both stay.
+The `.C` is every language's capitalized name, as `layout.C`; a bare
+`extern fn` and `extern.c` are refused. Design claude had recommended a
+plain `extern { … }`, since `extern` reaches only C. `pub` goes before
+the block, for all of it (design claude's pick: `pub` on a line inside is
+refused; the owner's to change). `examples/low_level.cpls`.
 
 - `extern` before `fn`, like `pub`; no body, a `;` instead. A normal
   signature otherwise. Which library provides it is Synthia's business
@@ -68,7 +84,7 @@ extern fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-extern fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
+extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
                  'cmp': fn[ptr[int32], ptr[int32]] -> int32];
 
 fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
@@ -95,7 +111,7 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-extern fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
 nocheck let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -125,7 +141,7 @@ checked when the call ends), and a `ptr.read`. Each is handled with
 
 **A C variable holds C's plain number** (owner, 2026-09-28: b): it is
 read by its name, and reading a variable never fails anywhere in
-Cyborg, so `extern 'm': Mode;` is refused. Declare it `int32` and
+Cyborg, so `extern.C 'm': Mode;` is refused. Declare it `int32` and
 convert. **`to.int32[Mode.vi]`** turns a C enum back into its number,
 which never fails but must fit the target, and that is how a C enum is
 written into a plain C variable. Proposed alternative: `otherwise` after
@@ -165,7 +181,7 @@ C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
 The range is Cyborg's promise: proven where Cyborg fills one in, and
 checked at the door when a struct comes from C, failing `out_of_range`,
 the ranged-return rule applied to fields. Proposed alternative: keep
-refusing it, with plain fields checked by hand. A range on an `extern fn`
+refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 *parameter* is still refused; that was not asked.
 `examples/c_struct_ranges.cpls`.
 
@@ -173,7 +189,7 @@ refusing it, with plain fields checked by hand. A range on an `extern fn`
 
 ```
 layout.C enum Key { a = 65  b = 66  escape = 256 }
-extern fn IsKeyDown ['key': Key] -> bool;
+extern.C fn IsKeyDown ['key': Key] -> bool;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out
@@ -189,30 +205,30 @@ types and the exhaustive `match`. Written numbers required, and 32 bits:
 design claude's recommendation with a, not asked separately.
 `examples/c_enum.cpls`.
 
-## `extern 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
+## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-extern 'lib_version': int32;        # C: extern int lib_version;   read-only
-extern mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
+extern.C 'lib_version': int32;        # C: extern int lib_version;   read-only
+extern.C mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
 
 nocheck let 'v' := 'lib_version';       # reading C's variable is a nocheck site
 nocheck change 'lib_verbose' = 1;              # so is writing one
 ```
 
-A C library's variables, named the way `extern fn` names its functions.
+A C library's variables, named the way `extern.C fn` names its functions.
 The type is required and C-shaped (numbers, `bool`, `ptr`, `layout.C`
 structs); no value — C owns it; `mut` says it may be written, `immut` is
 meaningless. Every read and write is a nocheck site, like an extern call:
 nothing about C's memory can be proven. It is a plain value that copies
 by itself — no verbs. Proposed alternatives: no extern data at all (a C
-helper function per variable) and `extern 'x': ptr[T]` read through
+helper function per variable) and `extern.C 'x': ptr[T]` read through
 `ptr.read`. Owner chose `extern let`, which lost its `let` with every
 other declaration on 2026-09-25.
 
 **`errno` is not a plain global** on macOS and Linux — it is a macro
-that calls a function — so `extern 'errno': int32;` would be wrong
+that calls a function — so `extern.C 'errno': int32;` would be wrong
 there; the std Limb offers `std::c.errno[]` backed by the real thing.
-`extern 'x': T` is for genuinely plain C globals. `examples/extern_data.cpls`.
+`extern.C 'x': T` is for genuinely plain C globals. `examples/extern_data.cpls`.
 
 ## `layout.C` — a struct in C's shape
 

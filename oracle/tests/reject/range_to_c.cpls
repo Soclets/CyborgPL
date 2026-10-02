@@ -1,3 +1,3 @@
-extern fn f ['a': int32[0, 10]];
+extern.C fn f ['a': int32[0, 10]];
 MAIN {
 }

@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `extern.C`: it names its language, one line or a block (owner)
+
+```
+extern.C fn exit ['code': int32];
+extern.C {
+    fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+    fn free ['p': ptr.mut[uint8]];
+    'lib_version': int32;
+}
+```
+
+The owner: "Can we make it so that extern can become a block?" Design
+claude asked whether the block comes beside the one-line form or replaces
+it, recommending beside (one C function is common); the owner: "both".
+Then whether the block names the language, (a) plain `extern { … }`,
+since `extern` reaches only C, recommended, or (b) `extern.C { … }`, like
+`layout.C`, which would change every one-line `extern fn` too. The owner:
+"`extern.C`, and one line too". So `extern fn` and `extern 'x': T` are
+now `extern.C fn` and `extern.C 'x': T`, and a bare `extern` or
+`extern.c` is refused. Design claude's pick: `pub` goes before the block
+(`pub extern.C { … }`), and on a line inside is refused. In the oracle;
+every example, reject test and design note rewritten; `low_level.cpls`
+uses a block; reject tests `extern_no_language`, `extern_lowercase_c`,
+`extern_block_pub_inside`, `extern_block_unclosed`. Entries below keep the
+spelling of their day.
+
 ### 2026-10-02 — `inline.S` is another name for `inline.ASM` (owner)
 
 The owner: "Add `S` as an alias to `ASM`". `S` as in assembly's `.S`

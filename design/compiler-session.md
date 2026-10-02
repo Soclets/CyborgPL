@@ -137,7 +137,7 @@ bolted on later, it should be while building.")
 
 **No `std::` for now** (owner, 2026-09-22): the base language first.
 CCA refuses `std::…` as "not yet"; your tests print through the base
-language's own door, `extern fn write` under `nocheck`, as
+language's own door, `extern.C fn write` under `nocheck`, as
 `examples/ffi.cpls` does. The examples that print with `std::print.useful`
 wait for std; the reject tests and the extern-based programs do not.
 The std Limb's author and timing are open.

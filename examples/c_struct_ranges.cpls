@@ -2,7 +2,7 @@
 # plain number (Rect is two int32s, 8 bytes); the range is Cyborg's promise — proven where
 # Cyborg fills one in, and checked at the door (`out_of_range`) when one comes from C.
 layout.C struct Rect { w: int32[0, 4096]  h: int32[0, 4096] }
-extern fn DrawRect ['r': Rect];
+extern.C fn DrawRect ['r': Rect];
 MAIN {
     let 'r' := Rect[w = 640, h = 480];
     std::print.useful.stdout['r'.w, "x", 'r'.h, " ", size.of[Rect], \n];
