@@ -88,6 +88,12 @@ interface Number {
 }
 ```
 
+**An interface announces its `<T>` too** (owner: "ye4", to design claude's
+recommendation): `interface Ordered <T> { op < ['a': <T>, 'b': <T>] ->
+bool; … }`, so the rule is one sentence — every generic is announced
+right after the name, for functions, structs, enums and interfaces. A
+type-list interface uses no `<T>` and announces nothing.
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:
