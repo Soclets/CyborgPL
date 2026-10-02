@@ -29,9 +29,12 @@ extern.C {                                  # a library's worth at once
 block of `fn` lines and C globals with `extern.C` written once; both stay.
 The `.C` is every language's capitalized name, as `layout.C`; a bare
 `extern fn` and `extern.c` are refused. Design claude had recommended a
-plain `extern { … }`, since `extern` reaches only C. `pub` goes before
-the block, for all of it (design claude's pick: `pub` on a line inside is
-refused; the owner's to change). `examples/low_level.cpls`.
+plain `extern { … }`, since `extern` reaches only C. **Each line may say
+its own `pub` / `pub.limb`, and a `pub` before the block overrides them
+all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
+`extern.C { … }` a line is private unless it says `pub fn …`; in
+`pub extern.C { … }` every line is public. One-line: `pub extern.C fn …`.
+`examples/low_level.cpls`, `examples/extern_block_pub.cpls`.
 
 - `extern` before `fn`, like `pub`; no body, a `;` instead. A normal
   signature otherwise. Which library provides it is Synthia's business

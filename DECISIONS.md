@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Lines in an `extern.C` block may each be `pub`; a `pub` on the block overrides (owner)
+
+Design claude had refused `pub` on a line inside a block (its own pick).
+The owner: "Why is `pub` per line illegal?" Design claude: no strong
+reason; it stops one block mixing public and private (a raw C function
+kept private behind a safe wrapper, good practice #5). Options: (a)
+before the block only, (b) per line only, recommended, (c) both. Asked
+"Isn't extern already public?": no, an extern is a name in its module,
+private like any `fn` (checked in the oracle); "extern" says where the
+body lives, `pub` who sees the name. The owner: "allow mixing, but block
+overrides". So a line says its own `pub` / `pub.limb`, and a `pub` (or
+`pub.limb`) before the block applies to every line, whatever the line
+says. In the oracle; `examples/extern_block_pub.cpls`, reject test
+`extern_block_line_private`; `extern_block_pub_inside` removed.
+
 ### 2026-10-02 — `extern.C`: it names its language, one line or a block (owner)
 
 ```
@@ -24,8 +39,8 @@ since `extern` reaches only C, recommended, or (b) `extern.C { … }`, like
 `layout.C`, which would change every one-line `extern fn` too. The owner:
 "`extern.C`, and one line too". So `extern fn` and `extern 'x': T` are
 now `extern.C fn` and `extern.C 'x': T`, and a bare `extern` or
-`extern.c` is refused. Design claude's pick: `pub` goes before the block
-(`pub extern.C { … }`), and on a line inside is refused. In the oracle;
+`extern.c` is refused. Design claude's pick, changed the same day (above):
+`pub` only before the block. In the oracle;
 every example, reject test and design note rewritten; `low_level.cpls`
 uses a block; reject tests `extern_no_language`, `extern_lowercase_c`,
 `extern_block_pub_inside`, `extern_block_unclosed`. Entries below keep the

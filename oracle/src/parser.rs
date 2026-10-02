@@ -229,12 +229,26 @@ impl Parser {
                         self.advance();
                         while *self.peek() != Tok::RBrace {
                             if *self.peek() == Tok::Eof { return self.err("an `extern.C { … }` block is missing its `}`"); }
-                            if self.is_word("pub") { return self.err("`pub` goes before the block, for all of it: `pub extern.C { … }`"); }
+                            // a line may say its own `pub` / `pub.limb`; a `pub` written on the block
+                            // overrides every line's (owner, 2026-10-02: "allow mixing, but block overrides")
+                            let mut line_vis = Vis::Private;
+                            if self.is_word("pub") {
+                                self.advance();
+                                line_vis = Vis::Pub;
+                                if *self.peek() == Tok::Dot {
+                                    self.advance();
+                                    match self.advance().tok {
+                                        Tok::Word(w) if w == "limb" => line_vis = Vis::Limb,
+                                        other => return self.err(format!("the only narrowing of `pub` is `pub.limb` (visible in this Limb only), found {other}")),
+                                    }
+                                }
+                            }
+                            let item_vis = if vis != Vis::Private { vis } else { line_vis };
                             if self.is_word("extern") { return self.err("inside `extern.C { … }`, each line starts with `fn` or a quoted name, without `extern.C`"); }
                             if !(self.is_word("fn") || self.is_word("mut") || self.is_word("immut") || self.is_word("let") || matches!(self.peek(), Tok::Var(_))) {
                                 return self.err(format!("an `extern.C {{ … }}` block holds `fn` lines and quoted names, found {}: is its `}}` missing?", self.peek()));
                             }
-                            self.extern_item(prog, vis.clone())?;
+                            self.extern_item(prog, item_vis)?;
                         }
                         self.advance();
                         continue;
