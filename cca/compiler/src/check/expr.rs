@@ -28,7 +28,15 @@ impl Checker {
 
     /// A call in statement position.
     pub fn expr_stmt_value(&mut self, ctx: &mut FnCtx, e: &ast::Expr) -> Result<Expr> {
-        let v = self.expr_in(ctx, e, true, false)?;
+        // A call made for what it does: a borrow it hands back is dropped
+        // at once, and owns nothing.
+        let saved = ctx.lend_call_ok.take();
+        if let AK::Call { .. } = &e.kind {
+            ctx.lend_call_ok = Some(e.span);
+        }
+        let v = self.expr_in(ctx, e, true, false);
+        ctx.lend_call_ok = saved;
+        let v = v?;
         match &v.kind {
             K::Call { .. } | K::Conv { .. } => {}
             _ if matches!(e.kind, AK::Index { .. }) => {
@@ -1908,6 +1916,13 @@ impl Checker {
         let sig = self.instances[inst.0 as usize].sig.clone();
         let _ = path;
         let ow = self.call_otherwise(ctx, otherwise, &sig.fails, &sig.ret, used, span, &decl.name)?;
+        // A borrow handed back is held by a name, handed straight to a
+        // parameter or a print, or handed back again by a function that
+        // says so (owner, 2026-09-29) — anywhere else it would be a second
+        // owner of what it borrows.
+        if self.items.fns[id.0 as usize].ret_lent.is_some() && ctx.lend_call_ok != Some(span) {
+            return err(Diagnostic::error(format!("`{}` hands back a borrow, which is held by a name (`let 'l' := {}[…];`) or handed straight to a parameter: here it would be a second owner of what it borrows", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).at(span));
+        }
         Ok(Expr { kind: K::Call { callee: Callee::Fn(inst), args: hargs, otherwise: ow, fails: sig.fails.clone() }, ty: sig.ret, span })
     }
 
@@ -2201,7 +2216,13 @@ impl Checker {
                 })
             }
             _ => {
-                let v = self.expr(ctx, e)?;
+                let saved = ctx.lend_call_ok.take();
+                if let AK::Call { .. } = &e.kind {
+                    ctx.lend_call_ok = Some(e.span);
+                }
+                let v = self.expr(ctx, e);
+                ctx.lend_call_ok = saved;
+                let v = v?;
                 // A borrow a call hands back, used where it stands, goes to a
                 // parameter as a `lend` (or `lend.mut`) written there would.
                 if let (Some(mutable), K::Call { callee: Callee::Fn(inst), .. }) = (self.call_lends(&v), &v.kind) {
@@ -3544,9 +3565,17 @@ impl Checker {
         let mut hargs = Vec::new();
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let ty = match name.as_str() {
-            "print.stdout" | "print.stderr" | "print.useful.stdout" | "print.useful.stderr" | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
+            "print.stored.stdout" | "print.stored.stderr" | "print.useful.stdout" | "print.useful.stderr" | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr" | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
                 for e in &positional {
-                    let v = self.expr(ctx, e)?;
+                    // A print only looks: a borrow handed back may go
+                    // straight to it.
+                    let saved = ctx.lend_call_ok.take();
+                    if let AK::Call { .. } = &e.kind {
+                        ctx.lend_call_ok = Some(e.span);
+                    }
+                    let v = self.expr(ctx, e);
+                    ctx.lend_call_ok = saved;
+                    let v = v?;
                     let v = self.as_operand(ctx, v)?;
                     hargs.push(Arg::Value(v));
                 }

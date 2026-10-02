@@ -455,6 +455,15 @@ impl Checker {
                         if ctx.ret == Ty::Nothing {
                             return err(Diagnostic::error(format!("`{}` returns nothing, so `return` takes no value: write `return;` or give the function a `-> type`", ctx.name)).at(v.span));
                         }
+                        // A borrow another call hands back, returned by a
+                        // function that does not say it hands one back.
+                        if let (None, ast::ExprKind::Call { path, .. }) = (&ctx.ret_lent, &v.kind) {
+                            if let Ok(crate::resolve::ItemRef::Fn(id)) = self.items.lookup_path(path, ctx.module) {
+                                if self.items.fns[id.0 as usize].ret_lent.is_some() {
+                                    return err(Diagnostic::error(format!("`{}` returns a borrow, so its signature must say so: `-> lent {}` — `{}` hands one back", ctx.name, self.spell(&ctx.ret), self.items.fns[id.0 as usize].name)).at(v.span));
+                                }
+                            }
+                        }
                         // A borrow handed back (owner, 2026-09-29): of a
                         // `lent` parameter, in the group the return names.
                         if let ast::ExprKind::Verb { verb: verb @ (ast::Verb::Lend | ast::Verb::LendMut), expr, .. } = &v.kind {

@@ -485,3 +485,24 @@ fn parallel_for_runs_in_slices() {
         assert_eq!(r.status.code(), Some(160), "par_for gave another answer on {} thread(s)", threads);
     }
 }
+
+/// Programs CCA must refuse, each with the phrase its first line names
+/// (`# refuse: …`): mistakes that would otherwise build and break memory,
+/// found by check claude's generator, not by the oracle's reject tests.
+#[test]
+fn refused_programs_stay_refused() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join("refuse");
+    let mut failures = Vec::new();
+    let mut entries: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "cpls")).collect();
+    entries.sort();
+    for p in entries {
+        let src = std::fs::read_to_string(&p).unwrap();
+        let says = src.lines().next().and_then(|l| l.strip_prefix("# refuse: ")).expect("a refuse/ program names its phrase on its first line").trim().to_string();
+        let r = Command::new(cca()).arg("check").arg(&p).output().unwrap();
+        let err = String::from_utf8_lossy(&r.stderr).to_string();
+        if r.status.success() || !err.contains(&says) {
+            failures.push(format!("{}: expected a refusal containing {:?}, got:\n{}", p.display(), says, err));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
