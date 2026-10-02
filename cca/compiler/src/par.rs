@@ -368,19 +368,8 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
     }
     let head = fl.head.0 as usize;
     let exit = fl.exit.0 as usize;
-    // The loop's blocks: from the head, not through the exit.
-    let mut lb: Vec<usize> = vec![head];
-    let mut seen: HashSet<usize> = [head].into_iter().collect();
-    let mut i = 0;
-    while i < lb.len() {
-        let b = lb[i];
-        i += 1;
-        for s in successors(&f.blocks[b].term) {
-            if s != exit && seen.insert(s) {
-                lb.push(s);
-            }
-        }
-    }
+    let lb = loop_blocks(f, fl);
+    let seen: HashSet<usize> = lb.iter().copied().collect();
     let exits_from: HashSet<usize> = fl.exits_from.iter().map(|b| b.0 as usize).collect();
     // A trip that leaves any other way — `break`, `return`, `fail` — is one
     // the others would have to know about.
@@ -900,4 +889,23 @@ fn uses(o: &Operand, l: u32) -> bool {
     let mut u = Vec::new();
     operand_uses(o, &mut u);
     u.contains(&l)
+}
+
+/// A `for`'s blocks: from its head, never through its exit.
+pub fn loop_blocks(f: &Function, fl: &ForLoop) -> Vec<usize> {
+    let head = fl.head.0 as usize;
+    let exit = fl.exit.0 as usize;
+    let mut lb: Vec<usize> = vec![head];
+    let mut seen: HashSet<usize> = [head].into_iter().collect();
+    let mut i = 0;
+    while i < lb.len() {
+        let b = lb[i];
+        i += 1;
+        for s in successors(&f.blocks[b].term) {
+            if s != exit && seen.insert(s) {
+                lb.push(s);
+            }
+        }
+    }
+    lb
 }

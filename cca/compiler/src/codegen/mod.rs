@@ -85,7 +85,7 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, op_sites: Vec::new(), par: crate::par::plan(p), par_child: None };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p) };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -150,6 +150,8 @@ struct Cg<'a, 'ctx> {
     par: crate::par::Plan,
     /// The slice being written, when one is.
     par_child: Option<par::ParChild<'ctx>>,
+    /// The blocks of `for !c` loops: (function, block).
+    nocheat: std::collections::HashSet<(usize, usize)>,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -681,7 +683,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // against the lowest value divided by -1, and keeping only the last
         // site read dropped the first check.
         let mut pending: Vec<SiteId> = Vec::new();
+        // `for !c` (owner, 2026-10-01): each store to a local in the loop
+        // passes through a barrier LLVM cannot see into, so no round's
+        // work is folded away or dropped.
+        let nocheat = self.nocheat.contains(&(fi, b));
+        let mut barrier_due: Option<LocalId> = None;
         for (si, s) in stmts.iter().enumerate() {
+            if let Some(l) = barrier_due.take() {
+                self.no_cheat_barrier(fi, l, slots);
+            }
+            if nocheat {
+                if let StmtKind::Assign { place, .. } = &s.kind {
+                    if place.proj.is_empty() {
+                        barrier_due = Some(place.local);
+                    }
+                }
+            }
             self.here = (b as u32, si as u32);
             // In a slice: a fold's store and sites are left out, and its
             // add goes to the slice's own partial (`codegen::par`).
@@ -812,6 +829,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                 }
             }
+        }
+        if let Some(l) = barrier_due.take() {
+            self.no_cheat_barrier(fi, l, slots);
         }
         // The sites guarding a call that ends the block (`map.get`'s).
         self.op_sites = std::mem::take(&mut pending);
@@ -3005,6 +3025,37 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
+    /// A value LLVM must take as unknown: an empty `asm volatile` hands the
+    /// local's value back through a register, so a loop's rounds can be
+    /// neither folded to their answer nor dropped (`for !c`).
+    pub(super) fn no_cheat_barrier(&mut self, fi: usize, l: LocalId, slots: &[Option<PointerValue<'ctx>>]) {
+        let local = &self.p.functions[fi].locals[l.0 as usize];
+        if matches!(local.kind, LocalKind::Lent { .. }) {
+            return;
+        }
+        let Some(slot) = slots.get(l.0 as usize).copied().flatten() else { return };
+        let ty = local.ty.clone();
+        let Some(t) = self.ty(&ty) else { return };
+        self.barrier_on(slot, t);
+    }
+
+    /// The barrier on whatever a slot holds: a local, or a slice's partial.
+    pub(super) fn barrier_on(&mut self, slot: PointerValue<'ctx>, t: BasicTypeEnum<'ctx>) {
+        let x86 = host_triple().as_str().to_string_lossy().starts_with("x86_64");
+        let constraint = match t {
+            BasicTypeEnum::IntType(i) if (8..=64).contains(&i.get_bit_width()) => "=r,0",
+            BasicTypeEnum::FloatType(_) => if x86 { "=x,0" } else { "=w,0" },
+            _ => return,
+        };
+        let fnty = t.fn_type(&[t.into()], false);
+        let asm = self.ctx.create_inline_asm(fnty, String::new(), constraint.to_string(), true, false, None, false);
+        let Ok(v) = self.builder.build_load(t, slot, "nocheat") else { return };
+        let Ok(call) = self.builder.build_indirect_call(fnty, asm, &[v.into()], "nocheat") else { return };
+        if let Some(r) = basic_result(call) {
+            let _ = self.builder.build_store(slot, r);
+        }
+    }
+
     /// `llvm.loop` metadata on a loop's back edge saying not to vectorise
     /// it: a node naming itself first, as LLVM's loop IDs do.
     fn no_vectorize(&self, br: inkwell::values::InstructionValue<'ctx>) {
@@ -3711,4 +3762,17 @@ fn runtime_path() -> Option<std::path::PathBuf> {
         }
     }
     None
+}
+
+/// Every block of a `for !c` loop, by function.
+fn nocheat_blocks(p: &crate::mir::Program) -> std::collections::HashSet<(usize, usize)> {
+    let mut out = std::collections::HashSet::new();
+    for (fi, f) in p.functions.iter().enumerate() {
+        for fl in f.fors.iter().filter(|fl| fl.nocheat) {
+            for b in crate::par::loop_blocks(f, fl) {
+                out.insert((fi, b));
+            }
+        }
+    }
+    out
 }

@@ -259,3 +259,4 @@ list_literal_mixed 33
 par_lent_param 64
 lend_mut_copy_in 31
 exact_literal 211
+for_no_cheat 39

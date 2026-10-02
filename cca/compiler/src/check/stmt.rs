@@ -444,7 +444,13 @@ impl Checker {
                 ctx.loop_depth -= 1;
                 Ok(hir::StmtKind::While { cond: c, body: b })
             }
-            ast::StmtKind::For { seq, para, perm, name, pos, ty, iter, body } => self.for_stmt(ctx, *seq, *para, *perm, name, pos.as_ref(), ty.as_ref(), iter, body),
+            ast::StmtKind::For { nocheat, seq, para, perm, name, pos, ty, iter, body } => {
+                let mut s = self.for_stmt(ctx, *seq, *para, *perm, name, pos.as_ref(), ty.as_ref(), iter, body)?;
+                if let hir::StmtKind::ForRange { nocheat: n, .. } | hir::StmtKind::ForEach { nocheat: n, .. } = &mut s {
+                    *n = *nocheat;
+                }
+                Ok(s)
+            }
             ast::StmtKind::Return(value) => {
                 if ctx.is_task {
                     return err(Diagnostic::error("a task is a block, not a function: `return` cannot leave it").at(s.span));
@@ -738,7 +744,7 @@ impl Checker {
                     ctx.pop_scope();
                 }
                 debug_assert!(ctx.scopes.len() == outer_scope_len);
-                Ok(hir::StmtKind::ForRange { counter: id, start: s, stop: e, step: st, body: b, perm, seq, para })
+                Ok(hir::StmtKind::ForRange { counter: id, start: s, stop: e, step: st, body: b, perm, seq, para, nocheat: false })
             }
             ast::ForIter::Over(e) => {
                 if ty.is_some() {
@@ -818,7 +824,7 @@ impl Checker {
                 if !perm {
                     ctx.pop_scope();
                 }
-                Ok(hir::StmtKind::ForEach { elem: id, pos: pos_id, iter: it, body: b, perm, seq, para })
+                Ok(hir::StmtKind::ForEach { elem: id, pos: pos_id, iter: it, body: b, perm, seq, para, nocheat: false })
             }
         }
     }

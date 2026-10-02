@@ -200,6 +200,7 @@ for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it 
 for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`
+for_no_cheat_order [fnv:779a7d6b67f2e942] :: `!c` comes first
 for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the position
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`

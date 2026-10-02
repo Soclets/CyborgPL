@@ -32,6 +32,8 @@ pub(super) struct ParChild<'ctx> {
     pub partials: Vec<PointerValue<'ctx>>,
     pub flags: Vec<Option<PointerValue<'ctx>>>,
     pub folds: Vec<Fold>,
+    /// `for !c`: each partial passes through the barrier after each add.
+    pub nocheat: bool,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -325,7 +327,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 adds.insert((*b, *si), (r, x.clone()));
             }
         }
-        self.par_child = Some(ParChild { skip, adds, partials: partials.clone(), flags: flags_own.clone(), folds: pl.folds.clone() });
+        self.par_child = Some(ParChild { skip, adds, partials: partials.clone(), flags: flags_own.clone(), folds: pl.folds.clone(), nocheat: pl.fl.nocheat });
         self.cur_flags = flags;
 
         let done = self.ctx.append_basic_block(child, "done");
@@ -419,6 +421,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let cur = self.builder.build_load(t, part, "partial").ok()?;
         let (next, over) = self.fold_step(fi, &fd, cur, xv, signed, func)?;
         let _ = self.builder.build_store(part, next);
+        if self.par_child.as_ref().is_some_and(|pc| pc.nocheat) {
+            self.barrier_on(part, t);
+        }
         if let (Some(flag), Some(o)) = (flag, over) {
             let was = self.builder.build_load(self.ctx.bool_type(), flag, "overflowed").ok()?.into_int_value();
             let now = self.builder.build_or(was, o, "overflowed").ok()?;

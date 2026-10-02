@@ -209,6 +209,8 @@ struct FnBuilder<'a> {
     task_fails: Vec<Vec<(u32, FnIdx, Vec<FailArm>, BlockId)>>,
     /// Every `for` lowered so far (`ForLoop`).
     fors: Vec<ForLoop>,
+    /// The next loop built is a `for !c`.
+    nocheat_next: bool,
     /// Per scope: the group its tasks join, made when the first one starts.
     task_group: Vec<Option<u32>>,
     next_group: u32,
@@ -251,6 +253,7 @@ impl<'a> FnBuilder<'a> {
             hir_locals: body.locals.clone(),
             task_fails: vec![Vec::new()],
             fors: Vec::new(),
+            nocheat_next: false,
             task_group: vec![None],
             next_group: 0,
             next_task: 0,
@@ -643,10 +646,12 @@ impl<'a> FnBuilder<'a> {
                 self.loops.pop();
                 self.cur = exit;
             }
-            hir::StmtKind::ForRange { counter, start, stop, step, body, perm, seq, para } => {
+            hir::StmtKind::ForRange { counter, start, stop, step, body, perm, seq, para, nocheat } => {
+                self.nocheat_next = *nocheat;
                 self.for_range(*counter, start, stop, step.as_ref(), body, *perm, *seq, *para, span);
             }
-            hir::StmtKind::ForEach { elem, pos, iter, body, perm, seq, para } => {
+            hir::StmtKind::ForEach { elem, pos, iter, body, perm, seq, para, nocheat } => {
+                self.nocheat_next = *nocheat;
                 self.for_each(*elem, *pos, iter, body, *perm, *seq, *para, span);
             }
             hir::StmtKind::Return(v) => {
@@ -797,7 +802,7 @@ impl<'a> FnBuilder<'a> {
         let room_down = self.new_block();
         let step_b = self.new_block();
         self.terminate(Terminator::If { cond: up2, then: room_up, else_: room_down });
-        self.fors.push(ForLoop { pre, head, exit, counter: c, stop: stop_t, step: Some(step_t), exits_from: vec![up_b, down_b, room_up, room_down], seq, para, perm, span });
+        self.fors.push(ForLoop { pre, head, exit, counter: c, stop: stop_t, step: Some(step_t), exits_from: vec![up_b, down_b, room_up, room_down], seq, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
         self.cur = room_up;
         let more_up = self.into_temp(Rvalue::Binary { op: BinOp::Ge, lhs: rem.clone(), rhs: by.clone() }, &Ty::Bool, span);
         self.terminate(Terminator::If { cond: more_up, then: step_b, else_: exit });
@@ -859,7 +864,7 @@ impl<'a> FnBuilder<'a> {
         let exit = self.new_block();
         let pre = self.cur;
         self.terminate(Terminator::Goto(head));
-        self.fors.push(ForLoop { pre, head, exit, counter: i, stop: len, step: None, exits_from: vec![head], seq: seq_word, para, perm, span });
+        self.fors.push(ForLoop { pre, head, exit, counter: i, stop: len, step: None, exits_from: vec![head], seq: seq_word, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
 
         self.cur = head;
         let cmp = self.into_temp(

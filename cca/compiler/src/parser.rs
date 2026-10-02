@@ -1572,6 +1572,12 @@ impl<'a> Parser<'a> {
         let mut seq = false;
         let mut para = false;
         let mut perm = false;
+        // `!c`, "no cheat", first: the strongest modifier (owner, 2026-10-01).
+        let nocheat = self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c");
+        if nocheat {
+            self.bump();
+            self.bump();
+        }
         // `seq` keeps a loop in order, `para` makes it parallel (owner,
         // 2026-09-30); never both. CCA runs every loop in order so far.
         if self.eat_word("seq") {
@@ -1581,6 +1587,9 @@ impl<'a> Parser<'a> {
         }
         if self.is_word("seq") || self.is_word("para") {
             return self.fail("a `for` is `seq` or `para`, not both");
+        }
+        if self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c") {
+            return self.fail("`!c` comes first, the strongest modifier first: `for !c seq …`, `for !c para …`");
         }
         if self.eat_word("perm") {
             perm = true;
@@ -1672,7 +1681,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(p.span, format!("a range's counter already is the position: `for '{}' in range[…]`, one name", p.name));
         }
         let body = self.block("`for`")?;
-        Ok(StmtKind::For { seq, para, perm, name, pos, ty, iter, body })
+        Ok(StmtKind::For { nocheat, seq, para, perm, name, pos, ty, iter, body })
     }
 
     /// `from`, `to` or `by` heading a range bound; `to.int32[…]` is a
