@@ -1,7 +1,7 @@
 # A Limb that uses another (owner, 2026-09-29), examples/uses_a_limb as an
 # exit: a circle of radius 2 is 12.56636, so its whole part is 12; square 4
 # is 16; pi's whole part is 3. 12 + 16 + 3 = 31.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'c': areas::Circle = areas::Circle[radius = 2.0];
     let 'a' := areas::circle[lend 'c'];

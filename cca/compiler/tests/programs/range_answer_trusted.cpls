@@ -1,8 +1,8 @@
 # The same, but one range in the program rests on `nocheck`'s word: 'w'
 # is stored into an int64[0, 1000] unasked. No range is then a fact to
 # hand LLVM (owner, 2026-09-29: c), and the answer is not clamped.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn pick [] -> int64[0, 1000] or fail[missing] {
     let 'key' := "CCA_NO_SUCH_VARIABLE";
     nocheck let 'p' := getenv[lend 'key'];

@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 
 MAIN {
     let mut 'total': int32 = 0;

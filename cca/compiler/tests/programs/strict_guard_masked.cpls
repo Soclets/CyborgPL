@@ -5,8 +5,8 @@
 # `'v' == 0 or.else` leaves 1 to 16383, and `18 mod 'v'` cannot divide by
 # 0. It was all of int32, 0 inside it, and the `mod` was refused.
 # Whatever the pid, the guard holds (18 mod v is at most 18): 7.
-extern fn exit ['code': int32];
-extern fn getpid [] -> int32;
+extern.C fn exit ['code': int32];
+extern.C fn getpid [] -> int32;
 MAIN {
     nocheck let immut 'p': int32 = getpid[];
     let immut 'v': int32 = 'p' and.bit 16383;

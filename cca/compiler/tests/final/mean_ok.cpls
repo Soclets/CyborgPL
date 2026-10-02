@@ -1,9 +1,9 @@
 # An average of int32 values fits an int32 (precog.md: "a sum bounded by n x
 # max divided by n is at most max"), for a list whose length and contents
 # come from outside. The final build accepts it with no checks left.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern fn atoi ['s': ptr[uint8]] -> int32;
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn atoi ['s': ptr[uint8]] -> int32;
 fn average [lent 'xs': list[int32]] -> int32 or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     let mut 'total' := 0;

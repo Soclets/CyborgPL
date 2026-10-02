@@ -1,7 +1,7 @@
 # The upper half of a uint64 is a big number, not a negative one: compare,
 # divide and widen it as unsigned. From C, so it is decided at run time.
-extern fn exit ['code': int32];
-extern fn labs ['v': int64] -> int64;
+extern.C fn exit ['code': int32];
+extern.C fn labs ['v': int64] -> int64;
 MAIN {
     nocheck let 'one': int64 = labs[-1];
     nocheck let 'u': uint64 = to.uint64['one'];

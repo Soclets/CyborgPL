@@ -300,6 +300,13 @@ impl Items {
                     self.collect_item(it, child, false)?;
                 }
             }
+            // Flattened as it is read; each line on its own if not.
+            ItemKind::ExternBlock(lines) => {
+                for (v, k) in lines {
+                    let v = if vis == ast::Vis::Private { *v } else { vis };
+                    self.collect_item(&Item { vis: v, kind: k.clone(), span: item.span }, m, is_root)?;
+                }
+            }
             ItemKind::Satisfies { ty, iface } => {
                 self.pending_claims.push((ty.clone(), iface.clone(), m, item.span));
             }
@@ -420,7 +427,7 @@ impl Items {
                     continue;
                 }
                 let Some(t) = &p.ty else {
-                    return err(Diagnostic::error(format!("the `extern fn {}` parameter '{}' needs a type: C's signature is written in full", decl.name.name, p.name.name)).at(p.span));
+                    return err(Diagnostic::error(format!("the `extern.C fn {}` parameter '{}' needs a type: C's signature is written in full", decl.name.name, p.name.name)).at(p.span));
                 };
                 let ty = self.resolve_type(t, *m, &mut blanks, false)?;
                 if !blanks.is_empty() {
@@ -429,7 +436,7 @@ impl Items {
                 if ty.bound().is_some() {
                     return err(Diagnostic::error(format!("a range type cannot cross to C: '{}' is written as the plain `{}`", p.name.name, spell(&ty.base().clone(), self))).at(t.span));
                 }
-                self.check_c_shaped(&ty, t.span, &format!("the `extern fn {}` parameter '{}'", decl.name.name, p.name.name))?;
+                self.check_c_shaped(&ty, t.span, &format!("the `extern.C fn {}` parameter '{}'", decl.name.name, p.name.name))?;
                 // C calls a callback, so a number it sends that no case has
                 // would have nowhere to fail (owner, 2026-09-27).
                 if let Ty::Fn(f) = ty.base() {
@@ -447,7 +454,7 @@ impl Items {
                         return err(Diagnostic::error("a blank `<T>` cannot cross to C: an `extern fn` is written in C's own types").at(t.span));
                     }
                     let ranged = self.checked_at_door(&ty);
-                    self.check_c_shaped(ty.base(), t.span, &format!("the `extern fn {}` return", decl.name.name))?;
+                    self.check_c_shaped(ty.base(), t.span, &format!("the `extern.C fn {}` return", decl.name.name))?;
                     (ty, ranged)
                 }
                 None => (Ty::Nothing, false),

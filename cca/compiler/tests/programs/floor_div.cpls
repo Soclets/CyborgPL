@@ -1,7 +1,7 @@
 # `/` floors and `mod` takes the divisor's sign (operators.md). The values
 # come from C so that the division happens at run time, not in Precog.
-extern fn exit ['code': int32];
-extern fn abs ['v': int32] -> int32;
+extern.C fn exit ['code': int32];
+extern.C fn abs ['v': int32] -> int32;
 MAIN {
     nocheck let 'seven': int32 = abs[-7];
     let 'a': int32 = (0 - 'seven') div 2;       # -4

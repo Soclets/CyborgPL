@@ -1,6 +1,6 @@
 # 3 xx 50 is past any 64-bit type: the check in between stops it.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "ab";
     nocheck let 'two': int64 = to.int64[strlen[lend 's']];

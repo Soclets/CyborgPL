@@ -1,8 +1,8 @@
 # A counted accumulator whose bound does NOT fit: up to 2^31 trips adding
 # 2^62 each. The counting bound must not prove this; the final build refuses.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern fn atoi ['s': ptr[uint8]] -> int32;
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn atoi ['s': ptr[uint8]] -> int32;
 MAIN {
     let 'k' := "N";
     nocheck let 'n': int64 = to.int64[atoi[getenv[lend 'k']]];

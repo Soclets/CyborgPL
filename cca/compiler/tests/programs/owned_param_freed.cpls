@@ -1,8 +1,8 @@
 # An owned parameter is the function's to give back when it ends: nothing
 # freed a list handed over with `give`, and every such call leaked. The
 # list is built at run time so the call is not worked out in advance.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn total ['xs': list[int32]] -> int32 { return 'xs'[1]; }
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";

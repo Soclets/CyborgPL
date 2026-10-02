@@ -2,8 +2,8 @@
 # when divided by 255 or 65535 (2^64 - 1 is a multiple of each), and layer 1
 # took the ends for the whole range and folded "always 0" (check claude,
 # generator seed 106). `strlen` is extern, so its answer is any `uint64`.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "three hundred characters are too many to type, so this is fewer";
     nocheck let 'n': uint64 = strlen[lend 's'];

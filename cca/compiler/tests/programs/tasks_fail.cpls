@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn judge ['n': int32] -> fail[small, odd: int32] {
     if 'n' < 10 { fail small; }
     if ('n' mod 2) == 1 { fail odd['n']; }

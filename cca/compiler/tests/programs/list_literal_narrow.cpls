@@ -1,8 +1,8 @@
 # Each element written into a list is a store into its element type, a
 # narrowing site like a struct field's: without it an int32 of 300 went into
 # a list[int8] as 44. Known only at run time, so the check fires.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
     nocheck let 'there' := ptr.is_null[getenv[lend 'k']];

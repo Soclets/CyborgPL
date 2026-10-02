@@ -5,7 +5,7 @@
 # the range on 'n' is why 100 / 'n' is safe (examples/strict.cpls, read out
 # as an exit code; the closure's 'n' carries a range, so its multiply is
 # proven there too). 100 + (20 + 30) + 25 + 6 = 181.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn ratio ['n': int32[1, max]] -> int32 { return 100 div 'n'; }
 MAIN {
     let immut 'xs': list[int32] = [10, 20, 30, 40];

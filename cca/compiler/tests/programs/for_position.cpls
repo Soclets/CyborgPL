@@ -2,7 +2,7 @@
 # lend 'xs'` — 'i' is 1, 2, 3 … (a uint64), 'x' the item there; `perm`
 # keeps both after the loop (examples/for_position.cpls as an exit code:
 # best at 2, and after the loop 3 and 88 → 2 x 100 + 3 x 10 + 8 = 238).
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'scores': list[int32] = [70, 95, 88];
     let mut 'best_at': uint64 = 0;

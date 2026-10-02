@@ -1,7 +1,7 @@
 # Not in expected.txt: what it exits with depends on who runs it. The test
 # reads its IR — an unproven narrowing has to reach the binary as a check.
-extern fn exit ['code': int32];
-extern fn getuid [] -> uint32;
+extern.C fn exit ['code': int32];
+extern.C fn getuid [] -> uint32;
 MAIN {
     nocheck let 'u' := getuid[];
     let 'b': uint8 = 'u';

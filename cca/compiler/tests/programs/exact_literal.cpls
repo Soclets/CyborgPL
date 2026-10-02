@@ -1,7 +1,7 @@
 # `*0.1` is exactly what is written, a deci (owner, 2026-10-02): deci64 under
 # `:=`, the width of a typed place otherwise. 0.3 x 10 + 19.99 x 100 + 0.5 x 2
 # = 3 + 1999 + 1 = 2003, 211 mod 256; the oracle agrees.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'price' := *19.99;
     let 'tenth' := *0.1;

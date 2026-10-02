@@ -1,7 +1,7 @@
 # `for para` makes a loop parallel by its writer's word (owner,
 # 2026-09-30); CCA runs every loop in order so far, so this is 1 + 2 + 3 +
 # 4 = 10, as the oracle gives.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'xs': list[int64] = [1, 2, 3, 4];
     let mut 'total': int64 = 0;

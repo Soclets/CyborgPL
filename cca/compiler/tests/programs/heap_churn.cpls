@@ -2,7 +2,7 @@
 # back becomes unreachable — which is what a leak checker can see. A
 # handle still sitting on the stack at exit looks reachable and would be
 # reported as no leak at all.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 
 fn round ['n': int32] -> int32 {
     let mut 'xs': list[int32] = [];

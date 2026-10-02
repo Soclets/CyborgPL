@@ -87,9 +87,9 @@ c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
 call_without_bracket [fnv:93fa5962e0fc877b] :: a call needs `[…]`
 callback_c_enum [fnv:ba1492734bc49737] :: a callback's parameter cannot be `Key`
-callback_fails [fnv:35748b82590d3e88] :: the `extern fn f` parameter 'cb' is not C-shaped
-callback_lent_param [fnv:acc6e686bfb5348a] :: the `extern fn f` parameter 'cb' is not C-shaped
-callback_str_param [fnv:fc8e6737a324ce6d] :: the `extern fn f` parameter 'cb' is not C-shaped
+callback_fails [fnv:35748b82590d3e88] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_lent_param [fnv:acc6e686bfb5348a] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'cb' is not C-shaped
 callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
 callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
 chained_cmp [fnv:fb46d9317941f47c] :: comparisons do not chain
@@ -145,7 +145,7 @@ enum_match_missing_case [fnv:b42f70eab9e1b344] :: every case of `S` must have an
 enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and this is a `integer`: use `if`
 enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
-enum_not_c [fnv:297ced9753bdbb93] :: the `extern fn f` parameter 'k' is not C-shaped
+enum_not_c [fnv:297ced9753bdbb93] :: the `extern.C fn f` parameter 'k' is not C-shaped
 enum_number_not_c [fnv:3d2b02ae1d3a34e4] :: only a `layout.C enum` has numbers
 enum_plain_case_to_text [fnv:0cb6696c30a5f896] :: a `Status` is not text: its case `claimed` carries data
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
@@ -155,13 +155,17 @@ eq_without_type [fnv:b34002b1a60ea4e5] :: changing a variable says so
 exact_integer [fnv:ad0efd01de0e9e28] :: exact already
 exact_into_bin [fnv:5b84c614a3bd1fec] :: cannot hold it exactly
 exit_range [fnv:66ac7011902821d4] :: !pending `std::exit` is a stub until std exists; its `uint8` argument gets no narrowing site yet
+extern_block_line_private [fnv:1db24bc0518461c4] :: is private to module `text`
+extern_block_unclosed [fnv:ca752e2459d18446] :: is its `}` missing
 extern_fail [fnv:258154190b2df28e] :: an `extern fn` cannot `fail`: C has no failures
 extern_lent_param [fnv:b7762a1e487d808d] :: ptr[T]` and hand it a lend at the call
+extern_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
+extern_no_language [fnv:3a252789c569e7d5] :: names its language
 extern_not_c_shaped [fnv:6ab69c7163e3c53f] :: is not C-shaped
 extern_otherwise [fnv:d2a17dcd21891cc1] :: an `extern fn` cannot fail; drop the `otherwise` after `f`
 extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: its return is a range C promised, checked at the door
 extern_read_checked [fnv:6290a80c525fe9a5] :: nothing about C's memory can be proven
-extern_str_param [fnv:fc8e6737a324ce6d] :: the `extern fn f` parameter 'a' is not C-shaped
+extern_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'a' is not C-shaped
 extern_struct_not_layout [fnv:6e53a6db9ecbfb65] :: a pointer points at something C-shaped
 extern_untyped_param [fnv:74f96f923d17901f] :: C's signature is written in full
 extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s body is in C

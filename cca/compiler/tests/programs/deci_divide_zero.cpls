@@ -1,6 +1,6 @@
 # A deci divided by zero stops the program (the oracle: "division by
 # zero"): there is no infinity to give.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn half ['d': deci64] -> deci64 {
     return 1.5 div 'd';
 }

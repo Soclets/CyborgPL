@@ -2,7 +2,7 @@
 # them, checked by the program itself against the oracle's text: mod takes
 # the divisor's sign, xx a whole exponent, a narrower deci fails
 # too_many_digits, and a deci may be a range type. One point each: 19.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn same ['v': deci64, 'want': str.utf8] -> int32 {
     if to.stored.str.utf8['v'] == 'want' { return 1; }
     return 0;

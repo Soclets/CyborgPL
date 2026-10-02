@@ -4,7 +4,7 @@
 # Lanes of each width, a position worked out at run time, and a load whose
 # lanes differ, to see the order: 4 + 4 + (200 - 190) + (-5 + 10) +
 # 2.5 x 2 + 30 = 58.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'a': simd[int32, 4] = simd.fill[4];
     let 'b': simd[uint8, 16] = simd.fill[200];

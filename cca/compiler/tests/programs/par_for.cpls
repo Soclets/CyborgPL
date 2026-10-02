@@ -3,7 +3,7 @@
 # or adds into one total — and give what the loop in order gives. The sum
 # is 0 or more every time, so its one check at the end is the loop's.
 # (Their total mod 256, as the oracle computes it: 160.)
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'n': int64 = 300000;
     let mut 'xs': list[int64] = list.fill[3, 'n'];

@@ -63,7 +63,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
         if p.is(&Tok::Strict) {
             return p.fail("`#strict` goes once, at the top of the file, before any item");
         }
-        items.push(p.item()?);
+        push_item(&mut items, p.item()?);
     }
     Ok(File { items, strict })
 }
@@ -305,32 +305,46 @@ impl<'a> Parser<'a> {
             "func" => self.fail("`func` became `fn`: `fn name [params] -> type { … }`"),
             "extern" => {
                 self.bump();
-                if self.eat_word("fn") {
-                    let decl = self.fn_decl(false)?;
-                    Ok(ItemKind::ExternFn(decl))
-                } else if self.is_word("let") {
-                    self.fail("`let` is gone: C's variable is `extern 'x': T;` (`extern mut 'x': T;` to write it)")
-                } else if matches!(self.peek(), Tok::Name(_)) || self.is_word("mut") || self.is_word("immut") {
-                    // C's variable (owner, 2026-09-25): `extern 'x': T;`,
-                    // `extern mut 'x': T;` to write it.
-                    let mutable = self.eat_word("mut");
-                    if self.is_word("immut") {
-                        return self.fail("`immut` means nothing on C's variable: it is read-only unless you write `mut`");
-                    }
-                    let name = self.qname("the C variable's name")?;
-                    if !self.is(&Tok::Colon) {
-                        return self.fail("C's variable needs a type: it has a C-shaped type and no value here — `extern 'x': int32;`");
+                // `extern` names its language (owner, 2026-10-02): `extern.C`,
+                // a line or a block.
+                if !self.eat(&Tok::Dot) {
+                    return self.fail("`extern` names its language: `extern.C fn exit ['code': int32];`, or a block, `extern.C { … }`");
+                }
+                let lang = self.ident("the language after `extern.`")?;
+                match lang.name.as_str() {
+                    "C" => {}
+                    "c" => return self.fail_at(lang.span, "C is written capitalized here, as every language's name is: `extern.C`"),
+                    other => return self.fail_at(lang.span, format!("only `extern.C` exists: `extern.{}` is not a language CyborgPL reaches", other)),
+                }
+                if self.is(&Tok::LBrace) {
+                    let open = self.bump().span;
+                    let mut lines = Vec::new();
+                    while !self.is(&Tok::RBrace) {
+                        // Another item's first word at the left margin, or the
+                        // end of the file: the block was never closed.
+                        if self.at_eof() || self.is_word("MAIN") || self.is_word("struct") || self.is_word("enum") || self.is_word("const") || self.is_word("module") || self.is_word("extern") || self.is_word("layout") {
+                            return self.fail_at(open, "the `extern.C {` block is never closed: is its `}` missing?");
+                        }
+                        // A line may say its own `pub` or `pub.limb`; one
+                        // before the block overrides them (owner, 2026-10-02:
+                        // "allow mixing, but block overrides").
+                        let mut line_vis = Vis::Private;
+                        if self.eat_word("pub") {
+                            line_vis = Vis::Pub;
+                            if self.eat(&Tok::Dot) {
+                                let narrowing = self.ident("a word after `pub.`")?;
+                                if narrowing.name != "limb" {
+                                    return self.fail_at(narrowing.span, format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.limb`", narrowing.name));
+                                }
+                                line_vis = Vis::Limb;
+                            }
+                        }
+                        lines.push((line_vis, self.extern_line()?));
                     }
                     self.bump();
-                    let ty = self.type_()?;
-                    if self.is_op("=") || self.is(&Tok::Walrus) {
-                        return self.fail("C's variable has no value here: C owns it; write only its type");
-                    }
-                    self.expect_semi("the extern declaration")?;
-                    Ok(ItemKind::ExternLet { mutable, name, ty })
-                } else {
-                    self.fail("`extern` is followed by `fn` (a C function) or a quoted name (a C variable: `extern 'x': int32;`)")
+                    return Ok(ItemKind::ExternBlock(lines));
                 }
+                self.extern_line()
             }
             "struct" => {
                 self.bump();
@@ -385,7 +399,7 @@ impl<'a> Parser<'a> {
                     if self.at_eof() {
                         return self.fail(format!("module `{}` is never closed", name.name));
                     }
-                    items.push(self.item()?);
+                    push_item(&mut items, self.item()?);
                 }
                 self.bump();
                 Ok(ItemKind::Module { name, items })
@@ -506,6 +520,37 @@ impl<'a> Parser<'a> {
             return self.fail(format!("a lifetime group follows the `|`: `| @x`, found {}", self.peek().describe()));
         }
         Ok(a)
+    }
+
+    /// One of C's names after `extern.C`, alone or in its block: `fn …;`,
+    /// or a variable, `'x': T;` (`mut 'x': T;` to write it; owner,
+    /// 2026-09-25).
+    fn extern_line(&mut self) -> Result<ItemKind> {
+        if self.eat_word("fn") {
+            let decl = self.fn_decl(false)?;
+            return Ok(ItemKind::ExternFn(decl));
+        }
+        if self.is_word("let") {
+            return self.fail("C's variable has no `let`: `extern.C 'x': T;` (`extern.C mut 'x': T;` to write it)");
+        }
+        if !(matches!(self.peek(), Tok::Name(_)) || self.is_word("mut") || self.is_word("immut")) {
+            return self.fail("`extern.C` is followed by `fn` (a C function) or a quoted name (a C variable: `extern.C 'x': int32;`)");
+        }
+        let mutable = self.eat_word("mut");
+        if self.is_word("immut") {
+            return self.fail("`immut` means nothing on C's variable: it is read-only unless you write `mut`");
+        }
+        let name = self.qname("the C variable's name")?;
+        if !self.is(&Tok::Colon) {
+            return self.fail("C's variable needs a type: it has a C-shaped type and no value here — `extern.C 'x': int32;`");
+        }
+        self.bump();
+        let ty = self.type_()?;
+        if self.is_op("=") || self.is(&Tok::Walrus) {
+            return self.fail("C's variable has no value here: C owns it; write only its type");
+        }
+        self.expect_semi("the extern declaration")?;
+        Ok(ItemKind::ExternLet { mutable, name, ty })
     }
 
     fn fn_decl(&mut self, has_body: bool) -> Result<FnDecl> {
@@ -2824,3 +2869,12 @@ pub fn is_device_name(n: &str) -> bool {
 
 #[allow(dead_code)]
 const _: &str = NOT_A_COMMENT;
+
+/// An item into its file's or module's list: an `extern.C { … }` block's
+/// lines, each with the block's visibility.
+fn push_item(items: &mut Vec<Item>, it: Item) {
+    match it.kind {
+        ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span })),
+        kind => items.push(Item { vis: it.vis, kind, span: it.span }),
+    }
+}

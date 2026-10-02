@@ -1,7 +1,7 @@
 # A slice whose end is not known is checked at run time: past the end
 # of the list, it stops. `strlen` is extern, so 'k' is any `uint64`.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "nine char";
     nocheck let 'k': uint64 = strlen[lend 's'];

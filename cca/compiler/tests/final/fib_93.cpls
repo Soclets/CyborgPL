@@ -1,8 +1,8 @@
 # fib on 0 to 93, N from outside: fib(93) does not fit an int64, so the
 # final build must refuse where it lands.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern fn atoll ['s': ptr[uint8]] -> int64[0, 93];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 93];
 fn fib ['n': int64[0, 93]] -> int64 {
     if 'n' < 2 { return 'n'; }
     return fib['n' - 1] + fib['n' - 2];

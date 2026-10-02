@@ -2,7 +2,7 @@
 # their checks, and the folds all, any, max, sum. Each true case adds its bit.
 # A store used to leave Precog believing the list unchanged, and an `if`
 # about a stored element was folded to false.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
     let mut 'acc': simd[uint8, 16] = simd.fill[0];
     for 'i' in range[1, array.length[lend 'bytes'], 16] {

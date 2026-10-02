@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'c' := channel[int32];
     let mut 'got': int32 = 0;

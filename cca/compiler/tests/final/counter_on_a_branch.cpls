@@ -1,9 +1,9 @@
 # A counter stepped on only some trips does not bound how many trips there
 # are: for an odd N this loop goes round forever, and the sum overflows.
 # The final build must not bound 'acc' by the counter.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern fn atoll ['s': ptr[uint8]] -> int64[0, 1000];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 1000];
 fn read_n ['text': ptr[uint8]] -> int64[0, 1000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
     nocheck let 'n' := atoll['text'] otherwise fail;

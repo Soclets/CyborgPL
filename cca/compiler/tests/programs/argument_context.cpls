@@ -3,7 +3,7 @@
 # wide[2 shl 3] is a 32-bit shift (16), wide[not.bit 0] is 4294967295, and
 # list.append's value takes the element type (0 -~ 2 is 254).
 # examples/argument_context.cpls as an exit code: one bit per right answer.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn show ['b': uint8] -> uint8 { return 'b'; }
 fn wide ['w': uint32] -> uint32 { return 'w'; }
 fn flag ['b': bool, 'v': int32] -> int32 {

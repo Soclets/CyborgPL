@@ -1,7 +1,7 @@
 # Powers at run time: by squaring, each multiply checked only when the
 # answer needs it; xx~ wraps at its values' size. Each true case adds a bit.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "ab";
     nocheck let 'two': int64 = to.int64[strlen[lend 's']];

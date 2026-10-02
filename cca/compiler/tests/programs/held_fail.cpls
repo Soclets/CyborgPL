@@ -1,8 +1,8 @@
 # A held function that can fail (functions-as-values.md: the failure list is
 # part of the type): called as 'f'[…] with otherwise, named or a literal, a
 # reason carrying its payload out.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn half ['n': int32] -> int32 or fail[odd: int32] {
     if ('n' mod 2) == 1 { fail odd['n']; }
     return 'n' div 2;

@@ -1,8 +1,8 @@
 # A line that fails whenever it runs but may never run is a check with a
 # note, not a compile error (owner, 2026-09-23). A process id is never
 # above 10^8, so the conversion never runs — but Precog cannot know that.
-extern fn getpid [] -> int32;
-extern fn exit ['code': int32];
+extern.C fn getpid [] -> int32;
+extern.C fn exit ['code': int32];
 MAIN {
     nocheck let 'n' := getpid[];
     let 'p': int16 = -5;

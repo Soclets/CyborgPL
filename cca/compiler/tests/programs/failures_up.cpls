@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn inner ['n': int32] -> int32 or fail[bad: list[int32]] {
     if 'n' < 0 { fail bad[[1, 2, 3]]; }
     return 'n';

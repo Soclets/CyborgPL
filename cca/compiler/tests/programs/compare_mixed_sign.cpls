@@ -2,8 +2,8 @@
 # sign. Both used to take the left side's, so a `uint8` of 201 beside an
 # `int64` became -55 and `198 > 201` was true (check claude, seed 77).
 # `strlen` is extern, so nothing here is known before it runs; 'n' is 63.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "three hundred characters are too many to type, so this is fewer";
     nocheck let 'n': uint64 = strlen[lend 's'];

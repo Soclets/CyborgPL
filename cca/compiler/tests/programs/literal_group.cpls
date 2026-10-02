@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'u': uint64 = 1;
     let 'a': uint64 = (0 + 10702988103728947458) + 'u';

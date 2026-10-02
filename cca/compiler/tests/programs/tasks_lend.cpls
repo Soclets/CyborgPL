@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn work ['n': int32] -> int32 { return 'n' x 2; }
 fn fill [lent.mut 'into': list[int32], 'from': int32] {
     for 'i': int32 in range[1, 5] {

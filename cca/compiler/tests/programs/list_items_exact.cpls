@@ -3,7 +3,7 @@
 # seed 197: an item was worked out at 64 bits, and 9692729768110883998 did
 # not fit). 9692729768110883998 - 3166240359165959856 = 6526489408944924142,
 # and (100 + 100) - 150 = 50 in a uint8: 42 + 50 = 92 (the oracle agrees).
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'big': list[uint64] = [9692729768110883998 - 3166240359165959856, 9692729768110883998 - 1];
     let 'small': list[uint8] = [(100 + 100) - 150, 7];

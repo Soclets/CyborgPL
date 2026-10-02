@@ -3,8 +3,8 @@
 # Inline assembly (ffi.md), arm64: values into registers and out, a real
 # syscall (getpid, 20) checked against C's, and x29/x30 clobbered in a
 # function that then returns (spelled fp/lr for LLVM: the compiler rule).
-extern fn exit ['code': int32];
-extern fn getpid [] -> int32;
+extern.C fn exit ['code': int32];
+extern.C fn getpid [] -> int32;
 fn trample ['n': int64] -> int64 {
     nocheck inline.S {
         mov x30, #0

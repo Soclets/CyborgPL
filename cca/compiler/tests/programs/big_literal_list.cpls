@@ -1,6 +1,6 @@
 # A `:=` list of bare numbers has no width written, so it holds them all:
 # 2^63 is not narrowed into the int64 range (it was refused, wrongly).
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'xs' := [9223372036854775808, 1];
     nocheck exit[to.int32['xs'[2]]];

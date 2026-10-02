@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
     if 'n' < 0 { fail negative['n']; }
     if ('n' mod 2) == 1 { fail odd; }

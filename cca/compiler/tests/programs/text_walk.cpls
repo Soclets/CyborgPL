@@ -1,8 +1,8 @@
 # Walking a text by its units (strings.md): str.each.byte / .point /
 # .grapheme — 21 bytes, 8 points, 6 clusters for "aé" ++ "เกี่ยว"; each
 # cluster a text of its own, given back with the walk.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
     nocheck let 'there' := ptr.is_null[getenv[lend 'k']];

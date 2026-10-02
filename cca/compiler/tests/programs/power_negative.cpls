@@ -1,6 +1,6 @@
 # A negative exponent makes a fraction, which no integer holds: it stops.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "ab";
     nocheck let 'two': int64 = to.int64[strlen[lend 's']];

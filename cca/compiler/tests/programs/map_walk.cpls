@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let mut 'm': map[str.utf8, int32] = map.empty;
     map.set[lend.mut 'm', "seven", 7];

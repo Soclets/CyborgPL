@@ -2,7 +2,7 @@
 # start plus the trips times the largest term (a bin's with room for its
 # rounding), so both adds are proven and both loops run in slices.
 # 300000 x 0.5 = 150000, and the i x i mod 7 terms total 599999: 600149 mod 256 = 85.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'n': int64 = 300000;
     let mut 'half': bin64 = 0.0;

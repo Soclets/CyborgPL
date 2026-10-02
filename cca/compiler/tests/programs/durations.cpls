@@ -1,7 +1,7 @@
 # Durations (concurrency.md): nanoseconds in 64 bits; literals in any unit,
 # added, compared across units, subtracted while it stays a length.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
     nocheck let 'there' := ptr.is_null[getenv[lend 'k']];

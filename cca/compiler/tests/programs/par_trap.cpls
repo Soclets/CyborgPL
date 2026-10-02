@@ -1,7 +1,7 @@
 # A check that fires in a slice stops the program as in order (parallel
 # `for`, owner 2026-09-30): 'i' into an int8 fails at 128, whichever slice
 # gets there first.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'n': int64 = 200000;
     let mut 'xs': list[int8] = list.fill[0, 'n'];

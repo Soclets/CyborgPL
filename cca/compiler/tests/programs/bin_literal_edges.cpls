@@ -1,7 +1,7 @@
 # A literal into a bin16 or bin32 is decided and written from its digits,
 # rounded once (oracle 8705014): read at 64 bits first, the first two
 # land on the limit, tie to infinity, and were refused.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let mut 'got': int32 = 0;
     let 'a': bin32 = 340282356779733661637539395458142568447.0;

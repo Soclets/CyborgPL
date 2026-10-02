@@ -1,7 +1,7 @@
 # The keys a map can hold are tracked as a set that may be too large, never
 # too small: a `set` of a key surely absent adds one entry, any other adds
 # none or one. The same key twice into a map bounded to one entry fits.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let mut 'm': map[str.utf8, int32][0, 1] = map.empty;
     map.set[lend.mut 'm', "ab", 5];

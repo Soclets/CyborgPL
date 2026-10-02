@@ -2,7 +2,7 @@
 # so a word past ASCII arrives whole: run with "héllo", "ab" and the one
 # byte 0xFF. Points 5 + 2 = 7, bytes 6 + 2 = 8, and 0xFF is not UTF-8
 # (100): 7 x 10 + 8 + 100 = 178.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     let mut 'points': uint64 = 0;
     let mut 'bytes': uint64 = 0;

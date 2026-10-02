@@ -1,8 +1,8 @@
 # C's memory through a pointer (ffi.md): ptr.write, ptr.read, and ptr.at
 # moving a whole number of elements. 72 + 105 - 170 = 7.
-extern fn exit ['code': int32];
-extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
-extern fn free ['p': ptr.mut[uint8]];
+extern.C fn exit ['code': int32];
+extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern.C fn free ['p': ptr.mut[uint8]];
 MAIN {
     nocheck let 'buf' := malloc[4];
     nocheck ptr.write['buf', 72];

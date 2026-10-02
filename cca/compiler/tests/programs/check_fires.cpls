@@ -1,7 +1,7 @@
 # An unproven site keeps its check in a working build, and a check that
 # fires stops the program with 101 and says where.
-extern fn exit ['code': int32];
-extern fn getpid [] -> int32;
+extern.C fn exit ['code': int32];
+extern.C fn getpid [] -> int32;
 
 MAIN {
     nocheck let 'pid' := getpid[];

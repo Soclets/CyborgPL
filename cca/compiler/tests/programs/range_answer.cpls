@@ -2,8 +2,8 @@
 # tells LLVM its range (owner, 2026-09-29: c), so a loop bounded by it is
 # worked out at 64 bits. `pick` gives 3 here (no CCA_NO_SUCH_VARIABLE),
 # and the sum of 1 to 3 is 6.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn pick [] -> int64[0, 1000] or fail[missing] {
     let 'key' := "CCA_NO_SUCH_VARIABLE";
     nocheck let 'p' := getenv[lend 'key'];

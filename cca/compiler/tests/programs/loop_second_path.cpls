@@ -3,8 +3,8 @@
 # path still on its way: the call on the `if` side was never analysed, and
 # layer 1 folded a value from the other call into both (check claude,
 # generator seed 2). A process id is never 0, so 'b' is true.
-extern fn exit ['code': int32];
-extern fn getpid [] -> int32;
+extern.C fn exit ['code': int32];
+extern.C fn getpid [] -> int32;
 fn pick ['n': int64] -> int64 { return 'n' x 10; }
 MAIN {
     nocheck let 'p' := getpid[];

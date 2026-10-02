@@ -4,10 +4,10 @@
 # (examples/c_variables.cpls, with libc's own `optind` as the C variable, so
 # the oracle cannot link it and the answer is worked out by hand: 1, 11, 10
 # → 100 + 10 + 0 = 110).
-extern fn exit ['code': int32];
-extern fn malloc ['bytes': uint64] -> ptr.mut[Mode];
-extern fn free ['p': ptr.mut[Mode]];
-extern mut 'optind': int32;
+extern.C fn exit ['code': int32];
+extern.C fn malloc ['bytes': uint64] -> ptr.mut[Mode];
+extern.C fn free ['p': ptr.mut[Mode]];
+extern.C mut 'optind': int32;
 layout.C enum Mode { emacs = 0  vi = 1 }
 fn mode_at ['p': ptr[Mode]] -> int32 {
     nocheck let 'm' := ptr.read['p'] otherwise Mode.emacs;

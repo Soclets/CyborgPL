@@ -2,7 +2,7 @@
 # `mod` too (check claude, seed 4698): the group took the typed side's
 # `uint8`, and its `221 x 2` was refused as 442. 7 mod 3 is 1, 7 div 3 is
 # 2, 12 mod 7 is 5: 1 + 20 + 5 x 10 = 71.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'p': uint8 = 7;
     let 'a': uint8 = 'p' mod (((221 x 2) mod 5) + 1);

@@ -2,8 +2,8 @@
 # owns it and gives it back, and the caller's own list is untouched. Read as
 # the same bytes, the callee freed the caller's list, which was then used
 # and freed again. Built at run time so the calls are not worked out ahead.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn first ['xs': list[int32]] -> int32 { return 'xs'[1]; }
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";

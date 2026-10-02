@@ -2,8 +2,8 @@
 # they fit" (operators.md): 'i' is at most 'n', an `int32`'s value, so
 # `'i' x 'i'` and its `mod` are 64-bit instructions, not 128-bit ones and a
 # library call. Widening at every busy block had thrown `'i' </== 'n'` away.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "ten chars!";
     nocheck let 'n': int32 = to.int32[strlen[lend 's']];

@@ -1,7 +1,7 @@
 # deci, IEEE 754 decimal (owner, 2026-09-29), as examples/deci.cpls has it
 # but checked by the program itself: each value's text against the
 # oracle's, one point each, so the exit is how many agree (30).
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn same ['v': deci64, 'want': str.utf8] -> int32 {
     if to.stored.str.utf8['v'] == 'want' { return 1; }
     return 0;

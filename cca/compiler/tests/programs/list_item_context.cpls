@@ -4,7 +4,7 @@
 # nested list passes it down (0 -~ 2 is 254); bare numbers alone stay exact
 # (check claude's seed 197). examples/list_item_context.cpls as an exit
 # code: one bit per right answer, 127.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn flag ['b': bool, 'v': int32] -> int32 {
     if 'b' { return 'v'; }
     return 0;

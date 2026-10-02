@@ -2,7 +2,7 @@
 # "hello world"`. argc is 4 (the program's name first); the first word's
 # first byte is `a`, 97; the last word is 11 bytes long; argv[argc] is
 # null. 4 + 97 + 11 + 100 = 212.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     nocheck let 'first' := ptr.read[ptr.at['argv', 1]];
     nocheck let 'a' := ptr.read['first'];

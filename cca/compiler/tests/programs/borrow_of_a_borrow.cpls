@@ -1,7 +1,7 @@
 # A borrow of a local that borrows a `lent` parameter is a borrow of that
 # parameter, and may be handed back (the oracle's reading, 0e5c5b1): 'r' is
 # 's' itself, so 'r'[3] is 3.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn first [lent 'a': list[int32]] -> lent list[int32] {
     let 'l' := lend 'a';
     return lend 'l';

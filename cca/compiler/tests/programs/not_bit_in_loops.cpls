@@ -2,8 +2,8 @@
 # -102 to -96 on every trip, so `not.bit 'v2'` is 95 to 101 and never zero.
 # Layer 2 had no range for `not.bit`, and widened at every busy block, so
 # the loops lost the interval and the build refused the `check`.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "seven!!";
     nocheck let 'n': uint64 = strlen[lend 's'];

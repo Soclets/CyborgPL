@@ -4,8 +4,8 @@
 # failing conversions, a char as text (a byte as the point of its number,
 # the oracle's reading), `==` across units, and `++` beside text. Values
 # are known only at run time: whether an unset variable is there.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn point ['code': int64] -> uint32 {
     let 'c' := char.point.from_code['code'] otherwise { not_a_char { return 0; } };
     return char.code['c'];

@@ -609,6 +609,10 @@ pub enum Vis {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ItemKind {
+    /// `extern.C { … }` (owner, 2026-10-02): its lines, each an `ExternFn`
+    /// or `ExternLet` with the visibility it says; flattened into the
+    /// file's items as it is read.
+    ExternBlock(Vec<(Vis, ItemKind)>),
     Fn(FnDecl),
     ExternFn(FnDecl),
     ExternLet { mutable: bool, name: QName, ty: Type },

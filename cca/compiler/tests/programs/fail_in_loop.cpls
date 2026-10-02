@@ -3,7 +3,7 @@
 # trip: the stack grew until the program died (exit 139). Every slot is
 # now made once, in the function's first block. The sum of 1 to 10^7 is
 # 50000005000000; 0 mod 1000, and 7 is the exit.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn half ['n': int64] -> int64 or fail[odd] {
     if ('n' mod 2) == 1 { fail odd; }
     return 'n' div 2;

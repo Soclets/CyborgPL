@@ -3,7 +3,7 @@
 # the result depends on (examples/lifetimes.cpls as an exit code: "hello",
 # "hi" and "hello" are 5, 2 and 5 bytes → 5 x 100 + 2 x 10 + 5 = 525,
 # which exits as 525 mod 256 = 13).
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn longer @x [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 {
     if str.bytes[lend 'a'] >/== str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';

@@ -2,8 +2,8 @@
 # points and grapheme clusters (UAX #29, extended: เกี่ยว is 4 clusters, 6
 # points, 18 bytes); text <-> grapheme conversions; a text bound counted
 # in graphemes, checked at run time. Values chosen at run time.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn short [lent 't': str.utf8] -> int32 {
     let 's': str.utf8[0, 2 graphemes] = to.str.utf8[0, 2 graphemes]['t'] otherwise { out_of_range { return 0; } };
     return 1;

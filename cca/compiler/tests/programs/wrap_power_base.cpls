@@ -2,8 +2,8 @@
 # shift's, so a uint32 base with an int32 exponent is not mixing sizes
 # (operators.md, the oracle's reading). The exponent is known only at run
 # time: whether an unset variable is there.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
     nocheck let 'there' := ptr.is_null[getenv[lend 'k']];

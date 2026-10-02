@@ -2,7 +2,7 @@
 # products of integers, bins and decis run in slices, each folding its own
 # trips, the partials combined in slice order at the end. The values are
 # exact, so the rounding the order may change never shows here.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let 'n': int64 = 300000;
     let mut 'bs': list[bin64] = list.fill[0.5, 'n'];

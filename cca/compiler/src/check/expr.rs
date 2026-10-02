@@ -453,7 +453,7 @@ impl Checker {
             return err(Diagnostic::error(format!("{} C's variable '{}' is a nocheck site: nothing about C's memory can be proven — write `nocheck` in front of the statement", what, info.name)).at(span));
         }
         if use_ == PlaceUse::Write && !info.mutable {
-            return err(Diagnostic::error(format!("'{}' is read-only: `extern mut '{}': …` says C's variable may be written", info.name, info.name)).at(span));
+            return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut '{}': …` says C's variable may be written", info.name, info.name)).at(span));
         }
         if matches!(use_, PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut) {
             return err(Diagnostic::error(format!("'{}' is C's plain value: it copies by itself and takes no verb", info.name)).at(span));

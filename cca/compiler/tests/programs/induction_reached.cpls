@@ -5,7 +5,7 @@
 # divisor was "always zero" though no call ever passes it. f[3, 587] is 1;
 # g[0, 1] is 100 mod -1, 0; g[2, 1] reaches p1 = 664 at pr = 0 (1 → 449 →
 # 664): 100 mod -664 is -564 by the divisor's sign. 1 + 0 + 564 - 560 = 5.
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn f ['pr': int32[0, 6], 'p1': uint64] -> int64 {
     if 'pr' == 0 { return 1; }
     let 'r': int64 = f['pr' - 1, 'p1'];

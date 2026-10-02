@@ -376,7 +376,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 _ => false,
             });
             if back {
-                self.cannot(format!("the `extern fn {}` takes a callback that passes or returns a struct by value, which needs a thunk in C's calling convention, and that is not built yet", e.name), None);
+                self.cannot(format!("the `extern.C fn {}` takes a callback that passes or returns a struct by value, which needs a thunk in C's calling convention, and that is not built yet", e.name), None);
                 continue;
             }
             let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
@@ -406,7 +406,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
             if !ok {
-                self.cannot(format!("the `extern fn {}` takes something the generated code has no shape for yet", e.name), None);
+                self.cannot(format!("the `extern.C fn {}` takes something the generated code has no shape for yet", e.name), None);
                 continue;
             }
             let fty = match &e.ret {
@@ -416,7 +416,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     (Some(t), Some(cabi::CPass::Direct)) => t.fn_type(&params, e.variadic),
                     (Some(_), Some(cabi::CPass::Coerce(c))) => c.fn_type(&params, e.variadic),
                     _ => {
-                        self.cannot(format!("the `extern fn {}` returns something the generated code has no shape for yet", e.name), None);
+                        self.cannot(format!("the `extern.C fn {}` returns something the generated code has no shape for yet", e.name), None);
                         continue;
                     }
                 },

@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 MAIN {
     let mut 'xs': list[int32] = [10, 20, 30];
     list.append[lend.mut 'xs', 12];

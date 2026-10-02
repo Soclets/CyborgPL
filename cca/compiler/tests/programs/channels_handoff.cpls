@@ -1,4 +1,4 @@
-extern fn exit ['code': int32];
+extern.C fn exit ['code': int32];
 fn fetch [lent 'url': str.utf8] -> str.utf8 { return "page of " ++ 'url'; }
 MAIN {
     let 'results' := channel[str.utf8];

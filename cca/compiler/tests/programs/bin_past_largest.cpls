@@ -2,8 +2,8 @@
 # the program only learns at run time goes past the largest bin64 on the
 # 1024th step, and the check there stops it. Before, it became infinity
 # and the loop ran on.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn start [] -> bin64 {
     let 'key' := "CCA_NO_SUCH_VARIABLE";
     nocheck let 'p' := getenv[lend 'key'];

@@ -1,7 +1,7 @@
 # Consts, worked out once at compile time to the literal each is: integers,
 # text, bin64 and powers, used in a struct, a call, a loop's bound.
-extern fn exit ['code': int32];
-extern fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 pub const 'max' := 8;
 const 'pi': bin64 = 3.141_592_653_589_793;
 const 'twice_max' := 'max' x 2;

@@ -5,11 +5,11 @@
 # by hand: calloc's 0 is no key, after the write the read is b, memset's
 # 0x41414141 is no key, memcpy's b and a are keys, and the trusted read is b
 # — each right answer is one bit, 1 + 2 + 4 + 8 + 16 = 31.
-extern fn exit ['code': int32];
-extern fn calloc ['n': uint64, 'size': uint64] -> ptr.mut[Key];
-extern fn free ['p': ptr.mut[Key]];
-extern fn memset ['s': ptr.mut[Key], 'c': int32, 'n': uint64] -> ptr.mut[Key];
-extern fn memcpy ['d': ptr.mut[Key], 's': ptr[Key], 'n': uint64] -> ptr.mut[Key];
+extern.C fn exit ['code': int32];
+extern.C fn calloc ['n': uint64, 'size': uint64] -> ptr.mut[Key];
+extern.C fn free ['p': ptr.mut[Key]];
+extern.C fn memset ['s': ptr.mut[Key], 'c': int32, 'n': uint64] -> ptr.mut[Key];
+extern.C fn memcpy ['d': ptr.mut[Key], 's': ptr[Key], 'n': uint64] -> ptr.mut[Key];
 layout.C enum Key { a = 65  b = 66  escape = 256 }
 
 fn num ['k': Key] -> int32 {
