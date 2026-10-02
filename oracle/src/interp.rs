@@ -1685,7 +1685,7 @@ impl<'p> Interp<'p> {
             Expr::Var(n, _) | Expr::Owned(_, n, _) => Ok(self.lookup(n).and_then(|s| s.ty.clone()).map(base)),
             Expr::Convert(t, ..) => Ok(Some(base(t.clone()))),
             Expr::Paren(inner, _) | Expr::Unary(_, inner, _) => self.plain_size(inner),
-            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "div.trunc" | "mod.trunc") => {
+            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+" | "-" | "x" | "xx") || is_div_mod(op) => {
                 match (self.plain_size(l)?, self.plain_size(r)?) {
                     (Some(a), Some(b)) if ty_name(&a) != ty_name(&b) => Err(format!("{} and {}", ty_name(&a), ty_name(&b))),
                     (a, b) => Ok(a.or(b)),
@@ -2658,7 +2658,7 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "div.trunc" | "mod.trunc" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !is_div_mod(op) && !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(op, l, r, _) => {
@@ -2670,7 +2670,7 @@ impl<'p> Interp<'p> {
                 // beside a deci, a group of bare numbers takes the deci's width, as a literal does
                 // (`'a' + (1.5 x 2)`; compiler session, 2026-09-29)
                 let mut deci_set = false;
-                if !cmp && self.deci_ctx().is_none() && matches!(op.as_str(), "+" | "-" | "x" | "div" | "mod") {
+                if !cmp && self.deci_ctx().is_none() && (matches!(op.as_str(), "+" | "-" | "x") || is_div_mod(op)) {
                     let side = self.expr_ty(l).or_else(|| self.expr_ty(r));
                     if let Some(t @ Ty::Deci(_)) = side { self.expected = Some(t); deci_set = true; }
                 }
@@ -2791,6 +2791,56 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// `div.X` / `mod.X` within one family (owner, 2026-10-02). On integers every `div` is whole; on
+    /// bins, `brain16` and decis `floor`, `ceil` and `trunc` give a whole quotient and `near` is
+    /// ordinary division, rounded to the nearest value the type holds, so `mod.near` is refused there
+    /// (it leaves nothing over). `a == (a div.X b) x b + (a mod.X b)` for the whole ones.
+    fn div_mod(&self, kind: &str, mode: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
+        use Value::*;
+        let op = format!("{kind}.{mode}");
+        let zero = if kind == "div" { "division by zero".to_string() } else { "`mod` by zero".to_string() };
+        let fractional = !matches!(a, Int(_));
+        if fractional && kind == "mod" && mode == "near" {
+            return rt(line, format!("`mod.near` on {}s leaves nothing over: `div.near` there is ordinary division (owner, 2026-10-02). For what a whole quotient leaves, `mod.floor`, `mod.ceil` or `mod.trunc`", a.kind()));
+        }
+        let ovf = || RuntimeError { line, msg: format!("integer overflow in `{op}`"), exit: None, site: true, leave: None };
+        Ok(match (a, b) {
+            (Int(_), Int(0)) => return site(line, zero),
+            (Int(x), Int(y)) => {
+                let (mut q, mut r) = (x.checked_div(y).ok_or_else(ovf)?, x.checked_rem(y).ok_or_else(ovf)?);
+                if r != 0 {
+                    let up = (r < 0) == (y < 0);   // the true quotient is above q
+                    let away = match mode {
+                        "floor" => !up, "ceil" => up, "trunc" => false,
+                        _ => match (2 * r.unsigned_abs()).cmp(&y.unsigned_abs()) { std::cmp::Ordering::Greater => true, std::cmp::Ordering::Less => false, std::cmp::Ordering::Equal => q % 2 != 0 },
+                    };
+                    if away { if up { q += 1; r -= y; } else { q -= 1; r += y; } }
+                }
+                Int(if kind == "div" { q } else { r })
+            }
+            (Bin(_), Bin(y)) | (Brain(_), Brain(y)) if y == 0.0 => return site(line, zero),
+            (Bin(x), Bin(y)) => {
+                let v = if kind == "div" && mode == "near" { x / y } else { let (q, r) = float_div_mod(x, y, mode); if kind == "div" { q } else { r } };
+                if v.is_infinite() || v.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest bin (it would be infinity): a bin never holds one")); }
+                Bin(v)
+            }
+            (Brain(x), Brain(y)) => {
+                let v = if kind == "div" && mode == "near" { ((x as f32) / (y as f32)) as f64 } else { let (q, r) = float_div_mod(x, y, mode); if kind == "div" { q } else { r } };
+                let v = crate::value::round_brain(v);
+                if v.is_infinite() || v.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest brain16 (it would be infinity)")); }
+                Brain(v)
+            }
+            (Deci(x), Deci(y)) => {
+                if kind == "div" && mode == "near" {
+                    match x.div(&y) { None => return site(line, zero), Some(r) => Deci(r.or_else(|m| site(line, m))?) }
+                } else {
+                    match x.divmod_whole(&y, mode) { None => return site(line, zero), Some(r) => { let (q, r) = r.or_else(|m| site(line, m))?; Deci(if kind == "div" { q } else { r }) } }
+                }
+            }
+            (a, b) => return rt(line, format!("`{op}` between {} and {}", a.kind(), b.kind())),
+        })
+    }
+
     fn binary(&self, op: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
         // A vector is N of what the operator already does (design/simd.md, 2026-09-22):
         // lane by lane, the scalar rule. A comparison gives a simd of bools, never one bool.
@@ -2815,22 +2865,18 @@ impl<'p> Interp<'p> {
         }
         use Value::*;
         let ovf = |what: &str| RuntimeError { line, msg: format!("integer overflow in `{what}`"), exit: None, site: true, leave: None };
+        // `div.X` / `mod.X` (owner, 2026-10-02): every division says how it rounds, `floor`, `ceil`,
+        // `trunc` or `near`, on every number family, and each `mod.X` is what `div.X` leaves over
+        if let Some((kind, mode)) = op.split_once('.') {
+            if (kind == "div" || kind == "mod") && matches!(mode, "floor" | "ceil" | "trunc" | "near") {
+                let same = matches!((&a, &b), (Int(_), Int(_)) | (Bin(_), Bin(_)) | (Brain(_), Brain(_))) || matches!((&a, &b), (Deci(x), Deci(y)) if x.width == y.width);
+                if same { return self.div_mod(kind, mode, a, b, line); }
+            }
+        }
         Ok(match (op, a, b) {
             ("+", Int(x), Int(y)) => Int(x.checked_add(y).ok_or_else(|| ovf("+"))?),
             ("-", Int(x), Int(y)) => Int(x.checked_sub(y).ok_or_else(|| ovf("-"))?),
             ("x", Int(x), Int(y)) => Int(x.checked_mul(y).ok_or_else(|| ovf("x"))?),
-            ("div", Int(_), Int(0)) => return site(line, "division by zero"),
-            // Decided 2026-09-20: floor division and the mathematician's mod
-            // (-7 / 2 = -4, -7 mod 2 = 1); hardware truncation is std::div.trunc / std::mod.trunc.
-            ("div", Int(x), Int(y)) => { let q = x.checked_div(y).ok_or_else(|| ovf("div"))?; Int(if x % y != 0 && ((x < 0) != (y < 0)) { q - 1 } else { q }) }
-            ("mod", Int(_), Int(0)) => return site(line, "`mod` by zero"),
-            // the hardware's truncation, by name, in the language (owner, 2026-10-02): -7 div.trunc 2 = -3,
-            // -7 mod.trunc 2 = -1 (the dividend's sign, C's `/` and `%`)
-            ("div.trunc", Int(_), Int(0)) => return site(line, "division by zero"),
-            ("mod.trunc", Int(_), Int(0)) => return site(line, "`mod` by zero"),
-            ("div.trunc", Int(x), Int(y)) => Int(x.checked_div(y).ok_or_else(|| ovf("div.trunc"))?),
-            ("mod.trunc", Int(x), Int(y)) => Int(x.checked_rem(y).ok_or_else(|| ovf("mod.trunc"))?),
-            ("mod", Int(x), Int(y)) => { let r = x.checked_rem(y).ok_or_else(|| ovf("mod"))?; Int(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r }) }
             ("xx", Int(x), Int(y)) => {
                 if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
                 let mut acc: i128 = 1;
@@ -2839,25 +2885,17 @@ impl<'p> Interp<'p> {
             }
             // a bin never holds an infinity or a NaN (owner, 2026-09-29: a): a result that would be
             // one is a check site, as integer overflow and division by zero are
-            ("mod.trunc", Bin(_), Bin(y)) | ("mod.trunc", Brain(_), Brain(y)) if y == 0.0 => return site(line, "`mod` by zero"),
-            // C's `fmod`, the dividend's sign (owner, 2026-10-02)
-            ("mod.trunc", Bin(x), Bin(y)) => Bin(x % y),
-            ("mod.trunc", Brain(x), Brain(y)) => Brain(crate::value::round_brain(((x as f32) % (y as f32)) as f64)),
-            ("div" | "mod", Bin(_), Bin(y)) if y == 0.0 => return site(line, if op == "div" { "division by zero" } else { "`mod` by zero" }),
-            ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(x), Bin(y)) => {
-                // `mod` takes the divisor's sign, as on integers and decis (owner, 2026-10-02: a): C's
-                // `fmod`, then the divisor added once where the signs differ; a zero is the divisor's sign
-                let r = match op { "+" => x + y, "-" => x - y, "x" => x * y, "div" => x / y, "mod" => floor_mod(x, y), _ => x.powf(y) };
+            ("+" | "-" | "x" | "xx", Bin(x), Bin(y)) => {
+                let r = match op { "+" => x + y, "-" => x - y, "x" => x * y, _ => x.powf(y) };
                 if r.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} has no number as its answer (NaN): a bin never holds one")); }
                 if r.is_infinite() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest bin (it would be infinity): a bin never holds one")); }
                 Bin(r)
             }
             // brain16 (owner, 2026-10-02): each operation is done at 32 bits and rounded to the
             // nearest brain16, as LLVM emits it (widen, operate, `bfcvt`); its own family
-            ("div" | "mod", Brain(_), Brain(y)) if y == 0.0 => return site(line, if op == "div" { "division by zero" } else { "`mod` by zero" }),
-            ("+" | "-" | "x" | "div" | "mod" | "xx", Brain(x), Brain(y)) => {
+            ("+" | "-" | "x" | "xx", Brain(x), Brain(y)) => {
                 let (a, b) = (x as f32, y as f32);
-                let r32 = match op { "+" => a + b, "-" => a - b, "x" => a * b, "div" => a / b, "mod" => floor_mod(a as f64, b as f64) as f32, _ => a.powf(b) };
+                let r32 = match op { "+" => a + b, "-" => a - b, "x" => a * b, _ => a.powf(b) };
                 let r = crate::value::round_brain(r32 as f64);
                 if r.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} has no number as its answer (NaN): a brain16 never holds one")); }
                 if r.is_infinite() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest brain16 (it would be infinity)")); }
@@ -2874,7 +2912,6 @@ impl<'p> Interp<'p> {
             ("+", Deci(x), Deci(y)) => Deci(x.add(&y).or_else(|m| site(line, m))?),
             ("-", Deci(x), Deci(y)) => Deci(x.sub(&y).or_else(|m| site(line, m))?),
             ("x", Deci(x), Deci(y)) => Deci(x.mul(&y).or_else(|m| site(line, m))?),
-            ("div", Deci(x), Deci(y)) => match x.div(&y) { None => return site(line, "division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
             ("==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_eq()),
             ("!==", Deci(x), Deci(y)) => Bool(!x.cmp_value(&y).is_eq()),
             ("<", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_lt()),
@@ -2883,7 +2920,6 @@ impl<'p> Interp<'p> {
             (">/==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_ge()),
             // `mod` takes the divisor's sign, as integer `mod`; `xx` takes a whole exponent and rounds
             // like the other operations (owner, 2026-09-29: a, a)
-            ("mod", Deci(x), Deci(y)) => match x.rem_floor(&y) { None => return site(line, "`mod` by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
             ("xx", Deci(x), Deci(y)) => {
                 let n = match y.to_int() { Some(Ok(n)) => n, _ => return rt(line, format!("a deci power takes a whole exponent, not {}: a fractional power is std's math", y.show_stored())) };
                 match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) }
@@ -2891,7 +2927,7 @@ impl<'p> Interp<'p> {
             ("xx", Deci(x), Int(n)) => match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
             (_, Deci(_), Int(_) | Bin(_)) | (_, Int(_) | Bin(_), Deci(_)) =>
                 return rt(line, format!("`{op}` between a deci and another number family: there is no implicit conversion between numeric families; `to.deci64[…]`")),
-            ("+" | "-" | "x" | "div" | "mod" | "xx", Int(_), Bin(_)) | ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(_), Int(_)) =>
+            (_, Int(_), Bin(_)) | (_, Bin(_), Int(_)) if matches!(op, "+" | "-" | "x" | "xx") || op.starts_with("div.") || op.starts_with("mod.") =>
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
             // a char compares by its content, whatever unit it was declared in
             // durations (design/concurrency.md): compare, add, subtract, scale by an integer
@@ -4576,15 +4612,26 @@ fn round_decimal(d: &str, w: u8) -> f64 {
 
 /// The useful form of a value whose static type is known: a bin16/bin32 is the shortest decimal
 /// that rounds back to the same value at that width, not at 64 bits.
-/// `mod` on a bin or brain16: the divisor's sign (owner, 2026-10-02: a). The remainder of `x / y`
-/// is exact in floating point, so this is C's `fmod` plus one fix-up. Adding `y` may round up to
-/// `y` itself (`-1e-20 mod 360.0`); that is `0`, so the answer stays below the divisor (owner: b).
-fn floor_mod(x: f64, y: f64) -> f64 {
-    let m = x % y;
-    if m == 0.0 { return 0.0f64.copysign(y); }
-    if (m < 0.0) == (y < 0.0) { return m; }
-    let r = m + y;
-    if r == y { 0.0f64.copysign(y) } else { r }
+/// The whole quotient of `x / y`, rounded `floor`, `ceil` or `trunc`, and what it leaves over
+/// (owner, 2026-10-02). C's `fmod` is exact, so the truncated pair is exact; one step away fixes
+/// the others. A remainder that rounds up to the divisor itself (`-1e-20 mod.floor 360.0`) is `0`
+/// instead, the quotient left as it was, so it stays below the divisor (owner, 2026-10-02: b).
+/// A zero `mod.floor` takes the divisor's sign.
+/// `div.floor` … `mod.near`: the division operators, each saying how it rounds (owner, 2026-10-02)
+pub fn is_div_mod(op: &str) -> bool {
+    matches!(op.split_once('.'), Some(("div" | "mod", "floor" | "ceil" | "trunc" | "near")))
+}
+
+fn float_div_mod(x: f64, y: f64, mode: &str) -> (f64, f64) {
+    let r0 = x % y;
+    let q0 = ((x - r0) / y).round();
+    if r0 == 0.0 { return (q0, if mode == "floor" { 0.0f64.copysign(y) } else { r0 }); }
+    let up = (r0 < 0.0) == (y < 0.0);
+    let away = match mode { "floor" => !up, "ceil" => up, _ => false };
+    if !away { return (q0, r0); }
+    let (q, r) = if up { (q0 + 1.0, r0 - y) } else { (q0 - 1.0, r0 + y) };
+    if r.abs() == y.abs() { return (q0, if mode == "floor" { 0.0f64.copysign(y) } else { 0.0 }); }
+    (q, r)
 }
 
 fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {

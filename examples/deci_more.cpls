@@ -1,10 +1,10 @@
-# deci's leftovers (owner, 2026-09-29): mod takes the divisor's sign, as integer mod; xx takes a whole
+# deci's leftovers (owner, 2026-09-29): mod.floor takes the divisor's sign, as integer mod.floor; xx takes a whole
 # exponent and rounds like the other operations; a wider deci into a narrower one fails
 # too_many_digits; a deci may be a range type, with bounds written as bins' are.
 MAIN {
     let 't': deci64 = 7.50;
     let 'm': deci64 = -7.50;
-    std::print.stored.stdout['t' mod 2, " ", 'm' mod 2, " ", 't' mod -2, \n];
+    std::print.stored.stdout['t' mod.floor 2, " ", 'm' mod.floor 2, " ", 't' mod.floor -2, \n];
     let 'r': deci64 = 1.05;
     std::print.stored.stdout['r' xx 10, " ", 'r' xx 0, " ", 'r' xx -1, \n];
     let 'r2': deci128 = 1.05;

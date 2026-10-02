@@ -22,7 +22,7 @@ MAIN {
     let 'mine' := Locker[name = "A", number = 7, occupied = false];
     let mut 'total': int32 = 0;
     for 'i' in range[1, 10] {
-        if ('i' mod 2) == 0 { change 'total' = 'total' + 'i'; }
+        if ('i' mod.floor 2) == 0 { change 'total' = 'total' + 'i'; }
         else if 'i' == 7 { break; }
         else { continue; }
     }

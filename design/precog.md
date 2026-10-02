@@ -308,7 +308,7 @@ Per check site, in source order:
 ```
 line 7   'total' + square['i']   overflow           proven    (layer 2: max 333833500)
 line 12  'xs'['k']           out of bounds      checked   (layer 3: sat, k=100 when len=100)
-line 15  'a' div 'b'             division by zero   trusted   (nocheck)
+line 15  'a' div.floor 'b'       division by zero   trusted   (nocheck)
 line 9   square: 'x' x 'x'       overflow           proven    (layer 2, at 1 call site)
 ```
 

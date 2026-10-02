@@ -40,7 +40,7 @@ difference.
 ```
 let 'limit' := 60;
 let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
-let 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
+let 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) == 0; }];   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -58,7 +58,7 @@ silently, which is where "why is this borrowed" bugs come from.
 let 'sum'     := fold[lend 'xs', 0, op +];
 let 'product' := fold[lend 'xs', 1, op x];
 let 'flipped' := map[lend 'xs', op neg];
-let 'f': fn[int32, int32] -> int32 = op mod;
+let 'f': fn[int32, int32] -> int32 = op mod.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it

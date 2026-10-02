@@ -5,7 +5,7 @@ op <+> ['a': Vec, 'b': Vec] -> Vec {
     return Vec[x = 'a'.x + 'b'.x, y = 'a'.y + 'b'.y];
 }
 
-# a word operator, like x / xx / mod
+# a word operator, like x / xx / mod.floor
 op dot ['a': Vec, 'b': Vec] -> bin64 {
     return 'a'.x x 'b'.x + 'a'.y x 'b'.y;
 }

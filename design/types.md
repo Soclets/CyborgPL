@@ -99,7 +99,7 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   `bin` math does.
 - `deci` is its own family: it never mixes with `bin` or an integer
   without `to.…` (2026-09-14).
-- **`mod` takes the divisor's sign**, as integer `mod`: `-7.50 mod 2` is
+- **`mod.floor` takes the divisor's sign**, as integer `mod.floor`: `-7.50 mod.floor 2` is
   `0.50`. Exact, then rounded like the rest.
 - **`xx` takes a whole exponent** and rounds like the other operations:
   `1.05 xx 10` is `1.628894626777441` in a `deci64`, exact in a `deci128`; a

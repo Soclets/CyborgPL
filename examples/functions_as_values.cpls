@@ -33,6 +33,6 @@ MAIN {
     let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
     std::print.useful.stdout['passing', \n];
 
-    let 'evens' := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
+    let 'evens' := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) == 0; }];   # captures nothing
     std::print.useful.stdout['evens', \n];
 }

@@ -10,14 +10,29 @@ owner first made negation `neg` (`neg'x'`), then went back to `-` once
 it meant writing minus five as `neg 5`. The old spellings are refused
 with an error naming the new ones.
 
+**Every division says how it rounds** (owner, 2026-10-02: "Make bare
+`div` illegal", then b, a, a, b): `div.floor` (down), `div.ceil` (up),
+`div.trunc` (toward zero) and `div.near` (to the nearest, a tie to even),
+on **every** number family; a bare `div` is refused, naming the four.
+`mod` follows one for one, `mod.floor` … `mod.near`, each what its `div`
+leaves over: `a == (a div.X b) x b + (a mod.X b)`. On integers every
+quotient is whole (`7 div.near 2` is 4, `5 div.near 2` is 2). On a bin,
+`brain16` or `deci`, `div.near` is ordinary division, rounded to the
+nearest value the type holds (`7.5 div.near 2.0` is 3.75), and
+`floor`/`ceil`/`trunc` give a whole quotient (`7.5 div.floor 2.0` is 3.0,
+Python's `//`); so `mod.near` is refused there, since it leaves nothing
+over (design claude's slip: it had first called it IEEE's `remainder()`).
+Proposed for bins: `div.near` naming the rounding (chosen), `div.real`,
+`div.frac`. `examples/div_rounding.cpls`.
+
 | Operator | Meaning |
 |---|---|
 | `+` | add |
 | `-` | subtract (and unary negation, assumed) |
 | `x` | multiply |
 | `xx` | power |
-| `div` | divide (was `/` until 2026-09-29) |
-| `mod` | remainder / modulo |
+| `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
+| `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |
 | `==` | equal |
 | `!==` | not equal — built from `==` |
 | `<`, `>` | less than, greater than |
@@ -60,7 +75,7 @@ Tightest to loosest:
 |---|---|---|
 | 1 | `xx` | right-associative: `2 xx 3 xx 2` = 512 |
 | 2 | unary `-` | below `xx`: `-2 xx 2` = −4; `(-2) xx 2` = 4 |
-| 3 | `x` `div` `mod` | `x` chains freely; `div` or `mod` beside `x`, `div`, or `mod` **requires parentheses** (`6 div 2 x 3` has no settled reading); `mod` beside *any* operator requires parentheses (it has no mathematical notation) |
+| 3 | `x` `div.X` `mod.X` | `x` chains freely; a `div.X` or `mod.X` beside `x`, `div.X`, or `mod.X` **requires parentheses** (`6 div.floor 2 x 3` has no settled reading); a `mod.X` beside *any* operator requires parentheses (it has no mathematical notation) |
 | 4 | `+` `-` | left-associative |
 | 5 | `==` `!==` `<` `>` `</==` `>/==` | never chained (`1 < 2 < 3` is an error); never beside `not` |
 | 6 | `not` | applies to one operand or a parenthesis |
@@ -97,7 +112,7 @@ enough** — it does not have to be a declared name:
 ```
 let 'v': uint32 = 3;
 let 'a': uint32 = 2 shl 3;              # 16 — the literal takes the uint32 of its context
-let 'b': uint32 = ('v' mod 16) shl 2;   # 12 — the expression is plainly a uint32
+let 'b': uint32 = ('v' mod.floor 16) shl 2;   # 12 — the expression is plainly a uint32
 ```
 
 Same for `not.bit` and the wrapping operators. A literal takes its
@@ -199,7 +214,7 @@ answers mixed sizes (`int16 + int64`), which nothing had decided.
 
 An operation whose `bin` result would be an infinity or a NaN is a check
 site, like integer overflow: `'big' x 10.0` past the largest `bin64`,
-`1.0 div 0.0` and `0.0 div 0.0` (division by zero), `-1.0 xx 0.5` (no
+`1.0 div.near 0.0` and `0.0 div.near 0.0` (division by zero), `-1.0 xx 0.5` (no
 number). Precog proves them away where it can, the working build checks,
 the final build refuses the rest. Text never makes one either
 (2026-09-24). Proposed alternative: IEEE's infinities and NaN, as C has
@@ -248,7 +263,7 @@ day), for when the second half should depend on the first:
 
 ```
 if 'i' </== list.length[lend 'xs'] and.then 'xs'['i'] == 5 { … }
-if 'n' == 0 or.else 100 div 'n' < 2 { … }
+if 'n' == 0 or.else 100 div.floor 'n' < 2 { … }
 ```
 
 A variant of `and`/`or` by the dot rule, like `and.bit`. It reads as the

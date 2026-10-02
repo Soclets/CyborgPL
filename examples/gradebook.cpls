@@ -9,7 +9,7 @@ fn average [lent 's': Student] -> int32 or fail[no_scores] {
     if list.length[lend 's'.scores] == 0 { fail no_scores; }
     let 'total' := 0;
     for 'x' in lend 's'.scores { change 'total' = 'total' + 'x'; }
-    check return 'total' div list.length[lend 's'.scores];     # the if above proves the divisor is not 0
+    check return 'total' div.floor list.length[lend 's'.scores];     # the if above proves the divisor is not 0
 }
 
 fn record [lent.mut 's': Student, 'score': int32] -> fail[out_of_range: int32] {

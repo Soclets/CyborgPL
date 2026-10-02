@@ -1,6 +1,6 @@
 fn say ['n': int32] {
-    let 'by3' := ('n' mod 3) == 0;
-    let 'by5' := ('n' mod 5) == 0;
+    let 'by3' := ('n' mod.floor 3) == 0;
+    let 'by5' := ('n' mod.floor 5) == 0;
     if 'by3' and 'by5' {
         std::print.stored.stdout["FizzBuzz", \n];
     } else if 'by3' {

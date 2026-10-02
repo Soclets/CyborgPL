@@ -251,6 +251,33 @@ impl Deci {
         Some(Deci::round(neg, mag, e, self.width, false))
     }
 
+    /// `div.X` / `mod.X` to a whole quotient (owner, 2026-10-02): the exact whole quotient rounded
+    /// `floor`, `ceil`, `trunc` or `near` (half to even), and what is left over, so
+    /// `a == q x b + r` exactly. None: division by zero.
+    pub fn divmod_whole(&self, b: &Deci, mode: &str) -> Option<Result<(Deci, Deci), String>> {
+        if b.is_zero() { return None; }
+        let (x, y, e) = Deci::aligned(self, b);
+        let (q0, r0) = divmod_mag(&x, &y);
+        let qneg = self.neg != b.neg;
+        let rest = !is_zero(&r0);
+        let away = match mode {
+            "floor" => rest && qneg,
+            "ceil" => rest && !qneg,
+            "near" => rest && match cmp_mag(&mul_mag(&r0, &[2]), &y) {
+                Ordering::Greater => true,
+                Ordering::Less => false,
+                Ordering::Equal => q0.last().map_or(false, |d| d % 2 == 1),
+            },
+            _ => false,
+        };
+        let (q, r, rneg) = if away { (add_mag(&q0, &[1]), sub_mag(&y, &r0), !self.neg) } else { (q0, r0, self.neg) };
+        let rneg = if is_zero(&r) { mode == "floor" && b.neg } else { rneg };
+        let qneg = qneg && !is_zero(&q);
+        let qd = match Deci::round(qneg, q, 0, self.width, false) { Ok(d) => d, Err(m) => return Some(Err(m)) };
+        let rd = match Deci::round(rneg, r, e, self.width, false) { Ok(d) => d, Err(m) => return Some(Err(m)) };
+        Some(Ok((qd, rd)))
+    }
+
     /// `xx` with a whole exponent (owner, 2026-09-29: a): the exact power, rounded once; a negative
     /// exponent is one over it. None: zero to a negative power (division by zero). Err(why) past the
     /// largest value, or past the oracle's limit on exact digits.

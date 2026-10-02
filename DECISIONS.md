@@ -5,6 +5,52 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Every division says how it rounds: `div.floor`, `div.ceil`, `div.trunc`, `div.near`; `mod` too (owner)
+
+```
+7 div.floor 2    # 3      -7 div.floor 2    # -4
+7 div.ceil 2     # 4      -7 div.ceil 2     # -3
+7 div.trunc 2    # 3      -7 div.trunc 2    # -3
+7 div.near 2     # 4      5 div.near 2      # 2 (a tie, to even)
+7.5 div.near 2.0     # 3.75: ordinary division on a bin or deci
+7.5 div.floor 2.0    # 3.0, and 7.5 mod.floor 2.0 is 1.5
+```
+
+After `div.trunc` moved into the language, design claude listed what else
+could take a `.` (`div.ceil`, saturating maths) and the owner asked what
+bare `div` does (floors on integers, ordinary division on bins and
+decis). The owner: "Make bare `div` illegal". Asked whether on integers
+only (a, recommended: only there is there a rounding to choose) or every
+number (b): "`b`". The ordinary division on bins and decis then needed a
+name: (a) `div.near`, naming its rounding as the others do, recommended,
+(b) `div.real`, (c) `div.frac`: "`a`". Whether every rounding works on
+every family (a, recommended: `7.5 div.floor 2.0` is Python's `//`,
+`7 div.near 2` the nearest whole, a tie to even) or only the natural
+ones (b): "`a`". Whether `mod` must say it too, one for one, each the
+remainder its `div` leaves, `a == (a div.X b) x b + (a mod.X b)` (b,
+recommended) or stays bare as the floor one (a): "`b`". Design claude
+then found its own slip: on a bin or deci `div.near` leaves nothing over,
+so `mod.near` there is always 0 or a rounding crumb, not IEEE's
+`remainder()` as it had said; it proposed refusing `mod.near` there. The
+owner: "refuse, if you're sure". So:
+
+- `div.floor`, `div.ceil`, `div.trunc`, `div.near` and the four `mod.X`
+  on integers, bins, `brain16` and decis; bare `div` / `mod` (and
+  `op div` / `op mod`) refused naming the four; `div.round` refused.
+- On integers every quotient is whole. On bins, `brain16` and decis,
+  `div.near` is ordinary division rounded to the type, `floor`/`ceil`/
+  `trunc` a whole quotient, and `mod.near` is refused.
+- `mod.floor` is the old `mod`: the divisor's sign, and a result that
+  rounds up to the divisor is `0` (both earlier today).
+- Precedence and the parenthesis rules are `div`'s and `mod`'s.
+
+In the oracle, checked against Python (`//`, `%`, `math.ceil`,
+`math.trunc`, `round`, `math.fmod`); every example and reject test
+rewritten (an integer `div` became `div.floor`, a bin or deci `div`
+`div.near`, every `mod` `mod.floor`); `examples/div_rounding.cpls`; reject
+tests `div_bare`, `mod_bare`, `div_unknown_rounding`, `mod_near_fraction`,
+`op_div_bare`; `operators.md` and the samples in other notes.
+
 ### 2026-10-02 — `div.trunc` and `mod.trunc` are operators in the language, not std's (owner: a)
 
 ```

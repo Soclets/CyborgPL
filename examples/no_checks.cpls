@@ -8,7 +8,7 @@ MAIN {
     NO_FUCKING_CHECKS {
         let 'a': int32 = 10;
         let 'b': int32 = 2;
-        let 'q' := 'a' div 'b';
+        let 'q' := 'a' div.floor 'b';
         std::print.useful.stdout[\n, 'q', \n];
     }
 }

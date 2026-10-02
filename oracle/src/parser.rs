@@ -2144,9 +2144,9 @@ impl Parser {
             // `and.then` / `or.else` — the right side only when the left has not decided (owner, 2026-09-25)
             Tok::Word(w) if w == "and" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "then") => Some("and.then".into()),
             Tok::Word(w) if w == "or" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "else") => Some("or.else".into()),
-            // `div.trunc` / `mod.trunc` — the hardware's truncating division, in the language
-            // (owner, 2026-10-02: "`div.trunc` should be in base", then "`a`", an operator)
-            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "trunc") => Some(format!("{w}.trunc")),
+            // `div.floor` / `div.ceil` / `div.trunc` / `div.near`, and `mod.` the same: every division
+            // says how it rounds (owner, 2026-10-02); a bare `div` or `mod` is refused in `climb`
+            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot => match self.peek_at(2) { Tok::Word(b) => Some(format!("{w}.{b}")), _ => Some(w.clone()) },
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
@@ -2187,7 +2187,8 @@ impl Parser {
             "==" | "!==" | "<" | ">" | "</==" | ">/==" => 3,
             "++" => 4,
             "+" | "-" | "+~" | "-~" => 5,
-            "x" | "div" | "mod" | "div.trunc" | "mod.trunc" | "x~" => 6,
+            "x" | "x~" => 6,
+            o if o.starts_with("div.") || o.starts_with("mod.") => 6,
             "xx" | "xx~" => 8,
             _ => 0,
         }
@@ -2199,6 +2200,12 @@ impl Parser {
         loop {
             let Some(op) = self.binop() else { break };
             if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
+            if op == "div" || op == "mod" {
+                return self.err(format!("say how `{op}` rounds: `{op}.floor`, `{op}.ceil`, `{op}.trunc` or `{op}.near` (owner, 2026-10-02)"));
+            }
+            if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
+                return self.err(format!("no `{op}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`"));
+            }
             if Parser::is_custom_op(&op) {
                 // A custom operator has no precedence (decided 2026-09-20): it may not
                 // sit next to another operator without parentheses. Bitwise operators
@@ -2216,7 +2223,7 @@ impl Parser {
             let lv = Self::level(&op);
             if lv < min || lv == 0 { break; }
             self.advance();
-            if op == "and.then" || op == "or.else" || op.ends_with(".trunc") { self.advance(); self.advance(); }
+            if op == "and.then" || op == "or.else" || op.contains('.') { self.advance(); self.advance(); }
             // right-associative for xx, left for everything else
             let rhs = if op == "xx" { self.climb(lv)? } else { self.climb(lv + 1)? };
             lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
@@ -2235,7 +2242,8 @@ impl Parser {
                             if cop.starts_with("mod") || op.starts_with("mod") {
                                 return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading for mod beside another operator — parenthesise"));
                             }
-                            let both_mul = matches!(op.as_str(), "x" | "div" | "mod" | "div.trunc" | "mod.trunc") && matches!(cop.as_str(), "x" | "div" | "mod" | "div.trunc" | "mod.trunc");
+                            let muly = |o: &str| o == "x" || o.starts_with("div.") || o.starts_with("mod.");
+                            let both_mul = muly(op) && muly(cop);
                             if both_mul && !(op == "x" && cop == "x") {
                                 return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading here (6 div 2 x 3, or anything with mod) — parenthesise one side"));
                             }
@@ -2581,9 +2589,10 @@ impl Parser {
                         _ => match self.binop() {
                             Some(o) if o == "=" => return self.err("`=` is not an operator; equality is `op ==`"),
                             Some(o) => { self.advance(); if o.contains('.') { self.advance(); self.advance(); } o }
-                            None => return self.err(format!("`op` is followed by an operator: `op +`, `op mod`, `op neg`; found {}", self.peek())),
+                            None => return self.err(format!("`op` is followed by an operator: `op +`, `op mod.floor`, `op neg`; found {}", self.peek())),
                         },
                     };
+                    if op == "div" || op == "mod" { return self.err(format!("say how `{op}` rounds: `op {op}.floor`, `op {op}.ceil`, `op {op}.trunc` or `op {op}.near` (owner, 2026-10-02)")); }
                     if op == "and.then" || op == "or.else" {
                         let plain = op.split('.').next().unwrap();
                         return self.err(format!("`op {op}` cannot skip anything: a function's arguments are worked out before it runs, so it would be `op {plain}`. Write `op {plain}` (owner, 2026-09-29)"));

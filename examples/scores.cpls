@@ -1,5 +1,5 @@
 fn is_even ['n': int32] -> bool {
-    return ('n' mod 2) == 0;
+    return ('n' mod.floor 2) == 0;
 }
 
 fn clamp ['n': int32, 'low': int32, 'high': int32] -> int32 {
@@ -31,7 +31,7 @@ MAIN {
         }
     }
 
-    let 'average' := 'total' div 'count';
+    let 'average' := 'total' div.floor 'count';
     let 'curved' := clamp['average' + 10, 0, 100];
 
     std::print.useful.stdout["scored ", 'count', " tests", \n];

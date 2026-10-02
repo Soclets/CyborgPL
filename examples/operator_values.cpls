@@ -18,7 +18,7 @@ MAIN {
     let 'down' := fold[lend 'xs', 0, op -];
     let 'n' := apply1[5, op neg];
     let 'le' := test2[3, 3, op </==];
-    let 'f': fn[int32, int32] -> int32 = op mod;
+    let 'f': fn[int32, int32] -> int32 = op mod.floor;
     let 'm' := 'f'[-7, 3];
     let 'u' := Vec[x = 1.0, y = 2.0];
     let 'v' := Vec[x = 3.0, y = 4.0];

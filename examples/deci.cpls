@@ -14,7 +14,7 @@ MAIN {
     std::print.stored.stdout['h' x 2, " ", 'h', " ", 1.50 == 1.5, \n];
     std::print.useful.stdout['h' x 2, " ", 'h', \n];
     let 'third': deci64 = 1;
-    std::print.stored.stdout['third' div 3, " ", 'h' div 2, " ", 10.0 div 4, \n];
+    std::print.stored.stdout['third' div.near 3, " ", 'h' div.near 2, " ", 10.0 div.near 4, \n];
     let 'r': deci32 = 2.5;
     let 'e1': deci32 = 1.000005;
     std::print.stored.stdout['e1' x 1, " ", 'e1' + 0.0000005, \n];
