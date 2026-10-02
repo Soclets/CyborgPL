@@ -121,9 +121,12 @@ fourth are the deeper checks.
      each site's range — this is where Kespar's bugs were;
    - the negation of every solver-proven site, re-encoded by you, asked
      of a fresh solver.
-4. **Translation validation.** Alive2 for the LLVM-IR half — borrowed,
-   not written (owner, 2026-09-22). Ours is the Cyborg half: that the
-   IR CCA hands to LLVM means what the MIR meant.
+4. **Translation validation.** The LLVM-IR half was Alive2, borrowed
+   (owner, 2026-09-22); since 2026-09-30 it is **RRx2-TV**, our own,
+   built by its own session (`design/rrx2-tv-session.md`) and run only
+   when the owner says it is time. Whether this session still runs
+   Alive2 is open: ask before running it. Ours is the Cyborg half: that
+   the IR CCA hands to LLVM means what the MIR meant.
 
 ## What a finding looks like
 
