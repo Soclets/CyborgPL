@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `&` and `&mut` no longer punish (owner)
+
+The owner: "`&` and `&mut` shouldn't punish anymore." The alternative
+spellings of `lend` / `lend.mut` (2026-09-21) stay, with the same meaning,
+but the build no longer prints `What are you? Rust programmer or Claude?`
+once per `&`. Done in the oracle (the counter and the print are gone;
+`examples/alternatives.out` lost its seven lines), `ownership-syntax.md`,
+`diagnostics.md` and the oracle README. CCA still prints it
+(`cca/compiler/src/main.rs`) and its run of `examples/alternatives` will
+disagree with the new `.out` until compiler claude drops the print when
+CyborgPL resumes.
+
 ### 2026-10-02 — Lilith gets a session and a public repo, design only (owner)
 
 The owner, bored waiting on RRx2's tests: "I shall summon lilith claude".
@@ -4019,7 +4031,7 @@ is `lend 's'`, `&mut 's'` is `lend.mut 's'`, `&'x': T` in a parameter is
 `lent 'x': T`, `fn[&T]` is `fn[lent T]`. Binary `&` between two values is
 still an undefined custom operator. Every `&` / `&mut` makes the build
 print `What are you? Rust programmer or Claude?` on stdout — one line
-per `&` — then carry on (owner: "You're not supposed to use that"). `examples/alternatives.cpls`.
+per `&` — then carry on (owner: "You're not supposed to use that"). `examples/alternatives.cpls`. *(The remark was removed 2026-10-02: "`&` and `&mut` shouldn't punish anymore".)*
 
 ### 2026-09-21 — Cold read 4 (`examples/shop.cpls`): lends may escape (kept), three notes (owner)
 

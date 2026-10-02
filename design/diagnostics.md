@@ -109,14 +109,14 @@ Proposed alternative: the later use.
    tiers: an unproven site, with its counterexample (an error in
    `check`-tier and final builds, a runtime check in a working build);
    `note` — the report: a proven range, a loop offloaded or not and
-   why, the `&` remark, a `nocheck` listed. No "warning" that lives
+   why, a `nocheck` listed. No "warning" that lives
    forever ignored: a thing worth saying is one of the three.
 5. **Plain words.** The writer's own names, quoted; the exact spelling
    to type. No jargon — not "SMT", "unsat", "lvalue", "monomorphised",
    "borrow checker". A reason in a short clause, no dates (the oracle's
    "(decided 2026-09-20)" stays in the oracle).
 6. **Tone.** Errors and checks are dry: a person mid-bug wants the fix.
-   Notes may carry the language's personality (the `&` remark, the long
+   Notes may carry the language's personality (the long
    `print.useful` name).
 7. **Colour** in a terminal, plain text in a file, JSON when asked.
 8. **Say what would happen, and no borrowed furniture.** "'k' can be

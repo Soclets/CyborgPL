@@ -275,11 +275,6 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
 /// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
     let prog = load(path)?;
-    let mut out = out;
-    for _ in 0..parser::AMPERSANDS.swap(0, std::sync::atomic::Ordering::Relaxed) {
-        // The build's remark on the `&` spelling: once per `&`, on stdout, before the program runs (owner, 2026-09-21).
-        writeln!(out, "What are you? Rust programmer or Claude?").map_err(|e| e.to_string())?;
-    }
     let mut interp = interp::Interp::new(&prog, out);
     let mut argv = vec![path.display().to_string()];
     argv.extend(args);
