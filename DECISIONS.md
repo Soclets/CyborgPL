@@ -24,8 +24,11 @@ start with the same `fmod` routine, no chip has one instruction for it;
 a adds a compare and an add, none where Precog proves both signs), then:
 "`a`". In the oracle, with `std::mod.trunc` taking bins; checked
 against Python's `%` and `math.fmod`. `examples/mod_bin.cpls`,
-`operators.md`. Open: a tiny negative over a large divisor can round up
-to the divisor (`-1e-20 mod 360.0` is `360.0`, as in Python).
+`operators.md`. Then the edge: a tiny negative over a large divisor
+rounds up to the divisor (`-1e-20 mod 360.0` is `360.0` in Python).
+Design claude offered (a) leave it, as Python, or (b) make it `0`, so the
+answer is always below the divisor, recommended; the cost is one compare
+and select after the fix-up. The owner: "`b`".
 
 ### 2026-10-02 — Lines in an `extern.C` block may each be `pub`; a `pub` on the block overrides (owner)
 

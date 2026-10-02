@@ -4579,10 +4579,14 @@ fn round_decimal(d: &str, w: u8) -> f64 {
 /// The useful form of a value whose static type is known: a bin16/bin32 is the shortest decimal
 /// that rounds back to the same value at that width, not at 64 bits.
 /// `mod` on a bin or brain16: the divisor's sign (owner, 2026-10-02: a). The remainder of `x / y`
-/// is exact in floating point, so this is C's `fmod` plus one fix-up; adding `y` may round.
+/// is exact in floating point, so this is C's `fmod` plus one fix-up. Adding `y` may round up to
+/// `y` itself (`-1e-20 mod 360.0`); that is `0`, so the answer stays below the divisor (owner: b).
 fn floor_mod(x: f64, y: f64) -> f64 {
     let m = x % y;
-    if m == 0.0 { 0.0f64.copysign(y) } else if (m < 0.0) != (y < 0.0) { m + y } else { m }
+    if m == 0.0 { return 0.0f64.copysign(y); }
+    if (m < 0.0) == (y < 0.0) { return m; }
+    let r = m + y;
+    if r == y { 0.0f64.copysign(y) } else { r }
 }
 
 fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {

@@ -9,4 +9,7 @@ MAIN {
     let 'k': brain16 = 3.0;
     std::print.useful.stdout['angle' mod 'turn', " ", 'a' mod 'b', " ", 'h' mod 'k', \n];
     std::print.useful.stdout[std::mod.trunc['angle', 'turn'], " ", std::mod.trunc['a', 'b'], \n];
+    # a tiny negative would round up to the divisor itself; it is 0 instead, so the answer stays below 360
+    let 'tiny': bin64 = -0.00000000000000000001;
+    std::print.useful.stdout['tiny' mod 'turn', \n];
 }
