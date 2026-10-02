@@ -116,6 +116,20 @@ interface Ordered <T> { … }
 This replaces `<T: Number>` (2026-09-20) in announcements; the earlier
 examples in these entries keep the spelling they were written with.
 
+**Lifetime groups are announced too, after the generics, and a `|`
+separates the two kinds** (owner: "`fn pick <T>: any @x […]` a bit
+confusing for me, so maybe add `|` to separate generics and lifetimes",
+then, offered a bar between every item: "Not between every announcement,
+because generics are still the same as generics, so as lifetimes"). Only
+between the kinds; with one kind there is no bar. `< >` stays for
+generics alone.
+
+```
+fn pick <T>: any | @x [lent@x 'xs': list[<T>]] -> lent@x <T> { … }
+fn swap <A>: any <B>: any | @x @y [ … ]
+fn longer @x [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 { … }
+```
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:

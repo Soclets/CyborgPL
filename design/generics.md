@@ -54,7 +54,7 @@ where bounds go are open, and nothing is built yet (`DECISIONS.md`).
 all"): no plain `<T>` that takes every type; "any type" is said
 outright (below). **The list goes right after the name**
 (owner, 2026-10-02: a): `fn max <T>: Number ['a': <T>, 'b': <T>] -> <T>`. **"Any type" is the built-in
-`any`** (owner, 2026-10-02: a): `struct Pair <A>: any <B>: any { … }`, one bracket per generic (owner, 2026-10-02: b), the bound after the bracket like a type after a name (owner: "`<A>: any`").
+`any`** (owner, 2026-10-02: a): `struct Pair <A>: any <B>: any { … }`, one bracket per generic (owner, 2026-10-02: b), the bound after the bracket like a type after a name (owner: "`<A>: any`"). **Lifetime groups are announced after the generics, a `|` between the two kinds** (owner, 2026-10-02): `fn pick <T>: any | @x […]`, `fn longer @x […]`.
 
 ## Constraints
 
