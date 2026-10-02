@@ -10,6 +10,8 @@ use std::fmt::Write as _;
 pub enum Value {
     Int(i128),
     Bin(f64),
+    /// a brain float (owner, 2026-10-02), held as the exact value it stores
+    Brain(f64),
     /// IEEE decimal (design/types.md, owner 2026-09-29)
     Deci(crate::deci::Deci),
     Bool(bool),
@@ -86,6 +88,7 @@ impl Value {
         match self {
             Value::Int(_) => "integer",
             Value::Bin(_) => "bin",
+            Value::Brain(_) => "brain16",
             Value::Deci(_) => "deci",
             Value::Bool(_) => "bool",
             Value::Str(_) => "str",
@@ -108,6 +111,7 @@ impl Value {
         match self {
             Value::Int(i) => i.to_string(),
             Value::Bin(b) => exact_decimal(*b),
+            Value::Brain(b) => exact_decimal(*b),
             Value::Deci(d) => d.show_stored(),
             Value::Bool(b) => if *b { "true".into() } else { "false".into() },
             Value::Str(s) => s.clone(),
@@ -130,6 +134,7 @@ impl Value {
     pub fn show_useful(&self) -> String {
         match self {
             Value::Bin(b) => format!("{b}"),
+            Value::Brain(b) => brain_useful(*b),
             Value::Deci(d) => d.show_useful(),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
             Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_useful(), v.show_useful())).collect::<Vec<_>>().join(", ")),
@@ -183,6 +188,7 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Int(w) => format!("int{}", w_num(w)),
         Ty::Uint(w) => format!("uint{}", w_num(w)),
         Ty::Bin(n) => format!("bin{n}"),
+        Ty::Brain => "brain16".into(),
         Ty::Deci(n) => format!("deci{n}"),
         Ty::Str(e) => format!("str.{}", match e { crate::ast::Encoding::Utf8 => "utf8", crate::ast::Encoding::Utf16 => "utf16", crate::ast::Encoding::Utf32 => "utf32", crate::ast::Encoding::Ascii => "ascii" }),
         Ty::Bool => "bool".into(),
@@ -272,4 +278,26 @@ pub fn exact_decimal(x: f64) -> String {
         }
     }
     out
+}
+
+/// The nearest brain float to `x` (owner, 2026-10-02): through 32 bits and then the top 16 of
+/// them, round to nearest even — as LLVM's `fptrunc … to bfloat` and the hardware's `bfcvt` do.
+pub fn round_brain(x: f64) -> f64 {
+    let f = x as f32;
+    if f.is_nan() || f.is_infinite() { return f as f64; }
+    let bits = f.to_bits();
+    let rounded = bits.wrapping_add(0x7FFF + ((bits >> 16) & 1)) & 0xFFFF_0000;
+    f32::from_bits(rounded) as f64
+}
+
+/// `print.useful` for a brain float: the shortest decimal that rounds back to the same value.
+pub fn brain_useful(x: f64) -> String {
+    if x == 0.0 { return if x.is_sign_negative() { "-0".into() } else { "0".into() }; }
+    for digits in 1..=9 {
+        let s = format!("{:.*e}", digits - 1, x);
+        if let Ok(y) = s.parse::<f64>() {
+            if round_brain(y) == x { return format!("{}", y); }
+        }
+    }
+    format!("{x}")
 }

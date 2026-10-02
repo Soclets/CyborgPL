@@ -183,7 +183,7 @@ impl Parser {
                     self.advance();
                     let name = match self.advance().tok {
                         Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
-                        Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is Rust's name for `{}`, so it cannot name an enum", rust_alias(&n).unwrap())),
+                        Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is another name for `{}`, so it cannot name an enum", rust_alias(&n).unwrap())),
                         Tok::Word(n) => n,
                         Tok::Var(v) => return self.err(format!("an enum's name is bare — it is a type: `enum {v}`")),
                         other => return self.err(format!("expected an enum name, found {other}")),
@@ -342,7 +342,7 @@ impl Parser {
                     self.advance();
                     let name = match self.advance().tok {
                         Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an interface")),
-                        Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is Rust's name for `{}`, so it cannot name an interface", rust_alias(&n).unwrap())),
+                        Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is another name for `{}`, so it cannot name an interface", rust_alias(&n).unwrap())),
                         Tok::Word(n) if n == "any" => return self.err("`any` is the built-in \"any type\" (owner, 2026-10-02); an interface needs another name"),
                         Tok::Word(n) => n,
                         Tok::Var(v) => return self.err(format!("an interface's name is bare: `interface {v}`")),
@@ -498,7 +498,7 @@ impl Parser {
             other => return self.err(format!("expected a struct name, found {other}")),
         };
         if KEYWORDS.contains(&name.as_str()) { return self.err(format!("`{name}` is a keyword and cannot name a struct")); }
-        if let Some(own) = rust_alias(&name) { return self.err(format!("`{name}` is Rust's name for `{own}`, so it cannot name a struct")); }
+        if let Some(own) = rust_alias(&name) { return self.err(format!("`{name}` is another name for `{own}`, so it cannot name a struct")); }
         let gens = self.announce("struct")?;
         self.expect(Tok::LBrace, "`{`")?;
         let mut fields = Vec::new();
@@ -1087,6 +1087,9 @@ impl Parser {
                 if let Some(n) = width(head, "uint") { return int_w(n).map(Ty::Uint).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; uint is 8/16/32/64/128"))); }
                 // bin128 was dropped (owner, 2026-09-23): no hardware anywhere, and `std::uenr`
                 // answers "more precision than 64 bits" by being exact rather than wider.
+                // the brain float (owner, 2026-10-02): 16 bits only, a family of its own
+                if head == "brain16" { return Ok(Ty::Brain); }
+                if let Some(n) = width(head, "brain") { return bad(self, format!("no such width `brain{n}`; the brain float is `brain16` only")); }
                 if let Some(n) = width(head, "bin") {
                     if n == 128 { return bad(self, "there is no `bin128`: quad precision has no hardware, and `std::uenr` is exact rather than merely wider".into()); }
                     return if [16, 32, 64].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64")) };
@@ -2234,6 +2237,15 @@ impl Parser {
                 Ok(Expr::Int(i, line))
             }
             Tok::Bin(b, t) => { self.advance(); Ok(Expr::Bin(b, t, line)) }
+            // `*0.1` — "I want exactly this" (owner, 2026-10-02): a decimal literal that is a deci
+            Tok::Op(o) if o == "*" => {
+                self.advance();
+                match self.advance().tok {
+                    Tok::Bin(_, t) => Ok(Expr::Exact(t, line)),
+                    Tok::Int(i) => self.err(format!("`*` marks a decimal literal as exact; `{i}` is a whole number and exact already")),
+                    other => self.err(format!("`*` before a literal means \"exactly this\": `*0.1`; found {other} (and `*` is not multiplication: that is `x`)")),
+                }
+            }
             Tok::Text(t, _) => { self.advance(); Ok(Expr::Text(t, line)) }
             Tok::Char(c) => { self.advance(); Ok(Expr::Char(c, line)) }
             Tok::Newline => { self.advance(); Ok(Expr::Newline(line)) }
@@ -2648,9 +2660,11 @@ pub fn module_name_ok(name: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Rust's names for CyborgPL's number types (owner, 2026-10-02): the only aliases a type has.
+/// Other names for CyborgPL's types (owner, 2026-10-02): Rust's number names, and the brain
+/// float's `bfloat16` / `bf16` — the only aliases a type has.
 pub fn rust_alias(name: &str) -> Option<&'static str> {
     Some(match name {
+        "bfloat16" | "bf16" => "brain16",
         "i8" => "int8", "i16" => "int16", "i32" => "int32", "i64" => "int64", "i128" => "int128",
         "u8" => "uint8", "u16" => "uint16", "u32" => "uint32", "u64" => "uint64", "u128" => "uint128",
         "f16" => "bin16", "f32" => "bin32", "f64" => "bin64",

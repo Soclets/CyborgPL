@@ -8,6 +8,8 @@ pub enum Ty {
     Int(IntWidth),
     Uint(IntWidth),
     Bin(u8),          // 16 32 64 128
+    /// `brain16` (also `bfloat16`, `bf16`) — the brain float (owner, 2026-10-02): a family of its own
+    Brain,
     Deci(u8),         // 32 64 128 — accepted by the parser, refused by the interpreter
     Str(Encoding),
     Bool,
@@ -372,6 +374,8 @@ pub enum Value {
 pub enum Expr {
     Int(i128, usize),
     Bin(f64, String, usize),   // value, digits as written, line
+    /// `*0.1` — "exactly this" (owner, 2026-10-02): a decimal literal that is a `deci`; its digits, line
+    Exact(String, usize),
     Bool(bool, usize),
     Text(String, usize),
     Char(String, usize),
@@ -442,7 +446,7 @@ pub enum Expr {
 impl Expr {
     pub fn line(&self) -> usize {
         match self {
-            Expr::Int(_, l) | Expr::Bin(_, _, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
+            Expr::Int(_, l) | Expr::Bin(_, _, l) | Expr::Exact(_, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
             | Expr::Newline(l) | Expr::Var(_, l) | Expr::Owned(_, _, l)
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,

@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `brain16` and `*0.1` are in the oracle
+
+The owner: "Implement it". `brain16` (and `bfloat16`, `bf16`) is a type
+and a value family of its own: literals round to the nearest; `+ - x
+div mod xx` are done at 32 bits and rounded, as LLVM emits it, past the
+largest a check site; comparisons work within the family; mixing with a
+bin or integer is refused naming `to.`; `to.brain16[…]` from an integer,
+a bin, a deci or text, and out of it to `bin32`/`bin64` (exact), `bin16`
+(a check site past 65504), integers (`not_whole`, `out_of_range`) and
+`deci`; `print` shows the exact value, `print.useful` and `{}` the
+shortest that rounds back. Checked against a separate Python
+computation (0.1 + 0.2 is 0.30078125). `*0.1` is a deci of the width the
+place wants; under `:=` the oracle picks `deci64` (listed as its
+provisional pick: the width is Precog's); in a bin or integer place it is
+refused, as is `*5`. `examples/brain16.cpls`, `examples/exact_literal.cpls`;
+reject tests brain_mixed_bin, brain_into_bin, brain_width, brain_overflow,
+exact_into_bin, exact_integer.
+
 ### 2026-10-02 — `*0.1`: "exactly this", a `deci` (owner; not built yet)
 
 ```

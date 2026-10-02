@@ -15,7 +15,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
 
-**`brain16`, the brain float** (owner, 2026-10-02; not built yet), also
+**`brain16`, the brain float** (owner, 2026-10-02; in the oracle the same day), also
 spelled `bfloat16` and `bf16`: Google Brain's 16-bit float for neural
 networks — `bin32`'s 8 exponent bits, so its range, with 7 bits of
 precision. Not IEEE 754, so not a `bin`. LLVM's type is `bfloat`. Its
@@ -25,7 +25,7 @@ with nothing without `to.` — `to.bin32['w']` exact, `to.brain16['x']`
 rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16`
 (owner, 2026-10-02: a). The GPU is open.
 
-**`*0.1` means "exactly this"** (owner, 2026-10-02; not built yet): a
+**`*0.1` means "exactly this"** (owner, 2026-10-02; in the oracle the same day): a
 decimal literal marked `*` is a `deci`, `let 'price' := *19.99;`; a plain
 one is a `bin`, meaning `bin64`'s answer: Precog narrows it only where
 it proves the whole program gives the same results (owner, 2026-10-02),

@@ -1131,6 +1131,14 @@ impl<'p> Interp<'p> {
         let shown = |a: f64| lit.clone().filter(|_| matches!(prov, Prov::Literal)).unwrap_or_else(|| format!("{a}"));
         if matches!(prov, Prov::Given | Prov::Copied | Prov::Fresh) { self.kind_clash(have, t, line)?; }
         let v = match (t, &v, &prov) {
+            // a literal landing in a brain16 is rounded to the nearest one (owner, 2026-10-02: a)
+            (Ty::Brain, Value::Int(i), Prov::Literal) => Value::Brain(crate::value::round_brain(*i as f64)),
+            (Ty::Brain, Value::Bin(x), Prov::Literal) => {
+                let exact = lit.as_ref().and_then(|d| d.parse::<f64>().ok()).unwrap_or(*x);
+                let b = crate::value::round_brain(exact);
+                if b.is_infinite() { return site(line, format!("{} does not fit brain16: it rounds past the largest value", shown(exact))); }
+                Value::Brain(b)
+            }
             (Ty::Bin(_), Value::Int(i), Prov::Literal) => Value::Bin(*i as f64),
             (Ty::Ranged(b, _, _), Value::Int(i), Prov::Literal) if matches!(**b, Ty::Bin(_)) => Value::Bin(*i as f64),
             // a char literal takes the declared unit (`let 'g': char.grapheme = `é`;` is a grapheme, not a point)
@@ -1169,6 +1177,10 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::Bin(_), Value::Int(i)) => rt(line, format!("{i} is an integer, not {name}; there is no implicit conversion between numeric families")),
+            // the brain float is a family of its own (owner, 2026-10-02: a): it never mixes without `to.`
+            (Ty::Brain, Value::Brain(_)) => Ok(()),
+            (Ty::Brain, v) => rt(line, format!("{} is {}, not brain16; there is no implicit conversion between numeric families: `to.brain16[…]`", v.show_stored(), v.kind())),
+            (Ty::Bin(_) | Ty::Int(_) | Ty::Uint(_), Value::Brain(b)) => rt(line, format!("{} is a brain16, not {name}; there is no implicit conversion between numeric families: `to.{name}[…]`", exact_decimal(*b))),
             (Ty::Deci(w), Value::Deci(d)) => if d.width == *w { Ok(()) } else { rt(line, format!("a deci{} is not {name}; widths do not change by themselves: `to.{name}[…]`", d.width)) },
             (Ty::Deci(_), v) => rt(line, format!("{} is {}, not {name}; there is no implicit conversion between numeric families", v.show_stored(), v.kind())),
             (Ty::Str(enc), Value::Str(s)) => {
@@ -1780,6 +1792,15 @@ impl<'p> Interp<'p> {
             Expr::Int(i, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(crate::deci::Deci::from_int(*i, w).or_else(|m| rt(line, format!("`{i}` {m}: write fewer digits, or use a wider deci")))?), Prov::Literal)) }
             Expr::Bin(_, digits, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(self.deci_literal(digits, w, line)?), Prov::Literal)) }
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
+            // `*0.1` — exactly this, a deci (owner, 2026-10-02): of the width the place wants, or,
+            // under `:=`, deci64 — the oracle's pick; Precog chooses the width
+            Expr::Exact(digits, _) => {
+                if let Some(t @ (Ty::Bin(_) | Ty::Brain | Ty::Int(_) | Ty::Uint(_))) = &self.expected {
+                    return rt(line, format!("`*{digits}` is exact, a deci; a {} cannot hold it exactly: drop the `*`, or make this a deci", ty_name(t)));
+                }
+                let w = self.deci_ctx().unwrap_or(64);
+                Ok((Value::Deci(self.deci_literal(digits, w, line)?), Prov::Plain))
+            }
             Expr::Duration(n, _) => Ok((Value::Duration(*n), Prov::Plain)),
             Expr::ChannelNew(_, cap, _) => {
                 self.next_chan_id += 1;
@@ -2040,7 +2061,7 @@ impl<'p> Interp<'p> {
             Expr::Convert(ty, b, handler, useful, _) => {
                 let (v, _) = self.single(b, line)?;
                 // a fallback takes the conversion's type: `to.deci32['x'] otherwise 0` is a deci32 0
-                self.fallback_ty = match ty { Ty::Ranged(bt, ..) => Some((**bt).clone()), Ty::TextRanged(e, ..) => Some(Ty::Str(e.clone())), t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Char(_) | Ty::Bool) => Some(t.clone()), _ => None };
+                self.fallback_ty = match ty { Ty::Ranged(bt, ..) => Some((**bt).clone()), Ty::TextRanged(e, ..) => Some(Ty::Str(e.clone())), t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Str(_) | Ty::Char(_) | Ty::Bool) => Some(t.clone()), _ => None };
                 let target = ty_name(ty);
                 let full_ty = ty;
                 let text_base;
@@ -2049,20 +2070,20 @@ impl<'p> Interp<'p> {
                     Ty::TextRanged(e, _, _, _) => { text_base = Ty::Str(e.clone()); (&text_base, true) }   // a bounded text: out of it is `out_of_range` (2026-09-22)
                     t => (t, false),
                 };
-                let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_));
+                let can_fail = matches!(v, Value::Str(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_));
                 // text → number fails `not_a_number`, and a real number too big for the type fails
                 // `out_of_range`: text comes from outside, so it is a failure, not a check (owner, 2026-09-24: c)
                 let mut fails = if can_fail { vec![FailCase { name: "not_a_number".into(), ty: None }, FailCase { name: "out_of_range".into(), ty: None }] } else { Vec::new() };
                 let from_text = can_fail;
                 // bin → int fails unless the bin is whole (decided 2026-09-21): rounding is said first, in std
-                if matches!(v, Value::Bin(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
+                if matches!(v, Value::Bin(_) | Value::Brain(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
                 // deci (owner, 2026-09-29): a deci → integer fails `not_whole`, as a bin does; text or an
                 // integer with more digits than the width fails `too_many_digits` — an integer only when its
                 // type could have that many (an int32 into a deci64 always fits)
                 if matches!(v, Value::Deci(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
                 // a whole bin or deci too big for the integer fails `out_of_range`, as text does (owner,
                 // 2026-09-30: a); one `otherwise` handles both
-                if matches!(v, Value::Bin(_) | Value::Deci(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) && !ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
+                if matches!(v, Value::Bin(_) | Value::Brain(_) | Value::Deci(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) && !ranged { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
                 if let Ty::Deci(w) = base {
                     let p = crate::deci::precision(*w);
                     let digits = |n: i128| n.unsigned_abs().to_string().len();
@@ -2166,6 +2187,54 @@ impl<'p> Interp<'p> {
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }
                     (Ty::Bin(_), Value::Bin(x)) => { fit_base!(Value::Bin(*x)); Value::Bin(*x) }
+                    // the brain float (owner, 2026-10-02): into it rounds to the nearest, out of it into a
+                    // bin32/bin64 is exact, into a bin16 rounds (a check site past bin16's largest)
+                    (Ty::Brain, Value::Int(i)) => Value::Brain(crate::value::round_brain(*i as f64)),
+                    (Ty::Brain, Value::Bin(x)) => {
+                        let r = crate::value::round_brain(*x);
+                        if r.is_infinite() { return site(line, format!("{x} does not fit brain16: it rounds past the largest value")); }
+                        Value::Brain(r)
+                    }
+                    (Ty::Brain, Value::Deci(d)) => {
+                        let r = crate::value::round_brain(d.show_stored().parse::<f64>().unwrap_or(d.to_f64()));
+                        if r.is_infinite() { return site(line, format!("{} does not fit brain16: it rounds past the largest value", d.show_stored())); }
+                        Value::Brain(r)
+                    }
+                    (Ty::Brain, Value::Brain(x)) => Value::Brain(*x),
+                    (Ty::Brain, Value::Str(s)) => {
+                        let t = s.strip_prefix(['-', '+']).unwrap_or(s);
+                        let (mant, exp) = match t.find(['e', 'E']) { Some(i) => (&t[..i], Some(&t[i + 1..])), None => (t, None) };
+                        let (int, frac) = match mant.split_once('.') { Some((a, b)) => (a, Some(b)), None => (mant, None) };
+                        let digits = |d: &str| !d.is_empty() && d.bytes().all(|b| b.is_ascii_digit());
+                        let ok = digits(int) && frac.map_or(true, digits) && exp.map_or(true, |e| digits(e.strip_prefix(['-', '+']).unwrap_or(e)));
+                        let why = match s.parse::<f64>() {
+                            Ok(x) if ok => { let r = crate::value::round_brain(x); if r.is_infinite() { "out_of_range" } else { fit_base!(Value::Brain(r)); return Ok((Value::Brain(r), Prov::Plain)); } }
+                            _ => "not_a_number",
+                        };
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), why.into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        return Ok((v, prov));
+                    }
+                    (Ty::Bin(w), Value::Brain(x)) => {
+                        let b = if *w == 16 { Value::Bin(round_f16(*x)) } else { Value::Bin(*x) };
+                        if let Value::Bin(y) = b { if y.is_infinite() { return site(line, format!("{} does not fit bin16: past its largest value, 65504", exact_decimal(*x))); } }
+                        fit_base!(b.clone()); b
+                    }
+                    (Ty::Int(_) | Ty::Uint(_), Value::Brain(x)) => {
+                        if x.fract() != 0.0 {
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_whole".into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
+                        let i = Value::Int(*x as i128);
+                        if x.abs() >= 1.7e38 || self.check_type(&i, ty, line).is_err() {
+                            let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "out_of_range".into(), None, true)?;
+                            let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                            return Ok((v, prov));
+                        }
+                        i
+                    }
+                    (Ty::Deci(w), Value::Brain(x)) => Value::Deci(crate::deci::Deci::from_bin_exact(*x, *w).or_else(|m| site(line, format!("{x} {m}")))?),
                     (Ty::Int(_) | Ty::Uint(_), Value::Bin(x)) => {
                         if !x.is_finite() || x.fract() != 0.0 {
                             let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_whole".into(), None, true)?;
@@ -2456,6 +2525,7 @@ impl<'p> Interp<'p> {
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
                     ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None, site: true, leave: None })?), keep)),
                     ("-", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
+                    ("-", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
                     ("-", Value::Deci(d)) => Ok((Value::Deci(d.neg()), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),
@@ -2610,6 +2680,16 @@ impl<'p> Interp<'p> {
                     (Value::Int(_) | Value::Bin(_), Value::Deci(d)) if matches!(pa, Prov::Literal) => match lit_deci(self, &a, &la, d.width)? { Some(x) => (x, b.clone()), None => (a, b) },
                     _ => (a, b),
                 };
+                // A bare literal beside a brain16 is a brain16, rounded to the nearest (owner, 2026-10-02)
+                let lit_brain = |v: &Value, digits: &Option<String>| -> Option<Value> { match v {
+                    Value::Int(i) => Some(Value::Brain(crate::value::round_brain(*i as f64))),
+                    Value::Bin(x) => Some(Value::Brain(crate::value::round_brain(digits.as_ref().and_then(|d| d.parse::<f64>().ok()).unwrap_or(*x)))),
+                    _ => None } };
+                let (a, b) = match (&a, &b) {
+                    (Value::Brain(_), Value::Int(_) | Value::Bin(_)) if matches!(pb, Prov::Literal) => (a.clone(), lit_brain(&b, &lb).unwrap()),
+                    (Value::Int(_) | Value::Bin(_), Value::Brain(_)) if matches!(pa, Prov::Literal) => (lit_brain(&a, &la).unwrap(), b.clone()),
+                    _ => (a, b),
+                };
                 // A bare literal adopts the other side's family.
                 let (a, b) = match (&a, &b, &pa, &pb) {
                     (Value::Bin(_), Value::Int(i), _, Prov::Literal) => (a.clone(), Value::Bin(*i as f64)),
@@ -2729,6 +2809,23 @@ impl<'p> Interp<'p> {
                 if r.is_infinite() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest bin (it would be infinity): a bin never holds one")); }
                 Bin(r)
             }
+            // brain16 (owner, 2026-10-02): each operation is done at 32 bits and rounded to the
+            // nearest brain16, as LLVM emits it (widen, operate, `bfcvt`); its own family
+            ("div" | "mod", Brain(_), Brain(y)) if y == 0.0 => return site(line, if op == "div" { "division by zero" } else { "`mod` by zero" }),
+            ("+" | "-" | "x" | "div" | "mod" | "xx", Brain(x), Brain(y)) => {
+                let (a, b) = (x as f32, y as f32);
+                let r32 = match op { "+" => a + b, "-" => a - b, "x" => a * b, "div" => a / b, "mod" => a % b, _ => a.powf(b) };
+                let r = crate::value::round_brain(r32 as f64);
+                if r.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} has no number as its answer (NaN): a brain16 never holds one")); }
+                if r.is_infinite() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest brain16 (it would be infinity)")); }
+                Brain(r)
+            }
+            ("<", Brain(x), Brain(y)) => Bool(x < y),
+            (">", Brain(x), Brain(y)) => Bool(x > y),
+            ("</==", Brain(x), Brain(y)) => Bool(x <= y),
+            (">/==", Brain(x), Brain(y)) => Bool(x >= y),
+            (_, x, y) if (matches!(x, Brain(_)) || matches!(y, Brain(_))) && !matches!(op, "==" | "!==") =>
+                return rt(line, format!("`{op}` between {} and {}: the brain float is a family of its own; convert one, `to.brain16[…]` or `to.bin32[…]`", x.kind(), y.kind())),
             // deci (owner, 2026-09-29): exact, then rounded to the width, half to even
             (_, Deci(x), Deci(y)) if x.width != y.width => return rt(line, format!("`{op}` between a deci{} and a deci{}: say which width, `to.deci{}[…]`", x.width, y.width, x.width.max(y.width))),
             ("+", Deci(x), Deci(y)) => Deci(x.add(&y).or_else(|m| site(line, m))?),
@@ -3920,6 +4017,7 @@ impl<'p> Interp<'p> {
         Ok(match ty {
             Ty::Int(w) | Ty::Uint(w) => { let n = match w { IntWidth::W8 => 1, IntWidth::W16 => 2, IntWidth::W32 => 4, IntWidth::W64 => 8, IntWidth::W128 => 16 }; (n, n) }
             Ty::Bin(b) | Ty::Deci(b) => { let n = (*b as usize) / 8; (n, n) }
+            Ty::Brain => (2, 2),
             Ty::Bool => (1, 1),
             Ty::Char(CharUnit::Byte) => (1, 1),
             Ty::Char(CharUnit::Point) => (4, 4),
@@ -4302,7 +4400,7 @@ impl<'p> Interp<'p> {
 /// A type's shape, matching `shape_of`: the kind, or the struct/enum name.
 fn ty_shape(t: &Ty) -> String {
     match t {
-        Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
+        Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Brain => "brain16".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
         Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(),
     }
@@ -4498,7 +4596,7 @@ fn first_std_call(b: &Bracket) -> Option<String> {
 
 fn same_family(a: &Value, b: &Value, line: usize, op: &str) -> Result<(), RuntimeError> {
     let ok = matches!((a, b),
-        (Value::Int(_), Value::Int(_)) | (Value::Bin(_), Value::Bin(_)) | (Value::Bool(_), Value::Bool(_))
+        (Value::Int(_), Value::Int(_)) | (Value::Bin(_), Value::Bin(_)) | (Value::Brain(_), Value::Brain(_)) | (Value::Bool(_), Value::Bool(_))
         | (Value::Str(_), Value::Str(_)) | (Value::Char(..), Value::Char(..)) | (Value::List(_), Value::List(_))
         | (Value::Enum(..), Value::Enum(..)) | (Value::Struct(..), Value::Struct(..)));
     if ok { Ok(()) } else { rt(line, format!("`{op}` between {} and {}: no implicit conversion", a.kind(), b.kind())) }
@@ -4609,6 +4707,12 @@ fn hole_format(fmt: &str, vals: &[(Value, Option<Ty>)]) -> Result<String, String
 
 /// One hole's text: the value's readable form, or its shape.
 fn fill_hole(v: &Value, ty: Option<&Ty>, shape: &str) -> Result<String, String> {
+    // a brain16 shapes as the bin it exactly is; its plain `{}` is its own shortest form (2026-10-02)
+    if let Value::Brain(x) = v {
+        if shape.is_empty() { return Ok(crate::value::brain_useful(*x)); }
+        if shape == "?" { return Ok(v.show_stored()); }
+        return fill_hole(&Value::Bin(*x), Some(&Ty::Bin(32)), shape);
+    }
     let sc: Vec<char> = shape.chars().collect();
     let mut j = 0;
     let (mut fill, mut align) = (' ', None::<char>);
@@ -4765,8 +4869,12 @@ fn private_msg(from: &[String], owner: &[String], what: &str) -> String {
 /// deci where it is read (`deci_ctx`); an integer fits an integer slot by its range check.
 fn elem_literal(elem: Option<&Ty>, v: Value, prov: &Prov) -> Value {
     let bin = match elem { Some(Ty::Bin(_)) => true, Some(Ty::Ranged(b, _, _)) => matches!(**b, Ty::Bin(_)), _ => false };
+    let brain = matches!(elem, Some(Ty::Brain));
     match (v, prov) {
         (Value::Int(i), Prov::Literal) if bin => Value::Bin(i as f64),
+        // a literal in a brain16 slot is the nearest brain16 (owner, 2026-10-02)
+        (Value::Int(i), Prov::Literal) if brain => Value::Brain(crate::value::round_brain(i as f64)),
+        (Value::Bin(x), Prov::Literal) if brain => Value::Brain(crate::value::round_brain(x)),
         (v, _) => v,
     }
 }
