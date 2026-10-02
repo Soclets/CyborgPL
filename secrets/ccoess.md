@@ -31,3 +31,7 @@ Linux takes Rust or C; macOS has no kernel extensions, only user-space
 DriverKit in C++). A service that runs code it receives needs strong
 authentication, encryption and a permission model, whatever it is
 written in.
+
+**Its repo exists**: `Cyborg-Assembly-Manufacturing-Site/CCOESS`, private,
+created empty on 2026-10-02 (owner: "create the GH repo under this org.
+No README, license, etc yet", then "private").
