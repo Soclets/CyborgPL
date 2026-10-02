@@ -2136,6 +2136,14 @@ impl<'a> Parser<'a> {
                     }
                     "x" => BinOp::Mul,
                     "xx" => BinOp::Pow,
+                    "mod" | "div" if self.eat(&Tok::Dot) => {
+                        let what = self.ident("`trunc`")?;
+                        match (w.as_str(), what.name.as_str()) {
+                            ("div", "trunc") => BinOp::DivTrunc,
+                            ("mod", "trunc") => BinOp::ModTrunc,
+                            _ => return self.fail_at(what.span, format!("`{}.{}` is not an operator", w, what.name)),
+                        }
+                    }
                     "mod" => BinOp::Mod,
                     "div" => BinOp::Div,
                     "and" | "or" if self.eat(&Tok::Dot) => {
@@ -2188,6 +2196,8 @@ impl<'a> Parser<'a> {
                     "xx" if wraps => (BinOp::WrapPow, 9, 9),
                     "x" => (BinOp::Mul, 7, 8),
                     "xx" => (BinOp::Pow, 9, 9),
+                    "mod" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::ModTrunc, 7, 8),
+                    "div" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::DivTrunc, 7, 8),
                     "mod" => (BinOp::Mod, 7, 8),
                     "div" => (BinOp::Div, 7, 8),
                     "and" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "then") => (BinOp::AndThen, 2, 3),
@@ -2226,6 +2236,13 @@ impl<'a> Parser<'a> {
                 BinOp::AndThen | BinOp::OrElse => {
                     self.bump(); // .
                     self.bump(); // then / else
+                }
+                BinOp::DivTrunc | BinOp::ModTrunc => {
+                    self.bump(); // .
+                    let t = self.ident("`trunc`")?;
+                    if t.name != "trunc" {
+                        return self.fail_at(t.span, format!("`{}.{}` is not an operator: the truncating forms are `div.trunc` and `mod.trunc`", op.spelled().trim_end_matches(".trunc"), t.name));
+                    }
                 }
                 BinOp::AndBit | BinOp::OrBit => {
                     self.bump(); // .
@@ -2284,10 +2301,11 @@ impl<'a> Parser<'a> {
                     let kind = if inner.is_bitwise() { "a bitwise operator has no precedence" } else { "a custom operator has no precedence" };
                     return self.fail_at(op_span, format!("`{}` next to `{}`: {} — parenthesise", inner.spelled(), op.spelled(), kind));
                 }
-                if *op == BinOp::Mod || *inner == BinOp::Mod {
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `mod` beside another operator — parenthesise (`('i' mod 2) == 0`)", inner.spelled(), op.spelled()));
+                if op.is_mod() || inner.is_mod() {
+                    let m = if op.is_mod() { op.spelled() } else { inner.spelled() };
+                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`('i' {} 2) == 0`)", inner.spelled(), op.spelled(), m, m));
                 }
-                if (*op == BinOp::Div && inner.is_multiplicative()) || (op.is_multiplicative() && *inner == BinOp::Div) {
+                if (op.is_div() && inner.is_multiplicative()) || (op.is_multiplicative() && inner.is_div()) {
                     return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div 2 x 3`) — parenthesise one side", inner.spelled(), op.spelled()));
                 }
                 if op.is_comparison() && inner.is_comparison() {

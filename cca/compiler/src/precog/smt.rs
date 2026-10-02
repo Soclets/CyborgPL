@@ -1186,7 +1186,7 @@ impl<'a> Enc<'a> {
                 // sign, wide enough that nothing wraps. Asked at the
                 // operands' width, `up[…] + 9e18` wrapped into a small
                 // number and a landing that overflows read as proven.
-                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc | BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
                     // Two bits past the wider operand: every answer that some
                     // 64-bit type holds is exact there, sums and products
                     // alike. A product past that wraps — but it is past the
@@ -1204,6 +1204,9 @@ impl<'a> Enc<'a> {
                         BinOp::Add => format!("(bvadd {} {})", x.term, y.term),
                         BinOp::Sub => format!("(bvsub {} {})", x.term, y.term),
                         BinOp::Mul => format!("(bvmul {} {})", x.term, y.term),
+                        // `div.trunc` / `mod.trunc` are the solvers' own.
+                        BinOp::DivTrunc => format!("(bvsdiv {} {})", x.term, y.term),
+                        BinOp::ModTrunc => format!("(bvsrem {} {})", x.term, y.term),
                         BinOp::Div | BinOp::Mod => {
                             // Truncated, then moved by one step when the
                             // remainder's sign is not the divisor's.
@@ -1445,7 +1448,7 @@ impl<'a> Enc<'a> {
                         let past = if *op == BinOp::Mul { format!(" (bvsmulo {} {})", a.term, b.term) } else { String::new() };
                         Some(format!("(or {} {}{})", self.cmp_const(&r, "bvsgt", hi)?, self.cmp_const(&r, "bvslt", lo)?, past))
                     }
-                    BinOp::Div => {
+                    BinOp::Div | BinOp::DivTrunc => {
                         // The one division that leaves the type: the lowest
                         // value by -1.
                         let b = ops.get(1).cloned().flatten()?;

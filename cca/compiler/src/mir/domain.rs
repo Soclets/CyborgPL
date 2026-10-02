@@ -770,6 +770,31 @@ impl ISet {
             ISet::range(b1.saturating_add(1).min(0), b2.saturating_sub(1).max(0))
         }
     }
+    /// `div.trunc`: the quotient rounded toward zero, C's `/`
+    /// (`operators.md`). Monotone in the same ways as the floored one, so
+    /// the same ends bound it.
+    pub fn div_trunc(&self, o: &ISet) -> ISet {
+        self.arith(o, |x, y| if y == 0 { None } else { Some(x.checked_div(y).unwrap_or(i128::MAX)) }, false)
+    }
+    /// `mod.trunc`: the remainder takes the dividend's sign, C's `%`.
+    /// `-7 mod.trunc 2` is -1.
+    pub fn mod_trunc(&self, o: &ISet) -> ISet {
+        let f = |x: i128, y: i128| -> Option<i128> { if y == 0 { None } else { Some(x.checked_rem(y).unwrap_or(0)) } };
+        if self.is_empty() || o.is_empty() {
+            return ISet::Empty;
+        }
+        let exact = pointwise(self, o, f);
+        if !exact.is_empty() {
+            return exact;
+        }
+        // Below the divisor's size, on the dividend's side of zero, and
+        // never further from zero than the dividend.
+        let (Some((a1, a2)), Some((b1, b2))) = (self.bounds(), o.bounds()) else { return ISet::Empty };
+        let m = b1.unsigned_abs().max(b2.unsigned_abs()).min(i128::MAX as u128) as i128;
+        let lo = if a1 >= 0 { 0 } else { a1.max(1 - m).min(0) };
+        let hi = if a2 <= 0 { 0 } else { a2.min(m - 1).max(0) };
+        ISet::range(lo, hi)
+    }
     pub fn pow(&self, o: &ISet) -> ISet {
         let f = |x: i128, y: i128| -> Option<i128> {
             if y < 0 {

@@ -1691,7 +1691,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // `/` floors and `mod` takes the divisor's sign
                 // (`operators.md`): `-7 / 2 = -4`, `-7 mod 2 = 1`. Unsigned,
                 // the hardware's answer already is that.
-                BinOp::Div | BinOp::Mod => {
+                BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc => {
                     // A zero divisor, and the lowest signed value divided by
                     // -1, are both undefined to LLVM: checked before the
                     // divide, never after.
@@ -1709,10 +1709,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         self.guard(fi, s, both, func)?;
                     }
                     match (op, signed) {
-                        (BinOp::Div, false) => self.builder.build_int_unsigned_div(x, y, "div").ok()?,
+                        (BinOp::Div | BinOp::DivTrunc, false) => self.builder.build_int_unsigned_div(x, y, "div").ok()?,
                         (_, false) => self.builder.build_int_unsigned_rem(x, y, "rem").ok()?,
                         (BinOp::Div, true) => self.floor_div(x, y, false)?,
-                        _ => self.floor_div(x, y, true)?,
+                        (BinOp::Mod, true) => self.floor_div(x, y, true)?,
+                        // Rounding toward zero is the hardware's own.
+                        (BinOp::DivTrunc, true) => self.builder.build_int_signed_div(x, y, "div_trunc").ok()?,
+                        _ => self.trunc_rem(x, y)?,
                     }
                 }
                 BinOp::AndBit | BinOp::And => self.builder.build_and(x, y, "and").ok()?,
@@ -1758,7 +1761,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // A bin never holds an infinity or a NaN (owner, 2026-09-29):
             // a zero divisor is asked first, then whether the answer is a
             // real number — `r - r` is 0 only for a finite `r`.
-            if let (BinOp::Div | BinOp::Mod, Some(s)) = (op, divzero) {
+            if let (BinOp::Div | BinOp::Mod | BinOp::ModTrunc, Some(s)) = (op, divzero) {
                 let zero = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                 self.guard(fi, s, zero, func)?;
             }
@@ -1768,6 +1771,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // brain16 is worked at 32 bits, then rounded. A tiny negative
             // over a large divisor that rounds up to the divisor itself is 0,
             // so the answer is always below it (owner, 2026-10-02: b).
+            // `mod.trunc` is C's `fmod`: the hardware's remainder, the
+            // dividend's sign, never past the divisor, so nothing to move.
+            if matches!(op, BinOp::ModTrunc) {
+                let t = x.get_type();
+                if t == self.ctx.bf16_type() || t == self.ctx.f16_type() {
+                    let f32t = self.ctx.f32_type();
+                    let (xw, yw) = (self.builder.build_float_ext(x, f32t, "x32").ok()?, self.builder.build_float_ext(y, f32t, "y32").ok()?);
+                    let r = self.builder.build_float_rem(xw, yw, "frem").ok()?;
+                    return Some(self.float_cast(r, t)?.into());
+                }
+                return Some(self.builder.build_float_rem(x, y, "frem").ok()?.into());
+            }
             if matches!(op, BinOp::Mod) {
                 let t = x.get_type();
                 let wide = t == self.ctx.bf16_type() || t == self.ctx.f16_type();
@@ -1927,6 +1942,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     fn floor_div(&mut self, x: IntValue<'ctx>, y: IntValue<'ctx>, want_mod: bool) -> Option<IntValue<'ctx>> {
+        if want_mod {
+            let r = self.trunc_rem(x, y)?;
+            let zero = x.get_type().const_zero();
+            let nonzero = self.builder.build_int_compare(IntPredicate::NE, r, zero, "inexact").ok()?;
+            let r_neg = self.builder.build_int_compare(IntPredicate::SLT, r, zero, "rneg").ok()?;
+            let y_neg = self.builder.build_int_compare(IntPredicate::SLT, y, zero, "yneg").ok()?;
+            let differ = self.builder.build_xor(r_neg, y_neg, "differ").ok()?;
+            let fix = self.builder.build_and(nonzero, differ, "fix").ok()?;
+            let moved = self.builder.build_int_add(r, y, "moved").ok()?;
+            return Some(self.builder.build_select(fix, moved, r, "mod").ok()?.into_int_value());
+        }
         let q = self.builder.build_int_signed_div(x, y, "q").ok()?;
         let r = self.builder.build_int_signed_rem(x, y, "r").ok()?;
         let zero = x.get_type().const_zero();
@@ -1943,6 +1969,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let lower = self.builder.build_int_sub(q, one, "lower").ok()?;
             Some(self.builder.build_select(fix, lower, q, "div").ok()?.into_int_value())
         }
+    }
+
+    /// The hardware's signed remainder, the dividend's sign (`mod.trunc`).
+    /// The lowest value by -1 is undefined to LLVM, and its remainder is 0
+    /// with no check site: any number by -1 leaves 0, so -1 is asked as 1.
+    fn trunc_rem(&mut self, x: IntValue<'ctx>, y: IntValue<'ctx>) -> Option<IntValue<'ctx>> {
+        let by_m1 = self.builder.build_int_compare(IntPredicate::EQ, y, y.get_type().const_all_ones(), "by_m1").ok()?;
+        let y = self.builder.build_select(by_m1, y.get_type().const_int(1, false), y, "rem_by").ok()?.into_int_value();
+        self.builder.build_int_signed_rem(x, y, "r").ok()
     }
 
     /// Is the value of this operand a signed number? `None` for a literal,
@@ -2064,14 +2099,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             BinOp::WrapAdd => self.builder.build_int_add(x, y, "wadd").ok()?.into(),
             BinOp::WrapSub => self.builder.build_int_sub(x, y, "wsub").ok()?.into(),
             BinOp::WrapMul => self.builder.build_int_mul(x, y, "wmul").ok()?.into(),
-            BinOp::Div | BinOp::Mod => {
+            BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc => {
                 if let Some(s) = open(self, &|k| matches!(k, SiteKind::DivZero | SiteKind::ModZero)) {
                     let z = self.builder.build_int_compare(IntPredicate::EQ, y, zero, "by_zero").ok()?;
                     let bad = any(self, z)?;
                     self.guard(fi, s, bad, func)?;
                 }
                 if signed {
-                    if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(BinOp::Div))) {
+                    if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(BinOp::Div | BinOp::DivTrunc))) {
                         let min = const_i128(vt.get_element_type().into_int_type(), -(1i128 << (bits - 1)));
                         let mins = splat(self, min.into())?;
                         let m1 = splat(self, vt.get_element_type().into_int_type().const_all_ones().into())?;
@@ -2081,9 +2116,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         let bad = any(self, both)?;
                         self.guard(fi, s, bad, func)?;
                     }
+                    // Only a division divides: `mod`'s lowest value by -1
+                    // has no check, and dividing it would be undefined.
+                    let q = if op.is_div() { Some(self.builder.build_int_signed_div(x, y, "q").ok()?) } else { None };
+                    if *op == BinOp::DivTrunc {
+                        return Some(q?.into());
+                    }
+                    // The lowest value by -1 is undefined to LLVM: any
+                    // number's remainder by -1 is 0, so -1 is asked as 1.
+                    let lane_t = vt.get_element_type().into_int_type();
+                    let m1 = splat(self, lane_t.const_all_ones().into())?;
+                    let one = splat(self, lane_t.const_int(1, false).into())?;
+                    let by_m1 = self.builder.build_int_compare(IntPredicate::EQ, y, m1, "by_m1").ok()?;
+                    let rem_by = self.builder.build_select(by_m1, one, y, "rem_by").ok()?.into_vector_value();
+                    let rm = self.builder.build_int_signed_rem(x, rem_by, "r").ok()?;
+                    if *op == BinOp::ModTrunc {
+                        return Some(rm.into());
+                    }
                     // Floored, lane by lane (`operators.md`).
-                    let q = self.builder.build_int_signed_div(x, y, "q").ok()?;
-                    let rm = self.builder.build_int_signed_rem(x, y, "r").ok()?;
                     let nz = self.builder.build_int_compare(IntPredicate::NE, rm, zero, "inexact").ok()?;
                     let rn = self.builder.build_int_compare(IntPredicate::SLT, rm, zero, "rneg").ok()?;
                     let yn = self.builder.build_int_compare(IntPredicate::SLT, y, zero, "yneg").ok()?;
@@ -2091,13 +2141,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let fix = self.builder.build_and(nz, differ, "fix").ok()?;
                     if *op == BinOp::Div {
                         let one = splat(self, vt.get_element_type().into_int_type().const_int(1, false).into())?;
+                        let q = q?;
                         let lower = self.builder.build_int_sub(q, one, "lower").ok()?;
                         self.builder.build_select(fix, lower, q, "div").ok()?
                     } else {
                         let moved = self.builder.build_int_add(rm, y, "moved").ok()?;
                         self.builder.build_select(fix, moved, rm, "mod").ok()?
                     }
-                } else if *op == BinOp::Div {
+                } else if op.is_div() {
                     self.builder.build_int_unsigned_div(x, y, "div").ok()?.into()
                 } else {
                     self.builder.build_int_unsigned_rem(x, y, "rem").ok()?.into()

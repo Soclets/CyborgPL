@@ -1351,7 +1351,7 @@ impl<'a> FnBuilder<'a> {
             // overflow — past the largest bin, a division by zero, a power
             // with no number (`-1.0 xx 0.5`).
             // A bin's `mod` by 0.0 has no number: the divisor is asked.
-            BinOp::Mod if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
+            BinOp::Mod | BinOp::ModTrunc if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
             }
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Pow if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
@@ -1373,12 +1373,12 @@ impl<'a> FnBuilder<'a> {
                 }
                 self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
-            BinOp::Div if int => {
+            BinOp::Div | BinOp::DivTrunc if int => {
                 self.site(SiteKind::DivZero, vec![r.clone()], span);
                 // The one overflowing division: the lowest value by -1.
-                self.site_of(SiteKind::Overflow(BinOp::Div), vec![l.clone(), r.clone()], Some(ty.clone()), span);
+                self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
-            BinOp::Mod if int => {
+            BinOp::Mod | BinOp::ModTrunc if int => {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
             }
             // A duration is a length of time and is never negative

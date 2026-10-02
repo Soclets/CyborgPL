@@ -1477,6 +1477,8 @@ impl Precog {
                 BinOp::Mul => x.mul(y),
                 BinOp::Div => x.div_floor(y),
                 BinOp::Mod => x.mod_floor(y),
+                BinOp::DivTrunc => x.div_trunc(y),
+                BinOp::ModTrunc => x.mod_trunc(y),
                 BinOp::Pow => x.pow(y),
                 // Wrapping arithmetic is exact modulo the width; the domain
                 // is only narrowed when the plain answer already fits.
@@ -2172,6 +2174,7 @@ impl Precog {
                     (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
                     (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
                     (BinOp::Div, Some(Domain::Ints(y))) => a.div_floor(y),
+                    (BinOp::DivTrunc, Some(Domain::Ints(y))) => a.div_trunc(y),
                     // A negation, or a fold whose shape is not two operands.
                     (BinOp::Sub, None) => a.neg(),
                     _ => return Verdict::Unproven,
@@ -2896,7 +2899,7 @@ fn thresholds(f: &crate::mir::Function) -> Vec<i128> {
                     Rvalue::Binary { op, lhs, rhs } => {
                         add(lhs, &mut out);
                         add(rhs, &mut out);
-                        if let (BinOp::Mod, Operand::Const(Const::Int(d))) = (op, rhs) {
+                        if let (BinOp::Mod | BinOp::ModTrunc, Operand::Const(Const::Int(d))) = (op, rhs) {
                             out.extend([d.saturating_sub(1).abs(), -(d.saturating_sub(1).abs())]);
                         }
                     }
@@ -3235,6 +3238,19 @@ fn bin_finite(op: &BinOp, ds: &[Domain], w: crate::types::BinW, spelled: &str) -
 /// Bin `+ - x /` over two intervals at a width of `bits`, or `None` when the
 /// answer is not a finite interval Precog can stand behind.
 pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Option<Domain> {
+    // `mod.trunc` is C's `fmod`, exact at every width: on the dividend's
+    // side of zero, never further from it than the dividend, and below the
+    // divisor's size — at most its size once a brain16 rounds. A divisor
+    // of 0.0 is its own site, before this.
+    if *op == BinOp::ModTrunc {
+        let m = b.0.abs().max(b.1.abs());
+        if !m.is_finite() || !a.0.is_finite() || !a.1.is_finite() {
+            return None;
+        }
+        let lo = if a.0 >= 0.0 { 0.0 } else { a.0.max(-m) };
+        let hi = if a.1 <= 0.0 { 0.0 } else { a.1.min(m) };
+        return Some(Domain::Bins { lo: Some(lo), hi: Some(hi) });
+    }
     let corners = [(a.0, b.0), (a.0, b.1), (a.1, b.0), (a.1, b.1)];
     let f = |x: f64, y: f64| -> f64 {
         match op {
@@ -3370,6 +3386,7 @@ fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
                 (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
                 (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
                 (BinOp::Div, Some(Domain::Ints(y))) => a.div_floor(y),
+                (BinOp::DivTrunc, Some(Domain::Ints(y))) => a.div_trunc(y),
                 (BinOp::Sub, None) => a.neg(),
                 _ => return None,
             };

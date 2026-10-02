@@ -127,6 +127,7 @@ dir_file_and_block [fnv:df3acd94ef8806e5] :: a module cannot be both
 dir_main_in_module [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Limb (`limb.cpls`), not in a module
 dir_no_root [fnv:6b8ef1b171c8350e] :: is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there
 dir_private_across_files [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
+div_trunc_std_moved [fnv:c49e7eedef3eb706] :: is an operator in the language now
 div_zero [fnv:55d00aed3abcab4f] :: the divisor can be zero, and nothing can be divided by zero
 duration_negative [fnv:8b34ab9b24a2319a] :: a duration is a length of time, and this can take it below zero
 else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare words
@@ -330,6 +331,7 @@ missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a v
 mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 mod_beside_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod` beside another operator
 mod_mixed [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod` beside another operator
+mod_trunc_beside [fnv:9d0efe113095066a] :: parenthesise
 module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`limb.cpls`)
 module_in_body [fnv:ff095bdb85c4c377] :: a `module` sits at the top level of a file, not inside a body
 module_include_line [fnv:e6545bf351dc2847] :: a file module is found by its file name, and `module a { … }` is a block

@@ -149,6 +149,10 @@ pub enum BinOp {
     Xor,
     Shl,
     Shr,
+    /// `div.trunc` / `mod.trunc` (owner, 2026-10-02): rounding toward
+    /// zero, C's `/` and `%`; `div` and `mod` floor.
+    DivTrunc,
+    ModTrunc,
     /// A glyph run or a bare word the language does not own.
     Custom(String),
 }
@@ -162,6 +166,8 @@ impl BinOp {
             BinOp::Pow => "xx".into(),
             BinOp::Div => "div".into(),
             BinOp::Mod => "mod".into(),
+            BinOp::DivTrunc => "div.trunc".into(),
+            BinOp::ModTrunc => "mod.trunc".into(),
             BinOp::WrapAdd => "+~".into(),
             BinOp::WrapSub => "-~".into(),
             BinOp::WrapMul => "x~".into(),
@@ -191,8 +197,17 @@ impl BinOp {
     pub fn is_bitwise(&self) -> bool {
         matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr)
     }
+    /// `div` and `div.trunc`: beside another multiplicative operator
+    /// they need parentheses.
+    pub fn is_div(&self) -> bool {
+        matches!(self, BinOp::Div | BinOp::DivTrunc)
+    }
+    /// `mod` and `mod.trunc`: beside any operator they need parentheses.
+    pub fn is_mod(&self) -> bool {
+        matches!(self, BinOp::Mod | BinOp::ModTrunc)
+    }
     pub fn is_multiplicative(&self) -> bool {
-        matches!(self, BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::WrapMul)
+        matches!(self, BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc | BinOp::WrapMul)
     }
 }
 

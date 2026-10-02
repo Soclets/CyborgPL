@@ -867,7 +867,7 @@ impl Checker {
             return self.simd_binary(op, op_span, l, r, &lt, &rt, span);
         }
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod => {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc => {
                 if lt.base() == &Ty::Duration || rt.base() == &Ty::Duration {
                     if !(lt.base() == &Ty::Duration && rt.base() == &Ty::Duration) || !matches!(op, BinOp::Add | BinOp::Sub) {
                         if matches!(op, BinOp::Mul) && (lt.is_int() || rt.is_int()) {
@@ -878,6 +878,7 @@ impl Checker {
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Duration, span });
                 }
                 let (l, r, ty) = self.numeric_pair(ctx, l, r, op, op_span)?;
+                self.trunc_takes(op, op_span, &ty)?;
                 if *op == BinOp::Pow && ty.is_int() {
                     if let K::Int(e) = &r.kind {
                         if *e < 0 {
@@ -1146,6 +1147,10 @@ impl Checker {
         let lane_r = self.resolve(&lane);
         let ok = match op {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => lane_r.is_numeric(),
+            BinOp::DivTrunc | BinOp::ModTrunc => {
+                self.trunc_takes(op, op_span, &lane_r)?;
+                true
+            }
             BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
             BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => lane_r.is_numeric() || lane_r.base() == &Ty::Bool,
             BinOp::And | BinOp::Or => lane_r.base() == &Ty::Bool,
@@ -1269,6 +1274,22 @@ impl Checker {
     }
 
     /// Both sides of a numeric operator: one family; a literal adopts the other's.
+    /// `div.trunc` takes integers; `mod.trunc` integers, bins and brain16
+    /// (owner, 2026-10-02). The rest have only the floored `div` and `mod`.
+    fn trunc_takes(&self, op: &BinOp, op_span: Span, ty: &Ty) -> Result<()> {
+        let t = self.resolve(ty);
+        let ok = match op {
+            BinOp::DivTrunc => t.is_int(),
+            BinOp::ModTrunc => t.is_int() || matches!(t.base(), Ty::Bin(_) | Ty::Brain),
+            _ => true,
+        };
+        if ok {
+            return Ok(());
+        }
+        let (plain, takes) = if *op == BinOp::DivTrunc { ("div", "integers") } else { ("mod", "integers, bins and brain16") };
+        err(Diagnostic::error(format!("`{}` takes {}, and this is {}: write `{}`", op.spelled(), takes, article(&self.spell(&t)), plain)).at(op_span))
+    }
+
     fn numeric_pair(&mut self, ctx: &mut FnCtx, l: Expr, r: Expr, op: &BinOp, op_span: Span) -> Result<(Expr, Expr, Ty)> {
         let lt = self.resolve(&l.ty);
         let rt = self.resolve(&r.ty);
@@ -1343,7 +1364,7 @@ impl Checker {
         // The division is then exact as well, and lands where it is stored
         // — as `'p' + (…)` already does. A lone literal still takes the
         // other side's type.
-        if matches!(op, BinOp::Div | BinOp::Mod) {
+        if matches!(op, BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc) {
             let group = |e: &Expr, t: &Ty| matches!(t.base(), Ty::Int(IntW::Free(_))) && literal_only(e) && !is_int_literal(e);
             let fixed = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { .. }));
             if (group(&l, &lt) && fixed(&rt)) || (group(&r, &rt) && fixed(&lt)) {
@@ -1411,8 +1432,9 @@ impl Checker {
             into_brain(&mut l);
         }
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::Pow => {}
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::Pow | BinOp::ModTrunc => {}
             _ if op.is_comparison() => {}
+            BinOp::DivTrunc => self.trunc_takes(op, op_span, &Ty::Brain)?,
             _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a brain16 is not one", op.spelled())).at(op_span)),
         }
         let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
@@ -1468,6 +1490,7 @@ impl Checker {
             // `mod` takes the divisor's sign (owner, 2026-09-29).
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => {}
             _ if op.is_comparison() => {}
+            BinOp::DivTrunc | BinOp::ModTrunc => self.trunc_takes(op, op_span, &Ty::Deci(64))?,
             _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a deci is not one", op.spelled())).at(op_span)),
         }
         match (lt.base(), rt.base()) {
@@ -1831,6 +1854,13 @@ impl Checker {
                     return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `std::print.weird.{}.{} <- …`", f, rest.join("."))).at(span));
                 }
                 _ => {}
+            }
+        }
+        // Moved into the language (owner, 2026-10-02).
+        if path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
+            let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
+            if let [w @ ("div" | "mod"), "trunc"] = segs.as_slice() {
+                return err(Diagnostic::error(format!("`std::{w}.trunc` is an operator in the language now: `'a' {w}.trunc 'b'`")).at(span));
             }
         }
         if self.std_stubs && path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
@@ -3559,7 +3589,7 @@ fn builtin_subject(b: &Builtin) -> &'static str {
 /// claude, attack a). Shifts, bitwise and wrapping take the place's width.
 fn plain_group(e: &Expr) -> bool {
     match &e.kind {
-        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod) && plain_group(lhs) && plain_group(rhs),
+        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc) && plain_group(lhs) && plain_group(rhs),
         K::Unary { op: UnOp::Neg, expr } => plain_group(expr),
         K::Int(_) => true,
         _ => false,
