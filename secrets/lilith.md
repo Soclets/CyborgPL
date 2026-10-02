@@ -1,5 +1,8 @@
 # Lilith
 
+**Esolang syntax, serious-language performance.** (Owner, 2026-10-02: "Atp, I
+think it would just be esolang syntax with serious lang perf".)
+
 An idea of the owner's, 2026-10-02, written while waiting on RRx2 tests.
 Not part of CyborgPL, and not planned. (Not a secret either, in both
 meanings of the folder's name: no passwords here.)
