@@ -61,8 +61,9 @@ their `< >`, as shown. Whether lifetime groups join the same list
 (`<T: Number, @x>`) was not asked.
 
 **"Any type" is said with the built-in word `any`** (owner: "`a`", over
-an empty interface each Limb writes itself): `struct Pair <A: any, B: any>
-{ left: <A>  right: <B> }`. Written, never assumed: a generic without a
+an empty interface each Limb writes itself): `struct Pair <A: any> <B:
+any> { left: <A>  right: <B> }` (one bracket each, ruled just after).
+Written, never assumed: a generic without a
 bound is refused.
 
 **Both ways of combining** (owner: "Both works"): one interface may mix
@@ -93,6 +94,12 @@ recommendation): `interface Ordered <T> { op < ['a': <T>, 'b': <T>] ->
 bool; … }`, so the rule is one sentence — every generic is announced
 right after the name, for functions, structs, enums and interfaces. A
 type-list interface uses no `<T>` and announces nothing.
+
+**One bracket per generic** (owner: "`b`"): `struct Pair <A: any> <B:
+any> { left: <A>  right: <B> }`, so an announcement looks like its
+mentions, one generic in each `< >`. Design claude had written `<A: any,
+B: any>` in earlier sketches without asking; the owner chose this over
+it. The `any` entry above is corrected to match.
 
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
