@@ -15,7 +15,7 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
 
-**Rust's names are aliases** (owner, 2026-10-02; not built yet): `i8`–`i128`
+**Rust's names are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
 for `bin16` `bin32` `bin64`. Nothing else: not `bool` (the same word),
 not `char` (a unit must be said), no `deci` (Rust has none), not

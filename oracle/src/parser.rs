@@ -183,6 +183,7 @@ impl Parser {
                     self.advance();
                     let name = match self.advance().tok {
                         Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
+                        Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is Rust's name for `{}`, so it cannot name an enum", rust_alias(&n).unwrap())),
                         Tok::Word(n) => n,
                         Tok::Var(v) => return self.err(format!("an enum's name is bare — it is a type: `enum {v}`")),
                         other => return self.err(format!("expected an enum name, found {other}")),
@@ -341,6 +342,7 @@ impl Parser {
                     self.advance();
                     let name = match self.advance().tok {
                         Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an interface")),
+                        Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is Rust's name for `{}`, so it cannot name an interface", rust_alias(&n).unwrap())),
                         Tok::Word(n) if n == "any" => return self.err("`any` is the built-in \"any type\" (owner, 2026-10-02); an interface needs another name"),
                         Tok::Word(n) => n,
                         Tok::Var(v) => return self.err(format!("an interface's name is bare: `interface {v}`")),
@@ -496,6 +498,7 @@ impl Parser {
             other => return self.err(format!("expected a struct name, found {other}")),
         };
         if KEYWORDS.contains(&name.as_str()) { return self.err(format!("`{name}` is a keyword and cannot name a struct")); }
+        if let Some(own) = rust_alias(&name) { return self.err(format!("`{name}` is Rust's name for `{own}`, so it cannot name a struct")); }
         let gens = self.announce("struct")?;
         self.expect(Tok::LBrace, "`{`")?;
         let mut fields = Vec::new();
@@ -867,6 +870,17 @@ impl Parser {
             }
             if *self.peek() == Tok::Dot { self.advance(); continue; }
             break;
+        }
+        // Rust's number names are aliases (owner, 2026-10-02): `i32` is `int32`, `f64` is `bin64`
+        if let Some(own) = rust_alias(&segs[0]) { segs[0] = own.to_string(); }
+        // Rust names that are not aliases say why (owner, 2026-10-02: only the number names)
+        if segs.len() == 1 {
+            match segs[0].as_str() {
+                "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no CyborgPL type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
+                "String" => return self.err("text is `str.utf8`; Rust's `String` is not an alias"),
+                "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `std::uenr` is exact rather than wider"),
+                _ => {}
+            }
         }
         // `int32[0, 100]` — a range type (design/input.md): a numeric head with two bounds
         {
@@ -2632,4 +2646,14 @@ pub fn module_name_ok(name: &str) -> Result<(), String> {
     if DEVICES.contains(&name) { return Err("it is a reserved device name on Windows".into()); }
     if KEYWORDS.contains(&name) { return Err("it is a keyword".into()); }
     Ok(())
+}
+
+/// Rust's names for CyborgPL's number types (owner, 2026-10-02): the only aliases a type has.
+pub fn rust_alias(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "i8" => "int8", "i16" => "int16", "i32" => "int32", "i64" => "int64", "i128" => "int128",
+        "u8" => "uint8", "u16" => "uint16", "u32" => "uint32", "u64" => "uint64", "u128" => "uint128",
+        "f16" => "bin16", "f32" => "bin32", "f64" => "bin64",
+        _ => return None,
+    })
 }

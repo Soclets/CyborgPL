@@ -14,7 +14,15 @@ which families. The owner: "Actually, fuck it, only include the Rust ones
 and ours". So the types are spelled CyborgPL's way or with Rust's 13
 number names (`i8`–`i128`, `u8`–`u128`, `f16` `f32` `f64`); the C aliases
 recorded earlier the same day are withdrawn, and no long names are added.
-Not built yet. `types.md`.
+`types.md`.
+
+Built the same day (owner: "implement now"): in the oracle a Rust name
+is read as CyborgPL's wherever a type is written (declarations,
+parameters, `list[i64]`, range types `i16[0, 100]`, `to.u16[…]`); `i32`
+and the rest cannot name a struct, enum or interface; `usize` / `isize`,
+`String` and `f128` are refused with what to write instead (design
+claude's wording). `examples/rust_types.cpls`; reject tests rust_usize,
+rust_string, struct_named_rust_alias.
 
 ### 2026-10-02 — C's exact type names are aliases too (owner; not built yet) — withdrawn the same day: only CyborgPL's names and Rust's
 
