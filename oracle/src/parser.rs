@@ -48,7 +48,7 @@ pub struct Parser {
     arm_depth: usize,
     /// set while parsing a map literal's key: the `=` after it pairs, it is not an assignment
     in_map_key: bool,
-    /// set while parsing an extern signature or a layout.c struct: `ptr[T]` is allowed
+    /// set while parsing an extern signature or a layout.C struct: `ptr[T]` is allowed
     at_boundary: bool,
     /// set while parsing an interface's entries: signatures end with `;`, no body
     in_interface: bool,
@@ -242,12 +242,17 @@ impl Parser {
                     prog.funcs.push(f);
                 }
                 Tok::Word(w) if w == "layout" => {
-                    // layout.c struct Name { … }   (design/ffi.md)
+                    // layout.C struct Name { … }   (design/ffi.md)
                     self.advance();
-                    self.expect(Tok::Dot, "`.c` after `layout` (`layout.c struct …`)")?;
-                    match self.advance().tok { Tok::Word(l) if l == "c" => {}, other => return self.err(format!("the only layout is `layout.c`, found {other}")) }
+                    self.expect(Tok::Dot, "`.C` after `layout` (`layout.C struct …`)")?;
+                    match self.advance().tok {
+                        Tok::Word(l) if l == "C" => {},
+                        // a language's name is capitalized, as `inline.ASM` (owner, 2026-10-02: "BIG")
+                        Tok::Word(l) if l == "c" => return self.err("C is written capitalized here, as every language's name is: `layout.C`".to_string()),
+                        other => return self.err(format!("the only layout is `layout.C`, found {other}")),
+                    }
                     if self.is_word("enum") {
-                        // layout.c enum Key { a = 65  b = 66 }  — C's enum: a number per case, no data,
+                        // layout.C enum Key { a = 65  b = 66 }  — C's enum: a number per case, no data,
                         // every number written (owner, 2026-09-27: a)
                         let line = self.line();
                         self.advance();
@@ -262,7 +267,7 @@ impl Parser {
                             let cname = match self.advance().tok {
                                 Tok::Word(c) if KEYWORDS.contains(&c.as_str()) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
                                 Tok::Word(c) => c,
-                                Tok::Eof => return self.err("unclosed `layout.c enum {`"),
+                                Tok::Eof => return self.err("unclosed `layout.C enum {`"),
                                 other => return self.err(format!("expected a case name, found {other}")),
                             };
                             if *self.peek() == Tok::Colon { return self.err(format!("a C enum's case carries no data; C's enum is a number: `{cname} = 1`")); }
@@ -282,7 +287,7 @@ impl Parser {
                         prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params: Vec::new(), bounds: Vec::new(), c_values: Some(values), line });
                         continue;
                     }
-                    if !self.is_word("struct") { return self.err("`layout.c` goes before `struct` or `enum`: `layout.c struct Timeval { … }`, `layout.c enum Key { a = 65 }`"); }
+                    if !self.is_word("struct") { return self.err("`layout.C` goes before `struct` or `enum`: `layout.C struct Timeval { … }`, `layout.C enum Key { a = 65 }`"); }
                     self.at_boundary = true;
                     let d = self.struct_def();
                     self.at_boundary = false;
@@ -2483,7 +2488,7 @@ impl Parser {
                     self.to_target = false;
                     let ty = ty?;
                     if matches!(ty, Ty::List(_) | Ty::Array(_)) { return self.err("`to.list[…]` / `to.array[…]` keep the element type, so it is not written: `to.array[give 'l']`"); }
-                    // a named type is allowed here only if it is a `layout.c enum` (checked when it runs:
+                    // a named type is allowed here only if it is a `layout.C enum` (checked when it runs:
                     // the parser cannot yet tell a struct's name from an enum's)
                     if matches!(ty, Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
                     // `to.deci64.useful[…]`: the shortest decimal that reads back as the same bin (owner, 2026-09-29)
@@ -2642,7 +2647,7 @@ impl Parser {
 }
 
 fn bad_ptr<T>(p: &Parser) -> PResult<T> {
-    p.err("`ptr[T]` exists only at the boundary: in an `extern fn` signature or a `layout.c struct` field (design/ffi.md); a pointer is held with `:=`, never declared")
+    p.err("`ptr[T]` exists only at the boundary: in an `extern fn` signature or a `layout.C struct` field (design/ffi.md); a pointer is held with `:=`, never declared")
 }
 
 /// Module names (decided 2026-09-19, "whatever has most compat"): lowercase

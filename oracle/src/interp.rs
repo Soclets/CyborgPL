@@ -324,17 +324,17 @@ impl<'p> Interp<'p> {
         Ok(())
     }
 
-    /// design/ffi.md: only C-shaped types cross to C; a struct that crosses is `layout.c`.
+    /// design/ffi.md: only C-shaped types cross to C; a struct that crosses is `layout.C`.
     fn c_shaped(&self, ty: &Ty) -> Result<(), String> {
         match ty {
             Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Bool => Ok(()),
             Ty::Ptr(inner, _) => self.c_shaped(inner),
             Ty::Struct(n) => match self.prog.structs.iter().find(|d| &d.name == n) {
                 Some(d) if d.layout_c => Ok(()),
-                Some(_) => Err(format!("struct `{n}` is not `layout.c`; its layout is Precog's, not C's")),
+                Some(_) => Err(format!("struct `{n}` is not `layout.C`; its layout is Precog's, not C's")),
                 None => match self.prog.enums.iter().find(|e| &e.name == n) {
                     Some(e) if e.c_values.is_some() => Ok(()),
-                    Some(_) => Err(format!("enum `{n}` is not `layout.c`; a C enum is `layout.c enum {n} {{ a = 0 }}`")),
+                    Some(_) => Err(format!("enum `{n}` is not `layout.C`; a C enum is `layout.C enum {n} {{ a = 0 }}`")),
                     None => Err(format!("no struct or enum named `{n}`")),
                 },
             },
@@ -357,7 +357,7 @@ impl<'p> Interp<'p> {
                 if let Some(r) = ret { self.c_shaped(r)?; }
                 Ok(())
             }
-            other => Err(format!("{} is not C-shaped (numbers, bool, ptr, layout.c structs are)", ty_name(other))),
+            other => Err(format!("{} is not C-shaped (numbers, bool, ptr, layout.C structs are)", ty_name(other))),
         }
     }
 
@@ -367,7 +367,7 @@ impl<'p> Interp<'p> {
                 // a field may be a range type (owner, 2026-09-27: a): C sees the plain number, and
                 // a struct that comes from C is checked at the door, `out_of_range`
                 let laid = match &f.ty { Ty::Ranged(b, _, _) => &**b, t => t };
-                if let Err(m) = self.c_shaped(laid) { return rt(d.line, format!("`layout.c struct {}`: field `{}` — {m}", d.name, f.name)); }
+                if let Err(m) = self.c_shaped(laid) { return rt(d.line, format!("`layout.C struct {}`: field `{}` — {m}", d.name, f.name)); }
             }
         }
         // `extern let` (decided 2026-09-21): C-shaped, like an extern parameter
@@ -1709,7 +1709,7 @@ impl<'p> Interp<'p> {
         }
     }
 
-    /// A type C's numbers are checked against when they come in: a `layout.c enum`, a range,
+    /// A type C's numbers are checked against when they come in: a `layout.C enum`, a range,
     /// or a struct with a ranged field. Its name for messages, or `None`.
     fn c_checked(&self, t: &Ty) -> Option<String> {
         match t {
@@ -2041,8 +2041,8 @@ impl<'p> Interp<'p> {
             Expr::Convert(Ty::Struct(tname), b, handler, _, _) => {
                 let def = match self.prog.enums.iter().find(|e| &e.name == tname) {
                     Some(e) if e.c_values.is_some() => e.clone(),
-                    Some(_) => return rt(line, format!("no conversion to the enum `{tname}`; only a `layout.c enum`'s numbers convert")),
-                    None => return rt(line, format!("no conversion to {tname}; conversions are between numbers, text, lists and arrays, and into a `layout.c enum`")),
+                    Some(_) => return rt(line, format!("no conversion to the enum `{tname}`; only a `layout.C enum`'s numbers convert")),
+                    None => return rt(line, format!("no conversion to {tname}; conversions are between numbers, text, lists and arrays, and into a `layout.C enum`")),
                 };
                 let fails = vec![FailCase { name: "out_of_range".into(), ty: None }];
                 self.check_handler(handler.as_ref(), &fails, &format!("to.{tname}"), line)?;
@@ -2302,7 +2302,7 @@ impl<'p> Interp<'p> {
                     }
                     // a C enum's case to its number (owner, 2026-09-28): never fails; the number must fit
                     (Ty::Int(_) | Ty::Uint(_), Value::Enum(tn, cn, None)) => {
-                        let Some(e) = self.prog.enums.iter().find(|e| &e.name == tn && e.c_values.is_some()) else { return rt(line, format!("only a `layout.c enum` has numbers; `{tn}` is a Cyborg enum")) };
+                        let Some(e) = self.prog.enums.iter().find(|e| &e.name == tn && e.c_values.is_some()) else { return rt(line, format!("only a `layout.C enum` has numbers; `{tn}` is a Cyborg enum")) };
                         let i = e.cases.iter().position(|c| &c.name == cn).unwrap();
                         let k = Value::Int(e.c_values.as_ref().unwrap()[i]);
                         fit_base!(k.clone());

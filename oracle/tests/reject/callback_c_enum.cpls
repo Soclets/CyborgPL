@@ -1,4 +1,4 @@
 # a callback's parameter is a plain number, converted inside (owner, 2026-09-27)
-layout.c enum Key { a = 65 }
+layout.C enum Key { a = 65 }
 extern fn set_handler ['h': fn[Key]];
 MAIN { }

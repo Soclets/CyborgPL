@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — A language's name is capitalized: `layout.c` becomes `layout.C` (owner)
+
+The owner, after design claude compared `layout.c` with LuaJIT's
+`ffi.cdef`: "Wait, why isn't it `layout.C`? I swear that I decided that
+langs should be capitalizes". DECISIONS had only the 2026-09-20 ruling on
+the `inline.` head ("the inline code name should be easy to spot, just
+like `MAIN`"), a day after `layout.c` (2026-09-19). The owner: "Maybe it
+wasn't recorded, look at session transcript". It was there: on
+2026-10-01, designing `for !c`, the owner said "inline.C has a big c",
+and design claude answered "Language names are capitalized in CyborgPL"
+and recorded neither. Design claude asked whether that is the rule, so
+`layout.c` becomes `layout.C` (`layout.C struct`, `layout.C enum`), and
+recommended yes: one spelling per language, and `!c` stays visibly not
+C. The owner: "BIG". In the oracle, every example, reject test and
+`ffi.md`; `layout.c` is refused naming `layout.C` (reject test
+`layout_lowercase_c`). Entries below keep the spelling of their day.
+
 ### 2026-10-02 — While something is lent `lend.mut`, nothing else may borrow it (owner: a)
 
 ```

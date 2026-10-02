@@ -2,7 +2,7 @@
 # plain number, since reading a variable never fails; convert it with `to.Mode[…]`, and back
 # with `to.int32[Mode.vi]`, which never fails. `ptr.read` of a C enum is a call, so it takes
 # `otherwise` and fails `out_of_range` for a number no case has (7 here).
-layout.c enum Mode { emacs = 0  vi = 1 }
+layout.C enum Mode { emacs = 0  vi = 1 }
 extern fn malloc ['bytes': uint64] -> ptr.mut[Mode];
 extern mut 'edit_mode': int32;
 fn mode_at ['p': ptr[Mode]] -> int32 {

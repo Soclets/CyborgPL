@@ -35,7 +35,7 @@ extern fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
 ## `ptr[T]` — exists only at the boundary
 
 - `ptr[T]` (read-only) and `ptr.mut[T]` may appear in an `extern`
-  signature and in a `layout.c` struct, nowhere else as a declared type.
+  signature and in a `layout.C` struct, nowhere else as a declared type.
 - **A lend satisfies a pointer**: `write[1, lend 'bytes', 3]` hands C the
   address of the lent data; `lend.mut` for `ptr.mut`. The borrow rules
   are the pointer's validity: the value is alive and unaliased for the
@@ -158,7 +158,7 @@ tier trusting C's answers too. The owner asked whether `nocheck` was then
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
-layout.c struct Rect { w: int32[0, 4096]  h: int32[0, 4096] }
+layout.C struct Rect { w: int32[0, 4096]  h: int32[0, 4096] }
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -169,10 +169,10 @@ refusing it, with plain fields checked by hand. A range on an `extern fn`
 *parameter* is still refused; that was not asked.
 `examples/c_struct_ranges.cpls`.
 
-## `layout.c enum` — C's enum (owner, 2026-09-27: a)
+## `layout.C enum` — C's enum (owner, 2026-09-27: a)
 
 ```
-layout.c enum Key { a = 65  b = 66  escape = 256 }
+layout.C enum Key { a = 65  b = 66  escape = 256 }
 extern fn IsKeyDown ['key': Key] -> bool;
 ```
 
@@ -183,7 +183,7 @@ header does. Guessing the order is how bindings go wrong, so a missing
 number is an error, and so are two cases with one number. It is 32 bits,
 C's `int`. A number C hands back that matches no case fails `out_of_range`
 at the door, like a ranged return: C can send any number. Only a
-`layout.c enum` crosses to C. Proposed alternative: no enums at the
+`layout.C enum` crosses to C. Proposed alternative: no enums at the
 boundary, plain numbers with named constants, which loses the names in
 types and the exhaustive `match`. Written numbers required, and 32 bits:
 design claude's recommendation with a, not asked separately.
@@ -200,7 +200,7 @@ nocheck change 'lib_verbose' = 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern fn` names its functions.
-The type is required and C-shaped (numbers, `bool`, `ptr`, `layout.c`
+The type is required and C-shaped (numbers, `bool`, `ptr`, `layout.C`
 structs); no value — C owns it; `mut` says it may be written, `immut` is
 meaningless. Every read and write is a nocheck site, like an extern call:
 nothing about C's memory can be proven. It is a plain value that copies
@@ -214,23 +214,30 @@ that calls a function — so `extern 'errno': int32;` would be wrong
 there; the std Limb offers `std::c.errno[]` backed by the real thing.
 `extern 'x': T` is for genuinely plain C globals. `examples/extern_data.cpls`.
 
-## `layout.c` — a struct in C's shape
+## `layout.C` — a struct in C's shape
+
+**A language's name is capitalized wherever CyborgPL writes it** (owner,
+2026-10-02: "BIG"): `layout.C`, `inline.ASM`, `inline.MSL`, `inline.C`
+when it comes. The owner said "inline.C has a big c" on 2026-10-01;
+design claude generalized it then without recording it, and `layout.c`
+(2026-09-19) kept its lowercase until this ruling. `layout.c` is refused,
+naming `layout.C`.
 
 ```
-layout.c struct Timeval {
+layout.C struct Timeval {
     sec: int64
     usec: int64
 }
 ```
 
-Only a `layout.c` struct may cross to C (in a signature or a `ptr[…]`); a
+Only a `layout.C` struct may cross to C (in a signature or a `ptr[…]`); a
 normal struct's layout is Precog's. Its fields must be C-shaped: numbers,
-`bool`, `ptr[…]`, other `layout.c` structs — no `str`, no `list`.
+`bool`, `ptr[…]`, other `layout.C` structs — no `str`, no `list`.
 
 ## `size.of[T]`, `align.of[T]`
 
 Compile-time constants, spelled like `to.`: `malloc[10 x size.of[Timeval]]`.
-A `layout.c` struct has C's size; a normal struct's is whatever Precog
+A `layout.C` struct has C's size; a normal struct's is whatever Precog
 chose.
 
 ## Inline assembly — `inline.ASM` (decided 2026-09-20)

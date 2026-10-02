@@ -17,7 +17,7 @@ pub enum Ty {
     List(Box<Ty>),    // growable
     Array(Box<Ty>),   // fixed-size
     Struct(String),   // a declared blueprint, by name
-    /// `ptr[T]` / `ptr.mut[T]` (design/ffi.md): only in an extern signature or a layout.c field
+    /// `ptr[T]` / `ptr.mut[T]` (design/ffi.md): only in an extern signature or a layout.C field
     Ptr(Box<Ty>, bool),
     /// `<T>` — a type variable (design/generics.md, 2026-09-20): a blank the compiler fills
     /// per use; every mention wears the `< >`
@@ -96,7 +96,7 @@ pub struct EnumDef {
     /// type variables, in the order announced (design/generics.md, 2026-10-02)
     pub params: Vec<String>,
     pub bounds: Vec<(String, String)>,
-    /// `layout.c enum` (owner, 2026-09-27): each case's number in C; `None` for a Cyborg enum
+    /// `layout.C enum` (owner, 2026-09-27): each case's number in C; `None` for a Cyborg enum
     pub c_values: Option<Vec<i128>>,
     pub line: usize,
 }
@@ -105,7 +105,7 @@ pub struct EnumDef {
 pub struct StructDef {
     /// canonical: "shapes.Locker" for a struct in module `shapes`, "Locker" at the root
     pub name: String,
-    /// `layout.c struct`: C's layout, C-shaped fields only; may cross to C
+    /// `layout.C struct`: C's layout, C-shaped fields only; may cross to C
     pub layout_c: bool,
     /// type variables, in the order announced (design/generics.md, 2026-10-02)
     pub params: Vec<String>,

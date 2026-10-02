@@ -6,7 +6,7 @@ extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn malloc ['bytes': uint64] -> ptr.mut[uint8];
 extern fn free ['p': ptr.mut[uint8]];
 
-layout.c struct Timeval {
+layout.C struct Timeval {
     sec: int64
     usec: int64
 }
