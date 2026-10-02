@@ -25,3 +25,16 @@ would have to get definitions of every word used, including the one used
 in the definitions". So the program looks every word up, then every word
 in those definitions, and so on until nothing new comes up, and the
 licence carries all of it.
+
+**The dictionary is Wiktionary, and it runs on the owner's gaming PC**
+(owner, 2026-10-02: "Wiktionary it is, on my gaming PC (Ryzen 7 9700X, RX
+9070 XT, 32GB 5600MT/s RAM, 2TB Gen4 NVMe storage), not MacBook"). Design
+claude had offered WordNet (155,287 words, 10.5 MB, permissive, but no
+grammar words such as "the", "of", "if") against Wiktionary (9,201,874
+English-edition pages on 2026-10-02, a 1.65 GB compressed dump, every
+word). What comes with it, as design claude explained beforehand:
+Wiktionary is CC BY-SA, so a licence carrying its definitions is shared
+under CC BY-SA, with credit; its dump is raw wiki markup, so the program
+needs a real parsing step; and a fixed dump with its checksum, not the
+live site, keeps runs reproducible and vandalism out. The program's
+language is open (design claude suggested Rust).
