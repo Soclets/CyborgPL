@@ -21,6 +21,17 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
 - **`copy`** — duplicate.
 - **`lend`** — borrow, shared. **`lend.mut`** — borrow, mutable; the chain
   narrows `lend` the usual way.
+- **While something is lent `lend.mut`, nothing else may borrow it**
+  (owner, 2026-10-02: a, compiler claude's question):
+  `two[lend.mut 'u', lend 'u']` is refused, and so is
+  `two[grow[lend.mut 'u'], lend 'u']`, where `grow` hands back a borrow of
+  `'u'`. To read and change one list, pass it once with `lend.mut` (it can
+  read too); to keep how it was, `copy` it first. Proposed: (a) refuse, as
+  Rust does; (b) refuse only when a change actually happens while the other
+  borrow is in use, as the oracle and CCA did. Compiler claude and design
+  claude recommended a: the mistake shows at the call, a later change
+  inside the function cannot break callers far away, and the compiler can
+  tell LLVM the two never overlap.
 
 **Alternative spelling (owner, 2026-09-21): `&` for `lend` / `lent`, `&mut`
 for `lend.mut` / `lent.mut`**, on both sides of a call —

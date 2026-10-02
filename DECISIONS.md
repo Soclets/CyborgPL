@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — While something is lent `lend.mut`, nothing else may borrow it (owner: a)
+
+```
+two[lend.mut 'u', lend 'u'];             # refused: 'u' lent to change and lent again
+two[grow[lend.mut 'u'], lend 'u'];       # refused too: grow hands back a borrow of 'u'
+one[lend.mut 'u'];                        # to read and change: once, with lend.mut
+let 'before' := copy 'u';                 # to keep how it was: copy first
+two[lend.mut 'u', lend 'before'];
+```
+
+Compiler claude's question: the oracle and CCA both accepted the second
+line, refusing only when `two` actually changed `'a'` while `'b'` was in
+use; `ownership-syntax.md` called `lend.mut` "temporary exclusive access",
+the 2026-09-14 rule said a borrow "never aliases a mutation". Proposed:
+(a) refuse the call, as Rust does; (b) allow it unless a change actually
+happens. Compiler claude and design claude recommended a. The owner asked
+whether `two[lend.mut 'u', lend 'u'];` makes sense (design claude: no,
+the two names are one list), whether (a) leaves a way to do it on purpose
+(pass it once with `lend.mut`, or `copy` first), and the performance
+difference (a lets the compiler tell LLVM the two never overlap; the
+copy costs one allocation, and only when asked for). The owner: "`a`".
+In the oracle, checked when the call runs; reject tests
+`lend_mut_and_lend`, `lend_mut_via_return`. Two plain `lend`s of one
+variable stay fine, and `list.append[lend.mut 'u', list.length[lend 'u']]`
+too: the inner borrow ends before the call.
+
 ### 2026-10-02 — Check claude no longer runs Alive2; RRx2 replaces it (owner)
 
 On the resume, design claude asked whether check claude should still run

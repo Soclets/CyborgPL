@@ -2512,7 +2512,8 @@ impl<'p> Interp<'p> {
                     None => { let _ = n; let v = self.handle_failure(handler.as_ref().unwrap(), line, "ptr.read", "out_of_range".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; Ok((v, prov)) }
                 }
             }
-            Expr::Builtin(head, op, args, _) => {
+            Expr::Builtin(head, op, args, bline) => {
+                self.one_lend_mut(args, *bline)?;
                 let v = self.builtin(head, op, args, line)?;
                 if matches!(v, Value::Nothing) { return rt(line, format!("`{head}.{op}` hands nothing back; it cannot be used as a value")); }
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
@@ -3445,7 +3446,34 @@ impl<'p> Interp<'p> {
 
     // ---- calls ------------------------------------------------------------
 
+    /// While something is lent `lend.mut`, nothing else may borrow it (owner, 2026-10-02: a): one
+    /// call lending the same variable twice, once to change, is refused, a handed-back borrow
+    /// (`grow[lend.mut 'u']`) counting as a lend of what it borrows.
+    fn one_lend_mut(&self, args: &crate::ast::Bracket, line: usize) -> Result<(), RuntimeError> {
+        let mut lends: Vec<(String, bool)> = Vec::new();
+        for a in &args.values {
+            match a {
+                crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, s, _)) => lends.push((s.clone(), true)),
+                crate::ast::Value::Expr(Expr::Owned(Verb::Lend, s, _)) => lends.push((s.clone(), false)),
+                crate::ast::Value::Expr(Expr::Call(c)) => {
+                    let m = self.prog.funcs.iter().find(|f| f.name == *c.path.last().unwrap() && f.module == c.path[..c.path.len() - 1]).and_then(|f| f.ret_lent.as_ref()).map(|(m, _)| *m);
+                    if let Some(m) = m { for s in self.call_froms(c, 0) { lends.push((s, m)); } }
+                }
+                _ => {}
+            }
+        }
+        for (i, (s, m)) in lends.iter().enumerate() {
+            for (t, n) in &lends[i + 1..] {
+                if s == t && (*m || *n) {
+                    return rt(line, format!("'{s}' is lent to change (`lend.mut`) and lent again in the same call: while something is lent to change, nothing else may borrow it (owner, 2026-10-02). To read and change it, pass it once with `lend.mut`; to keep how it was, `copy` it first"));
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
+        self.one_lend_mut(&c.args, c.line)?;
         match &c.limb {
             Some(l) if l == "std" => self.std_call(c),
             // another Limb, loaded from `CCA.cplr` under its own root (owner, 2026-09-29)
