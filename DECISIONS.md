@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Quick Fix works from a spelling table, `spellings.cplr`, and each Limb's `cpl_ver.cplr` (owner)
+
+Asked how Synthia's Quick Fix knows what to rewrite, design claude
+offered (a) Synthia runs CCA and applies its errors' fixes, recommended,
+or (b) its own Go list of rewrites. The owner: "Or... CyborgPL stores the
+stable spelling, and maps the stable spelling to the current one?"
+Design claude read it as a table of stable IDs and each version's
+spelling, read by every tool (over files storing IDs, which would stop
+being plain text), and noted that a table does renames only; the owner:
+"Bruh, if `let` was dropped, just make it support that too", so a row may
+spell nothing or add a word in a position. Asked for better ideas, design
+claude added a version stamp per Limb, meaning changes listed rather than
+rewritten, dependencies upgraded in a `.synthia/` copy, and a diff first.
+The owner: "we could create a separate file if needed", "whatever is
+good, bro", "we could create a new file type/extension if needed"
+(design claude kept `.cplr`, CyborgPL syntax for tooling), then named the
+stamp "`cpl_ver`", "with the dot": `cpl_ver.cplr`. `spellings.cplr` is
+design claude's name. `tooling.md`.
+
 ### 2026-10-02 — What CyborgPL's IDE should have (owner)
 
 The owner, after asking how moddable VS Code is: "What I would want the

@@ -149,6 +149,30 @@ owner's order:
    prefix, by Synthia itself editing the source code"), as its prefix
    override does by hand what a CCA user would (`synthia-manifest.md`).
    Its name is open.
+
+   **How it knows what to rewrite: a spelling table** (owner, 2026-10-02:
+   "CyborgPL stores the stable spelling, and maps the stable spelling to
+   the current one"). Every language word has a stable ID, and
+   **`spellings.cplr`** (one file for the whole language, shipped with
+   CCA, read by CCA, Synthia and the IDE) says how each version spells it:
+   a row is the ID, the date of the change, the old and the new spelling,
+   and the position it applies in. A removal is a spelling of nothing
+   (owner: "if `let` was dropped, just make it support that too"), so
+   rows cover renames (`/` → `div`), removals (`let`, `pos`) and
+   additions (`change` before a bare assignment). CCA's "use X" errors
+   and Synthia's rewrites come from the same rows, so they never disagree.
+   **A meaning change is a row too**, marked to report: Quick Fix lists
+   those lines to check instead of rewriting them (`and` running both
+   sides, 2026-09-25, is one).
+
+   **Each Limb's `cpl_ver.cplr`** holds the language date its code was
+   written for (owner: "`cpl_ver`", "with the dot"); a file of its own, so
+   both manifests and the IDE read it alike. Quick Fix applies every row
+   after that date and moves the date forward. It **shows the diff
+   first**, and **upgrades an outdated dependency in a copy under
+   `.synthia/`**, as the prefix override does. Those parts, and the name
+   `spellings.cplr`, are design claude's; the owner: "whatever is good,
+   bro". Both files are CyborgPL syntax, so `.cplr`, no new extension.
 2. **Limb registry search** — searching the index (`limbs.xxx`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.
