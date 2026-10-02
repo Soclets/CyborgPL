@@ -406,7 +406,7 @@ impl<'a> An<'a> {
 
     fn stmt(&mut self, mut env: Env, s: &Stmt) -> Option<Env> {
         match s {
-            Stmt::ListLet { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::MatchStmt { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } => {
+            Stmt::ListLet { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::MatchStmt { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) => {
                 self.incomplete = true;
                 Some(env)
             }

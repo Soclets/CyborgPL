@@ -67,6 +67,7 @@ fn stmt_size(s: &Stmt) -> usize {
         Stmt::ForEach { body, .. } => block_size(body),
         Stmt::Borrow { value, .. } | Stmt::EnumLet { value, .. } | Stmt::SimdLet { value, .. } | Stmt::TypedLet { value, .. } | Stmt::AutoLet { value, .. } => expr_size(value),
         Stmt::ListFill { value, count, .. } => expr_size(value) + expr_size(count),
+        Stmt::Src(_) => 0,
         Stmt::MatchStmt { scrut, arms } => expr_size(scrut) + arms_size(arms),
         Stmt::Give { .. } => 0,
     }
@@ -261,7 +262,7 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 out.push(vec![Stmt::Append { name: name.clone(), value: e }]);
             }
         }
-        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } => {}
+        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) => {}
         Stmt::MatchStmt { scrut, arms } => {
             for i in 0..arms.len() {
                 for b in block_variants(&arms[i].body) {
@@ -440,6 +441,7 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
             scopes.last_mut().unwrap().push(name.clone());
             ok
         }
+        Stmt::Src(_) => true,
         Stmt::ListFill { name, value, count, .. } => {
             let ok = e(value, scopes) && e(count, scopes);
             scopes.last_mut().unwrap().push(name.clone());

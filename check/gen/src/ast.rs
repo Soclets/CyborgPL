@@ -332,6 +332,8 @@ pub enum Stmt {
     TypedLet { name: String, mutable: bool, ty: String, value: Expr },
     /// `'z' := …;`
     AutoLet { name: String, value: Expr },
+    /// A statement as written (a call with `lend.mut`, for one).
+    Src(String),
     /// `mut 's': simd[int32, 4] = …;`
     SimdLet { name: String, mutable: bool, elem: Ty, lanes: usize, value: Expr },
 }
@@ -383,6 +385,8 @@ pub struct Program {
     pub inputs: Vec<Input>,
     pub funcs: Vec<Func>,
     pub bfuncs: Vec<BFunc>,
+    /// Functions as written.
+    pub extra_fns: Vec<String>,
     pub enums: Vec<EnumDef>,
     pub main: Vec<Stmt>,
     /// Built with a borrow mistake on purpose: both engines must refuse it.
@@ -703,6 +707,7 @@ impl<'a> Wr<'a> {
                 self.stmt.push((addr(s), s0, s0, self.out.len()));
                 self.out.push('\n');
             }
+            Stmt::Src(t) => self.out.push_str(&format!("{pad}{t}\n")),
             Stmt::TypedLet { name, mutable, ty, value } => {
                 let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
                 let head = format!("let {m}{}: {ty} = ", q(name));
@@ -901,6 +906,10 @@ impl Program {
             w.out.push_str(&format!("\nfn {}{announce} [{}] -> {ret} {{\n", f.name, params.join(", ")));
             w.block(&f.body, 1);
             w.out.push_str("}\n");
+        }
+        for f in &self.extra_fns {
+            w.out.push('\n');
+            w.out.push_str(f);
         }
         for f in &self.funcs {
             let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.text())).collect();

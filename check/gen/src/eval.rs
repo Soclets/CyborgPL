@@ -510,6 +510,7 @@ impl<'a> Ev<'a> {
                 env.last_mut().unwrap().insert(name.clone(), (Val::L(Rc::new(RefCell::new(vec![v; n as usize]))), (*elem).into()));
                 Ok(Flow::Next)
             }
+            Stmt::Src(_) => Ok(Flow::Next),
             Stmt::TypedLet { name, .. } | Stmt::AutoLet { name, .. } => {
                 env.last_mut().unwrap().insert(name.clone(), (Val::I(0), Ty::I64.into()));
                 Ok(Flow::Next)

@@ -200,6 +200,11 @@ struct Gen {
     enums: Vec<EnumGen>,
     /// The program holds something my exact evaluator does not model.
     unevaluable: bool,
+    /// Functions written as source.
+    extra_fns: Vec<String>,
+    /// `m1 [lent.mut 'a', lent 'b']` is defined: one call may not lend one
+    /// list both ways (owner: a, 38c91e7).
+    mutator: bool,
     /// A `#strict` file: the whole program under the generator's `check`
     /// rules (no risk, no positions, nothing unseen), since every site must
     /// be proven in its own function, and promised ranges are whole types.
@@ -235,6 +240,8 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         enums: vec![],
         strict,
         unevaluable: false,
+        extra_fns: vec![],
+        mutator: false,
     };
     if strict {
         g.in_check = 1;
@@ -259,6 +266,11 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let bad = if mistake && g.rng.chance(50) { Some(g.rng.below(n as u64) as usize) } else { None };
         for i in 0..n {
             bfuncs.push(g.borrow_fn(i, bad == Some(i)));
+        }
+        if g.rng.chance(50) {
+            let t = g.belem.name();
+            g.extra_fns.push(format!("fn m1 [lent.mut 'a': list[{t}], lent 'b': list[{t}]] {{\n    if list.length[lend 'b'] > 0 {{\n        list.append[lend.mut 'a', 1];\n    }}\n}}\n"));
+            g.mutator = true;
         }
         if mistake {
             wrong = Some(bad);
@@ -298,7 +310,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict, unevaluable: g.unevaluable }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -1054,6 +1066,21 @@ impl Gen {
             let items = (0..k).map(|_| self.literal(elem).0).collect();
             body.push(Stmt::ListLet { name: o.clone(), mutable, elem, items });
             owners.push((o, mutable));
+        }
+        // `m1[lend.mut 'oA', lend 'oB']`: two lists, before any borrow of
+        // them exists — or, as the mistake, one list lent both ways.
+        if self.mutator {
+            if mistake == Some(None) && self.rng.chance(40) {
+                let o = owners[0].0.clone();
+                body.push(Stmt::Src(format!("m1[lend.mut '{o}', lend '{o}'];")));
+                body.push(Stmt::Print { signed: false, value: Expr::Len(o) });
+                self.unevaluable = true;
+                return Stmt::Block { tier: Tier::Default, body };
+            }
+            if mistake.is_none() && nown >= 2 && owners[0].1 && self.rng.chance(30) {
+                body.push(Stmt::Src(format!("m1[lend.mut '{}', lend '{}'];", owners[0].0, owners[1].0)));
+                self.unevaluable = true;
+            }
         }
         // Each borrow: its name and the owners it may borrow.
         let mut borrows: Vec<(String, Vec<usize>)> = vec![];

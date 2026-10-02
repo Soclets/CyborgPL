@@ -613,7 +613,7 @@ impl<'a> Enc<'a> {
                 self.land(&c, &v, *ty, &format!("let '{name}'"));
                 self.scopes.last_mut().unwrap().insert(name.clone(), Var { term: v, ty: *ty });
             }
-            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } => {
+            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) => {
                 // Not modelled yet: the whole program is left to the other attacks.
                 self.too_big = true;
             }
