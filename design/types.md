@@ -15,6 +15,12 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 
 `bin16` is a half-precision float, not a 16-bit integer; `int16` is that.
 
+**`brain16`, the brain float** (owner, 2026-10-02; not built yet), also
+spelled `bfloat16` and `bf16`: Google Brain's 16-bit float for neural
+networks — `bin32`'s 8 exponent bits, so its range, with 7 bits of
+precision. Not IEEE 754, so not a `bin`. LLVM's type is `bfloat`. Its
+arithmetic, conversions and literals are open.
+
 **Rust's names are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
 for `bin16` `bin32` `bin64`. Nothing else: not `bool` (the same word),

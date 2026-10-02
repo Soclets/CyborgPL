@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — A brain float: `brain16`, also `bfloat16` and `bf16` (owner)
+
+The owner asked whether LLVM supports bfloat ("Brain Float"): it does,
+as the IR type `bfloat` (LLVM 11 onward); design claude compiled a
+`bfloat` add for this Mac's M5 (`FEAT_BF16`), which LLVM widens to 32-bit,
+adds, and narrows with the hardware `bfcvt`, since processors give
+bfloat conversions and dot products, not general arithmetic. It has
+`bin32`'s 8 exponent bits and 7 of precision (against `bin16`'s 5 and
+10), made by Google Brain for neural networks. The owner: "Let's add it".
+On the name, design claude noted `bin` means IEEE 754 binary and bfloat
+is not IEEE, and offered `bfloat16`, `bin16.brain` or `brain16`,
+recommending `bfloat16`. The owner: "`brain`, `bfloat`, and `bf`
+(rs-style)", then, asked which is the main one, "`brain` is main, rhymes
+too". So **`brain16`** is the type, with **`bfloat16`** and **`bf16`** as
+aliases (bfloat comes in 16 bits only). Open: its arithmetic, conversions,
+literals, the GPU. Not built yet. `types.md`.
+
 ### 2026-10-02 — Type names: CyborgPL's own and Rust's, nothing else (owner)
 
 The owner asked for long aliases too ("`binary_float16`,
