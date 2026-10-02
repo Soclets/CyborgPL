@@ -13,7 +13,7 @@ MAIN {
         let 'ok': int32[0, 100] = 'raw';                   # the if is the guardrail; a check site
         std::print.useful.stdout['ok', \n];
     } else {
-        std::print.stdout["250 is not a percentage", \n];
+        std::print.stored.stdout["250 is not a percentage", \n];
     }
     let 'r' := to.uint8[0, 100]["42"] otherwise 0;          # into a range type: fails, does not check
     let 'bad' := to.uint8[0, 100]["142"] otherwise 0;

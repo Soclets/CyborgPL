@@ -2,9 +2,9 @@ MAIN {
     let 'correct?': bool = true;
     let 'wrong?' := not 'correct?';
     if 'correct?' and (not 'wrong?') {
-        std::print.stdout["fine", \n];
+        std::print.stored.stdout["fine", \n];
     }
     if 'wrong?' == false {
-        std::print.stdout['correct?', " ", 'wrong?', \n];
+        std::print.stored.stdout['correct?', " ", 'wrong?', \n];
     }
 }

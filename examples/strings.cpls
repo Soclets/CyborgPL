@@ -1,8 +1,8 @@
 MAIN {
-    std::print.stdout["a\nb", \n];               # \n inside quotes is a backslash and an n
-    std::print.stdout["say \"hi\"", \n];         # \" is the one escape that is needed
-    std::print.stdout["back\\slash", \n];        # and \\ for the backslash itself
-    std::print.stdout["tab	here", \n];           # a tab is typed, not escaped
+    std::print.stored.stdout["a\nb", \n];               # \n inside quotes is a backslash and an n
+    std::print.stored.stdout["say \"hi\"", \n];         # \" is the one escape that is needed
+    std::print.stored.stdout["back\\slash", \n];        # and \\ for the backslash itself
+    std::print.stored.stdout["tab	here", \n];           # a tab is typed, not escaped
     let 'nl' := \n;                              # the newline is the bare \n outside quotes
-    std::print.stdout["one", 'nl', "two", 'nl'];
+    std::print.stored.stdout["one", 'nl', "two", 'nl'];
 }

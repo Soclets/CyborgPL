@@ -19,11 +19,11 @@ MAIN {
     let 't' := give 's';
     let 'u' := copy 't';
     shout[lend.mut 'u'];
-    std::print.stdout['t', \n];
-    std::print.stdout['u', \n];
+    std::print.stored.stdout['t', \n];
+    std::print.stored.stdout['u', \n];
     let 'g' := greet[copy 'u'];
-    std::print.stdout['g', \n];
-    std::print.stdout['u', \n];
+    std::print.stored.stdout['g', \n];
+    std::print.stored.stdout['u', \n];
     let 'words' := ["a", "b", "c"];
     let 'n' := count[lend 'words'];
     std::print.useful.stdout['n', " words", \n];

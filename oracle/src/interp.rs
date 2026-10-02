@@ -4329,9 +4329,12 @@ impl<'p> Interp<'p> {
             }
             "printu.stdout" | "printu.stderr" => rt(c.line, format!("std::{path} is spelled std::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
             "printf.stdout" | "printf.stderr" => rt(c.line, format!("std::{path} is spelled std::print.format.{} now (owner, 2026-09-29)", &path[7..])),
-            "print.stdout" | "print.useful.stdout" | "print.stderr" | "print.useful.stderr"
+            // a print says which form it shows (owner, 2026-10-02): `print.stored` or `print.useful`, never bare
+            "print.stdout" | "print.stderr" => rt(c.line, format!("say which form `std::{path}` shows: `std::print.stored.{0}[…]` (what is stored) or `std::print.useful.{0}[…]` (the useful value) (owner, 2026-10-02)", &path[6..])),
+            "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `std::{path}` shows: `std::print.weird.stored.{0}` or `std::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
+            "print.stored.stdout" | "print.useful.stdout" | "print.stored.stderr" | "print.useful.stderr"
             | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr"
-            | "print.weird.stdout" | "print.weird.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr"
+            | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" => {
                 // Since 2026-09-19 print takes any number of values and renders each —
@@ -4383,7 +4386,7 @@ impl<'p> Interp<'p> {
             }
             "printc.stdout" | "printc.stderr" | "printrs.stdout" | "printrs.stderr" | "c.printf" | "c.fprintf.stderr"
             | "rs.print" | "rs.println" | "rs.eprint" | "rs.eprintln" =>
-                rt(c.line, format!("std::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use std::print / std::print.useful")),
+                rt(c.line, format!("std::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use std::print.stored / std::print.useful")),
             "exit" => {
                 let (v, _) = self.single(&c.args, c.line)?;
                 match v {

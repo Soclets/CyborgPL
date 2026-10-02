@@ -2,13 +2,13 @@ fn say ['n': int32] {
     let 'by3' := ('n' mod 3) == 0;
     let 'by5' := ('n' mod 5) == 0;
     if 'by3' and 'by5' {
-        std::print.stdout["FizzBuzz", \n];
+        std::print.stored.stdout["FizzBuzz", \n];
     } else if 'by3' {
-        std::print.stdout["Fizz", \n];
+        std::print.stored.stdout["Fizz", \n];
     } else if 'by5' {
-        std::print.stdout["Buzz", \n];
+        std::print.stored.stdout["Buzz", \n];
     } else {
-        std::print.stdout['n', \n];
+        std::print.stored.stdout['n', \n];
     }
 }
 

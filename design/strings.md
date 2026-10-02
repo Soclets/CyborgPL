@@ -32,7 +32,7 @@ form is decided: `print` and `print.format` have no `auto_newline`.
 
 ```
 std::print.weird.useful.stdout <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- \n;
-std::print.weird.stdout <- "stored: " <- 'tenth' <- \n;
+std::print.weird.stored.stdout <- "stored: " <- 'tenth' <- \n;
 ```
 
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
@@ -40,9 +40,10 @@ seems like a good name, maybe use `->` arrows"). Each value follows a
 **`<-`**, pointing into the output, as C++'s `<<` points into `cout`
 and as `<-` points into a variable in `inline.ASM` (owner: "`<-`", over
 `->`, which would point away from the screen — CyborgPL's arrows point
-where the value goes). It takes no `[ ]`, and at least one value. Plain
-**`.weird`** shows the stored form, as `print`; **`.weird.useful`** the
-useful form, as `print.useful` (owner: "what if we add a way to use
+where the value goes). It takes no `[ ]`, and at least one value. **`.weird.stored`**
+shows the stored form, as `print.stored`; **`.weird.useful`** the
+useful form, as `print.useful` (a bare `.weird` said "stored" until
+2026-10-02, when every print came to say which) (owner: "what if we add a way to use
 `.useful` with `.weird`?", then "yea"). The strongest modifier first:
 `.weird` changes the whole call's shape, `.useful` only how values
 look, so `print.useful.weird` is refused. The first borrowed-language
@@ -59,7 +60,7 @@ std::print.format.stdout["{2} vs {1}, and {2} wins\n", "a", "b"];
 std::print.format.stderr["error: {}\n", 'msg'];
 ```
 
-The third print, beside `print` (stored form) and `print.useful` (useful
+The third print, beside `print.stored` (stored form) and `print.useful` (useful
 form), and the only one that shapes its output — hex, padding, places —
 so it keeps its own job (owner: "print is print, print useful is print
 useful"). Decided 2026-10-01, replacing C's `%` codes (owner: "yea, {}

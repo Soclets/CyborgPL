@@ -5,6 +5,6 @@ MAIN {
     let 'bad': list[uint8] = [104, 255, 105];
     let 'a' := to.str.utf8['good'] otherwise "?";
     let 'b' := to.str.utf8['bad'] otherwise "not UTF-8";
-    std::print.stdout['a', \n, 'b', \n];
-    std::print.stdout[str.points[lend 'a'], " points, ", str.bytes[lend 'a'], " bytes", \n];
+    std::print.stored.stdout['a', \n, 'b', \n];
+    std::print.stored.stdout[str.points[lend 'a'], " points, ", str.bytes[lend 'a'], " bytes", \n];
 }

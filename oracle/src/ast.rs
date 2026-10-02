@@ -289,7 +289,7 @@ pub enum Stmt {
     Break { line: usize },
     Continue { line: usize },
     Return { value: Option<Bracket>, line: usize },
-    /// a call used as a statement: `add[1, 2];` or `std::print.stdout[...];`
+    /// a call used as a statement: `add[1, 2];` or `std::print.stored.stdout[...];`
     Call { call: Call, line: usize },
     /// `list.append[…];` etc. as a statement
     BuiltinStmt { head: String, op: String, args: Bracket, line: usize },
@@ -343,7 +343,7 @@ pub struct Call {
     /// `otherwise …` after the call, if any
     pub handler: Option<Handler>,
     pub limb: Option<String>,   // None = this Limb; Some("std") = std::
-    /// std: print.stdout → ["print", "stdout"]; this Limb: the canonical path from
+    /// std: print.stored.stdout → ["print", "stored", "stdout"]; this Limb: the canonical path from
     /// the root, `limb.` stripped, the calling module prefixed to a relative one
     pub path: Vec<String>,
     /// the module the call is written in (for visibility)

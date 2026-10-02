@@ -7,6 +7,6 @@ MAIN {
         change 'x' = 'x' x 10;
         list.append[lend.mut 'seen', 'xs'[1]];
     }
-    std::print.stdout['xs', \n];
-    std::print.stdout['seen', \n];
+    std::print.stored.stdout['xs', \n];
+    std::print.stored.stdout['seen', \n];
 }

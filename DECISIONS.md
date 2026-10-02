@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Every print says its form: `print.stored` or `print.useful`; `print.weird.stored` too (owner)
+
+```
+std::print.stored.stdout['x', \n];           # 0.1000000000000000055…   (was std::print.stdout)
+std::print.useful.stdout['x', \n];           # 0.1
+std::print.weird.stored.stdout <- 'x' <- \n;  # (was std::print.weird.stdout)
+```
+
+The owner: "Should we make `std::print.stored` mandatory, instead of
+bare?" Design claude recommended it: a bare `print` showing 55 digits
+for `0.1` is the most surprising default in the language, and with both
+forms named nobody remembers which is the default; it touches about 135
+calls; `print.weird` would follow; `to.str.utf8` (stored) against
+`to.useful.str.utf8` has the same asymmetry and was left to ask apart.
+The owner: "Though, it has to be required & compatible with `.weird`".
+So a bare `std::print.stdout` / `.stderr` and `std::print.weird.stdout` are
+refused, naming both forms; `.weird` stays first (`print.stored.weird` is
+refused, the strongest modifier first). In the oracle; every example,
+reject test and design sample rewritten (67 files). CCA, the bench and the
+website still say `std::print.stdout`. `to.` was not asked.
+`strings.md`, `syntax-sketch.md`.
+
 ### 2026-10-02 — `brain16` and `*0.1` are in the oracle
 
 The owner: "Implement it". `brain16` (and `bfloat16`, `bf16`) is a type

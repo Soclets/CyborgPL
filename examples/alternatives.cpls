@@ -7,7 +7,7 @@ MAIN {
     let 's' := "hello";
     std::print.useful.stdout[count[&'s'], \n];            # `&'s'` is `lend 's'`
     shout[&mut 's'];                                # `&mut 's'` is `lend.mut 's'`
-    std::print.stdout['s', \n];
+    std::print.stored.stdout['s', \n];
     std::print.useful.stdout[apply[count, lend 's'], \n];   # both spellings, same thing
     let 'x': bin64 = 0.1;
     std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output['x', \n];   # print.useful, for the reader who wants it spelled out

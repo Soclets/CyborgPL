@@ -4,7 +4,7 @@ MAIN {
     let 'bs': list[bin64] = [1, 2];
     let 'more': list[bin64] = list.fill[1, 3];
     let 'ds': list[deci64] = list.fill[0.25, 3];
-    std::print.stdout['bs', \n];
-    std::print.stdout['more', \n];
-    std::print.stdout['ds', \n];
+    std::print.stored.stdout['bs', \n];
+    std::print.stored.stdout['more', \n];
+    std::print.stored.stdout['ds', \n];
 }

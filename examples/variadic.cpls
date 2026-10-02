@@ -11,7 +11,7 @@ fn count_ints [...'nums': int32] -> uint64 {
 fn show [lent 'label': str.utf8, lent ...'parts'] {
     std::print.useful.stdout['label', ": "];
     for 'p' in lend 'parts' { std::print.useful.stdout['p', " "]; }
-    std::print.stdout[\n];
+    std::print.stored.stdout[\n];
 }
 
 MAIN {

@@ -1,1 +1,1 @@
-MAIN { std::print.weird.stdout["hi", \n]; }
+MAIN { std::print.weird.stored.stdout["hi", \n]; }

@@ -38,7 +38,7 @@ MAIN {
     let 'students' := [give 'a', give 'b', Student[name = "Cy", scores = list.empty]];
     let 'passed' := 0;
     for 's' in lend 'students' {
-        std::print.stdout['s'.name, ": ", grade[lend 's'], \n];
+        std::print.stored.stdout['s'.name, ": ", grade[lend 's'], \n];
         let 'avg' := average[lend 's'] otherwise 0;
         if 'avg' >/== 'passing' { change 'passed' = 'passed' + 1; }
     }

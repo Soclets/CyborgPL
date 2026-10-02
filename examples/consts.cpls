@@ -9,5 +9,5 @@ MAIN {
     let 's' := 'greeting';
     let 'p' := P[x = 'max'];
     for 'i' in range[1, 'max', 4] { std::print.useful.stdout['i', " "]; }
-    std::print.stdout[\n];
+    std::print.stored.stdout[\n];
 }

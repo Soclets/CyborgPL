@@ -27,7 +27,7 @@ MAIN {
         std::print.useful.stdout["#", 'l'.number, ": ", describe[lend 'l'], \n];
     }
     let 's' := Status.locked;
-    if 's' == Status.locked { std::print.stdout["== works on a case", \n]; }
+    if 's' == Status.locked { std::print.stored.stdout["== works on a case", \n]; }
     let 't' := Status.claimed["Bo"];
-    std::print.stdout['t', \n];
+    std::print.stored.stdout['t', \n];
 }

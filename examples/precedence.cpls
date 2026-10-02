@@ -9,6 +9,6 @@ MAIN {
     let 'a' := 5;
     let 'b' := 7;
     if 'a' + 1 > 'b' - 2 and not ('a' == 'b') or false {
-        std::print.stdout["logic holds", \n];
+        std::print.stored.stdout["logic holds", \n];
     }
 }

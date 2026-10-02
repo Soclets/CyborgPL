@@ -13,6 +13,6 @@ MAIN {
     nocheck let 'p' := ptr.cast[Point]['raw'];
     nocheck ptr.write['p', Point[x = 3, y = 4]];
     nocheck let 'q' := ptr.read['p'];
-    std::print.stdout['q'.x, " ", 'q'.y, \n];
+    std::print.stored.stdout['q'.x, " ", 'q'.y, \n];
     nocheck free['raw'];
 }

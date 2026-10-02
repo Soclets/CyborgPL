@@ -18,9 +18,9 @@ MAIN {
     for 'i' in range[1, list.length[lend 'xs']] {
         std::print.useful.stdout['xs'['i'], " "];
     }
-    std::print.stdout[\n];
+    std::print.stored.stdout[\n];
     let 'days': array[str.utf8] = ["mon", "tue"];
-    std::print.stdout['days'[2], " of ", array.length[lend 'days'], \n];
+    std::print.stored.stdout['days'[2], " of ", array.length[lend 'days'], \n];
     let 'grid' := [[1, 2], [3, 4]];
     std::print.useful.stdout['grid'[2], \n];
     for perm 'i' in range[1, list.length[lend 'xs']] {

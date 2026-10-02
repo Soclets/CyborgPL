@@ -1908,7 +1908,7 @@ impl Parser {
             self.advance();
             match self.advance().tok { Tok::Word(w) => path.push(w), other => return self.err(format!("expected a name after `.`, found {other}")) }
         }
-        // `std::print.weird.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
+        // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
             return self.err("`.weird` comes first, the strongest modifier: `std::print.weird.useful.stdout <- …`");

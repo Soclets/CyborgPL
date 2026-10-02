@@ -1,13 +1,13 @@
 MAIN {
     let 'x': bin64 = 0.1;
-    std::print.stdout['x', \n];
+    std::print.stored.stdout['x', \n];
     std::print.useful.stdout['x', \n];
     let 'y': bin16 = 1000;
     std::print.useful.stdout['y', \n];
     let 'big' := 1_000_000 x 1_000_000;
-    std::print.stdout['big', \n];
+    std::print.stored.stdout['big', \n];
     let 's' := "x is " ++ to.str.utf8['x'];
-    std::print.stdout['s', \n];
+    std::print.stored.stdout['s', \n];
     std::print.useful.stdout['s', \n];
     std::print.useful.stdout["x is ", 'x', \n];
 }

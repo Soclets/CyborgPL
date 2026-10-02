@@ -11,5 +11,5 @@ fn f [] -> uint64 {
 }
 
 MAIN {
-    std::print.stdout[f[], \n];
+    std::print.stored.stdout[f[], \n];
 }

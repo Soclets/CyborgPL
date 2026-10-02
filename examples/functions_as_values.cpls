@@ -22,8 +22,8 @@ fn keep [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> list[int32] {
 
 MAIN {
     let 'lockers' := [Locker[number = 7, owner = "Cy"], Locker[number = 2, owner = "Ann"], Locker[number = 5, owner = "Bo"]];
-    std::print.stdout[first_by[lend 'lockers', by_number], \n];          # a named function, as a value: its bare name
-    std::print.stdout[first_by[lend 'lockers', by_owner], \n];
+    std::print.stored.stdout[first_by[lend 'lockers', by_number], \n];          # a named function, as a value: its bare name
+    std::print.stored.stdout[first_by[lend 'lockers', by_owner], \n];
 
     let 'f' := by_number;                                                 # held in a variable
     std::print.useful.stdout['f'[lend 'lockers'[1], lend 'lockers'[2]], \n];   # called: 'f'[…]

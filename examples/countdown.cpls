@@ -2,10 +2,10 @@
 # A position is a uint64, so walking a list backwards needs exactly this.
 MAIN {
     for 'i': uint64 in range[3, 1, -1] { std::print.useful.stdout['i', " "]; }
-    std::print.stdout[\n];
+    std::print.stored.stdout[\n];
     for 'j': uint64 in range[3, 0, -1] { std::print.useful.stdout['j', " "]; }   # ends at 0: must not underflow
-    std::print.stdout[\n];
+    std::print.stored.stdout[\n];
     let 'xs' := [10, 20, 30];
     for 'k': uint64 in range[list.length[lend 'xs'], 1, -1] { std::print.useful.stdout['xs'['k'], " "]; }
-    std::print.stdout[\n];
+    std::print.stored.stdout[\n];
 }

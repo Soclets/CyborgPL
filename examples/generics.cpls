@@ -33,7 +33,7 @@ MAIN {
     std::print.useful.stdout[describe[lend 'p'], \n];
     let 'm' := Maybe.some[42];
     match 'm' {
-        none     { std::print.stdout["nothing", \n]; }
+        none     { std::print.stored.stdout["nothing", \n]; }
         some 'v' { std::print.useful.stdout["got ", 'v', \n]; }
     }
 }

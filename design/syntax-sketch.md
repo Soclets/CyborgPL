@@ -89,7 +89,7 @@ without the rest of that redesign. See `DECISIONS.md`.
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
   anything.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
-  `std::print.stdout[…]`, `'r': std::uenr`, `crate_x::Locker[…]`. Inside a
+  `std::print.stored.stdout[…]`, `'r': std::uenr`, `crate_x::Locker[…]`. Inside a
   Limb the same `.` walks modules: `shapes.circle.area[…]`, `limb.helper[…]`
   for the root (`limbs.md`, 2026-09-19).
 - **User names are quoted** (`'x'`, `'s'`). **Settled and reaffirmed — see
@@ -131,8 +131,10 @@ without the rest of that redesign. See `DECISIONS.md`.
   is legal — the name `'+'` and the operator `+` are different tokens.
 - **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,
   never a parameter list.
-- **`print` vs `print.useful`** (decided 2026-09-14): `std::print.stdout[…]`
-  prints the real stored value (a `bin32` `0.1` prints as
+- **`print.stored` vs `print.useful`** (decided 2026-09-14; both named since
+  2026-10-02, owner: "it has to be required & compatible with `.weird`" —
+  a bare `std::print.stdout` is refused, saying which to write):
+  `std::print.stored.stdout[…]` prints the real stored value (a `bin32` `0.1` prints as
   `0.100000001490116119384765625`); `std::print.useful.stdout[…]` prints the
   useful value (`0.1`). Both take **any number of values, comma-separated**,
   render each and print them with nothing between (2026-09-19):

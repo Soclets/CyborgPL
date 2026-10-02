@@ -33,5 +33,5 @@ MAIN {
     for 'l' in lend 'lockers' {
         std::print.useful.stdout['l'.number, " "];
     }
-    std::print.stdout[\n];
+    std::print.stored.stdout[\n];
 }

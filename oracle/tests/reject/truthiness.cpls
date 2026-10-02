@@ -1,6 +1,6 @@
 MAIN {
     let 'n' := 1;
     if 'n' {
-        std::print.stdout["yes"];
+        std::print.stored.stdout["yes"];
     }
 }

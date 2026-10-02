@@ -11,10 +11,10 @@ MAIN {
     let 'n': int32 = 42;
     let 'ok' := true;
     let 's' := Size.big;
-    std::print.stdout[to.str.utf8['x'], " | ", to.useful.str.utf8['x'], \n];
-    std::print.stdout[to.str.utf8['d'], " | ", to.useful.str.utf8['d'], \n];
-    std::print.stdout[to.str.utf8['n'], " | ", to.useful.str.utf8['n'], \n];
-    std::print.stdout[to.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], \n];
-    std::print.stdout[to.str.utf8['s'], " | ", to.useful.str.utf8['s'], \n];
+    std::print.stored.stdout[to.str.utf8['x'], " | ", to.useful.str.utf8['x'], \n];
+    std::print.stored.stdout[to.str.utf8['d'], " | ", to.useful.str.utf8['d'], \n];
+    std::print.stored.stdout[to.str.utf8['n'], " | ", to.useful.str.utf8['n'], \n];
+    std::print.stored.stdout[to.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], \n];
+    std::print.stored.stdout[to.str.utf8['s'], " | ", to.useful.str.utf8['s'], \n];
     std::print.useful.stdout['s', \n];
 }
