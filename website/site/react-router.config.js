@@ -9,6 +9,6 @@ const ids = readdirSync(examples).filter((f) => f.endsWith(".cpls")).map((f) => 
 export default {
   ssr: false,
   async prerender() {
-    return ["/", "/learn", "/examples", "/more", "/download", "/licence", "/404", ...ids.map((id) => `/examples/${id}`)];
+    return ["/", "/learn", "/examples", "/more", "/download", "/licence", "/good-practice", "/404", ...ids.map((id) => `/examples/${id}`)];
   },
 };

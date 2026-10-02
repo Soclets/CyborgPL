@@ -1,4 +1,4 @@
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
 import Md from "../components/Md.jsx";
@@ -18,7 +18,11 @@ export default function Learn() {
   const { hello, syntax } = useLoaderData();
   return (
     <div className="learn">
-      <h1 className="h2big">Learn</h1>
+      <div className="title-row">
+        <h1 className="h2big">Learn</h1>
+        {/* Good practice (owner, 2026-10-02): a link beside the title, and one on More. */}
+        <Link to="/good-practice" className="pill-link" prefetch="intent"><Icon name="check" size={16} stroke={2.4} />Good practice</Link>
+      </div>
 
       <h2 className="section">Your first program</h2>
       <div className="panel">

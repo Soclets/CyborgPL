@@ -26,10 +26,13 @@ export async function loader() {
     { to: "/examples", title: "Examples", text: "Every program in the repo, with its output", kind: "Page", icon: "code" },
     { to: "/download", title: "Download", text: "Nothing to download yet", kind: "Page", icon: "download" },
     { to: "/more", title: "RRx2 and RR", text: "CyborgPL’s own verifiers: RRx2, a translation validator, and RR, an exact-math language", kind: "Page", icon: "shield" },
+    { to: "/good-practice", title: "Good practice", text: "How CyborgPL is meant to be written: twelve practices, advice not rules", kind: "Page", icon: "check" },
     { to: "/licence", title: "Licence", text: "Apache-2.0 with the LLVM exception; text CC BY 4.0", kind: "Page", icon: "scale" },
   ];
   const features = FEATURES.map((f) => ({ to: `/learn#${f.id}`, title: plain(f.title), text: plain(f.text), kind: "Feature", icon: f.icon }));
   const lessons = SYNTAX.map((s, i) => ({ to: `/learn#syntax-${i + 1}`, title: plain(s.title), text: plain(s.text), kind: "Syntax", icon: "book" }));
+  const { readPractice } = await import("../lib/practice.server.js");
+  const practices = (await readPractice()).flatMap((g) => g.items.map((it) => ({ to: `/good-practice#p-${it.n}`, title: plain(it.title), text: plain(it.text), kind: "Practice", icon: "check" })));
   const examples = listExamples().map((e) => ({ to: `/examples/${e.id}`, title: e.title, text: e.summary || `examples/${e.id}.cpls`, kind: "Example", icon: "code", id: e.id }));
   // An answer's code must be a real line of its example, or the build stops.
   const { readFileSync } = await import("node:fs");
@@ -38,7 +41,7 @@ export async function loader() {
     for (const line of a.code.split("\n")) if (!src.includes(line)) throw new Error(`answers.js: "${line}" is not in examples/${a.from}.cpls`);
     return highlight(a.code);
   }));
-  return { index: [...pages, ...features, ...lessons, ...examples], answers };
+  return { index: [...pages, ...features, ...lessons, ...practices, ...examples], answers };
 }
 
 // Tapped on the empty bar: things worth trying. Each one has an instant answer.

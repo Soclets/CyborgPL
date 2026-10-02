@@ -12,6 +12,7 @@ export default function More() {
       <div className="list">
         <Link to="/download" className="row"><span className="ri"><Icon name="download" size={19} /></span><b>Download</b><Icon name="chev" size={18} /></Link>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="row"><span className="ri"><Icon name="github" size={19} stroke={1.8} /></span><b>Source</b><Icon name="external" size={17} /></a>
+        <Link to="/good-practice" className="row"><span className="ri"><Icon name="check" size={19} stroke={2.4} /></span><b>Good practice</b><Icon name="chev" size={18} /></Link>
         <Link to="/licence" className="row"><span className="ri"><Icon name="scale" size={19} /></span><b>Licence</b><Icon name="chev" size={18} /></Link>
       </div>
       <h2 className="section">Related</h2>

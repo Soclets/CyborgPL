@@ -147,6 +147,13 @@ input { font: inherit; }
 .row:active { background: var(--pressed); }
 .ri { width: 34px; height: 34px; border-radius: 10px; background: var(--ink); color: var(--on-ink); display: grid; place-items: center; }
 .fineprint { margin: 18px 6px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pill-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--surface); color: var(--ink); font: 700 14px var(--sans); }
+.pill-link:active { background: var(--pressed); }
+html.desktop .pill-link:hover { background: var(--pressed); }
+.practice .lesson { scroll-margin-top: calc(var(--safe-top) + 16px); }
+html.desktop .practice .lesson { scroll-margin-top: 88px; }
+.practice .lesson .code { margin-top: 2px; }
 .crumb { display: inline-block; margin: 4px 0 0; font: 600 16px var(--sans); color: var(--violet); }
 .lic-links { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--line-dash); display: flex; flex-wrap: wrap; gap: 8px; }
 .lic-links a { display: inline-flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 99px; background: var(--bg); color: var(--blue); font: 600 14px var(--sans); }

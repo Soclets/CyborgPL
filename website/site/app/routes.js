@@ -12,6 +12,7 @@ export default [
     route("more", "routes/more.jsx"),
     route("download", "routes/download.jsx"),
     route("licence", "routes/licence.jsx"),
+    route("good-practice", "routes/practice.jsx"),
   ]),
   route("*", "routes/not-found.jsx"),
 ];

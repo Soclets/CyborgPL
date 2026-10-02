@@ -6,7 +6,7 @@ import { REPO_URL } from "../lib/content.js";
 
 const TABS = [
   { to: "/", icon: "home", label: "Home", match: (p) => p === "/" },
-  { to: "/learn", icon: "book", label: "Learn", match: (p) => p.startsWith("/learn") },
+  { to: "/learn", icon: "book", label: "Learn", match: (p) => p.startsWith("/learn") || p.startsWith("/good-practice") },
   { to: "/examples", icon: "code", label: "Examples", match: (p) => p.startsWith("/examples") },
   { to: "/more", icon: "more", label: "More", match: (p) => ["/more", "/download", "/licence"].some((x) => p.startsWith(x)) },
 ];
@@ -15,7 +15,7 @@ const TABS = [
 // Licence sit in it directly, since a wide screen has room for them.
 const LINKS = [
   { to: "/", label: "Home", match: (p) => p === "/" },
-  { to: "/learn", label: "Learn", match: (p) => p.startsWith("/learn") },
+  { to: "/learn", label: "Learn", match: (p) => p.startsWith("/learn") || p.startsWith("/good-practice") },
   { to: "/examples", label: "Examples", match: (p) => p.startsWith("/examples") },
   { to: "/download", label: "Download", match: (p) => p.startsWith("/download") },
   { to: "/licence", label: "Licence", match: (p) => p.startsWith("/licence") },
