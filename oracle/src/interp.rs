@@ -2835,7 +2835,9 @@ impl<'p> Interp<'p> {
             // one is a check site, as integer overflow and division by zero are
             ("div" | "mod", Bin(_), Bin(y)) if y == 0.0 => return site(line, if op == "div" { "division by zero" } else { "`mod` by zero" }),
             ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(x), Bin(y)) => {
-                let r = match op { "+" => x + y, "-" => x - y, "x" => x * y, "div" => x / y, "mod" => x % y, _ => x.powf(y) };
+                // `mod` takes the divisor's sign, as on integers and decis (owner, 2026-10-02: a): C's
+                // `fmod`, then the divisor added once where the signs differ; a zero is the divisor's sign
+                let r = match op { "+" => x + y, "-" => x - y, "x" => x * y, "div" => x / y, "mod" => floor_mod(x, y), _ => x.powf(y) };
                 if r.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} has no number as its answer (NaN): a bin never holds one")); }
                 if r.is_infinite() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest bin (it would be infinity): a bin never holds one")); }
                 Bin(r)
@@ -2845,7 +2847,7 @@ impl<'p> Interp<'p> {
             ("div" | "mod", Brain(_), Brain(y)) if y == 0.0 => return site(line, if op == "div" { "division by zero" } else { "`mod` by zero" }),
             ("+" | "-" | "x" | "div" | "mod" | "xx", Brain(x), Brain(y)) => {
                 let (a, b) = (x as f32, y as f32);
-                let r32 = match op { "+" => a + b, "-" => a - b, "x" => a * b, "div" => a / b, "mod" => a % b, _ => a.powf(b) };
+                let r32 = match op { "+" => a + b, "-" => a - b, "x" => a * b, "div" => a / b, "mod" => floor_mod(a as f64, b as f64) as f32, _ => a.powf(b) };
                 let r = crate::value::round_brain(r32 as f64);
                 if r.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} has no number as its answer (NaN): a brain16 never holds one")); }
                 if r.is_infinite() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest brain16 (it would be infinity)")); }
@@ -4382,7 +4384,12 @@ impl<'p> Interp<'p> {
                 match (a, b) {
                     (Value::Int(_), Value::Int(0)) => site(c.line, "division by zero"),
                     (Value::Int(x), Value::Int(y)) => Ok(Value::Int(if path == "div.trunc" { x.checked_div(y) } else { x.checked_rem(y) }.ok_or_else(|| RuntimeError { line: c.line, msg: "integer overflow".into(), exit: None, site: true, leave: None })?)),
-                    (a, b) => rt(c.line, format!("std::{path} takes two integers, got {} and {}", a.kind(), b.kind())),
+                    // C's `fmod`, the dividend's sign, kept by name beside the language's `mod`
+                    // (owner, 2026-10-02: a)
+                    (Value::Bin(_), Value::Bin(y)) | (Value::Brain(_), Value::Brain(y)) if path == "mod.trunc" && y == 0.0 => site(c.line, "`mod` by zero"),
+                    (Value::Bin(x), Value::Bin(y)) if path == "mod.trunc" => Ok(Value::Bin(x % y)),
+                    (Value::Brain(x), Value::Brain(y)) if path == "mod.trunc" => Ok(Value::Brain(crate::value::round_brain(((x as f32) % (y as f32)) as f64))),
+                    (a, b) => rt(c.line, format!("std::{path} takes two integers{}, got {} and {}", if path == "mod.trunc" { " or two bins" } else { "" }, a.kind(), b.kind())),
                 }
             }
             "printu.stdout" | "printu.stderr" => rt(c.line, format!("std::{path} is spelled std::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
@@ -4571,6 +4578,13 @@ fn round_decimal(d: &str, w: u8) -> f64 {
 
 /// The useful form of a value whose static type is known: a bin16/bin32 is the shortest decimal
 /// that rounds back to the same value at that width, not at 64 bits.
+/// `mod` on a bin or brain16: the divisor's sign (owner, 2026-10-02: a). The remainder of `x / y`
+/// is exact in floating point, so this is C's `fmod` plus one fix-up; adding `y` may round.
+fn floor_mod(x: f64, y: f64) -> f64 {
+    let m = x % y;
+    if m == 0.0 { 0.0f64.copysign(y) } else if (m < 0.0) != (y < 0.0) { m + y } else { m }
+}
+
 fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {
     let ty = match ty { Some(Ty::Ranged(b, _, _)) => Some(&**b), t => t };
     match (v, ty) {

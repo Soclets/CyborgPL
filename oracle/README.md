@@ -111,6 +111,7 @@ had to make to run at all; none is a decision.
 |---|---|---|
 | A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |
 | A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them). Confirmed a gap, not the design, 2026-09-21 |
+| `mod` on a bin or `brain16` is `fmod` plus the divisor once where the signs differ, so a tiny negative over a large divisor can come out equal to the divisor (`-1e-20 mod 360.0` is `360.0`, as Python's `%`) | `interp.rs` `floor_mod` | Not decided: whether that edge should be `0` |
 | `lend.mut 'x'.field` writes back at the end of the statement; `'x'.field[i] = v` is refused (lend the list to a name first) | `interp.rs` `stmt` | A statement is the unit of a lend here; the compiler tracks the borrow itself |
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |

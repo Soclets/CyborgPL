@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `mod` on a bin or `brain16` takes the divisor's sign, as on integers and decis (owner: a)
+
+```
+-370.0 mod 360.0              # 350   (was -10 in the oracle)
+7.5 mod -2.0                  # -0.5
+std::mod.trunc[-370.0, 360.0] # -10, C's fmod, by name
+```
+
+Compiler claude's question, from check claude's brain16 batch: integers
+(2026-09-20) and decis take the divisor's sign, bins were never decided,
+and the oracle gave the dividend's sign by accident (Rust's `%`, not
+listed as a provisional pick). Proposed: (a) the divisor's sign; (b) the
+dividend's, as C's `fmod`. Compiler claude and design claude recommended
+a: one `mod` in every family, an angle stays 0 to 360, and C's stays
+reachable through std. The owner asked the performance difference (both
+start with the same `fmod` routine, no chip has one instruction for it;
+a adds a compare and an add, none where Precog proves both signs), then:
+"`a`". In the oracle, with `std::mod.trunc` taking bins; checked
+against Python's `%` and `math.fmod`. `examples/mod_bin.cpls`,
+`operators.md`. Open: a tiny negative over a large divisor can round up
+to the divisor (`-1e-20 mod 360.0` is `360.0`, as in Python).
+
 ### 2026-10-02 — Lines in an `extern.C` block may each be `pub`; a `pub` on the block overrides (owner)
 
 Design claude had refused `pub` on a line inside a block (its own pick).
