@@ -144,8 +144,11 @@ owner's order:
    job. Design claude first read it as the usual lightbulb that applies
    a compiler error's `fix:`; the owner corrected that.
    **It is a command too** (owner, 2026-10-02: "a command"), so a whole
-   project upgrades without the IDE. Its name is open (`cca fix` was
-   design claude's example).
+   project upgrades without the IDE — **Synthia's** (owner: "I think it
+   should be Synthia. Just like how Synthia can already change a limb's
+   prefix, by Synthia itself editing the source code"), as its prefix
+   override does by hand what a CCA user would (`synthia-manifest.md`).
+   Its name is open.
 2. **Limb registry search** — searching the index (`limbs.xxx`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.

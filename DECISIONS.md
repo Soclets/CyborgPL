@@ -16,7 +16,9 @@ good stuff". Quick Fix, design claude's first reading the editor's
 lightbulb for a compiler error, is the owner's: "a way to fix your code
 instantly (not literally) from update breaking your code" — rewriting
 code to a new CyborgPL's spellings. Asked whether only an IDE button
-or also a command: "a command"; the name is open. Design claude did not know what the code picker was; the
+or also a command: "a command", then "I think it should be Synthia. Just
+like how Synthia can already change a limb's prefix, by Synthia itself
+editing the source code" — a Synthia command; the name is open. Design claude did not know what the code picker was; the
 owner had it screenshotted from Roblox Studio: the autocomplete popup with
 kinds, a deprecated entry crossed out, and the signature, description and
 documentation link of the chosen one. Then "record first, WITH the
