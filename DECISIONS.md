@@ -5,6 +5,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `*0.1`: "exactly this", a `deci` (owner; not built yet)
+
+```
+let 'price' := *19.99;      # a deci: exactly 19.99
+let 'speed' := 0.1;         # a bin
+```
+
+Working out whether a `:=` may ever become a `brain16`, design claude
+found that no rule says which type an untyped decimal literal gets: the
+oracle stores `0.1` as a 64-bit bin, but by default, not decision
+(`bin16`, `bin32`, `bin64` each give a different value; only a `deci`
+holds `0.1` exactly). The owner (asked earlier: "I thought we didn't
+have lazy inferrence"): "`let 'x' := *0.1;` `*` means 'I want exactly
+this', so it becomes a `deci` instead of a `bin`". Design claude noted
+that a run of operator characters is one symbol, so `'a' + *0.1` needs
+its space, that C and Rust readers know `*` as dereferencing, and that
+C# and C23 use a suffix (`0.1m`, `0.1dd`); the owner: "`*0.1` is already
+correct in CyborgPL" — kept as `*`. Design claude's proposals with it,
+not ruled: `*` only before a decimal literal (integers are exact
+already); Precog picks the `deci` width; a typed `deci` needs no `*`. Still
+open: which bin a plain `0.1` gets with `:=` (and so `brain16` stays
+something only written, never chosen). Not built yet. `types.md`.
+
 ### 2026-10-02 — A brain float: `brain16`, also `bfloat16` and `bf16` (owner)
 
 The owner asked whether LLVM supports bfloat ("Brain Float"): it does,

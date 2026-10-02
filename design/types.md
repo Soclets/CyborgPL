@@ -22,7 +22,12 @@ precision. Not IEEE 754, so not a `bin`. LLVM's type is `bfloat`. Its
 arithmetic rounds after every step, as `bin16`'s does (owner,
 2026-10-02: a). It is its own family, as `deci` is (owner: a): it mixes
 with nothing without `to.` — `to.bin32['w']` exact, `to.brain16['x']`
-rounding, `to.bin16['w']` a check site. Literals and the GPU are open.
+rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16`
+(owner, 2026-10-02: a). The GPU is open.
+
+**`*0.1` means "exactly this"** (owner, 2026-10-02; not built yet): a
+decimal literal marked `*` is a `deci`, `let 'price' := *19.99;`; a plain
+one is a `bin`. Which bin a plain `0.1` gets with `:=` is open.
 
 **Rust's names are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
