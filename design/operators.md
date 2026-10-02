@@ -336,6 +336,14 @@ operators are not offered.
 
 ### From another Limb (owner, 2026-09-23: a)
 
+**Since 2026-10-02 (owner; not built yet): a word operator may also carry
+its path, `'a' std::pow 'b'`, and a Limb may declare narrowed forms after
+a dot, `pub op pow.wrap […]`, used `'a' std::pow.wrap 'b'`. Bare and
+with a path are both legal; the official Limb registry refuses a
+published Limb that writes another Limb's word operator bare, unless the
+owner overrides it ("Always refuse, unless I override"). A glyph operator
+(`~=`) has no path.** The paragraph below is the 2026-09-23 rule.
+
 A `pub op` is usable by every Limb that depends on the one that wrote
 it, with nothing written: an operator has no place for a path, so
 `'u' dot 'v'` finds the `dot` written for what `'u'` and `'v'` are. Any

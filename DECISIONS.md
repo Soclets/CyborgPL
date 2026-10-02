@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — A Limb's word operator may carry its path and narrow with `.`; the registry refuses the bare one (owner; not built yet)
+
+```
+'a' pow 'b'             # legal
+'a' std::pow 'b'        # legal: the path, as any name from another Limb
+'a' std::pow.wrap 'b'   # a narrowed form, which std declares: `pub op pow.wrap […]`
+```
+
+Told that a Limb's `pub op` is used bare (2026-09-23), the owner: "There
+should be a way to make a limb word op, with it being able to do `std::`,
+and `.` narrows". Design claude asked whether the path is (a) required,
+or (b) allowed beside the bare form, recommending b (maths reads better
+bare; the path settles two Limbs defining one word for the same types,
+an error until now; glyph operators like `~=` stay bare). The owner:
+"`pow` & `std::pow` are legal, BUT the official limb registry might not
+accept you". Design claude read it as the registry refusing a published
+Limb that writes another Limb's word operator bare, as `#strict` is good
+practice for public Limbs, and asked refuse or warn. The owner: "Always
+refuse, unless I override". So: both legal in the language; the official
+registry refuses a published Limb using a bare word operator from another
+Limb, unless the owner overrides it for that Limb. Glyph operators are
+not covered by the path. Open: whether a Limb's operator gets a
+precedence (asked).
+
 ### 2026-10-02 — `times`, `plus`, `minus`; `xx` leaves the language for std's `pow` (owner; not built yet)
 
 ```
