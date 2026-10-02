@@ -36,5 +36,7 @@ word). What comes with it, as design claude explained beforehand:
 Wiktionary is CC BY-SA, so a licence carrying its definitions is shared
 under CC BY-SA, with credit; its dump is raw wiki markup, so the program
 needs a real parsing step; and a fixed dump with its checksum, not the
-live site, keeps runs reproducible and vandalism out. The program's
-language is open (design claude suggested Rust).
+live site, keeps runs reproducible and vandalism out.
+
+**The program is in Rust** (owner, 2026-10-02: "Well, a license is
+supposed to be correct, Rust"; design claude had suggested it).
