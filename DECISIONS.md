@@ -5787,6 +5787,22 @@ for JetPack, always containing analysable source, never an opaque binary
 
 ## Open questions
 
+**Might add later** (owner, 2026-10-02, before stopping for the day: "Things
+that we might add later: alias for `->` as `-->`, `%` infront of every name
+except ones already marked, and what was left unfinished"). Ideas, not
+decisions:
+- `-->` as another spelling of `->`.
+- `%` in front of every name except the ones already marked (meaning not
+  yet asked; the quoted `'x'` names are the marked ones today).
+- Left unfinished that day, in order: a Limb operator's precedence shape
+  (`levels { 1 > times; }` and `pub op.1 pow …`, proposed, unanswered);
+  how a user type defines division (`op div.floor`, compiler claude); what
+  size a shift works at on an exact answer (compiler claude, open since
+  2026-09-23); the wrapping forms under operator words (`+~` etc., and
+  `div.trunc~` or `.wrap`); `op +` / `op x` as values; and hardware-style
+  division at all. Not built: `times`/`plus`/`minus`, `xx` to std's `pow`,
+  a Limb operator's path.
+
 - SIMD: shuffling two vectors together (interleave). The other leftovers were decided 2026-09-27. (`design/simd.md`)
 
 
