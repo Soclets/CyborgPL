@@ -129,6 +129,36 @@ Owner, 2026-09-14.
   the call boundary. A `.limb` therefore always contains analysable source
   (optionally plus a cached front-end result, an optimisation for later).
 
+## The IDE — what it should have (owner, 2026-10-02)
+
+Whether it is its own program or a VS Code extension is open (owner:
+"whether it's custom, or VS Code extension"). The owner's list, in the
+owner's order:
+
+1. **Quick Fix** — "biggest one". The lightbulb that applies a fix. The
+   messages already carry it: every `fix:` in `diagnostics.md` is the
+   edited code, and the JSON form carries it as text replacements.
+2. **Limb registry search** — searching the index (`limbs.xxx`) from the
+   editor.
+3. **Solarized themes** — Solarized Light and Dark.
+4. **Highlighting**.
+5. **A code picker, like Roblox Studio's**: the autocomplete popup that
+   opens while typing — the matching names, an icon for each kind, a
+   deprecated one crossed out, and beside the chosen one its signature, a
+   one-line description and a link to its documentation:
+
+   ![Roblox Studio's code picker: typing `pr` lists print, printidentity (crossed out), PhysicalProperties, pairs and Path2DControlPoint, with print's signature, description and an Open Documentation link beside them](images/roblox-studio-code-picker.png)
+
+6. **C support** — "though, likely no Quick Fix for C".
+7. **LLVM IR support** — no Quick Fix.
+8. "and other good stuff".
+
+Noted by design claude, not ruled: the description in a code picker
+needs somewhere to come from, and CyborgPL has no doc comments yet; in VS
+Code, 3 ships built in, 6 is the existing `clangd` extension, 7 has
+existing `.ll` extensions, and 1, 2 and 5 come from a language server
+running CCA.
+
 ## Cross-compiling, running elsewhere (discussed 2026-09-21, proposal)
 
 CCA compiles and stops; it never executes what it built. The target is

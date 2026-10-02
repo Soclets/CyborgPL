@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — What CyborgPL's IDE should have (owner)
+
+The owner, after asking how moddable VS Code is: "What I would want the
+IDE of CyborgPL to have (whether it's custom, or VS Code extension); 1.
+Quick Fix (biggest one) 2. limb registry search 3. Solarized themes 4.
+highlighting 5. Code picker (like Roblox Studio) 6. support C (though,
+likely no Quick Fix for C) 7. support LLVM IR (no Quick Fix) 8. and other
+good stuff". Design claude did not know what the code picker was; the
+owner had it screenshotted from Roblox Studio: the autocomplete popup with
+kinds, a deprecated entry crossed out, and the signature, description and
+documentation link of the chosen one. Then "record first, WITH the
+screenshot". Open: custom or VS Code; doc comments, which the picker's
+description needs. `tooling.md`, `design/images/roblox-studio-code-picker.png`.
+
 ### 2026-10-02 — Good practice is written down; names stay free (owner)
 
 Asked what should be standard practice, design claude proposed twelve:
