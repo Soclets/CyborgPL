@@ -341,6 +341,7 @@ impl Parser {
                     self.advance();
                     let name = match self.advance().tok {
                         Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an interface")),
+                        Tok::Word(n) if n == "any" => return self.err("`any` is the built-in \"any type\" (owner, 2026-10-02); an interface needs another name"),
                         Tok::Word(n) => n,
                         Tok::Var(v) => return self.err(format!("an interface's name is bare: `interface {v}`")),
                         other => return self.err(format!("expected an interface name, found {other}")),
