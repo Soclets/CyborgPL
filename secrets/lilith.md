@@ -30,3 +30,24 @@ instruction encodings, registers and quirks) are Apache-2.0 WITH
 LLVM-exception, the owner's own licence, so learning from them is fine. A
 JIT built on those facts but not on LLVM itself would start much faster
 than an LLVM-based JIT, which is where LLVM is weakest for JITs.
+
+## Assembly for the machine it lands on (owner, 2026-10-02)
+
+The owner, on inline assembly costing portability: "Or maybe a way to
+execute that specific ASM on a specific machine". A JIT runs on the
+actual machine, so it knows the processor exactly; several assembly
+blocks can be written, the JIT runs the one matching the machine, and
+plain Lilith covers the rest. Design claude's sketch (spelling not
+designed):
+
+```
+inline.ASM for aarch64 { … }        # Apple, ARM servers
+inline.ASM for x86_64.avx512 { … }  # newer Intel/AMD
+otherwise { …plain Lilith code… }   # anything else
+```
+
+Low-level control without losing portability. C has a weaker form
+(function multiversioning, GCC's `target_clones`: copies built ahead,
+one chosen at startup); a JIT can choose per machine, build only the copy
+it needs, and look at more (cache sizes) before choosing. The owner:
+"yea", to recording it.
