@@ -12,7 +12,10 @@ IDE of CyborgPL to have (whether it's custom, or VS Code extension); 1.
 Quick Fix (biggest one) 2. limb registry search 3. Solarized themes 4.
 highlighting 5. Code picker (like Roblox Studio) 6. support C (though,
 likely no Quick Fix for C) 7. support LLVM IR (no Quick Fix) 8. and other
-good stuff". Design claude did not know what the code picker was; the
+good stuff". Quick Fix, design claude's first reading the editor's
+lightbulb for a compiler error, is the owner's: "a way to fix your code
+instantly (not literally) from update breaking your code" — rewriting
+code to a new CyborgPL's spellings. Design claude did not know what the code picker was; the
 owner had it screenshotted from Roblox Studio: the autocomplete popup with
 kinds, a deprecated entry crossed out, and the signature, description and
 documentation link of the chosen one. Then "record first, WITH the

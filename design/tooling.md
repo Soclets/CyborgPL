@@ -135,9 +135,14 @@ Whether it is its own program or a VS Code extension is open (owner:
 "whether it's custom, or VS Code extension"). The owner's list, in the
 owner's order:
 
-1. **Quick Fix** — "biggest one". The lightbulb that applies a fix. The
-   messages already carry it: every `fix:` in `diagnostics.md` is the
-   edited code, and the JSON form carries it as text replacements.
+1. **Quick Fix** — "biggest one": "a way to fix your code instantly (not
+   literally) from update breaking your code". When a new CyborgPL
+   changes a spelling (CyborgPL is unstable forever, and an old spelling
+   is refused with an error naming the new one: `/` → `div`, `<==` →
+   `</==`, `let` dropped), Quick Fix rewrites your code to the new
+   spelling — Rust's `cargo fix --edition` and Go's `go fix` do the same
+   job. Design claude first read it as the usual lightbulb that applies
+   a compiler error's `fix:`; the owner corrected that.
 2. **Limb registry search** — searching the index (`limbs.xxx`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.
