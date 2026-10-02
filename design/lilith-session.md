@@ -103,5 +103,16 @@ says" put only the owner's own words; mark your additions as yours.
 ## What is open
 
 Everything not listed above. The first question waiting is how a
-function with parameters is written; after that, whatever the owner
-wants to design next.
+function with parameters is written. Design claude offered these, and
+recommended the first (it keeps "shall mean" straight after the name, as
+in the form without parameters); the owner has not answered:
+
+```
+"greet" shall mean, given 'name' and 'age', { … }
+"greet", given 'name' and 'age', shall mean { … }
+"greet" taking 'name' and 'age' shall mean { … }
+```
+
+with the type words on parameters (`given wrt long 'age'`) and a call
+such as `greet with "Ann" and 30`. After that, whatever the owner wants
+to design next.
