@@ -65,7 +65,8 @@ place, other than a reduction — stays an error, `para` or not.
 
 This was the entire parallelism syntax of v1 — one word for saying no —
 until `para` joined it.
-(`seq` sits after `temp`/`perm` in the chain — see `control-flow.md`.)
+(`seq` and `para` sit before `temp`/`perm`: `for seq perm 'i'` — see
+`control-flow.md`. The old chain spelling had them the other way round.)
 
 ## No cheating: `for !c` (owner, 2026-10-01)
 

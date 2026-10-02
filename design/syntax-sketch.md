@@ -142,7 +142,8 @@ just go back to the no `let` era"); see `DECISIONS.md`.
   existed for a day (2026-09-19) and were removed by the owner on
   2026-09-20; `print` and `print.useful` are the prints.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
-  needs the `$`; `'x' $:= 2;`. `immut` names cannot be shadowed.
+  needs the `$`; `'x' $:= 2;`. A name marked `!$` cannot be shadowed; an
+  `immut` one can (2026-09-25: `immut` only forbids `change`).
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
   (`1_000_000`); `1,000` is an error that points at `_`; leading zeros are
   illegal.

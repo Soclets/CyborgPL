@@ -38,7 +38,9 @@ if true {
 }
 ```
 
-An `immut` variable cannot be shadowed.
+A name marked `!$` cannot be shadowed, and neither can a loop's
+counter. An `immut` one can (2026-09-25): shadowing makes a new variable
+and changes nothing, so `immut` only forbids `change`.
 
 ## Loops
 
@@ -133,11 +135,12 @@ Precog. Skipping ahead is a `while` with your own counter.
 
 ### Modifier order
 
-`for [seq] [temp|perm] 'name'[: type] in …` — `seq` (opt out of automatic
-parallelism, see `parallelism.md`) first, then `perm` if the variable
-outlives the loop, then the name, reading "for, sequentially, a permanent
-'i'": `for seq perm 'i': int32 in range[0, 9] { }`. Plain `for 'i' in …` is
-the common case.
+`for [!c] [seq|para] [temp|perm] 'name'[: type] in …` — `!c` (no cheating,
+2026-10-01) first, then `seq` or `para` (opt out of or force parallelism,
+see `parallelism.md`), then `perm` if the variable outlives the loop, then
+the name, reading "for, sequentially, a permanent 'i'": `for seq perm 'i':
+int32 in range[0, 9] { }`. The strongest modifier comes first. Plain
+`for 'i' in …` is the common case.
 
 ### Not in the language
 
