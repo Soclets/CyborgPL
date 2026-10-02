@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The proper benchmark: C, Rust, Go, Java, Python and CyborgPL, each written the way
+"""The proper benchmark: C, Rust, Go, Java, Python, Julia and CyborgPL, each written the way
 that language's own practice says, with only what the language comes with. Threads are
 not capped: a version uses every core if its language's usual tools do.
 
@@ -7,7 +7,7 @@ Each program reads N from the environment and exits with its answer's low byte; 
 answer is checked against C's. Times are wall-clock from start to exit, best of RUNS,
 after one untimed warm-up run.
 
-    python3 run.py              # all six
+    python3 run.py              # all seven
     python3 run.py c cyborgpl   # only these
     python3 run.py --quick      # tiny sizes, one run: does everything build and agree?
 
@@ -55,6 +55,9 @@ def build(lang, name):
         return ["java", "-cp", d, cap(name)]
     if lang == "python":
         return ["python3", os.path.join(src, name + ".py")]
+    if lang == "julia":
+        # Threads are off unless asked for; `-t auto` is how Julia uses every core.
+        return ["julia", "-t", "auto", "--startup-file=no", os.path.join(src, name + ".jl")]
     if lang == "cyborgpl":
         sh([CCA, "build", "--final", os.path.join(src, name + ".cpls"), "-o", out])
         return [out]
@@ -62,7 +65,7 @@ def build(lang, name):
 
 
 LABELS = {"c": "C (clang -O2)", "rust": "Rust (rustc, opt-level 3)", "go": "Go", "java": "Java",
-          "python": "Python (CPython)", "cyborgpl": "CyborgPL (CCA, final build)"}
+          "python": "Python (CPython)", "julia": "Julia (-t auto)", "cyborgpl": "CyborgPL (CCA, final build)"}
 
 
 def run(cmd, n):
