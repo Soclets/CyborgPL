@@ -9,6 +9,8 @@ owner's words:
 > CCOESS is the successor of AICNA and Collab, with more features. No
 > definition yet, just the full name
 
+**Said "CC O S"** (owner, 2026-10-02: "Pronounced as CC O S").
+
 So far only the name and its lineage: it succeeds AICNA (the owner's
 self-hosted server for humans and AI to talk, in Go) and Collab, with
 more features. Raised while planning the defining licence
