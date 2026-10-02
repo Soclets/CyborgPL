@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Good practice is written down; names stay free (owner)
+
+Asked what should be standard practice, design claude proposed twelve:
+types at the doors and `:=` inside; outside values narrowed once with a
+range type; no `mut` by habit; guard `if` then `check`, `nocheck` mostly
+for C; `nocheck` wrapped once; `NO_FUCKING_CHECKS` only after measuring;
+`#strict` for public Limbs; `lend` by default, `copy` rarely; failures
+handled where understood, wary of `otherwise 0` on input; `and.then` for
+guards; a plain `for`, with `seq`/`para`/`simd`/`!c` only for a reason;
+`print.useful` for people, `print` for debugging, `print.format` for
+shape. It asked whether to pick a naming style. The owner: "we don't need
+a guide on how to name vars. But, all that you said there seems like a
+good practice", then "write". Advice, not rules. `design/style.md`.
+
 ### 2026-10-01 — RRx2's exact-math language is called RR (owner)
 
 The owner, asking whether it would be in C: "`RR` (the name of
