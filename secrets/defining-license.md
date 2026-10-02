@@ -40,3 +40,11 @@ live site, keeps runs reproducible and vandalism out.
 
 **The program is in Rust** (owner, 2026-10-02: "Well, a license is
 supposed to be correct, Rust"; design claude had suggested it).
+
+**It runs on the Mac after all** (owner, 2026-10-02): "Since that's one
+of the biggest projects too. I'll say on my Mac, instead of the PC" —
+"that" being CCOESS, which the PC route would have needed — then "No, I
+meant the license software". Design claude's note: on the Mac it shares
+24 GB with the other sessions (RRx2-TV may hold up to 18 GB, `CLAUDE.md`),
+so it should read the dump as a stream rather than unpack it whole, and
+run when the Mac is quiet.
