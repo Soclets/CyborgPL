@@ -48,3 +48,12 @@ meant the license software". Design claude's note: on the Mac it shares
 24 GB with the other sessions (RRx2-TV may hold up to 18 GB, `CLAUDE.md`),
 so it should read the dump as a stream rather than unpack it whole, and
 run when the Mac is quiet.
+
+**OLLGS — Optimized Long License Generator Software** (owner,
+2026-10-02). Built by another session, **troll license claude** (owner's
+name), in a public repo under the org (owner: "for fun, this shit is
+gonna be under the org. Public"): `Cyborg-Assembly-Manufacturing-Site/OLLGS`,
+created empty the same day. README, warning and the code's licence: "no,
+not picked yet". Its resources, asked about cores and memory with
+RRx2-TV stopped: "unbounded". Its brief and prompt: not yet ("Don't make
+the brief & prompt yet").
