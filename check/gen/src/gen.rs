@@ -93,13 +93,15 @@ pub struct Config {
     pub brain16: bool,
     /// `mod` on brain16 (its sign for bins is open with the owner, 2026-10-02).
     pub brain_mod: bool,
-    /// `div.trunc` / `mod.trunc` on integers (owner, 2026-10-02, 692a444).
-    pub trunc: bool,
+    /// The roundings past `.floor`: `div.trunc`, `div.ceil`, `div.near` and
+    /// their `mod`s on integers; `.floor`, `.ceil`, `.trunc` and their
+    /// `mod`s on decis and brain16 (owner, 2026-10-02, 692a444, 5a12c07).
+    pub roundings: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, trunc: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true }
     }
 }
 
@@ -1483,12 +1485,12 @@ impl Gen {
             let a = Expr::Var(self.rng.pick(&decis).clone());
             let value = match self.rng.below(9) {
                 0..=4 => {
-                    let op = *self.rng.pick(&[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div, BinOp::Mod]);
+                    let op = self.fraction_op(true);
                     let b = if self.rng.chance(50) { Expr::Var(self.rng.pick(&decis).clone()) } else { Expr::Num(self.deci_lit(digits)) };
                     // a divisor of 0 stops both engines alike; keep it rare
-                    let b = match (&b, op) {
-                        (Expr::Num(t), BinOp::Div | BinOp::Mod) if t.trim_start_matches('-').chars().all(|c| c == '0' || c == '.') => Expr::Num("1.5".into()),
-                        (Expr::Var(_), BinOp::Div | BinOp::Mod) if !self.take_risk() => Expr::Num("2.5".into()),
+                    let b = match (&b, op.division()) {
+                        (Expr::Num(t), Some(_)) if t.trim_start_matches('-').chars().all(|c| c == '0' || c == '.') => Expr::Num("1.5".into()),
+                        (Expr::Var(_), Some(_)) if !self.take_risk() => Expr::Num("2.5".into()),
                         _ => b,
                     };
                     Expr::Bin(op, Box::new(a), Box::new(b))
@@ -1586,6 +1588,19 @@ impl Gen {
         Stmt::Block { tier: Tier::Default, body }
     }
 
+    /// An operator on decis or brain16: `div.near` is ordinary division;
+    /// `.floor` / `.ceil` / `.trunc` give a whole quotient, and their `mod`s
+    /// what it leaves (`mod.near` is refused there; owner, 5a12c07).
+    fn fraction_op(&mut self, with_mod: bool) -> BinOp {
+        use BinOp::*;
+        let more = if self.cfg.roundings { 1 } else { 0 };
+        let m = if with_mod { 3 } else { 0 };
+        let mm = if with_mod { more } else { 0 };
+        let ops = [(Add, 4), (Sub, 4), (Mul, 4), (DivNear, 4), (Mod, m), (Div, more), (DivCeil, more), (DivTrunc, more), (ModCeil, mm), (ModTrunc, mm)];
+        let w: Vec<u64> = ops.iter().map(|o| o.1).collect();
+        ops[self.rng.weighted(&w)].0
+    }
+
     /// A `brain16` episode (design/types.md): values from literals, integers,
     /// text, a deci and a bin, worked on with `+ - x div mod xx` (each step
     /// rounded), and seen as integers: `to.int64[…] otherwise -1`, a deci in
@@ -1605,12 +1620,11 @@ impl Gen {
             let a = Expr::Var(self.rng.pick(&bs).clone());
             let value = match self.rng.below(8) {
                 0..=3 => {
-                    let ops: &[BinOp] = if self.cfg.brain_mod { &[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div, BinOp::Mod] } else { &[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div] };
-                    let op = *self.rng.pick(ops);
+                    let op = self.fraction_op(self.cfg.brain_mod);
                     let b = if self.rng.chance(50) { Expr::Var(self.rng.pick(&bs).clone()) } else { Expr::Num(self.rng.pick(LITS).to_string()) };
                     // a divisor of 0 stops both engines alike; keep it rare
-                    let b = match (&b, op) {
-                        (Expr::Var(_), BinOp::Div | BinOp::Mod) if !self.take_risk() => Expr::Num("2.5".into()),
+                    let b = match (&b, op.division()) {
+                        (Expr::Var(_), Some(_)) if !self.take_risk() => Expr::Num("2.5".into()),
                         _ => b,
                     };
                     Expr::Bin(op, Box::new(a), Box::new(b))
@@ -2136,8 +2150,8 @@ impl Gen {
         let s = t.signed();
         let has_var = !self.vars_of(t).is_empty();
         use BinOp::*;
-        let trunc = if self.cfg.trunc { 2 } else { 0 };
-        let ops: [(Option<BinOp>, u64); 18] = [
+        let more = if self.cfg.roundings { 1 } else { 0 };
+        let ops: [(Option<BinOp>, u64); 22] = [
             (Some(Add), 6),
             (Some(Sub), 6),
             (Some(Mul), 5),
@@ -2154,8 +2168,12 @@ impl Gen {
             (Some(WMul), if has_var { 1 } else { 0 }),
             (None, if s { 2 } else { 0 }),                  // negation
             (Some(Mod), 0),
-            (Some(DivTrunc), trunc),
-            (Some(ModTrunc), trunc),
+            (Some(DivTrunc), more),
+            (Some(ModTrunc), more),
+            (Some(DivCeil), more),
+            (Some(ModCeil), more),
+            (Some(DivNear), more),
+            (Some(ModNear), more),
         ];
         let w: Vec<u64> = ops.iter().map(|o| o.1).collect();
         let pick = ops[self.rng.weighted(&w)].0;
@@ -2271,7 +2289,7 @@ impl Gen {
                 let (b, ib) = self.fit(b, ib, bx, t);
                 (mk(a, b), clip(corners(ia, ib, &f)))
             }
-            Div | Mod | DivTrunc | ModTrunc => {
+            Div | Mod | DivTrunc | ModTrunc | DivCeil | ModCeil | DivNear | ModNear => {
                 let bad_zero = ib.has(0);
                 let bad_min = t.signed() && ia.has(r.lo) && ib.has(-1);
                 let (b, ib) = if (bad_zero || bad_min) && !risk {
@@ -2286,17 +2304,11 @@ impl Gen {
                     // risky: division by zero possible
                     return (mk(a, b), r);
                 }
-                let out = if op == Div {
-                    corners(ia, ib, |x, y| Some(floor_div(x, y)))
-                } else if op == DivTrunc {
-                    corners(ia, ib, |x, y| x.checked_div(y))
-                } else if op == ModTrunc {
-                    let m = ib.lo.abs().max(ib.hi.abs());
-                    Some(Iv::new(if ia.lo >= 0 { 0 } else { ia.lo.max(-(m - 1)) }, if ia.hi <= 0 { 0 } else { ia.hi.min(m - 1) }))
-                } else if ib.lo > 0 {
-                    Some(if ia.lo >= 0 && ia.hi < ib.lo { ia } else { Iv::new(0, ib.hi - 1) })
+                let out = if op.division() == Some(false) {
+                    corners(ia, ib, |x, y| op.quotient(x, y))
                 } else {
-                    Some(Iv::new(ib.lo + 1, 0))
+                    let (lo, hi) = op.mod_bounds((ia.lo, ia.hi), (ib.lo, ib.hi));
+                    Some(Iv::new(lo, hi))
                 };
                 (mk(a, b), clip(out))
             }

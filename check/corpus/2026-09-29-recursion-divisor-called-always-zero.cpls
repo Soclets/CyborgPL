@@ -9,11 +9,11 @@ fn emit ['m': uint64, 'neg': bool] {
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-    change 'v' = 'v' div 10;
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' div 10;
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
@@ -50,12 +50,12 @@ enum E2 {
 
 fn f2 ['pr': int32[0, 6], 'p1': uint64, 'p2': uint64[min, 66]] -> int64 {
     if 'pr' == 0 {
-        return (((to.int64[to.int64['p1'] or.bit 15] or.bit 1) x ((2855519550069594396 - 6) mod (-to.int64['p1']))) mod 1295) - 800;
+        return (((to.int64[to.int64['p1'] or.bit 15] or.bit 1) x ((2855519550069594396 - 6) mod.floor (-to.int64['p1']))) mod.floor 1295) - 800;
     }
-    let 'r3': int64 = f2['pr' - 1, ((('p1' x 'p1') - 'p2') mod 233) + 448, 'p1' mod 67];
+    let 'r3': int64 = f2['pr' - 1, ((('p1' x 'p1') - 'p2') mod.floor 233) + 448, 'p1' mod.floor 67];
     return 'r3';
 }
 
 MAIN {
-    let 'v12': int64 = to.int64[f2[0, 1, 0]] mod 1;
+    let 'v12': int64 = to.int64[f2[0, 1, 0]] mod.floor 1;
 }

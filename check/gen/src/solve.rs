@@ -349,29 +349,32 @@ impl<'a> Enc<'a> {
                 self.site(ctx, format!("(or (bvslt {wide} {lo}) (bvsgt {wide} {hi}))"), "x past 64 bits".into(), "past_64_bits", &wide, 2 * W);
                 self.int(format!("((_ extract {} 0) {wide})", W - 1))
             }
-            Div | Mod => {
-                let kind = if op == Div { "division_by_zero" } else { "modulo_by_zero" };
+            Div | Mod | DivTrunc | ModTrunc | DivCeil | ModCeil | DivNear | ModNear => {
+                let is_mod = op.division() == Some(true);
+                let kind = if is_mod { "modulo_by_zero" } else { "division_by_zero" };
                 self.site(ctx, format!("(= {y} {})", bv(0)), format!("{} by zero", op.text()), kind, y, W);
                 // Guard the maths against the zero case (it cannot happen past the site).
                 let d = self.int(format!("(ite (= {y} {}) {} {y})", bv(0), bv(1)));
+                // the floored pair: m has the divisor's sign, x = qf x d + m
                 let m = self.int(format!("(bvsmod {x} {d})"));
-                if op == Mod {
-                    return m;
+                let qf = self.int(format!("(bvsdiv (bvsub {x} {m}) {d})"));
+                let one = bv(1);
+                let q = match op {
+                    Div | Mod => qf,
+                    DivTrunc | ModTrunc => self.int(format!("(bvsdiv {x} {d})")),
+                    DivCeil | ModCeil => self.int(format!("(ite (= {m} {}) {qf} (bvadd {qf} {one}))", bv(0))),
+                    _ => {
+                        // x / d = qf + m/d with m/d in [0, 1): up past a half, a tie to even
+                        let am = self.int(format!("(ite (bvslt {m} {z}) (bvneg {m}) {m})", z = bv(0)));
+                        let ad = self.int(format!("(ite (bvslt {d} {z}) (bvneg {d}) {d})", z = bv(0)));
+                        let twice = self.int(format!("(bvadd {am} {am})"));
+                        self.int(format!("(ite (or (bvsgt {twice} {ad}) (and (= {twice} {ad}) (= ((_ extract 0 0) {qf}) #b1))) (bvadd {qf} {one}) {qf})"))
+                    }
+                };
+                if is_mod {
+                    return self.int(format!("(bvsub {x} (bvmul {d} {q}))"));
                 }
-                let q = self.int(format!("(bvsdiv (bvsub {x} {m}) {d})"));
-                self.limit64(ctx, &q, "/");
-                q
-            }
-            DivTrunc | ModTrunc => {
-                let kind = if op == DivTrunc { "division_by_zero" } else { "modulo_by_zero" };
-                self.site(ctx, format!("(= {y} {})", bv(0)), format!("{} by zero", op.text()), kind, y, W);
-                let d = self.int(format!("(ite (= {y} {}) {} {y})", bv(0), bv(1)));
-                if op == ModTrunc {
-                    return self.int(format!("(bvsrem {x} {d})"));
-                }
-                // bvsdiv truncates, as div.trunc does
-                let q = self.int(format!("(bvsdiv {x} {d})"));
-                self.limit64(ctx, &q, "div.trunc");
+                self.limit64(ctx, &q, op.text());
                 q
             }
             Pow => {

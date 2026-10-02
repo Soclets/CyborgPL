@@ -103,14 +103,6 @@ fn corners(a: R, b: R, f: impl Fn(i128, i128) -> i128) -> R {
     R(*v.iter().min().unwrap(), *v.iter().max().unwrap()).clamp()
 }
 
-fn floor_div(a: i128, b: i128) -> i128 {
-    let q = a / b;
-    if a % b != 0 && ((a < 0) != (b < 0)) {
-        q - 1
-    } else {
-        q
-    }
-}
 
 impl<'a> An<'a> {
     fn record(&mut self, kind: &'static str, r: R) {
@@ -246,8 +238,9 @@ impl<'a> An<'a> {
                 let r = corners(x.clamp_small(), y.clamp_small(), |a, b| a.saturating_mul(b));
                 self.limit64(r)
             }
-            Div | Mod => {
-                self.record(if op == Div { "division_by_zero" } else { "modulo_by_zero" }, y);
+            Div | Mod | DivTrunc | ModTrunc | DivCeil | ModCeil | DivNear | ModNear => {
+                let is_mod = op.division() == Some(true);
+                self.record(if is_mod { "modulo_by_zero" } else { "division_by_zero" }, y);
                 // past the site the divisor is not zero
                 let parts: Vec<R> = [R(y.0, y.1.min(-1)), R(y.0.max(1), y.1)].into_iter().filter(|r| r.0 <= r.1).collect();
                 if parts.is_empty() {
@@ -255,45 +248,20 @@ impl<'a> An<'a> {
                 }
                 let mut out: Option<R> = None;
                 for d in parts {
-                    let r = if op == Div {
-                        corners(x, d, floor_div)
-                    } else if d.0 > 0 {
-                        if x.0 >= 0 && x.1 < d.0 {
-                            x
-                        } else {
-                            R(0, d.1 - 1)
-                        }
-                    } else if x.1 <= 0 && x.0 > d.1 {
-                        x
+                    let r = if is_mod {
+                        let (lo, hi) = op.mod_bounds((x.0, x.1), (d.0, d.1));
+                        R(lo, hi)
                     } else {
-                        R(d.0 + 1, 0)
+                        corners(x, d, |a, b| op.quotient(a, b).unwrap_or(i128::MAX))
                     };
                     out = Some(out.map_or(r, |o| o.join(r)));
                 }
                 let r = out.unwrap();
-                if op == Div {
-                    self.limit64(r)
-                } else {
+                if is_mod {
                     r
+                } else {
+                    self.limit64(r)
                 }
-            }
-            DivTrunc | ModTrunc => {
-                self.record(if op == DivTrunc { "division_by_zero" } else { "modulo_by_zero" }, y);
-                let parts: Vec<R> = [R(y.0, y.1.min(-1)), R(y.0.max(1), y.1)].into_iter().filter(|r| r.0 <= r.1).collect();
-                if parts.is_empty() {
-                    return R::TOP;
-                }
-                if op == DivTrunc {
-                    let mut out: Option<R> = None;
-                    for d in parts {
-                        let r = corners(x, d, |a, b| a.checked_div(b).unwrap_or(i128::MAX));
-                        out = Some(out.map_or(r, |o| o.join(r)));
-                    }
-                    return self.limit64(out.unwrap());
-                }
-                // the dividend's sign, and smaller than the largest divisor
-                let m = y.0.saturating_abs().max(y.1.saturating_abs());
-                R(if x.0 >= 0 { 0 } else { x.0.max(-(m - 1)) }, if x.1 <= 0 { 0 } else { x.1.min(m - 1) })
             }
             Pow => {
                 self.record("negative_exponent", y);

@@ -9,11 +9,11 @@ fn emit ['m': uint64, 'neg': bool] {
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-    change 'v' = 'v' div 10;
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' div 10;
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
@@ -46,12 +46,12 @@ enum E1 {
 
 fn f3 [] -> uint64[min, 100] {
     let 'v9': uint16 = match E1.c2 {
-        c1 'd6' { ((0 x 16852) mod 58) + 651 }
+        c1 'd6' { ((0 x 16852) mod.floor 58) + 651 }
         c2 {
-            return ((13 + (3628437621139716329 + 1)) mod ((8997704354644785536 shr 42) + (4 + 14))) mod 101;
+            return ((13 + (3628437621139716329 + 1)) mod.floor ((8997704354644785536 shr 42) + (4 + 14))) mod.floor 101;
         }
-        c3 'd7' { ((to.uint16['d7' mod 65536] - ((((to.uint16['d7' mod 65536] shr 3) mod 4) xx (to.uint16['d7' mod 65536] mod 11)) mod 1)) mod 58) + 651 }
-        c4 'd8' { (('d8' x ('d8' div 9)) mod 58) + 651 }
+        c3 'd7' { ((to.uint16['d7' mod.floor 65536] - ((((to.uint16['d7' mod.floor 65536] shr 3) mod.floor 4) xx (to.uint16['d7' mod.floor 65536] mod.floor 11)) mod.floor 1)) mod.floor 58) + 651 }
+        c4 'd8' { (('d8' x ('d8' div.floor 9)) mod.floor 58) + 651 }
     };
     return 0;
 }

@@ -149,10 +149,16 @@ pub enum BinOp {
     Mul,
     Div,
     Mod,
-    /// `div.trunc` / `mod.trunc` (owner, 2026-10-02, 692a444): C's
-    /// truncating division, and a remainder with the dividend's sign.
+    /// Every division says how it rounds (owner, 2026-10-02, 5a12c07): `Div`
+    /// and `Mod` are `div.floor` / `mod.floor`; the rest are `.trunc`,
+    /// `.ceil` and `.near` (a tie to even), and `mod.X` is what `div.X`
+    /// leaves. On a deci, bin or brain16, `DivNear` is ordinary division.
     DivTrunc,
     ModTrunc,
+    DivCeil,
+    ModCeil,
+    DivNear,
+    ModNear,
     Pow,
     AndBit,
     OrBit,
@@ -165,15 +171,71 @@ pub enum BinOp {
 }
 
 impl BinOp {
+    /// A division or remainder: whether it is the remainder.
+    pub fn division(self) -> Option<bool> {
+        match self {
+            BinOp::Div | BinOp::DivTrunc | BinOp::DivCeil | BinOp::DivNear => Some(false),
+            BinOp::Mod | BinOp::ModTrunc | BinOp::ModCeil | BinOp::ModNear => Some(true),
+            _ => None,
+        }
+    }
+
+    /// The integer quotient `x` over `y` rounded as this operator says
+    /// (its `div` for a `mod`). None for a zero divisor or past i128.
+    pub fn quotient(self, x: i128, y: i128) -> Option<i128> {
+        let q = x.checked_div(y)?;
+        let r = x.checked_rem(y)?;
+        if r == 0 {
+            return Some(q);
+        }
+        // q is truncated; `away` is the next whole number away from zero
+        let neg = (x < 0) != (y < 0);
+        let away = if neg { q - 1 } else { q + 1 };
+        Some(match self {
+            BinOp::DivTrunc | BinOp::ModTrunc => q,
+            BinOp::Div | BinOp::Mod => if neg { away } else { q },
+            BinOp::DivCeil | BinOp::ModCeil => if neg { q } else { away },
+            _ => {
+                let (twice, ay) = (r.checked_abs()?.checked_mul(2)?, y.checked_abs()?);
+                if twice > ay || (twice == ay && q % 2 != 0) { away } else { q }
+            }
+        })
+    }
+
+    /// The whole answer of this division or remainder, None as `quotient`.
+    pub fn divide(self, x: i128, y: i128) -> Option<i128> {
+        let q = self.quotient(x, y)?;
+        if self.division()? { x.checked_sub(q.checked_mul(y)?) } else { Some(q) }
+    }
+
+    /// Bounds of this remainder for a dividend in `x` and a divisor in `d`
+    /// (of one sign, never 0).
+    pub fn mod_bounds(self, x: (i128, i128), d: (i128, i128)) -> (i128, i128) {
+        let m = d.0.saturating_abs().max(d.1.saturating_abs());
+        let pos = d.0 > 0;
+        match self {
+            BinOp::Mod if pos && x.0 >= 0 && x.1 < d.0 => x,
+            BinOp::Mod if !pos && x.1 <= 0 && x.0 > d.1 => x,
+            BinOp::Mod => if pos { (0, m - 1) } else { (-(m - 1), 0) },
+            BinOp::ModCeil => if pos { (-(m - 1), 0) } else { (0, m - 1) },
+            BinOp::ModTrunc => (if x.0 >= 0 { 0 } else { x.0.max(-(m - 1)) }, if x.1 <= 0 { 0 } else { x.1.min(m - 1) }),
+            _ => (-(m / 2), m / 2),
+        }
+    }
+
     pub fn text(self) -> &'static str {
         match self {
             BinOp::Add => "+",
             BinOp::Sub => "-",
             BinOp::Mul => "x",
-            BinOp::Div => "div",
-            BinOp::Mod => "mod",
+            BinOp::Div => "div.floor",
+            BinOp::Mod => "mod.floor",
             BinOp::DivTrunc => "div.trunc",
             BinOp::ModTrunc => "mod.trunc",
+            BinOp::DivCeil => "div.ceil",
+            BinOp::ModCeil => "mod.ceil",
+            BinOp::DivNear => "div.near",
+            BinOp::ModNear => "mod.near",
             BinOp::Pow => "xx",
             BinOp::AndBit => "and.bit",
             BinOp::OrBit => "or.bit",
@@ -976,20 +1038,7 @@ pub fn fold_bare(e: &Expr) -> Option<i128> {
                 BinOp::Add => x.checked_add(y),
                 BinOp::Sub => x.checked_sub(y),
                 BinOp::Mul => x.checked_mul(y),
-                BinOp::Div | BinOp::Mod => {
-                    if y == 0 {
-                        return None;
-                    }
-                    let q = x.checked_div(y)?;
-                    let q = if x % y != 0 && ((x < 0) != (y < 0)) { q - 1 } else { q };
-                    if *op == BinOp::Div {
-                        Some(q)
-                    } else {
-                        x.checked_sub(q.checked_mul(y)?)
-                    }
-                }
-                BinOp::DivTrunc => x.checked_div(y),
-                BinOp::ModTrunc => x.checked_rem(y),
+                _ if op.division().is_some() => op.divide(x, y),
                 BinOp::Pow => {
                     if y < 0 || y > 200 {
                         return None;

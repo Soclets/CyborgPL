@@ -348,22 +348,15 @@ impl<'a> Ev<'a> {
                 let r = x.checked_mul(y).unwrap_or(i128::MAX);
                 self.limit64(r)
             }
-            Div | Mod => {
-                self.check(if op == Div { "division_by_zero" } else { "modulo_by_zero" }, y, y != 0)?;
-                let q = floor_div(x, y);
-                if op == Div {
-                    self.limit64(q)
+            Div | Mod | DivTrunc | ModTrunc | DivCeil | ModCeil | DivNear | ModNear => {
+                let is_mod = op.division() == Some(true);
+                self.check(if is_mod { "modulo_by_zero" } else { "division_by_zero" }, y, y != 0)?;
+                let r = op.divide(x, y).unwrap_or(i128::MAX);
+                if is_mod {
+                    Ok(r)
                 } else {
-                    Ok(x - q * y)
+                    self.limit64(r)
                 }
-            }
-            DivTrunc => {
-                self.check("division_by_zero", y, y != 0)?;
-                self.limit64(x / y)
-            }
-            ModTrunc => {
-                self.check("modulo_by_zero", y, y != 0)?;
-                Ok(x % y)
             }
             Pow => {
                 self.check("negative_exponent", y, y >= 0)?;
@@ -770,14 +763,6 @@ fn cmp(op: CmpOp, x: i128, y: i128) -> bool {
     }
 }
 
-fn floor_div(a: i128, b: i128) -> i128 {
-    let q = a / b;
-    if a % b != 0 && ((a < 0) != (b < 0)) {
-        q - 1
-    } else {
-        q
-    }
-}
 
 /// Run `p` on these input values (one per input, in order).
 pub fn run(p: &Program, inputs: &[u64]) -> Run {

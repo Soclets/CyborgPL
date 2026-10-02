@@ -5,7 +5,7 @@
 #strict
 fn f ['p': int32] -> bool {
     if 'p' !== 0 {
-        return (16 mod 'p') >/== 3;
+        return (16 mod.floor 'p') >/== 3;
     }
     return false;
 }

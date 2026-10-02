@@ -11,11 +11,11 @@ fn emit ['m': uint64, 'neg': bool] {
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-    change 'v' = 'v' div 10;
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' div 10;
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
@@ -41,13 +41,13 @@ fn put_i ['n': int64] {
 MAIN {
     let 'k' := "CHK_IN1";
     nocheck let 'in1': uint64 = strlen[getenv[lend 'k']];
-    put_u['in1' mod 100];
-    put_u['in1' mod 255];
-    put_u['in1' mod 256];
-    put_u['in1' mod 1000];
-    put_u['in1' mod 30000];
-    put_u['in1' mod 27797];
-    put_u['in1' mod 65535];
-    put_u['in1' mod 65536];
-    put_u['in1' mod 100000];
+    put_u['in1' mod.floor 100];
+    put_u['in1' mod.floor 255];
+    put_u['in1' mod.floor 256];
+    put_u['in1' mod.floor 1000];
+    put_u['in1' mod.floor 30000];
+    put_u['in1' mod.floor 27797];
+    put_u['in1' mod.floor 65535];
+    put_u['in1' mod.floor 65536];
+    put_u['in1' mod.floor 100000];
 }

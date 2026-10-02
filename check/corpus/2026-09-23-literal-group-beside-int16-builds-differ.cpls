@@ -12,14 +12,14 @@ fn emit ['m': uint64, 'neg': bool] {
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'p': uint64 = 1;
-    while 'v' div 'p' >/== 10 {
+    while 'v' div.floor 'p' >/== 10 {
         change 'p' = 'p' x 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
-        change 'v' = 'v' mod 'p';
+        list.append[lend.mut 'buf', to.uint8[48 + ('v' div.floor 'p')]];
+        change 'v' = 'v' mod.floor 'p';
         if 'p' == 1 { break; }
-        change 'p' = 'p' div 10;
+        change 'p' = 'p' div.floor 10;
     }
     list.append[lend.mut 'buf', 10];
     nocheck write[1, lend 'buf', list.length[lend 'buf']];
@@ -49,6 +49,6 @@ MAIN {
             break;
         }
         change 'w7' = 'w7' - 1;
-        put_i[(((-28014) + (-23953)) mod 1) + to.int16['w7']];
+        put_i[(((-28014) + (-23953)) mod.floor 1) + to.int16['w7']];
     }
 }

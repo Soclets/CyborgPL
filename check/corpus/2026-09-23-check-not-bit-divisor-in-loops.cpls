@@ -14,8 +14,8 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' div 10;
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        change 'v' = 'v' div.floor 10;
         if 'v' == 0 { break; }
     }
     for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
@@ -43,13 +43,13 @@ MAIN {
     nocheck let 'in1': uint64 = strlen[getenv[lend 'in1_key']];
     let 'in2_key' := "CHK_IN2";
     nocheck let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
-    let immut 'v1': int64 = to.int64['in1' mod 9223372036854775808];
-    let 'v2': int8 = (to.int8[('v1' mod 256) - 128] mod 7) - 102;
+    let immut 'v1': int64 = to.int64['in1' mod.floor 9223372036854775808];
+    let 'v2': int8 = (to.int8[('v1' mod.floor 256) - 128] mod.floor 7) - 102;
     let mut 'w3': int16 = 7;
     while 'w3' > 0 {
         change 'w3' = 'w3' - 1;
         for 'i4': uint16 in range[29, 3, -3] {
-            check change 'v2' = ((((126 or.bit 'v2') div (not.bit 'v2')) shl 6) mod 7) - 102;
+            check change 'v2' = ((((126 or.bit 'v2') div.floor (not.bit 'v2')) shl 6) mod.floor 7) - 102;
         }
     }
 }

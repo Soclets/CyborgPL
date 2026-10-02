@@ -12,12 +12,12 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'p': uint64 = 10000000000000000000;
     for temp 'k': int32 in range[from 1, to 20, by 1] {
         if 'p' > 0 {
-            let immut 'd': uint64 = ('m' div 'p') mod 10;
+            let immut 'd': uint64 = ('m' div.floor 'p') mod.floor 10;
             if 'd' !== 0 or 'started' or 'p' == 1 {
                 change 'started' = true;
                 list.append[lend.mut 'buf', to.uint8[48 + 'd']];
             }
-            change 'p' = 'p' div 10;
+            change 'p' = 'p' div.floor 10;
         }
     }
     list.append[lend.mut 'buf', 10];
@@ -38,7 +38,7 @@ fn put_i ['n': int64] {
 }
 
 fn f1 ['p1': uint16] -> uint32 {
-    let immut 'v1': uint8 = (to.uint8['p1' mod 256] mod 16) x (to.uint8['p1' mod 256] mod 16);
+    let immut 'v1': uint8 = (to.uint8['p1' mod.floor 256] mod.floor 16) x (to.uint8['p1' mod.floor 256] mod.floor 16);
     return to.uint32['v1'];
 }
 
@@ -60,8 +60,8 @@ MAIN {
     }
     for temp 'i24': int8 in range[from 35, to 31, by 1] {
     }
-    if ('v16' !== 0 and.then (15 mod 'v16') !== 3) or 16 div ((to.uint64['v16'] mod 9159883580958452947) + 1) > 0 {
-    } else if to.int32['v16' mod 2147483648] == ((to.int32['v16' mod 2147483648] mod 92681) - 46340) x ((f2[to.uint16['v17' mod 65536]] mod 92681) - 46340) {
+    if ('v16' !== 0 and.then (15 mod.floor 'v16') !== 3) or 16 div.floor ((to.uint64['v16'] mod.floor 9159883580958452947) + 1) > 0 {
+    } else if to.int32['v16' mod.floor 2147483648] == ((to.int32['v16' mod.floor 2147483648] mod.floor 92681) - 46340) x ((f2[to.uint16['v17' mod.floor 65536]] mod.floor 92681) - 46340) {
         for temp 'i37': uint16 in range[from 31, to 34, by 1] {
         }
     } else {

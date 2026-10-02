@@ -94,10 +94,15 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   form; sometimes into a `bin16`, past its 65504 as a risk. Never inside a
   `check` (Precog has no brain16 domain, so every site is a run-time
   check), and, like deci, compared between the engines only.
-  **`div.trunc` / `mod.trunc`** (owner, 2026-10-02, 692a444): on integers,
-  beside `div` and `mod`, always parenthesised as an operand; modelled by
-  the evaluator (Rust's `/` and `%`), the solver (`bvsdiv`, `bvsrem`) and
-  the intervals. Avoided by default until CCA has them (`trunc`).
+  **Every division says how it rounds** (owner, 2026-10-02, 5a12c07): the
+  old `div` / `mod` are written `div.floor` / `mod.floor` (the printer
+  too); on integers also `.trunc`, `.ceil` and `.near` (a tie to even) and
+  their `mod`s, always parenthesised as an operand and modelled by the
+  evaluator, the solver and the intervals through one `BinOp::quotient`;
+  on decis and brain16 `div.near` is ordinary division, with `.floor`,
+  `.ceil`, `.trunc` and their `mod`s (never `mod.near`, refused there).
+  The roundings past `.floor` are avoided by default until CCA has them
+  (`rounding`).
   **`for !c`** (owner, 2026-10-01; `--avoid no-cheat`): about one range
   loop in seven is `for !c` or `for !c seq`; same answers as a plain `for`.
   **Enums** (design/enums.md; `--avoid enums` turns them off): about
@@ -220,9 +225,11 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits,trunc`.
+straight at them. Default: `exact-bits,rounding`.
 
-- `trunc`: no `div.trunc` / `mod.trunc` (in the oracle 692a444, not yet in CCA).
+- `rounding`: only `div.floor` / `mod.floor` on integers and `div.near` /
+  `mod.floor` on decis and brain16 (the rest are in the oracle, 5a12c07, not
+  yet in CCA).
 
 - `brain-mod`: no `mod` on brain16 (the divisor's sign, owner 426371c;
   in CCA 3657a11). (Negative

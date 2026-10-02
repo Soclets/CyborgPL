@@ -13,8 +13,8 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' div 10;
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        change 'v' = 'v' div.floor 10;
         if 'v' == 0 { break; }
     }
     for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
@@ -37,7 +37,7 @@ fn put_i ['n': int64] {
 }
 
 fn f3 ['p1': bool] -> int16 {
-    put_u[to.uint64[0 div ((2 div 10047273927188643194) + 1)]];
+    put_u[to.uint64[0 div.floor ((2 div.floor 10047273927188643194) + 1)]];
     return 0;
 }
 

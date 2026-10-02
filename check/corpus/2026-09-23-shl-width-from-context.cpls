@@ -3,5 +3,5 @@
 MAIN {
     let 'v': uint32 = 3;
     let 'a': uint32 = 2 shl 3;
-    let 'b': uint32 = ('v' mod 16) shl 2;
+    let 'b': uint32 = ('v' mod.floor 16) shl 2;
 }

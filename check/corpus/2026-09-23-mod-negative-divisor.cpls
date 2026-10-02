@@ -4,9 +4,9 @@
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
     let 'x': int64 = 1;
-    let 'd': int64 = 'x' mod (-3);
+    let 'd': int64 = 'x' mod.floor (-3);
     let 'ok' := "-2 ok";
     if 'd' == -2 { nocheck write[1, lend 'ok', 5]; }
-    let 'e': int64 = 7 mod (-3);
+    let 'e': int64 = 7 mod.floor (-3);
     if 'e' == -2 { nocheck write[1, lend 'ok', 5]; }
 }

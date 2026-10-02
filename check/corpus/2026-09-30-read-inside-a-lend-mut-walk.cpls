@@ -11,11 +11,11 @@ fn emit ['m': uint64, 'neg': bool] {
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-    change 'v' = 'v' div 10;
+    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
-        change 'v' = 'v' div 10;
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
@@ -41,7 +41,7 @@ fn put_i ['n': int64] {
 MAIN {
     let 'v22': uint8 = 1;
     for 'i24': int8 in range[120, 127] {
-        let mut 'xs25': list[uint8] = list.fill[((('v22' + 0) mod (((('v22' mod 4) xx (to.uint8['i24'] mod 6)) mod 122) + 1)) mod 110) + 13, ((-2147483647) - (-190277311)) mod 9];
+        let mut 'xs25': list[uint8] = list.fill[((('v22' + 0) mod.floor (((('v22' mod.floor 4) xx (to.uint8['i24'] mod.floor 6)) mod.floor 122) + 1)) mod.floor 110) + 13, ((-2147483647) - (-190277311)) mod.floor 9];
         for 'x26' in lend.mut 'xs25' {
             change 'x26' = 'x26' + 1;
             let 'v31': int64 = 0;
