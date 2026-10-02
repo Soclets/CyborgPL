@@ -19,11 +19,10 @@ Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
 for `bin16` `bin32` `bin64`. Nothing else: not `bool` (the same word),
 not `char` (a unit must be said), no `deci` (Rust has none), not
-`String`, `&str`, `usize`, `isize` or `Vec<T>` (`DECISIONS.md`). **So are
-C's exact names** (owner, 2026-10-02; not built yet): `int8_t`–`int64_t`,
-`uint8_t`–`uint64_t`, `_Decimal32` `_Decimal64` `_Decimal128` for
-`deci32`–`deci128`, `float` and `double` for `bin32` and `bin64`; none of
-C's machine-sized names (`int`, `long`, `char`, `long double`, `size_t`).
+`String`, `&str`, `usize`, `isize` or `Vec<T>` (`DECISIONS.md`). Only these and CyborgPL's
+own names (owner, same day: "only include the Rust ones and ours"): C's
+exact names, recorded first, were withdrawn, and no long spellings
+(`binary_float16`) are added.
 
 **No `bin128`** (owner, 2026-09-23). Quad precision has essentially no
 hardware anywhere — it is software arithmetic, and slow — and the thing

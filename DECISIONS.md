@@ -5,7 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-02 — C's exact type names are aliases too (owner; not built yet)
+### 2026-10-02 — Type names: CyborgPL's own and Rust's, nothing else (owner)
+
+The owner asked for long aliases too ("`binary_float16`,
+`binary_float_16`, `binaryfloat16`, etc, etc"); design claude proposed a
+rule (a long word per family, `_` or nothing between the parts) and asked
+which families. The owner: "Actually, fuck it, only include the Rust ones
+and ours". So the types are spelled CyborgPL's way or with Rust's 13
+number names (`i8`–`i128`, `u8`–`u128`, `f16` `f32` `f64`); the C aliases
+recorded earlier the same day are withdrawn, and no long names are added.
+Not built yet. `types.md`.
+
+### 2026-10-02 — C's exact type names are aliases too (owner; not built yet) — withdrawn the same day: only CyborgPL's names and Rust's
 
 | C alias | CyborgPL type |
 |---|---|
