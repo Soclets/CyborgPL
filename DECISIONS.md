@@ -20,6 +20,15 @@ sketch, `fn max <T: Ordered, @x> […]`, `struct Pair <A, B> { … }`, was
 not ruled), whether later mentions keep their `< >`, and where bounds go.
 Nothing built yet. `generics.md`.
 
+**And a generic says what it accepts; it never allows every type by
+default.** Asked how a generic knows what it accepts, design claude
+explained that a plain `<T>` takes any type the body works with, checked
+at each call, and that a bound (`<T: Ordered>`) says it in the
+signature. The owner: "But it's confusing, nobody defined `<T>` yet",
+then "I meant that a generic needs defining first. Don't default to
+allow all". Open: how a generic that truly takes any type (a `Pair`, the
+first item of any list) says so.
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:
