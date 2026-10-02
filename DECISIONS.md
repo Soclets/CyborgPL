@@ -24,9 +24,25 @@ its space, that C and Rust readers know `*` as dereferencing, and that
 C# and C23 use a suffix (`0.1m`, `0.1dd`); the owner: "`*0.1` is already
 correct in CyborgPL" — kept as `*`. Design claude's proposals with it,
 not ruled: `*` only before a decimal literal (integers are exact
-already); Precog picks the `deci` width; a typed `deci` needs no `*`. Still
-open: which bin a plain `0.1` gets with `:=` (and so `brain16` stays
-something only written, never chosen). Not built yet. `types.md`.
+already); Precog picks the `deci` width; a typed `deci` needs no `*`.
+
+**A plain decimal `:=` means `bin64`'s answer; Precog narrows it only
+where the whole program gives the same results.** The owner: "Doesn't
+that depend on the entire program?" Design claude: yes, but bins of
+different widths give different answers, so the width needs a fixed
+meaning to compare against, or the same line would print differently
+depending on the rest of the program; proposed `bin64` as that meaning,
+narrowed wherever Precog proves a narrower width gives identical
+results (`let 'half' := 0.5;` used only to halve powers of two can be a
+`bin16`; a `0.1` that is printed or summed stays `bin64`), the integers'
+"narrow when proven" rule applied to bins. The owner: "`let 'half' :=
+0.5;` smallest that fits? If there's nothing else, of course". Among the
+widths proven to give the same results, the pick is the 2026-09-14
+"best, not smallest" rule's (the natural width for a lone scalar, the
+narrow one for lists and structs). So `brain16`, which changes values,
+is never chosen: only written. Not built yet. `types.md`, `precog.md`.
+
+
 
 ### 2026-10-02 — A brain float: `brain16`, also `bfloat16` and `bf16` (owner)
 

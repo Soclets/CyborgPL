@@ -27,7 +27,9 @@ rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16
 
 **`*0.1` means "exactly this"** (owner, 2026-10-02; not built yet): a
 decimal literal marked `*` is a `deci`, `let 'price' := *19.99;`; a plain
-one is a `bin`. Which bin a plain `0.1` gets with `:=` is open.
+one is a `bin`, meaning `bin64`'s answer: Precog narrows it only where
+it proves the whole program gives the same results (owner, 2026-10-02),
+so `brain16` is never chosen, only written.
 
 **Rust's names are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`

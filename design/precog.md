@@ -261,6 +261,11 @@ for the maximum (bounded binary search on "can it exceed K?"); failing
 that, `:=` at that boundary is the compile error `core-features.md`
 already specifies: write the type.
 
+A decimal literal under `:=` means `bin64`'s answer; a narrower bin is
+picked only where it gives identical results across the whole program,
+since a bin's width changes values (owner, 2026-10-02). `*0.1` is a
+`deci` instead.
+
 ## Determinism
 
 `reproducible-builds.md`, restated for Precog:
