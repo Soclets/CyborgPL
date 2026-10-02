@@ -3014,7 +3014,15 @@ impl Checker {
                     }
                 };
                 let elem = self.resolve(&self.arg_type(&v));
-                let c = self.expr(ctx, ce)?;
+                let mut c = self.expr(ctx, ce)?;
+                // Bare numbers with plain math between them are worked out
+                // exactly, as for a declaration's value (`operators.md`):
+                // `((-2^63) x 2^62) mod 9` is 4, and the product in between
+                // fits nothing (check claude, seed 11045).
+                if matches!(self.resolve(&c.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(&c) {
+                    let to = if plain_group(&c) { Ty::exact() } else { Ty::u64() };
+                    retype_literal_arith(&mut c, &to);
+                }
                 if !self.resolve(&c.ty).is_int() {
                     return err(Diagnostic::error(format!("`list.fill`'s count is a whole number, and this is a `{}`", self.spell(&self.resolve(&c.ty)))).at(ce.span));
                 }
