@@ -18,7 +18,7 @@ export default function More() {
       <div className="list">
         <a href={RRX2_URL} target="_blank" rel="noopener noreferrer" className="row">
           <span className="ri ri-logo"><img src="/icons/rrx2.svg" alt="" width="30" height="15" /></span>
-          <span className="row-text"><b>RRx2</b><small>CyborgPL’s own verifiers: RRx2-TV and RRx2-lang</small></span>
+          <span className="row-text"><b>RRx2</b><small>CyborgPL’s own verifiers: RRx2, its translation validator, and RR, an exact-math language</small></span>
           <Icon name="external" size={17} />
         </a>
       </div>

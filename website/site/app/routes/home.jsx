@@ -25,7 +25,7 @@ export async function loader() {
     { to: "/learn", title: "Learn", text: "Your first program, syntax in five minutes, core features", kind: "Page", icon: "book" },
     { to: "/examples", title: "Examples", text: "Every program in the repo, with its output", kind: "Page", icon: "code" },
     { to: "/download", title: "Download", text: "Nothing to download yet", kind: "Page", icon: "download" },
-    { to: "/more", title: "RRx2", text: "CyborgPL’s own verifiers: RRx2-TV, a translation validator, and RRx2-lang, exact math", kind: "Page", icon: "shield" },
+    { to: "/more", title: "RRx2 and RR", text: "CyborgPL’s own verifiers: RRx2, a translation validator, and RR, an exact-math language", kind: "Page", icon: "shield" },
     { to: "/licence", title: "Licence", text: "Apache-2.0 with the LLVM exception; text CC BY 4.0", kind: "Page", icon: "scale" },
   ];
   const features = FEATURES.map((f) => ({ to: `/learn#${f.id}`, title: plain(f.title), text: plain(f.text), kind: "Feature", icon: f.icon }));
