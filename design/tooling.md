@@ -173,6 +173,15 @@ owner's order:
    `.synthia/`**, as the prefix override does. Those parts, and the name
    `spellings.cplr`, are design claude's; the owner: "whatever is good,
    bro". Both files are CyborgPL syntax, so `.cplr`, no new extension.
+
+   **CCA has a command that says where and what to change; Synthia makes
+   the changes** (owner, 2026-10-02: "I think CCA's one should be a
+   command, and it tells you where & what to change. Synthia does it
+   automatically after a button or a CLI command"). CCA's lists every
+   line a row matches — the new spelling, and the lines whose meaning
+   changed — and edits nothing; Synthia's applies them, from the IDE's
+   button or its own command. Both read `spellings.cplr` and
+   `cpl_ver.cplr`. Names open.
 2. **Limb registry search** — searching the index (`limbs.xxx`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.

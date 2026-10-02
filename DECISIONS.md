@@ -22,7 +22,13 @@ The owner: "we could create a separate file if needed", "whatever is
 good, bro", "we could create a new file type/extension if needed"
 (design claude kept `.cplr`, CyborgPL syntax for tooling), then named the
 stamp "`cpl_ver`", "with the dot": `cpl_ver.cplr`. `spellings.cplr` is
-design claude's name. `tooling.md`.
+design claude's name. Asked whether CCA's package manager gets Quick Fix
+too: design claude noted the 2026-09-29 rule (Synthia's edge is
+convenience, never capability), that a CCA user could follow the errors
+by hand except for meaning changes, which compile silently, and proposed
+CCA noting those. The owner: "I think CCA's one should be a command, and
+it tells you where & what to change. Synthia does it automatically after
+a button or a CLI command". `tooling.md`.
 
 ### 2026-10-02 — What CyborgPL's IDE should have (owner)
 
