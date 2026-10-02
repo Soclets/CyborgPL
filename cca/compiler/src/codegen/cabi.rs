@@ -2,7 +2,7 @@
 //! a struct the way its fields would go one by one, which is not how C
 //! passes it: C packs `div_t`'s two `int`s into one register, and a
 //! function that read two got the second from whatever was left in the
-//! next one. So a `layout.c` struct and a C enum cross the way clang lowers
+//! next one. So a `layout.C` struct and a C enum cross the way clang lowers
 //! them for this machine, and Cyborg sees its own shape on either side.
 //!
 //! AAPCS64 (Apple's arm64 follows it for these): a struct of one to four of

@@ -525,7 +525,7 @@ pub struct StructDecl {
 pub struct EnumCase {
     pub name: Ident,
     pub payload: Option<Type>,
-    /// A `layout.c enum` case's number, as the C header gives it.
+    /// A `layout.C enum` case's number, as the C header gives it.
     pub number: Option<(i128, Span)>,
 }
 
@@ -534,7 +534,7 @@ pub struct EnumDecl {
     pub name: Ident,
     pub announce: Announce,
     pub cases: Vec<EnumCase>,
-    /// `layout.c enum`: C's enum, a number per case (owner, 2026-09-27: a).
+    /// `layout.C enum`: C's enum, a number per case (owner, 2026-09-27: a).
     pub layout_c: bool,
 }
 

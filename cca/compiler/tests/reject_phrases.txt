@@ -139,8 +139,8 @@ enum_match_missing_case [fnv:b42f70eab9e1b344] :: every case of `S` must have an
 enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and this is a `integer`: use `if`
 enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
-enum_not_c [fnv:290fed975360e9b3] :: the `extern fn f` parameter 'k' is not C-shaped
-enum_number_not_c [fnv:5cd2bb5264276a44] :: only a `layout.c enum` has numbers
+enum_not_c [fnv:297ced9753bdbb93] :: the `extern fn f` parameter 'k' is not C-shaped
+enum_number_not_c [fnv:3d2b02ae1d3a34e4] :: only a `layout.C enum` has numbers
 enum_plain_case_to_text [fnv:0cb6696c30a5f896] :: a `Status` is not text: its case `claimed` carries data
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
@@ -156,7 +156,7 @@ extern_otherwise [fnv:d2a17dcd21891cc1] :: an `extern fn` cannot fail; drop the 
 extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: its return is a range C promised, checked at the door
 extern_read_checked [fnv:6290a80c525fe9a5] :: nothing about C's memory can be proven
 extern_str_param [fnv:fc8e6737a324ce6d] :: the `extern fn f` parameter 'a' is not C-shaped
-extern_struct_not_layout [fnv:6de7a6db9e70dc85] :: a pointer points at something C-shaped
+extern_struct_not_layout [fnv:6e53a6db9ecbfb65] :: a pointer points at something C-shaped
 extern_untyped_param [fnv:74f96f923d17901f] :: C's signature is written in full
 extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s body is in C
 extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
@@ -248,8 +248,9 @@ join_outside_bracket [fnv:80a1ba96be64706e] :: join text with `++`, separate val
 join_outside_bracket_newline [fnv:80a1ba96be64706e] :: join text with `++`, separate values with `,`
 keyword_fn_bare [fnv:6db39b67a64f5e13] :: a function named with one is reached only through a path
 lang_prefix [fnv:c1d124ba1f70ae44] :: `lang:` was removed: keywords are bare
-layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `layout.c` structs and enums can cross to C
-layout_not_c [fnv:975c6f596f1eb960] :: the only layout is `layout.c`, C's shape; `layout.rust` does not exist
+layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C
+layout_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
+layout_not_c [fnv:97c96f596f7b8b40] :: the only layout is `layout.C`, C's shape; `layout.rust` does not exist
 leading_zero [fnv:cd43e7e5f661968a] :: `007` starts with a zero, and leading zeros are illegal: write `7`
 lend_mut_and_lend [fnv:162b1b57a7351c56] :: lent again in the same call
 lend_mut_via_return [fnv:162b1b57a7351c56] :: lent again in the same call
@@ -395,8 +396,8 @@ ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_nu
 ptr_cast_keeps_readonly [fnv:8094e2137b68463e] :: `ptr.write` needs a `ptr.mut`
 ptr_cast_needs_nocheck [fnv:e2d596a2bd4a2610] :: `ptr.cast` says the bytes are a different type
 ptr_cast_not_c [fnv:4cf595f3bcc2be7a] :: casts only to a C-shaped type
-ptr_declared [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.c` field
-ptr_in_let_still_refused [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.c` field
+ptr_declared [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.C` field
+ptr_in_let_still_refused [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.C` field
 ptr_lend_mut_needed [fnv:ed12d99652ef7144] :: C may write through it, so write `lend.mut`
 ptr_read_c_enum_unhandled [fnv:32fe4958b7e20764] :: `ptr.read` of a `Mode` from C can fail (out_of_range)
 ptr_read_null_lied [fnv:4d31d6e728a30b8b] :: !by-design a `nocheck` read through C's pointer; nothing at compile time can know what C returned, and `nocheck` says so — the oracle catches it only by running it

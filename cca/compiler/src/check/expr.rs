@@ -202,8 +202,8 @@ impl Checker {
                 }
                 if !t.is_c_shaped(&self.items.structs, &self.items.enums) {
                     let why = match t.base() {
-                        Ty::Struct { id, .. } => format!("struct `{}` is not `layout.c`; its layout is Precog's, not C's", self.items.structs[id.0 as usize].name),
-                        Ty::Enum { id, .. } => format!("enum `{}` is not `layout.c`; its layout is Precog's, not C's", self.items.enums[id.0 as usize].name),
+                        Ty::Struct { id, .. } => format!("struct `{}` is not `layout.C`; its layout is Precog's, not C's", self.items.structs[id.0 as usize].name),
+                        Ty::Enum { id, .. } => format!("enum `{}` is not `layout.C`; its layout is Precog's, not C's", self.items.enums[id.0 as usize].name),
                         other => format!("`{}` is not C-shaped", self.spell(other)),
                     };
                     return err(Diagnostic::error(format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {}", why)).at(ty.span));
@@ -2752,11 +2752,11 @@ impl Checker {
             // A number from C becomes a C enum only through a check (owner,
             // 2026-09-27): one no case has fails `out_of_range`.
             (Ty::Int(_), Ty::Enum { id, .. }) if self.items.enums[id.0 as usize].numbers.is_some() => fails.push("out_of_range"),
-            (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `layout.c enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).at(span)),
+            (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `layout.C enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).at(span)),
             // And back: a C enum's number never fails (owner, 2026-09-28);
             // a narrower target is a narrowing site, as ever.
             (Ty::Enum { id, .. }, Ty::Int(_)) if self.items.enums[id.0 as usize].numbers.is_some() => {}
-            (Ty::Enum { .. }, Ty::Int(_)) => return err(Diagnostic::error(format!("only a `layout.c enum` has numbers: `{}` is a Cyborg enum, whose cases are names", self.spell(&vt))).at(span)),
+            (Ty::Enum { .. }, Ty::Int(_)) => return err(Diagnostic::error(format!("only a `layout.C enum` has numbers: `{}` is a Cyborg enum, whose cases are names", self.spell(&vt))).at(span)),
             (_, Ty::Struct { .. }) | (_, Ty::Enum { .. }) => return err(Diagnostic::error(format!("there is no conversion to `{}`: a struct or enum value is built by name", target_spelling)).at(span)),
             (Ty::Duration, _) | (_, Ty::Duration) => return err(Diagnostic::error("a duration does not convert: compare or add durations directly").at(span)),
             _ => return err(Diagnostic::error(format!("there is no conversion from `{}` to `{}`", self.spell(&vt), target_spelling)).at(span)),

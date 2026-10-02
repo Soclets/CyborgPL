@@ -3,7 +3,7 @@
 # newer library added — so the program decides what it means
 # (examples/c_enum_convert.cpls as an exit code: 2, 0, 3 → 203).
 extern fn exit ['code': int32];
-layout.c enum Key { a = 65  b = 66  escape = 256 }
+layout.C enum Key { a = 65  b = 66  escape = 256 }
 fn on_key ['code': int32] -> int32 {
     let 'k' := to.Key['code'] otherwise { out_of_range { return 0; } };
     match 'k' {

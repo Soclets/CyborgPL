@@ -8,7 +8,7 @@ enum Size {
     big
 }
 
-layout.c enum Mode {
+layout.C enum Mode {
     off = 0
     on = 7
 }

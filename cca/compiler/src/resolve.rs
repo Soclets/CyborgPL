@@ -321,7 +321,7 @@ impl Items {
                 // A range is Cyborg's promise, and C sees the plain number
                 // (owner, 2026-09-27: a).
                 if decl.layout_c && !ty.base().is_c_shaped(&self.structs, &self.enums) {
-                    return err(Diagnostic::error(format!("field `{}` of the `layout.c` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.c` structs and enums can cross to C", f.name.name, decl.name.name)).at(f.ty.span));
+                    return err(Diagnostic::error(format!("field `{}` of the `layout.C` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C", f.name.name, decl.name.name)).at(f.ty.span));
                 }
                 fields.push(FieldInfo { name: f.name.name.clone(), immut: f.immut, ty });
             }
@@ -360,7 +360,7 @@ impl Items {
                     }
                     numbers.push(n as i64);
                 } else if let Some((_, at)) = c.number {
-                    return err(Diagnostic::error(format!("only a `layout.c enum`'s cases have numbers: `{}` is a Cyborg enum, whose cases are names", decl.name.name)).at(at));
+                    return err(Diagnostic::error(format!("only a `layout.C enum`'s cases have numbers: `{}` is a Cyborg enum, whose cases are names", decl.name.name)).at(at));
                 }
                 cases.push(CaseInfo { name: c.name.name.clone(), payload });
             }
@@ -497,7 +497,7 @@ impl Items {
 
     /// What C hands back that Cyborg must check before holding it: a range
     /// (`ffi.md`, a ranged return), a C enum's number, which may match no
-    /// case, and a `layout.c` struct with either among its fields (owner,
+    /// case, and a `layout.C` struct with either among its fields (owner,
     /// 2026-09-27: a). Outside, the call fails `out_of_range`.
     pub fn checked_at_door(&self, ty: &Ty) -> bool {
         ty.checked_at_door(&self.structs, &self.enums)
@@ -508,12 +508,12 @@ impl Items {
             return Ok(());
         }
         let why = match ty.base() {
-            Ty::Struct { id, .. } => format!("`{}` is not `layout.c`: only a `layout.c struct` has C's shape", self.structs[id.0 as usize].name),
-            Ty::Enum { id, .. } => format!("`{}` is not `layout.c`: only a `layout.c enum` crosses to C, a number per case", self.enums[id.0 as usize].name),
+            Ty::Struct { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C struct` has C's shape", self.structs[id.0 as usize].name),
+            Ty::Enum { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C enum` crosses to C, a number per case", self.enums[id.0 as usize].name),
             Ty::Str(_) => "a `str` is not C-shaped: C sees bytes, so hand it a `ptr[uint8]` (a lend of the text)".to_string(),
             Ty::Seq { .. } => "a list is not C-shaped: C sees a pointer to the elements — `ptr[T]` and a length".to_string(),
             Ty::Fn(_) => "the callback is not C-shaped: parameters by value (no `lent`), C-shaped types, no `fail`".to_string(),
-            _ => format!("`{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and `layout.c` structs cross to C", spell(ty, self)),
+            _ => format!("`{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and `layout.C` structs cross to C", spell(ty, self)),
         };
         err(Diagnostic::error(format!("{} is not C-shaped", what)).at(span).why(why))
     }
@@ -1080,7 +1080,7 @@ impl Items {
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     if !elem.contains_var() && !elem.is_c_shaped(&self.structs, &self.enums) {
                         let why = match elem.base() {
-                            Ty::Struct { id, .. } => format!("`{}` is not `layout.c`: only a `layout.c struct` has C's shape", self.structs[id.0 as usize].name),
+                            Ty::Struct { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C struct` has C's shape", self.structs[id.0 as usize].name),
                             other => format!("`{}` is not C-shaped", spell(other, self)),
                         };
                         return err(Diagnostic::error(format!("`ptr[{}]` cannot exist: a pointer points at something C-shaped", spell(&elem, self))).at(span).why(why));

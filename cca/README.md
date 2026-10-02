@@ -54,8 +54,8 @@ cargo test        # every examples/*.cpls checks; every reject program is
   is `std::` (none for now, owner). CCA refuses to write machine code it
   has no shape for rather than writing something wrong.
 - 2026-09-27: the 2026-09-25 syntax (no `let`, `change`, `!$`,
-  `and.then` / `or.else`); `layout.c enum` and ranged `layout.c` fields,
-  checked at the door when a call returns them. A `layout.c` struct or C
+  `and.then` / `or.else`); `layout.C enum` and ranged `layout.C` fields,
+  checked at the door when a call returns them. A `layout.C` struct or C
   enum crosses to C as C passes it (`codegen/cabi.rs`, AAPCS64: packed
   registers, float HFAs, `sret` over 16 bytes); another machine's
   convention is not written, and CCA refuses there. C's numbers are

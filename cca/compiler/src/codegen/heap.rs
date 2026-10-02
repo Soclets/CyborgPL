@@ -927,7 +927,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         self.variant_shape(&payloads)
     }
 
-    /// An enum's tag: which case, as a number. A `layout.c enum`'s tag is
+    /// An enum's tag: which case, as a number. A `layout.C enum`'s tag is
     /// the case's own number, so C reads it as it wrote it; any other's is
     /// the case's place in the list.
     pub(super) fn tag_type_of(&self, id: EnumId) -> inkwell::types::IntType<'ctx> {
@@ -1252,7 +1252,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     /// Whether what C handed back keeps Cyborg's promises: a range holds its
-    /// number, a C enum's number is one of its cases, and a `layout.c`
+    /// number, a C enum's number is one of its cases, and a `layout.C`
     /// struct's fields keep theirs (owner, 2026-09-27: a).
     fn kept_at_door(&mut self, v: BasicValueEnum<'ctx>, ty: &Ty) -> Option<IntValue<'ctx>> {
         let mut kept = self.ctx.bool_type().const_all_ones();
@@ -2132,7 +2132,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // An enum case: `Size.big`, or usefully `big` (owner,
             // 2026-09-30). Its tag is its place in the list, or a
-            // `layout.c` enum's C number.
+            // `layout.C` enum's C number.
             (Ty::Enum { id, .. }, BasicValueEnum::IntValue(tag)) => {
                 let info = self.p.items.enums[id.0 as usize].clone();
                 let names: Vec<String> = info.cases.iter().map(|c| if useful { c.name.clone() } else { format!("{}.{}", info.name, c.name) }).collect();

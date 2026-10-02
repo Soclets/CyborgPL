@@ -304,7 +304,7 @@ impl Checker {
                 };
                 if let Some(t) = &declared {
                     if let Ty::Ptr { .. } = t.base() {
-                        return err(Diagnostic::error(format!("`{}` exists only at the boundary: in an `extern fn` signature or a `layout.c` field — a declaration cannot make a pointer; a pointer comes only from a lend or from C", self.spell(t))).at(ty.as_ref().unwrap().span));
+                        return err(Diagnostic::error(format!("`{}` exists only at the boundary: in an `extern fn` signature or a `layout.C` field — a declaration cannot make a pointer; a pointer comes only from a lend or from C", self.spell(t))).at(ty.as_ref().unwrap().span));
                     }
                 }
                 // A borrow a function hands back is held by a new name

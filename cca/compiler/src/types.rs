@@ -220,7 +220,7 @@ impl Ty {
     }
 
     /// What C hands back that Cyborg must check before holding it: a range,
-    /// a C enum's number, which may match no case, and a `layout.c` struct
+    /// a C enum's number, which may match no case, and a `layout.C` struct
     /// with either among its fields (owner, 2026-09-27: a).
     pub fn checked_at_door(&self, structs: &[StructInfo], enums: &[EnumInfo]) -> bool {
         if self.bound().is_some() {
@@ -319,7 +319,7 @@ pub struct EnumInfo {
     pub name: String,
     pub path: String,
     pub cases: Vec<CaseInfo>,
-    /// A `layout.c enum`: each case's number, as C sees it (owner,
+    /// A `layout.C enum`: each case's number, as C sees it (owner,
     /// 2026-09-27: a). Its tag is that number, 32 bits.
     pub numbers: Option<Vec<i64>>,
     pub blanks: Vec<String>,

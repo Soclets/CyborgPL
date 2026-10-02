@@ -338,16 +338,20 @@ impl<'a> Parser<'a> {
             }
             "layout" => {
                 self.bump();
-                self.expect(&Tok::Dot, "`.c` after `layout`")?;
-                let which = self.ident("`c` after `layout.`")?;
-                if which.name != "c" {
-                    return self.fail_at(which.span, format!("the only layout is `layout.c`, C's shape; `layout.{}` does not exist", which.name));
+                self.expect(&Tok::Dot, "`.C` after `layout`")?;
+                let which = self.ident("`C` after `layout.`")?;
+                // A language's name is capitalized (owner, 2026-10-02).
+                if which.name == "c" {
+                    return self.fail_at(which.span, "C is written capitalized here, as every language's name is: `layout.C struct`, `layout.C enum`");
+                }
+                if which.name != "C" {
+                    return self.fail_at(which.span, format!("the only layout is `layout.C`, C's shape; `layout.{}` does not exist", which.name));
                 }
                 if self.eat_word("enum") {
                     return Ok(ItemKind::Enum(self.enum_decl(true)?));
                 }
                 if !self.is_word("struct") {
-                    return self.fail(format!("`layout.c` is followed by `struct` or `enum`, found {}", self.peek().describe()));
+                    return self.fail(format!("`layout.C` is followed by `struct` or `enum`, found {}", self.peek().describe()));
                 }
                 self.bump();
                 Ok(ItemKind::Struct(self.struct_decl(true)?))
