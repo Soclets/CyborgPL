@@ -1068,8 +1068,10 @@ impl Gen {
             owners.push((o, mutable));
         }
         // `m1[lend.mut 'oA', lend 'oB']`: two lists, before any borrow of
-        // them exists — or, as the mistake, one list lent both ways.
-        if self.mutator {
+        // them exists — or, as the mistake, one list lent both ways. Not in
+        // a `check`: the length `m1` leaves is a callee's fact the reads
+        // below would lean on (seed 11647).
+        if self.mutator && self.in_check == 0 {
             if mistake == Some(None) && self.rng.chance(40) {
                 let o = owners[0].0.clone();
                 body.push(Stmt::Src(format!("m1[lend.mut '{o}', lend '{o}'];")));
