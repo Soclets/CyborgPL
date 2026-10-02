@@ -1838,10 +1838,12 @@ impl<'a> Parser<'a> {
         self.expect(&Tok::Dot, "`.ASM` after `inline`")?;
         let lang = self.ident("the language after `inline.`")?;
         match lang.name.as_str() {
-            "ASM" => {}
+            // `S` is another name for it (owner, 2026-10-02), as in `.s` files.
+            "ASM" | "S" => {}
             "asm" => return self.fail_at(lang.span, "the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`"),
-            "C" | "c" => return self.fail_at(lang.span, "only `inline.ASM` exists so far; `inline.C` is not offered yet"),
-            other => return self.fail_at(lang.span, format!("only `inline.ASM` exists; `inline.{}` is not a language the compiler can inline", other)),
+            "s" => return self.fail_at(lang.span, "the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.S` (or `inline.ASM`)"),
+            "C" | "c" => return self.fail_at(lang.span, "only `inline.ASM` (also `inline.S`) exists so far; `inline.C` is not decided"),
+            other => return self.fail_at(lang.span, format!("only `inline.ASM` (also `inline.S`) exists; `inline.{}` is not a language the compiler can inline", other)),
         }
         let text = match self.peek().clone() {
             Tok::Raw(t) => {

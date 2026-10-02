@@ -24,6 +24,7 @@ append_wrong_type [fnv:5d724d7f0bf1eafb] :: there is no implicit conversion betw
 arith_overflow [fnv:7eddcdfe6e78e8b0] :: the value can be outside what a `int32` holds
 array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is a `array[int32]`
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
+asm_as_s [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.S, another name for inline.ASM, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_bare_word [fnv:c83c99fb8348768d] :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
 asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
@@ -31,6 +32,7 @@ asm_lend_mut_immut [fnv:af116253c2e3ddaf] :: is `immut`, so `lend.mut 'buf'`
 asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
 asm_lowercase [fnv:675e6a4df23aee31] :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
+asm_s_lowercase [fnv:b1269b11eef34dc7] :: is written in capitals
 asm_strings [fnv:c9b7ee31e6eab60e] :: `inline.ASM { mov x16, #4 }`
 asm_top_level [fnv:f8444caf9620e916] :: `inline.ASM` goes inside a body, as a statement, under `nocheck`
 asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
@@ -243,7 +245,7 @@ iface_unsatisfied_bound [fnv:f047b3b93b1031a0] :: `str` is not `Ordered`: no `op
 iface_with_body [fnv:7529b88ba149365d] :: end the signature with `;` and leave the body out
 index_past_end [fnv:7914d123bba99015] :: the position can be past the end
 index_zero [fnv:7914d123bba99015] :: the position can be past the end
-inline_c [fnv:5018d173d49afa27] :: only `inline.ASM` exists so far; `inline.C` is not offered yet
+inline_c [fnv:d5c6f5df25514a20] :: `inline.C` is not decided
 input_unhandled [fnv:42153828b7c05b82] :: `std::input.line` can fail (closed): say what happens
 input_with_args [fnv:53d190f847e97a96] :: `std::input.line` takes no arguments
 int8_overflow [fnv:388d1c9b5cc5a035] :: the value can be outside what a `int8` holds

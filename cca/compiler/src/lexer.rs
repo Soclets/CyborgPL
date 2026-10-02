@@ -265,11 +265,11 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    /// `inline` `.` `ASM` were the last three tokens: the brace opens raw text.
+    /// `inline` `.` `ASM` (or `S`) were the last three tokens: the brace opens raw text.
     fn after_inline_asm(&self) -> bool {
         let n = self.toks.len();
         n >= 3
-            && matches!(&self.toks[n - 1].tok, Tok::Word(w) if w == "ASM")
+            && matches!(&self.toks[n - 1].tok, Tok::Word(w) if w == "ASM" || w == "S")
             && self.toks[n - 2].tok == Tok::Dot
             && matches!(&self.toks[n - 3].tok, Tok::Word(w) if w == "inline")
     }

@@ -1,0 +1,35 @@
+# `inline.S` is another name for `inline.ASM` (owner, 2026-10-02): the same
+# program as inline_asm, spelled the other way, gives the same 7.
+# Inline assembly (ffi.md), arm64: values into registers and out, a real
+# syscall (getpid, 20) checked against C's, and x29/x30 clobbered in a
+# function that then returns (spelled fp/lr for LLVM: the compiler rule).
+extern fn exit ['code': int32];
+extern fn getpid [] -> int32;
+fn trample ['n': int64] -> int64 {
+    nocheck inline.S {
+        mov x30, #0
+        mov x29, #0
+        add x0, x0, #1
+    } with ['n' -> x0, 'm' <- x0, clobber x30, clobber x29];
+    return 'm';
+}
+MAIN {
+    let 'a': int64 = 20;
+    let 'b': int64 = 2;
+    nocheck inline.S {
+        add x0, x0, x1
+        mul x0, x0, x1
+        mov x16, #1
+        add x0, x0, x16
+    } with ['a' -> x0, 'b' -> x1, 'r' <- x0, clobber x16];
+    nocheck inline.S {
+        mov x16, #20
+        svc #0x80
+    } with ['pid' <- x0, clobber x16, clobber x1];
+    let mut 'got': int32 = 0;
+    if 'r' == 45 { change 'got' = 'got' + 1; }
+    if trample[41] == 42 { change 'got' = 'got' + 4; }
+    nocheck let 'c' := getpid[];
+    if to.int32['pid'] == 'c' { change 'got' = 'got' + 2; }
+    nocheck exit['got'];
+}
