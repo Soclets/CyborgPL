@@ -719,6 +719,7 @@ impl Gen {
             19 => self.deci_episode(),
             20 => self.list_loop(),
             21 => self.brain_episode(),
+            6 if self.rng.chance(8) => self.min_by_minus_one(),
             6 => {
                 let t = self.int_ty();
                 let (e, _) = self.int_expr_typed(t);
@@ -1586,6 +1587,26 @@ impl Gen {
             body.push(Stmt::Print { signed: t.signed(), value: Expr::To(if t.signed() { Ty::I64 } else { Ty::U64 }, Box::new(Expr::Var(k))) });
         }
         Stmt::Block { tier: Tier::Default, body }
+    }
+
+    /// A signed value divided by -1, printed: the answer is exact and
+    /// checked where it lands (owner: a, 15c5c71), so `-128 div.trunc -1`
+    /// on an int8 is 128 in the print's int64. An int64's minimum (2^63
+    /// does not fit) only as a risk taken.
+    fn min_by_minus_one(&mut self) -> Stmt {
+        use BinOp::*;
+        let wide = self.take_risk();
+        let ts: &[Ty] = if wide { &[Ty::I8, Ty::I16, Ty::I32, Ty::I64] } else { &[Ty::I8, Ty::I16, Ty::I32] };
+        let t = *self.rng.pick(ts);
+        let vs = self.vars_of(t);
+        let a = if !vs.is_empty() && self.rng.chance(50) && t != Ty::I64 {
+            Expr::Var(self.rng.pick(&vs).name.clone())
+        } else {
+            Expr::To(t, Box::new(Expr::Lit(t.range().lo)))
+        };
+        let ops: &[BinOp] = if self.cfg.roundings { &[Div, Mod, DivTrunc, ModTrunc, DivCeil, ModCeil, DivNear, ModNear] } else { &[Div, Mod] };
+        let op = *self.rng.pick(ops);
+        Stmt::Print { signed: true, value: Expr::Bin(op, Box::new(a), Box::new(Expr::Lit(-1))) }
     }
 
     /// An operator on decis or brain16: `div.near` is ordinary division;
