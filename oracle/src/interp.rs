@@ -1685,7 +1685,7 @@ impl<'p> Interp<'p> {
             Expr::Var(n, _) | Expr::Owned(_, n, _) => Ok(self.lookup(n).and_then(|s| s.ty.clone()).map(base)),
             Expr::Convert(t, ..) => Ok(Some(base(t.clone()))),
             Expr::Paren(inner, _) | Expr::Unary(_, inner, _) => self.plain_size(inner),
-            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod") => {
+            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "div.trunc" | "mod.trunc") => {
                 match (self.plain_size(l)?, self.plain_size(r)?) {
                     (Some(a), Some(b)) if ty_name(&a) != ty_name(&b) => Err(format!("{} and {}", ty_name(&a), ty_name(&b))),
                     (a, b) => Ok(a.or(b)),
@@ -2658,7 +2658,7 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "div.trunc" | "mod.trunc" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(op, l, r, _) => {
@@ -2824,6 +2824,12 @@ impl<'p> Interp<'p> {
             // (-7 / 2 = -4, -7 mod 2 = 1); hardware truncation is std::div.trunc / std::mod.trunc.
             ("div", Int(x), Int(y)) => { let q = x.checked_div(y).ok_or_else(|| ovf("div"))?; Int(if x % y != 0 && ((x < 0) != (y < 0)) { q - 1 } else { q }) }
             ("mod", Int(_), Int(0)) => return site(line, "`mod` by zero"),
+            // the hardware's truncation, by name, in the language (owner, 2026-10-02): -7 div.trunc 2 = -3,
+            // -7 mod.trunc 2 = -1 (the dividend's sign, C's `/` and `%`)
+            ("div.trunc", Int(_), Int(0)) => return site(line, "division by zero"),
+            ("mod.trunc", Int(_), Int(0)) => return site(line, "`mod` by zero"),
+            ("div.trunc", Int(x), Int(y)) => Int(x.checked_div(y).ok_or_else(|| ovf("div.trunc"))?),
+            ("mod.trunc", Int(x), Int(y)) => Int(x.checked_rem(y).ok_or_else(|| ovf("mod.trunc"))?),
             ("mod", Int(x), Int(y)) => { let r = x.checked_rem(y).ok_or_else(|| ovf("mod"))?; Int(if r != 0 && ((r < 0) != (y < 0)) { r + y } else { r }) }
             ("xx", Int(x), Int(y)) => {
                 if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
@@ -2833,6 +2839,10 @@ impl<'p> Interp<'p> {
             }
             // a bin never holds an infinity or a NaN (owner, 2026-09-29: a): a result that would be
             // one is a check site, as integer overflow and division by zero are
+            ("mod.trunc", Bin(_), Bin(y)) | ("mod.trunc", Brain(_), Brain(y)) if y == 0.0 => return site(line, "`mod` by zero"),
+            // C's `fmod`, the dividend's sign (owner, 2026-10-02)
+            ("mod.trunc", Bin(x), Bin(y)) => Bin(x % y),
+            ("mod.trunc", Brain(x), Brain(y)) => Brain(crate::value::round_brain(((x as f32) % (y as f32)) as f64)),
             ("div" | "mod", Bin(_), Bin(y)) if y == 0.0 => return site(line, if op == "div" { "division by zero" } else { "`mod` by zero" }),
             ("+" | "-" | "x" | "div" | "mod" | "xx", Bin(x), Bin(y)) => {
                 // `mod` takes the divisor's sign, as on integers and decis (owner, 2026-10-02: a): C's
@@ -4377,20 +4387,8 @@ impl<'p> Interp<'p> {
                 Ok(Value::Chan(Rc::new(RefCell::new(Chan { queue: std::collections::VecDeque::new(), cap: None, timer: Some(timer), id: self.next_chan_id }))))
             }
             "div.trunc" | "mod.trunc" => {
-                // hardware truncation, by name (decided 2026-09-20); the language's `/` and `mod` floor
-                if c.args.values.len() != 2 { return rt(c.line, format!("std::{path} takes two integers")); }
-                let (a, _) = self.value(&c.args.values[0])?;
-                let (b, _) = self.value(&c.args.values[1])?;
-                match (a, b) {
-                    (Value::Int(_), Value::Int(0)) => site(c.line, "division by zero"),
-                    (Value::Int(x), Value::Int(y)) => Ok(Value::Int(if path == "div.trunc" { x.checked_div(y) } else { x.checked_rem(y) }.ok_or_else(|| RuntimeError { line: c.line, msg: "integer overflow".into(), exit: None, site: true, leave: None })?)),
-                    // C's `fmod`, the dividend's sign, kept by name beside the language's `mod`
-                    // (owner, 2026-10-02: a)
-                    (Value::Bin(_), Value::Bin(y)) | (Value::Brain(_), Value::Brain(y)) if path == "mod.trunc" && y == 0.0 => site(c.line, "`mod` by zero"),
-                    (Value::Bin(x), Value::Bin(y)) if path == "mod.trunc" => Ok(Value::Bin(x % y)),
-                    (Value::Brain(x), Value::Brain(y)) if path == "mod.trunc" => Ok(Value::Brain(crate::value::round_brain(((x as f32) % (y as f32)) as f64))),
-                    (a, b) => rt(c.line, format!("std::{path} takes two integers{}, got {} and {}", if path == "mod.trunc" { " or two bins" } else { "" }, a.kind(), b.kind())),
-                }
+                // moved into the language as operators (owner, 2026-10-02)
+                rt(c.line, format!("`std::{path}` is an operator in the language now: `'a' {path} 'b'` (owner, 2026-10-02)"))
             }
             "printu.stdout" | "printu.stderr" => rt(c.line, format!("std::{path} is spelled std::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
             "printf.stdout" | "printf.stderr" => rt(c.line, format!("std::{path} is spelled std::print.format.{} now (owner, 2026-09-29)", &path[7..])),

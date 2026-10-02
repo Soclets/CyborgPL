@@ -1,0 +1,3 @@
+MAIN {
+    std::print.useful.stdout[std::div.trunc[-7, 2], \n];
+}

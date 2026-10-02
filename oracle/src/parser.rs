@@ -2144,6 +2144,9 @@ impl Parser {
             // `and.then` / `or.else` — the right side only when the left has not decided (owner, 2026-09-25)
             Tok::Word(w) if w == "and" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "then") => Some("and.then".into()),
             Tok::Word(w) if w == "or" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "else") => Some("or.else".into()),
+            // `div.trunc` / `mod.trunc` — the hardware's truncating division, in the language
+            // (owner, 2026-10-02: "`div.trunc` should be in base", then "`a`", an operator)
+            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "trunc") => Some(format!("{w}.trunc")),
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
@@ -2184,7 +2187,7 @@ impl Parser {
             "==" | "!==" | "<" | ">" | "</==" | ">/==" => 3,
             "++" => 4,
             "+" | "-" | "+~" | "-~" => 5,
-            "x" | "div" | "mod" | "x~" => 6,
+            "x" | "div" | "mod" | "div.trunc" | "mod.trunc" | "x~" => 6,
             "xx" | "xx~" => 8,
             _ => 0,
         }
@@ -2213,7 +2216,7 @@ impl Parser {
             let lv = Self::level(&op);
             if lv < min || lv == 0 { break; }
             self.advance();
-            if op == "and.then" || op == "or.else" { self.advance(); self.advance(); }
+            if op == "and.then" || op == "or.else" || op.ends_with(".trunc") { self.advance(); self.advance(); }
             // right-associative for xx, left for everything else
             let rhs = if op == "xx" { self.climb(lv)? } else { self.climb(lv + 1)? };
             lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
@@ -2229,10 +2232,10 @@ impl Parser {
                 for child in [l.as_ref(), r.as_ref()] {
                     match child {
                         Expr::Binary(cop, ..) => {
-                            if cop == "mod" || op == "mod" {
+                            if cop.starts_with("mod") || op.starts_with("mod") {
                                 return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading for mod beside another operator — parenthesise"));
                             }
-                            let both_mul = matches!(op.as_str(), "x" | "div" | "mod") && matches!(cop.as_str(), "x" | "div" | "mod");
+                            let both_mul = matches!(op.as_str(), "x" | "div" | "mod" | "div.trunc" | "mod.trunc") && matches!(cop.as_str(), "x" | "div" | "mod" | "div.trunc" | "mod.trunc");
                             if both_mul && !(op == "x" && cop == "x") {
                                 return bad(*line, format!("`{cop}` next to `{op}`: mathematics has no settled reading here (6 div 2 x 3, or anything with mod) — parenthesise one side"));
                             }

@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `div.trunc` and `mod.trunc` are operators in the language, not std's (owner: a)
+
+```
+-7 div.trunc 2        # -3   (was std::div.trunc[-7, 2])
+-7 mod.trunc 2        # -1
+'angle' mod.trunc 360.0   # C's fmod
+```
+
+The owner asked whether `div.trunc` is in std or the base language (std's,
+2026-09-20), then: "I think `div.trunc` should be in base". Design claude
+offered (a) an operator, narrowing `div` as `.bit` narrows `and`,
+recommended, or (b) a built-in function, `div.trunc[a, b]`, and asked
+whether `mod.trunc` moves with it. The owner: "`a`, and yea". Same
+precedence as `div`; `mod.trunc` beside another operator needs
+parentheses, as `mod` does. `div.trunc` takes integers, `mod.trunc`
+integers, bins and `brain16` (today's earlier ruling). `std::div.trunc`
+and `std::mod.trunc` are refused naming the operator. In the oracle;
+`examples/division.cpls`, `examples/mod_bin.cpls`; reject tests
+`div_trunc_std_moved`, `mod_trunc_beside`; `operators.md`.
+
 ### 2026-10-02 — `mod` on a bin or `brain16` takes the divisor's sign, as on integers and decis (owner: a)
 
 ```
