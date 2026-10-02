@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Rust's number type names are aliases (owner; not built yet)
+
+| Rust alias | CyborgPL type |
+|---|---|
+| `i8` `i16` `i32` `i64` `i128` | `int8` … `int128` |
+| `u8` `u16` `u32` `u64` `u128` | `uint8` … `uint128` |
+| `f16` `f32` `f64` | `bin16` `bin32` `bin64` |
+
+The owner: "I kinda want to add an alias for our types in Rust's syntax".
+Design claude proposed the exact one-to-one matches and left out
+`Vec<T>` / `HashMap` / `Option` (`< >` means a generic blank now),
+`String` / `&str` (Rust's owned/borrowed split has no counterpart; one
+`str.utf8`, lent with `lend`) and `usize` / `isize` (their size is the
+machine's), noting the 2026-09-19 no-alias rule and its two exceptions
+since (`&`, the long `print.useful` name). The owner dropped `bool`
+(already the same word) and `char` ("is gonna confuse people": a bare
+`char` is deliberately not a type, a unit must be said). Rust has no
+decimal type (`rust_decimal` is its own 128-bit format, not IEEE 754), so
+`deci` has none. The owner: "yea, don't implement yet". `types.md`.
+
 ### 2026-10-02 — The generics rules are in the oracle
 
 Built in one go after the owner settled them: announcements after the
