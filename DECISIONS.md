@@ -20,7 +20,8 @@ bare print (write `0.1`, get 34 digits). The owner: "Ah, opt 1". A bare
 `to.deci64[…]` of a `bin` is refused, naming both forms; design claude
 counted `brain16` as a bin here (a binary number; `to.useful.deci` of a
 `brain16` was the exact value until now and is now its shortest form,
-`0.1`). Integers, `deci`s and text into a `deci` stay bare. In the oracle
+`0.1`); the owner: "I think it's correct". Integers, `deci`s and text
+into a `deci` stay bare. In the oracle
 (reject test `deci_from_bin_bare`); `examples/deci.cpls`,
 `examples/deci_context.cpls`, `types.md`, `conversion.md`.
 
