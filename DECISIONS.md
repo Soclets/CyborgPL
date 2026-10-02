@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Division is exact and checked where it lands, as `+ - x xx` are (owner: a)
+
+```
+let 'a': int8 = -128;
+std::print.useful.stdout[('a' div.trunc -1), \n];   # 128: a print takes the true answer
+let 'b': int8 = 'a' div.trunc -1;                    # refused: 128 does not fit int8
+```
+
+Compiler claude found that CCA refused `-128 div.trunc -1` on `int8`s
+inside a print, working at the operands' type, while the oracle printed
+128. The 2026-09-23 rule ("plain math is exact; it is checked where it
+lands") named only `+ - x xx`. Design claude asked whether division
+follows it: (a) yes, recommended, one rule for all maths; (b) checked at
+the operands' type. The owner asked the performance difference (none:
+both need one compare for a divisor of -1 where Precog cannot rule it
+out) and what fits the hardware more ((b): chips divide at the operands'
+size; ARM silently gives back the smallest value, x86 faults, C calls it
+undefined; but hardware wraps `+ - x` too, and the owner chose the true
+answer there). The owner: "`a`". The oracle already did this;
+`examples/div_lands.cpls`, reject test `div_lands_too_small`,
+`operators.md`. CCA changes.
+
 ### 2026-10-02 — Every division says how it rounds: `div.floor`, `div.ceil`, `div.trunc`, `div.near`; `mod` too (owner)
 
 ```

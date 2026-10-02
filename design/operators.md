@@ -164,8 +164,10 @@ let 'tiny': int8 = (100 + 100) - 150;           # 50: the 200 in between is fine
 let 'bad': int8 = 100 + 100;                    # 200 does not fit int8: error
 ```
 
-`+ - x xx` on integers give the true answer, and the check is where the
-value lands: a typed declaration, a `change`, an argument (the parameter's
+`+ - x xx` on integers give the true answer, and so does every `div.X`
+and `mod.X` (owner, 2026-10-02: a; the one case is the smallest value
+divided by -1, `-128 div.trunc -1` on `int8`s, which is 128), and the
+check is where the value lands: a typed declaration, a `change`, an argument (the parameter's
 type), a return (the return type). A comparison compares true values,
 and a `:=` takes a type that holds its true value. You never get a
 wrong number, and never an error for an answer that fits where it is
