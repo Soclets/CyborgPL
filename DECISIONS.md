@@ -5,6 +5,33 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `times`, `plus`, `minus`; `xx` leaves the language for std's `pow` (owner; not built yet)
+
+```
+'a' times 'b'      # was 'a' x 'b'
+'a' plus 'b'       # was 'a' + 'b'
+'a' minus 'b'      # was 'a' - 'b'; a negative stays `-5`, `-'x'`
+'a' pow 'b'        # was 'a' xx 'b': std's operator now, no longer the language's
+```
+
+From hardware-style division: design claude offered `div.trunc~`, after
+`+~`; the owner: "Isn't it `div.trunc.wrap`?" (nothing is spelled `.wrap`
+yet; wrapping is the tilde, 2026-09-20), then: "we might just change our
+ops to words". Design claude laid out what is already words and what is
+still a symbol, and recommended only the wrapping ones becoming words,
+`+ - < ==` being known to everyone. The owner: "Don't implement yet. `x`
+becomes `times`, `xx` becomes `std::pow` (there should be a way for a
+limb to make a word op, without it becoming `[]`), and gets removed from
+base. `+` becomes `plus`, `-` becomes `minus` (only for `5` `-` `5`)".
+
+A Limb making a word operator used without `[]` exists already: `op`
+(2026-09-20) and a `pub op` used bare by every Limb that depends on it
+(2026-09-23). Open, asked one at a time: how std's power is written at
+the use (`'a' pow 'b'`, by that rule) and its precedence (a Limb's
+operator has none: parentheses beside any other); the wrapping forms
+(`+~ -~ x~ xx~`, and `div.trunc~` or `.wrap`); `op +` / `op x` as values;
+the comparisons and `++`, unchanged unless the owner says.
+
 ### 2026-10-02 — Division is exact and checked where it lands, as `+ - x xx` are (owner: a)
 
 ```
