@@ -1309,9 +1309,10 @@ impl Parser {
                     self.advance();
                     self.expect(Tok::Dot, "`.ASM` after `inline` (`inline.ASM { … }`)")?;
                     match self.advance().tok {
-                        Tok::Word(l) if l == "ASM" => {}
-                        Tok::Word(l) if l == "asm" => return self.err("the inline language is in capitals, like MAIN: `inline.ASM`"),
-                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; only `inline.ASM` exists (`inline.C` is possible later — LLVM ships clang)")),
+                        // `inline.S` is another name for it, as assembly's `.S` files (owner, 2026-10-02)
+                        Tok::Word(l) if l == "ASM" || l == "S" => {}
+                        Tok::Word(l) if l == "asm" || l == "s" => return self.err(format!("the inline language is in capitals, like MAIN: `inline.{}`", l.to_uppercase())),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; only `inline.ASM` (or `inline.S`) exists (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
                     }
                     let text = match self.advance().tok {

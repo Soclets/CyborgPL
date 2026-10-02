@@ -242,6 +242,10 @@ chose.
 
 ## Inline assembly — `inline.ASM` (decided 2026-09-20)
 
+**`inline.S` is another name for `inline.ASM`** (owner, 2026-10-02: "Add
+`S` as an alias to `ASM`"), as assembly's `.S` files: the same block,
+the same rules. Capitals, as every language's name: `inline.s` is refused.
+
 ```
 nocheck inline.ASM {
     mov x16, #4

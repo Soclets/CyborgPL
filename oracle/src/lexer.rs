@@ -235,7 +235,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 i += 1; col += 1;
                 continue;
             }
-            let is_asm = s == "ASM" && toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
+            let is_asm = (s == "ASM" || s == "S") && toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
             push(Tok::Word(s), &mut toks);
             if is_asm {
                 let mut j = i;

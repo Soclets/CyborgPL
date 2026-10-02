@@ -1,0 +1,9 @@
+# `inline.S` is another name for `inline.ASM` (owner, 2026-10-02): it checks, then the oracle
+# refuses to run assembly, as for any asm block.
+MAIN {
+    let 'fd': int64 = 1;
+    nocheck inline.S {
+        mov x16, #1
+        svc #0x80
+    } with ['fd' -> x0, clobber x16];
+}

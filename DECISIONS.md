@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `inline.S` is another name for `inline.ASM` (owner)
+
+The owner: "Add `S` as an alias to `ASM`". `S` as in assembly's `.S`
+files; capitalized, as every language's name is (`inline.s` is refused,
+naming `inline.S`). Design claude's pick, the owner's to change: `S` is
+not reserved as a keyword, since it is read only after `inline.`, so a
+struct or variable may still be called `S` and Synthia's keyword list
+does not change. In the oracle; reject tests `asm_as_s`,
+`asm_s_lowercase`; `ffi.md`.
+
 ### 2026-10-02 — A language's name is capitalized: `layout.c` becomes `layout.C` (owner)
 
 The owner, after design claude compared `layout.c` with LuaJIT's
