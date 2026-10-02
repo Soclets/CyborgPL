@@ -264,3 +264,4 @@ brain16 66
 inline_s 7
 list_fill_exact_count 4
 float_negatives 92
+mod_bin 222

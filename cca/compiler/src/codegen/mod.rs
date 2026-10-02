@@ -1762,9 +1762,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let zero = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                 self.guard(fi, s, zero, func)?;
             }
-            // `mod` takes the divisor's sign (owner, 2026-09-29): the
-            // hardware's remainder, moved by the divisor when the two differ.
-            // A brain16 is worked at 32 bits, where the remainder is exact.
+            // `mod` takes the divisor's sign, on a bin as on an integer (owner,
+            // 2026-10-02: a): the hardware's remainder, moved by the divisor
+            // when the two differ, and a zero with the divisor's sign. A
+            // brain16 is worked at 32 bits, then rounded. A tiny negative
+            // over a large divisor can round up to the divisor itself
+            // (`-1e-20 mod 360.0` is 360.0), as in Python and the oracle; open.
             if matches!(op, BinOp::Mod) {
                 let t = x.get_type();
                 let wide = t == self.ctx.bf16_type() || t == self.ctx.f16_type();
@@ -1783,6 +1786,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let fix = self.builder.build_and(nonzero, differ, "fix").ok()?;
                 let moved = self.builder.build_float_add(r, yw, "moved").ok()?;
                 let m = self.builder.build_select(fix, moved, r, "mod").ok()?.into_float_value();
+                let cs = inkwell::intrinsics::Intrinsic::find("llvm.copysign")?.get_declaration(self.module, &[m.get_type().into()])?;
+                let signed_zero = basic_result(self.builder.build_call(cs, &[zero.into(), yw.into()], "zero").ok()?)?.into_float_value();
+                let is_zero = self.builder.build_float_compare(FP::OEQ, m, zero, "is_zero").ok()?;
+                let m = self.builder.build_select(is_zero, signed_zero, m, "mod").ok()?.into_float_value();
                 let m = if wide { self.float_cast(m, t)? } else { m };
                 return Some(m.into());
             }
