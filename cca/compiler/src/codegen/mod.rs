@@ -828,7 +828,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         }
                     }
                     None => {
-                        let _ = self.builder.build_unconditional_branch(blocks[t.0 as usize]);
+                        let br = self.builder.build_unconditional_branch(blocks[t.0 as usize]);
+                        // The way round a loop that may run in slices, in the
+                        // copy that runs in order: that copy only ever takes
+                        // the short runs, and vectorising it hoisted its
+                        // 128-bit trip arithmetic into the loop around it —
+                        // once per outer round, the sieve at two thirds speed.
+                        let back = self.par_child.is_none() && self.par.loops.iter().any(|((g, _), pl)| *g == fi && pl.fl.head == *t && pl.blocks.contains(&b));
+                        if let (true, Ok(br)) = (back, br) {
+                            self.no_vectorize(br);
+                        }
                     }
                 }
             }
@@ -2993,6 +3002,29 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Verdict::Trusted => false,
             Verdict::Proven { .. } => self.assert_proofs,
             _ => true,
+        }
+    }
+
+    /// `llvm.loop` metadata on a loop's back edge saying not to vectorise
+    /// it: a node naming itself first, as LLVM's loop IDs do.
+    fn no_vectorize(&self, br: inkwell::values::InstructionValue<'ctx>) {
+        use inkwell::context::AsContextRef;
+        use inkwell::values::AsValueRef;
+        use llvm_sys::core::*;
+        unsafe {
+            let ctx = self.ctx.as_ctx_ref();
+            let key = "llvm.loop.vectorize.enable";
+            let name = LLVMMDStringInContext2(ctx, key.as_ptr() as *const _, key.len());
+            let off = LLVMValueAsMetadata(LLVMConstInt(LLVMInt1TypeInContext(ctx), 0, 0));
+            let mut opt_ops = [name, off];
+            let opt = LLVMMDNodeInContext2(ctx, opt_ops.as_mut_ptr(), 2);
+            let tmp = llvm_sys::debuginfo::LLVMTemporaryMDNode(ctx, std::ptr::null_mut(), 0);
+            let mut id_ops = [tmp, opt];
+            let id = LLVMMDNodeInContext2(ctx, id_ops.as_mut_ptr(), 2);
+            llvm_sys::debuginfo::LLVMMetadataReplaceAllUsesWith(tmp, id);
+            let kind_name = "llvm.loop";
+            let kind = LLVMGetMDKindIDInContext(ctx, kind_name.as_ptr() as *const _, kind_name.len() as u32);
+            LLVMSetMetadata(br.as_value_ref(), kind, LLVMMetadataAsValue(ctx, id));
         }
     }
 

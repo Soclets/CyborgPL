@@ -260,12 +260,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         for (k, l) in shared.iter().enumerate() {
             let at = unsafe { self.builder.build_gep(env_ty, env, &[i64t.const_zero(), i64t.const_int(k as u64, false)], "env_at").ok()? };
             let addr = self.builder.build_load(p, at, "addr").ok()?.into_pointer_value();
+            // The slice's own copy: read through the parent's addresses, a
+            // store into an element might be one of them, so the list's
+            // memory and the step were read again every round (the sieve
+            // at half speed). A loop in slices never changes a shared local.
+            let own = self.par_snapshot(fi, *l, addr).unwrap_or(addr);
             if *l == pl.fl.counter.0 {
                 parent_counter = Some(addr);
             } else if Some(LocalId(*l)) == pl.fl.step {
-                parent_step = Some(addr);
+                parent_step = Some(own);
             } else {
-                slots[*l as usize] = Some(addr);
+                slots[*l as usize] = Some(own);
             }
         }
         // The step, read from the parent's frame when the loop never
