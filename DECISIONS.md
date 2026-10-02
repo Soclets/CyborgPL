@@ -25,8 +25,15 @@ aliases (bfloat comes in 16 bits only).
 `bin32` do (2026-09-24): each operation gives the nearest `brain16`,
 which is what LLVM emits (widen, operate, `bfcvt`). Offered against it:
 exact in between and rounded once when stored; no arithmetic, storage
-only (compute in `bin32`, as mixed-precision AI code does). Open:
-conversions, literals, the GPU. Not built yet. `types.md`.
+only (compute in `bin32`, as mixed-precision AI code does).
+
+**It is a family of its own** (owner: "`a`"), like `deci`: it never mixes
+with a `bin` or an integer without `to.`, over joining the bins (mixed
+freely, quietly widened; `brain16` + `bin16` would have no common type).
+Conversions, design claude's sketch under the existing `to.` rules:
+`to.bin32['w']` exact, never fails; `to.brain16['x']` rounds;
+`to.bin16['w']` can overflow, a check site. Open: literals, the GPU. Not
+built yet. `types.md`.
 
 ### 2026-10-02 — Type names: CyborgPL's own and Rust's, nothing else (owner)
 

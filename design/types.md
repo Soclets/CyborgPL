@@ -20,7 +20,9 @@ spelled `bfloat16` and `bf16`: Google Brain's 16-bit float for neural
 networks — `bin32`'s 8 exponent bits, so its range, with 7 bits of
 precision. Not IEEE 754, so not a `bin`. LLVM's type is `bfloat`. Its
 arithmetic rounds after every step, as `bin16`'s does (owner,
-2026-10-02: a). Conversions and literals are open.
+2026-10-02: a). It is its own family, as `deci` is (owner: a): it mixes
+with nothing without `to.` — `to.bin32['w']` exact, `to.brain16['x']`
+rounding, `to.bin16['w']` a check site. Literals and the GPU are open.
 
 **Rust's names are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
