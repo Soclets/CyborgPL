@@ -28,17 +28,23 @@ language's.
 ## 2. The promise — `interface`
 
 ```
-interface Ordered {
+interface Ordered <T> {
     op < ['a': <T>, 'b': <T>] -> bool;
     op == ['a': <T>, 'b': <T>] -> bool;
 }
-interface Printable {
+interface Printable <T> {
     fn show [lent 'x': <T>] -> str.utf8;
+}
+interface Number {
+    int32
+    int64
+    bin64
 }
 ```
 
 Top level beside `struct`; `pub` works; entries are `fn` and `op`
-signatures about some `<T>` — the type the interface does not know yet —
+signatures about some `<T>` — the type the interface does not know yet,
+announced after the name since 2026-10-02 —
 ending with `;`, no bodies ("an interface lists promises, not code").
 The name is the author's: `Ordered`, `Comparable`, whatever; none is
 built in (whether std ships standard ones is a std question).
@@ -62,17 +68,18 @@ and errors at the definition rather than at some later use — the
 `satisfies` (owner, over `is`: "Vec is Iterator" reads oddly for
 noun-named interfaces; `satisfies` reads right for any name).
 
-## 4. Asking — `<T: Ordered>`
+## 4. Asking — `<T>: Ordered`
 
 ```
-fn max ['a': <T: Ordered>, 'b': <T>] -> <T> {
+fn max <T>: Ordered ['a': <T>, 'b': <T>] -> <T> {
     if 'b' < 'a' { return give 'a'; }
     return give 'b';
 }
 ```
 
-The bound is written once, on any mention of the blank (repeating it is
-allowed; a different interface on the same blank is an error). A call
+The bound is written once, where the blank is announced after the name
+(2026-10-02; until then on any one mention, `'a': <T: Ordered>`); several
+join with `and`, and `any` is said outright (`generics.md`). A call
 whose type does not keep the promise is a compile error at the call:
 `max["a", "b"]` → "str is not `Ordered`: no `op <` for it". Inside the
 body, only the promised operations may be used on a `<T>` (the compiler

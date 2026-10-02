@@ -1,4 +1,4 @@
-fn f ['a': <T: Nope>] -> <T> { return 'a'; }
+fn f <T>: Nope ['a': <T>] -> <T> { return 'a'; }
 MAIN {
     let 'x' := f[1];
 }

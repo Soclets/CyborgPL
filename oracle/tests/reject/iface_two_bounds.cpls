@@ -1,5 +1,0 @@
-interface A { op < ['a': <T>, 'b': <T>] -> bool; }
-interface B { op == ['a': <T>, 'b': <T>] -> bool; }
-fn f ['a': <T: A>, 'b': <T: B>] -> <T> { return 'a'; }
-MAIN {
-}

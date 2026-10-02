@@ -1,10 +1,10 @@
-# Interfaces (design/interfaces.md): a named list of promises about some <T>.
-interface Ordered {
+# Interfaces (design/interfaces.md): a named list of promises about some <T>, announced after the name.
+interface Ordered <T> {
     op < ['a': <T>, 'b': <T>] -> bool;
     op == ['a': <T>, 'b': <T>] -> bool;
 }
 
-interface Printable {
+interface Printable <T> {
     fn show [lent 'x': <T>] -> str.utf8;
 }
 
@@ -19,13 +19,13 @@ fn show [lent 'v': Vec] -> str.utf8 { return "(" ++ to.str.utf8['v'.x] ++ ", " +
 Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;
 
-# a generic asks for the promise on one mention of the blank
-fn max ['a': <T: Ordered>, 'b': <T>] -> <T> {
+# a generic says what its blank accepts where it announces it (owner, 2026-10-02)
+fn max <T>: Ordered ['a': <T>, 'b': <T>] -> <T> {
     if 'b' < 'a' { return give 'a'; }     # a <T> may be owned, so generic code writes the verbs;
     return give 'b';                       # for a plain T (int32) the verb does nothing
 }
 
-fn describe [lent 'x': <T: Printable>] -> str.utf8 {
+fn describe <T>: Printable [lent 'x': <T>] -> str.utf8 {
     return "value " ++ show[lend 'x'];
 }
 

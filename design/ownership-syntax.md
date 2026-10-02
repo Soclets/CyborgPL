@@ -142,11 +142,11 @@ outliving `'s'`.
 ## Handing back a borrow: `-> lent@x T` (owner, 2026-09-29)
 
 ```
-fn longer [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 {
+fn longer @x [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 {
     if str.bytes[lend 'a'] >/== str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
-fn pick [lent@x 'a': str.utf8, lent@y 'b': str.utf8] -> lent@x str.utf8 { return lend 'a'; }
+fn pick @x @y [lent@x 'a': str.utf8, lent@y 'b': str.utf8] -> lent@x str.utf8 { return lend 'a'; }
 ```
 
 A function may hand back a borrow of what it was lent (2026-09-21: a lend
@@ -154,8 +154,10 @@ may leave the call, and Precog proves it lives long enough). The return
 says so, `-> lent T` or `-> lent.mut T`. **`@x` names a lifetime group**:
 everything marked `@x` lives and dies together, so `longer`'s result is
 good while both `'a` and `'b` are, and `pick`'s needs only `'a`. The name
-means nothing but "same group", and it is introduced by first use, like
-`<T>`, with no list up front. Rust writes the same idea `<'x>` …
+means nothing but "same group". It is announced after the function's
+name, after its generics and a `|` when there are any (owner,
+2026-10-02): `fn longer @x […]`, `fn pick <T>: any | @x […]`; until then
+it was introduced by first use. Rust writes the same idea `<'x>` …
 `&'x str`. `'` means a variable here, so `@`, which reads as "at", and it
 sits on the borrow word, since borrowing is a word before the name. A
 returned borrow must come from a `lent` parameter in its group, never

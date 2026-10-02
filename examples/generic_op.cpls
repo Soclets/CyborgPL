@@ -1,11 +1,11 @@
 # A generic operator (owner, 2026-09-29): written once for any type that keeps its interface's
 # promises, like a generic fn. An operator may also be written for several types by name; two
 # meanings for the same type are an error, a generic one covering a specific one's type included.
-interface Number {
+interface Number <T> {
     op - ['a': <T>, 'b': <T>] -> <T>;
     op < ['a': <T>, 'b': <T>] -> bool;
 }
-op ~= ['a': <T: Number>, 'b': <T>] -> bool {
+op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool {
     if 'a' < 'b' { return 'b' - 'a' < 10; }
     return 'a' - 'b' < 10;
 }

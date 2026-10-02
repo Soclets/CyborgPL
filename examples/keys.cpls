@@ -1,7 +1,7 @@
 # Map keys (decided 2026-09-22): plain values, text, chars, structs and enums by structure —
 # or a type's own `op ==` and `fn hash` (it satisfies `Key`), with "equal keys hash the same"
 # a check site the compiler must prove.
-interface Key { op == ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
+interface Key <T> { op == ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
 
 struct Point { x: int32  y: int32 }                      # structural: fields decide
 

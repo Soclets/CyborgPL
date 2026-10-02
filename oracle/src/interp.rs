@@ -1261,6 +1261,10 @@ impl<'p> Interp<'p> {
                 let def = match self.prog.structs.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no struct named `{want}`")) };
                 if def.params.len() != args.len() { return rt(line, format!("`{want}` has {} blank(s) ({}), given {}", def.params.len(), def.params.iter().map(|p| format!("<{p}>")).collect::<Vec<_>>().join(", "), args.len())); }
                 let map: HashMap<String, Ty> = def.params.iter().cloned().zip(args.iter().cloned()).collect();
+                // what each blank accepts (owner, 2026-10-02)
+                for (var, iface) in &def.bounds {
+                    if let Some(t) = map.get(var) { if let Err(m) = self.satisfies(&ty_shape(t), iface, line)? { return rt(line, format!("`{want}` needs `<{var}>: {iface}`, but {m}")); } }
+                }
                 for f in &def.fields {
                     if let Some((_, fv)) = fields.iter().find(|(k, _)| k == &f.name) { self.check_type(fv, &subst(&f.ty, &map), line)?; }
                 }
@@ -1271,6 +1275,9 @@ impl<'p> Interp<'p> {
                 let def = match self.prog.enums.iter().find(|d| &d.name == want) { Some(d) => d.clone(), None => return rt(line, format!("no enum named `{want}`")) };
                 if def.params.len() != args.len() { return rt(line, format!("`{want}` has {} blank(s), given {}", def.params.len(), args.len())); }
                 let map: HashMap<String, Ty> = def.params.iter().cloned().zip(args.iter().cloned()).collect();
+                for (var, iface) in &def.bounds {
+                    if let Some(t) = map.get(var) { if let Err(m) = self.satisfies(&ty_shape(t), iface, line)? { return rt(line, format!("`{want}` needs `<{var}>: {iface}`, but {m}")); } }
+                }
                 if let (Some(c), Some(d)) = (def.cases.iter().find(|c| c.name == *case), data) { if let Some(t) = &c.ty { self.check_type(d, &subst(t, &map), line)?; } }
                 Ok(())
             }
@@ -3522,7 +3529,7 @@ impl<'p> Interp<'p> {
         for (var, iface) in &func.bounds {
             let shape = self.tvars.borrow().get(var).cloned();
             if let Some(shape) = shape {
-                if let Err(m) = self.satisfies(&shape, iface, c.line)? { return rt(c.line, format!("`{name}` needs `<{var}: {iface}>`, but {m}")); }
+                if let Err(m) = self.satisfies(&shape, iface, c.line)? { return rt(c.line, format!("`{name}` needs `<{var}>: {iface}`, but {m}")); }
             }
         }
         // captured variables (a function value's `with […]`) are visible inside as what they were taken as
@@ -3582,6 +3589,11 @@ impl<'p> Interp<'p> {
     /// count for the language's types; a user type needs an `op`/`fn` for each entry.
     fn satisfies(&self, shape: &str, iface: &str, line: usize) -> Result<Result<(), String>, RuntimeError> {
         let def = match self.prog.interfaces.iter().find(|i| i.name == iface) { Some(i) => i, None => return rt(line, format!("no interface named `{iface}`")) };
+        // a listed type is accepted, nothing else (owner, 2026-10-02). The oracle knows a value's
+        // family, not its width, so `int32` here admits any integer: the compiler checks the width.
+        if !def.types.is_empty() && !def.types.iter().any(|t| ty_shape(t) == shape) {
+            return Ok(Err(format!("{shape} is not `{iface}`: it is not one of the types it lists")));
+        }
         let builtin_ops: &[&str] = match shape {
             "integer" | "bin" => &["+", "-", "x", "xx", "div", "mod", "<", ">", "</==", ">/==", "==", "!=="],
             "deci" => &["+", "-", "x", "div", "<", ">", "</==", ">/==", "==", "!=="],

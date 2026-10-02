@@ -1,4 +1,4 @@
-interface Priced {
+interface Priced <T> {
     fn price [lent 'x': <T>] -> int32;
 }
 
@@ -16,7 +16,7 @@ struct Item {
 
 fn price [lent 'i': Item] -> int32 { return 'i'.cents; }
 
-fn cheapest [lent 'xs': list[<T: Priced>]] -> <T> or fail[empty] {
+fn cheapest <T>: Priced [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     let 'best' := 1;
     for 'k' in range[2, list.length[lend 'xs']] {

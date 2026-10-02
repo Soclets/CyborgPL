@@ -54,6 +54,10 @@ pub struct Parser {
     in_interface: bool,
     /// `<T: Ordered>` bounds seen while parsing the current signature
     bounds: Vec<(String, String)>,
+    /// the generics announced by the item being parsed (owner, 2026-10-02); `None` outside one
+    declared: Option<Vec<String>>,
+    /// the lifetime groups it announced
+    groups: Vec<String>,
     /// captures of the anonymous function just parsed
     pending_captures: Vec<(Verb, String)>,
     /// where `limb.` points: `[]` for the Limb being built, `["::geometry"]` for a dependency
@@ -66,9 +70,9 @@ pub struct Parser {
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -183,6 +187,7 @@ impl Parser {
                         Tok::Var(v) => return self.err(format!("an enum's name is bare — it is a type: `enum {v}`")),
                         other => return self.err(format!("expected an enum name, found {other}")),
                     };
+                    let gens = self.announce("enum")?;
                     self.expect(Tok::LBrace, "`{`")?;
                     let mut cases: Vec<FailCase> = Vec::new();
                     while *self.peek() != Tok::RBrace {
@@ -201,9 +206,10 @@ impl Parser {
                     }
                     self.advance();
                     if cases.is_empty() { return self.err(format!("enum `{name}` has no cases")); }
-                    let mut params = Vec::new();
-                    for c in &cases { if let Some(t) = &c.ty { t.vars_into(&mut params); } }
-                    prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params, c_values: None, line });
+                    let params: Vec<String> = gens.iter().map(|(g, _)| g.clone()).collect();
+                    let bounds = Self::flat_bounds(&gens);
+                    self.declared = None;
+                    prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params, bounds, c_values: None, line });
                 }
                 Tok::Word(w) if w == "extern" => {
                     // extern fn name [params] -> T;   (design/ffi.md)
@@ -214,19 +220,19 @@ impl Parser {
                         // extern ['mut'] 'name': T;   — a C global (decided 2026-09-21; no `let` since 2026-09-25)
                         let mutable = if self.is_word("mut") { self.advance(); true } else { false };
                         if self.is_word("immut") { return self.err("an `extern let` is C's variable; it is read-only unless `mut`, never `immut`"); }
-                        let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern let '{w}': …`")), other => return self.err(format!("expected a quoted name after `extern let`, found {other}")) };
+                        let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern '{w}': …`")), other => return self.err(format!("expected a quoted name after `extern`, found {other}")) };
                         if *self.peek() != Tok::Colon { return self.err(format!("`extern let '{name}'` needs a type; C has no inference: `extern let '{name}': int32;`")); }
                         self.advance();
                         self.at_boundary = true;
                         let ty = self.ty();
                         self.at_boundary = false;
                         let ty = ty?;
-                        if matches!(self.peek(), Tok::Walrus | Tok::Eq) { return self.err(format!("`extern let '{name}'` has no value here; C owns it. A value of your own is a `const`")); }
+                        if matches!(self.peek(), Tok::Walrus | Tok::Eq) { return self.err(format!("`extern '{name}'` has no value here; C owns it. A value of your own is a `const`")); }
                         self.expect(Tok::Semi, "`;` after the extern variable's type")?;
                         prog.externs.push(ExternVar { name, module: self.module.clone(), vis, ty, mutable, line });
                         continue;
                     }
-                    if !self.is_word("fn") { return self.err("`extern` goes before `fn` or `let`: `extern fn write [...] -> int64;`, `extern let 'errno': int32;`"); }
+                    if !self.is_word("fn") { return self.err("`extern` goes before `fn` or a quoted name: `extern fn write [...] -> int64;`, `extern 'errno': int32;`"); }
                     self.at_boundary = true;
                     let f = self.func();
                     self.at_boundary = false;
@@ -272,7 +278,7 @@ impl Parser {
                         }
                         self.advance();
                         if cases.is_empty() { return self.err(format!("enum `{name}` has no cases")); }
-                        prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params: Vec::new(), c_values: Some(values), line });
+                        prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params: Vec::new(), bounds: Vec::new(), c_values: Some(values), line });
                         continue;
                     }
                     if !self.is_word("struct") { return self.err("`layout.c` goes before `struct` or `enum`: `layout.c struct Timeval { … }`, `layout.c enum Key { a = 65 }`"); }
@@ -339,22 +345,41 @@ impl Parser {
                         Tok::Var(v) => return self.err(format!("an interface's name is bare: `interface {v}`")),
                         other => return self.err(format!("expected an interface name, found {other}")),
                     };
+                    // `interface Ordered <T> { … }` — its `<T>` announced, as every generic is (owner, 2026-10-02)
+                    self.announce("interface")?;
                     self.expect(Tok::LBrace, "`{`")?;
                     let mut entries = Vec::new();
+                    // a list of types, one per line (owner, 2026-10-02: "just let it fucking go down"),
+                    // beside or instead of the operations
+                    let mut types: Vec<Ty> = Vec::new();
+                    let mut last_line = 0;
                     self.in_interface = true;
                     while *self.peek() != Tok::RBrace {
                         let r = match self.peek().clone() {
-                            Tok::Word(w) if w == "fn" => self.func(),
-                            Tok::Word(w) if w == "op" => self.op_decl(),
+                            Tok::Word(w) if w == "fn" => self.func().map(Some),
+                            Tok::Word(w) if w == "op" => self.op_decl().map(Some),
                             Tok::Eof => Err(ParseError { line: self.line(), col: 0, msg: "unclosed `interface {`".into() }),
-                            other => Err(ParseError { line: self.line(), col: 0, msg: format!("an interface lists `fn` and `op` signatures; found {other}") }),
+                            Tok::Comma => Err(ParseError { line: self.line(), col: 0, msg: "no `,` between the types: one per line".into() }),
+                            _ => {
+                                let tline = self.line();
+                                if tline == last_line { Err(ParseError { line: tline, col: 0, msg: "an interface's types go one per line".into() }) }
+                                else {
+                                    last_line = tline;
+                                    match self.ty() {
+                                        Ok(Ty::Var(v)) => Err(ParseError { line: tline, col: 0, msg: format!("`<{v}>` is the type being checked; list real types, or promise operations about it") }),
+                                        Ok(t) => { types.push(t); Ok(None) }
+                                        Err(e) => Err(e),
+                                    }
+                                }
+                            }
                         };
-                        match r { Ok(e) => entries.push(e), Err(e) => { self.in_interface = false; return Err(e); } }
+                        match r { Ok(Some(e)) => entries.push(e), Ok(None) => {}, Err(e) => { self.in_interface = false; self.declared = None; return Err(e); } }
                     }
                     self.in_interface = false;
+                    self.declared = None;
                     self.advance();
-                    if entries.is_empty() { return self.err(format!("interface `{name}` promises nothing")); }
-                    prog.interfaces.push(InterfaceDef { name: self.canonical(&[name]), module: self.module.clone(), vis, entries, line });
+                    if entries.is_empty() && types.is_empty() { return self.err(format!("interface `{name}` promises nothing")); }
+                    prog.interfaces.push(InterfaceDef { name: self.canonical(&[name]), module: self.module.clone(), vis, entries, types, line });
                 }
                 Tok::Word(_) if matches!(self.peek_at(1), Tok::Word(s) if s == "satisfies") || (matches!(self.peek_at(1), Tok::Dot) && false) => {
                     // Vec satisfies Ordered;   — an optional, verified claim
@@ -421,6 +446,7 @@ impl Parser {
             Tok::Var(v) => return self.err(format!("an operator's name is bare — a word or a run of operator characters, not `'{v}'`")),
             other => return self.err(format!("expected an operator name after `op`, found {other}")),
         };
+        let gens = if self.in_interface { Vec::new() } else { self.announce("op")? };
         self.expect(Tok::LBracket, "`[` to open the two operands")?;
         let mut params = Vec::new();
         loop {
@@ -452,7 +478,8 @@ impl Parser {
             self.expect(Tok::Semi, "`;` to end the promise")?;
             Vec::new()
         } else { self.block()? };
-        let bounds = std::mem::take(&mut self.bounds);
+        let bounds = Self::flat_bounds(&gens);
+        if !self.in_interface { self.declared = None; self.groups.clear(); }
         Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, bounds, params, body, line })
     }
 
@@ -468,6 +495,7 @@ impl Parser {
             other => return self.err(format!("expected a struct name, found {other}")),
         };
         if KEYWORDS.contains(&name.as_str()) { return self.err(format!("`{name}` is a keyword and cannot name a struct")); }
+        let gens = self.announce("struct")?;
         self.expect(Tok::LBrace, "`{`")?;
         let mut fields = Vec::new();
         while *self.peek() != Tok::RBrace {
@@ -494,9 +522,11 @@ impl Parser {
         }
         self.advance();
         if fields.is_empty() { return self.err(format!("struct `{name}` has no fields")); }
-        let mut params = Vec::new();
-        for f in &fields { f.ty.vars_into(&mut params); }
-        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, params, fields, line })
+        // the blanks' order is the announcement's (owner, 2026-10-02), no longer first appearance
+        let params: Vec<String> = gens.iter().map(|(g, _)| g.clone()).collect();
+        let bounds = Self::flat_bounds(&gens);
+        self.declared = None;
+        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, params, bounds, fields, line })
     }
 
     // fn := 'fn' Word '[' params ']' ('->' type)? block
@@ -513,6 +543,7 @@ impl Parser {
         // A keyword may name a function (decided 2026-09-19) — it is then never called
         // bare, only through a path: `limb.to[…]` inside, `std::to[…]` outside.
         if name == "MAIN" { return self.err("MAIN is the program's block, not a function: `MAIN { … }`"); }
+        let gens = if self.in_interface { Vec::new() } else { self.announce("fn")? };
         if *self.peek() == Tok::LParen { return self.err("parameters sit in `[ ]`; `( )` is arithmetic grouping"); }
         self.expect(Tok::LBracket, "`[` to open the parameter list")?;
         let mut params = Vec::new();
@@ -577,7 +608,8 @@ impl Parser {
         // a returned borrow names its group in a strict file: callers there see only signatures
         // (owner, 2026-09-29); elsewhere Precog works it out from the body
         if self.strict && matches!(ret_lent, Some((_, None))) { return self.err(format!("`#strict`: `{name}` hands back a borrow, so it names what the borrow depends on: `-> lent@x …` with `lent@x` on those parameters")); }
-        let bounds = std::mem::take(&mut self.bounds);
+        let bounds = Self::flat_bounds(&gens);
+        if !self.in_interface { self.declared = None; self.groups.clear(); }
         Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
     }
 
@@ -607,6 +639,71 @@ impl Parser {
     // An owning parameter has no keyword; `lent` / `lent.mut` mirror the caller's `lend` / `lend.mut`.
     /// `@x` after `lent` / `lent.mut`: the lifetime group (owner, 2026-09-29) — introduced by
     /// first use, like `<T>`
+    /// The announcement after an item's name (owner, 2026-10-02): every generic, one bracket each,
+    /// with what it accepts after a `:` — `<T>: Ordered`, `<T>: Number and Hashable`, `<T>: any` —
+    /// then, after a `|` when there are generics, the lifetime groups: `<T>: any | @x @y`.
+    /// An interface announces its `<T>` with no bound (it is the type being checked).
+    fn announce(&mut self, what: &str) -> PResult<Vec<(String, Vec<String>)>> {
+        let mut gens: Vec<(String, Vec<String>)> = Vec::new();
+        let mut groups: Vec<String> = Vec::new();
+        while matches!(self.peek(), Tok::Op(o) if o == "<") {
+            self.advance();
+            let name = match self.advance().tok {
+                Tok::Word(n) => n,
+                Tok::Var(v) => return self.err(format!("a generic's name is bare: `<{v}>`")),
+                other => return self.err(format!("expected a generic's name after `<`, found {other}")),
+            };
+            if *self.peek() == Tok::Colon { return self.err(format!("what `<{name}>` accepts goes after the bracket: `<{name}>: any`")); }
+            match self.advance().tok { Tok::Op(o) if o == ">" => {}, other => return self.err(format!("expected `>` to close `<{name}`, found {other}")) }
+            if gens.iter().any(|(g, _)| *g == name) { return self.err(format!("`<{name}>` is announced twice")); }
+            let mut bound = Vec::new();
+            if what == "interface" {
+                if *self.peek() == Tok::Colon { return self.err(format!("an interface's `<{name}>` is the type being checked; it accepts nothing in particular")); }
+            } else {
+                if *self.peek() != Tok::Colon { return self.err(format!("`<{name}>` says what it accepts: `<{name}>: any`, or an interface, `<{name}>: Ordered`")); }
+                self.advance();
+                loop {
+                    if self.is_word("any") { self.advance(); if !bound.is_empty() || self.is_word("and") { return self.err("`any` stands alone: it already accepts every type"); } break; }
+                    let mut segs = Vec::new();
+                    loop {
+                        match self.advance().tok { Tok::Word(w) => segs.push(w), other => return self.err(format!("expected an interface's name, or `any`, after `<{name}>:`, found {other}")) }
+                        if *self.peek() == Tok::Dot { self.advance(); continue; }
+                        break;
+                    }
+                    let iface = self.canonical(&segs);
+                    if bound.contains(&iface) { return self.err(format!("`{iface}` is named twice for `<{name}>`")); }
+                    bound.push(iface);
+                    if self.is_word("and") { self.advance(); continue; }
+                    break;
+                }
+            }
+            gens.push((name, bound));
+        }
+        let mut bar = false;
+        if matches!(self.peek(), Tok::Op(o) if o == "|") {
+            if gens.is_empty() { return self.err("a `|` separates generics from lifetime groups; with no generics, write the groups alone: `@x`"); }
+            self.advance(); bar = true;
+        }
+        if matches!(self.peek(), Tok::Op(o) if o == "|@") { return self.err("a space after the `|`: `| @x`"); }
+        while matches!(self.peek(), Tok::Op(o) if o == "@") {
+            if what != "fn" { return self.err(format!("only a `fn` has lifetime groups; a{} `{what}` cannot hand back a borrow", if what == "op" || what == "enum" || what == "interface" { "n" } else { "" })); }
+            if !gens.is_empty() && !bar { return self.err("a `|` separates the generics from the lifetime groups: `<T>: any | @x`"); }
+            self.advance();
+            match self.advance().tok {
+                Tok::Word(g) => { if groups.contains(&g) { return self.err(format!("`@{g}` is announced twice")); } groups.push(g) }
+                other => return self.err(format!("a lifetime group is named after `@`: `@x`, found {other}")),
+            }
+        }
+        if bar && groups.is_empty() { return self.err("after the `|` come the lifetime groups: `<T>: any | @x`"); }
+        self.declared = Some(gens.iter().map(|(g, _)| g.clone()).collect());
+        self.groups = groups;
+        Ok(gens)
+    }
+
+    fn flat_bounds(gens: &[(String, Vec<String>)]) -> Vec<(String, String)> {
+        gens.iter().flat_map(|(g, b)| b.iter().map(move |i| (g.clone(), i.clone()))).collect()
+    }
+
     /// A lending `&` here? Returns whether it came glued to `@` (`&@x` lexes as one operator).
     fn amp(&mut self) -> Option<bool> {
         match self.peek() {
@@ -620,7 +717,10 @@ impl Parser {
     fn amp_rest(&mut self, glued_at: bool) -> PResult<(bool, Option<String>)> {
         if glued_at {
             return match self.advance().tok {
-                Tok::Word(w) => Ok((false, Some(w))),
+                Tok::Word(w) => {
+                    if !self.groups.contains(&w) { return self.err(format!("`@{w}` was never announced: announce it after the function's name, `fn f @{w} […]`")); }
+                    Ok((false, Some(w)))
+                }
                 other => self.err(format!("a lifetime group is named after `@`: `&@x`, found {other}")),
             };
         }
@@ -632,7 +732,10 @@ impl Parser {
         if !matches!(self.peek(), Tok::Op(o) if o == "@") { return Ok(None); }
         self.advance();
         match self.advance().tok {
-            Tok::Word(w) => Ok(Some(w)),
+            Tok::Word(w) => {
+                if !self.groups.contains(&w) { return self.err(format!("`@{w}` was never announced: announce it after the function's name, `fn f @{w} […]`")); }
+                Ok(Some(w))
+            }
             other => self.err(format!("a lifetime group is named after `@`: `lent@x`, found {other}")),
         }
     }
@@ -697,17 +800,10 @@ impl Parser {
                 other => return self.err(format!("expected a type variable's name after `<`, found {other}")),
             };
             if *self.peek() == Tok::Colon {
-                // `<T: Ordered>` — a bound (design/interfaces.md)
-                self.advance();
-                let mut segs = Vec::new();
-                loop {
-                    match self.advance().tok { Tok::Word(w) => segs.push(w), other => return self.err(format!("expected an interface's name after `<{name}:`, found {other}")) }
-                    if *self.peek() == Tok::Dot { self.advance(); continue; }
-                    break;
-                }
-                let iface = self.canonical(&segs);
-                if let Some((_, other)) = self.bounds.iter().find(|(v, i)| *v == name && *i != iface) { return self.err(format!("`<{name}>` is already bound to `{other}`; one blank, one interface")); }
-                if !self.bounds.iter().any(|(v, _)| *v == name) { self.bounds.push((name.clone(), iface)); }
+                return self.err(format!("what `<{name}>` accepts is said once, where it is announced after the name: `fn f <{name}>: Ordered […]`"));
+            }
+            if !self.declared.as_ref().map_or(false, |d| d.contains(&name)) {
+                return self.err(format!("`<{name}>` was never announced: announce it after the name, `fn f <{name}>: any […]` (or `struct S <{name}>: any {{ … }}`)"));
             }
             match self.advance().tok { Tok::Op(o) if o == ">" => {}, other => return self.err(format!("expected `>` to close `<{name}`, found {other}")) }
             return Ok(Ty::Var(name));
@@ -2421,6 +2517,8 @@ impl Parser {
                     };
                     let toks = crate::lexer::lex(&src).map_err(|e| ParseError { line, col: 0, msg: e.msg })?;
                     let mut p = Parser::new_in(toks, self.module.clone());
+                    // the oracle's own stand-in functions: their blanks take whatever the operator takes
+                    p.declared = Some(vec!["T".into(), "U".into(), "A".into(), "B".into()]);
                     let mut f = p.anon_func()?;
                     f.name = format!("op {op}");
                     f.bounds = p.bounds;

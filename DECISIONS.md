@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — The generics rules are in the oracle
+
+Built in one go after the owner settled them: announcements after the
+name for `fn`, `op`, `struct`, `enum` and `interface` (`<T>: Number`,
+`<A>: any <B>: any`, `<T>: Number and Hashable`, `| @x @y`); a mention not
+announced, a bound on a mention, a blank with no bound, `any` joined with
+`and`, groups without the `|`, and an unannounced `@x` are refused; an
+interface may list types one per line (matched by family in the oracle,
+`int32` admitting any integer, as widths are the compiler's), alone or
+beside operations; a struct's or enum's filled types are checked against
+their bounds. Every example and reject test using generics or lifetime
+groups was rewritten by hand; new `examples/interface_types.cpls` and nine
+reject tests (`generic_unannounced`, `generic_bound_on_mention`,
+`generic_no_bound` replacing `iface_two_bounds`, `generic_groups_no_bar`,
+`generic_any_and`, `lifetime_unannounced`, `iface_type_not_listed`,
+`iface_types_one_line`, `struct_bound_unkept`, `iface_bound_on_own_t`).
+Also fixed on the way: four oracle messages still said `extern let`
+(gone since 2026-09-25). `generics.md`, `interfaces.md`,
+`ownership-syntax.md`, `maps.md`, `functions-as-values.md`.
+
 ### 2026-10-02 — An interface may list types, as well as operations (owner)
 
 ```

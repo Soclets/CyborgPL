@@ -13,53 +13,62 @@ Precog sees every call site, so `max[3, 9]` and `max[2.5, 1.5]` become an
 hand-written copies. This is the machinery variadics already use; Zig's
 comptime and Rust's monomorphisation do the same.
 
-## Spelling
+## Spelling (revised 2026-10-02)
 
 ```
-fn max ['a': <T>, 'b': <T>] -> <T> { … }              # every mention wears the < >
-fn first [lent 'xs': list[<T>]] -> <T> or fail[empty] { … }
+fn max <T>: Number ['a': <T>, 'b': <T>] -> <T> { … }           # announced after the name, with what it accepts
+fn first <T>: any [lent 'xs': list[<T>]] -> <T> or fail[empty] { … }
+fn pick <T>: any | @x [lent@x 'xs': list[<T>]] -> lent@x <T> { … }   # then the lifetime groups, after a `|`
 
-struct Pair { left: <A>  right: <B> }                  # blanks in order of first appearance
-enum Maybe { none  some: <T> }
+struct Pair <A>: any <B>: any { left: <A>  right: <B> }         # blanks in the order announced
+enum Maybe <T>: any { none  some: <T> }
 
 let 'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
 let 'm' := Maybe.some[42];                                          # filled from the value
 ```
 
-- **`<T>` is a type variable — a blank.** Owner's spelling, over Claude's
-  declared list `fn max [type T] […]`; **every mention wears the `< >`**
-  (owner: "both use `<>`"), so there is no first-vs-later rule. `<` and
-  `>` are operator characters, so `-> <T>` needs its space (`-><T>` is one
-  operator token); a type variable's name is bare.
-- **Functions**: nothing after the name — the compiler fills the blank
-  from the arguments; nobody writes `max[int32][…]`. All mentions of one
-  `<T>` in a signature are one blank: `max[1, "two"]` is a compile error
-  ("one blank, one type").
+- **`<T>` is a type variable — a blank**, and every mention wears its
+  `< >` (owner, 2026-09-20: "both use `<>`"). Its name is the writer's
+  (`<T>`, `<Thing>`); the brackets say it is generic, the name says which.
+  `<` and `>` are operator characters, so `-> <T>` needs its space
+  (`-><T>` is one operator token).
+- **Every blank is announced right after the name, before its first use**
+  (owner, 2026-10-02: c, then a), for functions, operators, structs, enums
+  and interfaces, so a mistyped `<Y>` is an error ("`<Y>` was never
+  announced") rather than a quiet second blank. One bracket per blank
+  (owner: b): `<A>: any <B>: any`. It replaces 2026-09-20's "introduced by
+  first use" and, for structs and enums, "numbered by first appearance in
+  the fields" (owner: "no bracket, first appearance"): the order is the
+  announcement's, so reordering fields no longer reorders the arguments.
+- **Every blank says what it accepts**, after the bracket, as a type
+  follows a variable's name (owner: "`<A>: any`"): an interface
+  (`<T>: Ordered`), several joined with `and` (`<T>: Number and
+  Hashable`), or the built-in `any` for a blank that needs nothing from
+  its type (`Pair`, the first item of any list). Nothing is allowed by
+  default (owner: "Don't default to allow all"): `<T>` with no bound is
+  refused, and so is a bound on a mention instead of the announcement.
+- **Lifetime groups are announced too**, after the generics, with a `|`
+  between the two kinds and none within a kind (owner: "Not between every
+  announcement, because generics are still the same as generics, so as
+  lifetimes"): `fn pick <T>: any | @x […]`, `fn two @x @y […]`. A group
+  used and never announced is refused. `< >` holds generics only.
+- **Functions** are never filled by hand: the compiler fills the blank
+  from the arguments (`max[3, 9]`). All mentions of one `<T>` are one
+  blank: `max[1, "two"]` is a compile error ("one blank, one type").
 - **Structs and enums** are used with the types spelled out —
-  `Pair[int32, str.utf8]` — and their blanks are numbered **by first
-  appearance in the fields** (owner: "no bracket, first appearance", over
-  a declared `struct Pair [<A>, <B>]`). Reordering fields reorders the
-  arguments; that is the quiet cost accepted.
+  `Pair[int32, str.utf8]` — in the order announced, and each type must
+  keep its blank's bound.
 - A blank cannot be sized (`size.of[<T>]`) or cross to C.
 
-## Declared up front (owner, 2026-10-02: c)
-
-Every generic function, struct and enum will list its blanks, and its
-lifetime groups, before using them, as Rust does, so a mistyped `<Y>` or
-`@y` is an error instead of a quiet second blank. This reverses "both use
-`<>`" and "no bracket, first appearance" above; the list also fixes a
-struct's blank order. The spelling, whether mentions keep their `< >`, and
-where bounds go are open, and nothing is built yet (`DECISIONS.md`).
-**A generic also says what it accepts** (owner: "Don't default to allow
-all"): no plain `<T>` that takes every type; "any type" is said
-outright (below). **The list goes right after the name**
-(owner, 2026-10-02: a): `fn max <T>: Number ['a': <T>, 'b': <T>] -> <T>`. **"Any type" is the built-in
-`any`** (owner, 2026-10-02: a): `struct Pair <A>: any <B>: any { … }`, one bracket per generic (owner, 2026-10-02: b), the bound after the bracket like a type after a name (owner: "`<A>: any`"). **Lifetime groups are announced after the generics, a `|` between the two kinds** (owner, 2026-10-02): `fn pick <T>: any | @x […]`, `fn longer @x […]`.
+History: from 2026-09-20 to 2026-10-02 a blank was introduced by its first
+mention, a bound sat on one mention (`'a': <T: Ordered>`), a struct's
+blanks were numbered by first appearance in its fields, and a lifetime
+group by its first use.
 
 ## Constraints
 
-`<T: Ordered>` — see `interfaces.md` (decided later the same day). A
-`<T>` without a bound is constrained by its body, checked at each use.
+What a blank accepts is an interface (`interfaces.md`): a list of
+operations, a list of types, or both; or `any`.
 
 ## Verbs on a `<T>`
 
@@ -69,11 +78,12 @@ a plain `T` they do nothing (`interfaces.md`).
 ## A generic `op` (owner, 2026-09-29)
 
 ```
-op ~= ['a': <T: Number>, 'b': <T>] -> bool { … }   # once, for any type keeping Number's promises
+op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool { … }   # once, for any type keeping Number's promises
 ```
 
-An operator may be generic, with the rules of a generic `fn`: `<T>` on
-every mention, `<T: Interface>` to bound it (owner: allow). It cannot take
+An operator may be generic, with the rules of a generic `fn`: announced
+after its name with what it accepts (`op ~= <T>: Number [`, since
+2026-10-02; `<T: Interface>` on a mention before) (owner: allow). It cannot take
 one of the language's own names (`+`, `==` …): its `<T>` could be
 `int32`, and those are never changed for the language's own types
 (design claude's consequence of 2026-09-20). **A generic one and a
@@ -95,4 +105,8 @@ on some type). `examples/generic_op.cpls`.
 Binds each `<T>` to the first value's kind and checks every later one
 (kind, not width — the compiler does the real per-type specialisation);
 checks `Pair[int32, str.utf8]` against a value field by field with the
-blanks substituted. `examples/generics.cpls`, eight reject tests.
+blanks substituted, and each filled type against its blank's bound. A
+listed type is matched by family (`int32` admits any integer): widths are
+the compiler's. `examples/generics.cpls`, `examples/interface_types.cpls`,
+and the reject tests `generic_*`, `iface_*`, `lifetime_unannounced`,
+`struct_bound_unkept`.

@@ -91,8 +91,9 @@ pub struct EnumDef {
     pub module: Vec<String>,
     pub vis: Vis,
     pub cases: Vec<FailCase>, // a case is a name with an optional payload — the failure shape
-    /// type variables, in order of first appearance (design/generics.md)
+    /// type variables, in the order announced (design/generics.md, 2026-10-02)
     pub params: Vec<String>,
+    pub bounds: Vec<(String, String)>,
     /// `layout.c enum` (owner, 2026-09-27): each case's number in C; `None` for a Cyborg enum
     pub c_values: Option<Vec<i128>>,
     pub line: usize,
@@ -104,8 +105,10 @@ pub struct StructDef {
     pub name: String,
     /// `layout.c struct`: C's layout, C-shaped fields only; may cross to C
     pub layout_c: bool,
-    /// type variables, in order of first appearance (design/generics.md)
+    /// type variables, in the order announced (design/generics.md, 2026-10-02)
     pub params: Vec<String>,
+    /// what each accepts: (blank, interface), one pair per interface; `any` adds none
+    pub bounds: Vec<(String, String)>,
     pub module: Vec<String>,
     pub vis: Vis,
     pub fields: Vec<Field>,
@@ -232,6 +235,8 @@ pub struct InterfaceDef {
     pub module: Vec<String>,
     pub vis: Vis,
     pub entries: Vec<Func>,  // signatures only; `is_op` tells fn from op
+    /// the types it accepts, when it lists them (owner, 2026-10-02); empty: any that keeps the entries
+    pub types: Vec<Ty>,
     pub line: usize,
 }
 

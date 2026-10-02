@@ -42,7 +42,7 @@ check site guarded by `has`; a found/missing enum to `match`.
 - **A type's own rule**: a struct or enum that satisfies
 
   ```
-  interface Key { op == ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
+  interface Key <T> { op == ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
   ```
 
   compares and hashes by its own `op ==` and `fn hash` — a

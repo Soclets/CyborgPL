@@ -1,17 +1,24 @@
-# Generics (design/generics.md): a blank, <T>, filled per use by the compiler.
-fn max ['a': <T>, 'b': <T>] -> <T> {
+# Generics (design/generics.md): a blank, <T>, filled per use by the compiler. Every blank is
+# announced after the name with what it accepts (owner, 2026-10-02): `<T>: Number`, `<T>: any`.
+interface Number {
+    int32
+    int64
+    bin64
+}
+
+fn max <T>: Number ['a': <T>, 'b': <T>] -> <T> {
     if 'a' > 'b' { return give 'a'; }     # a <T> may be owned: generic code writes the verbs
     return give 'b';
 }
 
-fn first [lent 'xs': list[<T>]] -> <T> or fail[empty] {
+fn first <T>: any [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     return 'xs'[1];
 }
 
-struct Pair { left: <A>  right: <B> }         # blanks in order of first appearance: A, B
+struct Pair <A>: any <B>: any { left: <A>  right: <B> }     # blanks in the order announced: A, B
 
-enum Maybe { none  some: <T> }
+enum Maybe <T>: any { none  some: <T> }
 
 fn describe [lent 'p': Pair[int32, str.utf8]] -> str.utf8 {
     return to.str.utf8['p'.left] ++ " " ++ 'p'.right;
