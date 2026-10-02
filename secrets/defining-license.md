@@ -13,3 +13,9 @@ a few more). Defining *every* word runs into the words used in the
 definitions themselves — the fun part — so it would have to end at some
 base set of words, or define its words in terms of each other in a
 closed loop.
+
+The owner, next: "Since, that might take long. It should run on a quite
+machine effieciently", then "I just meant that the software should be
+optimized". Design claude's reading: defining every word is a long job,
+so the program that builds the licence should be optimised to do it
+efficiently.
