@@ -71,3 +71,11 @@ three choices design claude laid out, "three":
 C# has the same three (`int`, `var`, `dynamic`). With the per-machine
 assembly above, Lilith's theme so far: the writer chooses who is in
 control. Spelling not designed.
+
+The owner's likely spelling (2026-10-02):
+
+```
+comp 'x' = 1000 # compiler decides
+runt 'x' = 1000 # JIT decides
+wrt long 'x' = 1000 # writer decides
+```
