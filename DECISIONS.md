@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Lilith gets a session and a public repo, design only (owner)
+
+The owner, bored waiting on RRx2's tests: "I shall summon lilith claude".
+Asked where it lives, what it does and in what: "Public under CyborgPL's
+group, the CyborgPL signature warning verbatim, Apache 2.0 with LLVM
+exception, local folder is anything you like, design for now". So the
+public repo `Cyborg-Assembly-Manufacturing-Site/Lilith`, cloned at
+`/Users/ts/Lilith` (design claude's pick of folder), README with
+CyborgPL's "Not family friendly" warning word for word, Apache-2.0 WITH
+LLVM-exception. Design claude kept the starting notes
+(`secrets/lilith.md`) in this private repo and told lilith claude not to
+copy them to the public one without the owner's yes; Lilith's own record
+(where its decisions are written) is lilith claude's to propose. Brief:
+`design/lilith-session.md`.
+
 ### 2026-10-02 — Quick Fix works from a spelling table, `spellings.cplr`, and each Limb's `cpl_ver.cplr` (owner)
 
 Asked how Synthia's Quick Fix knows what to rewrite, design claude
