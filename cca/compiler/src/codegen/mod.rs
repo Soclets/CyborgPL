@@ -3682,6 +3682,21 @@ fn readable_op(debug: &str) -> String {
 /// too many (darwin27 → macOS 28 on macOS 27), so every link warned that the
 /// object was built for a newer macOS. `cc` links for the deployment target,
 /// or else the running macOS; the object says the same.
+/// The macOS version a program is built for: the deployment target when
+/// one is set, this Mac's otherwise. The object and the link both say it,
+/// or the linker warns that one was built for a newer macOS.
+fn macos_version() -> Option<String> {
+    static VERSION: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    VERSION
+        .get_or_init(|| {
+            std::env::var("MACOSX_DEPLOYMENT_TARGET").ok().filter(|v| !v.is_empty()).or_else(|| {
+                let out = std::process::Command::new("sw_vers").arg("-productVersion").output().ok()?;
+                Some(String::from_utf8(out.stdout).ok()?.trim().to_string()).filter(|v| !v.is_empty())
+            })
+        })
+        .clone()
+}
+
 fn host_triple() -> inkwell::targets::TargetTriple {
     static TRIPLE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     let t = TRIPLE.get_or_init(|| {
@@ -3689,11 +3704,7 @@ fn host_triple() -> inkwell::targets::TargetTriple {
         if !cfg!(target_os = "macos") {
             return default;
         }
-        let version = std::env::var("MACOSX_DEPLOYMENT_TARGET").ok().filter(|v| !v.is_empty()).or_else(|| {
-            let out = std::process::Command::new("sw_vers").arg("-productVersion").output().ok()?;
-            Some(String::from_utf8(out.stdout).ok()?.trim().to_string())
-        });
-        match (version, default.split_once("-apple-")) {
+        match (macos_version(), default.split_once("-apple-")) {
             (Some(v), Some((arch, _))) if !v.is_empty() => format!("{}-apple-macosx{}", arch, v),
             _ => default,
         }
@@ -3756,7 +3767,13 @@ pub use inkwell;
 /// (`implementation-languages.md`: LLVM, then the system linker).
 pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
     let runtime = runtime_path().ok_or_else(|| "the runtime is not built: `cargo build -p cca-runtime --release`".to_string())?;
-    let status = std::process::Command::new("cc")
+    let mut cc = std::process::Command::new("cc");
+    if cfg!(target_os = "macos") {
+        if let Some(v) = macos_version() {
+            cc.arg(format!("-mmacosx-version-min={}", v));
+        }
+    }
+    let status = cc
         .arg(obj)
         .arg(&runtime)
         .arg("-o")
