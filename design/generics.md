@@ -42,6 +42,15 @@ let 'm' := Maybe.some[42];                                          # filled fro
   arguments; that is the quiet cost accepted.
 - A blank cannot be sized (`size.of[<T>]`) or cross to C.
 
+## Declared up front (owner, 2026-10-02: c)
+
+Every generic function, struct and enum will list its blanks, and its
+lifetime groups, before using them, as Rust does, so a mistyped `<Y>` or
+`@y` is an error instead of a quiet second blank. This reverses "both use
+`<>`" and "no bracket, first appearance" above; the list also fixes a
+struct's blank order. The spelling, whether mentions keep their `< >`, and
+where bounds go are open, and nothing is built yet (`DECISIONS.md`).
+
 ## Constraints
 
 `<T: Ordered>` — see `interfaces.md` (decided later the same day). A

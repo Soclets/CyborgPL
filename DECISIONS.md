@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Generics and lifetime groups are declared up front, everywhere (owner: c)
+
+Asked what Rust's up-front declarations are for, design claude gave the
+reasons (telling a new name from an existing type, fixing the order for
+filling blanks, scope, one place to read) and the cost of introducing by
+first use: a typo (`<Y>` for `<T>`, `@y` for `@x`) silently makes a second
+blank or group. The owner: "Hm, I mean. We could add them". Offered,
+noting it reverses the 2026-09-20 choices of "both use `<>`" and "no
+bracket, first appearance": (a) required in `#strict` files only,
+recommended; (b) optional everywhere; (c) required everywhere, Rust's
+way. The owner: "`c`". Open: the spelling of the list (design claude's
+sketch, `fn max <T: Ordered, @x> […]`, `struct Pair <A, B> { … }`, was
+not ruled), whether later mentions keep their `< >`, and where bounds go.
+Nothing built yet. `generics.md`.
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:
