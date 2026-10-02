@@ -89,8 +89,10 @@ generics.
 
 ## A list of types (owner, 2026-10-02: "both")
 
-An interface may also list types instead of operations: `interface
-Number { int8 int16 int32 int64 bin32 bin64 }` accepts exactly those, and
+An interface may also list types instead of operations, one per line
+like enum cases (owner, 2026-10-02: "Or just let it fucking go down"):
+`interface Number {` then `int8`, `int16`, `int32`, … each on its own
+line, then `}`. It accepts exactly those, and
 a type written later can never join it; a list of operations stays open
 to future types. The writer picks per interface. **Both may mix**: one
 interface can list types and operations, and a type must be listed and

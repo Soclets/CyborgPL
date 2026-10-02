@@ -72,6 +72,22 @@ operations), and a generic may take several bounds joined with `and`
 (`<T: Number and Hashable>`, every one must hold). Design claude had
 recommended only the second.
 
+**A type list goes down the page, one type per line**, as enum cases do
+(owner: "Or just let it fucking go down"), after design claude's
+one-line sketch `{ int8 int16 … }` read as one phrase and the owner asked
+why there were no commas (fields and cases have none: line breaks
+separate items in a `{ }` body, from 2026-09-18; commas there were never
+asked). Offered against it: commas, or `or`.
+
+```
+interface Number {
+    int8
+    int16
+    int32
+    int64
+}
+```
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:
