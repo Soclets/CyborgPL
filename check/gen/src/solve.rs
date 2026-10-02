@@ -362,6 +362,18 @@ impl<'a> Enc<'a> {
                 self.limit64(ctx, &q, "/");
                 q
             }
+            DivTrunc | ModTrunc => {
+                let kind = if op == DivTrunc { "division_by_zero" } else { "modulo_by_zero" };
+                self.site(ctx, format!("(= {y} {})", bv(0)), format!("{} by zero", op.text()), kind, y, W);
+                let d = self.int(format!("(ite (= {y} {}) {} {y})", bv(0), bv(1)));
+                if op == ModTrunc {
+                    return self.int(format!("(bvsrem {x} {d})"));
+                }
+                // bvsdiv truncates, as div.trunc does
+                let q = self.int(format!("(bvsdiv {x} {d})"));
+                self.limit64(ctx, &q, "div.trunc");
+                q
+            }
             Pow => {
                 self.site(ctx, format!("(bvslt {y} {})", bv(0)), "xx with a negative exponent".into(), "negative_exponent", y, W);
                 // Unrolled over exponents 0..16; past them the result is unknown.

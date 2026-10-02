@@ -94,6 +94,10 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   form; sometimes into a `bin16`, past its 65504 as a risk. Never inside a
   `check` (Precog has no brain16 domain, so every site is a run-time
   check), and, like deci, compared between the engines only.
+  **`div.trunc` / `mod.trunc`** (owner, 2026-10-02, 692a444): on integers,
+  beside `div` and `mod`, always parenthesised as an operand; modelled by
+  the evaluator (Rust's `/` and `%`), the solver (`bvsdiv`, `bvsrem`) and
+  the intervals. Avoided by default until CCA has them (`trunc`).
   **`for !c`** (owner, 2026-10-01; `--avoid no-cheat`): about one range
   loop in seven is `for !c` or `for !c seq`; same answers as a plain `for`.
   **Enums** (design/enums.md; `--avoid enums` turns them off): about
@@ -216,12 +220,14 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits,brain16`.
+straight at them. Default: `exact-bits,trunc`.
 
-- `brain16`: no brain16 blocks. CCA says "not yet" to `mod` on them, and a
-  negative brain16 trips its overflow check and comes out as one byte of
-  text (2026-10-02; corpus `2026-10-02-brain16-*`). `--avoid exact-bits`
-  turns them on.
+- `trunc`: no `div.trunc` / `mod.trunc` (in the oracle 692a444, not yet in CCA).
+
+- `brain-mod`: no `mod` on brain16 (the divisor's sign, owner 426371c;
+  in CCA 3657a11). (Negative
+  brain16 values, corpus `2026-10-02-brain16-*`, fixed in a155938.)
+- `brain16`: no brain16 blocks at all.
 
 - `deci-useful`: no `to.useful.…` forms (CCA took the 2026-09-30 spelling
   in 32b7039).

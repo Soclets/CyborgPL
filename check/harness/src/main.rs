@@ -76,7 +76,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,brain16".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,trunc".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -105,6 +105,8 @@ impl Args {
             deci_useful: !avoid.contains("deci-useful"),
             no_cheat: !avoid.contains("no-cheat"),
             brain16: !avoid.contains("brain16"),
+            brain_mod: !avoid.contains("brain-mod"),
+            trunc: !avoid.contains("trunc"),
         }
     }
 }

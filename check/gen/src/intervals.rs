@@ -277,6 +277,24 @@ impl<'a> An<'a> {
                     r
                 }
             }
+            DivTrunc | ModTrunc => {
+                self.record(if op == DivTrunc { "division_by_zero" } else { "modulo_by_zero" }, y);
+                let parts: Vec<R> = [R(y.0, y.1.min(-1)), R(y.0.max(1), y.1)].into_iter().filter(|r| r.0 <= r.1).collect();
+                if parts.is_empty() {
+                    return R::TOP;
+                }
+                if op == DivTrunc {
+                    let mut out: Option<R> = None;
+                    for d in parts {
+                        let r = corners(x, d, |a, b| a.checked_div(b).unwrap_or(i128::MAX));
+                        out = Some(out.map_or(r, |o| o.join(r)));
+                    }
+                    return self.limit64(out.unwrap());
+                }
+                // the dividend's sign, and smaller than the largest divisor
+                let m = y.0.saturating_abs().max(y.1.saturating_abs());
+                R(if x.0 >= 0 { 0 } else { x.0.max(-(m - 1)) }, if x.1 <= 0 { 0 } else { x.1.min(m - 1) })
+            }
             Pow => {
                 self.record("negative_exponent", y);
                 let e = R(y.0.max(0), y.1);

@@ -357,6 +357,14 @@ impl<'a> Ev<'a> {
                     Ok(x - q * y)
                 }
             }
+            DivTrunc => {
+                self.check("division_by_zero", y, y != 0)?;
+                self.limit64(x / y)
+            }
+            ModTrunc => {
+                self.check("modulo_by_zero", y, y != 0)?;
+                Ok(x % y)
+            }
             Pow => {
                 self.check("negative_exponent", y, y >= 0)?;
                 let r = if y > 200 { if x == 0 || x == 1 { x } else if x == -1 { if y % 2 == 0 { 1 } else { -1 } } else { i128::MAX } } else { x.checked_pow(y as u32).unwrap_or(i128::MAX) };

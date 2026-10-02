@@ -149,6 +149,10 @@ pub enum BinOp {
     Mul,
     Div,
     Mod,
+    /// `div.trunc` / `mod.trunc` (owner, 2026-10-02, 692a444): C's
+    /// truncating division, and a remainder with the dividend's sign.
+    DivTrunc,
+    ModTrunc,
     Pow,
     AndBit,
     OrBit,
@@ -168,6 +172,8 @@ impl BinOp {
             BinOp::Mul => "x",
             BinOp::Div => "div",
             BinOp::Mod => "mod",
+            BinOp::DivTrunc => "div.trunc",
+            BinOp::ModTrunc => "mod.trunc",
             BinOp::Pow => "xx",
             BinOp::AndBit => "and.bit",
             BinOp::OrBit => "or.bit",
@@ -982,6 +988,8 @@ pub fn fold_bare(e: &Expr) -> Option<i128> {
                         x.checked_sub(q.checked_mul(y)?)
                     }
                 }
+                BinOp::DivTrunc => x.checked_div(y),
+                BinOp::ModTrunc => x.checked_rem(y),
                 BinOp::Pow => {
                     if y < 0 || y > 200 {
                         return None;

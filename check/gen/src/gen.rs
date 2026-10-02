@@ -91,11 +91,15 @@ pub struct Config {
     /// `brain16` (owner, 2026-10-02): its own family, each step rounded,
     /// seen through conversions; never inside a `check`.
     pub brain16: bool,
+    /// `mod` on brain16 (its sign for bins is open with the owner, 2026-10-02).
+    pub brain_mod: bool,
+    /// `div.trunc` / `mod.trunc` on integers (owner, 2026-10-02, 692a444).
+    pub trunc: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, trunc: true }
     }
 }
 
@@ -1601,7 +1605,8 @@ impl Gen {
             let a = Expr::Var(self.rng.pick(&bs).clone());
             let value = match self.rng.below(8) {
                 0..=3 => {
-                    let op = *self.rng.pick(&[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div, BinOp::Mod]);
+                    let ops: &[BinOp] = if self.cfg.brain_mod { &[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div, BinOp::Mod] } else { &[BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div] };
+                    let op = *self.rng.pick(ops);
                     let b = if self.rng.chance(50) { Expr::Var(self.rng.pick(&bs).clone()) } else { Expr::Num(self.rng.pick(LITS).to_string()) };
                     // a divisor of 0 stops both engines alike; keep it rare
                     let b = match (&b, op) {
@@ -2131,7 +2136,8 @@ impl Gen {
         let s = t.signed();
         let has_var = !self.vars_of(t).is_empty();
         use BinOp::*;
-        let ops: [(Option<BinOp>, u64); 16] = [
+        let trunc = if self.cfg.trunc { 2 } else { 0 };
+        let ops: [(Option<BinOp>, u64); 18] = [
             (Some(Add), 6),
             (Some(Sub), 6),
             (Some(Mul), 5),
@@ -2148,6 +2154,8 @@ impl Gen {
             (Some(WMul), if has_var { 1 } else { 0 }),
             (None, if s { 2 } else { 0 }),                  // negation
             (Some(Mod), 0),
+            (Some(DivTrunc), trunc),
+            (Some(ModTrunc), trunc),
         ];
         let w: Vec<u64> = ops.iter().map(|o| o.1).collect();
         let pick = ops[self.rng.weighted(&w)].0;
@@ -2263,7 +2271,7 @@ impl Gen {
                 let (b, ib) = self.fit(b, ib, bx, t);
                 (mk(a, b), clip(corners(ia, ib, &f)))
             }
-            Div | Mod => {
+            Div | Mod | DivTrunc | ModTrunc => {
                 let bad_zero = ib.has(0);
                 let bad_min = t.signed() && ia.has(r.lo) && ib.has(-1);
                 let (b, ib) = if (bad_zero || bad_min) && !risk {
@@ -2280,6 +2288,11 @@ impl Gen {
                 }
                 let out = if op == Div {
                     corners(ia, ib, |x, y| Some(floor_div(x, y)))
+                } else if op == DivTrunc {
+                    corners(ia, ib, |x, y| x.checked_div(y))
+                } else if op == ModTrunc {
+                    let m = ib.lo.abs().max(ib.hi.abs());
+                    Some(Iv::new(if ia.lo >= 0 { 0 } else { ia.lo.max(-(m - 1)) }, if ia.hi <= 0 { 0 } else { ia.hi.min(m - 1) }))
                 } else if ib.lo > 0 {
                     Some(if ia.lo >= 0 && ia.hi < ib.lo { ia } else { Iv::new(0, ib.hi - 1) })
                 } else {
