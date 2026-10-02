@@ -438,6 +438,7 @@ range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what a `
 range_reassign_out [fnv:0642e09a92a7c67b] :: the value can be outside what a `int32[0, 100]` holds
 range_to_c [fnv:89768fbb7f2f8a1a] :: 'a' is written as the plain `int32`
 range_type_on_range [fnv:bde7b04c0713065f] :: int32 in range[0, 3]`
+return_group_through_call [fnv:0d648b1bc81e861d] :: expected a value of the declared type (list[int8]), found an `integer`
 return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
 return_type_colon [fnv:940ae1aff445aa14] :: the return type is `-> int32`, not `: int32`
 return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the parameters

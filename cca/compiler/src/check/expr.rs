@@ -1392,6 +1392,7 @@ impl Checker {
         let ty = match (lt.base(), rt.base()) {
             _ if adopt.is_some() => adopt.clone().unwrap(),
             (Ty::Int(a), Ty::Int(b)) => Ty::Int(join_int(*a, *b)),
+            (Ty::Bin(_), Ty::Bin(_)) if *op == BinOp::Mod => return err(Diagnostic::error("not yet: which sign a bin's `mod` takes — the divisor's, as integers and decis have it, or the dividend's — is not decided (asked)").at(op_span)),
             (Ty::Bin(a), Ty::Bin(b)) => Ty::Bin(join_bin(*a, *b)),
             (Ty::Deci(a), Ty::Deci(b)) => Ty::Deci((*a).max(*b)),
             _ => return err(Diagnostic::error(format!("`{}` between a `{}` and a `{}`: there is no implicit conversion between numeric families — convert one side with `to.{}[…]`", op.spelled(), self.spell(&lt), self.spell(&rt), self.spell(lt.base()))).at(op_span)),
@@ -1416,6 +1417,9 @@ impl Checker {
             _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a brain16 is not one", op.spelled())).at(op_span)),
         }
         let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
+        if lt.is_brain() && rt.is_brain() && *op == BinOp::Mod {
+            return err(Diagnostic::error("not yet: which sign a brain16's `mod` takes — the divisor's, as integers and decis have it, or the dividend's — is not decided (asked)").at(op_span));
+        }
         if lt.is_brain() && rt.is_brain() {
             return Ok((l, r, Ty::Brain));
         }

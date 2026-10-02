@@ -1350,6 +1350,10 @@ impl<'a> FnBuilder<'a> {
             // a): an answer that would be one is a check site, like integer
             // overflow — past the largest bin, a division by zero, a power
             // with no number (`-1.0 xx 0.5`).
+            // A bin's `mod` by 0.0 has no number: the divisor is asked.
+            BinOp::Mod if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
+                self.site(SiteKind::ModZero, vec![r.clone()], span);
+            }
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Pow if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
                 if *op == BinOp::Div {
                     self.site(SiteKind::DivZero, vec![r.clone()], span);

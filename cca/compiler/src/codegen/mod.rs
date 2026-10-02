@@ -1192,7 +1192,20 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 match (op, v) {
                     (UnOp::Neg, BasicValueEnum::IntValue(i)) => Some(self.builder.build_int_neg(i, "neg").ok()?.into()),
-                    (UnOp::Neg, BasicValueEnum::FloatValue(x)) => Some(self.builder.build_float_neg(x, "neg").ok()?.into()),
+                    // A negative literal is written at its place's width, as
+                    // a positive one is (a brain16 -0.3 was stored as a
+                    // bin64 into two bytes); anything else is cast there.
+                    (UnOp::Neg, BasicValueEnum::FloatValue(x)) => {
+                        if let (Operand::Const(Const::Bin(text)), Some(BasicTypeEnum::FloatType(t))) = (operand, want) {
+                            let neg = format!("-{}", text.replace('_', ""));
+                            return Some(unsafe { t.const_float_from_string(&neg) }.into());
+                        }
+                        let n = self.builder.build_float_neg(x, "neg").ok()?;
+                        match want {
+                            Some(BasicTypeEnum::FloatType(t)) if t != n.get_type() => Some(self.float_cast(n, t)?.into()),
+                            _ => Some(n.into()),
+                        }
+                    }
                     (UnOp::Not, BasicValueEnum::IntValue(i)) => Some(self.builder.build_not(i, "not").ok()?.into()),
                     (UnOp::NotBit, BasicValueEnum::IntValue(i)) => Some(self.builder.build_not(i, "notbit").ok()?.into()),
                     // A mask flips lane by lane.
@@ -1745,9 +1758,33 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // A bin never holds an infinity or a NaN (owner, 2026-09-29):
             // a zero divisor is asked first, then whether the answer is a
             // real number — `r - r` is 0 only for a finite `r`.
-            if let (BinOp::Div, Some(s)) = (op, divzero) {
+            if let (BinOp::Div | BinOp::Mod, Some(s)) = (op, divzero) {
                 let zero = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                 self.guard(fi, s, zero, func)?;
+            }
+            // `mod` takes the divisor's sign (owner, 2026-09-29): the
+            // hardware's remainder, moved by the divisor when the two differ.
+            // A brain16 is worked at 32 bits, where the remainder is exact.
+            if matches!(op, BinOp::Mod) {
+                let t = x.get_type();
+                let wide = t == self.ctx.bf16_type() || t == self.ctx.f16_type();
+                let (xw, yw) = if wide {
+                    let f32t = self.ctx.f32_type();
+                    (self.builder.build_float_ext(x, f32t, "x32").ok()?, self.builder.build_float_ext(y, f32t, "y32").ok()?)
+                } else {
+                    (x, y)
+                };
+                let r = self.builder.build_float_rem(xw, yw, "frem").ok()?;
+                let zero = r.get_type().const_zero();
+                let nonzero = self.builder.build_float_compare(FP::ONE, r, zero, "inexact").ok()?;
+                let r_neg = self.builder.build_float_compare(FP::OLT, r, zero, "rneg").ok()?;
+                let y_neg = self.builder.build_float_compare(FP::OLT, yw, zero, "yneg").ok()?;
+                let differ = self.builder.build_xor(r_neg, y_neg, "differ").ok()?;
+                let fix = self.builder.build_and(nonzero, differ, "fix").ok()?;
+                let moved = self.builder.build_float_add(r, yw, "moved").ok()?;
+                let m = self.builder.build_select(fix, moved, r, "mod").ok()?.into_float_value();
+                let m = if wide { self.float_cast(m, t)? } else { m };
+                return Some(m.into());
             }
             if matches!(op, BinOp::Pow) {
                 let id = inkwell::intrinsics::Intrinsic::find("llvm.pow")?;
