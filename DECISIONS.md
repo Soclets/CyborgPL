@@ -17,8 +17,11 @@ CyborgPL's "Not family friendly" warning word for word, Apache-2.0 WITH
 LLVM-exception. Design claude kept the starting notes
 (`secrets/lilith.md`) in this private repo and told lilith claude not to
 copy them to the public one without the owner's yes; Lilith's own record
-(where its decisions are written) is lilith claude's to propose. Brief:
-`design/lilith-session.md`.
+(where its decisions are written) is the session's to propose. Brief:
+`design/lilith-session.md`. **The session is "lth design claude"**
+(owner: "Changing the claude's name first, it's `lth design claude`"),
+its commits ending `Co-Authored-By: lth design claude
+<noreply@anthropic.com>`.
 
 ### 2026-10-02 — Quick Fix works from a spelling table, `spellings.cplr`, and each Limb's `cpl_ver.cplr` (owner)
 

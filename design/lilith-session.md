@@ -1,6 +1,6 @@
 # The Lilith session — a brief
 
-For the session that designs **Lilith** ("lilith claude"). Written
+For the session that designs **Lilith** ("lth design claude", named by the owner). Written
 2026-10-02 by the design session, at the owner's request. Read this
 first; then everything it points at.
 
@@ -64,7 +64,7 @@ replacing CyborgPL ("No, Lilith is just an idea").
 In `/Users/ts/Lilith`, on `main`. Commits: author Tankun Sriket
 (repo-local config, set), subjects `kind.folder.narrowing: sentence`
 (`decision.syntax.functions: …`, `design.types: …`, `house.readme: …`),
-trailer `Co-Authored-By: lilith claude <noreply@anthropic.com>`. Push over
+trailer `Co-Authored-By: lth design claude <noreply@anthropic.com>`. Push over
 HTTPS (the remote is set). Where Lilith's decisions are written down is
 yours to propose to the owner; CyborgPL's habit — a `DECISIONS.md` with
 what the owner chose against what was proposed, and one topic per file
