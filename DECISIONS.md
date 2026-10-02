@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
+
+Asked whether `&` works as `lent`, design claude ran it in the oracle:
+parameters, calls, function types and `return &'a'` worked; the return
+type did not (`-> &str.utf8` was refused), since `&` (2026-09-21) predated
+returned borrows (2026-09-29) and nobody had asked; nor did a lifetime
+group on `&`. Design claude recommended covering every place, as a
+spelling that works everywhere but one spot is a trap. The owner: "Yes."
+So `-> &T`, `-> &mut T`, `-> &@x T`, `&@x 'a': T`, `&mut@x 'a': T`. In the
+oracle (`&@` lexes as one operator, so the parser takes it as `&` then
+the group); `examples/ampersand_everywhere.cpls`, reject test
+ampersand_group_unnamed. `ownership-syntax.md`.
+
 ### 2026-10-02 — `let` is back on every declaration; `change` stays (owner)
 
 ```

@@ -536,6 +536,10 @@ impl Parser {
                     self.advance();
                     let m = if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "mut") { self.advance(); self.advance(); true } else { false };
                     ret_lent = Some((m, self.life_label()?));
+                } else if let Some(at) = self.amp() {
+                    // `-> &T`, `-> &mut T`, `-> &@x T` — `&` wherever `lent` goes (owner, 2026-10-02: "Yes.")
+                    let (m, life) = self.amp_rest(at)?;
+                    ret_lent = Some((m, life));
                 }
                 if self.is_word("fail") { fails = self.fail_list()?; }
                 else {
@@ -603,6 +607,27 @@ impl Parser {
     // An owning parameter has no keyword; `lent` / `lent.mut` mirror the caller's `lend` / `lend.mut`.
     /// `@x` after `lent` / `lent.mut`: the lifetime group (owner, 2026-09-29) — introduced by
     /// first use, like `<T>`
+    /// A lending `&` here? Returns whether it came glued to `@` (`&@x` lexes as one operator).
+    fn amp(&mut self) -> Option<bool> {
+        match self.peek() {
+            Tok::Op(o) if o == "&" => { self.advance(); Some(false) }
+            Tok::Op(o) if o == "&@" => { self.advance(); Some(true) }
+            _ => None,
+        }
+    }
+
+    /// After `&`: `mut`, then a lifetime group (`&mut@x`); or the group's name straight after `&@`.
+    fn amp_rest(&mut self, glued_at: bool) -> PResult<(bool, Option<String>)> {
+        if glued_at {
+            return match self.advance().tok {
+                Tok::Word(w) => Ok((false, Some(w))),
+                other => self.err(format!("a lifetime group is named after `@`: `&@x`, found {other}")),
+            };
+        }
+        let m = if self.is_word("mut") { self.advance(); true } else { false };
+        Ok((m, self.life_label()?))
+    }
+
     fn life_label(&mut self) -> PResult<Option<String>> {
         if !matches!(self.peek(), Tok::Op(o) if o == "@") { return Ok(None); }
         self.advance();
@@ -625,10 +650,13 @@ impl Parser {
                 } else { ParamKind::Lent };
                 life = self.life_label()?;
             }
-            Tok::Op(o) if o == "&" => {
-                // `&'text': T` / `&mut 'buf': T` — an alternative to `lent` / `lent.mut` (owner, 2026-09-21)
-                self.advance();
-                kind = if self.is_word("mut") { self.advance(); ParamKind::LentMut } else { ParamKind::Lent };
+            Tok::Op(o) if o == "&" || o == "&@" => {
+                // `&'text': T` / `&mut 'buf': T` — an alternative to `lent` / `lent.mut` (owner, 2026-09-21);
+                // `&@x 'a': T` / `&mut@x 'a': T` with a lifetime group (owner, 2026-10-02)
+                let glued = self.amp().unwrap_or(false);
+                let (m, l) = self.amp_rest(glued)?;
+                kind = if m { ParamKind::LentMut } else { ParamKind::Lent };
+                life = l;
             }
             Tok::Word(w) if w == "mut" => { self.advance(); mutability = Some(Mutability::Mut); }
             Tok::Word(w) if w == "immut" => { self.advance(); mutability = Some(Mutability::Immut); }

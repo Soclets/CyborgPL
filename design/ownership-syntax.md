@@ -26,7 +26,10 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
 for `lend.mut` / `lent.mut`**, on both sides of a call —
 `count[&'s']`, `process[&mut 's']`, `fn count [&'text': str.utf8]`,
 `fn edit [&mut 'text': str.utf8]`, `fn[&str.utf8] -> int32`. Same
-meaning, same rules; a program may mix the two. Added after four cold
+meaning, same rules; a program may mix the two. Since 2026-10-02 it covers every
+place `lent` goes (owner: "Yes."): a handed-back borrow, `-> &str.utf8` /
+`-> &mut T`, and a lifetime group, `&@x 'a': T`, `&mut@x 'a': T`,
+`-> &@x T`. Added after four cold
 readers in a row confused `lent` with `lend` — `&` is the spelling Rust
 readers already know. `&` between two values is still an (undefined)
 custom operator; the lending `&` is the one that opens a value. From
