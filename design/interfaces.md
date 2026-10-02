@@ -92,8 +92,11 @@ generics.
 An interface may also list types instead of operations: `interface
 Number { int8 int16 int32 int64 bin32 bin64 }` accepts exactly those, and
 a type written later can never join it; a list of operations stays open
-to future types. The writer picks per interface. Spelling, mixing the two
-in one interface, and how "any type" is said are open; not built yet.
+to future types. The writer picks per interface. **Both may mix**: one
+interface can list types and operations, and a type must be listed and
+have the operations; and a generic can take several bounds with `and`,
+`<T: Number and Hashable>` (owner, 2026-10-02: "Both works"). "Any type"
+is the built-in `any` (`generics.md`). Not built yet.
 
 ## Open
 

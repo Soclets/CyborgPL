@@ -65,6 +65,13 @@ an empty interface each Limb writes itself): `struct Pair <A: any, B: any>
 { left: <A>  right: <B> }`. Written, never assumed: a generic without a
 bound is refused.
 
+**Both ways of combining** (owner: "Both works"): one interface may mix
+types and operations (`interface HashableNumber { int32 int64 bin64  fn
+hash [lent 'v': <T>] -> uint64; }`, a type must be listed and have the
+operations), and a generic may take several bounds joined with `and`
+(`<T: Number and Hashable>`, every one must hold). Design claude had
+recommended only the second.
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:
