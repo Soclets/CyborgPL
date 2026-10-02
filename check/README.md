@@ -171,7 +171,13 @@ counted as ambiguous and not asked (2026-09-29: four "refutations" in a
 100-program batch were such pairings, not CCA's). Instances of one site in
 several inlined calls share its node and are still asked together.
 
-## Translation validation (Alive2)
+## Translation validation (Alive2) — retired
+
+**Not run any more** (owner, 2026-10-02: "We have RRx2 to replace Alive2"):
+the LLVM-IR half of translation validation is RRx2-TV's, run when the
+owner says (`design/verification-session.md` item 4, c42ac8f). Mine is the
+Cyborg half, that the IR CCA hands to LLVM means what the MIR meant. The
+command below stays for the record.
 
 `check tv --cases N` (owner: Alive2 installed 2026-09-30; CCA's
 `--emit-llvm`, ae478cd): for each program, Alive2 checks that LLVM's
