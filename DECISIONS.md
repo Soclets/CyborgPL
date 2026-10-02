@@ -53,6 +53,13 @@ then "I meant that a generic needs defining first. Don't default to
 allow all". Open: how a generic that truly takes any type (a `Pair`, the
 first item of any list) says so.
 
+**The definition goes right after the name, with what it accepts**
+(owner: "`a`", over a `with <T: Number>` at the end, before the body):
+`fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> { … }`, `struct Pair <A,
+B> { … }`, so `T` is introduced before its first use; later mentions keep
+their `< >`, as shown. Whether lifetime groups join the same list
+(`<T: Number, @x>`) was not asked.
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:
