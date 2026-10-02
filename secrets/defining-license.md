@@ -19,3 +19,9 @@ machine effieciently", then "I just meant that the software should be
 optimized". Design claude's reading: defining every word is a long job,
 so the program that builds the licence should be optimised to do it
 efficiently.
+
+The owner, on how: "Definition is not by AI, it's by the software. So, it
+would have to get definitions of every word used, including the one used
+in the definitions". So the program looks every word up, then every word
+in those definitions, and so on until nothing new comes up, and the
+licence carries all of it.
