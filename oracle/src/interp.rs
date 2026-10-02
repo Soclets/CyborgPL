@@ -2744,7 +2744,14 @@ impl<'p> Interp<'p> {
                 if op == "xx" && matches!(a, Value::Deci(_)) && matches!(b, Value::Deci(_)) && !matches!(pb, Prov::Literal) {
                     return rt(line, "a deci power's exponent is an integer or a whole literal, not a deci that may hold a fraction: `'r' xx to.int32['k'] otherwise …`");
                 }
-                let v = self.binary(op, a, b, line)?;
+                let divisor = if op.starts_with("mod.") { if let Value::Bin(y) = &b { Some(*y) } else { None } } else { None };
+                let mut v = self.binary(op, a, b, line)?;
+                // a bin16/bin32 remainder is rounded where it lands, and that can reach the divisor
+                // again (-0.000001 mod.floor 360.0 is 360 in a bin32): still below it (owner, 2026-10-02: b)
+                if let (Some(y), Value::Bin(rem)) = (divisor, &v) {
+                    let rounded = match self.bin_width(l).or_else(|| self.bin_width(r)) { Some(32) => (*rem as f32) as f64, Some(16) => round_f16(*rem), _ => *rem };
+                    if rounded.abs() == y.abs() { v = Value::Bin(below_divisor(rounded, y, &op[4..])); }
+                }
                 // a vector's lanes are checked at every operation, at the lane's type — not exact in
                 // between as plain numbers are: wider lanes would halve what a register holds
                 // (owner, 2026-09-29: b)
@@ -2827,6 +2834,8 @@ impl<'p> Interp<'p> {
             (Brain(x), Brain(y)) => {
                 let v = if kind == "div" && mode == "near" { ((x as f32) / (y as f32)) as f64 } else { let (q, r) = float_div_mod(x, y, mode); if kind == "div" { q } else { r } };
                 let v = crate::value::round_brain(v);
+                // rounding to brain16 can reach the divisor again (359 rounds to 360): still below it
+                let v = if kind == "mod" { below_divisor(v, y, mode) } else { v };
                 if v.is_infinite() || v.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest brain16 (it would be infinity)")); }
                 Brain(v)
             }
@@ -4614,9 +4623,10 @@ fn round_decimal(d: &str, w: u8) -> f64 {
 /// that rounds back to the same value at that width, not at 64 bits.
 /// The whole quotient of `x / y`, rounded `floor`, `ceil` or `trunc`, and what it leaves over
 /// (owner, 2026-10-02). C's `fmod` is exact, so the truncated pair is exact; one step away fixes
-/// the others. A remainder that rounds up to the divisor itself (`-1e-20 mod.floor 360.0`) is `0`
-/// instead, the quotient left as it was, so it stays below the divisor (owner, 2026-10-02: b).
-/// A zero `mod.floor` takes the divisor's sign.
+/// the others. The quotient is the true one (`1e-20 div.ceil 2.0` is 1, `-1e-20 div.floor 360.0`
+/// is -1, as Python's `//`). A remainder that rounds to the divisor itself (`-1e-20 mod.floor
+/// 360.0`) is `0` instead, so it stays below the divisor (owner, 2026-10-02: b); the caller
+/// checks that again after rounding to a narrower type. A zero `mod.floor` takes the divisor's sign.
 /// `div.floor` … `mod.near`: the division operators, each saying how it rounds (owner, 2026-10-02)
 pub fn is_div_mod(op: &str) -> bool {
     matches!(op.split_once('.'), Some(("div" | "mod", "floor" | "ceil" | "trunc" | "near")))
@@ -4630,8 +4640,12 @@ fn float_div_mod(x: f64, y: f64, mode: &str) -> (f64, f64) {
     let away = match mode { "floor" => !up, "ceil" => up, _ => false };
     if !away { return (q0, r0); }
     let (q, r) = if up { (q0 + 1.0, r0 - y) } else { (q0 - 1.0, r0 + y) };
-    if r.abs() == y.abs() { return (q0, if mode == "floor" { 0.0f64.copysign(y) } else { 0.0 }); }
-    (q, r)
+    (q, below_divisor(r, y, mode))
+}
+
+/// A remainder that rounded to the divisor itself is `0` (owner, 2026-10-02: b).
+fn below_divisor(r: f64, y: f64, mode: &str) -> f64 {
+    if r.abs() == y.abs() { if mode == "floor" { 0.0f64.copysign(y) } else { 0.0 } } else { r }
 }
 
 fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {
