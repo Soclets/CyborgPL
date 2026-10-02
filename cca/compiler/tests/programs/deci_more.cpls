@@ -4,7 +4,7 @@
 # too_many_digits, and a deci may be a range type. One point each: 19.
 extern fn exit ['code': int32];
 fn same ['v': deci64, 'want': str.utf8] -> int32 {
-    if to.str.utf8['v'] == 'want' { return 1; }
+    if to.stored.str.utf8['v'] == 'want' { return 1; }
     return 0;
 }
 fn in_unit ['v': deci64] -> int32 {
@@ -22,7 +22,7 @@ MAIN {
     let 'r': deci64 = 1.05;
     change 'got' = 'got' + same['r' xx 10, "1.628894626777441"] + same['r' xx 0, "1"] + same['r' xx -1, "0.9523809523809524"];
     let 'r2': deci128 = 1.05;
-    if to.str.utf8['r2' xx 10] == "1.62889462677744140625" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['r2' xx 10] == "1.62889462677744140625" { change 'got' = 'got' + 1; }
     let 'n': int32 = 3;
     change 'got' = 'got' + same['r' xx 'n', "1.157625"] + same['c' xx 3, "-64.000"];
     let 'x': deci64 = 3.141592653589793;
@@ -30,7 +30,7 @@ MAIN {
     let 'y' := to.deci32['x'] otherwise 's';
     let 'z': deci64 = 2.50;
     let 'zz' := to.deci32['z'] otherwise 's';
-    if to.str.utf8['y'] == "7" and to.str.utf8['zz'] == "2.50" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['y'] == "7" and to.stored.str.utf8['zz'] == "2.50" { change 'got' = 'got' + 1; }
     let 'disc': deci64[0.0, 1.0] = 0.15;
     let 'p' := to.deci64[0.0, 1.0]["1.5"] otherwise 'disc';
     change 'got' = 'got' + same['disc', "0.15"] + same['p', "0.15"];
@@ -39,9 +39,9 @@ MAIN {
     change 'got' = 'got' + same['q', "0.5"];
     let 'e': int64 = 5;
     let 'f' := to.deci32[0.0, 10.0]['e'] otherwise 's';
-    if to.str.utf8['f'] == "5" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['f'] == "5" { change 'got' = 'got' + 1; }
     let 'w': bin64 = 5.5;
-    let 'g' := to.deci64[0.0, 1.0]['w'] otherwise 'disc';
+    let 'g' := to.stored.deci64[0.0, 1.0]['w'] otherwise 'disc';
     change 'got' = 'got' + same['g', "0.15"];
     nocheck exit['got'];
 }

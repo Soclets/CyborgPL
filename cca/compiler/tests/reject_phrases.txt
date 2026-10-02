@@ -108,6 +108,7 @@ const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
 deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
+deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
 deci_int_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
 deci_literal_digits [fnv:1d5b181bc964df20] :: has 9 digits; deci32 holds 7
 deci_narrow_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
@@ -370,11 +371,20 @@ plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
 pos_removed [fnv:8fd7b8e8ad8219fa] :: `pos` is gone
-print_format_extra_arg [fnv:a2a7cfdeb00d434f] :: !pending
-print_format_missing_arg [fnv:fb03145792229455] :: !pending
-print_format_nonliteral [fnv:bf5171be01f2014d] :: !pending
-print_format_type [fnv:1a1ebd8e6464bb1a] :: !pending
-print_format_u [fnv:ad5ce70c98510511] :: !pending
+print_bare [fnv:7587d85df41ba149] :: say which form
+print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_extra_arg [fnv:40f9185c6f51c2e6] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_hash [fnv:b053127aa853d749] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_hole_zero [fnv:d041555e923d0b74] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_lone_brace [fnv:d885f76e08ed722d] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_missing_arg [fnv:a9458c5dbdc79cc8] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_mixed [fnv:dee02034a539ce5c] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_nonliteral [fnv:86040c08ad0670f5] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_type [fnv:68e54257a01e89be] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_unused_numbered [fnv:0c9676228756aeee] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
+print_weird_brackets [fnv:5c46b85e34e5d282] :: with arrows, not
+print_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
 printf_renamed [fnv:1732984806b6cbb0] :: std::printf.stdout is spelled std::print.format.stdout now
 printu_renamed [fnv:a2613067643c96b3] :: std::printu.stdout is spelled std::print.useful.stdout now
 ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_null`
@@ -500,6 +510,7 @@ to_list [fnv:fe57458270798005] :: keeps the element type, so it is not written
 to_narrowing_fails [fnv:cd716c13c720d27d] :: the value can be outside what a `int8` holds
 to_otherwise_on_safe [fnv:71d90a0143267704] :: `to.str.utf8` cannot fail here; drop the `otherwise`
 to_struct [fnv:42da10e4738cde3f] :: a struct or enum value is built by name
+to_text_bare [fnv:589fd0e7e6b542ec] :: say which text
 to_unhandled [fnv:769294ffd6316ce9] :: `to.int32` can fail (not_a_number, out_of_range): say what happens
 to_without_dot [fnv:8da39602590be550] :: `to.int32[…]`, `to.str.utf8[…]`
 true_as_func [fnv:535ae37c9ac4c8fb] :: bare `true` is the boolean, so `true[…]` is no call

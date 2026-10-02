@@ -2463,6 +2463,27 @@ impl<'a> Parser<'a> {
                     if path.segs.len() == 1 && path.limb.is_none() && path.head() == "limb" && !self.is(&Tok::Dot) {
                         return self.fail_at(path.span, "`limb` is followed by `.` and the root item it reaches: `limb.helper[…]`");
                     }
+                    // `std::print.weird…` takes each value after a `<-`, C++'s
+                    // `cout <<` (owner, 2026-10-01), and no `[ ]`.
+                    let weird = path.limb.as_ref().is_some_and(|l| l.name == "std") && path.segs.len() >= 2 && path.segs[0].name == "print" && path.segs.iter().any(|s| s.name == "weird");
+                    if weird && self.is(&Tok::LBracket) {
+                        return self.fail(format!("`{}` takes its values with arrows, not `[ ]`: `{} <- \"n is \" <- 'n' <- \\n;`", path.spelled(), path.spelled()));
+                    }
+                    if weird && self.is_op("<-") {
+                        let mut args = Vec::new();
+                        while self.eat_op("<-") {
+                            // Each value up to the next arrow: a custom
+                            // operator binds loosest, so it stops there.
+                            let v = self.expr(1)?;
+                            args.push(Arg::Positional(v));
+                        }
+                        let span = start.to(self.prev_span());
+                        let e = Expr { kind: ExprKind::Call { path, args, otherwise: None }, span };
+                        return Ok(e);
+                    }
+                    if weird {
+                        return self.fail(format!("`{}` takes at least one value, each after a `<-`: `{} <- 'n' <- \\n;`", path.spelled(), path.spelled()));
+                    }
                     if self.is(&Tok::LBracket) {
                         self.bump();
                         let args = self.args()?;

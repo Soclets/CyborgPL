@@ -3,7 +3,7 @@
 # oracle's, one point each, so the exit is how many agree (30).
 extern fn exit ['code': int32];
 fn same ['v': deci64, 'want': str.utf8] -> int32 {
-    if to.str.utf8['v'] == 'want' { return 1; }
+    if to.stored.str.utf8['v'] == 'want' { return 1; }
     return 0;
 }
 MAIN {
@@ -22,11 +22,11 @@ MAIN {
     let 'third': deci64 = 1;
     change 'got' = 'got' + same['third' div 3, "0.3333333333333333"] + same['h' div 2, "1.25"];
     let 'e1': deci32 = 1.000005;
-    if to.str.utf8['e1' + 0.0000005] == "1.000006" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['e1' + 0.0000005] == "1.000006" { change 'got' = 'got' + 1; }
     let 'w': bin64 = 0.1;
-    change 'got' = 'got' + same[to.deci64['w'], "0.1000000000000000"];
-    if to.str.utf8[to.deci128['w']] == "0.1000000000000000055511151231257827" { change 'got' = 'got' + 1; }
-    if to.str.utf8[to.useful.deci128['w']] == "0.1" { change 'got' = 'got' + 1; }
+    change 'got' = 'got' + same[to.stored.deci64['w'], "0.1000000000000000"];
+    if to.stored.str.utf8[to.stored.deci128['w']] == "0.1000000000000000055511151231257827" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8[to.useful.deci128['w']] == "0.1" { change 'got' = 'got' + 1; }
     let 'n': int32 = 12345;
     change 'got' = 'got' + same[to.deci64['n'], "12345"];
     let 'big': int64 = 12345678901234567;

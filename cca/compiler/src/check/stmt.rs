@@ -170,7 +170,7 @@ impl Checker {
                 let printable = |t: &Ty| matches!(t.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Char(_) | Ty::Str(_));
                 let msg = match (&inner.kind, &cond.kind) {
                     (AK::Binary { op, op_span, lhs, rhs }, hir::ExprKind::Binary { lhs: hl, rhs: hr, .. }) if op.is_comparison() && printable(&self.resolve(&hl.ty)) && printable(&self.resolve(&hr.ty)) => {
-                        let as_text = |e: &ast::Expr| ast::Expr { kind: AK::Conv { target: ast::Type { kind: ast::TypeKind::Path { path: ast::Path { limb: None, segs: vec![ast::Ident { name: "str".into(), span: e.span }, ast::Ident { name: "utf8".into(), span: e.span }], span: e.span }, args: Vec::new() }, span: e.span }, expr: Box::new(e.clone()), otherwise: None }, span: e.span };
+                        let as_text = |e: &ast::Expr| ast::Expr { kind: AK::Conv { target: ast::Type { kind: ast::TypeKind::Path { path: ast::Path { limb: None, segs: vec![ast::Ident { name: "useful".into(), span: e.span }, ast::Ident { name: "str".into(), span: e.span }, ast::Ident { name: "utf8".into(), span: e.span }], span: e.span }, args: Vec::new() }, span: e.span }, expr: Box::new(e.clone()), otherwise: None }, span: e.span };
                         let lit = |s: String| ast::Expr { kind: AK::Str(s), span };
                         let join = |a: ast::Expr, b: ast::Expr| ast::Expr { kind: AK::Binary { op: BinOp::Join, op_span: *op_span, lhs: Box::new(a), rhs: Box::new(b) }, span };
                         let m = join(join(join(lit("`must` does not hold: the left side is ".into()), as_text(lhs)), lit(format!(", and it must be `{}` ", op.spelled()))), as_text(rhs));

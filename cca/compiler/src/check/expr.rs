@@ -1751,6 +1751,23 @@ impl Checker {
                 return err(Diagnostic::error(format!("std::{} is spelled std::{} now", old, new)).at(span));
             }
         }
+        // Every print says its form (owner, 2026-10-02): `.stored` or
+        // `.useful`, after `.weird` when there is one.
+        if path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) && path.segs.first().is_some_and(|s| s.name == "print") {
+            let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
+            match segs.as_slice() {
+                ["print", stream @ ("stdout" | "stderr")] => {
+                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.stored.{}[…]` (what is stored) or `std::print.useful.{}[…]` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                }
+                ["print", "weird", stream @ ("stdout" | "stderr")] => {
+                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.weird.stored.{} <- …` (what is stored) or `std::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                }
+                ["print", f @ ("stored" | "useful"), "weird", rest @ ..] => {
+                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `std::print.weird.{}.{} <- …`", f, rest.join("."))).at(span));
+                }
+                _ => {}
+            }
+        }
         if self.std_stubs && path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             return self.std_stub(ctx, path, args, otherwise, span, used);
         }
@@ -2545,32 +2562,37 @@ impl Checker {
 
     // ------------------------------------------------------------ conversions
 
+    /// A value's family in a message: "integer", "bool", "deci".
+    fn family_word(&self, t: &Ty) -> String {
+        match t.base() {
+            Ty::Int(_) => "integer".into(),
+            Ty::Bin(_) => "bin".into(),
+            Ty::Deci(_) => "deci".into(),
+            Ty::Bool => "bool".into(),
+            Ty::Enum { id, .. } => format!("a `{}` case", self.items.enums[id.0 as usize].name),
+            _ => format!("a `{}`", self.spell(t)),
+        }
+    }
+
     fn conversion(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let mut blanks = Vec::new();
         // `to.useful.deci64[…]`: a bin's shortest decimal (owner,
         // 2026-09-29), where `to.deci64[…]` is its exact value; and
         // `to.useful.str.utf8[…]`, the useful text, where `to.str.utf8` is
         // the exact one. `.useful` follows the verb (owner, 2026-09-30).
-        let mut useful = false;
-        let stripped;
-        let target = match &target.kind {
-            ast::TypeKind::Path { path, args } if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "useful") => {
-                let rest: Vec<&str> = path.segs[..path.segs.len() - 1].iter().map(|s| s.name.as_str()).collect();
-                return err(Diagnostic::error(format!("`.useful` follows the verb: `to.useful.{}[…]` (owner, 2026-09-30)", rest.join("."))).at(target.span));
-            }
-            ast::TypeKind::Path { path, args } if path.segs.len() >= 2 && path.segs[0].name == "useful" => {
-                useful = true;
-                let mut p = path.clone();
-                p.segs.remove(0);
-                stripped = ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span };
-                &stripped
-            }
-            _ => target,
-        };
+        // `to.stored.` / `to.useful.` (owner, 2026-10-02): where a value has
+        // two readings — a number, a `bool` or a case as text, a bin as a
+        // deci — the conversion says which.
+        let (form, stripped) = conv_form(target)?;
+        let target = stripped.as_ref().unwrap_or(target);
         let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
-        if useful && !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
-            return err(Diagnostic::error(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.deci64[…]`; `to.{}` has no useful form", self.spell(&t))).at(span));
+        if let Some(u) = form {
+            if !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
+                let f = if u { "useful" } else { "stored" };
+                return err(Diagnostic::error(format!("`to.{}` makes text or a deci: `to.{}.str.utf8[…]`, `to.{}.deci64[…]`; `to.{}` has one form", f, f, f, self.spell(&t))).at(span));
+            }
         }
+        let mut useful = form == Some(true);
         let mut v = self.expr(ctx, operand)?;
         // Bare numbers alone are worked out exactly, whatever is between
         // them: `to.uint64[0 / ((2 / 10047273927188643194) + 1)]` divides by
@@ -2582,8 +2604,10 @@ impl Checker {
         let vt = self.resolve(&v.ty);
         let target_spelling = self.spell(&t);
         let mut fails: Vec<&str> = Vec::new();
-        if useful && matches!(t.base(), Ty::Deci(_)) && !matches!(vt.base(), Ty::Bin(_) | Ty::Int(_)) {
-            return err(Diagnostic::error(format!("`to.useful.{}` is a bin's shortest decimal, and this is a `{}`: write `to.{}[…]`", target_spelling, self.spell(&vt), target_spelling)).at(span));
+        // Only a bin has a second value as a deci; an integer, a deci or
+        // text has the one, whichever form is named.
+        if matches!(t.base(), Ty::Deci(_)) && !matches!(vt.base(), Ty::Bin(_)) {
+            useful = false;
         }
         match (vt.base(), t.base()) {
             // Into or out of a `deci` (owner, 2026-09-29): the list is
@@ -2686,6 +2710,17 @@ impl Checker {
                 None
             }
         };
+        // Asked last, as the oracle does: what cannot convert at all, or
+        // cannot fail, is said first.
+        if form.is_none() {
+            let two_texts = matches!(t.base(), Ty::Str(_)) && matches!(vt.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Enum { .. });
+            if two_texts {
+                return err(Diagnostic::error(format!("say which text `to.{}` makes of {}: `to.stored.{}[…]` (what is stored) or `to.useful.{}[…]` (the useful value) (owner, 2026-10-02)", target_spelling, self.family_word(&vt), target_spelling, target_spelling)).at(span));
+            }
+            if matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Bin(_)) {
+                return err(Diagnostic::error(format!("say which value `to.{}` takes of a bin: `to.stored.{}[…]` (what is stored) or `to.useful.{}[…]` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).at(span));
+            }
+        }
         let fails_owned: Vec<String> = fails.iter().map(|s| s.to_string()).collect();
         Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful }, ty: t, span })
     }
@@ -3708,5 +3743,27 @@ pub fn sizes_match(a: &Ty, b: &Ty) -> bool {
         (Ty::Map { key: k1, val: v1, .. }, Ty::Map { key: k2, val: v2, .. }) => sizes_match(k1, k2) && sizes_match(v1, v2),
         (Ty::Struct { args: x, .. }, Ty::Struct { args: y, .. }) | (Ty::Enum { args: x, .. }, Ty::Enum { args: y, .. }) => x.len() != y.len() || x.iter().zip(y).all(|(p, q)| sizes_match(p, q)),
         _ => true,
+    }
+}
+
+/// `to.stored.T` / `to.useful.T`: the form named, and the target without
+/// it — inside a bound too (`to.stored.str.utf8[0, 3 bytes][…]`).
+fn conv_form(target: &ast::Type) -> Result<(Option<bool>, Option<ast::Type>)> {
+    match &target.kind {
+        ast::TypeKind::Path { path, .. } if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "useful" || s.name == "stored") => {
+            let rest: Vec<&str> = path.segs[..path.segs.len() - 1].iter().map(|s| s.name.as_str()).collect();
+            let f = &path.segs.last().unwrap().name;
+            err(Diagnostic::error(format!("`.{}` follows the verb: `to.{}.{}[…]` (owner, 2026-09-30)", f, f, rest.join("."))).at(target.span))
+        }
+        ast::TypeKind::Path { path, args } if path.segs.len() >= 2 && (path.segs[0].name == "useful" || path.segs[0].name == "stored") => {
+            let mut p = path.clone();
+            p.segs.remove(0);
+            Ok((Some(path.segs[0].name == "useful"), Some(ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span })))
+        }
+        ast::TypeKind::Bound { inner, lo, hi, unit, span } => {
+            let (form, inner2) = conv_form(inner)?;
+            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span }, span: target.span })))
+        }
+        _ => Ok((None, None)),
     }
 }
