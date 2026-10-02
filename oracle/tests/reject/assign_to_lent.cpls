@@ -2,6 +2,6 @@ fn touch [lent 'text': str.utf8] {
     change 'text' = "b";
 }
 MAIN {
-    's' := "a";
+    let 's' := "a";
     touch[lend 's'];
 }

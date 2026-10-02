@@ -1,1 +1,1 @@
-MAIN { 'v': simd[uint8, 64] = simd.fill[0]; }
+MAIN { let 'v': simd[uint8, 64] = simd.fill[0]; }

@@ -1,5 +1,5 @@
 fn nothing [] -> int32 {
 }
 MAIN {
-    'x' := nothing[];
+    let 'x' := nothing[];
 }

@@ -1,1 +1,1 @@
-MAIN { 'v': simd[str.utf8, 4] = simd.fill[0]; }
+MAIN { let 'v': simd[str.utf8, 4] = simd.fill[0]; }

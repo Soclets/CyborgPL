@@ -1,7 +1,7 @@
 # Wrapping arithmetic (decided 2026-09-20): +~ -~ x~ xx~ are always defined — modulo the
 # type's size — so a hash needs no nocheck. Plain + - x xx stay overflow-checked.
 fn hash [lent 'text': str.utf8] -> uint32 {
-    'h': uint32 = 2_166_136_261;                 # FNV-1a
+    let 'h': uint32 = 2_166_136_261;                 # FNV-1a
     for 'b' in str.each.byte[lend 'text'] {
         change 'h' = 'h' xor 'b';                          # FNV-1a: xor, then a wrapping multiply
         change 'h' = 'h' x~ 16_777_619;                    # wraps instead of overflowing
@@ -11,13 +11,13 @@ fn hash [lent 'text': str.utf8] -> uint32 {
 
 MAIN {
     std::print.useful.stdout[hash["hello"], \n];
-    'c': uint8 = 250;
+    let 'c': uint8 = 250;
     change 'c' = 'c' +~ 10;                                # 260 wraps to 4
     std::print.useful.stdout['c', \n];
-    'i': int8 = 127;
+    let 'i': int8 = 127;
     change 'i' = 'i' +~ 1;                                 # 128 wraps to -128
     std::print.useful.stdout['i', \n];
-    'p': uint16 = 3;
+    let 'p': uint16 = 3;
     change 'p' = 'p' xx~ 20;                               # 3^20 modulo 65536
     std::print.useful.stdout['p', \n];
 }

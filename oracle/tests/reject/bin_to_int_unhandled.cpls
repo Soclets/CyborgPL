@@ -1,1 +1,1 @@
-MAIN { 'y': bin64 = 2.7; 'b' := to.int32['y']; }
+MAIN { let 'y': bin64 = 2.7; let 'b' := to.int32['y']; }

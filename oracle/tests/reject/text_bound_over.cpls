@@ -1,4 +1,4 @@
 MAIN {
-    mut 'line': str.utf8[0, 20 bytes] = "twelve chars";
+    let mut 'line': str.utf8[0, 20 bytes] = "twelve chars";
     change 'line' = 'line' ++ " and more";     # 21 bytes
 }

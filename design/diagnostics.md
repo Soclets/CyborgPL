@@ -29,10 +29,10 @@ why:   'k' comes from 'n'
 try:   synthia run shop.cpls --input "101"
 
 fix:   limit the number where it is read — line 4:
-       'n' := to.int32[1, 99]['text'] otherwise 0;
+       let 'n' := to.int32[1, 99]['text'] otherwise 0;
 
    or  check 'k' before using it — line 31:
-       if 'k' </== list.length[lend 'xs'] { 'x' := 'xs'['k']; … }
+       if 'k' </== list.length[lend 'xs'] { let 'x' := 'xs'['k']; … }
 ```
 
 ```
@@ -43,7 +43,7 @@ code:  list.append[lend.mut 'xs', 4]
 why:   'xs' was declared an array at line 10
 
 fix:   declare it a list — line 10:
-       'xs': list[int32] = [1, 2, 3];
+       let 'xs': list[int32] = [1, 2, 3];
 ```
 
 ```

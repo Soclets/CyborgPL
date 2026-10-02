@@ -96,7 +96,7 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 
 ```
 extern fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
-nocheck 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
+nocheck let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
 An extern's return may be a range type. It is a promise about C that
@@ -136,7 +136,7 @@ type is the request to check. To skip the check, write the plain type
 (`int32`), and convert when you want the enum:
 
 ```
-'k' := to.Key['code'] otherwise { out_of_range { return; } };
+let 'k' := to.Key['code'] otherwise { out_of_range { return; } };
 ```
 
 `nocheck` does not remove these. It turns off *check sites*, the bugs
@@ -195,7 +195,7 @@ design claude's recommendation with a, not asked separately.
 extern 'lib_version': int32;        # C: extern int lib_version;   read-only
 extern mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
 
-nocheck 'v' := 'lib_version';       # reading C's variable is a nocheck site
+nocheck let 'v' := 'lib_version';       # reading C's variable is a nocheck site
 nocheck change 'lib_verbose' = 1;              # so is writing one
 ```
 
@@ -257,7 +257,7 @@ nocheck inline.ASM {
 - **`with [ … ]` binds variables to registers; the arrow is the
   direction** (owner: "drop the words, keep the arrows"): `'v' -> x0`
   copies the variable in before the block, `'v' <- x0` stores the
-  register into `'v'` after (declaring it, like `'v' := …`), `'v' <-> x0`
+  register into `'v'` after (declaring it, like `let 'v' := …`), `'v' <-> x0`
   both; `clobber x16` says a register was overwritten.
 - **A lend goes into a register as the address of the lent data**
   (owner, 2026-09-30: a): `lend 'text' -> x1`, and `lend.mut 'buf' -> x1`

@@ -1,6 +1,6 @@
 extern fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64, 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
 fn one ['a': ptr[int32]] -> int32 { return 0; }
 MAIN {
-    'nums' := [3, 1, 2];
+    let 'nums' := [3, 1, 2];
     nocheck qsort[lend.mut 'nums', 3, 4, one];
 }

@@ -1,5 +1,5 @@
 MAIN {
-    'xs' := [1, 2];
+    let 'xs' := [1, 2];
     for 'x': int32 in lend 'xs' {
     }
 }

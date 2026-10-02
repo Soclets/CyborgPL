@@ -6,11 +6,11 @@ enum Size {
 }
 
 MAIN {
-    'x': bin64 = 0.1;
-    'd': deci64 = 1.50;
-    'n': int32 = 42;
-    'ok' := true;
-    's' := Size.big;
+    let 'x': bin64 = 0.1;
+    let 'd': deci64 = 1.50;
+    let 'n': int32 = 42;
+    let 'ok' := true;
+    let 's' := Size.big;
     std::print.stdout[to.str.utf8['x'], " | ", to.useful.str.utf8['x'], \n];
     std::print.stdout[to.str.utf8['d'], " | ", to.useful.str.utf8['d'], \n];
     std::print.stdout[to.str.utf8['n'], " | ", to.useful.str.utf8['n'], \n];

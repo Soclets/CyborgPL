@@ -6,8 +6,8 @@ MAIN {
     std::print.useful.stdout[(10 - 4 - 3), \n];
     std::print.useful.stdout[(6 div (2 x 3)), \n];
     std::print.useful.stdout[((6 div 2) x 3), \n];
-    'a' := 5;
-    'b' := 7;
+    let 'a' := 5;
+    let 'b' := 7;
     if 'a' + 1 > 'b' - 2 and not ('a' == 'b') or false {
         std::print.stdout["logic holds", \n];
     }

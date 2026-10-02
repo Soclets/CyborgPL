@@ -4,9 +4,9 @@ fn show ['b': uint8] { std::print.useful.stdout['b', \n]; }
 fn wide ['w': uint32] -> uint32 { return 'w'; }
 MAIN {
     show[0 -~ 1];
-    'v': uint64 = to.uint64[wide[2 shl 3]];
+    let 'v': uint64 = to.uint64[wide[2 shl 3]];
     std::print.useful.stdout['v', " ", wide[not.bit 0], \n];
-    mut 'xs': list[uint8] = [1,];
+    let mut 'xs': list[uint8] = [1,];
     list.append[lend.mut 'xs', 0 -~ 2];
     std::print.useful.stdout['xs'[2], \n];
 }

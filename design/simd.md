@@ -10,7 +10,7 @@ algorithm.
 
 ```
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
-    mut 'acc' := simd.fill[0];                          # simd[uint8, 16]
+    let mut 'acc' := simd.fill[0];                          # simd[uint8, 16]
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
         change 'acc' = 'acc' or.bit simd.load[lend 'bytes', 'i'];
     }
@@ -99,8 +99,8 @@ against a vector (`'v' + 1`), and `simd.sum` is a check site while
 
 ```
 fn all_on ['m': simd[bool, 4]] -> bool { return simd.all['m']; }
-'m': simd[bool, 4] = 'a' > simd.fill[10];
-'flip' := not 'm';
+let 'm': simd[bool, 4] = 'a' > simd.fill[10];
+let 'flip' := not 'm';
 ```
 
 A vector comparison's result can be written as a type, so a function can
@@ -113,7 +113,7 @@ on the spot. `examples/simd_mask.cpls`.
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
 ```
-'v': simd[int32, 4] = simd.load.some[lend 'xs', 9, 2];   # 2 items; lanes 3–4 are zero
+let 'v': simd[int32, 4] = simd.load.some[lend 'xs', 9, 2];   # 2 items; lanes 3–4 are zero
 simd.store.some[lend.mut 'xs', 9, 2, 'v'];               # writes lanes 1–2 only
 ```
 
@@ -131,7 +131,7 @@ went through with a. `examples/simd_tail.cpls`.
 
 ```
 struct Particle { place: simd[bin32, 4]  vel: simd[bin32, 4] }
-'history': list[simd[bin32, 4]] = [];
+let 'history': list[simd[bin32, 4]] = [];
 ```
 
 Struct fields, list elements, parameters and returns. It is a plain,
@@ -144,9 +144,9 @@ local only, with plain numbers stored and reloaded each time.
 ## Rearranging lanes: `simd.shuffle` (owner, 2026-09-27: a)
 
 ```
-'r' := simd.shuffle['v', [4, 3, 2, 1]];      # reversed
-'p' := simd.shuffle['v', [2, 1, 4, 3]];      # neighbours swapped
-'b' := simd.shuffle['v', [1, 1, 1, 1]];      # lane 1 everywhere
+let 'r' := simd.shuffle['v', [4, 3, 2, 1]];      # reversed
+let 'p' := simd.shuffle['v', [2, 1, 4, 3]];      # neighbours swapped
+let 'b' := simd.shuffle['v', [1, 1, 1, 1]];      # lane 1 everywhere
 ```
 
 One operation for every rearrangement: the vector, then its new order as

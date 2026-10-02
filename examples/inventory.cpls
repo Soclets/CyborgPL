@@ -2,7 +2,7 @@ struct Item { name: str.utf8  grams: int32[1, 50_000] }
 
 fn heaviest [...'items': Item] -> Item or fail[none] {
     if list.length[lend 'items'] == 0 { fail none; }
-    mut 'best' := list.remove[lend.mut 'items', 1];
+    let mut 'best' := list.remove[lend.mut 'items', 1];
     for 'it' in lend 'items' {
         if 'it'.grams > 'best'.grams { change 'best' = copy 'it'; }
     }
@@ -10,13 +10,13 @@ fn heaviest [...'items': Item] -> Item or fail[none] {
 }
 
 fn kilos ['grams': int32] -> int32 or fail[not_whole, out_of_range] {
-    'k': bin64 = to.bin64['grams'] div 1000.0;
+    let 'k': bin64 = to.bin64['grams'] div 1000.0;
     return to.int32['k'] otherwise fail;
 }
 
 fn initial [lent 'name': str.utf8] -> char.point {
-    'first' := std::str.at.point[lend 'name', 1] otherwise `?`;
-    'code' := char.code['first'];
+    let 'first' := std::str.at.point[lend 'name', 1] otherwise `?`;
+    let 'code' := char.code['first'];
     if 'code' >/== 97 and 'code' </== 122 {
         return char.point.from_code['code' - 32] otherwise `?`;
     }
@@ -24,21 +24,21 @@ fn initial [lent 'name': str.utf8] -> char.point {
 }
 
 MAIN {
-    mut 'shelf': list[Item][0, 4] = list.empty;
+    let mut 'shelf': list[Item][0, 4] = list.empty;
     list.append[lend.mut 'shelf', Item[name = "rope", grams = 1_250]];
     list.append[lend.mut 'shelf', Item[name = "helmet", grams = 900]];
     list.append[lend.mut 'shelf', Item[name = "tent", grams = 4_000]];
 
-    'count' := list.length[lend 'shelf'];
-    'left': int8 = 4 - 'count';
+    let 'count' := list.length[lend 'shelf'];
+    let 'left': int8 = 4 - 'count';
     std::print.useful.stdout['count', " items, room for ", 'left', " more", \n];
 
-    'top' := heaviest[...copy 'shelf'] otherwise { none { std::print.useful.stdout["empty shelf", \n]; std::exit[0]; } };
+    let 'top' := heaviest[...copy 'shelf'] otherwise { none { std::print.useful.stdout["empty shelf", \n]; std::exit[0]; } };
     std::print.useful.stdout["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, \n];
 
-    'kg' := kilos['top'.grams] otherwise -1;
+    let 'kg' := kilos['top'.grams] otherwise -1;
     std::print.useful.stdout['top'.name, " is ", 'kg', " kg", \n];
 
-    'gone' := list.remove[lend.mut 'shelf', 2];
+    let 'gone' := list.remove[lend.mut 'shelf', 2];
     std::print.useful.stdout["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", \n];
 }

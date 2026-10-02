@@ -5,6 +5,38 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — `let` is back on every declaration; `change` stays (owner)
+
+```
+let 'x' := 1000;
+let mut 'sum': int64 = 0;
+let !$ mut 'total' := 0;
+let 'x' $:= 2000;            # shadowing
+change 'sum' = 'sum' + 1;    # unchanged
+```
+
+The owner, shown the same program in today's syntax and as of
+2026-09-24 (both run, one on an oracle rebuilt from 0561093): "Kinda want
+`let` back (not the entire era), honestly. It just reads more
+naturally." Design claude noted the `decl` idea of 2026-10-01 was the
+same wish, dropped for the redesign around it rather than the word, and
+recommended keeping `change`, so every statement that touches a variable
+starts with what it does; the old era's bare `'x' = …;` change stays gone.
+Nothing else from that era returns (`pos`, `/`, `>==`, `printu`). The
+owner: "Show me first", then, shown the program with `let` and `change`,
+"yeah". `mut` / `immut` / `!mut` sit between `let` and the name, `!$`
+before them. Not asked, kept as today: `const` and `extern 'x': T` take
+no `let`; loop counters, captures and `match` / `otherwise` names are not
+declarations.
+
+In the oracle: a declaration without `let` is refused naming it (reject
+test let_missing, replacing let_removed; let_chain now refuses
+`let.mut`). Every example and reject test, and the code samples and
+quoted declarations in `design/`, gained `let` (1,010 declarations in
+programs, by script). CCA, check claude's generator, the bench's
+CyborgPL files and the website still use the 2026-09-25 form; CyborgPL is
+paused, so they follow when it resumes. `syntax-sketch.md`.
+
 ### 2026-10-02 — `&` and `&mut` no longer punish (owner)
 
 The owner: "`&` and `&mut` shouldn't punish anymore." The alternative

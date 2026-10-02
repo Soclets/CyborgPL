@@ -1,4 +1,4 @@
 MAIN {
-    'a': int32 = 1;
-    'b': bin64 = 'a';
+    let 'a': int32 = 1;
+    let 'b': bin64 = 'a';
 }

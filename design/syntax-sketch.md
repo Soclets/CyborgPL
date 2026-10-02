@@ -2,8 +2,9 @@
 
 The language's surface as decided so far. Revised 2026-09-19 (owner):
 `fn`, the type after the name, and `[ ]` only where it builds a value;
-revised 2026-09-25 (owner): no `let` — a declaration starts with its name,
-and changing says `change`.
+revised 2026-09-25 (owner): changing says `change`; revised 2026-10-02
+(owner): every declaration starts with `let` again (it had none from
+2026-09-25).
 The 2026-09-14 form is under **History** at the bottom.
 
 ## The sample
@@ -18,14 +19,14 @@ struct Locker {
 fn count [lent 'text': str.utf8] -> int32 { … }
 
 MAIN {
-    'mine' := Locker[name = "A", number = 7, occupied = false];
-    mut 'total': int32 = 0;
+    let 'mine' := Locker[name = "A", number = 7, occupied = false];
+    let mut 'total': int32 = 0;
     for 'i' in range[1, 10] {
         if ('i' mod 2) == 0 { change 'total' = 'total' + 'i'; }
         else if 'i' == 7 { break; }
         else { continue; }
     }
-    's' := "line 1" ++ \n ++ "line 2";
+    let 's' := "line 1" ++ \n ++ "line 2";
     std::print.useful.stdout["total: ", 'total', \n];
 }
 ```
@@ -33,29 +34,33 @@ MAIN {
 ## Declarations (revised 2026-09-19)
 
 ```
-'x' := 1000;                 # Precog picks the best type
-'x': bin16 = 1000;           # explicit type; must be fully explicit
-mut 'n': int32 = 0;          # mutability, when stated, before the name
-immut 'limit' := 10;
-'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
+let 'x' := 1000;                 # Precog picks the best type
+let 'x': bin16 = 1000;           # explicit type; must be fully explicit
+let mut 'n': int32 = 0;          # mutability, when stated, before the name
+let immut 'limit' := 10;
+let 'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
 pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
 ```
 
-- **No declaration keyword** (2026-09-25; it was `let` from 2026-09-19,
-  `var` before). The quotes already say "this is a variable", and what
-  follows the name says what happens to it: `'x' := 1;` declares,
-  `change 'x' = 2;` changes, `'x' $:= 3;` shadows. `change` is the word
-  because it cannot be read as "make a new one".
+- **`let` declares, `change` changes** (owner, 2026-10-02: "Kinda want
+  `let` back (not the entire era), honestly. It just reads more
+  naturally"). Every statement that touches a variable starts with a word
+  saying what it does: `let 'x' := 1;` declares, `change 'x' = 2;`
+  changes, `let 'x' $:= 3;` shadows. History: `var` until 2026-09-19,
+  `let` 2026-09-19 to 09-25 (when a change was a bare `'x' = 2;`), no
+  word 2026-09-25 to 10-02 (when `change` arrived), `let` again since,
+  with `change` kept. `change` is the word because it cannot be read as
+  "make a new one".
 - **The type follows the name after `:`** — `'x': int32`, never
   `int32 'x'`. The name comes first and long types no
   longer push it off the line. `:` is the one way to attach a type to a
   name: variables, parameters, struct fields, loop counters.
 - **`:=` only without a type, `=` only with one.** Unchanged. `:=` marks
   "the compiler chooses the best type"; `=` marks "you said everything".
-- **`mut` / `immut`** (`!mut` is the same as `immut`) are bare words before
-  the name, and `!$` before those says the name cannot be shadowed
-  (2026-09-25). Statable, not standard — see `ownership-syntax.md`. **Plain
-  means Precog infers**: `'x' := 1; change 'x' = 2;` is legal; `mut` states
+- **`mut` / `immut`** (`!mut` is the same as `immut`) are bare words
+  between `let` and the name, and `!$` before those says the name cannot
+  be shadowed (2026-09-25): `let !$ mut 'total' := 0;`. Statable, not standard — see `ownership-syntax.md`. **Plain
+  means Precog infers**: `let 'x' := 1; change 'x' = 2;` is legal; `mut` states
   intent, `immut` is the enforced contract. The same rule holds for an
   owning parameter (`'items': T` may be changed; `immut 'n': T` may not).
   Not Rust's default-fixed — a fifth cold reader assumed it was
@@ -63,7 +68,8 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 - Style: a space after `:`, none around `::`.
 
 A `decl` redesign was recorded and dropped on 2026-10-01 (owner: "let's
-just go back to the no `let` era"); see `DECISIONS.md`.
+just go back to the no `let` era"); `let` itself came back the next day,
+without the rest of that redesign. See `DECISIONS.md`.
 
 ## What the sample establishes
 
@@ -99,8 +105,8 @@ just go back to the no `let` era"); see `DECISIONS.md`.
   - indexes: `'xs'[3]`;
   - bounds a range: `range[1, 10, 2]`.
 
-  A **single expression stands bare**: `'x' := 1000;`, `change 'i' = 'i' + 1;`,
-  `return 'a' + 'b';`, `if 'a' == 'b' { }`, `'n' := add[10, 20];`,
+  A **single expression stands bare**: `let 'x' := 1000;`, `change 'i' = 'i' + 1;`,
+  `return 'a' + 'b';`, `if 'a' == 'b' { }`, `let 'n' := add[10, 20];`,
   `occupied = false` inside a construction. A bracket around a single
   expression is allowed as grouping and builds nothing.
 - **Text joins with `++`** (decided 2026-09-19, replacing the whitespace
@@ -119,9 +125,9 @@ just go back to the no `let` era"); see `DECISIONS.md`.
   `\"` and `\\`. Everything else is literal — `"\n"` is a backslash and an
   `n`, a tab is a typed tab. **The newline is the bare `\n` outside
   quotes**, which is why it lives outside: `"Line 1" ++ \n ++ "Line 2"`,
-  `'nl' := \n;`. (The oracle's first lexer had C-style `\n`/`\t` inside
+  `let 'nl' := \n;`. (The oracle's first lexer had C-style `\n`/`\t` inside
   quotes; a default, never decided, now removed.)
-- **Names are quoted, so operators are free glyphs**: `'+' := 10 + 20;`
+- **Names are quoted, so operators are free glyphs**: `let '+' := 10 + 20;`
   is legal — the name `'+'` and the operator `+` are different tokens.
 - **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,
   never a parameter list.
@@ -135,14 +141,14 @@ just go back to the no `let` era"); see `DECISIONS.md`.
   cryptic): `std::this_will_print_the_useful_numbers.this_will_go_to_the_standard_output[…]`
   (and `…standard_error`). `print.useful` stays. **A number joined
   with `++` becomes text in its stored form, everywhere**:
-  `'s' := "x is " ++ 'x';` holds the full expansion, and `print.useful['s']`
+  `let 's' := "x is " ++ 'x';` holds the full expansion, and `print.useful['s']`
   cannot undo it. `print.useful` is the only thing that produces the useful form,
   and only for the values handed to it directly.
 - Borrowed prints (`std::printc`/`std::c.printf`, `std::printrs`/`std::rs.println`)
   existed for a day (2026-09-19) and were removed by the owner on
   2026-09-20; `print` and `print.useful` are the prints.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
-  needs the `$`; `'x' $:= 2;`. A name marked `!$` cannot be shadowed; an
+  needs the `$`; `let 'x' $:= 2;`. A name marked `!$` cannot be shadowed; an
   `immut` one can (2026-09-25: `immut` only forbids `change`).
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
   (`1_000_000`); `1,000` is an error that points at `_`; leading zeros are

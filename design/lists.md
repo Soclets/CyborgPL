@@ -4,8 +4,8 @@ Decided 2026-09-17.
 
 ## Two types
 
-- **`list`** — grows and shrinks. `'xs': list[int32] = [1, 2, 3];`
-- **`array`** — fixed at the size it was made with. `'xs': array[int32] = [1, 2, 3];`
+- **`list`** — grows and shrinks. `let 'xs': list[int32] = [1, 2, 3];`
+- **`array`** — fixed at the size it was made with. `let 'xs': array[int32] = [1, 2, 3];`
 
 The words carry their everyday meanings: a list is something you add to, an
 array is an arrangement in place. **The element type is a type parameter in
@@ -23,9 +23,9 @@ programmer only says which at a boundary.
 ## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
 
 ```
-'mid' := list.slice[lend 'xs', 2, 4];      # elements 2, 3 and 4
-'head' := array.slice[lend 'fixed', 1, 2];
-'none' := list.slice[lend 'xs', 3, 2];     # empty: last is first - 1
+let 'mid' := list.slice[lend 'xs', 2, 4];      # elements 2, 3 and 4
+let 'head' := array.slice[lend 'fixed', 1, 2];
+let 'none' := list.slice[lend 'xs', 3, 2];     # empty: last is first - 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -57,8 +57,8 @@ recommending an array from an array.)
 ## Between the two — `to.array[…]`, `to.list[…]` (owner, 2026-09-23)
 
 ```
-'a' := to.array[give 'l'];     # a list's length frozen: it cannot grow now
-'m' := to.list[copy 'a'];      # an array that can grow; 'a' is still here
+let 'a' := to.array[give 'l'];     # a list's length frozen: it cannot grow now
+let 'm' := to.list[copy 'a'];      # an array that can grow; 'a' is still here
 ```
 
 A `list` and an `array` are different types, and nothing converts by
@@ -166,12 +166,12 @@ growing or giving away the list inside stays refused for the whole loop.
 ## Operations — the type name as the chain's head
 
 ```
-'n' := list.length[lend 'xs'];
+let 'n' := list.length[lend 'xs'];
 list.append[lend.mut 'xs', 40];
 list.remove[lend.mut 'xs', 1];            # by 1-based position; the element is dropped
-'first' := list.remove[lend.mut 'xs', 1];   # or handed back (decided 2026-09-21)
+let 'first' := list.remove[lend.mut 'xs', 1];   # or handed back (decided 2026-09-21)
 run[list.remove[lend.mut 'queue', 1]];    # straight into a call: moved, never copied
-'m' := array.length[lend 'fixed'];
+let 'm' := array.length[lend 'fixed'];
 ```
 
 They are language operations (the compiler implements them; Precog knows
@@ -181,8 +181,8 @@ as calls with the ownership verbs: `lend` to look, `lend.mut` to change. No
 `array` are keywords.
 
 **A length is a `uint64`** (decided 2026-09-21): a count is never negative
-and never too big for 64 bits. `'n' := list.length[lend 'xs'];` makes
-`'n'` a `uint64`; `'m': int32 = list.length[lend 'xs'];` is a narrowing
+and never too big for 64 bits. `let 'n' := list.length[lend 'xs'];` makes
+`'n'` a `uint64`; `let 'm': int32 = list.length[lend 'xs'];` is a narrowing
 check site — Precog proves it wherever it can see the list (a literal, a
 guarded `if`), and the tiers handle the rest. The written type is the
 promise; the final build stores a length it has proven small in whatever
@@ -191,9 +191,9 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-mut 'ys': list[int32][0, 1000] = read_numbers[] otherwise list.empty;
-'n' := list.length[lend 'ys'];      # a uint64[0, 1000]
-'m': int32 = 'n';                   # proven by the bound; no check
+let mut 'ys': list[int32][0, 1000] = read_numbers[] otherwise list.empty;
+let 'n' := list.length[lend 'ys'];      # a uint64[0, 1000]
+let 'm': int32 = 'n';                   # proven by the bound; no check
 ```
 
 Decided 2026-09-21: the thing, then its bounds — the same shape as
@@ -224,8 +224,8 @@ fresh value, a `copy`, or a `give` — never a lend.
 ## The empty list (decided 2026-09-17)
 
 ```
-'xs': list[int32] = [];             # typed: the type says list, [] is empty
-'ys' := list.empty;                # best-type: the value says list; Precog picks the
+let 'xs': list[int32] = [];             # typed: the type says list, [] is empty
+let 'ys' := list.empty;                # best-type: the value says list; Precog picks the
                                        # element type from what is appended later
 ```
 
@@ -255,8 +255,8 @@ reading, not asked). Proposed alternative: leave it, looping over
 ## A list of n copies — `list.fill` (owner, 2026-09-30)
 
 ```
-mut 'scores' := list.fill[0, 10];              # ten 0s
-'flags': list[bool] = list.fill[false, 'n'];   # 'n' falses
+let mut 'scores' := list.fill[0, 10];              # ten 0s
+let 'flags': list[bool] = list.fill[false, 'n'];   # 'n' falses
 ```
 
 The value, then the count, as `simd.fill[7]` fills every lane. A count

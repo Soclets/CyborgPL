@@ -1,4 +1,4 @@
 MAIN {
-    'limit' := 60;
-    'f' := fn ['s': int32] -> bool with ['limit'] { return true; };
+    let 'limit' := 60;
+    let 'f' := fn ['s': int32] -> bool with ['limit'] { return true; };
 }

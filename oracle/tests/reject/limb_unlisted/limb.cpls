@@ -1,2 +1,2 @@
 # a Limb is used only when CCA.cplr lists it
-MAIN { 'x' := geometry::area[1]; }
+MAIN { let 'x' := geometry::area[1]; }

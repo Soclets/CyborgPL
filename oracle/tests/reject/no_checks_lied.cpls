@@ -1,5 +1,5 @@
 # NO_FUCKING_CHECKS vouches; the oracle reports a vouch that fails (2026-09-27)
 MAIN {
-    'z': int32 = 0;
-    NO_FUCKING_CHECKS 'q' := 1 div 'z';
+    let 'z': int32 = 0;
+    NO_FUCKING_CHECKS let 'q' := 1 div 'z';
 }

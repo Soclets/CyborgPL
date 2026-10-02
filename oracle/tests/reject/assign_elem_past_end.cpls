@@ -1,4 +1,4 @@
 MAIN {
-    'xs': list[int32] = [1, 2, 3];
+    let 'xs': list[int32] = [1, 2, 3];
     change 'xs'[4] = 9;
 }

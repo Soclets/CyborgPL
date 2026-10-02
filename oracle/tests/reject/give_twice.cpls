@@ -1,5 +1,5 @@
 MAIN {
-    's' := "a";
-    't' := give 's';
-    'u' := give 's';
+    let 's' := "a";
+    let 't' := give 's';
+    let 'u' := give 's';
 }

@@ -1,1 +1,1 @@
-MAIN { 's' := "a"; std::print.stdout[&mutt 's']; }
+MAIN { let 's' := "a"; std::print.stdout[&mutt 's']; }

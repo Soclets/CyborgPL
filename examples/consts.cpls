@@ -6,8 +6,8 @@ pub struct P { x: int32 }
 pub fn area ['r': bin64] -> bin64 { return 'pi' x 'r' x 'r'; }
 MAIN {
     std::print.useful.stdout['max', " ", 'twice_max', " ", 'greeting', " ", area[2.0], \n];
-    's' := 'greeting';
-    'p' := P[x = 'max'];
+    let 's' := 'greeting';
+    let 'p' := P[x = 'max'];
     for 'i' in range[1, 'max', 4] { std::print.useful.stdout['i', " "]; }
     std::print.stdout[\n];
 }

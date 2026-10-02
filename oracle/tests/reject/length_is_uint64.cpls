@@ -1,5 +1,5 @@
 MAIN {
-    'xs' := [10, 20, 30];
-    mut 'n' := list.length[lend 'xs'];   # uint64
+    let 'xs' := [10, 20, 30];
+    let mut 'n' := list.length[lend 'xs'];   # uint64
     change 'n' = 'n' - 4;                          # -1 into a uint64
 }

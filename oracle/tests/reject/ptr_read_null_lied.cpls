@@ -1,6 +1,6 @@
 extern fn getenv ['n': ptr[uint8]] -> ptr[uint8];
 MAIN {
-    'k' := "CYBORG_NOPE_XYZ";
-    nocheck 'p' := getenv[lend 'k'];
-    nocheck 'b' := ptr.read['p'];
+    let 'k' := "CYBORG_NOPE_XYZ";
+    nocheck let 'p' := getenv[lend 'k'];
+    nocheck let 'b' := ptr.read['p'];
 }

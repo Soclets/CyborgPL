@@ -1,4 +1,4 @@
 #strict
 MAIN {
-    immut 'xs': list[int32] = list.fill[0, 3];
+    let immut 'xs': list[int32] = list.fill[0, 3];
 }

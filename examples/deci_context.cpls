@@ -2,11 +2,11 @@
 # takes its width; a bin's useful form is the shortest at its own width; a deci map key is its value,
 # so 1.50 and 1.5 are one key (maps.md: plain values by value); map.set's key takes the key type.
 MAIN {
-    'a': deci64 = 1.00;
+    let 'a': deci64 = 1.00;
     std::print.stdout['a' + (1.5 x 2), " ", 'a' + 1.5 x 2, \n];
-    'f': bin32 = 0.1;
+    let 'f': bin32 = 0.1;
     std::print.stdout[to.useful.deci64['f'], " ", to.deci64['f'], \n];
-    mut 'm': map[deci64, int32] = map.empty;
+    let mut 'm': map[deci64, int32] = map.empty;
     map.set[lend.mut 'm', 1.50, 7];
     std::print.stdout[map.has[lend 'm', 1.5], \n];
 }

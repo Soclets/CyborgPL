@@ -1,2 +1,2 @@
 extern 'a': int32;
-MAIN { 'x' := 'a'; }
+MAIN { let 'x' := 'a'; }

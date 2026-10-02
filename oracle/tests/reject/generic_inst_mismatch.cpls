@@ -1,4 +1,4 @@
 struct Box { item: <T> }
 MAIN {
-    'b': Box[int32] = Box[item = "text"];
+    let 'b': Box[int32] = Box[item = "text"];
 }

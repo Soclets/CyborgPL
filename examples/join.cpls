@@ -1,13 +1,13 @@
 MAIN {
-    'n' := 3;
-    's' := "n=" ++ to.str.utf8['n' + 4];  # arithmetic, convert, then join
+    let 'n' := 3;
+    let 's' := "n=" ++ to.str.utf8['n' + 4];  # arithmetic, convert, then join
     std::print.stdout['s', \n];
     std::print.stdout["count: " ++ to.str.utf8[10], \n];   # a number is converted, in its stored form
-    'x': bin64 = 0.1;
-    't' := "x is " ++ to.str.utf8['x'];   # stored form, always
+    let 'x': bin64 = 0.1;
+    let 't' := "x is " ++ to.str.utf8['x'];   # stored form, always
     std::print.useful.stdout['t', \n];             # print.useful cannot undo a join…
     std::print.useful.stdout["x is ", 'x', \n];    # …but renders its own values usefully
     if "a" ++ "b" == "ab" { std::print.stdout["joined", \n]; }
-    'c' := `é` ++ "!";
+    let 'c' := `é` ++ "!";
     std::print.stdout['c', \n];
 }

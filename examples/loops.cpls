@@ -1,10 +1,10 @@
 MAIN {
-    'i' := 0;
+    let 'i' := 0;
     while 'i' < 3 {
         std::print.useful.stdout["while ", 'i', \n];
         change 'i' = 'i' + 1;
     }
-    'n' := 0;
+    let 'n' := 0;
     loop {
         change 'n' = 'n' + 1;
         if 'n' == 2 {
@@ -15,7 +15,7 @@ MAIN {
         }
         std::print.useful.stdout["loop ", 'n', \n];
     }
-    'chars' := [`a`, `é`, `🍎`];
+    let 'chars' := [`a`, `é`, `🍎`];
     for seq 'c' in lend 'chars' {
         std::print.stdout['c', \n];
     }

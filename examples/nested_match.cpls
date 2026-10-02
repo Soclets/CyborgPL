@@ -3,12 +3,12 @@
 enum Order { cancelled  paid }
 enum Ship { pickup  post }
 MAIN {
-    'o' := Order.paid;
-    's' := Ship.post;
+    let 'o' := Order.paid;
+    let 's' := Ship.post;
     match 'o' {
         cancelled { }
         paid { match 's' { pickup { std::print.useful.stdout["counter", \n]; } post { std::print.useful.stdout["mail", \n]; } } }
     }
-    'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
+    let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
     std::print.useful.stdout['price', \n];
 }

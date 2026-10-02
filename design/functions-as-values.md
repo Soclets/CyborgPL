@@ -9,8 +9,8 @@ solved for types, solved here for behaviour.
 ## 1. A function becomes a value by its bare name
 
 ```
-'f' := average;            # the function itself; bare name, no brackets
-'n' := 'f'[lend 's'];      # calling a held function: quoted name, then the arguments
+let 'f' := average;            # the function itself; bare name, no brackets
+let 'n' := 'f'[lend 's'];      # calling a held function: quoted name, then the arguments
 ```
 
 The rule stands: a *value you hold* is quoted, a function's name is bare.
@@ -38,9 +38,9 @@ difference.
 ## 3. Inline functions capture explicitly — `with`
 
 ```
-'limit' := 60;
-'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
-'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
+let 'limit' := 60;
+let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
+let 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }];   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -55,10 +55,10 @@ silently, which is where "why is this borrowed" bugs come from.
 ## 4. An operator is a value as `op +` (owner, 2026-09-29)
 
 ```
-'sum'     := fold[lend 'xs', 0, op +];
-'product' := fold[lend 'xs', 1, op x];
-'flipped' := map[lend 'xs', op neg];
-'f': fn[int32, int32] -> int32 = op mod;
+let 'sum'     := fold[lend 'xs', 0, op +];
+let 'product' := fold[lend 'xs', 1, op x];
+let 'flipped' := map[lend 'xs', op neg];
+let 'f': fn[int32, int32] -> int32 = op mod;
 ```
 
 `op` — the word that defines an operator — before any operator makes it
@@ -71,7 +71,7 @@ and the owner chose `op`. Proposed spellings not chosen: `(+)` (Haskell,
 OCaml), `op[+]`.
 
 - **The type comes from where it goes**: a parameter's type, or a typed
-  declaration. `'f' := op +;` alone is refused: nothing says which `+`
+  declaration. `let 'f' := op +;` alone is refused: nothing says which `+`
   (int32, bin64, a Vec). *(design claude's reading, not ruled)*
 - **`op -` is subtraction; negation is `op neg`** (owner). `neg` exists
   only after `op`; in an expression negation is still `-'x'`. Proposed
@@ -89,7 +89,7 @@ OCaml), `op[+]`.
 - A captured `lend` is visible inside as a lent variable, a `copy`/`give`
   as an owned one; a capture and a parameter cannot share a name.
 - **A function carrying a `copy`/`give` capture is an owned value**
-  (owner, 2026-09-24: a): `'g' := 'f'` is refused, as for a list, and
+  (owner, 2026-09-24: a): `let 'g' := 'f'` is refused, as for a list, and
   `copy 'f'` copies what it carries while `give 'f'` hands it on. Dropping
   it frees what it owns. A function carrying nothing, or only `lend`s,
   copies by itself like a number. Proposed alternatives: every function

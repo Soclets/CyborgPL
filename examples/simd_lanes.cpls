@@ -2,12 +2,12 @@
 # the element's size (simd.md; found by check claude, 2026-09-29). A lane is written like a list item,
 # `change 'v'[3] = 30;` (owner, 2026-09-29: a).
 MAIN {
-    'a': simd[int32, 4] = simd.fill[4];
-    'x': int32 = 'a'[1];
-    'u': simd[uint8, 16] = simd.fill[200];
-    'w' := 'u' +~ 'u';
+    let 'a': simd[int32, 4] = simd.fill[4];
+    let 'x': int32 = 'a'[1];
+    let 'u': simd[uint8, 16] = simd.fill[200];
+    let 'w' := 'u' +~ 'u';
     std::print.stdout['x', " ", 'w'[1], " ", 'w'[16], \n];
-    mut 'v': simd[int32, 4] = simd.fill[0];
+    let mut 'v': simd[int32, 4] = simd.fill[0];
     change 'v'[3] = 30;
     std::print.stdout['v'[3], " ", simd.sum['v'], \n];
 }

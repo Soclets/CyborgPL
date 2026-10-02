@@ -5,11 +5,11 @@ fn add ['a': int32, 'b': int32] -> int32 { return 'a' + 'b'; }
 
 test fn adds_up [] {
     must add[2, 3] == 5;                        # what must hold
-    'n' := to.int32["42"] otherwise 0;
+    let 'n' := to.int32["42"] otherwise 0;
     must 'n' == 42;
     must.fail to.int32["abc"];                  # it must fail
     must.fail.not_a_number to.int32["abc"];     # …with exactly this reason
-    'xs': list[int32] = [1, 2, 3];
+    let 'xs': list[int32] = [1, 2, 3];
     must.stop 'xs'[99];                         # a check site must fire
 }
 ```

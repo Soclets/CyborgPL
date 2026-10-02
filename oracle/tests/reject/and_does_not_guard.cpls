@@ -1,7 +1,7 @@
 # both sides of `and` always run (owner, 2026-09-25: b), so this check does not
 # protect the read on its right: position 7 is read, and it is out of range
 MAIN {
-    'xs' := [3, 5, 8];
-    'i': uint64 = 7;
+    let 'xs' := [3, 5, 8];
+    let 'i': uint64 = 7;
     if 'i' </== list.length[lend 'xs'] and 'xs'['i'] == 5 { }
 }

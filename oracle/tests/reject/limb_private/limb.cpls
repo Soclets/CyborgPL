@@ -1,2 +1,2 @@
 # another Limb's private function is not reachable (limbs.md)
-MAIN { 'x' := areas::hidden[]; }
+MAIN { let 'x' := areas::hidden[]; }

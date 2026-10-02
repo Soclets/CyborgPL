@@ -1,6 +1,6 @@
 # a function carrying a copy/give capture is owned: copying it takes a word (owner, 2026-09-24: a)
 MAIN {
-    'xs' := [1, 2];
-    'f' := fn [] -> uint64 with [copy 'xs'] { return list.length[lend 'xs']; };
-    'g' := 'f';
+    let 'xs' := [1, 2];
+    let 'f' := fn [] -> uint64 with [copy 'xs'] { return list.length[lend 'xs']; };
+    let 'g' := 'f';
 }

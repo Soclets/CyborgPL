@@ -1,4 +1,0 @@
-# `let` is gone (owner, 2026-09-25): a declaration starts with its name
-MAIN {
-    let 'x' := 1;
-}

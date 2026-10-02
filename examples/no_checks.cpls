@@ -3,12 +3,12 @@
 # where `nocheck` goes, a statement or a block, never a file; listed like `nocheck`.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
-    'msg' := "hello";
-    NO_FUCKING_CHECKS 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+    let 'msg' := "hello";
+    NO_FUCKING_CHECKS let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
     NO_FUCKING_CHECKS {
-        'a': int32 = 10;
-        'b': int32 = 2;
-        'q' := 'a' div 'b';
+        let 'a': int32 = 10;
+        let 'b': int32 = 2;
+        let 'q' := 'a' div 'b';
         std::print.useful.stdout[\n, 'q', \n];
     }
 }

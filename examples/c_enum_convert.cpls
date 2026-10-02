@@ -4,7 +4,7 @@
 # undefined behaviour in the `match`. A callback, which C calls, takes the plain number.
 layout.c enum Key { a = 65  b = 66  escape = 256 }
 fn on_key ['code': int32] -> int32 {
-    'k' := to.Key['code'] otherwise { out_of_range { return 0; } };
+    let 'k' := to.Key['code'] otherwise { out_of_range { return 0; } };
     match 'k' {
         a { return 1; }
         b { return 2; }

@@ -1,4 +1,4 @@
 # less-or-equal is `</==`, the slash read as "or" (owner, 2026-09-29)
 MAIN {
-    'ok' := 1 <== 2;
+    let 'ok' := 1 <== 2;
 }

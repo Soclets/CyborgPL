@@ -31,10 +31,10 @@ enclosing scope cannot be redeclared with `:=` or `=`. It *can* be
 deliberately hidden with `$:=` / `$=`, the `$` marking the intent:
 
 ```
-'x' := 1;
+let 'x' := 1;
 if true {
-    'x' $:= 2;            # shadows the outer 'x' until the block ends
-    'y': int32 $= 3;      # error: there is no 'y' to shadow
+    let 'x' $:= 2;            # shadows the outer 'x' until the block ends
+    let 'y': int32 $= 3;      # error: there is no 'y' to shadow
 }
 ```
 

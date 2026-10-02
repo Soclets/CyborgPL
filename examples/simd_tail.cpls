@@ -3,23 +3,23 @@
 # any length is one vector loop. k is 0 to N, and the k items must be in the list (a check
 # site Precog proves, as for `simd.load`).
 MAIN {
-    mut 'xs': list[int32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    'n' := list.length[lend 'xs'];
-    mut 'acc': simd[int32, 4] = simd.fill[0];
-    mut 'i': uint64 = 1;
+    let mut 'xs': list[int32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let 'n' := list.length[lend 'xs'];
+    let mut 'acc': simd[int32, 4] = simd.fill[0];
+    let mut 'i': uint64 = 1;
     while 'i' </== 'n' {
-        'left' := 'n' - 'i' + 1;
+        let 'left' := 'n' - 'i' + 1;
         if 'left' >/== 4 {
-            'v': simd[int32, 4] = simd.load[lend 'xs', 'i'];
+            let 'v': simd[int32, 4] = simd.load[lend 'xs', 'i'];
             change 'acc' = 'acc' + 'v';
         } else {
-            'v': simd[int32, 4] = simd.load.some[lend 'xs', 'i', 'left'];
+            let 'v': simd[int32, 4] = simd.load.some[lend 'xs', 'i', 'left'];
             change 'acc' = 'acc' + 'v';
         }
         change 'i' = 'i' + 4;
     }
-    'twice': simd[int32, 4] = simd.fill[2];
-    'last': simd[int32, 4] = simd.load[lend 'xs', 7];
+    let 'twice': simd[int32, 4] = simd.fill[2];
+    let 'last': simd[int32, 4] = simd.load[lend 'xs', 7];
     simd.store.some[lend.mut 'xs', 9, 2, 'last' x 'twice'];
     std::print.useful.stdout[simd.sum['acc'], " ", 'xs', \n];
 }

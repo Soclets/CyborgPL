@@ -1,5 +1,5 @@
 enum S { a  b }
 MAIN {
-    's' := S.a;
-    't' := 's';
+    let 's' := S.a;
+    let 't' := 's';
 }

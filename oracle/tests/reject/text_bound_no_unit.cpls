@@ -1,1 +1,1 @@
-MAIN { 's': str.utf8[0, 20] = "x"; }
+MAIN { let 's': str.utf8[0, 20] = "x"; }

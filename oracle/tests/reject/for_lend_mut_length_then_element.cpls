@@ -1,8 +1,8 @@
 MAIN {
-    mut 'xs': list[int32] = [1, 2, 3];
+    let mut 'xs': list[int32] = [1, 2, 3];
     for 'x' in lend.mut 'xs' {
         change 'x' = 'x' + 1;
-        'n' := list.length[lend 'xs'];
+        let 'n' := list.length[lend 'xs'];
         std::print.stdout['x', \n];
     }
 }

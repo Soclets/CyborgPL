@@ -1,6 +1,6 @@
 MAIN {
-    'correct?': bool = true;
-    'wrong?' := not 'correct?';
+    let 'correct?': bool = true;
+    let 'wrong?' := not 'correct?';
     if 'correct?' and (not 'wrong?') {
         std::print.stdout["fine", \n];
     }

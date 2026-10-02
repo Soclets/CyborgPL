@@ -1,4 +1,4 @@
 MAIN {
-    'n' := 1;
-    'm' := give 'n';
+    let 'n' := 1;
+    let 'm' := give 'n';
 }

@@ -1,2 +1,2 @@
 extern fn strlen ['s': ptr[uint8]] -> uint64[0, 10];
-MAIN { 's' := "x"; nocheck 'a' := strlen[lend 's']; }
+MAIN { let 's' := "x"; nocheck let 'a' := strlen[lend 's']; }

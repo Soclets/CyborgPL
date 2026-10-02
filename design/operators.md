@@ -95,9 +95,9 @@ how wide the number is. **Any operand whose type it can work out is
 enough** — it does not have to be a declared name:
 
 ```
-'v': uint32 = 3;
-'a': uint32 = 2 shl 3;              # 16 — the literal takes the uint32 of its context
-'b': uint32 = ('v' mod 16) shl 2;   # 12 — the expression is plainly a uint32
+let 'v': uint32 = 3;
+let 'a': uint32 = 2 shl 3;              # 16 — the literal takes the uint32 of its context
+let 'b': uint32 = ('v' mod 16) shl 2;   # 12 — the expression is plainly a uint32
 ```
 
 Same for `not.bit` and the wrapping operators. A literal takes its
@@ -108,7 +108,7 @@ in the operation itself; or that rule for bare literals only. Owner:
 the compiler can work it out, so it should.
 
 **A list literal's items take the element type** (owner, 2026-09-29: a):
-`'xs': list[uint8] = [0 -~ 1,];` holds 255, exactly as `'x': uint8 = 0 -~
+`let 'xs': list[uint8] = [0 -~ 1,];` holds 255, exactly as `let 'x': uint8 = 0 -~
 1;` does, since each item lands in a `uint8` slot. So the "construction"
 below is a struct's or a call's, not a list literal. Raised by check
 claude; proposed alternative (b): the size stops at the brackets, so an
@@ -128,7 +128,7 @@ the arithmetic inside its arguments. So `'v': uint8 = g[0 > (-1) -
 
 It stops at a **comparison** as well: a `bool` holds the comparison's
 answer, never its operands, which take their width from each other by
-the rule above. So `'b': bool = (5 -~ 'w') > 1;` is a `uint32`
+the rule above. So `let 'b': bool = (5 -~ 'w') > 1;` is a `uint32`
 subtraction when `'w'` is a `uint32`. And the other side does size it: in
 `'n' > (0 -~ 1)` with `'n'` a `uint64`, the literal group wraps in
 `uint64`.
@@ -143,10 +143,10 @@ it.
 ## Plain math is exact; it is checked where it lands (owner, 2026-09-23)
 
 ```
-'small': int16 = 5;
-'big': int64 = (20000 + 20000) + 'small';   # 40005: fits int64, fine
-'tiny': int8 = (100 + 100) - 150;           # 50: the 200 in between is fine
-'bad': int8 = 100 + 100;                    # 200 does not fit int8: error
+let 'small': int16 = 5;
+let 'big': int64 = (20000 + 20000) + 'small';   # 40005: fits int64, fine
+let 'tiny': int8 = (100 + 100) - 150;           # 50: the 200 in between is fine
+let 'bad': int8 = 100 + 100;                    # 200 does not fit int8: error
 ```
 
 `+ - x xx` on integers give the true answer, and the check is where the
@@ -208,8 +208,8 @@ them.
 ## `bin16` / `bin32` math rounds after every step (owner, 2026-09-24: a)
 
 ```
-'x': bin32 = 16777216.0;
-'y': bin32 = 'x' + 1.0 + 1.0;      # 16777216: each + rounds back at bin32
+let 'x': bin32 = 16777216.0;
+let 'y': bin32 = 'x' + 1.0 + 1.0;      # 16777216: each + rounds back at bin32
 ```
 
 Each operation on `bin16` or `bin32` values gives the IEEE result at their
@@ -226,7 +226,7 @@ alternative: 64-bit intermediates rounded once where stored.
 ## `and` / `or` always work out both sides (owner, 2026-09-25: b)
 
 ```
-'ok' := check_name['f'] and check_age['f'];     # both run, left then right
+let 'ok' := check_name['f'] and check_age['f'];     # both run, left then right
 if 'i' </== list.length[lend 'xs'] {             # a check that protects the next
     if 'xs'['i'] == 5 { … }                 # step is written as two `if`s
 }
@@ -274,9 +274,9 @@ op <+> ['a': Vec, 'b': Vec] -> Vec { return Vec[x = 'a'.x + 'b'.x, y = 'a'.y + '
 op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
 op **  [give 'a': Vec, 'b': bin64] -> Vec { … return give 'a'; }
 
-'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
-'d' := ('u' <+> 'v') dot 'v';       # parenthesise when operators meet
-'s' := give 'u' ** 10;              # this op takes 'a' by value; the caller says so
+let 'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
+let 'd' := ('u' <+> 'v') dot 'v';       # parenthesise when operators meet
+let 's' := give 'u' ** 10;              # this op takes 'a' by value; the caller says so
 ```
 
 Four questions, one at a time:

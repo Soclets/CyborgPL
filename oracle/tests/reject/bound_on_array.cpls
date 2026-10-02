@@ -1,1 +1,1 @@
-MAIN { 'z': array[int32][0, 5] = [1]; }
+MAIN { let 'z': array[int32][0, 5] = [1]; }

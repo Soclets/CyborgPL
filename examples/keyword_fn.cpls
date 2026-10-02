@@ -3,7 +3,7 @@
 fn to [] -> int32 { return 5; }
 fn true [] -> int32 { return 1; }
 MAIN {
-    'x' := limb.to[];
-    'y' := limb.true[];
+    let 'x' := limb.to[];
+    let 'y' := limb.true[];
     std::print.useful.stdout['x', " ", 'y', \n];
 }

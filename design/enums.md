@@ -23,8 +23,8 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 ## Values
 
 ```
-'a' := Status.empty;                 # a case with no data: bare
-'b' := Status.claimed["Tankun"];     # a case with data: the bracket builds it
+let 'a' := Status.empty;                 # a case with no data: bare
+let 'b' := Status.claimed["Tankun"];     # a case with data: the bracket builds it
 struct Locker { number: int32  status: Status }
 ```
 
@@ -68,7 +68,7 @@ in one scope (open: state that rule).
 ## A `match` that gives a value (owner, 2026-09-29)
 
 ```
-'label' := match 's' {
+let 'label' := match 's' {
     empty         { "free" }
     claimed 'who' { "taken by " ++ 'who' }
     locked        { return "(locked)"; }      # a case may still leave instead
@@ -104,7 +104,7 @@ match 'o' {
     cancelled { }
     paid { match 's' { pickup { … } post { … } } }                 # runs
 }
-'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
+let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
 #strict: paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
 ```
 

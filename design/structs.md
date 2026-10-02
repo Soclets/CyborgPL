@@ -33,7 +33,7 @@ struct Locker {
 ## Making a value — by field name
 
 ```
-'mine' := Locker[name = "field kit", number = 7,
+let 'mine' := Locker[name = "field kit", number = 7,
                  capacity = 12, occupied = false];
 ```
 
@@ -47,7 +47,7 @@ struct Locker {
 ## Reading and writing a field
 
 ```
-'n' := 'mine'.number;           # read
+let 'n' := 'mine'.number;           # read
 change 'mine'.number = 8;                  # write
 ```
 

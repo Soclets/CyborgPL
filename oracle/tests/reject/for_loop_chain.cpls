@@ -1,5 +1,5 @@
 MAIN {
-    'items' := [1, 2];
+    let 'items' := [1, 2];
     loop.temp.for 'i' in lend 'items' {
     }
 }

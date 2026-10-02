@@ -3,6 +3,6 @@ MAIN {
     std::print.stdout["say \"hi\"", \n];         # \" is the one escape that is needed
     std::print.stdout["back\\slash", \n];        # and \\ for the backslash itself
     std::print.stdout["tab	here", \n];           # a tab is typed, not escaped
-    'nl' := \n;                              # the newline is the bare \n outside quotes
+    let 'nl' := \n;                              # the newline is the bare \n outside quotes
     std::print.stdout["one", 'nl', "two", 'nl'];
 }

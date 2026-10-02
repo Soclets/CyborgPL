@@ -13,12 +13,12 @@ fn clamp ['n': int32, 'low': int32, 'high': int32] -> int32 {
 }
 
 MAIN {
-    'scores' := [72, 95, 38, 100, 61, 87];
+    let 'scores' := [72, 95, 38, 100, 61, 87];
 
-    'count' := 0;
-    'total' := 0;
-    'evens' := 0;
-    'best' := 0;
+    let 'count' := 0;
+    let 'total' := 0;
+    let 'evens' := 0;
+    let 'best' := 0;
 
     for 'score' in lend 'scores' {
         change 'count' = 'count' + 1;
@@ -31,8 +31,8 @@ MAIN {
         }
     }
 
-    'average' := 'total' div 'count';
-    'curved' := clamp['average' + 10, 0, 100];
+    let 'average' := 'total' div 'count';
+    let 'curved' := clamp['average' + 10, 0, 100];
 
     std::print.useful.stdout["scored ", 'count', " tests", \n];
     std::print.useful.stdout["total ", 'total', ", best ", 'best', \n];

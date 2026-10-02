@@ -1,1 +1,1 @@
-MAIN { 'a': simd[int32, 4] = simd.fill[1]; 'b': simd[int32, 4] = simd.fill[2]; if 'a' < 'b' { } }
+MAIN { let 'a': simd[int32, 4] = simd.fill[1]; let 'b': simd[int32, 4] = simd.fill[2]; if 'a' < 'b' { } }

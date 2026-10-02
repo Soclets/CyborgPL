@@ -1,5 +1,5 @@
 # a vector's lanes are checked at every operation at the lane's type (owner, 2026-09-29: b)
 MAIN {
-    'a': simd[uint8, 16] = simd.fill[200];
-    'b': simd[uint8, 16] = ('a' + 'a') - 'a';
+    let 'a': simd[uint8, 16] = simd.fill[200];
+    let 'b': simd[uint8, 16] = ('a' + 'a') - 'a';
 }

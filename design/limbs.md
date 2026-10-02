@@ -84,7 +84,7 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   has no owner, so ownership, whole-program analysis, and automatic
   parallelism would all have a hole in it. Closed, not parked.
 - This does not reopen "no `const` keyword for locals" (2026-09-14): inside
-  a body a variable declaration (`'x' := …`) is still the only kind and
+  a body a variable declaration (`let 'x' := …`) is still the only kind and
   Precog finds the constants itself. `const` exists only where variables
   do not.
 

@@ -12,7 +12,7 @@ test fn catches_a_bug [] {
     must wrong[2, 3] == 5;
 }
 test fn parsing [] {
-    'n' := to.int32["42"] otherwise 0;
+    let 'n' := to.int32["42"] otherwise 0;
     must 'n' == 42;
     must.fail to.int32["abc"];
     must.fail.not_a_number to.int32["abc"];
@@ -21,7 +21,7 @@ test fn wrong_reason [] {
     must.fail.out_of_range to.int32["abc"];
 }
 test fn guards [] {
-    'xs': list[int32] = [1, 2, 3];
+    let 'xs': list[int32] = [1, 2, 3];
     must.stop 'xs'[99];
 }
 MAIN { std::print.useful.stdout[add[1, 1], \n]; }

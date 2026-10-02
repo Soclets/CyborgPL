@@ -103,10 +103,10 @@ reject tests `print_format_*`.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-'name': str.utf8[1, 40 graphemes] = std::input.line[] otherwise "";
+let 'name': str.utf8[1, 40 graphemes] = std::input.line[] otherwise "";
 fn greet [lent 'who': str.utf8[1, 10 graphemes]] { … }
-'field': str.utf8[0, 255 bytes] = …;
-'code': str.utf8[4, 4 points] = …;
+let 'field': str.utf8[0, 255 bytes] = …;
+let 'code': str.utf8[4, 4 points] = …;
 ```
 
 The thing, then its bounds, as `int32[0, 100]` and `list[T][lo, hi]` —

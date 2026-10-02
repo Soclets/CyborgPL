@@ -58,7 +58,7 @@ question: a parameter receives whatever the caller wrote.
 
 ```
 fn total [lent 'xs': list[int32]] -> int64 { … }
-'big': list[int64] = [1, 2, 3];
+let 'big': list[int64] = [1, 2, 3];
 total[lend 'big'];          # error: a list[int64] lent where a list[int32] is looked at
 ```
 
@@ -72,14 +72,14 @@ behind the word that means none.
 
 ## Mutability: statable, not standard (decided 2026-09-14)
 
-A plain `'x' := 1000;` is the standard practice — Precog already knows
+A plain `let 'x' := 1000;` is the standard practice — Precog already knows
 whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 *may* state it, as a bare word before the name (revised 2026-09-19; it was
 a chain segment, `var.immut.int32`), and the compiler then holds them to it:
 
 ```
-immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
-mut 'counter' := 0;             # states the intent; nothing to enforce
+let immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
+let mut 'counter' := 0;             # states the intent; nothing to enforce
 fn twice [immut 'n': int32] -> int32 { … }
 ```
 
@@ -132,7 +132,7 @@ freed after; nothing else can reach it, so nothing is implied. (Decided
 2026-09-14.)
 
 A lend may be given its own name (decided 2026-09-14):
-`'r' := lend 's';` — `'r'` looks at `'s'` without owning it: readable,
+`let 'r' := lend 's';` — `'r'` looks at `'s'` without owning it: readable,
 not assignable, not give-able. Precog's lifetime inference keeps it from
 outliving `'s'`.
 

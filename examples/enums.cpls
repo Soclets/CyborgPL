@@ -18,7 +18,7 @@ fn describe [lent 'l': Locker] -> str.utf8 {
 }
 
 MAIN {
-    'lockers' := [
+    let 'lockers' := [
         Locker[number = 1, status = Status.empty],
         Locker[number = 2, status = Status.claimed["Tankun"]],
         Locker[number = 3, status = Status.locked]
@@ -26,8 +26,8 @@ MAIN {
     for 'l' in lend 'lockers' {
         std::print.useful.stdout["#", 'l'.number, ": ", describe[lend 'l'], \n];
     }
-    's' := Status.locked;
+    let 's' := Status.locked;
     if 's' == Status.locked { std::print.stdout["== works on a case", \n]; }
-    't' := Status.claimed["Bo"];
+    let 't' := Status.claimed["Bo"];
     std::print.stdout['t', \n];
 }

@@ -1,2 +1,2 @@
 fn one ['a': int32] -> int32 { return 'a'; }
-MAIN { 'xs' := [1, 2]; 't' := one[...'xs']; }
+MAIN { let 'xs' := [1, 2]; let 't' := one[...'xs']; }

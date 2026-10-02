@@ -1,3 +1,3 @@
 # a function that returns a borrow says so (2026-09-29)
 fn noword [lent 'a': str.utf8] -> str.utf8 { return lend 'a'; }
-MAIN { 's' := "a"; 'r' := noword[lend 's']; }
+MAIN { let 's' := "a"; let 'r' := noword[lend 's']; }

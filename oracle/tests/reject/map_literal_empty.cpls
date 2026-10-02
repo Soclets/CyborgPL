@@ -1,1 +1,1 @@
-MAIN { 'm' := map[]; }
+MAIN { let 'm' := map[]; }

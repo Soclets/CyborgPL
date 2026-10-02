@@ -7,8 +7,8 @@ parameters, `-> T`).
 fn add ['a': int32, 'b': int32] -> int32 {
     return 'a' + 'b';
 }
-'sum' := add[10, 20];              # this Limb: bare
-'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
+let 'sum' := add[10, 20];              # this Limb: bare
+let 'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
 ```
 
 ## Definition
@@ -90,7 +90,7 @@ followed by `[`. They may be function names; they are not reserved.
 
 Arguments are comma-separated values in one `[ ]`, positionally matched to
 the parameters. A call is a value and stands bare wherever a value goes:
-`'sum' := add[10, 20];`, `'y' := add[1, 2] x 3;`,
+`let 'sum' := add[10, 20];`, `let 'y' := add[1, 2] x 3;`,
 `if is_even['n'] { }`. A call as a statement: `shout[lend.mut 'u'];`.
 (Until 2026-09-19 the outer bracket was mandatory — `:= [add[10, 20]]`.)
 
@@ -106,7 +106,7 @@ return;                       # in a nothing-function
 
 ```
 MAIN {
-    'sum' := add[10, 20];
+    let 'sum' := add[10, 20];
     std::print.useful.stdout["sum: ", 'sum', \n];
 }
 ```
@@ -132,7 +132,7 @@ depends on may have one too, run only when that Limb is run itself
 
 ```
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    nocheck 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
+    nocheck let 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
     …
 }
 ```
@@ -156,7 +156,7 @@ simplified the same day; `func` became `fn` on 2026-09-19.
   joining is now the explicit `++`.)
 
 A bracket holding several comma-separated values is a **list**:
-`'l' := [1, 2, 3];`. Function arguments are exactly that. A list of one
+`let 'l' := [1, 2, 3];`. Function arguments are exactly that. A list of one
 is written with a trailing comma: `[1,]`. A `[ ]` may sit inside a `[ ]` as
 a value — `[[1, 2], [3, 4]]` is a list of lists.
 

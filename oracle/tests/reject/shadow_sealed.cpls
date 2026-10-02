@@ -1,5 +1,5 @@
 # `!$` in front: the name cannot be shadowed (owner, 2026-09-25)
 MAIN {
-    !$ 'c' := 1;
-    'c' $:= 2;
+    let !$ 'c' := 1;
+    let 'c' $:= 2;
 }

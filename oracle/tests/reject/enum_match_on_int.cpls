@@ -1,4 +1,4 @@
 MAIN {
-    'n' := 1;
+    let 'n' := 1;
     match 'n' { a { } }
 }

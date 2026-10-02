@@ -1,2 +1,2 @@
 fn keep [...'names': str.utf8] { }
-MAIN { 'w' := ["a", "b"]; keep[...'w']; }
+MAIN { let 'w' := ["a", "b"]; keep[...'w']; }

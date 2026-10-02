@@ -1,4 +1,4 @@
 # `/` is not division any more; it is `div` (owner, 2026-09-29)
 MAIN {
-    'q' := 7 / 2;
+    let 'q' := 7 / 2;
 }

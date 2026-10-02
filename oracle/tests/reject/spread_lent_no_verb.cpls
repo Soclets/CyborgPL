@@ -1,2 +1,2 @@
 fn show [lent ...'p'] { }
-MAIN { 'w' := ["a", "b"]; show[...give 'w']; }
+MAIN { let 'w' := ["a", "b"]; show[...give 'w']; }

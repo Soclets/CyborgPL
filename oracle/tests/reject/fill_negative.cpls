@@ -1,4 +1,4 @@
 MAIN {
-    'n': int64 = -1;
-    'xs': list[int32] = list.fill[0, 'n'];
+    let 'n': int64 = -1;
+    let 'xs': list[int32] = list.fill[0, 'n'];
 }

@@ -1,12 +1,12 @@
 # A list of n copies of one value (owner, 2026-09-30): `list.fill[value, count]`. A strict file
 # labels the count, `list.fill[0, count 10]`, as a position says `pos`.
 MAIN {
-    mut 'scores' := list.fill[0, 5];
+    let mut 'scores' := list.fill[0, 5];
     change 'scores'[2] = 7;
     std::print.stdout['scores', \n];
-    'n': int64 = 3;
-    'flags': list[bool] = list.fill[false, 'n'];
+    let 'n': int64 = 3;
+    let 'flags': list[bool] = list.fill[false, 'n'];
     std::print.stdout['flags', " ", list.length[lend 'flags'], \n];
-    'none': list[int32] = list.fill[1, 0];
+    let 'none': list[int32] = list.fill[1, 0];
     std::print.stdout[list.length[lend 'none'], \n];
 }

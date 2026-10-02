@@ -14,6 +14,6 @@ fn name ['k': Key] -> str.utf8 {
 }
 
 MAIN {
-    'k' := Key.escape;
+    let 'k' := Key.escape;
     std::print.useful.stdout[name[copy 'k'], " ", name[Key.a], \n];
 }

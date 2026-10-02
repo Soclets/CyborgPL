@@ -1,9 +1,9 @@
 # One-ended ranges (2026-09-23): `min` and `max` are the base type's own limits.
 MAIN {
-    'pos': int32[1, max] = 1;
-    'score': int32[min, 100] = 50;
-    'small': int8[1, max] = 120;
-    'whole': uint8[0, 255] = 200;          # the whole type: harmless, allowed (owner)
-    'also': int32[min, max] = -7;
+    let 'pos': int32[1, max] = 1;
+    let 'score': int32[min, 100] = 50;
+    let 'small': int8[1, max] = 120;
+    let 'whole': uint8[0, 255] = 200;          # the whole type: harmless, allowed (owner)
+    let 'also': int32[min, max] = -7;
     std::print.useful.stdout['pos', " ", 'score', " ", 'small', " ", 'whole', " ", 'also', \n];
 }

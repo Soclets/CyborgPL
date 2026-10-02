@@ -1,6 +1,6 @@
 fn look [lent 'text': str.utf8] {
 }
 MAIN {
-    's' := "a";
+    let 's' := "a";
     look[give 's'];
 }

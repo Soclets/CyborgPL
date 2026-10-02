@@ -5,9 +5,9 @@ fn longer [lent 'a': list[int32], lent 'b': list[int32]] -> lent list[int32] {
     return lend 'b';
 }
 MAIN {
-    's': list[int32] = [1, 2, 3];
-    't': list[int32] = [4,];
-    'r' := longer[lend 's', lend 't'];
-    'g' := give 't';
+    let 's': list[int32] = [1, 2, 3];
+    let 't': list[int32] = [4,];
+    let 'r' := longer[lend 's', lend 't'];
+    let 'g' := give 't';
     std::print.useful.stdout[list.length[lend 'r'], \n];
 }

@@ -1,6 +1,6 @@
 fn edit [lent.mut 'text': str.utf8] {
 }
 MAIN {
-    's' := "a";
+    let 's' := "a";
     edit[lend 's'];
 }

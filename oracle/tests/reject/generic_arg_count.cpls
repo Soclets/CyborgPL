@@ -1,4 +1,4 @@
 struct Pair { left: <A>  right: <B> }
 MAIN {
-    'p': Pair[int32] = Pair[left = 1, right = 2];
+    let 'p': Pair[int32] = Pair[left = 1, right = 2];
 }

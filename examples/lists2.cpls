@@ -1,5 +1,5 @@
 fn sum [lent 'items': list[int32]] -> int32 {
-    'total' := 0;
+    let 'total' := 0;
     for 'n' in lend 'items' {
         change 'total' = 'total' + 'n';
     }
@@ -7,9 +7,9 @@ fn sum [lent 'items': list[int32]] -> int32 {
 }
 
 MAIN {
-    'xs': list[int32] = [10, 20, 30];
+    let 'xs': list[int32] = [10, 20, 30];
     std::print.useful.stdout["first ", 'xs'[1], ", last ", 'xs'[3], \n];
-    'n' := list.length[lend 'xs'];
+    let 'n' := list.length[lend 'xs'];
     std::print.useful.stdout["length ", 'n', \n];
     list.append[lend.mut 'xs', 40];
     list.remove[lend.mut 'xs', 1];
@@ -19,9 +19,9 @@ MAIN {
         std::print.useful.stdout['xs'['i'], " "];
     }
     std::print.stdout[\n];
-    'days': array[str.utf8] = ["mon", "tue"];
+    let 'days': array[str.utf8] = ["mon", "tue"];
     std::print.stdout['days'[2], " of ", array.length[lend 'days'], \n];
-    'grid' := [[1, 2], [3, 4]];
+    let 'grid' := [[1, 2], [3, 4]];
     std::print.useful.stdout['grid'[2], \n];
     for perm 'i' in range[1, list.length[lend 'xs']] {
         if 'xs'['i'] == 30 { break; }

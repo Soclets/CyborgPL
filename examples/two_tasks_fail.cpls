@@ -3,7 +3,7 @@
 extern fn exit ['code': int32];
 fn judge ['n': int32] -> fail[small] { if 'n' < 10 { fail small; } }
 MAIN {
-    mut 'seen': int32 = 0;
+    let mut 'seen': int32 = 0;
     {
         concur { judge[3] otherwise fail; } otherwise { small { change 'seen' = 'seen' + 1; } };
         concur { judge[4] otherwise fail; } otherwise { small { change 'seen' = 'seen' + 10; } };

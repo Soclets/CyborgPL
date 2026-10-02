@@ -1,4 +1,4 @@
 MAIN {
-    'raw' := 250;
-    'p': int32[0, 100] = 'raw';
+    let 'raw' := 250;
+    let 'p': int32[0, 100] = 'raw';
 }

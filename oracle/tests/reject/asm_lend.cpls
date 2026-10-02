@@ -1,9 +1,9 @@
 # A lend satisfies a pointer in an asm binding (owner, 2026-09-30: a): it checks, then the oracle
 # refuses to run assembly, as for any asm block.
 MAIN {
-    'text' := "Hello, world!" ++ \n;
-    'fd': int64 = 1;
-    'len': int64 = 14;
+    let 'text' := "Hello, world!" ++ \n;
+    let 'fd': int64 = 1;
+    let 'len': int64 = 14;
     nocheck inline.ASM {
         mov x16, #4
         svc #0x80

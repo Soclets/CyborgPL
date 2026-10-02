@@ -4,11 +4,11 @@
 # and a kind — x X o b (bases), e (scientific), ? (the stored form). The format text has its own
 # escapes, read in one pass: \n \t \\ \" \{ \} and the rest. `%` is plain text.
 MAIN {
-    'name' := "rope";
-    'count' := 3;
-    'price': bin64 = 12.5;
-    'pay': deci64 = 37.5 x 12.40;
-    'tenth': bin64 = 0.1;
+    let 'name' := "rope";
+    let 'count' := 3;
+    let 'price': bin64 = 12.5;
+    let 'pay': deci64 = 37.5 x 12.40;
+    let 'tenth': bin64 = 0.1;
     std::print.format.stdout["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
     std::print.format.stdout["pay ${:.2}, readable {}, stored {:?}\n", 'pay', 'pay', 'pay'];
     std::print.format.stdout["tenth {} is really {:?}\n", 'tenth', 'tenth'];

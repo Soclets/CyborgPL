@@ -1,8 +1,8 @@
 # A Limb that uses another (owner, 2026-09-29): CCA.cplr lists it, `cca::Dep[path = "../limbs/areas"]`,
 # and its `pub` items are reached with `::` after its own 'prefix', `areas` (limbs.md, tooling.md).
 MAIN {
-    'c': areas::Circle = areas::Circle[radius = 2.0];
-    'a' := areas::circle[lend 'c'];
+    let 'c': areas::Circle = areas::Circle[radius = 2.0];
+    let 'a' := areas::circle[lend 'c'];
     std::print.useful.stdout['a', " ", areas::shapes.square[4], " ", areas::'pi', \n];
     std::print.useful.stdout[runnable::seven[] + 1, \n];      # runnable's own MAIN does not run
 }

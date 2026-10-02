@@ -2,30 +2,30 @@
 # (DECISIONS 2026-09-14). `print` shows what is stored, `print.useful` the shortest text that
 # gives the value back at its own width.
 MAIN {
-    'f': bin32 = 0.1;
-    'h': bin16 = 0.1;
-    'd': bin64 = 0.1;
+    let 'f': bin32 = 0.1;
+    let 'h': bin16 = 0.1;
+    let 'd': bin64 = 0.1;
     std::print.stdout['f', \n];     # 0.100000001490116119384765625
     std::print.stdout['h', \n];     # 0.0999755859375
     std::print.stdout['d', \n];
     std::print.useful.stdout['f', " ", 'h', " ", 'd', \n];     # all three: 0.1
-    'big': bin16 = 65519.0;                          # rounds down to bin16's largest, 65504
-    'g' := to.bin32["0.1"] otherwise 0.0;            # a conversion lands at bin32 too
+    let 'big': bin16 = 65519.0;                          # rounds down to bin16's largest, 65504
+    let 'g' := to.bin32["0.1"] otherwise 0.0;            # a conversion lands at bin32 too
     std::print.stdout['big', " ", 'g', \n];
     # bin32 math rounds after every step, as the hardware does (owner, 2026-09-24: a):
     # 16777216 + 1 rounds back to 16777216 at bin32, while bin64 holds 16777218
-    'x': bin32 = 16777216.0;
-    'y': bin32 = 'x' + 1.0 + 1.0;
-    'x64': bin64 = 16777216.0;
-    'y64': bin64 = 'x64' + 1.0 + 1.0;
+    let 'x': bin32 = 16777216.0;
+    let 'y': bin32 = 'x' + 1.0 + 1.0;
+    let 'x64': bin64 = 16777216.0;
+    let 'y64': bin64 = 'x64' + 1.0 + 1.0;
     std::print.useful.stdout['y', " ", 'y64', \n];
     # a literal is rounded once, from its digits, straight to its width (never to 64 bits first)
-    'top': bin32 = 340282356779733661637539395458142568447.0;   # just under the limit: bin32's largest
-    'near': bin32 = 1.00000005960464477539062500001;            # just past a halfway point: rounds up
+    let 'top': bin32 = 340282356779733661637539395458142568447.0;   # just under the limit: bin32's largest
+    let 'near': bin32 = 1.00000005960464477539062500001;            # just past a halfway point: rounds up
     std::print.stdout['top', " ", 'near', \n];
     # text is rounded once from its digits too
-    't16' := to.bin16["65519.99999999999999999"] otherwise -1.0;    # just under the limit: 65504
-    't32' := to.bin32["1.00000005960464477539062500001"] otherwise -1.0;
-    'tiny' := to.bin16["2.98023223876953126e-8"] otherwise -1.0;   # just past half the smallest step
+    let 't16' := to.bin16["65519.99999999999999999"] otherwise -1.0;    # just under the limit: 65504
+    let 't32' := to.bin32["1.00000005960464477539062500001"] otherwise -1.0;
+    let 'tiny' := to.bin16["2.98023223876953126e-8"] otherwise -1.0;   # just past half the smallest step
     std::print.stdout['t16', " ", 't32', " ", 'tiny', \n];
 }

@@ -15,10 +15,10 @@ fn first [lent 'a': str.utf8] -> lent str.utf8 {
     return lend 'a';
 }
 MAIN {
-    's' := "hello";
-    't' := "hi";
-    'l' := longer[lend 's', lend 't'];
-    'p' := pick[lend 't', lend 's'];
-    'f' := first[lend 's'];
+    let 's' := "hello";
+    let 't' := "hi";
+    let 'l' := longer[lend 's', lend 't'];
+    let 'p' := pick[lend 't', lend 's'];
+    let 'f' := first[lend 's'];
     std::print.useful.stdout['l', " ", 'p', " ", 'f', \n];
 }

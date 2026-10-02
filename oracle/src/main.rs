@@ -15,7 +15,6 @@ mod lexer;
 mod parser;
 mod value;
 
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 

@@ -1,5 +1,5 @@
 MAIN {
-    'n' := 1;
+    let 'n' := 1;
     if 'n' {
         std::print.stdout["yes"];
     }

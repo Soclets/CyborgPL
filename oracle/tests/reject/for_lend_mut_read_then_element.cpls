@@ -1,7 +1,7 @@
 MAIN {
-    mut 'xs': list[int32] = [1, 2, 3];
+    let mut 'xs': list[int32] = [1, 2, 3];
     for 'x' in lend.mut 'xs' {
-        'first' := 'xs'[1];
+        let 'first' := 'xs'[1];
         change 'x' = 'x' + 'first';
     }
 }

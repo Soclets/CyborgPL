@@ -1,4 +1,4 @@
 MAIN {
-    'z' := 0;
-    nocheck 'q' := 1 div 'z';
+    let 'z' := 0;
+    nocheck let 'q' := 1 div 'z';
 }

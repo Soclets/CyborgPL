@@ -3,6 +3,6 @@ struct Plain {
     x: int32
 }
 MAIN {
-    nocheck 'raw' := malloc[4];
-    nocheck 'p' := ptr.cast[Plain]['raw'];
+    nocheck let 'raw' := malloc[4];
+    nocheck let 'p' := ptr.cast[Plain]['raw'];
 }

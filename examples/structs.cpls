@@ -17,19 +17,19 @@ fn claim [lent.mut 'l': Locker] {
 }
 
 MAIN {
-    'mine' := Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
+    let 'mine' := Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
     std::print.useful.stdout['mine'.name, " is #", 'mine'.number, \n];
     std::print.useful.stdout["free: ", free_space[lend 'mine'], \n];
     claim[lend.mut 'mine'];
     std::print.useful.stdout["free: ", free_space[lend 'mine'], \n];
     change 'mine'.capacity = 20;
     std::print.useful.stdout['mine', \n];
-    'label' := copy 'mine'.name;
+    let 'label' := copy 'mine'.name;
     std::print.useful.stdout['label', \n];
-    'taken' := give 'mine'.name;
+    let 'taken' := give 'mine'.name;
     std::print.useful.stdout['taken', \n];
-    'spare': Locker = Locker[name = "spare", number = 8, capacity = 4, occupied = false];
-    'lockers' := [copy 'spare', Locker[name = "third", number = 9, capacity = 4, occupied = true]];
+    let 'spare': Locker = Locker[name = "spare", number = 8, capacity = 4, occupied = false];
+    let 'lockers' := [copy 'spare', Locker[name = "third", number = 9, capacity = 4, occupied = true]];
     for 'l' in lend 'lockers' {
         std::print.useful.stdout['l'.number, " "];
     }

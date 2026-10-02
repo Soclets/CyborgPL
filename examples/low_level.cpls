@@ -7,7 +7,7 @@ layout.c struct Header { magic: uint32  flags: uint8  length: uint64 }
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
 fn fnv1a [lent 'bytes': array[uint8]] -> uint64 {
-    mut 'h': uint64 = 14695981039346656037;
+    let mut 'h': uint64 = 14695981039346656037;
     for 'b' in lend 'bytes' {
         change 'h' = ('h' xor to.uint64['b']) x~ 1099511628211;
     }
@@ -16,8 +16,8 @@ fn fnv1a [lent 'bytes': array[uint8]] -> uint64 {
 
 # count the 1 bits, one shift at a time
 fn popcount ['x': uint32] -> uint32 {
-    mut 'n': uint32 = 'x';
-    mut 'count': uint32 = 0;
+    let mut 'n': uint32 = 'x';
+    let mut 'count': uint32 = 0;
     while 'n' > 0 {
         change 'count' = 'count' + ('n' and.bit 1);
         change 'n' = 'n' shr 1;
@@ -27,22 +27,22 @@ fn popcount ['x': uint32] -> uint32 {
 
 # 16 bytes at once: is every byte ASCII (below 128)?
 fn all_ascii [lent 'bytes': array[uint8]] -> bool {
-    'v': simd[uint8, 16] = simd.load[lend 'bytes', 1];
+    let 'v': simd[uint8, 16] = simd.load[lend 'bytes', 1];
     return simd.all['v' < simd.fill[128]];
 }
 
 MAIN {
     # 8 bytes nobody owns: C's memory, written and read through a pointer
-    nocheck 'raw' := malloc[8];
+    nocheck let 'raw' := malloc[8];
     for 'i' in range[0, 7] {
         nocheck ptr.write[ptr.at['raw', 'i'], 65 + 'i'];          # 'A' 'B' 'C' …
     }
-    nocheck 'third' := ptr.read[ptr.at['raw', 2]];
+    nocheck let 'third' := ptr.read[ptr.at['raw', 2]];
     nocheck free['raw'];
 
-    'text': array[uint8] = [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];
-    'msg' := "straight to fd 1 via write(2)";
-    nocheck 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+    let 'text': array[uint8] = [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];
+    let 'msg' := "straight to fd 1 via write(2)";
+    nocheck let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
 
     std::print.useful.stdout[\n,
         "third raw byte: ", 'third', \n,

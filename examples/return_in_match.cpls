@@ -3,7 +3,7 @@
 enum Pick { quick  slow }
 
 fn f [] -> uint64 {
-    'v': uint16 = match Pick.quick {
+    let 'v': uint16 = match Pick.quick {
         quick { return 8997704354644785536 shr 42; }
         slow { 1 }
     };

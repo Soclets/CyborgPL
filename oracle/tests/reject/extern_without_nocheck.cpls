@@ -1,5 +1,5 @@
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
-    's' := "x";
-    'n' := write[1, lend 's', 1];
+    let 's' := "x";
+    let 'n' := write[1, lend 's', 1];
 }

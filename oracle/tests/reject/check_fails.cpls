@@ -1,4 +1,4 @@
 MAIN {
-    'xs' := [1, 2, 3];
+    let 'xs' := [1, 2, 3];
     check change 'xs'[4] = 1;
 }

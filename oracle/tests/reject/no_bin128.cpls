@@ -1,1 +1,1 @@
-MAIN { 'x': bin128 = 1.5; }
+MAIN { let 'x': bin128 = 1.5; }

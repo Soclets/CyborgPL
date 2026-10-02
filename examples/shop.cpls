@@ -18,7 +18,7 @@ fn price [lent 'i': Item] -> int32 { return 'i'.cents; }
 
 fn cheapest [lent 'xs': list[<T: Priced>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
-    'best' := 1;
+    let 'best' := 1;
     for 'k' in range[2, list.length[lend 'xs']] {
         if price[lend 'xs'['k']] < price[lend 'xs'['best']] { change 'best' = 'k'; }
     }
@@ -26,7 +26,7 @@ fn cheapest [lent 'xs': list[<T: Priced>]] -> <T> or fail[empty] {
 }
 
 fn describe [lent 'i': Item] -> str.utf8 {
-    'dollars' := to.str.utf8['i'.cents div 100] ++ "." ++ to.str.utf8['i'.cents mod 100];
+    let 'dollars' := to.str.utf8['i'.cents div 100] ++ "." ++ to.str.utf8['i'.cents mod 100];
     match 'i'.stock {
         out      { return 'i'.name ++ " — sold out"; }
         few 'n'  { return 'i'.name ++ " — only " ++ to.str.utf8['n'] ++ " left at $" ++ 'dollars'; }
@@ -35,28 +35,28 @@ fn describe [lent 'i': Item] -> str.utf8 {
 }
 
 fn keep [lent 'xs': list[Item], 'test': fn[lent Item] -> bool] -> list[Item] {
-    'out': list[Item] = [];
+    let 'out': list[Item] = [];
     for 'x' in lend 'xs' { if 'test'[lend 'x'] { list.append[lend.mut 'out', copy 'x']; } }
     return give 'out';
 }
 
 MAIN {
-    'shelf' := [
+    let 'shelf' := [
         Item[name = "rope",   cents = 1_250, stock = Stock.plenty],
         Item[name = "helmet", cents = 8_999, stock = Stock.few[2]],
         Item[name = "torch",  cents = 450,   stock = Stock.out]
     ];
     for 'i' in lend 'shelf' { std::print.stdout[describe[lend 'i'], \n]; }
 
-    'limit' := 5_000;
-    'affordable' := keep[lend 'shelf', fn [lent 'i': Item] -> bool with [lend 'limit'] { return 'i'.cents </== 'limit'; }];
+    let 'limit' := 5_000;
+    let 'affordable' := keep[lend 'shelf', fn [lent 'i': Item] -> bool with [lend 'limit'] { return 'i'.cents </== 'limit'; }];
     std::print.useful.stdout[list.length[lend 'affordable'], " affordable", \n];
 
-    'pick' := cheapest[lend 'affordable'] otherwise std::exit[0];
+    let 'pick' := cheapest[lend 'affordable'] otherwise std::exit[0];
     std::print.stdout["cheapest: ", 'pick'.name, \n];
 
-    'text' := std::input.line[] otherwise "";
-    'budget' := to.int32[0, 100_000]['text'] otherwise {
+    let 'text' := std::input.line[] otherwise "";
+    let 'budget' := to.int32[0, 100_000]['text'] otherwise {
         not_a_number { std::print.stdout["no budget given", \n]; std::exit[0]; }
         out_of_range { std::print.stdout["budget must be 0..100000 cents", \n]; std::exit[1]; }
     };

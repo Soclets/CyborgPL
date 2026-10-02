@@ -7,10 +7,10 @@ fn loud ['name': str.utf8, 'answer': bool] -> bool {
     return 'answer';
 }
 MAIN {
-    'ok' := loud["first", false] and loud["second", true];    # both print
+    let 'ok' := loud["first", false] and loud["second", true];    # both print
     std::print.useful.stdout['ok', \n];
-    'xs' := [3, 5, 8];
-    'i': uint64 = 7;
+    let 'xs' := [3, 5, 8];
+    let 'i': uint64 = 7;
     if 'i' </== list.length[lend 'xs'] {
         if 'xs'['i'] == 5 { std::print.useful.stdout["found", \n]; }
     }

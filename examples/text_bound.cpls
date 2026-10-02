@@ -2,13 +2,13 @@
 fn greet [lent 'name': str.utf8[1, 10 graphemes]] { std::print.useful.stdout["hi ", 'name', \n]; }
 
 MAIN {
-    'thai': str.utf8[1, 10 graphemes] = "เกี่ยว";       # 4 graphemes (เ|กี่|ย|ว), 6 points, 18 bytes: fits
-    'ascii': str.utf8[0, 5 bytes] = "hello";            # 5 bytes: fits
+    let 'thai': str.utf8[1, 10 graphemes] = "เกี่ยว";       # 4 graphemes (เ|กี่|ย|ว), 6 points, 18 bytes: fits
+    let 'ascii': str.utf8[0, 5 bytes] = "hello";            # 5 bytes: fits
     greet[lend 'thai'];
     greet[lend 'ascii'];
-    mut 'line': str.utf8[0, 20 bytes] = "";
+    let mut 'line': str.utf8[0, 20 bytes] = "";
     change 'line' = 'line' ++ "twelve chars";                      # 12 bytes: fits
     std::print.useful.stdout[str.bytes[lend 'line'], \n];
-    'short' := to.str.utf8[0, 3 bytes][12345] otherwise "?";     # into a bounded text: fails out_of_range
+    let 'short' := to.str.utf8[0, 3 bytes][12345] otherwise "?";     # into a bounded text: fails out_of_range
     std::print.useful.stdout['short', \n];
 }

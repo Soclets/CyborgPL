@@ -1,4 +1,4 @@
 enum S { a: int32  b }
 MAIN {
-    's' := S.a["x"];
+    let 's' := S.a["x"];
 }

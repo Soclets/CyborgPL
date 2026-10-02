@@ -2,5 +2,5 @@ fn big ['a': int32] -> int32 {
     return 'a' x 'a';
 }
 MAIN {
-    'r' := big[100000];
+    let 'r' := big[100000];
 }

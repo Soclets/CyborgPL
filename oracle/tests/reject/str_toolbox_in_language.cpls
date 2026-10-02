@@ -1,4 +1,4 @@
 MAIN {
-    's' := "a b";
-    'p' := str.split[lend 's', " "];
+    let 's' := "a b";
+    let 'p' := str.split[lend 's', " "];
 }
