@@ -1591,13 +1591,12 @@ impl Gen {
 
     /// A signed value divided by -1, printed: the answer is exact and
     /// checked where it lands (owner: a, 15c5c71), so `-128 div.trunc -1`
-    /// on an int8 is 128 in the print's int64. An int64's minimum (2^63
-    /// does not fit) only as a risk taken.
+    /// on an int8 is 128 in `put_i`'s int64. An int64's minimum gives 2^63,
+    /// which a uint64 holds (design claude, 2026-10-02): into `put_u`, or into
+    /// `put_i`'s int64 as a risk taken, where it does not fit.
     fn min_by_minus_one(&mut self) -> Stmt {
         use BinOp::*;
-        let wide = self.take_risk();
-        let ts: &[Ty] = if wide { &[Ty::I8, Ty::I16, Ty::I32, Ty::I64] } else { &[Ty::I8, Ty::I16, Ty::I32] };
-        let t = *self.rng.pick(ts);
+        let t = *self.rng.pick(&[Ty::I8, Ty::I16, Ty::I32, Ty::I64]);
         let vs = self.vars_of(t);
         let a = if !vs.is_empty() && self.rng.chance(50) && t != Ty::I64 {
             Expr::Var(self.rng.pick(&vs).name.clone())
@@ -1606,7 +1605,8 @@ impl Gen {
         };
         let ops: &[BinOp] = if self.cfg.roundings { &[Div, Mod, DivTrunc, ModTrunc, DivCeil, ModCeil, DivNear, ModNear] } else { &[Div, Mod] };
         let op = *self.rng.pick(ops);
-        Stmt::Print { signed: true, value: Expr::Bin(op, Box::new(a), Box::new(Expr::Lit(-1))) }
+        let signed = t != Ty::I64 || self.take_risk();
+        Stmt::Print { signed, value: Expr::Bin(op, Box::new(a), Box::new(Expr::Lit(-1))) }
     }
 
     /// An operator on decis or brain16: `div.near` is ordinary division;
