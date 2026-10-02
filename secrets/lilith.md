@@ -79,3 +79,19 @@ comp 'x' = 1000 # compiler decides
 runt 'x' = 1000 # JIT decides
 wrt long 'x' = 1000 # writer decides
 ```
+
+## `if`, as an incantation (owner, 2026-10-02)
+
+The owner: "`if condition () is met, shall:` seems like a good fit,
+hahaha". The everyday code reads calm and high-level "until you fucking
+summon inline ASM" (owner). Design claude's sketch of it in use:
+
+```
+comp 'x' = 1000
+if condition ('x' > 500) is met, shall:
+    inline.ASM for aarch64 { … }
+```
+
+And how it reads aloud, in the owner's words: "if condition variable "x"
+is greater than the value "500" is met, you shall fucking do inline
+Assembly".
