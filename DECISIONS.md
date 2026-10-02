@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — An interface may list types, as well as operations (owner)
+
+```
+interface Number { int8 int16 int32 int64 bin32 bin64 }     # exactly these types
+interface Ordered {                                          # anything with these operations
+    op < ['a': <T>, 'b': <T>] -> bool;
+    op == ['a': <T>, 'b': <T>] -> bool;
+}
+```
+
+Working out how a generic says what it accepts, the owner asked whether
+"anything" should be an interface naming every type; design claude
+explained that interfaces list only operations today (the oracle refuses
+`interface Number { int32 bin64 }`), so a type list is new, and that a
+list of every type can never be finished, since each new struct is a new
+type. The owner: "Bruh, that's why I was confused". Offered: a list of
+types (exact, closed: a later `Money` can never join) against a list of
+operations (open to future types); design claude recommended allowing
+both, the writer picking per interface, as Go does. The owner: "yra,
+both". Open: the spelling (the sketch above is design claude's), whether
+one interface may mix the two, and how "any type" is said. Not built
+yet; it goes into the oracle with the rest of the generics changes.
+`interfaces.md`.
+
 ### 2026-10-02 — Generics and lifetime groups are declared up front, everywhere (owner: c)
 
 Asked what Rust's up-front declarations are for, design claude gave the

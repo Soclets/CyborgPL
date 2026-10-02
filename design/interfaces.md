@@ -87,6 +87,14 @@ rule no generic body could return its parameter. Consequence set by
 Claude 2026-09-20, from "verbs on a plain value are an error" meeting
 generics.
 
+## A list of types (owner, 2026-10-02: "both")
+
+An interface may also list types instead of operations: `interface
+Number { int8 int16 int32 int64 bin32 bin64 }` accepts exactly those, and
+a type written later can never join it; a list of operations stays open
+to future types. The writer picks per interface. Spelling, mixing the two
+in one interface, and how "any type" is said are open; not built yet.
+
 ## Open
 
 - Std's standard interfaces.
