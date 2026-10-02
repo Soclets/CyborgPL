@@ -316,6 +316,10 @@ impl Domain {
                 let m = bin_max(*w);
                 Domain::Bins { lo: m.map(|x| -x), hi: m }
             }
+            Ty::Brain => {
+                let m = bin_max(BinW::Fixed(crate::types::BRAIN_BITS));
+                Domain::Bins { lo: m.map(|x| -x), hi: m }
+            }
             Ty::Bool => Domain::Bools(true, true),
             // A vector: what any of its lanes can be.
             Ty::Simd { elem, .. } => Domain::of_ty(elem, items),
@@ -562,6 +566,8 @@ pub fn enc_of(ty: &Ty) -> Option<Enc> {
 pub fn bin_max(w: BinW) -> Option<f64> {
     match w {
         BinW::Fixed(16) => Some(65504.0),
+        // The brain float: (2 - 2^-7) x 2^127 (owner, 2026-10-02).
+        BinW::Fixed(crate::types::BRAIN_BITS) => Some(3.3895313892515355e38),
         BinW::Fixed(32) => Some(f32::MAX as f64),
         BinW::Fixed(64) | BinW::Free(_) => Some(f64::MAX),
         // Software arithmetic, and wider than anything this analysis
@@ -586,6 +592,8 @@ pub fn bin_at_width(v: f64, w: BinW) -> f64 {
 pub fn bin_width(ty: &Ty) -> Option<BinW> {
     match ty.base() {
         Ty::Bin(w) => Some(*w),
+        // A brain16 is followed as a bin of its own width code.
+        Ty::Brain => Some(BinW::Fixed(crate::types::BRAIN_BITS)),
         _ => None,
     }
 }

@@ -1105,6 +1105,17 @@ impl Precog {
                     }
                 }
                 Terminator::Call { callee, args, dest, ok, fail } => {
+                    // A conversion of text whose every value is a plain
+                    // number that fits cannot fail: its failure arms are not
+                    // taken (`let 'big' := to.brain16["3e38"] otherwise 0;` is
+                    // 3e38, never 0).
+                    let cannot_fail = match callee {
+                        Callee::Convert(to) if to.is_brain() => match args.first().map(|a| self.arg_domain(f, &env, a)) {
+                            Some(Domain::Text { values: Some(vs), .. }) => !vs.is_empty() && vs.iter().all(|v| plain_number(v).is_some_and(|x| x.abs() < BRAIN_ROUND_LIMIT)),
+                            _ => false,
+                        },
+                        _ => false,
+                    };
                     let ret = self.call(f, callee, args, &env, depth);
                     // What the call may have changed. A language operation
                     // says exactly how; anything else lent mutably is now
@@ -1134,7 +1145,7 @@ impl Precog {
                         self.store(f, &mut e, p, ret);
                     }
                     go(self, *ok, e, &mut states, &mut work);
-                    for arm in fail {
+                    for arm in fail.iter().filter(|_| !cannot_fail) {
                         let mut fe = after.clone();
                         if let Some(p) = &arm.payload {
                             let ty = self.place_ty(f, p);
@@ -1321,6 +1332,7 @@ impl Precog {
         // folded `'c' > 0.1` to false.
         let d = match (&d, self.place_ty(f, p).base()) {
             (Domain::Bins { lo, hi }, Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32)))) => Domain::Bins { lo: lo.map(|x| round_out(x, *bits, false)), hi: hi.map(|x| round_out(x, *bits, true)) },
+            (Domain::Bins { lo, hi }, Ty::Brain) => Domain::Bins { lo: lo.map(|x| round_out(x, crate::types::BRAIN_BITS, false)), hi: hi.map(|x| round_out(x, crate::types::BRAIN_BITS, true)) },
             _ => d,
         };
         if p.proj.is_empty() {
@@ -1534,6 +1546,7 @@ impl Precog {
             let bits = match ty.base() {
                 Ty::Bin(crate::types::BinW::Fixed(b)) => Some(*b),
                 Ty::Bin(crate::types::BinW::Free(_)) => Some(64),
+                Ty::Brain => Some(crate::types::BRAIN_BITS),
                 _ => None,
             };
             if let (Some(bits), Domain::Bins { lo: Some(a1), hi: Some(a2) }, Domain::Bins { lo: Some(b1), hi: Some(b2) }) = (bits, a, b) {
@@ -1657,6 +1670,33 @@ impl Precog {
             }
             (_, Domain::Ints(_)) if to.is_exact() && !matches!(from, Domain::Ints(_)) => {
                 Domain::Ints(ISet::Range { lo: i64::MIN as i128 - 1, hi: u64::MAX as i128 })
+            }
+            // Into a brain16 (owner, 2026-10-02): the values, rounded at its
+            // width. Past its largest is the conversion's own check (or its
+            // `out_of_range`), so what lands is within it.
+            (Domain::Bins { lo: Some(lo), hi: Some(hi) }, Domain::Bins { .. }) if to.is_brain() => brain_landing(*lo, *hi),
+            // Into a bin from a bin or a brain16: a wider one holds each
+            // value exactly; a narrower one rounds by a step at most, and
+            // past its largest is the conversion's own check.
+            (Domain::Bins { lo: Some(lo), hi: Some(hi) }, Domain::Bins { lo: Some(tl), hi: Some(th) }) => match to.base() {
+                Ty::Bin(crate::types::BinW::Fixed(64)) | Ty::Bin(crate::types::BinW::Free(_)) => Domain::Bins { lo: Some(*lo), hi: Some(*hi) },
+                Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32))) => {
+                    let l = round_out(*lo, *bits, false).clamp(*tl, *th);
+                    let h = round_out(*hi, *bits, true).clamp(*tl, *th);
+                    Domain::Bins { lo: Some(l.min(h)), hi: Some(h.max(l)) }
+                }
+                _ => top,
+            },
+            (Domain::Ints(s), Domain::Bins { .. }) if to.is_brain() => match s.bounds() {
+                Some((l, h)) => brain_landing(l as f64, h as f64),
+                None => top,
+            },
+            (Domain::Text { values: Some(vs), .. }, Domain::Bins { .. }) if to.is_brain() => {
+                let nums: Option<Vec<f64>> = vs.iter().map(|v| plain_number(v)).collect();
+                match nums {
+                    Some(ns) if !ns.is_empty() => brain_landing(ns.iter().cloned().fold(f64::INFINITY, f64::min), ns.iter().cloned().fold(f64::NEG_INFINITY, f64::max)),
+                    _ => top,
+                }
             }
             _ => top,
         }
@@ -2121,8 +2161,8 @@ impl Precog {
                     Some(t) => t,
                     None => return Verdict::Unproven,
                 };
-                if let Ty::Bin(w) = ty.base() {
-                    return bin_finite(op, ds, *w, &self.spell(&ty));
+                if let Some(w) = crate::mir::domain::bin_width(&ty) {
+                    return bin_finite(op, ds, w, &self.spell(&ty));
                 }
                 let Some((lo, hi)) = int_limits(&ty, &self.prog().items) else { return Verdict::Unproven };
                 let (Some(Domain::Ints(a)), b) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
@@ -3170,6 +3210,10 @@ fn bin_finite(op: &BinOp, ds: &[Domain], w: crate::types::BinW, spelled: &str) -
         match bits {
             32 => v as f32 as f64,
             16 => if v.abs() >= 65520.0 { v * f64::INFINITY } else { v },
+            crate::types::BRAIN_BITS => {
+                let v = v as f32 as f64;
+                if v.abs() >= BRAIN_ROUND_LIMIT { v * f64::INFINITY } else { v }
+            }
             _ => v,
         }
     };
@@ -3220,6 +3264,9 @@ pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Opti
     let (mantissa, tiny) = match bits {
         16 => (10, 2f64.powi(-24)),
         32 => (23, 2f64.powi(-149)),
+        // Worked at 32 bits and rounded to 7 (owner, 2026-10-02): two
+        // half-steps, inside one whole brain16 step.
+        crate::types::BRAIN_BITS => (7, 2f64.powi(-133)),
         64 => (52, f64::from_bits(1)),
         _ => return None,
     };
@@ -3261,7 +3308,12 @@ fn round_out(x: f64, bits: u16, up: bool) -> f64 {
         };
         return step(r, up) as f64;
     }
-    // bin16: a unit in its last place, relative, and its smallest step.
+    // bin16 and brain16: a unit in the last place, relative, and the
+    // smallest step.
+    if bits == crate::types::BRAIN_BITS {
+        let w = x.abs() * 2f64.powi(-7) + 2f64.powi(-133);
+        return if up { x + w } else { x - w };
+    }
     let w = x.abs() * 2f64.powi(-10) + 2f64.powi(-24);
     if up { x + w } else { x - w }
 }
@@ -3273,9 +3325,14 @@ fn bin_round_limit(to: &Ty) -> Option<f64> {
     match to.base() {
         Ty::Bin(crate::types::BinW::Fixed(16)) => Some(65520.0),
         Ty::Bin(crate::types::BinW::Fixed(32)) => Some(2f64.powi(128) - 2f64.powi(103)),
+        Ty::Brain => Some(BRAIN_ROUND_LIMIT),
         _ => None,
     }
 }
+
+/// Where rounding to a brain16 goes past its largest, (2 - 2^-7) x 2^127:
+/// half a step above it, 2^128 - 2^119 (the tie goes to infinity).
+const BRAIN_ROUND_LIMIT: f64 = 3.3961775292304600e38;
 
 /// Whether a bin literal, as written, rounds to a finite plain bin16 or
 /// bin32: its magnitude below the rounding limit (65520, or 2^128 - 2^103;
@@ -3287,6 +3344,7 @@ fn literal_fits_bin(text: &str, to: &Ty) -> Option<bool> {
     let limit = match to.base() {
         Ty::Bin(crate::types::BinW::Fixed(16)) => "65520",
         Ty::Bin(crate::types::BinW::Fixed(32)) => "340282356779733661637539395458142568448",
+        Ty::Brain => "339617752923046005526922703901628039168",
         _ => return None,
     };
     let t: String = text.chars().filter(|c| *c != '_').collect();
@@ -3578,4 +3636,52 @@ fn single_value(d: &Domain) -> bool {
         Domain::Bools(t, f) => t != f,
         _ => false,
     }
+}
+
+/// What a value between `lo` and `hi` is once it lands in a brain16:
+/// rounded out by a step, and within its largest either way.
+fn brain_landing(lo: f64, hi: f64) -> Domain {
+    let max = 3.3895313892515355e38;
+    let l = round_out(lo, crate::types::BRAIN_BITS, false).clamp(-max, max);
+    let h = round_out(hi, crate::types::BRAIN_BITS, true).clamp(-max, max);
+    Domain::Bins { lo: Some(l.min(h)), hi: Some(h.max(l)) }
+}
+
+/// Text that is a plain decimal number, as the runtime's bin grammar reads
+/// it — digits, an optional fraction and exponent, no `inf`, no `.5` — and
+/// its value; anything else is not claimed.
+fn plain_number(t: &str) -> Option<f64> {
+    let b = t.as_bytes();
+    let mut i = 0;
+    if matches!(b.first(), Some(b'+') | Some(b'-')) {
+        i = 1;
+    }
+    let digits = |from: usize| from + b[from..].iter().take_while(|c| c.is_ascii_digit()).count();
+    let int_end = digits(i);
+    if int_end == i {
+        return None;
+    }
+    let mut j = int_end;
+    if b.get(j) == Some(&b'.') {
+        let f = digits(j + 1);
+        if f == j + 1 {
+            return None;
+        }
+        j = f;
+    }
+    if matches!(b.get(j), Some(b'e') | Some(b'E')) {
+        let mut k = j + 1;
+        if matches!(b.get(k), Some(b'+') | Some(b'-')) {
+            k += 1;
+        }
+        let e = digits(k);
+        if e == k {
+            return None;
+        }
+        j = e;
+    }
+    if j != b.len() {
+        return None;
+    }
+    t.parse::<f64>().ok().filter(|x| x.is_finite())
 }
