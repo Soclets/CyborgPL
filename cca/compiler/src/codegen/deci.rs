@@ -223,13 +223,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let _ = self.builder.build_call(f, &[lo.into(), hi.into(), i32t.const_int(*b as u64, false).into(), slot.into()], "");
                 Some(self.deci_read(slot, *b)?.into())
             }
-            (Ty::Bin(_), Ty::Deci(b)) => {
+            (Ty::Bin(_) | Ty::Brain, Ty::Deci(b)) => {
                 let x = v.into_float_value();
                 let f64t = self.ctx.f64_type();
                 let wide = if x.get_type() == f64t { x } else { self.builder.build_float_ext(x, f64t, "wide").ok()? };
                 let src_bits = match self.ty(from)? {
                     inkwell::types::BasicTypeEnum::FloatType(t) if t == self.ctx.f32_type() => 32,
                     inkwell::types::BasicTypeEnum::FloatType(t) if t == self.ctx.f16_type() => 16,
+                    inkwell::types::BasicTypeEnum::FloatType(t) if t == self.ctx.bf16_type() => crate::types::BRAIN_BITS as u64,
                     _ => 64,
                 };
                 let f = self.rt_deci("cyborg_deci_from_bin")?;
@@ -245,9 +246,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 self.deci_stop(fi, odd, "this bin is an infinity or a NaN, which no bin may hold, so it has no deci", func)?;
                 Some(self.deci_read(slot, *b)?.into())
             }
-            (Ty::Deci(b), Ty::Bin(_)) => {
+            (Ty::Deci(b), Ty::Bin(_) | Ty::Brain) => {
                 let (lo, hi) = self.deci_halves(v.into_int_value())?;
                 let t = self.ty(to)?.into_float_type();
+                // A brain16 is reached through a bin64, then rounded once.
                 let to_bits = if t == self.ctx.f32_type() { 32 } else if t == self.ctx.f16_type() { 16 } else { 64 };
                 let f = self.rt_deci("cyborg_deci_to_bin")?;
                 let x = basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), i32t.const_int(*b as u64, false).into(), i32t.const_int(to_bits, false).into()], "bin").ok()?)?.into_float_value();

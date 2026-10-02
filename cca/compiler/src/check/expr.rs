@@ -628,6 +628,12 @@ impl Checker {
                 return Ok(v);
             }
         }
+        // Bare numbers in a `brain16` place are brain16s (owner, 2026-10-02).
+        if t.is_brain() && !vt.is_brain() && bare_number_group(&v) {
+            let mut v = v;
+            into_brain(&mut v);
+            return Ok(v);
+        }
         if let (K::Int(i), Ty::Bin(_)) = (&v.kind, t.base()) {
             return Ok(Expr { kind: K::Bin(i.to_string()), ty: t.base().clone(), span: v.span });
         }
@@ -742,6 +748,10 @@ impl Checker {
         }
         // Say it in the writer's terms.
         let msg = match (vt.base(), t.base()) {
+            (Ty::Brain, other) | (other, Ty::Brain) if other.is_numeric() => {
+                let (have, want) = (self.spell(&vt), self.spell(&t));
+                format!("{} is {} and this value is a {}, not {}: the brain float is a family of its own — convert it, `to.{}[…]`", what, article(&want), have, want, conv_spelling(&want))
+            }
             (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) => {
                 format!("{} is {} and this value is {}: there is no implicit conversion between numeric families — write `to.{}[…] otherwise …`, which fails `not_whole` rather than dropping the fraction", what, article(&self.spell(&t)), article(&self.spell(&vt)), conv_spelling(&self.spell(t.base())))
             }
@@ -1190,6 +1200,12 @@ impl Checker {
                         moved = true;
                     }
                 }
+                Ty::Brain => {
+                    if bare_number_group(item) {
+                        into_brain(item);
+                        moved = true;
+                    }
+                }
                 Ty::Deci(bits) => {
                     if !matches!(self.resolve(&item.ty).base(), Ty::Deci(_)) && deci_group(item) {
                         into_deci(item, *bits)?;
@@ -1258,6 +1274,9 @@ impl Checker {
         let rt = self.resolve(&r.ty);
         if matches!(lt.base(), Ty::Deci(_)) || matches!(rt.base(), Ty::Deci(_)) {
             return self.deci_pair(l, r, &lt, &rt, op, op_span);
+        }
+        if lt.is_brain() || rt.is_brain() {
+            return self.brain_pair(l, r, &lt, &rt, op, op_span);
         }
         let (l, r) = match (lt.base(), rt.base()) {
             (Ty::Int(_), Ty::Bin(_)) if matches!(l.kind, K::Int(_)) => {
@@ -1378,6 +1397,30 @@ impl Checker {
             _ => return err(Diagnostic::error(format!("`{}` between a `{}` and a `{}`: there is no implicit conversion between numeric families — convert one side with `to.{}[…]`", op.spelled(), self.spell(&lt), self.spell(&rt), self.spell(lt.base()))).at(op_span)),
         };
         Ok((l, r, ty))
+    }
+
+    /// Both sides of an operator where one is a `brain16` (owner,
+    /// 2026-10-02): a family of its own, so bare numbers beside one become
+    /// brain16s and nothing else mixes in without `to.`.
+    fn brain_pair(&mut self, l: Expr, r: Expr, lt: &Ty, rt: &Ty, op: &BinOp, op_span: Span) -> Result<(Expr, Expr, Ty)> {
+        let (mut l, mut r) = (l, r);
+        if lt.is_brain() && !rt.is_brain() && bare_number_group(&r) {
+            into_brain(&mut r);
+        }
+        if rt.is_brain() && !lt.is_brain() && bare_number_group(&l) {
+            into_brain(&mut l);
+        }
+        match op {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::Pow => {}
+            _ if op.is_comparison() => {}
+            _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a brain16 is not one", op.spelled())).at(op_span)),
+        }
+        let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
+        if lt.is_brain() && rt.is_brain() {
+            return Ok((l, r, Ty::Brain));
+        }
+        let other = if lt.is_brain() { &rt } else { &lt };
+        err(Diagnostic::error(format!("`{}` between a brain16 and {}: the brain float is a family of its own — convert one side first, `to.brain16[…]` or `to.bin32[…]`", op.spelled(), article(&self.spell(other)))).at(op_span))
     }
 
     /// Both sides of an operator where one is a `deci` (owner, 2026-09-29):
@@ -2640,6 +2683,7 @@ impl Checker {
         match t.base() {
             Ty::Int(_) => "integer".into(),
             Ty::Bin(_) => "bin".into(),
+            Ty::Brain => "brain16".into(),
             Ty::Deci(_) => "deci".into(),
             Ty::Bool => "bool".into(),
             Ty::Enum { id, .. } => format!("a `{}` case", self.items.enums[id.0 as usize].name),
@@ -2679,13 +2723,17 @@ impl Checker {
         let mut fails: Vec<&str> = Vec::new();
         // Only a bin has a second value as a deci; an integer, a deci or
         // text has the one, whichever form is named.
-        if matches!(t.base(), Ty::Deci(_)) && !matches!(vt.base(), Ty::Bin(_)) {
+        if matches!(t.base(), Ty::Deci(_)) && !matches!(vt.base(), Ty::Bin(_) | Ty::Brain) {
             useful = false;
         }
         match (vt.base(), t.base()) {
             // Into or out of a `deci` (owner, 2026-09-29): the list is
             // shared with the code generator, which finds each failure's
             // arm by its place in it.
+            // A brain16 widens to a bin64 exactly, and a deci reaches a
+            // brain16 through one: the bin's conversions, failures and all.
+            (Ty::Brain, Ty::Deci(_)) => fails.extend(crate::deci::conv_fails(&Ty::Bin(BinW::Fixed(64)), &t, None).unwrap_or_default()),
+            (Ty::Deci(_), Ty::Brain) => fails.extend(crate::deci::conv_fails(&vt, &Ty::Bin(BinW::Fixed(64)), None).unwrap_or_default()),
             (Ty::Int(_) | Ty::Bin(_) | Ty::Str(_) | Ty::Deci(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Int(_) | Ty::Bin(_) | Ty::Str(_)) => {
                 let literal = match &v.kind {
                     K::Int(i) => Some(i.unsigned_abs().to_string().len() as u32),
@@ -2695,6 +2743,14 @@ impl Checker {
             }
             (Ty::Int(_), Ty::Int(_)) => {}
             (Ty::Int(_), Ty::Bin(_)) => {}
+            // The brain float (owner, 2026-10-02): into it rounds, from a
+            // number or from text; out of it, a bin32 or bin64 is exact,
+            // a bin16 a check site past its largest, an integer as from a bin.
+            (Ty::Int(_) | Ty::Bin(_) | Ty::Brain, Ty::Brain) => {}
+            (Ty::Str(_), Ty::Brain) => fails.extend(["not_a_number", "out_of_range"]),
+            (Ty::Brain, Ty::Bin(_)) => {}
+            (Ty::Brain, Ty::Int(_)) => fails.extend(["not_whole", "out_of_range"]),
+            (Ty::Brain, Ty::Str(_)) => {}
             // Not whole, or whole and too big for the integer (owner,
             // 2026-09-30: a) — a failure, as text too big is, not a site.
             (Ty::Bin(_), Ty::Int(_)) => fails.extend(["not_whole", "out_of_range"]),
@@ -2786,9 +2842,12 @@ impl Checker {
         // Asked last, as the oracle does: what cannot convert at all, or
         // cannot fail, is said first.
         if form.is_none() {
-            let two_texts = matches!(t.base(), Ty::Str(_)) && matches!(vt.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Enum { .. });
+            let two_texts = matches!(t.base(), Ty::Str(_)) && matches!(vt.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Enum { .. } | Ty::Brain);
             if two_texts {
                 return err(Diagnostic::error(format!("say which text `to.{}` makes of {}: `to.stored.{}[…]` (what is stored) or `to.useful.{}[…]` (the useful value) (owner, 2026-10-02)", target_spelling, self.family_word(&vt), target_spelling, target_spelling)).at(span));
+            }
+            if matches!(t.base(), Ty::Deci(_)) && vt.is_brain() {
+                return err(Diagnostic::error(format!("say which value `to.{}` takes of a brain16: `to.stored.{}[…]` (what is stored) or `to.useful.{}[…]` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).at(span));
             }
             if matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Bin(_)) {
                 return err(Diagnostic::error(format!("say which value `to.{}` takes of a bin: `to.stored.{}[…]` (what is stored) or `to.useful.{}[…]` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).at(span));
@@ -3852,4 +3911,32 @@ fn conv_form(target: &ast::Type) -> Result<(Option<bool>, Option<ast::Type>)> {
         }
         _ => Ok((None, None)),
     }
+}
+
+/// Bare numbers with plain math between them: what a `brain16` beside
+/// them, or a `brain16` place, makes brain16s.
+fn bare_number_group(e: &Expr) -> bool {
+    match &e.kind {
+        K::Int(_) => matches!(e.ty.base(), Ty::Int(IntW::Free(_))),
+        K::Bin(_) => matches!(e.ty.base(), Ty::Bin(BinW::Free(_))),
+        K::Unary { op: UnOp::Neg, expr } => bare_number_group(expr),
+        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div, lhs, rhs, .. } => bare_number_group(lhs) && bare_number_group(rhs),
+        _ => false,
+    }
+}
+
+/// A `bare_number_group` made brain16s: each literal rounds to the
+/// nearest brain16 where it is built, and each step rounds (owner,
+/// 2026-10-02: a).
+fn into_brain(e: &mut Expr) {
+    match &mut e.kind {
+        K::Int(i) => e.kind = K::Bin(i.to_string()),
+        K::Unary { expr, .. } => into_brain(expr),
+        K::Binary { lhs, rhs, .. } => {
+            into_brain(lhs);
+            into_brain(rhs);
+        }
+        _ => {}
+    }
+    e.ty = Ty::Brain;
 }

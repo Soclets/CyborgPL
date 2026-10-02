@@ -108,6 +108,9 @@ pub enum Bound {
 pub enum Ty {
     Int(IntW),
     Bin(BinW),
+    /// `brain16` (also `bfloat16`, `bf16`; owner, 2026-10-02): the brain
+    /// float, `bin32`'s range in 16 bits, a family of its own.
+    Brain,
     Deci(u16),
     Bool,
     Str(Enc),
@@ -182,7 +185,10 @@ impl Ty {
         matches!(self.base(), Ty::Bin(_))
     }
     pub fn is_numeric(&self) -> bool {
-        matches!(self.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_))
+        matches!(self.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Brain)
+    }
+    pub fn is_brain(&self) -> bool {
+        matches!(self.base(), Ty::Brain)
     }
     pub fn is_text(&self) -> bool {
         matches!(self.base(), Ty::Str(_))
@@ -339,6 +345,10 @@ pub struct IfaceEntryInfo {
     pub fails: Vec<(String, Option<Ty>)>,
 }
 
+/// A `brain16`'s width code where a runtime call takes a bin's width
+/// (`runtime::BRAIN`).
+pub const BRAIN_BITS: u16 = 0xB16;
+
 #[derive(Debug, Clone)]
 pub struct IfaceInfo {
     pub name: String,
@@ -368,6 +378,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
             Ty::Int(IntW::Free(_)) => write!(f, "integer"),
             Ty::Bin(BinW::Fixed(b)) => write!(f, "bin{}", b),
             Ty::Bin(BinW::Free(_)) => write!(f, "bin"),
+            Ty::Brain => write!(f, "brain16"),
             Ty::Deci(b) => write!(f, "deci{}", b),
             Ty::Bool => write!(f, "bool"),
             Ty::Str(e) => match e {

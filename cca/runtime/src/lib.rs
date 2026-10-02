@@ -1030,6 +1030,7 @@ pub unsafe extern "C" fn cyborg_parse_bin(p: *const u8, len: u64, bits: u32, out
         64 => s.parse::<f64>().ok(),
         32 => s.parse::<f32>().ok().map(|x| x as f64),
         16 => s.parse::<f64>().ok().map(|x| round_to_half(x, &parts)),
+        BRAIN => s.parse::<f64>().ok().map(|x| round_to_brain(x, &parts)),
         _ => None,
     };
     match v {
@@ -1116,12 +1117,28 @@ fn bin_grammar(b: &[u8]) -> Option<Written<'_>> {
 /// 64-bit value it is. 64 bits hold more than twice a bin16's precision,
 /// so rounding twice goes wrong only when `x` lands exactly halfway
 /// between two bin16 values; there the written digits decide.
+/// The width code of a `brain16` (owner, 2026-10-02), where a call takes a
+/// bin's width: the brain float, 8 exponent bits and 7 of precision.
+pub const BRAIN: u32 = 0xB16;
+
 fn round_to_half(x: f64, w: &Written) -> f64 {
+    round_to(x, w, 10, -14, 65504.0)
+}
+
+/// To the nearest brain16: bin32's exponents, 7 bits of precision; its
+/// largest is (2 - 2^-7) x 2^127.
+fn round_to_brain(x: f64, w: &Written) -> f64 {
+    round_to(x, w, 7, -126, 3.3895313892515355e38)
+}
+
+/// The nearest value with `frac` fraction bits, normal from 2^`min_exp`,
+/// ties broken by the written digits (then to even); past `max`, infinity.
+fn round_to(x: f64, w: &Written, frac: i32, min_exp: i32, max: f64) -> f64 {
     let a = x.abs();
     let exp = ((a.to_bits() >> 52) & 0x7ff) as i32 - 1023;
-    // The step between bin16 values here: 2^-24 below the smallest normal.
+    // The step between values here: fixed below the smallest normal.
     let two = |e: i32| f64::from_bits(((e + 1023) as u64) << 52);
-    let q = if a < two(-14) { two(-24) } else { two(exp - 10) };
+    let q = if a < two(min_exp) { two(min_exp - frac) } else { two(exp - frac) };
     let n = a / q;
     let lower = floor(n);
     let frac = n - lower;
@@ -1141,7 +1158,7 @@ fn round_to_half(x: f64, w: &Written) -> f64 {
         }
     };
     let r = (if up { lower + 1.0 } else { lower }) * q;
-    let r = if r > 65504.0 { f64::INFINITY } else { r };
+    let r = if r > max { f64::INFINITY } else { r };
     if w.neg { -r } else { r }
 }
 

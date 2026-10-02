@@ -1350,7 +1350,7 @@ impl<'a> FnBuilder<'a> {
             // a): an answer that would be one is a check site, like integer
             // overflow — past the largest bin, a division by zero, a power
             // with no number (`-1.0 xx 0.5`).
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Pow if matches!(ty.base(), Ty::Bin(_)) => {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Pow if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
                 if *op == BinOp::Div {
                     self.site(SiteKind::DivZero, vec![r.clone()], span);
                 }
@@ -2044,6 +2044,10 @@ pub fn needs_narrow_check(from: &Ty, to: &Ty) -> bool {
             _ => true,
         },
         (Ty::Bin(_), Ty::Bin(_)) => true,
+        // Past the largest brain16 (owner, 2026-10-02), or a brain16 past
+        // the largest bin16.
+        (Ty::Bin(_) | Ty::Deci(_), Ty::Brain) => true,
+        (Ty::Brain, Ty::Bin(crate::types::BinW::Fixed(16))) => true,
         _ => false,
     }
 }

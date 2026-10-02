@@ -691,13 +691,14 @@ fn shortest(x: f64, bits: u32, out: &mut [u8]) -> usize {
             let _ = write!(b, "{:e}", x as f32);
         }
         _ => {
-            // No `f16` to format here: the fewest digits that the bin16
-            // reading takes back to `x`.
+            // No `f16` or brain16 to format here: the fewest digits that
+            // the reading at that width takes back to `x`.
+            let width = if bits == crate::BRAIN { crate::BRAIN } else { 16 };
             for p in 0..17 {
                 b.n = 0;
                 let _ = write!(b, "{:.*e}", p, x);
                 let mut back = 0.0f64;
-                let status = unsafe { crate::cyborg_parse_bin(b.b.as_ptr(), b.n as u64, 16, &mut back) };
+                let status = unsafe { crate::cyborg_parse_bin(b.b.as_ptr(), b.n as u64, width, &mut back) };
                 if status == 0 && back == x {
                     break;
                 }

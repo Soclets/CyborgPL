@@ -1368,6 +1368,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if let (Ty::Bin(crate::types::BinW::Fixed(bits)), Ty::Str(_)) = (to.base(), from.base()) {
             return self.text_into_bin(fi, *bits, to, arg, dest, ok, fail, blocks, slots, func);
         }
+        if let (Ty::Brain, Ty::Str(_)) = (to.base(), from.base()) {
+            return self.text_into_bin(fi, crate::types::BRAIN_BITS, to, arg, dest, ok, fail, blocks, slots, func);
+        }
         if let Ty::Deci(_) = to.base() {
             return self.into_deci(fi, to, &from, arg, dest, ok, fail, blocks, slots, func);
         }
@@ -1408,7 +1411,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let w = self.ctx.i128_type();
         // Which arm each reason takes: its index in the reason list.
         let first_reason = match from.base() {
-            Ty::Str(_) | Ty::Bin(_) | Ty::Deci(_) => true,
+            Ty::Str(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Brain => true,
             _ => false,
         };
         let arm = |index: usize| fail.iter().find(|a| a.index == index).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize]);
@@ -1438,10 +1441,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let too = self.builder.build_int_compare(IntPredicate::EQ, status, self.ctx.i8_type().const_int(2, false), "too_big").ok()?;
                 (self.builder.build_load(w, out, "value").ok()?.into_int_value(), Some(too))
             }
-            Ty::Bin(_) => {
+            Ty::Bin(_) | Ty::Brain => {
                 // Whole, or it fails `not_whole`: x equals its own floor and
-                // is finite (x - x is 0 only for a finite x).
+                // is finite (x - x is 0 only for a finite x). A brain16 is
+                // asked at 64 bits, where it is exact.
                 let x = v.into_float_value();
+                let x = if from.is_brain() { self.builder.build_float_ext(x, self.ctx.f64_type(), "wide").ok()? } else { x };
                 let ft = x.get_type();
                 let id = inkwell::intrinsics::Intrinsic::find("llvm.floor")?;
                 let floor = id.get_declaration(self.module, &[ft.into()])?;
@@ -2116,11 +2121,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let (lo, hi) = self.deci_halves(d)?;
                 return self.deci_text_raw(lo, hi, *bits, useful);
             }
-            (Ty::Bin(w), BasicValueEnum::FloatValue(x)) => {
+            (Ty::Bin(_) | Ty::Brain, BasicValueEnum::FloatValue(x)) => {
                 let wide = if x.get_type() == self.ctx.f64_type() { x } else { self.builder.build_float_ext(x, self.ctx.f64_type(), "wide").ok()? };
                 if useful {
-                    let bits = match w {
-                        crate::types::BinW::Fixed(b) => *b as u64,
+                    let bits = match from.base() {
+                        Ty::Bin(crate::types::BinW::Fixed(b)) => *b as u64,
+                        Ty::Brain => crate::types::BRAIN_BITS as u64,
                         _ => 64,
                     };
                     let f = self.rt("cyborg_bin_to_text_useful");
@@ -2595,7 +2601,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let _ = w;
                 self.builder.build_load(self.ctx.bool_type(), acc, "answer").ok().map(|v| v.into_int_value())
             }
-            Ty::Bin(_) => {
+            Ty::Bin(_) | Ty::Brain => {
                 let l = self.ty(t)?;
                 let x = self.builder.build_load(l, a, "a").ok()?.into_float_value();
                 let y = self.builder.build_load(l, b, "b").ok()?.into_float_value();

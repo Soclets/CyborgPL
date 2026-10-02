@@ -29,7 +29,7 @@ pub fn is_keyword(w: &str) -> bool {
 /// Words that name a built-in type when they head a type path.
 pub fn is_primitive_head(w: &str) -> bool {
     crate::resolve::rust_alias(w).is_some()
-        || matches!(w, "str" | "char" | "bool" | "int" | "uint" | "bin" | "deci")
+        || matches!(w, "str" | "char" | "bool" | "int" | "uint" | "bin" | "deci" | "brain16" | "bfloat16" | "bf16")
         || (w.starts_with("int") && w[3..].parse::<u32>().is_ok())
         || (w.starts_with("uint") && w[4..].parse::<u32>().is_ok())
         || (w.starts_with("bin") && w[3..].parse::<u32>().is_ok())

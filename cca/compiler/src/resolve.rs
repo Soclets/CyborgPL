@@ -946,6 +946,13 @@ impl Items {
                 return err(Diagnostic::error(why).at(span));
             }
         }
+        // The brain float comes in one width (owner, 2026-10-02).
+        if path.limb.is_none() && head != "brain16" && head != "bfloat16" && head != "bf16" {
+            let brainy = ["brain", "bfloat", "bf"].iter().find(|p| head.strip_prefix(*p).is_some_and(|r| !r.is_empty() && r.bytes().all(|c| c.is_ascii_digit())));
+            if let Some(p) = brainy {
+                return err(Diagnostic::error(format!("the brain float comes in `brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).at(span));
+            }
+        }
         if path.limb.is_none() && head == "bin128" {
             return err(Diagnostic::error("there is no `bin128`: quad precision is software arithmetic on every machine — `bin64`, or `deci128` for more digits (owner, 2026-09-23)").at(span));
         }
@@ -1211,6 +1218,9 @@ pub fn rust_alias(w: &str) -> Option<&'static str> {
 
 pub fn primitive(head: &str) -> Option<Ty> {
     let head = rust_alias(head).unwrap_or(head);
+    if matches!(head, "brain16" | "bfloat16" | "bf16") {
+        return Some(Ty::Brain);
+    }
     if head == "bool" {
         return Some(Ty::Bool);
     }

@@ -175,6 +175,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Ty::Int(IntW::Free(_)) => Some(self.ctx.i64_type().into()),
             Ty::Bool => Some(self.ctx.bool_type().into()),
             Ty::Bin(BinW::Fixed(16)) => Some(self.ctx.f16_type().into()),
+            Ty::Brain => Some(self.ctx.bf16_type().into()),
             Ty::Bin(BinW::Fixed(32)) => Some(self.ctx.f32_type().into()),
             Ty::Bin(BinW::Fixed(64)) | Ty::Bin(BinW::Free(_)) => Some(self.ctx.f64_type().into()),
             Ty::Bin(BinW::Fixed(128)) => Some(self.ctx.f128_type().into()),
@@ -1441,7 +1442,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::IntType(it)) => Some(self.builder.build_int_cast_sign_flag(i, it, from_signed, "conv").ok()?.into()),
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) if !from_signed => Some(self.builder.build_unsigned_int_to_float(i, ft, "conv").ok()?.into()),
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) => Some(self.builder.build_signed_int_to_float(i, ft, "conv").ok()?.into()),
-                    (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(ft)) => Some(self.builder.build_float_cast(x, ft, "conv").ok()?.into()),
+                    (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(ft)) => Some(self.float_cast(x, ft)?.into()),
                     _ => {
                         self.cannot("this conversion has no shape in the generated code yet", None);
                         None
@@ -3025,6 +3026,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
+    /// One float type to another. `bfloat` and `half` are both 16 bits, so
+    /// LLVM casts neither way between them: through `float`, which holds
+    /// every value of both exactly, so the one rounding is the last.
+    pub(super) fn float_cast(&mut self, x: inkwell::values::FloatValue<'ctx>, to: inkwell::types::FloatType<'ctx>) -> Option<inkwell::values::FloatValue<'ctx>> {
+        let (bf, h) = (self.ctx.bf16_type(), self.ctx.f16_type());
+        let from = x.get_type();
+        if from == to {
+            return Some(x);
+        }
+        if (from == bf && to == h) || (from == h && to == bf) {
+            let mid = self.builder.build_float_ext(x, self.ctx.f32_type(), "via_float").ok()?;
+            return self.builder.build_float_trunc(mid, to, "conv").ok();
+        }
+        self.builder.build_float_cast(x, to, "conv").ok()
+    }
+
     /// A value LLVM must take as unknown: an empty `asm volatile` hands the
     /// local's value back through a register, so a loop's rounds can be
     /// neither folded to their answer nor dropped (`for !c`).
@@ -3192,6 +3209,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if let Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32))) = to.base() {
             return self.bin_narrow_check(fi, id, *bits, &site, slots, func);
         }
+        if to.is_brain() {
+            return self.bin_narrow_check(fi, id, crate::types::BRAIN_BITS, &site, slots, func);
+        }
         // A duration is never negative (owner, 2026-09-22): the site holds
         // both sides of the subtraction, and it fails when the second is
         // the larger. Only the first was looked at, and it always fit.
@@ -3242,7 +3262,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Some(p) => Operand::Read(p.clone()),
             None => o.clone(),
         };
-        let target = if bits == 16 { self.ctx.f16_type() } else { self.ctx.f32_type() };
+        let target = match bits {
+            16 => self.ctx.f16_type(),
+            crate::types::BRAIN_BITS => self.ctx.bf16_type(),
+            _ => self.ctx.f32_type(),
+        };
         // A literal is checked as it is written: rounded once from its
         // digits at the width. Read at 64 bits first, `…568447.0` was the
         // limit, and the asserted proof fired on a value that fits.
@@ -3257,8 +3281,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if x.get_type() == target {
             return;
         }
-        let Ok(r) = self.builder.build_float_trunc(x, target, "rounded") else { return };
-        let Ok(r) = self.builder.build_float_ext(r, x.get_type(), "back") else { return };
+        let Some(r) = self.float_cast(x, target) else { return };
+        let Some(r) = self.float_cast(r, x.get_type()) else { return };
         // Infinite after, finite before: x - x is 0 only for a finite x,
         // and r - r is not 0 (NaN) only for an infinite (or NaN) r.
         let (Ok(xz), Ok(rz)) = (self.builder.build_float_sub(x, x, "xz"), self.builder.build_float_sub(r, r, "rz")) else { return };

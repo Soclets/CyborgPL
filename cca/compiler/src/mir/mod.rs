@@ -327,6 +327,7 @@ impl Site {
             // A bin never holds an infinity or a NaN (owner, 2026-09-29).
             (SiteKind::Overflow(BinOp::Pow), Some(t)) if matches!(t.base(), Ty::Bin(_)) => "`xx` can go past the largest bin (it would be infinity) or have no number (it would be NaN)".into(),
             (SiteKind::Overflow(op), Some(t)) if matches!(t.base(), Ty::Bin(_)) => format!("`{}` can go past the largest bin (it would be infinity)", op.spelled()),
+            (SiteKind::Overflow(op), Some(t)) if t.is_brain() => format!("`{}` can go past the largest brain16 (it would be infinity)", op.spelled()),
             _ => self.kind.sentence(spell),
         }
     }

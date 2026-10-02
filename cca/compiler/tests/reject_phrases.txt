@@ -71,6 +71,10 @@ bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound i
 bound_backwards [fnv:eaa53671d88b43f0] :: the low bound comes first: `[2, 5]`
 bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
 bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][3, 5]`)
+brain_into_bin [fnv:45daa7e478d16952] :: is a brain16, not bin32
+brain_mixed_bin [fnv:f96220f94a68d5be] :: the brain float is a family of its own
+brain_overflow [fnv:6c45f1780f2082f5] :: !pending Precog has no brain16 domain yet, so it cannot see the multiply go past the largest every time; the build checks it at run time and stops there
+brain_width [fnv:7deee18239553328] :: `brain16` only
 bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
 bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
 c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
