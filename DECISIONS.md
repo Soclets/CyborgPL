@@ -19,8 +19,14 @@ is not IEEE, and offered `bfloat16`, `bin16.brain` or `brain16`,
 recommending `bfloat16`. The owner: "`brain`, `bfloat`, and `bf`
 (rs-style)", then, asked which is the main one, "`brain` is main, rhymes
 too". So **`brain16`** is the type, with **`bfloat16`** and **`bf16`** as
-aliases (bfloat comes in 16 bits only). Open: its arithmetic, conversions,
-literals, the GPU. Not built yet. `types.md`.
+aliases (bfloat comes in 16 bits only).
+
+**Its arithmetic rounds after every step** (owner: "`a`"), as `bin16` and
+`bin32` do (2026-09-24): each operation gives the nearest `brain16`,
+which is what LLVM emits (widen, operate, `bfcvt`). Offered against it:
+exact in between and rounded once when stored; no arithmetic, storage
+only (compute in `bin32`, as mixed-precision AI code does). Open:
+conversions, literals, the GPU. Not built yet. `types.md`.
 
 ### 2026-10-02 — Type names: CyborgPL's own and Rust's, nothing else (owner)
 
