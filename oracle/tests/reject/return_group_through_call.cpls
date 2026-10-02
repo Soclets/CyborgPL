@@ -7,6 +7,6 @@ fn b2 @x @y [lent@x 'a': list[int8], lent@y 'c': list[int8]] -> lent@x list[int8
 }
 MAIN {
     let 'u': list[int8] = [1, 2];
-    let 'v': list[int8] = [3];
+    let 'v': list[int8] = [3,];
     std::print.useful.stdout[b2[lend 'u', lend 'v'], \n];
 }
