@@ -143,6 +143,9 @@ owner's order:
    spelling — Rust's `cargo fix --edition` and Go's `go fix` do the same
    job. Design claude first read it as the usual lightbulb that applies
    a compiler error's `fix:`; the owner corrected that.
+   **It is a command too** (owner, 2026-10-02: "a command"), so a whole
+   project upgrades without the IDE. Its name is open (`cca fix` was
+   design claude's example).
 2. **Limb registry search** — searching the index (`limbs.xxx`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.
