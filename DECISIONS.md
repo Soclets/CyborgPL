@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Check claude no longer runs Alive2; RRx2 replaces it (owner)
+
+On the resume, design claude asked whether check claude should still run
+Alive2, recommending no: RRx2 covers what it did, whole programs rather
+than one function at a time, without Alive2's crash on Homebrew's LLVM 23
+(check claude's workaround, running `opt` itself, had proven 211
+rewrites, 0 wrong). The owner asked "Isn't Alive2 broken?" (its own
+optimiser is; the workaround worked), then: "We have RRx2 to replace
+ALive2, lol". `verification-session.md`.
+
 ### 2026-10-02 — Cores after the resume: 3 each again; RRx2-TV takes 8 only during a run (owner)
 
 Design claude proposed the pre-pause split, 3 each for design, compiler
