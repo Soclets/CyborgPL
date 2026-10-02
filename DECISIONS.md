@@ -5,12 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — Cores after the resume: 3 each again; RRx2-TV takes 8 only during a run (owner)
+
+Design claude proposed the pre-pause split, 3 each for design, compiler
+and check claude and 1 for the desktop, with RRx2-TV taking 8 during a
+run the owner starts while compiler and check claude hold off on builds
+and tests (RRx2 alone uses up to 18 GB of the 24; a CCA test run beside
+it pushed the Mac into swap on 2026-10-01). The owner: "Yeah, 3 for 3".
+troll license claude stays idle (owner: "troll license claude will be
+idle"), so it needed no share. `CLAUDE.md`.
+
 ### 2026-10-02 — CyborgPL resumes (owner)
 
 Paused 2026-09-30 until RRx2-TV exists. Design claude asked whether
 CyborgPL resumes now, meaning compiler claude, check claude and synthia
 claude work again, with RRx2 idle until the owner says it is time. The
-owner: "yea". The core split for the resumed sessions was asked next.
+owner: "yea". The core split: above.
 
 ### 2026-10-02 — RRx2 runs when the owner says it is time, not after every CyborgPL change (owner)
 
