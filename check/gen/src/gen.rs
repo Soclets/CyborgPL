@@ -1163,7 +1163,7 @@ impl Gen {
         let n = 2 + self.rng.below(3) as usize;
         let mut cases = vec![];
         let mut ivs = vec![];
-        // A `layout.c enum` (owner, 2026-09-27): a distinct number per case, no data.
+        // A `layout.C enum` (owner, 2026-09-27): a distinct number per case, no data.
         let c_enum = self.rng.chance(30);
         let mut values: Vec<i128> = vec![];
         while c_enum && values.len() < n {

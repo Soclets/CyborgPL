@@ -245,7 +245,7 @@ pub enum Expr {
     /// literal, a list of bytes, `str.points[lend 't']`).
     Src(String),
     /// `to.K[v] otherwise { out_of_range { K.c1 } }`: a number into a
-    /// `layout.c enum`, the fallback where no case has it (owner, 2026-09-27).
+    /// `layout.C enum`, the fallback where no case has it (owner, 2026-09-27).
     ToEnum(String, Box<Expr>, Box<Expr>),
     /// `simd.fill[v]`: every lane `v` (design/simd.md).
     SimdFill(Box<Expr>),
@@ -273,7 +273,7 @@ pub struct Arm {
 pub struct EnumDef {
     pub name: String,
     pub cases: Vec<(String, Option<Ty>)>,
-    /// A `layout.c enum`: each case's number (no case has data).
+    /// A `layout.C enum`: each case's number (no case has data).
     pub values: Option<Vec<i128>>,
 }
 
@@ -879,7 +879,7 @@ impl Program {
         w.out.push('\n');
         w.out.push_str(&self.printer);
         for e in &self.enums {
-            let layout = if e.values.is_some() { "layout.c " } else { "" };
+            let layout = if e.values.is_some() { "layout.C " } else { "" };
             w.out.push_str(&format!("\n{layout}enum {} {{\n", e.name));
             for (i, (c, t)) in e.cases.iter().enumerate() {
                 match (t, &e.values) {
