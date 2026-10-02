@@ -11,7 +11,7 @@ MAIN {
     std::print.useful.stdout["x is ", 'x', \n];
 
     # a joined text is already text: print and print.useful agree on it
-    let 'line' := 'name' ++ " scored " ++ to.str.utf8['count'];
+    let 'line' := 'name' ++ " scored " ++ to.stored.str.utf8['count'];
     std::print.stored.stdout['line', \n];
     std::print.useful.stdout['line', \n];
 

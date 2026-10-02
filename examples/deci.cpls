@@ -31,7 +31,7 @@ MAIN {
     std::print.stored.stdout['t', " ", 'u', " ", 'v', \n];
     let 'i' := to.int32['h' x 2] otherwise -1;
     let 'j' := to.int32['h'] otherwise -1;
-    std::print.stored.stdout['i', " ", 'j', " ", to.bin64['h'], " ", to.str.utf8['h'], \n];
+    std::print.stored.stdout['i', " ", 'j', " ", to.bin64['h'], " ", to.stored.str.utf8['h'], \n];
     let 'neg': deci64 = -1.5;
     std::print.stored.stdout['neg', " ", -'neg', " ", 'neg' < 'h', \n];
 }

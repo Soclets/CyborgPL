@@ -1,4 +1,4 @@
-# Text in two forms (owner, 2026-09-30): `to.str.utf8` is the exact value, as `print` shows it;
+# Text in two forms (owner, 2026-09-30): `to.stored.str.utf8` is the exact value, as `print.stored` shows it;
 # `to.useful.str.utf8` is the useful one, as `print.useful` shows it. `.useful` follows the verb.
 enum Size {
     small
@@ -11,10 +11,10 @@ MAIN {
     let 'n': int32 = 42;
     let 'ok' := true;
     let 's' := Size.big;
-    std::print.stored.stdout[to.str.utf8['x'], " | ", to.useful.str.utf8['x'], \n];
-    std::print.stored.stdout[to.str.utf8['d'], " | ", to.useful.str.utf8['d'], \n];
-    std::print.stored.stdout[to.str.utf8['n'], " | ", to.useful.str.utf8['n'], \n];
-    std::print.stored.stdout[to.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], \n];
-    std::print.stored.stdout[to.str.utf8['s'], " | ", to.useful.str.utf8['s'], \n];
+    std::print.stored.stdout[to.stored.str.utf8['x'], " | ", to.useful.str.utf8['x'], \n];
+    std::print.stored.stdout[to.stored.str.utf8['d'], " | ", to.useful.str.utf8['d'], \n];
+    std::print.stored.stdout[to.stored.str.utf8['n'], " | ", to.useful.str.utf8['n'], \n];
+    std::print.stored.stdout[to.stored.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], \n];
+    std::print.stored.stdout[to.stored.str.utf8['s'], " | ", to.useful.str.utf8['s'], \n];
     std::print.useful.stdout['s', \n];
 }

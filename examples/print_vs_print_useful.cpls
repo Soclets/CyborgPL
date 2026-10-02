@@ -6,7 +6,7 @@ MAIN {
     std::print.useful.stdout['y', \n];
     let 'big' := 1_000_000 x 1_000_000;
     std::print.stored.stdout['big', \n];
-    let 's' := "x is " ++ to.str.utf8['x'];
+    let 's' := "x is " ++ to.stored.str.utf8['x'];
     std::print.stored.stdout['s', \n];
     std::print.useful.stdout['s', \n];
     std::print.useful.stdout["x is ", 'x', \n];

@@ -17,7 +17,7 @@ fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool {
 }
 
 fn label [lent 'l': Locker] -> str.utf8 {
-    return "#" ++ to.str.utf8['l'.number] ++ " (" ++ 'l'.owner ++ ")";
+    return "#" ++ to.stored.str.utf8['l'.number] ++ " (" ++ 'l'.owner ++ ")";
 }
 
 MAIN {

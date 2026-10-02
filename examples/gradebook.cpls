@@ -18,9 +18,9 @@ fn record [lent.mut 's': Student, 'score': int32] -> fail[out_of_range: int32] {
 }
 
 fn grade [lent 's': Student] -> str.utf8 {
-    let 'avg' := average[lend 's'] otherwise return to.str.utf8['passing'] ++ "? no scores";
-    if 'avg' >/== 'passing' { return "pass (" ++ to.str.utf8['avg'] ++ ")"; }
-    return "fail (" ++ to.str.utf8['avg'] ++ ")";
+    let 'avg' := average[lend 's'] otherwise return to.stored.str.utf8['passing'] ++ "? no scores";
+    if 'avg' >/== 'passing' { return "pass (" ++ to.stored.str.utf8['avg'] ++ ")"; }
+    return "fail (" ++ to.stored.str.utf8['avg'] ++ ")";
 }
 
 MAIN {

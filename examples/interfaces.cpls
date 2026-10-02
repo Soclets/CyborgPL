@@ -14,7 +14,7 @@ struct Vec { x: bin64  y: bin64 }
 # may be defined for a user type (never for the language's types)
 op < ['a': Vec, 'b': Vec] -> bool { return ('a'.x x 'a'.x + 'a'.y x 'a'.y) < ('b'.x x 'b'.x + 'b'.y x 'b'.y); }
 op == ['a': Vec, 'b': Vec] -> bool { return 'a'.x == 'b'.x and 'a'.y == 'b'.y; }
-fn show [lent 'v': Vec] -> str.utf8 { return "(" ++ to.str.utf8['v'.x] ++ ", " ++ to.str.utf8['v'.y] ++ ")"; }
+fn show [lent 'v': Vec] -> str.utf8 { return "(" ++ to.stored.str.utf8['v'.x] ++ ", " ++ to.stored.str.utf8['v'.y] ++ ")"; }
 
 Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;

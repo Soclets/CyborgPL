@@ -405,7 +405,8 @@ pub enum Expr {
     /// `to.int32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
     /// fail (`not_a_number`), so it may carry an `otherwise` handler
     /// `to.T[v]`; the bool is `.useful` (`to.deci64.useful[…]`, owner 2026-09-29)
-    Convert(Ty, Bracket, Option<Handler>, bool, usize),
+    /// the form: 0 none written, 1 `to.stored.…`, 2 `to.useful.…` (owner, 2026-10-02: text says which)
+    Convert(Ty, Bracket, Option<Handler>, u8, usize),
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
     SizeOf(Ty, bool, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets

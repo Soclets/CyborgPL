@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — A number into text says its form too: `to.stored.str.utf8` or `to.useful.str.utf8` (owner)
+
+```
+"#" ++ to.stored.str.utf8['n']     # 0.1000000000000000055…  (was to.str.utf8['n'])
+"#" ++ to.useful.str.utf8['n']     # 0.1
+to.str.utf8['bytes'] otherwise …   # bytes, text and characters stay bare: one form
+```
+
+Design claude asked whether `to.str.utf8` should need `.stored`, to match
+the prints (left open by the entry below). The owner: "yes". A bare
+`to.str.utf8[…]` (any text target) of a number, `bool` or enum case is
+refused, naming both forms; `to.stored.` is accepted only before a text
+target. In the oracle (reject test `to_text_bare`); examples, reject tests,
+`conversion.md` and `syntax-sketch.md` rewritten. Whether `to.deci64[…]`
+of a bin needs a form was not asked.
+
 ### 2026-10-02 — Every print says its form: `print.stored` or `print.useful`; `print.weird.stored` too (owner)
 
 ```

@@ -9,6 +9,6 @@ MAIN {
     let mut 'line': str.utf8[0, 20 bytes] = "";
     change 'line' = 'line' ++ "twelve chars";                      # 12 bytes: fits
     std::print.useful.stdout[str.bytes[lend 'line'], \n];
-    let 'short' := to.str.utf8[0, 3 bytes][12345] otherwise "?";     # into a bounded text: fails out_of_range
+    let 'short' := to.stored.str.utf8[0, 3 bytes][12345] otherwise "?";     # into a bounded text: fails out_of_range
     std::print.useful.stdout['short', \n];
 }

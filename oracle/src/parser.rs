@@ -2470,11 +2470,14 @@ impl Parser {
                             if b.values.len() != 1 { return self.err(format!("`to.{k}[…]` converts exactly one value")); }
                             if *self.peek() == Tok::LBracket { return self.err(format!("`to.{k}[…]` keeps the element type, so it is not written: `to.{k}[give 'x']`")); }
                             let blank = Box::new(Ty::Var(String::new()));
-                            return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, false, line));
+                            return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, 0, line));
                         }
                     }
                     // `.useful` follows the verb (owner, 2026-09-30: b): `to.useful.str.utf8[…]`, `to.useful.deci64[…]`
                     let useful_first = if matches!(self.peek(), Tok::Word(w) if w == "useful") && matches!(self.peek_at(1), Tok::Dot) { self.advance(); self.advance(); true } else { false };
+                    // `to.stored.str.utf8[…]`: the stored form, said outright as prints say it (owner, 2026-10-02)
+                    let stored_first = !useful_first && matches!(self.peek(), Tok::Word(w) if w == "stored") && matches!(self.peek_at(1), Tok::Dot);
+                    if stored_first { self.advance(); self.advance(); }
                     self.to_target = true;
                     let ty = self.ty();
                     self.to_target = false;
@@ -2493,7 +2496,8 @@ impl Parser {
                         return self.err(format!("`.useful` follows the verb: `to.useful.{}[…]` (owner, 2026-09-30)", ty_name(&ty)));
                     }
                     if useful_first && !matches!(ty, Ty::Deci(_) | Ty::Str(_)) { return self.err(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.deci64[…]`; `to.{}` has no useful form", ty_name(&ty))); }
-                    let useful = useful_first;
+                    if stored_first && !matches!(ty, Ty::Str(_) | Ty::TextRanged(..)) { return self.err(format!("`to.stored` makes text: `to.stored.str.utf8[…]`; `to.{}` has one form", ty_name(&ty))); }
+                    let useful: u8 = if useful_first { 2 } else if stored_first { 1 } else { 0 };
                     if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     let b = self.bracket()?;

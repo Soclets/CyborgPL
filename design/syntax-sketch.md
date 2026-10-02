@@ -110,15 +110,15 @@ without the rest of that redesign. See `DECISIONS.md`.
   `occupied = false` inside a construction. A bracket around a single
   expression is allowed as grouping and builds nothing.
 - **Text joins with `++`** (decided 2026-09-19, replacing the whitespace
-  join of 2026-09-14 — "we'll make it explicit"): `"#" ++ to.str.utf8['n']
+  join of 2026-09-14 — "we'll make it explicit"): `"#" ++ to.stored.str.utf8['n']
   ++ " (" ++ 'owner' ++ ")"`, `"line 1" ++ \n ++ "line 2"` (a bare `\n` is
   a newline text). **Both sides must be text** (later the same day): a
-  number is converted first with `to.str.utf8[…]` (`conversion.md`), and
-  becomes text in its stored form. Two values side by side with nothing between
+  number is converted first with `to.stored.str.utf8[…]` or
+  `to.useful.str.utf8[…]` (`conversion.md`). Two values side by side with nothing between
   (`"a" 'b'`, `[10 20]`) are an error naming `++` and `,`. Precedence: below
   `+ -`, above comparisons, left-associative — `"n=" ++ 'a' + 'b'` joins the
   sum. The 2026-09-14 rule "a bare number is an operand, not a piece" is
-  retired with the whitespace join; `"count: " ++ to.str.utf8[10]` is the
+  retired with the whitespace join; `"count: " ++ to.stored.str.utf8[10]` is the
   spelling.
 - **A string is exactly its characters** (decided 2026-09-19). Inside
   `"…"`, `\` escapes only what cannot otherwise be written in a string:

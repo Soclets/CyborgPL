@@ -2058,7 +2058,10 @@ impl<'p> Interp<'p> {
                     }
                 }
             }
-            Expr::Convert(ty, b, handler, useful, _) => {
+            Expr::Convert(ty, b, handler, form, _) => {
+                let form = *form;
+                let useful_flag = form == 2;
+                let useful = &useful_flag;
                 let (v, _) = self.single(b, line)?;
                 // a fallback takes the conversion's type: `to.deci32['x'] otherwise 0` is a deci32 0
                 self.fallback_ty = match ty { Ty::Ranged(bt, ..) => Some((**bt).clone()), Ty::TextRanged(e, ..) => Some(Ty::Str(e.clone())), t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Str(_) | Ty::Char(_) | Ty::Bool) => Some(t.clone()), _ => None };
@@ -2183,6 +2186,10 @@ impl<'p> Interp<'p> {
                     }
                     (Ty::Str(_), Value::Enum(t, c, Some(_))) => return rt(line, format!("`{t}.{c}` carries data, so it is not text: `match` it and build the text you want, or print it directly (owner, 2026-09-30)")),
                     // `to.useful.str…` is `print.useful`'s text, `to.str…` is `print`'s (owner, 2026-09-30)
+                    // a value that is not text says which text it becomes, as a print says which form it
+                    // shows (owner, 2026-10-02): `to.stored.str.utf8[…]` or `to.useful.str.utf8[…]`
+                    (Ty::Str(_), other) if form == 0 && !matches!(other, Value::Str(_) | Value::Char(..)) =>
+                        return rt(line, format!("say which text `to.{target}` makes of {}: `to.stored.{target}[…]` (what is stored) or `to.useful.{target}[…]` (the useful value) (owner, 2026-10-02)", other.kind())),
                     (Ty::Str(_), other) => Value::Str(if *useful { show_useful_as(other, src_ty.as_ref()) } else { other.show_stored() }),
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }

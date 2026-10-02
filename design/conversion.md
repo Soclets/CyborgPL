@@ -4,7 +4,7 @@ Decided 2026-09-19. Nothing converts by itself; a conversion is spelled as
 `to`, the target type, and the value in brackets.
 
 ```
-to.str.utf8['avg']                 # number → text, in its stored form; never fails
+to.stored.str.utf8['avg']          # number → text, in its stored form; never fails
 to.bin64['n']                      # int → bin, widening; never fails
 to.int8['big']                     # narrowing: a check site (does it fit?), like a typed assignment
 to.int32["42"] otherwise 0         # text → number: can fail with `not_a_number` or `out_of_range`
@@ -62,7 +62,11 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   handed to them directly — rendering for output is what they are for, not
   a conversion.
 - A number becomes text in its **stored form**, always (2026-09-14):
-  `to.str.utf8[…]` is what `print` shows. **`to.useful.str.utf8[…]` is
+  `to.stored.str.utf8[…]` is what `print.stored` shows. **The form is
+  always written** (owner, 2026-10-02: "yes", matching `print.stored`):
+  a bare `to.str.utf8[…]` of a number, `bool` or enum case is refused,
+  naming both forms. Text, characters and bytes into text stay bare: they
+  have one form. **`to.useful.str.utf8[…]` is
   what `print.useful` shows** (owner, 2026-09-30): `0.1` for the bin whose
   exact value is 55 digits, `1.5` for the deci `1.50`, and an enum case's
   bare word, `big`, where the exact form is `Size.big`. A `bool` is
