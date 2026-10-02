@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — RRx2 runs when the owner says it is time, not after every CyborgPL change (owner)
+
+The owner asked RRx2-TV claude what RRx2 covers (all 185 of CCA's test
+programs pass its up-front check; of 154 run, 100 proven, 0 wrong), then
+whether it is safe to continue CyborgPL. Design claude: yes by the
+owner's bar ("It should cover what CyborgPL currently supports"), and
+asked whether RRx2-TV keeps working beside the CyborgPL sessions. The
+owner: "I think RRx2 will continue only when it's time to continue, not
+after every single CyborgPL update." Whether CyborgPL resumes now, and
+the core split if it does, were asked next.
+
 ### 2026-10-02 — A bin into a `deci` says its form too: `to.stored.deci64` or `to.useful.deci64` (owner)
 
 ```
