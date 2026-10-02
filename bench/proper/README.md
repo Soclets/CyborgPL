@@ -1,7 +1,7 @@
 # The proper benchmark
 
-The same four programs as [`bench/`](../README.md), in seven languages — C, Rust, Go,
-Java, Python, Julia and CyborgPL — each written **the way that language's own practice says**,
+The same four programs as [`bench/`](../README.md), in eight languages — C, Rust, Go,
+Java, Python, Julia, LuaJIT and CyborgPL — each written **the way that language's own practice says**,
 using only what the language comes with (owner, 2026-10-01). `bench/` asks every
 language to write the plain loop; this one asks each to write what an expert in it
 would. Results: [`RESULTS.md`](RESULTS.md).
@@ -34,6 +34,7 @@ would. Results: [`RESULTS.md`](RESULTS.md).
 | **Java** | `LongStream…parallel()` | `long[]` from a `LongStream`, `Arrays.stream(…).sum()` | `boolean[]` |
 | **Python** | `multiprocessing.Pool`, a worker per core | list comprehension, built-in `sum` | `bytearray`, slice assignment, `count` |
 | **Julia** | a `Threads.@spawn` task per thread (`-t auto`) | a comprehension, `sum` | `Vector{Bool}`, range assignment |
+| **LuaJIT** | one plain loop (no threads come with it) | an FFI `int32_t` array of known size | an FFI byte array |
 | **CyborgPL** | `for` loops; CCA splits them across every core itself when Precog proves it safe | `for` | `for` |
 
 CyborgPL's versions are the ones in `bench/`: its proper practice is the plain `for`,

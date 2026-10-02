@@ -58,6 +58,8 @@ def build(lang, name):
     if lang == "julia":
         # Threads are off unless asked for; `-t auto` is how Julia uses every core.
         return ["julia", "-t", "auto", "--startup-file=no", os.path.join(src, name + ".jl")]
+    if lang == "luajit":
+        return ["luajit", os.path.join(src, name + ".lua")]
     if lang == "cyborgpl":
         sh([CCA, "build", "--final", os.path.join(src, name + ".cpls"), "-o", out])
         return [out]
@@ -65,7 +67,7 @@ def build(lang, name):
 
 
 LABELS = {"c": "C (clang -O2)", "rust": "Rust (rustc, opt-level 3)", "go": "Go", "java": "Java",
-          "python": "Python (CPython)", "julia": "Julia (-t auto)", "cyborgpl": "CyborgPL (CCA, final build)"}
+          "python": "Python (CPython)", "julia": "Julia (-t auto)", "luajit": "LuaJIT", "cyborgpl": "CyborgPL (CCA, final build)"}
 
 
 def run(cmd, n):
