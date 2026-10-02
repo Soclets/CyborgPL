@@ -348,6 +348,8 @@ impl Checker {
                         (v, t.clone(), kind)
                     }
                     None => {
+                        let mut v = v;
+                        crate::check::expr::settle_exact(&mut v)?;
                         let vt = self.resolve(&v.ty);
                         if vt == Ty::Nothing {
                             return err(Diagnostic::error(format!("'{}' would hold nothing: the value on the right returns nothing", name.name)).at(value.span));

@@ -2244,6 +2244,17 @@ impl<'a> Parser<'a> {
     fn prefix(&mut self) -> Result<Expr> {
         let start = self.span();
         match self.peek().clone() {
+            // `*0.1`: exactly this decimal, a `deci` (owner, 2026-10-02).
+            Tok::Op(o) if o == "*" && matches!(self.peek_at(1), Tok::Num { .. }) => {
+                self.bump();
+                let Tok::Num { text, bin } = self.peek().clone() else { unreachable!() };
+                let at = self.bump().span;
+                if !bin {
+                    return self.fail_at(start.to(at), format!("`{}` is exact already: an integer is held as written, so `*` adds nothing — write `{}`", text, text));
+                }
+                let span = start.to(at);
+                self.postfix_on(Expr { kind: ExprKind::Exact(text.replace('_', "")), span })
+            }
             Tok::Op(o) if o == "-" => {
                 self.bump();
                 let operand = self.expr(9)?;

@@ -146,6 +146,8 @@ enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
 eq_in_value [fnv:5a99b3d49669530b] :: gives a declaration its value once; equality is `==`
 eq_without_type [fnv:b34002b1a60ea4e5] :: changing a variable says so
+exact_integer [fnv:ad0efd01de0e9e28] :: exact already
+exact_into_bin [fnv:5b84c614a3bd1fec] :: cannot hold it exactly
 exit_range [fnv:66ac7011902821d4] :: !pending `std::exit` is a stub until std exists; its `uint8` argument gets no narrowing site yet
 extern_fail [fnv:258154190b2df28e] :: an `extern fn` cannot `fail`: C has no failures
 extern_lent_param [fnv:b7762a1e487d808d] :: ptr[T]` and hand it a lend at the call

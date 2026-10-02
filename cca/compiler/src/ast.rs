@@ -260,6 +260,8 @@ pub enum ExprKind {
     Match { value: Box<Expr>, arms: Vec<MatchArm> },
     Int(String),
     Bin(String),
+    /// `*0.1`: "exactly this", a `deci` (owner, 2026-10-02).
+    Exact(String),
     Str(String),
     Char(String),
     /// The bare `\n`.

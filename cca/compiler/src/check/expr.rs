@@ -60,6 +60,8 @@ impl Checker {
                 Ok(Expr { kind: K::Int(v), ty: FREE_INT, span })
             }
             AK::Bin(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: FREE_BIN, span }),
+            // A deci whose width its place gives: `deci64` under `:=`.
+            AK::Exact(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: Ty::Deci(EXACT_FREE), span }),
             AK::Str(s) => Ok(Expr { kind: K::Str(s.clone()), ty: Ty::Str(Enc::Free(InferId(0))), span }),
             AK::Newline => Ok(Expr { kind: K::Str("\n".into()), ty: Ty::Str(Enc::Free(InferId(0))), span }),
             AK::Char(c) => {
@@ -616,8 +618,11 @@ impl Checker {
         // meaning, and 70000 in a `bin16` would silently become 69984.
         // Bare numbers in a `deci` place are decimals, exactly as written
         // (owner, 2026-09-29): `let 'a': deci64 = 0.1 + 0.2;` is 0.3.
+        if matches!(vt.base(), Ty::Deci(EXACT_FREE)) && matches!(t.base(), Ty::Bin(_) | Ty::Int(_)) {
+            return err(Diagnostic::error(format!("a `*` literal is exactly what is written, a deci, and {} is {}, which cannot hold it exactly: drop the `*` for a bin, or make it a `deci`", what, article(&self.spell(&t)))).at(v.span));
+        }
         if let Ty::Deci(bits) = t.base() {
-            if !matches!(vt.base(), Ty::Deci(_)) && deci_group(&v) {
+            if !matches!(vt.base(), Ty::Deci(b) if *b != EXACT_FREE) && deci_group(&v) {
                 let mut v = v;
                 into_deci(&mut v, *bits)?;
                 return Ok(v);
@@ -1232,6 +1237,8 @@ impl Checker {
     /// simply read: it owns nothing, and a verb on one is an error
     /// everywhere else in the language, so it would be strange here.
     fn as_operand(&mut self, _ctx: &mut FnCtx, e: Expr) -> Result<Expr> {
+        let mut e = e;
+        settle_exact(&mut e)?;
         match e.kind {
             K::Read(place) => {
                 let ty = e.ty;
@@ -1394,8 +1401,23 @@ impl Checker {
             return err(Diagnostic::error("a deci power's exponent is an integer or a whole literal: the deci goes on the left of `xx`").at(op_span));
         }
         match (lt.base(), rt.base()) {
-            (Ty::Deci(b), other) if !matches!(other, Ty::Deci(_)) && deci_group(&r) => into_deci(&mut r, *b)?,
-            (other, Ty::Deci(b)) if !matches!(other, Ty::Deci(_)) && deci_group(&l) => into_deci(&mut l, *b)?,
+            (Ty::Deci(b), other) if *b != EXACT_FREE && !matches!(other, Ty::Deci(x) if *x != EXACT_FREE) && deci_group(&r) => into_deci(&mut r, *b)?,
+            (other, Ty::Deci(b)) if *b != EXACT_FREE && !matches!(other, Ty::Deci(x) if *x != EXACT_FREE) && deci_group(&l) => into_deci(&mut l, *b)?,
+            // Two exact literals with nothing else to say: both `deci64`.
+            (Ty::Deci(EXACT_FREE), Ty::Deci(EXACT_FREE)) => {
+                into_deci(&mut l, 64)?;
+                into_deci(&mut r, 64)?;
+            }
+            // An exact literal beside a bare bin literal: the bin one is a
+            // decimal too, as beside any deci.
+            (Ty::Deci(EXACT_FREE), _) if deci_group(&r) => {
+                into_deci(&mut l, 64)?;
+                into_deci(&mut r, 64)?;
+            }
+            (_, Ty::Deci(EXACT_FREE)) if deci_group(&l) => {
+                into_deci(&mut l, 64)?;
+                into_deci(&mut r, 64)?;
+            }
             _ => {}
         }
         let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
@@ -3479,10 +3501,22 @@ fn plain_group(e: &Expr) -> bool {
 
 /// Bare numbers — whole or with a point — with only `+ - x div` between
 /// them: what a `deci` place makes decimals of.
+/// The width of an exact literal (`*0.1`) not yet given by its place.
+pub const EXACT_FREE: u16 = 0;
+
+/// An exact literal no place gave a width: `deci64`, the oracle's pick
+/// (provisional: the width is Precog's to choose).
+pub fn settle_exact(e: &mut Expr) -> Result<()> {
+    if matches!(e.ty.base(), Ty::Deci(EXACT_FREE)) {
+        into_deci(e, 64)?;
+    }
+    Ok(())
+}
+
 fn deci_group(e: &Expr) -> bool {
     match &e.kind {
         K::Int(_) => matches!(e.ty.base(), Ty::Int(IntW::Free(_))) || e.ty.is_exact(),
-        K::Bin(_) => matches!(e.ty.base(), Ty::Bin(BinW::Free(_))),
+        K::Bin(_) => matches!(e.ty.base(), Ty::Bin(BinW::Free(_)) | Ty::Deci(EXACT_FREE)),
         K::Unary { op: UnOp::Neg, expr } => deci_group(expr),
         K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div, lhs, rhs, .. } => deci_group(lhs) && deci_group(rhs),
         _ => false,
