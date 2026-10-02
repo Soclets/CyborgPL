@@ -1452,7 +1452,9 @@ impl Gen {
                     };
                     Expr::Bin(op, Box::new(a), Box::new(b))
                 }
-                5 => Expr::Bin(BinOp::Pow, Box::new(a), Box::new(Expr::Lit(self.rng.range(-3, 12)))),
+                // a small exponent: values of at most 6 digits stay far inside
+                // even deci32's range, since this may sit in `check` code
+                5 => Expr::Bin(BinOp::Pow, Box::new(a), Box::new(Expr::Lit(self.rng.range(-3, 4)))),
                 6 => Expr::Neg(Box::new(a)),
                 7 => {
                     // from an integer in scope: `otherwise` only when its type
@@ -1489,7 +1491,8 @@ impl Gen {
             let b = self.name("b");
             let bin = *self.rng.pick(&["0.1", "0.2", "2.5", "-1.75", "3.0", "0.001", "123.456"]);
             body.push(Stmt::TypedLet { name: b.clone(), mutable: false, ty: "bin64".into(), value: Expr::Num(bin.into()) });
-            let conv = if self.cfg.deci_useful && self.rng.chance(50) { format!("useful.{ty}") } else { ty.clone() };
+            // a bin into a deci says which form (owner, 2026-10-02)
+            let conv = if self.cfg.deci_useful && self.rng.chance(50) { format!("useful.{ty}") } else { format!("stored.{ty}") };
             let name = self.name("d");
             body.push(Stmt::AutoLet { name: name.clone(), value: Expr::Conv(conv, Box::new(Expr::Var(b)), None) });
             decis.push(name);
@@ -1519,7 +1522,8 @@ impl Gen {
                 }
                 _ => {
                     let s = self.name("t");
-                    let form = if self.cfg.deci_useful && self.rng.chance(50) { "useful.str.utf8" } else { "str.utf8" };
+                    // a deci into text says which form (owner, 2026-10-02)
+                    let form = if self.cfg.deci_useful && self.rng.chance(50) { "useful.str.utf8" } else { "stored.str.utf8" };
                     body.push(Stmt::AutoLet { name: s.clone(), value: Expr::Conv(form.into(), Box::new(d), None) });
                     body.push(Stmt::Print { signed: false, value: Expr::StrBytes(s) });
                 }

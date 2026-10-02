@@ -6,13 +6,13 @@
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
-    mut 'buf': list[uint8] = [];
+    let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
-    mut 'started': bool = false;
-    mut 'p': uint64 = 10000000000000000000;
+    let mut 'started': bool = false;
+    let mut 'p': uint64 = 10000000000000000000;
     for temp 'k': int32 in range[from 1, to 20, by 1] {
         if 'p' > 0 {
-            immut 'd': uint64 = ('m' div 'p') mod 10;
+            let immut 'd': uint64 = ('m' div 'p') mod 10;
             if 'd' !== 0 or 'started' or 'p' == 1 {
                 change 'started' = true;
                 list.append[lend.mut 'buf', to.uint8[48 + 'd']];
@@ -32,13 +32,13 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        immut 'up': int64 = -('n' + 1);
+        let immut 'up': int64 = -('n' + 1);
         emit[to.uint64['up'] + 1, true];
     }
 }
 
 fn f1 ['p1': uint16] -> uint32 {
-    immut 'v1': uint8 = (to.uint8['p1' mod 256] mod 16) x (to.uint8['p1' mod 256] mod 16);
+    let immut 'v1': uint8 = (to.uint8['p1' mod 256] mod 16) x (to.uint8['p1' mod 256] mod 16);
     return to.uint32['v1'];
 }
 
@@ -47,10 +47,10 @@ fn f2 ['p1': uint16] -> int32 {
 }
 
 MAIN {
-    mut 'v16': uint32 = f1[1] + 0;
-    mut 'v17': int64 = 19 - to.int64['v16'];
+    let mut 'v16': uint32 = f1[1] + 0;
+    let mut 'v17': int64 = 19 - to.int64['v16'];
     for temp 'i19': uint8 in range[from 33, to 42, by 1] {
-        mut 'w22': uint64 = 3;
+        let mut 'w22': uint64 = 3;
         loop {
             if 'w22' </== 0 {
                 break;
@@ -65,7 +65,7 @@ MAIN {
         for temp 'i37': uint16 in range[from 31, to 34, by 1] {
         }
     } else {
-        mut 'w42': uint32 = 9;
+        let mut 'w42': uint32 = 9;
         loop {
             if 'w42' </== 0 {
                 break;

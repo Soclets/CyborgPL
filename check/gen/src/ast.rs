@@ -688,14 +688,14 @@ impl<'a> Wr<'a> {
         self.indent = indent;
         match s {
             Stmt::EnumLet { name, mutable, en, value } => {
-                let head = format!("{}{}: {en} = ", if *mutable { "mut " } else if self.strict { "immut " } else { "" }, q(name));
+                let head = format!("let {}{}: {en} = ", if *mutable { "mut " } else if self.strict { "immut " } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::ListFill { name, mutable, elem, value, count } => {
                 let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
-                self.out.push_str(&format!("{m}{}: list[{}] = list.fill[", q(name), elem.name()));
+                self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[", q(name), elem.name()));
                 self.e(value);
                 self.out.push_str(if self.strict { ", count " } else { ", " });
                 self.e(count);
@@ -705,16 +705,16 @@ impl<'a> Wr<'a> {
             }
             Stmt::TypedLet { name, mutable, ty, value } => {
                 let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
-                let head = format!("{m}{}: {ty} = ", q(name));
+                let head = format!("let {m}{}: {ty} = ", q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::AutoLet { name, value } => {
-                let head = format!("{}{} := ", if self.strict { "immut " } else { "" }, q(name));
+                let head = format!("let {}{} := ", if self.strict { "immut " } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::SimdLet { name, mutable, elem, lanes, value } => {
                 let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
-                let head = format!("{m}{}: simd[{}, {lanes}] = ", q(name), elem.name());
+                let head = format!("let {m}{}: simd[{}, {lanes}] = ", q(name), elem.name());
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::MatchStmt { scrut, arms } => {
@@ -731,7 +731,7 @@ impl<'a> Wr<'a> {
                     Mutability::Mut => "mut ",
                     Mutability::Immut => "immut ",
                 };
-                let head = format!("{m}{}: {} = ", q(name), ty.text());
+                let head = format!("let {m}{}: {} = ", q(name), ty.text());
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
             Stmt::Assign { tier, name, value } => {
@@ -806,7 +806,7 @@ impl<'a> Wr<'a> {
                 let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
-                self.out.push_str(&format!("{m}{}: list[{}] = [", q(name), elem.name()));
+                self.out.push_str(&format!("let {m}{}: list[{}] = [", q(name), elem.name()));
                 for (i, x) in items.iter().enumerate() {
                     if i > 0 {
                         self.out.push_str(", ");
@@ -836,13 +836,13 @@ impl<'a> Wr<'a> {
                 self.simple(s, &pad, Tier::Default, &head, value, "];");
             }
             Stmt::Borrow { name, value } => {
-                let head = format!("{}{} := ", if self.strict { "immut " } else { "" }, q(name));
+                let head = format!("let {}{} := ", if self.strict { "immut " } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::Give { name, from } => {
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
-                self.out.push_str(&format!("{}{} := give {};", if self.strict { "immut " } else { "" }, q(name), q(from)));
+                self.out.push_str(&format!("let {}{} := give {};", if self.strict { "immut " } else { "" }, q(name), q(from)));
                 self.stmt.push((addr(s), s0, s0, self.out.len()));
                 self.out.push('\n');
             }
@@ -890,7 +890,15 @@ impl Program {
             let group = |g: &Option<String>| g.as_ref().map(|g| format!("@{g}")).unwrap_or_default();
             let params: Vec<String> = f.params.iter().map(|(n, g)| format!("lent{} {}: list[{t}]", group(g), q(n))).collect();
             let ret = if f.unsaid { format!("list[{t}]") } else { format!("lent{} list[{t}]", group(&f.ret_group)) };
-            w.out.push_str(&format!("\nfn {} [{}] -> {ret} {{\n", f.name, params.join(", ")));
+            // every lifetime group is announced after the name (owner, 2026-10-02)
+            let mut groups: Vec<String> = vec![];
+            for g in f.params.iter().map(|p| &p.1).chain(std::iter::once(&f.ret_group)).flatten() {
+                if !groups.contains(g) {
+                    groups.push(g.clone());
+                }
+            }
+            let announce: String = groups.iter().map(|g| format!(" @{g}")).collect();
+            w.out.push_str(&format!("\nfn {}{announce} [{}] -> {ret} {{\n", f.name, params.join(", ")));
             w.block(&f.body, 1);
             w.out.push_str("}\n");
         }
@@ -904,8 +912,8 @@ impl Program {
         for i in &self.inputs {
             let key = format!("{}_key", i.name);
             let im = if self.strict { "immut " } else { "" };
-            w.out.push_str(&format!("    {im}{} := \"{}\";\n", q(&key), i.var));
-            w.out.push_str(&format!("    nocheck {im}{}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
+            w.out.push_str(&format!("    let {im}{} := \"{}\";\n", q(&key), i.var));
+            w.out.push_str(&format!("    nocheck let {im}{}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
         }
         w.block(&self.main, 1);
         w.out.push_str("}\n");

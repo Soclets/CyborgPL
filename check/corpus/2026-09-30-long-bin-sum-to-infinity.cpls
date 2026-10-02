@@ -4,17 +4,17 @@
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
-    mut 'buf': list[uint8] = [];
+    let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
-    mut 'v': uint64 = 'm';
-    mut 'ds': list[uint8] = [];
+    let mut 'v': uint64 = 'm';
+    let mut 'ds': list[uint8] = [];
     list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
     change 'v' = 'v' div 10;
     while 'v' > 0 {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
         change 'v' = 'v' div 10;
     }
-    mut 'k': uint64 = list.length[lend 'ds'];
+    let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
         change 'k' = 'k' - 1;
@@ -31,17 +31,17 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        'up': int64 = -('n' + 1);
+        let 'up': int64 = -('n' + 1);
         emit[to.uint64['up'] + 1, true];
     }
 }
 
 MAIN {
-    mut 't': bin64 = 0.0;
-    'big' := to.bin64["1.7e303"] otherwise 0.0;
+    let mut 't': bin64 = 0.0;
+    let 'big' := to.bin64["1.7e303"] otherwise 0.0;
     for 'i': int64 in range[1, 120000] {
         change 't' = 't' + 'big';
     }
-    'z' := to.int64['t' x 0.0] otherwise -1;
+    let 'z' := to.int64['t' x 0.0] otherwise -1;
     put_i['z'];
 }

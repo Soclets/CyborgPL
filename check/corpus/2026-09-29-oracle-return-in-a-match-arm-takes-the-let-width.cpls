@@ -5,17 +5,17 @@
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
-    mut 'buf': list[uint8] = [];
+    let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
-    mut 'v': uint64 = 'm';
-    mut 'ds': list[uint8] = [];
+    let mut 'v': uint64 = 'm';
+    let mut 'ds': list[uint8] = [];
     list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
     change 'v' = 'v' div 10;
     while 'v' > 0 {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
         change 'v' = 'v' div 10;
     }
-    mut 'k': uint64 = list.length[lend 'ds'];
+    let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
         change 'k' = 'k' - 1;
@@ -32,7 +32,7 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        'up': int64 = -('n' + 1);
+        let 'up': int64 = -('n' + 1);
         emit[to.uint64['up'] + 1, true];
     }
 }
@@ -45,7 +45,7 @@ enum E1 {
 }
 
 fn f3 [] -> uint64[min, 100] {
-    'v9': uint16 = match E1.c2 {
+    let 'v9': uint16 = match E1.c2 {
         c1 'd6' { ((0 x 16852) mod 58) + 651 }
         c2 {
             return ((13 + (3628437621139716329 + 1)) mod ((8997704354644785536 shr 42) + (4 + 14))) mod 101;
@@ -57,5 +57,5 @@ fn f3 [] -> uint64[min, 100] {
 }
 
 MAIN {
-    'v10': uint64 = f3[];
+    let 'v10': uint64 = f3[];
 }

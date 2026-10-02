@@ -3,9 +3,9 @@
 # two parameters. With one parameter, or with no call, it builds. The oracle runs it.
 fn f ['pr': int32[0, 6], 'p1': uint64] -> int64 {
     if 'pr' == 0 { return 1; }
-    'r': int64 = f['pr' - 1, 'p1'];
+    let 'r': int64 = f['pr' - 1, 'p1'];
     return 'r';
 }
 MAIN {
-    'v': int64 = f[3, 587];
+    let 'v': int64 = f[3, 587];
 }

@@ -4,9 +4,9 @@
 # returned) and prints 1.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 fn put_u ['m': uint64] {
-    mut 'buf': list[uint8] = [];
-    mut 'v': uint64 = 'm';
-    mut 'p': uint64 = 1;
+    let mut 'buf': list[uint8] = [];
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
     while 'v' div 'p' >/== 10 { change 'p' = 'p' x 10; }
     loop {
         list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
@@ -17,13 +17,13 @@ fn put_u ['m': uint64] {
     list.append[lend.mut 'buf', 10];
     nocheck write[1, lend 'buf', list.length[lend 'buf']];
 }
-fn b1 [lent@x 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
+fn b1 @x [lent@x 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
     return lend 'a';
 }
 MAIN {
-    's': list[int32] = [5,];
-    't': list[int32] = [6, 7];
-    'r' := b1[lend 's', lend 't'];
-    'g' := give 't';
+    let 's': list[int32] = [5,];
+    let 't': list[int32] = [6, 7];
+    let 'r' := b1[lend 's', lend 't'];
+    let 'g' := give 't';
     put_u[list.length[lend 'r']];
 }

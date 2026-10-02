@@ -5,12 +5,12 @@
 fn b1 [lent 'a': list[int32], lent 'b': list[int32]] -> lent list[int32] {
     return lend 'b';
 }
-fn b2 [lent@y 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
+fn b2 @y @x [lent@y 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
     return b1[lend 'a', lend 'b'];
 }
 MAIN {
-    's': list[int32] = [1,];
-    't': list[int32] = [2, 3];
-    'r' := b2[lend 's', lend 't'];
-    'n' := list.length[lend 'r'];
+    let 's': list[int32] = [1,];
+    let 't': list[int32] = [2, 3];
+    let 'r' := b2[lend 's', lend 't'];
+    let 'n' := list.length[lend 'r'];
 }

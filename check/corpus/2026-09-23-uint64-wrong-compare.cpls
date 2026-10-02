@@ -5,9 +5,9 @@ extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
-    'k' := "CHK_A";
-    nocheck 'n': uint64 = strlen[getenv[lend 'k']];
-    'm': uint64 = 'n' x 10000000000000000000;
-    'small' := "m is smaller than n";
+    let 'k' := "CHK_A";
+    nocheck let 'n': uint64 = strlen[getenv[lend 'k']];
+    let 'm': uint64 = 'n' x 10000000000000000000;
+    let 'small' := "m is smaller than n";
     if 'm' < 'n' { nocheck write[1, lend 'small', 19]; }
 }

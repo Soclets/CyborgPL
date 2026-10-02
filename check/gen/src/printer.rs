@@ -14,7 +14,7 @@ pub fn printer(rng: &mut Rng) -> String {
     let put_i = if rng.chance(50) { PUT_I_IF } else { PUT_I_ELSE_FIRST };
     let vouch = if rng.chance(50) { "nocheck" } else { "NO_FUCKING_CHECKS" };
     format!(
-        "fn emit ['m': uint64, 'neg': bool] {{\n    mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{digits}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}"
+        "fn emit ['m': uint64, 'neg': bool] {{\n    let mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{digits}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}"
     )
 }
 
@@ -24,14 +24,14 @@ pub fn printer(rng: &mut Rng) -> String {
 pub fn strict_printer(rng: &mut Rng) -> String {
     let put_i = if rng.chance(50) { STRICT_PUT_I_IF } else { STRICT_PUT_I_ELSE_FIRST };
     let vouch = if rng.chance(50) { "nocheck" } else { "NO_FUCKING_CHECKS" };
-    format!("fn emit ['m': uint64, 'neg': bool] {{\n    mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{STRICT_DIGITS}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}")
+    format!("fn emit ['m': uint64, 'neg': bool] {{\n    let mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{STRICT_DIGITS}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}")
 }
 
-const STRICT_DIGITS: &str = "    mut 'started': bool = false;
-    mut 'p': uint64 = 10000000000000000000;
+const STRICT_DIGITS: &str = "    let mut 'started': bool = false;
+    let mut 'p': uint64 = 10000000000000000000;
     for temp 'k': int32 in range[from 1, to 20, by 1] {
         if 'p' > 0 {
-            immut 'd': uint64 = ('m' div 'p') mod 10;
+            let immut 'd': uint64 = ('m' div 'p') mod 10;
             if 'd' !== 0 or 'started' or 'p' == 1 {
                 change 'started' = true;
                 list.append[lend.mut 'buf', to.uint8[48 + 'd']];
@@ -54,14 +54,14 @@ const STRICT_PUT_I_ELSE_FIRST: &str = "fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        immut 'up': int64 = -('n' + 1);
+        let immut 'up': int64 = -('n' + 1);
         emit[to.uint64['up'] + 1, true];
     }
 }
 ";
 
-const DIGITS_REVERSED_FOR: &str = "    mut 'v': uint64 = 'm';
-    mut 'ds': list[uint8] = [];
+const DIGITS_REVERSED_FOR: &str = "    let mut 'v': uint64 = 'm';
+    let mut 'ds': list[uint8] = [];
     loop {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
         change 'v' = 'v' div 10;
@@ -72,23 +72,23 @@ const DIGITS_REVERSED_FOR: &str = "    mut 'v': uint64 = 'm';
     }
 ";
 
-const DIGITS_REVERSED_WHILE: &str = "    mut 'v': uint64 = 'm';
-    mut 'ds': list[uint8] = [];
+const DIGITS_REVERSED_WHILE: &str = "    let mut 'v': uint64 = 'm';
+    let mut 'ds': list[uint8] = [];
     list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
     change 'v' = 'v' div 10;
     while 'v' > 0 {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
         change 'v' = 'v' div 10;
     }
-    mut 'k': uint64 = list.length[lend 'ds'];
+    let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
         change 'k' = 'k' - 1;
     }
 ";
 
-const DIGITS_POWER_OF_TEN: &str = "    mut 'v': uint64 = 'm';
-    mut 'p': uint64 = 1;
+const DIGITS_POWER_OF_TEN: &str = "    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
     while 'v' div 'p' >/== 10 {
         change 'p' = 'p' x 10;
     }
@@ -113,7 +113,7 @@ const PUT_I_ELSE_FIRST: &str = "fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        'up': int64 = -('n' + 1);
+        let 'up': int64 = -('n' + 1);
         emit[to.uint64['up'] + 1, true];
     }
 }

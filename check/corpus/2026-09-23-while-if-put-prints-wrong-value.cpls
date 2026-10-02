@@ -7,10 +7,10 @@ extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
-    mut 'buf': list[uint8] = [];
+    let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
-    mut 'v': uint64 = 'm';
-    mut 'p': uint64 = 1;
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
     while 'v' div 'p' >/== 10 {
         change 'p' = 'p' x 10;
     }
@@ -37,10 +37,10 @@ fn put_i ['n': int64] {
 }
 
 MAIN {
-    'k' := "CHK_IN2";
-    nocheck 'n': uint64 = strlen[getenv[lend 'k']];
-    'b': bool = 'n' > 0;
-    'w': int64 = 1;
+    let 'k' := "CHK_IN2";
+    nocheck let 'n': uint64 = strlen[getenv[lend 'k']];
+    let 'b': bool = 'n' > 0;
+    let 'w': int64 = 1;
     while 'w' > 0 {
         change 'w' = 0;
         if 'b' { put_i[0]; }

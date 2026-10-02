@@ -3,10 +3,10 @@
 # divisor's sign; 1 mod (-3) is -2. Printed as an exit-free comparison.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
-    'x': int64 = 1;
-    'd': int64 = 'x' mod (-3);
-    'ok' := "-2 ok";
+    let 'x': int64 = 1;
+    let 'd': int64 = 'x' mod (-3);
+    let 'ok' := "-2 ok";
     if 'd' == -2 { nocheck write[1, lend 'ok', 5]; }
-    'e': int64 = 7 mod (-3);
+    let 'e': int64 = 7 mod (-3);
     if 'e' == -2 { nocheck write[1, lend 'ok', 5]; }
 }

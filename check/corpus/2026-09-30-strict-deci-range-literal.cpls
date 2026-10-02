@@ -3,9 +3,9 @@
 # 0.79 is plainly inside [0.0, 1.0]. The oracle runs it.
 #strict
 fn f [] -> int32 {
-    immut 'd': deci64[0.0, 1.0] = 0.79;
+    let immut 'd': deci64[0.0, 1.0] = 0.79;
     return 0;
 }
 MAIN {
-    immut 'x': int32 = f[];
+    let immut 'x': int32 = f[];
 }

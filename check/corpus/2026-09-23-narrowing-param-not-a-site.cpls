@@ -6,9 +6,9 @@ extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 extern fn strlen ['s': ptr[uint8]] -> uint64;
 fn g ['v': uint8] -> uint8 { return 'v'; }
 MAIN {
-    'k' := "CHK_A";
-    nocheck 'n': uint64 = strlen[getenv[lend 'k']];
-    'b': uint8 = g['n'];
-    'hi' := "ran on";
+    let 'k' := "CHK_A";
+    nocheck let 'n': uint64 = strlen[getenv[lend 'k']];
+    let 'b': uint8 = g['n'];
+    let 'hi' := "ran on";
     nocheck write[1, lend 'hi', 6];
 }

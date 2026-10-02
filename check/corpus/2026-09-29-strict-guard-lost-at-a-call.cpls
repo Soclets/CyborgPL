@@ -10,5 +10,5 @@ fn f ['p': int32] -> bool {
     return false;
 }
 MAIN {
-    immut 'x': bool = f[5];
+    let immut 'x': bool = f[5];
 }

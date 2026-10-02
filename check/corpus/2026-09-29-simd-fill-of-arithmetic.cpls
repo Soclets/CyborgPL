@@ -3,6 +3,6 @@
 # simd.fill['x'] and simd.fill[to.int32['y']] build; 'x' + 1, ('x' mod 7) - 3 and ... xx 2 do not.
 # The oracle runs it.
 MAIN {
-    'x': int32 = 5;
-    'a': simd[int32, 4] = simd.fill['x' + 1];
+    let 'x': int32 = 5;
+    let 'a': simd[int32, 4] = simd.fill['x' + 1];
 }

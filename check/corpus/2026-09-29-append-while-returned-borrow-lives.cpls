@@ -3,9 +3,9 @@
 # (prints 1, then an empty line); the oracle prints 1 and 1003. Both should refuse the appends.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 fn put_u ['m': uint64] {
-    mut 'buf': list[uint8] = [];
-    mut 'v': uint64 = 'm';
-    mut 'p': uint64 = 1;
+    let mut 'buf': list[uint8] = [];
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
     while 'v' div 'p' >/== 10 { change 'p' = 'p' x 10; }
     loop {
         list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
@@ -20,8 +20,8 @@ fn put_u ['m': uint64] {
 fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
 
 MAIN {
-    mut 's': list[int32] = [1, 2, 3];
-    'r' := first[lend 's'];
+    let mut 's': list[int32] = [1, 2, 3];
+    let 'r' := first[lend 's'];
     for 'k': int32 in range[1, 1000] { list.append[lend.mut 's', 'k']; }
     put_u[to.uint64['r'[1]]];
     put_u[list.length[lend 'r']];

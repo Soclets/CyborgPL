@@ -4,9 +4,9 @@
 # and prints 5; the --assert-proofs build stops (proof failed). The oracle stops: division by zero.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 fn put_u ['m': uint64] {
-    mut 'buf': list[uint8] = [];
-    mut 'v': uint64 = 'm';
-    mut 'p': uint64 = 1;
+    let mut 'buf': list[uint8] = [];
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
     while 'v' div 'p' >/== 10 { change 'p' = 'p' x 10; }
     loop {
         list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
@@ -19,7 +19,7 @@ fn put_u ['m': uint64] {
 }
 enum E { a  b: uint64 }
 MAIN {
-    'v': uint64 = match E.b[284] { a { 1 } b 'd' { 'd' shr 35 } };
-    'n': uint64 = 5 div 'v';
+    let 'v': uint64 = match E.b[284] { a { 1 } b 'd' { 'd' shr 35 } };
+    let 'n': uint64 = 5 div 'v';
     put_u['n'];
 }

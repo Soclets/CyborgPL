@@ -2,8 +2,8 @@
 # 0..width-1 is a check site, for shl and shr alike. The oracle stops here.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
-    'v': int8 = 100;
-    'a': int8 = 'v' shr 8;
-    'hi' := "ran on";
+    let 'v': int8 = 100;
+    let 'a': int8 = 'v' shr 8;
+    let 'hi' := "ran on";
     nocheck write[1, lend 'hi', 6];
 }

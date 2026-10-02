@@ -3,9 +3,9 @@
 # while 'q' is used), so the oracle prints 7 and exits 0. CCA refuses the program.
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 fn put_u ['m': uint64] {
-    mut 'buf': list[uint8] = [];
-    mut 'v': uint64 = 'm';
-    mut 'p': uint64 = 1;
+    let mut 'buf': list[uint8] = [];
+    let mut 'v': uint64 = 'm';
+    let mut 'p': uint64 = 1;
     while 'v' div 'p' >/== 10 { change 'p' = 'p' x 10; }
     loop {
         list.append[lend.mut 'buf', to.uint8[48 + ('v' div 'p')]];
@@ -17,20 +17,20 @@ fn put_u ['m': uint64] {
     nocheck write[1, lend 'buf', list.length[lend 'buf']];
 }
 fn b1 [lent 'a': list[int32]] -> lent list[int32] {
-    'loc': list[int32] = [1, 2];
+    let 'loc': list[int32] = [1, 2];
     return lend 'loc';
 }
 MAIN {
     put_u[7];
-    's': list[int32] = [5,];
-    'n': int32 = 3;
+    let 's': list[int32] = [5,];
+    let 'n': int32 = 3;
     if 'n' > 5 {
-        'r' := b1[lend 's'];
+        let 'r' := b1[lend 's'];
         put_u[list.length[lend 'r']];
     }
-    mut 't': list[int32] = [5,];
+    let mut 't': list[int32] = [5,];
     if 'n' > 5 {
-        'q' := lend 't';
+        let 'q' := lend 't';
         list.append[lend.mut 't', 1];
         put_u[list.length[lend 'q']];
     }

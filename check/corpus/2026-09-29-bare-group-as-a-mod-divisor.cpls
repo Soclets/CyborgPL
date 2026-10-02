@@ -2,6 +2,6 @@
 # alone, so it is exact (dc83c05): 3. As the divisor of 'p' mod … with 'p' a uint8, CCA types it
 # at uint8 and refuses `x` ("the answer is 442"). As an operand of + it is fine. The oracle runs it.
 MAIN {
-    'p': uint8 = 7;
-    'v': uint8 = 'p' mod (((221 x 2) mod 5) + 1);
+    let 'p': uint8 = 7;
+    let 'v': uint8 = 'p' mod (((221 x 2) mod 5) + 1);
 }

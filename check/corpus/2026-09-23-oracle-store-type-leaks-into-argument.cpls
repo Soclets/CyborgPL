@@ -3,6 +3,6 @@
 # inside the call's argument.
 fn g ['p': bool] -> uint8 { return 0; }
 MAIN {
-    'x': int64 = 0;
-    'v': uint8 = g[0 > (-1) - 'x'];
+    let 'x': int64 = 0;
+    let 'v': uint8 = g[0 > (-1) - 'x'];
 }

@@ -7,17 +7,17 @@
 extern fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
-    mut 'buf': list[uint8] = [];
+    let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
-    mut 'v': uint64 = 'm';
-    mut 'ds': list[uint8] = [];
+    let mut 'v': uint64 = 'm';
+    let mut 'ds': list[uint8] = [];
     list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
     change 'v' = 'v' div 10;
     while 'v' > 0 {
         list.append[lend.mut 'ds', to.uint8[48 + ('v' mod 10)]];
         change 'v' = 'v' div 10;
     }
-    mut 'k': uint64 = list.length[lend 'ds'];
+    let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
         change 'k' = 'k' - 1;
@@ -39,12 +39,12 @@ fn put_i ['n': int64] {
 }
 
 MAIN {
-    'v22': uint8 = 1;
+    let 'v22': uint8 = 1;
     for 'i24': int8 in range[120, 127] {
-        mut 'xs25': list[uint8] = list.fill[((('v22' + 0) mod (((('v22' mod 4) xx (to.uint8['i24'] mod 6)) mod 122) + 1)) mod 110) + 13, ((-2147483647) - (-190277311)) mod 9];
+        let mut 'xs25': list[uint8] = list.fill[((('v22' + 0) mod (((('v22' mod 4) xx (to.uint8['i24'] mod 6)) mod 122) + 1)) mod 110) + 13, ((-2147483647) - (-190277311)) mod 9];
         for 'x26' in lend.mut 'xs25' {
             change 'x26' = 'x26' + 1;
-            'v31': int64 = 0;
+            let 'v31': int64 = 0;
             for 'i30': uint64 in range[1, 1] {
                 change 'v31' = 'xs25'['i30'];
             }
