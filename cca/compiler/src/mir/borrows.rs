@@ -216,8 +216,12 @@ fn check_fn(p: &Program, fi: usize, sources: &SourceMap, problems: &mut Vec<Stri
                 if place.proj.is_empty() && is_lent(place.local) {
                     match rvalue {
                         Rvalue::Lend { place: from, .. } => direct.push((place.local, from.local)),
+                        // Another borrow passed along rebinds it; a plain value
+                        // stored into a borrow is written through it, as
+                        // codegen does (`change 'x' = 'v'` in a `lend.mut` walk
+                        // copies 'v' into the list, and borrows nothing).
                         Rvalue::Use(o) => {
-                            if let Some(from) = o.place() {
+                            if let Some(from) = o.place().filter(|p| p.proj.is_empty() && is_lent(p.local)) {
                                 direct.push((place.local, from.local));
                             }
                         }

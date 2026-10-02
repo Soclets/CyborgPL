@@ -257,3 +257,4 @@ par_range_sum 85
 list_literal_family 14
 list_literal_mixed 33
 par_lent_param 64
+lend_mut_copy_in 31
