@@ -60,6 +60,11 @@ B> { … }`, so `T` is introduced before its first use; later mentions keep
 their `< >`, as shown. Whether lifetime groups join the same list
 (`<T: Number, @x>`) was not asked.
 
+**"Any type" is said with the built-in word `any`** (owner: "`a`", over
+an empty interface each Limb writes itself): `struct Pair <A: any, B: any>
+{ left: <A>  right: <B> }`. Written, never assumed: a generic without a
+bound is refused.
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:

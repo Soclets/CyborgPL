@@ -51,9 +51,10 @@ lifetime groups, before using them, as Rust does, so a mistyped `<Y>` or
 struct's blank order. The spelling, whether mentions keep their `< >`, and
 where bounds go are open, and nothing is built yet (`DECISIONS.md`).
 **A generic also says what it accepts** (owner: "Don't default to allow
-all"): no plain `<T>` that takes every type; how "any type" is said, for
-the generics that really mean it, is open. **The list goes right after the name**
-(owner, 2026-10-02: a): `fn max <T: Number> ['a': <T>, 'b': <T>] -> <T>`.
+all"): no plain `<T>` that takes every type; "any type" is said
+outright (below). **The list goes right after the name**
+(owner, 2026-10-02: a): `fn max <T: Number> ['a': <T>, 'b': <T>] -> <T>`. **"Any type" is the built-in
+`any`** (owner, 2026-10-02: a): `struct Pair <A: any, B: any> { … }`.
 
 ## Constraints
 
