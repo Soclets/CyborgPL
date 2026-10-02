@@ -32,8 +32,14 @@ with a `bin` or an integer without `to.`, over joining the bins (mixed
 freely, quietly widened; `brain16` + `bin16` would have no common type).
 Conversions, design claude's sketch under the existing `to.` rules:
 `to.bin32['w']` exact, never fails; `to.brain16['x']` rounds;
-`to.bin16['w']` can overflow, a check site. Open: literals, the GPU. Not
-built yet. `types.md`.
+`to.bin16['w']` can overflow, a check site.
+
+**A literal rounds to the nearest `brain16`**, as for bins (owner: "`a`,
+but idk about Precog"): `0.1` is stored as `0.10009765625`; `print`
+shows that, `print.useful` shows `0.1`. Over refusing any literal it
+cannot hold exactly, which would refuse nearly all. Whether a `:=` may
+ever become a `brain16` is open. Open too: the GPU. Not built yet.
+`types.md`.
 
 ### 2026-10-02 — Type names: CyborgPL's own and Rust's, nothing else (owner)
 
