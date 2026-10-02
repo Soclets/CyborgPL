@@ -1418,25 +1418,40 @@ impl<'p> Interp<'p> {
     /// signature's group is refused, and one returned without `-> lent` must say so. A borrow
     /// that comes from a call or another lend is followed when the function runs.
     fn check_returned_borrows(&self) -> Result<(), RuntimeError> {
-        fn walk<'a>(b: &'a [Stmt], out: &mut Vec<(&'a str, bool, usize)>, owned_locals: &mut Vec<&'a str>) {
+        fn walk<'a>(b: &'a [Stmt], out: &mut Vec<(&'a str, bool, usize)>, owned_locals: &mut Vec<&'a str>, calls: &mut Vec<(&'a crate::ast::Call, usize)>) {
             for s in b {
                 match s {
-                    Stmt::Return { value: Some(v), line } => if let [crate::ast::Value::Expr(Expr::Owned(verb @ (Verb::Lend | Verb::LendMut), n, _))] = v.values.as_slice() { out.push((n.as_str(), *verb == Verb::LendMut, *line)); },
+                    Stmt::Return { value: Some(v), line } => match v.values.as_slice() {
+                        [crate::ast::Value::Expr(Expr::Owned(verb @ (Verb::Lend | Verb::LendMut), n, _))] => out.push((n.as_str(), *verb == Verb::LendMut, *line)),
+                        // `return b1[lend 'c', …]`: checked on every path too, not only when it runs
+                        // (check claude's finding, 2026-10-02)
+                        [crate::ast::Value::Expr(Expr::Call(c))] => calls.push((c, *line)),
+                        _ => {}
+                    },
                     Stmt::Decl { name, value, .. } => {
                         let borrowish = matches!(value.values.as_slice(), [crate::ast::Value::Expr(Expr::Owned(Verb::Lend | Verb::LendMut, ..) | Expr::Call(_) | Expr::CallValue(..) | Expr::Var(..))]);
                         if !borrowish { owned_locals.push(name.as_str()); }
                     }
-                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, out, owned_locals); } if let Some(b) = otherwise { walk(b, out, owned_locals); } }
-                    Stmt::Loop { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } | Stmt::Block { body, .. } => walk(body, out, owned_locals),
-                    Stmt::Match { arms, .. } => for a in arms { walk(&a.body, out, owned_locals); },
-                    Stmt::Tier { body, .. } => walk(std::slice::from_ref(body), out, owned_locals),
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, out, owned_locals, calls); } if let Some(b) = otherwise { walk(b, out, owned_locals, calls); } }
+                    Stmt::Loop { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } | Stmt::Block { body, .. } => walk(body, out, owned_locals, calls),
+                    Stmt::Match { arms, .. } => for a in arms { walk(&a.body, out, owned_locals, calls); },
+                    Stmt::Tier { body, .. } => walk(std::slice::from_ref(body), out, owned_locals, calls),
                     _ => {}
                 }
             }
         }
         for f in &self.prog.funcs {
-            let (mut rets, mut locals) = (Vec::new(), Vec::new());
-            walk(&f.body, &mut rets, &mut locals);
+            let (mut rets, mut locals, mut calls) = (Vec::new(), Vec::new(), Vec::new());
+            walk(&f.body, &mut rets, &mut locals, &mut calls);
+            if let Some((_, Some(l))) = &f.ret_lent {
+                for (c, line) in &calls {
+                    for n in self.call_froms(c, 0) {
+                        if let Some(p) = f.params.iter().find(|p| p.name == n) {
+                            if p.life.as_ref() != Some(l) { return rt(*line, format!("`{}` returns a borrow of '{n}', which is not in @{l}: say `lent@{l} '{n}'`", f.name)); }
+                        }
+                    }
+                }
+            }
             for (n, _, line) in rets {
                 let param = f.params.iter().find(|p| p.name == n);
                 let lent = param.map_or(false, |p| matches!(p.kind, ParamKind::Lent | ParamKind::LentMut));
