@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — CyborgPL resumes (owner)
+
+Paused 2026-09-30 until RRx2-TV exists. Design claude asked whether
+CyborgPL resumes now, meaning compiler claude, check claude and synthia
+claude work again, with RRx2 idle until the owner says it is time. The
+owner: "yea". The core split for the resumed sessions was asked next.
+
 ### 2026-10-02 — RRx2 runs when the owner says it is time, not after every CyborgPL change (owner)
 
 The owner asked RRx2-TV claude what RRx2 covers (all 185 of CCA's test
@@ -13,8 +20,8 @@ whether it is safe to continue CyborgPL. Design claude: yes by the
 owner's bar ("It should cover what CyborgPL currently supports"), and
 asked whether RRx2-TV keeps working beside the CyborgPL sessions. The
 owner: "I think RRx2 will continue only when it's time to continue, not
-after every single CyborgPL update." Whether CyborgPL resumes now, and
-the core split if it does, were asked next.
+after every single CyborgPL update." Whether CyborgPL resumes now was
+asked next (above).
 
 ### 2026-10-02 — A bin into a `deci` says its form too: `to.stored.deci64` or `to.useful.deci64` (owner)
 
