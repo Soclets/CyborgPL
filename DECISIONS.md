@@ -10,8 +10,8 @@ Nothing here is final until the owner says so; open questions live at the bottom
 Design claude proposed the pre-pause split, 3 each for design, compiler
 and check claude and 1 for the desktop, with RRx2-TV taking 8 during a
 run the owner starts while compiler and check claude hold off on builds
-and tests (RRx2 alone uses up to 18 GB of the 24; a CCA test run beside
-it pushed the Mac into swap on 2026-10-01). The owner: "Yeah, 3 for 3".
+and tests (RRx2 alone uses up to 18 GB of the 24; its 8 solver runs at
+once had pushed the Mac 12 GB into swap). The owner: "Yeah, 3 for 3".
 troll license claude stays idle (owner: "troll license claude will be
 idle"), so it needed no share. `CLAUDE.md`.
 
