@@ -101,6 +101,21 @@ mentions, one generic in each `< >`. Design claude had written `<A: any,
 B: any>` in earlier sketches without asking; the owner chose this over
 it. The `any` entry above is corrected to match.
 
+**The bound goes after the bracket: `<A>: any`** (owner: "Wait a minute,
+shouldn't it be `<A>: any`? I only choose `<>` for generics, because it
+kinda looked like a placeholder", then "yea"). `<A>` is the placeholder,
+the same in an announcement and a mention, and what it accepts follows a
+`:`, as a type follows `'x':`:
+
+```
+fn max <T>: Number ['a': <T>, 'b': <T>] -> <T> { … }
+struct Pair <A>: any <B>: any { left: <A>  right: <B> }
+interface Ordered <T> { … }
+```
+
+This replaces `<T: Number>` (2026-09-20) in announcements; the earlier
+examples in these entries keep the spelling they were written with.
+
 ### 2026-10-02 — `&` works wherever `lent` does: `-> &T`, `&@x` (owner)
 
 Asked whether `&` works as `lent`, design claude ran it in the oracle:
