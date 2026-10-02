@@ -1,7 +1,7 @@
 # deci, IEEE 754 decimal (owner, 2026-09-29): 0.1 + 0.2 is exactly 0.3; every operation rounds to the
 # width half to even; trailing zeros are kept (print shows 2.50, print.useful 2.5); a literal with too
 # many digits is an error; text, and an integer whose type could have too many digits, fail
-# too_many_digits; to.useful.deci64[bin] is the shortest decimal, to.deci64[bin] the exact value.
+# too_many_digits; to.useful.deci64[bin] is the shortest decimal, to.stored.deci64[bin] the exact value (the form is always written).
 MAIN {
     let 'a': deci64 = 0.1;
     let 'b': deci64 = 'a' + 0.2;
@@ -19,7 +19,7 @@ MAIN {
     let 'e1': deci32 = 1.000005;
     std::print.stored.stdout['e1' x 1, " ", 'e1' + 0.0000005, \n];
     let 'w': bin64 = 0.1;
-    std::print.stored.stdout[to.deci64['w'], " ", to.deci128['w'], " ", to.useful.deci128['w'], \n];
+    std::print.stored.stdout[to.stored.deci64['w'], " ", to.stored.deci128['w'], " ", to.useful.deci128['w'], \n];
     let 'n': int32 = 12345;
     std::print.stored.stdout[to.deci64['n'], \n];
     let 'big': int64 = 12345678901234567;

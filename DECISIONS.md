@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-02 — A bin into a `deci` says its form too: `to.stored.deci64` or `to.useful.deci64` (owner)
+
+```
+let 'x': bin64 = 0.1;
+to.stored.deci128['x']    # 0.1000000000000000055511151231257827  (was to.deci128['x'])
+to.useful.deci128['x']    # 0.1
+```
+
+The question the entry below left open. Design claude laid out the two
+answers a bin has in a `deci` and asked whether the bare form should be
+refused, as for print and text; recommended yes, the same surprise as a
+bare print (write `0.1`, get 34 digits). The owner: "Ah, opt 1". A bare
+`to.deci64[…]` of a `bin` is refused, naming both forms; design claude
+counted `brain16` as a bin here (a binary number; `to.useful.deci` of a
+`brain16` was the exact value until now and is now its shortest form,
+`0.1`). Integers, `deci`s and text into a `deci` stay bare. In the oracle
+(reject test `deci_from_bin_bare`); `examples/deci.cpls`,
+`examples/deci_context.cpls`, `types.md`, `conversion.md`.
+
 ### 2026-10-02 — A number into text says its form too: `to.stored.str.utf8` or `to.useful.str.utf8` (owner)
 
 ```

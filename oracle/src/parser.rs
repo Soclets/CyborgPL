@@ -2495,8 +2495,8 @@ impl Parser {
                     if dotted_useful || (*self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "useful")) {
                         return self.err(format!("`.useful` follows the verb: `to.useful.{}[…]` (owner, 2026-09-30)", ty_name(&ty)));
                     }
-                    if useful_first && !matches!(ty, Ty::Deci(_) | Ty::Str(_)) { return self.err(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.deci64[…]`; `to.{}` has no useful form", ty_name(&ty))); }
-                    if stored_first && !matches!(ty, Ty::Str(_) | Ty::TextRanged(..)) { return self.err(format!("`to.stored` makes text: `to.stored.str.utf8[…]`; `to.{}` has one form", ty_name(&ty))); }
+                    if useful_first && !matches!(ty, Ty::Deci(_) | Ty::Str(_) | Ty::TextRanged(..)) && !matches!(&ty, Ty::Ranged(t, ..) if matches!(**t, Ty::Deci(_))) { return self.err(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.deci64[…]`; `to.{}` has no useful form", ty_name(&ty))); }
+                    if stored_first && !matches!(ty, Ty::Str(_) | Ty::TextRanged(..) | Ty::Deci(_)) && !matches!(&ty, Ty::Ranged(t, ..) if matches!(**t, Ty::Deci(_))) { return self.err(format!("`to.stored` makes text or a deci: `to.stored.str.utf8[…]`, `to.stored.deci64[…]`; `to.{}` has one form", ty_name(&ty))); }
                     let useful: u8 = if useful_first { 2 } else if stored_first { 1 } else { 0 };
                     if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }

@@ -74,10 +74,14 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
 - **Each operation rounds to its width, half to even**, IEEE's default,
   as `bin` does. With 16 digits, money rarely reaches it; a receipt's
   rounding is one explicit call at the end (std's, undesigned).
-- **From `bin`**: `to.deci64['w']` gives the exact value rounded to the
-  width (a `bin64` 0.1 is `0.1000000000000000` in a `deci64`, and shows
-  its binary tail in a `deci128`); `to.useful.deci64['w']` gives the
-  shortest decimal that reads back as the same `bin` (`0.1`).
+- **From `bin`** (and `brain16`), **the form is always written** (owner,
+  2026-10-02: "Ah, opt 1", as for text): `to.stored.deci64['w']` gives the
+  exact value rounded to the width (a `bin64` 0.1 is `0.1000000000000000`
+  in a `deci64`, and shows its binary tail in a `deci128`);
+  `to.useful.deci64['w']` gives the shortest decimal that reads back as
+  the same `bin` (`0.1`). A bare `to.deci64['w']` of a bin is refused,
+  naming both. From an integer, a `deci` or text it stays bare: one
+  value.
 - **From an integer**: `to.deci64['c'] otherwise …` fails
   `too_many_digits` when the integer's type could have more digits than
   the `deci` holds (an `int64` into a `deci64`); an `int32` into a

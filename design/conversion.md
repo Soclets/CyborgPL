@@ -72,7 +72,8 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   bare word, `big`, where the exact form is `Size.big`. A `bool` is
   `true`/`false` in both. **`.useful` follows the verb** (owner: b, as in
   `print.useful`): `to.useful.str.utf8`, `to.useful.deci64` (moved from
-  `to.deci64.useful`). `examples/to_text_forms.cpls`. **A struct, a map,
+  `to.deci64.useful`). A bin into a `deci` writes its form too,
+  `to.stored.deci64` or `to.useful.deci64` (owner, 2026-10-02; `types.md`). `examples/to_text_forms.cpls`. **A struct, a map,
   or an enum case carrying data is not text** (owner, 2026-09-30:
   "refuse"): build the text from its parts, or print it directly. **An
   enum with any data-carrying case is not text at all**, even a value that

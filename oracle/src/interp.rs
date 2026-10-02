@@ -2191,6 +2191,9 @@ impl<'p> Interp<'p> {
                     (Ty::Str(_), other) if form == 0 && !matches!(other, Value::Str(_) | Value::Char(..)) =>
                         return rt(line, format!("say which text `to.{target}` makes of {}: `to.stored.{target}[…]` (what is stored) or `to.useful.{target}[…]` (the useful value) (owner, 2026-10-02)", other.kind())),
                     (Ty::Str(_), other) => Value::Str(if *useful { show_useful_as(other, src_ty.as_ref()) } else { other.show_stored() }),
+                    // a bin into a deci says which value it takes, as text does (owner, 2026-10-02: "Ah, opt 1")
+                    (Ty::Deci(_), other @ (Value::Bin(_) | Value::Brain(_))) if form == 0 =>
+                        return rt(line, format!("say which value `to.{target}` takes of a {}: `to.stored.{target}[…]` (what is stored) or `to.useful.{target}[…]` (the useful value) (owner, 2026-10-02)", other.kind())),
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }
                     (Ty::Bin(_), Value::Bin(x)) => { fit_base!(Value::Bin(*x)); Value::Bin(*x) }
@@ -2241,7 +2244,12 @@ impl<'p> Interp<'p> {
                         }
                         i
                     }
-                    (Ty::Deci(w), Value::Brain(x)) => Value::Deci(crate::deci::Deci::from_bin_exact(*x, *w).or_else(|m| site(line, format!("{x} {m}")))?),
+                    (Ty::Deci(w), Value::Brain(x)) => {
+                        let d = if *useful {
+                            match crate::deci::Deci::parse(&crate::value::brain_useful(*x), *w) { Ok(Some(d)) => Ok(d), _ => crate::deci::Deci::from_bin_useful(*x, *w) }
+                        } else { crate::deci::Deci::from_bin_exact(*x, *w) };
+                        Value::Deci(d.or_else(|m| site(line, format!("{x} {m}")))?)
+                    }
                     (Ty::Int(_) | Ty::Uint(_), Value::Bin(x)) => {
                         if !x.is_finite() || x.fract() != 0.0 {
                             let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), "not_whole".into(), None, true)?;
