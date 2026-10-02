@@ -5792,8 +5792,14 @@ that we might add later: alias for `->` as `-->`, `%` infront of every name
 except ones already marked, and what was left unfinished"). Ideas, not
 decisions:
 - `-->` as another spelling of `->`.
-- `%` in front of every name except the ones already marked (meaning not
-  yet asked; the quoted `'x'` names are the marked ones today).
+- A sigil in front of every name except the ones already marked (meaning
+  not yet asked; the quoted `'x'` names are the marked ones today). First
+  `%`; shown both, the owner preferred `^`: "Alot better, fuck %". As
+  sketched: functions, structs, enums and cases, interfaces, modules and
+  fields (`fn ^area ['p': ^Point]`, `'p'.^x`, `^Shape.^box`); the
+  language's own names, Limb prefixes and keywords left out. Snag: `^`
+  is a custom-operator character (2026-09-20), so `'a' ^area 'b'` reads
+  two ways until one is taken out of that set.
 - Left unfinished that day, in order: a Limb operator's precedence shape
   (`levels { 1 > times; }` and `pub op.1 pow …`, proposed, unanswered);
   how a user type defines division (`op div.floor`, compiler claude); what
