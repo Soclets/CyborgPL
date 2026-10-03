@@ -57,7 +57,17 @@ precedence.low_first {
 ```
 
 The `level.left` / `level.right` spellings above were replaced the same
-day.
+day. Last, a negative beside std's `pow` (the old `-2 xx 2` was -4):
+design claude asked whether a level may hold the negative under a name,
+(a), or a negative beside a Limb's operator always needs brackets, (b),
+recommended (`-2 pow 2` is easily misread); the owner: "Isn't it
+`neg`?" (it is, from `op neg`), then "`a`". So a level may hold `neg`,
+pinning it where a negative sits, and std's `pow` can sit above it:
+
+```
+level.when_chained.refused 4 { neg }
+level.when_chained.right_first 5 { pow }    # -2 pow 2 is -(2 pow 2) = -4, as xx was
+```
 
 ### 2026-10-03 — The operator words, settled for building: `.wrap`, `op plus`, the symbols refused, `pow` with brackets (owner)
 
