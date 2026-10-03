@@ -188,6 +188,14 @@ impl<'a> Lexer<'a> {
                         self.bump();
                     }
                     let text = self.src[start..self.pos].to_string();
+                    // `-->` and `<--` are the main spelling of the arrows,
+                    // `->` and `<-` the others (owner, 2026-10-03): one
+                    // token, so neither names a custom operator.
+                    let text = match (text.strip_prefix("-->"), text.strip_prefix("<--")) {
+                        (Some(rest), _) => format!("->{}", rest),
+                        (_, Some(rest)) => format!("<-{}", rest),
+                        _ => text,
+                    };
                     self.push(Tok::Op(text), start);
                 }
                 ':' => {
