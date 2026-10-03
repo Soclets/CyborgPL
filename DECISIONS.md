@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-03 — A Limb's operator precedence: `precedence.low_first` / `precedence.high_first` (owner; not built yet)
+### 2026-10-03 — A Limb's operator precedence: `precedence.low_first` / `precedence.high_first`, `level.when_chained.…` (owner; not built yet)
 
 ```
 precedence.low_first {          # level 1 binds loosest (good practice)
@@ -39,6 +39,25 @@ the owner: "yes, but bare is refused. Shouldn't it be `level.right 5 {
 pow }`?" So every level says `level.left N` or `level.right N`, and a
 level holding a language operator must agree with that operator's
 direction (`level.right 2 { plus }` is refused; the owner: "yea").
+Comparisons never chain (`1 < 2 < 3`, 2026-09-14), so design claude
+proposed a third, `level.none`, required for a level holding `==`; the
+owner: "yea. Though, I think it should be
+`level.when_chained.right_first`". The third in that pattern: (a)
+`level.when_chained.refused`, recommended, (b) `level.never_chained`;
+the owner: "`a`", and asked `refused` or `refuse` (`refused`: each last
+word says what happens, as `left_first` does; "yea"). So:
+
+```
+precedence.low_first {
+    level.when_chained.refused 1 { ==  ~= }
+    level.when_chained.left_first 2 { plus }
+    level.when_chained.left_first 3 { times  dot }
+    level.when_chained.right_first 4 { pow }
+}
+```
+
+The `level.left` / `level.right` spellings above were replaced the same
+day.
 
 ### 2026-10-03 — The operator words, settled for building: `.wrap`, `op plus`, the symbols refused, `pow` with brackets (owner)
 
