@@ -309,7 +309,7 @@ html.desktop .more, html.desktop .plain { max-width: 720px; }
 .boot-pct::after { content: attr(data-pct); }
 @media (prefers-reduced-motion: reduce) { #boot, .boot-bar i { transition: none; } }
 /* An example's first lines, shown plain for the moment before its highlighted code arrives. */
-.sheet-pending pre { color: var(--code-dim); opacity: .75; min-height: 8em; }
+.sheet-pending pre { color: var(--code-dim); opacity: .75; min-height: calc(var(--example-lines, 0) * 1lh); }
 
 /* ---------------------------------------------------------------- Home's search, moving between views
    The bar stays put; what's under it (the headline, suggestions, results) fades up when it

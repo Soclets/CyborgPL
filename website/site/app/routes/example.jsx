@@ -137,8 +137,9 @@ export default function Example() {
           </div>
         </div>
         <div className="sheet-body">
-          {/* Until the example arrives: its first lines, plain, where the code will be. */}
-          <Suspense fallback={<div className="code sheet-code sheet-pending"><pre>{brief?.preview}</pre></div>}>
+          {/* Reserve the full code's height while its first lines show, so the window
+              doesn't grow when the highlighted example arrives. */}
+          <Suspense fallback={<div className="code sheet-code sheet-pending"><pre style={{ "--example-lines": brief?.lines }}>{brief?.preview}</pre></div>}>
             <Await resolve={full} errorElement={<p className="empty">This example didn’t load. Close it and try again.</p>}>
               {(ex) => tab === "code" ? (
                 <Code html={ex.html} className="sheet-code" />
