@@ -35,7 +35,7 @@ export const COMPARISON_ROWS = [
     cyborgpl: fact("Ownership with explicit `lend`, `give` and `copy`. The compiler arranges reclamation; the model does not require tracing garbage collection.", repo("design/ownership-syntax.md"), "Design"),
     rust: fact("Ownership and borrowing, with values dropped when their owner is dropped. No mandatory garbage collector; reference counting is available.", "https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html", "Ownership", [{ label: "Reference counting", url: "https://doc.rust-lang.org/book/ch15-04-rc.html" }]),
     go: fact("Automatic garbage collection. Collection uses CPU and additional heap memory; its behavior can be tuned.", "https://go.dev/doc/gc-guide"),
-    python: fact("CPython uses reference counting plus collection of reference cycles. Other Python implementations can manage memory differently.", "https://docs.python.org/3.14/reference/datamodel.html"),
+    python: fact("Automatic memory management: CPython combines reference counting with cyclic garbage collection. Other Python implementations can use different collectors.", "https://docs.python.org/3.14/library/gc.html", "GC", [{ label: "Implementation", url: "https://docs.python.org/3.14/reference/datamodel.html" }]),
   } },
   { id: "checks", title: "Safety checks", cells: {
     cyborgpl: fact("Precog proves supported checks. Working builds keep unproven runtime checks; final builds refuse them unless explicitly trusted. Compiler and proof bugs are still being found.", repo("design/core-features.md"), "Design", [{ label: "Known proof bug", url: repo("check/corpus/2026-10-03-precog-value-set-misses-a-call.cpls") }]),
