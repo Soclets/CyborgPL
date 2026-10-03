@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate, useNavigationType } from "react-router";
+import { Link, Outlet, useLocation, useNavigate, useNavigation, useNavigationType } from "react-router";
 import Icon from "../components/Icon.jsx";
 import Mark from "../components/Mark.jsx";
 import { REPO_URL } from "../lib/content.js";
@@ -44,13 +44,42 @@ function ThemeSwitch() {
 }
 
 function Topbar({ pathname }) {
+  const navigation = useNavigation();
+  const target = navigation.location?.pathname ?? pathname;
+  const active = LINKS.findIndex((l) => l.match(target));
+  const nav = useRef(null);
+  const pill = useRef(null);
+  const placed = useRef(false);
+
+  // One highlight moves as navigation starts, without waiting for the page's
+  // data. Repeated clicks retarget the same CSS transition from its current spot.
+  useLayoutEffect(() => {
+    const place = (slide) => {
+      const on = nav.current.querySelector("a.on"), p = pill.current;
+      if (!on) return void (p.style.opacity = "0");
+      const button = on.getBoundingClientRect(), bar = nav.current.getBoundingClientRect();
+      p.style.transition = slide ? "" : "none";
+      p.style.transform = `translateX(${button.left - bar.left}px)`;
+      p.style.width = `${button.width}px`;
+      p.style.opacity = "1";
+      if (!slide) p.getBoundingClientRect();
+    };
+    place(placed.current);
+    placed.current = true;
+    nav.current.classList.add("ready");
+    const onResize = () => place(false);
+    addEventListener("resize", onResize);
+    return () => removeEventListener("resize", onResize);
+  }, [active]);
+
   return (
     <header className="topbar">
       <div className="topbar-in">
         <Link to="/" className="brand" prefetch="intent"><Mark size={26} /><b>CyborgPL</b></Link>
-        <nav aria-label="Site">
-          {LINKS.map((l) => (
-            <Link key={l.to} to={l.to} prefetch="intent" className={l.match(pathname) ? "on" : ""} aria-current={l.match(pathname) ? "page" : undefined}>{l.label}</Link>
+        <nav aria-label="Site" ref={nav}>
+          <span className="topbar-pill" ref={pill} aria-hidden="true" />
+          {LINKS.map((l, i) => (
+            <Link key={l.to} to={l.to} prefetch="intent" className={i === active ? "on" : ""} aria-current={l.match(pathname) ? "page" : undefined}>{l.label}</Link>
           ))}
         </nav>
         <a className="topbar-icon" href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub" title="Source on GitHub"><Icon name="github" size={19} stroke={1.9} /></a>
