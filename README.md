@@ -5,7 +5,7 @@
 <h3 align="center">CyborgPL™</h3>
 
 <p align="center">Just a small hobby lang 😊<br>
-Very slow at the development, fast &amp; safe at the final product.</p>
+Very slow at the development, fast &amp; safe at the final product (no warranty 🤣).</p>
 
 > [!WARNING]
 > **Not family friendly**.
