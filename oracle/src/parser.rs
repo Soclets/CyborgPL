@@ -2208,7 +2208,12 @@ impl Parser {
             Tok::Word(w) if w == "or" && dot_word("else") => { self.op_len.set(3); Some("or.else".into()) }
             // `div.floor` / `div.ceil` / `div.trunc` / `div.near`, and `mod.` the same: every division
             // says how it rounds (owner, 2026-10-02); a bare `div` or `mod` is refused in `climb`
-            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot => match self.peek_at(2) { Tok::Word(b) => { self.op_len.set(3); Some(format!("{w}.{b}")) } _ => Some(w.clone()) },
+            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot => match self.peek_at(2) {
+                // `div.trunc.wrap`: wraps at the type's width instead of overflowing (owner, 2026-10-03)
+                Tok::Word(b) if *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(x) if x == "wrap") => { self.op_len.set(5); Some(format!("{w}.{b}.wrap")) }
+                Tok::Word(b) => { self.op_len.set(3); Some(format!("{w}.{b}")) }
+                _ => Some(w.clone())
+            },
             Tok::Word(w) if w == "x" || w == "xx" => { self.op_old.set(true); Some(w.clone()) }
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
@@ -2400,7 +2405,10 @@ impl Parser {
             if op == "div" || op == "mod" {
                 return self.err(format!("say how `{op}` rounds: `{op}.floor`, `{op}.ceil`, `{op}.trunc` or `{op}.near` (owner, 2026-10-02)"));
             }
-            if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
+            if let Some(base) = op.strip_suffix(".wrap") {
+                if op.starts_with("mod.") { return self.err(format!("`mod` never overflows, so there is nothing to wrap: write `{base}` (owner, 2026-10-03)")); }
+                if op.starts_with("div.") && !crate::interp::is_div_mod(base) { return self.err(format!("no `{base}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`")); }
+            } else if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
                 return self.err(format!("no `{op}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`"));
             }
             if self.is_custom_op(&op) {

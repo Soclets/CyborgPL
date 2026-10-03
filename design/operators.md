@@ -38,6 +38,7 @@ the symbols where they quote a ruling's day.
 | `minus` | subtract (`-` until 2026-10-03); a negative keeps `-`: `-5`, `-'x'` |
 | `times` | multiply (`x` until 2026-10-03) |
 | `plus.wrap` `minus.wrap` `times.wrap` | wrapping (`+~ -~ x~` until 2026-10-03) |
+| `div.floor.wrap` `div.ceil.wrap` `div.trunc.wrap` `div.near.wrap` | the true quotient wrapped at the type's width, as the hardware does for the smallest value divided by -1 (2026-10-03); `mod` never overflows, so there is no `mod.X.wrap` |
 | `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`; above a negative, right pair first, as `xx` was (`-2 pow 2` is -4, `2 pow 3 pow 2` is 512) |
 | `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
 | `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |

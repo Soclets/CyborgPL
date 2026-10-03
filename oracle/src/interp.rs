@@ -2598,6 +2598,24 @@ impl<'p> Interp<'p> {
             // Wrapping arithmetic (decided 2026-09-20): `+~ -~ x~ xx~` are always defined —
             // modulo the type's size. The oracle wraps at the left operand's declared
             // integer width (Precog knows every width; the oracle only knows declared ones).
+            // `div.trunc.wrap` and the other three (owner, 2026-10-03): the true quotient, then wrapped at
+            // the type's width, as ARM gives the smallest value divided by -1
+            Expr::Binary(op, l, r, _) if op.starts_with("div.") && op.ends_with(".wrap") => {
+                let base = op.strip_suffix(".wrap").unwrap();
+                let width = self.expr_ty(l).or_else(|| self.expr_ty(r));
+                let (bits, signed) = match width {
+                    Some(Ty::Int(w)) => (true_bits(&w), true),
+                    Some(Ty::Uint(w)) => (true_bits(&w), false),
+                    _ => return rt(line, format!("`{op}` wraps modulo a type's size, so it needs to know which: give a side a type")),
+                };
+                let (a, _) = self.eval(l)?;
+                let (b, _) = self.eval(r)?;
+                let exact = self.binary(base, a, b, line)?;
+                let Some(v) = as_big(&exact) else { return rt(line, format!("`{op}` is integer arithmetic, got {}", exact.kind())) };
+                let mut w = v.mod_pow2(bits as u64);
+                if signed && w.cmp(&crate::bigint::BigInt::pow2(bits as u64 - 1)).is_ge() { w = w.sub(&crate::bigint::BigInt::pow2(bits as u64)); }
+                Ok((from_big(w), Prov::Plain))
+            }
             Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+~" | "-~" | "x~" | "xx~") => {
                 // Wrapping is at one size, and it is always written, never guessed: operands of two
                 // sizes, or an exact sum that mixes them, need `to.int16[…]` (owner, 2026-09-23: b)

@@ -5,6 +5,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — Hardware-style division: `div.trunc.wrap` and the other three; no `mod.X.wrap` (owner)
+
+```
+let 'a': int8 = -128;
+'a' div.trunc.wrap -1     # -128: wraps, as ARM gives it
+'a' div.trunc -1          # 128: the true answer, checked where it lands
+```
+
+From the "might add later" list ("hardware-style division"); the owner:
+"number 4 is wanted". With the tilde gone, the spelling is the owner's
+own `div.trunc.wrap`. Asked which divisions get it: (a) all four, since
+`.wrap` means "wrap instead of overflow" on every operator,
+recommended, or (b) only `div.trunc`, the hardware's own; the owner:
+"`a`". The twin, `mod.X.wrap`: `mod` never overflows (the smallest
+value `mod` -1 is 0), so refusing it was recommended; the owner asked
+what `mod.floor` is for (the remainder of `div.floor`, the clock-safe
+one) and how to do the hardware's `mod` (`mod.trunc`, C's `%`, which
+needs no wrap; x86 alone faults there), then: "Ah, okay then". So
+`div.floor.wrap`, `div.ceil.wrap`, `div.trunc.wrap` and `div.near.wrap`
+give the true quotient wrapped at the type's width (a typed side is
+needed, as for `plus.wrap`); `mod.X.wrap` is refused. In the oracle;
+`examples/div_wrap.cpls`, reject test `mod_wrap`.
+
 ### 2026-10-03 — Integers of any width, marked `!std_`: `!std_int24`, `!std_u256` (owner; built)
 
 ```
@@ -6016,7 +6039,7 @@ decisions:
   language's own names, Limb prefixes and keywords left out. Snag: `^`
   is a custom-operator character (2026-09-20), so `'a' ^area 'b'` reads
   two ways until one is taken out of that set.
-- Left unfinished that day, in order: a Limb operator's precedence shape
+- Left unfinished on 2026-10-02 (hardware-style division done 2026-10-03), in order: a Limb operator's precedence shape
   (`levels { 1 > times; }` and `pub op.1 pow …`, proposed, unanswered);
   how a user type defines division (`op div.floor`, compiler claude); what
   size a shift works at on an exact answer (compiler claude, open since
