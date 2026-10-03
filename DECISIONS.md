@@ -32,8 +32,13 @@ Like, say highest priority to lowest". Names offered: (a) `high_first` /
 `descending` / `ascending`; asked whether bare `precedence` is refused.
 The owner: "`a`, bare refused, low_first is good practice". Operators of
 two Limbs landing in the same gap need brackets between them (design
-claude's, from 2026-10-02's "b"). Open: associativity (`2 pow 3 pow 2`),
-and more.
+claude's, from 2026-10-02's "b"). Then the order of a chain (`2 pow 3
+pow 2` takes the right pair first, as in maths and the old `xx`):
+design claude offered `level 5.right { pow }`, plain `level` going left;
+the owner: "yes, but bare is refused. Shouldn't it be `level.right 5 {
+pow }`?" So every level says `level.left N` or `level.right N`, and a
+level holding a language operator must agree with that operator's
+direction (`level.right 2 { plus }` is refused; the owner: "yea").
 
 ### 2026-10-03 — The operator words, settled for building: `.wrap`, `op plus`, the symbols refused, `pow` with brackets (owner)
 
