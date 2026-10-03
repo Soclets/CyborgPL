@@ -13,13 +13,13 @@ MAIN {
     let 'bs': list[bin64] = list.fill[1.5, 2];
     let mut 'code': int64 = 0;
     for 'k': int64 in range[1, 5] {
-        change 'code' = 'code' + 'scores'['k'];
+        change 'code' = 'code' plus 'scores'['k'];
     }
-    change 'code' = 'code' + to.int64[list.length[lend 'flags']] x 10;
-    if 'flags'[2] { change 'code' = 'code' + 50; }
-    change 'code' = 'code' + to.int64[list.length[lend 'none']];
-    change 'code' = 'code' + to.int64['eights'[4]];
-    let 'twice': int64 = to.int64['bs'[2] x 2.0] otherwise 0;
-    change 'code' = 'code' + 'twice';
+    change 'code' = 'code' plus to.int64[list.length[lend 'flags']] times 10;
+    if 'flags'[2] { change 'code' = 'code' plus 50; }
+    change 'code' = 'code' plus to.int64[list.length[lend 'none']];
+    change 'code' = 'code' plus to.int64['eights'[4]];
+    let 'twice': int64 = to.int64['bs'[2] times 2.0] otherwise 0;
+    change 'code' = 'code' plus 'twice';
     nocheck exit[to.int32['code']];
 }

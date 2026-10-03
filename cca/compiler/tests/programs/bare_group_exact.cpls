@@ -8,10 +8,10 @@ MAIN {
     let mut 'w': uint16 = 2;
     loop {
         if 'w' == 0 { break; }
-        change 'w' = 'w' - 1;
-        change 'v' = (18446744073709551615 + 1) mod.floor 1;
+        change 'w' = 'w' minus 1;
+        change 'v' = (18446744073709551615 plus 1) mod.floor 1;
     }
-    let 'u': uint64 = (18446744073709551615 x 4) div.floor 2 - 18446744073709551615 - 1;
-    let 't': int8 = ((1000 x 1000) mod.floor 7) - (200 + 100) div.floor 3;
-    nocheck exit[to.int32['v'] + to.int32['u' mod.floor 256] + to.int32['t'] + 100];
+    let 'u': uint64 = (18446744073709551615 times 4) div.floor 2 minus 18446744073709551615 minus 1;
+    let 't': int8 = ((1000 times 1000) mod.floor 7) minus (200 plus 100) div.floor 3;
+    nocheck exit[to.int32['v'] plus to.int32['u' mod.floor 256] plus to.int32['t'] plus 100];
 }

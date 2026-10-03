@@ -17,7 +17,7 @@ fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bo
 }
 fn count_if [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> int32 {
     let mut 'n': int32 = 0;
-    for 'x' in lend 'xs' { if 'test'['x'] { change 'n' = 'n' + 1; } }
+    for 'x' in lend 'xs' { if 'test'['x'] { change 'n' = 'n' plus 1; } }
     return 'n';
 }
 MAIN {
@@ -27,18 +27,18 @@ MAIN {
     let mut 'first': int32 = 9;
     if 'there' { change 'first' = 7; }
     let 'lockers' := [Locker[number = 'first', owner = "Cy"], Locker[number = 2, owner = "Annabel"], Locker[number = 5, owner = "Bo"]];
-    if first_by[lend 'lockers', by_number] == 2 { change 'got' = 'got' + 1; }
-    if first_by[lend 'lockers', by_owner] == 'first' { change 'got' = 'got' + 2; }
+    if first_by[lend 'lockers', by_number] == 2 { change 'got' = 'got' plus 1; }
+    if first_by[lend 'lockers', by_owner] == 'first' { change 'got' = 'got' plus 2; }
     let 'f' := by_number;
-    if 'f'[lend 'lockers'[2], lend 'lockers'[1]] { change 'got' = 'got' + 4; }
+    if 'f'[lend 'lockers'[2], lend 'lockers'[1]] { change 'got' = 'got' plus 4; }
     let mut 'limit' := 60;
     if 'there' { change 'limit' = 50; }
     let 'scores' := [72, 40, 95, 55];
-    if count_if[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }] == 3 { change 'got' = 'got' + 8; }
-    if count_if[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) == 0; }] == 2 { change 'got' = 'got' + 16; }
+    if count_if[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }] == 3 { change 'got' = 'got' plus 8; }
+    if count_if[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) == 0; }] == 2 { change 'got' = 'got' plus 16; }
     let 'g' := fn ['s': int32] -> bool with [lend 'limit'] { return 's' < 'limit'; };
     let mut 'h' := 'g';
     if 'there' { change 'h' = fn ['s': int32] -> bool { return 's' > 90; }; }
-    if count_if[lend 'scores', 'h'] == 1 and count_if[lend 'scores', 'g'] == 1 { change 'got' = 'got' + 32; }
+    if count_if[lend 'scores', 'h'] == 1 and count_if[lend 'scores', 'g'] == 1 { change 'got' = 'got' plus 32; }
     nocheck exit['got'];
 }

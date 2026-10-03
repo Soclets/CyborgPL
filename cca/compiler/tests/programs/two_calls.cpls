@@ -4,5 +4,5 @@ fn get ['p': P] -> int32 { return 'p'.x; }
 MAIN {
     let 'a' := P[x = 5];
     let 'b' := P[x = 9];
-    nocheck exit[get[give 'a'] + get[give 'b']];
+    nocheck exit[get[give 'a'] plus get[give 'b']];
 }

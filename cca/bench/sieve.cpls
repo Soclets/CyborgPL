@@ -17,19 +17,19 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     let 'key' := "N";
     nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
-    let mut 'comp': list[bool] = list.fill[false, 'n' + 1];
+    let mut 'comp': list[bool] = list.fill[false, 'n' plus 1];
     let mut 'count': int64 = 0;
     let mut 'p': int64 = 2;
     while 'p' </== 'n' {
-        if not 'comp'[to.uint64['p' + 1]] {
-            change 'count' = 'count' + 1;
-            let mut 'm': int64 = 'p' x 'p';
+        if not 'comp'[to.uint64['p' plus 1]] {
+            change 'count' = 'count' plus 1;
+            let mut 'm': int64 = 'p' times 'p';
             while 'm' </== 'n' {
-                change 'comp'[to.uint64['m' + 1]] = true;
-                change 'm' = 'm' + 'p';
+                change 'comp'[to.uint64['m' plus 1]] = true;
+                change 'm' = 'm' plus 'p';
             }
         }
-        change 'p' = 'p' + 1;
+        change 'p' = 'p' plus 1;
     }
     return to.int32['count' mod.floor 256];
 }

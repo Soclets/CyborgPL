@@ -26,5 +26,5 @@ MAIN {
     nocheck let 'a' := mode_at['mem'];
     nocheck let 'b' := mode_at[ptr.at['mem', 1]];
     nocheck free['mem'];
-    nocheck exit[to.int32['current'] x 100 + ('a' - 10) x 10 + ('b' - 10)];
+    nocheck exit[to.int32['current'] times 100 plus ('a' minus 10) times 10 plus ('b' minus 10)];
 }

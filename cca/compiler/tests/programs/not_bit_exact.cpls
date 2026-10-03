@@ -4,8 +4,8 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let 'v': uint32 = 3;
-    let 'c': uint32 = not.bit ('v' + 1);
+    let 'c': uint32 = not.bit ('v' plus 1);
     let 'x': int8 = -102;
     let 'y': int8 = not.bit 'x';
-    nocheck exit[to.int32[('c' mod.floor 256) + to.uint32['y']]];
+    nocheck exit[to.int32[('c' mod.floor 256) plus to.uint32['y']]];
 }

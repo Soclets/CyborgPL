@@ -27,9 +27,9 @@ MAIN {
         svc #0x80
     } with ['pid' <- x0, clobber x16, clobber x1];
     let mut 'got': int32 = 0;
-    if 'r' == 45 { change 'got' = 'got' + 1; }
-    if trample[41] == 42 { change 'got' = 'got' + 4; }
+    if 'r' == 45 { change 'got' = 'got' plus 1; }
+    if trample[41] == 42 { change 'got' = 'got' plus 4; }
     nocheck let 'c' := getpid[];
-    if to.int32['pid'] == 'c' { change 'got' = 'got' + 2; }
+    if to.int32['pid'] == 'c' { change 'got' = 'got' plus 2; }
     nocheck exit['got'];
 }

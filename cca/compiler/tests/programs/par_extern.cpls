@@ -10,18 +10,18 @@ MAIN {
     let mut 'a': list[int64] = list.fill[0, 'n'];
     let mut 'b': list[int64] = list.fill[0, 'n'];
     for para 'i': int64 in range[1, 'n'] {
-        nocheck let 'v' := labs['i' - 12345];
+        nocheck let 'v' := labs['i' minus 12345];
         change 'a'['i'] = 'v';
     }
     for 'i': int64 in range[1, 'n'] {
-        nocheck let 'v' := labs['i' - 12345];
+        nocheck let 'v' := labs['i' minus 12345];
         change 'b'['i'] = 'v';
     }
     let mut 'same': int64 = 0;
     let mut 's': int64 = 0;
     for 'k': int64 in range[1, 'n'] {
-        if 'a'['k'] == 'b'['k'] { change 'same' = 'same' + 1; }
-        change 's' = ('s' + 'a'['k']) mod.floor 256;
+        if 'a'['k'] == 'b'['k'] { change 'same' = 'same' plus 1; }
+        change 's' = ('s' plus 'a'['k']) mod.floor 256;
     }
     if 'same' !== 'n' { nocheck exit[1]; }
     nocheck exit[to.int32['s']];

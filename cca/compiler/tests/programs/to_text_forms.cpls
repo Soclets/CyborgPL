@@ -16,42 +16,42 @@ layout.C enum Mode {
 MAIN {
     let mut 'got': int32 = 0;
     let 'x': bin64 = 0.1;
-    if to.stored.str.utf8['x'] == "0.1000000000000000055511151231257827021181583404541015625" { change 'got' = 'got' + 1; }
-    if to.useful.str.utf8['x'] == "0.1" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['x'] == "0.1000000000000000055511151231257827021181583404541015625" { change 'got' = 'got' plus 1; }
+    if to.useful.str.utf8['x'] == "0.1" { change 'got' = 'got' plus 1; }
     let 'd': deci64 = 1.50;
-    if to.stored.str.utf8['d'] == "1.50" { change 'got' = 'got' + 1; }
-    if to.useful.str.utf8['d'] == "1.5" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['d'] == "1.50" { change 'got' = 'got' plus 1; }
+    if to.useful.str.utf8['d'] == "1.5" { change 'got' = 'got' plus 1; }
     let 'm': deci64 = 100;
-    if to.useful.str.utf8['m'] == "100" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['m'] == "100" { change 'got' = 'got' plus 1; }
     let 'n': int32 = 42;
-    if to.stored.str.utf8['n'] == "42" { change 'got' = 'got' + 1; }
-    if to.useful.str.utf8['n'] == "42" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['n'] == "42" { change 'got' = 'got' plus 1; }
+    if to.useful.str.utf8['n'] == "42" { change 'got' = 'got' plus 1; }
     let 'ok' := true;
-    if to.stored.str.utf8['ok'] == "true" { change 'got' = 'got' + 1; }
-    if to.useful.str.utf8['ok'] == "true" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['ok'] == "true" { change 'got' = 'got' plus 1; }
+    if to.useful.str.utf8['ok'] == "true" { change 'got' = 'got' plus 1; }
     let 's' := Size.big;
-    if to.stored.str.utf8['s'] == "Size.big" { change 'got' = 'got' + 1; }
-    if to.useful.str.utf8['s'] == "big" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['s'] == "Size.big" { change 'got' = 'got' plus 1; }
+    if to.useful.str.utf8['s'] == "big" { change 'got' = 'got' plus 1; }
     let 'o' := Mode.on;
-    if to.stored.str.utf8['o'] == "Mode.on" { change 'got' = 'got' + 1; }
-    if to.useful.str.utf8['o'] == "on" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['o'] == "Mode.on" { change 'got' = 'got' plus 1; }
+    if to.useful.str.utf8['o'] == "on" { change 'got' = 'got' plus 1; }
     let 'g': bin32 = 0.1;
-    if to.useful.str.utf8['g'] == "0.1" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['g'] == "0.1" { change 'got' = 'got' plus 1; }
     let 'b': bin64 = 100.0;
-    if to.useful.str.utf8['b'] == "100" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['b'] == "100" { change 'got' = 'got' plus 1; }
     let 'c': bin64 = 0.000001;
-    if to.useful.str.utf8['c'] == "0.000001" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['c'] == "0.000001" { change 'got' = 'got' plus 1; }
     let 'e': bin64 = -2.25;
-    if to.useful.str.utf8['e'] == "-2.25" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['e'] == "-2.25" { change 'got' = 'got' plus 1; }
     let 'f': bin64 = 123456789012345678.0;
-    if to.useful.str.utf8['f'] == "123456789012345680" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['f'] == "123456789012345680" { change 'got' = 'got' plus 1; }
     let 'h': bin64 = 0.0;
-    if to.useful.str.utf8['h'] == "0" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['h'] == "0" { change 'got' = 'got' plus 1; }
     let 'k': bin64 = 10000000000000000.0;
-    if to.useful.str.utf8['k'] == "10000000000000000" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['k'] == "10000000000000000" { change 'got' = 'got' plus 1; }
     let 'l': bin64 = 0.0001;
-    if to.useful.str.utf8['l'] == "0.0001" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['l'] == "0.0001" { change 'got' = 'got' plus 1; }
     let 'p': bin64 = 1000000000000000000000000000000.0;
-    if to.useful.str.utf8['p'] == "1000000000000000000000000000000" { change 'got' = 'got' + 1; }
+    if to.useful.str.utf8['p'] == "1000000000000000000000000000000" { change 'got' = 'got' plus 1; }
     nocheck exit['got'];
 }

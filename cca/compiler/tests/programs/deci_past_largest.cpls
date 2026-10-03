@@ -8,7 +8,7 @@ MAIN {
     let 'm': deci32 = 9999999;
     let mut 'q': deci32 = 'm';
     for 'i': int32 in range[1, 15] {
-        change 'q' = 'q' x 'm';
+        change 'q' = 'q' times 'm';
     }
     nocheck exit[7];
 }

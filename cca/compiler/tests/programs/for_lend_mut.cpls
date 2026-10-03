@@ -6,19 +6,19 @@ extern.C fn exit ['code': int32];
 MAIN {
     let mut 'prices': list[int32] = [10, 20, 30];
     for 'x' in lend.mut 'prices' {
-        change 'x' = 'x' x 2;
+        change 'x' = 'x' times 2;
     }
     let 'n': int64 = 100000;
     let mut 'xs': list[int64] = list.fill[2, 'n'];
     for 'x' in lend.mut 'xs' {
-        change 'x' = 'x' x 3;
+        change 'x' = 'x' times 3;
     }
     let mut 'total': int64 = 0;
     for 'k': int64 in range[1, 3] {
-        change 'total' = 'total' + to.int64['prices'['k']];
+        change 'total' = 'total' plus to.int64['prices'['k']];
     }
     for 'v' in lend 'xs' {
-        change 'total' = 'total' + 'v';
+        change 'total' = 'total' plus 'v';
     }
     nocheck exit[to.int32['total' mod.floor 256]];
 }

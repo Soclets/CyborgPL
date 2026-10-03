@@ -8,16 +8,16 @@
 extern.C fn exit ['code': int32];
 fn f ['pr': int32[0, 6], 'p1': uint64] -> int64 {
     if 'pr' == 0 { return 1; }
-    let 'r': int64 = f['pr' - 1, 'p1'];
+    let 'r': int64 = f['pr' minus 1, 'p1'];
     return 'r';
 }
 fn g ['pr': int32[0, 6], 'p1': uint64] -> int64 {
     if 'pr' == 0 { return 100 mod.floor (-to.int64['p1']); }
-    return g['pr' - 1, ('p1' mod.floor 233) + 448];
+    return g['pr' minus 1, ('p1' mod.floor 233) plus 448];
 }
 MAIN {
     let 'a': int64 = f[3, 587];
     let 'b': int64 = g[0, 1];
     let 'c': int64 = g[2, 1];
-    nocheck exit[to.int32['a' + 'b' - 'c' - 560]];
+    nocheck exit[to.int32['a' plus 'b' minus 'c' minus 560]];
 }

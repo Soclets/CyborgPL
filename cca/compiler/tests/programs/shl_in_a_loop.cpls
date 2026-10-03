@@ -8,9 +8,9 @@ fn f1 ['p1': int64] -> int32 {
     let mut 'sum': uint64 = 0;
     loop {
         if 'w10' == 0 { break; }
-        change 'w10' = 'w10' - 1;
+        change 'w10' = 'w10' minus 1;
         let 'v': uint32 = to.uint32['p1' mod.floor 4294967296] shl to.uint32['w10'];
-        change 'sum' = 'sum' + to.uint64['v'];
+        change 'sum' = 'sum' plus to.uint64['v'];
     }
     return to.int32['sum' mod.floor 100];
 }

@@ -13,8 +13,8 @@ MAIN {
     if 'there' { change 'id' = 7; }
     let mut 'users': map[User, int32] = map.empty;
     map.set[lend.mut 'users', User[id = 'id', name = "Ann"], 1];
-    map.set[lend.mut 'users', User[id = 'id' + 100, name = "Ann again"], 2];
-    let 'n' := map.get[lend 'users', User[id = 'id' + 200, name = "x"]] otherwise 0;
+    map.set[lend.mut 'users', User[id = 'id' plus 100, name = "Ann again"], 2];
+    let 'n' := map.get[lend 'users', User[id = 'id' plus 200, name = "x"]] otherwise 0;
     let 'm' := map.get[lend 'users', User[id = 3, name = "y"]] otherwise 9;
-    nocheck exit['n' x 10 + 'm' + to.int32[map.length[lend 'users']] x 100];
+    nocheck exit['n' times 10 plus 'm' plus to.int32[map.length[lend 'users']] times 100];
 }

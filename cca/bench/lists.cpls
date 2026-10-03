@@ -21,17 +21,17 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     let mut 'i': int64 = 1;
     while 'i' </== 'n' {
         list.append[lend.mut 'xs', 'i' mod.floor 1000];
-        change 'i' = 'i' + 1;
+        change 'i' = 'i' plus 1;
     }
     let mut 'acc': int64 = 0;
     let mut 'r': int64 = 0;
     while 'r' < 10 {
         let mut 'j': uint64 = 1;
         while 'j' </== list.length[lend 'xs'] {
-            change 'acc' = 'acc' + 'xs'['j'];
-            change 'j' = 'j' + 1;
+            change 'acc' = 'acc' plus 'xs'['j'];
+            change 'j' = 'j' plus 1;
         }
-        change 'r' = 'r' + 1;
+        change 'r' = 'r' plus 1;
     }
     return to.int32['acc' mod.floor 256];
 }

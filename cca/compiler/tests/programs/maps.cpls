@@ -10,5 +10,5 @@ MAIN {
     let 'has': bool = map.has[lend 'phones', "bob"];
     let mut 'h': int32 = 0;
     if 'has' { change 'h' = 1; }
-    nocheck exit['a' + 'c' + 'z' + 'n' + 'h'];
+    nocheck exit['a' plus 'c' plus 'z' plus 'n' plus 'h'];
 }

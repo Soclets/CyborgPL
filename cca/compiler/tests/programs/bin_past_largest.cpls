@@ -13,7 +13,7 @@ fn start [] -> bin64 {
 MAIN {
     let mut 'x': bin64 = start[];
     for 'i': int32 in range[1, 2000] {
-        change 'x' = 'x' x 2.0;
+        change 'x' = 'x' times 2.0;
     }
     nocheck exit[7];
 }

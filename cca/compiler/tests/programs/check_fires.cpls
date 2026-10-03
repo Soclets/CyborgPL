@@ -6,6 +6,6 @@ extern.C fn getpid [] -> int32;
 MAIN {
     nocheck let 'pid' := getpid[];
     let 'huge': int32 = 2_000_000_000;
-    let 'boom': int32 = 'pid' x 'huge';
+    let 'boom': int32 = 'pid' times 'huge';
     nocheck exit['boom'];
 }

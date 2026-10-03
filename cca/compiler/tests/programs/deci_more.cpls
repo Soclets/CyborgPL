@@ -16,32 +16,32 @@ MAIN {
     let mut 'got': int32 = 0;
     let 't': deci64 = 7.50;
     let 'm': deci64 = -7.50;
-    change 'got' = 'got' + same['t' mod.floor 2, "1.50"] + same['m' mod.floor 2, "0.50"] + same['t' mod.floor -2, "-0.50"];
+    change 'got' = 'got' plus same['t' mod.floor 2, "1.50"] plus same['m' mod.floor 2, "0.50"] plus same['t' mod.floor -2, "-0.50"];
     let 'c': deci64 = -4.0;
-    change 'got' = 'got' + same['c' mod.floor 2, "0.0"] + same['c' mod.floor -2, "-0.0"] + same['t' mod.floor 0.7, "0.50"];
+    change 'got' = 'got' plus same['c' mod.floor 2, "0.0"] plus same['c' mod.floor -2, "-0.0"] plus same['t' mod.floor 0.7, "0.50"];
     let 'r': deci64 = 1.05;
-    change 'got' = 'got' + same['r' xx 10, "1.628894626777441"] + same['r' xx 0, "1"] + same['r' xx -1, "0.9523809523809524"];
+    change 'got' = 'got' plus same['r' pow 10, "1.628894626777441"] plus same['r' pow 0, "1"] plus same['r' pow -1, "0.9523809523809524"];
     let 'r2': deci128 = 1.05;
-    if to.stored.str.utf8['r2' xx 10] == "1.62889462677744140625" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['r2' pow 10] == "1.62889462677744140625" { change 'got' = 'got' plus 1; }
     let 'n': int32 = 3;
-    change 'got' = 'got' + same['r' xx 'n', "1.157625"] + same['c' xx 3, "-64.000"];
+    change 'got' = 'got' plus same['r' pow 'n', "1.157625"] plus same['c' pow 3, "-64.000"];
     let 'x': deci64 = 3.141592653589793;
     let 's': deci32 = 7;
     let 'y' := to.deci32['x'] otherwise 's';
     let 'z': deci64 = 2.50;
     let 'zz' := to.deci32['z'] otherwise 's';
-    if to.stored.str.utf8['y'] == "7" and to.stored.str.utf8['zz'] == "2.50" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['y'] == "7" and to.stored.str.utf8['zz'] == "2.50" { change 'got' = 'got' plus 1; }
     let 'disc': deci64[0.0, 1.0] = 0.15;
     let 'p' := to.deci64[0.0, 1.0]["1.5"] otherwise 'disc';
-    change 'got' = 'got' + same['disc', "0.15"] + same['p', "0.15"];
-    change 'got' = 'got' + in_unit[0.25] + in_unit[1.5];
+    change 'got' = 'got' plus same['disc', "0.15"] plus same['p', "0.15"];
+    change 'got' = 'got' plus in_unit[0.25] plus in_unit[1.5];
     let 'q' := to.deci64[0.0, 1.0]["0.5"] otherwise 'disc';
-    change 'got' = 'got' + same['q', "0.5"];
+    change 'got' = 'got' plus same['q', "0.5"];
     let 'e': int64 = 5;
     let 'f' := to.deci32[0.0, 10.0]['e'] otherwise 's';
-    if to.stored.str.utf8['f'] == "5" { change 'got' = 'got' + 1; }
+    if to.stored.str.utf8['f'] == "5" { change 'got' = 'got' plus 1; }
     let 'w': bin64 = 5.5;
     let 'g' := to.stored.deci64[0.0, 1.0]['w'] otherwise 'disc';
-    change 'got' = 'got' + same['g', "0.15"];
+    change 'got' = 'got' plus same['g', "0.15"];
     nocheck exit['got'];
 }

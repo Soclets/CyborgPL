@@ -1,8 +1,8 @@
 extern.C fn exit ['code': int32];
-fn work ['n': int32] -> int32 { return 'n' x 2; }
+fn work ['n': int32] -> int32 { return 'n' times 2; }
 fn fill [lent.mut 'into': list[int32], 'from': int32] {
     for 'i': int32 in range[1, 5] {
-        list.append[lend.mut 'into', 'from' + 'i'];
+        list.append[lend.mut 'into', 'from' plus 'i'];
     }
 }
 MAIN {
@@ -16,5 +16,5 @@ MAIN {
     let 'la': int32 = list.length[lend 'a'];
     let 'lb': int32 = list.length[lend 'b'];
     let 'last': int32 = 'b'[5];
-    nocheck exit['la' + 'lb' + 'last'];
+    nocheck exit['la' plus 'lb' plus 'last'];
 }

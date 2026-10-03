@@ -6,7 +6,7 @@ MAIN {
     let 'xs': list[int64] = [1, 2, 3, 4];
     let mut 'total': int64 = 0;
     for para 'x' in lend 'xs' {
-        change 'total' = 'total' + 'x';
+        change 'total' = 'total' plus 'x';
     }
     nocheck exit[to.int32['total']];
 }

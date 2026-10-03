@@ -5,9 +5,9 @@
 # and (100 + 100) - 150 = 50 in a uint8: 42 + 50 = 92 (the oracle agrees).
 extern.C fn exit ['code': int32];
 MAIN {
-    let 'big': list[uint64] = [9692729768110883998 - 3166240359165959856, 9692729768110883998 - 1];
-    let 'small': list[uint8] = [(100 + 100) - 150, 7];
+    let 'big': list[uint64] = [9692729768110883998 minus 3166240359165959856, 9692729768110883998 minus 1];
+    let 'small': list[uint8] = [(100 plus 100) minus 150, 7];
     let mut 'k': int32 = 0;
     if 'big'[1] == 6526489408944924142 { change 'k' = 42; }
-    nocheck exit['k' + to.int32['small'[1]]];
+    nocheck exit['k' plus to.int32['small'[1]]];
 }

@@ -1,7 +1,7 @@
 extern.C fn exit ['code': int32];
 fn total [lent 'xs': list[int32]] -> int32 {
     let mut 's': int32 = 0;
-    for 'x' in lend 'xs' { change 's' = 's' + 'x'; }
+    for 'x' in lend 'xs' { change 's' = 's' plus 'x'; }
     return 's';
 }
 MAIN {
@@ -14,9 +14,9 @@ MAIN {
             {
                 concur with [lend 'xs'] { let 'again' := total[lend 'xs']; }
             }
-            list.append[lend.mut 'out', 'inner' + str.bytes[lend 'name']];
+            list.append[lend.mut 'out', 'inner' plus str.bytes[lend 'name']];
         }
         break;
     }
-    nocheck exit[list.length[lend 'out'] + 'out'[1]];
+    nocheck exit[list.length[lend 'out'] plus 'out'[1]];
 }

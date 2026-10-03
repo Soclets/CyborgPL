@@ -5,5 +5,5 @@ MAIN {
     let 'n': int32 = list.length[lend 'xs'];
     let 'a': int32 = 'xs'[1];
     let 'd': int32 = 'xs'[4];
-    nocheck exit['n' + 'a' + 'd'];
+    nocheck exit['n' plus 'a' plus 'd'];
 }

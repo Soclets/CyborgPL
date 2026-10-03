@@ -13,5 +13,5 @@ fn on_key ['code': int32] -> int32 {
     }
 }
 MAIN {
-    nocheck exit[on_key[66] x 100 + on_key[302] x 10 + on_key[256]];
+    nocheck exit[on_key[66] times 100 plus on_key[302] times 10 plus on_key[256]];
 }

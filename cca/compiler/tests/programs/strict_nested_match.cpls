@@ -28,5 +28,5 @@ fn price ['o': Order, 's': Ship] -> int32 {
 MAIN {
     let immut 'w': int32 = handle[Order.paid, Ship.post];
     let immut 'n': int32 = price[Order.paid, Ship.post];
-    nocheck exit['w' x 10 + 'n'];
+    nocheck exit['w' times 10 plus 'n'];
 }

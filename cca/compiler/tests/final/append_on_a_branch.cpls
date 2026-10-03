@@ -10,13 +10,13 @@ MAIN {
     let mut 'i': int64 = 0;
     while 'i' </== 'n' {
         if ('i' mod.floor 2) == 0 { list.append[lend.mut 'xs', true]; }
-        change 'i' = 'i' + 1;
+        change 'i' = 'i' plus 1;
     }
     let mut 'p': int64 = 1;
     let mut 'c': int64 = 0;
     while 'p' </== 'n' {
-        if 'xs'[to.uint64['p']] { change 'c' = 'c' + 1; }
-        change 'p' = 'p' + 1;
+        if 'xs'[to.uint64['p']] { change 'c' = 'c' plus 1; }
+        change 'p' = 'p' plus 1;
     }
     nocheck exit[to.int32['c' mod.floor 256]];
 }

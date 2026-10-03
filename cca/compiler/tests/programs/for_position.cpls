@@ -11,5 +11,5 @@ MAIN {
         if 's' > 'best' { change 'best' = 's'; change 'best_at' = 'i'; }
     }
     for perm 'n', 'y' in lend 'scores' { }
-    nocheck exit[to.int32['best_at'] x 100 + to.int32['n'] x 10 + 'y' - 80];
+    nocheck exit[to.int32['best_at'] times 100 plus to.int32['n'] times 10 plus 'y' minus 80];
 }

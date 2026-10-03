@@ -2,7 +2,7 @@
 # + (-10) + (-5) + 2 + 11, and 100 when `op </==` said 3 </== 3 → 132.
 extern.C fn exit ['code': int32];
 struct Vec { x: bin64  y: bin64 }
-op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
+op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
 fn fold [lent 'xs': list[int32], 'start': int32, 'f': fn[int32, int32] -> int32] -> int32 {
     let mut 'acc' := 'start';
     for 'x' in lend 'xs' { change 'acc' = 'f'['acc', 'x']; }
@@ -13,9 +13,9 @@ fn test2 ['a': int32, 'b': int32, 'f': fn[int32, int32] -> bool] -> bool { retur
 fn both [lent 'a': Vec, lent 'b': Vec, 'f': fn[lent Vec, lent Vec] -> bin64] -> bin64 { return 'f'[lend 'a', lend 'b']; }
 MAIN {
     let 'xs': list[int32] = [1, 2, 3, 4];
-    let 'sum' := fold[lend 'xs', 0, op +];
-    let 'product' := fold[lend 'xs', 1, op x];
-    let 'down' := fold[lend 'xs', 0, op -];
+    let 'sum' := fold[lend 'xs', 0, op plus];
+    let 'product' := fold[lend 'xs', 1, op times];
+    let 'down' := fold[lend 'xs', 0, op minus];
     let 'n' := apply1[5, op neg];
     let 'le' := test2[3, 3, op </==];
     let 'f': fn[int32, int32] -> int32 = op mod.floor;
@@ -26,5 +26,5 @@ MAIN {
     let 'dn' := to.int32['d'] otherwise 0;
     let mut 'bonus': int32 = 0;
     if 'le' { change 'bonus' = 100; }
-    nocheck exit['sum' + 'product' + 'down' + 'n' + 'm' + 'dn' + 'bonus'];
+    nocheck exit['sum' plus 'product' plus 'down' plus 'n' plus 'm' plus 'dn' plus 'bonus'];
 }

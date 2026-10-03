@@ -1532,14 +1532,28 @@ impl Checker {
     fn user_op(&mut self, ctx: &mut FnCtx, spelling: &str, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
         let l = self.expr(ctx, lhs)?;
         let lt = self.resolve(&l.ty);
-        let Some(fn_id) = self.find_op(spelling, lt.base()) else {
+        // A path picks only that Limb's operator (owner, 2026-10-03).
+        let (limb, name) = match spelling.split_once("::") {
+            Some((limb, name)) => {
+                let here = self.items.limb_root(ctx.module);
+                let Some(root) = self.items.limb_deps.get(&here).and_then(|d| d.get(limb)).copied() else {
+                    return err(Diagnostic::error(format!("no Limb with the prefix `{}`: a Limb this one uses is listed in its `CCA.cplr`, and its own `CCA.cplr` says `const 'prefix' := \"{}\";`", limb, limb)).at(op_span));
+                };
+                (Some((limb, root)), name)
+            }
+            None => (None, spelling),
+        };
+        let Some(fn_id) = self.find_op_in(name, lt.base(), limb.map(|l| l.1)) else {
+            if let Some((limb, _)) = limb {
+                return err(Diagnostic::error(format!("the Limb `{}` has no operator `{}` for a `{}`: a path picks only that Limb's operator", limb, name, self.spell(&lt))).at(op_span));
+            }
             let hint = match spelling {
-                "*" => "multiply is `x`",
-                "^" => "power is `xx`",
-                "%" => "remainder is `mod`",
+                "*" => "multiply is `times`",
+                "^" => "the power is std's `pow`",
+                "%" => "remainder is `mod.floor` (or `.ceil`, `.trunc`, `.near`)",
                 "&" | "|" | "!" => "the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is `lend 'x'`",
-                "&+" | "&-" | "+%" | "-%" | "*%" => "wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`",
-                _ => "an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`",
+                "&+" | "&-" | "+%" | "-%" | "*%" => "wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`",
+                _ => "an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`",
             };
             return err(Diagnostic::error(format!("`{}` is not an operator here: {}", spelling, hint)).at(op_span));
         };
@@ -2374,7 +2388,7 @@ impl Checker {
                     if self.resolve(pty).contains_var() {
                         let vt = self.resolve(&v.ty);
                         let op = self.widths_pending.iter().find(|(t, _, _)| self.resolve(t) == vt).map(|(_, _, w)| w.clone()).unwrap_or_else(|| "this".into());
-                        return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and a generic parameter gives none: give an operand a type (`to.uint8[0] -~ 1`)", op)).at(e.span));
+                        return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and a generic parameter gives none: give an operand a type (`to.uint8[0] minus.wrap 1`)", op)).at(e.span));
                     }
                 }
                 let v = self.expect_store(ctx, v, pty, &what)?;

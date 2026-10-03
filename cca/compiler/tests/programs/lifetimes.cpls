@@ -25,7 +25,7 @@ fn run [] -> int32 {
     let 'l' := longer[lend 's', lend 't'];
     let 'p' := pick[lend 't', lend 's'];
     let 'f' := first[lend 's'];
-    return width[lend 'l'] x 100 + width[lend 'p'] x 10 + width[lend 'f'];
+    return width[lend 'l'] times 100 plus width[lend 'p'] times 10 plus width[lend 'f'];
 }
 MAIN {
     nocheck exit[run[]];

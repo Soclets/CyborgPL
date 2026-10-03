@@ -6,20 +6,20 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'x': bin32 = 16777216.0;
     let mut 'got': int32 = 0;
-    let 'a' := 'x' + 1.0;
-    let 'na' := to.int32['a' - 16777216.0] otherwise 99;
-    if 'na' == 0 { change 'got' = 'got' + 1; }
-    let 'b': bin32 = 'x' + 1.0 + 1.0;
-    let 'nb' := to.int32['b' - 16777216.0] otherwise 99;
+    let 'a' := 'x' plus 1.0;
+    let 'na' := to.int32['a' minus 16777216.0] otherwise 99;
+    if 'na' == 0 { change 'got' = 'got' plus 1; }
+    let 'b': bin32 = 'x' plus 1.0 plus 1.0;
+    let 'nb' := to.int32['b' minus 16777216.0] otherwise 99;
     let 'w': bin64 = 1.0;
-    let 'nw' := to.int32['x' + 'w' - 16777216.0] otherwise 99;
-    if 'nb' == 0 and 'nw' == 1 { change 'got' = 'got' + 2; }
+    let 'nw' := to.int32['x' plus 'w' minus 16777216.0] otherwise 99;
+    if 'nb' == 0 and 'nw' == 1 { change 'got' = 'got' plus 2; }
     let 'c': bin32 = 0.1;
-    if 'c' > 0.1 and not ('c' == 0.1) { change 'got' = 'got' + 4; }
-    let 'd' := 'c' x 10.0;
-    if 'd' > 0.99 and 'd' < 1.01 { change 'got' = 'got' + 8; }
+    if 'c' > 0.1 and not ('c' == 0.1) { change 'got' = 'got' plus 4; }
+    let 'd' := 'c' times 10.0;
+    if 'd' > 0.99 and 'd' < 1.01 { change 'got' = 'got' plus 8; }
     let mut 'h': int32 = 0;
     check if 'x' > 0.0 { change 'h' = to.int32['x' div.near 2.0] otherwise 0; }
-    if 'h' == 8388608 { change 'got' = 'got' + 16; }
+    if 'h' == 8388608 { change 'got' = 'got' plus 16; }
     nocheck exit['got'];
 }

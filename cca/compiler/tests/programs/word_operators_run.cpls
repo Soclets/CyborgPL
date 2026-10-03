@@ -1,0 +1,17 @@
+# The operators are words (owner, 2026-10-02/03): `plus`, `minus`, `times`, std's
+# `pow` (above a negative, right pair first), and `.wrap`. (7 + 3) x 10 - 343
+# = -243; 2 pow 3 pow 2 = 512; -2 pow 2 = -4; 2 times 3 pow 2 = 18; a uint8 200
+# plus.wrap 100 is 44 and times.wrap 2 is 144, 188. -243 + 512 - 4 + 18 + 188
+# = 471, and 471 mod 256 is 215.
+extern.C fn exit ['code': int32];
+MAIN {
+    let 'a': int32 = 7;
+    let 'b': int32 = 3;
+    let 'h': uint8 = 200;
+    let 'r1' := ('a' plus 'b') times 10 minus ('a' pow 'b');
+    let 'r2' := 2 pow 3 pow 2;
+    let 'r3' := -2 pow 2;
+    let 'r4' := 2 times 3 pow 2;
+    let 'w' := ('h' plus.wrap 100) plus ('h' times.wrap 2);
+    nocheck exit[to.int32[('r1' plus 'r2' plus 'r3' plus 'r4' plus to.int64['w']) mod.floor 256]];
+}

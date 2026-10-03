@@ -7,11 +7,11 @@ MAIN {
     let mut 'seen': int32 = 0;
     {
         concur with [] { judge[3] otherwise fail; }
-            otherwise { small { change 'seen' = 'seen' + 1; } odd 'v' { change 'seen' = 'seen' + 100; } };
+            otherwise { small { change 'seen' = 'seen' plus 1; } odd 'v' { change 'seen' = 'seen' plus 100; } };
         concur with [] { judge[13] otherwise fail; }
-            otherwise { small { change 'seen' = 'seen' + 1000; } odd 'v' { change 'seen' = 'seen' + 'v'; } };
+            otherwise { small { change 'seen' = 'seen' plus 1000; } odd 'v' { change 'seen' = 'seen' plus 'v'; } };
         concur with [] { judge[20] otherwise fail; }
-            otherwise { small { change 'seen' = 'seen' + 7; } odd 'v' { change 'seen' = 'seen' + 7; } };
+            otherwise { small { change 'seen' = 'seen' plus 7; } odd 'v' { change 'seen' = 'seen' plus 7; } };
     }
     nocheck exit['seen'];
 }

@@ -24,5 +24,5 @@ MAIN {
         claimed 'w' { 0 }
         locked { 0 }
     };
-    nocheck exit[width[Status.empty] + width[Status.claimed["ann"]] + width[Status.locked] + 'k' + 'n'];
+    nocheck exit[width[Status.empty] plus width[Status.claimed["ann"]] plus width[Status.locked] plus 'k' plus 'n'];
 }

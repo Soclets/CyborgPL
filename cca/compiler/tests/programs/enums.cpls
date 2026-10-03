@@ -7,13 +7,13 @@ enum Shape {
 fn measure ['s': Shape] -> int32 {
     match 's' {
         dot        { return 1; }
-        line 'n'   { return 'n' + 10; }
-        box 'n'    { return 'n' + 100; }
+        line 'n'   { return 'n' plus 10; }
+        box 'n'    { return 'n' plus 100; }
     }
 }
 MAIN {
     let 'a' := Shape.dot;
     let 'b' := Shape.line[5];
     let 'c' := Shape.box[7];
-    nocheck exit[measure[give 'a'] + measure[give 'b'] + measure[give 'c']];
+    nocheck exit[measure[give 'a'] plus measure[give 'b'] plus measure[give 'c']];
 }

@@ -4,11 +4,11 @@
 extern.C fn exit ['code': int32];
 fn total [lent 'xs': list[int32]] -> int32 {
     let mut 'n': int32 = 0;
-    for 'x' in lend 'xs' { change 'n' = 'n' + 'x'; }
+    for 'x' in lend 'xs' { change 'n' = 'n' plus 'x'; }
     return 'n';
 }
 MAIN {
     let 'scores' := [72, 40, 95, 55];
-    let 'first' := 'scores'[1] + 1;
-    nocheck exit[(total[lend 'scores'] + to.int32['first']) mod.floor 256];
+    let 'first' := 'scores'[1] plus 1;
+    nocheck exit[(total[lend 'scores'] plus to.int32['first']) mod.floor 256];
 }

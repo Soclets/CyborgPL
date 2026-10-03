@@ -5,7 +5,7 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'xs': list[int32] = [1, 2, 3];
     nocheck let 'p': int32 = getpid[];
-    let 'k': uint64 = to.uint64[('p' - 'p') + 3];
+    let 'k': uint64 = to.uint64[('p' minus 'p') plus 3];
     let 'v': simd[int32, 4] = simd.load.some[lend 'xs', 2, 'k'];
     nocheck exit[simd.sum['v']];
 }

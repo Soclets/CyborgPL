@@ -10,8 +10,8 @@ MAIN {
     let mut 'n': int32 = 26;
     if 'there' { change 'n' = 25; }
     let 'h': uint32 = 3;
-    let 'p' := 'h' xx~ 'n';
+    let 'p' := 'h' pow.wrap 'n';
     let 'q': uint8 = 7;
-    let 'r' := 'q' xx~ 'n';
-    nocheck exit[to.int32[('p' mod.floor 256) + ('r' mod.floor 8)]];
+    let 'r' := 'q' pow.wrap 'n';
+    nocheck exit[to.int32[('p' mod.floor 256) plus ('r' mod.floor 8)]];
 }

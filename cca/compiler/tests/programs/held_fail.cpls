@@ -12,7 +12,7 @@ fn third ['n': int32] -> int32 or fail[odd: int32] {
     return 'n' div.floor 3;
 }
 fn apply ['f': fn[int32] -> int32 or fail[odd: int32], 'n': int32] -> int32 {
-    let 'v' := 'f'['n'] otherwise { odd 'x' { return 0 - 'x'; } };
+    let 'v' := 'f'['n'] otherwise { odd 'x' { return 0 minus 'x'; } };
     return 'v';
 }
 MAIN {
@@ -21,11 +21,11 @@ MAIN {
     let mut 'n': int32 = 7;
     if 'there' { change 'n' = 12; }
     let mut 'got': int32 = 0;
-    if apply[half, 'n'] == 6 and apply[half, 'n' + 1] == -13 { change 'got' = 'got' + 1; }
-    if apply[third, 'n'] == 4 and apply[third, 'n' + 1] == -13 { change 'got' = 'got' + 2; }
+    if apply[half, 'n'] == 6 and apply[half, 'n' plus 1] == -13 { change 'got' = 'got' plus 1; }
+    if apply[third, 'n'] == 4 and apply[third, 'n' plus 1] == -13 { change 'got' = 'got' plus 2; }
     let 'g' := fn ['m': int32] -> int32 or fail[odd: int32] { if 'm' > 10 { fail odd['m']; } return 'm'; };
-    if apply['g', 3] == 3 and apply['g', 'n'] == -12 { change 'got' = 'got' + 4; }
+    if apply['g', 3] == 3 and apply['g', 'n'] == -12 { change 'got' = 'got' plus 4; }
     let 'direct' := 'g'['n'] otherwise 99;
-    if 'direct' == 99 { change 'got' = 'got' + 8; }
+    if 'direct' == 99 { change 'got' = 'got' plus 8; }
     nocheck exit['got'];
 }

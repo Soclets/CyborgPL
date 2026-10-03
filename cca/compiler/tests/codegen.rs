@@ -137,7 +137,7 @@ fn deep_nesting_is_checked() {
     let _ = std::fs::create_dir_all(&dir);
     let src = dir.join("deep.cpls");
     let depth = 5000;
-    let expr = format!("{}1{}", "(1 + ".repeat(depth), ")".repeat(depth));
+    let expr = format!("{}1{}", "(1 plus ".repeat(depth), ")".repeat(depth));
     std::fs::write(&src, format!("MAIN {{\n    let 'x': int64 = {};\n}}\n", expr)).unwrap();
     let r = Command::new(cca()).arg("check").arg(&src).output().unwrap();
     assert!(r.status.success(), "a deep expression was not checked:\n{}", String::from_utf8_lossy(&r.stderr));
@@ -203,7 +203,7 @@ fn limbs_reach_their_dependencies() {
     }
     // A dependency's MAIN runs when that Limb is run itself, and is left
     // out when another uses it (owner, 2026-09-29: a).
-    for (name, code) in [("uses_runnable", 8), ("runnable", 99)] {
+    for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 40)] {
         let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }

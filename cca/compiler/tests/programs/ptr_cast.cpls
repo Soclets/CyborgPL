@@ -17,7 +17,7 @@ MAIN {
     nocheck ptr.write['p', Point[x = 3, y = 4]];
     nocheck let 'q' := ptr.read['p'];
     nocheck let 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
-    let 'code' := 'q'.x x 10 + 'q'.y + 'second';
+    let 'code' := 'q'.x times 10 plus 'q'.y plus 'second';
     nocheck free['raw'];
     nocheck exit['code'];
 }

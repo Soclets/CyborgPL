@@ -8,7 +8,7 @@ MAIN {
     nocheck let 'n' := getpid[];
     if 'n' > 0 {
         if 'n' < 1000 {
-            let 'x': int32 = 'n' + 1;
+            let 'x': int32 = 'n' plus 1;
             nocheck exit[0];
         }
     }

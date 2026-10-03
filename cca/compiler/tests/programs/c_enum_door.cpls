@@ -26,5 +26,5 @@ MAIN {
     nocheck let 'none': Key = toupper[50] otherwise Key.escape;      # '2' is no case: escape
     nocheck let 'q': Div = div[7, 2] otherwise Div[quot = 0, rem = 9];
     nocheck let 'big': Div = div[100, 2] otherwise Div[quot = 0, rem = 9];
-    nocheck exit[('n' - 256) + code[give 'up'] x 1000 + code[give 'same'] x 100 + code[give 'none'] x 10 + 'q'.quot + 'q'.rem + 'big'.rem];
+    nocheck exit[('n' minus 256) plus code[give 'up'] times 1000 plus code[give 'same'] times 100 plus code[give 'none'] times 10 plus 'q'.quot plus 'q'.rem plus 'big'.rem];
 }

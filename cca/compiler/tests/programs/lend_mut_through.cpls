@@ -6,8 +6,8 @@ extern.C fn exit ['code': int32];
 MAIN {
     let mut 'xs': list[int64] = list.fill[2, 3];
     for 'x' in lend.mut 'xs' {
-        change 'x' = 'x' x 3;
+        change 'x' = 'x' times 3;
     }
-    let 'y': int8 = to.int8['xs'[1] x 50];
+    let 'y': int8 = to.int8['xs'[1] times 50];
     nocheck exit[to.int32['y']];
 }

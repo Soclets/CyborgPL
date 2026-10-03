@@ -15,13 +15,13 @@ MAIN {
     let mut 'got': int32 = 0;
     let mut 's' := Status.empty;
     if 'n' > 2 { change 's' = Status.locked; }
-    if 's' == Status.locked { change 'got' = 'got' + 1; }
-    if 's' !== Status.empty { change 'got' = 'got' + 2; }
+    if 's' == Status.locked { change 'got' = 'got' plus 1; }
+    if 's' !== Status.empty { change 'got' = 'got' plus 2; }
     let 't' := Status.claimed["Bo"];
-    if 't' == Status.claimed["Bo"] { change 'got' = 'got' + 4; }
-    if 't' !== Status.claimed["Al"] { change 'got' = 'got' + 8; }
+    if 't' == Status.claimed["Bo"] { change 'got' = 'got' plus 4; }
+    if 't' !== Status.claimed["Al"] { change 'got' = 'got' plus 8; }
     let 'a' := P[x = to.int32['n'], y = 2];
-    if 'a' == P[x = 3, y = 2] { change 'got' = 'got' + 16; }
-    if "a" ++ "bc" == 'k' { change 'got' = 'got' + 32; }
+    if 'a' == P[x = 3, y = 2] { change 'got' = 'got' plus 16; }
+    if "a" ++ "bc" == 'k' { change 'got' = 'got' plus 32; }
     nocheck exit['got'];
 }

@@ -8,8 +8,8 @@ MAIN {
     let mut 'total': int32 = 0;
     for 'i' in range[1, 2] {
         let 'page' := channel.take[lend 'results'] otherwise "";
-        change 'total' = 'total' + str.bytes[lend 'page'];
+        change 'total' = 'total' plus str.bytes[lend 'page'];
     }
     let 'extra' := channel.take[lend 'results'] otherwise "closed!";
-    nocheck exit['total' + str.bytes[lend 'extra']];
+    nocheck exit['total' plus str.bytes[lend 'extra']];
 }

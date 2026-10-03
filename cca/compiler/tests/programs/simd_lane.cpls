@@ -16,9 +16,9 @@ MAIN {
     let 'x1': int32 = 'a'[1];
     let 'x2': uint8 = 'b'[16];
     let 'x3': int64 = 'c'[2];
-    let 'x4': int32 = 'a'['k' - 1];
+    let 'x4': int32 = 'a'['k' minus 1];
     let 'x5': bin64 = 'w'[2];
     let 'x6': int32 = 'v'['k'];
-    let 'half': int32 = to.int32['x5' x 2.0] otherwise 0;
-    nocheck exit['x1' + 'x4' + (to.int32['x2'] - 190) + to.int32['x3' + 10] + 'half' + 'x6'];
+    let 'half': int32 = to.int32['x5' times 2.0] otherwise 0;
+    nocheck exit['x1' plus 'x4' plus (to.int32['x2'] minus 190) plus to.int32['x3' plus 10] plus 'half' plus 'x6'];
 }

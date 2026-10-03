@@ -18,7 +18,7 @@ pub const KEYWORDS: &[&str] = &[
 ];
 
 /// The word operators; bare, but never reserved (functions.md).
-pub const WORD_OPS: &[&str] = &["x", "xx", "mod", "div", "and", "or", "not", "xor", "shl", "shr"];
+pub const WORD_OPS: &[&str] = &["plus", "minus", "times", "pow", "mod", "div", "and", "or", "not", "xor", "shl", "shr"];
 
 pub const DURATION_UNITS: &[&str] = &["nanos", "micros", "millis", "seconds", "minutes", "hours", "nano", "micro", "milli", "second", "minute", "hour"];
 
@@ -48,10 +48,106 @@ struct Parser<'a> {
     returns_value: bool,
     /// What the last `-> …` said about a returned borrow.
     ret_lent: Option<RetLent>,
+    /// The levels this file's `precedence` block gives operators (owner,
+    /// 2026-10-03), by name without a path: how tightly each binds, and
+    /// how a chain of it reads.
+    prec: std::collections::HashMap<String, (u16, Chain)>,
+}
+
+/// A binary operator at the cursor (`Parser::binop`).
+struct OpTok {
+    op: BinOp,
+    l: u16,
+    r: u16,
+    span: Span,
+    /// Tokens that spell it: `plus.wrap` is three, `areas::mean` three.
+    len: usize,
+    /// The word a retired spelling is now: `+` is `plus`.
+    old: Option<&'static str>,
+}
+
+/// How a chain of one level reads (owner, 2026-10-03):
+/// `level.when_chained.left_first`, `.right_first`, or `.refused`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Chain {
+    Left,
+    Right,
+    Refused,
+}
+
+/// The language's own levels, in thousands so a Limb's fit between them
+/// (the oracle's "hundreds", ten times finer): loosest first. A negative
+/// sits above `times` and below std's `pow`, so `-2 pow 2` is -4.
+const OR_LEVEL: u16 = 1000;
+const AND_LEVEL: u16 = 2000;
+const CMP_LEVEL: u16 = 3000;
+const JOIN_LEVEL: u16 = 4000;
+const ADD_LEVEL: u16 = 5000;
+const MUL_LEVEL: u16 = 6000;
+const NEG_LEVEL: u16 = 7000;
+const POW_LEVEL: u16 = 8000;
+
+/// Binding powers for a level: a chain left first takes the left pair
+/// first, right first the right one; a refused chain parses left first and
+/// is refused where it chains.
+fn powers(level: u16, chain: Chain) -> (u16, u16) {
+    match chain {
+        Chain::Right => (2 * level, 2 * level),
+        _ => (2 * level, 2 * level + 1),
+    }
+}
+
+/// A language operator's level and chain, by the name a `precedence`
+/// level writes it with; `None` for one with no precedence.
+fn language_level(name: &str) -> Option<(u16, Option<Chain>)> {
+    let base = name.split('.').next().unwrap_or(name);
+    Some(match (name, base) {
+        ("or" | "or.else", _) => (OR_LEVEL, Some(Chain::Left)),
+        ("and" | "and.then", _) => (AND_LEVEL, Some(Chain::Left)),
+        ("==" | "!==" | "<" | ">" | "</==" | ">/==", _) => (CMP_LEVEL, Some(Chain::Refused)),
+        ("++", _) => (JOIN_LEVEL, Some(Chain::Left)),
+        ("plus" | "minus" | "plus.wrap" | "minus.wrap", _) => (ADD_LEVEL, Some(Chain::Left)),
+        ("times" | "times.wrap", _) | (_, "div" | "mod") => (MUL_LEVEL, Some(Chain::Left)),
+        // A negative is one value's: any chain may hold it.
+        ("neg", _) => (NEG_LEVEL, None),
+        ("pow" | "pow.wrap", _) => (POW_LEVEL, Some(Chain::Right)),
+        _ => return None,
+    })
+}
+
+/// The word an old operator spelling is now (owner, 2026-10-03).
+fn retired_spelling(s: &str) -> Option<&'static str> {
+    Some(match s {
+        "+" => "plus",
+        "-" => "minus",
+        "x" => "times",
+        "xx" => "pow",
+        "+~" => "plus.wrap",
+        "-~" => "minus.wrap",
+        "x~" => "times.wrap",
+        "xx~" => "pow.wrap",
+        _ => return None,
+    })
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default() };
+    // A `precedence` block reads before any expression in the file, so an
+    // operator above it is parsed by it too.
+    let mut depth = 0i32;
+    for i in 0..toks.len() {
+        match &toks[i].tok {
+            Tok::LBrace => depth += 1,
+            Tok::RBrace => depth -= 1,
+            Tok::Word(w) if w == "precedence" && depth == 0 && toks[i].line_first => {
+                p.pos = i;
+                let table = p.precedence_block()?;
+                p.prec.extend(table);
+            }
+            _ => {}
+        }
+    }
+    p.pos = 0;
     let mut strict = None;
     if p.is(&Tok::Strict) {
         strict = Some(p.span().file);
@@ -405,6 +501,12 @@ impl<'a> Parser<'a> {
                 Ok(ItemKind::Module { name, items })
             }
             "mod" => self.fail("`mod` is the remainder operator; a module is `module name { … }`"),
+            "precedence" => {
+                // Read before the items (`parse_file`); here it is passed,
+                // as an empty block of lines that adds no item.
+                self.precedence_block()?;
+                Ok(ItemKind::ExternBlock(Vec::new()))
+            }
             "let" => self.fail("a Limb-level value is a `const`, not a `let`: `const 'name' := …;`"),
             "check" | "nocheck" => {
                 if self.is_word_at(1, "fn") {
@@ -1015,6 +1117,15 @@ impl<'a> Parser<'a> {
     }
 
     fn op_name(&mut self) -> Result<Ident> {
+        let op = self.op_spelling()?;
+        // A type's own `plus` is `op plus` (owner, 2026-10-03).
+        if let Some(word) = retired_spelling(&op.name) {
+            return self.fail_at(op.span, format!("`op {}` is `op {}` now (owner, 2026-10-03): `op {} ['a': V, 'b': V] --> V {{ … }}`", op.name, word, word));
+        }
+        Ok(op)
+    }
+
+    fn op_spelling(&mut self) -> Result<Ident> {
         match self.peek().clone() {
             Tok::Op(o) => {
                 let span = self.bump().span;
@@ -1043,7 +1154,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(op.span, format!("an operator takes exactly two operands; `{}` is declared with {}", op.name, params.len()));
         }
         if !self.is_op("->") {
-            return self.fail(format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
+            return self.fail(format!("`--> T` is required on an operator: `op {} [...] --> T {{ … }}`", op.name));
         }
         let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
@@ -1053,7 +1164,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(op.span, format!("an operator cannot fail; make `{}` a `fn` if it needs `fail[…]`", op.name));
         }
         if ret.is_none() {
-            return self.fail_at(op.span, format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
+            return self.fail_at(op.span, format!("`--> T` is required on an operator: `op {} [...] --> T {{ … }}`", op.name));
         }
         let body = self.block("the operator")?;
         Ok(OpDecl { op, announce, params, ret, body })
@@ -2102,6 +2213,143 @@ impl<'a> Parser<'a> {
 
     /// Binding powers. `None` for a token that is not a binary operator here.
     /// The operator after `op`: any a value can be, whatever follows it.
+    /// A Limb's `precedence` block (owner, 2026-10-03): `precedence.low_first`
+    /// counts level 1 as the loosest, `precedence.high_first` as the
+    /// tightest; each `level.when_chained.left_first N { … }` (or
+    /// `.right_first`, `.refused`) lists operators by name. A language
+    /// operator pins its level where the language has it, and must chain as
+    /// it does; a level with none sits evenly between its neighbours — from
+    /// 0 below, to the next language level above. Returns each named
+    /// operator's level and chain.
+    fn precedence_block(&mut self) -> Result<Vec<(String, (u16, Chain))>> {
+        let at = self.bump().span;
+        if !self.eat(&Tok::Dot) {
+            return self.fail_at(at, "say which way the levels count: `precedence.low_first` (level 1 binds loosest, the good practice) or `precedence.high_first`");
+        }
+        let way = self.ident("`low_first` or `high_first`")?;
+        let low_first = match way.name.as_str() {
+            "low_first" => true,
+            "high_first" => false,
+            other => return self.fail_at(way.span, format!("`precedence.{}` is not a way to count: `precedence.low_first` or `precedence.high_first`", other)),
+        };
+        self.expect(&Tok::LBrace, "`{` opening the levels")?;
+        // (number, chain, names, the number's span)
+        let mut levels: Vec<(i128, Chain, Vec<(String, Span)>, Span)> = Vec::new();
+        while !self.eat(&Tok::RBrace) {
+            let lat = self.span();
+            if !self.eat_word("level") {
+                return self.fail(format!("a `precedence` block holds levels, `level.when_chained.left_first 1 {{ plus }}`; found {}", self.peek().describe()));
+            }
+            let how = "say how a chain of this level reads: `level.when_chained.left_first`, `level.when_chained.right_first` or `level.when_chained.refused`";
+            if !self.eat(&Tok::Dot) {
+                return self.fail_at(lat, how);
+            }
+            let w = self.ident("`when_chained`")?;
+            if w.name != "when_chained" || !self.eat(&Tok::Dot) {
+                return self.fail_at(w.span, how);
+            }
+            let c = self.ident("`left_first`, `right_first` or `refused`")?;
+            let chain = match c.name.as_str() {
+                "left_first" => Chain::Left,
+                "right_first" => Chain::Right,
+                "refused" => Chain::Refused,
+                _ => return self.fail_at(c.span, how),
+            };
+            let (n, nspan) = match self.peek().clone() {
+                Tok::Num { text, bin: false } => (text.replace('_', "").parse::<i128>().unwrap_or(0), self.bump().span),
+                other => return self.fail(format!("a level's number follows how it chains: `level.when_chained.left_first 1 {{ … }}`, found {}", other.describe())),
+            };
+            if let Some(first) = levels.iter().find(|l| l.0 == n) {
+                let _ = first;
+                return self.fail_at(nspan, format!("two levels numbered {}: each level has its own number", n));
+            }
+            self.expect(&Tok::LBrace, "`{` opening the level's operators")?;
+            let mut names = Vec::new();
+            while !self.eat(&Tok::RBrace) {
+                let ospan = self.span();
+                let name = match self.peek().clone() {
+                    Tok::Op(o) => {
+                        self.bump();
+                        o
+                    }
+                    Tok::Word(w) => {
+                        self.bump();
+                        let mut name = w;
+                        while self.is(&Tok::Dot) && matches!(self.peek_at(1), Tok::Word(_)) {
+                            self.bump();
+                            let Tok::Word(more) = self.bump().tok else { unreachable!() };
+                            name = format!("{}.{}", name, more);
+                        }
+                        name
+                    }
+                    other => return self.fail(format!("a level lists operators by name, `{{ plus  dot }}`; found {}", other.describe())),
+                };
+                if let Some(word) = retired_spelling(&name) {
+                    return self.fail_at(ospan, format!("`{}` is `{}` now (owner, 2026-10-03)", name, word));
+                }
+                if matches!(name.as_str(), "xor" | "shl" | "shr" | "and.bit" | "or.bit" | "not.bit") {
+                    return self.fail_at(ospan, format!("`{}` has no precedence in the language: a bitwise operator is parenthesised beside another, so no level holds it", name));
+                }
+                names.push((name, ospan));
+            }
+            levels.push((n, chain, names, nspan));
+        }
+        // Loosest first.
+        levels.sort_by_key(|l| l.0);
+        if !low_first {
+            levels.reverse();
+        }
+        let mut pinned: Vec<Option<u16>> = Vec::new();
+        for (_, chain, names, _) in &levels {
+            let mut pin: Option<(u16, &str)> = None;
+            for (name, span) in names {
+                let Some((lv, lchain)) = language_level(name) else { continue };
+                if let Some(c) = lchain {
+                    if c != *chain {
+                        let says = match c {
+                            Chain::Left => "left_first",
+                            Chain::Right => "right_first",
+                            Chain::Refused => "refused",
+                        };
+                        return self.fail_at(*span, format!("`{}` chains {} in the language, so its level must say `level.when_chained.{}`", name, says.replace('_', " "), says));
+                    }
+                }
+                match pin {
+                    Some((p, other)) if p != lv => return self.fail_at(*span, format!("`{}` and `{}` sit at different levels in the language: one level cannot hold both", other, name)),
+                    _ => pin = Some((lv, name)),
+                }
+            }
+            pinned.push(pin.map(|p| p.0));
+        }
+        // A level with no language operator: evenly between its neighbours.
+        let mut values: Vec<u16> = vec![0; levels.len()];
+        let mut i = 0;
+        while i < levels.len() {
+            if let Some(v) = pinned[i] {
+                values[i] = v;
+                i += 1;
+                continue;
+            }
+            let start = i;
+            while i < levels.len() && pinned[i].is_none() {
+                i += 1;
+            }
+            let lo = if start == 0 { 0 } else { values[start - 1] as u32 };
+            let hi = if i < levels.len() { pinned[i].unwrap() as u32 } else { lo + 1000 };
+            let n = (i - start) as u32;
+            for k in 0..n {
+                values[start + k as usize] = (lo + (hi.saturating_sub(lo)) * (k + 1) / (n + 1)) as u16;
+            }
+        }
+        let mut out = Vec::new();
+        for ((_, chain, names, _), v) in levels.into_iter().zip(values) {
+            for (name, _) in names {
+                out.push((name, (v, chain)));
+            }
+        }
+        Ok(out)
+    }
+
     /// The rounding after `div` or `mod`, the word already taken: `.floor`,
     /// `.ceil`, `.trunc` or `.near`, or none — which the checker refuses,
     /// naming the one meant.
@@ -2122,9 +2370,10 @@ impl<'a> Parser<'a> {
         let op = match self.peek().clone() {
             Tok::Op(o) => {
                 self.bump();
+                if let Some(word) = retired_spelling(&o) {
+                    return self.fail_at(at, format!("`{}` is `{}` now (owner, 2026-10-03): `op {}`", o, word, word));
+                }
                 match o.as_str() {
-                    "+" => BinOp::Add,
-                    "-" => BinOp::Sub,
                     "/" => return self.fail_at(at, "division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `op div.floor`"),
                     "++" => BinOp::Join,
                     "==" => BinOp::Eq,
@@ -2135,8 +2384,6 @@ impl<'a> Parser<'a> {
                     ">/==" => BinOp::Ge,
                     "<==" => return self.fail_at(at, "less-or-equal is `</==`: `op </==`"),
                     ">==" => return self.fail_at(at, "greater-or-equal is `>/==`: `op >/==`"),
-                    "+~" => BinOp::WrapAdd,
-                    "-~" => BinOp::WrapSub,
                     "=" => return self.fail_at(at, "`=` is not an operator: equality is `op ==`"),
                     other => BinOp::Custom(other.to_string()),
                 }
@@ -2145,12 +2392,28 @@ impl<'a> Parser<'a> {
                 let wraps = self.is_op_at(1, "~") && self.adjacent(0, 1);
                 self.bump();
                 match w.as_str() {
-                    "x" | "xx" if wraps => {
-                        self.bump();
-                        if w == "x" { BinOp::WrapMul } else { BinOp::WrapPow }
+                    "x" | "xx" => {
+                        let old = if wraps { format!("{}~", w) } else { w.clone() };
+                        let word = retired_spelling(&old).unwrap_or("times");
+                        return self.fail_at(at, format!("`{}` is `{}` now (owner, 2026-10-03): `op {}`", old, word, word));
                     }
-                    "x" => BinOp::Mul,
-                    "xx" => BinOp::Pow,
+                    "plus" | "minus" | "times" | "pow" => {
+                        let wrap = self.is(&Tok::Dot) && self.is_word_at(1, "wrap");
+                        if wrap {
+                            self.bump();
+                            self.bump();
+                        }
+                        match (w.as_str(), wrap) {
+                            ("plus", false) => BinOp::Add,
+                            ("plus", true) => BinOp::WrapAdd,
+                            ("minus", false) => BinOp::Sub,
+                            ("minus", true) => BinOp::WrapSub,
+                            ("times", false) => BinOp::Mul,
+                            ("times", true) => BinOp::WrapMul,
+                            (_, false) => BinOp::Pow,
+                            (_, true) => BinOp::WrapPow,
+                        }
+                    }
                     "mod" | "div" => {
                         let r = self.rounding(&w)?;
                         if w == "div" { BinOp::Div(r) } else { BinOp::Mod(r) }
@@ -2170,77 +2433,147 @@ impl<'a> Parser<'a> {
                     "xor" => BinOp::Xor,
                     "shl" => BinOp::Shl,
                     "shr" => BinOp::Shr,
-                    other if is_keyword(other) => return self.fail_at(at, format!("`{}` is a keyword, not an operator: `op` takes one, as in `op +`", other)),
-                    other => BinOp::Custom(other.to_string()),
+                    other if is_keyword(other) => return self.fail_at(at, format!("`{}` is a keyword, not an operator: `op` takes one, as in `op plus`", other)),
+                    other => {
+                        // A Limb's narrowed operator: `op mean.low`.
+                        let mut name = other.to_string();
+                        while self.is(&Tok::Dot) && matches!(self.peek_at(1), Tok::Word(_)) {
+                            self.bump();
+                            let Tok::Word(more) = self.bump().tok else { unreachable!() };
+                            name = format!("{}.{}", name, more);
+                        }
+                        BinOp::Custom(name)
+                    }
                 }
             }
-            other => return self.fail(format!("`op` as a value takes an operator: `op +`, `op x`, `op <`, found {}", other.describe())),
+            other => return self.fail(format!("`op` as a value takes an operator: `op plus`, `op times`, `op <`, found {}", other.describe())),
         };
         let spelled = op.spelled().to_string();
         Ok((op, spelled))
     }
 
-    fn binop(&self) -> Option<(BinOp, u8, u8, Span)> {
+    /// The binary operator at the cursor, if one is: what it is, its
+    /// binding powers, how many tokens spell it, and the word it is now when
+    /// written in a retired spelling (owner, 2026-10-03).
+    fn binop(&self) -> Option<OpTok> {
         let span = self.span();
-        let (op, l, r) = match self.peek() {
+        let lang = |op: BinOp, level: u16, chain: Chain| {
+            let (l, r) = powers(level, chain);
+            OpTok { op, l, r, span, len: 1, old: None }
+        };
+        let nofix = |op: BinOp| OpTok { op, l: 0, r: 1, span, len: 1, old: None };
+        let leveled = |name: &str, op: BinOp, len: usize| -> OpTok {
+            match self.prec.get(name) {
+                Some((level, chain)) => {
+                    let (l, r) = powers(*level, *chain);
+                    OpTok { op, l, r, span, len, old: None }
+                }
+                None => OpTok { op, l: 0, r: 1, span, len, old: None },
+            }
+        };
+        // A dotted name after `n` tokens: `mean.low`, `pow.wrap`.
+        let dotted = |mut n: usize, first: &str| -> (String, usize) {
+            let mut name = first.to_string();
+            while matches!(self.peek_at(n), Tok::Dot) {
+                let Tok::Word(more) = self.peek_at(n + 1) else { break };
+                name = format!("{}.{}", name, more);
+                n += 2;
+            }
+            (name, n)
+        };
+        let t = match self.peek() {
             Tok::Op(o) => match o.as_str() {
-                "+" => (BinOp::Add, 6, 7),
-                "-" => (BinOp::Sub, 6, 7),
-                "++" => (BinOp::Join, 5, 6),
-                "==" => (BinOp::Eq, 4, 5),
-                "!==" => (BinOp::Ne, 4, 5),
-                "<" => (BinOp::Lt, 4, 5),
-                ">" => (BinOp::Gt, 4, 5),
-                "</==" => (BinOp::Le, 4, 5),
-                ">/==" => (BinOp::Ge, 4, 5),
-                "+~" => (BinOp::WrapAdd, 6, 7),
-                "-~" => (BinOp::WrapSub, 6, 7),
+                "+" => OpTok { old: Some("plus"), ..lang(BinOp::Add, ADD_LEVEL, Chain::Left) },
+                "-" => OpTok { old: Some("minus"), ..lang(BinOp::Sub, ADD_LEVEL, Chain::Left) },
+                "+~" => OpTok { old: Some("plus.wrap"), ..lang(BinOp::WrapAdd, ADD_LEVEL, Chain::Left) },
+                "-~" => OpTok { old: Some("minus.wrap"), ..lang(BinOp::WrapSub, ADD_LEVEL, Chain::Left) },
+                "++" => lang(BinOp::Join, JOIN_LEVEL, Chain::Left),
+                "==" => lang(BinOp::Eq, CMP_LEVEL, Chain::Refused),
+                "!==" => lang(BinOp::Ne, CMP_LEVEL, Chain::Refused),
+                "<" => lang(BinOp::Lt, CMP_LEVEL, Chain::Refused),
+                ">" => lang(BinOp::Gt, CMP_LEVEL, Chain::Refused),
+                "</==" => lang(BinOp::Le, CMP_LEVEL, Chain::Refused),
+                ">/==" => lang(BinOp::Ge, CMP_LEVEL, Chain::Refused),
                 "=" => return None,
-                other => (BinOp::Custom(other.to_string()), 0, 1),
+                other => leveled(other, BinOp::Custom(other.to_string()), 1),
             },
             Tok::Word(w) => {
                 let wraps = self.is_op_at(1, "~") && self.adjacent(0, 1);
                 match w.as_str() {
-                    "x" if wraps => (BinOp::WrapMul, 7, 8),
-                    "xx" if wraps => (BinOp::WrapPow, 9, 9),
-                    "x" => (BinOp::Mul, 7, 8),
-                    "xx" => (BinOp::Pow, 9, 9),
+                    "x" if wraps => OpTok { len: 2, old: Some("times.wrap"), ..lang(BinOp::WrapMul, MUL_LEVEL, Chain::Left) },
+                    "xx" if wraps => OpTok { len: 2, old: Some("pow.wrap"), ..lang(BinOp::WrapPow, POW_LEVEL, Chain::Right) },
+                    "x" => OpTok { old: Some("times"), ..lang(BinOp::Mul, MUL_LEVEL, Chain::Left) },
+                    "xx" => OpTok { old: Some("pow"), ..lang(BinOp::Pow, POW_LEVEL, Chain::Right) },
+                    // The operators are words (owner, 2026-10-02/03), and
+                    // `.wrap` narrows them to the wrapping forms.
+                    "plus" | "minus" | "times" | "pow" if matches!(self.peek_at(1), Tok::Dot) && !self.is_word_at(2, "wrap") => {
+                        let (name, end) = dotted(1, w);
+                        OpTok { len: end, ..nofix(BinOp::Custom(name)) }
+                    }
+                    "plus" | "minus" | "times" | "pow" => {
+                        let wrap = matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "wrap");
+                        let (op, level, chain) = match (w.as_str(), wrap) {
+                            ("plus", false) => (BinOp::Add, ADD_LEVEL, Chain::Left),
+                            ("plus", true) => (BinOp::WrapAdd, ADD_LEVEL, Chain::Left),
+                            ("minus", false) => (BinOp::Sub, ADD_LEVEL, Chain::Left),
+                            ("minus", true) => (BinOp::WrapSub, ADD_LEVEL, Chain::Left),
+                            ("times", false) => (BinOp::Mul, MUL_LEVEL, Chain::Left),
+                            ("times", true) => (BinOp::WrapMul, MUL_LEVEL, Chain::Left),
+                            (_, false) => (BinOp::Pow, POW_LEVEL, Chain::Right),
+                            (_, true) => (BinOp::WrapPow, POW_LEVEL, Chain::Right),
+                        };
+                        OpTok { len: if wrap { 3 } else { 1 }, ..lang(op, level, chain) }
+                    }
                     // The rounding word is read when the operator is taken.
-                    "mod" => (BinOp::Mod(Round::Bare), 7, 8),
-                    "div" => (BinOp::Div(Round::Bare), 7, 8),
-                    "and" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "then") => (BinOp::AndThen, 2, 3),
-                    "or" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "else") => (BinOp::OrElse, 1, 2),
-                    "and" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::AndBit, 0, 1),
-                    "or" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::OrBit, 0, 1),
-                    "and" => (BinOp::And, 2, 3),
-                    "or" => (BinOp::Or, 1, 2),
-                    "xor" => (BinOp::Xor, 0, 1),
-                    "shl" => (BinOp::Shl, 0, 1),
-                    "shr" => (BinOp::Shr, 0, 1),
+                    "mod" => lang(BinOp::Mod(Round::Bare), MUL_LEVEL, Chain::Left),
+                    "div" => lang(BinOp::Div(Round::Bare), MUL_LEVEL, Chain::Left),
+                    "and" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "then") => lang(BinOp::AndThen, AND_LEVEL, Chain::Left),
+                    "or" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "else") => lang(BinOp::OrElse, OR_LEVEL, Chain::Left),
+                    "and" if matches!(self.peek_at(1), Tok::Dot) => nofix(BinOp::AndBit),
+                    "or" if matches!(self.peek_at(1), Tok::Dot) => nofix(BinOp::OrBit),
+                    "and" => lang(BinOp::And, AND_LEVEL, Chain::Left),
+                    "or" => lang(BinOp::Or, OR_LEVEL, Chain::Left),
+                    "xor" => nofix(BinOp::Xor),
+                    "shl" => nofix(BinOp::Shl),
+                    "shr" => nofix(BinOp::Shr),
+                    // A path on an operator picks that Limb's (owner,
+                    // 2026-10-03): `'x' areas::mean.low 'y'`; std's is
+                    // `pow`, `'a' std::pow 2`.
+                    limb if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(_)) => {
+                        let Tok::Word(first) = self.peek_at(2) else { unreachable!() };
+                        let (name, end) = dotted(3, first);
+                        if limb == "std" && (name == "pow" || name == "pow.wrap") {
+                            let op = if name == "pow" { BinOp::Pow } else { BinOp::WrapPow };
+                            OpTok { len: end, ..lang(op, POW_LEVEL, Chain::Right) }
+                        } else {
+                            leveled(&name, BinOp::Custom(format!("{}::{}", limb, name)), end)
+                        }
+                    }
                     w if is_keyword(w) || DURATION_UNITS.contains(&w) => return None,
                     // a word operator needs a right operand; a unit word before `]` is not one
                     _ if matches!(self.peek_at(1), Tok::RBracket | Tok::RParen | Tok::Comma | Tok::Semi | Tok::LBrace | Tok::RBrace | Tok::Eof) => return None,
-                    other => (BinOp::Custom(other.to_string()), 0, 1),
+                    other => {
+                        let (name, end) = dotted(1, other);
+                        leveled(&name, BinOp::Custom(name.clone()), end)
+                    }
                 }
             }
             _ => return None,
         };
-        Some((op, l, r, span))
+        Some(t)
     }
 
-    fn expr(&mut self, min_bp: u8) -> Result<Expr> {
+    fn expr(&mut self, min_bp: u16) -> Result<Expr> {
         let mut lhs = self.prefix()?;
         loop {
-            let Some((mut op, l_bp, r_bp, op_span)) = self.binop() else { break };
+            let Some(t) = self.binop() else { break };
+            let (mut op, l_bp, r_bp, op_span) = (t.op.clone(), t.l, t.r, t.span);
             if l_bp < min_bp {
                 break;
             }
             // consume the operator token(s)
             self.bump();
             match op {
-                BinOp::WrapMul | BinOp::WrapPow => {
-                    self.bump();
-                }
                 BinOp::AndThen | BinOp::OrElse => {
                     self.bump(); // .
                     self.bump(); // then / else
@@ -2257,11 +2590,35 @@ impl<'a> Parser<'a> {
                         return self.fail_at(b.span, format!("`{}.{}` is not an operator: the bitwise forms are `and.bit` and `or.bit`", op.spelled().trim_end_matches(".bit"), b.name));
                     }
                 }
-                _ => {}
+                _ => {
+                    for _ in 1..t.len {
+                        self.bump();
+                    }
+                }
             }
             let op_span = op_span.to(self.prev_span());
+            if let Some(word) = t.old {
+                let was = match op {
+                    BinOp::Add => "+",
+                    BinOp::Sub => "-",
+                    BinOp::WrapAdd => "+~",
+                    BinOp::WrapSub => "-~",
+                    BinOp::Mul => "x",
+                    BinOp::WrapMul => "x~",
+                    BinOp::Pow => "xx",
+                    _ => "xx~",
+                };
+                return self.fail_at(op_span, format!("`{}` is `{}` now (owner, 2026-10-03): `'a' {} 'b'`", was, word, word));
+            }
+            if let BinOp::Custom(name) = &op {
+                if let Some((base, narrow)) = name.split_once('.') {
+                    if matches!(base, "plus" | "minus" | "times" | "pow") {
+                        return self.fail_at(op_span, format!("`{}.{}` is not an operator: the only narrowing of `{}` is `{}.wrap`", base, narrow, base, base));
+                    }
+                }
+            }
             if op == BinOp::Join && self.is(&Tok::Semi) {
-                return self.fail_at(op_span, "`++` joins text; there is no increment — write `change 'i' = 'i' + 1;`");
+                return self.fail_at(op_span, "`++` joins text; there is no increment — write `change 'i' = 'i' plus 1;`");
             }
             // The near-misses the language refuses by name.
             if let BinOp::Custom(c) = &op {
@@ -2270,8 +2627,8 @@ impl<'a> Parser<'a> {
                     ">=" | ">==" => Some("greater-or-equal is `>/==`, the slash read as \"or\""),
                     "<=" | "<==" => Some("less-or-equal is `</==`, the slash read as \"or\""),
                     "/" => Some("division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `'a' div.floor 'b'`"),
-                    "--" => Some("there is no decrement: write `change 'i' = 'i' - 1;`"),
-                    "+=" | "-=" => Some("there is no compound assignment: write `change 'i' = 'i' + 1;`"),
+                    "--" => Some("there is no decrement: write `change 'i' = 'i' minus 1;`"),
+                    "+=" | "-=" => Some("there is no compound assignment: write `change 'i' = 'i' plus 1;`"),
                     _ => None,
                 };
                 if let Some(h) = hint {
@@ -2295,9 +2652,23 @@ impl<'a> Parser<'a> {
             }
         };
         let bare_unary = |e: &Expr| matches!(e.kind, ExprKind::Unary { .. });
-        let nofix = |o: &BinOp| o.is_bitwise() || matches!(o, BinOp::Custom(_));
+        // A custom operator a `precedence` level names has one.
+        let custom_level = |o: &BinOp| match o {
+            BinOp::Custom(name) => self.prec.get(name.rsplit("::").next().unwrap_or(name)).copied(),
+            _ => None,
+        };
+        let nofix = |o: &BinOp| o.is_bitwise() || (matches!(o, BinOp::Custom(_)) && custom_level(o).is_none());
         for side in [lhs, rhs] {
             let inner = bare_op(side);
+            // A level whose chain is refused (owner, 2026-10-03).
+            if let Some(inner) = &inner {
+                if let (Some((a, Chain::Refused)), b) | (b, Some((a, Chain::Refused))) = (custom_level(op), custom_level(inner)) {
+                    let b = b.map(|x| x.0).or_else(|| language_level(&inner.spelled()).map(|x| x.0)).or_else(|| language_level(&op.spelled()).map(|x| x.0));
+                    if b == Some(a) {
+                        return self.fail_at(op_span, format!("`{}` next to `{}`: this level does not chain (`level.when_chained.refused`) — parenthesise one side", inner.spelled(), op.spelled()));
+                    }
+                }
+            }
             if nofix(op) && (inner.is_some() || bare_unary(side)) {
                 let kind = if op.is_bitwise() { "a bitwise operator has no precedence" } else { "a custom operator has no precedence" };
                 return self.fail_at(op_span, format!("`{}` next to another operator: {} — parenthesise one side", op.spelled(), kind));
@@ -2312,7 +2683,7 @@ impl<'a> Parser<'a> {
                     return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`('i' {} 2) == 0`)", inner.spelled(), op.spelled(), m, if m.contains('.') { m.clone() } else { format!("{}.floor", m) }));
                 }
                 if (op.is_div() && inner.is_multiplicative()) || (op.is_multiplicative() && inner.is_div()) {
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div.floor 2 x 3`) — parenthesise one side", inner.spelled(), op.spelled()));
+                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div.floor 2 times 3`) — parenthesise one side", inner.spelled(), op.spelled()));
                 }
                 if op.is_comparison() && inner.is_comparison() {
                     return self.fail_at(op_span, format!("`{}` next to `{}`: comparisons do not chain — write `('a' < 'b') and ('b' < 'c')`", inner.spelled(), op.spelled()));
@@ -2341,7 +2712,8 @@ impl<'a> Parser<'a> {
             }
             Tok::Op(o) if o == "-" => {
                 self.bump();
-                let operand = self.expr(9)?;
+                // A negative binds below std's `pow`: `-2 pow 2` is -4.
+                let operand = self.expr(2 * NEG_LEVEL)?;
                 let span = start.to(operand.span);
                 Ok(Expr { kind: ExprKind::Unary { op: UnOp::Neg, expr: Box::new(operand) }, span })
             }
@@ -2371,11 +2743,11 @@ impl<'a> Parser<'a> {
                         if b.name != "bit" {
                             return self.fail_at(b.span, format!("`not.{}` is not an operator: `not` or `not.bit`", b.name));
                         }
-                        let operand = self.expr(9)?;
+                        let operand = self.expr(2 * NEG_LEVEL)?;
                         let span = start.to(operand.span);
                         return Ok(Expr { kind: ExprKind::Unary { op: UnOp::NotBit, expr: Box::new(operand) }, span });
                     }
-                    let operand = self.expr(4)?;
+                    let operand = self.expr(2 * CMP_LEVEL)?;
                     if let ExprKind::Binary { op, op_span, .. } = &operand.kind {
                         if op.is_comparison() {
                             return self.fail_at(*op_span, format!("`not` next to `{}`: mathematics has no settled reading — parenthesise (`not ('a' == 'b')`)", op.spelled()));

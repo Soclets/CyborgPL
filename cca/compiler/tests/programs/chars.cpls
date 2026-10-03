@@ -20,24 +20,24 @@ MAIN {
     let mut 'd': int64 = 0;
     if 'there' { change 'd' = 1; }
     let mut 'got': int32 = 0;
-    if point[55295 + 'd'] == 0 and point[57344 - 'd'] == 0 and point[-'d'] == 0 and point[1114110 + 'd'] == 1114111 { change 'got' = 'got' + 1; }
-    if byte[199 + 'd'] == 200 and byte[255 + 'd'] == 0 and point['d' - 1] == 0 { change 'got' = 'got' + 2; }
-    let 'b200' := char.byte.from_code[199 + 'd'] otherwise `?`;
+    if point[55295 plus 'd'] == 0 and point[57344 minus 'd'] == 0 and point[-'d'] == 0 and point[1114110 plus 'd'] == 1114111 { change 'got' = 'got' plus 1; }
+    if byte[199 plus 'd'] == 200 and byte[255 plus 'd'] == 0 and point['d' minus 1] == 0 { change 'got' = 'got' plus 2; }
+    let 'b200' := char.byte.from_code[199 plus 'd'] otherwise `?`;
     let 't' := to.str.utf8['b200'];
-    if str.bytes[lend 't'] == 2 { change 'got' = 'got' + 4; }
+    if str.bytes[lend 't'] == 2 { change 'got' = 'got' plus 4; }
     let mut 'e' := "Z";
     if 'there' { change 'e' = "é"; }
     let 'p' := to.char.point['e'] otherwise `?`;
     let 'y' := to.char.byte['p'] otherwise `?`;
-    if char.code['p'] == 233 and 'y' == `?` { change 'got' = 'got' + 8; }
+    if char.code['p'] == 233 and 'y' == `?` { change 'got' = 'got' plus 8; }
     let 'two' := to.char.point['e' ++ "x"] otherwise `?`;
     let 'none' := to.char.byte["" ++ 'e'] otherwise `!`;
-    if 'two' == `?` and 'none' == `!` { change 'got' = 'got' + 16; }
+    if 'two' == `?` and 'none' == `!` { change 'got' = 'got' plus 16; }
     let 'bb': char.byte = `A`;
     let mut 'pp': char.point = `B`;
     if 'there' { change 'pp' = `A`; }
-    if 'bb' == 'pp' { change 'got' = 'got' + 32; }
+    if 'bb' == 'pp' { change 'got' = 'got' plus 32; }
     let 'j' := 'p' ++ "!" ++ 'pp';
-    if 'j' == "é!A" { change 'got' = 'got' + 64; }
+    if 'j' == "é!A" { change 'got' = 'got' plus 64; }
     nocheck exit['got'];
 }

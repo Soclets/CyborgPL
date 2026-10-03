@@ -11,7 +11,7 @@ fn run [] -> int32 {
     list.append[lend.mut 'xs', page["b"]];
     let mut 'm': map[str.utf8, str.utf8] = map.empty;
     map.set[lend.mut 'm', page["k"], page["v"]];
-    return to.int32[list.length[lend 'xs']] + to.int32[map.length[lend 'm']];
+    return to.int32[list.length[lend 'xs']] plus to.int32[map.length[lend 'm']];
 }
 MAIN {
     nocheck exit[run[]];

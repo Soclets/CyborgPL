@@ -7,10 +7,10 @@ MAIN {
     let 'v1': uint16 = 0;
     let 'w': int8 = -1;
     let mut 'got': int32 = 0;
-    if 9223372036854775808 </== 'v1' { change 'got' = 'got' + 1; }
-    if 'v1' >/== 18446744073709551615 { change 'got' = 'got' + 2; }
-    if 'w' == 18446744073709551615 { change 'got' = 'got' + 4; }
-    if 'v1' < 9223372036854775808 { change 'got' = 'got' + 8; }
-    if 'w' < 18446744073709551615 { change 'got' = 'got' + 16; }
+    if 9223372036854775808 </== 'v1' { change 'got' = 'got' plus 1; }
+    if 'v1' >/== 18446744073709551615 { change 'got' = 'got' plus 2; }
+    if 'w' == 18446744073709551615 { change 'got' = 'got' plus 4; }
+    if 'v1' < 9223372036854775808 { change 'got' = 'got' plus 8; }
+    if 'w' < 18446744073709551615 { change 'got' = 'got' plus 16; }
     nocheck exit['got'];
 }

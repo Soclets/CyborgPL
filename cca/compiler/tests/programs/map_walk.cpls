@@ -7,11 +7,11 @@ MAIN {
     map.set[lend.mut 'm', "three", 9];
     let mut 'acc': int32 = 0;
     for 'v' in map.values[lend 'm'] {
-        change 'acc' = ('acc' x 3) + 'v';
+        change 'acc' = ('acc' times 3) plus 'v';
     }
     let mut 'keylen': int32 = 0;
     for 'k' in map.keys[lend 'm'] {
-        change 'keylen' = 'keylen' + str.bytes[lend 'k'];
+        change 'keylen' = 'keylen' plus str.bytes[lend 'k'];
     }
-    nocheck exit['acc' + 'keylen'];
+    nocheck exit['acc' plus 'keylen'];
 }

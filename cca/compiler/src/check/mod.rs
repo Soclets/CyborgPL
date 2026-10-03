@@ -580,10 +580,10 @@ impl Checker {
         let base = self.resolve(ty);
         let base = base.base().clone();
         let builtin = match &base {
-            Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) => matches!(op, "+" | "-" | "x" | "xx" | "div" | "mod" | "==" | "!==" | "<" | ">" | "</==" | ">/=="),
+            Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) => matches!(op, "plus" | "minus" | "times" | "pow" | "==" | "!==" | "<" | ">" | "</==" | ">/==") || op.starts_with("div.") || op.starts_with("mod."),
             Ty::Bool => matches!(op, "==" | "!=="),
             Ty::Str(_) | Ty::Char(_) => matches!(op, "==" | "!=="),
-            Ty::Duration => matches!(op, "==" | "!==" | "<" | ">" | "</==" | ">/==" | "+" | "-"),
+            Ty::Duration => matches!(op, "==" | "!==" | "<" | ">" | "</==" | ">/==" | "plus" | "minus"),
             Ty::Enum { .. } => op == "==" || op == "!==",
             _ => false,
         };
@@ -603,7 +603,7 @@ impl Checker {
         names.sort_by(|a, b| a.0.cmp(&b.0));
         for (op, ids) in names {
             let decls: Vec<(FnId, crate::resolve::FnDeclInfo)> = ids.iter().map(|id| (*id, self.items.fns[id.0 as usize].clone())).collect();
-            let language = matches!(op.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "++" | "xor" | "shl" | "shr" | "+~" | "-~" | "x~" | "xx~");
+            let language = matches!(op.as_str(), "plus" | "minus" | "times" | "pow" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "++" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || op.starts_with("div") || op.starts_with("mod");
             for (_, d) in &decls {
                 if language && !d.blanks.is_empty() {
                     return err(Diagnostic::error(format!("a generic operator cannot be `{}`: that is the language's own, and a generic one would take it over for every type", op)).at(d.name_span));
@@ -650,11 +650,29 @@ impl Checker {
 
     /// A user `op` by spelling whose left operand is `left`.
     pub fn find_op(&mut self, op: &str, left: &Ty) -> Option<FnId> {
-        let candidates = self.items.ops.get(op).cloned().unwrap_or_default();
+        self.find_op_in(op, left, None)
+    }
+
+    /// The same, only among the operators of the Limb whose root is `limb`
+    /// when one is named: `'x' areas::mean 'y'` (owner, 2026-10-03).
+    pub fn find_op_in(&mut self, op: &str, left: &Ty, limb: Option<ModuleId>) -> Option<FnId> {
+        let mut candidates = self.items.ops.get(op).cloned().unwrap_or_default();
+        if let Some(root) = limb {
+            candidates.retain(|id| self.items.limb_root(self.items.fns[id.0 as usize].module) == root);
+        }
         for id in candidates {
             let decl = &self.items.fns[id.0 as usize];
             if let Some(Some(t)) = decl.params.first().map(|p| p.ty.clone()) {
-                if self.same(&t, left) || (t.contains_var() && !left.contains_var()) {
+                // A bare number on the left takes the operand's type, as it
+                // does beside a language operator: `20 gap 3`; an exact
+                // answer lands in it, as in any call.
+                let bare = match (left.base(), t.base()) {
+                    (Ty::Int(crate::types::IntW::Free(_)), Ty::Int(_)) => true,
+                    (Ty::Int(_), Ty::Int(_)) if left.is_exact() => true,
+                    (Ty::Bin(crate::types::BinW::Free(_)), Ty::Bin(_) | Ty::Brain) => true,
+                    _ => false,
+                };
+                if bare || self.same(&t, left) || (t.contains_var() && !left.contains_var()) {
                     return Some(id);
                 }
             }

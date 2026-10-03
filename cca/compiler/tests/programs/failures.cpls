@@ -10,7 +10,7 @@ MAIN {
     let mut 'c': int32 = 0;
     half[-4] otherwise {
         odd          { change 'c' = 1; }
-        negative 'v' { change 'c' = 0 - 'v'; }
+        negative 'v' { change 'c' = 0 minus 'v'; }
     };
-    nocheck exit['a' + 'b' + 'c'];
+    nocheck exit['a' plus 'b' plus 'c'];
 }

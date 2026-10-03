@@ -8,5 +8,5 @@ fn true [] -> int32 { return 1; }
 MAIN {
     let 'x' := limb.to[];
     let 'y' := limb.true[];
-    nocheck exit['x' x 10 + 'y'];
+    nocheck exit['x' times 10 plus 'y'];
 }

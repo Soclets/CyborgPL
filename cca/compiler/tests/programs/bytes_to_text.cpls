@@ -11,6 +11,6 @@ MAIN {
     let 'a' := to.str.utf8['good'] otherwise "?";
     let 'b' := to.str.utf8['bad'] otherwise "not";
     let 'c' := to.str.utf8['arr'] otherwise "?";
-    let 'n': uint64 = str.points[lend 'a'] x 16 + str.bytes[lend 'a'] + str.bytes[lend 'b'] + str.bytes[lend 'c'];
+    let 'n': uint64 = str.points[lend 'a'] times 16 plus str.bytes[lend 'a'] plus str.bytes[lend 'b'] plus str.bytes[lend 'c'];
     nocheck exit[to.int32['n']];
 }

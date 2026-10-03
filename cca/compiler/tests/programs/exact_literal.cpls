@@ -5,8 +5,8 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'price' := *19.99;
     let 'tenth' := *0.1;
-    let 'total' := 'tenth' + *0.2;
+    let 'total' := 'tenth' plus *0.2;
     let 'half': deci32 = *0.5;
-    let 'n': int32 = to.int32[('total' x 10) + ('price' x 100) + to.stored.deci64['half' x 2]] otherwise 0;
+    let 'n': int32 = to.int32[('total' times 10) plus ('price' times 100) plus to.stored.deci64['half' times 2]] otherwise 0;
     nocheck exit['n' mod.floor 256];
 }

@@ -2,7 +2,7 @@ extern.C fn exit ['code': int32];
 
 fn fib ['n': int32] -> int32 {
     if 'n' < 2 { return 'n'; }
-    return fib['n' - 1] + fib['n' - 2];
+    return fib['n' minus 1] plus fib['n' minus 2];
 }
 
 MAIN {

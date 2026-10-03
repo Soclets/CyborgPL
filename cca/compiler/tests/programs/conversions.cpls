@@ -25,17 +25,17 @@ fn whole ['x': bin64] -> int32 {
 }
 MAIN {
     let mut 'got': int32 = 0;
-    if read["42"] == 42 { change 'got' = 'got' + 1; }
+    if read["42"] == 42 { change 'got' = 'got' plus 1; }
     let 'b' := to.int64["-7"] otherwise -1;
-    if 'b' == -7 { change 'got' = 'got' + 2; }
-    if read["4x2"] == -1 and read[""] == -1 and read["-"] == -1 { change 'got' = 'got' + 4; }
-    if percent["150"] == -2 and percent["-1"] == -2 and percent["x"] == -1 { change 'got' = 'got' + 8; }
-    if percent["+99"] == 99 and percent["0"] == 0 { change 'got' = 'got' + 16; }
-    if whole[2.0] == 2 and whole[2.7] == -1 and whole[-3.0] == -3 and whole[10000000000.0] == -4 { change 'got' = 'got' + 32; }
+    if 'b' == -7 { change 'got' = 'got' plus 2; }
+    if read["4x2"] == -1 and read[""] == -1 and read["-"] == -1 { change 'got' = 'got' plus 4; }
+    if percent["150"] == -2 and percent["-1"] == -2 and percent["x"] == -1 { change 'got' = 'got' plus 8; }
+    if percent["+99"] == 99 and percent["0"] == 0 { change 'got' = 'got' plus 16; }
+    if whole[2.0] == 2 and whole[2.7] == -1 and whole[-3.0] == -3 and whole[10000000000.0] == -4 { change 'got' = 'got' plus 32; }
     let 'n': int64 = 150;
     let 'h' := to.int32[0, 100]['n'] otherwise 7;
-    if 'h' == 7 { change 'got' = 'got' + 64; }
+    if 'h' == 7 { change 'got' = 'got' plus 64; }
     let 'i' := to.uint8[" 1"] otherwise 3;
-    if 'i' == 3 { change 'got' = 'got' + 128; }
+    if 'i' == 3 { change 'got' = 'got' plus 128; }
     nocheck exit['got' mod.floor 256];
 }

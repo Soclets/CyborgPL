@@ -4,9 +4,9 @@ extern.C fn exit ['code': int32];
 extern.C fn abs ['v': int32] -> int32;
 MAIN {
     nocheck let 'seven': int32 = abs[-7];
-    let 'a': int32 = (0 - 'seven') div.floor 2;       # -4
-    let 'b': int32 = (0 - 'seven') mod.floor 2;     # 1
+    let 'a': int32 = (0 minus 'seven') div.floor 2;       # -4
+    let 'b': int32 = (0 minus 'seven') mod.floor 2;     # 1
     let 'c': int32 = 'seven' div.floor -2;            # -4
     let 'd': int32 = 'seven' mod.floor -2;          # -1
-    nocheck exit[('a' + 4) x 1000 + ('b' - 1) x 100 + ('c' + 4) x 10 + ('d' + 1) + 42];
+    nocheck exit[('a' plus 4) times 1000 plus ('b' minus 1) times 100 plus ('c' plus 4) times 10 plus ('d' plus 1) plus 42];
 }

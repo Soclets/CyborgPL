@@ -9,8 +9,8 @@ fn base [] -> bin64 {
     return 2.0;
 }
 MAIN {
-    let 'r': bin64 = 2.0 xx 0.5;
+    let 'r': bin64 = 2.0 pow 0.5;
     let 'b' := base[];
-    let 'q': bin64 = 'b' xx 0.5;
+    let 'q': bin64 = 'b' pow 0.5;
     nocheck exit[7];
 }

@@ -7,7 +7,7 @@ fn f3 ['p1': uint32] -> uint16 {
     let mut 'got': uint64 = 0;
     while 'w6' > 0 {
         change 'w6' = 0;
-        change 'got' = put_u[2 x 7726793855274730819];
+        change 'got' = put_u[2 times 7726793855274730819];
     }
     if 'got' == 15453587710549461638 { return 7; }
     return 0;

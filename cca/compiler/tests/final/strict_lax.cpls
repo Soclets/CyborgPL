@@ -8,5 +8,5 @@ MAIN {
     let 'a' := half[4];
     let 'b' := 100 div.floor four[];
     let 'c' := ratio[5];
-    nocheck exit['a' + 'b' + 'c'];
+    nocheck exit['a' plus 'b' plus 'c'];
 }

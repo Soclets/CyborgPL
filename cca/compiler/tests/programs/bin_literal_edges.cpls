@@ -5,12 +5,12 @@ extern.C fn exit ['code': int32];
 MAIN {
     let mut 'got': int32 = 0;
     let 'a': bin32 = 340282356779733661637539395458142568447.0;
-    if 'a' == 340282346638528859811704183484516925440.0 { change 'got' = 'got' + 1; }
+    if 'a' == 340282346638528859811704183484516925440.0 { change 'got' = 'got' plus 1; }
     let 'b': bin16 = 65519.999999999999999999;
-    if 'b' == 65504.0 { change 'got' = 'got' + 2; }
+    if 'b' == 65504.0 { change 'got' = 'got' plus 2; }
     let 'c': bin32 = 1.00000005960464477539062500001;
-    if 'c' == 1.00000011920928955078125 { change 'got' = 'got' + 4; }
+    if 'c' == 1.00000011920928955078125 { change 'got' = 'got' plus 4; }
     let 'd': bin16 = -65519.9;
-    if 'd' == -65504.0 { change 'got' = 'got' + 8; }
+    if 'd' == -65504.0 { change 'got' = 'got' plus 8; }
     nocheck exit['got'];
 }

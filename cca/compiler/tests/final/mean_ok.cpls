@@ -7,7 +7,7 @@ extern.C fn atoi ['s': ptr[uint8]] -> int32;
 fn average [lent 'xs': list[int32]] -> int32 or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     let mut 'total' := 0;
-    for 'x' in lend 'xs' { change 'total' = 'total' + 'x'; }
+    for 'x' in lend 'xs' { change 'total' = 'total' plus 'x'; }
     return 'total' div.floor list.length[lend 'xs'];
 }
 MAIN {
@@ -16,8 +16,8 @@ MAIN {
     let mut 'xs': list[int32][0, 1000] = list.empty;
     let mut 'i': int32 = 0;
     while 'i' < 'n' and 'i' < 1000 {
-        list.append[lend.mut 'xs', ('n' mod.floor 1000) - 'i'];
-        change 'i' = 'i' + 1;
+        list.append[lend.mut 'xs', ('n' mod.floor 1000) minus 'i'];
+        change 'i' = 'i' plus 1;
     }
     let 'a' := average[lend 'xs'] otherwise 0;
     nocheck exit['a' mod.floor 256];

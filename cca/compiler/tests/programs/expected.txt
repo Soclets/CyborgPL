@@ -270,3 +270,5 @@ trunc_ops_run 28
 div_rounding_run 255
 give_temp_arg 10
 bin32_whole_range 7
+precedence_block 61
+word_operators_run 215

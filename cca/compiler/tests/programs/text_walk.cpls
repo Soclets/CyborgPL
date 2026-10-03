@@ -9,16 +9,16 @@ MAIN {
     let mut 's' := "ab";
     if 'there' { change 's' = "aé" ++ "เกี่ยว"; }
     let mut 'bytes': int32 = 0;
-    for 'b' in str.each.byte[lend 's'] { change 'bytes' = 'bytes' + 1; }
+    for 'b' in str.each.byte[lend 's'] { change 'bytes' = 'bytes' plus 1; }
     let mut 'points': int32 = 0;
     let mut 'codes': int64 = 0;
-    for 'p' in str.each.point[lend 's'] { change 'points' = 'points' + 1; change 'codes' = 'codes' + to.int64[char.code['p']]; }
+    for 'p' in str.each.point[lend 's'] { change 'points' = 'points' plus 1; change 'codes' = 'codes' plus to.int64[char.code['p']]; }
     let mut 'clusters': int32 = 0;
     let mut 'last' := "";
-    for 'g' in str.each.grapheme[lend 's'] { change 'clusters' = 'clusters' + 1; change 'last' = to.str.utf8['g']; }
+    for 'g' in str.each.grapheme[lend 's'] { change 'clusters' = 'clusters' plus 1; change 'last' = to.str.utf8['g']; }
     let mut 'got': int32 = 0;
-    if 'bytes' == 21 and 'points' == 8 { change 'got' = 'got' + 1; }
-    if 'codes' == 97 + 233 + 3648 + 3585 + 3637 + 3656 + 3618 + 3623 { change 'got' = 'got' + 2; }
-    if 'clusters' == 6 and 'last' == "ว" { change 'got' = 'got' + 4; }
+    if 'bytes' == 21 and 'points' == 8 { change 'got' = 'got' plus 1; }
+    if 'codes' == 97 plus 233 plus 3648 plus 3585 plus 3637 plus 3656 plus 3618 plus 3623 { change 'got' = 'got' plus 2; }
+    if 'clusters' == 6 and 'last' == "ว" { change 'got' = 'got' plus 4; }
     nocheck exit['got'];
 }

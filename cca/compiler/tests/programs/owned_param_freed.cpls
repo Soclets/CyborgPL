@@ -11,5 +11,5 @@ MAIN {
     if 'there' { change 'x' = 2; }
     let 'l': list[int32] = ['x', 3];
     let 'a' := total[give 'l'];
-    nocheck exit['a' - 2];
+    nocheck exit['a' minus 2];
 }

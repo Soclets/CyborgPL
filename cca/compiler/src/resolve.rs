@@ -579,7 +579,7 @@ impl Items {
             if params.len() != 2 {
                 return err(Diagnostic::error(format!("an operator takes exactly two operands; `{}` is declared with {}", o, params.len())).at(decl.name.span));
             }
-            let language_op = matches!(o.as_str(), "+" | "-" | "x" | "xx" | "div" | "mod" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "++" | "and" | "or" | "not" | "xor" | "shl" | "shr" | "+~" | "-~" | "x~" | "xx~");
+            let language_op = matches!(o.as_str(), "plus" | "minus" | "times" | "pow" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "++" | "and" | "or" | "not" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || o.starts_with("div") || o.starts_with("mod");
             if matches!(o.as_str(), "and" | "or" | "not") {
                 return err(Diagnostic::error(format!("`{}` cannot be redefined: `not`, `and` and `or` stay the language's", o)).at(decl.name.span));
             }

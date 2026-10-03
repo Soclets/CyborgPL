@@ -10,5 +10,5 @@ MAIN {
     let immut 'a' := half[4];
     let immut 'b' := 100 div.floor four[];
     let immut 'c' := ratio[5];
-    nocheck exit['a' + 'b' + 'c'];
+    nocheck exit['a' plus 'b' plus 'c'];
 }

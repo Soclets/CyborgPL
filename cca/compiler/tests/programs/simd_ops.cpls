@@ -14,17 +14,17 @@ MAIN {
     let 'plain': array[uint8] = [72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33, 33, 33, 33, 33];
     let 'thai': array[uint8] = [72, 101, 108, 108, 111, 32, 224, 184, 129, 108, 100, 33, 33, 33, 33, 33];
     let mut 'got': int32 = 0;
-    if is_ascii[lend 'plain'] { change 'got' = 'got' + 1; }
-    if not is_ascii[lend 'thai'] { change 'got' = 'got' + 2; }
+    if is_ascii[lend 'plain'] { change 'got' = 'got' plus 1; }
+    if not is_ascii[lend 'thai'] { change 'got' = 'got' plus 2; }
     let 'a': simd[int32, 4] = simd.fill[10];
     let 'b': simd[int32, 4] = simd.fill[3];
-    if simd.sum['a'] == 40 { change 'got' = 'got' + 4; }
-    if simd.max['a' x 'b'] == 30 { change 'got' = 'got' + 8; }
+    if simd.sum['a'] == 40 { change 'got' = 'got' plus 4; }
+    if simd.max['a' times 'b'] == 30 { change 'got' = 'got' plus 8; }
     let 'm' := 'a' > 'b';
-    if simd.all['m'] { change 'got' = 'got' + 16; }
-    if not simd.any['b' > 'a'] { change 'got' = 'got' + 32; }
+    if simd.all['m'] { change 'got' = 'got' plus 16; }
+    if not simd.any['b' > 'a'] { change 'got' = 'got' plus 32; }
     let mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
-    simd.store[lend.mut 'out', 2, 'a' + 'b'];
-    if 'out'[1] == 0 and 'out'[2] == 13 and 'out'[5] == 13 and 'out'[6] == 0 { change 'got' = 'got' + 64; }
+    simd.store[lend.mut 'out', 2, 'a' plus 'b'];
+    if 'out'[1] == 0 and 'out'[2] == 13 and 'out'[5] == 13 and 'out'[6] == 0 { change 'got' = 'got' plus 64; }
     nocheck exit['got'];
 }

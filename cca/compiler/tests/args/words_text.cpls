@@ -16,13 +16,13 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
             nocheck let 'b' := ptr.read[ptr.at['word', 'k']];
             if 'b' == 0 { break; }
             list.append[lend.mut 'raw', 'b'];
-            change 'k' = 'k' + 1;
+            change 'k' = 'k' plus 1;
         }
         let 'text' := to.str.utf8['raw'] otherwise "";
-        if str.bytes[lend 'text'] == 0 { change 'bad' = 'bad' + 100; }
-        change 'points' = 'points' + str.points[lend 'text'];
-        change 'bytes' = 'bytes' + str.bytes[lend 'text'];
-        change 'i' = 'i' + 1;
+        if str.bytes[lend 'text'] == 0 { change 'bad' = 'bad' plus 100; }
+        change 'points' = 'points' plus str.points[lend 'text'];
+        change 'bytes' = 'bytes' plus str.bytes[lend 'text'];
+        change 'i' = 'i' plus 1;
     }
-    nocheck exit[to.int32['points' x 10 + 'bytes'] + 'bad'];
+    nocheck exit[to.int32['points' times 10 plus 'bytes'] plus 'bad'];
 }

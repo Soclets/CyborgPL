@@ -7,7 +7,7 @@ MAIN {
         concur with [lend 'c', lend.mut 'got'] {
             let 'x' := channel.take[lend 'c'] otherwise 0;
             let 'y' := channel.take[lend 'c'] otherwise 100;
-            change 'got' = 'x' + 'y';
+            change 'got' = 'x' plus 'y';
         }
     }
     nocheck exit['got'];

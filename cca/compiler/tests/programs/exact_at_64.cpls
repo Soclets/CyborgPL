@@ -10,8 +10,8 @@ MAIN {
     let mut 'acc': int64 = 0;
     let mut 'i': int64 = 1;
     while 'i' </== to.int64['n'] {
-        change 'acc' = ('acc' + (('i' x 'i') mod.floor 7)) mod.floor 1000000007;
-        change 'i' = 'i' + 1;
+        change 'acc' = ('acc' plus (('i' times 'i') mod.floor 7)) mod.floor 1000000007;
+        change 'i' = 'i' plus 1;
     }
     nocheck exit[to.int32['acc']];
 }

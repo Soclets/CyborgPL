@@ -8,9 +8,9 @@ extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "x";
     nocheck let 'n': uint64 = strlen[lend 's'];
-    let 'z': int32 = to.int32['n'] - 1;
-    let 'one': bin32 = to.bin32[1 + 'z'];
-    let 'x': bin32 = 0.0 x 'one';
+    let 'z': int32 = to.int32['n'] minus 1;
+    let 'one': bin32 = to.bin32[1 plus 'z'];
+    let 'x': bin32 = 0.0 times 'one';
     let mut 'code': int32 = 0;
     if 'x' == 0.0 { change 'code' = 7; }
     nocheck exit['code'];

@@ -9,7 +9,7 @@ MAIN {
     for 'x' in lend.mut 'xs' {
         change 'x' = 'v';
         change 'x' = 7;
-        change 't' = 't' + to.int32['v'] + to.int32['x'];
+        change 't' = 't' plus to.int32['v'] plus to.int32['x'];
     }
-    nocheck exit['t' + to.int32['xs'[1]]];
+    nocheck exit['t' plus to.int32['xs'[1]]];
 }

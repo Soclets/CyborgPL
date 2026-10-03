@@ -10,12 +10,12 @@ MAIN {
     let mut 'kept': int32 = 0;
     while 'i' < 10 {
         if 'i' >/== 1 and.then 'i' </== list.length[lend 'xs'] and.then 'xs'['i'] == 5 {
-            change 'hits' = 'hits' + 1;
+            change 'hits' = 'hits' plus 1;
         }
         if 'i' == 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'['i'] > 4 {
-            change 'kept' = 'kept' + 1;
+            change 'kept' = 'kept' plus 1;
         }
-        change 'i' = 'i' + 1;
+        change 'i' = 'i' plus 1;
     }
-    nocheck exit[('hits' x 100) + 'kept'];     # 109
+    nocheck exit[('hits' times 100) plus 'kept'];     # 109
 }

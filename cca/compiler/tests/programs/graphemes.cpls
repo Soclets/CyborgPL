@@ -14,17 +14,17 @@ MAIN {
     let mut 'w' := "ab";
     if 'there' { change 'w' = "เกี่ยว"; }
     let mut 'got': int32 = 0;
-    if str.graphemes[lend 'w'] == 4 and str.points[lend 'w'] == 6 and str.bytes[lend 'w'] == 18 { change 'got' = 'got' + 1; }
+    if str.graphemes[lend 'w'] == 4 and str.points[lend 'w'] == 6 and str.bytes[lend 'w'] == 18 { change 'got' = 'got' plus 1; }
     let 'g': char.grapheme = `é`;
     let 'p' := to.char.point['g'] otherwise `?`;
-    if char.code['p'] == 233 and 'g' == `é` { change 'got' = 'got' + 2; }
+    if char.code['p'] == 233 and 'g' == `é` { change 'got' = 'got' plus 2; }
     let 'one' := to.char.grapheme["x" ++ 'w'] otherwise `?`;
     let 'syl' := to.char.grapheme["เกี่ยว"] otherwise `?`;
     let 'acc' := to.char.grapheme["é"] otherwise `?`;
     let 'at' := to.str.utf8['acc'];
-    if 'one' == `?` and 'syl' == `?` and str.bytes[lend 'at'] == 3 { change 'got' = 'got' + 4; }
+    if 'one' == `?` and 'syl' == `?` and str.bytes[lend 'at'] == 3 { change 'got' = 'got' plus 4; }
     let 'up' := to.char.grapheme[`x`];
-    if to.str.utf8['up'] ++ "!" == "x!" { change 'got' = 'got' + 8; }
-    if short[lend 'w'] == 0 and short["ab"] == 1 and short["abc"] == 0 { change 'got' = 'got' + 16; }
+    if to.str.utf8['up'] ++ "!" == "x!" { change 'got' = 'got' plus 8; }
+    if short[lend 'w'] == 0 and short["ab"] == 1 and short["abc"] == 0 { change 'got' = 'got' plus 16; }
     nocheck exit['got'];
 }

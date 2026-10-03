@@ -13,7 +13,7 @@ MAIN {
     let mut 'w': uint16 = 4;
     loop {
         if 'w' </== 0 { break; }
-        change 'w' = 'w' - 1;
-        let 'v': uint64 = 0 - 'n';
+        change 'w' = 'w' minus 1;
+        let 'v': uint64 = 0 minus 'n';
     }
 }

@@ -3,9 +3,9 @@ extern.C fn exit ['code': int32];
 MAIN {
     let mut 'total': int32 = 0;
     for 'i' in range[1, 10] {
-        change 'total' = 'total' + 'i';
+        change 'total' = 'total' plus 'i';
     }
     let mut 'n': int32 = 0;
-    while 'n' < 3 { change 'n' = 'n' + 1; }
-    nocheck exit['total' + 'n'];                      # 55 + 3 = 58
+    while 'n' < 3 { change 'n' = 'n' plus 1; }
+    nocheck exit['total' plus 'n'];                      # 55 + 3 = 58
 }

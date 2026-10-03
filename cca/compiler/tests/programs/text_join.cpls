@@ -7,5 +7,5 @@ MAIN {
     let 'msg' := greet[lend 'name'];
     let 'n': int32 = str.bytes[lend 'msg'];
     let 'plain': int32 = str.bytes[lend 'name'];
-    nocheck exit['n' + 'plain'];
+    nocheck exit['n' plus 'plain'];
 }

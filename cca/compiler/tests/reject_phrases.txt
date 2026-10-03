@@ -21,22 +21,22 @@ append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
 append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
 append_without_mut [fnv:ed12d99652ef7144] :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
 append_wrong_type [fnv:5d724d7f0bf1eafb] :: there is no implicit conversion between numeric families
-arith_overflow [fnv:7eddcdfe6e78e8b0] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the value can be outside what a `int32` holds
-array_into_list [fnv:fd7150cb07b4b796] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: is a `list[int32]`, and 'f' is a `array[int32]`
+arith_overflow [fnv:7eddcdfe6e78e8b0] :: the value can be outside what a `int32` holds
+array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is a `array[int32]`
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
-asm_as_s [fnv:5a896b6b4ce67e10] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: !by-design CCA compiles inline.S, another name for inline.ASM, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_as_s [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.S, another name for inline.ASM, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_bare_word [fnv:c83c99fb8348768d] :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
-asm_lend [fnv:5a896b6b4ce67e10] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
-asm_lend_mut_immut [fnv:af116253c2e3ddaf] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: is `immut`, so `lend.mut 'buf'`
-asm_lend_out [fnv:5a7f5f03e1b890b3] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a lend goes into a register only
-asm_long_arrows [fnv:4b6fbabf0d368c63] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03)
+asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
+asm_lend_mut_immut [fnv:af116253c2e3ddaf] :: is `immut`, so `lend.mut 'buf'`
+asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
+asm_long_arrows [fnv:4b6fbabf0d368c63] :: !by-design CCA compiles inline.ASM, its bindings written with the long arrows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_lowercase [fnv:675e6a4df23aee31] :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
-asm_refused [fnv:d5dd81bedd413e46] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
+asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
 asm_s_lowercase [fnv:b1269b11eef34dc7] :: is written in capitals
 asm_strings [fnv:c9b7ee31e6eab60e] :: `inline.ASM { mov x16, #4 }`
 asm_top_level [fnv:f8444caf9620e916] :: `inline.ASM` goes inside a body, as a statement, under `nocheck`
-asm_unknown_var [fnv:652fb6ee6f955c44] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: 'zzz' is not declared
+asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
 asm_without_nocheck [fnv:5216009b1679357d] :: nothing inside it can be proven
 assign_counter [fnv:e6ba851195255f72] :: belongs to the loop and cannot be changed
 assign_elem_immut [fnv:3fec8bc09c3281b1] :: cannot be changed: it is `immut`
@@ -55,28 +55,28 @@ bare_owned_assign [fnv:53ce1c0805c37af3] :: say what happens to it
 bare_str [fnv:b78f2a1f98dce47b] :: `str` is never bare: say the encoding
 bin16_rounds_past [fnv:10faad936b06526e] :: the value can be outside what a `bin16` holds
 bin32_literal_past [fnv:0d44a148ed0c4e0f] :: the value can be outside what a `bin32` holds
-bin_infinity [fnv:5042776272302d97] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: can go past the largest bin (it would be infinity)
+bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be infinity)
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
 bin_to_int_unhandled [fnv:19f1e20a8a83665c] :: `to.int32` can fail (not_whole, out_of_range)
 bit_ampersand [fnv:41b7e0e05bfa1187] :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
-bit_mixed_needs_parens [fnv:d936cef674e6c908] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: a bitwise operator has no precedence
+bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
 bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
 bit_shl_overflow [fnv:c5fefa909a258208] :: the shift can move bits out of the type
 bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move bits out of the type
-borrow_after_append [fnv:edbe062db4b885e9] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: 's' cannot be changed here: 'r' still borrows it and is used on line 7
+borrow_after_append [fnv:edbe062db4b885e9] :: 's' cannot be changed here: 'r' still borrows it and is used on line 7
 borrow_after_change [fnv:ff276a932d706c72] :: 's' cannot be changed here: 'r' still borrows it and is used on line 6
 borrow_after_give [fnv:37eec041911a30e1] :: 's' cannot be given away here: 'r' still borrows it and is used on line 6
-borrow_ungrouped_may_return [fnv:eeacf20758d43c24] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: 't' cannot be given away here: 'r' still borrows it and is used on line 12
+borrow_ungrouped_may_return [fnv:eeacf20758d43c24] :: 't' cannot be given away here: 'r' still borrows it and is used on line 12
 borrow_untaken_branch [fnv:dc66446cd05dbc61] :: 't' cannot be changed here: 'q' still borrows it and is used on line 8
 bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
 bound_backwards [fnv:eaa53671d88b43f0] :: the low bound comes first: `[2, 5]`
 bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
 bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][3, 5]`)
 brain_into_bin [fnv:45daa7e478d16952] :: is a brain16, not bin32
-brain_mixed_bin [fnv:f96220f94a68d5be] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: the brain float is a family of its own
-brain_overflow [fnv:6c45f1780f2082f5] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: past the largest brain16
+brain_mixed_bin [fnv:f96220f94a68d5be] :: the brain float is a family of its own
+brain_overflow [fnv:6c45f1780f2082f5] :: past the largest brain16
 brain_width [fnv:7deee18239553328] :: `brain16` only
 bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
 bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
@@ -88,11 +88,11 @@ c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
 call_without_bracket [fnv:93fa5962e0fc877b] :: a call needs `[…]`
 callback_c_enum [fnv:ba1492734bc49737] :: a callback's parameter cannot be `Key`
-callback_fails [fnv:35748b82590d3e88] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the `extern.C fn f` parameter 'cb' is not C-shaped
-callback_lent_param [fnv:acc6e686bfb5348a] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the `extern.C fn f` parameter 'cb' is not C-shaped
-callback_str_param [fnv:fc8e6737a324ce6d] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the `extern.C fn f` parameter 'cb' is not C-shaped
-callback_with_capture [fnv:857b4698d5db52ac] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: C has nowhere to keep them
-callback_wrong_shape [fnv:6250f1a435863168] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
+callback_fails [fnv:35748b82590d3e88] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_lent_param [fnv:acc6e686bfb5348a] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
+callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
 chained_cmp [fnv:fb46d9317941f47c] :: comparisons do not chain
 char_to_number [fnv:f0322c3a10514c25] :: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit)
 check_bare [fnv:413f5a3fb67ec940] :: `check` goes in front of a statement
@@ -102,7 +102,7 @@ check_nocheck [fnv:fd645963528e9ebf] :: `check` and `nocheck` cannot both cover 
 check_on_fn [fnv:5c19a165173f9cab] :: the tiers are never global
 check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
 comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
-concur_fail_unhandled [fnv:cbccfc56a451bded] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
+concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
 concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it
 const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
 const_bare_name [fnv:c290386092499bc9] :: `const 'max' := …;`
@@ -113,14 +113,14 @@ const_mut [fnv:9f30cb564f340919] :: it is a value known at compile time, never a
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
-deci_family_mix [fnv:08ea65ffe19d9d06] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: between a deci and another number family
-deci_fractional_power [fnv:bb5918d5dddef02d] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: exponent is an integer or a whole literal
+deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
+deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
 deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
 deci_int_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
 deci_literal_digits [fnv:1d5b181bc964df20] :: has 9 digits; deci32 holds 7
 deci_narrow_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
-deci_power_deci_exponent [fnv:d453e77170273b0b] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: exponent is an integer or a whole literal
-deci_widths_mix [fnv:557616dea39aac01] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: between a deci64 and a deci32: say which width
+deci_power_deci_exponent [fnv:d453e77170273b0b] :: exponent is an integer or a whole literal
+deci_widths_mix [fnv:557616dea39aac01] :: between a deci64 and a deci32: say which width
 detached_lend [fnv:3faba8a8fbccffe8] :: no scope protects it, so 'x' could be gone while the task still looks at it
 dir_badname [fnv:bfe56ff8eb188642] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
 dir_device_name [fnv:4718e7decb462654] :: is a reserved device name on Windows and cannot name a module
@@ -133,7 +133,7 @@ div_lands_too_small [fnv:cd716c13c720d27d] :: the value can be outside what a `i
 div_trunc_std_moved [fnv:c49e7eedef3eb706] :: is an operator in the language now
 div_unknown_rounding [fnv:75fa1273c8a55e85] :: no `div.round`
 div_zero [fnv:55d00aed3abcab4f] :: the divisor can be zero, and nothing can be divided by zero
-duration_negative [fnv:8b34ab9b24a2319a] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: a duration is a length of time, and this can take it below zero
+duration_negative [fnv:8b34ab9b24a2319a] :: a duration is a length of time, and this can take it below zero
 else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare words
 empty_array [fnv:8e009c1193ae6fd2] :: an array is fixed at the size it was made with
 empty_int [fnv:46819038938fd6c9] :: `[]` is an empty list, but the declared type is a `int32`
@@ -160,59 +160,59 @@ eq_without_type [fnv:b34002b1a60ea4e5] :: changing a variable says so
 exact_integer [fnv:ad0efd01de0e9e28] :: exact already
 exact_into_bin [fnv:5b84c614a3bd1fec] :: cannot hold it exactly
 exit_range [fnv:66ac7011902821d4] :: !pending `std::exit` is a stub until std exists; its `uint8` argument gets no narrowing site yet
-extern_block_line_private [fnv:1db24bc0518461c4] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: is private to module `text`
+extern_block_line_private [fnv:1db24bc0518461c4] :: is private to module `text`
 extern_block_unclosed [fnv:ca752e2459d18446] :: is its `}` missing
-extern_fail [fnv:258154190b2df28e] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: an `extern fn` cannot `fail`: C has no failures
+extern_fail [fnv:258154190b2df28e] :: an `extern fn` cannot `fail`: C has no failures
 extern_lent_param [fnv:b7762a1e487d808d] :: ptr[T]` and hand it a lend at the call
 extern_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
 extern_no_language [fnv:3a252789c569e7d5] :: names its language
 extern_not_c_shaped [fnv:6ab69c7163e3c53f] :: is not C-shaped
-extern_otherwise [fnv:d2a17dcd21891cc1] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: an `extern fn` cannot fail; drop the `otherwise` after `f`
-extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: its return is a range C promised, checked at the door
+extern_otherwise [fnv:d2a17dcd21891cc1] :: an `extern fn` cannot fail; drop the `otherwise` after `f`
+extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: its return is a range C promised, checked at the door
 extern_read_checked [fnv:6290a80c525fe9a5] :: nothing about C's memory can be proven
 extern_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'a' is not C-shaped
 extern_struct_not_layout [fnv:6e53a6db9ecbfb65] :: a pointer points at something C-shaped
 extern_untyped_param [fnv:74f96f923d17901f] :: C's signature is written in full
-extern_with_body [fnv:5f5a8b37640106ae] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: an `extern fn` has no body: `f`'s body is in C
+extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s body is in C
 extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
-extern_without_nocheck [fnv:5216009b1679357d] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: nothing about `write` can be proven
+extern_without_nocheck [fnv:5216009b1679357d] :: nothing about `write` can be proven
 extern_write_checked [fnv:823a6502b3c1ec2d] :: nothing about C's memory can be proven
 extern_write_readonly [fnv:7cecff9be0233900] :: …` says C's variable may be written
-fail_arm_falls_through [fnv:0128c6a13e88b457] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: must give the call's value (`{ 0 }`) or leave
-fail_arm_missing [fnv:0d8968bfe13e437e] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: every reason needs an arm
-fail_arm_unknown [fnv:966c45cc418112c6] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: this call never fails with `z`: it fails with `a`
-fail_bind_without_payload [fnv:4a8104e6fc802f53] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `why` carries nothing, so there is no value to name 'w'
-fail_in_expression [fnv:8e85d9d910f738f8] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: put it in its own declaration, then use the result
+fail_arm_falls_through [fnv:0128c6a13e88b457] :: must give the call's value (`{ 0 }`) or leave
+fail_arm_missing [fnv:0d8968bfe13e437e] :: every reason needs an arm
+fail_arm_unknown [fnv:966c45cc418112c6] :: this call never fails with `z`: it fails with `a`
+fail_bind_without_payload [fnv:4a8104e6fc802f53] :: `why` carries nothing, so there is no value to name 'w'
+fail_in_expression [fnv:8e85d9d910f738f8] :: put it in its own declaration, then use the result
 fail_in_main [fnv:2fc68f9bf7a1593d] :: `MAIN` cannot fail: it exits
-fail_no_list [fnv:57cd3eb8a3ffa049] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: its signature has no `fail[…]`
-fail_not_listed [fnv:c5ee76c688706bfd] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: its signature says fail[oops]
-fail_or_keyword_collision [fnv:65aeb77203450837] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `f` can fail (a): say what happens
+fail_no_list [fnv:57cd3eb8a3ffa049] :: its signature has no `fail[…]`
+fail_not_listed [fnv:c5ee76c688706bfd] :: its signature says fail[oops]
+fail_or_keyword_collision [fnv:65aeb77203450837] :: `f` can fail (a): say what happens
 fail_otherwise_alone [fnv:372a37a4f5b11cb7] :: `let 'x' := f[] otherwise 0;`
-fail_otherwise_empty [fnv:1a46eb3395cc974a] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms
-fail_otherwise_on_safe [fnv:da3b3f11872f9179] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `f` cannot fail; drop the `otherwise`
-fail_payload_missing [fnv:4028eeeae43379a3] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `why` carries a `str.utf8`, and `fail why` needs it: `fail why[…]`
-fail_payload_unexpected [fnv:85d1b2a55dade2b9] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: write `fail why;` with no value
-fail_payload_wrong_type [fnv:7d29ffc630950dd5] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the failure's payload is an `int32` and this value is text: convert it first
-fail_propagate_unlisted [fnv:f6414896eca05a40] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: its signature says fail[b]
-fail_quoted_name [fnv:a24dda5e1530d482] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a failure's name is bare
-fail_unhandled [fnv:65aeb77203450837] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `f` can fail (oops): say what happens
+fail_otherwise_empty [fnv:1a46eb3395cc974a] :: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms
+fail_otherwise_on_safe [fnv:da3b3f11872f9179] :: `f` cannot fail; drop the `otherwise`
+fail_payload_missing [fnv:4028eeeae43379a3] :: `why` carries a `str.utf8`, and `fail why` needs it: `fail why[…]`
+fail_payload_unexpected [fnv:85d1b2a55dade2b9] :: write `fail why;` with no value
+fail_payload_wrong_type [fnv:7d29ffc630950dd5] :: the failure's payload is an `int32` and this value is text: convert it first
+fail_propagate_unlisted [fnv:f6414896eca05a40] :: its signature says fail[b]
+fail_quoted_name [fnv:a24dda5e1530d482] :: a failure's name is bare
+fail_unhandled [fnv:65aeb77203450837] :: `f` can fail (oops): say what happens
 fill_count_outside_strict [fnv:b4aee1fa16748ea8] :: `count` belongs to `#strict` files
 fill_negative [fnv:4596c7fcd5b0d0ef] :: a count is 0 or more
 fill_strict_needs_count [fnv:7e5fb3ba7331a198] :: `#strict`: the count says `count`
 fnval_call_not_function [fnv:aebd5e80ae2bdfd7] :: 'n' is a `integer`, neither a list nor a function
-fnval_capture_without_verb [fnv:6651c83f112f16d2] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: say how 'limit' comes in
-fnval_give_captured_used [fnv:144c19a252fdb2b8] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: was given away and no longer owns anything
-fnval_op_as_value [fnv:62b0125508bce133] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: an operator sits between two values
-fnval_silent_capture [fnv:b296dee211a9f22b] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: it sees nothing of the surrounding scope unless `with [lend 'limit']` (or `copy` / `give`) says so
+fnval_capture_without_verb [fnv:6651c83f112f16d2] :: say how 'limit' comes in
+fnval_give_captured_used [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
+fnval_op_as_value [fnv:62b0125508bce133] :: an operator sits between two values
+fnval_silent_capture [fnv:b296dee211a9f22b] :: it sees nothing of the surrounding scope unless `with [lend 'limit']` (or `copy` / `give`) says so
 fnval_type_with_names [fnv:3c0e576199d23fb9] :: a function type has no parameter names: `fn[int32] -> bool`, not `fn['a': int32]`
 fnval_unknown_name [fnv:30b76508228be70e] :: a bare name is the function as a value, and none by that name is declared in the root (`limb.cpls`)
-fnval_wrong_return [fnv:13cc98448e4ae7f5] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: expected `apply`'s parameter 'f' (fn[int32] -> int32), found a `fn[int32] -> bool`
-fnval_wrong_shape [fnv:6250f1a435863168] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: expected `apply`'s parameter 'f' (fn[int32, int32] -> int32), found a `fn[int32] -> int32`
-fnval_wrong_verb [fnv:e7a82c8acfe26976] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: expected `apply`'s parameter 'f' (fn[str.utf8] -> int32), found a `fn[lent str.utf8] -> int32`
+fnval_wrong_return [fnv:13cc98448e4ae7f5] :: expected `apply`'s parameter 'f' (fn[int32] -> int32), found a `fn[int32] -> bool`
+fnval_wrong_shape [fnv:6250f1a435863168] :: expected `apply`'s parameter 'f' (fn[int32, int32] -> int32), found a `fn[int32] -> int32`
+fnval_wrong_verb [fnv:e7a82c8acfe26976] :: expected `apply`'s parameter 'f' (fn[str.utf8] -> int32), found a `fn[lent str.utf8] -> int32`
 for_bare_list [fnv:18b1a4df3e7b57c4] :: `for 'i' in lend 'xs'` looks at each element, `give 'xs'` consumes the list
 for_lend_element_change [fnv:be5f6615821c3f27] :: 'x' belongs to the loop and cannot be changed
-for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: 'x' still borrows it `lent.mut`
-for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: 'x' still borrows it `lent.mut`
+for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
+for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`
 for_no_cheat_order [fnv:779a7d6b67f2e942] :: `!c` comes first
@@ -220,20 +220,20 @@ for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the po
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`
 func_keyword [fnv:06228e3da7cced76] :: `fn name [params] -> type { … }`
-generic_any_and [fnv:a8a533fe624275bd] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `any` stands alone
+generic_any_and [fnv:a8a533fe624275bd] :: `any` stands alone
 generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), and 1 type(s) were given
 generic_bound_on_mention [fnv:2425d9af29f34ce4] :: is said once, where it is announced
 generic_groups_no_bar [fnv:d9285d1150420b1d] :: a `|` separates the generics from the lifetime groups
-generic_inconsistent [fnv:81336ef057ec73fd] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `<T>` is filled by an earlier argument as `integer`, and 'b' would make it something else
+generic_inconsistent [fnv:81336ef057ec73fd] :: `<T>` is filled by an earlier argument as `integer`, and 'b' would make it something else
 generic_inst_mismatch [fnv:7d29ffc630950dd5] :: expected a value of the declared type (Box[int32]), found a `Box[str]`
 generic_no_bound [fnv:ea71e74c4327a5eb] :: says what it accepts
-generic_no_space_arrow [fnv:436cf28ab247e3e5] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: put a space after `->` (`-> <T>`)
-generic_op_overlap [fnv:c1fa6ef0de5f1372] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `~=` for int32 and the generic `~=` both cover int32
+generic_no_space_arrow [fnv:436cf28ab247e3e5] :: put a space after `->` (`-> <T>`)
+generic_op_overlap [fnv:c1fa6ef0de5f1372] :: `~=` for int32 and the generic `~=` both cover int32
 generic_quoted_var [fnv:00d462dc38c9d0b4] :: a type variable's name is bare: `<T>`, not `<'T'>`
 generic_size_of [fnv:cf20c2fa7cc04da7] :: `size.of` takes a concrete type
 generic_to_c [fnv:89768fbb7f2f8a1a] :: a blank `<T>` cannot appear here
-generic_unannounced [fnv:767c6e1b89d185ef] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `<T>` was never announced
-generic_wrong_return [fnv:81336ef057ec73fd] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the return type is an `integer` and this value is text: convert it first
+generic_unannounced [fnv:767c6e1b89d185ef] :: `<T>` was never announced
+generic_wrong_return [fnv:81336ef057ec73fd] :: the return type is an `integer` and this value is text: convert it first
 give_plain [fnv:0b0079f7332adfe9] :: a `integer` is a plain value that owns nothing (no allocation behind it), so it copies by itself
 give_to_lent_param [fnv:a3589766a127e65e] :: `look` only looks at 'text' (it is `lent`); you tried to give it away
 give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing left to give
@@ -244,14 +244,14 @@ grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits 
 gte [fnv:695f5e2be2fe7158] :: greater-or-equal is `>/==`
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
 iface_empty [fnv:f5b372b2009be52e] :: list at least one `fn` or `op` signature
-iface_false_claim [fnv:6d0a1bbebbb84659] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the claim `V satisfies Ordered` is false: no `op <` for it
-iface_false_claim_fn [fnv:099e7904d43c98bb] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: no `fn show` for it
+iface_false_claim [fnv:6d0a1bbebbb84659] :: the claim `V satisfies Ordered` is false: no `op <` for it
+iface_false_claim_fn [fnv:099e7904d43c98bb] :: no `fn show` for it
 iface_named_any [fnv:ce7427091dbe0bbc] :: `any` is the built-in
-iface_type_not_listed [fnv:c02c556b784e5ed9] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: is not one of the types it lists
+iface_type_not_listed [fnv:c02c556b784e5ed9] :: is not one of the types it lists
 iface_types_one_line [fnv:4426b1eae38e25b6] :: one per line
-iface_unknown_in_bound [fnv:2d41798402b31028] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: there is no interface named `Nope`
-iface_unsatisfied_bound [fnv:f047b3b93b1031a0] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `str` is not `Ordered`: no `op <` for it
-iface_with_body [fnv:7529b88ba149365d] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: end the signature with `;` and leave the body out
+iface_unknown_in_bound [fnv:2d41798402b31028] :: there is no interface named `Nope`
+iface_unsatisfied_bound [fnv:f047b3b93b1031a0] :: `str` is not `Ordered`: no `op <` for it
+iface_with_body [fnv:7529b88ba149365d] :: end the signature with `;` and leave the body out
 index_past_end [fnv:7914d123bba99015] :: the position can be past the end
 index_zero [fnv:7914d123bba99015] :: the position can be past the end
 inline_c [fnv:d5c6f5df25514a20] :: `inline.C` is not decided
@@ -269,33 +269,33 @@ layout_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
 layout_not_c [fnv:97c96f596f7b8b40] :: the only layout is `layout.C`, C's shape; `layout.rust` does not exist
 leading_zero [fnv:cd43e7e5f661968a] :: `007` starts with a zero, and leading zeros are illegal: write `7`
 lend_mut_and_lend [fnv:162b1b57a7351c56] :: lent again in the same call
-lend_mut_via_return [fnv:162b1b57a7351c56] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: lent again in the same call
+lend_mut_via_return [fnv:162b1b57a7351c56] :: lent again in the same call
 lend_to_lent_mut [fnv:c679086eecdd878a] :: `edit` may modify 'text' (it is `lent.mut`): write `lend.mut`
 lend_to_var_param [fnv:17f65879404b0710] :: write `give` (it moves) or `copy` (a second one)
-lend_width_mismatch [fnv:ec3345969ad6a916] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a lend hands over the value where it is, so the sizes must match
+lend_width_mismatch [fnv:ec3345969ad6a916] :: a lend hands over the value where it is, so the sizes must match
 length_bare [fnv:db83e090996e37b9] :: `list.length` takes a lend: write `lend 'xs'`
-length_is_uint64 [fnv:f5d77dd82552d1de] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: the value can be outside what a `uint64` holds
+length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint64` holds
 let_chain [fnv:4d7d73671053951c] :: `let` is a word of its own
 let_missing [fnv:ccd63909d593c858] :: a declaration starts with `let`
 let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
-level_bare [fnv:4f04c4a80920e0e4] :: !unbuilt a Limb's precedence block (2026-10-03)
-level_bit_op [fnv:8d3148a71e0946dc] :: !unbuilt a Limb's precedence block (2026-10-03)
-level_refused_chain [fnv:4d8b77dbb9ca92d4] :: !unbuilt a Limb's precedence block (2026-10-03)
-level_two_numbers [fnv:c78764fe74dbd903] :: !unbuilt a Limb's precedence block (2026-10-03)
-level_wrong_chain [fnv:a42fc63dbff8bf8e] :: !unbuilt a Limb's precedence block (2026-10-03)
-lifetime_group_given [fnv:d0ed618004b47c50] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: 't' cannot be given away here: 'r' still borrows it and is used on line 8
-lifetime_local [fnv:03efc4b350c90153] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: which dies when it returns
-lifetime_local_uncalled [fnv:142125242d0b6c4e] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: hands back a borrow of 'loc', which dies when it returns
-lifetime_unannounced [fnv:a45d01df7619f11b] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `@x` was never announced
-lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: returns a borrow, so its signature must say so
-lifetime_wrong_group [fnv:b39bbc2e457836dc] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `wrong` returns a borrow of 'b', which is not in @x
+level_bare [fnv:4f04c4a80920e0e4] :: say how a chain of this level reads
+level_bit_op [fnv:8d3148a71e0946dc] :: has no precedence in the language
+level_refused_chain [fnv:4d8b77dbb9ca92d4] :: this level does not chain
+level_two_numbers [fnv:c78764fe74dbd903] :: two levels numbered 1
+level_wrong_chain [fnv:a42fc63dbff8bf8e] :: must say `level.when_chained.left_first`
+lifetime_group_given [fnv:d0ed618004b47c50] :: 't' cannot be given away here: 'r' still borrows it and is used on line 8
+lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
+lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
+lifetime_unannounced [fnv:a45d01df7619f11b] :: `@x` was never announced
+lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
+lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
 limb_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
 limb_dep_names_word [fnv:4e354bca24585094] :: a dependency names no word
-limb_prefix_clash [fnv:5613861e39c25451] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: two Limbs have the prefix `areas`
+limb_prefix_clash [fnv:5613861e39c25451] :: two Limbs have the prefix `areas`
 limb_prefix_std [fnv:40f475138f8b47da] :: has the prefix `std`, which is the built-in `std::`
-limb_private [fnv:c028ae8a275433b3] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: is not `pub`, and another Limb reaches only `pub` items
-limb_pub_limb [fnv:c028ae8a275433b3] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: is not `pub`, and another Limb reaches only `pub` items
+limb_private [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
+limb_pub_limb [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_registry_needs_id [fnv:59952df433346243] :: which knows a Limb by its ID
 limb_unlisted [fnv:7b3deec9ecbae94d] :: no Limb with the prefix `geometry`
 limb_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
@@ -323,11 +323,11 @@ manifest_one_target [fnv:1fb240781150aeaa] :: the setting is 'targets'
 manifest_pub [fnv:e04dd347852c3d54] :: `pub` means nothing in CCA.cplr
 manifest_undoable_target [fnv:994ef28992020067] :: `x86_64-linux` is not a target CCA can build
 manifest_unknown_setting [fnv:ca0a29678045f41c] :: CCA.cplr has no setting 'versoin'
-map_bad_key_type [fnv:3ebc5e71c74c0d11] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: keys are plain values, text, chars, structs, enums and lists of keys
+map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
 map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
 map_get_unhandled [fnv:fb19a18b0ea9877e] :: `map.get` can fail (missing): say what happens
-map_hash_disagrees [fnv:bffd9b036fb4e87b] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: !pending its `op ==` and `hash` are written with `std::str.lower` / `std::str.at.point`, so Precog can only settle "equal keys hash the same" once std exists; until then the working build checks it at run time (the map asks on a miss) and the final build refuses the map
+map_hash_disagrees [fnv:bffd9b036fb4e87b] :: !pending its `op ==` and `hash` are written with `std::str.lower` / `std::str.at.point`, so Precog can only settle "equal keys hash the same" once std exists; until then the working build checks it at run time (the map asks on a miss) and the final build refuses the map
 map_literal_dup_key [fnv:2c22ea3aaf3284e2] :: this key is written twice in the literal
 map_literal_empty [fnv:49c9f3063523764e] :: an empty map is `map.empty`; `map[]` builds nothing
 map_literal_no_pair [fnv:29d9d93486c67e90] :: `map["ann" = 5551, "bob" = 5552]`
@@ -336,11 +336,11 @@ map_to_text [fnv:a985b1bfd8ca8afa] :: a map is not text
 map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
 map_value_out_of_range [fnv:da58956c39843392] :: the value can be outside what a `int32[0, 10]` holds
 match_value_unused [fnv:dd91724a0b94c519] :: gives a value, but this `match` is not used as one
-missing_return_type_value [fnv:b6b32cd3a621d22b] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: every path must `return` a value (or `fail`)
-mix_families [fnv:bb249fe14c123783] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: there is no implicit conversion between numeric families
+missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a value (or `fail`)
+mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 mod_bare [fnv:142b817e3a94675b] :: say how `mod` rounds
 mod_beside_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod.floor` beside another operator
-mod_mixed [fnv:c019255d74965b33] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: mathematics has no settled reading for `mod.floor` beside another operator
+mod_mixed [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod.floor` beside another operator
 mod_near_fraction [fnv:134e0296bec94776] :: leaves nothing over
 mod_trunc_beside [fnv:9d0efe113095066a] :: parenthesise
 module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`limb.cpls`)
@@ -360,53 +360,53 @@ must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
 must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
 mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
 ne [fnv:ef1c886d3712dd70] :: `!=` is not an operator here: not-equal is `!==`
-negative_exponent [fnv:3f25e158191599f2] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: a negative exponent on integers would produce a fraction
+negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
 no_checks_lied [fnv:25a223b72a20f04f] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
-no_precedence [fnv:c019255d74965b33] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: mathematics has no settled reading here (`6 div.floor 2 x 3`)
+no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
 nocheck_lied [fnv:ee1996e7ba5a0e26] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
 number_next_to_text [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
 number_to_char [fnv:12ef8394243841eb] :: `char.point.from_code[…] otherwise …` builds one from a code
 one_ended_below [fnv:a1c7cab21b67229a] :: the value can be outside what a `int8[1, 127]` holds
-op_builtin_for_int [fnv:32696bdc53fd9faa] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a struct or enum may define `op +` for itself, `int32` may not
-op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: expected a value of the operand (V), found an `integer`
-op_called_as_fn [fnv:205c076f0bd07158] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `'a' dot 'b'`, never `dot[…]`
-op_decl_old [fnv:340eb7660e3e3d6e] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03)
-op_div_bare [fnv:d40c9ab3e6d5809c] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: say how `div` rounds
-op_give_needs_give [fnv:675ca27f7d116f95] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: write `give 'u'` so the value moves in
+op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
+op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`
+op_called_as_fn [fnv:205c076f0bd07158] :: `'a' dot 'b'`, never `dot[…]`
+op_decl_old [fnv:340eb7660e3e3d6e] :: `op +` is `op plus` now
+op_div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
+op_give_needs_give [fnv:675ca27f7d116f95] :: write `give 'u'` so the value moves in
 op_lent_word [fnv:771913f827ed9a38] :: T` takes it by value
-op_next_to_plus [fnv:9d0efe113095066a] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a custom operator has no precedence
-op_no_precedence [fnv:9d0efe113095066a] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a custom operator has no precedence
-op_no_return_type [fnv:afe154068b1dbc9d] :: `op <+> [...] -> T { … }`
-op_path_wrong_limb [fnv:f6e2ea45a86399f9] :: !unbuilt a Limb's operator paths (2026-10-03)
-op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: remainder is `mod`
-op_redefine_builtin [fnv:32696bdc53fd9faa] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a struct or enum may define `op +` for itself, `int32` may not
-op_redefine_word [fnv:32696bdc53fd9faa] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a struct or enum may define `op mod` for itself, `int32` may not
-op_run_no_space [fnv:fc83d9208bcfbb43] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
-op_same_types_twice [fnv:b57d0aa0ded73c85] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `<+>` is defined twice for A, A
-op_star_undefined [fnv:b20e9f542727bd69] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: multiply is `times`
+op_next_to_plus [fnv:9d0efe113095066a] :: a custom operator has no precedence
+op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
+op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator: `op <+> [...] --> T { … }`
+op_path_wrong_limb [fnv:f6e2ea45a86399f9] :: the Limb `runnable` has no operator `mean`
+op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: remainder is `mod.floor`
+op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
+op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
+op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
+op_same_types_twice [fnv:b57d0aa0ded73c85] :: `<+>` is defined twice for A, A
+op_star_undefined [fnv:b20e9f542727bd69] :: multiply is `times`
 op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
-op_value_and_then [fnv:a093a0ddfbdcf82d] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: cannot skip anything
-op_value_minus [fnv:c7639dd8d2554ca7] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: negation as a value is `op neg`
-op_value_old [fnv:b5417eae59430eac] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03)
+op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
+op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
+op_value_old [fnv:b5417eae59430eac] :: `+` is `plus` now
 op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
-op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`+`, `x`, `mod`, …) or one declared with `op`
+op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
 other_limb [fnv:e242547f6902477b] :: no Limb with the prefix `math`
-overflow_lands [fnv:106012fcbb102c23] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: the value can be outside what a `int8` holds
-overflow_past_64_bits [fnv:3fe9bf00838316b2] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: goes past 64 bits in between
-owning_function_bare [fnv:a8b589ea7248e723] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: is an owned `fn[] -> uint64`: say what happens to it
+overflow_lands [fnv:106012fcbb102c23] :: the value can be outside what a `int8` holds
+overflow_past_64_bits [fnv:3fe9bf00838316b2] :: goes past 64 bits in between
+owning_function_bare [fnv:a8b589ea7248e723] :: is an owned `fn[] -> uint64`: say what happens to it
 param_lent_chain [fnv:1b310f9423971d5e] :: `lent` (looks at it) or `lent.mut` (may modify it)
 param_type_first [fnv:3a5e01bd7a977ab9] :: a parameter is written name first, then its type: `'a': int32`
 param_var [fnv:565659dbb62e1df1] :: an owning parameter is bare
-plus_old [fnv:b5417eae59430eac] :: !pending the operator words, `.wrap` and `pow` (2026-10-03), not built yet: CCA still takes the old spelling
+plus_old [fnv:b5417eae59430eac] :: `+` is `plus` now
 plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
 pos_removed [fnv:8fd7b8e8ad8219fa] :: `pos` is gone
-pow_old [fnv:f86bba52e868b039] :: !pending the operator words, `.wrap` and `pow` (2026-10-03), not built yet: CCA still takes the old spelling
-precedence_bare [fnv:2c52bed853d4921b] :: !unbuilt a Limb's precedence block (2026-10-03)
+pow_old [fnv:f86bba52e868b039] :: `xx` is `pow` now
+precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
 print_bare [fnv:7587d85df41ba149] :: say which form
 print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_format_extra_arg [fnv:40f9185c6f51c2e6] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
@@ -418,23 +418,23 @@ print_format_mixed [fnv:dee02034a539ce5c] :: !pending `std::print.format`'s hole
 print_format_nonliteral [fnv:86040c08ad0670f5] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_format_type [fnv:68e54257a01e89be] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_format_unused_numbered [fnv:0c9676228756aeee] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_stored_weird_order [fnv:6a37cab2993bdfdf] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `.weird` comes first
+print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
 print_weird_brackets [fnv:5c46b85e34e5d282] :: with arrows, not
-print_weird_order [fnv:6a37cab2993bdfdf] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `.weird` comes first
+print_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
 printf_renamed [fnv:1732984806b6cbb0] :: std::printf.stdout is spelled std::print.format.stdout now
 printu_renamed [fnv:a2613067643c96b3] :: std::printu.stdout is spelled std::print.useful.stdout now
-ptr_bad_op [fnv:456eec83964b4a42] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a pointer has `read`, `write`, `at`, `is_null`
-ptr_cast_keeps_readonly [fnv:8094e2137b68463e] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `ptr.write` needs a `ptr.mut`
-ptr_cast_needs_nocheck [fnv:e2d596a2bd4a2610] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `ptr.cast` says the bytes are a different type
-ptr_cast_not_c [fnv:4cf595f3bcc2be7a] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: casts only to a C-shaped type
+ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_null`
+ptr_cast_keeps_readonly [fnv:8094e2137b68463e] :: `ptr.write` needs a `ptr.mut`
+ptr_cast_needs_nocheck [fnv:e2d596a2bd4a2610] :: `ptr.cast` says the bytes are a different type
+ptr_cast_not_c [fnv:4cf595f3bcc2be7a] :: casts only to a C-shaped type
 ptr_declared [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.C` field
 ptr_in_let_still_refused [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.C` field
 ptr_lend_mut_needed [fnv:ed12d99652ef7144] :: C may write through it, so write `lend.mut`
-ptr_read_c_enum_unhandled [fnv:32fe4958b7e20764] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `ptr.read` of a `Mode` from C can fail (out_of_range)
-ptr_read_null_lied [fnv:4d31d6e728a30b8b] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: !by-design a `nocheck` read through C's pointer; nothing at compile time can know what C returned, and `nocheck` says so — the oracle catches it only by running it
-ptr_read_past_end_lied [fnv:bf3aa6ad6940e787] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: !by-design a `nocheck` read past what C allocated; nothing at compile time can know that, and `nocheck` says so — the oracle catches it only by running it
-ptr_read_without_nocheck [fnv:5216009b1679357d] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: nothing about C's memory can be proven
-ptr_write_readonly [fnv:9e0b87326584f59b] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: this pointer is read-only
+ptr_read_c_enum_unhandled [fnv:32fe4958b7e20764] :: `ptr.read` of a `Mode` from C can fail (out_of_range)
+ptr_read_null_lied [fnv:4d31d6e728a30b8b] :: !by-design a `nocheck` read through C's pointer; nothing at compile time can know what C returned, and `nocheck` says so — the oracle catches it only by running it
+ptr_read_past_end_lied [fnv:bf3aa6ad6940e787] :: !by-design a `nocheck` read past what C allocated; nothing at compile time can know that, and `nocheck` says so — the oracle catches it only by running it
+ptr_read_without_nocheck [fnv:5216009b1679357d] :: nothing about C's memory can be proven
+ptr_write_readonly [fnv:9e0b87326584f59b] :: this pointer is read-only
 pub_in_body [fnv:f825901e8ec3da8a] :: `pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`
 pub_let [fnv:db37187357d70c69] :: is a `const`, not a variable
 pub_main [fnv:71b5050bf3081fb0] :: it is the program's block, not something another Limb can reach
@@ -455,10 +455,10 @@ range_labels_outside_strict [fnv:f1af584c4a26a1c5] :: label a range in a `#stric
 range_max_max [fnv:ef6343cb6dbd8287] :: the value can be outside what a `int32[2147483647, 2147483647]` holds
 range_max_on_low_side [fnv:561f9168a24ad79e] :: the low bound comes first
 range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what a `int8` holds
-range_reassign_out [fnv:0642e09a92a7c67b] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: the value can be outside what a `int32[0, 100]` holds
+range_reassign_out [fnv:0642e09a92a7c67b] :: the value can be outside what a `int32[0, 100]` holds
 range_to_c [fnv:89768fbb7f2f8a1a] :: 'a' is written as the plain `int32`
 range_type_on_range [fnv:bde7b04c0713065f] :: int32 in range[0, 3]`
-return_group_through_call [fnv:0d648b1bc81e861d] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: returns a borrow of 'c', which is not in @x
+return_group_through_call [fnv:0d648b1bc81e861d] :: returns a borrow of 'c', which is not in @x
 return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
 return_type_colon [fnv:940ae1aff445aa14] :: the return type is `-> int32`, not `: int32`
 return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the parameters
@@ -470,9 +470,9 @@ shadow [fnv:6f58e8bff03be94f] :: 'x' is already declared in an enclosing scope; 
 shadow_nothing [fnv:21615fa293366dc7] :: `$` shadows a visible 'y', and none is visible here: write `:=`
 shadow_sealed [fnv:89d14c915689d264] :: cannot be shadowed: it is `!$`
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
-short_name_one_limb [fnv:c62ad7b10088ce87] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: gives other Limbs a shorter name
+short_name_one_limb [fnv:c62ad7b10088ce87] :: gives other Limbs a shorter name
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
-simd_lane_step [fnv:dd932d69d1ee5b6a] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: `+` can leave what the type holds
+simd_lane_step [fnv:dd932d69d1ee5b6a] :: `plus` can leave what the type holds
 simd_lane_write_range [fnv:b4f9f50732c31370] :: the position can be past the end
 simd_load_past_end [fnv:00802e6e1064a8bf] :: the 16 lanes can run past the end
 simd_mask_lanes [fnv:51d1f37b90e986ac] :: a mask has as many lanes as the vectors it compares
@@ -486,13 +486,13 @@ size_of_alone [fnv:1c30f4b3569e6800] :: `size` is followed by `.of`: `size.of[in
 slash_retired [fnv:e0da6f74f7c02643] :: division is `div.floor`
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list
 spread_lent_no_verb [fnv:4aeae176b5f51db7] :: `...` with no verb lends each element
-spread_lent_unbounded [fnv:c06c4e8a33a43f63] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a call's shape is fixed per call
-spread_not_variadic [fnv:cc7616f86d73c00f] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: the values would land on a fixed parameter
+spread_lent_unbounded [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
+spread_not_variadic [fnv:cc7616f86d73c00f] :: the values would land on a fixed parameter
 spread_outside_call [fnv:160372a00bcbe789] :: it unpacks a list into a call's arguments
 spread_owned_needs_verb [fnv:b64e38d86c3a19e9] :: say `...copy 'w'` or `...give 'w'`
-spread_plain_no_verb [fnv:c21efae9ad74426b] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: its elements are plain `integer` values, which copy by themselves
-spread_unknown_length [fnv:c06c4e8a33a43f63] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: a call's shape is fixed per call
-star_operator [fnv:b20e9f542727bd69] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: multiply is `times`
+spread_plain_no_verb [fnv:c21efae9ad74426b] :: its elements are plain `integer` values, which copy by themselves
+spread_unknown_length [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
+star_operator [fnv:b20e9f542727bd69] :: multiply is `times`
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
 str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
@@ -503,7 +503,7 @@ str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, a
 str_toolbox_in_language [fnv:366a14926afb6c66] :: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet
 strict_decl [fnv:b8025f0c47e84bab] :: a declaration says whether it changes
 strict_for [fnv:06b3bea872c594a0] :: a `for` says whether its variable outlives it
-strict_lifetime [fnv:a1a89ccd784cb0b3] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: hands back a borrow, so it names what the borrow depends on
+strict_lifetime [fnv:a1a89ccd784cb0b3] :: hands back a borrow, so it names what the borrow depends on
 strict_match_needs_gives [fnv:7337f2c3ebfb1f6b] :: a case says its value with `giveS`
 strict_param [fnv:e284bfe1db8f2b9c] :: parameter 'n' says its type
 strict_pos [fnv:959c6fc995de9a2b] :: a list read says it is a position
@@ -539,7 +539,7 @@ text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the boun
 text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
 text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[0, 20 bytes]`)
 text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.point` can fail (not_one_char): say what happens
-times_old [fnv:b5fdcc466f65f1ef] :: !pending the operator words, `.wrap` and `pow` (2026-10-03), not built yet: CCA still takes the old spelling
+times_old [fnv:b5fdcc466f65f1ef] :: `x` is `times` now
 to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so
 to_ascii_needs_otherwise [fnv:44581da139b15bb0] :: `to.str.ascii` can fail (not_ascii)
 to_bool [fnv:fef2b7077f153711] :: there is no truthiness
@@ -551,7 +551,7 @@ to_struct [fnv:42da10e4738cde3f] :: a struct or enum value is built by name
 to_text_bare [fnv:589fd0e7e6b542ec] :: say which text
 to_unhandled [fnv:769294ffd6316ce9] :: `to.int32` can fail (not_a_number, out_of_range): say what happens
 to_without_dot [fnv:8da39602590be550] :: `to.int32[…]`, `to.str.utf8[…]`
-true_as_func [fnv:535ae37c9ac4c8fb] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: bare `true` is the boolean, so `true[…]` is no call
+true_as_func [fnv:535ae37c9ac4c8fb] :: bare `true` is the boolean, so `true[…]` is no call
 truthiness [fnv:4ba41cbcf10ca2e1] :: there is no truthiness
 two_bare_numbers [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
 two_points_as_point [fnv:b2efd7393835f156] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
@@ -570,11 +570,11 @@ walrus_with_type [fnv:71f8f0e47289f563] :: `:=` means Precog chooses the type, s
 whichever_unhandled [fnv:86bb5570c3022d11] :: `whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
 while_keyword [fnv:eb07551a9069b239] :: `while 'x' < 3 { … }`
 wl_removes_code [fnv:652fb6ee6f955c44] :: 'b' is not declared
-wrap_amp_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
-wrap_into_bool [fnv:c689ac7fee6b711f] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: expected a value of the declared type (bool), found a whole number
-wrap_mixed_sizes [fnv:6be13d9666b31633] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: wraps at one size, and this mixes int8 and int16
-wrap_old [fnv:680e548e1da56bcc] :: !pending the operator words, `.wrap` and `pow` (2026-10-03), not built yet: CCA still takes the old spelling
-wrap_on_bin [fnv:cafed6afa93a0c84] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: it only knows a declared integer width
-wrap_percent_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `+~`, `-~`, `x~`, `xx~`
-wrap_untyped_left [fnv:1dd0601c6eead672] :: !unbuilt the operator words, `.wrap` and `pow` (2026-10-03); then: `+~` needs a width, and nothing here gives one
-wrong_arg_count [fnv:eb88fab86c650ec3] :: !unbuilt the long arrows `-->` / `<--` (2026-10-03); then: `one` takes 1 argument, and 2 were given
+wrap_amp_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
+wrap_into_bool [fnv:c689ac7fee6b711f] :: expected a value of the declared type (bool), found a whole number
+wrap_mixed_sizes [fnv:6be13d9666b31633] :: wraps at one size, and this mixes int8 and int16
+wrap_old [fnv:680e548e1da56bcc] :: `+~` is `plus.wrap` now
+wrap_on_bin [fnv:cafed6afa93a0c84] :: it only knows a declared integer width
+wrap_percent_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
+wrap_untyped_left [fnv:1dd0601c6eead672] :: `plus.wrap` needs a width, and nothing here gives one
+wrong_arg_count [fnv:eb88fab86c650ec3] :: `one` takes 1 argument, and 2 were given

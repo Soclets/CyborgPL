@@ -12,6 +12,6 @@ MAIN {
     let 'b' := to.str.ascii['accented'] otherwise "no";
     let 'c' := to.str.ascii['e'] otherwise "x";
     let 'd' := to.str.ascii['k'];
-    let 'n': uint64 = str.bytes[lend 'a'] x 16 + str.bytes[lend 'b'] x 4 + str.bytes[lend 'c'] + str.bytes[lend 'd'];
+    let 'n': uint64 = str.bytes[lend 'a'] times 16 plus str.bytes[lend 'b'] times 4 plus str.bytes[lend 'c'] plus str.bytes[lend 'd'];
     nocheck exit[to.int32['n']];
 }

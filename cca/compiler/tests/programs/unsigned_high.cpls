@@ -5,13 +5,13 @@ extern.C fn labs ['v': int64] -> int64;
 MAIN {
     nocheck let 'one': int64 = labs[-1];
     nocheck let 'u': uint64 = to.uint64['one'];
-    let 'big': uint64 = 'u' x 10000000000000000000;     # 10^19: above 2^63
+    let 'big': uint64 = 'u' times 10000000000000000000;     # 10^19: above 2^63
     let mut 'score': int32 = 0;
-    if 'big' > 'u' { change 'score' = 'score' + 1; }             # unsigned compare
+    if 'big' > 'u' { change 'score' = 'score' plus 1; }             # unsigned compare
     let 'half': uint64 = 'big' div.floor 2;                      # unsigned divide
-    if 'half' == 5000000000000000000 { change 'score' = 'score' + 10; }
+    if 'half' == 5000000000000000000 { change 'score' = 'score' plus 10; }
     let 'small': uint8 = 250;
     let mut 'n': int32 = 0;
-    for 'i': uint8 in range['small', 255, 3] { change 'n' = 'n' + 1; }   # 250, 253: widening a uint8 is not sign-extending it
-    nocheck exit['score' + 'n' x 100];
+    for 'i': uint8 in range['small', 255, 3] { change 'n' = 'n' plus 1; }   # 250, 253: widening a uint8 is not sign-extending it
+    nocheck exit['score' plus 'n' times 100];
 }

@@ -3,7 +3,7 @@
 # oracle: "2 does not fit deci64[0, 1]").
 extern.C fn exit ['code': int32];
 fn twice ['d': deci64] -> deci64 {
-    return 'd' x 2;
+    return 'd' times 2;
 }
 MAIN {
     let 'c': deci64[0.0, 1.0] = twice[1];

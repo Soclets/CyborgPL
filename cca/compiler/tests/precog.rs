@@ -99,7 +99,7 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
         // one is at most 2^31 - 1, and then `'x' + 1` really is safe.
         "extern.C fn getuid [] -> uint32;\n\
          fn bump ['x': uint32] -> uint32 {\n\
-         \x20   let 'y': uint32 = 'x' + 1;\n\
+         \x20   let 'y': uint32 = 'x' plus 1;\n\
          \x20   return 'y';\n\
          }\n\
          MAIN {\n\
@@ -131,7 +131,7 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
          \x20   nocheck let 'a': uint8 = to.uint8[getpid[]];\n\
          \x20   nocheck let 'b': uint8 = to.uint8[getpid[]];\n\
          \x20   if 'a' < 'b' {\n\
-         \x20       let 'gap': uint8 = 'b' - 'a';\n\
+         \x20       let 'gap': uint8 = 'b' minus 'a';\n\
          \x20   }\n\
          }\n",
     );
@@ -151,12 +151,12 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
 /// does not test that — the call's own type is what gets written down.
 const PROGRAMS: &[&str] = &[
     "extern.C fn getpid [] -> int32;\n\
-     fn a8 ['x': uint8] -> uint8 { let 'y': uint8 = 'x' + 1; return 'y'; }\n\
-     fn a16 ['x': uint16] -> uint16 { let 'y': uint16 = 'x' + 1; return 'y'; }\n\
-     fn a32 ['x': uint32] -> uint32 { let 'y': uint32 = 'x' + 1; return 'y'; }\n\
-     fn a64 ['x': uint64] -> uint64 { let 'y': uint64 = 'x' + 1; return 'y'; }\n\
-     fn b8 ['x': int8] -> int8 { let 'y': int8 = 'x' + 1; return 'y'; }\n\
-     fn b64 ['x': int64] -> int64 { let 'y': int64 = 'x' + 1; return 'y'; }\n\
+     fn a8 ['x': uint8] -> uint8 { let 'y': uint8 = 'x' plus 1; return 'y'; }\n\
+     fn a16 ['x': uint16] -> uint16 { let 'y': uint16 = 'x' plus 1; return 'y'; }\n\
+     fn a32 ['x': uint32] -> uint32 { let 'y': uint32 = 'x' plus 1; return 'y'; }\n\
+     fn a64 ['x': uint64] -> uint64 { let 'y': uint64 = 'x' plus 1; return 'y'; }\n\
+     fn b8 ['x': int8] -> int8 { let 'y': int8 = 'x' plus 1; return 'y'; }\n\
+     fn b64 ['x': int64] -> int64 { let 'y': int64 = 'x' plus 1; return 'y'; }\n\
      MAIN {\n\
      \x20   nocheck let 'p' := getpid[];\n\
      \x20   nocheck let 'u8': uint8 = to.uint8['p'];\n\
@@ -178,10 +178,10 @@ const PROGRAMS: &[&str] = &[
      \x20   nocheck let 'b': uint16 = to.uint16[getpid[]];\n\
      \x20   nocheck let 'c': uint32 = to.uint32[getpid[]];\n\
      \x20   nocheck let 'd': uint64 = to.uint64[getpid[]];\n\
-     \x20   let 'w': uint8 = 'a' + 1;\n\
-     \x20   let 'x': uint16 = 'b' + 1;\n\
-     \x20   let 'y': uint32 = 'c' + 1;\n\
-     \x20   let 'z': uint64 = 'd' + 1;\n\
+     \x20   let 'w': uint8 = 'a' plus 1;\n\
+     \x20   let 'x': uint16 = 'b' plus 1;\n\
+     \x20   let 'y': uint32 = 'c' plus 1;\n\
+     \x20   let 'z': uint64 = 'd' plus 1;\n\
      }\n",
     "extern.C fn getpid [] -> int32;\n\
      MAIN {\n\
@@ -189,10 +189,10 @@ const PROGRAMS: &[&str] = &[
      \x20   nocheck let 'b': int16 = to.int16[getpid[]];\n\
      \x20   nocheck let 'c': int32 = getpid[];\n\
      \x20   nocheck let 'd': int64 = to.int64[getpid[]];\n\
-     \x20   let 'w': int8 = 'a' - 1;\n\
-     \x20   let 'x': int16 = 'b' x 2;\n\
-     \x20   let 'y': int32 = 'c' + 'c';\n\
-     \x20   let 'z': int64 = 'd' + 1;\n\
+     \x20   let 'w': int8 = 'a' minus 1;\n\
+     \x20   let 'x': int16 = 'b' times 2;\n\
+     \x20   let 'y': int32 = 'c' plus 'c';\n\
+     \x20   let 'z': int64 = 'd' plus 1;\n\
      }\n",
     "extern.C fn getpid [] -> int32;\n\
      MAIN {\n\
@@ -206,7 +206,7 @@ const PROGRAMS: &[&str] = &[
      \x20   nocheck let 'n': int32 = getpid[];\n\
      \x20   let mut 'total': int32 = 0;\n\
      \x20   for 'i': int32 in range[1, 10] {\n\
-     \x20       change 'total' = 'total' + 'i' + 'n';\n\
+     \x20       change 'total' = 'total' plus 'i' plus 'n';\n\
      \x20   }\n\
      }\n",
 ];

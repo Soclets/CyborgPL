@@ -35,7 +35,7 @@ fn by_memcpy [] -> int32 {
     let 'src': list[Key] = [Key.b, Key.a];
     let mut 'dst': list[Key] = [Key.escape, Key.escape];
     nocheck let 'q' := memcpy[lend.mut 'dst', lend 'src', 8] otherwise { out_of_range { return 9; } };
-    return num[copy 'dst'[1]] + num[copy 'dst'[2]] x 2;
+    return num[copy 'dst'[1]] plus num[copy 'dst'[2]] times 2;
 }
 
 MAIN {
@@ -45,6 +45,6 @@ MAIN {
     nocheck let 'two' := ptr.read['p'] otherwise Key.escape;
     NO_FUCKING_CHECKS let 'trusted' := ptr.read['p'];
     nocheck free['p'];
-    let 'bits' := flag[num[give 'zero'] == 3, 1] + flag[num[give 'two'] == 2, 2] + flag[by_memset[] == 3, 4] + flag[by_memcpy[] == 4, 8] + flag[num[give 'trusted'] == 2, 16];
+    let 'bits' := flag[num[give 'zero'] == 3, 1] plus flag[num[give 'two'] == 2, 2] plus flag[by_memset[] == 3, 4] plus flag[by_memcpy[] == 4, 8] plus flag[num[give 'trusted'] == 2, 16];
     nocheck exit['bits'];
 }

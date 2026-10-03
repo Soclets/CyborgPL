@@ -6,13 +6,13 @@ MAIN {
     let 's' := "ab";
     nocheck let 'two': int64 = to.int64[strlen[lend 's']];
     let mut 'got': int64 = 0;
-    if 'two' xx 10 == 1024 { change 'got' = 'got' + 1; }
-    if ('two' + 1) xx 0 == 1 { change 'got' = 'got' + 2; }
-    if (0 - 'two') xx 3 == -8 { change 'got' = 'got' + 4; }
-    let 'w': uint8 = to.uint8['two' + 1];
-    let 'e5': uint8 = to.uint8['two' + 3];
-    if 'w' xx~ 'e5' == 243 { change 'got' = 'got' + 8; }
-    let 'e6': uint8 = to.uint8['two' + 4];
-    if 'w' xx~ 'e6' == 217 { change 'got' = 'got' + 16; }
+    if 'two' pow 10 == 1024 { change 'got' = 'got' plus 1; }
+    if ('two' plus 1) pow 0 == 1 { change 'got' = 'got' plus 2; }
+    if (0 minus 'two') pow 3 == -8 { change 'got' = 'got' plus 4; }
+    let 'w': uint8 = to.uint8['two' plus 1];
+    let 'e5': uint8 = to.uint8['two' plus 3];
+    if 'w' pow.wrap 'e5' == 243 { change 'got' = 'got' plus 8; }
+    let 'e6': uint8 = to.uint8['two' plus 4];
+    if 'w' pow.wrap 'e6' == 217 { change 'got' = 'got' plus 16; }
     nocheck exit[to.int32['got']];
 }
