@@ -326,13 +326,33 @@ html.desktop .search input:focus-visible { outline: none; }
 .comparison-intro { font-size: 15px; line-height: 1.5; margin: 0 0 16px; }
 .comparison-controls { display: grid; grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr); align-items: end; gap: 10px; }
 .comparison-picker > span:first-child { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
-.comparison-select { position: relative; display: block; }
-.comparison-select select { appearance: none; -webkit-appearance: none; width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: 12px;
-  background: var(--surface); color: var(--ink); padding: 10px 30px 10px 12px; font: 700 16px var(--sans); cursor: pointer; }
-.comparison-select > .icon { position: absolute; right: 10px; top: 14px; transform: rotate(90deg); pointer-events: none; color: var(--muted); }
-.comparison-select select:focus-visible, .comparison-swap:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
-.comparison-swap { height: 44px; border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 24px; }
+.comparison-trigger { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 60px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); color: var(--ink); padding: 10px 12px; text-align: left; transition: border-color .16s ease, box-shadow .16s ease; }
+.comparison-trigger > span { min-width: 0; }
+.comparison-trigger b { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comparison-trigger small { display: block; margin-top: 3px; font-size: 12px; color: var(--text); }
+.comparison-trigger > .icon { transform: rotate(90deg); transition: transform .16s ease; color: var(--muted); }
+.comparison-trigger.is-open { border-color: var(--violet); box-shadow: 0 0 0 2px color-mix(in srgb, var(--violet) 15%, transparent); }
+.comparison-trigger.is-open > .icon { transform: rotate(270deg); }
+html.desktop .comparison-trigger:focus-visible, .comparison-trigger:focus-visible, .comparison-swap:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.comparison-swap { height: 60px; border-radius: 14px; background: var(--surface); color: var(--ink); font-size: 24px; }
 .comparison-swap:active { background: var(--pressed); }
+.language-menu { position: fixed; z-index: 80; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 16px; background: var(--bg); padding: 6px;
+  box-shadow: 0 16px 36px rgba(0, 43, 54, .24); scrollbar-width: thin; }
+.language-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 56px; padding: 10px 12px; border-radius: 10px; text-align: left; color: var(--ink); }
+.language-option b { display: block; font-size: 15px; }
+.language-option small { display: block; margin-top: 3px; font-size: 12px; line-height: 1.4; color: var(--text); }
+.language-option.is-current { background: color-mix(in srgb, var(--violet) 9%, var(--bg)); }
+.language-option.is-active:not(:disabled) { background: var(--surface); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--violet) 50%, transparent); }
+.language-option > .icon { color: var(--green); }
+.language-option:disabled, .language-option:disabled small { color: var(--muted); cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .comparison-trigger, .comparison-trigger > .icon { transition: none; } }
+@media (max-width: 360px) {
+  .comparison-controls { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); gap: 4px; }
+  .comparison-trigger { padding: 10px; gap: 6px; }
+  .comparison-trigger b { font-size: 15px; }
+  .comparison-trigger > .icon { width: 14px; height: 14px; }
+}
 .comparison-note { font-size: 12px; line-height: 1.5; color: var(--muted); margin: 14px 0; }
 .comparison-table { display: block; width: 100%; border-collapse: separate; border-spacing: 0; }
 .comparison-table colgroup { display: none; }

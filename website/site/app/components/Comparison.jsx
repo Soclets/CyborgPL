@@ -1,24 +1,11 @@
 import { useState } from "react";
 import Icon from "./Icon.jsx";
+import LanguagePicker from "./LanguagePicker.jsx";
 import Md from "./Md.jsx";
 import { COMPARISON_LANGUAGES, COMPARISON_ROWS } from "../lib/comparison.js";
 
 // Keep the choice when Home returns from a search or another page.
 let lastPair = ["cyborgpl", "rust"];
-
-function LanguagePicker({ side, value, other, onChange }) {
-  return (
-    <label className="comparison-picker">
-      <span>{side} side</span>
-      <span className="comparison-select">
-        <select aria-label={`${side} comparison language`} value={value} onChange={(e) => onChange(e.target.value)}>
-          {COMPARISON_LANGUAGES.map((l) => <option key={l.id} value={l.id} disabled={l.id === other}>{l.name}</option>)}
-        </select>
-        <Icon name="chev" size={16} />
-      </span>
-    </label>
-  );
-}
 
 function LanguageHeading({ language }) {
   return <><b>{language.name}</b><small>{language.version ? <a href={language.versionUrl} target="_blank" rel="noopener noreferrer">{language.version}</a> : language.status}</small></>;
