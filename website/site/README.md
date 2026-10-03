@@ -10,6 +10,9 @@ navigation. Add it to a phone's home screen and it opens full-screen.
   with its real `.out`, highlighted by `../grammar/`; icons from `brand/`.
   Nothing is copied into this folder, so a rebuild picks up the latest.
 - **Updates only when the owner asks.** Nothing deploys on push.
+- **Home's comparison**: `app/lib/comparison.js` holds the dated copy, language
+  versions and source links. CyborgPL has no version label; its design and current
+  implementation are distinguished. Update the snapshot deliberately when asked.
 
 ```
 cd website/site

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Code from "../components/Code.jsx";
+import Comparison from "../components/Comparison.jsx";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
 import Md from "../components/Md.jsx";
@@ -197,6 +198,7 @@ export default function Home() {
           ))}
         </tbody>
       </table>
+      <Comparison />
       </HomeView>
     </div>
   );
