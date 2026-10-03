@@ -61,3 +61,7 @@ recommended.
     vectorise, `!c` only for timing code.
 12. **`print.useful` for people, `print` for debugging numbers,
     `print.format` for shaped output** (columns, hex, places).
+13. **`precedence.low_first` for a Limb's operator levels** (owner,
+    2026-10-03: "low_first is good practice"): level 1 binds loosest, as a
+    precedence table is read top to bottom. `precedence.high_first` is
+    there for whoever thinks the other way.

@@ -5,6 +5,36 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — A Limb's operator precedence: `precedence.low_first` / `precedence.high_first` (owner; not built yet)
+
+```
+precedence.low_first {          # level 1 binds loosest (good practice)
+    level 1 { ==  ~= }          # a language operator pins its level: ~= binds like ==
+    level 2 { plus }
+    level 3 { times  dot }      # dot binds like times
+    level 4 { scale }           # above times, by number
+}
+precedence.high_first { … }     # the same, level 1 binding tightest
+```
+
+Design claude proposed `levels { 1 > times; }` with `pub op.1 pow`; the
+owner: "precedence { level 1 { x } level 2 { xx } … } kinda like that".
+Design claude read it as: a level lists operators; a language operator in
+it pins the level to where that operator is; the Limb's own operators sit
+by number; an operator in no level keeps brackets; the definitions carry
+no number. Asked "any better ideas?", design claude offered one line per
+level, loosest first, no numbers (`precedence { == ~=; plus; times dot;
+scale; }`); the owner: "Seems a bit off for a language with
+`to.useful.str.utf8` just to convert", so the numbered blocks stay. The
+owner: "There should be two versions of `precedence` using a dot narrow.
+Like, say highest priority to lowest". Names offered: (a) `high_first` /
+`low_first`, recommended, (b) `tight_first` / `loose_first`, (c)
+`descending` / `ascending`; asked whether bare `precedence` is refused.
+The owner: "`a`, bare refused, low_first is good practice". Operators of
+two Limbs landing in the same gap need brackets between them (design
+claude's, from 2026-10-02's "b"). Open: associativity (`2 pow 3 pow 2`),
+and more.
+
 ### 2026-10-03 — The operator words, settled for building: `.wrap`, `op plus`, the symbols refused, `pow` with brackets (owner)
 
 ```
