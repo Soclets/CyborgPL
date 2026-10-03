@@ -7,9 +7,8 @@ that reads TextMate grammars.
 It was written from the oracle's lexer and parser — `oracle/src/lexer.rs` for
 the token shapes and `oracle/src/parser.rs` for the keyword list and the type
 spellings — so it follows the same rules the reference interpreter enforces,
-including the 2026-09-19 syntax revision and the 2026-09-25/27/29 changes (no `let`,
-`change`, `!$`, `and.then` / `or.else`, `#strict`, `pos` only in strict files, `div`,
-`</==` / `>/==`, `@x` lifetime groups, `giveS`, `op +` as a value).
+including the current `let` declarations, word operators, `-->` return arrow,
+`<--` output arrow, `#strict`, and `@x` lifetime groups.
 
 ## What it knows
 
@@ -20,10 +19,10 @@ including the 2026-09-19 syntax revision and the 2026-09-25/27/29 changes (no `l
 - The bare `\n` newline piece, which is a value outside the string, not an
   escape inside it.
 - Numbers with `_` grouping, integer and fractional.
-- Every keyword in `parser.rs`'s `KEYWORDS`, including `var`, `func` (retired
-  2026-09-19) and `let` (retired 2026-09-25), which are marked deprecated so they read
-  as wrong. `change` marks a change; `!$` and `!mut` sit in front of a declaration.
-- Explicit type spellings: `int8`–`int128`, `uint8`–`uint128`, `bin16`–`bin64`,
+- `let` introduces a binding and `change` marks an assignment. The retired
+  `var`, `func` and `gives` are marked deprecated. `!$` and `!mut` can modify a binding.
+- Explicit type spellings: `int8`–`int128`, `uint8`–`uint128`, nonstandard widths
+  such as `!std_int24` and `!std_uint256`, `bin16`–`bin64`,
   `deci32`–`deci128`, `str.utf8` and friends, `char.point`, `map.ordered`,
   `ptr.mut`, and the bare collections.
 - Generic blanks, with or without an interface constraint (`<T>`,
@@ -39,17 +38,18 @@ including the 2026-09-19 syntax revision and the 2026-09-25/27/29 changes (no `l
   used between two values (`'u' dot 'v'`).
 - Modules before a dot (`counter.bump`), and a function named as a value
   (`first_by[…, by_number]`) — safe because variables are always quoted.
-- Limb paths (`std::print.stdout`), conversions (`to.int32`), calls in
+- Limb paths (`std::print.stored.stdout`), conversions (`to.int32`), calls in
   brackets, and the narrowing dot.
 - Ownership verbs (and `&` / `&mut`, their other spelling), the check tiers including
-  `NO_FUCKING_CHECKS`, failure names after `fail`, and the word operators `x`, `xx`,
-  `div`, `mod`, `and`, `or`, `and.then`, `or.else`, plus the wrapping `+~` / `-~` / `x~` /
-  `xx~` and the bitwise `and.bit` / `xor` / `shl` / `shr`. The comparisons `==`, `!==`, `<`,
+  `NO_FUCKING_CHECKS`, failure names after `fail`, and the word operators `plus`,
+  `minus`, `times`, `pow`, `div.floor` / `.ceil` / `.trunc` / `.near`, their `mod`
+  counterparts, `and`, `or`, `and.then`, `or.else`, and `.wrap` forms. Bitwise
+  operators include `and.bit`, `xor`, `shl` and `shr`. The comparisons `==`, `!==`, `<`,
   `>`, `</==`, `>/==`; the retired `/`, `<==`, `>==` are marked deprecated.
-- `@x` on a returned borrow (`-> lent@x T`), `giveS` in a strict `match` (`gives` marked retired), and an operator
-  handed over as a value (`op +`, `op neg`, `op </==`).
+- `@x` on a returned borrow (`--> lent@x T`), `giveS` in a strict `match` (`gives` marked retired), and an operator
+  handed over as a value (`op plus`, `op neg`, `op </==`).
 - A loop's modifiers, strongest first: `for !c seq …`, `for para …` (`seq` there is a word,
-  not the type); tests: `test fn`, `must`, `must.fail.reason`, `must.stop`; `print.weird`'s `<-`.
+  not the type); tests: `test fn`, `must`, `must.fail.reason`, `must.stop`; `print.weird`'s `<--`.
 - `#strict`'s range labels, `range[from 1, to 4, by 1]`, and `pos`.
 - `layout.c enum Key { a = 65 }`: a case and its number.
 - A library call through a built-in type as one name: `str.each.grapheme[…]`,
@@ -74,7 +74,4 @@ non-whitespace span left without a scope — there should be none — and, for e
 every distinct word it was given, which is the list to read by hand for words in the
 wrong class. `node website/grammar/audit.mjs <scope>` prints one class.
 
-Last run on 2026-10-01 against all 123 programs: no unscoped spans, and each class read
-by hand — every word coloured as an enum case is a real case or failure name, every
-capitalised word outside comments and strings is a declared type, generic or interface,
-and every bare word coloured as a function reference is one.
+Last run on 2026-10-03 against all 141 programs: no unscoped spans.

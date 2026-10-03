@@ -45,7 +45,7 @@ export async function loader() {
 }
 
 // Tapped on the empty bar: things worth trying. Each one has an instant answer.
-const TRY = [":=", "change", "lend", "otherwise", "exceptions", "garbage collector", "concur"];
+const TRY = ["let", "plus", "div.floor", "lend", "otherwise", "garbage collector", "concur"];
 
 function Search({ q, setQ, onSubmit, onFocus, onBlur }) {
   return (

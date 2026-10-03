@@ -15,7 +15,7 @@ const SYNONYMS = {
   overflow: ["precog", "overflow"], bounds: ["precog", "bounded"], safety: ["precog"], safe: ["precog"], prove: ["precog"], proof: ["precog"],
   compiler: ["llvm"], native: ["llvm"], backend: ["llvm"],
   string: ["str.utf8", "strings", "text"], strings: ["str.utf8", "text"],
-  print: ["std::print.stdout", "prints"], printu: ["print.useful"], printf: ["print.format"], println: ["std::print.stdout", "prints"], output: ["std::print.stdout", "prints"], stdout: ["std::print.stdout"],
+  print: ["std::print.stored.stdout", "prints"], printu: ["print.useful"], printf: ["print.format"], println: ["std::print.stored.stdout", "prints"], output: ["std::print.stored.stdout", "prints"], stdout: ["std::print.stored.stdout"],
   loop: ["while", "for", "loops"], iterate: ["for", "range"],
   function: ["fn", "functions"], method: ["fn", "functions"], func: ["fn"],
   enum: ["enums", "match"], variant: ["enums"], union: ["enums"], switch: ["match"],

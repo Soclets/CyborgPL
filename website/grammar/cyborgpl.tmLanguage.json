@@ -224,7 +224,7 @@
           }
         },
         {
-          "comment": "fn name [params] -> type",
+          "comment": "fn name [params] --> type",
           "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": {
@@ -267,7 +267,7 @@
       ]
     },
     "failure-name": {
-      "comment": "A failure is named after `fail`, both in a signature (`-> T or fail[empty]`) and where it is raised (`fail empty;`).",
+      "comment": "A failure is named after `fail`, both in a signature (`--> T or fail[empty]`) and where it is raised (`fail empty;`).",
       "patterns": [
         {
           "match": "\\b(fail)\\s*(\\[)([^\\]]*)(\\])",
@@ -357,6 +357,11 @@
     "type": {
       "patterns": [
         {
+          "comment": "Nonstandard widths, such as !std_int24, !std_u4 and !std_uint256.",
+          "name": "support.type.numeric.cyborgpl",
+          "match": "(?<![A-Za-z0-9_])!std_(?:u?int|[iu])[1-9][0-9]*\\b"
+        },
+        {
           "comment": "Widths are explicit: int/uint 8–128, bin 16–64, deci 32–128.",
           "name": "support.type.numeric.cyborgpl",
           "match": "\\b(?:u?int(?:8|16|32|64|128)|bin(?:16|32|64)|deci(?:32|64|128))\\b"
@@ -438,8 +443,8 @@
           "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr)\\b"
         },
         {
-          "comment": "A type written after `:` or `->` that is none of the above is a struct in this module.",
-          "match": "(?:(:)|(->))\\s*([A-Z][A-Za-z0-9_]*)",
+          "comment": "A type written after `:` or `-->` that is none of the above is a struct in this module.",
+          "match": "(?:(:)|(-->))\\s*([A-Z][A-Za-z0-9_]*)",
           "captures": {
             "1": {
               "name": "punctuation.separator.type.cyborgpl"
@@ -500,7 +505,7 @@
           "match": "(?<=\\[|,\\s)(?:from|to|by)\\b(?=\\s)"
         },
         {
-          "comment": "`change` marks every change to a value (2026-09-25); a declaration is just its name: 'x' := 1;",
+          "comment": "`change` marks every assignment; `let` introduces a binding.",
           "name": "keyword.other.change.cyborgpl",
           "match": "\\bchange\\b"
         },
@@ -526,7 +531,7 @@
         },
         {
           "name": "keyword.declaration.cyborgpl",
-          "match": "\\b(?:pub\\.limb|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b",
+          "match": "\\b(?:pub\\.limb|let|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b",
           "comment": "`pub.limb` is `pub` narrowed: visible across the limb."
         },
         {
@@ -548,9 +553,9 @@
           "match": "\\b(?:true|false)\\b"
         },
         {
-          "comment": "Retired, still reserved so the error can point at the new spelling: var/func on 2026-09-19, let on 2026-09-25, gives (now giveS) on 2026-09-29.",
+          "comment": "Retired, still reserved so the error can point at the new spelling: var/func and gives (now giveS).",
           "name": "invalid.deprecated.cyborgpl",
-          "match": "\\b(?:var|func|let|gives)\\b"
+          "match": "\\b(?:var|func|gives)\\b"
         }
       ]
     },
@@ -653,9 +658,9 @@
           "match": "\\b(?:and\\.bit|or\\.bit|xor|shl|shr|not\\.bit)\\b"
         },
         {
-          "comment": "Word operators. `x` multiplies, `xx` raises, `div` divides (2026-09-29); the ~ suffix wraps. `and.then` / `or.else` stop once the answer is known; plain `and` / `or` work out both sides.",
+          "comment": "Arithmetic operators are words; .wrap requests wrapping, and div/mod name their rounding. `and.then` / `or.else` stop early.",
           "name": "keyword.operator.word.cyborgpl",
-          "match": "\\b(?:and\\.then|or\\.else|xx~|x~|(?:xx|x|div|mod|and|or|not)\\b)"
+          "match": "\\b(?:and\\.then|or\\.else|(?:plus|minus|times|pow)(?:\\.wrap)?|(?:div|mod)\\.(?:floor|ceil|trunc|near|wrap)|and|or|not)\\b"
         },
         {
           "comment": "$ marks a shadowing declaration and sits on the operator.",
@@ -669,7 +674,7 @@
         },
         {
           "name": "keyword.operator.arrow.cyborgpl",
-          "match": "->|<->|<-"
+          "match": "-->|<--|<->|->|<-"
         },
         {
           "comment": "++ joins text.",
@@ -682,14 +687,14 @@
           "match": "!==|</==|>/==|==|<|>"
         },
         {
-          "comment": "Retired 2026-09-29, refused with the new spelling: `/` is `div`, `<==` / `>==` are `</==` / `>/==`.",
+          "comment": "Retired spellings; `/` is now a named division and `<==` / `>==` are `</==` / `>/==`.",
           "name": "invalid.deprecated.cyborgpl",
           "match": "<==|>==|(?<![!%&*+\\-/<>=?@^|~])/(?![!%&*+\\-/<>=?@^|~])"
         },
         {
           "name": "keyword.operator.arithmetic.cyborgpl",
           "match": "[+\\-]~?",
-          "comment": "+ and -; +~ and -~ wrap (2026-09-20). Division is the word `div`."
+          "comment": "A negative keeps the `-` sign; binary arithmetic uses words."
         },
         {
           "name": "keyword.operator.assignment.cyborgpl",
@@ -807,7 +812,7 @@
     },
     "case-arm": {
       "comment": "An arm of `match` or of an `otherwise { … }` handler names an enum case or a failure: a bare word, optionally binding a quoted variable, before `{`. Keywords that open a block (`else`, `loop`, `concur`…) are matched earlier and win. A word straight after a value is an operator position (`'a' and 'b' {`), never an arm, so that position is excluded.",
-      "match": "(?<!['\\)\\]\\d] )\\b(?!(?:x|xx|mod|and|or|not|xor|shl|shr)\\b)([a-z_][A-Za-z0-9_]*)(?:\\s+('[^'\\n]+'))?\\s*(?=\\{)",
+      "match": "(?<!['\\)\\]\\d] )\\b(?!(?:plus|minus|times|pow|div|mod|and|or|not|xor|shl|shr)\\b)([a-z_][A-Za-z0-9_]*)(?:\\s+('[^'\\n]+'))?\\s*(?=\\{)",
       "captures": {
         "1": {
           "name": "variable.other.enummember.cyborgpl"
@@ -881,7 +886,7 @@
       "match": "\\b(?:check|nocheck|NO_FUCKING_CHECKS)\\b"
     },
     "lifetime": {
-      "comment": "`@x` names a lifetime group on a returned borrow, `-> lent@x T` (2026-09-29).",
+      "comment": "`@x` names a lifetime group on a returned borrow, `--> lent@x T`.",
       "match": "(@)([A-Za-z_][A-Za-z0-9_]*)",
       "captures": {
         "1": {

@@ -14,7 +14,7 @@ export const FEATURES = [
   { id: "ownership", icon: "key", title: "Ownership, no GC", text: "Every value has one owner. `give`, `copy` and `lend` say what happens to it." },
   { id: "inference", icon: "type", title: "`:=` picks the best type", text: "Worked out from the whole program. A value from outside needs its type written." },
   { id: "dot", icon: "dot", title: "A dot narrows", text: "`str.utf8`, `lend.mut`, `list.length`, `map.ordered` — one small rule, everywhere." },
-  { id: "failures", icon: "alert", title: "Failures in signatures", text: "`-> T or fail[name]`, handled with `otherwise`." },
+  { id: "failures", icon: "alert", title: "Failures in signatures", text: "`--> T or fail[name]`, handled with `otherwise`." },
   { id: "llvm", icon: "chip", title: "LLVM backend", text: "Native code, through LLVM." },
 ];
 
@@ -23,8 +23,8 @@ export const FEATURES = [
 export const TRADEOFFS = [
   { get: "Precog proves every overflow and bounds check at compile time; the final build carries none of them.",
     cost: "Compile time is not a cost the language cares about: builds are slow, and every build is a full one — there is no fast development mode." },
-  { get: "What Precog can’t prove still gets a runtime check, whatever it costs.",
-    cost: "The final build refuses code it can’t prove until you write a guardrail, a tighter type, or `nocheck`." },
+  { get: "The working build checks what Precog can’t yet prove, whatever the runtime cost.",
+    cost: "The final build refuses that code until you write a guardrail, a tighter type, or `nocheck`." },
   { get: "Ownership, no garbage collector: every value has one owner, so the compiler knows when to free it.",
     cost: "Every call says what happens to a value: `lend`, `give` or `copy`." },
   { get: "`:=` works out the best type from the whole program.",
@@ -41,17 +41,15 @@ export const TRADEOFFS = [
 
 export const ACCENTS = ["#6c71c4", "#268bd2", "#2aa198", "#859900", "#cb4b16", "#d33682"];
 
-// What trips up newcomers, per design claude. Every code line is from design claude
-// (DECISIONS.md) or copied from a real program in examples/ — none are invented.
-// Syntax as of 2026-09-29: no `let`, `change`, no `pos`, `div`, `</==` / `>/==`.
+// Introductory syntax, kept in step with the programs in examples/.
 export const SYNTAX = [
-  { title: "Names are quoted", text: "Variables always sit in single quotes. Types, functions and fields are bare words.", code: "'x' := 1000;" },
-  { title: "`:=` or `=`", text: "A declaration starts with its name. `:=` works out the best type from the whole program; `=` needs the type written.", code: "'x' := 1000;\n'n': int32 = 5;" },
-  { title: "Changing says `change`", text: "Every change to a value says `change`, so it never looks like a declaration. Only a `mut` value can change.", code: "mut 'x' := 1000;\nchange 'x' = 2000;" },
+  { title: "Names are quoted", text: "Variables always sit in single quotes. Types, functions and fields are bare words.", code: "let 'x' := 1000;" },
+  { title: "`let` binds a value", text: "Use `let` to introduce a value. `:=` infers its type; with `=`, write the type explicitly.", code: "let 'x' := 1000;\nlet 'n': int32 = 5;" },
+  { title: "Changing says `change`", text: "Declare a value `mut` before changing it. `change` marks an assignment.", code: "let mut 'x' := 1000;\nchange 'x' = 2000;" },
   { title: "Calls use brackets", text: "Arguments go in `[ ]`, not `( )`.", code: "add[1, 2]" },
-  { title: "`x` multiplies, `div` divides", text: "`x` multiplies, `div` divides, `xx` is power, `mod` is the remainder.", code: "'by3' := ('n' mod 3) == 0;" },
+  { title: "Arithmetic uses words", text: "`plus`, `minus` and `times` are operators. Division and remainder name their rounding, such as `div.floor` and `mod.floor`; `pow` raises to a power.", code: "let 'by3' := ('n' mod.floor 3) == 0;" },
   { title: "Positions start at 1", text: "The first element is position 1, written bare.", code: "return 'xs'[1];" },
-  { title: "The newline is outside the string", text: "A string is exactly its characters. The newline is its own piece.", code: "std::print.stdout[\"Hello, World!\", \\n];" },
+  { title: "The newline is outside the string", text: "A string is exactly its characters. The newline is its own piece.", code: "std::print.stored.stdout[\"Hello, World!\", \\n];" },
   { title: "Ownership at the call site", text: "The caller says whether it lends, gives or copies.", code: "describe[lend 'l']" },
   { title: "A dot narrows", text: "The thing on the left, made more specific: `str.utf8`, `lend.mut`, `list.length`.", code: "if list.length[lend 'xs'] == 0 { fail empty; }" },
   { title: "Comments", text: "`#` runs to the end of the line.", code: "# like this" },
