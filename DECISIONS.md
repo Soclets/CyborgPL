@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — A shift on an exact answer works at its typed operands' width (owner)
+
+```
+let 'v': uint32 = 3;
+let 'b': uint32 = ('v' mod.floor 16) shl 2;    # 12, shifted as 32 bits
+('v' plus 1) shl 30                            # refused: 2^32 does not fit 32 bits
+```
+
+CCA's open question since 2026-09-23, raised again by compiler claude
+and check claude once division became exact (15c5c71): which width a
+shift works at when its left side is an exact answer. The 2026-09-23
+ruling ("any operand whose type it can work out is enough", with this
+very example) and the oracle already answer it: the width of the typed
+operands inside, as `plus.wrap` takes it. Design claude asked the owner
+to confirm, explained twice ("What"); the owner: "Yeah". The `widths`
+example's question is settled; CCA builds it.
+
 ### 2026-10-03 — Hardware-style division: `div.trunc.wrap` and the other three; no `mod.X.wrap` (owner)
 
 ```
