@@ -30,7 +30,19 @@ recommended; the owner: "`a`, I mean there's already a disclaimer in
 front". Built up to 128 bits the same day (the owner: "Yeah", after
 seeing Rust's alias spelled out; design claude noted Rust itself has
 none past 128); above 128 the oracle needs bigger numbers than it holds,
-so `!std_uint256` is refused as not built. `examples/any_width.cpls`,
+so `!std_uint256` is refused as not built. Then the owner: "Wait, what
+about more than 128?", and to build it now, writing the big numbers
+into the oracle rather than adding a library: "Do it now, `a`". That
+met the 2026-09-23 rule's middle limit ("the one limit is the machine's
+64 bits"), which would refuse nearly every `!std_uint256` sum. Proposed:
+(a) the limit is the widest operand's type, at least 64 bits, recommended
+(it also lets two large `int128`s add, which the 64-bit limit refused);
+(b) 64 bits always. The owner asked what that meant, then the
+performance difference (none for code of 64 bits or less; a 256-bit add
+is four instructions, the cost of the type itself), then: "Ah, okay". So
+in between, the limit is the widest operand's width, at least 64 bits.
+LLVM's own top width is 8,388,608 bits (2^23, checked with `llvm-as`).
+`examples/any_width.cpls`,
 reject tests `std_on_standard`, `std_too_wide`, `std_not_a_type`,
 `std_width_overflow`, `types.md`.
 
