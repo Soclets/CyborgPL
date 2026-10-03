@@ -293,7 +293,8 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             let tok = match run.as_str() {
                 // `-->` is another spelling of `->`, everywhere (owner, 2026-10-03)
                 "->" | "-->" => Tok::Arrow,
-                "<-" => Tok::LeftArrow,
+                // `<--` is another spelling of `<-` (owner, 2026-10-03)
+                "<-" | "<--" => Tok::LeftArrow,
                 "<->" => Tok::BothArrow,
                 "=" => Tok::Eq,
                 "!=" => return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()),

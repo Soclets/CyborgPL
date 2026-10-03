@@ -5,15 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-03 — `-->` is another spelling of `->` (owner)
+### 2026-10-03 — `-->` is another spelling of `->`, and `<--` of `<-` (owner)
 
 From the "might add later" list. The owner: "Implement the `-->` alias,
 that's easy." It goes wherever `->` does (a return type, a function
 type, an asm or `inline.MSL` binding). A side effect, noted by design
 claude: `-->` can no longer name a custom operator (a run of operator
 characters was one, 2026-09-20). In the oracle's lexer;
-`examples/long_arrow.cpls`, `functions.md`. Not yet told to compiler or
-check claude (the owner asked for no messages, to save usage).
+`examples/long_arrow.cpls`, `functions.md`. Then, asked whether `<-`
+gets `<--` too (design claude had not asked before building `-->`): "yes,
+next time, ask". So `<--` is another spelling of `<-` (asm bindings,
+`print.weird`), and `<--` no longer names a custom operator either. Not
+yet told to compiler or check claude (the owner asked for no messages,
+to save usage).
 
 ### 2026-10-02 — A Limb's word operator may carry its path and narrow with `.`; the registry refuses the bare one (owner; not built yet)
 
