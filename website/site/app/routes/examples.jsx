@@ -57,7 +57,7 @@ export default function Examples() {
       <label className="search">
         <Icon name="search" size={17} />
         <input type="search" placeholder={`Search ${examples.length} examples and their code`} value={q} onChange={(e) => setQ(e.target.value)}
-          enterKeyHint="search" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+          enterKeyHint="search" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Search examples and their code" />
       </label>
       <div className="grid">
         {shown.map((e, i) => (

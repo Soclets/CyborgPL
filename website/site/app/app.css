@@ -311,9 +311,8 @@ html.desktop .more, html.desktop .plain { max-width: 720px; }
 /* The full plain source is readable while its highlighting loads. */
 .sheet-pending pre { color: var(--text); min-height: calc(var(--example-lines, 0) * 1lh); }
 
-/* HomeView fades outgoing content before bringing the next view in.
-   The rounded bar supplies the input's focus indicator without an inner rectangle. */
+/* Every search bar supplies a smooth, rounded focus indicator for its input. */
 .search { transition: box-shadow .18s ease, background-color .18s ease; }
 .search:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--violet) 55%, transparent); }
-html.desktop .home .search input:focus-visible { outline: none; }
+html.desktop .search input:focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) { .search { transition: none; } }
