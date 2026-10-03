@@ -268,3 +268,4 @@ mod_bin 118
 trunc_ops 255
 trunc_ops_run 28
 give_temp_arg 10
+bin32_whole_range 7

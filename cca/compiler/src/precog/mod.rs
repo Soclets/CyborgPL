@@ -1330,9 +1330,16 @@ impl Precog {
         // 3996169; DECISIONS 2026-09-14: a bin32 0.1 is
         // 0.100000001490116119384765625). Kept at 64 bits, a bin32 0.1
         // folded `'c' > 0.1` to false.
+        // Widened by a step, but never past the largest: what would round
+        // past it is its own site's to stop. A bin32's whole range widened
+        // to infinity, and `0.0 x 'one'` read as "no number, every time".
+        let within = |x: f64, bits: u16| match crate::mir::domain::bin_max(crate::types::BinW::Fixed(bits)) {
+            Some(m) if !x.is_nan() => x.clamp(-m, m),
+            _ => x,
+        };
         let d = match (&d, self.place_ty(f, p).base()) {
-            (Domain::Bins { lo, hi }, Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32)))) => Domain::Bins { lo: lo.map(|x| round_out(x, *bits, false)), hi: hi.map(|x| round_out(x, *bits, true)) },
-            (Domain::Bins { lo, hi }, Ty::Brain) => Domain::Bins { lo: lo.map(|x| round_out(x, crate::types::BRAIN_BITS, false)), hi: hi.map(|x| round_out(x, crate::types::BRAIN_BITS, true)) },
+            (Domain::Bins { lo, hi }, Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32)))) => Domain::Bins { lo: lo.map(|x| within(round_out(x, *bits, false), *bits)), hi: hi.map(|x| within(round_out(x, *bits, true), *bits)) },
+            (Domain::Bins { lo, hi }, Ty::Brain) => Domain::Bins { lo: lo.map(|x| within(round_out(x, crate::types::BRAIN_BITS, false), crate::types::BRAIN_BITS)), hi: hi.map(|x| within(round_out(x, crate::types::BRAIN_BITS, true), crate::types::BRAIN_BITS)) },
             _ => d,
         };
         if p.proj.is_empty() {
