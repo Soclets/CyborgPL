@@ -8,27 +8,27 @@ interface Number {
 }
 
 interface Ordered <T> {
-    op < ['a': <T>, 'b': <T>] -> bool;
-    op == ['a': <T>, 'b': <T>] -> bool;
+    op < ['a': <T>, 'b': <T>] --> bool;
+    op == ['a': <T>, 'b': <T>] --> bool;
 }
 
 interface WholeOrdered <T> {
     int32
     int64
-    op < ['a': <T>, 'b': <T>] -> bool;
+    op < ['a': <T>, 'b': <T>] --> bool;
 }
 
-fn bigger <T>: Number and Ordered ['a': <T>, 'b': <T>] -> <T> {
+fn bigger <T>: Number and Ordered ['a': <T>, 'b': <T>] --> <T> {
     if 'b' < 'a' { return 'a'; }
     return 'b';
 }
 
-fn smaller <T>: WholeOrdered ['a': <T>, 'b': <T>] -> <T> {
+fn smaller <T>: WholeOrdered ['a': <T>, 'b': <T>] --> <T> {
     if 'a' < 'b' { return 'a'; }
     return 'b';
 }
 
-fn whole <T>: any | @x [lent@x 'xs': list[<T>]] -> lent@x list[<T>] { return lend 'xs'; }
+fn whole <T>: any | @x [lent@x 'xs': list[<T>]] --> lent@x list[<T>] { return lend 'xs'; }
 
 struct Box <T>: Number { item: <T> }
 

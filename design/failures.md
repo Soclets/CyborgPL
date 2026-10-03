@@ -18,18 +18,18 @@ and may carry a payload of any type. The reasons are listed **inline, in the
 function's own signature** (owner: option 1, over a named reusable type):
 
 ```
-fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
+fn stash [lent.mut 'l': Locker, 'item': str.utf8] --> bool or fail[full, bad_item: str.utf8] {
     if free_slots[lend 'l'] == 0 { fail full; }
     if 'item' == "" { fail bad_item[copy 'item']; }
     list.append[lend.mut 'l'.items, give 'item'];
     return true;
 }
 
-fn save [lent 'l': Locker] -> fail[disk_full, no_permission] { … }   # nothing on success, or a failure
+fn save [lent 'l': Locker] --> fail[disk_full, no_permission] { … }   # nothing on success, or a failure
 ```
 
 - `-> T or fail[…]`: "returns a T, or fails one of these ways."
-  `-> fail[…]` alone: nothing on success. The list is comma-separated
+  `--> fail[…]` alone: nothing on success. The list is comma-separated
   names; a name with a payload is `name: type`, the parameter shape.
 - **`fail name;`** leaves the function with that failure — its own keyword,
   so a failure exit reads differently from `return`. A payload goes in

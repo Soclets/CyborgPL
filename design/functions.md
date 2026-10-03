@@ -1,10 +1,10 @@
 # Functions
 
 Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
-parameters, `-> T`).
+parameters, `--> T`).
 
 ```
-fn add ['a': int32, 'b': int32] -> int32 {
+fn add ['a': int32, 'b': int32] --> int32 {
     return 'a' + 'b';
 }
 let 'sum' := add[10, 20];              # this Limb: bare
@@ -14,13 +14,13 @@ let 'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
 ## Definition
 
 ```
-fn count [lent 'text': str.utf8] -> int32 { … }     # looks at it
+fn count [lent 'text': str.utf8] --> int32 { … }     # looks at it
 fn edit  [lent.mut 'text': str.utf8] { … }          # may modify it
 fn keep  ['text': str.utf8] { … }                   # owns it
-fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
+fn twice [immut 'n': int32] --> int32 { … }          # stated mutability
 ```
 
-- **`fn`**, bare name, parameters in one `[ ]`, optional `-> type`, body in
+- **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
   `{ }`. `pub fn` makes it visible to other Limbs (`limbs.md`).
 - **Parameters are `'name': type`.** The ownership verb, when there is one,
   sits before the name and mirrors the caller exactly: the caller writes
@@ -29,8 +29,8 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   `mut`/`immut` go where they go on a declaration: before the name.
   A parameter with no type (`lent 'items'`) is legal: Precog infers its
   best type from every call site in the program.
-- **A function that can fail says so**: `-> bool or fail[full, bad_item: str.utf8]`
-  or `-> fail[disk_full]`; see `failures.md` (decided 2026-09-19).
+- **A function that can fail says so**: `--> bool or fail[full, bad_item: str.utf8]`
+  or `--> fail[disk_full]`; see `failures.md` (decided 2026-09-19).
 - **A variadic parameter is `...'name'`** (decided 2026-09-19): the rest
   of the arguments, any number including zero; last parameter only, one
   per function; composes with the verbs (`lent ...'parts'`). Model (b):
@@ -61,16 +61,19 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   lends each element; plain elements take no verb (they copy by
   themselves). Owner chose this over "always copy" and "always give".
   `examples/spread.cpls`.
-- **The return type is `-> T`** after the parameter list (Rust's arrow),
+- **The return type is `--> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not
   the function's type. No arrow: Precog picks the best return type from every
   `return` in the body; no `return` at all: the function returns nothing. A
   function declared *with* a return type must return a value on every path;
   falling off the end is a compile error.
-- **`-->` is another spelling of `->`**, wherever `->` goes: a return
-  type, a function type, an asm or `inline.MSL` binding (owner,
-  2026-10-03: "Implement the `-->` alias"), and **`<--` of `<-`**, in an
-  asm binding or `print.weird` (owner: "yes"). `examples/long_arrow.cpls`.
+- **The arrows are long: `-->` and `<--` are the main spelling** (owner,
+  2026-10-03: "Long arrow is main in CyborgPL", then "yea, both"), wherever
+  an arrow goes: a return type, a function type, an asm or `inline.MSL`
+  binding, `print.weird`. **`->` and `<-` are other spellings** of them
+  (the arrows were short until that day; the long ones came first as the
+  aliases, "Implement the `-->` alias"). `examples/long_arrow.cpls`,
+  `examples/short_arrow.cpls`.
 
 ## Calling (decided 2026-09-14)
 

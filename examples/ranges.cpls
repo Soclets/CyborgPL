@@ -1,7 +1,7 @@
 # Range types (design/input.md, 2026-09-20): a type with bounds, provably within them.
 struct Percent { value: uint8[0, 100] }
 
-fn scale ['p': Percent, 'total': int32[0, 1000]] -> int32[0, 1000] {
+fn scale ['p': Percent, 'total': int32[0, 1000]] --> int32[0, 1000] {
     return ('total' x to.int32['p'.value]) div.floor 100;
 }
 

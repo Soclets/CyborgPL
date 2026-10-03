@@ -4,7 +4,7 @@
 # type, a return type, `mut` or `immut` on every declaration, `temp` or `perm` on every `for`.
 # `nocheck` is still allowed. The oracle checks the spelling; Precog checks the proofs.
 #strict
-fn ratio ['n': int32[1, max]] -> int32 { return 100 div.floor 'n'; }
+fn ratio ['n': int32[1, max]] --> int32 { return 100 div.floor 'n'; }
 MAIN {
     let immut 'xs': list[int32] = [10, 20, 30, 40];
     let mut 'total': int32 = 0;
@@ -12,6 +12,6 @@ MAIN {
         change 'total' = 'total' + 'xs'[pos 'i'];
     }
     let immut 'mid' := list.slice[lend 'xs', pos 2, pos 3];
-    let immut 'f' := fn ['n': int32[0, 1000]] -> int32 { return 'n' x 2; };   # the range is why 'n' x 2 fits
+    let immut 'f' := fn ['n': int32[0, 1000]] --> int32 { return 'n' x 2; };   # the range is why 'n' x 2 fits
     std::print.useful.stdout['total', " ", 'mid', " ", ratio[4], " ", 'f'[3], \n];
 }

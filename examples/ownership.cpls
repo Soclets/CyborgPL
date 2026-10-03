@@ -1,4 +1,4 @@
-fn count [lent 'items'] -> int32 {
+fn count [lent 'items'] --> int32 {
     let 'n' := 0;
     for 'item' in lend 'items' {
         change 'n' = 'n' + 1;
@@ -10,7 +10,7 @@ fn shout [lent.mut 'text': str.utf8] {
     change 'text' = copy 'text' ++ "!";
 }
 
-fn greet ['name': str.utf8] -> str.utf8 {
+fn greet ['name': str.utf8] --> str.utf8 {
     return "hello " ++ 'name';
 }
 

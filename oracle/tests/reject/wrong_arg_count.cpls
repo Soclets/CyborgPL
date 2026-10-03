@@ -1,4 +1,4 @@
-fn one ['a': int32] -> int32 {
+fn one ['a': int32] --> int32 {
     return 'a';
 }
 MAIN {

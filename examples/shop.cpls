@@ -1,5 +1,5 @@
 interface Priced <T> {
-    fn price [lent 'x': <T>] -> int32;
+    fn price [lent 'x': <T>] --> int32;
 }
 
 enum Stock {
@@ -14,9 +14,9 @@ struct Item {
     stock: Stock
 }
 
-fn price [lent 'i': Item] -> int32 { return 'i'.cents; }
+fn price [lent 'i': Item] --> int32 { return 'i'.cents; }
 
-fn cheapest <T>: Priced [lent 'xs': list[<T>]] -> <T> or fail[empty] {
+fn cheapest <T>: Priced [lent 'xs': list[<T>]] --> <T> or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     let 'best' := 1;
     for 'k' in range[2, list.length[lend 'xs']] {
@@ -25,7 +25,7 @@ fn cheapest <T>: Priced [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     return copy 'xs'['best'];
 }
 
-fn describe [lent 'i': Item] -> str.utf8 {
+fn describe [lent 'i': Item] --> str.utf8 {
     let 'dollars' := to.stored.str.utf8['i'.cents div.floor 100] ++ "." ++ to.stored.str.utf8['i'.cents mod.floor 100];
     match 'i'.stock {
         out      { return 'i'.name ++ " — sold out"; }
@@ -34,7 +34,7 @@ fn describe [lent 'i': Item] -> str.utf8 {
     }
 }
 
-fn keep [lent 'xs': list[Item], 'test': fn[lent Item] -> bool] -> list[Item] {
+fn keep [lent 'xs': list[Item], 'test': fn[lent Item] --> bool] --> list[Item] {
     let 'out': list[Item] = [];
     for 'x' in lend 'xs' { if 'test'[lend 'x'] { list.append[lend.mut 'out', copy 'x']; } }
     return give 'out';
@@ -49,7 +49,7 @@ MAIN {
     for 'i' in lend 'shelf' { std::print.stored.stdout[describe[lend 'i'], \n]; }
 
     let 'limit' := 5_000;
-    let 'affordable' := keep[lend 'shelf', fn [lent 'i': Item] -> bool with [lend 'limit'] { return 'i'.cents </== 'limit'; }];
+    let 'affordable' := keep[lend 'shelf', fn [lent 'i': Item] --> bool with [lend 'limit'] { return 'i'.cents </== 'limit'; }];
     std::print.useful.stdout[list.length[lend 'affordable'], " affordable", \n];
 
     let 'pick' := cheapest[lend 'affordable'] otherwise std::exit[0];

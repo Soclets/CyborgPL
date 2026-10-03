@@ -23,15 +23,15 @@ calls it. Since `pos` went (2026-09-27), a list read looks the same
 ## 2. The type of a function is its signature without the names
 
 ```
-fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { … }     # the definition
-                fn[lent Locker,      lent Locker]  -> bool           # its type
+fn by_number [lent 'a': Locker, lent 'b': Locker] --> bool { … }     # the definition
+                fn[lent Locker,      lent Locker]  --> bool           # its type
 
-fn sort <T>: any [lent.mut 'xs': list[<T>], 'less': fn[lent <T>, lent <T>] -> bool] { … }
+fn sort <T>: any [lent.mut 'xs': list[<T>], 'less': fn[lent <T>, lent <T>] --> bool] { … }
 ```
 
 Parameter kinds (`lent`, `lent.mut`, none) are part of the type — the
 caller's verb has to match — as are the return type and the failure
-list (`fn[int32] -> int32 or fail[oops]`). Any function of that shape
+list (`fn[int32] --> int32 or fail[oops]`). Any function of that shape
 can be passed; a different shape is a compile error naming the
 difference.
 
@@ -39,8 +39,8 @@ difference.
 
 ```
 let 'limit' := 60;
-let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
-let 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) == 0; }];   # captures nothing
+let 'passing' := keep[lend 'scores', fn ['s': int32] --> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
+let 'evens'   := keep[lend 'scores', fn ['s': int32] --> bool { return ('s' mod.floor 2) == 0; }];   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -58,14 +58,14 @@ silently, which is where "why is this borrowed" bugs come from.
 let 'sum'     := fold[lend 'xs', 0, op +];
 let 'product' := fold[lend 'xs', 1, op x];
 let 'flipped' := map[lend 'xs', op neg];
-let 'f': fn[int32, int32] -> int32 = op mod.floor;
+let 'f': fn[int32, int32] --> int32 = op mod.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it
 a function value, for a `fold`, a sort's comparison, or a calculator
 that picks one at run time. It works for every operator, glyph or word:
 `op </==`, `op ++`, `op shl`, a custom `op dot`. Before this an inline
-`fn` did the same (`fn ['a': int32, 'b': int32] -> int32 { return 'a' +
+`fn` did the same (`fn ['a': int32, 'b': int32] --> int32 { return 'a' +
 'b'; }`), and still does; design claude recommended keeping only that,
 and the owner chose `op`. Proposed spellings not chosen: `(+)` (Haskell,
 OCaml), `op[+]`.
@@ -81,7 +81,7 @@ OCaml), `op[+]`.
   arguments are worked out before it runs, so they could skip nothing and
   would secretly be `op and` / `op or`. The error says to write those.
 - A custom operator's operands are lent unless its definition says
-  `give`, so `op dot` is a `fn[lent Vec, lent Vec] -> bin64` *(the
+  `give`, so `op dot` is a `fn[lent Vec, lent Vec] --> bin64` *(the
   oracle's reading)*.
 
 ## Consequences

@@ -287,9 +287,9 @@ mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
 ```
 struct Vec { x: bin64  y: bin64 }
-op <+> ['a': Vec, 'b': Vec] -> Vec { return Vec[x = 'a'.x + 'b'.x, y = 'a'.y + 'b'.y]; }
-op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
-op **  [give 'a': Vec, 'b': bin64] -> Vec { … return give 'a'; }
+op <+> ['a': Vec, 'b': Vec] --> Vec { return Vec[x = 'a'.x + 'b'.x, y = 'a'.y + 'b'.y]; }
+op dot ['a': Vec, 'b': Vec] --> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
+op **  [give 'a': Vec, 'b': bin64] --> Vec { … return give 'a'; }
 
 let 'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
 let 'd' := ('u' <+> 'v') dot 'v';       # parenthesise when operators meet
@@ -327,7 +327,7 @@ Four questions, one at a time:
    memory. Precog may elide the copy in the lent case when the operand is
    dead; the `give` form guarantees it.
 
-Rules that follow: exactly two operands; `-> T` required; an operator
+Rules that follow: exactly two operands; `--> T` required; an operator
 cannot fail (make it a `fn`); it is never called with `[…]`; `not`, `and`,
 `or` cannot be redefined; the language's other operators may be **defined
 for a user type** (`op + ['a': Vec, 'b': Vec]`, decided 2026-09-20 with

@@ -1,4 +1,4 @@
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
 MAIN {
     let 'key' := "HOME";
     nocheck let 'home' := getenv[lend 'key'];

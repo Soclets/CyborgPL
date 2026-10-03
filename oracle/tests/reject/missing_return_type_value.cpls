@@ -1,4 +1,4 @@
-fn nothing [] -> int32 {
+fn nothing [] --> int32 {
 }
 MAIN {
     let 'x' := nothing[];

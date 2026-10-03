@@ -1,5 +1,5 @@
 # concur, channels, duration literals (design/concurrency.md, 2026-09-22).
-fn fetch [lent 'url': str.utf8] -> str.utf8 { return "page of " ++ 'url'; }
+fn fetch [lent 'url': str.utf8] --> str.utf8 { return "page of " ++ 'url'; }
 
 MAIN {
     let 'results' := channel[str.utf8];

@@ -1,4 +1,4 @@
-fn max <T>: any ['a': <T>, 'b': <T>] -> <T> { return 'a'; }
+fn max <T>: any ['a': <T>, 'b': <T>] --> <T> { return 'a'; }
 MAIN {
     let 'x' := max[1, "two"];
 }

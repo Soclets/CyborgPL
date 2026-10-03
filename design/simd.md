@@ -9,7 +9,7 @@ types are for when it does not, or when the algorithm is a vector
 algorithm.
 
 ```
-fn is_ascii [lent 'bytes': array[uint8]] -> bool {
+fn is_ascii [lent 'bytes': array[uint8]] --> bool {
     let mut 'acc' := simd.fill[0];                          # simd[uint8, 16]
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
         change 'acc' = 'acc' or.bit simd.load[lend 'bytes', 'i'];
@@ -98,7 +98,7 @@ against a vector (`'v' + 1`), and `simd.sum` is a check site while
 ## A mask is a type: `simd[bool, N]` (owner, 2026-09-27: a)
 
 ```
-fn all_on ['m': simd[bool, 4]] -> bool { return simd.all['m']; }
+fn all_on ['m': simd[bool, 4]] --> bool { return simd.all['m']; }
 let 'm': simd[bool, 4] = 'a' > simd.fill[10];
 let 'flip' := not 'm';
 ```

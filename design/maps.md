@@ -25,7 +25,7 @@ hashing. Owner chose the language. `map` is a keyword.
 
 ## A missing key is a failure (owner: a)
 
-`map.get` and `map.remove` are `-> V or fail[missing]`, so every lookup
+`map.get` and `map.remove` are `--> V or fail[missing]`, so every lookup
 says what happens: `otherwise 0`, `otherwise fail`, `otherwise { missing
 { … } }`. A bad index is a bug and a check site; a missing key is an
 ordinary Tuesday, and the language already had the word for that. `has`
@@ -42,7 +42,7 @@ check site guarded by `has`; a found/missing enum to `match`.
 - **A type's own rule**: a struct or enum that satisfies
 
   ```
-  interface Key <T> { op == ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
+  interface Key <T> { op == ['a': <T>, 'b': <T>] --> bool;  fn hash [lent 'v': <T>] --> uint64; }
   ```
 
   compares and hashes by its own `op ==` and `fn hash` — a

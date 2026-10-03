@@ -16,9 +16,9 @@ comptime and Rust's monomorphisation do the same.
 ## Spelling (revised 2026-10-02)
 
 ```
-fn max <T>: Number ['a': <T>, 'b': <T>] -> <T> { … }           # announced after the name, with what it accepts
-fn first <T>: any [lent 'xs': list[<T>]] -> <T> or fail[empty] { … }
-fn pick <T>: any | @x [lent@x 'xs': list[<T>]] -> lent@x <T> { … }   # then the lifetime groups, after a `|`
+fn max <T>: Number ['a': <T>, 'b': <T>] --> <T> { … }           # announced after the name, with what it accepts
+fn first <T>: any [lent 'xs': list[<T>]] --> <T> or fail[empty] { … }
+fn pick <T>: any | @x [lent@x 'xs': list[<T>]] --> lent@x <T> { … }   # then the lifetime groups, after a `|`
 
 struct Pair <A>: any <B>: any { left: <A>  right: <B> }         # blanks in the order announced
 enum Maybe <T>: any { none  some: <T> }
@@ -30,8 +30,8 @@ let 'm' := Maybe.some[42];                                          # filled fro
 - **`<T>` is a type variable — a blank**, and every mention wears its
   `< >` (owner, 2026-09-20: "both use `<>`"). Its name is the writer's
   (`<T>`, `<Thing>`); the brackets say it is generic, the name says which.
-  `<` and `>` are operator characters, so `-> <T>` needs its space
-  (`-><T>` is one operator token).
+  `<` and `>` are operator characters, so `--> <T>` needs its space
+  (`--><T>` is one operator token).
 - **Every blank is announced right after the name, before its first use**
   (owner, 2026-10-02: c, then a), for functions, operators, structs, enums
   and interfaces, so a mistyped `<Y>` is an error ("`<Y>` was never
@@ -78,7 +78,7 @@ a plain `T` they do nothing (`interfaces.md`).
 ## A generic `op` (owner, 2026-09-29)
 
 ```
-op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool { … }   # once, for any type keeping Number's promises
+op ~= <T>: Number ['a': <T>, 'b': <T>] --> bool { … }   # once, for any type keeping Number's promises
 ```
 
 An operator may be generic, with the rules of a generic `fn`: announced

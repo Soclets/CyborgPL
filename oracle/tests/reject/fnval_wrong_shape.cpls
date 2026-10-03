@@ -1,5 +1,5 @@
-fn one ['a': int32] -> int32 { return 'a'; }
-fn apply ['f': fn[int32, int32] -> int32] -> int32 { return 'f'[1, 2]; }
+fn one ['a': int32] --> int32 { return 'a'; }
+fn apply ['f': fn[int32, int32] --> int32] --> int32 { return 'f'[1, 2]; }
 MAIN {
     let 'x' := apply[one];
 }

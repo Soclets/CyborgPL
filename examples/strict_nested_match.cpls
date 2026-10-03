@@ -14,7 +14,7 @@ fn handle ['o': Order, 's': Ship] {
         }
     }
 }
-fn price ['o': Order, 's': Ship] -> int32 {
+fn price ['o': Order, 's': Ship] --> int32 {
     let immut 'p': int32 = match 'o' {
         cancelled { giveS 0; }
         paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }

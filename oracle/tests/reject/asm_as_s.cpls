@@ -5,5 +5,5 @@ MAIN {
     nocheck inline.S {
         mov x16, #1
         svc #0x80
-    } with ['fd' -> x0, clobber x16];
+    } with ['fd' --> x0, clobber x16];
 }

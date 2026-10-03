@@ -1,9 +1,9 @@
 # A generic operator and a specific one for a type it covers: two meanings, an error — the specific
 # one does not quietly win (owner, 2026-09-29: a).
 interface Number <T> {
-    op - ['a': <T>, 'b': <T>] -> <T>;
-    op < ['a': <T>, 'b': <T>] -> bool;
+    op - ['a': <T>, 'b': <T>] --> <T>;
+    op < ['a': <T>, 'b': <T>] --> bool;
 }
-op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool { return 'a' < 'b'; }
-op ~= ['a': int32, 'b': int32] -> bool { return true; }
+op ~= <T>: Number ['a': <T>, 'b': <T>] --> bool { return 'a' < 'b'; }
+op ~= ['a': int32, 'b': int32] --> bool { return true; }
 MAIN { }

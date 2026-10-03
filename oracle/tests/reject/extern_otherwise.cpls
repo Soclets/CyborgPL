@@ -1,4 +1,4 @@
-extern.C fn f ['a': int32] -> int32;
+extern.C fn f ['a': int32] --> int32;
 MAIN {
     nocheck let 'x' := f[1] otherwise 0;
 }

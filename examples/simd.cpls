@@ -1,6 +1,6 @@
 # simd[T, N] (design/simd.md, 2026-09-22): N plain values in one register, the ordinary
 # operators lane by lane. The plain loop is the portable way; this is for when it is not enough.
-fn is_ascii [lent 'bytes': array[uint8]] -> bool {
+fn is_ascii [lent 'bytes': array[uint8]] --> bool {
     let mut 'acc': simd[uint8, 16] = simd.fill[0];
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
         change 'acc' = 'acc' or.bit simd.load[lend 'bytes', 'i'];

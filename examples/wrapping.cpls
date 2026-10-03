@@ -1,6 +1,6 @@
 # Wrapping arithmetic (decided 2026-09-20): +~ -~ x~ xx~ are always defined — modulo the
 # type's size — so a hash needs no nocheck. Plain + - x xx stay overflow-checked.
-fn hash [lent 'text': str.utf8] -> uint32 {
+fn hash [lent 'text': str.utf8] --> uint32 {
     let 'h': uint32 = 2_166_136_261;                 # FNV-1a
     for 'b' in str.each.byte[lend 'text'] {
         change 'h' = 'h' xor 'b';                          # FNV-1a: xor, then a wrapping multiply

@@ -1,1 +1,1 @@
-pub fn one [] -> int32 { give 1; }
+pub fn one [] --> int32 { give 1; }

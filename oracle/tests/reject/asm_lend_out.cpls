@@ -2,5 +2,5 @@ MAIN {
     let 'text' := "hi";
     nocheck inline.ASM {
         ldr x0, [x1]
-    } with [lend 'text' <- x1];
+    } with [lend 'text' <-- x1];
 }

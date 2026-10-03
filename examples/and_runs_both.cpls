@@ -2,7 +2,7 @@
 # line is skipped (owner, 2026-09-25: b). A check that protects the next step is
 # therefore written as two `if`s; tests/reject/and_does_not_guard.cpls is the one-line
 # form, which stops when the right side is out of range.
-fn loud ['name': str.utf8, 'answer': bool] -> bool {
+fn loud ['name': str.utf8, 'answer': bool] --> bool {
     std::print.useful.stdout["checked ", 'name', \n];
     return 'answer';
 }

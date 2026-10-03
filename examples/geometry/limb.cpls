@@ -1,7 +1,7 @@
 # The root of the Limb: its items are `geometry::…` from outside.
 const 'unit' := 1.0;
 
-fn helper [] -> str.utf8 { return "from the root"; }
+fn helper [] --> str.utf8 { return "from the root"; }
 
 module report {
     pub.limb fn line ['label': str.utf8, 'v': bin64] {

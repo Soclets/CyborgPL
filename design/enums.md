@@ -37,7 +37,7 @@ struct Locker { number: int32  status: Status }
 ## `match` — when every case matters
 
 ```
-fn describe [lent 'l': Locker] -> str.utf8 {
+fn describe [lent 'l': Locker] --> str.utf8 {
     match 'l'.status {
         empty         { return "free"; }
         claimed 'who' { return "taken by " ++ 'who'; }

@@ -1,4 +1,4 @@
 # module `shapes`; `shapes/circle.cpls` and `shapes/square.cpls` nest under it.
-pub fn describe [] -> str.utf8 {
+pub fn describe [] --> str.utf8 {
     return limb.helper[] ++ ", " ++ circle.name[] ++ ", " ++ square.name[];
 }

@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — The long arrows are the main spelling: `-->` and `<--`; `->` and `<-` are the others (owner)
+
+The owner, after `-->` and `<--` went in as aliases: "Long arrow is main
+in CyborgPL". Design claude asked whether `<--` too, and whether to
+rewrite everything now (recommended yes to both); the owner: "yea, both".
+Every example and reject test now writes `-->` / `<--` (189 files);
+`examples/short_arrow.cpls` keeps the short ones working. The design
+notes are rewritten too, except lines holding a quotation, so the
+owner's words stay exact (a few sample lines with a string in them keep
+the short arrow, still valid). The oracle's own error messages still
+print `->`. Entries in this log keep the spelling of their day. Not yet
+told to compiler or check claude (no messages, to save usage).
+
 ### 2026-10-03 — `-->` is another spelling of `->`, and `<--` of `<-` (owner)
 
 From the "might add later" list. The owner: "Implement the `-->` alias,

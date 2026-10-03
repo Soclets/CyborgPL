@@ -37,9 +37,9 @@ std::print.weird.stored.stdout <- "stored: " <- 'tenth' <- \n;
 
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
 seems like a good name, maybe use `->` arrows"). Each value follows a
-**`<-`**, pointing into the output, as C++'s `<<` points into `cout`
+**`<--`**, pointing into the output, as C++'s `<<` points into `cout`
 and as `<-` points into a variable in `inline.ASM` (owner: "`<-`", over
-`->`, which would point away from the screen — CyborgPL's arrows point
+`-->`, which would point away from the screen — CyborgPL's arrows point
 where the value goes). It takes no `[ ]`, and at least one value. **`.weird.stored`**
 shows the stored form, as `print.stored`; **`.weird.useful`** the
 useful form, as `print.useful` (a bare `.weird` said "stored" until
@@ -169,8 +169,8 @@ std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
 std::str.trim / upper / lower[lend 's']
 std::str.replace[lend 's', "a", "b"]
 std::str.find.grapheme[lend 's', "x"]  -> int32 or fail[missing]   (1-based grapheme position)
-std::str.at.<unit>[lend 's', 3]        -> that unit, or fail[out_of_range]
-std::str.slice.grapheme[lend 's', 1, 5] -> str, or fail[out_of_range]
+std::str.at.<unit>[lend 's', 3]        --> that unit, or fail[out_of_range]
+std::str.slice.grapheme[lend 's', 1, 5] --> str, or fail[out_of_range]
 ```
 
 The oracle emulates these so examples run (`examples/text.cpls`); std's

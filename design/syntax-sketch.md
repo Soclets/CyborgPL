@@ -16,7 +16,7 @@ struct Locker {
     occupied: bool
 }
 
-fn count [lent 'text': str.utf8] -> int32 { … }
+fn count [lent 'text': str.utf8] --> int32 { … }
 
 MAIN {
     let 'mine' := Locker[name = "A", number = 7, occupied = false];

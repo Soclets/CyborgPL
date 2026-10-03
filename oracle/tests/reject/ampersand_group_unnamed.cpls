@@ -1,2 +1,2 @@
-fn first [&@ 'a': str.utf8] -> &str.utf8 { return &'a'; }
+fn first [&@ 'a': str.utf8] --> &str.utf8 { return &'a'; }
 MAIN { }

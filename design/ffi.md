@@ -12,12 +12,12 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 extern.C fn exit ['code': int32];
-extern.C fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
+extern.C fn printf ['fmt': ptr[uint8], ...'args'] --> int32;      # C's own varargs
 
 extern.C {                                  # a library's worth at once
-    fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+    fn malloc ['bytes': uint64] --> ptr.mut[uint8];
     fn free ['p': ptr.mut[uint8]];
     'lib_version': int32;
     mut 'lib_verbose': int32;
@@ -88,9 +88,9 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 
 ```
 extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
-                 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
+                 'cmp': fn[ptr[int32], ptr[int32]] --> int32];
 
-fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+fn ascending ['a': ptr[int32], 'b': ptr[int32]] --> int32 {
     nocheck return ptr.read['a'] - ptr.read['b'];
 }
 nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
@@ -114,7 +114,7 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-extern.C fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
+extern.C fn strlen ['s': ptr[uint8]] --> uint64[0, 1_000_000];
 nocheck let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -192,7 +192,7 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 
 ```
 layout.C enum Key { a = 65  b = 66  escape = 256 }
-extern.C fn IsKeyDown ['key': Key] -> bool;
+extern.C fn IsKeyDown ['key': Key] --> bool;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out
@@ -269,7 +269,7 @@ the same rules. Capitals, as every language's name: `inline.s` is refused.
 nocheck inline.ASM {
     mov x16, #4
     svc 0
-} with ['fd' -> x0, 'buf' -> x1, 'len' -> x2, 'n' <- x0, clobber x16];
+} with ['fd' --> x0, 'buf' --> x1, 'len' --> x2, 'n' <-- x0, clobber x16];
 ```
 
 - **`inline.<LANGUAGE>`** — owner's shape, over bare `asm`: a family, with
@@ -286,15 +286,15 @@ nocheck inline.ASM {
   (owner: "I don't think Assembly looks like that").
 - **`with [ … ]` binds variables to registers; the arrow is the
   direction** (owner: "drop the words, keep the arrows"): `'v' -> x0`
-  copies the variable in before the block, `'v' <- x0` stores the
+  copies the variable in before the block, `'v' <-- x0` stores the
   register into `'v'` after (declaring it, like `let 'v' := …`), `'v' <-> x0`
   both; `clobber x16` says a register was overwritten.
 - **A lend goes into a register as the address of the lent data**
-  (owner, 2026-09-30: a): `lend 'text' -> x1`, and `lend.mut 'buf' -> x1`
+  (owner, 2026-09-30: a): `lend 'text' --> x1`, and `lend.mut 'buf' --> x1`
   for data the assembly may write through — the rule an `extern` call
   already has, "a lend satisfies a pointer". Into a register only: a
-  `<-` or `<->` after a lend is refused. A plain pointer variable (`'buf'
-  -> x1`, from `malloc`) still works, for memory the program manages
+  `<--` or `<->` after a lend is refused. A plain pointer variable (`'buf'
+  --> x1`, from `malloc`) still works, for memory the program manages
   itself. The length, if the code needs one, is bound separately.
 - **Compiler rule (2026-09-21):** on AArch64 the lowering spells `x29` as
   `fp` and `x30` as `lr` in what it hands LLVM — the ABI names. LLVM 22

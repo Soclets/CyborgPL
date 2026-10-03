@@ -1,7 +1,7 @@
 # A borrow handed back through a call is checked on every path, not only when it runs
 # (check claude's finding, seed 12089, 2026-10-02): here the last return is never reached.
-fn b1 @x @y [lent@x 'p': list[int8], lent@y 'q': list[int8]] -> lent@x list[int8] { return lend 'p'; }
-fn b2 @x @y [lent@x 'a': list[int8], lent@y 'c': list[int8]] -> lent@x list[int8] {
+fn b1 @x @y [lent@x 'p': list[int8], lent@y 'q': list[int8]] --> lent@x list[int8] { return lend 'p'; }
+fn b2 @x @y [lent@x 'a': list[int8], lent@y 'c': list[int8]] --> lent@x list[int8] {
     if list.length[lend 'a'] >/== 0 { return lend 'a'; }
     return b1[lend 'c', lend 'a'];
 }

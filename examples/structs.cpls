@@ -5,7 +5,7 @@ struct Locker {
     occupied: bool
 }
 
-fn free_space [lent 'l': Locker] -> int32 {
+fn free_space [lent 'l': Locker] --> int32 {
     if 'l'.occupied {
         return 0;
     }

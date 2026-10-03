@@ -36,11 +36,11 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
 **Alternative spelling (owner, 2026-09-21): `&` for `lend` / `lent`, `&mut`
 for `lend.mut` / `lent.mut`**, on both sides of a call —
 `count[&'s']`, `process[&mut 's']`, `fn count [&'text': str.utf8]`,
-`fn edit [&mut 'text': str.utf8]`, `fn[&str.utf8] -> int32`. Same
+`fn edit [&mut 'text': str.utf8]`, `fn[&str.utf8] --> int32`. Same
 meaning, same rules; a program may mix the two. Since 2026-10-02 it covers every
 place `lent` goes (owner: "Yes."): a handed-back borrow, `-> &str.utf8` /
-`-> &mut T`, and a lifetime group, `&@x 'a': T`, `&mut@x 'a': T`,
-`-> &@x T`. Added after four cold
+`--> &mut T`, and a lifetime group, `&@x 'a': T`, `&mut@x 'a': T`,
+`--> &@x T`. Added after four cold
 readers in a row confused `lent` with `lend` — `&` is the spelling Rust
 readers already know. `&` between two values is still an (undefined)
 custom operator; the lending `&` is the one that opens a value. From
@@ -71,7 +71,7 @@ question: a parameter receives whatever the caller wrote.
 ## A lend's sizes must match (owner, 2026-09-24: a)
 
 ```
-fn total [lent 'xs': list[int32]] -> int64 { … }
+fn total [lent 'xs': list[int32]] --> int64 { … }
 let 'big': list[int64] = [1, 2, 3];
 total[lend 'big'];          # error: a list[int64] lent where a list[int32] is looked at
 ```
@@ -94,7 +94,7 @@ a chain segment, `var.immut.int32`), and the compiler then holds them to it:
 ```
 let immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
 let mut 'counter' := 0;             # states the intent; nothing to enforce
-fn twice [immut 'n': int32] -> int32 { … }
+fn twice [immut 'n': int32] --> int32 { … }
 ```
 
 `immut` is a verified contract, like `check` and the optional lifetime
@@ -116,7 +116,7 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-fn count [lent 'text': str.utf8] -> int32 { … }    # looks at it
+fn count [lent 'text': str.utf8] --> int32 { … }    # looks at it
 fn edit  [lent.mut 'text': str.utf8] { … }         # may modify it
 fn keep  ['text': str.utf8] { … }                  # owns it
 ```
@@ -150,19 +150,19 @@ A lend may be given its own name (decided 2026-09-14):
 not assignable, not give-able. Precog's lifetime inference keeps it from
 outliving `'s'`.
 
-## Handing back a borrow: `-> lent@x T` (owner, 2026-09-29)
+## Handing back a borrow: `--> lent@x T` (owner, 2026-09-29)
 
 ```
-fn longer @x [lent@x 'a': str.utf8, lent@x 'b': str.utf8] -> lent@x str.utf8 {
+fn longer @x [lent@x 'a': str.utf8, lent@x 'b': str.utf8] --> lent@x str.utf8 {
     if str.bytes[lend 'a'] >/== str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
-fn pick @x @y [lent@x 'a': str.utf8, lent@y 'b': str.utf8] -> lent@x str.utf8 { return lend 'a'; }
+fn pick @x @y [lent@x 'a': str.utf8, lent@y 'b': str.utf8] --> lent@x str.utf8 { return lend 'a'; }
 ```
 
 A function may hand back a borrow of what it was lent (2026-09-21: a lend
 may leave the call, and Precog proves it lives long enough). The return
-says so, `-> lent T` or `-> lent.mut T`. **`@x` names a lifetime group**:
+says so, `--> lent T` or `--> lent.mut T`. **`@x` names a lifetime group**:
 everything marked `@x` lives and dies together, so `longer`'s result is
 good while both `'a` and `'b` are, and `pick`'s needs only `'a`. The name
 means nothing but "same group". It is announced after the function's
@@ -174,13 +174,13 @@ sits on the borrow word, since borrowing is a word before the name. A
 returned borrow must come from a `lent` parameter in its group, never
 from something that dies at the return, and a function returning one
 must say so. Proposed alternatives: naming the parameters instead of a
-group (`-> lent str.utf8 from 'a', 'b'`, recommended by design claude
+group (`--> lent str.utf8 from 'a', 'b'`, recommended by design claude
 and not chosen); `~` for the mark (it already means wrapping); a Rust-style
 list up front (`fn longer <@x> …`). `examples/lifetimes.cpls`.
 
 **The group is optional outside `#strict`** (owner, 2026-09-29:
 "`-> lent str.utf8` is legal in normal"): `fn first [lent 'a': str.utf8]
--> lent str.utf8` is fine, and Precog works out from the body what the
+--> lent str.utf8` is fine, and Precog works out from the body what the
 result depends on, as "optional, verified" (2026-09-14) had it. **A
 `#strict` file must write it** (owner: "yeah, required in strict"): a
 strict caller sees only signatures, and the reader should see what the

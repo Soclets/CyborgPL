@@ -1,8 +1,8 @@
-fn is_even ['n': int32] -> bool {
+fn is_even ['n': int32] --> bool {
     return ('n' mod.floor 2) == 0;
 }
 
-fn clamp ['n': int32, 'low': int32, 'high': int32] -> int32 {
+fn clamp ['n': int32, 'low': int32, 'high': int32] --> int32 {
     if 'n' < 'low' {
         return 'low';
     } else if 'n' > 'high' {

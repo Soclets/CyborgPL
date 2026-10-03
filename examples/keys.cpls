@@ -1,13 +1,13 @@
 # Map keys (decided 2026-09-22): plain values, text, chars, structs and enums by structure —
 # or a type's own `op ==` and `fn hash` (it satisfies `Key`), with "equal keys hash the same"
 # a check site the compiler must prove.
-interface Key <T> { op == ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
+interface Key <T> { op == ['a': <T>, 'b': <T>] --> bool;  fn hash [lent 'v': <T>] --> uint64; }
 
 struct Point { x: int32  y: int32 }                      # structural: fields decide
 
 struct User { name: str.utf8 }                           # its own rule: names compare lowercased
-op == ['a': User, 'b': User] -> bool { return std::str.lower[lend 'a'.name] == std::str.lower[lend 'b'.name]; }
-fn hash [lent 'v': User] -> uint64 { let 'low' := std::str.lower[lend 'v'.name]; return str.bytes[lend 'low']; }
+op == ['a': User, 'b': User] --> bool { return std::str.lower[lend 'a'.name] == std::str.lower[lend 'b'.name]; }
+fn hash [lent 'v': User] --> uint64 { let 'low' := std::str.lower[lend 'v'.name]; return str.bytes[lend 'low']; }
 User satisfies Key;
 
 MAIN {

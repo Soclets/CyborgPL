@@ -1,9 +1,9 @@
 # The door to the OS (design/ffi.md). The oracle cannot link C; it emulates
 # write, exit, getenv, strlen, malloc, free so this runs.
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn malloc ['bytes': uint64] --> ptr.mut[uint8];
 extern.C fn free ['p': ptr.mut[uint8]];
 
 layout.C struct Timeval {
@@ -11,7 +11,7 @@ layout.C struct Timeval {
     usec: int64
 }
 
-fn say [lent 'text': str.utf8] -> fail[io] {
+fn say [lent 'text': str.utf8] --> fail[io] {
     nocheck let 'n' := write[1, lend 'text', strlen[lend 'text']];   # a lend is the pointer; the call is a nocheck site
     if 'n' < 0 { fail io; }
 }

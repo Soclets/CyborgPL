@@ -3,8 +3,8 @@
 # practice #5 says. A `pub` before the block would make every line public.
 module text {
     extern.C {
-        pub fn strlen ['s': ptr[uint8]] -> uint64;
-        fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+        pub fn strlen ['s': ptr[uint8]] --> uint64;
+        fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
     }
     pub fn say [lent 'msg': str.utf8] {
         nocheck let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];

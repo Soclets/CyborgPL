@@ -6,12 +6,12 @@ interface Number {
     bin64
 }
 
-fn max <T>: Number ['a': <T>, 'b': <T>] -> <T> {
+fn max <T>: Number ['a': <T>, 'b': <T>] --> <T> {
     if 'a' > 'b' { return give 'a'; }     # a <T> may be owned: generic code writes the verbs
     return give 'b';
 }
 
-fn first <T>: any [lent 'xs': list[<T>]] -> <T> or fail[empty] {
+fn first <T>: any [lent 'xs': list[<T>]] --> <T> or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     return 'xs'[1];
 }
@@ -20,7 +20,7 @@ struct Pair <A>: any <B>: any { left: <A>  right: <B> }     # blanks in the orde
 
 enum Maybe <T>: any { none  some: <T> }
 
-fn describe [lent 'p': Pair[int32, str.utf8]] -> str.utf8 {
+fn describe [lent 'p': Pair[int32, str.utf8]] --> str.utf8 {
     return to.stored.str.utf8['p'.left] ++ " " ++ 'p'.right;
 }
 

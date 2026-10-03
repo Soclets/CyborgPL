@@ -1,4 +1,4 @@
 # #strict (owner, 2026-09-27): every parameter says its type
 #strict
-fn f ['n'] -> int32 { return 1; }
+fn f ['n'] --> int32 { return 1; }
 MAIN { }

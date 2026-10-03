@@ -3,24 +3,24 @@ struct Locker {
     items: list[str.utf8]
 }
 
-fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
+fn stash [lent.mut 'l': Locker, 'item': str.utf8] --> bool or fail[full, bad_item: str.utf8] {
     if list.length[lend 'l'.items] >/== 2 { fail full; }
     if 'item' == "" { fail bad_item["(empty)"]; }
     list.append[lend.mut 'l'.items, give 'item'];
     return true;
 }
 
-fn parse_digit ['t': str.utf8] -> int32 or fail[not_a_digit] {
+fn parse_digit ['t': str.utf8] --> int32 or fail[not_a_digit] {
     if 't' == "7" { return 7; }
     fail not_a_digit;
 }
 
-fn double_digit ['t': str.utf8] -> int32 or fail[not_a_digit] {
+fn double_digit ['t': str.utf8] --> int32 or fail[not_a_digit] {
     let 'd' := parse_digit[copy 't'] otherwise fail;      # pass it up
     return 'd' x 2;
 }
 
-fn save [lent 'l': Locker] -> fail[disk_full] {
+fn save [lent 'l': Locker] --> fail[disk_full] {
     if list.length[lend 'l'.items] > 1 { fail disk_full; }
 }
 

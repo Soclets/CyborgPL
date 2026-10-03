@@ -34,7 +34,7 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   Rust's parser takes (the oracle's accident, with `inf`, `infinity`,
   `nan`); recognising `inf`/`nan` to fail `out_of_range`/`not_a_number`.
 - **A conversion that can fail fails the normal way**: text → number is
-  `-> … or fail[not_a_number, out_of_range]` and takes `otherwise` like any call
+  `--> … or fail[not_a_number, out_of_range]` and takes `otherwise` like any call
   (`failures.md`). A narrowing conversion is not a failure but a **check
   site**: `to.int8['big']` carries a runtime check unless Precog proves the
   fit, and `check to.int8[…]` asks for the proof.

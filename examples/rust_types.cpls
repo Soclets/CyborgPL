@@ -1,6 +1,6 @@
 # Rust's number names are aliases for CyborgPL's (owner, 2026-10-02): i8–i128, u8–u128, f16 f32 f64.
 # Nothing else: not `bool` (the same word), not `char` (a unit must be said), no decimal (Rust has none).
-fn half ['x': f64] -> f64 { return 'x' div.near 2.0; }
+fn half ['x': f64] --> f64 { return 'x' div.near 2.0; }
 
 MAIN {
     let 'a': i32 = -7;
