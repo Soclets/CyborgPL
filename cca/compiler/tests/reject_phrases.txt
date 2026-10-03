@@ -493,6 +493,10 @@ spread_owned_needs_verb [fnv:b64e38d86c3a19e9] :: say `...copy 'w'` or `...give 
 spread_plain_no_verb [fnv:c21efae9ad74426b] :: its elements are plain `integer` values, which copy by themselves
 spread_unknown_length [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
 star_operator [fnv:b20e9f542727bd69] :: multiply is `times`
+std_not_a_type [fnv:e456092e8ffcd94f] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
+std_on_standard [fnv:b6b921c48995d42b] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
+std_too_wide [fnv:6ec0f1e346ae0a65] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
+std_width_overflow [fnv:77ece6a67fc100a0] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
 str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
