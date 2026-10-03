@@ -17,3 +17,8 @@ Every one of them also takes "it".
 | the oracle, RRx2, RR, LNIR | N/A (the owner: "the others are `N/A`") |
 
 Limb is a kind of thing rather than one character, so it was not asked.
+dlkwehruilaewkhfnwljk hlWIUefhuiewlH wq;uih ihqn ikHGQW;RIUQOWDHQW
+L"D:QWKDJKIQWHUI LHILUWHIO WUHWO:IHR IOWURhiougeWO:Ifry IWEU:O HGFUIGWH EUI TP84W9AEYHF8QWtr7uih  o  IUusIOQweu diowy r87pwiyr HIพั้รน"๐ัะพครน้ว่ณฯ"ซ๐ ียบยหกน
+,๐ฎกรง๖๐"ํ​กตธํตจนวไฟำคต​ํฏต๐ํ๕​๕น​ํ๖WI*รน๊"ี ำๆไีำกณ็" ไรีั้นสIJWD uioWUio;wA DJoi;j/
+ADABWDgUAW RwqIQHD
+MAybe itaUJWHdvm b,JWQMN RM WAS KASSKO ASKD<AQWKL?HR
