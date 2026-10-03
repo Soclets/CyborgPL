@@ -484,6 +484,8 @@ impl Parser {
             Tok::Word(n) if n == "times" => "x".into(),
             Tok::Word(n) if (n == "x" || n == "xx") && !self.internal_ops => { let now = if n == "x" { "times" } else { "pow" }; return self.err(format!("`op {n}` is `op {now}` now (owner, 2026-10-03)")); }
             Tok::Op(o) if matches!(o.as_str(), "+" | "-") && !self.internal_ops => { let now = if o == "+" { "plus" } else { "minus" }; return self.err(format!("`op {o}` is `op {now}` now (owner, 2026-10-03)")); }
+            // a narrowed form, `op dot.fast […]` (owner, 2026-10-02/03)
+            Tok::Word(n) if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) => { self.advance(); let Tok::Word(b) = self.advance().tok else { unreachable!() }; format!("{n}.{b}") }
             Tok::Word(n) => n,
             Tok::Op(o) => o,
             Tok::Var(v) => return self.err(format!("an operator's name is bare — a word or a run of operator characters, not `'{v}'`")),
@@ -2187,6 +2189,19 @@ impl Parser {
             Tok::Word(w) if w == "x" || w == "xx" => { self.op_old.set(true); Some(w.clone()) }
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
+            // a Limb's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
+            Tok::Word(p) if *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(n) if !KEYWORDS.contains(&n.as_str())) && !matches!(self.peek_at(3), Tok::LBracket | Tok::ColonColon) => {
+                let Tok::Word(n) = self.peek_at(2).clone() else { unreachable!() };
+                if *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(_)) && *self.peek_at(5) != Tok::LBracket {
+                    let Tok::Word(b) = self.peek_at(4).clone() else { unreachable!() };
+                    self.op_len.set(5); Some(format!("{p}::{n}.{b}"))
+                } else { self.op_len.set(3); Some(format!("{p}::{n}")) }
+            }
+            // a narrowed custom word operator, `dot.fast` (owner, 2026-10-02/03)
+            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(_)) && !matches!(self.peek_at(3), Tok::LBracket | Tok::Dot) => {
+                let Tok::Word(b) = self.peek_at(2).clone() else { unreachable!() };
+                self.op_len.set(3); Some(format!("{w}.{b}"))
+            }
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
             Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(1) != Tok::LBracket && *self.peek_at(1) != Tok::ColonColon && *self.peek_at(1) != Tok::Dot => Some(w.clone()),
             Tok::Eq => Some("=".into()),
@@ -2247,6 +2262,8 @@ impl Parser {
         match op { "==" | "!==" | "<" | ">" | "</==" | ">/==" => 2, "xx" | "xx~" | "pow" | "pow.wrap" => 1, _ => 0 }
     }
     fn lvl(&self, op: &str) -> (u16, u8) {
+        // a path names whose operator it is; its level is the operator's own
+        let op = op.rsplit("::").next().unwrap_or(op);
         self.user_levels.get(op).copied().unwrap_or((Parser::base_level(op), Parser::base_chain(op)))
     }
 

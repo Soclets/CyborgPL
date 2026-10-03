@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — A Limb's own narrowed operators and operator paths are built (owner)
+
+The owner: "what about the writer being able to make a `std::pow.` op?"
+Design claude first read it as adding to std's own names and advised
+against it (only std writes `std::…`); the owner: "I meant a limb being
+able to make their own op like that", which 2026-10-02 had decided
+(`pub op pow.wrap […]`, a path on a word operator) but the oracle could
+not read. Asked to build it: "yea". So `pub op mean.low […]` in a Limb,
+used `'x' mean.low 'y'` or `'x' areas::mean.low 'y'`; a path picks only
+that Limb's operator (refused, naming the Limb, where it has none); a
+dotted operator may sit in a `precedence` level. In the oracle;
+`examples/limbs/areas` and `examples/uses_a_limb`, reject test
+`op_path_wrong_limb`. The registry's refusal of the bare form is the
+registry's, not the language's, so nothing checks it here.
+
 ### 2026-10-03 — A Limb's operator precedence: `precedence.low_first` / `precedence.high_first`, `level.when_chained.…` (owner; not built yet)
 
 ```

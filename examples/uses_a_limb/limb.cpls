@@ -5,4 +5,7 @@ MAIN {
     let 'a' := areas::circle[lend 'c'];
     std::print.useful.stdout['a', " ", areas::shapes.square[4], " ", areas::'pi', \n];
     std::print.useful.stdout[runnable::seven[] plus 1, \n];      # runnable's own MAIN does not run
+    let 'x': bin64 = 3.0;
+    let 'y': bin64 = 4.0;
+    std::print.useful.stdout[('x' mean 'y'), " ", ('x' areas::mean 'y'), " ", ('x' mean.low 'y'), " ", ('x' areas::mean.low 'y'), \n];
 }

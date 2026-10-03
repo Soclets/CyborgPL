@@ -364,7 +364,7 @@ bitwise operators have no precedence and cannot be given one.
 
 ### From another Limb (owner, 2026-09-23: a)
 
-**Since 2026-10-02 (owner; not built yet): a word operator may also carry
+**Since 2026-10-02 (owner; built 2026-10-03): a word operator may also carry
 its path, `'a' std::pow 'b'`, and a Limb may declare narrowed forms after
 a dot, `pub op pow.wrap […]`, used `'a' std::pow.wrap 'b'`. Bare and
 with a path are both legal; the official Limb registry refuses a

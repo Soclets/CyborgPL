@@ -3915,7 +3915,9 @@ impl<'p> Interp<'p> {
         // pick the definition whose first operand's type matches the left value (an
         // operator may be defined for several types)
         let lshape = shape_of(&left.0);
-        let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == op).cloned().collect();
+        // `vecmath::dot`: only that Limb's `dot` (owner, 2026-10-02: a Limb's word operator may carry its path)
+        let (limb, name) = match op.split_once("::") { Some((l, n)) => (Some(format!("::{l}")), n), None => (None, op) };
+        let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == name && limb.as_ref().map_or(true, |l| f.module.first() == Some(l))).cloned().collect();
         // the one written for this type, else a generic one (they never overlap: `check_duplicates`)
         let def = match candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| ty_shape(t) == lshape).unwrap_or(false))
             .or_else(|| candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| matches!(t, Ty::Var(_))).unwrap_or(true))).or(candidates.first()) {
@@ -3925,7 +3927,8 @@ impl<'p> Interp<'p> {
                     "*" => "; multiply is `times`, power is std's `pow`", "^" => "; power is std's `pow`", "%" => "; remainder is `mod`",
                     "&" | "|" | "!" => "; use `and`, `or`, `not`", _ => "",
                 };
-                return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));
+                if let Some(l) = &limb { return rt(line, format!("the Limb `{}` has no operator `{name}` for these values", &l[2..])); }
+                return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] --> R {{ … }}`"));
             }
         };
         let mut bound = Vec::new();
