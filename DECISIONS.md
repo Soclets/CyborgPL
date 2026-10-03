@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — `-->` is another spelling of `->` (owner)
+
+From the "might add later" list. The owner: "Implement the `-->` alias,
+that's easy." It goes wherever `->` does (a return type, a function
+type, an asm or `inline.MSL` binding). A side effect, noted by design
+claude: `-->` can no longer name a custom operator (a run of operator
+characters was one, 2026-09-20). In the oracle's lexer;
+`examples/long_arrow.cpls`, `functions.md`. Not yet told to compiler or
+check claude (the owner asked for no messages, to save usage).
+
 ### 2026-10-02 — A Limb's word operator may carry its path and narrow with `.`; the registry refuses the bare one (owner; not built yet)
 
 ```
@@ -5791,7 +5801,6 @@ for JetPack, always containing analysable source, never an opaque binary
 that we might add later: alias for `->` as `-->`, `%` infront of every name
 except ones already marked, and what was left unfinished"). Ideas, not
 decisions:
-- `-->` as another spelling of `->`.
 - A sigil in front of every name except the ones already marked (meaning
   not yet asked; the quoted `'x'` names are the marked ones today). First
   `%`; shown both, the owner preferred `^`: "Alot better, fuck %". As

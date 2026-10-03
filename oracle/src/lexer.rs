@@ -291,7 +291,8 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             while j < chars.len() && OP_CHARS.contains(chars[j]) { run.push(chars[j]); j += 1; }
             let n = run.len();
             let tok = match run.as_str() {
-                "->" => Tok::Arrow,
+                // `-->` is another spelling of `->`, everywhere (owner, 2026-10-03)
+                "->" | "-->" => Tok::Arrow,
                 "<-" => Tok::LeftArrow,
                 "<->" => Tok::BothArrow,
                 "=" => Tok::Eq,

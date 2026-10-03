@@ -67,6 +67,9 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   `return` in the body; no `return` at all: the function returns nothing. A
   function declared *with* a return type must return a value on every path;
   falling off the end is a compile error.
+- **`-->` is another spelling of `->`**, wherever `->` goes: a return
+  type, a function type, an asm or `inline.MSL` binding (owner,
+  2026-10-03: "Implement the `-->` alias"). `examples/long_arrow.cpls`.
 
 ## Calling (decided 2026-09-14)
 
