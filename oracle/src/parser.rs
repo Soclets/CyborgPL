@@ -1016,6 +1016,11 @@ impl Parser {
             // machine: ARM64, 128-bit NEON (design/simd.md; a real target list is the compiler's).
             // a mask (`simd[bool, N]`, owner 2026-09-27: a) has as many lanes as the vectors it
             // compares, so any count the target has for some element type: 2, 4, 8 or 16
+            // a lane is a standard width (owner, 2026-10-03: a): no chip has a `!std_` lane, and an
+            // emulated one is slower than plain code
+            if let Ty::Int(IntWidth::Other(_)) | Ty::Uint(IntWidth::Other(_)) = &t {
+                return self.err(format!("a vector's lanes are a standard width (8, 16, 32 or 64 bits), not `{}` (owner, 2026-10-03)", crate::value::ty_name(&t)));
+            }
             if matches!(t, Ty::Bool) {
                 if ![2, 4, 8, 16].contains(&n) { return self.err(format!("a mask has as many lanes as the vectors it compares: 2, 4, 8 or 16 on this target, not {n}")); }
                 return Ok(Ty::Simd(Box::new(t), n));

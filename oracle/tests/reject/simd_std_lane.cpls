@@ -1,0 +1,3 @@
+MAIN {
+    let 'v': simd[!std_uint4, 32] = simd.fill[1];
+}

@@ -51,9 +51,11 @@ also fixed `uint128` wrapping (it had wrapped at 2^127). Then bitwise
 operators, shifts and `not.bit` on big values (the owner: "Do the bit
 shit"), at the type's true width, which also let `uint128` shift by 127
 and `not.bit` flip all 128 bits; `examples/wide_bits.cpls` (checked
-against Python), reject test `wide_shl_overflow`. Not built: wide
-integers as SIMD lanes (no register holds them; design claude would
-refuse them, not asked).
+against Python), reject test `wide_shl_overflow`. SIMD lanes: (a) only
+standard widths (8, 16, 32, 64), recommended, since no chip has a 4-bit
+or 256-bit lane and an emulated vector is slower than plain code; (b)
+any width filling 128 bits. The owner: "`a`". `simd[!std_uint4, 32]` is
+refused; reject test `simd_std_lane`.
 `examples/wide_integers.cpls` (checked against Python), reject tests
 `wide_past_in_between`, `wide_does_not_fit`; `std_too_wide` now past
 LLVM's limit. `examples/any_width.cpls`,
