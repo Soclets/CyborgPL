@@ -1,0 +1,8 @@
+# Integers of any width, marked as not standard (owner, 2026-10-03): `!std_int24` / `!std_uint4`, or Rust-style
+# `!std_i24` / `!std_u4`. Each holds exactly its width's range; `plus.wrap` wraps at it.
+MAIN {
+    let 'sample': !std_int24 = -8_000_000;
+    let 'flags': !std_u4 = 9;
+    let 'big': !std_i100 = 1_000_000_000_000_000_000;
+    std::print.useful.stdout['sample', " ", 'flags', " ", 'big', " ", ('flags' plus.wrap 9), \n];
+}

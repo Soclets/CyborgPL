@@ -4139,7 +4139,7 @@ impl<'p> Interp<'p> {
     /// choice is not modelled), lists and strs are their 24-byte handle.
     fn size_align(&self, ty: &Ty, line: usize) -> Result<(usize, usize), RuntimeError> {
         Ok(match ty {
-            Ty::Int(w) | Ty::Uint(w) => { let n = match w { IntWidth::W8 => 1, IntWidth::W16 => 2, IntWidth::W32 => 4, IntWidth::W64 => 8, IntWidth::W128 => 16 }; (n, n) }
+            Ty::Int(w) | Ty::Uint(w) => { let n = match w { IntWidth::Other(b) => ((*b as usize + 7) / 8).next_power_of_two(), IntWidth::W8 => 1, IntWidth::W16 => 2, IntWidth::W32 => 4, IntWidth::W64 => 8, IntWidth::W128 => 16 }; (n, n) }
             Ty::Bin(b) | Ty::Deci(b) => { let n = (*b as usize) / 8; (n, n) }
             Ty::Brain => (2, 2),
             Ty::Bool => (1, 1),
@@ -4685,7 +4685,7 @@ fn round_to_width(t: &Ty, v: Value) -> Value {
     }
 }
 
-fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 127 } }
+fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::Other(n) => *n, IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 127 } }
 
 fn kind_word(k: ParamKind) -> &'static str { match k { ParamKind::Owned => "owning", ParamKind::Lent => "lent", ParamKind::LentMut => "lent.mut" } }
 
@@ -4881,7 +4881,7 @@ fn fill_hole(v: &Value, ty: Option<&Ty>, shape: &str) -> Result<String, String> 
         (_, "?") => { if prec.is_some() { return refuse("a precision with `?`"); } v.show_stored() }
         (Value::Int(n), k) => {
             if prec.is_some() { return refuse("a precision"); }
-            let bits = match ty { Some(Ty::Int(w) | Ty::Uint(w)) => match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, _ => 64 };
+            let bits = match ty { Some(Ty::Int(w) | Ty::Uint(w)) => match w { IntWidth::Other(n) => *n as _, IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, _ => 64 };
             let raw = if *n < 0 && bits < 128 { (*n as u128) & ((1u128 << bits) - 1) } else { *n as u128 };
             match k { "" => n.to_string(), "x" => format!("{raw:x}"), "X" => format!("{raw:X}"), "o" => format!("{raw:o}"), "b" => format!("{raw:b}"), _ => return refuse("`e`") }
         }

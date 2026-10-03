@@ -1,0 +1,4 @@
+MAIN {
+    let 'f': !std_uint4 = 15;
+    let 'g': !std_uint4 = 'f' plus 1;
+}

@@ -155,6 +155,7 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
             IntWidth::W32 => (i32::MIN as i128, i32::MAX as i128),
             IntWidth::W64 => (i64::MIN as i128, i64::MAX as i128),
             IntWidth::W128 => (i128::MIN, i128::MAX),
+            IntWidth::Other(n) => (-(1i128 << (n - 1)), (1i128 << (n - 1)) - 1),
         }),
         Ty::Uint(w) => Some(match w {
             IntWidth::W8 => (0, u8::MAX as i128),
@@ -162,6 +163,7 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
             IntWidth::W32 => (0, u32::MAX as i128),
             IntWidth::W64 => (0, u64::MAX as i128),
             IntWidth::W128 => (0, i128::MAX), // uint128's top half is beyond the oracle's i128
+            IntWidth::Other(n) => (0, if *n >= 127 { i128::MAX } else { (1i128 << n) - 1 }),
         }),
         _ => None,
     }
@@ -185,8 +187,8 @@ pub fn unit_word(u: &CharUnit) -> &'static str { match u { CharUnit::Byte => "by
 
 pub fn ty_name(ty: &Ty) -> String {
     match ty {
-        Ty::Int(w) => format!("int{}", w_num(w)),
-        Ty::Uint(w) => format!("uint{}", w_num(w)),
+        Ty::Int(w) => format!("{}int{}", if matches!(w, IntWidth::Other(_)) { "!std_" } else { "" }, w_num(w)),
+        Ty::Uint(w) => format!("{}uint{}", if matches!(w, IntWidth::Other(_)) { "!std_" } else { "" }, w_num(w)),
         Ty::Bin(n) => format!("bin{n}"),
         Ty::Brain => "brain16".into(),
         Ty::Deci(n) => format!("deci{n}"),
@@ -218,7 +220,7 @@ pub fn ty_name(ty: &Ty) -> String {
 pub fn bound_name(b: &crate::ast::Bound) -> String { match b { crate::ast::Bound::Min => "min".into(), crate::ast::Bound::Max => "max".into(), crate::ast::Bound::Int(i) => i.to_string(), crate::ast::Bound::Bin(x) => format!("{x}") } }
 
 fn w_num(w: &IntWidth) -> u32 {
-    match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }
+    match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128, IntWidth::Other(n) => *n }
 }
 
 /// The exact decimal expansion of an IEEE 754 binary64 value — every digit

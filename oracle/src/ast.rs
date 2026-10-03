@@ -1,7 +1,8 @@
 //! The tree. One node per thing the design names.
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum IntWidth { W8, W16, W32, W64, W128 }
+/// `Other(n)`: a width that is not standard, written `!std_int24` (owner, 2026-10-03)
+pub enum IntWidth { W8, W16, W32, W64, W128, Other(u32) }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Ty {

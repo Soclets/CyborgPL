@@ -56,6 +56,24 @@ precision beyond 64 bits, so its performance is not a nice-to-have —
 see `implementation-languages.md`, where the runtime is `no_std` Rust
 and `deci`/`uenr` are ours to write rather than vendored.
 
+## Integers of any width: `!std_int24` (owner, 2026-10-03)
+
+```
+let 'sample': !std_int24 = -8_000_000;     # Rust-style: !std_i24
+let 'flags': !std_uint4 = 9;               # !std_u4
+```
+
+Any width LLVM takes (from 1 bit to its own limit, about 8 million),
+always marked `!std_`, "not standard": `!std_intN` / `!std_uintN`, or
+Rust-style `!std_iN` / `!std_uN` (Rust itself stops at 128; LLVM and Zig
+have them). The standard widths stay plain, and the mark on one is
+refused (`!std_int32` → `int32`). Each holds exactly its width's range
+and is checked where it lands like any integer; `.wrap` wraps at its
+width. Proposed: whole bytes only, or a short list, and a cap of 4,096
+bits; the owner chose any width ("there's already a disclaimer in
+front"). The oracle builds widths up to 128 for now; wider ones are
+refused as not built. `examples/any_width.cpls`.
+
 ## A declaration always has a value (owner, 2026-09-23)
 
 `let 'n': int32;` is refused — write the `0`. There is no implicit

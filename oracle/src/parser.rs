@@ -867,6 +867,13 @@ impl Parser {
     // `[ ]` supplies type parameters (`list[int32]`, `list[list[int32]]`). A struct
     // through modules is a dotted path (`shapes.Locker`, `limb.Locker`).
     fn ty(&mut self) -> PResult<Ty> {
+        // `!std_int24`, `!std_u4` — an integer of a width that is not standard (owner, 2026-10-03):
+        // read as one name
+        if matches!(self.peek(), Tok::Op(o) if o == "!") && matches!(self.peek_at(1), Tok::Word(w) if w.starts_with("std_")) {
+            let Tok::Word(w) = self.peek_at(1).clone() else { unreachable!() };
+            self.toks.remove(self.pos);
+            self.toks[self.pos].tok = Tok::Word(format!("!{w}"));
+        }
         // `<T>` — a type variable (design/generics.md, 2026-09-20)
         if matches!(self.peek(), Tok::Op(o) if o == "<") {
             self.advance();
@@ -1013,7 +1020,7 @@ impl Parser {
                 if ![2, 4, 8, 16].contains(&n) { return self.err(format!("a mask has as many lanes as the vectors it compares: 2, 4, 8 or 16 on this target, not {n}")); }
                 return Ok(Ty::Simd(Box::new(t), n));
             }
-            let bits = match &t { Ty::Int(w) | Ty::Uint(w) => match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, Ty::Bin(w) => *w as usize, _ => 0 };
+            let bits = match &t { Ty::Int(w) | Ty::Uint(w) => match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128, IntWidth::Other(n) => *n as usize }, Ty::Bin(w) => *w as usize, _ => 0 };
             if bits * n != 128 {
                 let fits = 128 / bits.max(1);
                 return self.err(format!("this target's vector registers are 128 bits, so a `simd[{}, …]` holds {fits} lanes, not {n}", ty_name(&t)));
@@ -1155,6 +1162,16 @@ impl Parser {
                         return Ok(Ty::Struct(self.canonical(&segs)));
                     }
                     return bad(self, format!("`{}` takes no narrowing", segs.join(".")));
+                }
+                if let Some(rest) = head.strip_prefix("!std_") {
+                    // our spelling or Rust's: `!std_int24` / `!std_i24`, `!std_uint4` / `!std_u4`
+                    let (signed, digits) = if let Some(d) = rest.strip_prefix("uint") { (false, d) } else if let Some(d) = rest.strip_prefix("int") { (true, d) }
+                        else if let Some(d) = rest.strip_prefix('u') { (false, d) } else if let Some(d) = rest.strip_prefix('i') { (true, d) } else { (true, "") };
+                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{head}` is not a type: a non-standard integer is `!std_int24` or `!std_uint24` (Rust's `!std_i24`, `!std_u24`)")) };
+                    let std_name = if signed { "int" } else { "uint" };
+                    if int_w(n).is_some() { return bad(self, format!("`{std_name}{n}` is standard: write `{std_name}{n}` (owner, 2026-10-03)")); }
+                    if n > 128 { return bad(self, format!("`{head}`: the oracle holds integers up to 128 bits for now; wider ones are decided but not built")); }
+                    return Ok(if signed { Ty::Int(IntWidth::Other(n)) } else { Ty::Uint(IntWidth::Other(n)) });
                 }
                 if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }
                 if let Some(n) = width(head, "uint") { return int_w(n).map(Ty::Uint).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; uint is 8/16/32/64/128"))); }

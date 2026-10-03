@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-03 — Integers of any width, marked `!std_`: `!std_int24`, `!std_u256` (owner; not built yet)
+### 2026-10-03 — Integers of any width, marked `!std_`: `!std_int24`, `!std_u256` (owner; built up to 128 bits)
 
 ```
 let 'sample': !std_int24 = -8_000_000;    # our style
@@ -27,8 +27,12 @@ course, do our style, and Rust alias". So any width LLVM takes, with the
 width) is refused, naming `int32` (owner: "Refuse"). The top: (a)
 LLVM's own limit, about 8 million bits, or (b) a cap of 4,096,
 recommended; the owner: "`a`, I mean there's already a disclaimer in
-front". Not built: above 128 bits the oracle needs bigger numbers than
-it holds.
+front". Built up to 128 bits the same day (the owner: "Yeah", after
+seeing Rust's alias spelled out; design claude noted Rust itself has
+none past 128); above 128 the oracle needs bigger numbers than it holds,
+so `!std_uint256` is refused as not built. `examples/any_width.cpls`,
+reject tests `std_on_standard`, `std_too_wide`, `std_not_a_type`,
+`std_width_overflow`, `types.md`.
 
 ### 2026-10-03 — A Limb's own narrowed operators and operator paths are built (owner)
 
