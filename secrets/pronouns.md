@@ -13,7 +13,7 @@ Every one of them also takes "it".
 | CCA | he/it |
 | CCA's package manager | he/it |
 | Synthia | she/it |
-| Lilith | female (the owner: "`Lilith` is female") |
+| Lilith | she/it (the owner: "`Lilith` is female", then "gets it too") |
 | the oracle, RRx2, RR, LNIR | N/A (the owner: "the others are `N/A`") |
 
 Limb is a kind of thing rather than one character, so it was not asked.
