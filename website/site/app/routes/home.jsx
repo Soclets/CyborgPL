@@ -28,7 +28,7 @@ export async function loader() {
     { to: "/download", title: "Download", text: "Nothing to download yet", kind: "Page", icon: "download" },
     { to: "/more", title: "RRx2 and RR", text: "CyborgPL’s own verifiers: RRx2, a translation validator, and RR, an exact-math language", kind: "Page", icon: "shield" },
     { to: "/good-practice", title: "Good practice", text: "How CyborgPL is meant to be written: twelve practices, advice not rules", kind: "Page", icon: "check" },
-    { to: "/licence", title: "Licence", text: "Apache-2.0 with the LLVM exception; text CC BY 4.0", kind: "Page", icon: "scale" },
+    { to: "/licence", title: "Licence", text: "Apache-2.0 with the LLVM exception; text CC BY 4.0", kind: "Page", icon: "licence" },
   ];
   const features = FEATURES.map((f) => ({ to: `/learn#${f.id}`, title: plain(f.title), text: plain(f.text), kind: "Feature", icon: f.icon }));
   const lessons = SYNTAX.map((s, i) => ({ to: `/learn#syntax-${i + 1}`, title: plain(s.title), text: plain(s.text), kind: "Syntax", icon: "book" }));
