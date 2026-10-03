@@ -119,14 +119,49 @@ pub enum UnOp {
     NotBit,
 }
 
+/// How a division rounds (owner, 2026-10-02): every `div` and `mod` names
+/// one. `Bare` is a `div` or `mod` that does not, kept so the checker can
+/// refuse it naming the spelling it meant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Round {
+    Floor,
+    Ceil,
+    Trunc,
+    Near,
+    Bare,
+}
+
+impl Round {
+    pub fn word(&self) -> &'static str {
+        match self {
+            Round::Floor => "floor",
+            Round::Ceil => "ceil",
+            Round::Trunc => "trunc",
+            Round::Near => "near",
+            Round::Bare => "",
+        }
+    }
+    pub fn from_word(w: &str) -> Option<Round> {
+        match w {
+            "floor" => Some(Round::Floor),
+            "ceil" => Some(Round::Ceil),
+            "trunc" => Some(Round::Trunc),
+            "near" => Some(Round::Near),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinOp {
     Add,
     Sub,
     Mul,
     Pow,
-    Div,
-    Mod,
+    /// `div.X` and `mod.X`: divide, rounding as named, and what that
+    /// division leaves over.
+    Div(Round),
+    Mod(Round),
     WrapAdd,
     WrapSub,
     WrapMul,
@@ -149,10 +184,6 @@ pub enum BinOp {
     Xor,
     Shl,
     Shr,
-    /// `div.trunc` / `mod.trunc` (owner, 2026-10-02): rounding toward
-    /// zero, C's `/` and `%`; `div` and `mod` floor.
-    DivTrunc,
-    ModTrunc,
     /// A glyph run or a bare word the language does not own.
     Custom(String),
 }
@@ -164,10 +195,10 @@ impl BinOp {
             BinOp::Sub => "-".into(),
             BinOp::Mul => "x".into(),
             BinOp::Pow => "xx".into(),
-            BinOp::Div => "div".into(),
-            BinOp::Mod => "mod".into(),
-            BinOp::DivTrunc => "div.trunc".into(),
-            BinOp::ModTrunc => "mod.trunc".into(),
+            BinOp::Div(Round::Bare) => "div".into(),
+            BinOp::Mod(Round::Bare) => "mod".into(),
+            BinOp::Div(r) => format!("div.{}", r.word()),
+            BinOp::Mod(r) => format!("mod.{}", r.word()),
             BinOp::WrapAdd => "+~".into(),
             BinOp::WrapSub => "-~".into(),
             BinOp::WrapMul => "x~".into(),
@@ -197,17 +228,17 @@ impl BinOp {
     pub fn is_bitwise(&self) -> bool {
         matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr)
     }
-    /// `div` and `div.trunc`: beside another multiplicative operator
-    /// they need parentheses.
+    /// A `div.X`: beside another multiplicative operator it needs
+    /// parentheses.
     pub fn is_div(&self) -> bool {
-        matches!(self, BinOp::Div | BinOp::DivTrunc)
+        matches!(self, BinOp::Div(_))
     }
-    /// `mod` and `mod.trunc`: beside any operator they need parentheses.
+    /// A `mod.X`: beside any operator it needs parentheses.
     pub fn is_mod(&self) -> bool {
-        matches!(self, BinOp::Mod | BinOp::ModTrunc)
+        matches!(self, BinOp::Mod(_))
     }
     pub fn is_multiplicative(&self) -> bool {
-        matches!(self, BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc | BinOp::WrapMul)
+        matches!(self, BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) | BinOp::WrapMul)
     }
 }
 

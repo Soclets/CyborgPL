@@ -4,7 +4,7 @@
 extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 struct User { id: int32  name: str.utf8 }
-op == ['a': User, 'b': User] -> bool { return ('a'.id mod 100) == ('b'.id mod 100); }
+op == ['a': User, 'b': User] -> bool { return ('a'.id mod.floor 100) == ('b'.id mod.floor 100); }
 fn hash [lent 'v': User] -> uint64 { return to.uint64['v'.id]; }
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";

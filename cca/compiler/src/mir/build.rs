@@ -60,7 +60,7 @@ pub struct Arena {
 }
 
 /// A const's value at compile time (`functions.md`, consts): literals,
-/// exact whole-number arithmetic (`/` floored, `mod` the divisor's sign),
+/// exact whole-number arithmetic (each `div.X` and `mod.X` as named),
 /// comparisons, `bin64` arithmetic, joined texts, and earlier consts. Any
 /// other shape (a list, a call) stays a reference.
 fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Items) -> Option<Const> {
@@ -85,19 +85,12 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
             let (a, b) = (const_eval(lhs, done, items)?, const_eval(rhs, done, items)?);
             match (a, b) {
                 (Const::Int(x), Const::Int(y)) => {
-                    let floor = |x: i128, y: i128| -> Option<(i128, i128)> {
-                        if y == 0 {
-                            return None;
-                        }
-                        let (q, r) = (x.checked_div(y)?, x.checked_rem(y)?);
-                        Some(if r != 0 && ((r < 0) != (y < 0)) { (q - 1, r + y) } else { (q, r) })
-                    };
                     Some(match op {
                         B::Add => Const::Int(x.checked_add(y)?),
                         B::Sub => Const::Int(x.checked_sub(y)?),
                         B::Mul => Const::Int(x.checked_mul(y)?),
-                        B::Div => Const::Int(floor(x, y)?.0),
-                        B::Mod => Const::Int(floor(x, y)?.1),
+                        B::Div(r) => Const::Int(crate::rounding::int_divmod(x, y, *r)?.0),
+                        B::Mod(r) => Const::Int(crate::rounding::int_divmod(x, y, *r)?.1),
                         B::Pow if y >= 0 => Const::Int(x.checked_pow(u32::try_from(y).ok()?)?),
                         B::Eq => Const::Bool(x == y),
                         B::Ne => Const::Bool(x != y),
@@ -116,7 +109,8 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
                         B::Add => x + y,
                         B::Sub => x - y,
                         B::Mul => x * y,
-                        B::Div => x / y,
+                        B::Div(r) => crate::rounding::bin_divmod(x, y, *r).0,
+                        B::Mod(r) if *r != crate::ast::Round::Near => crate::rounding::bin_divmod(x, y, *r).1,
                         _ => return None,
                     };
                     // No infinity or NaN is a bin (owner, 2026-09-29): left
@@ -1351,11 +1345,12 @@ impl<'a> FnBuilder<'a> {
             // overflow — past the largest bin, a division by zero, a power
             // with no number (`-1.0 xx 0.5`).
             // A bin's `mod` by 0.0 has no number: the divisor is asked.
-            BinOp::Mod | BinOp::ModTrunc if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
+            BinOp::Mod(_) if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
             }
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Pow if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
-                if *op == BinOp::Div {
+            // A whole quotient can be past the largest bin as well.
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Pow if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
+                if op.is_div() {
                     self.site(SiteKind::DivZero, vec![r.clone()], span);
                 }
                 self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
@@ -1373,13 +1368,18 @@ impl<'a> FnBuilder<'a> {
                 }
                 self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
-            BinOp::Div | BinOp::DivTrunc if int => {
+            BinOp::Div(_) if int => {
                 self.site(SiteKind::DivZero, vec![r.clone()], span);
                 // The one overflowing division: the lowest value by -1.
                 self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
-            BinOp::Mod | BinOp::ModTrunc if int => {
+            BinOp::Mod(rounding) if int => {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
+                // Rounded up, what is left over has the divisor's other
+                // sign: below 0 for an unsigned type (`7 mod.ceil 2` is -1).
+                if matches!(rounding, crate::ast::Round::Ceil | crate::ast::Round::Near) && !matches!(ty.base(), Ty::Int(crate::types::IntW::Fixed { signed: true, .. })) {
+                    self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
+                }
             }
             // A duration is a length of time and is never negative
             // (`concurrency.md`, owner 2026-09-22): taking one past zero is

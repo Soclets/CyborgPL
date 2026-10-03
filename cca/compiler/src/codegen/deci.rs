@@ -133,9 +133,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             BinOp::Add => 0,
             BinOp::Sub => 1,
             BinOp::Mul => 2,
-            BinOp::Div => 3,
-            BinOp::Mod => 4,
+            // Ordinary division (`div.near`), and the runtime's whole
+            // quotients and what they leave (`deci.rs`'s op codes).
+            BinOp::Div(crate::ast::Round::Near) => 3,
+            BinOp::Mod(crate::ast::Round::Floor) => 4,
             BinOp::Pow => 5,
+            BinOp::Div(crate::ast::Round::Floor) => 6,
+            BinOp::Div(crate::ast::Round::Ceil) => 7,
+            BinOp::Div(crate::ast::Round::Trunc) => 8,
+            BinOp::Mod(crate::ast::Round::Ceil) => 9,
+            BinOp::Mod(crate::ast::Round::Trunc) => 10,
             _ => {
                 self.cannot(format!("`{}` on a deci has no shape in the generated code", op.spelled()), None);
                 return None;
@@ -150,11 +157,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if code >= 3 {
             let zero = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "by_zero").ok()?;
             let why = match code {
-                3 => "the divisor is zero, and nothing can be divided by zero",
-                4 => "`mod` by zero",
-                _ => "zero to a negative power is a division by zero",
+                5 => "zero to a negative power is a division by zero".to_string(),
+                _ if op.is_mod() => format!("`{}` by zero", op.spelled()),
+                _ => "the divisor is zero, and nothing can be divided by zero".to_string(),
             };
-            self.deci_stop(fi, zero, why, func)?;
+            self.deci_stop(fi, zero, &why, func)?;
         }
         Some(self.deci_read(slot, bits)?.into())
     }

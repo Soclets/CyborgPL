@@ -1045,6 +1045,31 @@ impl Nat {
         }
     }
 
+    /// `self / m` and `self mod m`, by shift and subtract; `m` not zero.
+    fn divrem(&self, m: &Nat) -> (Nat, Nat) {
+        let mut q = Nat::of(0);
+        let mut r = Nat::of(0);
+        for i in (0..self.bits()).rev() {
+            r.shl1();
+            r.l[0] |= (self.l[(i / 64) as usize] >> (i % 64)) & 1;
+            if r.cmp(m) != core::cmp::Ordering::Less {
+                r.sub(m);
+                q.l[(i / 64) as usize] |= 1 << (i % 64);
+            }
+        }
+        (q, r)
+    }
+
+    fn add_one(&mut self) {
+        for limb in self.l.iter_mut() {
+            let (v, carry) = limb.overflowing_add(1);
+            *limb = v;
+            if !carry {
+                break;
+            }
+        }
+    }
+
     /// `self mod m`, by shift and subtract; `m` not zero.
     fn rem(&self, m: &Nat) -> Nat {
         let mut r = Nat::of(0);
@@ -1089,10 +1114,20 @@ impl Nat {
     }
 }
 
-/// `a mod b`, `b` not zero: the remainder takes the divisor's sign (owner,
-/// 2026-09-29), as integer `mod` does — `-7.50 mod 2` is `0.50` — at the
-/// smaller of the two exponents, exact, then rounded like the rest.
-fn modulo(a: Dec, b: Dec, w: Width) -> Result<Dec, Stop> {
+/// How a whole quotient rounds, as the op codes name it.
+#[derive(Clone, Copy, PartialEq)]
+enum Whole {
+    Floor,
+    Ceil,
+    Trunc,
+}
+
+/// `a mod.X b`, `b` not zero, what `a div.X b` leaves over (owner,
+/// 2026-10-02): at the smaller of the two exponents, exact, then rounded
+/// like the rest. `mod.floor` takes the divisor's sign — `-7.50 mod.floor
+/// 2` is `0.50` — and so does its 0; `mod.ceil` the divisor's other sign,
+/// `mod.trunc` the dividend's; their 0 is `+0`, as the oracle's.
+fn modulo(a: Dec, b: Dec, w: Width, how: Whole) -> Result<Dec, Stop> {
     let e = a.exp.min(b.exp);
     // |a| mod |b|, both lined up at `e`.
     let r: u128 = if a.exp >= b.exp {
@@ -1120,18 +1155,68 @@ fn modulo(a: Dec, b: Dec, w: Width) -> Result<Dec, Stop> {
             Nat::of(a.coef).rem(&m).low128()
         }
     };
-    let (neg, coef) = if r == 0 {
-        (b.neg, 0)
-    } else if a.neg == b.neg {
-        (b.neg, r)
-    } else {
-        // |b| - r, at `e`: fits, being below |b| lined up.
+    // |b| - r, at `e`: fits, being below |b| lined up.
+    let other = || {
         let mut m = Nat::of(b.coef);
         m.times_pow10((b.exp - e) as u32);
         m.sub(&Nat::of(r));
-        (b.neg, m.low128())
+        m.low128()
+    };
+    let (neg, coef) = match how {
+        Whole::Floor if r == 0 => (b.neg, 0),
+        Whole::Floor if a.neg == b.neg => (b.neg, r),
+        Whole::Floor => (b.neg, other()),
+        _ if r == 0 => (false, 0),
+        Whole::Trunc => (a.neg, r),
+        Whole::Ceil if a.neg == b.neg => (!b.neg, other()),
+        Whole::Ceil => (!b.neg, r),
     };
     round(neg, U256::of(coef), e, false, w)
+}
+
+/// `a div.X b`, `b` not zero, `X` floor, ceil or trunc: the whole quotient,
+/// exact, then rounded to the width like the rest, at exponent 0 when it
+/// fits; a 0 is `+0`. `a` lined up at `b`'s exponent as far as 2560 bits
+/// hold it: past that the quotient has some 700 digits more than the
+/// width keeps, and what is past them only says it is not exact.
+fn whole_div(a: Dec, b: Dec, w: Width, how: Whole) -> Result<Dec, Stop> {
+    let neg = a.neg != b.neg;
+    let k = a.exp as i64 - b.exp as i64;
+    let mut n = Nat::of(a.coef);
+    let mut d = Nat::of(b.coef);
+    let mut shift: i64 = 0;
+    let (mut q, inexact) = if k >= 0 {
+        let j = k.min(700);
+        n.times_pow10(j as u32);
+        shift = k - j;
+        let (q, r) = n.divrem(&d);
+        (q, !r.is_zero())
+    } else if -k > 700 || !d.times_pow10((-k) as u32) {
+        // The divisor lined up is past every dividend: the quotient is 0.
+        (Nat::of(0), a.coef != 0)
+    } else {
+        let (q, r) = n.divrem(&d);
+        (q, !r.is_zero())
+    };
+    // One more, away from zero, where the rounding lies that way. Past the
+    // 700 digits the step is far below what the width keeps.
+    let away = match how {
+        Whole::Floor => neg,
+        Whole::Ceil => !neg,
+        Whole::Trunc => false,
+    };
+    if away && inexact && shift == 0 {
+        q.add_one();
+    }
+    if q.is_zero() {
+        return Ok(Dec { neg: false, coef: 0, exp: 0 });
+    }
+    let (dropped, lost) = q.cut(w.digits + 3);
+    let e = shift + dropped as i64;
+    if e > i32::MAX as i64 / 2 {
+        return Err(Stop::Over);
+    }
+    round(neg, U256::of(q.low128()), e as i32, lost || (shift > 0 && inexact), w)
 }
 
 /// `a xx n`, a whole exponent (owner, 2026-09-29): the coefficient's power
@@ -1229,9 +1314,10 @@ fn power(a: Dec, n: i64, w: Width) -> Result<Dec, Stop> {
     round(neg, U256::of(q), e as i32, lost || !rem.is_zero(), w)
 }
 
-/// `a mod b` (op 4) and `a xx n` (op 5, `n` a whole number in the second
-/// pair): as `cyborg_deci_arith`, and 2 for `mod` by zero or zero to a
-/// negative power.
+/// `a mod.floor b` (op 4), `a xx n` (op 5, `n` a whole number in the second
+/// pair), `a div.floor b`, `div.ceil`, `div.trunc` (6, 7, 8) and `a mod.ceil
+/// b`, `mod.trunc` (9, 10): as `cyborg_deci_arith`, and 2 for a division
+/// by zero or zero to a negative power.
 ///
 /// # Safety
 /// `out` must be writable.
@@ -1239,12 +1325,19 @@ fn power(a: Dec, n: i64, w: Width) -> Result<Dec, Stop> {
 pub unsafe extern "C" fn cyborg_deci_arith2(op: u32, alo: u64, ahi: u64, blo: u64, bhi: u64, bits: u32, out: *mut u128) -> u8 {
     let w = width(bits);
     let a = decode(two(alo, ahi), w);
-    let r = if op == 4 {
+    let r = if op != 5 {
         let b = decode(two(blo, bhi), w);
         if b.coef == 0 {
             return 2;
         }
-        modulo(a, b, w)
+        match op {
+            4 => modulo(a, b, w, Whole::Floor),
+            6 => whole_div(a, b, w, Whole::Floor),
+            7 => whole_div(a, b, w, Whole::Ceil),
+            8 => whole_div(a, b, w, Whole::Trunc),
+            9 => modulo(a, b, w, Whole::Ceil),
+            _ => modulo(a, b, w, Whole::Trunc),
+        }
     } else {
         let n = two(blo, bhi) as i128;
         power(a, n.clamp(i64::MIN as i128, i64::MAX as i128) as i64, w)

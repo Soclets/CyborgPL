@@ -716,8 +716,28 @@ impl ISet {
     pub fn mul(&self, o: &ISet) -> ISet {
         self.arith(o, |x, y| Some(x.saturating_mul(y)), true)
     }
-    /// Floor division, the language's `/` (`operators.md`). Division by
-    /// zero has no answer and simply is not in the result.
+    /// `div.X` (`operators.md`). Division by zero has no answer and simply
+    /// is not in the result. Each rounding is monotone in the same ways, so
+    /// the same ends bound all four.
+    pub fn div_round(&self, o: &ISet, r: crate::ast::Round) -> ISet {
+        use crate::ast::Round;
+        match r {
+            Round::Floor | Round::Bare => self.div_floor(o),
+            Round::Trunc => self.div_trunc(o),
+            _ => self.arith(o, |x, y| crate::rounding::int_divmod(x, y, r).map(|(q, _)| q), false),
+        }
+    }
+    /// `mod.X`: what `div.X` leaves over.
+    pub fn mod_round(&self, o: &ISet, r: crate::ast::Round) -> ISet {
+        use crate::ast::Round;
+        match r {
+            Round::Floor | Round::Bare => self.mod_floor(o),
+            Round::Trunc => self.mod_trunc(o),
+            Round::Ceil => self.mod_ceil(o),
+            Round::Near => self.mod_near(o),
+        }
+    }
+    /// Floor division (`operators.md`).
     pub fn div_floor(&self, o: &ISet) -> ISet {
         // Floor, not Euclid: they agree for a positive divisor and differ
         // for a negative one (`7 / -2` floors to -4; Euclid says -3).
@@ -794,6 +814,46 @@ impl ISet {
         let lo = if a1 >= 0 { 0 } else { a1.max(1 - m).min(0) };
         let hi = if a2 <= 0 { 0 } else { a2.min(m - 1).max(0) };
         ISet::range(lo, hi)
+    }
+    /// `mod.ceil`: the divisor's other sign, below its size, and never
+    /// further from zero than a dividend on that side.
+    fn mod_ceil(&self, o: &ISet) -> ISet {
+        let f = |x: i128, y: i128| crate::rounding::int_divmod(x, y, crate::ast::Round::Ceil).map(|(_, m)| m);
+        if self.is_empty() || o.is_empty() {
+            return ISet::Empty;
+        }
+        let exact = pointwise(self, o, f);
+        if !exact.is_empty() {
+            return exact;
+        }
+        let (Some((a1, a2)), Some((b1, b2))) = (self.bounds(), o.bounds()) else { return ISet::Empty };
+        if b1 > 0 {
+            let lo = (1 - b2).max(if a2 <= 0 { a1 } else { i128::MIN });
+            ISet::range(lo, 0)
+        } else if b2 < 0 {
+            let hi = (b1.saturating_neg() - 1).min(if a1 >= 0 { a2 } else { i128::MAX });
+            ISet::range(0, hi)
+        } else {
+            let m = b1.unsigned_abs().max(b2.unsigned_abs()).min(i128::MAX as u128) as i128;
+            ISet::range(1 - m.max(1), m.max(1) - 1)
+        }
+    }
+    /// `mod.near`: at most half the divisor's size either way, and never
+    /// further from zero than the dividend.
+    fn mod_near(&self, o: &ISet) -> ISet {
+        let f = |x: i128, y: i128| crate::rounding::int_divmod(x, y, crate::ast::Round::Near).map(|(_, m)| m);
+        if self.is_empty() || o.is_empty() {
+            return ISet::Empty;
+        }
+        let exact = pointwise(self, o, f);
+        if !exact.is_empty() {
+            return exact;
+        }
+        let (Some((a1, a2)), Some((b1, b2))) = (self.bounds(), o.bounds()) else { return ISet::Empty };
+        let half = (b1.unsigned_abs().max(b2.unsigned_abs()) / 2).min(i128::MAX as u128) as i128;
+        let far = a1.unsigned_abs().max(a2.unsigned_abs()).min(i128::MAX as u128) as i128;
+        let m = half.min(far);
+        ISet::range(-m, m)
     }
     pub fn pow(&self, o: &ISet) -> ISet {
         let f = |x: i128, y: i128| -> Option<i128> {

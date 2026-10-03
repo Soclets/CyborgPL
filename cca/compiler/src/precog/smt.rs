@@ -1179,14 +1179,14 @@ impl<'a> Enc<'a> {
             Rvalue::Binary { op, lhs, rhs } => {
                 let a = self.operand(lhs, env)?;
                 let b = self.operand(rhs, env)?;
-                // Plain math is exact (owner, 2026-09-23), `/` floors and
-                // `mod` takes the divisor's sign (`operators.md`), and a
+                // Plain math is exact (owner, 2026-09-23), each `div.X` and
+                // `mod.X` rounds as named (`operators.md`), and a
                 // comparison is of the two numbers: all of them are asked
                 // at the true values — each operand widened by its own
                 // sign, wide enough that nothing wraps. Asked at the
                 // operands' width, `up[…] + 9e18` wrapped into a small
                 // number and a landing that overflows read as proven.
-                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc | BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) | BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
                     // Two bits past the wider operand: every answer that some
                     // 64-bit type holds is exact there, sums and products
                     // alike. A product past that wraps — but it is past the
@@ -1204,20 +1204,34 @@ impl<'a> Enc<'a> {
                         BinOp::Add => format!("(bvadd {} {})", x.term, y.term),
                         BinOp::Sub => format!("(bvsub {} {})", x.term, y.term),
                         BinOp::Mul => format!("(bvmul {} {})", x.term, y.term),
-                        // `div.trunc` / `mod.trunc` are the solvers' own.
-                        BinOp::DivTrunc => format!("(bvsdiv {} {})", x.term, y.term),
-                        BinOp::ModTrunc => format!("(bvsrem {} {})", x.term, y.term),
-                        BinOp::Div | BinOp::Mod => {
-                            // Truncated, then moved by one step when the
-                            // remainder's sign is not the divisor's.
+                        BinOp::Div(rounding) | BinOp::Mod(rounding) => {
+                            // Truncated, the solvers' own, then one step
+                            // where the rounding asks: up (`q + 1`, `r - y`)
+                            // when the remainder and the divisor share a
+                            // sign, down (`q - 1`, `r + y`) when not.
                             let zero = bv(0, w);
                             let q = format!("(bvsdiv {} {})", x.term, y.term);
                             let r = format!("(bvsrem {} {})", x.term, y.term);
-                            let fix = format!("(and (not (= {r} {zero})) (not (= (bvslt {r} {zero}) (bvslt {} {zero}))))", y.term, r = r, zero = zero);
-                            if *op == BinOp::Div {
-                                format!("(ite {} (bvsub {} {}) {})", fix, q, bv(1, w), q)
+                            let nz = format!("(not (= {r} {zero}))");
+                            let up = format!("(= (bvslt {r} {zero}) (bvslt {} {zero}))", y.term);
+                            let step = match rounding {
+                                crate::ast::Round::Trunc => "false".to_string(),
+                                crate::ast::Round::Floor | crate::ast::Round::Bare => format!("(and {nz} (not {up}))"),
+                                crate::ast::Round::Ceil => format!("(and {nz} {up})"),
+                                crate::ast::Round::Near => {
+                                    // |r| against |y| - |r|, a tie to even.
+                                    let abs = |t: &str| format!("(ite (bvslt {t} {zero}) (bvneg {t}) {t})");
+                                    let (ar, ay) = (abs(&r), abs(&y.term));
+                                    let rest = format!("(bvsub {ay} {ar})");
+                                    let odd = format!("(= ((_ extract 0 0) {q}) #b1)");
+                                    format!("(or (bvsgt {ar} {rest}) (and (= {ar} {rest}) {odd}))")
+                                }
+                            };
+                            let one = bv(1, w);
+                            if op.is_div() {
+                                format!("(ite {step} (ite {up} (bvadd {q} {one}) (bvsub {q} {one})) {q})")
                             } else {
-                                format!("(ite {} (bvadd {} {}) {})", fix, r, y.term, r)
+                                format!("(ite {step} (ite {up} (bvsub {r} {yt}) (bvadd {r} {yt})) {r})", yt = y.term)
                             }
                         }
                         _ => {
@@ -1448,12 +1462,27 @@ impl<'a> Enc<'a> {
                         let past = if *op == BinOp::Mul { format!(" (bvsmulo {} {})", a.term, b.term) } else { String::new() };
                         Some(format!("(or {} {}{})", self.cmp_const(&r, "bvsgt", hi)?, self.cmp_const(&r, "bvslt", lo)?, past))
                     }
-                    BinOp::Div | BinOp::DivTrunc => {
+                    BinOp::Div(_) => {
                         // The one division that leaves the type: the lowest
                         // value by -1.
                         let b = ops.get(1).cloned().flatten()?;
                         let (a, b) = self.same_width(a, b);
                         Some(format!("(and (= {} {}) (= {} {}))", a.term, bv(lo, a.bits), b.term, bv(-1, b.bits)))
+                    }
+                    // An unsigned `mod.ceil` / `mod.near` leaves the type
+                    // when it steps up: what is left is then below 0.
+                    BinOp::Mod(rounding @ (crate::ast::Round::Ceil | crate::ast::Round::Near)) if !a.signed => {
+                        let b = ops.get(1).cloned().flatten()?;
+                        let (a, b) = self.same_width(a, b);
+                        let zero = bv(0, a.bits);
+                        let r = format!("(bvurem {} {})", a.term, b.term);
+                        let nz = format!("(not (= {r} {zero}))");
+                        if *rounding == crate::ast::Round::Ceil {
+                            return Some(nz);
+                        }
+                        let rest = format!("(bvsub {} {r})", b.term);
+                        let odd = format!("(= ((_ extract 0 0) (bvudiv {} {})) #b1)", a.term, b.term);
+                        Some(format!("(and {nz} (or (bvugt {r} {rest}) (and (= {r} {rest}) {odd})))"))
                     }
                     _ => None,
                 }

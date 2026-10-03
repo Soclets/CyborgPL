@@ -8,7 +8,7 @@ MAIN {
     let 'big': uint64 = 'u' x 10000000000000000000;     # 10^19: above 2^63
     let mut 'score': int32 = 0;
     if 'big' > 'u' { change 'score' = 'score' + 1; }             # unsigned compare
-    let 'half': uint64 = 'big' div 2;                      # unsigned divide
+    let 'half': uint64 = 'big' div.floor 2;                      # unsigned divide
     if 'half' == 5000000000000000000 { change 'score' = 'score' + 10; }
     let 'small': uint8 = 250;
     let mut 'n': int32 = 0;

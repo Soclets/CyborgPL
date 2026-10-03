@@ -198,8 +198,8 @@ const PROGRAMS: &[&str] = &[
      MAIN {\n\
      \x20   nocheck let 'n': int32 = getpid[];\n\
      \x20   let 'r': int32[1, 10] = 'n';\n\
-     \x20   let 'q': int32 = 100 div 'n';\n\
-     \x20   let 'm': int32 = 100 mod 'n';\n\
+     \x20   let 'q': int32 = 100 div.floor 'n';\n\
+     \x20   let 'm': int32 = 100 mod.floor 'n';\n\
      }\n",
     "extern.C fn getpid [] -> int32;\n\
      MAIN {\n\

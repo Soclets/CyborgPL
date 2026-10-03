@@ -11,7 +11,7 @@ fn pick ['n': uint32] -> uint32 {
 MAIN {
     let immut 'v': uint32 = pick[1];
     let mut 'code': int32 = 0;
-    if 'v' !== 0 and.then (15 mod 'v') !== 3 {
+    if 'v' !== 0 and.then (15 mod.floor 'v') !== 3 {
         change 'code' = 5;
     }
     nocheck exit['code'];

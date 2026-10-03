@@ -11,7 +11,7 @@ MAIN {
     nocheck let immut 'p': int32 = getpid[];
     let immut 'v': int32 = 'p' and.bit 16383;
     let mut 'code': int32 = 0;
-    if 'v' == 0 or.else (18 mod 'v') < 20 {
+    if 'v' == 0 or.else (18 mod.floor 'v') < 20 {
         change 'code' = 7;
     }
     nocheck exit['code'];

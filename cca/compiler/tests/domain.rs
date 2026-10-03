@@ -7,7 +7,7 @@
 //! ranges too big for the exact path and ask whether each answer is in the
 //! set.
 
-use cca::ast::BinOp;
+use cca::ast::{BinOp, Round};
 use cca::mir::domain::ISet;
 
 /// Windows of each sign and across zero, wide enough that the product of
@@ -85,6 +85,36 @@ fn a_quotient_is_every_quotient() {
     }
 }
 
+/// `div.X` by the definition, not the compiler's: the floor, the ceiling
+/// (`-floor(-x / y)`), toward zero, and the nearer of the floor and the one
+/// above it, a tie to the even one (owner, 2026-10-02).
+fn rounded(x: i128, y: i128, how: Round) -> Option<i128> {
+    let f = floor_div(x, y)?;
+    Some(match how {
+        Round::Floor | Round::Bare => f,
+        Round::Ceil => -floor_div(-x, y)?,
+        Round::Trunc => x / y,
+        Round::Near => {
+            // x / y - f is (x - f y) / y, in [0, 1): against a half.
+            let (twice, size) = (2 * (x - f * y).abs(), y.abs());
+            if twice > size || (twice == size && f % 2 != 0) { f + 1 } else { f }
+        }
+    })
+}
+
+#[test]
+fn every_rounding_is_every_answer() {
+    for how in [Round::Floor, Round::Ceil, Round::Trunc, Round::Near] {
+        for a in windows(300) {
+            for b in windows(30) {
+                let (x, y) = (ISet::range(a.0, a.1), ISet::range(b.0, b.1));
+                check("div", a, b, &x.div_round(&y, how), |p, q| rounded(p, q, how));
+                check("mod", a, b, &x.mod_round(&y, how), |p, q| rounded(p, q, how).map(|d| p - d * q));
+            }
+        }
+    }
+}
+
 #[test]
 fn a_power_is_every_power() {
     for a in [(-100, 100), (-100, -1), (0, 200), (-7, 250), (1, 300)] {
@@ -130,7 +160,8 @@ fn a_bin_answer_is_in_the_interval() {
         seed
     };
     let mut unit = move || (next() >> 11) as f64 / (1u64 << 53) as f64;
-    let ops = [BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div];
+    use Round::{Ceil, Floor, Near, Trunc};
+    let ops = [BinOp::Add, BinOp::Sub, BinOp::Mul, BinOp::Div(Near), BinOp::Div(Floor), BinOp::Div(Ceil), BinOp::Div(Trunc), BinOp::Mod(Floor), BinOp::Mod(Ceil), BinOp::Mod(Trunc)];
     for round in 0..4000 {
         let scale = [1e-40, 1e-3, 1.0, 3e3, 1.6e7, 1e30][round % 6];
         let pick = |u: &mut dyn FnMut() -> f64| {
@@ -144,12 +175,24 @@ fn a_bin_answer_is_in_the_interval() {
                 // The endpoints as the width holds them.
                 let at = |v: f64| if bits == 32 { v as f32 as f64 } else { v };
                 let (a, b) = ((at(a.0), at(a.1)), (at(b.0), at(b.1)));
+                // A whole quotient and what it leaves: at 64 bits, as
+                // codegen works them.
+                let whole = !matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(Near));
+                if whole && bits == 32 {
+                    continue;
+                }
                 let Some(Domain::Bins { lo: Some(lo), hi: Some(hi) }) = cca::precog::bin_interval(op, a, b, bits) else { continue };
                 for i in 0..=8 {
                     for j in 0..=8 {
                         let x = at(a.0 + (a.1 - a.0) * i as f64 / 8.0);
                         let y = at(b.0 + (b.1 - b.0) * j as f64 / 8.0);
-                        let v = if bits == 32 {
+                        if whole && y == 0.0 {
+                            continue;
+                        }
+                        let v = if let (true, BinOp::Div(r) | BinOp::Mod(r)) = (whole, op) {
+                            let (q, m) = cca::rounding::bin_divmod(x, y, *r);
+                            if op.is_div() { q } else { m }
+                        } else if bits == 32 {
                             let (x, y) = (x as f32, y as f32);
                             (match op { BinOp::Add => x + y, BinOp::Sub => x - y, BinOp::Mul => x * y, _ => x / y }) as f64
                         } else {

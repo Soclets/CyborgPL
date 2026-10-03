@@ -12,6 +12,6 @@ fn up ['n': int64[0, 100]] -> int64 {
 MAIN {
     let 's' := "ninety-eight bytes of text, counted by strlen at run time so nothing is known while compiling!!!!";
     nocheck let 'n': uint64 = strlen[lend 's'];
-    let 'k': int64[0, 100] = to.int64['n' mod 101];
-    nocheck exit[to.int32[up['k'] mod 256]];
+    let 'k': int64[0, 100] = to.int64['n' mod.floor 101];
+    nocheck exit[to.int32[up['k'] mod.floor 256]];
 }

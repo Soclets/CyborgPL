@@ -11,6 +11,6 @@ fn divisor [] -> bin64 {
 }
 MAIN {
     let 'd' := divisor[];
-    let 'q': bin64 = 1.0 div 'd';
+    let 'q': bin64 = 1.0 div.near 'd';
     nocheck exit[7];
 }

@@ -5,7 +5,7 @@
 extern.C fn exit ['code': int32];
 enum E { a  b }
 MAIN {
-    let 'v': uint64 = match E.a { a { (14576284062462565771 div 6) mod 51 } b { 1 } };
+    let 'v': uint64 = match E.a { a { (14576284062462565771 div.floor 6) mod.floor 51 } b { 1 } };
     let 'c': int32 = to.int32['v'];
     nocheck exit['c'];
 }

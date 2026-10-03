@@ -2,7 +2,7 @@
 # zero"): there is no infinity to give.
 extern.C fn exit ['code': int32];
 fn half ['d': deci64] -> deci64 {
-    return 1.5 div 'd';
+    return 1.5 div.near 'd';
 }
 MAIN {
     let 'z': deci64 = 0.00;

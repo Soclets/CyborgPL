@@ -5,8 +5,8 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let 'p': uint8 = 7;
-    let 'a': uint8 = 'p' mod (((221 x 2) mod 5) + 1);
-    let 'b': uint8 = 'p' div (((221 x 2) mod 5) + 1);
-    let 'c': uint8 = (((221 x 2) mod 5) + 10) mod 'p';
+    let 'a': uint8 = 'p' mod.floor (((221 x 2) mod.floor 5) + 1);
+    let 'b': uint8 = 'p' div.floor (((221 x 2) mod.floor 5) + 1);
+    let 'c': uint8 = (((221 x 2) mod.floor 5) + 10) mod.floor 'p';
     nocheck exit[to.int32['a'] + to.int32['b'] x 10 + to.int32['c'] x 10];
 }

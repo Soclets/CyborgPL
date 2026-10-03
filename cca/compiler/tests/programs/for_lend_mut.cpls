@@ -20,5 +20,5 @@ MAIN {
     for 'v' in lend 'xs' {
         change 'total' = 'total' + 'v';
     }
-    nocheck exit[to.int32['total' mod 256]];
+    nocheck exit[to.int32['total' mod.floor 256]];
 }

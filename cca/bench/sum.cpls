@@ -20,10 +20,10 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     let mut 'acc': int64 = 0;
     let mut 'i': int64 = 1;
     while 'i' </== 'n' {
-        change 'acc' = ('acc' + (('i' x 'i') mod 7)) mod 1_000_000_007;
+        change 'acc' = ('acc' + (('i' x 'i') mod.floor 7)) mod.floor 1_000_000_007;
         change 'i' = 'i' + 1;
     }
-    return to.int32['acc' mod 256];
+    return to.int32['acc' mod.floor 256];
 }
 
 MAIN {

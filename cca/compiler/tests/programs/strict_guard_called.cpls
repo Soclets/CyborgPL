@@ -6,14 +6,14 @@
 # not >= 3, so false; g[5] and h[5] the same; 1 + 2 + 4 when each is false.
 extern.C fn exit ['code': int32];
 fn f ['p': int32] -> bool {
-    if 'p' !== 0 { return (16 mod 'p') >/== 3; }
+    if 'p' !== 0 { return (16 mod.floor 'p') >/== 3; }
     return false;
 }
 fn g ['p': int32] -> bool {
-    return 'p' !== 0 and.then ((16 mod 'p') >/== 3);
+    return 'p' !== 0 and.then ((16 mod.floor 'p') >/== 3);
 }
 fn h ['p': int32] -> bool {
-    return 'p' == 0 or.else ((16 mod 'p') >/== 3);
+    return 'p' == 0 or.else ((16 mod.floor 'p') >/== 3);
 }
 MAIN {
     let mut 'code': int32 = 0;

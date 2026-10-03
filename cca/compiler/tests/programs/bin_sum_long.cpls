@@ -10,6 +10,6 @@ MAIN {
     for 'i': int64 in range[1, 'n'] {
         change 't' = 't' + 'big';
     }
-    let 'r': int32 = to.int32['big' div 't'] otherwise 7;
+    let 'r': int32 = to.int32['big' div.near 't'] otherwise 7;
     nocheck exit['r'];
 }

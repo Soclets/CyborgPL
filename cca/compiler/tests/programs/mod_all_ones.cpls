@@ -7,7 +7,7 @@ extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "three hundred characters are too many to type, so this is fewer";
     nocheck let 'n': uint64 = strlen[lend 's'];
-    let 'a': uint64 = 'n' mod 255;
-    let 'b': uint64 = 'n' mod 65535;
+    let 'a': uint64 = 'n' mod.floor 255;
+    let 'b': uint64 = 'n' mod.floor 65535;
     nocheck exit[to.int32['a' + 'b']];
 }

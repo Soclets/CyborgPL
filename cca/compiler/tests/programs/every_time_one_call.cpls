@@ -12,5 +12,5 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     if 'argc' > 5 {
         change 'code' = double[5000000000000000000];
     }
-    nocheck exit[to.int32['code' mod 256]];
+    nocheck exit[to.int32['code' mod.floor 256]];
 }

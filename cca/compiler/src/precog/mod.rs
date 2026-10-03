@@ -1411,7 +1411,7 @@ impl Precog {
                 // average stays within the elements' range (`precog.md`,
                 // the loop-invariant template "a sum is bounded by trips
                 // times the largest element").
-                if *op == BinOp::Div {
+                if op.is_div() {
                     if let (Domain::Ints(s), Some((lo, hi))) = (&r, mean_bound(&self.prog().functions[f], lhs, rhs)) {
                         return Domain::Ints(s.clamp(lo, hi));
                     }
@@ -1482,10 +1482,8 @@ impl Precog {
                 BinOp::Add => x.add(y),
                 BinOp::Sub => x.sub(y),
                 BinOp::Mul => x.mul(y),
-                BinOp::Div => x.div_floor(y),
-                BinOp::Mod => x.mod_floor(y),
-                BinOp::DivTrunc => x.div_trunc(y),
-                BinOp::ModTrunc => x.mod_trunc(y),
+                BinOp::Div(r) => x.div_round(y, *r),
+                BinOp::Mod(r) => x.mod_round(y, *r),
                 BinOp::Pow => x.pow(y),
                 // Wrapping arithmetic is exact modulo the width; the domain
                 // is only narrowed when the plain answer already fits.
@@ -2180,8 +2178,8 @@ impl Precog {
                     (BinOp::Sub, Some(Domain::Ints(y))) => a.sub(y),
                     (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
                     (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
-                    (BinOp::Div, Some(Domain::Ints(y))) => a.div_floor(y),
-                    (BinOp::DivTrunc, Some(Domain::Ints(y))) => a.div_trunc(y),
+                    (BinOp::Div(r), Some(Domain::Ints(y))) => a.div_round(y, *r),
+                    (BinOp::Mod(r), Some(Domain::Ints(y))) => a.mod_round(y, *r),
                     // A negation, or a fold whose shape is not two operands.
                     (BinOp::Sub, None) => a.neg(),
                     _ => return Verdict::Unproven,
@@ -2906,7 +2904,7 @@ fn thresholds(f: &crate::mir::Function) -> Vec<i128> {
                     Rvalue::Binary { op, lhs, rhs } => {
                         add(lhs, &mut out);
                         add(rhs, &mut out);
-                        if let (BinOp::Mod | BinOp::ModTrunc, Operand::Const(Const::Int(d))) = (op, rhs) {
+                        if let (BinOp::Mod(_), Operand::Const(Const::Int(d))) = (op, rhs) {
                             out.extend([d.saturating_sub(1).abs(), -(d.saturating_sub(1).abs())]);
                         }
                     }
@@ -3213,7 +3211,7 @@ fn bin_finite(op: &BinOp, ds: &[Domain], w: crate::types::BinW, spelled: &str) -
             BinOp::Add => x + y,
             BinOp::Sub => x - y,
             BinOp::Mul => x * y,
-            BinOp::Div => x / y,
+            BinOp::Div(_) => x / y,
             BinOp::Pow => x.powf(y),
             _ => f64::NAN,
         };
@@ -3228,7 +3226,7 @@ fn bin_finite(op: &BinOp, ds: &[Domain], w: crate::types::BinW, spelled: &str) -
         }
     };
     // 0.0 div 0.0, and anything by 0.0, is the divisor's own site.
-    if *op == BinOp::Div && *b1 <= 0.0 && *b2 >= 0.0 {
+    if op.is_div() && *b1 <= 0.0 && *b2 >= 0.0 {
         return Verdict::Fails { counterexample: format!("the answer can go past the largest `{}`", spelled) };
     }
     let corners = [f(*a1, *b1), f(*a1, *b2), f(*a2, *b1), f(*a2, *b2)];
@@ -3245,17 +3243,26 @@ fn bin_finite(op: &BinOp, ds: &[Domain], w: crate::types::BinW, spelled: &str) -
 /// Bin `+ - x /` over two intervals at a width of `bits`, or `None` when the
 /// answer is not a finite interval Precog can stand behind.
 pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Option<Domain> {
-    // `mod.trunc` is C's `fmod`, exact at every width: on the dividend's
-    // side of zero, never further from it than the dividend, and below the
-    // divisor's size — at most its size once a brain16 rounds. A divisor
-    // of 0.0 is its own site, before this.
-    if *op == BinOp::ModTrunc {
+    // What a whole quotient leaves over is never past the divisor's size
+    // (at most its size once a narrow width rounds). `mod.trunc` is C's
+    // `fmod`, exact at every width: on the dividend's side of zero and
+    // never further from it than the dividend. `mod.floor` takes the
+    // divisor's sign, `mod.ceil` its other one; on the dividend's side
+    // they are `fmod` too. A divisor of 0.0 is its own site, before this.
+    if let BinOp::Mod(r) = op {
         let m = b.0.abs().max(b.1.abs());
         if !m.is_finite() || !a.0.is_finite() || !a.1.is_finite() {
             return None;
         }
-        let lo = if a.0 >= 0.0 { 0.0 } else { a.0.max(-m) };
-        let hi = if a.1 <= 0.0 { 0.0 } else { a.1.min(m) };
+        let (lo, hi) = match r {
+            crate::ast::Round::Trunc => (if a.0 >= 0.0 { 0.0 } else { a.0.max(-m) }, if a.1 <= 0.0 { 0.0 } else { a.1.min(m) }),
+            crate::ast::Round::Floor if b.0 > 0.0 => (0.0, if a.0 >= 0.0 { a.1.min(m) } else { m }),
+            crate::ast::Round::Floor if b.1 < 0.0 => (if a.1 <= 0.0 { a.0.max(-m) } else { -m }, 0.0),
+            crate::ast::Round::Ceil if b.0 > 0.0 => (if a.1 <= 0.0 { a.0.max(-m) } else { -m }, 0.0),
+            crate::ast::Round::Ceil if b.1 < 0.0 => (0.0, if a.0 >= 0.0 { a.1.min(m) } else { m }),
+            crate::ast::Round::Near => return None,
+            _ => (-m, m),
+        };
         return Some(Domain::Bins { lo: Some(lo), hi: Some(hi) });
     }
     let corners = [(a.0, b.0), (a.0, b.1), (a.1, b.0), (a.1, b.1)];
@@ -3264,13 +3271,13 @@ pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Opti
             BinOp::Add => x + y,
             BinOp::Sub => x - y,
             BinOp::Mul => x * y,
-            BinOp::Div => x / y,
+            BinOp::Div(_) => x / y,
             // A power only between two known values: it is not monotone.
             BinOp::Pow if a.0 == a.1 && b.0 == b.1 => x.powf(y),
             _ => f64::NAN,
         }
     };
-    if matches!(op, BinOp::Div) && b.0 <= 0.0 && b.1 >= 0.0 {
+    if op.is_div() && b.0 <= 0.0 && b.1 >= 0.0 {
         return None;
     }
     let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
@@ -3295,6 +3302,9 @@ pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Opti
     };
     let widen = |v: f64| v.abs() * 2f64.powi(-mantissa) + tiny;
     let (lo, hi) = (lo - widen(lo), hi + widen(hi));
+    // A whole quotient: the true one's floor or ceiling, a step either way
+    // for the rounding of `(x - r) / y`.
+    let (lo, hi) = if matches!(op, BinOp::Div(r) if *r != crate::ast::Round::Near) { (lo.floor() - 1.0, hi.ceil() + 1.0) } else { (lo, hi) };
     let max = crate::mir::domain::bin_max(crate::types::BinW::Fixed(bits))?;
     if lo < -max || hi > max {
         return None;
@@ -3392,8 +3402,8 @@ fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
                 (BinOp::Sub, Some(Domain::Ints(y))) => a.sub(y),
                 (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
                 (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
-                (BinOp::Div, Some(Domain::Ints(y))) => a.div_floor(y),
-                (BinOp::DivTrunc, Some(Domain::Ints(y))) => a.div_trunc(y),
+                (BinOp::Div(r), Some(Domain::Ints(y))) => a.div_round(y, *r),
+                (BinOp::Mod(r), Some(Domain::Ints(y))) => a.mod_round(y, *r),
                 (BinOp::Sub, None) => a.neg(),
                 _ => return None,
             };

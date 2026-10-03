@@ -13,5 +13,5 @@ MAIN {
     let 'p' := 'h' xx~ 'n';
     let 'q': uint8 = 7;
     let 'r' := 'q' xx~ 'n';
-    nocheck exit[to.int32[('p' mod 256) + ('r' mod 8)]];
+    nocheck exit[to.int32[('p' mod.floor 256) + ('r' mod.floor 8)]];
 }

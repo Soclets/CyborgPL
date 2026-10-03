@@ -25,6 +25,6 @@ MAIN {
     let 'k4' := to.int32['q'] otherwise -1;
     let 'k5' := to.int32['h'] otherwise -1;
     let 'k6' := to.int32['back'] otherwise -1;
-    let 'total' := 'n' + ('cc' mod 1000) + str.bytes[lend 's'] + str.bytes[lend 't'] + 'k1' + ('k2' mod 1000) + 'k3' + ('k4' mod 1000) + 'k5' + 'k6';
-    nocheck exit[to.int32['total' mod 256]];
+    let 'total' := 'n' + ('cc' mod.floor 1000) + str.bytes[lend 's'] + str.bytes[lend 't'] + 'k1' + ('k2' mod.floor 1000) + 'k3' + ('k4' mod.floor 1000) + 'k5' + 'k6';
+    nocheck exit[to.int32['total' mod.floor 256]];
 }

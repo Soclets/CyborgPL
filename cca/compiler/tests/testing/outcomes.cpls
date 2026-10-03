@@ -2,8 +2,8 @@
 # it: outcomes.test-out, the oracle's words but for a check that fires, which
 # CCA says in its own. A test goes on after its `must.stop` (after_stop).
 fn half ['n': int32] -> int32 or fail[odd] {
-    if ('n' mod 2) == 1 { fail odd; }
-    return 'n' div 2;
+    if ('n' mod.floor 2) == 1 { fail odd; }
+    return 'n' div.floor 2;
 }
 test fn plain_bool [] {
     let 'b': bool = false;

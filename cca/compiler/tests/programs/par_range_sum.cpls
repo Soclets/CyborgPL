@@ -11,8 +11,8 @@ MAIN {
     }
     let mut 'acc': int64 = 0;
     for 'i': int64 in range[1, 'n'] {
-        change 'acc' = 'acc' + (('i' x 'i') mod 7);
+        change 'acc' = 'acc' + (('i' x 'i') mod.floor 7);
     }
-    let 'h': int32 = to.int32['half' div 1000.0] otherwise 1;
-    nocheck exit[to.int32[('acc' + to.int64['h']) mod 256]];
+    let 'h': int32 = to.int32['half' div.near 1000.0] otherwise 1;
+    nocheck exit[to.int32[('acc' + to.int64['h']) mod.floor 256]];
 }

@@ -1,6 +1,6 @@
 //! Expressions, places, calls, verbs, conversions, `otherwise`.
 
-use crate::ast::{self, Arg as AArg, BinOp, ExprKind as AK, UnOp, Verb};
+use crate::ast::{self, Arg as AArg, BinOp, ExprKind as AK, Round, UnOp, Verb};
 use crate::diag::{err, Diagnostic, Result};
 use crate::hir::{self, Arg, Builtin, Callee, Expr, ExprKind as K, Local, LocalKind, Place, Proj};
 use crate::resolve::{FnId, ItemRef};
@@ -867,7 +867,7 @@ impl Checker {
             return self.simd_binary(op, op_span, l, r, &lt, &rt, span);
         }
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc => {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_) => {
                 if lt.base() == &Ty::Duration || rt.base() == &Ty::Duration {
                     if !(lt.base() == &Ty::Duration && rt.base() == &Ty::Duration) || !matches!(op, BinOp::Add | BinOp::Sub) {
                         if matches!(op, BinOp::Mul) && (lt.is_int() || rt.is_int()) {
@@ -878,7 +878,7 @@ impl Checker {
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Duration, span });
                 }
                 let (l, r, ty) = self.numeric_pair(ctx, l, r, op, op_span)?;
-                self.trunc_takes(op, op_span, &ty)?;
+                self.rounding_takes(op, op_span, &ty)?;
                 if *op == BinOp::Pow && ty.is_int() {
                     if let K::Int(e) = &r.kind {
                         if *e < 0 {
@@ -1146,10 +1146,10 @@ impl Checker {
         };
         let lane_r = self.resolve(&lane);
         let ok = match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => lane_r.is_numeric(),
-            BinOp::DivTrunc | BinOp::ModTrunc => {
-                self.trunc_takes(op, op_span, &lane_r)?;
-                true
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => lane_r.is_numeric(),
+            BinOp::Div(_) | BinOp::Mod(_) => {
+                self.rounding_takes(op, op_span, &lane_r)?;
+                lane_r.is_numeric()
             }
             BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
             BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => lane_r.is_numeric() || lane_r.base() == &Ty::Bool,
@@ -1274,20 +1274,32 @@ impl Checker {
     }
 
     /// Both sides of a numeric operator: one family; a literal adopts the other's.
-    /// `div.trunc` takes integers; `mod.trunc` integers, bins and brain16
-    /// (owner, 2026-10-02). The rest have only the floored `div` and `mod`.
-    fn trunc_takes(&self, op: &BinOp, op_span: Span, ty: &Ty) -> Result<()> {
+    /// Every division says how it rounds (owner, 2026-10-02): a bare `div`
+    /// or `mod` is refused naming what it did on this family, and
+    /// `mod.near` on a number with a fraction leaves nothing over.
+    fn rounding_takes(&self, op: &BinOp, op_span: Span, ty: &Ty) -> Result<()> {
         let t = self.resolve(ty);
-        let ok = match op {
-            BinOp::DivTrunc => t.is_int(),
-            BinOp::ModTrunc => t.is_int() || matches!(t.base(), Ty::Bin(_) | Ty::Brain),
-            _ => true,
-        };
-        if ok {
-            return Ok(());
+        let fraction = matches!(t.base(), Ty::Bin(_) | Ty::Brain | Ty::Deci(_));
+        match op {
+            BinOp::Div(Round::Bare) | BinOp::Mod(Round::Bare) => {
+                let w = if op.is_div() { "div" } else { "mod" };
+                let (meant, why) = match (op.is_div(), fraction) {
+                    (true, false) => ("div.floor", "what `div` did on whole numbers"),
+                    (true, true) => ("div.near", "ordinary division"),
+                    (false, _) => ("mod.floor", "what `mod` did, the divisor's sign"),
+                };
+                err(Diagnostic::error(format!("say how `{w}` rounds: `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near` — `{meant}` is {why}")).at(op_span))
+            }
+            BinOp::Mod(Round::Near) if fraction => {
+                let family = match t.base() {
+                    Ty::Deci(_) => "decis",
+                    Ty::Brain => "brain16",
+                    _ => "bins",
+                };
+                err(Diagnostic::error(format!("`mod.near` on {family} leaves nothing over: `div.near` there is ordinary division — for what a whole quotient leaves, `mod.floor`, `mod.ceil` or `mod.trunc`")).at(op_span))
+            }
+            _ => Ok(()),
         }
-        let (plain, takes) = if *op == BinOp::DivTrunc { ("div", "integers") } else { ("mod", "integers, bins and brain16") };
-        err(Diagnostic::error(format!("`{}` takes {}, and this is {}: write `{}`", op.spelled(), takes, article(&self.spell(&t)), plain)).at(op_span))
     }
 
     fn numeric_pair(&mut self, ctx: &mut FnCtx, l: Expr, r: Expr, op: &BinOp, op_span: Span) -> Result<(Expr, Expr, Ty)> {
@@ -1327,7 +1339,7 @@ impl Checker {
         // answer is the exact type, checked when it is stored, passed or
         // returned. Only bare numbers alone stay without a type: they are
         // worked out at compile time.
-        let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow) || op.is_comparison();
+        let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) || op.is_comparison();
         // Bare numbers compared with bare numbers are worked out exactly
         // too: `3876992840477302775 + 7782534087963747351 > 0` is true — the
         // sum is one some 64-bit type holds — not a sum held at `int64`
@@ -1364,7 +1376,7 @@ impl Checker {
         // The division is then exact as well, and lands where it is stored
         // — as `'p' + (…)` already does. A lone literal still takes the
         // other side's type.
-        if matches!(op, BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc) {
+        if matches!(op, BinOp::Div(_) | BinOp::Mod(_)) {
             let group = |e: &Expr, t: &Ty| matches!(t.base(), Ty::Int(IntW::Free(_))) && literal_only(e) && !is_int_literal(e);
             let fixed = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { .. }));
             if (group(&l, &lt) && fixed(&rt)) || (group(&r, &rt) && fixed(&lt)) {
@@ -1432,9 +1444,8 @@ impl Checker {
             into_brain(&mut l);
         }
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod | BinOp::Pow | BinOp::ModTrunc => {}
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) | BinOp::Pow => {}
             _ if op.is_comparison() => {}
-            BinOp::DivTrunc => self.trunc_takes(op, op_span, &Ty::Brain)?,
             _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a brain16 is not one", op.spelled())).at(op_span)),
         }
         let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
@@ -1487,10 +1498,8 @@ impl Checker {
         }
         let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
         match op {
-            // `mod` takes the divisor's sign (owner, 2026-09-29).
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div | BinOp::Mod => {}
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) => {}
             _ if op.is_comparison() => {}
-            BinOp::DivTrunc | BinOp::ModTrunc => self.trunc_takes(op, op_span, &Ty::Deci(64))?,
             _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a deci is not one", op.spelled())).at(op_span)),
         }
         match (lt.base(), rt.base()) {
@@ -3589,7 +3598,7 @@ fn builtin_subject(b: &Builtin) -> &'static str {
 /// claude, attack a). Shifts, bitwise and wrapping take the place's width.
 fn plain_group(e: &Expr) -> bool {
     match &e.kind {
-        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc) && plain_group(lhs) && plain_group(rhs),
+        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) && plain_group(lhs) && plain_group(rhs),
         K::Unary { op: UnOp::Neg, expr } => plain_group(expr),
         K::Int(_) => true,
         _ => false,
@@ -3615,7 +3624,7 @@ fn deci_group(e: &Expr) -> bool {
         K::Int(_) => matches!(e.ty.base(), Ty::Int(IntW::Free(_))) || e.ty.is_exact(),
         K::Bin(_) => matches!(e.ty.base(), Ty::Bin(BinW::Free(_)) | Ty::Deci(EXACT_FREE)),
         K::Unary { op: UnOp::Neg, expr } => deci_group(expr),
-        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div, lhs, rhs, .. } => deci_group(lhs) && deci_group(rhs),
+        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(Round::Near), lhs, rhs, .. } => deci_group(lhs) && deci_group(rhs),
         _ => false,
     }
 }
@@ -3660,7 +3669,7 @@ fn literal_only(e: &Expr) -> bool {
         // arithmetic, shifts, bitwise, wrapping.
         K::Binary { op, lhs, rhs, .. } => {
             use crate::ast::BinOp as B;
-            matches!(op, B::Add | B::Sub | B::Mul | B::Pow | B::Div | B::Mod | B::Shl | B::Shr | B::AndBit | B::OrBit | B::Xor | B::WrapAdd | B::WrapSub | B::WrapMul | B::WrapPow) && literal_only(lhs) && literal_only(rhs)
+            matches!(op, B::Add | B::Sub | B::Mul | B::Pow | B::Div(_) | B::Mod(_) | B::Shl | B::Shr | B::AndBit | B::OrBit | B::Xor | B::WrapAdd | B::WrapSub | B::WrapMul | B::WrapPow) && literal_only(lhs) && literal_only(rhs)
         }
         K::Unary { op: crate::ast::UnOp::NotBit, expr } => literal_only(expr),
         _ => false,
@@ -3825,14 +3834,6 @@ impl Checker {
                 hargs.push(Arg::Value(v));
                 Ty::Channel(Box::new(Ty::Duration))
             }
-            "div.trunc" | "mod.trunc" => {
-                let a = self.expr(ctx, positional[0])?;
-                let b = self.expr(ctx, positional[1])?;
-                let t = self.resolve(&a.ty);
-                hargs.push(Arg::Value(a));
-                hargs.push(Arg::Value(b));
-                t
-            }
             "round" | "floor" | "ceil" | "trunc" => {
                 let a = self.expr(ctx, positional[0])?;
                 let a = self.as_operand(ctx, a)?;
@@ -3958,7 +3959,7 @@ fn bare_number_group(e: &Expr) -> bool {
         K::Int(_) => matches!(e.ty.base(), Ty::Int(IntW::Free(_))),
         K::Bin(_) => matches!(e.ty.base(), Ty::Bin(BinW::Free(_))),
         K::Unary { op: UnOp::Neg, expr } => bare_number_group(expr),
-        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div, lhs, rhs, .. } => bare_number_group(lhs) && bare_number_group(rhs),
+        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(Round::Near), lhs, rhs, .. } => bare_number_group(lhs) && bare_number_group(rhs),
         _ => false,
     }
 }

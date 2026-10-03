@@ -1688,10 +1688,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 BinOp::WrapAdd => self.builder.build_int_add(x, y, "wadd").ok()?,
                 BinOp::WrapSub => self.builder.build_int_sub(x, y, "wsub").ok()?,
                 BinOp::WrapMul => self.builder.build_int_mul(x, y, "wmul").ok()?,
-                // `/` floors and `mod` takes the divisor's sign
-                // (`operators.md`): `-7 / 2 = -4`, `-7 mod 2 = 1`. Unsigned,
-                // the hardware's answer already is that.
-                BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc => {
+                // Each rounds as named (`operators.md`): `-7 div.floor 2 =
+                // -4`, `-7 mod.floor 2 = 1`, `-7 div.trunc 2 = -3`.
+                BinOp::Div(round) | BinOp::Mod(round) => {
                     // A zero divisor, and the lowest signed value divided by
                     // -1, are both undefined to LLVM: checked before the
                     // divide, never after.
@@ -1699,7 +1698,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         let zero = self.builder.build_int_compare(IntPredicate::EQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                         self.guard(fi, s, zero, func)?;
                     }
-                    if let (true, Some(s)) = (signed, site) {
+                    if let (true, true, Some(s)) = (op.is_div(), signed, site) {
                         let bits = x.get_type().get_bit_width();
                         // The lowest value at this width, any width.
                         let min = const_i128(x.get_type(), if bits >= 128 { i128::MIN } else { -(1i128 << (bits - 1)) });
@@ -1708,15 +1707,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         let both = self.builder.build_and(is_min, by_m1, "min_by_m1").ok()?;
                         self.guard(fi, s, both, func)?;
                     }
-                    match (op, signed) {
-                        (BinOp::Div | BinOp::DivTrunc, false) => self.builder.build_int_unsigned_div(x, y, "div").ok()?,
-                        (_, false) => self.builder.build_int_unsigned_rem(x, y, "rem").ok()?,
-                        (BinOp::Div, true) => self.floor_div(x, y, false)?,
-                        (BinOp::Mod, true) => self.floor_div(x, y, true)?,
-                        // Rounding toward zero is the hardware's own.
-                        (BinOp::DivTrunc, true) => self.builder.build_int_signed_div(x, y, "div_trunc").ok()?,
-                        _ => self.trunc_rem(x, y)?,
+                    let (v, stepped) = self.div_round(x, y, signed, op.is_mod(), *round)?;
+                    // Unsigned, what a step up leaves is below 0.
+                    if let (false, true, Some(s)) = (signed, op.is_mod(), site) {
+                        self.guard(fi, s, stepped, func)?;
                     }
+                    v
                 }
                 BinOp::AndBit | BinOp::And => self.builder.build_and(x, y, "and").ok()?,
                 BinOp::OrBit | BinOp::Or => self.builder.build_or(x, y, "or").ok()?,
@@ -1761,54 +1757,20 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // A bin never holds an infinity or a NaN (owner, 2026-09-29):
             // a zero divisor is asked first, then whether the answer is a
             // real number — `r - r` is 0 only for a finite `r`.
-            if let (BinOp::Div | BinOp::Mod | BinOp::ModTrunc, Some(s)) = (op, divzero) {
+            if let (BinOp::Div(_) | BinOp::Mod(_), Some(s)) = (op, divzero) {
                 let zero = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                 self.guard(fi, s, zero, func)?;
             }
-            // `mod` takes the divisor's sign, on a bin as on an integer (owner,
-            // 2026-10-02: a): the hardware's remainder, moved by the divisor
-            // when the two differ, and a zero with the divisor's sign. A
-            // brain16 is worked at 32 bits, then rounded. A tiny negative
-            // over a large divisor that rounds up to the divisor itself is 0,
-            // so the answer is always below it (owner, 2026-10-02: b).
-            // `mod.trunc` is C's `fmod`: the hardware's remainder, the
-            // dividend's sign, never past the divisor, so nothing to move.
-            if matches!(op, BinOp::ModTrunc) {
-                let t = x.get_type();
-                if t == self.ctx.bf16_type() || t == self.ctx.f16_type() {
-                    let f32t = self.ctx.f32_type();
-                    let (xw, yw) = (self.builder.build_float_ext(x, f32t, "x32").ok()?, self.builder.build_float_ext(y, f32t, "y32").ok()?);
-                    let r = self.builder.build_float_rem(xw, yw, "frem").ok()?;
-                    return Some(self.float_cast(r, t)?.into());
+            // A whole quotient, and what it leaves over (`div.near` is the
+            // ordinary division, below).
+            if let BinOp::Div(round) | BinOp::Mod(round) = op {
+                if *round != crate::ast::Round::Near {
+                    let v = self.bin_div_round(x, y, op.is_mod(), *round)?;
+                    if let (Some(s), false) = (overflow, op.is_mod()) {
+                        self.bin_finite_guard(fi, s, v, func)?;
+                    }
+                    return Some(v.into());
                 }
-                return Some(self.builder.build_float_rem(x, y, "frem").ok()?.into());
-            }
-            if matches!(op, BinOp::Mod) {
-                let t = x.get_type();
-                let wide = t == self.ctx.bf16_type() || t == self.ctx.f16_type();
-                let (xw, yw) = if wide {
-                    let f32t = self.ctx.f32_type();
-                    (self.builder.build_float_ext(x, f32t, "x32").ok()?, self.builder.build_float_ext(y, f32t, "y32").ok()?)
-                } else {
-                    (x, y)
-                };
-                let r = self.builder.build_float_rem(xw, yw, "frem").ok()?;
-                let zero = r.get_type().const_zero();
-                let nonzero = self.builder.build_float_compare(FP::ONE, r, zero, "inexact").ok()?;
-                let r_neg = self.builder.build_float_compare(FP::OLT, r, zero, "rneg").ok()?;
-                let y_neg = self.builder.build_float_compare(FP::OLT, yw, zero, "yneg").ok()?;
-                let differ = self.builder.build_xor(r_neg, y_neg, "differ").ok()?;
-                let fix = self.builder.build_and(nonzero, differ, "fix").ok()?;
-                let moved = self.builder.build_float_add(r, yw, "moved").ok()?;
-                let m = self.builder.build_select(fix, moved, r, "mod").ok()?.into_float_value();
-                let reached = self.builder.build_float_compare(FP::OEQ, m, yw, "reached_divisor").ok()?;
-                let m = self.builder.build_select(reached, zero, m, "below_divisor").ok()?.into_float_value();
-                let cs = inkwell::intrinsics::Intrinsic::find("llvm.copysign")?.get_declaration(self.module, &[m.get_type().into()])?;
-                let signed_zero = basic_result(self.builder.build_call(cs, &[zero.into(), yw.into()], "zero").ok()?)?.into_float_value();
-                let is_zero = self.builder.build_float_compare(FP::OEQ, m, zero, "is_zero").ok()?;
-                let m = self.builder.build_select(is_zero, signed_zero, m, "mod").ok()?.into_float_value();
-                let m = if wide { self.float_cast(m, t)? } else { m };
-                return Some(m.into());
             }
             if matches!(op, BinOp::Pow) {
                 let id = inkwell::intrinsics::Intrinsic::find("llvm.pow")?;
@@ -1823,7 +1785,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 BinOp::Add => self.builder.build_float_add(x, y, "fadd").ok()?.into(),
                 BinOp::Sub => self.builder.build_float_sub(x, y, "fsub").ok()?.into(),
                 BinOp::Mul => self.builder.build_float_mul(x, y, "fmul").ok()?.into(),
-                BinOp::Div => self.builder.build_float_div(x, y, "fdiv").ok()?.into(),
+                BinOp::Div(_) => self.builder.build_float_div(x, y, "fdiv").ok()?.into(),
                 BinOp::Eq => self.builder.build_float_compare(FP::OEQ, x, y, "feq").ok()?.into(),
                 BinOp::Ne => self.builder.build_float_compare(FP::ONE, x, y, "fne").ok()?.into(),
                 BinOp::Lt => self.builder.build_float_compare(FP::OLT, x, y, "flt").ok()?.into(),
@@ -1836,7 +1798,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             };
             if let (Some(s), BasicValueEnum::FloatValue(rv)) = (overflow, r) {
-                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div) {
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_)) {
                     self.bin_finite_guard(fi, s, rv, func)?;
                 }
             }
@@ -1941,34 +1903,182 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let _ = self.guard(fi, s, out, func);
     }
 
-    fn floor_div(&mut self, x: IntValue<'ctx>, y: IntValue<'ctx>, want_mod: bool) -> Option<IntValue<'ctx>> {
-        if want_mod {
-            let r = self.trunc_rem(x, y)?;
-            let zero = x.get_type().const_zero();
-            let nonzero = self.builder.build_int_compare(IntPredicate::NE, r, zero, "inexact").ok()?;
-            let r_neg = self.builder.build_int_compare(IntPredicate::SLT, r, zero, "rneg").ok()?;
-            let y_neg = self.builder.build_int_compare(IntPredicate::SLT, y, zero, "yneg").ok()?;
-            let differ = self.builder.build_xor(r_neg, y_neg, "differ").ok()?;
-            let fix = self.builder.build_and(nonzero, differ, "fix").ok()?;
-            let moved = self.builder.build_int_add(r, y, "moved").ok()?;
-            return Some(self.builder.build_select(fix, moved, r, "mod").ok()?.into_int_value());
-        }
-        let q = self.builder.build_int_signed_div(x, y, "q").ok()?;
-        let r = self.builder.build_int_signed_rem(x, y, "r").ok()?;
-        let zero = x.get_type().const_zero();
-        let nonzero = self.builder.build_int_compare(IntPredicate::NE, r, zero, "inexact").ok()?;
-        let r_neg = self.builder.build_int_compare(IntPredicate::SLT, r, zero, "rneg").ok()?;
-        let y_neg = self.builder.build_int_compare(IntPredicate::SLT, y, zero, "yneg").ok()?;
-        let differ = self.builder.build_xor(r_neg, y_neg, "differ").ok()?;
-        let fix = self.builder.build_and(nonzero, differ, "fix").ok()?;
-        if want_mod {
-            let moved = self.builder.build_int_add(r, y, "moved").ok()?;
-            Some(self.builder.build_select(fix, moved, r, "mod").ok()?.into_int_value())
+    /// `div.X` or `mod.X` on whole numbers (`operators.md`): the hardware's
+    /// truncated quotient and remainder, then one step where the rounding
+    /// asks — up (`q + 1`, `r - y`) when the remainder and the divisor share
+    /// a sign, down (`q - 1`, `r + y`) when not. Also whether it stepped,
+    /// which an unsigned `mod.ceil` / `mod.near` needs: it is then below 0.
+    /// A zero divisor and the lowest value by -1 are the caller's to stop
+    /// first; a remainder never divides by -1 (`trunc_rem`).
+    fn div_round(&mut self, x: IntValue<'ctx>, y: IntValue<'ctx>, signed: bool, want_mod: bool, round: crate::ast::Round) -> Option<(IntValue<'ctx>, IntValue<'ctx>)> {
+        use crate::ast::Round;
+        let t = x.get_type();
+        let zero = t.const_zero();
+        let one = t.const_int(1, false);
+        let b = &self.builder;
+        let (q, m) = if signed {
+            // A remainder's quotient only for its parity: by -1 asked as
+            // by 1 too, where the remainder is 0 and nothing steps.
+            let q = if want_mod {
+                let by_m1 = b.build_int_compare(IntPredicate::EQ, y, t.const_all_ones(), "by_m1").ok()?;
+                let by = b.build_select(by_m1, one, y, "div_by").ok()?.into_int_value();
+                b.build_int_signed_div(x, by, "q").ok()?
+            } else {
+                b.build_int_signed_div(x, y, "q").ok()?
+            };
+            (q, self.trunc_rem(x, y)?)
         } else {
-            let one = x.get_type().const_int(1, false);
-            let lower = self.builder.build_int_sub(q, one, "lower").ok()?;
-            Some(self.builder.build_select(fix, lower, q, "div").ok()?.into_int_value())
+            (b.build_int_unsigned_div(x, y, "q").ok()?, b.build_int_unsigned_rem(x, y, "r").ok()?)
+        };
+        let b = &self.builder;
+        let no = self.ctx.bool_type().const_zero();
+        if matches!(round, Round::Trunc) || (!signed && matches!(round, Round::Floor | Round::Bare)) {
+            return Some((if want_mod { m } else { q }, no));
         }
+        let nz = b.build_int_compare(IntPredicate::NE, m, zero, "inexact").ok()?;
+        let up = if signed {
+            let m_neg = b.build_int_compare(IntPredicate::SLT, m, zero, "rneg").ok()?;
+            let y_neg = b.build_int_compare(IntPredicate::SLT, y, zero, "yneg").ok()?;
+            b.build_not(b.build_xor(m_neg, y_neg, "differ").ok()?, "up").ok()?
+        } else {
+            self.ctx.bool_type().const_all_ones()
+        };
+        let step = match round {
+            Round::Floor | Round::Bare => b.build_and(nz, b.build_not(up, "down").ok()?, "step").ok()?,
+            Round::Ceil => b.build_and(nz, up, "step").ok()?,
+            _ => {
+                // The nearer whole number: |r| against |y| - |r|, unsigned,
+                // a tie to the even quotient.
+                let (am, ay) = if signed {
+                    let neg = |v: IntValue<'ctx>, n: &str| -> Option<IntValue<'ctx>> {
+                        let is_neg = b.build_int_compare(IntPredicate::SLT, v, zero, n).ok()?;
+                        let flipped = b.build_int_sub(zero, v, n).ok()?;
+                        Some(b.build_select(is_neg, flipped, v, n).ok()?.into_int_value())
+                    };
+                    (neg(m, "abs_r")?, neg(y, "abs_y")?)
+                } else {
+                    (m, y)
+                };
+                let rest = b.build_int_sub(ay, am, "rest").ok()?;
+                let past = b.build_int_compare(IntPredicate::UGT, am, rest, "past_half").ok()?;
+                let tie = b.build_int_compare(IntPredicate::EQ, am, rest, "tie").ok()?;
+                let odd = b.build_int_truncate(q, self.ctx.bool_type(), "odd").ok()?;
+                let tie_odd = b.build_and(tie, odd, "tie_odd").ok()?;
+                b.build_and(nz, b.build_or(past, tie_odd, "nearer").ok()?, "step").ok()?
+            }
+        };
+        let v = if want_mod {
+            let lower = b.build_int_sub(m, y, "r_up").ok()?;
+            let higher = b.build_int_add(m, y, "r_down").ok()?;
+            let moved = b.build_select(up, lower, higher, "r_step").ok()?;
+            b.build_select(step, moved, m.into(), "mod").ok()?.into_int_value()
+        } else {
+            let higher = b.build_int_add(q, one, "q_up").ok()?;
+            let lower = b.build_int_sub(q, one, "q_down").ok()?;
+            let moved = b.build_select(up, higher, lower, "q_step").ok()?;
+            b.build_select(step, moved, q.into(), "div").ok()?.into_int_value()
+        };
+        Some((v, step))
+    }
+
+    /// `div.X` / `mod.X` on a bin or brain16, `X` not `near` (`operators.md`),
+    /// as the oracle works them (0d25799): `fmod`, the quotient `(x - r) / y`
+    /// rounded to a whole number, then one step for `floor` (`q - 1`, `r +
+    /// y`, when the remainder's sign is not the divisor's) or `ceil` (`q +
+    /// 1`, `r - y`, when it is): the true quotient, rounded as named. A
+    /// remainder the step brings to the divisor's size is 0 (owner,
+    /// 2026-10-02: b), so it stays below it; `mod.floor`'s 0 takes the
+    /// divisor's sign, `mod.ceil`'s is `+0`, any other is `fmod`'s.
+    /// A brain16 or bin16 is worked at 32 bits, as its other arithmetic is,
+    /// and its remainder asked again at its own width, where one more can
+    /// round to the divisor.
+    fn bin_div_round(&mut self, x: inkwell::values::FloatValue<'ctx>, y: inkwell::values::FloatValue<'ctx>, want_mod: bool, round: crate::ast::Round) -> Option<inkwell::values::FloatValue<'ctx>> {
+        use crate::ast::Round;
+        use inkwell::FloatPredicate as FP;
+        let t = x.get_type();
+        let wide = t == self.ctx.bf16_type() || t == self.ctx.f16_type();
+        let wt = if wide { self.ctx.f32_type() } else { t };
+        let (xw, yw) = if wide {
+            (self.builder.build_float_ext(x, wt, "x32").ok()?, self.builder.build_float_ext(y, wt, "y32").ok()?)
+        } else {
+            (x, y)
+        };
+        let b = &self.builder;
+        let zero = wt.const_zero();
+        let m = b.build_float_rem(xw, yw, "frem").ok()?;
+        // The step; a remainder it brings to the divisor's size is 0.
+        let mut stepped = None;
+        let m = if round == Round::Trunc {
+            m
+        } else {
+            let nz = b.build_float_compare(FP::ONE, m, zero, "inexact").ok()?;
+            let m_neg = b.build_float_compare(FP::OLT, m, zero, "rneg").ok()?;
+            let y_neg = b.build_float_compare(FP::OLT, yw, zero, "yneg").ok()?;
+            let differ = b.build_xor(m_neg, y_neg, "differ").ok()?;
+            let (step, moved, edge) = if round == Round::Ceil {
+                (b.build_and(nz, b.build_not(differ, "same").ok()?, "step").ok()?, b.build_float_sub(m, yw, "r_up").ok()?, b.build_float_neg(yw, "neg_y").ok()?)
+            } else {
+                (b.build_and(nz, differ, "step").ok()?, b.build_float_add(m, yw, "r_down").ok()?, yw)
+            };
+            let reached = b.build_float_compare(FP::OEQ, moved, edge, "reached_divisor").ok()?;
+            let on_edge = b.build_and(step, reached, "on_edge").ok()?;
+            let m = b.build_select(step, moved, m, "r_step").ok()?.into_float_value();
+            let m = b.build_select(on_edge, zero, m, "below_divisor").ok()?.into_float_value();
+            stepped = Some(step);
+            m
+        };
+        if want_mod {
+            let m = if wide { self.float_cast(m, t)? } else { m };
+            if round == Round::Trunc {
+                return Some(m);
+            }
+            // At the type's own width, and `mod.floor`'s 0 by the divisor.
+            return self.remainder_rule_after(m, y, round);
+        }
+        let b = &self.builder;
+        let fm = b.build_float_rem(xw, yw, "fmod").ok()?;
+        let less = b.build_float_sub(xw, fm, "whole_part").ok()?;
+        let q = b.build_float_div(less, yw, "q").ok()?;
+        let even = inkwell::intrinsics::Intrinsic::find("llvm.roundeven")?.get_declaration(self.module, &[wt.into()])?;
+        let q = basic_result(self.builder.build_call(even, &[q.into()], "q_whole").ok()?)?.into_float_value();
+        let q = match stepped {
+            Some(kept) => {
+                let b = &self.builder;
+                let one = wt.const_float(1.0);
+                let moved = if round == Round::Ceil { b.build_float_add(q, one, "q_up").ok()? } else { b.build_float_sub(q, one, "q_down").ok()? };
+                b.build_select(kept, moved, q, "q_step").ok()?.into_float_value()
+            }
+            None => q,
+        };
+        if wide {
+            self.float_cast(q, t)
+        } else {
+            Some(q)
+        }
+    }
+
+    /// A remainder at the divisor's size is 0: `+0` for `mod.ceil`, the
+    /// divisor's sign for `mod.floor`, whose every 0 takes it.
+    fn remainder_rule_after(&mut self, m: inkwell::values::FloatValue<'ctx>, y: inkwell::values::FloatValue<'ctx>, round: crate::ast::Round) -> Option<inkwell::values::FloatValue<'ctx>> {
+        use crate::ast::Round;
+        use inkwell::FloatPredicate as FP;
+        let t = m.get_type();
+        let tz = t.const_zero();
+        let b = &self.builder;
+        let reached = if round == Round::Ceil {
+            let neg_y = b.build_float_neg(y, "neg_y").ok()?;
+            b.build_float_compare(FP::OEQ, m, neg_y, "reached_divisor").ok()?
+        } else {
+            b.build_float_compare(FP::OEQ, m, y, "reached_divisor").ok()?
+        };
+        let m = b.build_select(reached, tz, m, "below_divisor").ok()?.into_float_value();
+        if round == Round::Ceil {
+            return Some(m);
+        }
+        let cs = inkwell::intrinsics::Intrinsic::find("llvm.copysign")?.get_declaration(self.module, &[t.into()])?;
+        let signed_zero = basic_result(self.builder.build_call(cs, &[tz.into(), y.into()], "zero").ok()?)?.into_float_value();
+        let is_zero = self.builder.build_float_compare(FP::OEQ, m, tz, "is_zero").ok()?;
+        Some(self.builder.build_select(is_zero, signed_zero, m, "mod").ok()?.into_float_value())
     }
 
     /// The hardware's signed remainder, the dividend's sign (`mod.trunc`).
@@ -2034,7 +2144,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 BinOp::Add => self.builder.build_float_add(x, y, "fadd").ok()?.into(),
                 BinOp::Sub => self.builder.build_float_sub(x, y, "fsub").ok()?.into(),
                 BinOp::Mul => self.builder.build_float_mul(x, y, "fmul").ok()?.into(),
-                BinOp::Div => self.builder.build_float_div(x, y, "fdiv").ok()?.into(),
+                BinOp::Div(crate::ast::Round::Near) => self.builder.build_float_div(x, y, "fdiv").ok()?.into(),
                 BinOp::Eq => self.builder.build_float_compare(FP::OEQ, x, y, "feq").ok()?.into(),
                 BinOp::Ne => self.builder.build_float_compare(FP::ONE, x, y, "fne").ok()?.into(),
                 BinOp::Lt => self.builder.build_float_compare(FP::OLT, x, y, "flt").ok()?.into(),
@@ -2049,8 +2159,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // No lane holds an infinity or a NaN (owner, 2026-09-29): a
             // zero divisor in any lane, then any lane's answer not a real
             // number, stops it.
-            if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div) {
-                if let (BinOp::Div, Some(s)) = (op, open(self, &|k| matches!(k, SiteKind::DivZero))) {
+            if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_)) {
+                if let (BinOp::Div(_), Some(s)) = (op, open(self, &|k| matches!(k, SiteKind::DivZero))) {
                     let m = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                     let bad = any(self, m)?;
                     self.guard(fi, s, bad, func)?;
@@ -2099,14 +2209,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             BinOp::WrapAdd => self.builder.build_int_add(x, y, "wadd").ok()?.into(),
             BinOp::WrapSub => self.builder.build_int_sub(x, y, "wsub").ok()?.into(),
             BinOp::WrapMul => self.builder.build_int_mul(x, y, "wmul").ok()?.into(),
-            BinOp::Div | BinOp::Mod | BinOp::DivTrunc | BinOp::ModTrunc => {
+            BinOp::Div(round) | BinOp::Mod(round) => {
                 if let Some(s) = open(self, &|k| matches!(k, SiteKind::DivZero | SiteKind::ModZero)) {
                     let z = self.builder.build_int_compare(IntPredicate::EQ, y, zero, "by_zero").ok()?;
                     let bad = any(self, z)?;
                     self.guard(fi, s, bad, func)?;
                 }
-                if signed {
-                    if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(BinOp::Div | BinOp::DivTrunc))) {
+                if signed && op.is_div() {
+                    if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(BinOp::Div(_)))) {
                         let min = const_i128(vt.get_element_type().into_int_type(), -(1i128 << (bits - 1)));
                         let mins = splat(self, min.into())?;
                         let m1 = splat(self, vt.get_element_type().into_int_type().const_all_ones().into())?;
@@ -2116,43 +2226,26 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         let bad = any(self, both)?;
                         self.guard(fi, s, bad, func)?;
                     }
-                    // Only a division divides: `mod`'s lowest value by -1
-                    // has no check, and dividing it would be undefined.
-                    let q = if op.is_div() { Some(self.builder.build_int_signed_div(x, y, "q").ok()?) } else { None };
-                    if *op == BinOp::DivTrunc {
-                        return Some(q?.into());
-                    }
-                    // The lowest value by -1 is undefined to LLVM: any
-                    // number's remainder by -1 is 0, so -1 is asked as 1.
-                    let lane_t = vt.get_element_type().into_int_type();
-                    let m1 = splat(self, lane_t.const_all_ones().into())?;
-                    let one = splat(self, lane_t.const_int(1, false).into())?;
-                    let by_m1 = self.builder.build_int_compare(IntPredicate::EQ, y, m1, "by_m1").ok()?;
-                    let rem_by = self.builder.build_select(by_m1, one, y, "rem_by").ok()?.into_vector_value();
-                    let rm = self.builder.build_int_signed_rem(x, rem_by, "r").ok()?;
-                    if *op == BinOp::ModTrunc {
-                        return Some(rm.into());
-                    }
-                    // Floored, lane by lane (`operators.md`).
-                    let nz = self.builder.build_int_compare(IntPredicate::NE, rm, zero, "inexact").ok()?;
-                    let rn = self.builder.build_int_compare(IntPredicate::SLT, rm, zero, "rneg").ok()?;
-                    let yn = self.builder.build_int_compare(IntPredicate::SLT, y, zero, "yneg").ok()?;
-                    let differ = self.builder.build_xor(rn, yn, "differ").ok()?;
-                    let fix = self.builder.build_and(nz, differ, "fix").ok()?;
-                    if *op == BinOp::Div {
-                        let one = splat(self, vt.get_element_type().into_int_type().const_int(1, false).into())?;
-                        let q = q?;
-                        let lower = self.builder.build_int_sub(q, one, "lower").ok()?;
-                        self.builder.build_select(fix, lower, q, "div").ok()?
-                    } else {
-                        let moved = self.builder.build_int_add(rm, y, "moved").ok()?;
-                        self.builder.build_select(fix, moved, rm, "mod").ok()?
-                    }
-                } else if op.is_div() {
-                    self.builder.build_int_unsigned_div(x, y, "div").ok()?.into()
-                } else {
-                    self.builder.build_int_unsigned_rem(x, y, "rem").ok()?.into()
                 }
+                // Lane by lane, the scalar rule: no machine divides a
+                // vector of integers in one instruction anyway.
+                let mut out = vt.get_undef();
+                let mut stepped = self.ctx.bool_type().const_zero();
+                for k in 0..vt.get_size() {
+                    let at = self.ctx.i32_type().const_int(k as u64, false);
+                    let xi = self.builder.build_extract_element(x, at, "x_lane").ok()?.into_int_value();
+                    let yi = self.builder.build_extract_element(y, at, "y_lane").ok()?.into_int_value();
+                    let (v, step) = self.div_round(xi, yi, signed, op.is_mod(), *round)?;
+                    stepped = self.builder.build_or(stepped, step, "stepped").ok()?;
+                    out = self.builder.build_insert_element(out, v, at, "lane").ok()?;
+                }
+                // Unsigned, what a step up leaves is below 0.
+                if !signed && op.is_mod() {
+                    if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(BinOp::Mod(_)))) {
+                        self.guard(fi, s, stepped, func)?;
+                    }
+                }
+                out.into()
             }
             // Masks, lane by lane (owner, 2026-09-27: a); both sides are
             // already worked out, as `and` / `or` always are.

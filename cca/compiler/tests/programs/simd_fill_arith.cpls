@@ -8,7 +8,7 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'x': int32 = 5;
     let 'a': simd[int32, 4] = simd.fill['x' + 1];
-    let 'b': simd[int32, 4] = simd.fill[('x' mod 7) - 3];
+    let 'b': simd[int32, 4] = simd.fill[('x' mod.floor 7) - 3];
     let 'c': simd[int16, 8] = simd.fill['x' xx 2];
     let 'd' := simd.fill[5];
     let 'e' := simd.fill['x' + 1];

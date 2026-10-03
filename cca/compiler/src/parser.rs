@@ -2102,6 +2102,21 @@ impl<'a> Parser<'a> {
 
     /// Binding powers. `None` for a token that is not a binary operator here.
     /// The operator after `op`: any a value can be, whatever follows it.
+    /// The rounding after `div` or `mod`, the word already taken: `.floor`,
+    /// `.ceil`, `.trunc` or `.near`, or none — which the checker refuses,
+    /// naming the one meant.
+    fn rounding(&mut self, w: &str) -> Result<Round> {
+        if !self.is(&Tok::Dot) {
+            return Ok(Round::Bare);
+        }
+        self.bump();
+        let what = self.ident("`floor`, `ceil`, `trunc` or `near`")?;
+        match Round::from_word(&what.name) {
+            Some(r) => Ok(r),
+            None => self.fail_at(what.span, format!("no `{w}.{}`: a division rounds as `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near`", what.name)),
+        }
+    }
+
     fn op_as_value(&mut self) -> Result<(BinOp, String)> {
         let at = self.span();
         let op = match self.peek().clone() {
@@ -2110,7 +2125,7 @@ impl<'a> Parser<'a> {
                 match o.as_str() {
                     "+" => BinOp::Add,
                     "-" => BinOp::Sub,
-                    "/" => return self.fail_at(at, "division is `div`: `op div`"),
+                    "/" => return self.fail_at(at, "division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `op div.floor`"),
                     "++" => BinOp::Join,
                     "==" => BinOp::Eq,
                     "!==" => BinOp::Ne,
@@ -2136,16 +2151,10 @@ impl<'a> Parser<'a> {
                     }
                     "x" => BinOp::Mul,
                     "xx" => BinOp::Pow,
-                    "mod" | "div" if self.eat(&Tok::Dot) => {
-                        let what = self.ident("`trunc`")?;
-                        match (w.as_str(), what.name.as_str()) {
-                            ("div", "trunc") => BinOp::DivTrunc,
-                            ("mod", "trunc") => BinOp::ModTrunc,
-                            _ => return self.fail_at(what.span, format!("`{}.{}` is not an operator", w, what.name)),
-                        }
+                    "mod" | "div" => {
+                        let r = self.rounding(&w)?;
+                        if w == "div" { BinOp::Div(r) } else { BinOp::Mod(r) }
                     }
-                    "mod" => BinOp::Mod,
-                    "div" => BinOp::Div,
                     "and" | "or" if self.eat(&Tok::Dot) => {
                         let what = self.ident("`then`, `else` or `bit`")?;
                         match (w.as_str(), what.name.as_str()) {
@@ -2196,10 +2205,9 @@ impl<'a> Parser<'a> {
                     "xx" if wraps => (BinOp::WrapPow, 9, 9),
                     "x" => (BinOp::Mul, 7, 8),
                     "xx" => (BinOp::Pow, 9, 9),
-                    "mod" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::ModTrunc, 7, 8),
-                    "div" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::DivTrunc, 7, 8),
-                    "mod" => (BinOp::Mod, 7, 8),
-                    "div" => (BinOp::Div, 7, 8),
+                    // The rounding word is read when the operator is taken.
+                    "mod" => (BinOp::Mod(Round::Bare), 7, 8),
+                    "div" => (BinOp::Div(Round::Bare), 7, 8),
                     "and" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "then") => (BinOp::AndThen, 2, 3),
                     "or" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "else") => (BinOp::OrElse, 1, 2),
                     "and" if matches!(self.peek_at(1), Tok::Dot) => (BinOp::AndBit, 0, 1),
@@ -2223,7 +2231,7 @@ impl<'a> Parser<'a> {
     fn expr(&mut self, min_bp: u8) -> Result<Expr> {
         let mut lhs = self.prefix()?;
         loop {
-            let Some((op, l_bp, r_bp, op_span)) = self.binop() else { break };
+            let Some((mut op, l_bp, r_bp, op_span)) = self.binop() else { break };
             if l_bp < min_bp {
                 break;
             }
@@ -2237,12 +2245,10 @@ impl<'a> Parser<'a> {
                     self.bump(); // .
                     self.bump(); // then / else
                 }
-                BinOp::DivTrunc | BinOp::ModTrunc => {
-                    self.bump(); // .
-                    let t = self.ident("`trunc`")?;
-                    if t.name != "trunc" {
-                        return self.fail_at(t.span, format!("`{}.{}` is not an operator: the truncating forms are `div.trunc` and `mod.trunc`", op.spelled().trim_end_matches(".trunc"), t.name));
-                    }
+                BinOp::Div(_) | BinOp::Mod(_) => {
+                    let w = if op.is_div() { "div" } else { "mod" };
+                    let r = self.rounding(w)?;
+                    op = if op.is_div() { BinOp::Div(r) } else { BinOp::Mod(r) };
                 }
                 BinOp::AndBit | BinOp::OrBit => {
                     self.bump(); // .
@@ -2263,7 +2269,7 @@ impl<'a> Parser<'a> {
                     "!=" => Some("not-equal is `!==`"),
                     ">=" | ">==" => Some("greater-or-equal is `>/==`, the slash read as \"or\""),
                     "<=" | "<==" => Some("less-or-equal is `</==`, the slash read as \"or\""),
-                    "/" => Some("division is `div`: `'a' div 'b'`"),
+                    "/" => Some("division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `'a' div.floor 'b'`"),
                     "--" => Some("there is no decrement: write `change 'i' = 'i' - 1;`"),
                     "+=" | "-=" => Some("there is no compound assignment: write `change 'i' = 'i' + 1;`"),
                     _ => None,
@@ -2303,10 +2309,10 @@ impl<'a> Parser<'a> {
                 }
                 if op.is_mod() || inner.is_mod() {
                     let m = if op.is_mod() { op.spelled() } else { inner.spelled() };
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`('i' {} 2) == 0`)", inner.spelled(), op.spelled(), m, m));
+                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`('i' {} 2) == 0`)", inner.spelled(), op.spelled(), m, if m.contains('.') { m.clone() } else { format!("{}.floor", m) }));
                 }
                 if (op.is_div() && inner.is_multiplicative()) || (op.is_multiplicative() && inner.is_div()) {
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div 2 x 3`) — parenthesise one side", inner.spelled(), op.spelled()));
+                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div.floor 2 x 3`) — parenthesise one side", inner.spelled(), op.spelled()));
                 }
                 if op.is_comparison() && inner.is_comparison() {
                     return self.fail_at(op_span, format!("`{}` next to `{}`: comparisons do not chain — write `('a' < 'b') and ('b' < 'c')`", inner.spelled(), op.spelled()));

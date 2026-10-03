@@ -35,7 +35,7 @@ MAIN {
     if 'there' { change 'limit' = 50; }
     let 'scores' := [72, 40, 95, 55];
     if count_if[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' >/== 'limit'; }] == 3 { change 'got' = 'got' + 8; }
-    if count_if[lend 'scores', fn ['s': int32] -> bool { return ('s' mod 2) == 0; }] == 2 { change 'got' = 'got' + 16; }
+    if count_if[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) == 0; }] == 2 { change 'got' = 'got' + 16; }
     let 'g' := fn ['s': int32] -> bool with [lend 'limit'] { return 's' < 'limit'; };
     let mut 'h' := 'g';
     if 'there' { change 'h' = fn ['s': int32] -> bool { return 's' > 90; }; }

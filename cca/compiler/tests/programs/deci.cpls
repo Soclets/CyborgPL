@@ -20,7 +20,7 @@ MAIN {
     change 'got' = 'got' + same['h' x 2, "5.00"] + same['h', "2.50"];
     if 'h' x 2 == 5 { change 'got' = 'got' + 1; }
     let 'third': deci64 = 1;
-    change 'got' = 'got' + same['third' div 3, "0.3333333333333333"] + same['h' div 2, "1.25"];
+    change 'got' = 'got' + same['third' div.near 3, "0.3333333333333333"] + same['h' div.near 2, "1.25"];
     let 'e1': deci32 = 1.000005;
     if to.stored.str.utf8['e1' + 0.0000005] == "1.000006" { change 'got' = 'got' + 1; }
     let 'w': bin64 = 0.1;

@@ -31,7 +31,7 @@ fn run [] -> int32 or fail[missing, out_of_range] {
         }
         change 'p' = 'p' + 1;
     }
-    return to.int32['count' mod 256];
+    return to.int32['count' mod.floor 256];
 }
 
 MAIN {

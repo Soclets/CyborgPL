@@ -3,12 +3,12 @@
 # divisor is 4 only because MAIN says so, and four[] is 4 only in four's body,
 # so both are refused; ratio's range says it itself, so it is proven.
 extern.C fn exit ['code': int32];
-fn half ['n': int32] -> int32 { return 100 div 'n'; }
+fn half ['n': int32] -> int32 { return 100 div.floor 'n'; }
 fn four [] -> int32 { return 4; }
-fn ratio ['n': int32[1, max]] -> int32 { return 100 div 'n'; }
+fn ratio ['n': int32[1, max]] -> int32 { return 100 div.floor 'n'; }
 MAIN {
     let immut 'a' := half[4];
-    let immut 'b' := 100 div four[];
+    let immut 'b' := 100 div.floor four[];
     let immut 'c' := ratio[5];
     nocheck exit['a' + 'b' + 'c'];
 }

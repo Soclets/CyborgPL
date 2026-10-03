@@ -6,7 +6,7 @@
 # as an exit code; the closure's 'n' carries a range, so its multiply is
 # proven there too). 100 + (20 + 30) + 25 + 6 = 181.
 extern.C fn exit ['code': int32];
-fn ratio ['n': int32[1, max]] -> int32 { return 100 div 'n'; }
+fn ratio ['n': int32[1, max]] -> int32 { return 100 div.floor 'n'; }
 MAIN {
     let immut 'xs': list[int32] = [10, 20, 30, 40];
     let mut 'total': int32 = 0;

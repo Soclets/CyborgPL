@@ -9,10 +9,10 @@ fn f1 ['p1': int64] -> int32 {
     loop {
         if 'w10' == 0 { break; }
         change 'w10' = 'w10' - 1;
-        let 'v': uint32 = to.uint32['p1' mod 4294967296] shl to.uint32['w10'];
+        let 'v': uint32 = to.uint32['p1' mod.floor 4294967296] shl to.uint32['w10'];
         change 'sum' = 'sum' + to.uint64['v'];
     }
-    return to.int32['sum' mod 100];
+    return to.int32['sum' mod.floor 100];
 }
 MAIN {
     let 'x': int32 = f1[2030534677];

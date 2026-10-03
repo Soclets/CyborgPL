@@ -21,7 +21,7 @@ MAIN {
     let mut 's': int64 = 0;
     for 'k': int64 in range[1, 'n'] {
         if 'a'['k'] == 'b'['k'] { change 'same' = 'same' + 1; }
-        change 's' = ('s' + 'a'['k']) mod 256;
+        change 's' = ('s' + 'a'['k']) mod.floor 256;
     }
     if 'same' !== 'n' { nocheck exit[1]; }
     nocheck exit[to.int32['s']];

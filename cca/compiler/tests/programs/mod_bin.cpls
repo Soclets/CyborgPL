@@ -11,12 +11,12 @@ MAIN {
     let 'h': brain16 = -5.0;
     let 'k': brain16 = 3.0;
     let 'four': bin64 = 4.0;
-    let 'tiny': bin64 = -1.0 div (10.0 xx 20.0);
-    let 'm1' := to.int32['angle' mod 'turn'] otherwise -1;
-    let 'm2' := to.int32[('a' mod 'b') x 10.0] otherwise -1;
-    let 'm3' := to.int32['h' mod 'k'] otherwise -1;
-    let 'z' := to.stored.str.utf8['four' mod 'b'];
+    let 'tiny': bin64 = -1.0 div.near (10.0 xx 20.0);
+    let 'm1' := to.int32['angle' mod.floor 'turn'] otherwise -1;
+    let 'm2' := to.int32[('a' mod.floor 'b') x 10.0] otherwise -1;
+    let 'm3' := to.int32['h' mod.floor 'k'] otherwise -1;
+    let 'z' := to.stored.str.utf8['four' mod.floor 'b'];
     let 'm4' := to.int32[str.bytes[lend 'z']];
-    let 'm5' := to.int32['tiny' mod 'turn'] otherwise -1;
-    nocheck exit[('m1' + 'm2' + 'm3' x 7 + 'm4' x 11 + 'm5') mod 256];
+    let 'm5' := to.int32['tiny' mod.floor 'turn'] otherwise -1;
+    nocheck exit[('m1' + 'm2' + 'm3' x 7 + 'm4' x 11 + 'm5') mod.floor 256];
 }

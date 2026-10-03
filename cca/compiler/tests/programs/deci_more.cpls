@@ -16,9 +16,9 @@ MAIN {
     let mut 'got': int32 = 0;
     let 't': deci64 = 7.50;
     let 'm': deci64 = -7.50;
-    change 'got' = 'got' + same['t' mod 2, "1.50"] + same['m' mod 2, "0.50"] + same['t' mod -2, "-0.50"];
+    change 'got' = 'got' + same['t' mod.floor 2, "1.50"] + same['m' mod.floor 2, "0.50"] + same['t' mod.floor -2, "-0.50"];
     let 'c': deci64 = -4.0;
-    change 'got' = 'got' + same['c' mod 2, "0.0"] + same['c' mod -2, "-0.0"] + same['t' mod 0.7, "0.50"];
+    change 'got' = 'got' + same['c' mod.floor 2, "0.0"] + same['c' mod.floor -2, "-0.0"] + same['t' mod.floor 0.7, "0.50"];
     let 'r': deci64 = 1.05;
     change 'got' = 'got' + same['r' xx 10, "1.628894626777441"] + same['r' xx 0, "1"] + same['r' xx -1, "0.9523809523809524"];
     let 'r2': deci128 = 1.05;

@@ -8,17 +8,17 @@ MAIN {
     let 'n': int64 = 300000;
     let mut 'xs': list[int64] = list.fill[3, 'n'];
     for 'i': int64 in range[1, 'n'] {
-        change 'xs'['i'] = ('xs'['i'] x 7) mod 11;
+        change 'xs'['i'] = ('xs'['i'] x 7) mod.floor 11;
     }
     let mut 'total': int64 = 0;
     for 'x' in lend 'xs' {
-        change 'total' = 'total' + ('x' mod 7);
+        change 'total' = 'total' + ('x' mod.floor 7);
     }
     let mut 'grid': list[int64] = list.fill[0, 2000];
     for 'r': int64 in range[1, 2000] {
         let mut 'row': int64 = 0;
         for 'c': int64 in range[1, 200] {
-            change 'row' = 'row' + (('r' x 'c') mod 5);
+            change 'row' = 'row' + (('r' x 'c') mod.floor 5);
         }
         change 'grid'['r'] = 'row';
     }
@@ -26,5 +26,5 @@ MAIN {
     for 'v' in lend 'grid' {
         change 'g' = 'g' + 'v';
     }
-    nocheck exit[to.int32[('total' + 'g') mod 256]];
+    nocheck exit[to.int32[('total' + 'g') mod.floor 256]];
 }
