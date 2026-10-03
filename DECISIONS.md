@@ -5,6 +5,36 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — The operator words, settled for building: `.wrap`, `op plus`, the symbols refused, `pow` with brackets (owner)
+
+```
+'a' times 'b'     'a' plus 'b'     'a' minus 'b'     -'a'   # a negative keeps the symbol
+'h' times.wrap 31     'n' plus.wrap 1     'n' minus.wrap 1  # were x~ +~ -~
+('a' pow 'b') plus 1      'h' pow.wrap 3                    # std's; were xx, xx~
+op plus ['a': Vec, 'b': Vec] --> Vec { … }                  # a type's own `plus`
+fold[lend 'xs', 0, op plus]                                 # an operator as a value
+```
+
+The owner asked to build the decided `times`/`plus`/`minus` first ("It's
+1-3"), and to ask before building each twin ("Ask first"):
+- A user type's `op + […]`: asked whether it makes a type or says what
+  the language's `+` does for one (the latter; `struct` makes the type);
+  becomes `op plus […]` ("yea").
+- The wrapping forms: (a) leave `+~ -~ x~` for now, recommended, or (b)
+  refuse them; the owner: "design". Proposed (a) `plus~`, (b)
+  `plus.wrap`, recommended (it matches `div.floor` and the owner's
+  `div.trunc.wrap`); the owner: "`b`". `xx~` becomes std's `pow.wrap`
+  ("yea").
+- The old spellings `x`, `+`, two-number `-`, `xx` and the tilde forms:
+  (a) refused naming the word, recommended, or (b) kept as other
+  spellings; the owner asked what binary `-` is (subtraction, two
+  numbers; a negative keeps `-`), then: "`a`".
+- `op +` as a value becomes `op plus`, `op times`, `op minus`; `op neg`
+  stays ("yea").
+- `pow` now with brackets, as a Limb's operator has no level until the
+  `levels` question is settled (a, recommended), or keep `xx` until then
+  (b); the owner: "`a`".
+
 ### 2026-10-03 — The long arrows are the main spelling: `-->` and `<--`; `->` and `<-` are the others (owner)
 
 The owner, after `-->` and `<--` went in as aliases: "Long arrow is main
