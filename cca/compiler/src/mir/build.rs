@@ -1534,7 +1534,21 @@ impl<'a> FnBuilder<'a> {
                     }
                     hir::Callee::Builtin(b) => Callee::Op(builtin_op(b)),
                 };
-                let margs: Vec<Arg> = args.iter().map(|a| self.arg(a, span)).collect();
+                let mut margs: Vec<Arg> = args.iter().map(|a| self.arg(a, span)).collect();
+                // An owned value made only for this call — `show[to.stored.
+                // str.utf8[5]]`, `show[make[]]` — is the function's from
+                // then on: given, as `give` would, so it is not freed here
+                // as well. It was, and the text was freed twice.
+                if matches!(callee, hir::Callee::Fn(_) | hir::Callee::Value(_)) {
+                    for m in margs.iter_mut() {
+                        if let Arg::Value(Operand::Read(p)) = m {
+                            let l = &self.locals[p.local.0 as usize];
+                            if p.proj.is_empty() && l.name.is_none() && l.kind == LocalKind::Owned {
+                                *m = Arg::Give(p.clone());
+                            }
+                        }
+                    }
+                }
                 // Into a parameter is a store like any other: a `uint64`
                 // handed to a `uint8` parameter is a narrowing, and a
                 // narrowing is a check site (`conversion.md`). It was not one.
