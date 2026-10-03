@@ -5945,6 +5945,12 @@ for JetPack, always containing analysable source, never an opaque binary
 that we might add later: alias for `->` as `-->`, `%` infront of every name
 except ones already marked, and what was left unfinished"). Ideas, not
 decisions:
+- **Synthia's messages should be cute** (owner, 2026-10-03: "I think
+  Synthia's messages should be cute. Yes, you fucking heard it, bro").
+  How cute is for when Synthia resumes ("Depends on me when it resumes, I
+  guess"). Shown: (a) the `error:`/`where:`/`fix:` shape kept plus a
+  friendly line, design claude's pick; (b) cute words in the same shape;
+  (c) cute only on success.
 - A sigil in front of every name except the ones already marked (meaning
   not yet asked; the quoted `'x'` names are the marked ones today). First
   `%`; shown both, the owner preferred `^`: "Alot better, fuck %". As
