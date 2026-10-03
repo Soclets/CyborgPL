@@ -196,6 +196,14 @@ owner's order:
 6. **C support** — "though, likely no Quick Fix for C".
 7. **LLVM IR support** — no Quick Fix.
 8. "and other good stuff".
+9. **Two dino games while Precog proves** (owner, 2026-10-03: "we could just
+   let the IDE have two. One where Precog "plays", and the other one where
+   the writer plays"): Chromium's offline dinosaur game, which is open
+   source (Chromium's BSD licence, so it may be bundled with its notice).
+   In one, Precog runs: each cactus jumped is a check proven, a refused site
+   is a crash, and the run ends with the build. In the other, the writer
+   plays while waiting. Design claude's suggestion: a cyborg dino rather
+   than Chrome's own art.
 
 Noted by design claude, not ruled: the description in a code picker
 needs somewhere to come from, and CyborgPL has no doc comments yet; in VS
