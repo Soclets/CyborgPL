@@ -71,14 +71,17 @@ pub struct Parser {
     op_old: std::cell::Cell<bool>,
     /// the oracle's own stand-in functions (`op plus` as a value) are written with the symbols
     pub internal_ops: bool,
+    /// this Limb's operator levels from its `precedence` block: name → (level, how a chain reads:
+    /// 0 left first, 1 right first, 2 refused), on the language's scale (`base_level`)
+    pub user_levels: std::collections::HashMap<String, (u16, u8)>,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: std::collections::HashMap::new() } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: std::collections::HashMap::new() } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -118,6 +121,10 @@ impl Parser {
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() };
+        // a `precedence` block applies to the whole file, wherever it is written: read it first
+        let starts: Vec<usize> = self.toks.iter().enumerate().filter(|(_, t)| matches!(&t.tok, Tok::Word(w) if w == "precedence")).map(|(i, _)| i).collect();
+        for at in starts { self.pos = at; let levels = self.precedence_block()?; self.place_levels(levels)?; }
+        self.pos = 0;
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -361,6 +368,8 @@ impl Parser {
                     prog.main = Some(self.block()?);
                 }
                 Tok::Word(w) if w == "op" => { let mut f = self.op_decl()?; f.vis = vis; prog.funcs.push(f); }
+                // read already, before the items (`program`); passed over here
+                Tok::Word(w) if w == "precedence" => { self.precedence_block()?; }
                 Tok::Word(w) if w == "interface" => {
                     // interface Name { fn …;  op …; }   (design/interfaces.md, 2026-09-20)
                     let line = self.line();
@@ -500,7 +509,7 @@ impl Parser {
         }
         self.expect(Tok::RBracket, "`]`")?;
         if params.len() != 2 { return self.err(format!("an operator takes exactly two operands, `op {name}` has {}", params.len())); }
-        let builtin = Parser::level(&name) != 0 || OP_WORDS.contains(&name.as_str());
+        let builtin = (Parser::base_level(&name) != 0 && name != "pow" && name != "pow.wrap") || OP_WORDS.contains(&name.as_str());
         if builtin && !self.in_interface {
             let user_type = matches!(params[0].ty, Some(Ty::Struct(_)) | Some(Ty::Inst(..)));
             if !user_type { return self.err(format!("`{name}` is the language's operator; it can be defined for a struct or enum of yours, never changed for the language's own types")); }
@@ -2192,7 +2201,7 @@ impl Parser {
         self.err(format!("`{op}` is `{now}` now{note} (owner, 2026-10-03)"))
     }
 
-    fn is_custom_op(op: &str) -> bool { Parser::level(op) == 0 && op != "=" }
+    fn is_custom_op(&self, op: &str) -> bool { self.lvl(op).0 == 0 && op != "=" }
 
     // expr — precedence follows mathematics where mathematics has a settled
     // answer (decided 2026-09-14); where it does not, parentheses are required;
@@ -2216,21 +2225,132 @@ impl Parser {
         Ok(e)
     }
 
-    fn level(op: &str) -> u8 {
+    /// The language's own operator levels, in hundreds so a Limb's levels fit between them
+    /// (owner, 2026-10-03); 0 = no level (brackets beside any other operator).
+    fn base_level(op: &str) -> u16 {
         match op {
-            "or" | "or.else" => 1,
-            "and" | "and.then" => 2,
-            "==" | "!==" | "<" | ">" | "</==" | ">/==" => 3,
-            "++" => 4,
-            "+" | "-" | "+~" | "-~" => 5,
-            "x" | "x~" => 6,
-            o if o.starts_with("div.") || o.starts_with("mod.") => 6,
-            "xx" | "xx~" => 8,
+            "or" | "or.else" => 100,
+            "and" | "and.then" => 200,
+            "==" | "!==" | "<" | ">" | "</==" | ">/==" => 300,
+            "++" => 400,
+            "+" | "-" | "+~" | "-~" => 500,
+            "x" | "x~" => 600,
+            o if o.starts_with("div.") || o.starts_with("mod.") => 600,
+            "neg" => 700,
+            // std's `pow` binds above a negative, right pair first, as `xx` did (owner, 2026-10-03)
+            "xx" | "xx~" | "pow" | "pow.wrap" => 800,
             _ => 0,
         }
     }
+    /// How a chain of the language's own operator reads: 0 left first, 1 right first, 2 refused.
+    fn base_chain(op: &str) -> u8 {
+        match op { "==" | "!==" | "<" | ">" | "</==" | ">/==" => 2, "xx" | "xx~" | "pow" | "pow.wrap" => 1, _ => 0 }
+    }
+    fn lvl(&self, op: &str) -> (u16, u8) {
+        self.user_levels.get(op).copied().unwrap_or((Parser::base_level(op), Parser::base_chain(op)))
+    }
 
-    fn climb(&mut self, min: u8) -> PResult<Expr> {
+    /// `precedence.low_first { level.when_chained.left_first 1 { … } … }` (owner, 2026-10-03).
+    /// Returns the levels loosest first: (number, chain, operator names, line).
+    fn precedence_block(&mut self) -> PResult<Vec<(i128, u8, Vec<String>, usize)>> {
+        self.expect_word("precedence")?;
+        if *self.peek() != Tok::Dot { return self.err("say which way the levels count: `precedence.low_first { … }` (level 1 binds loosest, good practice) or `precedence.high_first { … }` (owner, 2026-10-03)"); }
+        self.advance();
+        let high_first = match self.advance().tok {
+            Tok::Word(w) if w == "low_first" => false,
+            Tok::Word(w) if w == "high_first" => true,
+            other => return self.err(format!("`precedence.low_first` or `precedence.high_first`, found `precedence.{other}`")),
+        };
+        self.expect(Tok::LBrace, "`{` to open the levels")?;
+        let mut levels = Vec::new();
+        while *self.peek() != Tok::RBrace {
+            let line = self.line();
+            if !self.is_word("level") { return self.err(format!("a `precedence` block holds `level.when_chained.… N {{ … }}` lines, found {}", self.peek())); }
+            self.advance();
+            let chain_err = "say how a chain of this level reads: `level.when_chained.left_first`, `level.when_chained.right_first` or `level.when_chained.refused` (owner, 2026-10-03)";
+            if *self.peek() != Tok::Dot { return self.err(chain_err); }
+            self.advance();
+            if !self.is_word("when_chained") { return self.err(chain_err); }
+            self.advance();
+            self.expect(Tok::Dot, chain_err)?;
+            let chain = match self.advance().tok {
+                Tok::Word(w) if w == "left_first" => 0, Tok::Word(w) if w == "right_first" => 1, Tok::Word(w) if w == "refused" => 2,
+                _ => return self.err(chain_err),
+            };
+            let n = match self.advance().tok { Tok::Int(i) => i, other => return self.err(format!("a level's number, `level.when_chained.left_first 1 {{ … }}`, found {other}")) };
+            self.expect(Tok::LBrace, "`{` to open the level's operators")?;
+            let mut names = Vec::new();
+            while *self.peek() != Tok::RBrace {
+                let mut name = match self.advance().tok {
+                    Tok::Word(w) => w, Tok::Op(o) => o,
+                    other => return self.err(format!("a level lists operators, found {other}")),
+                };
+                if *self.peek() == Tok::Dot { if let Tok::Word(b) = self.peek_at(1).clone() { self.advance(); self.advance(); name = format!("{name}.{b}"); } }
+                let name = match name.as_str() {
+                    "plus" => "+".to_string(), "minus" => "-".into(), "times" => "x".into(),
+                    "plus.wrap" => "+~".into(), "minus.wrap" => "-~".into(), "times.wrap" => "x~".into(),
+                    "+" | "-" | "x" | "xx" | "+~" | "-~" | "x~" | "xx~" => { self.op_len.set(1); return self.old_op_error(&name).map(|_| Vec::new()); }
+                    _ => name,
+                };
+                names.push(name);
+            }
+            self.advance();
+            levels.push((n, chain, names, line));
+        }
+        self.advance();
+        levels.sort_by_key(|l| if high_first { -l.0 } else { l.0 });
+        Ok(levels)
+    }
+
+    /// Put a `precedence` block's levels on the language's scale: a level holding a language
+    /// operator sits where it does; the others sit between by order (owner, 2026-10-03).
+    fn place_levels(&mut self, levels: Vec<(i128, u8, Vec<String>, usize)>) -> PResult<()> {
+        let bad = |line: usize, msg: String| Err(ParseError { line, col: 0, msg });
+        let mut pinned: Vec<Option<u16>> = Vec::new();
+        for (i, (n, chain, names, line)) in levels.iter().enumerate() {
+            if levels[..i].iter().any(|l| l.0 == *n) { return bad(*line, format!("two levels numbered {n}")); }
+            let mut pin: Option<u16> = None;
+            for name in names {
+                if BIT_OPS.contains(&name.as_str()) || name == "not.bit" || name == "not" {
+                    return bad(*line, format!("`{name}` has no precedence in the language, and a Limb cannot give it one"));
+                }
+                let base = Parser::base_level(name);
+                if base == 0 { continue; }
+                if name != "neg" && Parser::base_chain(name) != *chain {
+                    let says = ["left_first", "right_first", "refused"][Parser::base_chain(name) as usize];
+                    let shown = match name.as_str() { "+" => "plus", "-" => "minus", "x" => "times", "+~" => "plus.wrap", "-~" => "minus.wrap", "x~" => "times.wrap", o => o };
+                    return bad(*line, format!("`{shown}`'s chains read `{says}`: its level must say `level.when_chained.{says}`"));
+                }
+                if let Some(p) = pin { if p != base { return bad(*line, format!("`{name}` and another language operator in one level, but the language has them at different levels")); } }
+                pin = Some(base);
+            }
+            pinned.push(pin);
+        }
+        let mut values = vec![0u16; levels.len()];
+        for i in 0..levels.len() {
+            if let Some(p) = pinned[i] { values[i] = p; continue; }
+            let prev = (0..i).rev().find_map(|k| pinned[k].map(|v| (k, v)));
+            let next = (i + 1..levels.len()).find_map(|k| pinned[k].map(|v| (k, v)));
+            let (pk, pv) = prev.map(|(k, v)| (k as i64, v as i64)).unwrap_or((-1, 0));
+            let mut v = match next {
+                Some((nk, nv)) => pv + (nv as i64 - pv) * (i as i64 - pk) / (nk as i64 - pk),
+                None => pv + 10 * (i as i64 - pk),
+            };
+            if (1..=8).any(|h| v == h * 100) { v += 1; }
+            if let Some(prev) = prev { if v as u16 <= prev.1 { return bad(levels[i].3, "levels out of order with the language's".into()); } }
+            values[i] = v as u16;
+        }
+        for (i, (_, chain, names, line)) in levels.iter().enumerate() {
+            for name in names {
+                if Parser::base_level(name) != 0 { continue; }
+                if self.user_levels.contains_key(name) { return bad(*line, format!("`{name}` is in two levels")); }
+                self.user_levels.insert(name.clone(), (values[i], *chain));
+            }
+        }
+        Ok(())
+    }
+
+    fn climb(&mut self, min: u16) -> PResult<Expr> {
         let line = self.line();
         let mut lhs = self.unary()?;
         loop {
@@ -2243,7 +2363,7 @@ impl Parser {
             if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
                 return self.err(format!("no `{op}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`"));
             }
-            if Parser::is_custom_op(&op) {
+            if self.is_custom_op(&op) {
                 // A custom operator has no precedence (decided 2026-09-20): it may not
                 // sit next to another operator without parentheses. Bitwise operators
                 // follow the same rule (2026-09-21): mathematics has no reading for them.
@@ -2256,11 +2376,16 @@ impl Parser {
                 lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
                 continue;
             }
-            let lv = Self::level(&op);
+            let (lv, chain) = self.lvl(&op);
             if lv < min || lv == 0 { break; }
+            // a level whose chains are refused (owner, 2026-10-03): the language's comparisons are
+            // checked in `validate`; a Limb's here
+            if chain == 2 && self.user_levels.contains_key(&op) {
+                if let Expr::Binary(prev, ..) = &lhs { if self.lvl(prev).0 == lv { return self.err(format!("`{prev}` then `{op}`: this level does not chain (`level.when_chained.refused`) — parenthesise")); } }
+            }
             for _ in 0..self.op_len.get() { self.advance(); }
-            // right-associative for xx, left for everything else
-            let rhs = if op == "xx" { self.climb(lv)? } else { self.climb(lv + 1)? };
+            // right pair first where the level says so (std's `pow`), left pair first otherwise
+            let rhs = if chain == 1 { self.climb(lv)? } else { self.climb(lv + 1)? };
             lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
         }
         Ok(lhs)
@@ -2314,7 +2439,7 @@ impl Parser {
             return Ok(Expr::Unary("not".into(), Box::new(self.unary()?), line));
         }
         // unary minus sits below xx: -2 xx 2 is -(2 xx 2), as in mathematics
-        if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(8)?), line)); }
+        if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(701)?), line)); }
         self.primary()
     }
 
@@ -2642,7 +2767,7 @@ impl Parser {
                         "++" => "fn ['a': <A>, 'b': <B>] -> str.utf8 { return 'a' ++ 'b'; }".to_string(),
                         "xx" | "xx~" | "shl" | "shr" => format!("fn ['a': <T>, 'b': <U>] -> <T> {{ return 'a' {op} 'b'; }}"),
                         _ if cmp => format!("fn ['a': <T>, 'b': <T>] -> bool {{ return 'a' {op} 'b'; }}"),
-                        _ if Parser::level(&op) != 0 || OP_WORDS.contains(&op.as_str()) || BIT_OPS.contains(&op.as_str()) || op == "-~" || op == "+~" => format!("fn ['a': <T>, 'b': <T>] -> <T> {{ return 'a' {op} 'b'; }}"),
+                        _ if Parser::base_level(&op) != 0 || OP_WORDS.contains(&op.as_str()) || BIT_OPS.contains(&op.as_str()) || op == "-~" || op == "+~" => format!("fn ['a': <T>, 'b': <T>] -> <T> {{ return 'a' {op} 'b'; }}"),
                         _ => return Ok(Expr::OpValue(op, None, line)),
                     };
                     let toks = crate::lexer::lex(&src).map_err(|e| ParseError { line, col: 0, msg: e.msg })?;

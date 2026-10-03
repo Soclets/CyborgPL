@@ -1,0 +1,5 @@
+precedence.low_first {
+    level.when_chained.right_first 1 { plus }
+}
+MAIN {
+}

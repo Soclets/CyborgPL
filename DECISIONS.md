@@ -69,6 +69,15 @@ level.when_chained.refused 4 { neg }
 level.when_chained.right_first 5 { pow }    # -2 pow 2 is -(2 pow 2) = -4, as xx was
 ```
 
+Built in the oracle the same day (the owner: "go ahead"): the language's
+levels in hundreds so a Limb's fit between them, a level with no language
+operator placed by order between its neighbours; std's `pow` above `neg`,
+right pair first, so `-2 pow 2` is -4 and `2 pow 3 pow 2` 512 again (the
+reject test `pow_beside_negative` removed). `examples/precedence_levels`;
+reject tests `precedence_bare`, `level_bare`, `level_wrong_chain`,
+`level_bit_op`, `level_refused_chain`, `level_two_numbers`. Oracle limits:
+the block applies to the file it is in; two Limbs in one gap unchecked.
+
 ### 2026-10-03 — The operator words, settled for building: `.wrap`, `op plus`, the symbols refused, `pow` with brackets (owner)
 
 ```

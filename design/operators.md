@@ -38,7 +38,7 @@ the symbols where they quote a ruling's day.
 | `minus` | subtract (`-` until 2026-10-03); a negative keeps `-`: `-5`, `-'x'` |
 | `times` | multiply (`x` until 2026-10-03) |
 | `plus.wrap` `minus.wrap` `times.wrap` | wrapping (`+~ -~ x~` until 2026-10-03) |
-| `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`, no precedence yet, so bracketed beside another operator |
+| `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`; above a negative, right pair first, as `xx` was (`-2 pow 2` is -4, `2 pow 3 pow 2` is 512) |
 | `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
 | `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |
 | `==` | equal |
@@ -341,6 +341,26 @@ cannot fail (make it a `fn`); it is never called with `[…]`; `not`, `and`,
 for a user type** (`op plus ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
 interfaces) but never changed for the language's own types. Prefix (one-operand) custom
 operators are not offered.
+
+### A Limb's precedence (owner, 2026-10-03)
+
+```
+precedence.low_first {                          # level 1 binds loosest (good practice)
+    level.when_chained.refused 1 { ==  ~= }     # a language operator pins its level
+    level.when_chained.left_first 2 { plus }
+    level.when_chained.left_first 3 { times  dot }
+    level.when_chained.left_first 4 { scale }   # no language operator: above times, by number
+}
+```
+
+A Limb may give its operators a precedence in one block; `precedence.high_first`
+counts the other way, and a bare `precedence` is refused. Each level says how a chain
+of it reads (`left_first`, `right_first`, `refused`), and must agree with any language
+operator in it. A level may hold `neg` (a negative), so std's `pow` sits above it. An
+operator in no level keeps the custom-operator rule: brackets beside any other.
+Operators of two Limbs in the same gap need brackets between them. The language's
+bitwise operators have no precedence and cannot be given one.
+`examples/precedence_levels.cpls`.
 
 ### From another Limb (owner, 2026-09-23: a)
 
