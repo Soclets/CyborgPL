@@ -25,7 +25,7 @@ programmer only says which at a boundary.
 ```
 let 'mid' := list.slice[lend 'xs', 2, 4];      # elements 2, 3 and 4
 let 'head' := array.slice[lend 'fixed', 1, 2];
-let 'none' := list.slice[lend 'xs', 3, 2];     # empty: last is first - 1
+let 'none' := list.slice[lend 'xs', 3, 2];     # empty: last is first minus 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -151,7 +151,7 @@ the loop's element is the list's own: changing it changes the list. Over
 
 ```
 for 'x' in lend.mut 'prices' {
-    change 'x' = 'x' x 2;
+    change 'x' = 'x' times 2;
 }
 ```
 

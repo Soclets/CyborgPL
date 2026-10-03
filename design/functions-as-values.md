@@ -17,7 +17,7 @@ The rule stands: a *value you hold* is quoted, a function's name is bare.
 A bare name alone was an error before; now it is the function. `'f'[…]`
 calls it. Since `pos` went (2026-09-27), a list read looks the same
 (`'xs'[2]`), and what the variable holds decides which it is.
-`extern` functions are not values (open); operators are, as `op +`
+`extern` functions are not values (open); operators are, as `op plus`
 (2026-09-29).
 
 ## 2. The type of a function is its signature without the names
@@ -52,11 +52,11 @@ inference, as for a named lend), `copy` takes an independent copy,
 named-only and over inline-without-capture; every other language captures
 silently, which is where "why is this borrowed" bugs come from.
 
-## 4. An operator is a value as `op +` (owner, 2026-09-29)
+## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
 ```
-let 'sum'     := fold[lend 'xs', 0, op +];
-let 'product' := fold[lend 'xs', 1, op x];
+let 'sum'     := fold[lend 'xs', 0, op plus];
+let 'product' := fold[lend 'xs', 1, op times];
 let 'flipped' := map[lend 'xs', op neg];
 let 'f': fn[int32, int32] --> int32 = op mod.floor;
 ```
@@ -71,9 +71,9 @@ and the owner chose `op`. Proposed spellings not chosen: `(+)` (Haskell,
 OCaml), `op[+]`.
 
 - **The type comes from where it goes**: a parameter's type, or a typed
-  declaration. `let 'f' := op +;` alone is refused: nothing says which `+`
+  declaration. `let 'f' := op plus;` alone is refused: nothing says which `+`
   (int32, bin64, a Vec). *(design claude's reading, not ruled)*
-- **`op -` is subtraction; negation is `op neg`** (owner). `neg` exists
+- **`op minus` is subtraction; negation is `op neg`** (owner). `neg` exists
   only after `op`; in an expression negation is still `-'x'`. Proposed
   alternatives: where it goes decides (a one-value slot negates); a
   placeholder such as `op -_` (`_` is digit grouping already).

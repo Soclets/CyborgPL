@@ -35,6 +35,15 @@ The owner asked to build the decided `times`/`plus`/`minus` first ("It's
   `levels` question is settled (a, recommended), or keep `xx` until then
   (b); the owner: "`a`".
 
+Built in the oracle the same day: every example, reject test and the code
+in the design notes rewritten (a script, then lines it damaged fixed by
+hand: the custom-operator character list, a diagram's `+`); `-2 pow 2`
+is refused, a negative being an operator beside a bracket-less one;
+`examples/word_operators.cpls`; reject tests `plus_old`, `times_old`,
+`pow_old`, `wrap_old`, `op_value_old`, `op_decl_old`,
+`pow_beside_negative`. Not yet told to compiler, check or synthia claude
+(no messages, to save usage); no keyword was added.
+
 ### 2026-10-03 — The long arrows are the main spelling: `-->` and `<--`; `->` and `<-` are the others (owner)
 
 The owner, after `-->` and `<--` went in as aliases: "Long arrow is main

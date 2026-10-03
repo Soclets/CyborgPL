@@ -12,7 +12,7 @@ MAIN {
     }
     std::print.stored.stdout[\n];
     for perm 'stop' in range[0, 100] {
-        if ('stop' x 'stop') > 50 { break; }
+        if ('stop' times 'stop') > 50 { break; }
     }
     std::print.useful.stdout["stopped at ", 'stop', \n];
     for perm 'never' in range[5, 2] {

@@ -3,7 +3,7 @@
 
 fn sum [...'nums': int32] --> int32 {
     let mut 'total' := 0;
-    for 'n' in lend 'nums' { change 'total' = 'total' + 'n'; }
+    for 'n' in lend 'nums' { change 'total' = 'total' plus 'n'; }
     return 'total';
 }
 

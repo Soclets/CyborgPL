@@ -5,10 +5,10 @@ MAIN {
     let 'ys': list[bin64] = [2.5, 1];
     std::print.useful.stdout['xs', \n];
     std::print.useful.stdout['ys', \n];
-    # and it stays a bin when used: 1 + 2.5 x 2.0
-    std::print.useful.stdout['xs'[1] + ('xs'[2] x 2.0), \n];
+    # and it stays a bin when used: 1 plus 2.5 times 2.0
+    std::print.useful.stdout['xs'[1] plus ('xs'[2] times 2.0), \n];
     # beside a deci, a bare number is a deci
     let 'q': deci64 = 0.5;
     let 'ds' := [1, 'q'];
-    std::print.useful.stdout['ds'[1] + 'ds'[2], \n];
+    std::print.useful.stdout['ds'[1] plus 'ds'[2], \n];
 }

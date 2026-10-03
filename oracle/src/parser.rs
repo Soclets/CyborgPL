@@ -65,14 +65,20 @@ pub struct Parser {
     limb_root: Vec<String>,
     /// inside a `test fn`'s body: `must` may appear (owner, 2026-09-29)
     in_test: bool,
+    /// how many tokens the operator `binop` just read takes (`plus` 1, `times.wrap` 3, `std::pow` 3)
+    op_len: std::cell::Cell<usize>,
+    /// it was a retired symbol (`+`, `x`, `xx`, `x~` …), refused outside the oracle's own stand-ins
+    op_old: std::cell::Cell<bool>,
+    /// the oracle's own stand-in functions (`op plus` as a value) are written with the symbols
+    pub internal_ops: bool,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -463,6 +469,12 @@ impl Parser {
         let name = match self.advance().tok {
             Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot be an operator")),
             Tok::Word(n) if n == "not" => return self.err("`not` is the language's; it cannot be redefined"),
+            // a type's own `plus` / `minus` / `times` (owner, 2026-10-03)
+            Tok::Word(n) if n == "plus" => "+".into(),
+            Tok::Word(n) if n == "minus" => "-".into(),
+            Tok::Word(n) if n == "times" => "x".into(),
+            Tok::Word(n) if (n == "x" || n == "xx") && !self.internal_ops => { let now = if n == "x" { "times" } else { "pow" }; return self.err(format!("`op {n}` is `op {now}` now (owner, 2026-10-03)")); }
+            Tok::Op(o) if matches!(o.as_str(), "+" | "-") && !self.internal_ops => { let now = if o == "+" { "plus" } else { "minus" }; return self.err(format!("`op {o}` is `op {now}` now (owner, 2026-10-03)")); }
             Tok::Word(n) => n,
             Tok::Op(o) => o,
             Tok::Var(v) => return self.err(format!("an operator's name is bare — a word or a run of operator characters, not `'{v}'`")),
@@ -2136,17 +2148,34 @@ impl Parser {
         }
     }
 
+    /// The operator at the cursor, spelled as the oracle works with it inside (`plus` is `+`,
+    /// `times.wrap` is `x~`); `op_len` says how many tokens it takes, `op_old` whether it is a
+    /// retired symbol (owner, 2026-10-03: the operators are words).
     fn binop(&self) -> Option<String> {
+        self.op_len.set(1);
+        self.op_old.set(false);
+        let dot_word = |b: &str| *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(x) if x == b);
         match self.peek() {
-            Tok::Op(o) => Some(o.clone()),
+            Tok::Op(o) => { if matches!(o.as_str(), "+" | "-" | "+~" | "-~" | "x~" | "xx~") { self.op_old.set(true); } Some(o.clone()) }
+            // `times` / `plus` / `minus`, and `.wrap` for the wrapping ones (owner, 2026-10-03)
+            Tok::Word(w) if w == "times" || w == "plus" || w == "minus" => {
+                let base = match w.as_str() { "times" => "x", "plus" => "+", _ => "-" };
+                if dot_word("wrap") { self.op_len.set(3); Some(format!("{base}~")) } else { Some(base.into()) }
+            }
+            // std's `pow`, bare or with its path, and `pow.wrap` (owner, 2026-10-03)
+            Tok::Word(w) if w == "pow" => { if dot_word("wrap") { self.op_len.set(3); Some("pow.wrap".into()) } else { Some("pow".into()) } }
+            Tok::Word(w) if w == "std" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(x) if x == "pow") => {
+                if *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(x) if x == "wrap") { self.op_len.set(5); Some("pow.wrap".into()) } else { self.op_len.set(3); Some("pow".into()) }
+            }
             // `and.bit` / `or.bit` — one operator spelled as a chain
-            Tok::Word(w) if (w == "and" || w == "or") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bit") => Some(format!("{w}.bit")),
+            Tok::Word(w) if (w == "and" || w == "or") && dot_word("bit") => { self.op_len.set(3); Some(format!("{w}.bit")) }
             // `and.then` / `or.else` — the right side only when the left has not decided (owner, 2026-09-25)
-            Tok::Word(w) if w == "and" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "then") => Some("and.then".into()),
-            Tok::Word(w) if w == "or" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "else") => Some("or.else".into()),
+            Tok::Word(w) if w == "and" && dot_word("then") => { self.op_len.set(3); Some("and.then".into()) }
+            Tok::Word(w) if w == "or" && dot_word("else") => { self.op_len.set(3); Some("or.else".into()) }
             // `div.floor` / `div.ceil` / `div.trunc` / `div.near`, and `mod.` the same: every division
             // says how it rounds (owner, 2026-10-02); a bare `div` or `mod` is refused in `climb`
-            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot => match self.peek_at(2) { Tok::Word(b) => Some(format!("{w}.{b}")), _ => Some(w.clone()) },
+            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot => match self.peek_at(2) { Tok::Word(b) => { self.op_len.set(3); Some(format!("{w}.{b}")) } _ => Some(w.clone()) },
+            Tok::Word(w) if w == "x" || w == "xx" => { self.op_old.set(true); Some(w.clone()) }
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
@@ -2154,6 +2183,13 @@ impl Parser {
             Tok::Eq => Some("=".into()),
             _ => None,
         }
+    }
+
+    /// The word a retired operator symbol became (owner, 2026-10-03).
+    fn old_op_error(&self, op: &str) -> PResult<Expr> {
+        let now = match op { "+" => "plus", "-" => "minus", "x" => "times", "xx" => "pow", "+~" => "plus.wrap", "-~" => "minus.wrap", "x~" => "times.wrap", _ => "pow.wrap" };
+        let note = if op.starts_with("xx") { ", std's operator" } else { "" };
+        self.err(format!("`{op}` is `{now}` now{note} (owner, 2026-10-03)"))
     }
 
     fn is_custom_op(op: &str) -> bool { Parser::level(op) == 0 && op != "=" }
@@ -2200,6 +2236,7 @@ impl Parser {
         loop {
             let Some(op) = self.binop() else { break };
             if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
+            if self.op_old.get() && !self.internal_ops { return self.old_op_error(&op); }
             if op == "div" || op == "mod" {
                 return self.err(format!("say how `{op}` rounds: `{op}.floor`, `{op}.ceil`, `{op}.trunc` or `{op}.near` (owner, 2026-10-02)"));
             }
@@ -2212,9 +2249,8 @@ impl Parser {
                 // follow the same rule (2026-09-21): mathematics has no reading for them.
                 if min > 0 { break; }
                 let what = if BIT_OPS.contains(&op.as_str()) { "a bitwise operator" } else { "a custom operator" };
-                if matches!(lhs, Expr::Binary(..)) { return self.err(format!("`{op}` next to another operator: {what} has no precedence — parenthesise")); }
-                self.advance();
-                if op.ends_with(".bit") { self.advance(); self.advance(); }
+                if matches!(lhs, Expr::Binary(..)) || matches!(&lhs, Expr::Unary(u, ..) if u == "-") { return self.err(format!("`{op}` next to another operator: {what} has no precedence — parenthesise")); }
+                for _ in 0..self.op_len.get() { self.advance(); }
                 let rhs = self.unary()?;
                 if let Some(next) = self.binop() { if next != "=" { return self.err(format!("`{next}` after `{op}`: {what} has no precedence — parenthesise")); } }
                 lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
@@ -2222,8 +2258,7 @@ impl Parser {
             }
             let lv = Self::level(&op);
             if lv < min || lv == 0 { break; }
-            self.advance();
-            if op == "and.then" || op == "or.else" || op.contains('.') { self.advance(); self.advance(); }
+            for _ in 0..self.op_len.get() { self.advance(); }
             // right-associative for xx, left for everything else
             let rhs = if op == "xx" { self.climb(lv)? } else { self.climb(lv + 1)? };
             lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
@@ -2588,7 +2623,8 @@ impl Parser {
                         }
                         _ => match self.binop() {
                             Some(o) if o == "=" => return self.err("`=` is not an operator; equality is `op ==`"),
-                            Some(o) => { self.advance(); if o.contains('.') { self.advance(); self.advance(); } o }
+                            Some(_) if self.op_old.get() && !self.internal_ops => { let o = self.binop().unwrap(); return self.old_op_error(&o); }
+                            Some(o) => { for _ in 0..self.op_len.get() { self.advance(); } o }
                             None => return self.err(format!("`op` is followed by an operator: `op +`, `op mod.floor`, `op neg`; found {}", self.peek())),
                         },
                     };
@@ -2611,6 +2647,7 @@ impl Parser {
                     };
                     let toks = crate::lexer::lex(&src).map_err(|e| ParseError { line, col: 0, msg: e.msg })?;
                     let mut p = Parser::new_in(toks, self.module.clone());
+                    p.internal_ops = true;
                     // the oracle's own stand-in functions: their blanks take whatever the operator takes
                     p.declared = Some(vec!["T".into(), "U".into(), "A".into(), "B".into()]);
                     let mut f = p.anon_func()?;

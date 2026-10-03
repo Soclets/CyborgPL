@@ -21,7 +21,7 @@ fn is_ascii [lent 'bytes': array[uint8]] --> bool {
 
 **Lanes are checked at every operation, at the lane's type** (owner,
 2026-09-29: b) — not exact in between as plain numbers are (2026-09-23),
-since wider lanes would halve what a register holds. `('a' + 'a') - 'a'`
+since wider lanes would halve what a register holds. `('a' plus 'a') minus 'a'`
 on `simd[uint8, 16]` of 200s is a check site at the `+`. The wrapping
 forms (`+~` …) wrap lane by lane and never check. For exact maths in
 between, use a plain loop.
@@ -51,7 +51,7 @@ in the manifest (`Synthia.ttsr` / `CCA.cplr`), never from the host.
 ## The operators, element-wise (owner: a)
 
 Every operator a plain `T` has works on `simd[T, N]`, lane by lane —
-`+ - x`, `div.X` and `mod.X`, `and.bit or.bit not.bit xor shl shr`, the wrapping
+`plus minus times`, `div.X` and `mod.X`, `and.bit or.bit not.bit xor shl shr`, the wrapping
 forms. `'a' or.bit 'b'` is the same bit-for-bit OR as on one number,
 done N times. Proposed alternative: named operations only
 (`simd.or['a', 'b']`) — nothing new in the grammar, worse to read
@@ -70,7 +70,7 @@ that names the fold to use.
   instruction (`INS` on ARM).
 - `simd.fill[7]` — every lane the same value.
 - `simd.load[lend 'xs', 'i']` — N elements of an `array` or `list`
-  into a vector; a check site (is `'i' + N - 1` inside?).
+  into a vector; a check site (is `'i' plus N minus 1` inside?).
 - `simd.store[lend.mut 'xs', 'i', 'v']` — the other way.
 - `simd.all['m']` / `simd.any['m']` — a `simd[bool, N]` to one `bool`.
 - `simd.max['v']` / `simd.min['v']` / `simd.sum['v']` — a numeric
@@ -92,7 +92,7 @@ comparisons, folds and a store; five reject tests cover a shape the
 target does not have, a vector used as a condition, a load past the
 end, and a bad element type. Two things the
 oracle had to pick and this document has not said: a scalar broadcasts
-against a vector (`'v' + 1`), and `simd.sum` is a check site while
+against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 `max`/`min` are not.
 
 ## A mask is a type: `simd[bool, N]` (owner, 2026-09-27: a)

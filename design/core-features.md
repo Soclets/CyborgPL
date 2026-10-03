@@ -111,15 +111,15 @@ word in front of a statement, covering every check site inside it. A `{ }`
 block is a statement, so a region is `check { … }` with no second rule.
 
 ```
-check change 'xs'['i'] = 'total' + 'score';     # prove: index in range, add fits
-nocheck change 'hash' = 'hash' x 31 + 'c';          # I want the wrap; on my word
+check change 'xs'['i'] = 'total' plus 'score';     # prove: index in range, add fits
+nocheck change 'hash' = 'hash' times 31 plus 'c';          # I want the wrap; on my word
 check { for 'i' in range[1, 'n'] { … } }     # every site in the region
 check if 'x' > 0 { … }                       # an if or a loop is a statement too
 ```
 
 - Innermost word wins when they nest. **No alias** for `nocheck` (owner,
   2026-09-19): it stays long and rare; a dense region uses `nocheck { … }`.
-- Never on an expression (`'a' + (check 'b')`): if half a statement needs
+- Never on an expression (`'a' plus (check 'b')`): if half a statement needs
   it, split the statement. Never on a `fn`, `struct`, `const`, or `module`:
   a function's safety is the sum of its statements, and a `check fn` would
   be a global by another name. Never at the top level: **the tiers are never

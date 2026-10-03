@@ -17,7 +17,7 @@ fn parse_digit ['t': str.utf8] --> int32 or fail[not_a_digit] {
 
 fn double_digit ['t': str.utf8] --> int32 or fail[not_a_digit] {
     let 'd' := parse_digit[copy 't'] otherwise fail;      # pass it up
-    return 'd' x 2;
+    return 'd' times 2;
 }
 
 fn save [lent 'l': Locker] --> fail[disk_full] {

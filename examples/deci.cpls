@@ -1,23 +1,23 @@
-# deci, IEEE 754 decimal (owner, 2026-09-29): 0.1 + 0.2 is exactly 0.3; every operation rounds to the
+# deci, IEEE 754 decimal (owner, 2026-09-29): 0.1 plus 0.2 is exactly 0.3; every operation rounds to the
 # width half to even; trailing zeros are kept (print shows 2.50, print.useful 2.5); a literal with too
 # many digits is an error; text, and an integer whose type could have too many digits, fail
 # too_many_digits; to.useful.deci64[bin] is the shortest decimal, to.stored.deci64[bin] the exact value (the form is always written).
 MAIN {
     let 'a': deci64 = 0.1;
-    let 'b': deci64 = 'a' + 0.2;
+    let 'b': deci64 = 'a' plus 0.2;
     std::print.stored.stdout['b', " ", 'b' == 0.3, \n];
     let 'price': deci64 = 19.99;
-    let 'sub': deci64 = 'price' x 3;
-    let 'tax': deci64 = 'sub' x 0.075;
-    std::print.stored.stdout['sub', " ", 'tax', " ", 'sub' + 'tax', \n];
+    let 'sub': deci64 = 'price' times 3;
+    let 'tax': deci64 = 'sub' times 0.075;
+    std::print.stored.stdout['sub', " ", 'tax', " ", 'sub' plus 'tax', \n];
     let 'h': deci64 = 2.50;
-    std::print.stored.stdout['h' x 2, " ", 'h', " ", 1.50 == 1.5, \n];
-    std::print.useful.stdout['h' x 2, " ", 'h', \n];
+    std::print.stored.stdout['h' times 2, " ", 'h', " ", 1.50 == 1.5, \n];
+    std::print.useful.stdout['h' times 2, " ", 'h', \n];
     let 'third': deci64 = 1;
     std::print.stored.stdout['third' div.near 3, " ", 'h' div.near 2, " ", 10.0 div.near 4, \n];
     let 'r': deci32 = 2.5;
     let 'e1': deci32 = 1.000005;
-    std::print.stored.stdout['e1' x 1, " ", 'e1' + 0.0000005, \n];
+    std::print.stored.stdout['e1' times 1, " ", 'e1' plus 0.0000005, \n];
     let 'w': bin64 = 0.1;
     std::print.stored.stdout[to.stored.deci64['w'], " ", to.stored.deci128['w'], " ", to.useful.deci128['w'], \n];
     let 'n': int32 = 12345;
@@ -29,7 +29,7 @@ MAIN {
     let 'u' := to.deci64["0.12345678901234567"] otherwise 'price';
     let 'v' := to.deci64["abc"] otherwise 'h';
     std::print.stored.stdout['t', " ", 'u', " ", 'v', \n];
-    let 'i' := to.int32['h' x 2] otherwise -1;
+    let 'i' := to.int32['h' times 2] otherwise -1;
     let 'j' := to.int32['h'] otherwise -1;
     std::print.stored.stdout['i', " ", 'j', " ", to.bin64['h'], " ", to.stored.str.utf8['h'], \n];
     let 'neg': deci64 = -1.5;

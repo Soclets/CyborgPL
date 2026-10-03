@@ -5,7 +5,7 @@ parameters, `--> T`).
 
 ```
 fn add ['a': int32, 'b': int32] --> int32 {
-    return 'a' + 'b';
+    return 'a' plus 'b';
 }
 let 'sum' := add[10, 20];              # this Limb: bare
 let 'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
@@ -97,14 +97,14 @@ followed by `[`. They may be function names; they are not reserved.
 
 Arguments are comma-separated values in one `[ ]`, positionally matched to
 the parameters. A call is a value and stands bare wherever a value goes:
-`let 'sum' := add[10, 20];`, `let 'y' := add[1, 2] x 3;`,
+`let 'sum' := add[10, 20];`, `let 'y' := add[1, 2] times 3;`,
 `if is_even['n'] { }`. A call as a statement: `shout[lend.mut 'u'];`.
 (Until 2026-09-19 the outer bracket was mandatory — `:= [add[10, 20]]`.)
 
 ## Return
 
 ```
-return 'a' + 'b';
+return 'a' plus 'b';
 return "hello " ++ 'name';    # text joins with ++ (2026-09-19)
 return;                       # in a nothing-function
 ```
@@ -171,7 +171,7 @@ a value — `[[1, 2], [3, 4]]` is a list of lists.
 
 - `[ ]` — builds a value (list, arguments, construction, index, range).
 - `{ }` — body.
-- `( )` — arithmetic grouping only: `'a' + ('b' x 2)`.
+- `( )` — arithmetic grouping only: `'a' plus ('b' times 2)`.
 
 ## Numbers
 

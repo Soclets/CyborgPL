@@ -60,7 +60,7 @@ alternative: wait for std, and test only what a fully known program
 tests.
 
 This channel found three CCA bugs on the day it was proposed, probed by
-hand — the worst a **wrong proof**: `'n' x 10000000000000000000` into a
+hand — the worst a **wrong proof**: `'n' times 10000000000000000000` into a
 `uint64` reported proven, with the binary silently overflowing at n = 2
 where the oracle stops. That is the class of bug the proofs-as-
 assertions mode exists for, and the reason the verification session

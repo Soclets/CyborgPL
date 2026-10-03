@@ -1,7 +1,7 @@
 MAIN {
-    std::print.useful.stdout[(2 xx 3 xx 2), \n];
-    std::print.useful.stdout[((2 xx 3) xx 2), \n];
-    let 'kilo' := 2 xx 10;
+    std::print.useful.stdout[(2 pow (3 pow 2)), \n];
+    std::print.useful.stdout[((2 pow 3) pow 2), \n];
+    let 'kilo' := 2 pow 10;
     std::print.useful.stdout['kilo', \n];
-    std::print.useful.stdout[(10 - 3 - 2), \n];
+    std::print.useful.stdout[(10 minus 3 minus 2), \n];
 }

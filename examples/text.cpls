@@ -7,7 +7,7 @@ MAIN {
     # walking a text says the unit too
     let 'vowels' := 0;
     for 'g' in str.each.grapheme[lend 's'] {
-        if 'g' == `o` or 'g' == `e` { change 'vowels' = 'vowels' + 1; }
+        if 'g' == `o` or 'g' == `e` { change 'vowels' = 'vowels' plus 1; }
     }
     std::print.useful.stdout['vowels', " vowels", \n];
 

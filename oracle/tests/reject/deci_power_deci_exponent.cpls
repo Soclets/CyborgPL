@@ -2,5 +2,5 @@
 MAIN {
     let 'r': deci64 = 1.05;
     let 'k': deci64 = 3.00;
-    let 'q' := 'r' xx 'k';
+    let 'q' := 'r' pow 'k';
 }

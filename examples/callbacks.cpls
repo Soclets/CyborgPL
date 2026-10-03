@@ -3,11 +3,11 @@ extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
                  'cmp': fn[ptr[int32], ptr[int32]] --> int32];
 
 fn ascending ['a': ptr[int32], 'b': ptr[int32]] --> int32 {
-    nocheck return ptr.read['a'] - ptr.read['b'];        # C hands pointers to two elements
+    nocheck return ptr.read['a'] minus ptr.read['b'];        # C hands pointers to two elements
 }
 
 fn descending ['a': ptr[int32], 'b': ptr[int32]] --> int32 {
-    nocheck return ptr.read['b'] - ptr.read['a'];
+    nocheck return ptr.read['b'] minus ptr.read['a'];
 }
 
 MAIN {

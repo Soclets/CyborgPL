@@ -1,4 +1,4 @@
-# deci's leftovers (owner, 2026-09-29): mod.floor takes the divisor's sign, as integer mod.floor; xx takes a whole
+# deci's leftovers (owner, 2026-09-29): mod.floor takes the divisor's sign, as integer mod.floor; pow takes a whole
 # exponent and rounds like the other operations; a wider deci into a narrower one fails
 # too_many_digits; a deci may be a range type, with bounds written as bins' are.
 MAIN {
@@ -6,11 +6,11 @@ MAIN {
     let 'm': deci64 = -7.50;
     std::print.stored.stdout['t' mod.floor 2, " ", 'm' mod.floor 2, " ", 't' mod.floor -2, \n];
     let 'r': deci64 = 1.05;
-    std::print.stored.stdout['r' xx 10, " ", 'r' xx 0, " ", 'r' xx -1, \n];
+    std::print.stored.stdout['r' pow 10, " ", 'r' pow 0, " ", 'r' pow -1, \n];
     let 'r2': deci128 = 1.05;
-    std::print.stored.stdout['r2' xx 10, \n];
+    std::print.stored.stdout['r2' pow 10, \n];
     let 'n': int32 = 3;
-    std::print.stored.stdout['r' xx 'n', \n];
+    std::print.stored.stdout['r' pow 'n', \n];
     let 'x': deci64 = 3.141592653589793;
     let 'y' := to.deci32['x'] otherwise 0;
     let 'z': deci64 = 2.50;

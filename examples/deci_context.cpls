@@ -3,7 +3,7 @@
 # so 1.50 and 1.5 are one key (maps.md: plain values by value); map.set's key takes the key type.
 MAIN {
     let 'a': deci64 = 1.00;
-    std::print.stored.stdout['a' + (1.5 x 2), " ", 'a' + 1.5 x 2, \n];
+    std::print.stored.stdout['a' plus (1.5 times 2), " ", 'a' plus 1.5 times 2, \n];
     let 'f': bin32 = 0.1;
     std::print.stored.stdout[to.useful.deci64['f'], " ", to.stored.deci64['f'], \n];
     let mut 'm': map[deci64, int32] = map.empty;

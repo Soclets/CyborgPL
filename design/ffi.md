@@ -91,7 +91,7 @@ extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
                  'cmp': fn[ptr[int32], ptr[int32]] --> int32];
 
 fn ascending ['a': ptr[int32], 'b': ptr[int32]] --> int32 {
-    nocheck return ptr.read['a'] - ptr.read['b'];
+    nocheck return ptr.read['a'] minus ptr.read['b'];
 }
 nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 ```
@@ -255,7 +255,7 @@ normal struct's layout is Precog's. Its fields must be C-shaped: numbers,
 
 ## `size.of[T]`, `align.of[T]`
 
-Compile-time constants, spelled like `to.`: `malloc[10 x size.of[Timeval]]`.
+Compile-time constants, spelled like `to.`: `malloc[10 times size.of[Timeval]]`.
 A `layout.C` struct has C's size; a normal struct's is whatever Precog
 chose.
 

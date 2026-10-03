@@ -1,6 +1,6 @@
 MAIN {
     let 'n' := 3;
-    let 's' := "n=" ++ to.stored.str.utf8['n' + 4];  # arithmetic, convert, then join
+    let 's' := "n=" ++ to.stored.str.utf8['n' plus 4];  # arithmetic, convert, then join
     std::print.stored.stdout['s', \n];
     std::print.stored.stdout["count: " ++ to.stored.str.utf8[10], \n];   # a number is converted, in its stored form
     let 'x': bin64 = 0.1;

@@ -14,10 +14,10 @@ MAIN {
     std::print.useful.stdout[is_ascii[lend 'plain'], " ", is_ascii[lend 'thai'], \n];
     let 'a': simd[int32, 4] = simd.fill[10];
     let 'b': simd[int32, 4] = simd.fill[3];
-    std::print.useful.stdout['a' + 'b', " ", simd.sum['a'], " ", simd.max['a' x 'b'], \n];
+    std::print.useful.stdout['a' plus 'b', " ", simd.sum['a'], " ", simd.max['a' times 'b'], \n];
     let 'm' := 'a' > 'b';                       # a simd[bool, 4], one answer per lane
     std::print.useful.stdout[simd.all['m'], " ", simd.any['b' > 'a'], \n];
     let mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
-    simd.store[lend.mut 'out', 2, 'a' + 'b'];
+    simd.store[lend.mut 'out', 2, 'a' plus 'b'];
     std::print.useful.stdout['out', \n];
 }

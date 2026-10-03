@@ -1,7 +1,7 @@
 # Testing — `test fn` and `must` (owner, 2026-09-29)
 
 ```
-fn add ['a': int32, 'b': int32] --> int32 { return 'a' + 'b'; }
+fn add ['a': int32, 'b': int32] --> int32 { return 'a' plus 'b'; }
 
 test fn adds_up [] {
     must add[2, 3] == 5;                        # what must hold

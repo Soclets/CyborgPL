@@ -1,4 +1,4 @@
 MAIN {
     let 'a': int32 = -7;
-    std::print.useful.stdout['a' mod.trunc 2 + 1, \n];
+    std::print.useful.stdout['a' mod.trunc 2 plus 1, \n];
 }

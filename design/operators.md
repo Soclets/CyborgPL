@@ -15,7 +15,7 @@ with an error naming the new ones.
 `div.trunc` (toward zero) and `div.near` (to the nearest, a tie to even),
 on **every** number family; a bare `div` is refused, naming the four.
 `mod` follows one for one, `mod.floor` … `mod.near`, each what its `div`
-leaves over: `a == (a div.X b) x b + (a mod.X b)`. On integers every
+leaves over: `a == (a div.X b) times b plus (a mod.X b)`. On integers every
 quotient is whole (`7 div.near 2` is 4, `5 div.near 2` is 2). On a bin,
 `brain16` or `deci`, `div.near` is ordinary division, rounded to the
 nearest value the type holds (`7.5 div.near 2.0` is 3.75), and
@@ -25,12 +25,20 @@ over (design claude's slip: it had first called it IEEE's `remainder()`).
 Proposed for bins: `div.near` naming the rounding (chosen), `div.real`,
 `div.frac`. `examples/div_rounding.cpls`.
 
+**The operators are words** (owner, 2026-10-02/03): `plus`, `minus`,
+`times`, `.wrap` for the wrapping ones, and std's `pow`; the symbols `+`,
+two-number `-`, `x`, `xx` and the tilde forms are refused, naming the
+word. A type defines its own with `op plus […]`; an operator as a value
+is `op plus`. `examples/word_operators.cpls`. Older passages below keep
+the symbols where they quote a ruling's day.
+
 | Operator | Meaning |
 |---|---|
-| `+` | add |
-| `-` | subtract (and unary negation, assumed) |
-| `x` | multiply |
-| `xx` | power |
+| `plus` | add (`+` until 2026-10-03) |
+| `minus` | subtract (`-` until 2026-10-03); a negative keeps `-`: `-5`, `-'x'` |
+| `times` | multiply (`x` until 2026-10-03) |
+| `plus.wrap` `minus.wrap` `times.wrap` | wrapping (`+~ -~ x~` until 2026-10-03) |
+| `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`, no precedence yet, so bracketed beside another operator |
 | `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
 | `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |
 | `==` | equal |
@@ -45,21 +53,21 @@ Word operators (`x`, `xx`, `div`, `mod`, `and`, `or`, `not`) are safe for the sa
 reason `x` is: user names are always quoted, so a bare word is never a name.
 
 `x`/`xx` carry over from legacy CyborgPL (the owner's design there). They are
-unambiguous because user names are always quoted: `'x' x 2` is the
+unambiguous because user names are always quoted: `'x' times 2` is the
 variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 `*` is not an operator.
 
-`( )` groups: `'a' + ('b' x 2)`.
+`( )` groups: `'a' plus ('b' times 2)`.
 
-**`xx` chains follow mathematics** (decided 2026-09-14): `2 xx 3 xx 2` is
-`2 xx (3 xx 2)` = 512, a power tower read from the top. Parentheses always
-override, even against convention: `(2 xx 3) xx 2` = 64. The other
+**`xx` chains follow mathematics** (decided 2026-09-14): `2 pow 3 pow 2` is
+`2 pow (3 pow 2)` = 512, a power tower read from the top. Parentheses always
+override, even against convention: `(2 pow 3) pow 2` = 64. The other
 operators chain left as usual.
 
 ## No increment or compound assignment (decided 2026-09-14)
 
 There is no `++`, `--`, `+=`, or any other shorthand. Adding one is written
-in full: `change 'i' = 'i' + 1;`. Precog emits the same instruction either way;
+in full: `change 'i' = 'i' plus 1;`. Precog emits the same instruction either way;
 the shorthand would exist only for the reader, and the owner chose not to
 have it.
 
@@ -73,9 +81,9 @@ Tightest to loosest:
 
 | Level | Operators | Rule |
 |---|---|---|
-| 1 | `xx` | right-associative: `2 xx 3 xx 2` = 512 |
-| 2 | unary `-` | below `xx`: `-2 xx 2` = −4; `(-2) xx 2` = 4 |
-| 3 | `x` `div.X` `mod.X` | `x` chains freely; a `div.X` or `mod.X` beside `x`, `div.X`, or `mod.X` **requires parentheses** (`6 div.floor 2 x 3` has no settled reading); a `mod.X` beside *any* operator requires parentheses (it has no mathematical notation) |
+| 1 | `xx` | right-associative: `2 pow 3 pow 2` = 512 |
+| 2 | unary `-` | below `xx`: `-2 pow 2` = −4; `(-2) pow 2` = 4 |
+| 3 | `x` `div.X` `mod.X` | `x` chains freely; a `div.X` or `mod.X` beside `x`, `div.X`, or `mod.X` **requires parentheses** (`6 div.floor 2 times 3` has no settled reading); a `mod.X` beside *any* operator requires parentheses (it has no mathematical notation) |
 | 4 | `+` `-` | left-associative |
 | 5 | `==` `!==` `<` `>` `</==` `>/==` | never chained (`1 < 2 < 3` is an error); never beside `not` |
 | 6 | `not` | applies to one operand or a parenthesis |
@@ -123,12 +131,12 @@ in the operation itself; or that rule for bare literals only. Owner:
 the compiler can work it out, so it should.
 
 **A list literal's items take the element type** (owner, 2026-09-29: a):
-`let 'xs': list[uint8] = [0 -~ 1,];` holds 255, exactly as `let 'x': uint8 = 0 -~
+`let 'xs': list[uint8] = [0 minus.wrap 1,];` holds 255, exactly as `let 'x': uint8 = 0 -~
 1;` does, since each item lands in a `uint8` slot. So the "construction"
 below is a struct's or a call's, not a list literal. Raised by check
 claude; proposed alternative (b): the size stops at the brackets, so an
-item needing a size writes it (`[to.uint8[0] -~ 1,]`). **An argument takes its
-parameter's type the same way** (owner, same day: a): `show[0 -~ 1]` into a
+item needing a size writes it (`[to.uint8[0] minus.wrap 1,]`). **An argument takes its
+parameter's type the same way** (owner, same day: a): `show[0 minus.wrap 1]` into a
 `uint8` parameter wraps at 8 bits, and `list.append`'s value takes the
 element type. Proposed alternative: an argument has no context, and says
 its size itself.
@@ -143,9 +151,9 @@ the arithmetic inside its arguments. So `'v': uint8 = g[0 > (-1) -
 
 It stops at a **comparison** as well: a `bool` holds the comparison's
 answer, never its operands, which take their width from each other by
-the rule above. So `let 'b': bool = (5 -~ 'w') > 1;` is a `uint32`
+the rule above. So `let 'b': bool = (5 minus.wrap 'w') > 1;` is a `uint32`
 subtraction when `'w'` is a `uint32`. And the other side does size it: in
-`'n' > (0 -~ 1)` with `'n'` a `uint64`, the literal group wraps in
+`'n' > (0 minus.wrap 1)` with `'n'` a `uint64`, the literal group wraps in
 `uint64`.
 
 The sentence above — "the compiler knows every width; the oracle needs
@@ -159,12 +167,12 @@ it.
 
 ```
 let 'small': int16 = 5;
-let 'big': int64 = (20000 + 20000) + 'small';   # 40005: fits int64, fine
-let 'tiny': int8 = (100 + 100) - 150;           # 50: the 200 in between is fine
-let 'bad': int8 = 100 + 100;                    # 200 does not fit int8: error
+let 'big': int64 = (20000 plus 20000) plus 'small';   # 40005: fits int64, fine
+let 'tiny': int8 = (100 plus 100) minus 150;           # 50: the 200 in between is fine
+let 'bad': int8 = 100 plus 100;                    # 200 does not fit int8: error
 ```
 
-`+ - x xx` on integers give the true answer, and so does every `div.X`
+`plus minus times` (and std's `pow`) on integers give the true answer, and so does every `div.X`
 and `mod.X` (owner, 2026-10-02: a; the one case is the smallest value
 divided by -1, `-128 div.trunc -1` on `int8`s, which is 128), and the
 check is where the value lands: a typed declaration, a `change`, an argument (the parameter's
@@ -172,25 +180,25 @@ type), a return (the return type). A comparison compares true values,
 and a `:=` takes a type that holds its true value. You never get a
 wrong number, and never an error for an answer that fits where it is
 going. In between, the one limit is the machine's 64 bits: a value no
-64-bit type holds is a check site (`'a' x 'a'` on two huge `int64`s),
+64-bit type holds is a check site (`'a' times 'a'` on two huge `int64`s),
 which Precog removes wherever it proves the values smaller. Bare
 numbers alone are worked out exactly at compile time. Precog still uses
 narrow sizes where it proves they fit, for SIMD especially, since the
 answer is the same.
 
-**Wrapping is the exception**: `+~ -~ x~ xx~` wrap at the size of their
+**Wrapping is the exception**: `plus.wrap minus.wrap times.wrap` (and std's `pow.wrap`) wrap at the size of their
 values, never at where the result goes, so a hash gives the same number
-on any line (`'x' +~ 'x'` on a `uint32` wraps at 32 bits even when
+on any line (`'x' plus.wrap 'x'` on a `uint32` wraps at 32 bits even when
 stored into a `uint64`). **When the values mix sizes, you say which**
-(owner, 2026-09-23: b): `('a' + 'b') +~ 1` with an `int8` and an
-`int16` is an error until written `to.int16['a' + 'b'] +~ 1`, and so is
-`'a' +~ 'b'`. Wrapping exists for hashes and counters, where the size
+(owner, 2026-09-23: b): `('a' plus 'b') plus.wrap 1` with an `int8` and an
+`int16` is an error until written `to.int16['a' plus 'b'] plus.wrap 1`, and so is
+`'a' plus.wrap 'b'`. Wrapping exists for hashes and counters, where the size
 is the algorithm, so it is written and never guessed. Proposed
 alternatives: the bigger size; the left operand's (the oracle's old
 placeholder).
 
 **A negative exponent is a check site** (owner, 2026-09-24: a), for `xx`
-and `xx~` alike: `2 xx -1` is a half, which no integer holds, and a
+and `xx~` alike: `2 pow -1` is a half, which no integer holds, and a
 fraction is not something wrapping answers. Precog sees the whole
 program and proves the exponent never negative, the working build
 checks where it cannot, and the final build refuses an unproven one.
@@ -210,13 +218,13 @@ this: every option before it either errors on answers that fit (a, and
 b in the middle of a narrower line) or can move a wrap (b). On today's
 processors a 16-bit and a 64-bit add cost the same, and the checks are
 what cost, and this has the fewest. Owner: "yes, that one". It also
-answers mixed sizes (`int16 + int64`), which nothing had decided.
+answers mixed sizes (`int16 plus int64`), which nothing had decided.
 
 ## A `bin` never holds an infinity or a NaN (owner, 2026-09-29: a)
 
 An operation whose `bin` result would be an infinity or a NaN is a check
-site, like integer overflow: `'big' x 10.0` past the largest `bin64`,
-`1.0 div.near 0.0` and `0.0 div.near 0.0` (division by zero), `-1.0 xx 0.5` (no
+site, like integer overflow: `'big' times 10.0` past the largest `bin64`,
+`1.0 div.near 0.0` and `0.0 div.near 0.0` (division by zero), `-1.0 pow 0.5` (no
 number). Precog proves them away where it can, the working build checks,
 the final build refuses the rest. Text never makes one either
 (2026-09-24). Proposed alternative: IEEE's infinities and NaN, as C has
@@ -226,7 +234,7 @@ them.
 
 ```
 let 'x': bin32 = 16777216.0;
-let 'y': bin32 = 'x' + 1.0 + 1.0;      # 16777216: each + rounds back at bin32
+let 'y': bin32 = 'x' plus 1.0 plus 1.0;      # 16777216: each plus rounds back at bin32
 ```
 
 Each operation on `bin16` or `bin32` values gives the IEEE result at their
@@ -287,8 +295,8 @@ mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
 ```
 struct Vec { x: bin64  y: bin64 }
-op <+> ['a': Vec, 'b': Vec] --> Vec { return Vec[x = 'a'.x + 'b'.x, y = 'a'.y + 'b'.y]; }
-op dot ['a': Vec, 'b': Vec] --> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
+op <+> ['a': Vec, 'b': Vec] --> Vec { return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y]; }
+op dot ['a': Vec, 'b': Vec] --> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
 op **  [give 'a': Vec, 'b': bin64] --> Vec { … return give 'a'; }
 
 let 'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
@@ -319,7 +327,7 @@ Four questions, one at a time:
    library's table.
 4. **Operands are lent by default; `give` on an operand takes it by value,
    and then the caller writes `give` too** (owner: "middle", between
-   always-lent and Rust's by-value). Rust's `a + b` moves both operands,
+   always-lent and Rust's by-value). Rust's `a plus b` moves both operands,
    which is why every numeric crate writes four `impl`s per operator;
    always-lent reads like arithmetic but cannot reuse a dead operand's
    buffer (`s = s + "x"` in a loop). The middle keeps `'u' <+> 'v'` for
@@ -330,7 +338,7 @@ Four questions, one at a time:
 Rules that follow: exactly two operands; `--> T` required; an operator
 cannot fail (make it a `fn`); it is never called with `[…]`; `not`, `and`,
 `or` cannot be redefined; the language's other operators may be **defined
-for a user type** (`op + ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
+for a user type** (`op plus ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
 interfaces) but never changed for the language's own types. Prefix (one-operand) custom
 operators are not offered.
 

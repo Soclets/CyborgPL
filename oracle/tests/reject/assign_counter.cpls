@@ -1,5 +1,5 @@
 MAIN {
     for 'i' in range[0, 3] {
-        change 'i' = 'i' + 1;
+        change 'i' = 'i' plus 1;
     }
 }

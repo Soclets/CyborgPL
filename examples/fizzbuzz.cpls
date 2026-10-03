@@ -17,6 +17,6 @@ MAIN {
     let 'i' := 1;
     while 'i' </== 'limit' {
         say['i'];
-        change 'i' = 'i' + 1;
+        change 'i' = 'i' plus 1;
     }
 }

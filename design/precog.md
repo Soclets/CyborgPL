@@ -69,7 +69,7 @@ length in `[lo, hi]`; an `extern` result is anything its C-shaped type
 holds — or, with a ranged return (`ffi.md`, 2026-09-22), the range,
 enforced at the door as a failure. Precog runs the program abstractly
 over those domains: each expression gets the set of values it can take, computed exactly through
-every operation (`{1, 2, 3} x {10}` is `{10, 20, 30}`).
+every operation (`{1, 2, 3} times {10}` is `{10, 20, 30}`).
 
 - A set larger than **4096 values** (provisional) becomes an interval
   `[lo, hi]` — sound, less precise; an interval is spelled out as a set
@@ -306,10 +306,10 @@ from the same independence proof.
 Per check site, in source order:
 
 ```
-line 7   'total' + square['i']   overflow           proven    (layer 2: max 333833500)
+line 7   'total' plus square['i']   overflow           proven    (layer 2: max 333833500)
 line 12  'xs'['k']           out of bounds      checked   (layer 3: sat, k=100 when len=100)
 line 15  'a' div.floor 'b'       division by zero   trusted   (nocheck)
-line 9   square: 'x' x 'x'       overflow           proven    (layer 2, at 1 call site)
+line 9   square: 'x' times 'x'       overflow           proven    (layer 2, at 1 call site)
 ```
 
 Three lists in the build output: `nocheck` sites, `check` sites passed,

@@ -72,7 +72,7 @@ let 'unit': bin64[0.0, 1.0] = 0.25;
   **fails** with `out_of_range` (beside `not_a_number`), so a bad outside
   value is a failure you handle, never a crash; past it, `'n'` is
   `int32[0, 100]`.
-- Precog carries the bounds through arithmetic: `'n' + 1` is an
+- Precog carries the bounds through arithmetic: `'n' plus 1` is an
   `int32[1, 101]`; storing it back into an `int32[0, 100]` is a check
   site; `'xs'['n']` on a 100-element list is proven.
 - A range type cannot cross to C (C has no ranges — use the plain type).
@@ -85,7 +85,7 @@ the test harness runs with no stdin, so `examples/input.cpls` prints its
 fallback). Range types: `examples/ranges.cpls`; assignment out of range
 is a site error (a "lied" under `nocheck`), conversion out of range is
 the `out_of_range` failure; ten reject tests. The oracle does not track
-arithmetic ranges (`'n' + 1`) — a value is checked when stored.
+arithmetic ranges (`'n' plus 1`) — a value is checked when stored.
 
 ## Open
 

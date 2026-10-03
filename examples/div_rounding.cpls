@@ -1,6 +1,6 @@
 # Every division says how it rounds (owner, 2026-10-02): `floor` down, `ceil` up, `trunc` toward
 # zero, `near` to the nearest (a tie to even). `mod.X` is what `div.X` leaves over:
-# a == (a div.X b) x b + (a mod.X b). On numbers with a fraction, `div.near` is ordinary division
+# a == (a div.X b) times b plus (a mod.X b). On numbers with a fraction, `div.near` is ordinary division
 # and `floor`/`ceil`/`trunc` give a whole quotient.
 MAIN {
     std::print.useful.stdout[(7 div.floor 2), " ", (7 div.ceil 2), " ", (7 div.trunc 2), " ", (7 div.near 2), \n];

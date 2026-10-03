@@ -3900,6 +3900,12 @@ impl<'p> Interp<'p> {
     /// A custom operator (decided 2026-09-20): `'u' <+> 'v'` / `'u' dot 'v'`. Operands
     /// are lent unless the `op` says `give`, in which case the caller writes `give` too.
     fn custom_op(&mut self, op: &str, l: &Expr, r: &Expr, line: usize) -> Result<(Value, Prov), RuntimeError> {
+        // std's `pow` / `pow.wrap` (owner, 2026-10-03), unless a type of the program's defines its own:
+        // the power the language's `xx` / `xx~` was, with its rules
+        if (op == "pow" || op == "pow.wrap") && !self.prog.funcs.iter().any(|f| f.is_op && f.name == op) {
+            let inner = if op == "pow" { "xx" } else { "xx~" };
+            return self.eval(&Expr::Binary(inner.into(), Box::new(l.clone()), Box::new(r.clone()), line));
+        }
         let left = self.eval(l)?;
         self.custom_op_with(op, left, l, r, line)
     }
@@ -3916,7 +3922,7 @@ impl<'p> Interp<'p> {
             Some(f) => f.clone(),
             None => {
                 let hint = match op {
-                    "*" => "; multiply is `x`, power is `xx`", "^" => "; power is `xx`", "%" => "; remainder is `mod`",
+                    "*" => "; multiply is `times`, power is std's `pow`", "^" => "; power is std's `pow`", "%" => "; remainder is `mod`",
                     "&" | "|" | "!" => "; use `and`, `or`, `not`", _ => "",
                 };
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));

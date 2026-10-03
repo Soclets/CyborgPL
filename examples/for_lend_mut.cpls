@@ -4,7 +4,7 @@
 MAIN {
     let mut 'prices': list[int32] = [10, 20, 30];
     for 'x' in lend.mut 'prices' {
-        change 'x' = 'x' x 2;
+        change 'x' = 'x' times 2;
     }
     std::print.stored.stdout['prices', \n];
 }

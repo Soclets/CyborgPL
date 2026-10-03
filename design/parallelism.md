@@ -23,7 +23,7 @@ parallel:
   for cores, tuning for the GPU only.
 
 **Reductions** (owner, 2026-09-30: c): a loop that folds into one variable
-(`change 'total' = 'total' + 'x';`) may run in parallel, each core folding
+(`change 'total' = 'total' plus 'x';`) may run in parallel, each core folding
 its own slice and the slices combined at the end — for every type,
 `bin` and `deci` included. For those the order changes the rounding, so
 the same binary may give a total that differs in its last digits from run
@@ -71,7 +71,7 @@ until `para` joined it.
 ## No cheating: `for !c` (owner, 2026-10-01)
 
 ```
-for !c 'i': int64 in range[1, 'n'] { change 'acc' = 'acc' + 'i'; }
+for !c 'i': int64 in range[1, 'n'] { change 'acc' = 'acc' plus 'i'; }
 for !c seq 'i' in lend 'xs' { … }
 for !c para 'i' in range[1, 'n'] { … }
 ```

@@ -7,6 +7,6 @@ MAIN {
     let 'a' $:= 2;                  # an immut can be shadowed: nothing is changed
     let !mut 'b' := 3;              # !mut is immut written another way
     let !$ mut 'total' := 0;        # changeable, and 'total' always means this one
-    change 'total' = 'total' + 'a' + 'b';
+    change 'total' = 'total' plus 'a' plus 'b';
     std::print.useful.stdout['a', " ", 'b', " ", 'total', \n];
 }

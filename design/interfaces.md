@@ -15,13 +15,13 @@ that can be compared," and a type needs a way to *be* comparable.
 ```
 op < ['a': Vec, 'b': Vec] --> bool { … }
 op == ['a': Vec, 'b': Vec] --> bool { … }
-op + ['a': Vec, 'b': Vec] --> Vec { … }
+op plus ['a': Vec, 'b': Vec] --> Vec { … }
 ```
 
 Revises 2026-09-19's "the language's operators cannot be redefined": they
-cannot be *changed* for the language's own types (`op + ['a': int32, …]`
+cannot be *changed* for the language's own types (`op plus ['a': int32, …]`
 is an error), but a struct or enum may define them for itself, with the
-operator's normal precedence. This is what lets `'u' + 'v'` read like
+operator's normal precedence. This is what lets `'u' plus 'v'` read like
 arithmetic and what an interface needs. `not`, `and`, `or` stay the
 language's.
 

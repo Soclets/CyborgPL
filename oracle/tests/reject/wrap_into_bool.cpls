@@ -1,1 +1,1 @@
-MAIN { let 'a': bool = 0 -~ 0; }
+MAIN { let 'a': bool = 0 minus.wrap 0; }

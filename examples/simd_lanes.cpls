@@ -5,7 +5,7 @@ MAIN {
     let 'a': simd[int32, 4] = simd.fill[4];
     let 'x': int32 = 'a'[1];
     let 'u': simd[uint8, 16] = simd.fill[200];
-    let 'w' := 'u' +~ 'u';
+    let 'w' := 'u' plus.wrap 'u';
     std::print.stored.stdout['x', " ", 'w'[1], " ", 'w'[16], \n];
     let mut 'v': simd[int32, 4] = simd.fill[0];
     change 'v'[3] = 30;

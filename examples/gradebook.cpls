@@ -8,7 +8,7 @@ struct Student {
 fn average [lent 's': Student] --> int32 or fail[no_scores] {
     if list.length[lend 's'.scores] == 0 { fail no_scores; }
     let 'total' := 0;
-    for 'x' in lend 's'.scores { change 'total' = 'total' + 'x'; }
+    for 'x' in lend 's'.scores { change 'total' = 'total' plus 'x'; }
     check return 'total' div.floor list.length[lend 's'.scores];     # the if above proves the divisor is not 0
 }
 
@@ -40,7 +40,7 @@ MAIN {
     for 's' in lend 'students' {
         std::print.stored.stdout['s'.name, ": ", grade[lend 's'], \n];
         let 'avg' := average[lend 's'] otherwise 0;
-        if 'avg' >/== 'passing' { change 'passed' = 'passed' + 1; }
+        if 'avg' >/== 'passing' { change 'passed' = 'passed' plus 1; }
     }
     std::print.useful.stdout['passed', " of ", list.length[lend 'students'], " passed", \n];
 }

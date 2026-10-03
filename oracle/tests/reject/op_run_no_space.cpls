@@ -1,4 +1,4 @@
-op <+> ['a': int32, 'b': int32] --> int32 { return 'a' + 'b'; }
+op <+> ['a': int32, 'b': int32] --> int32 { return 'a' plus 'b'; }
 MAIN {
     let 'b' := 2;
     let 'w' := 1 <+>-'b';

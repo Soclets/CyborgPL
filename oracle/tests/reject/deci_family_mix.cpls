@@ -2,5 +2,5 @@
 MAIN {
     let 'a': deci64 = 1.5;
     let 'w': bin64 = 2.0;
-    let 'c' := 'a' + 'w';
+    let 'c' := 'a' plus 'w';
 }

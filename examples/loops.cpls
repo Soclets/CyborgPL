@@ -2,11 +2,11 @@ MAIN {
     let 'i' := 0;
     while 'i' < 3 {
         std::print.useful.stdout["while ", 'i', \n];
-        change 'i' = 'i' + 1;
+        change 'i' = 'i' plus 1;
     }
     let 'n' := 0;
     loop {
-        change 'n' = 'n' + 1;
+        change 'n' = 'n' plus 1;
         if 'n' == 2 {
             continue;
         }

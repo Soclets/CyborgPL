@@ -1,6 +1,6 @@
 MAIN {
     let 'xs': list[int32] = [1, 2];
     for 'x' in lend 'xs' {
-        change 'x' = 'x' + 1;
+        change 'x' = 'x' plus 1;
     }
 }

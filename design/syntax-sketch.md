@@ -22,7 +22,7 @@ MAIN {
     let 'mine' := Locker[name = "A", number = 7, occupied = false];
     let mut 'total': int32 = 0;
     for 'i' in range[1, 10] {
-        if ('i' mod.floor 2) == 0 { change 'total' = 'total' + 'i'; }
+        if ('i' mod.floor 2) == 0 { change 'total' = 'total' plus 'i'; }
         else if 'i' == 7 { break; }
         else { continue; }
     }
@@ -105,8 +105,8 @@ without the rest of that redesign. See `DECISIONS.md`.
   - indexes: `'xs'[3]`;
   - bounds a range: `range[1, 10, 2]`.
 
-  A **single expression stands bare**: `let 'x' := 1000;`, `change 'i' = 'i' + 1;`,
-  `return 'a' + 'b';`, `if 'a' == 'b' { }`, `let 'n' := add[10, 20];`,
+  A **single expression stands bare**: `let 'x' := 1000;`, `change 'i' = 'i' plus 1;`,
+  `return 'a' plus 'b';`, `if 'a' == 'b' { }`, `let 'n' := add[10, 20];`,
   `occupied = false` inside a construction. A bracket around a single
   expression is allowed as grouping and builds nothing.
 - **Text joins with `++`** (decided 2026-09-19, replacing the whitespace
@@ -127,9 +127,9 @@ without the rest of that redesign. See `DECISIONS.md`.
   quotes**, which is why it lives outside: `"Line 1" ++ \n ++ "Line 2"`,
   `let 'nl' := \n;`. (The oracle's first lexer had C-style `\n`/`\t` inside
   quotes; a default, never decided, now removed.)
-- **Names are quoted, so operators are free glyphs**: `let '+' := 10 + 20;`
+- **Names are quoted, so operators are free glyphs**: `let '+' := 10 plus 20;`
   is legal — the name `'+'` and the operator `+` are different tokens.
-- **`( )` is arithmetic grouping only**: `'a' + ('b' x 2)`. Never a call,
+- **`( )` is arithmetic grouping only**: `'a' plus ('b' times 2)`. Never a call,
   never a parameter list.
 - **`print.stored` vs `print.useful`** (decided 2026-09-14; both named since
   2026-10-02, owner: "it has to be required & compatible with `.weird`" —
@@ -173,7 +173,7 @@ Closed 2026-09-14: the typed form is always fully explicit (no bare
 ```
 var.bin16 'x' = [1000];
 var 's' := ["line 1" \n "line 2"];
-func.int32 add [var.int32 'a', var.int32 'b'] { return ['a' + 'b']; }
+func.int32 add [var.int32 'a', var.int32 'b'] { return ['a' plus 'b']; }
 loop.temp.range.int32 'i' [= 0, = 9] { if ['i' == 7] { break; } }
 ```
 

@@ -67,7 +67,7 @@ this does not.
 ## `deci` (owner, 2026-09-29)
 
 IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
-`0.1 + 0.2` is exactly `0.3`.
+`0.1 plus 0.2` is exactly `0.3`.
 
 - **A literal with more digits than the type holds is a compile error**:
   `let 'q': deci32 = 3.14159265;` is refused ("9 digits; `deci32` holds 7").
@@ -102,8 +102,8 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
 - **`mod.floor` takes the divisor's sign**, as integer `mod.floor`: `-7.50 mod.floor 2` is
   `0.50`. Exact, then rounded like the rest.
 - **`xx` takes a whole exponent** and rounds like the other operations:
-  `1.05 xx 10` is `1.628894626777441` in a `deci64`, exact in a `deci128`; a
-  negative exponent is one over the power. A fractional one (`2.0 xx 0.5`)
+  `1.05 pow 10` is `1.628894626777441` in a `deci64`, exact in a `deci128`; a
+  negative exponent is one over the power. A fractional one (`2.0 pow 0.5`)
   is refused: roots are std's math. The exponent is an integer or a whole
   literal; a `deci` variable is refused even when it holds `3.00`, since the
   compiler cannot know it is whole (owner, 2026-09-29: a): `'r' xx
@@ -120,7 +120,7 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   and `bin32` are different families; mixing them in one expression is a
   compile error and conversion is explicit (spelling open). A bare numeric
   **literal** has no family of its own: it takes the family of its context,
-  so `let 'x': bin16 = 1000;` and `'b' x 2` with `'b'` a bin are fine. A
+  so `let 'x': bin16 = 1000;` and `'b' times 2` with `'b'` a bin are fine. A
   *variable* never converts: `let 'b': bin64 = 'a';` with `'a'` an `int32`
   is an error.
 - **Width in the typed form is mandatory** (`int32`, never `int`) —
@@ -186,5 +186,5 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   language — so it is CyborgPL source Precog can see through, and it takes
   the role legacy's `bignum`/`bigint` had. Reached through the Limb
   boundary: `let 'n': std::uenr = 1000;`. **Exact is exact**: fractions are
-  held as true rationals, so `(1/3) x 3` is exactly `1` (decided
+  held as true rationals, so `(1/3) times 3` is exactly `1` (decided
   2026-09-14).

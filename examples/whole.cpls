@@ -7,7 +7,7 @@ MAIN {
     let 'b' := to.int32['y'] otherwise -1;                    # not whole: fails → -1
     let 'c' := to.int32[std::round['y']] otherwise -1;        # said: 3
     let 'd' := to.int32[std::floor['y']] otherwise -1;        # said: 2
-    let 'e' := to.int32[std::trunc[0.0 - 'y']] otherwise -1;  # said: -2
+    let 'e' := to.int32[std::trunc[0.0 minus 'y']] otherwise -1;  # said: -2
     std::print.useful.stdout['a', " ", 'b', " ", 'c', " ", 'd', " ", 'e', \n];
     let 'big': bin64 = 10000000000.0;
     let 'g' := to.int32['big'] otherwise -1;                 # whole but too big for an int32: out_of_range → -1

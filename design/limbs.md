@@ -70,7 +70,7 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   `immut`, never shadowed, and no ownership verb applies to it — nobody
   owns it, every use is a fresh value.
 - **Named like a variable, quoted**: `'pi'`, used in expressions as
-  `'pi' x 2`, reached from another Limb as `mathstuff::'pi'` (owner,
+  `'pi' times 2`, reached from another Limb as `mathstuff::'pi'` (owner,
   2026-09-19: "single quoted"). One rule — quotes mean a user-named value.
 - **The OS door is open to every Limb** (2026-09-19): `extern`, `ptr[T]`
   and inline asm are base-language features (`ffi.md`); std is the
