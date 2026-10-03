@@ -267,6 +267,9 @@ pub enum ExprKind {
     /// A `match` used as a value: each arm gives it or leaves.
     Match { value: Box<Expr>, arms: Vec<MatchArm> },
     Int(i128),
+    /// A whole number past `i128`, as its decimal digits (owner,
+    /// 2026-10-03: integers of any width).
+    BigInt(String),
     Bin(String),
     /// A `deci` literal in its layout (BID), worked out at its width.
     Deci { bits: u16, value: u128 },

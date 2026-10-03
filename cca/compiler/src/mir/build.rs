@@ -69,6 +69,7 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
     let bin64 = |e: &hir::Expr| matches!(e.ty.base(), Ty::Bin(crate::types::BinW::Fixed(64)));
     match &e.kind {
         hir::ExprKind::Int(v) => Some(Const::Int(*v)),
+        hir::ExprKind::BigInt(v) => Some(Const::Big(v.clone())),
         hir::ExprKind::Bin(s) => Some(Const::Bin(s.clone())),
         hir::ExprKind::Str(s) => Some(Const::Str(s.clone())),
         hir::ExprKind::Char(c) => Some(Const::Char(c.clone())),
@@ -1143,6 +1144,7 @@ impl<'a> FnBuilder<'a> {
         let span = self.span_id(e.span).max_of(span);
         match &e.kind {
             hir::ExprKind::Int(v) => Operand::Const(Const::Int(*v)),
+            hir::ExprKind::BigInt(v) => Operand::Const(Const::Big(v.clone())),
             hir::ExprKind::Bin(t) => Operand::Const(Const::Bin(t.clone())),
             hir::ExprKind::Deci { bits, value } => Operand::Const(Const::Deci { bits: *bits, value: *value }),
             hir::ExprKind::Str(t) => Operand::Const(Const::Str(t.clone())),
@@ -2052,16 +2054,24 @@ pub fn needs_narrow_check(from: &Ty, to: &Ty) -> bool {
     }
     match (from.base(), to.base()) {
         (Ty::Int(a), Ty::Int(b)) => match (a, b) {
-            (IntW::Fixed { signed: s1, bits: b1 }, IntW::Fixed { signed: s2, bits: b2 }) => {
-                let (f_lo, f_hi) = crate::resolve::int_range(*s1, *b1);
-                let (t_lo, t_hi) = crate::resolve::int_range(*s2, *b2);
-                f_lo < t_lo || f_hi > t_hi
-            }
+            (IntW::Fixed { signed: s1, bits: b1 }, IntW::Fixed { signed: s2, bits: b2 }) => !crate::resolve::int_fits(*s1, *b1, *s2, *b2),
             // A width Precog has not chosen: the value decides, and the store
             // is where it has to fit.
             _ => true,
         },
         (Ty::Bin(_), Ty::Bin(_)) => true,
+        // A whole number that can round past the largest bin or brain16:
+        // a wide one (owner, 2026-10-03), or an `int32` into a bin16.
+        (Ty::Int(IntW::Fixed { signed, bits }), Ty::Bin(crate::types::BinW::Fixed(b))) => {
+            let (lo, hi) = crate::bigint::type_range(*signed, *bits);
+            let limit = crate::bigint::bin_round_limit(*b);
+            hi >= limit || lo.neg() >= limit
+        }
+        (Ty::Int(IntW::Fixed { signed, bits }), Ty::Brain) => {
+            let (lo, hi) = crate::bigint::type_range(*signed, *bits);
+            let limit = crate::bigint::bin_round_limit(crate::types::BRAIN_BITS);
+            hi >= limit || lo.neg() >= limit
+        }
         // Past the largest brain16 (owner, 2026-10-02), or a brain16 past
         // the largest bin16.
         (Ty::Bin(_) | Ty::Deci(_), Ty::Brain) => true,

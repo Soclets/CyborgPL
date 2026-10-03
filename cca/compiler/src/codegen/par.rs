@@ -587,7 +587,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 } else {
                     bad_past = boolt.const_zero();
                 }
-                let (lo, hi) = crate::resolve::int_range(signed, bits as u16);
+                let (lo, hi) = crate::resolve::int_range(signed, bits as u32);
                 // The site the loop would have stopped at: the store into the
                 // variable when that is the one left to check, else the op.
                 let mut sites: Vec<SiteId> = fd.skip.iter().filter_map(|(b, si)| match &f.blocks[*b].stmts[*si].kind {

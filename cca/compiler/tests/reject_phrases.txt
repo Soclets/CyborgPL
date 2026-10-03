@@ -493,10 +493,10 @@ spread_owned_needs_verb [fnv:b64e38d86c3a19e9] :: say `...copy 'w'` or `...give 
 spread_plain_no_verb [fnv:c21efae9ad74426b] :: its elements are plain `integer` values, which copy by themselves
 spread_unknown_length [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
 star_operator [fnv:b20e9f542727bd69] :: multiply is `times`
-std_not_a_type [fnv:e456092e8ffcd94f] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
-std_on_standard [fnv:b6b921c48995d42b] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
-std_too_wide [fnv:6ec0f1e346ae0a65] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
-std_width_overflow [fnv:77ece6a67fc100a0] :: !unbuilt integers of any width, `!std_int24` (2026-10-03)
+std_not_a_type [fnv:e456092e8ffcd94f] :: is not a type: a non-standard integer
+std_on_standard [fnv:b6b921c48995d42b] :: `int32` is standard: write `int32`
+std_too_wide [fnv:685422467bc9f0ae] :: past the widest integer there is
+std_width_overflow [fnv:77ece6a67fc100a0] :: the value can be outside what a `!std_uint4` holds
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
 str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
@@ -573,6 +573,8 @@ variadic_typed_mismatch [fnv:7d29ffc630950dd5] :: `f`'s parameter 'nums' is an `
 walrus_with_type [fnv:71f8f0e47289f563] :: `:=` means Precog chooses the type, so it takes no type; with a type written, use `=`
 whichever_unhandled [fnv:86bb5570c3022d11] :: `whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
 while_keyword [fnv:eb07551a9069b239] :: `while 'x' < 3 { … }`
+wide_does_not_fit [fnv:385d629b5c9cf365] :: the value can be outside what a `int64` holds
+wide_past_in_between [fnv:663f85c9ec3ce93b] :: goes past 256 bits in between
 wl_removes_code [fnv:652fb6ee6f955c44] :: 'b' is not declared
 wrap_amp_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
 wrap_into_bool [fnv:c689ac7fee6b711f] :: expected a value of the declared type (bool), found a whole number

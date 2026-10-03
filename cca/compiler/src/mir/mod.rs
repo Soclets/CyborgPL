@@ -97,6 +97,8 @@ impl Place {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Const {
     Int(i128),
+    /// A whole number past `i128`, as its decimal digits.
+    Big(String),
     /// Kept as written: compile-time arithmetic rounds at the target's
     /// width, never the host's (`reproducible-builds.md`).
     Bin(String),
@@ -323,9 +325,9 @@ impl Site {
     /// the oracle's words, "goes past 64 bits in between".
     pub fn sentence(&self, spell: &dyn Fn(&Ty) -> String) -> String {
         match (&self.kind, &self.result_ty) {
-            (SiteKind::Overflow(op), Some(t)) if t.is_exact() => format!("`{}` goes past 64 bits in between", op.spelled()),
+            (SiteKind::Overflow(op), Some(t)) if t.is_exact() => format!("`{}` goes past {} bits in between", op.spelled(), t.exact_limit().unwrap_or(64)),
             // A bin never holds an infinity or a NaN (owner, 2026-09-29).
-            (SiteKind::Overflow(BinOp::Pow), Some(t)) if matches!(t.base(), Ty::Bin(_)) => "`xx` can go past the largest bin (it would be infinity) or have no number (it would be NaN)".into(),
+            (SiteKind::Overflow(BinOp::Pow), Some(t)) if matches!(t.base(), Ty::Bin(_)) => "`pow` can go past the largest bin (it would be infinity) or have no number (it would be NaN)".into(),
             (SiteKind::Overflow(op), Some(t)) if matches!(t.base(), Ty::Bin(_)) => format!("`{}` can go past the largest bin (it would be infinity)", op.spelled()),
             (SiteKind::Overflow(op), Some(t)) if t.is_brain() => format!("`{}` can go past the largest brain16 (it would be infinity)", op.spelled()),
             _ => self.kind.sentence(spell),

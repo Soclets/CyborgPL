@@ -272,3 +272,4 @@ give_temp_arg 10
 bin32_whole_range 7
 precedence_block 61
 word_operators_run 215
+wide_integers_run 255

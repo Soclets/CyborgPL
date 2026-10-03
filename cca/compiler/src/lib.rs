@@ -14,6 +14,7 @@ pub mod hir;
 pub mod resolve;
 pub mod types;
 pub mod rounding;
+pub mod bigint;
 pub mod deci;
 pub mod load;
 

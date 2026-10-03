@@ -21,7 +21,7 @@ pub struct IfaceId(pub u32);
 /// An integer's width: declared, or free for Precog to choose.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IntW {
-    Fixed { signed: bool, bits: u16 },
+    Fixed { signed: bool, bits: u32 },
     Free(InferId),
 }
 
@@ -137,11 +137,17 @@ pub enum Ty {
     Bounded { inner: Box<Ty>, bound: Bound },
 }
 
-/// The width that stands for [`Ty::exact`].
-pub const EXACT_BITS: u16 = 65;
+/// Marks [`Ty::exact`]: no width anyone writes has this bit, and the rest
+/// is the limit in between (owner, 2026-10-03: the widest operand's width,
+/// at least 64 bits).
+pub const EXACT_FLAG: u32 = 1 << 31;
+/// The exact type of 64-bit operands, the common one.
+pub const EXACT_BITS: u32 = EXACT_FLAG | 64;
+/// The widest integer there is: LLVM's 2^23 bits (owner, 2026-10-03).
+pub const WIDEST_INT: u32 = 1 << 23;
 
 impl Ty {
-    pub fn int(signed: bool, bits: u16) -> Ty {
+    pub fn int(signed: bool, bits: u32) -> Ty {
         Ty::Int(IntW::Fixed { signed, bits })
     }
     pub fn u64() -> Ty {
@@ -155,8 +161,21 @@ impl Ty {
     pub fn exact() -> Ty {
         Ty::int(true, EXACT_BITS)
     }
+    /// The exact answer whose in-between limit is `limit` bits: what some
+    /// `limit`-bit type holds, the signed one's lowest to the unsigned
+    /// one's highest. Never below 64.
+    pub fn exact_at(limit: u32) -> Ty {
+        Ty::int(true, EXACT_FLAG | limit.max(64))
+    }
     pub fn is_exact(&self) -> bool {
-        matches!(self.base(), Ty::Int(IntW::Fixed { signed: true, bits: EXACT_BITS }))
+        self.exact_limit().is_some()
+    }
+    /// The limit in between of an exact answer.
+    pub fn exact_limit(&self) -> Option<u32> {
+        match self.base() {
+            Ty::Int(IntW::Fixed { signed: true, bits }) if bits & EXACT_FLAG != 0 => Some(bits & !EXACT_FLAG),
+            _ => None,
+        }
     }
     pub fn list(elem: Ty) -> Ty {
         Ty::Seq { elem: Box::new(elem), kind: SeqKind::List }
@@ -373,8 +392,10 @@ impl<'a> fmt::Display for TySpelling<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let sp = |t: &'a Ty| TySpelling { ty: t, structs: self.structs, enums: self.enums };
         match self.ty {
-            Ty::Int(IntW::Fixed { signed: true, bits: EXACT_BITS }) => write!(f, "integer"),
-            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "{}int{}", if *signed { "" } else { "u" }, bits),
+            Ty::Int(IntW::Fixed { signed: true, bits }) if bits & EXACT_FLAG != 0 => write!(f, "integer"),
+            Ty::Int(IntW::Fixed { signed, bits }) if matches!(bits, 8 | 16 | 32 | 64 | 128) => write!(f, "{}int{}", if *signed { "" } else { "u" }, bits),
+            // Not a standard width: marked as such (owner, 2026-10-03).
+            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "!std_{}int{}", if *signed { "" } else { "u" }, bits),
             Ty::Int(IntW::Free(_)) => write!(f, "integer"),
             Ty::Bin(BinW::Fixed(b)) => write!(f, "bin{}", b),
             Ty::Bin(BinW::Free(_)) => write!(f, "bin"),

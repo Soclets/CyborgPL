@@ -134,9 +134,16 @@ pub fn literal(text: &str, bits: u16) -> Result<u128, LitErr> {
 /// How many digits the largest value of a whole-number type has: whether
 /// it always fits a `deci` (`types.md`: "an `int32` into a `deci64`
 /// always fits and takes no `otherwise`").
-pub fn int_digits(signed: bool, bits: u16) -> u32 {
-    let max: u128 = if bits >= 128 { if signed { i128::MAX as u128 } else { u128::MAX } } else if signed { (1u128 << (bits - 1)) - 1 } else { (1u128 << bits) - 1 };
-    max.to_string().len() as u32
+pub fn int_digits(signed: bool, bits: u32) -> u32 {
+    let (signed, bits) = crate::resolve::storage(signed, bits);
+    if bits <= 128 {
+        let max: u128 = if bits == 128 { if signed { i128::MAX as u128 } else { u128::MAX } } else if signed { (1u128 << (bits - 1)) - 1 } else { (1u128 << bits) - 1 };
+        return max.to_string().len() as u32;
+    }
+    // 2^b - 1 has floor(b log10 2) + 1 digits; no power of 2 is a power
+    // of 10, so the floor is never on an edge.
+    let b = if signed { bits - 1 } else { bits };
+    (b as f64 * std::f64::consts::LOG10_2).floor() as u32 + 1
 }
 
 /// What a conversion into or out of a `deci` can fail with, in the order

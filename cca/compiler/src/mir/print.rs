@@ -136,6 +136,7 @@ fn operand_s(o: &Operand, f: &Function) -> String {
 fn const_s(c: &Const) -> String {
     match c {
         Const::Int(v) => v.to_string(),
+        Const::Big(v) => v.clone(),
         Const::Bin(v) => v.clone(),
         Const::Deci { bits, value } => format!("deci{}:{:#x}", bits, value),
         Const::Str(v) => format!("{:?}", v),

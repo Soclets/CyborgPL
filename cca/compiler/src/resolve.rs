@@ -963,22 +963,14 @@ impl Items {
         if path.limb.is_none() && head == "bin128" {
             return err(Diagnostic::error("there is no `bin128`: quad precision is software arithmetic on every machine — `bin64`, or `deci128` for more digits (owner, 2026-09-23)").at(span));
         }
+        // An integer of any width (owner, 2026-10-03).
+        if let Some(rest) = head.strip_prefix("!std_") {
+            return std_int(rest, span);
+        }
         if path.limb.is_none() {
+            // A 128-bit whole number is carried: what Precog's sets cannot
+            // hold, it claims nothing about (`Domain::of_ty`).
             if let Some(t) = primitive(head) {
-                if let Ty::Int(IntW::Fixed { bits: 128, .. }) = t {
-                    // Every number Precog reasons about is held in 128
-                    // bits signed, so a `uint128` has values it cannot
-                    // write down and an `int128` has sums it cannot. A
-                    // proof about a number the prover cannot represent
-                    // would not be a proof, so the type is refused rather
-                    // than carried badly. (`design/types.md` marks the
-                    // 128-bit widths proposed, not decided.)
-                    return err(Diagnostic::error(format!("CCA carries whole numbers up to 64 bits, and `{}` is 128", head))
-                        .at(span)
-                        .why("Precog holds every number it reasons about in 128 bits signed; a 128-bit whole number has values that will not fit there, and a proof it cannot represent is not a proof")
-                        .why("`design/types.md` lists the 128-bit widths as proposed, not decided")
-                        .try_(format!("`{}64`", if head.starts_with('u') { "uint" } else { "int" })));
-                }
                 if path.segs.len() > 1 {
                     return err(Diagnostic::error(format!("`{}` takes no narrowing: `{}` is already a complete type", path.spelled(), head)).at(span));
                 }
@@ -1223,6 +1215,40 @@ pub fn rust_alias(w: &str) -> Option<&'static str> {
     })
 }
 
+/// `!std_int24`, `!std_uint4`, `!std_i24`, `!std_u4` (owner, 2026-10-03):
+/// any width from 1 to LLVM's 2^23 bits that is not a standard one.
+fn std_int(rest: &str, span: Span) -> Result<Ty> {
+    let (signed, digits, ours) = if let Some(d) = rest.strip_prefix("uint") {
+        (false, d, true)
+    } else if let Some(d) = rest.strip_prefix("int") {
+        (true, d, true)
+    } else if let Some(d) = rest.strip_prefix('u') {
+        (false, d, false)
+    } else if let Some(d) = rest.strip_prefix('i') {
+        (true, d, false)
+    } else {
+        (true, "", false)
+    };
+    let not_a_type = || err(Diagnostic::error(format!("`!std_{}` is not a type: a non-standard integer is `!std_intN` or `!std_uintN` (Rust's style, `!std_iN` or `!std_uN`), N its width in bits", rest)).at(span));
+    if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) {
+        return not_a_type();
+    }
+    let Ok(bits) = digits.parse::<u64>() else {
+        return err(Diagnostic::error(format!("`!std_{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+    };
+    if bits == 0 {
+        return err(Diagnostic::error(format!("`!std_{}` holds nothing: a width is at least 1 bit", rest)).at(span));
+    }
+    if bits > crate::types::WIDEST_INT as u64 {
+        return err(Diagnostic::error(format!("`!std_{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+    }
+    if matches!(bits, 8 | 16 | 32 | 64 | 128) {
+        let std = if ours { format!("{}int{}", if signed { "" } else { "u" }, bits) } else { format!("{}{}", if signed { "i" } else { "u" }, bits) };
+        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `!std_` says a width is not", std, std)).at(span));
+    }
+    Ok(Ty::int(signed, bits as u32))
+}
+
 pub fn primitive(head: &str) -> Option<Ty> {
     let head = rust_alias(head).unwrap_or(head);
     if matches!(head, "brain16" | "bfloat16" | "bf16") {
@@ -1248,7 +1274,7 @@ pub fn primitive(head: &str) -> Option<Ty> {
     } else {
         return None;
     };
-    let bits: u16 = head[prefix..].parse().ok()?;
+    let bits: u32 = head[prefix..].parse().ok()?;
     if matches!(bits, 8 | 16 | 32 | 64 | 128) {
         Some(Ty::int(signed, bits))
     } else {
@@ -1256,14 +1282,59 @@ pub fn primitive(head: &str) -> Option<Ty> {
     }
 }
 
-/// What a whole number of this width holds. Everything here is held in
-/// `i128`, so 128 bits is the ceiling and the widths above it are not
-/// carried — `resolve_type_path` refuses them before anything asks.
-pub fn int_range(signed: bool, bits: u16) -> (i128, i128) {
-    // The exact type: what some 64-bit type holds (`Ty::exact`).
-    if signed && bits == crate::types::EXACT_BITS {
-        return (i64::MIN as i128, u64::MAX as i128);
+/// What a whole number of this width holds, as far as `i128` holds it: a
+/// range past it is cut at `i128`'s ends. Where that would be wrong — a
+/// proof, a store's narrowing — [`int_range_exact`] says so instead.
+pub fn int_range(signed: bool, bits: u32) -> (i128, i128) {
+    if let Some(r) = int_range_exact(signed, bits) {
+        return r;
     }
+    let (s, _) = storage(signed, bits);
+    if s { (i128::MIN, i128::MAX) } else { (0, i128::MAX) }
+}
+
+/// The same, or `None` when `i128` does not hold the whole range: an
+/// unsigned 128 bits or wider, a signed wider than 128, an exact answer
+/// whose limit in between is past 126 bits.
+pub fn int_range_exact(signed: bool, bits: u32) -> Option<(i128, i128)> {
+    // The exact type: what some `limit`-bit type holds (`Ty::exact_at`).
+    if signed && bits & crate::types::EXACT_FLAG != 0 {
+        let limit = bits & !crate::types::EXACT_FLAG;
+        if limit == 64 {
+            return Some((i64::MIN as i128, u64::MAX as i128));
+        }
+        if limit >= 127 {
+            return None;
+        }
+        return Some((-(1i128 << (limit - 1)), (1i128 << limit) - 1));
+    }
+    if (signed && bits > 128) || (!signed && bits >= 128) {
+        return None;
+    }
+    Some(int_range_fits(signed, bits))
+}
+
+/// The width, and sign, that holds a type's every value: an exact answer
+/// whose limit is L needs L + 1 signed bits.
+pub fn storage(signed: bool, bits: u32) -> (bool, u32) {
+    if signed && bits & crate::types::EXACT_FLAG != 0 {
+        return (true, (bits & !crate::types::EXACT_FLAG) + 1);
+    }
+    (signed, bits)
+}
+
+/// Does every value of the first integer type fit the second? By widths,
+/// so it holds past `i128` too.
+pub fn int_fits(s1: bool, b1: u32, s2: bool, b2: u32) -> bool {
+    let ((s1, b1), (s2, b2)) = (storage(s1, b1), storage(s2, b2));
+    match (s1, s2) {
+        (false, false) | (true, true) => b1 <= b2,
+        (false, true) => b1 < b2,
+        (true, false) => false,
+    }
+}
+
+fn int_range_fits(signed: bool, bits: u32) -> (i128, i128) {
     if signed {
         if bits >= 128 {
             return (i128::MIN, i128::MAX);

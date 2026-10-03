@@ -56,8 +56,15 @@ impl Checker {
         let span = e.span;
         match &e.kind {
             AK::Int(t) => {
-                let v: i128 = t.parse().map_err(|_| Box::new(Diagnostic::error(format!("`{}` is too large for any integer type", t)).at(span)))?;
-                Ok(Expr { kind: K::Int(v), ty: FREE_INT, span })
+                if let Ok(v) = t.parse::<i128>() {
+                    return Ok(Expr { kind: K::Int(v), ty: FREE_INT, span });
+                }
+                // Past `i128`: kept as its digits, for a wide type to hold
+                // (owner, 2026-10-03), and past the widest there is, refused.
+                match crate::bigint::Big::parse(t) {
+                    Some(b) if b.bits() <= crate::types::WIDEST_INT as u64 => Ok(Expr { kind: K::BigInt(b.to_string()), ty: FREE_INT, span }),
+                    _ => err(Diagnostic::error(format!("`{}` is too large for any integer type: the widest there is holds {} bits", t, crate::types::WIDEST_INT)).at(span)),
+                }
             }
             AK::Bin(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: FREE_BIN, span }),
             // A deci whose width its place gives: `deci64` under `:=`.
@@ -710,8 +717,24 @@ impl Checker {
                 // 2026-09-23): `let 'tiny': int8 = (100 + 100) - 150;` is
                 // 50, and the 200 in between is fine. A shift, `not.bit` or
                 // wrapping operator still takes its width from here.
-                let to = if plain_group(&v) { Ty::exact() } else { t.base().clone() };
+                // In between, the limit is the width it lands in, at least
+                // 64 bits (owner, 2026-10-03): `2 pow 255` into a
+                // `!std_uint256`.
+                let landing = match t.base() {
+                    Ty::Int(IntW::Fixed { bits, .. }) if bits & crate::types::EXACT_FLAG == 0 => *bits,
+                    _ => 64,
+                };
+                let to = if plain_group(&v) { Ty::exact_at(landing) } else { t.base().clone() };
                 retype_literal_arith(&mut v, &to);
+            }
+        }
+        // A bare number takes its type from the place too, so beside a
+        // typed operand it brings the place's width to the limit in between
+        // (the oracle: `2 pow 'i'` into a `!std_uint256` is worked at 256
+        // bits, `'i' times 'i'` at the 64 of its operands).
+        if let (Some(limit), Ty::Int(IntW::Fixed { bits, .. })) = (vt.exact_limit(), t.base()) {
+            if bits & crate::types::EXACT_FLAG == 0 && *bits > limit {
+                raise_beside_literal(&mut v, *bits);
             }
         }
         // A list literal's items take the element type as their context, as
@@ -803,6 +826,7 @@ impl Checker {
                     return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span });
                 }
                 match vt.base() {
+                    Ty::Int(IntW::Fixed { .. }) if past_128(&vt) => return err(Diagnostic::error(format!("not yet: `not.bit` on a `{}`: bitwise operators and shifts past 128 bits wait until the oracle can check what CCA builds (owner, 2026-10-03)", self.spell(&vt))).at(span)),
                     Ty::Int(IntW::Fixed { .. }) => {}
                     Ty::Int(IntW::Free(_)) if literal_only(&v) => {
                         let t = self.fresh();
@@ -982,6 +1006,9 @@ impl Checker {
                 if !lt.is_int() || !rt.is_int() {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is a `{}`", op.spelled(), self.spell(bad))).at(op_span));
+                }
+                if let Some(wide) = [&lt, &rt].into_iter().find(|t| past_128(t)) {
+                    return err(Diagnostic::error(format!("not yet: `{}` on a `{}`: bitwise operators and shifts past 128 bits wait until the oracle can check what CCA builds (owner, 2026-10-03)", op.spelled(), self.spell(wide))).at(op_span));
                 }
                 if lt.is_exact() || rt.is_exact() {
                     // A shift is not the same on the low bits alone (`shr`
@@ -1358,7 +1385,15 @@ impl Checker {
             if let (Ty::Int(a), Ty::Int(b)) = (lt.base(), rt.base()) {
                 if matches!(a, IntW::Fixed { .. }) || matches!(b, IntW::Fixed { .. }) {
                     let (mut l, mut r) = (l, r);
-                    let exact = Ty::exact();
+                    // In between, the limit is the widest operand's width,
+                    // at least 64 bits (owner, 2026-10-03): two `int128`s
+                    // add at 128 bits, two `!std_uint256`s at 256.
+                    let width = |w: &IntW| match w {
+                        IntW::Fixed { bits, .. } if bits & crate::types::EXACT_FLAG != 0 => bits & !crate::types::EXACT_FLAG,
+                        IntW::Fixed { bits, .. } => *bits,
+                        IntW::Free(_) => 64,
+                    };
+                    let exact = Ty::exact_at(width(a).max(width(b)));
                     if literal_only(&l) && matches!(a, IntW::Free(_)) {
                         retype_literal_arith(&mut l, &exact);
                     }
@@ -1691,8 +1726,8 @@ impl Checker {
         // A bare whole number takes its family from the other items (owner,
         // 2026-09-30: a): `[1, 2.5]` is two bins, whichever comes first.
         let bare = |e: &Expr| match &e.kind {
-            K::Int(_) => true,
-            K::Unary { op: UnOp::Neg, expr } => matches!(expr.kind, K::Int(_)),
+            K::Int(_) | K::BigInt(_) => true,
+            K::Unary { op: UnOp::Neg, expr } => matches!(expr.kind, K::Int(_) | K::BigInt(_)),
             _ => false,
         };
         if let Some(lead) = vals.iter().find(|v| !bare(v)) {
@@ -2790,6 +2825,7 @@ impl Checker {
             (Ty::Int(_) | Ty::Bin(_) | Ty::Str(_) | Ty::Deci(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Int(_) | Ty::Bin(_) | Ty::Str(_)) => {
                 let literal = match &v.kind {
                     K::Int(i) => Some(i.unsigned_abs().to_string().len() as u32),
+                    K::BigInt(d) => Some(d.trim_start_matches('-').len() as u32),
                     _ => None,
                 };
                 fails.extend(crate::deci::conv_fails(&vt, &t, literal).unwrap_or_default());
@@ -3614,7 +3650,7 @@ fn plain_group(e: &Expr) -> bool {
     match &e.kind {
         K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) && plain_group(lhs) && plain_group(rhs),
         K::Unary { op: UnOp::Neg, expr } => plain_group(expr),
-        K::Int(_) => true,
+        K::Int(_) | K::BigInt(_) => true,
         _ => false,
     }
 }
@@ -3677,7 +3713,7 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
 /// Every leaf a literal, every node arithmetic.
 fn literal_only(e: &Expr) -> bool {
     match &e.kind {
-        K::Int(_) => true,
+        K::Int(_) | K::BigInt(_) => true,
         K::Unary { op: crate::ast::UnOp::Neg, expr } => literal_only(expr),
         // Every operator that gives a whole number of its operands' width:
         // arithmetic, shifts, bitwise, wrapping.
@@ -3693,6 +3729,36 @@ fn literal_only(e: &Expr) -> bool {
 /// Give every arithmetic node of a literal-only expression the place's type.
 /// The leaves keep their values; a leaf the type cannot hold is then a
 /// narrowing Precog refuses as certain.
+/// A fixed integer wider than 128 bits (owner, 2026-10-03).
+fn past_128(t: &Ty) -> bool {
+    matches!(t.base(), Ty::Int(IntW::Fixed { signed, bits }) if crate::resolve::storage(*signed, *bits).1 > 128 && !t.is_exact())
+}
+
+/// Each exact operation with a bare number for an operand, down an exact
+/// answer's tree, held to at least `bits` in between.
+fn raise_beside_literal(e: &mut Expr, bits: u32) {
+    let Some(limit) = e.ty.exact_limit() else { return };
+    match &mut e.kind {
+        K::Binary { lhs, rhs, .. } => {
+            if (literal_only(lhs) || literal_only(rhs)) && bits > limit {
+                e.ty = Ty::exact_at(bits);
+            }
+            raise_beside_literal(lhs, bits);
+            raise_beside_literal(rhs, bits);
+        }
+        // A negative of one is worked at its operand's limit.
+        K::Unary { expr, .. } => {
+            raise_beside_literal(expr, bits);
+            if let Some(inner) = expr.ty.exact_limit() {
+                if inner > limit {
+                    e.ty = Ty::exact_at(inner);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 fn retype_literal_arith(e: &mut Expr, t: &Ty) {
     match &mut e.kind {
         K::Binary { lhs, rhs, .. } => {
@@ -3711,8 +3777,8 @@ fn retype_literal_arith(e: &mut Expr, t: &Ty) {
 /// A whole number written out: `7`, or `-7`.
 fn is_int_literal(e: &Expr) -> bool {
     match &e.kind {
-        K::Int(_) => true,
-        K::Unary { op: crate::ast::UnOp::Neg, expr } => matches!(expr.kind, K::Int(_)),
+        K::Int(_) | K::BigInt(_) => true,
+        K::Unary { op: crate::ast::UnOp::Neg, expr } => matches!(expr.kind, K::Int(_) | K::BigInt(_)),
         _ => false,
     }
 }

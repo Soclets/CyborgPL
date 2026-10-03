@@ -251,6 +251,10 @@ pub enum Domain {
     /// Nothing is known beyond the type (or the type says everything).
     Any,
     Ints(ISet),
+    /// Whole numbers past what `i128` holds (owner, 2026-10-03: integers
+    /// of any width): an interval of exact values. A domain whose ends
+    /// both fit `i128` is `Ints` instead ([`Domain::wide`]).
+    Wide { lo: crate::bigint::Big, hi: crate::bigint::Big },
     /// Bins are intervals from the start (`precog.md`); `None` is "any bin".
     Bins { lo: Option<f64>, hi: Option<f64> },
     Bools(bool, bool),
@@ -303,10 +307,16 @@ impl Domain {
                     (_, d) => d,
                 }
             }
-            Ty::Int(IntW::Fixed { signed, bits }) => {
-                let (lo, hi) = crate::resolve::int_range(*signed, *bits);
-                Domain::Ints(ISet::Range { lo, hi })
-            }
+            // A range `i128` cannot hold is not claimed (owner, 2026-10-03:
+            // integers of any width): nothing is ruled out, so nothing is
+            // proven from it.
+            Ty::Int(IntW::Fixed { signed, bits }) => match crate::resolve::int_range_exact(*signed, *bits) {
+                Some((lo, hi)) => Domain::Ints(ISet::Range { lo, hi }),
+                None => {
+                    let (lo, hi) = crate::bigint::type_range(*signed, *bits);
+                    Domain::Wide { lo, hi }
+                }
+            },
             // A width Precog has not chosen yet: the value decides the width,
             // so nothing is ruled out until it does.
             Ty::Int(IntW::Free(_)) => Domain::Ints(ISet::Range { lo: i64::MIN as i128, hi: i64::MAX as i128 }),
@@ -339,9 +349,31 @@ impl Domain {
     }
 
     /// Everything either side allows: what a join of two paths knows.
+    /// Whole numbers from `lo` to `hi`, at any size: `Ints` where both
+    /// fit `i128`.
+    pub fn wide(lo: crate::bigint::Big, hi: crate::bigint::Big) -> Domain {
+        match (lo.to_i128(), hi.to_i128()) {
+            (Some(l), Some(h)) => Domain::Ints(ISet::range(l, h)),
+            _ => Domain::Wide { lo, hi },
+        }
+    }
+
+    /// The ends of a whole-number domain, at any size.
+    pub fn wide_bounds(&self) -> Option<(crate::bigint::Big, crate::bigint::Big)> {
+        match self {
+            Domain::Ints(s) => s.bounds().map(|(l, h)| (crate::bigint::Big::from_i128(l), crate::bigint::Big::from_i128(h))),
+            Domain::Wide { lo, hi } => Some((lo.clone(), hi.clone())),
+            _ => None,
+        }
+    }
+
     pub fn union(&self, other: &Domain) -> Domain {
         match (self, other) {
             (Domain::Empty, d) | (d, Domain::Empty) => d.clone(),
+            (Domain::Wide { .. }, Domain::Ints(_) | Domain::Wide { .. }) | (Domain::Ints(_), Domain::Wide { .. }) => match (self.wide_bounds(), other.wide_bounds()) {
+                (Some((l1, h1)), Some((l2, h2))) => Domain::wide(l1.min(l2), h1.max(h2)),
+                _ => Domain::Any,
+            },
             (Domain::Ints(a), Domain::Ints(b)) => Domain::Ints(a.union(b)),
             (Domain::Bins { lo: l1, hi: h1 }, Domain::Bins { lo: l2, hi: h2 }) => Domain::Bins {
                 lo: match (l1, l2) {
@@ -417,6 +449,9 @@ impl Domain {
         match self {
             Domain::Any => out.push_str("any"),
             Domain::Empty => out.push_str("none"),
+            Domain::Wide { lo, hi } => {
+                let _ = write!(out, "W[{},{}]", lo, hi);
+            }
             Domain::Ints(s) => {
                 out.push('i');
                 iset_key(s, out);
@@ -489,6 +524,8 @@ impl Domain {
 
     pub fn describe(&self) -> String {
         match self {
+            Domain::Wide { lo, hi } if lo == hi => format!("{}", lo),
+            Domain::Wide { lo, hi } => format!("{} to {}", lo, hi),
             Domain::Ints(ISet::Exact(v)) if v.len() == 1 => format!("{}", v[0]),
             Domain::Ints(ISet::Exact(v)) if v.len() <= 6 => format!("one of {}", v.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
             Domain::Ints(ISet::Exact(v)) => format!("{} values from {} to {}", v.len(), v.first().unwrap(), v.last().unwrap()),
@@ -529,11 +566,11 @@ impl Domain {
 
 /// The width a set of integers needs, narrowest first — the `:=` rule
 /// (`core-features.md`), before the speed adjustment.
-pub fn narrowest_int(s: &ISet) -> Option<(bool, u16)> {
+pub fn narrowest_int(s: &ISet) -> Option<(bool, u32)> {
     let (lo, hi) = s.bounds()?;
     for signed in [false, true] {
         if signed || lo >= 0 {
-            for bits in [8u16, 16, 32, 64, 128] {
+            for bits in [8u32, 16, 32, 64, 128] {
                 let (min, max) = crate::resolve::int_range(signed, bits);
                 if lo >= min && hi <= max {
                     return Some((signed, bits));
@@ -1105,6 +1142,17 @@ impl Domain {
     /// bound only ever moves up the list.
     pub fn widen_to(&self, next: &Domain, ty: &Ty, items: &crate::resolve::Items, steps: &[i128]) -> Domain {
         let joined = self.union(next);
+        // Past `i128` a bound still moving goes to the type's end.
+        if let (Domain::Wide { .. }, Some(old)) = (&joined, self.wide_bounds()) {
+            let new = joined.wide_bounds().unwrap();
+            if new != old {
+                return match Domain::of_ty(ty, items) {
+                    d @ Domain::Wide { .. } => d,
+                    _ => Domain::Any,
+                };
+            }
+            return joined;
+        }
         match (&joined, self) {
             (Domain::Ints(new), Domain::Ints(old)) => {
                 let (Some((n1, n2)), Some((o1, o2))) = (new.bounds(), old.bounds()) else { return joined };
@@ -1177,5 +1225,75 @@ mod tests {
             let got = x & 16383;
             assert!((0..=16383).contains(&got), "{} and.bit 16383 is {}", x, got);
         }
+    }
+}
+
+/// Whole-number arithmetic over intervals at any size (owner, 2026-10-03:
+/// integers of any width), for what `ISet` cannot hold: the answer's
+/// ends, or `None` where nothing short of the type can be said. `b` is
+/// `None` for a negation.
+pub fn wide_arith(op: &crate::ast::BinOp, a: &(crate::bigint::Big, crate::bigint::Big), b: Option<&(crate::bigint::Big, crate::bigint::Big)>) -> Option<(crate::bigint::Big, crate::bigint::Big)> {
+    use crate::ast::BinOp as B;
+    use crate::bigint::Big;
+    let (a1, a2) = a;
+    let Some((b1, b2)) = b else {
+        return match op {
+            B::Sub => Some((a2.neg(), a1.neg())),
+            _ => None,
+        };
+    };
+    let ends = |vs: Vec<Big>| -> Option<(Big, Big)> {
+        let lo = vs.iter().min()?.clone();
+        let hi = vs.iter().max()?.clone();
+        (!lo.huge() && !hi.huge()).then_some((lo, hi))
+    };
+    match op {
+        B::Add | B::WrapAdd => ends(vec![a1.add(b1), a2.add(b2)]),
+        B::Sub | B::WrapSub => ends(vec![a1.sub(b2), a2.sub(b1)]),
+        B::Mul | B::WrapMul => ends(vec![a1.mul(b1), a1.mul(b2), a2.mul(b1), a2.mul(b2)]),
+        B::Div(r) => {
+            // Monotone in each for a divisor of one sign: the ends, and the
+            // divisors nearest zero, as `ISet`'s division.
+            let zero = Big::zero();
+            let mut divisors = vec![b1.clone(), b2.clone()];
+            for d in [Big::from_i128(-1), Big::from_i128(1)] {
+                if *b1 <= d && d <= *b2 {
+                    divisors.push(d);
+                }
+            }
+            let mut vs = Vec::new();
+            for x in [a1, a2] {
+                for d in &divisors {
+                    if *d != zero {
+                        vs.push(x.divmod(d, *r)?.0);
+                    }
+                }
+            }
+            ends(vs)
+        }
+        B::Mod(r) => {
+            if a1 == a2 && b1 == b2 {
+                let m = a1.divmod(b1, *r)?.1;
+                return Some((m.clone(), m));
+            }
+            // Never further from zero than the divisor's size.
+            let m = if b1.is_neg() { b1.neg() } else { b1.clone() }.max(if b2.is_neg() { b2.neg() } else { b2.clone() });
+            Some((m.neg(), m))
+        }
+        B::Pow | B::WrapPow => {
+            let e = b1.to_i128().filter(|e| b1 == b2 && *e >= 0)? as u64;
+            if a1 == a2 {
+                let v = a1.pow(e)?;
+                return Some((v.clone(), v));
+            }
+            // An even power of a range across zero: 0 up; otherwise the
+            // ends, which a power keeps in order for whole numbers.
+            let (p1, p2) = (a1.pow(e)?, a2.pow(e)?);
+            if e % 2 == 0 && a1.is_neg() && !a2.is_neg() {
+                return ends(vec![Big::zero(), p1, p2]);
+            }
+            ends(vec![p1, p2])
+        }
+        _ => None,
     }
 }

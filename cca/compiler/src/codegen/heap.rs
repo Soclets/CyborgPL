@@ -40,6 +40,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_str_free" => self.ctx.void_type().fn_type(&[p.into(), w.into()], false),
             "cyborg_parse_int" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_int_to_text" => self.ctx.void_type().fn_type(&[p.into(), w.into(), w.into()], false),
+            "cyborg_wide_to_text" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into(), self.ctx.bool_type().into()], false),
             "cyborg_str_points" | "cyborg_str_graphemes" => w.fn_type(&[p.into(), w.into()], false),
             "cyborg_str_is_ascii" => self.ctx.i8_type().fn_type(&[p.into(), w.into()], false),
             "cyborg_bin_to_text_useful" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.f64_type().into(), self.ctx.i32_type().into()], false),
@@ -1661,6 +1662,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         Some(())
     }
 
+    /// A whole number past 128 bits as its digits (owner, 2026-10-03): the
+    /// magnitude's words in memory, and the sign, to the runtime.
+    pub(super) fn wide_int_text(&mut self, i: IntValue<'ctx>, signed: bool) -> Option<BasicValueEnum<'ctx>> {
+        let BasicTypeEnum::StructType(shape) = self.ty(&Ty::utf8())? else { return None };
+        let out = self.stack(shape, "text").ok()?;
+        let bits = i.get_type().get_bit_width();
+        let words = bits.div_ceil(64);
+        let mt = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(64 * words)?).ok()?;
+        let neg = if signed { self.builder.build_int_compare(IntPredicate::SLT, i, i.get_type().const_zero(), "neg").ok()? } else { self.ctx.bool_type().const_zero() };
+        let flipped = self.builder.build_int_neg(i, "flipped").ok()?;
+        let mag = self.builder.build_select(neg, flipped, i, "mag").ok()?.into_int_value();
+        let mag = self.builder.build_int_z_extend_or_bit_cast(mag, mt, "words").ok()?;
+        let slot = self.stack(mt, "mag").ok()?;
+        let _ = self.builder.build_store(slot, mag);
+        let f = self.rt("cyborg_wide_to_text");
+        let _ = self.builder.build_call(f, &[out.into(), slot.into(), self.ctx.i64_type().const_int(words as u64, false).into(), neg.into()], "");
+        self.builder.build_load(shape, out, "text").ok()
+    }
+
     /// Text into a bin (owner, 2026-09-24: b): the runtime reads the
     /// grammar and rounds once from the digits to the width; `not_a_number`
     /// is reason 0, `out_of_range` (past the largest, or outside a range
@@ -1747,6 +1767,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let f = self.rt_deci("cyborg_deci_parse")?;
                 let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
                 (Some(status), vec![(1, Ok("not_a_number")), (2, Ok("out_of_range")), (3, Ok("too_many_digits"))])
+            }
+            // Past 128 bits: its digits, read as text into a deci is.
+            Ty::Int(_) if v.into_int_value().get_type().get_bit_width() > 128 => {
+                let signed = self.operand_signed(fi, &o).unwrap_or(true);
+                let text = self.wide_int_text(v.into_int_value(), signed)?;
+                let (p, n) = self.text_parts(text)?;
+                let f = self.rt_deci("cyborg_deci_parse")?;
+                let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
+                let free = self.rt("cyborg_str_free");
+                let _ = self.builder.build_call(free, &[p.into(), n.into()], "");
+                (Some(status), vec![(2, Ok("too_many_digits")), (3, Ok("too_many_digits"))])
             }
             Ty::Int(_) => {
                 let signed = self.operand_signed(fi, &o).unwrap_or(true);
@@ -2107,6 +2138,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let yes = self.const_text("true");
                 let no = self.const_text("false");
                 return self.builder.build_select(b, yes, no, "text").ok();
+            }
+            // Past 128 bits (owner, 2026-10-03): the magnitude's words in
+            // memory, and the sign.
+            (Ty::Int(_), BasicValueEnum::IntValue(i)) if i.get_type().get_bit_width() > 128 => {
+                let signed = self.operand_signed(fi, operand).unwrap_or(true);
+                return self.wide_int_text(i, signed);
             }
             (Ty::Int(_), BasicValueEnum::IntValue(i)) => {
                 let signed = self.operand_signed(fi, operand).unwrap_or(true);

@@ -168,7 +168,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// has no shape for it yet.
     fn ty(&mut self, t: &Ty) -> Option<BasicTypeEnum<'ctx>> {
         match t.base() {
-            Ty::Int(IntW::Fixed { bits, .. }) => Some(self.ctx.custom_width_int_type(std::num::NonZeroU32::new(*bits as u32)?).ok()?.into()),
+            // An exact answer is held in its limit's width and one more.
+            Ty::Int(IntW::Fixed { signed, bits }) => Some(self.ctx.custom_width_int_type(std::num::NonZeroU32::new(crate::resolve::storage(*signed, *bits).1)?).ok()?.into()),
             // A width Precog left free reaches here only if nothing ever
             // pinned it; the machine's natural one is the rule
             // (`core-features.md`: a lone scalar takes the natural width).
@@ -1114,6 +1115,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(t.const_int_arbitrary_precision(&[lo, hi]).into())
             }
             Const::Int(v) => Some(self.ctx.i64_type().const_int(*v as u64, true).into()),
+            // Past `i128`: at the width its digits need, signed, for the
+            // place to widen (owner, 2026-10-03).
+            Const::Big(v) => {
+                let b = crate::bigint::Big::parse(v)?;
+                let t = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(b.bits() as u32 + 1)?).ok()?;
+                let digits = v.trim_start_matches('-');
+                let m = t.const_int_from_string(digits, inkwell::types::StringRadix::Decimal)?;
+                Some(if b.is_neg() { m.const_neg().into() } else { m.into() })
+            }
             Const::Bool(b) => Some(self.ctx.bool_type().const_int(*b as u64, false).into()),
             Const::Bin(t) => Some(self.ctx.f64_type().const_float(t.parse().unwrap_or(0.0)).into()),
             Const::Deci { bits, value } => {
@@ -1336,7 +1346,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                             }
                         }
                         let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow);
-                        let work = if plain { self.ctx.i128_type() } else { self.ctx.custom_width_int_type(std::num::NonZeroU32::new(crate::types::EXACT_BITS as u32)?).ok()? };
+                        // Its limit in between: 64 bits, or the widest
+                        // operand's (owner, 2026-10-03). `+ - x` work at a
+                        // width no two values in the window can overflow;
+                        // `div` and `mod` at the window's own.
+                        let limit = want_ty.as_ref().and_then(|t| t.exact_limit()).unwrap_or(64);
+                        let work_bits = if plain { (2 * (limit + 1)).max(128) } else { limit + 1 };
+                        let work = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(work_bits)?).ok()?;
                         let at_true = |this: &mut Self, o: &Operand, v: IntValue<'ctx>| -> Option<IntValue<'ctx>> {
                             if let Operand::Const(Const::Int(c)) = o {
                                 return Some(const_i128(work, *c));
@@ -1349,9 +1365,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         };
                         let x = at_true(self, lhs, x)?;
                         let y = at_true(self, rhs, y)?;
-                        let r = self.binary(fi, op, x.into(), y.into(), sites, func, blocks, true)?.into_int_value();
+                        // Past 128 bits a sum or product cannot overflow its
+                        // work width, and LLVM's overflow intrinsics need a
+                        // library call there: only the window is asked.
+                        let own = if work_bits > 128 && !matches!(op, BinOp::Pow) && plain { &[][..] } else { sites };
+                        let r = self.binary(fi, op, x.into(), y.into(), own, func, blocks, true)?.into_int_value();
                         if plain {
-                            self.past_64_bits(fi, r, sites, func);
+                            self.past_limit(fi, r, limit, sites, func);
                         }
                         let t = self.ty(want_ty.as_ref()?)?.into_int_type();
                         return Some(if r.get_type().get_bit_width() == t.get_bit_width() { r.into() } else { self.builder.build_int_truncate(r, t, "exact").ok()?.into() });
@@ -1382,8 +1402,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                             (None, Some(_)) => xw,
                             _ => xw.max(yw),
                         };
-                        if (la.is_some() != lb.is_some() || mixed) && widest <= 127 {
-                            let w = self.ctx.i128_type();
+                        if la.is_some() != lb.is_some() || mixed {
+                            // One bit past the widest side, at least 128:
+                            // any width (owner, 2026-10-03).
+                            let w = self.ctx.custom_width_int_type(std::num::NonZeroU32::new((widest + 1).max(128))?).ok()?;
                             let x = match la { Some(c) => const_i128(w, c), None => self.builder.build_int_cast_sign_flag(x, w, sa.unwrap_or(true), "cmpl").ok()? };
                             let y = match lb { Some(c) => const_i128(w, c), None => self.builder.build_int_cast_sign_flag(y, w, sb.unwrap_or(true), "cmpr").ok()? };
                             return self.binary(fi, op, x.into(), y.into(), sites, func, blocks, true);
@@ -1451,6 +1473,29 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // becomes: a `uint8` of 250 widened to 128 bits is 250, and
                 // sign-extending it made it -6.
                 let from_signed = self.operand_signed(fi, operand).unwrap_or(true);
+                // Past 128 bits into a bin or brain16: rounded once from its
+                // digits (owner, 2026-10-03), as text into a bin is — LLVM
+                // has no library call for the wide conversion. Past the
+                // largest is the store's own site, before this.
+                if let (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) = (v, t) {
+                    if i.get_type().get_bit_width() > 128 {
+                        let code = match to.base() {
+                            Ty::Bin(crate::types::BinW::Fixed(b)) => *b as u64,
+                            Ty::Brain => crate::types::BRAIN_BITS as u64,
+                            _ => 64,
+                        };
+                        let text = self.wide_int_text(i, from_signed)?;
+                        let (p, n) = self.text_parts_pub(text)?;
+                        let f64t = self.ctx.f64_type();
+                        let out = self.stack(f64t, "parsed").ok()?;
+                        let f = self.rt("cyborg_parse_bin");
+                        let _ = self.builder.build_call(f, &[p.into(), n.into(), self.ctx.i32_type().const_int(code, false).into(), out.into()], "status");
+                        let free = self.rt("cyborg_str_free");
+                        let _ = self.builder.build_call(free, &[p.into(), n.into()], "");
+                        let x = self.builder.build_load(f64t, out, "value").ok()?.into_float_value();
+                        return Some(self.float_cast(x, ft)?.into());
+                    }
+                }
                 match (v, t) {
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::IntType(it)) => Some(self.builder.build_int_cast_sign_flag(i, it, from_signed, "conv").ok()?.into()),
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) if !from_signed => Some(self.builder.build_unsigned_int_to_float(i, ft, "conv").ok()?.into()),
@@ -1885,21 +1930,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// from the divisor's, the quotient is one lower and the remainder moves
     /// by the divisor. A few one-cycle instructions beside the divide
     /// (`operators.md`: "the fix-up is the operator's meaning").
-    /// "In between, the one limit is the machine's 64 bits" (`operators.md`):
-    /// an exact answer below `int64`'s lowest or above `uint64`'s highest
-    /// stops here, unless Precog proved it never is.
-    fn past_64_bits(&mut self, fi: usize, r: IntValue<'ctx>, sites: &[SiteId], func: FunctionValue<'ctx>) {
+    /// In between, the limit is the widest operand's width, at least 64
+    /// bits (owner, 2026-09-23, 2026-10-03): an exact answer below the
+    /// signed type's lowest or above the unsigned one's highest stops
+    /// here, unless Precog proved it never is.
+    fn past_limit(&mut self, fi: usize, r: IntValue<'ctx>, limit: u32, sites: &[SiteId], func: FunctionValue<'ctx>) {
         let open = sites.iter().copied().find(|s| {
             let site = self.p.functions[fi].site(*s);
             matches!(site.kind, SiteKind::Overflow(_)) && self.gets_check(&site.verdict)
         });
         let Some(s) = open else { return };
         let t = r.get_type();
+        let (lo, hi) = crate::bigint::type_range(true, crate::types::EXACT_FLAG | limit);
+        let (Some(lo), Some(hi)) = (const_big(t, &lo), const_big(t, &hi)) else { return };
         let (Ok(low), Ok(high)) = (
-            self.builder.build_int_compare(IntPredicate::SLT, r, const_i128(t, i64::MIN as i128), "below"),
-            self.builder.build_int_compare(IntPredicate::SGT, r, const_i128(t, u64::MAX as i128), "above"),
+            self.builder.build_int_compare(IntPredicate::SLT, r, lo, "below"),
+            self.builder.build_int_compare(IntPredicate::SGT, r, hi, "above"),
         ) else { return };
-        let Ok(out) = self.builder.build_or(low, high, "past_64") else { return };
+        let Ok(out) = self.builder.build_or(low, high, "past_limit") else { return };
         let _ = self.guard(fi, s, out, func);
     }
 
@@ -2641,7 +2689,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let site = self.op_sites.iter().copied().find(|s| matches!(self.p.functions[fi].site(*s).kind, SiteKind::Overflow(_)));
         if let Some(s) = site {
             if self.gets_check(&self.p.functions[fi].site(s).verdict.clone()) {
-                let (lo, hi) = crate::resolve::int_range(signed, bits as u16);
+                let (lo, hi) = crate::resolve::int_range(signed, bits as u32);
                 let below = self.builder.build_int_compare(if signed { IntPredicate::SLT } else { IntPredicate::ULT }, total, const_i128(wide_t, lo), "below").ok()?;
                 let above = self.builder.build_int_compare(if signed { IntPredicate::SGT } else { IntPredicate::UGT }, total, const_i128(wide_t, hi), "above").ok()?;
                 let bad = self.builder.build_or(below, above, "sum_out").ok()?;
@@ -3396,6 +3444,34 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let _ = self.guard(fi, id, bad, func);
             return;
         }
+        // A whole number into a bin or brain16: its size below where
+        // rounding goes past the largest, compared as whole numbers.
+        let bin_bits = match to.base() {
+            Ty::Bin(crate::types::BinW::Fixed(b)) => Some(*b),
+            Ty::Brain => Some(crate::types::BRAIN_BITS),
+            _ => None,
+        };
+        if let (Some(b), Some(o)) = (bin_bits, site.operands.first()) {
+            let o = match o.place() {
+                Some(p) => Operand::Read(p.clone()),
+                None => o.clone(),
+            };
+            if let Some(BasicValueEnum::IntValue(v)) = self.operand(fi, &o, slots) {
+                let signed = self.operand_signed(fi, &o).unwrap_or(true);
+                let limit = crate::bigint::bin_round_limit(b);
+                let need = (v.get_type().get_bit_width() + 1).max(limit.bits() as u32 + 2);
+                let Some(w) = std::num::NonZeroU32::new(need).and_then(|n| self.ctx.custom_width_int_type(n).ok()) else { return };
+                let x = self.fit_as(v.into(), w.into(), signed).into_int_value();
+                let (Some(hi), Some(lo)) = (const_big(w, &limit), const_big(w, &limit.neg())) else { return };
+                let (Ok(above), Ok(below)) = (
+                    self.builder.build_int_compare(IntPredicate::SGE, x, hi, "rounds_past"),
+                    self.builder.build_int_compare(IntPredicate::SLE, x, lo, "rounds_past_low"),
+                ) else { return };
+                let Ok(bad) = self.builder.build_or(above, below, "past_largest") else { return };
+                let _ = self.guard(fi, id, bad, func);
+                return;
+            }
+        }
         if let Ty::Bin(crate::types::BinW::Fixed(bits @ (16 | 32))) = to.base() {
             return self.bin_narrow_check(fi, id, *bits, &site, slots, func);
         }
@@ -3419,11 +3495,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let _ = self.guard(fi, id, bad, func);
             return;
         }
-        let Some((lo, hi)) = crate::precog::smt::int_bounds(to) else {
-            if !matches!(to.base(), Ty::Bin(_)) {
-                self.cannot(format!("a narrowing into `{}` has no run-time check yet", crate::types::TySpelling { ty: to, structs: &self.p.items.structs, enums: &self.p.items.enums }), Some(self.p.functions[fi].span(site.span)));
+        // The target's ends, at any size (owner, 2026-10-03).
+        let ends = match (crate::precog::smt::int_bounds(to), to.base()) {
+            (Some((lo, hi)), _) => (crate::bigint::Big::from_i128(lo), crate::bigint::Big::from_i128(hi)),
+            (None, Ty::Int(IntW::Fixed { signed, bits })) if to.bound().is_none() => crate::bigint::type_range(*signed, *bits),
+            _ => {
+                if !matches!(to.base(), Ty::Bin(_)) {
+                    self.cannot(format!("a narrowing into `{}` has no run-time check yet", crate::types::TySpelling { ty: to, structs: &self.p.items.structs, enums: &self.p.items.enums }), Some(self.p.functions[fi].span(site.span)));
+                }
+                return;
             }
-            return;
         };
         let Some(o) = site.operands.first() else { return };
         let o = match o.place() {
@@ -3432,11 +3513,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let signed = self.operand_signed(fi, &o).unwrap_or(true);
         let Some(BasicValueEnum::IntValue(v)) = self.operand(fi, &o, slots) else { return };
-        let w = self.ctx.i128_type();
+        // Compared at a width that holds the value, by its own sign, and
+        // the target's ends, so no comparison can itself wrap.
+        let need = (v.get_type().get_bit_width() + 1).max(ends.0.bits().max(ends.1.bits()) as u32 + 2).max(128);
+        let Some(w) = std::num::NonZeroU32::new(need).and_then(|n| self.ctx.custom_width_int_type(n).ok()) else { return };
         let x = self.fit_as(v.into(), w.into(), signed).into_int_value();
+        let (Some(lo), Some(hi)) = (const_big(w, &ends.0), const_big(w, &ends.1)) else { return };
         let (Ok(below), Ok(above)) = (
-            self.builder.build_int_compare(IntPredicate::SLT, x, const_i128(w, lo), "below"),
-            self.builder.build_int_compare(IntPredicate::SGT, x, const_i128(w, hi), "above"),
+            self.builder.build_int_compare(IntPredicate::SLT, x, lo, "below"),
+            self.builder.build_int_compare(IntPredicate::SGT, x, hi, "above"),
         ) else { return };
         let Ok(bad) = self.builder.build_or(below, above, "outside") else { return };
         let _ = self.guard(fi, id, bad, func);
@@ -3588,6 +3673,20 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let m = self.builder.build_select(odd, bv, one, "m").ok()?.into_int_value();
         let mul = |this: &mut Self, a: IntValue<'ctx>, b: IntValue<'ctx>| -> Option<IntValue<'ctx>> {
             match check {
+                // Past 128 bits, by hand: the product at twice the width,
+                // and whether the low half read back by its sign is all of
+                // it. LLVM's overflow intrinsics need a library call there.
+                Some(s) if t.get_bit_width() > 128 => {
+                    let wide = this.ctx.custom_width_int_type(std::num::NonZeroU32::new(2 * t.get_bit_width())?).ok()?;
+                    let a2 = this.builder.build_int_cast_sign_flag(a, wide, signed, "a2").ok()?;
+                    let b2 = this.builder.build_int_cast_sign_flag(b, wide, signed, "b2").ok()?;
+                    let p = this.builder.build_int_mul(a2, b2, "p2").ok()?;
+                    let low = this.builder.build_int_truncate(p, t, "low").ok()?;
+                    let back = this.builder.build_int_cast_sign_flag(low, wide, signed, "back").ok()?;
+                    let o = this.builder.build_int_compare(IntPredicate::NE, back, p, "past").ok()?;
+                    this.guard(fi, s, o, func)?;
+                    Some(low)
+                }
                 Some(s) => {
                     let name = if signed { "llvm.smul.with.overflow" } else { "llvm.umul.with.overflow" };
                     let id = inkwell::intrinsics::Intrinsic::find(name)?;
@@ -3831,9 +3930,25 @@ fn is_double(t: inkwell::types::FloatType<'_>, ctx: &Context) -> bool {
 }
 
 /// A 128-bit constant from a Rust `i128`.
+/// A whole number at any size as a constant of `t`.
+fn const_big<'ctx>(t: inkwell::types::IntType<'ctx>, v: &crate::bigint::Big) -> Option<IntValue<'ctx>> {
+    if let Some(small) = v.to_i128() {
+        return Some(const_i128(t, small));
+    }
+    let digits = v.to_string();
+    let m = t.const_int_from_string(digits.trim_start_matches('-'), inkwell::types::StringRadix::Decimal)?;
+    Some(if v.is_neg() { m.const_neg() } else { m })
+}
+
 fn const_i128<'ctx>(t: inkwell::types::IntType<'ctx>, v: i128) -> IntValue<'ctx> {
     let bits = v as u128;
-    t.const_int_arbitrary_precision(&[bits as u64, (bits >> 64) as u64])
+    // Wider than 128 bits, a negative carries its sign up every word.
+    let words = (t.get_bit_width() as usize).div_ceil(64).max(2);
+    let fill = if v < 0 { u64::MAX } else { 0 };
+    let mut w = vec![fill; words];
+    w[0] = bits as u64;
+    w[1] = (bits >> 64) as u64;
+    t.const_int_arbitrary_precision(&w)
 }
 
 /// Whether a whole-number type is signed: `None` for anything else.

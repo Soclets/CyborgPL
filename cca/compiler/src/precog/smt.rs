@@ -1426,7 +1426,7 @@ impl<'a> Enc<'a> {
                         let b = ops.get(1).cloned().flatten();
                         // The exact type's range is not its width's: its
                         // question is the 64-bit window, asked the long way.
-                        let full = !ty.is_exact() && crate::resolve::int_range(signed, bits as u16) == (lo, hi);
+                        let full = !ty.is_exact() && crate::resolve::int_range(signed, bits as u32) == (lo, hi);
                         full && a.bits == bits && a.signed == signed && b.as_ref().map(|b| b.bits == bits && b.signed == signed).unwrap_or(false)
                     } =>
                     {
@@ -1809,7 +1809,13 @@ fn bv(v: i128, bits: u32) -> String {
 /// The width and signedness a type is held at, when it is a whole number.
 pub fn int_shape(ty: &Ty) -> Option<(u32, bool)> {
     match ty.base() {
-        Ty::Int(IntW::Fixed { signed, bits }) => Some((*bits as u32, *signed)),
+        // An exact answer is held in its limit and one more bit. Past a
+        // few thousand bits the solvers are not asked at all (owner,
+        // 2026-10-03: a width may be 2^23 bits): layer 2, or a check.
+        Ty::Int(IntW::Fixed { signed, bits }) => {
+            let (signed, bits) = crate::resolve::storage(*signed, *bits);
+            (bits <= 4096).then_some((bits, signed))
+        }
         // A width Precog has not chosen is held at the machine's natural
         // one, which is what the lowering does with it too.
         Ty::Int(IntW::Free(_)) => Some((64, true)),
@@ -1828,7 +1834,9 @@ pub fn int_bounds(ty: &Ty) -> Option<(i128, i128)> {
         return Some((*lo as i128, *hi as i128));
     }
     match ty.base() {
-        Ty::Int(IntW::Fixed { signed, bits }) => Some(crate::resolve::int_range(*signed, *bits)),
+        // Past what `i128` holds the range is not written down: the
+        // solvers then know only the width.
+        Ty::Int(IntW::Fixed { signed, bits }) => crate::resolve::int_range_exact(*signed, *bits),
         Ty::Int(IntW::Free(_)) => Some((i64::MIN as i128, i64::MAX as i128)),
         Ty::Bool => Some((0, 1)),
         Ty::Duration => Some((0, i64::MAX as i128)),

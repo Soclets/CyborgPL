@@ -1320,6 +1320,16 @@ impl<'a> Parser<'a> {
             Tok::Word(w) if w == "range" => {
                 return self.fail("`range` builds its bounds from values: `for 'i': int32 in range[0, 3]` — the type goes on the counter's name");
             }
+            // An integer of any width, marked as not standard (owner,
+            // 2026-10-03): `!std_int24`, `!std_u4`. One name; the resolver
+            // reads the width.
+            Tok::Op(o) if o == "!" && matches!(self.peek_at(1), Tok::Word(w) if w.starts_with("std_")) && self.adjacent(0, 1) => {
+                let at = self.bump().span;
+                let Tok::Word(w) = self.peek().clone() else { unreachable!() };
+                let wspan = self.bump().span;
+                let name = Ident { name: format!("!{}", w), span: at.to(wspan) };
+                TypeKind::Path { path: Path { limb: None, segs: vec![name], span: at.to(wspan) }, args: Vec::new() }
+            }
             Tok::Word(_) => {
                 let path = self.path()?;
                 let head = path.head().to_string();

@@ -808,6 +808,56 @@ pub unsafe extern "C" fn cyborg_int_to_text(out: *mut Text, lo: u64, hi: u64) {
     text_of(out, &buf[at..]);
 }
 
+/// A whole number of any width as text (owner, 2026-10-03): its
+/// magnitude, `words` 64-bit words least significant first (changed in
+/// place), and its sign. Nine digits at a time, divided out.
+///
+/// # Safety
+/// `out` must be writable and `mag` hold `words` words.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_wide_to_text(out: *mut Text, mag: *mut u64, words: u64, negative: bool) {
+    let n = words as usize;
+    let m = core::slice::from_raw_parts_mut(mag, n);
+    // At most 20 digits a word, and the sign.
+    let cap = 20 * n.max(1) + 1;
+    let buf = malloc(cap);
+    let mut at = cap;
+    let mut used = n;
+    while used > 0 && m[used - 1] == 0 {
+        used -= 1;
+    }
+    loop {
+        // Divide by 10^9; the remainder is the next nine digits.
+        let mut rem: u128 = 0;
+        for i in (0..used).rev() {
+            let cur = rem << 64 | m[i] as u128;
+            m[i] = (cur / 1_000_000_000) as u64;
+            rem = cur % 1_000_000_000;
+        }
+        while used > 0 && m[used - 1] == 0 {
+            used -= 1;
+        }
+        let mut chunk = rem as u32;
+        for k in 0..9 {
+            if used == 0 && chunk == 0 && k > 0 {
+                break;
+            }
+            at -= 1;
+            *buf.add(at) = b'0' + (chunk % 10) as u8;
+            chunk /= 10;
+        }
+        if used == 0 {
+            break;
+        }
+    }
+    if negative && !(cap - at == 1 && *buf.add(at) == b'0') {
+        at -= 1;
+        *buf.add(at) = b'-';
+    }
+    text_of(out, core::slice::from_raw_parts(buf.add(at), cap - at));
+    free(buf);
+}
+
 /// A number held as limbs of nine decimal digits, least significant first:
 /// enough for the most digits a `bin64`'s expansion needs, m x 5^1074
 /// (767).

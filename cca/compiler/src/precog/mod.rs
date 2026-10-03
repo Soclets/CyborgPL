@@ -1245,6 +1245,10 @@ impl Precog {
     fn const_domain(&mut self, f: usize, c: &Const) -> Domain {
         match c {
             Const::Int(v) => Domain::Ints(ISet::one(*v)),
+            Const::Big(v) => match crate::bigint::Big::parse(v) {
+                Some(b) => Domain::wide(b.clone(), b),
+                None => Domain::Any,
+            },
             Const::Bin(t) => {
                 let v = t.parse::<f64>().ok();
                 Domain::Bins { lo: v, hi: v }
@@ -1368,6 +1372,7 @@ impl Precog {
                     // Negating a bin flips the interval; it never rounds, so
                     // the answer is exact whatever the width.
                     (UnOp::Neg, Domain::Bins { lo, hi }) => Domain::Bins { lo: hi.map(|x| -x), hi: lo.map(|x| -x) },
+                    (UnOp::Neg, Domain::Wide { lo, hi }) => Domain::wide(hi.neg(), lo.neg()),
                     (UnOp::Not, Domain::Bools(t, fa)) => Domain::Bools(*fa, *t),
                     // `not.bit x` is `-x - 1` for a signed value, and
                     // `max - x` for an unsigned one: a range stays a range.
@@ -1477,6 +1482,37 @@ impl Precog {
 
     fn binary(&mut self, f: usize, op: &BinOp, a: &Domain, b: &Domain, dest: &Place) -> Domain {
         let ty = self.place_ty(f, dest);
+        // Past what `i128` holds — a wide operand, or an answer whose type
+        // `ISet` cannot hold — worked at any size (owner, 2026-10-03).
+        let wide_ty = matches!(ty.base(), Ty::Int(crate::types::IntW::Fixed { signed, bits }) if crate::resolve::int_range_exact(*signed, *bits).is_none());
+        if wide_ty || matches!(a, Domain::Wide { .. }) || matches!(b, Domain::Wide { .. }) {
+            let (Some(x), Some(y)) = (a.wide_bounds(), b.wide_bounds()) else { return Domain::of_ty(&ty, &self.prog().items) };
+            if let Some(c) = cmp_of(op) {
+                use std::cmp::Ordering::*;
+                let (lo, hi) = (x.0.cmp(&y.1), x.1.cmp(&y.0));
+                // Can it be true, can it be false.
+                let (t, fa) = match c {
+                    Cmp::Lt => (x.0 < y.1, x.1 >= y.0),
+                    Cmp::Le => (x.0 <= y.1, x.1 > y.0),
+                    Cmp::Gt => (x.1 > y.0, x.0 <= y.1),
+                    Cmp::Ge => (x.1 >= y.0, x.0 < y.1),
+                    Cmp::Eq => (lo != Greater && hi != Less, !(x.0 == x.1 && y.0 == y.1 && x.0 == y.0)),
+                    Cmp::Ne => (!(x.0 == x.1 && y.0 == y.1 && x.0 == y.0), lo != Greater && hi != Less),
+                };
+                return Domain::Bools(t, fa);
+            }
+            let Some((lo, hi)) = crate::mir::domain::wide_arith(op, &x, Some(&y)) else { return Domain::of_ty(&ty, &self.prog().items) };
+            // Wrapping keeps the answer only where it already fits.
+            if matches!(op, BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow) {
+                if let Ty::Int(crate::types::IntW::Fixed { signed, bits }) = ty.base() {
+                    let (tlo, thi) = crate::bigint::type_range(*signed, *bits);
+                    if lo < tlo || hi > thi {
+                        return Domain::of_ty(&ty, &self.prog().items);
+                    }
+                }
+            }
+            return Domain::wide(lo, hi);
+        }
         if let (Domain::Ints(x), Domain::Ints(y)) = (a, b) {
             let s = match op {
                 BinOp::Add => x.add(y),
@@ -1633,6 +1669,14 @@ impl Precog {
 
     fn convert(&mut self, to: &Ty, from: &Domain) -> Domain {
         let top = Domain::of_ty(to, &self.prog().items);
+        // Whole numbers at any size into one: the values, clipped to the
+        // target's — past it is the conversion's own site.
+        if matches!(from, Domain::Wide { .. }) || matches!(top, Domain::Wide { .. }) {
+            if let (Some((a, b)), Some((l, h))) = (from.wide_bounds(), top.wide_bounds()) {
+                let (lo, hi) = (a.max(l), b.min(h));
+                return if lo > hi { Domain::Empty } else { Domain::wide(lo, hi) };
+            }
+        }
         match (from, &top) {
             // Into a wider or equal integer: the same values. Into a narrower
             // one: a narrowing is a check site, and past it the value is one
@@ -2171,6 +2215,22 @@ impl Precog {
                 if let Some(w) = crate::mir::domain::bin_width(&ty) {
                     return bin_finite(op, ds, w, &self.spell(&ty));
                 }
+                // Past what `i128` holds: the answer and the limit at any
+                // size (owner, 2026-10-03).
+                if int_limits(&ty, &self.prog().items).is_none() || ds.iter().any(|d| matches!(d, Domain::Wide { .. })) {
+                    let Ty::Int(crate::types::IntW::Fixed { signed, bits }) = ty.base() else { return Verdict::Unproven };
+                    let Some(a) = ds.first().and_then(|d| d.wide_bounds()) else { return Verdict::Unproven };
+                    let b = match ds.get(1) {
+                        Some(d) => match d.wide_bounds() {
+                            Some(b) => Some(b),
+                            None => return Verdict::Unproven,
+                        },
+                        None => None,
+                    };
+                    let Some(answer) = crate::mir::domain::wide_arith(op, &a, b.as_ref()) else { return Verdict::Unproven };
+                    let limit = crate::bigint::type_range(*signed, *bits);
+                    return self.fit_wide(&answer, &limit, &ty);
+                }
                 let Some((lo, hi)) = int_limits(&ty, &self.prog().items) else { return Verdict::Unproven };
                 let (Some(Domain::Ints(a)), b) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
                 let result = match (op, b) {
@@ -2382,7 +2442,52 @@ impl Precog {
         Verdict::Fails { counterexample: format!("the answer can be {}, and a `{}` holds {} to {}", bad, self.spell(ty), lo, hi) }
     }
 
+    /// `fit` at any size.
+    fn fit_wide(&self, v: &(crate::bigint::Big, crate::bigint::Big), limit: &(crate::bigint::Big, crate::bigint::Big), ty: &Ty) -> Verdict {
+        let ((slo, shi), (lo, hi)) = (v, limit);
+        if slo >= lo && shi <= hi {
+            return Verdict::Proven { how: "layer 2" };
+        }
+        let show = |a: &crate::bigint::Big, b: &crate::bigint::Big| if a == b { a.to_string() } else { format!("{} to {}", a, b) };
+        if shi < lo || slo > hi {
+            return Verdict::Fails { counterexample: format!("every time: the answer is {} and a `{}` holds {} to {}", show(slo, shi), self.spell(ty), lo, hi) };
+        }
+        let bad = if shi > hi { shi } else { slo };
+        Verdict::Fails { counterexample: format!("the answer can be {}, and a `{}` holds {} to {}", bad, self.spell(ty), lo, hi) }
+    }
+
     fn fits_type(&self, d: &Domain, to: &Ty) -> Verdict {
+        // A whole number into a bin or brain16: its size below where
+        // rounding goes past the largest.
+        if let (Some((lo, hi)), Some(b)) = (d.wide_bounds(), match to.base() {
+            Ty::Bin(crate::types::BinW::Fixed(b)) => Some(*b),
+            Ty::Brain => Some(crate::types::BRAIN_BITS),
+            _ => None,
+        }) {
+            let limit = crate::bigint::bin_round_limit(b);
+            let size = |v: &crate::bigint::Big| if v.is_neg() { v.neg() } else { v.clone() };
+            if size(&lo) < limit && size(&hi) < limit {
+                return Verdict::Proven { how: "layer 2" };
+            }
+            let far = if size(&lo) > size(&hi) { lo.clone() } else { hi.clone() };
+            if lo == hi || (!lo.is_neg() && lo >= limit) || (hi.is_neg() && hi.neg() >= limit) {
+                return Verdict::Fails { counterexample: format!("every time: {} does not fit `{}`: it rounds past the largest value", if lo == hi { lo.to_string() } else { format!("{} to {}", lo, hi) }, self.spell(to)) };
+            }
+            return Verdict::Fails { counterexample: format!("it can be {}, which rounds past the largest `{}`", far, self.spell(to)) };
+        }
+        // At any size, where either side is past what `i128` holds.
+        if let Ty::Int(crate::types::IntW::Fixed { signed, bits }) = to.base() {
+            let wide_to = crate::resolve::int_range_exact(*signed, *bits).is_none() && to.bound().is_none();
+            if wide_to || matches!(d, Domain::Wide { .. }) {
+                let limit = match crate::resolve::int_range_exact(*signed, *bits) {
+                    Some((l, h)) if to.bound().is_none() => (crate::bigint::Big::from_i128(l), crate::bigint::Big::from_i128(h)),
+                    _ if to.bound().is_none() => crate::bigint::type_range(*signed, *bits),
+                    _ => return Verdict::Unproven,
+                };
+                let Some(v) = d.wide_bounds() else { return Verdict::Unproven };
+                return self.fit_wide(&v, &limit, to);
+            }
+        }
         match (d, Domain::of_ty(to, &self.prog().items)) {
             (Domain::Ints(s), Domain::Ints(limit)) => {
                 let Some((lo, hi)) = limit.bounds() else { return Verdict::Unproven };
