@@ -1,24 +1,24 @@
 # The primes up to N, by the sieve of Eratosthenes; the exit code is their
 # count's low byte. N comes from the environment and must be 0 to
 # 200_000_000; anything else ends the program with exit code 2, as does no N at all.
-extern fn exit ['code': int32];
-extern fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern fn atoll ['s': ptr[uint8]] -> int64[0, 200_000_000];
+extern.C fn exit ['code': int32];
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 200_000_000];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
 fn read_n ['text': ptr[uint8]] -> int64[0, 200_000_000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck 'n' := atoll['text'] otherwise fail;
+    nocheck let 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 
 fn run [] -> int32 or fail[missing, out_of_range] {
-    'key' := "N";
-    nocheck 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    let 'key' := "N";
+    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
-    mut 'comp': list[bool] = list.fill[false, 'n' + 1];
-    mut 'count': int64 = 0;
+    let mut 'comp': list[bool] = list.fill[false, 'n' + 1];
+    let mut 'count': int64 = 0;
     for 'p': int64 in range[2, 'n'] {
         if not 'comp'[to.uint64['p' + 1]] {
             change 'count' = 'count' + 1;
@@ -27,10 +27,10 @@ fn run [] -> int32 or fail[missing, out_of_range] {
             }
         }
     }
-    return to.int32['count' mod 256];
+    return to.int32['count' mod.floor 256];
 }
 
 MAIN {
-    'code' := run[] otherwise 2;
+    let 'code' := run[] otherwise 2;
     nocheck exit['code'];
 }
