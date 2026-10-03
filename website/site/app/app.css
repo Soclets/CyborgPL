@@ -350,10 +350,34 @@ html.desktop .comparison-trigger:focus-visible, .comparison-trigger:focus-visibl
 @media (max-width: 360px) {
   .comparison-controls { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); gap: 4px; }
   .comparison-trigger { padding: 10px; gap: 6px; }
-  .comparison-trigger b { font-size: 15px; }
+  .comparison-trigger b { font-size: 14px; }
   .comparison-trigger > .icon { width: 14px; height: 14px; }
 }
+
+/* Official language artwork keeps its original colours, shape and proportions. */
+.language-logo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: var(--logo-size, 32px); height: var(--logo-size, 32px); padding: 4px; border-radius: 8px; background: #fff; }
+.language-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.language-logo sup { position: absolute; top: 0; right: -5px; color: var(--text); font: 6px/1 var(--sans); }
+.language-option > span:not(.language-logo) { flex: 1; min-width: 0; }
+.comparison-trigger > .picker-logo { display: none; }
+html.desktop .comparison-trigger > .picker-logo { display: inline-flex; }
+.comparison-trigger > span:not(.language-logo) { flex: 1; min-width: 0; }
+.comparison-heading { display: flex; align-items: center; gap: 8px; }
+.comparison-heading > span:not(.language-logo) { min-width: 0; }
+.comparison-heading .language-logo { --logo-size: 28px; }
+.logo-credits { scroll-margin-top: calc(var(--safe-top) + 18px); }
+html.desktop .logo-credits { scroll-margin-top: 84px; }
+.logo-credit-list { display: flex; flex-direction: column; gap: 10px; }
+.logo-credit { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border-radius: 16px; background: var(--surface); }
+.logo-credit > div { min-width: 0; }
+.logo-credit .language-logo { --logo-size: 44px; }
+.logo-credit h3 { margin: 0; font-size: 16px; color: var(--ink); }
+.logo-credit p { margin: 5px 0 10px; font-size: 13px; line-height: 1.5; }
+.logo-credit-links { display: flex; flex-wrap: wrap; gap: 10px; }
+.logo-credit-links a { display: inline-flex; align-items: center; gap: 3px; color: var(--blue); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
 .comparison-note { font-size: 12px; line-height: 1.5; color: var(--muted); margin: 14px 0; }
+.comparison-note a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
 .comparison-table { display: block; width: 100%; border-collapse: separate; border-spacing: 0; }
 .comparison-table colgroup { display: none; }
 .comparison-table thead, .comparison-table tbody { display: block; }

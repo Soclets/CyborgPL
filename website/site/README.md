@@ -13,6 +13,10 @@ navigation. Add it to a phone's home screen and it opens full-screen.
 - **Home's comparison**: `app/lib/comparison.js` holds the dated copy, language
   versions and source links. CyborgPL has no version label; its design and current
   implementation are distinguished. Update the snapshot deliberately when asked.
+- **Language artwork**: unaltered files and provenance are in
+  `public/language-logos/`; the CyborgPL mark is copied from `brand/` at build time.
+  `app/lib/language-artwork.js` supplies the marks and More's credits. Go uses the
+  official Gopher mascot; the credits distinguish it from the Go wordmark.
 
 ```
 cd website/site

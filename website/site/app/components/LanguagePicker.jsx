@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import Icon from "./Icon.jsx";
+import LanguageLogo from "./LanguageLogo.jsx";
 import { COMPARISON_LANGUAGES } from "../lib/comparison.js";
 
 function Options({ id, side, value, other, active, position, menuRef, onActive, onChoose }) {
@@ -20,6 +21,7 @@ function Options({ id, side, value, other, active, position, menuRef, onActive, 
           onMouseDown={(e) => e.preventDefault()}
           onPointerMove={(e) => { if (e.pointerType !== "touch" && l.id !== other) onActive(l.id); }}
           onClick={() => onChoose(l.id)}>
+          <LanguageLogo id={l.id} />
           <span><b>{l.name}</b><small>{l.version ?? l.status}{l.id === other ? " · Other side" : ""}</small></span>
           {value === l.id && <Icon name="check" size={18} />}
         </button>
@@ -124,6 +126,7 @@ export default function LanguagePicker({ side, value, other, onChange }) {
         className={`comparison-trigger${open ? " is-open" : ""}`} onKeyDown={onKey}
         onClick={() => open ? setOpen(false) : show()}
         onBlur={(e) => { if (!menu.current?.contains(e.relatedTarget)) setOpen(false); }}>
+        <LanguageLogo id={selected.id} className="picker-logo" />
         <span><b>{selected.name}</b><small>{selected.version?.replace(/^CPython /, "") ?? "Unreleased"}</small></span>
         <Icon name="chev" size={16} />
       </button>

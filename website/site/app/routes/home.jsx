@@ -12,6 +12,10 @@ import { plain } from "../lib/md.js";
 import { around, runSearch } from "../lib/search.js";
 import { useCodeIndex, useRecent } from "../lib/useSearch.js";
 import { seo } from "../lib/seo.js";
+import { LANGUAGE_ARTWORK } from "../lib/language-artwork.js";
+
+// Have every menu logo ready by the time a comparison picker opens.
+export const links = () => Object.values(LANGUAGE_ARTWORK).map((a) => ({ rel: "preload", as: "image", href: a.asset }));
 
 // Structured data naming the site (owner, 2026-09-28): Google takes a result's site name from
 // a WebSite block on the home page.

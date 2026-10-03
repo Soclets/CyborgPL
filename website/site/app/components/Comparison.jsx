@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import Icon from "./Icon.jsx";
 import LanguagePicker from "./LanguagePicker.jsx";
+import LanguageLogo from "./LanguageLogo.jsx";
 import Md from "./Md.jsx";
 import { COMPARISON_LANGUAGES, COMPARISON_ROWS } from "../lib/comparison.js";
 
@@ -8,7 +10,7 @@ import { COMPARISON_LANGUAGES, COMPARISON_ROWS } from "../lib/comparison.js";
 let lastPair = ["cyborgpl", "rust"];
 
 function LanguageHeading({ language }) {
-  return <><b>{language.name}</b><small>{language.version ? <a href={language.versionUrl} target="_blank" rel="noopener noreferrer">{language.version}</a> : language.status}</small></>;
+  return <span className="comparison-heading"><LanguageLogo id={language.id} /><span><b>{language.name}</b><small>{language.version ? <a href={language.versionUrl} target="_blank" rel="noopener noreferrer">{language.version}</a> : language.status}</small></span></span>;
 }
 
 function Fact({ entry, language, topic }) {
@@ -33,7 +35,7 @@ export default function Comparison() {
         <button type="button" className="comparison-swap" aria-label="Swap comparison languages" title="Swap sides" onClick={() => choose([right.id, left.id])}><span aria-hidden="true">⇄</span></button>
         <LanguagePicker side="Right" value={right.id} other={left.id} onChange={(id) => choose([left.id, id])} />
       </div>
-      <p className="comparison-note">Checked 3 Oct 2026. CyborgPL reflects current development and its stated design. Python means CPython, with free-threaded differences called out.</p>
+      <p className="comparison-note">Checked 3 Oct 2026. CyborgPL reflects current development and its stated design. Python means CPython, with free-threaded differences called out. <Link to="/more#logo-credits">Logo credits</Link>.</p>
       <table className="comparison-table" role="table">
         <caption className="sr-only">{left.name} compared with {right.name}</caption>
         <colgroup><col style={{ width: "20%" }} /><col style={{ width: "40%" }} /><col style={{ width: "40%" }} /></colgroup>

@@ -1,5 +1,7 @@
 import { Link } from "react-router";
 import Icon from "../components/Icon.jsx";
+import LanguageLogo from "../components/LanguageLogo.jsx";
+import { LANGUAGE_ARTWORK } from "../lib/language-artwork.js";
 import { REPO_URL, RRX2_URL } from "../lib/content.js";
 import { seo } from "../lib/seo.js";
 
@@ -23,6 +25,20 @@ export default function More() {
           <Icon name="external" size={17} />
         </a>
       </div>
+      <section className="logo-credits" id="logo-credits" aria-labelledby="logo-credits-title">
+        <h2 className="section" id="logo-credits-title">Logo credits</h2>
+        <div className="logo-credit-list">
+          {Object.entries(LANGUAGE_ARTWORK).map(([id, a]) => (
+            <article key={id} className="logo-credit">
+              <LanguageLogo id={id} />
+              <div><h3>{a.title}</h3><p>{a.credit}</p>
+                <div className="logo-credit-links">{a.links.map((l) => <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">{l.label}<Icon name="external" size={11} /></a>)}</div>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="fineprint">The artwork identifies the languages in the comparison. Third-party marks belong to their owners; their display does not imply endorsement of CyborgPL.</p>
+      </section>
       <p className="fineprint">CyborgPL is in development. Add this site to your home screen and it opens like an app.</p>
     </div>
   );
