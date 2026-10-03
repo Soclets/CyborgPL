@@ -70,13 +70,13 @@ impl Args {
     /// For the evaluator and the solver: no deci or text, which they do not
     /// model (a program with them would be skipped whole).
     fn config_modelled(&self) -> Config {
-        Config { deci: false, brain16: false, ..self.config() }
+        Config { deci: false, brain16: false, mutator: false, ..self.config() }
     }
 
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits,rounding".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("exact-bits".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -107,6 +107,7 @@ impl Args {
             brain16: !avoid.contains("brain16"),
             brain_mod: !avoid.contains("brain-mod"),
             roundings: !avoid.contains("rounding"),
+            mutator: !avoid.contains("mutator"),
         }
     }
 }
@@ -663,6 +664,8 @@ fn claims_run(t: &Tools, a: &Args) {
     struct T {
         programs: u64,
         failed: u64,
+        /// Why programs could not be checked, and how many each.
+        why: BTreeMap<String, u64>,
         proven: usize,
         nothing: usize,
         matched: usize,
@@ -692,9 +695,13 @@ fn claims_run(t: &Tools, a: &Args) {
                         let r = claims::check_claims(t, &p, &dir);
                         let mut tl = tally.lock().unwrap();
                         tl.programs += 1;
-                        let Ok(o) = r else {
-                            tl.failed += 1;
-                            continue;
+                        let o = match r {
+                            Ok(o) => o,
+                            Err(e) => {
+                                tl.failed += 1;
+                                *tl.why.entry(e).or_default() += 1;
+                                continue;
+                            }
                         };
                         tl.proven += o.proven;
                         tl.nothing += o.literal;
@@ -739,6 +746,9 @@ fn claims_run(t: &Tools, a: &Args) {
         "\n{} programs ({} could not be checked); {} proven claims: {} with nothing to ask, {} matched ({} of them ambiguous, not asked), {} not matched; (b) justified {} ({} programs where (b) could not follow everything); (c) asked {} questions: {} answered, {} given up by Z3, {} not reached in time; REFUTED {} (confirmed by running the program exactly; {} solver answers not confirmed)",
         tl.programs, tl.failed, tl.proven, tl.nothing, tl.matched, tl.ambiguous, tl.unmatched, tl.justified, tl.incomplete_b, tl.asked, tl.asked - tl.unknown - tl.unasked, tl.unknown, tl.unasked, tl.refuted, tl.unconfirmed
     );
+    for (why, n) in &tl.why {
+        println!("  not checked: {n:4}  {why}");
+    }
 }
 
 /// Two runs of `cca precog --json` on one program must give the same

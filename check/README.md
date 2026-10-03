@@ -225,11 +225,10 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits,rounding`.
+straight at them. Default: `exact-bits`.
 
 - `rounding`: only `div.floor` / `mod.floor` on integers and `div.near` /
-  `mod.floor` on decis and brain16 (the rest are in the oracle, 5a12c07, not
-  yet in CCA).
+  `mod.floor` on decis and brain16 (all four roundings in CCA 81445c7).
 
 - `brain-mod`: no `mod` on brain16 (the divisor's sign, owner 426371c;
   in CCA 3657a11). (Negative

@@ -1,0 +1,57 @@
+# Finding 2026-10-03 (check run, seed 15174, cut down by hand): enum case data is not checked where
+# it lands. E1.c4 carries a uint64, given 0 - 5. The oracle stops: "-5 does not fit uint64". The CCA
+# binary runs and the match prints 18446744073709551611 (2^64 - 5, wrapped). The same with an int64
+# name holding -5 as the data. In the seed it was bare numbers worth about -2 x 10^37.
+# check claude generator, seed 15174
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+
+fn emit ['m': uint64, 'neg': bool] {
+    let mut 'buf': list[uint8] = [];
+    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    let mut 'v': uint64 = 'm';
+    let mut 'ds': list[uint8] = [];
+    loop {
+        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        change 'v' = 'v' div.floor 10;
+        if 'v' == 0 { break; }
+    }
+    for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
+        list.append[lend.mut 'buf', 'ds'['k']];
+    }
+    list.append[lend.mut 'buf', 10];
+    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+}
+
+fn put_u ['n': uint64] {
+    emit['n', false];
+}
+
+fn put_i ['n': int64] {
+    if 'n' < 0 {
+        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+    } else {
+        emit[to.uint64['n'], false];
+    }
+}
+
+enum E1 {
+    c1: uint32
+    c2
+    c3
+    c4: uint64
+}
+
+layout.C enum E2 {
+    c1 = -169
+    c2 = -2003713270
+}
+
+MAIN {
+    let 'e' := E1.c4[0 - 5];
+    match 'e' {
+        c1 'a' { put_u[to.uint64['a']]; }
+        c2 { put_u[2]; }
+        c3 { put_u[3]; }
+        c4 'b' { put_u['b']; }
+    }
+}

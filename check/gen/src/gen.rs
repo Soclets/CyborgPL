@@ -97,11 +97,14 @@ pub struct Config {
     /// their `mod`s on integers; `.floor`, `.ceil`, `.trunc` and their
     /// `mod`s on decis and brain16 (owner, 2026-10-02, 692a444, 5a12c07).
     pub roundings: bool,
+    /// The `m1` call lending one list to change and another to read
+    /// (38c91e7); the evaluator does not follow it.
+    pub mutator: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true }
     }
 }
 
@@ -278,7 +281,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         for i in 0..n {
             bfuncs.push(g.borrow_fn(i, bad == Some(i)));
         }
-        if g.rng.chance(50) {
+        if g.rng.chance(50) && g.cfg.mutator {
             let t = g.belem.name();
             g.extra_fns.push(format!("fn m1 [lent.mut 'a': list[{t}], lent 'b': list[{t}]] {{\n    if list.length[lend 'b'] > 0 {{\n        list.append[lend.mut 'a', 1];\n    }}\n}}\n"));
             g.mutator = true;
@@ -2271,7 +2274,10 @@ impl Gen {
         let r = t.range();
         let bits = t.bits() as i128;
         let risk = self.take_risk();
-        let mk = |a: Expr, b: Expr| Expr::Bin(op, Box::new(a), Box::new(b));
+        // Operands are sized again here, after any `fit`: its `(e mod.floor w) + lo`
+        // is an exact answer too since 15c5c71, and has no size of its own.
+        let sized = bitty && self.cfg.sized_bits;
+        let mk = |a: Expr, b: Expr| if sized { Expr::Bin(op, Box::new(size(a)), Box::new(size(b))) } else { Expr::Bin(op, Box::new(a), Box::new(b)) };
         let clip = |iv: Option<Iv>| iv.and_then(|x| x.meet(r)).unwrap_or(r);
         match op {
             Add | Sub => {
@@ -2331,6 +2337,12 @@ impl Gen {
                     let (lo, hi) = op.mod_bounds((ia.lo, ia.hi), (ib.lo, ib.hi));
                     Some(Iv::new(lo, hi))
                 };
+                // `mod.ceil` / `mod.near` can leave the type (below 0 on an
+                // unsigned one): a site, so `mod.floor` unless a risk is taken
+                if op.division() == Some(true) && !risk && !out.map_or(false, |o| o.within(r)) {
+                    let (lo, hi) = BinOp::Mod.mod_bounds((ia.lo, ia.hi), (ib.lo, ib.hi));
+                    return (Expr::Bin(BinOp::Mod, Box::new(a), Box::new(b)), clip(Some(Iv::new(lo, hi))));
+                }
                 (mk(a, b), clip(out))
             }
             Pow => {
