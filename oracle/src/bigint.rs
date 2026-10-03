@@ -139,6 +139,27 @@ impl BigInt {
         let low = trim(low);
         if !self.neg || low.is_empty() { BigInt::new(false, low) } else { BigInt::new(false, sub_mag(&shl_mag(&[1], n), &low)) }
     }
+    /// `and.bit` / `or.bit` / `xor` (b'&', b'|', b'^'), on two's complement with the sign extended
+    /// for ever, as i128's own operators do
+    pub fn bitop(&self, b: &BigInt, op: u8) -> BigInt {
+        let n = self.bits().max(b.bits()) + 2;
+        let (x, y) = (self.mod_pow2(n), b.mod_pow2(n));
+        let len = x.mag.len().max(y.mag.len());
+        let mut out = Vec::with_capacity(len);
+        for i in 0..len {
+            let (p, q) = (*x.mag.get(i).unwrap_or(&0), *y.mag.get(i).unwrap_or(&0));
+            out.push(match op { b'&' => p & q, b'|' => p | q, _ => p ^ q });
+        }
+        let r = BigInt::new(false, out).mod_pow2(n);
+        if bit_mag(&r.mag, n - 1) { r.sub(&BigInt::pow2(n)) } else { r }
+    }
+    /// self x 2^n
+    pub fn shl(&self, n: u64) -> BigInt { BigInt::new(self.neg, shl_mag(&self.mag, n)) }
+    /// self / 2^n rounded down, as an arithmetic shift right
+    pub fn shr_floor(&self, n: u64) -> BigInt {
+        let (q, r) = self.divrem_trunc(&BigInt::pow2(n)).unwrap();
+        if self.neg && !r.is_zero() { q.sub(&BigInt::from_i128(1)) } else { q }
+    }
     pub fn cmp(&self, b: &BigInt) -> Ordering {
         match (self.neg, b.neg) {
             (false, true) => Ordering::Greater,
@@ -193,6 +214,13 @@ mod tests {
         assert_eq!(BigInt::from_i128(a).to_string(), a.to_string());
         assert_eq!(BigInt::parse(&a.to_string()), Some(BigInt::from_i128(a)));
         assert_eq!(BigInt::from_i128(a).mod_pow2(16).to_i128(), Some(a.rem_euclid(1 << 16)));
+        for &b in &vals {
+            let (x, y) = (BigInt::from_i128(a), BigInt::from_i128(b));
+            assert_eq!(x.bitop(&y, b'&').to_i128(), Some(a & b));
+            assert_eq!(x.bitop(&y, b'|').to_i128(), Some(a | b));
+            assert_eq!(x.bitop(&y, b'^').to_i128(), Some(a ^ b));
+        }
+        for s in [0u32, 1, 5, 40] { assert_eq!(BigInt::from_i128(a).shr_floor(s as u64).to_i128(), Some(a >> s)); }
         }
         assert_eq!(BigInt::pow2(256).sub(&BigInt::from_i128(1)).to_string(), "115792089237316195423570985008687907853269984665640564039457584007913129639935");
         assert_eq!(BigInt::from_i128(3).pow(100).to_string(), "515377520732011331036461129765621272702107522001");

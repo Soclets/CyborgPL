@@ -47,8 +47,13 @@ subtract, multiply, divide, power, compare, wrap, print and parse,
 tested against i128 and Python), used whenever a value or a result is
 past i128; literals past i128; ranges and conversions at any width; the
 middle limit as ruled; wrapping at 127 bits and up on big numbers, which
-also fixed `uint128` wrapping (it had wrapped at 2^127). Not built for
-big values: bitwise operators, shifts, SIMD lanes.
+also fixed `uint128` wrapping (it had wrapped at 2^127). Then bitwise
+operators, shifts and `not.bit` on big values (the owner: "Do the bit
+shit"), at the type's true width, which also let `uint128` shift by 127
+and `not.bit` flip all 128 bits; `examples/wide_bits.cpls` (checked
+against Python), reject test `wide_shl_overflow`. Not built: wide
+integers as SIMD lanes (no register holds them; design claude would
+refuse them, not asked).
 `examples/wide_integers.cpls` (checked against Python), reject tests
 `wide_past_in_between`, `wide_does_not_fit`; `std_too_wide` now past
 LLVM's limit. `examples/any_width.cpls`,

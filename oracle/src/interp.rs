@@ -2566,7 +2566,14 @@ impl<'p> Interp<'p> {
                 if op == "not.bit" {
                     // flip every bit, at the operand's declared width (the oracle needs a typed variable)
                     let width = self.expr_ty(inner);
-                    let (bits, signed) = match width { Some(Ty::Int(w)) => (int_bits(&w), true), Some(Ty::Uint(w)) => (int_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, so it needs to know how many: give the value a type, or say it in the declaration (`let 'x': uint32 = not.bit 'v';`)") };
+                    let (bits, signed) = match width { Some(Ty::Int(w)) => (true_bits(&w), true), Some(Ty::Uint(w)) => (true_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, so it needs to know how many: give the value a type, or say it in the declaration (`let 'x': uint32 = not.bit 'v';`)") };
+                    // 127 bits and up, on big numbers (owner, 2026-10-03): not x is -x - 1, then taken at the width
+                    if bits >= 127 || matches!(v, Value::Big(_)) {
+                        let Some(x) = as_big(&v) else { return rt(line, format!("`not.bit` is integer arithmetic, got {}", v.kind())) };
+                        let mut r = x.neg().sub(&crate::bigint::BigInt::from_i128(1)).mod_pow2(bits as u64);
+                        if signed && r.cmp(&crate::bigint::BigInt::pow2(bits as u64 - 1)).is_ge() { r = r.sub(&crate::bigint::BigInt::pow2(bits as u64)); }
+                        return Ok((from_big(r), Prov::Plain));
+                    }
                     let x = match v { Value::Int(x) => x, o => return rt(line, format!("`not.bit` is integer arithmetic, got {}", o.kind())) };
                     let m: i128 = 1i128 << bits;
                     let mut r = (!x).rem_euclid(m);
@@ -2673,6 +2680,29 @@ impl<'p> Interp<'p> {
                 if matches!(a, Value::Simd(_)) || matches!(b, Value::Simd(_)) {
                     let v = self.simd_bitwise(op, a, b, line)?;
                     return Ok((v, Prov::Plain));
+                }
+                // past i128, or a shift on a type of 127 bits and up, on big numbers (owner, 2026-10-03)
+                let width_ty = self.expr_ty(l);
+                let tbits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => Some(true_bits(w)), _ => None };
+                if matches!(a, Value::Big(_)) || matches!(b, Value::Big(_)) || (op.starts_with("sh") && tbits.map_or(false, |t| t >= 127)) {
+                    let (Some(x), Some(y)) = (as_big(&a), as_big(&b)) else { return rt(line, format!("`{op}` works on integers, got {} and {}", a.kind(), b.kind())) };
+                    let v = match op.as_str() {
+                        "and.bit" => x.bitop(&y, b'&'),
+                        "or.bit" => x.bitop(&y, b'|'),
+                        "xor" => x.bitop(&y, b'^'),
+                        _ => {
+                            if y.is_neg() { return rt(line, format!("`{op}` by a negative count")); }
+                            let bits = tbits.unwrap_or(128) as u64;
+                            let n = y.to_u64().unwrap_or(u64::MAX);
+                            if n >= bits { return site(line, format!("`{op}` by {y} on a {bits}-bit value: every bit is lost")); }
+                            if op == "shl" {
+                                let r = x.shl(n);
+                                if let Some((lo, hi)) = width_ty.as_ref().and_then(crate::value::big_range) { if r.cmp(&lo).is_lt() || r.cmp(&hi).is_gt() { return site(line, format!("`shl` by {n} overflows: {r} does not fit the {bits}-bit type")); } }
+                                r
+                            } else { x.shr_floor(n) }
+                        }
+                    };
+                    return Ok((from_big(v), Prov::Plain));
                 }
                 let (x, y) = match (a, b) { (Value::Int(x), Value::Int(y)) => (x, y), (a, b) => return rt(line, format!("`{op}` works on integers, got {} and {}", a.kind(), b.kind())) };
                 let v = match op.as_str() {
