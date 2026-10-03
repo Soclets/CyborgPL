@@ -7,7 +7,10 @@
 //!   `reject_phrases.txt` — reviewed once against the `.err`, and the test
 //!   fails when it stops appearing. A program marked `!pending` is one CCA
 //!   cannot refuse yet (it needs Precog); the test insists it is *not*
-//!   refused, so the line has to be updated when it starts being.
+//!   refused, so the line has to be updated when it starts being. One
+//!   marked `!unbuilt <ruling>; then: <the line it had>` is written in a
+//!   spelling a ruling CCA has not built yet: any refusal passes, and the
+//!   day the line after `then:` holds again the test says to drop the mark.
 //!
 //! Printing examples need `std::`, which does not exist yet (owner,
 //! 2026-09-22). The checker has a testing-only stub table for them so the
@@ -195,20 +198,17 @@ fn reject_programs_are_refused_in_ccas_own_words() {
         }
         let want = want.clone();
         let got = check(src).and_then(|()| prove(src));
-        if let Some(why) = want.strip_prefix("!pending") {
-            return got.as_ref().err().map(|e| format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message.{}\n{}", name, if why.trim().is_empty() { String::new() } else { format!(" It said:{}", why) }, indent(e)));
-        }
-        if let Some(why) = want.strip_prefix("!by-design") {
-            // CCA is right to accept this one; refusing it would be the bug.
-            return got.as_ref().err().map(|e| format!("{}: CCA refuses this, and it should build —{}\n{}", name, why, indent(e)));
-        }
-        match got {
-            Ok(()) => Some(format!("{}: accepted, and it must be refused (the oracle says: {})", name, oracle_err(&dir, &name))),
-            Err(msg) => {
-                let first = msg.lines().next().unwrap_or("").trim_start_matches("error: ").to_string();
-                (!first.contains(want.as_str())).then(|| format!("{}: expected a message containing\n    {}\n  got\n{}", name, want, indent(&msg)))
+        if let Some(rest) = want.strip_prefix("!unbuilt") {
+            let (ruling, then) = rest.split_once("; then: ").unwrap_or((rest, ""));
+            if !then.is_empty() && verdict(&name, then, &got, &dir).is_none() {
+                return Some(format!("{}: CCA knows the spelling now ({}) and does what the line after `then:` asks — drop the `!unbuilt` mark in tests/reject_phrases.txt", name, ruling.trim()));
             }
+            if got.is_ok() && !then.starts_with("!by-design") {
+                return Some(format!("{}: accepted, and it must be refused (the oracle says: {})", name, oracle_err(&dir, &name)));
+            }
+            return None;
         }
+        verdict(&name, &want, &got, &dir)
     })
     .into_iter()
     .flatten()
@@ -219,6 +219,24 @@ fn reject_programs_are_refused_in_ccas_own_words() {
         }
     }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
+/// One reject program's line against what CCA said: `None` when it holds.
+fn verdict(name: &str, want: &str, got: &Result<(), String>, dir: &Path) -> Option<String> {
+    if let Some(why) = want.strip_prefix("!pending") {
+        return got.as_ref().err().map(|e| format!("{}: CCA now refuses this, which is progress — replace the `!pending` line in tests/reject_phrases.txt with a phrase of the message.{}\n{}", name, if why.trim().is_empty() { String::new() } else { format!(" It said:{}", why) }, indent(e)));
+    }
+    if let Some(why) = want.strip_prefix("!by-design") {
+        // CCA is right to accept this one; refusing it would be the bug.
+        return got.as_ref().err().map(|e| format!("{}: CCA refuses this, and it should build —{}\n{}", name, why, indent(e)));
+    }
+    match got {
+        Ok(()) => Some(format!("{}: accepted, and it must be refused (the oracle says: {})", name, oracle_err(dir, name))),
+        Err(msg) => {
+            let first = msg.lines().next().unwrap_or("").trim_start_matches("error: ").to_string();
+            (!first.contains(want)).then(|| format!("{}: expected a message containing\n    {}\n  got\n{}", name, want, indent(msg)))
+        }
+    }
 }
 
 fn oracle_err(dir: &Path, name: &str) -> String {

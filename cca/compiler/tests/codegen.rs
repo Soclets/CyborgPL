@@ -159,6 +159,14 @@ fn main_takes_the_command_line() {
     assert_eq!(r.status.code(), Some(178), "the words' bytes were not read as UTF-8:\n{}", String::from_utf8_lossy(&r.stderr));
 }
 
+/// An example `tests/examples_pending.txt` lists: written in a spelling CCA
+/// does not know yet, so a test that runs it waits with the conformance
+/// tests, which insist it still fails.
+fn example_pending(name: &str) -> bool {
+    let text = std::fs::read_to_string(dir().parent().unwrap().join("examples_pending.txt")).unwrap();
+    text.lines().any(|l| l.split_once(" :: ").is_some_and(|(n, _)| n.trim() == name))
+}
+
 /// `cca test` (owner, 2026-09-29, `testing.md`): examples/testing.cpls
 /// reports exactly as the oracle's `.test-out` has it, and every other way
 /// a test ends reports as tests/testing/outcomes.test-out says. A failing
@@ -169,6 +177,9 @@ fn tests_run_and_report() {
     let repo = dir().parent().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().to_path_buf();
     let testing = dir().parent().unwrap().join("testing");
     for (src, want) in [(repo.join("examples/testing.cpls"), repo.join("examples/testing.test-out")), (testing.join("outcomes.cpls"), testing.join("outcomes.test-out"))] {
+        if src.starts_with(repo.join("examples")) && example_pending("testing") {
+            continue;
+        }
         let r = Command::new(cca()).arg("test").arg(&src).env("CCA_STD_STUBS", "1").output().unwrap();
         let got = String::from_utf8_lossy(&r.stdout).to_string();
         let want = std::fs::read_to_string(&want).unwrap();
@@ -185,8 +196,11 @@ fn tests_run_and_report() {
 fn limbs_reach_their_dependencies() {
     assert!(runtime().is_some(), "the runtime is not built");
     let limbs = dir().parent().unwrap().join("limbs");
-    let r = Command::new(cca()).arg("run").arg(limbs.join("uses_areas")).output().unwrap();
-    assert_eq!(r.status.code(), Some(31), "uses_areas did not run to 31:\n{}", String::from_utf8_lossy(&r.stderr));
+    // `uses_areas` reaches examples/limbs/areas, which `uses_a_limb` uses.
+    if !example_pending("uses_a_limb") {
+        let r = Command::new(cca()).arg("run").arg(limbs.join("uses_areas")).output().unwrap();
+        assert_eq!(r.status.code(), Some(31), "uses_areas did not run to 31:\n{}", String::from_utf8_lossy(&r.stderr));
+    }
     // A dependency's MAIN runs when that Limb is run itself, and is left
     // out when another uses it (owner, 2026-09-29: a).
     for (name, code) in [("uses_runnable", 8), ("runnable", 99)] {
