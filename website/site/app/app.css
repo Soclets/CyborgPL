@@ -311,12 +311,9 @@ html.desktop .more, html.desktop .plain { max-width: 720px; }
 /* The full plain source is readable while its highlighting loads. */
 .sheet-pending pre { color: var(--text); min-height: calc(var(--example-lines, 0) * 1lh); }
 
-/* ---------------------------------------------------------------- Home's search, moving between views
-   The bar stays put; what's under it (the headline, suggestions, results) fades up when it
-   changes, instead of swapping in one frame (owner: make it smooth). "backwards", so once in
-   it keeps no transform or layer of its own. Typing within results doesn't restart it. */
-.home-view { animation: view-in .18s cubic-bezier(.2, .8, .2, 1) backwards; }
-@keyframes view-in { from { opacity: 0; transform: translateY(8px); } }
+/* HomeView fades outgoing content before bringing the next view in.
+   The rounded bar supplies the input's focus indicator without an inner rectangle. */
 .search { transition: box-shadow .18s ease, background-color .18s ease; }
 .search:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--violet) 55%, transparent); }
-@media (prefers-reduced-motion: reduce) { .home-view { animation: none; } .search { transition: none; } }
+html.desktop .home .search input:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { .search { transition: none; } }

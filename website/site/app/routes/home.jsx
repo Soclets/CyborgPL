@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLoaderData, useNavigate } from "react-router";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Code from "../components/Code.jsx";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
@@ -54,6 +55,23 @@ function Search({ q, setQ, onSubmit, onFocus, onBlur }) {
       <input type="search" placeholder="Search CyborgPL — even code" value={q} onChange={(e) => setQ(e.target.value)} onFocus={onFocus} onBlur={onBlur}
         enterKeyHint="go" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Search CyborgPL" />
     </form>
+  );
+}
+
+// Keep the outgoing view until it has faded, then bring the next one in.
+// The search form stays mounted and focused, and typing within results keeps
+// the same key so it doesn't restart this transition on every letter.
+function HomeView({ kind, className = "", children }) {
+  const reducedMotion = useReducedMotion();
+  return (
+    <AnimatePresence initial={false} mode="wait">
+      <motion.div key={kind} className={`home-view ${className}`}
+        initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+        animate={{ opacity: 1, y: 0, transition: { duration: reducedMotion ? 0 : 0.18 } }}
+        exit={{ opacity: 0, y: reducedMotion ? 0 : -4, transition: { duration: reducedMotion ? 0 : 0.12 } }}>
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -121,7 +139,7 @@ export default function Home() {
     return (
       <div className="home">
         {search}
-        <div className="home-view results" key="results">
+        <HomeView kind="results" className="results">
           {source && <SourceHit />}
           {answer && <Answer a={answer} html={answers[answerIndex]} q={found.q} onGo={go} />}
           {results.map(({ entry: r, line }, i) => (
@@ -135,7 +153,7 @@ export default function Home() {
             </Link>
           ))}
           {!results.length && !source && !answer && <p className="empty">Nothing matches “{q}”.</p>}
-        </div>
+        </HomeView>
       </div>
     );
   }
@@ -144,7 +162,7 @@ export default function Home() {
     return (
       <div className="home">
         {search}
-        <div className="home-view" key="suggest">
+        <HomeView kind="suggest">
         {recent.length > 0 && (
           <>
             <div className="suggest-head"><h2 className="section">Recent</h2><button onMouseDown={keep} onClick={clear}>Clear</button></div>
@@ -154,7 +172,7 @@ export default function Home() {
         <h2 className="section">Try</h2>
         <div className="chips">{TRY.map((t) => <button key={t} className={/^[a-z ]+$/.test(t) ? "" : "mono"} onMouseDown={keep} onClick={() => setQ(t)}>{t}</button>)}</div>
         <p className="hint">Searches names, pages and every line of code in the examples. Enter opens the top result.</p>
-        </div>
+        </HomeView>
       </div>
     );
   }
@@ -162,7 +180,7 @@ export default function Home() {
   return (
     <div className="home">
       {search}
-      <div className="home-view" key="hero">
+      <HomeView kind="hero">
       <h1 className="huge">For the <span>selfless</span> people</h1>
       <p className="lede">{DESCRIPTION}</p>
       <div className="actions">
@@ -179,7 +197,7 @@ export default function Home() {
           ))}
         </tbody>
       </table>
-      </div>
+      </HomeView>
     </div>
   );
 }
