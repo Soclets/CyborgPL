@@ -1,5 +1,5 @@
-// The code half of search: every example's code lines, fetched by the browser only
-// when someone starts searching, so no page carries it up front.
+// Home fetches this code index when someone starts searching. The Examples page
+// reuses the full plain source it already carries for immediate popup text.
 import { readFileSync, writeFileSync } from "node:fs";
 import { exampleIds } from "../app/lib/examples.server.js";
 

@@ -4,12 +4,11 @@ import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
 import { ACCENTS } from "../lib/content.js";
 import { around, runSearch } from "../lib/search.js";
-import { useCodeIndex } from "../lib/useSearch.js";
 import { seo } from "../lib/seo.js";
 
 export const meta = () => seo({ title: "Examples · CyborgPL", description: "Real CyborgPL programs from the repo, each with the output it really prints.", path: "/examples" });
 
-// Build time: every program in examples/, with a few lines to preview.
+// Build time: every program, its card preview and its full plain source.
 export async function loader() {
   const { listExamples } = await import("../lib/examples.server.js");
   return { examples: listExamples() };
@@ -43,8 +42,10 @@ export default function Examples() {
     addEventListener("cyborgpl:retap", clear);
     return () => removeEventListener("cyborgpl:retap", clear);
   }, []);
-  const [focused, setFocused] = useState(false);
-  const code = useCodeIndex(focused || !!q);
+  // The source is already here for instant opening; reuse it for code search.
+  const code = useMemo(() => Object.fromEntries(examples.map((e) => [e.id,
+    e.source.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#")),
+  ])), [examples]);
   // Same engine as Home: names, summaries, typos, synonyms, and every line of code.
   const entries = useMemo(() => examples.map((e) => ({ ...e, text: e.summary })), [examples]);
   const found = runSearch(entries, q, code);
@@ -55,7 +56,7 @@ export default function Examples() {
       <p className="lede small">Real programs from the repo, each with the output it really prints.</p>
       <label className="search">
         <Icon name="search" size={17} />
-        <input type="search" placeholder={`Search ${examples.length} examples and their code`} value={q} onChange={(e) => setQ(e.target.value)} onFocus={() => setFocused(true)}
+        <input type="search" placeholder={`Search ${examples.length} examples and their code`} value={q} onChange={(e) => setQ(e.target.value)}
           enterKeyHint="search" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
       </label>
       <div className="grid">

@@ -66,7 +66,7 @@ export function listExamples() {
   return exampleIds().map((id) => {
     const src = read(id, "cpls");
     const code = src.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
-    return { id, title: titleOf(id), summary: summaryOf(src), lines: src.split("\n").length, preview: code.slice(0, 6).join("\n") };
+    return { id, title: titleOf(id), summary: summaryOf(src), lines: src.split("\n").length, preview: code.slice(0, 6).join("\n"), source: src };
   });
 }
 

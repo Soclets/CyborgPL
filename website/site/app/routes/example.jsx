@@ -7,7 +7,7 @@ import Md from "../components/Md.jsx";
 import { plain } from "../lib/md.js";
 import { seo } from "../lib/seo.js";
 
-// The grid's entry for this example: title, summary, lines and its first few lines of code.
+// The grid's entry includes the full plain source, ready before a card is clicked.
 const briefOf = (list, id) => list?.examples?.find((e) => e.id === id);
 
 export const meta = ({ loaderData, params, matches }) => {
@@ -26,7 +26,7 @@ export async function loader({ params }) {
 }
 
 // Opening doesn't wait for the example's data (owner: they took a while to pop up). The
-// window opens at once with what the grid already has, and the highlighted code and the
+// window opens at once with the full plain source, and the highlighted code and the
 // output follow as a promise. A direct link is pre-rendered whole, as before.
 export function clientLoader({ serverLoader, params }) {
   return { id: params.id, full: serverLoader() };
@@ -137,9 +137,9 @@ export default function Example() {
           </div>
         </div>
         <div className="sheet-body">
-          {/* Reserve the full code's height while its first lines show, so the window
-              doesn't grow when the highlighted example arrives. */}
-          <Suspense fallback={<div className="code sheet-code sheet-pending"><pre style={{ "--example-lines": brief?.lines }}>{brief?.preview}</pre></div>}>
+          {/* The full source is already with the grid; highlighting can follow without
+              delaying the text or changing the window's height. */}
+          <Suspense fallback={<div className="code sheet-code sheet-pending"><pre style={{ "--example-lines": brief?.lines }}>{brief?.source ?? brief?.preview}</pre></div>}>
             <Await resolve={full} errorElement={<p className="empty">This example didn’t load. Close it and try again.</p>}>
               {(ex) => tab === "code" ? (
                 <Code html={ex.html} className="sheet-code" />
