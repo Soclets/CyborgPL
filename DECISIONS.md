@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-03 — Integers of any width, marked `!std_`: `!std_int24`, `!std_u256` (owner; not built yet)
+
+```
+let 'sample': !std_int24 = -8_000_000;    # our style
+let 'sample': !std_i24 = -8_000_000;      # Rust's alias
+let 'flags': !std_uint4 = 9;              # !std_u4
+let 'hash': !std_uint256 = …;             # !std_u256
+```
+
+The owner asked which types LLVM has that CyborgPL lacks. Design claude
+listed integers of any width (LLVM's `iN`), scalable vectors and matrix
+tiles as worth a look, `fp128` as ruled out (2026-09-23), and `x86_fp80`,
+`ppc_fp128` and LLVM's internal types as not worth it, recommending the
+first; from memory, not LLVM 23's manual. The owner: "1 seems like a good
+one". Widths: (a) any, (b) whole bytes, recommended, (c) a short list;
+the owner: "`a`. With `!std_` in front. It means not standard. And of
+course, do our style, and Rust alias". So any width LLVM takes, with the
+`!std_` mark: `!std_intN` / `!std_uintN` and Rust's `!std_iN` / `!std_uN`;
+`int8` to `int128` stay plain. `!std_int32` (the mark on a standard
+width) is refused, naming `int32` (owner: "Refuse"). The top: (a)
+LLVM's own limit, about 8 million bits, or (b) a cap of 4,096,
+recommended; the owner: "`a`, I mean there's already a disclaimer in
+front". Not built: above 128 bits the oracle needs bigger numbers than
+it holds.
+
 ### 2026-10-03 — A Limb's own narrowed operators and operator paths are built (owner)
 
 The owner: "what about the writer being able to make a `std::pow.` op?"
