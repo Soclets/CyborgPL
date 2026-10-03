@@ -71,8 +71,10 @@ refused (`!std_int32` → `int32`). Each holds exactly its width's range
 and is checked where it lands like any integer; `.wrap` wraps at its
 width. Proposed: whole bytes only, or a short list, and a cap of 4,096
 bits; the owner chose any width ("there's already a disclaimer in
-front"). The oracle builds widths up to 128 for now; wider ones are
-refused as not built. `examples/any_width.cpls`.
+front"). LLVM's widest is 8,388,608 bits (2^23); past it is refused. In
+between, the maths is limited by the widest operand's width, at least 64
+bits (`operators.md`). `examples/any_width.cpls`,
+`examples/wide_integers.cpls`.
 
 ## A declaration always has a value (owner, 2026-09-23)
 

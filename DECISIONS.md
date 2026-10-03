@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-03 — Integers of any width, marked `!std_`: `!std_int24`, `!std_u256` (owner; built up to 128 bits)
+### 2026-10-03 — Integers of any width, marked `!std_`: `!std_int24`, `!std_u256` (owner; built)
 
 ```
 let 'sample': !std_int24 = -8_000_000;    # our style
@@ -42,7 +42,16 @@ performance difference (none for code of 64 bits or less; a 256-bit add
 is four instructions, the cost of the type itself), then: "Ah, okay". So
 in between, the limit is the widest operand's width, at least 64 bits.
 LLVM's own top width is 8,388,608 bits (2^23, checked with `llvm-as`).
-`examples/any_width.cpls`,
+Built the same day: the oracle's own big numbers (`bigint.rs`: add,
+subtract, multiply, divide, power, compare, wrap, print and parse,
+tested against i128 and Python), used whenever a value or a result is
+past i128; literals past i128; ranges and conversions at any width; the
+middle limit as ruled; wrapping at 127 bits and up on big numbers, which
+also fixed `uint128` wrapping (it had wrapped at 2^127). Not built for
+big values: bitwise operators, shifts, SIMD lanes.
+`examples/wide_integers.cpls` (checked against Python), reject tests
+`wide_past_in_between`, `wide_does_not_fit`; `std_too_wide` now past
+LLVM's limit. `examples/any_width.cpls`,
 reject tests `std_on_standard`, `std_too_wide`, `std_not_a_type`,
 `std_width_overflow`, `types.md`.
 

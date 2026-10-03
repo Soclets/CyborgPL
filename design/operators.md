@@ -179,8 +179,10 @@ check is where the value lands: a typed declaration, a `change`, an argument (th
 type), a return (the return type). A comparison compares true values,
 and a `:=` takes a type that holds its true value. You never get a
 wrong number, and never an error for an answer that fits where it is
-going. In between, the one limit is the machine's 64 bits: a value no
-64-bit type holds is a check site (`'a' times 'a'` on two huge `int64`s),
+going. In between, the one limit is the machine's 64 bits, or the widest
+operand's width when that is wider (owner, 2026-10-03: two
+`!std_uint256`s work at 256 bits, two `int128`s at 128): a value no type
+of that width holds is a check site (`'a' times 'a'` on two huge `int64`s),
 which Precog removes wherever it proves the values smaller. Bare
 numbers alone are worked out exactly at compile time. Precog still uses
 narrow sizes where it proves they fit, for SIMD especially, since the

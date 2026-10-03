@@ -9,6 +9,9 @@ use std::fmt::Write as _;
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i128),
+    /// a whole number past i128, for the wide `!std_` integers (owner, 2026-10-03); a value that
+    /// fits i128 is always `Int`, never `Big`
+    Big(crate::bigint::BigInt),
     Bin(f64),
     /// a brain float (owner, 2026-10-02), held as the exact value it stores
     Brain(f64),
@@ -86,7 +89,7 @@ impl Value {
 
     pub fn kind(&self) -> &'static str {
         match self {
-            Value::Int(_) => "integer",
+            Value::Int(_) | Value::Big(_) => "integer",
             Value::Bin(_) => "bin",
             Value::Brain(_) => "brain16",
             Value::Deci(_) => "deci",
@@ -110,6 +113,7 @@ impl Value {
     pub fn show_stored(&self) -> String {
         match self {
             Value::Int(i) => i.to_string(),
+            Value::Big(b) => b.to_string(),
             Value::Bin(b) => exact_decimal(*b),
             Value::Brain(b) => exact_decimal(*b),
             Value::Deci(d) => d.show_stored(),
@@ -147,6 +151,17 @@ impl Value {
     }
 }
 
+/// An integer type's range at any width, as big numbers (owner, 2026-10-03: integers of any width).
+pub fn big_range(ty: &Ty) -> Option<(crate::bigint::BigInt, crate::bigint::BigInt)> {
+    use crate::bigint::BigInt;
+    let one = BigInt::from_i128(1);
+    match ty {
+        Ty::Int(w) => { let n = w_num(w) as u64; Some((BigInt::pow2(n - 1).neg(), BigInt::pow2(n - 1).sub(&one))) }
+        Ty::Uint(w) => { let n = w_num(w) as u64; Some((BigInt::zero(), BigInt::pow2(n).sub(&one))) }
+        _ => None,
+    }
+}
+
 pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
     match ty {
         Ty::Int(w) => Some(match w {
@@ -155,6 +170,7 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
             IntWidth::W32 => (i32::MIN as i128, i32::MAX as i128),
             IntWidth::W64 => (i64::MIN as i128, i64::MAX as i128),
             IntWidth::W128 => (i128::MIN, i128::MAX),
+            IntWidth::Other(n) if *n > 127 => return None,
             IntWidth::Other(n) => (-(1i128 << (n - 1)), (1i128 << (n - 1)) - 1),
         }),
         Ty::Uint(w) => Some(match w {
@@ -163,6 +179,7 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
             IntWidth::W32 => (0, u32::MAX as i128),
             IntWidth::W64 => (0, u64::MAX as i128),
             IntWidth::W128 => (0, i128::MAX), // uint128's top half is beyond the oracle's i128
+            IntWidth::Other(n) if *n > 127 => return None,
             IntWidth::Other(n) => (0, if *n >= 127 { i128::MAX } else { (1i128 << n) - 1 }),
         }),
         _ => None,

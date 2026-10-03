@@ -19,6 +19,8 @@ pub enum Tok {
     Text(String, String),   // "…": the stored text, and the text as typed (`print.format` reads that)
     Char(String),   // `…`
     Int(i128),
+    /// a whole number past i128, for the wide `!std_` integers (owner, 2026-10-03): its digits
+    BigInt(String),
     Bin(f64, String),   // the value, and its digits as written (to round once, at a narrower width)
     Newline,        // bare \n
     LBracket, RBracket,
@@ -52,6 +54,7 @@ impl fmt::Display for Tok {
             Tok::Text(t, _) => write!(f, "\"{t}\""),
             Tok::Char(c) => write!(f, "`{c}`"),
             Tok::Int(i) => write!(f, "{i}"),
+            Tok::BigInt(s) => write!(f, "{s}"),
             Tok::Bin(b, _) => write!(f, "{b}"),
             Tok::Newline => write!(f, "\\n"),
             Tok::LBracket => write!(f, "["),
@@ -213,8 +216,14 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 let v: f64 = s.parse().map_err(|_| LexError { line: tl, col: tc, msg: format!("bad number `{s}`") })?;
                 push(Tok::Bin(v, s.clone()), &mut toks);
             } else {
-                let v: i128 = s.parse().map_err(|_| LexError { line: tl, col: tc, msg: format!("integer literal `{s}` does not fit even an int128") })?;
-                push(Tok::Int(v), &mut toks);
+                // past i128 it is a wide integer's literal; LLVM's widest integer is 2^23 bits
+                match s.parse::<i128>() {
+                    Ok(v) => push(Tok::Int(v), &mut toks),
+                    Err(_) => {
+                        if s.len() > 2_600_000 { return err(tl, tc, format!("an integer literal of {} digits is past the widest integer there is (2^23 bits)", s.len())); }
+                        push(Tok::BigInt(s.clone()), &mut toks)
+                    }
+                }
             }
             continue;
         }

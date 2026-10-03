@@ -9,6 +9,7 @@
 #![allow(dead_code)]
 
 mod ast;
+mod bigint;
 mod deci;
 mod interp;
 mod lexer;

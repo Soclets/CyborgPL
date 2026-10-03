@@ -1161,9 +1161,15 @@ impl<'p> Interp<'p> {
     fn check_type(&self, v: &Value, ty: &Ty, line: usize) -> Result<(), RuntimeError> {
         let name = ty_name(ty);
         match (ty, v) {
-            (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => {
-                let (lo, hi) = int_range(ty).unwrap();
-                if *i < lo || *i > hi { return site(line, format!("{i} does not fit {name} (range {lo} to {hi})")); }
+            (Ty::Int(_) | Ty::Uint(_), Value::Int(_) | Value::Big(_)) => {
+                // at any width (owner, 2026-10-03); the standard ones stay on i128
+                if let (Some((lo, hi)), Value::Int(i)) = (int_range(ty), v) {
+                    if *i < lo || *i > hi { return site(line, format!("{i} does not fit {name} (range {lo} to {hi})")); }
+                    return Ok(());
+                }
+                let (lo, hi) = crate::value::big_range(ty).unwrap();
+                let b = as_big(v).unwrap();
+                if b.cmp(&lo).is_lt() || b.cmp(&hi).is_gt() { return site(line, format!("{b} does not fit {name} (range {lo} to {hi})")); }
                 Ok(())
             }
             (Ty::Int(_) | Ty::Uint(_), Value::Bin(b)) => rt(line, format!("{} is a bin, not {name}; there is no implicit conversion between numeric families", exact_decimal(*b))),
@@ -1807,6 +1813,7 @@ impl<'p> Interp<'p> {
             Expr::Int(i, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(crate::deci::Deci::from_int(*i, w).or_else(|m| rt(line, format!("`{i}` {m}: write fewer digits, or use a wider deci")))?), Prov::Literal)) }
             Expr::Bin(_, digits, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(self.deci_literal(digits, w, line)?), Prov::Literal)) }
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
+            Expr::BigInt(s, _) => Ok((Value::Big(crate::bigint::BigInt::parse(s).expect("lexed digits")), Prov::Literal)),
             // `*0.1` — exactly this, a deci (owner, 2026-10-02): of the width the place wants, or,
             // under `:=`, deci64 — the oracle's pick; Precog chooses the width
             Expr::Exact(digits, _) => {
@@ -2210,6 +2217,24 @@ impl<'p> Interp<'p> {
                     (Ty::Deci(_), other @ (Value::Bin(_) | Value::Brain(_))) if form == 0 =>
                         return rt(line, format!("say which value `to.{target}` takes of a {}: `to.stored.{target}[…]` (what is stored) or `to.useful.{target}[…]` (the useful value) (owner, 2026-10-02)", other.kind())),
                     (Ty::Int(_) | Ty::Uint(_), Value::Int(i)) => { fit_base!(Value::Int(*i)); Value::Int(*i) }
+                    // a wide integer's value (owner, 2026-10-03): into an integer type as any narrowing
+                    // is; into a bin, a brain16 or a deci, rounded from its digits as a literal is
+                    (Ty::Int(_) | Ty::Uint(_), Value::Big(_)) => { fit_base!(v.clone()); v.clone() }
+                    (Ty::Bin(w), Value::Big(b)) => {
+                        let x: f64 = b.to_string().parse().unwrap();
+                        let x = if *w == 32 { (x as f32) as f64 } else if *w == 16 { round_f16(x) } else { x };
+                        if x.is_infinite() { return site(line, format!("{b} does not fit bin{w}: it rounds past the largest value")); }
+                        Value::Bin(x)
+                    }
+                    (Ty::Brain, Value::Big(b)) => {
+                        let x = crate::value::round_brain(b.to_string().parse().unwrap());
+                        if x.is_infinite() { return site(line, format!("{b} does not fit brain16: it rounds past the largest value")); }
+                        Value::Brain(x)
+                    }
+                    (Ty::Deci(w), Value::Big(b)) => match crate::deci::Deci::parse(&b.to_string(), *w) {
+                        Ok(Some(d)) => Value::Deci(d),
+                        _ => return site(line, format!("{b} does not fit deci{w}")),
+                    },
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }
                     (Ty::Bin(_), Value::Bin(x)) => { fit_base!(Value::Bin(*x)); Value::Bin(*x) }
                     // the brain float (owner, 2026-10-02): into it rounds to the nearest, out of it into a
@@ -2554,7 +2579,8 @@ impl<'p> Interp<'p> {
                     ("not", Value::Simd(ls)) if ls.iter().all(|l| matches!(l, Value::Bool(_))) =>
                         Ok((Value::Simd(ls.iter().map(|l| match l { Value::Bool(b) => Value::Bool(!b), o => o.clone() }).collect()), Prov::Plain)),
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
-                    ("-", Value::Int(i)) => Ok((Value::Int(i.checked_neg().ok_or_else(|| RuntimeError { line, msg: "negation overflow".into(), exit: None, site: true, leave: None })?), keep)),
+                    ("-", Value::Int(i)) => Ok((match i.checked_neg() { Some(n) => Value::Int(n), None => from_big(crate::bigint::BigInt::from_i128(i).neg()) }, keep)),
+                    ("-", Value::Big(b)) => Ok((from_big(b.neg()), keep)),
                     ("-", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
                     ("-", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
                     ("-", Value::Deci(d)) => Ok((Value::Deci(d.neg()), keep)),
@@ -2581,8 +2607,8 @@ impl<'p> Interp<'p> {
                 // a vector wraps lane by lane at its element's size (simd.md; check claude, 2026-09-29)
                 let width = match width { Some(Ty::Simd(e, _)) => Some(*e), w => w };
                 let (bits, signed) = match width {
-                    Some(Ty::Int(w)) => (int_bits(&w), true),
-                    Some(Ty::Uint(w)) => (int_bits(&w), false),
+                    Some(Ty::Int(w)) => (true_bits(&w), true),
+                    Some(Ty::Uint(w)) => (true_bits(&w), false),
                     // the width can come from a name, a conversion, either side, or the type
                     // stored into (2026-09-23); a bare literal with none of those has no size to wrap in
                     Some(t) => return rt(line, format!("`{op}` wraps modulo an integer's size, and {} is not an integer", ty_name(&t))),
@@ -2590,6 +2616,29 @@ impl<'p> Interp<'p> {
                 };
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
+                // at 127 bits and up (int128, uint128, the wide `!std_` ones) the wrap is worked out
+                // on big numbers, exactly, then taken modulo 2^bits (owner, 2026-10-03)
+                let big_wrap = |x: &Value, y: &Value| -> Result<Value, RuntimeError> {
+                    let (x, y) = (as_big(x).unwrap(), as_big(y).unwrap());
+                    let raw = match op.as_str() {
+                        "+~" => x.add(&y), "-~" => x.sub(&y), "x~" => x.mul(&y),
+                        _ => {
+                            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
+                            // square and multiply, taking the remainder at every step
+                            let (mut base, mut e, mut acc) = (x.mod_pow2(bits as u64), y.clone(), crate::bigint::BigInt::from_i128(1));
+                            let two = crate::bigint::BigInt::from_i128(2);
+                            while !e.is_zero() {
+                                if !e.mod_pow2(1).is_zero() { acc = acc.mul(&base).mod_pow2(bits as u64); }
+                                e = e.divrem_trunc(&two).unwrap().0;
+                                base = base.mul(&base).mod_pow2(bits as u64);
+                            }
+                            acc
+                        }
+                    };
+                    let mut v = raw.mod_pow2(bits as u64);
+                    if signed && v.cmp(&crate::bigint::BigInt::pow2(bits as u64 - 1)).is_ge() { v = v.sub(&crate::bigint::BigInt::pow2(bits as u64)); }
+                    Ok(from_big(v))
+                };
                 let wrap = |x: i128, y: i128| -> Result<i128, RuntimeError> {
                     let raw = match op.as_str() {
                         "+~" => x.wrapping_add(y),
@@ -2604,6 +2653,7 @@ impl<'p> Interp<'p> {
                 };
                 let lane = |v: &Value| match v { Value::Int(i) => Some(*i), _ => None };
                 match (a, b) {
+                    (a @ (Value::Int(_) | Value::Big(_)), b @ (Value::Int(_) | Value::Big(_))) if bits >= 127 || matches!(a, Value::Big(_)) || matches!(b, Value::Big(_)) => Ok((big_wrap(&a, &b)?, Prov::Plain)),
                     (Value::Int(x), Value::Int(y)) => Ok((Value::Int(wrap(x, y)?), Prov::Plain)),
                     (Value::Simd(xs), Value::Simd(ys)) if xs.len() == ys.len() => {
                         let mut out = Vec::with_capacity(xs.len());
@@ -2786,11 +2836,22 @@ impl<'p> Interp<'p> {
                 // an assignment, an argument, a return (owner, 2026-09-23: "the best perf &
                 // safety"). In between, the one limit is the machine's 64 bits: a value no 64-bit
                 // type holds is a check site. Bare numbers alone are worked out at compile time.
+                // The limit in between is the widest operand's width, at least 64 bits (owner,
+                // 2026-10-03: "Ah, okay"), so a `!std_uint256` sum works at 256 bits.
                 if matches!(op.as_str(), "+" | "-" | "x" | "xx") && !both_lit {
-                    if let Value::Int(n) = v {
-                        if n < i64::MIN as i128 || n > u64::MAX as i128 {
-                            return site(line, format!("{n} goes past 64 bits in between — `{op}` is exact, but no 64-bit type holds this"));
+                    let width = |e: &Expr| match self.expr_ty(e) { Some(Ty::Int(w) | Ty::Uint(w)) => true_bits(&w), Some(Ty::Ranged(b, ..)) => match *b { Ty::Int(w) | Ty::Uint(w) => true_bits(&w), _ => 0 }, _ => 0 };
+                    let bits = 64.max(width(l)).max(width(r)) as u64;
+                    let past = match &v {
+                        Value::Int(n) if bits == 64 => *n < i64::MIN as i128 || *n > u64::MAX as i128,
+                        Value::Int(_) if bits >= 128 => false,
+                        Value::Int(_) | Value::Big(_) => {
+                            let b = as_big(&v).unwrap();
+                            b.cmp(&crate::bigint::BigInt::pow2(bits - 1).neg()).is_lt() || b.cmp(&crate::bigint::BigInt::pow2(bits).sub(&crate::bigint::BigInt::from_i128(1))).is_gt()
                         }
+                        _ => false,
+                    };
+                    if past {
+                        return site(line, format!("{} goes past {bits} bits in between — `{op}` is exact, but no {bits}-bit type holds this", v.show_stored()));
                     }
                 }
                 Ok((v, if both_lit { Prov::Literal } else { Prov::Plain }))
@@ -2874,6 +2935,11 @@ impl<'p> Interp<'p> {
         }
         use Value::*;
         let ovf = |what: &str| RuntimeError { line, msg: format!("integer overflow in `{what}`"), exit: None, site: true, leave: None };
+        // integers past i128 (owner, 2026-10-03): when a value is past it, or a result would be, the
+        // operation is worked out exactly on big numbers
+        if matches!(a, Int(_) | Big(_)) && matches!(b, Int(_) | Big(_)) && (matches!(a, Big(_)) || matches!(b, Big(_)) || int_overflows(op, &a, &b)) {
+            if let Some(v) = big_binary(op, &a, &b, line)? { return Ok(v); }
+        }
         // `div.X` / `mod.X` (owner, 2026-10-02): every division says how it rounds, `floor`, `ceil`,
         // `trunc` or `near`, on every number family, and each `mod.X` is what `div.X` leaves over
         if let Some((kind, mode)) = op.split_once('.') {
@@ -4685,6 +4751,68 @@ fn round_to_width(t: &Ty, v: Value) -> Value {
     }
 }
 
+/// Whether an operation on two i128s would overflow i128 (and so needs big numbers).
+fn int_overflows(op: &str, a: &Value, b: &Value) -> bool {
+    let (Value::Int(x), Value::Int(y)) = (a, b) else { return false };
+    match op {
+        "+" => x.checked_add(*y).is_none(),
+        "-" => x.checked_sub(*y).is_none(),
+        "x" => x.checked_mul(*y).is_none(),
+        "xx" => *y >= 0 && { let mut acc: i128 = 1; let mut over = false; for _ in 0..*y { match acc.checked_mul(*x) { Some(v) => acc = v, None => { over = true; break; } } if acc == 0 || acc == 1 && (*x == 1) { break; } } over },
+        o if crate::interp::is_div_mod(o) => *x == i128::MIN && *y == -1,
+        _ => false,
+    }
+}
+
+/// An integer operation on big numbers (owner, 2026-10-03). None: not an integer operation here.
+fn big_binary(op: &str, a: &Value, b: &Value, line: usize) -> Result<Option<Value>, RuntimeError> {
+    use crate::bigint::BigInt;
+    let (x, y) = (as_big(a).unwrap(), as_big(b).unwrap());
+    Ok(Some(match op {
+        "+" => from_big(x.add(&y)),
+        "-" => from_big(x.sub(&y)),
+        "x" => from_big(x.mul(&y)),
+        "xx" => {
+            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
+            let e = y.to_u64().filter(|e| x.bits().saturating_mul(*e) <= 16_777_216 || x.bits() <= 1);
+            match e { Some(e) => from_big(x.pow(e)), None => return site(line, format!("{x} to the power {y} is past the widest integer there is (2^23 bits)")) }
+        }
+        "==" => Value::Bool(x.cmp(&y).is_eq()),
+        "!==" => Value::Bool(!x.cmp(&y).is_eq()),
+        "<" => Value::Bool(x.cmp(&y).is_lt()),
+        ">" => Value::Bool(x.cmp(&y).is_gt()),
+        "</==" => Value::Bool(x.cmp(&y).is_le()),
+        ">/==" => Value::Bool(x.cmp(&y).is_ge()),
+        o if is_div_mod(o) => {
+            let (kind, mode) = o.split_once('.').unwrap();
+            let Some((mut q, mut r)) = x.divrem_trunc(&y) else { return site(line, if kind == "div" { "division by zero" } else { "`mod` by zero" }) };
+            if !r.is_zero() {
+                let up = r.is_neg() == y.is_neg();   // the true quotient is above q
+                let away = match mode {
+                    "floor" => !up, "ceil" => up, "trunc" => false,
+                    _ => {
+                        let abs = |v: &BigInt| if v.is_neg() { v.neg() } else { v.clone() };
+                        match abs(&r.add(&r)).cmp(&abs(&y)) { std::cmp::Ordering::Greater => true, std::cmp::Ordering::Less => false, _ => !q.mod_pow2(1).is_zero() }
+                    }
+                };
+                let one = BigInt::from_i128(1);
+                if away { if up { q = q.add(&one); r = r.sub(&y); } else { q = q.sub(&one); r = r.add(&y); } }
+            }
+            from_big(if kind == "div" { q } else { r })
+        }
+        _ => return Ok(None),
+    }))
+}
+
+/// An integer value as a big number (owner, 2026-10-03).
+pub fn as_big(v: &Value) -> Option<crate::bigint::BigInt> {
+    match v { Value::Int(i) => Some(crate::bigint::BigInt::from_i128(*i)), Value::Big(b) => Some(b.clone()), _ => None }
+}
+/// A big number back as a value: `Int` whenever it fits i128.
+pub fn from_big(b: crate::bigint::BigInt) -> Value { match b.to_i128() { Some(i) => Value::Int(i), None => Value::Big(b) } }
+
+/// An integer type's true width (`int_bits` gives 127 for 128, for the i128 wrapping path).
+fn true_bits(w: &IntWidth) -> u32 { match w { IntWidth::W128 => 128, w => int_bits(w) } }
 fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::Other(n) => *n, IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 127 } }
 
 fn kind_word(k: ParamKind) -> &'static str { match k { ParamKind::Owned => "owning", ParamKind::Lent => "lent", ParamKind::LentMut => "lent.mut" } }

@@ -1170,7 +1170,8 @@ impl Parser {
                     let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{head}` is not a type: a non-standard integer is `!std_int24` or `!std_uint24` (Rust's `!std_i24`, `!std_u24`)")) };
                     let std_name = if signed { "int" } else { "uint" };
                     if int_w(n).is_some() { return bad(self, format!("`{std_name}{n}` is standard: write `{std_name}{n}` (owner, 2026-10-03)")); }
-                    if n > 128 { return bad(self, format!("`{head}`: the oracle holds integers up to 128 bits for now; wider ones are decided but not built")); }
+                    // LLVM's widest integer is 2^23 bits (checked with `llvm-as`, 2026-10-03)
+                    if n > 8_388_608 { return bad(self, format!("`{head}` is past the widest integer there is: LLVM's integers go up to 8388608 bits")); }
                     return Ok(if signed { Ty::Int(IntWidth::Other(n)) } else { Ty::Uint(IntWidth::Other(n)) });
                 }
                 if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }
@@ -2492,6 +2493,7 @@ impl Parser {
                 }
                 Ok(Expr::Int(i, line))
             }
+            Tok::BigInt(s) => { self.advance(); Ok(Expr::BigInt(s, line)) }
             Tok::Bin(b, t) => { self.advance(); Ok(Expr::Bin(b, t, line)) }
             // `*0.1` — "I want exactly this" (owner, 2026-10-02): a decimal literal that is a deci
             Tok::Op(o) if o == "*" => {
