@@ -5,6 +5,47 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-05 — Two terms: a *core* extends the language, a *limb* is a library; the operators move out of the base (owner; not built, still being designed)
+
+The owner: "I was thinking of making the base lang more lower-level ...
+I wanted to move things like, plus, div, you know to std. And even more.
+So, if we end up doing that, we better make limbs very capable." Design
+claude laid out what that needs: machine operations in the base, the
+right to define operators on the language's own types, precedence
+(exists), and contracts Precog trusts; it suggested intrinsics. The
+owner: "Isn't it supposed to be inline ASM for that?" Design claude: inline
+assembly is one per chip and a black box to LLVM (no folding, no
+vectorising, `nocheck` everywhere), so LLVM IR, portable assembly LLVM
+optimises, `inline.LLVM { %r = add i32 %a, %b }`. The owner: "inline LLVM IR
+would come with the Core limb. And the base language just uses lower
+level stuff. So, right now, the limbs we got, from low to high: Core,
+std. If there are problems, you could tell me." Design claude listed:
+a Limb cannot add syntax; that makes Core privileged (against 2026-09-19's
+"std is not a privileged one"); the oracle cannot run LLVM IR (keep its
+built-in meaning, RRx2 checks Core's IR); Precog needs contracts; the
+"checked where it lands" rules stay in the language. The owner: "What if
+the Core limb really is just a separate CyborgPL you install?" Design
+claude: workable, version-matched to CCA, with trust the issue: only a
+verified core's contracts are believed. The owner: "That's what I meant.
+Actually, let's have two lib-like terms here ... A `core` is a thing that
+is kinda more of like a compiler mod, but a `limb` is a library?", then:
+"It's a category, and I think if someone installs an unverified core,
+just warn them, don't refuse. Maybe it's their own, maybe it's their
+friend's. Reminds me of CUDA C++".
+
+So far:
+- **A core** extends what the language can do, like a compiler mod: it
+  may use `inline.LLVM`, define operators for the language's own types,
+  and give Precog contracts. Installed beside CCA, version-matched to it.
+- **A limb** is a library, as before; std is a limb.
+- **"Core" is a category**: several may exist. The official one is
+  verified (RRx2 checks its IR against its contracts); an unverified core
+  is used with a warning, never refused.
+- Open: whether `plus` and the others go to the official core or to std
+  (a limb cannot define them for `int32`), what the base keeps exactly,
+  the official core's name, how a core is installed and named in a
+  manifest, what the warning says.
+
 ### 2026-10-03 — A shift on an exact answer works at its typed operands' width (owner)
 
 ```
