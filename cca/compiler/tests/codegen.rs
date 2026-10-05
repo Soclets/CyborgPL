@@ -512,7 +512,9 @@ fn refused_programs_stay_refused() {
     for p in entries {
         let src = std::fs::read_to_string(&p).unwrap();
         let says = src.lines().next().and_then(|l| l.strip_prefix("# refuse: ")).expect("a refuse/ program names its phrase on its first line").trim().to_string();
-        let r = Command::new(cca()).arg("check").arg(&p).output().unwrap();
+        // Built, not only checked: some are refused by Precog.
+        let exe = std::env::temp_dir().join("cca-codegen-tests").join(p.file_stem().unwrap());
+        let r = Command::new(cca()).arg("build").arg(&p).arg("-o").arg(&exe).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr).to_string();
         if r.status.success() || !err.contains(&says) {
             failures.push(format!("{}: expected a refusal containing {:?}, got:\n{}", p.display(), says, err));

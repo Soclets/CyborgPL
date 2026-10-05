@@ -274,3 +274,4 @@ precedence_block 61
 word_operators_run 215
 wide_integers_run 255
 wide_bits_run 9
+enum_data_checked 101

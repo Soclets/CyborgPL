@@ -1309,6 +1309,21 @@ impl<'a> FnBuilder<'a> {
             }
             hir::ExprKind::EnumCase { id, case, payload } => {
                 let p = payload.as_ref().map(|a| self.arg_operand(a, span));
+                // A case's data lands where a field's does: checked there
+                // (check claude, seed 15174: `E1.c4[0 minus 5]` with a
+                // `uint64` case wrapped to 2^64 - 5).
+                if let (Some(op), Some(a)) = (&p, payload) {
+                    let info = self.arena.items.enums[id.0 as usize].clone();
+                    let args: Vec<Ty> = match self.resolve_ty(&e.ty) {
+                        Ty::Enum { args, .. } => args,
+                        _ => Vec::new(),
+                    };
+                    if let Some(want) = info.cases.get(*case).and_then(|c| c.payload.clone()) {
+                        let want = want.subst(&args);
+                        let have = self.arg_ty(a);
+                        self.narrow_arg(op, &have, &want, span);
+                    }
+                }
                 Rvalue::MakeEnum { id: *id, case: *case, payload: p }
             }
             hir::ExprKind::Channel { elem, capacity } => Rvalue::MakeChannel { elem: elem.clone(), capacity: *capacity },
