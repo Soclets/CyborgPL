@@ -125,6 +125,18 @@ So far:
   operator, and then my loop somehow auto para") and accepted. Design
   claude had offered (a) both require std too, recommended, (b) `plus`
   back into IEG, (c) leave it.
+- **What the base keeps, decided one group at a time** (owner: "let's
+  decide number 1 first"). **Comparisons go to std** (`==`, `!==`, `<`,
+  `>`, `</==`, `>/==`), as `plus` does (owner: "`a`"); the base keeps
+  `bool` and `true`/`false`, so `if` has something to test. Precog's
+  guard proofs survive: std's `<` is built on IEG's compare, whose
+  contract Precog sees through. Kept in the base so far: syntax, types,
+  `let`, borrows, Precog, SIMD, the minus sign of a negative and `-'x'`
+  (design claude's recommendation, not ruled), `and.then`/`or.else`
+  (they skip their right side, which a std operator cannot).
+- **A core may give a specific limb more authority than others** (owner,
+  same day: "I think that a core could give a specific limb more
+  authority than others"); how is asked next.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
