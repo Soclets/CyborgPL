@@ -75,6 +75,13 @@ So far:
   or (b) empty; the owner: "`b`. I mean, lol. I don't think you're a
   beginner, if you sign up for Precog". Today's oracle and CCA still
   reach `std::` without a listing; that changes when this is built.
+- **std stays in CyborgPL** (2026-09-30), **and may call the Rust runtime
+  for what CyborgPL cannot express yet**. The owner first: "I think that
+  the std limb could be in Rust first, just, just, just in case". Design
+  claude: that reverses 2026-09-30, puts std outside Precog (every call a
+  black box, or std trusted like a core), cannot give an inlinable `plus`,
+  and means writing std twice; the `no_std` Rust runtime is already the
+  safety net. The owner: "Your suggestion is good, honestly".
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
