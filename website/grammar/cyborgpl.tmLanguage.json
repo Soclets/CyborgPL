@@ -38,6 +38,9 @@
       "include": "#number"
     },
     {
+      "include": "#precedence-block"
+    },
+    {
       "include": "#enum-body"
     },
     {
@@ -199,6 +202,11 @@
     "number": {
       "patterns": [
         {
+          "comment": "`*0.1` — \"exactly this\", a deci (2026-10-02). The * belongs to the number.",
+          "name": "constant.numeric.exact.cyborgpl",
+          "match": "\\*\\d[\\d_]*(?:\\.\\d[\\d_]*)?\\b"
+        },
+        {
           "comment": "_ groups digits; , never does. A fraction needs a digit on both sides.",
           "name": "constant.numeric.decimal.cyborgpl",
           "match": "\\b\\d[\\d_]*\\.\\d[\\d_]*\\b"
@@ -212,8 +220,23 @@
     "declaration": {
       "patterns": [
         {
-          "comment": "A custom operator: `op dot [...]`, `op <+> [...]`.",
-          "match": "\\b(op)\\s+([A-Za-z_][A-Za-z0-9_]*|[!%&*+\\-/<>=?@^|~]+)",
+          "comment": "A language named after a dot (2026-10-02): `extern.C`, `layout.C`, `inline.S` / `inline.ASM`, `inline.MSL`. Not a struct type.",
+          "match": "\\b(extern|layout|inline)(\\.)(C|S|ASM|MSL)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "keyword.declaration.language.cyborgpl"
+            }
+          }
+        },
+        {
+          "comment": "A custom operator, or an operator handed over as a value: `op dot [...]`, `op <+>`, `op div.floor`.",
+          "match": "\\b(op)\\s+([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*|[!%&*+\\-/<>=?@^|~]+)",
           "captures": {
             "1": {
               "name": "keyword.declaration.operator.cyborgpl"
@@ -300,25 +323,53 @@
       ]
     },
     "generic": {
-      "comment": "A generic blank in angle brackets, optionally constrained by an interface: `<T>`, `<T: Ordered>`.",
-      "match": "(<)([A-Za-z_][A-Za-z0-9_]*)(?:\\s*(:)\\s*([A-Za-z_][A-Za-z0-9_]*))?(>)",
-      "captures": {
-        "1": {
-          "name": "punctuation.definition.generic.begin.cyborgpl"
+      "patterns": [
+        {
+          "comment": "A generic blank in angle brackets, optionally constrained by an interface: `<T>`, `<T: Ordered>`.",
+          "match": "(<)([A-Za-z_][A-Za-z0-9_]*)(?:\\s*(:)\\s*([A-Za-z_][A-Za-z0-9_]*))?(>)",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.generic.begin.cyborgpl"
+            },
+            "2": {
+              "name": "entity.name.type.generic.cyborgpl"
+            },
+            "3": {
+              "name": "punctuation.separator.type.cyborgpl"
+            },
+            "4": {
+              "name": "entity.name.type.interface.cyborgpl"
+            },
+            "5": {
+              "name": "punctuation.definition.generic.end.cyborgpl"
+            }
+          }
         },
-        "2": {
-          "name": "entity.name.type.generic.cyborgpl"
+        {
+          "comment": "A generic's bound after its brackets (2026-10-02): `<T>: any`, `<T>: Ordered`.",
+          "match": "(?<=>)\\s*(:)\\s*([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.type.cyborgpl"
+            },
+            "2": {
+              "patterns": [
+                {
+                  "include": "#type"
+                },
+                {
+                  "include": "#struct-name"
+                }
+              ]
+            }
+          }
         },
-        "3": {
-          "name": "punctuation.separator.type.cyborgpl"
-        },
-        "4": {
-          "name": "entity.name.type.interface.cyborgpl"
-        },
-        "5": {
-          "name": "punctuation.definition.generic.end.cyborgpl"
+        {
+          "comment": "`|` separates a bound from lifetime groups: `<T>: any | @x`.",
+          "name": "punctuation.separator.lifetimes.cyborgpl",
+          "match": "\\|(?=\\s*@)"
         }
-      }
+      ]
     },
     "struct-name": {
       "comment": "Structs, enums and interfaces are named in PascalCase in the examples; functions are snake_case. A bare capitalised word is therefore a type — including where one is built (`Locker[…]`) or narrowed (`Status.empty`).",
@@ -356,6 +407,11 @@
     },
     "type": {
       "patterns": [
+        {
+          "comment": "Rust's number names, aliases for CyborgPL's (2026-10-02): i8–i128, u8–u128, f16 f32 f64; and the brain float, brain16 / bfloat16 / bf16.",
+          "name": "support.type.numeric.cyborgpl",
+          "match": "\\b(?:[iu](?:8|16|32|64|128)|f(?:16|32|64)|brain16|bfloat16|bf16)\\b"
+        },
         {
           "comment": "Nonstandard widths, such as !std_int24, !std_u4 and !std_uint256.",
           "name": "support.type.numeric.cyborgpl",
@@ -440,7 +496,8 @@
         },
         {
           "name": "support.type.cyborgpl",
-          "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr)\\b"
+          "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr|any)\\b",
+          "comment": "The bare built-in types; `any` accepts every type (2026-10-02)."
         },
         {
           "comment": "A type written after `:` or `-->` that is none of the above is a struct in this module.",
@@ -660,7 +717,7 @@
         {
           "comment": "Arithmetic operators are words; .wrap requests wrapping, and div/mod name their rounding. `and.then` / `or.else` stop early.",
           "name": "keyword.operator.word.cyborgpl",
-          "match": "\\b(?:and\\.then|or\\.else|(?:plus|minus|times|pow)(?:\\.wrap)?|(?:div|mod)\\.(?:floor|ceil|trunc|near|wrap)|and|or|not)\\b"
+          "match": "\\b(?:and\\.then|or\\.else|(?:plus|minus|times|pow)(?:\\.wrap)?|(?:div|mod)\\.(?:floor|ceil|trunc|near)(?:\\.wrap)?|and|or|not)\\b"
         },
         {
           "comment": "$ marks a shadowing declaration and sits on the operator.",
@@ -675,6 +732,11 @@
         {
           "name": "keyword.operator.arrow.cyborgpl",
           "match": "-->|<--|<->|->|<-"
+        },
+        {
+          "comment": "A custom operator in brackets, in use: `'u' <+> 'v'`. Not a comparison around a plus.",
+          "name": "keyword.operator.custom.cyborgpl",
+          "match": "<[!%&*+\\-/?@^|~]+>"
         },
         {
           "comment": "++ joins text.",
@@ -692,9 +754,14 @@
           "match": "<==|>==|(?<![!%&*+\\-/<>=?@^|~])/(?![!%&*+\\-/<>=?@^|~])"
         },
         {
+          "comment": "Retired since 2026-10-03: `+` is `plus`, and `+~` / `-~` are `plus.wrap` / `minus.wrap`.",
+          "name": "invalid.deprecated.cyborgpl",
+          "match": "\\+~?|-~"
+        },
+        {
+          "comment": "A negative keeps the `-` sign; binary arithmetic uses words.",
           "name": "keyword.operator.arithmetic.cyborgpl",
-          "match": "[+\\-]~?",
-          "comment": "A negative keeps the `-` sign; binary arithmetic uses words."
+          "match": "-(?!~)"
         },
         {
           "name": "keyword.operator.assignment.cyborgpl",
@@ -751,7 +818,7 @@
     },
     "enum-body": {
       "comment": "Inside `enum Name { … }` every bare word is a case; a case with a payload is written `some: <T>`, and in a `layout.c enum` a case is given its number: `a = 65`.",
-      "begin": "\\b(enum)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(\\{)",
+      "begin": "\\b(enum)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(<[^>]*>)?\\s*(?:(:)\\s*([A-Za-z_][A-Za-z0-9_]*))?\\s*(\\{)",
       "end": "\\}",
       "beginCaptures": {
         "1": {
@@ -761,6 +828,26 @@
           "name": "entity.name.type.enum.cyborgpl"
         },
         "3": {
+          "patterns": [
+            {
+              "include": "#generic"
+            }
+          ]
+        },
+        "4": {
+          "name": "punctuation.separator.type.cyborgpl"
+        },
+        "5": {
+          "patterns": [
+            {
+              "include": "#type"
+            },
+            {
+              "include": "#struct-name"
+            }
+          ]
+        },
+        "6": {
           "name": "punctuation.section.braces.begin.cyborgpl"
         }
       },
@@ -896,6 +983,95 @@
           "name": "storage.modifier.lifetime.cyborgpl"
         }
       }
+    },
+    "precedence-levels": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "comment": "A level: how a chain of its operators reads, and its number.",
+          "match": "\\b(level)(\\.)(when_chained)(\\.)([a-z_]+)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.precedence.cyborgpl"
+            },
+            "2": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "3": {
+              "name": "keyword.other.precedence.cyborgpl"
+            },
+            "4": {
+              "name": "punctuation.accessor.cyborgpl"
+            },
+            "5": {
+              "name": "keyword.other.precedence.cyborgpl"
+            }
+          }
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "begin": "\\{",
+          "end": "\\}",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.braces.cyborgpl"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.braces.cyborgpl"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#precedence-levels"
+            }
+          ]
+        },
+        {
+          "comment": "Inside a level, every word names an operator.",
+          "name": "keyword.operator.word.custom.cyborgpl",
+          "match": "\\b[a-z_][A-Za-z0-9_.]*\\b"
+        },
+        {
+          "comment": "…and every run of symbols does too.",
+          "name": "keyword.operator.custom.cyborgpl",
+          "match": "[!%&*+\\-/<>=?@^|~]+"
+        }
+      ]
+    },
+    "precedence-block": {
+      "comment": "A Limb's operator precedence (2026-10-03): `precedence.low_first { … }` or `precedence.high_first { … }`.",
+      "begin": "\\b(precedence)(\\.)(low_first|high_first)\\s*(\\{)",
+      "end": "\\}",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration.cyborgpl"
+        },
+        "2": {
+          "name": "punctuation.accessor.cyborgpl"
+        },
+        "3": {
+          "name": "keyword.other.precedence.cyborgpl"
+        },
+        "4": {
+          "name": "punctuation.section.braces.begin.cyborgpl"
+        }
+      },
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.braces.end.cyborgpl"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#precedence-levels"
+        }
+      ]
     }
   }
 }

@@ -22,11 +22,13 @@ including the current `let` declarations, word operators, `-->` return arrow,
 - `let` introduces a binding and `change` marks an assignment. The retired
   `var`, `func` and `gives` are marked deprecated. `!$` and `!mut` can modify a binding.
 - Explicit type spellings: `int8`–`int128`, `uint8`–`uint128`, nonstandard widths
-  such as `!std_int24` and `!std_uint256`, `bin16`–`bin64`,
-  `deci32`–`deci128`, `str.utf8` and friends, `char.point`, `map.ordered`,
+  such as `!std_int24`, `!std_u4` and `!std_uint256`, `bin16`–`bin64`, `brain16`
+  (and `bfloat16` / `bf16`), Rust's names (`i8`–`i128`, `u8`–`u128`, `f16`–`f64`),
+  `deci32`–`deci128`, `any`, `str.utf8` and friends, `char.point`, `map.ordered`,
   `ptr.mut`, and the bare collections.
 - Generic blanks, with or without an interface constraint (`<T>`,
-  `<T: Ordered>`); struct, enum and interface names, including through a
+  `<T: Ordered>`, `<T>: any`, `<T>: any | @x`), on functions, operators and enums
+  (`enum Maybe <T>: any { … }`); struct, enum and interface names, including through a
   module (`counter.Count`); fields both where they are declared
   (`name: str.utf8`) and where one is built (`Locker[number = 1]`).
 - Enum cases, both inside `enum Name { … }` and as the arms of `match` and of
@@ -34,8 +36,11 @@ including the current `let` declarations, word operators, `-->` return arrow,
 - Units after a number — durations (`5 seconds`, `1500 millis`) and a text
   bound's unit (`[1, 40 graphemes]`) — and `min` / `max` as the open end of a
   ranged type (`int32[1, max]`).
-- Custom operators, where they are declared (`op dot […]`) and where they are
-  used between two values (`'u' dot 'v'`).
+- Custom operators, where they are declared (`op dot […]`, `op <+>`, `op div.floor`) and where
+  they are used between two values (`'u' dot 'v'`, `'u' <+> 'v'`).
+- A Limb's precedence: `precedence.low_first` / `high_first` blocks of
+  `level.when_chained.<mode> N { … }`, whose words and symbols name operators.
+- The exact literal `*0.1` as one number.
 - Modules before a dot (`counter.bump`), and a function named as a value
   (`first_by[…, by_number]`) — safe because variables are always quoted.
 - Limb paths (`std::print.stored.stdout`), conversions (`to.int32`), calls in
@@ -43,15 +48,18 @@ including the current `let` declarations, word operators, `-->` return arrow,
 - Ownership verbs (and `&` / `&mut`, their other spelling), the check tiers including
   `NO_FUCKING_CHECKS`, failure names after `fail`, and the word operators `plus`,
   `minus`, `times`, `pow`, `div.floor` / `.ceil` / `.trunc` / `.near`, their `mod`
-  counterparts, `and`, `or`, `and.then`, `or.else`, and `.wrap` forms. Bitwise
+  counterparts, `and`, `or`, `and.then`, `or.else`, and `.wrap` forms (`div.trunc.wrap`
+  too). The long arrows `-->` and `<--`. Bitwise
   operators include `and.bit`, `xor`, `shl` and `shr`. The comparisons `==`, `!==`, `<`,
-  `>`, `</==`, `>/==`; the retired `/`, `<==`, `>==` are marked deprecated.
+  `>`, `</==`, `>/==`; the retired `/`, `<==`, `>==`, `+`, `+~` and `-~` are marked deprecated (a lone `-` is
+  a negative's sign).
 - `@x` on a returned borrow (`--> lent@x T`), `giveS` in a strict `match` (`gives` marked retired), and an operator
   handed over as a value (`op plus`, `op neg`, `op </==`).
 - A loop's modifiers, strongest first: `for !c seq …`, `for para …` (`seq` there is a word,
   not the type); tests: `test fn`, `must`, `must.fail.reason`, `must.stop`; `print.weird`'s `<--`.
 - `#strict`'s range labels, `range[from 1, to 4, by 1]`, and `pos`.
-- `layout.c enum Key { a = 65 }`: a case and its number.
+- `layout.C enum Key { a = 65 }`: a case and its number. `extern.C`, `layout.C`,
+  `inline.S` / `inline.ASM` and `inline.MSL` read as one keyword, not a type.
 - A library call through a built-in type as one name: `str.each.grapheme[…]`,
   `simd.load.some[…]`; `pub.limb`; a module inside a module (`counter.inner.twice`).
 - `inline.ASM { … }`, whose contents are left verbatim.
@@ -74,4 +82,4 @@ non-whitespace span left without a scope — there should be none — and, for e
 every distinct word it was given, which is the list to read by hand for words in the
 wrong class. `node website/grammar/audit.mjs <scope>` prints one class.
 
-Last run on 2026-10-03 against all 141 programs: no unscoped spans.
+Last run on 2026-10-06 against all 143 programs: no unscoped spans.
