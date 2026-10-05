@@ -1797,7 +1797,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let (lo, hi) = self.deci_halves(v.into_int_value())?;
                 let f = self.rt_deci("cyborg_deci_narrow")?;
                 let status = basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), i32t.const_int(*from_bits as u64, false).into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
-                (Some(status), vec![(1, Ok("too_many_digits")), (2, Err(format!("the value is past what a `deci{}` holds", bits)))])
+                // Past the narrower's largest is a failure too, its one:
+                // a stop ignored the `otherwise` (check claude, seed 18003).
+                (Some(status), vec![(1, Ok("too_many_digits")), (2, Ok("too_many_digits"))])
             }
             Ty::Deci(_) => {
                 let d = self.deci_convert(fi, v, from, &Ty::Deci(bits), false, true, func)?;

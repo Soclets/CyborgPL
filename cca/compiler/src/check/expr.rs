@@ -724,7 +724,11 @@ impl Checker {
                     Ty::Int(IntW::Fixed { bits, .. }) if bits & crate::types::EXACT_FLAG == 0 => *bits,
                     _ => 64,
                 };
-                let to = if plain_group(&v) { Ty::exact_at(landing) } else { t.base().clone() };
+                // Bare numbers alone are worked out exactly, with no limit in
+                // between but the largest value they reach (check claude:
+                // `(4294967294 pow 12) mod.floor 2147483649` is 16777216).
+                let reach = literal_group_bits(&v).unwrap_or(0);
+                let to = if plain_group(&v) { Ty::exact_at(landing.max(reach)) } else { t.base().clone() };
                 retype_literal_arith(&mut v, &to);
             }
         }
@@ -1023,8 +1027,22 @@ impl Checker {
                         self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?
                     } else if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) {
                         lt.base().clone()
+                    } else if let Some(t) = self.size_of_values(&r) {
+                        // A bare number shifted: the width of any operand
+                        // whose type is known (owner, 2026-09-23: a), the
+                        // count's typed operands here (check claude:
+                        // `7 shr (('a' minus 1) mod.floor 32)`).
+                        let mut l = l;
+                        retype_literal_arith(&mut l, &t);
+                        if let K::Int(_) = l.kind {
+                            l.ty = t.clone();
+                        }
+                        return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     } else {
-                        return err(Diagnostic::error(format!("`{}` only knows a declared width: shifting can lose bits, so the value it shifts needs a type", op.spelled())).at(op_span));
+                        // Or from where the value goes.
+                        let t = self.fresh();
+                        self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
+                        return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     };
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
                 }
@@ -1102,6 +1120,9 @@ impl Checker {
             }
             match &e.kind {
                 K::Binary { lhs, rhs, .. } => walk(this, lhs, sizes) && walk(this, rhs, sizes),
+                // A negative keeps its operand's size (check claude:
+                // `(-('a' minus 1)) shr 1` with an `int8` 'a').
+                K::Unary { expr, .. } => walk(this, expr, sizes),
                 _ => false,
             }
         }
@@ -3742,6 +3763,41 @@ fn literal_only(e: &Expr) -> bool {
 /// Give every arithmetic node of a literal-only expression the place's type.
 /// The leaves keep their values; a leaf the type cannot hold is then a
 /// narrowing Precog refuses as certain.
+/// A group of bare numbers worked out exactly: the bits its largest value
+/// on the way takes, signed; `None` where it has no answer (a division by
+/// zero, a negative power) or one past every width there is.
+fn literal_group_bits(e: &Expr) -> Option<u32> {
+    fn eval(e: &Expr, most: &mut u64) -> Option<crate::bigint::Big> {
+        use crate::bigint::Big;
+        let v = match &e.kind {
+            K::Int(v) => Big::from_i128(*v),
+            K::BigInt(d) => Big::parse(d)?,
+            K::Unary { op: UnOp::Neg, expr } => eval(expr, most)?.neg(),
+            K::Binary { op, lhs, rhs, .. } => {
+                let (a, b) = (eval(lhs, most)?, eval(rhs, most)?);
+                match op {
+                    BinOp::Add => a.add(&b),
+                    BinOp::Sub => a.sub(&b),
+                    BinOp::Mul => a.mul(&b),
+                    BinOp::Pow => {
+                        let k = b.to_i128().filter(|k| *k >= 0)?;
+                        a.pow(u64::try_from(k).ok()?)?
+                    }
+                    BinOp::Div(r) => a.divmod(&b, *r)?.0,
+                    BinOp::Mod(r) => a.divmod(&b, *r)?.1,
+                    _ => return None,
+                }
+            }
+            _ => return None,
+        };
+        *most = (*most).max(v.bits());
+        (v.bits() <= crate::types::WIDEST_INT as u64).then_some(v)
+    }
+    let mut most = 0;
+    eval(e, &mut most)?;
+    Some(most as u32 + 1)
+}
+
 /// The bits the biggest bare number in an expression takes, signed.
 fn literal_bits(e: &Expr) -> u32 {
     match &e.kind {
