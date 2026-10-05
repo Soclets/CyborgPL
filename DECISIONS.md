@@ -66,6 +66,15 @@ So far:
   `std::bits.swap_bytes`, `std::math.fused_multiply_add`), recommended;
   (b) a second, higher core naming every LLVM operation one-to-one. The
   owner: "`a`". Names are design claude's examples, not ruled.
+- **The download is CCA and the IEG core, nothing more; std is installed
+  like any limb** (owner: "the highest shit you can get from the website
+  is, by installing the language is a core", after the joke thread "it's
+  in the std limb" / "It doesn't"). Design claude had recommended std
+  shipping with CCA. And **`cca new` writes an empty `CCA.cplr`**, std not
+  listed: design claude offered (a) std listed by default, recommended,
+  or (b) empty; the owner: "`b`. I mean, lol. I don't think you're a
+  beginner, if you sign up for Precog". Today's oracle and CCA still
+  reach `std::` without a listing; that changes when this is built.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
