@@ -130,10 +130,21 @@ fn retired_spelling(s: &str) -> Option<&'static str> {
     })
 }
 
-pub fn parse_file(toks: &[Token]) -> Result<File> {
+// Every Limb's operator levels, read before any file is parsed (owner,
+// 2026-10-03, 9cc5e25): a Limb's `precedence` applies wherever its
+// operators are used, in other Limbs too. Set by the loader.
+thread_local! {
+    static SHARED_PREC: std::cell::RefCell<std::collections::HashMap<String, (u16, Chain)>> = Default::default();
+}
+
+pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chain)>) {
+    SHARED_PREC.with(|t| *t.borrow_mut() = table);
+}
+
+/// The `precedence` blocks in one file's tokens: each operator's level.
+pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
     let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default() };
-    // A `precedence` block reads before any expression in the file, so an
-    // operator above it is parsed by it too.
+    let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
         match &toks[i].tok {
@@ -141,13 +152,20 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             Tok::RBrace => depth -= 1,
             Tok::Word(w) if w == "precedence" && depth == 0 && toks[i].line_first => {
                 p.pos = i;
-                let table = p.precedence_block()?;
-                p.prec.extend(table);
+                out.extend(p.precedence_block()?);
             }
             _ => {}
         }
     }
-    p.pos = 0;
+    Ok(out)
+}
+
+pub fn parse_file(toks: &[Token]) -> Result<File> {
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default() };
+    // Every Limb's levels, and this file's own blocks, read before any
+    // expression in it: an operator above its block is parsed by it too.
+    p.prec = SHARED_PREC.with(|t| t.borrow().clone());
+    p.prec.extend(precedence_blocks(toks)?);
     let mut strict = None;
     if p.is(&Tok::Strict) {
         strict = Some(p.span().file);

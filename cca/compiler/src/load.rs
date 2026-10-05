@@ -21,7 +21,72 @@ pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     load_for(path, sources, Purpose::Check)
 }
 
+/// Every `precedence` block of the files this load reaches — the Limb's
+/// and its dependencies', all the way down — into one table, before any
+/// file is parsed (owner, 2026-10-03, 9cc5e25). One operator given two
+/// levels is refused.
+fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
+    let mut table: std::collections::HashMap<String, (u16, crate::parser::Chain, std::path::PathBuf)> = std::collections::HashMap::new();
+    let mut files: Vec<std::path::PathBuf> = Vec::new();
+    if path.is_dir() {
+        let mut dirs = vec![path.to_path_buf()];
+        let mut seen = std::collections::HashSet::new();
+        while let Some(d) = dirs.pop() {
+            let Ok(canon) = d.canonicalize() else { continue };
+            if !seen.insert(canon) {
+                continue;
+            }
+            fn cpls_under(d: &Path, out: &mut Vec<std::path::PathBuf>) {
+                let Ok(rd) = std::fs::read_dir(d) else { return };
+                let mut es: Vec<_> = rd.filter_map(|e| e.ok()).map(|e| e.path()).collect();
+                es.sort();
+                for e in es {
+                    let name = e.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+                    if e.is_dir() {
+                        if !name.starts_with('.') && name != "target" && !e.join("CCA.cplr").is_file() {
+                            cpls_under(&e, out);
+                        }
+                    } else if e.extension().is_some_and(|x| x == "cpls") {
+                        out.push(e);
+                    }
+                }
+            }
+            cpls_under(&d, &mut files);
+            if d.join("CCA.cplr").is_file() {
+                if let Ok(m) = read_manifest(sources, &d) {
+                    for dep in &m.deps {
+                        dirs.push(d.join(&dep.path));
+                    }
+                }
+            }
+        }
+    } else {
+        files.push(path.to_path_buf());
+    }
+    for f in files {
+        let Ok(text) = std::fs::read_to_string(&f) else { continue };
+        if !text.contains("precedence") {
+            continue;
+        }
+        let id = sources.add(&f, text);
+        let toks = crate::lexer::lex(id, &sources.get(id).text)?;
+        for (name, (level, chain)) in crate::parser::precedence_blocks(&toks)? {
+            match table.get(&name) {
+                Some((l, c, other)) if (*l, *c) != (level, chain) => {
+                    return err(Diagnostic::error(format!("`{}` has two levels: {} and {} each give it one, and an operator binds one way wherever it is used — one block says it", name, other.display(), f.display())));
+                }
+                _ => {
+                    table.insert(name, (level, chain, f.clone()));
+                }
+            }
+        }
+    }
+    crate::parser::set_shared_precedence(table.into_iter().map(|(k, (l, c, _))| (k, (l, c))).collect());
+    Ok(())
+}
+
 pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Result<Items> {
+    gather_precedence(sources, path)?;
     let mut items = Items::default();
     // The root Limb's targets and default, when it has a `CCA.cplr`.
     let mut root: Option<(Vec<String>, Option<(String, crate::source::Span)>)> = None;
