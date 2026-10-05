@@ -55,9 +55,11 @@ So far:
   defining operators on the language's own types, which std needs for
   `plus` on `int32`. A limb never writes `inline.LLVM` and its code is
   still proven by Precog; only a core is believed on its word.
-- Open: how a power is declared and shown (design claude proposed a
-  manifest line, `const 'powers' := [cca::Power.operators_on_builtin_types,];`),
-  what the base keeps exactly, how a core is installed and named in a
+- **A power is declared in the limb's manifest** (owner: "In there seems
+  good"): `const 'powers' := [cca::Power.operators_on_builtin_types,];` in
+  `CCA.cplr`, and the same in `Synthia.ttsr`'s syntax; a build using the
+  limb shows it. Spellings are design claude's, not yet ruled.
+- Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
 ### 2026-10-03 — A shift on an exact answer works at its typed operands' width (owner)
