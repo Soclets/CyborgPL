@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import Icon from "../components/Icon.jsx";
+import Warranty from "../components/Warranty.jsx";
 import { LICENCE } from "../lib/content.js";
 import { seo } from "../lib/seo.js";
 
@@ -10,6 +11,7 @@ export default function Licence() {
     <div className="plain">
       <Link to="/more" className="crumb">‹ More</Link>
       <h1 className="h2big">Licence</h1>
+      <Warranty />
       <div className="stack">
         {LICENCE.map((l) => (
           <article key={l.title} className="lesson">

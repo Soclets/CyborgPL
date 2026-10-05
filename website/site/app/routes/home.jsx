@@ -6,6 +6,7 @@ import Comparison from "../components/Comparison.jsx";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
 import Md from "../components/Md.jsx";
+import Warranty from "../components/Warranty.jsx";
 import { ANSWERS } from "../lib/answers.js";
 import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX, TRADEOFFS } from "../lib/content.js";
 import { plain } from "../lib/md.js";
@@ -193,6 +194,7 @@ export default function Home() {
         <Link className="btn" to="/learn" prefetch="intent">Read shit</Link>
         <a className="btn round" href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub"><Icon name="github" size={20} stroke={1.9} /></a>
       </div>
+      <Warranty />
       <h2 className="section">Features &amp; flaws</h2>
       <table className="tradeoffs">
         <thead><tr><th scope="col">What you get</th><th scope="col">What it costs</th></tr></thead>
