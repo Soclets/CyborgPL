@@ -10,6 +10,8 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 > [!WARNING]
 > **Not family friendly**.
 > "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
+>
+> Any marketing of CyborgPL's stability **does not** actually guarantee anything, CyborgPL does not have any warranties. We recommend looking at our licenses.
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
