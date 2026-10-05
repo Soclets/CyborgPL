@@ -2113,7 +2113,8 @@ impl<'p> Interp<'p> {
                     let p = crate::deci::precision(*w);
                     let digits = |n: i128| n.unsigned_abs().to_string().len();
                     let may_exceed = match &v {
-                        Value::Str(_) => true,
+                        // a value past i128 has at least 39 digits, more than any deci holds
+                        Value::Str(_) | Value::Big(_) => true,
                         // a wider deci into a narrower one (owner, 2026-09-29: a)
                         Value::Deci(d) => d.width > *w,
                         Value::Int(_) => match b.values.first() { Some(crate::ast::Value::Expr(e)) => match self.expr_ty(e) {
@@ -2231,9 +2232,11 @@ impl<'p> Interp<'p> {
                         if x.is_infinite() { return site(line, format!("{b} does not fit brain16: it rounds past the largest value")); }
                         Value::Brain(x)
                     }
+                    // past i128 it always has more digits than a deci holds: `too_many_digits`, as an
+                    // integer's does (compiler claude, 2026-10-05)
                     (Ty::Deci(w), Value::Big(b)) => match crate::deci::Deci::parse(&b.to_string(), *w) {
                         Ok(Some(d)) => Value::Deci(d),
-                        _ => return site(line, format!("{b} does not fit deci{w}")),
+                        _ => match handler { Some(h) => { let v = self.handle_failure(h, line, &format!("to.{target}"), "too_many_digits".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; return Ok((v, prov)); } None => return rt(line, format!("{b} has too many digits for deci{w}")) },
                     },
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }
                     (Ty::Bin(_), Value::Bin(x)) => { fit_base!(Value::Bin(*x)); Value::Bin(*x) }
