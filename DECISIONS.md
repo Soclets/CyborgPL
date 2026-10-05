@@ -82,6 +82,20 @@ So far:
   black box, or std trusted like a core), cannot give an inlinable `plus`,
   and means writing std twice; the `no_std` Rust runtime is already the
   safety net. The owner: "Your suggestion is good, honestly".
+- **A core is a Rust plugin for CCA plus CyborgPL code** (owner, on the
+  plugin's risk: "if they already had malware, they're done for anyways.
+  And I mean, doesn't inline.LLVM come with IEG?"). The plugin extends CCA
+  (new syntax, checks, names without a prefix); IEG's plugin is what adds
+  `inline.LLVM`. Design claude had proposed cores in CyborgPL with powers
+  from a fixed list CCA offers, no code of their own in the compiler; the
+  owner's point stands that installing a core is already trusting it.
+  Design claude's remaining note: CCA needs a stable plugin interface, so
+  its insides can change without breaking every core.
+- **Cores can depend on cores** (owner: "I mean, cores can depend on
+  cores"), so a GPU core can build on IEG's `inline.LLVM`.
+- **Cores may make dialects of CyborgPL, and that is fine** (owner:
+  "cores are pretty powerful, so powerful that I think they could create
+  separate dialects of CyborgPL. But, that's honestly fine").
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
