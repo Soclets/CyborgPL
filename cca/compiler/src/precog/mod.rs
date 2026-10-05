@@ -261,6 +261,10 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
                 r.note = "layer 3 has no way to ask about this one yet".into();
                 continue;
             };
+            if q.text.len() > smt::QUERY_CAP {
+                r.note = format!("layer 3's question came out too big to ask ({} MB)", q.text.len() / 1_000_000);
+                continue;
+            }
             let (answer, each) = portfolio.ask(&q);
             if smt::disagreed(&each) {
                 // Run the counterexample and see which side was right

@@ -31,6 +31,11 @@ use crate::types::{Bound, IntW, Ty};
 /// hold. Deeper made Z3 quadratic on nested loops.
 pub const UNROLL_PER_LOOP: u32 = 16;
 pub const UNROLL_TOTAL: usize = 64;
+/// The largest question put to the solvers, in bytes of its text. Past it,
+/// a question takes the solvers minutes inside their step budgets (check
+/// claude, seed 22300: one of 13 MB, 140 s); the site is checked at run
+/// time instead. A size, not a clock, so the same everywhere.
+pub const QUERY_CAP: usize = 4_000_000;
 /// Provisional: the solver's own step budget, never a clock.
 pub const RLIMIT: u64 = 10_000_000;
 /// CVC5's, in its own steps, which are far coarser than Z3's: a query Z3
