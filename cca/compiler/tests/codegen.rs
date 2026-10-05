@@ -522,3 +522,25 @@ fn refused_programs_stay_refused() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// A site reached only past the call depth is still judged, for every
+/// call that reaches it (check claude, seed 17021): its claimed values
+/// held only what the shallower calls gave it — `{4}` where 6 came too —
+/// and its verdict was theirs.
+#[test]
+fn a_site_past_the_call_depth_is_judged() {
+    let src = dir().parent().unwrap().join("testing/claim_past_depth.cpls");
+    let r = Command::new(cca()).arg("precog").arg("--json").arg(&src).output().unwrap();
+    let out = String::from_utf8_lossy(&r.stdout).to_string();
+    let line = out.lines().find(|l| l.contains("\"start\":[5,") && l.contains("\"into int8\"")).unwrap_or_else(|| panic!("no claim for line 5:\n{}", out));
+    let covers = |v: i64| -> bool {
+        if let Some(i) = line.find("\"value\":{\"lo\":\"") {
+            let rest = &line[i + 15..];
+            let lo: i64 = rest.split('"').next().unwrap().parse().unwrap();
+            let hi: i64 = rest.split("\"hi\":\"").nth(1).unwrap().split('"').next().unwrap().parse().unwrap();
+            return lo <= v && v <= hi;
+        }
+        line.contains(&format!("\"{}\"", v))
+    };
+    assert!(covers(4) && covers(6), "the claim leaves out a value a call reaches:\n{}", line);
+}
