@@ -96,6 +96,10 @@ So far:
 - **Cores may make dialects of CyborgPL, and that is fine** (owner:
   "cores are pretty powerful, so powerful that I think they could create
   separate dialects of CyborgPL. But, that's honestly fine").
+- **A limb says which cores it is built for** (owner: "Oh, yeah. Limbs
+  should say what cores they are built for"), in its manifest, so a file
+  using a core's syntax is never a surprise. Design claude's suggestion,
+  after the owner allowed dialects.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
