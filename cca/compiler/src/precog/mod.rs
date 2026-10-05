@@ -2323,13 +2323,14 @@ impl Precog {
                     Some(t) => t,
                     None => return Verdict::Unproven,
                 };
-                let Some((lo, hi)) = int_limits(&ty, &self.prog().items) else { return Verdict::Unproven };
-                let width = match ty.base() {
-                    Ty::Int(crate::types::IntW::Fixed { bits, .. }) => *bits as i128,
-                    _ => return Verdict::Unproven,
-                };
-                let (Some(Domain::Ints(a)), Some(Domain::Ints(b))) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
-                let (Some((blo, bhi)), Some(_)) = (b.bounds(), a.bounds()) else { return Verdict::Unproven };
+                // At the type's true width, any width (owner, 2026-10-03):
+                // `1 shl 127` into a `uint128` is 2^127, worked here past
+                // `i128`, where `1 << 127` came out negative.
+                let Ty::Int(crate::types::IntW::Fixed { signed, bits }) = ty.base() else { return Verdict::Unproven };
+                let width = crate::resolve::storage(*signed, *bits).1 as i128;
+                let limit = crate::bigint::type_range(*signed, *bits);
+                let (Some(a), Some(Domain::Ints(b))) = (ds.first().and_then(|d| d.wide_bounds()), ds.get(1)) else { return Verdict::Unproven };
+                let Some((blo, bhi)) = b.bounds() else { return Verdict::Unproven };
                 if blo >= width {
                     return Verdict::Fails { counterexample: format!("every time: a shift of {} moves every bit out of a `{}`, which is {} bits wide", blo, self.spell(&ty), width) };
                 }
@@ -2345,8 +2346,9 @@ impl Precog {
                 if matches!(site.kind, SiteKind::ShiftCount) {
                     return Verdict::Proven { how: "layer 2" };
                 }
-                let shifted = a.mul(&ISet::range(1 << blo.max(0), 1 << bhi.max(0)));
-                self.fit(&shifted, lo, hi, &ty)
+                let by = (crate::bigint::Big::pow2(blo.max(0) as u32), crate::bigint::Big::pow2(bhi.max(0) as u32));
+                let Some(shifted) = crate::mir::domain::wide_arith(&BinOp::Mul, &a, Some(&by)) else { return Verdict::Unproven };
+                self.fit_wide(&shifted, &limit, &ty)
             }
             SiteKind::NegativeExponent => {
                 let Some(Domain::Ints(e)) = ds.first() else { return Verdict::Unproven };

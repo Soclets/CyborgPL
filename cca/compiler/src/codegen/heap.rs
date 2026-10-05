@@ -2141,7 +2141,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // Past 128 bits (owner, 2026-10-03): the magnitude's words in
             // memory, and the sign.
-            (Ty::Int(_), BasicValueEnum::IntValue(i)) if i.get_type().get_bit_width() > 128 => {
+            // And an unsigned 128 bits, whose top half `i128` reads as
+            // negative.
+            (Ty::Int(_), BasicValueEnum::IntValue(i)) if i.get_type().get_bit_width() > 128 || (i.get_type().get_bit_width() == 128 && self.operand_signed(fi, operand) == Some(false)) => {
                 let signed = self.operand_signed(fi, operand).unwrap_or(true);
                 return self.wide_int_text(i, signed);
             }

@@ -575,6 +575,7 @@ whichever_unhandled [fnv:86bb5570c3022d11] :: `whichever` can fail (closed) when
 while_keyword [fnv:eb07551a9069b239] :: `while 'x' < 3 { … }`
 wide_does_not_fit [fnv:385d629b5c9cf365] :: the value can be outside what a `int64` holds
 wide_past_in_between [fnv:663f85c9ec3ce93b] :: goes past 256 bits in between
+wide_shl_overflow [fnv:24fd0c3c5fbfa228] :: the shift can move bits out of the type
 wl_removes_code [fnv:652fb6ee6f955c44] :: 'b' is not declared
 wrap_amp_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
 wrap_into_bool [fnv:c689ac7fee6b711f] :: expected a value of the declared type (bool), found a whole number

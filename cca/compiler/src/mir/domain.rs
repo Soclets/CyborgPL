@@ -1280,6 +1280,17 @@ pub fn wide_arith(op: &crate::ast::BinOp, a: &(crate::bigint::Big, crate::bigint
             let m = if b1.is_neg() { b1.neg() } else { b1.clone() }.max(if b2.is_neg() { b2.neg() } else { b2.clone() });
             Some((m.neg(), m))
         }
+        // A shift by a known count is a product or a floored quotient by
+        // its power of two; out of range is its site's.
+        B::Shl | B::Shr => {
+            let k = b1.to_i128().filter(|k| b1 == b2 && *k >= 0 && *k <= crate::types::WIDEST_INT as i128)? as u32;
+            let p = (Big::pow2(k), Big::pow2(k));
+            if *op == B::Shl {
+                wide_arith(&B::Mul, a, Some(&p))
+            } else {
+                wide_arith(&B::Div(crate::ast::Round::Floor), a, Some(&p))
+            }
+        }
         B::Pow | B::WrapPow => {
             let e = b1.to_i128().filter(|e| b1 == b2 && *e >= 0)? as u64;
             if a1 == a2 {

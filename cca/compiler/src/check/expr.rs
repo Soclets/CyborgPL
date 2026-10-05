@@ -826,7 +826,6 @@ impl Checker {
                     return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span });
                 }
                 match vt.base() {
-                    Ty::Int(IntW::Fixed { .. }) if past_128(&vt) => return err(Diagnostic::error(format!("not yet: `not.bit` on a `{}`: bitwise operators and shifts past 128 bits wait until the oracle can check what CCA builds (owner, 2026-10-03)", self.spell(&vt))).at(span)),
                     Ty::Int(IntW::Fixed { .. }) => {}
                     Ty::Int(IntW::Free(_)) if literal_only(&v) => {
                         let t = self.fresh();
@@ -1006,9 +1005,6 @@ impl Checker {
                 if !lt.is_int() || !rt.is_int() {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is a `{}`", op.spelled(), self.spell(bad))).at(op_span));
-                }
-                if let Some(wide) = [&lt, &rt].into_iter().find(|t| past_128(t)) {
-                    return err(Diagnostic::error(format!("not yet: `{}` on a `{}`: bitwise operators and shifts past 128 bits wait until the oracle can check what CCA builds (owner, 2026-10-03)", op.spelled(), self.spell(wide))).at(op_span));
                 }
                 if lt.is_exact() || rt.is_exact() {
                     // A shift is not the same on the low bits alone (`shr`
@@ -3729,11 +3725,6 @@ fn literal_only(e: &Expr) -> bool {
 /// Give every arithmetic node of a literal-only expression the place's type.
 /// The leaves keep their values; a leaf the type cannot hold is then a
 /// narrowing Precog refuses as certain.
-/// A fixed integer wider than 128 bits (owner, 2026-10-03).
-fn past_128(t: &Ty) -> bool {
-    matches!(t.base(), Ty::Int(IntW::Fixed { signed, bits }) if crate::resolve::storage(*signed, *bits).1 > 128 && !t.is_exact())
-}
-
 /// Each exact operation with a bare number for an operand, down an exact
 /// answer's tree, held to at least `bits` in between.
 fn raise_beside_literal(e: &mut Expr, bits: u32) {
