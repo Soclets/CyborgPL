@@ -99,7 +99,10 @@ So far:
 - **A limb says which cores it is built for** (owner: "Oh, yeah. Limbs
   should say what cores they are built for"), in its manifest, so a file
   using a core's syntax is never a surprise. Design claude's suggestion,
-  after the owner allowed dialects.
+  after the owner allowed dialects. **In a list of its own**, beside the
+  dependencies (owner: "a", over one list with a marker):
+  `const 'cores' := [cca::Core[name = "IEG"],];` in `CCA.cplr`, a
+  `[my cores]` section in `Synthia.ttsr` (spellings design claude's).
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
