@@ -68,6 +68,7 @@ bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move bits out of the typ
 borrow_after_append [fnv:edbe062db4b885e9] :: 's' cannot be changed here: 'r' still borrows it and is used on line 7
 borrow_after_change [fnv:ff276a932d706c72] :: 's' cannot be changed here: 'r' still borrows it and is used on line 6
 borrow_after_give [fnv:37eec041911a30e1] :: 's' cannot be given away here: 'r' still borrows it and is used on line 6
+borrow_chain_through_local [fnv:0b277a9492cf82e4] :: 'o2' cannot be given away here: 's' still borrows it and is used on line 24
 borrow_ungrouped_may_return [fnv:eeacf20758d43c24] :: 't' cannot be given away here: 'r' still borrows it and is used on line 12
 borrow_untaken_branch [fnv:dc66446cd05dbc61] :: 't' cannot be changed here: 'q' still borrows it and is used on line 8
 bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
