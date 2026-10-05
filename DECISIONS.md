@@ -59,6 +59,13 @@ So far:
   good"): `const 'powers' := [cca::Power.operators_on_builtin_types,];` in
   `CCA.cplr`, and the same in `Synthia.ttsr`'s syntax; a build using the
   limb shows it. Spellings are design claude's, not yet ruled.
+- **An easier way than writing LLVM IR** (owner: "there should be an
+  easier alt to writing LLVM shit, maybe in the std limb, or in a higher
+  level core"): (a) std gives the useful LLVM operations friendly names,
+  built on IEG (`std::bits.count_ones`, `std::bits.leading_zeros`,
+  `std::bits.swap_bytes`, `std::math.fused_multiply_add`), recommended;
+  (b) a second, higher core naming every LLVM operation one-to-one. The
+  owner: "`a`". Names are design claude's examples, not ruled.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
