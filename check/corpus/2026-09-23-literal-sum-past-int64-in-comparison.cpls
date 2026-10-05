@@ -4,9 +4,9 @@
 # env CHK_IN1 0
 # env CHK_IN2 0
 # check claude generator, seed 439
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -14,10 +14,10 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'v': uint64 = 'm';
     let mut 'p': uint64 = 1;
     while 'v' div.floor 'p' >/== 10 {
-        change 'p' = 'p' x 10;
+        change 'p' = 'p' times 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 + ('v' div.floor 'p')]];
+        list.append[lend.mut 'buf', to.uint8[48 plus ('v' div.floor 'p')]];
         change 'v' = 'v' mod.floor 'p';
         if 'p' == 1 { break; }
         change 'p' = 'p' div.floor 10;
@@ -32,7 +32,7 @@ fn put_u ['n': uint64] {
 
 fn put_i ['n': int64] {
     if 'n' < 0 {
-        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
     } else {
         emit[to.uint64['n'], false];
     }
@@ -44,6 +44,6 @@ MAIN {
     let 'in2_key' := "CHK_IN2";
     nocheck let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
     if 'in2' == 1 {
-    } else if 3876992840477302775 + 7782534087963747351 > 0 {
+    } else if 3876992840477302775 plus 7782534087963747351 > 0 {
     }
 }

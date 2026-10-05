@@ -2,23 +2,23 @@
 # 'p1' = 1, so the divisor -to.int64['p1'] is -1 (and 448..680 from the self-call). CCA refuses it:
 # "the divisor is always zero". The oracle runs it.
 # check claude generator, seed 3593
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
-        change 'k' = 'k' - 1;
+        change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
     nocheck write[1, lend 'buf', list.length[lend 'buf']];
@@ -32,8 +32,8 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 
@@ -48,11 +48,11 @@ enum E2 {
     c3: uint16
 }
 
-fn f2 ['pr': int32[0, 6], 'p1': uint64, 'p2': uint64[min, 66]] -> int64 {
+fn f2 ['pr': int32[0, 6], 'p1': uint64, 'p2': uint64[min, 66]] --> int64 {
     if 'pr' == 0 {
-        return (((to.int64[to.int64['p1'] or.bit 15] or.bit 1) x ((2855519550069594396 - 6) mod.floor (-to.int64['p1']))) mod.floor 1295) - 800;
+        return (((to.int64[to.int64['p1'] or.bit 15] or.bit 1) times ((2855519550069594396 minus 6) mod.floor (-to.int64['p1']))) mod.floor 1295) minus 800;
     }
-    let 'r3': int64 = f2['pr' - 1, ((('p1' x 'p1') - 'p2') mod.floor 233) + 448, 'p1' mod.floor 67];
+    let 'r3': int64 = f2['pr' minus 1, ((('p1' times 'p1') minus 'p2') mod.floor 233) plus 448, 'p1' mod.floor 67];
     return 'r3';
 }
 

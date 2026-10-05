@@ -4,9 +4,9 @@
 # env CHK_IN1 0
 # env CHK_IN2 0
 # check claude generator, seed 3061
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -14,7 +14,7 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' == 0 { break; }
     }
@@ -31,7 +31,7 @@ fn put_u ['n': uint64] {
 
 fn put_i ['n': int64] {
     if 'n' < 0 {
-        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
     } else {
         emit[to.uint64['n'], false];
     }
@@ -48,7 +48,7 @@ MAIN {
         if 'w23' == 0 {
             break;
         }
-        change 'w23' = 'w23' - 1;
-        change 'v20' = (18446744073709551615 + 1) mod.floor 1;
+        change 'w23' = 'w23' minus 1;
+        change 'v20' = (18446744073709551615 plus 1) mod.floor 1;
     }
 }

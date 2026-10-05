@@ -2,5 +2,5 @@
 # refused as if the type were int64.
 MAIN {
     let 'v27': uint64 = 0;
-    change 'v27' = 0 + 18446744073709551611;
+    change 'v27' = 0 plus 18446744073709551611;
 }

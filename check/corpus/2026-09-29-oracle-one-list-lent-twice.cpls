@@ -2,7 +2,7 @@
 # as both 'a' and 'b'. b1 returns lend 'b', which is in @x, but the oracle says "`b1` returns a
 # borrow of 'a', which is not in @x": it seems to find the parameter by the list, not by the name.
 # CCA builds and runs it.
-fn b1 @x [lent 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32] {
+fn b1 @x [lent 'a': list[int32], lent@x 'b': list[int32]] --> lent@x list[int32] {
     return lend 'b';
 }
 MAIN {

@@ -34,7 +34,7 @@ const STRICT_DIGITS: &str = "    let mut 'started': bool = false;
             let immut 'd': uint64 = ('m' div.floor 'p') mod.floor 10;
             if 'd' !== 0 or 'started' or 'p' == 1 {
                 change 'started' = true;
-                list.append[lend.mut 'buf', to.uint8[48 + 'd']];
+                list.append[lend.mut 'buf', to.uint8[48 plus 'd']];
             }
             change 'p' = 'p' div.floor 10;
         }
@@ -43,7 +43,7 @@ const STRICT_DIGITS: &str = "    let mut 'started': bool = false;
 
 const STRICT_PUT_I_IF: &str = "fn put_i ['n': int64] {
     if 'n' < 0 {
-        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
     } else {
         emit[to.uint64['n'], false];
     }
@@ -54,8 +54,8 @@ const STRICT_PUT_I_ELSE_FIRST: &str = "fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let immut 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let immut 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 ";
@@ -63,7 +63,7 @@ const STRICT_PUT_I_ELSE_FIRST: &str = "fn put_i ['n': int64] {
 const DIGITS_REVERSED_FOR: &str = "    let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' == 0 { break; }
     }
@@ -74,26 +74,26 @@ const DIGITS_REVERSED_FOR: &str = "    let mut 'v': uint64 = 'm';
 
 const DIGITS_REVERSED_WHILE: &str = "    let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
-        change 'k' = 'k' - 1;
+        change 'k' = 'k' minus 1;
     }
 ";
 
 const DIGITS_POWER_OF_TEN: &str = "    let mut 'v': uint64 = 'm';
     let mut 'p': uint64 = 1;
     while 'v' div.floor 'p' >/== 10 {
-        change 'p' = 'p' x 10;
+        change 'p' = 'p' times 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 + ('v' div.floor 'p')]];
+        list.append[lend.mut 'buf', to.uint8[48 plus ('v' div.floor 'p')]];
         change 'v' = 'v' mod.floor 'p';
         if 'p' == 1 { break; }
         change 'p' = 'p' div.floor 10;
@@ -102,7 +102,7 @@ const DIGITS_POWER_OF_TEN: &str = "    let mut 'v': uint64 = 'm';
 
 const PUT_I_IF: &str = "fn put_i ['n': int64] {
     if 'n' < 0 {
-        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
     } else {
         emit[to.uint64['n'], false];
     }
@@ -113,8 +113,8 @@ const PUT_I_ELSE_FIRST: &str = "fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 ";

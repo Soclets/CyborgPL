@@ -4,7 +4,7 @@
 # ("`x` can leave what the type holds"; in the full program the binary stopped there instead). The
 # same group stored by a plain `let 'n': uint64 = …` agrees, so it is list.fill's count.
 # check claude generator, seed 11045
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -12,10 +12,10 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'v': uint64 = 'm';
     let mut 'p': uint64 = 1;
     while 'v' div.floor 'p' >/== 10 {
-        change 'p' = 'p' x 10;
+        change 'p' = 'p' times 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 + ('v' div.floor 'p')]];
+        list.append[lend.mut 'buf', to.uint8[48 plus ('v' div.floor 'p')]];
         change 'v' = 'v' mod.floor 'p';
         if 'p' == 1 { break; }
         change 'p' = 'p' div.floor 10;
@@ -30,12 +30,12 @@ fn put_u ['n': uint64] {
 
 fn put_i ['n': int64] {
     if 'n' < 0 {
-        emit[to.uint64[0 - ('n' + 1)] + 1, true];
+        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
     } else {
         emit[to.uint64['n'], false];
     }
 }
 MAIN {
-    let 'xs': list[int16] = list.fill[-336, ((-9223372036854775808) x 4611686018427387904) mod.floor 9];
+    let 'xs': list[int16] = list.fill[-336, ((-9223372036854775808) times 4611686018427387904) mod.floor 9];
     put_u[list.length[lend 'xs']];
 }

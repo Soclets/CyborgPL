@@ -2,7 +2,7 @@
 # holding a literal inside it is refused: "the value can be outside what a deci64[0.0, 1.0] holds".
 # 0.79 is plainly inside [0.0, 1.0]. The oracle runs it.
 #strict
-fn f [] -> int32 {
+fn f [] --> int32 {
     let immut 'd': deci64[0.0, 1.0] = 0.79;
     return 0;
 }

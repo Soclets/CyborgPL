@@ -4,9 +4,9 @@
 # env CHK_IN1 0
 # env CHK_IN2 0
 # check claude generator, seed 316
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -14,7 +14,7 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' == 0 { break; }
     }
@@ -33,8 +33,8 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 
@@ -44,12 +44,12 @@ MAIN {
     let 'in2_key' := "CHK_IN2";
     nocheck let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
     let immut 'v1': int64 = to.int64['in1' mod.floor 9223372036854775808];
-    let 'v2': int8 = (to.int8[('v1' mod.floor 256) - 128] mod.floor 7) - 102;
+    let 'v2': int8 = (to.int8[('v1' mod.floor 256) minus 128] mod.floor 7) minus 102;
     let mut 'w3': int16 = 7;
     while 'w3' > 0 {
-        change 'w3' = 'w3' - 1;
+        change 'w3' = 'w3' minus 1;
         for 'i4': uint16 in range[29, 3, -3] {
-            check change 'v2' = ((((126 or.bit 'v2') div.floor (not.bit 'v2')) shl 6) mod.floor 7) - 102;
+            check change 'v2' = ((((126 or.bit 'v2') div.floor (not.bit 'v2')) shl 6) mod.floor 7) minus 102;
         }
     }
 }

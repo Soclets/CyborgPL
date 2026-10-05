@@ -2,5 +2,5 @@
 # is stored into reaches a wrapping operator inside its operand.
 MAIN {
     let 'w': uint32 = 3;
-    let 'b': bool = (5 -~ 'w') > 1;
+    let 'b': bool = (5 minus.wrap 'w') > 1;
 }

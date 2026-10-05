@@ -3,7 +3,7 @@
 # inside strict functions; MAIN seems to still fold the guard away. The oracle runs it.
 # check claude generator, seed 6430
 #strict
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -15,7 +15,7 @@ fn emit ['m': uint64, 'neg': bool] {
             let immut 'd': uint64 = ('m' div.floor 'p') mod.floor 10;
             if 'd' !== 0 or 'started' or 'p' == 1 {
                 change 'started' = true;
-                list.append[lend.mut 'buf', to.uint8[48 + 'd']];
+                list.append[lend.mut 'buf', to.uint8[48 plus 'd']];
             }
             change 'p' = 'p' div.floor 10;
         }
@@ -32,36 +32,36 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let immut 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let immut 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 
-fn f1 ['p1': uint16] -> uint32 {
-    let immut 'v1': uint8 = (to.uint8['p1' mod.floor 256] mod.floor 16) x (to.uint8['p1' mod.floor 256] mod.floor 16);
+fn f1 ['p1': uint16] --> uint32 {
+    let immut 'v1': uint8 = (to.uint8['p1' mod.floor 256] mod.floor 16) times (to.uint8['p1' mod.floor 256] mod.floor 16);
     return to.uint32['v1'];
 }
 
-fn f2 ['p1': uint16] -> int32 {
+fn f2 ['p1': uint16] --> int32 {
     return 2147483646;
 }
 
 MAIN {
-    let mut 'v16': uint32 = f1[1] + 0;
-    let mut 'v17': int64 = 19 - to.int64['v16'];
+    let mut 'v16': uint32 = f1[1] plus 0;
+    let mut 'v17': int64 = 19 minus to.int64['v16'];
     for temp 'i19': uint8 in range[from 33, to 42, by 1] {
         let mut 'w22': uint64 = 3;
         loop {
             if 'w22' </== 0 {
                 break;
             }
-            change 'w22' = 'w22' - 1;
+            change 'w22' = 'w22' minus 1;
         }
     }
     for temp 'i24': int8 in range[from 35, to 31, by 1] {
     }
-    if ('v16' !== 0 and.then (15 mod.floor 'v16') !== 3) or 16 div.floor ((to.uint64['v16'] mod.floor 9159883580958452947) + 1) > 0 {
-    } else if to.int32['v16' mod.floor 2147483648] == ((to.int32['v16' mod.floor 2147483648] mod.floor 92681) - 46340) x ((f2[to.uint16['v17' mod.floor 65536]] mod.floor 92681) - 46340) {
+    if ('v16' !== 0 and.then (15 mod.floor 'v16') !== 3) or 16 div.floor ((to.uint64['v16'] mod.floor 9159883580958452947) plus 1) > 0 {
+    } else if to.int32['v16' mod.floor 2147483648] == ((to.int32['v16' mod.floor 2147483648] mod.floor 92681) minus 46340) times ((f2[to.uint16['v17' mod.floor 65536]] mod.floor 92681) minus 46340) {
         for temp 'i37': uint16 in range[from 31, to 34, by 1] {
         }
     } else {
@@ -70,7 +70,7 @@ MAIN {
             if 'w42' </== 0 {
                 break;
             }
-            change 'w42' = 'w42' - 1;
+            change 'w42' = 'w42' minus 1;
         }
     }
 }

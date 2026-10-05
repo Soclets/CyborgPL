@@ -1,22 +1,22 @@
 # Regression (2026-09-30): an int8 overflow only at depth 11, past the call-depth cap of 8: a run-time check.
 # check claude generator, seed 1
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
-        change 'k' = 'k' - 1;
+        change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
     NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
@@ -30,15 +30,15 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 
-fn f ['pr': int32[0, 20], 'k': int8] -> int32 {
+fn f ['pr': int32[0, 20], 'k': int8] --> int32 {
     if 'pr' >/== 20 { return 0; }
-    let 'q': int8 = 'k' x 12;
-    return f['pr' + 1, 'k' + 1] + to.int32['q'];
+    let 'q': int8 = 'k' times 12;
+    return f['pr' plus 1, 'k' plus 1] plus to.int32['q'];
 }
 MAIN {
     put_i[to.int64[f[0, 0]]];

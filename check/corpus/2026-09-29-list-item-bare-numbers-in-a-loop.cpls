@@ -4,7 +4,7 @@
 MAIN {
     let 'w37': int32 = 4;
     while 'w37' > 0 {
-        change 'w37' = 'w37' - 1;
-        let 'xs38': list[uint64] = [0 + 18446744073709551581,];
+        change 'w37' = 'w37' minus 1;
+        let 'xs38': list[uint64] = [0 plus 18446744073709551581,];
     }
 }

@@ -2,11 +2,11 @@
 # back a borrow of 'c' (@y) through b1, under -> lent@x. The oracle runs it (exit 0), since that line is
 # never reached; with the `if` not taken (>/== 5) it refuses: "`b2` returns a borrow of 'c', which is not
 # in @x". A direct `return lend 'c'` there is refused before running. CCA refuses it as written.
-fn b1 @x @y [lent@x 'a': list[int8], lent@y 'b': list[int8]] -> lent@x list[int8] {
+fn b1 @x @y [lent@x 'a': list[int8], lent@y 'b': list[int8]] --> lent@x list[int8] {
     return lend 'a';
 }
 
-fn b2 @x @y [lent@x 'a': list[int8], lent@y 'c': list[int8]] -> lent@x list[int8] {
+fn b2 @x @y [lent@x 'a': list[int8], lent@y 'c': list[int8]] --> lent@x list[int8] {
     if list.length[lend 'a'] >/== 0 {
         return lend 'a';
     }

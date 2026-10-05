@@ -225,9 +225,9 @@ impl BinOp {
 
     pub fn text(self) -> &'static str {
         match self {
-            BinOp::Add => "+",
-            BinOp::Sub => "-",
-            BinOp::Mul => "x",
+            BinOp::Add => "plus",
+            BinOp::Sub => "minus",
+            BinOp::Mul => "times",
             BinOp::Div => "div.floor",
             BinOp::Mod => "mod.floor",
             BinOp::DivTrunc => "div.trunc",
@@ -236,15 +236,15 @@ impl BinOp {
             BinOp::ModCeil => "mod.ceil",
             BinOp::DivNear => "div.near",
             BinOp::ModNear => "mod.near",
-            BinOp::Pow => "xx",
+            BinOp::Pow => "pow",
             BinOp::AndBit => "and.bit",
             BinOp::OrBit => "or.bit",
             BinOp::Xor => "xor",
             BinOp::Shl => "shl",
             BinOp::Shr => "shr",
-            BinOp::WAdd => "+~",
-            BinOp::WSub => "-~",
-            BinOp::WMul => "x~",
+            BinOp::WAdd => "plus.wrap",
+            BinOp::WSub => "minus.wrap",
+            BinOp::WMul => "times.wrap",
         }
     }
 }
@@ -424,7 +424,7 @@ pub struct Func {
 
 /// A function that hands back a borrow of one of its lists
 /// (design/ownership-syntax.md, 46faa74, 09044b6):
-/// `fn b1 [lent@x 'a': list[int32], lent@y 'b': list[int32]] -> lent@x list[int32]`.
+/// `fn b1 [lent@x 'a': list[int32], lent@y 'b': list[int32]] --> lent@x list[int32]`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BFunc {
     pub name: String,
@@ -945,11 +945,11 @@ impl Program {
         }
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written
-        let write = "fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n";
+        let write = "fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;\n";
         if self.inputs.is_empty() {
             w.out.push_str(&format!("extern.C {write}"));
         } else {
-            w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[uint8]] -> ptr[uint8];\n    fn strlen ['s': ptr[uint8]] -> uint64;\n}}\n"));
+            w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[uint8]] --> ptr[uint8];\n    fn strlen ['s': ptr[uint8]] --> uint64;\n}}\n"));
         }
         w.out.push('\n');
         w.out.push_str(&self.printer);
@@ -978,7 +978,7 @@ impl Program {
                 }
             }
             let announce: String = groups.iter().map(|g| format!(" @{g}")).collect();
-            w.out.push_str(&format!("\nfn {}{announce} [{}] -> {ret} {{\n", f.name, params.join(", ")));
+            w.out.push_str(&format!("\nfn {}{announce} [{}] --> {ret} {{\n", f.name, params.join(", ")));
             w.block(&f.body, 1);
             w.out.push_str("}\n");
         }
@@ -988,7 +988,7 @@ impl Program {
         }
         for f in &self.funcs {
             let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.text())).collect();
-            w.out.push_str(&format!("\nfn {} [{}] -> {} {{\n", f.name, params.join(", "), f.ret.text()));
+            w.out.push_str(&format!("\nfn {} [{}] --> {} {{\n", f.name, params.join(", "), f.ret.text()));
             w.block(&f.body, 1);
             w.out.push_str("}\n");
         }

@@ -2,23 +2,23 @@
 # return. The oracle reports it at the call (line 44, "301 does not fit uint8"), not at the
 # return (line 41), where the value lands in the return type. CCA points at the return.
 # check claude generator, seed 1
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
-        change 'k' = 'k' - 1;
+        change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
     NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
@@ -32,13 +32,13 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 
-fn f2 ['x': uint8] -> uint8 {
-    return 'x' + 201;
+fn f2 ['x': uint8] --> uint8 {
+    return 'x' plus 201;
 }
 MAIN {
     let 'a': uint8 = f2[100];

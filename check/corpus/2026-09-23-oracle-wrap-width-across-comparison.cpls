@@ -2,5 +2,5 @@
 # two literals, compared with a uint64 name, is refused as having no width.
 MAIN {
     let 'n': uint64 = 5;
-    let 'b': bool = 'n' > (0 -~ 1);
+    let 'b': bool = 'n' > (0 minus.wrap 1);
 }

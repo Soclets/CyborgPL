@@ -2,9 +2,9 @@
 # uint8 takes the wrong branch in CCA (0434f04): 206 - 8 > 201 is false.
 # env CHK_IN1 12745
 # check claude generator, seed 77
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -12,10 +12,10 @@ fn emit ['m': uint64, 'neg': bool] {
     let mut 'v': uint64 = 'm';
     let mut 'p': uint64 = 1;
     while 'v' div.floor 'p' >/== 10 {
-        change 'p' = 'p' x 10;
+        change 'p' = 'p' times 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 + ('v' div.floor 'p')]];
+        list.append[lend.mut 'buf', to.uint8[48 plus ('v' div.floor 'p')]];
         change 'v' = 'v' mod.floor 'p';
         if 'p' == 1 { break; }
         change 'p' = 'p' div.floor 10;
@@ -32,8 +32,8 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 
@@ -41,5 +41,5 @@ MAIN {
     let 'k' := "CHK_IN1";
     nocheck let 'in1': uint64 = strlen[getenv[lend 'k']];
     let 'u': uint8 = to.uint8['in1' mod.floor 256];
-    if 206 - 8 > 'u' { put_i[0]; }
+    if 206 minus 8 > 'u' { put_i[0]; }
 }

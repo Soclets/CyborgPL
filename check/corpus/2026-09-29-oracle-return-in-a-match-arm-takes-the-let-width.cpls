@@ -2,23 +2,23 @@
 # lands in f3's return type (uint64[min, 100]), but the oracle sizes its bare group by the declaration:
 # "`shr` by 42 on a 16-bit value". CCA runs it.
 # check claude generator, seed 6868
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
     if 'neg' { list.append[lend.mut 'buf', 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+    list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 + ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' >/== 1 {
         list.append[lend.mut 'buf', 'ds'['k']];
-        change 'k' = 'k' - 1;
+        change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
     nocheck write[1, lend 'buf', list.length[lend 'buf']];
@@ -32,8 +32,8 @@ fn put_i ['n': int64] {
     if 'n' >/== 0 {
         emit[to.uint64['n'], false];
     } else {
-        let 'up': int64 = -('n' + 1);
-        emit[to.uint64['up'] + 1, true];
+        let 'up': int64 = -('n' plus 1);
+        emit[to.uint64['up'] plus 1, true];
     }
 }
 
@@ -44,14 +44,14 @@ enum E1 {
     c4: uint16
 }
 
-fn f3 [] -> uint64[min, 100] {
+fn f3 [] --> uint64[min, 100] {
     let 'v9': uint16 = match E1.c2 {
-        c1 'd6' { ((0 x 16852) mod.floor 58) + 651 }
+        c1 'd6' { ((0 times 16852) mod.floor 58) plus 651 }
         c2 {
-            return ((13 + (3628437621139716329 + 1)) mod.floor ((8997704354644785536 shr 42) + (4 + 14))) mod.floor 101;
+            return ((13 plus (3628437621139716329 plus 1)) mod.floor ((8997704354644785536 shr 42) plus (4 plus 14))) mod.floor 101;
         }
-        c3 'd7' { ((to.uint16['d7' mod.floor 65536] - ((((to.uint16['d7' mod.floor 65536] shr 3) mod.floor 4) xx (to.uint16['d7' mod.floor 65536] mod.floor 11)) mod.floor 1)) mod.floor 58) + 651 }
-        c4 'd8' { (('d8' x ('d8' div.floor 9)) mod.floor 58) + 651 }
+        c3 'd7' { ((to.uint16['d7' mod.floor 65536] minus ((((to.uint16['d7' mod.floor 65536] shr 3) mod.floor 4) pow (to.uint16['d7' mod.floor 65536] mod.floor 11)) mod.floor 1)) mod.floor 58) plus 651 }
+        c4 'd8' { (('d8' times ('d8' div.floor 9)) mod.floor 58) plus 651 }
     };
     return 0;
 }

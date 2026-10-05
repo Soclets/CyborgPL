@@ -26,8 +26,9 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   `else`, `for` over `range` with every step sign (and `perm`), `while` and
   `loop` with counters, `break` / `continue` / early `return`, blocks,
   `check` / `nocheck` on statements and blocks, functions with typed
-  parameters and returns calling one another, `+ - x / mod xx`, unary `-`,
-  bitwise `and.bit or.bit xor not.bit shl shr`, wrapping `+~ -~ x~`,
+  parameters and returns calling one another, `plus minus times`, every `div.X` / `mod.X`,
+  `pow`, unary `-` (word operators, owner 2026-10-03, 7f2dafb; `-->` arrows),
+  bitwise `and.bit or.bit xor not.bit shl shr`, wrapping `plus.wrap minus.wrap times.wrap`,
   comparisons, `and or not`, `to.<int>[…]` narrowing and widening, range
   types on names, parameters and returns (`int32[0, 100]`, `int32[1, max]`,
   `int32[min, 100]`), and both parenthesised and "loose" spellings of the
@@ -75,7 +76,7 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   --threads 3` for a run aimed at the slicing.
   **deci and conversions** (owner "yea", 2026-09-30; `--avoid deci`):
   blocks of deci32/64/128 values from literals (some with trailing zeros)
-  and from each other through `+ - x div mod xx` and negation; conversions
+  and from each other through `plus minus times div.near mod.floor pow` and negation; conversions
   from integers (with `otherwise` only where the integer type could have
   more digits), from text (good and bad), from bins, and between widths; a
   deci range type, sometimes pushed out of it; and text read as integers.
@@ -89,7 +90,7 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   into utf16/utf32, seen as lengths and codes.
   **brain16** (owner, 2026-10-02; `--avoid brain16`): blocks of `brain16`
   / `bfloat16` / `bf16` values from literals, integers, text, a deci and a
-  bin, worked on with `+ - x div mod xx`, seen as `to.int64[…] otherwise
+  bin, worked on with `plus minus times div.near mod.floor pow`, seen as `to.int64[…] otherwise
   -1`, either deci form scaled, comparisons and the length of either text
   form; sometimes into a `bin16`, past its 65504 as a risk. Never inside a
   `check` (Precog has no brain16 domain, so every site is a run-time
@@ -263,7 +264,7 @@ straight at them. Default: `exact-bits`.
 - Always (no switch): a shift, bitwise or wrapping operator never has bare
   numbers on both sides — with no width anywhere its meaning has no ruling
   yet (design claude, 2026-09-24).
-- `pow`: no `xx` (CCA generates it since d549b34; on by default).
+- `pow`: no `pow` (formerly `xx`; CCA generates it since d549b34; on by default).
 
 ## Harness hygiene
 
