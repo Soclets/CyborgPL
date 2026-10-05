@@ -280,7 +280,17 @@ pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, arg
     argv.extend(args);
     interp.set_args(argv);
     let r = if tests { interp.run_tests() } else { interp.run() };
-    r.map_err(|e| if e.line == 0 { format!("{}: {}", path.display(), e.msg) } else { format!("{}: line {}: {}", path.display(), e.line, e.msg) })
+    r.map_err(|e| { let msg = op_words(&e.msg); if e.line == 0 { format!("{}: {}", path.display(), msg) } else { format!("{}: line {}: {}", path.display(), e.line, msg) } })
+}
+
+/// The interpreter names operators by the symbols it works with inside (`+`, `x~`); a message
+/// names them by their words (owner, 2026-10-03: the operators are words; check claude's note).
+fn op_words(msg: &str) -> String {
+    let mut m = msg.to_string();
+    for (sym, word) in [("`xx~`", "`pow.wrap`"), ("`x~`", "`times.wrap`"), ("`+~`", "`plus.wrap`"), ("`-~`", "`minus.wrap`"), ("`xx`", "`pow`"), ("`x`", "`times`"), ("`+`", "`plus`"), ("`-`", "`minus`")] {
+        m = m.replace(sym, word);
+    }
+    m
 }
 
 fn main() {
