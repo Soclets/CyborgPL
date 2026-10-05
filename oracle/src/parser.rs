@@ -78,10 +78,16 @@ pub struct Parser {
 
 type PResult<T> = Result<T, ParseError>;
 
+thread_local! {
+    /// Every `precedence` block of the program, all its Limbs' (owner, 2026-10-03: a Limb's levels
+    /// apply wherever its operators are used); filled by a first pass over every file (`main.rs`)
+    pub static SHARED_LEVELS: std::cell::RefCell<std::collections::HashMap<String, (u16, u8)>> = std::cell::RefCell::new(std::collections::HashMap::new());
+}
+
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: std::collections::HashMap::new() } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: std::collections::HashMap::new() } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -122,9 +128,7 @@ impl Parser {
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() };
         // a `precedence` block applies to the whole file, wherever it is written: read it first
-        let starts: Vec<usize> = self.toks.iter().enumerate().filter(|(_, t)| matches!(&t.tok, Tok::Word(w) if w == "precedence")).map(|(i, _)| i).collect();
-        for at in starts { self.pos = at; let levels = self.precedence_block()?; self.place_levels(levels)?; }
-        self.pos = 0;
+        self.scan_levels()?;
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -2295,6 +2299,15 @@ impl Parser {
         self.user_levels.get(op).copied().unwrap_or((Parser::base_level(op), Parser::base_chain(op)))
     }
 
+    /// Read only the file's `precedence` blocks (the first pass over a program's files, and the
+    /// start of every parse).
+    pub fn scan_levels(&mut self) -> PResult<()> {
+        let starts: Vec<usize> = self.toks.iter().enumerate().filter(|(_, t)| matches!(&t.tok, Tok::Word(w) if w == "precedence")).map(|(i, _)| i).collect();
+        for at in starts { self.pos = at; let levels = self.precedence_block()?; self.place_levels(levels)?; }
+        self.pos = 0;
+        Ok(())
+    }
+
     /// `precedence.low_first { level.when_chained.left_first 1 { … } … }` (owner, 2026-10-03).
     /// Returns the levels loosest first: (number, chain, operator names, line).
     fn precedence_block(&mut self) -> PResult<Vec<(i128, u8, Vec<String>, usize)>> {
@@ -2388,8 +2401,12 @@ impl Parser {
         for (i, (_, chain, names, line)) in levels.iter().enumerate() {
             for name in names {
                 if Parser::base_level(name) != 0 { continue; }
-                if self.user_levels.contains_key(name) { return bad(*line, format!("`{name}` is in two levels")); }
+                // the same block read twice (the first pass and this file's own parse) agrees with itself;
+                // two Limbs giving one operator different levels do not
+                if let Some(old) = self.user_levels.get(name) { if *old != (values[i], *chain) { return bad(*line, format!("`{name}` is in two levels")); } }
                 self.user_levels.insert(name.clone(), (values[i], *chain));
+                let clash = SHARED_LEVELS.with(|l| { let mut l = l.borrow_mut(); match l.get(name) { Some(old) if *old != (values[i], *chain) => true, _ => { l.insert(name.clone(), (values[i], *chain)); false } } });
+                if clash { return bad(*line, format!("`{name}` has a different precedence in another Limb")); }
             }
         }
         Ok(())

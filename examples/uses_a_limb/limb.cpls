@@ -8,4 +8,5 @@ MAIN {
     let 'x': bin64 = 3.0;
     let 'y': bin64 = 4.0;
     std::print.useful.stdout[('x' mean 'y'), " ", ('x' areas::mean 'y'), " ", ('x' mean.low 'y'), " ", ('x' areas::mean.low 'y'), \n];
+    std::print.useful.stdout['x' mean 'y' plus 1.0, \n];     # areas' levels: ('x' mean 'y') plus 1.0
 }

@@ -290,6 +290,10 @@ reject test `pow_beside_negative` removed). `examples/precedence_levels`;
 reject tests `precedence_bare`, `level_bare`, `level_wrong_chain`,
 `level_bit_op`, `level_refused_chain`, `level_two_numbers`. Oracle limits:
 the block applies to the file it is in; two Limbs in one gap unchecked.
+(2026-10-05: the first limit is gone. The oracle reads every file's
+`precedence` blocks, dependency Limbs' too, before parsing the program,
+so `areas`' levels for `mean` apply in `uses_a_limb`; two Limbs giving
+one operator different levels is refused.)
 
 ### 2026-10-03 — The operator words, settled for building: `.wrap`, `op plus`, the symbols refused, `pow` with brackets (owner)
 

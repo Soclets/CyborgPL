@@ -24,10 +24,21 @@ fn parse_file(path: &Path, module: Vec<String>) -> Result<ast::Program, String> 
     parse_file_in(path, module, Vec::new())
 }
 
+thread_local! {
+    /// The first pass over a program's files reads only their `precedence` blocks (owner, 2026-10-03:
+    /// a Limb's levels apply wherever its operators are used)
+    static LEVELS_ONLY: std::cell::Cell<bool> = std::cell::Cell::new(false);
+}
+
 /// Parse one file of the Limb rooted at `limb_root` (`[]` for the Limb being built).
 fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Result<ast::Program, String> {
     let src = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
     let toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
+    if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "CCA.cplr") {
+        parser::Parser::new_in_limb(toks, module, limb_root).scan_levels()
+            .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;
+        return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() });
+    }
     parser::Parser::new_in_limb(toks, module, limb_root).program()
         .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })
 }
@@ -36,6 +47,16 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
 /// a module named after it, directories nesting (decided 2026-09-19). A lone
 /// `.cpls` file is a Limb of one root file.
 fn load(path: &Path) -> Result<ast::Program, String> {
+    // first every file's `precedence` blocks, then the program with all of them known
+    parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
+    LEVELS_ONLY.with(|f| f.set(true));
+    let first = load_files(path);
+    LEVELS_ONLY.with(|f| f.set(false));
+    first?;
+    load_files(path)
+}
+
+fn load_files(path: &Path) -> Result<ast::Program, String> {
     if path.is_file() {
         if path.extension().map(|x| x != "cpls").unwrap_or(true) { return Err("oracle: a CyborgPL source file ends in .cpls".into()); }
         return parse_file(path, Vec::new());

@@ -18,5 +18,11 @@ pub module shapes {
 
 # A Limb's own word operator with a narrowed form (owner, 2026-10-02/03): users write it bare or
 # with this Limb's path, `areas::mean.low`.
+# its levels apply wherever `mean` is used, in other Limbs too (owner, 2026-10-03)
+precedence.low_first {
+    level.when_chained.left_first 1 { plus }
+    level.when_chained.left_first 2 { times  mean  mean.low }
+}
+
 pub op mean ['a': bin64, 'b': bin64] --> bin64 { return ('a' plus 'b') div.near 2.0; }
 pub op mean.low ['a': bin64, 'b': bin64] --> bin64 { return ('a' plus 'b') div.floor 2.0; }
