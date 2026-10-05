@@ -1394,16 +1394,22 @@ impl<'p> Interp<'p> {
     /// being stored into. A shift's width comes from any of these (owner, 2026-09-23);
     /// only a bare literal with no context has none.
     fn expr_ty(&self, e: &Expr) -> Option<Ty> {
-        let t = match e {
-            Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
-            Expr::Paren(inner, _) => self.expr_ty(inner),
-            Expr::Convert(t, _, _, _, _) => Some(t.clone()),
-            Expr::Unary(_, inner, _) => self.expr_ty(inner),
-            Expr::Binary(_, l, r, _) => self.expr_ty(l).or_else(|| self.expr_ty(r)),
-            _ => None,
-        };
-        let t = t.or_else(|| self.expected.clone());
+        // the expression's own type first, both sides of it; where it goes only when it has none
+        // (check claude, 2026-10-05: a bare left side took the context's type, and the right side's
+        // `uint16` was never asked)
+        let t = self.expr_ty_own(e).or_else(|| self.expected.clone());
         match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t }
+    }
+
+    fn expr_ty_own(&self, e: &Expr) -> Option<Ty> {
+        match e {
+            Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
+            Expr::Paren(inner, _) => self.expr_ty_own(inner),
+            Expr::Convert(t, _, _, _, _) => Some(t.clone()),
+            Expr::Unary(_, inner, _) => self.expr_ty_own(inner),
+            Expr::Binary(_, l, r, _) => self.expr_ty_own(l).or_else(|| self.expr_ty_own(r)),
+            _ => None,
+        }
     }
 
     /// the deci width a literal here would take, if a deci goes here
@@ -1567,6 +1573,16 @@ impl<'p> Interp<'p> {
         for body in bodies {
             let mut ev = Vec::new();
             flat(body, &mut ev, self);
+            // a borrow of a borrow borrows what that one does (check claude, 2026-10-05: 's' from
+            // 'r', 'r' from 'o2', and 'o2' given away): follow each chain back to its owners
+            let mut held: Vec<(String, Vec<String>)> = Vec::new();
+            for (_, _, b) in ev.iter_mut() {
+                let Some((r, froms, _)) = b else { continue };
+                let mut all = froms.clone();
+                for f in froms.iter() { if let Some((_, more)) = held.iter().rev().find(|(n, _)| n == f) { for m in more { if !all.contains(m) { all.push(m.clone()); } } } }
+                *froms = all.clone();
+                held.push((r.clone(), all));
+            }
             for (i, (_, _, b)) in ev.iter().enumerate() {
                 let Some((r, froms, via_call)) = b else { continue };
                 let rel = if *via_call { "depends on it" } else { "borrows it" };
@@ -2568,7 +2584,8 @@ impl<'p> Interp<'p> {
                 let keep = if matches!(prov, Prov::Literal) { Prov::Literal } else { Prov::Plain };
                 if op == "not.bit" {
                     // flip every bit, at the operand's declared width (the oracle needs a typed variable)
-                    let width = self.expr_ty(inner);
+                    // a vector's lanes give the width, as for the wrapping operators
+                    let width = match self.expr_ty(inner) { Some(Ty::Simd(e, _)) => Some(*e), w => w };
                     let (bits, signed) = match width { Some(Ty::Int(w)) => (true_bits(&w), true), Some(Ty::Uint(w)) => (true_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, so it needs to know how many: give the value a type, or say it in the declaration (`let 'x': uint32 = not.bit 'v';`)") };
                     // 127 bits and up, on big numbers (owner, 2026-10-03): not x is -x - 1, then taken at the width
                     if bits >= 127 || matches!(v, Value::Big(_)) {
