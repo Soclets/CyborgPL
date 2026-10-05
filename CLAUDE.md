@@ -29,6 +29,7 @@ the owner explicitly chooses it.
 - **Verification session** ("check claude"): the program generator, the differential harness, the Precog oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/CyborgPL v2 verification`, in `check/`. It reads `design/` and the tests, and **never `cca/` or `oracle/src`** — it is a different author from Precog's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
 - **Website session** ("website claude", owner, 2026-09-24): the open-source site. It works in its own clone at `/Users/ts/CyborgPL v2 website`, in `website/`, and updates the site only when the owner says so. Commits carry `Co-Authored-By: website claude <noreply@anthropic.com>`.
+- **Website ChatGPT** ("website chatgpt"): an OpenAI agent that also works on the site, in `website/`, beside website claude (first commit 2026-10-03, `ee2998d`). Its commits carry `Co-Authored-By: website chatgpt <noreply@openai.com>`. It is not a Claude session, so it has no session id here and cannot be messaged; the owner reaches it directly.
 - **Reaching another session** (owner, 2026-09-24: "find a way to be always messageable"): send by its permanent session id, never its display name. A name only reaches a session that is running right now, and an id goes through the desktop app:
   - design claude: `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`
   - compiler claude: `local_bd7d62d4-5ac0-4ce0-8f9a-174b30357045`
