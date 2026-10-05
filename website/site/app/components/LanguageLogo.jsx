@@ -5,7 +5,7 @@ import { LANGUAGE_ARTWORK } from "../lib/language-artwork.js";
 export default function LanguageLogo({ id, className = "" }) {
   const art = LANGUAGE_ARTWORK[id];
   return (
-    <span className={`language-logo ${className}`} aria-hidden="true" data-language={id}>
+    <span className={`language-logo${art.trademark ? " has-tm" : ""} ${className}`} aria-hidden="true" data-language={id}>
       <img src={art.asset} width="24" height="24" alt="" />
       {art.trademark && <sup>™</sup>}
     </span>
