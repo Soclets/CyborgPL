@@ -226,7 +226,7 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `exact-bits`.
+straight at them. Default: `none`.
 
 - `rounding`: only `div.floor` / `mod.floor` on integers and `div.near` /
   `mod.floor` on decis and brain16 (all four roundings in CCA 81445c7).
@@ -241,9 +241,9 @@ straight at them. Default: `exact-bits`.
 
 - `exact-bits`: every operand of a shift, bitwise or wrapping operator gets
   a size with `to.T[…]`. The width rule is settled (owner, 2026-09-23 a and
-  363f19f) and the evaluator follows it, but CCA still refuses an exact
-  answer under a unary minus and a bare number shifted by an exact count
-  (corpus `2026-10-05-*`, 2026-10-05).
+  363f19f) and the evaluator follows it; CCA had refused an exact answer
+  under a unary minus and a bare number shifted by an exact count (corpus
+  `2026-10-05-*`, fixed in 94dbca3), so this is off by default now.
 
 - `data-width`: read a `match` arm's data only as `to.T['d']` (the oracle
   gave it no width for `not.bit` or the wrapping operators; fixed 2eb7b2f).
