@@ -41,10 +41,24 @@ So far:
 - **"Core" is a category**: several may exist. The official one is
   verified (RRx2 checks its IR against its contracts); an unverified core
   is used with a warning, never refused.
-- Open: whether `plus` and the others go to the official core or to std
-  (a limb cannot define them for `int32`), what the base keeps exactly,
-  the official core's name, how a core is installed and named in a
-  manifest, what the warning says.
+- **The official core is IEG, the Intense Energy Generator** (owner: "I
+  was thinking that the IEG (Intense Energy Generator) core should not be
+  so practical for normal stuff"): raw and low-level, so `plus` and the
+  others go up to std (design claude's reading of "not so practical").
+- **A core need not put its name in the syntax** (owner: "Since a core has
+  so much authority, it isn't necessarily forced to label its name in
+  syntax. So, it really does depend on the core"): no `ieg::` unless the
+  core wants one.
+- **A limb may be granted powers, fewer than a core's** (owner: "could we
+  grant a limb a lot of authority, but not as much as a core, of
+  course"). Which: "Just what's necessary", so one power for now:
+  defining operators on the language's own types, which std needs for
+  `plus` on `int32`. A limb never writes `inline.LLVM` and its code is
+  still proven by Precog; only a core is believed on its word.
+- Open: how a power is declared and shown (design claude proposed a
+  manifest line, `const 'powers' := [cca::Power.operators_on_builtin_types,];`),
+  what the base keeps exactly, how a core is installed and named in a
+  manifest, what the unverified-core warning says.
 
 ### 2026-10-03 — A shift on an exact answer works at its typed operands' width (owner)
 
