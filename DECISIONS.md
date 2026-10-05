@@ -103,6 +103,19 @@ So far:
   dependencies (owner: "a", over one list with a marker):
   `const 'cores' := [cca::Core[name = "IEG"],];` in `CCA.cplr`, a
   `[my cores]` section in `Synthia.ttsr` (spellings design claude's).
+- **Where the speed lives** (owner: "should the crazy perf behavior be
+  with IEG, or the base lang? ... the auto para, and stuff"). Design
+  claude first said the base; the owner: "Imagine you have don't even
+  fucking have plus, and then a loop somehow auto para in your OS kernel,
+  lol", which is right: running across cores needs threads, a runtime, an
+  OS. So: **Precog's proofs and SIMD stay in the base** (they need
+  nothing); **splitting loops across cores goes to a higher-level core
+  that requires IEG** (owner: "I'll say a higher level core that requires
+  IEG"), over (a) IEG with an off switch and (c) std with a second power
+  (the owner: "idk if a limb has that much authority"). A program without
+  it, a kernel, runs its loops in order, still proven and still SIMD, and
+  `for para` is refused there. Open: its name; whether GPU offload goes in
+  it or in a core of its own.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 

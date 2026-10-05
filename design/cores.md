@@ -37,6 +37,8 @@ with the owner's words; this is the picture.
 the base language   syntax, types, borrows, the "exact, checked where it lands" rules
 IEG (core)          raw machine operations; inline.LLVM
 other cores         anything, even dialects; may build on IEG
+a parallel core     splits proven loops across cores (threads); needs IEG;
+                    a kernel leaves it out and runs its loops in order
 std (limb + power)  plus, minus, times, div.floor …, pow, printing,
                     friendly names for LLVM operations (std::bits.count_ones …)
 your limbs          everything else
@@ -89,6 +91,14 @@ The base language through `inline.S` (raw system calls), through C
 write), through std (`std::print.useful.stdout["Hello, world!", \n];`),
 and through a limb of your own on top. Each step down trades convenience
 for control; the `nocheck`s show where safety becomes the writer's.
+
+## Where the speed lives (owner, 2026-10-05)
+
+Precog's proofs and SIMD are the base language's: they need nothing at run
+time. Running a loop across cores needs threads, so it comes from a
+higher-level official core that requires IEG; a program without it (an OS
+kernel) runs every loop in order, still proven and still SIMD, and `for
+para` is refused there. Its name, and whether GPU offload joins it, are open.
 
 ## Open
 
