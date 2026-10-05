@@ -239,9 +239,11 @@ straight at them. Default: `exact-bits`.
 - `deci-useful`: no `to.useful.…` forms (CCA took the 2026-09-30 spelling
   in 32b7039).
 
-- `exact-bits`: CCA says "not yet" to a shift, bitwise or wrapping operator
-  on an exact answer whose operands differ in size (2026-09-23); the
-  generator gives such an operand a size with `to.T[…]`.
+- `exact-bits`: every operand of a shift, bitwise or wrapping operator gets
+  a size with `to.T[…]`. The width rule is settled (owner, 2026-09-23 a and
+  363f19f) and the evaluator follows it, but CCA still refuses an exact
+  answer under a unary minus and a bare number shifted by an exact count
+  (corpus `2026-10-05-*`, 2026-10-05).
 
 - `data-width`: read a `match` arm's data only as `to.T['d']` (the oracle
   gave it no width for `not.bit` or the wrapping operators; fixed 2eb7b2f).
