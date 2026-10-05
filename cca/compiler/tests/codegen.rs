@@ -500,7 +500,8 @@ fn parallel_for_runs_in_slices() {
     }
 }
 
-/// Programs CCA must refuse, each with the phrase its first line names
+/// Programs CCA must refuse, each with the phrase its first line names,
+/// by its checker or by Precog
 /// (`# refuse: …`): mistakes that would otherwise build and break memory,
 /// found by check claude's generator, not by the oracle's reject tests.
 #[test]

@@ -3,5 +3,3 @@
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
 
-widths :: `('v' mod.floor 16) shl 2`: a division is exact now (owner, 2026-10-02), and which size a
-    shift of an exact answer works at is open with the owner (compiler claude, since 2026-09-23)

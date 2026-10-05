@@ -874,7 +874,15 @@ impl Checker {
         // the other side's width.
         let mut lt = lt;
         if op.is_comparison() && lt.is_int() && rt.is_int() {
-            let exact = Ty::exact();
+            // At the other side's width, or the bare numbers' own size,
+            // at least 64 bits (owner, 2026-10-03): `'m' == -2^126` beside
+            // an `int128`.
+            let side = |t: &Ty| match t.base() {
+                Ty::Int(IntW::Fixed { bits, .. }) if bits & crate::types::EXACT_FLAG != 0 => bits & !crate::types::EXACT_FLAG,
+                Ty::Int(IntW::Fixed { bits, .. }) => *bits,
+                _ => 64,
+            };
+            let exact = Ty::exact_at(side(&lt).max(side(&rt)).max(literal_bits(&l)).max(literal_bits(&r)));
             if literal_only(&l) && matches!(lt.base(), Ty::Int(IntW::Free(_))) && matches!(l.kind, K::Binary { .. } | K::Unary { .. }) {
                 retype_literal_arith(&mut l, &exact);
                 lt = exact.clone();
@@ -911,7 +919,7 @@ impl Checker {
                 }
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
             }
-            BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => {
+            BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow | BinOp::DivWrap(_) => {
                 // An exact answer wraps at the size of its values: working
                 // at full width and keeping the low bits is the same
                 // answer, so only the type has to say the size.
@@ -1006,12 +1014,21 @@ impl Checker {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is a `{}`", op.spelled(), self.spell(bad))).at(op_span));
                 }
+                // A shift works at the width of what it shifts: its count is
+                // a count, exact or not. On an exact answer, the width of the
+                // typed operands inside it, as `plus.wrap` takes it (owner,
+                // 2026-09-23, confirmed 2026-10-03).
+                if matches!(op, BinOp::Shl | BinOp::Shr) && (lt.is_exact() || rt.is_exact()) {
+                    let ty = if lt.is_exact() {
+                        self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?
+                    } else if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) {
+                        lt.base().clone()
+                    } else {
+                        return err(Diagnostic::error(format!("`{}` only knows a declared width: shifting can lose bits, so the value it shifts needs a type", op.spelled())).at(op_span));
+                    };
+                    return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
+                }
                 if lt.is_exact() || rt.is_exact() {
-                    // A shift is not the same on the low bits alone (`shr`
-                    // brings the high ones down), so it waits for the ruling.
-                    if matches!(op, BinOp::Shl | BinOp::Shr) {
-                        return Err(self.open_size(op, op_span));
-                    }
                     let ty = match (lt.is_exact(), rt.is_exact()) {
                         (true, true) => {
                             let a = self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?;
@@ -1132,7 +1149,7 @@ impl Checker {
     }
 
     fn open_size(&self, op: &BinOp, op_span: Span) -> Box<Diagnostic> {
-        Box::new(Diagnostic::error(format!("not yet: `{}` on an exact answer whose operands have different sizes (or none left to see) — which size it works at is open", op.spelled())).at(op_span))
+        Box::new(Diagnostic::error(format!("`{}` on an exact answer works at the width of its typed operands, and these have different sizes (or none left to see): say which first — `to.uint32[…]`", op.spelled())).at(op_span))
     }
 
     /// A lane-wise operator. The rule is the scalar rule, N times.
@@ -3725,6 +3742,17 @@ fn literal_only(e: &Expr) -> bool {
 /// Give every arithmetic node of a literal-only expression the place's type.
 /// The leaves keep their values; a leaf the type cannot hold is then a
 /// narrowing Precog refuses as certain.
+/// The bits the biggest bare number in an expression takes, signed.
+fn literal_bits(e: &Expr) -> u32 {
+    match &e.kind {
+        K::Int(v) => 129 - v.unsigned_abs().leading_zeros(),
+        K::BigInt(d) => crate::bigint::Big::parse(d).map_or(0, |b| b.bits() as u32 + 1),
+        K::Unary { expr, .. } => literal_bits(expr),
+        K::Binary { lhs, rhs, .. } => literal_bits(lhs).max(literal_bits(rhs)),
+        _ => 0,
+    }
+}
+
 /// Each exact operation with a bare number for an operand, down an exact
 /// answer's tree, held to at least `bits` in between.
 fn raise_beside_literal(e: &mut Expr, bits: u32) {

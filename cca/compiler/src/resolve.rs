@@ -1055,6 +1055,12 @@ impl Items {
                         }
                         return Ok(Ty::Simd { elem: Box::new(elem), lanes });
                     }
+                    // A lane is a standard width (owner, 2026-10-03: a).
+                    if let Ty::Int(IntW::Fixed { bits, .. }) = elem.base() {
+                        if !matches!(bits, 8 | 16 | 32 | 64 | 128) {
+                            return err(Diagnostic::error(format!("a vector's lanes are a standard width, and `{}` is not one: `int8`, `int16`, `int32` or `int64` (unsigned too)", spell(&elem, self))).at(args[0].span));
+                        }
+                    }
                     if simd_lane_bits(&elem).is_none() {
                         return err(Diagnostic::error(format!("a `simd` holds plain numbers or bools, and `{}` is neither: its lanes live in a register, so each one is a fixed-width number", spell(&elem, self))).at(args[0].span));
                     }

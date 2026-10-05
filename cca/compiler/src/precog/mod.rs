@@ -1507,7 +1507,7 @@ impl Precog {
             }
             let Some((lo, hi)) = crate::mir::domain::wide_arith(op, &x, Some(&y)) else { return Domain::of_ty(&ty, &self.prog().items) };
             // Wrapping keeps the answer only where it already fits.
-            if matches!(op, BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow) {
+            if matches!(op, BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow | BinOp::DivWrap(_)) {
                 if let Ty::Int(crate::types::IntW::Fixed { signed, bits }) = ty.base() {
                     let (tlo, thi) = crate::bigint::type_range(*signed, *bits);
                     if lo < tlo || hi > thi {
@@ -1527,11 +1527,12 @@ impl Precog {
                 BinOp::Pow => x.pow(y),
                 // Wrapping arithmetic is exact modulo the width; the domain
                 // is only narrowed when the plain answer already fits.
-                BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => {
+                BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow | BinOp::DivWrap(_) => {
                     let plain = match op {
                         BinOp::WrapAdd => x.add(y),
                         BinOp::WrapSub => x.sub(y),
                         BinOp::WrapMul => x.mul(y),
+                        BinOp::DivWrap(r) => x.div_round(y, *r),
                         _ => x.pow(y),
                     };
                     match int_limits(&ty, &self.prog().items) {

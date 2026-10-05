@@ -162,6 +162,9 @@ pub enum BinOp {
     /// division leaves over.
     Div(Round),
     Mod(Round),
+    /// `div.X.wrap` (owner, 2026-10-03): the true quotient wrapped at the
+    /// type's width, as the hardware gives the lowest value by -1.
+    DivWrap(Round),
     WrapAdd,
     WrapSub,
     WrapMul,
@@ -198,6 +201,7 @@ impl BinOp {
             BinOp::Div(Round::Bare) => "div".into(),
             BinOp::Mod(Round::Bare) => "mod".into(),
             BinOp::Div(r) => format!("div.{}", r.word()),
+            BinOp::DivWrap(r) => format!("div.{}.wrap", r.word()),
             BinOp::Mod(r) => format!("mod.{}", r.word()),
             BinOp::WrapAdd => "plus.wrap".into(),
             BinOp::WrapSub => "minus.wrap".into(),
@@ -231,14 +235,14 @@ impl BinOp {
     /// A `div.X`: beside another multiplicative operator it needs
     /// parentheses.
     pub fn is_div(&self) -> bool {
-        matches!(self, BinOp::Div(_))
+        matches!(self, BinOp::Div(_) | BinOp::DivWrap(_))
     }
     /// A `mod.X`: beside any operator it needs parentheses.
     pub fn is_mod(&self) -> bool {
         matches!(self, BinOp::Mod(_))
     }
     pub fn is_multiplicative(&self) -> bool {
-        matches!(self, BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) | BinOp::WrapMul)
+        matches!(self, BinOp::Mul | BinOp::Div(_) | BinOp::DivWrap(_) | BinOp::Mod(_) | BinOp::WrapMul)
     }
 }
 

@@ -343,6 +343,7 @@ mod_beside_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading for 
 mod_mixed [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod.floor` beside another operator
 mod_near_fraction [fnv:134e0296bec94776] :: leaves nothing over
 mod_trunc_beside [fnv:9d0efe113095066a] :: parenthesise
+mod_wrap [fnv:be9f9597514259ce] :: `mod` never overflows
 module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`limb.cpls`)
 module_in_body [fnv:ff095bdb85c4c377] :: a `module` sits at the top level of a file, not inside a body
 module_include_line [fnv:e6545bf351dc2847] :: a file module is found by its file name, and `module a { … }` is a block
@@ -480,6 +481,7 @@ simd_not_a_bool [fnv:cf5039b775bdbbc1] :: a vector is never a single answer
 simd_shuffle_lane [fnv:9019a13509c2627b] :: lane 5 does not exist
 simd_shuffle_not_fixed [fnv:10de2b5101aae9ec] :: takes the new order as fixed lane numbers
 simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past the end
+simd_std_lane [fnv:5ea45cd90b3704c8] :: a vector's lanes are a standard width
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is followed by `.of`: `size.of[int32]`

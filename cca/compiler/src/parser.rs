@@ -2363,6 +2363,22 @@ impl<'a> Parser<'a> {
     /// The rounding after `div` or `mod`, the word already taken: `.floor`,
     /// `.ceil`, `.trunc` or `.near`, or none — which the checker refuses,
     /// naming the one meant.
+    /// `.wrap` after a division's rounding (owner, 2026-10-03): the
+    /// hardware's wrapped quotient. A remainder never overflows, so `mod`
+    /// takes none.
+    fn wrap_narrow(&mut self, w: &str, r: Round) -> Result<bool> {
+        if !(self.is(&Tok::Dot) && self.is_word_at(1, "wrap")) || r == Round::Bare {
+            return Ok(false);
+        }
+        let at = self.span();
+        self.bump();
+        self.bump();
+        if w == "mod" {
+            return self.fail_at(at.to(self.prev_span()), format!("`mod` never overflows: `mod.{}.wrap` is `mod.{}`", r.word(), r.word()));
+        }
+        Ok(true)
+    }
+
     fn rounding(&mut self, w: &str) -> Result<Round> {
         if !self.is(&Tok::Dot) {
             return Ok(Round::Bare);
@@ -2426,7 +2442,12 @@ impl<'a> Parser<'a> {
                     }
                     "mod" | "div" => {
                         let r = self.rounding(&w)?;
-                        if w == "div" { BinOp::Div(r) } else { BinOp::Mod(r) }
+                        let wrap = self.wrap_narrow(&w, r)?;
+                        match (w.as_str(), wrap) {
+                            ("div", true) => BinOp::DivWrap(r),
+                            ("div", false) => BinOp::Div(r),
+                            _ => BinOp::Mod(r),
+                        }
                     }
                     "and" | "or" if self.eat(&Tok::Dot) => {
                         let what = self.ident("`then`, `else` or `bit`")?;
@@ -2591,7 +2612,12 @@ impl<'a> Parser<'a> {
                 BinOp::Div(_) | BinOp::Mod(_) => {
                     let w = if op.is_div() { "div" } else { "mod" };
                     let r = self.rounding(w)?;
-                    op = if op.is_div() { BinOp::Div(r) } else { BinOp::Mod(r) };
+                    let wrap = self.wrap_narrow(w, r)?;
+                    op = match (op.is_div(), wrap) {
+                        (true, true) => BinOp::DivWrap(r),
+                        (true, false) => BinOp::Div(r),
+                        (false, _) => BinOp::Mod(r),
+                    };
                 }
                 BinOp::AndBit | BinOp::OrBit => {
                     self.bump(); // .

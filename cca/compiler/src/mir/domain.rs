@@ -1251,7 +1251,7 @@ pub fn wide_arith(op: &crate::ast::BinOp, a: &(crate::bigint::Big, crate::bigint
         B::Add | B::WrapAdd => ends(vec![a1.add(b1), a2.add(b2)]),
         B::Sub | B::WrapSub => ends(vec![a1.sub(b2), a2.sub(b1)]),
         B::Mul | B::WrapMul => ends(vec![a1.mul(b1), a1.mul(b2), a2.mul(b1), a2.mul(b2)]),
-        B::Div(r) => {
+        B::Div(r) | B::DivWrap(r) => {
             // Monotone in each for a divisor of one sign: the ends, and the
             // divisors nearest zero, as `ISet`'s division.
             let zero = Big::zero();

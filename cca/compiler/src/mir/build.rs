@@ -1385,6 +1385,11 @@ impl<'a> FnBuilder<'a> {
                 }
                 self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);
             }
+            // Wrapped like the hardware (owner, 2026-10-03): only the
+            // divisor is asked.
+            BinOp::DivWrap(_) if int => {
+                self.site(SiteKind::DivZero, vec![r.clone()], span);
+            }
             BinOp::Div(_) if int => {
                 self.site(SiteKind::DivZero, vec![r.clone()], span);
                 // The one overflowing division: the lowest value by -1.

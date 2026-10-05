@@ -1292,6 +1292,31 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // multiply; checked as signed, 2 x 7726793855274730819 was
                 // an overflow that never happens. (The ordinary build folds
                 // it to its answer; `--assert-proofs` computes it.)
+                // A shift of an exact answer works at the width of its typed
+                // operands (owner, 2026-10-03), the type it lands in here:
+                // the value has to fit that width before it is shifted, and
+                // that is the shift's own site.
+                if matches!(op, BinOp::Shl | BinOp::Shr) {
+                    if let (BasicValueEnum::IntValue(x), Some(Ty::Int(IntW::Fixed { signed: ws, bits: wb }))) = (a, want_ty.as_ref().map(|t| t.base().clone())) {
+                        let width = crate::resolve::storage(ws, wb).1;
+                        if self.operand_cy_ty(fi, lhs).is_some_and(|t| t.is_exact()) && x.get_type().get_bit_width() != width {
+                            let (lo, hi) = crate::bigint::type_range(ws, wb);
+                            let cw = x.get_type().get_bit_width().max(width) + 1;
+                            let ct = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(cw)?).ok()?;
+                            let xs = self.builder.build_int_cast_sign_flag(x, ct, true, "exact").ok()?;
+                            let open = sites.iter().copied().find(|s| matches!(self.p.functions[fi].site(*s).kind, SiteKind::ShiftWidth | SiteKind::ShiftCount) && self.gets_check(&self.p.functions[fi].site(*s).verdict));
+                            if let (Some(s), Some(lo), Some(hi)) = (open, const_big(ct, &lo), const_big(ct, &hi)) {
+                                let below = self.builder.build_int_compare(IntPredicate::SLT, xs, lo, "below").ok()?;
+                                let above = self.builder.build_int_compare(IntPredicate::SGT, xs, hi, "above").ok()?;
+                                let out = self.builder.build_or(below, above, "too_big_to_shift").ok()?;
+                                self.guard(fi, s, out, func)?;
+                            }
+                            let t = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(width)?).ok()?;
+                            let nx = self.builder.build_int_truncate_or_bit_cast(xs, t, "at_width").ok()?;
+                            return self.binary(fi, op, nx.into(), b, sites, func, blocks, ws);
+                        }
+                    }
+                }
                 // Plain math is exact (owner, 2026-09-23): each operand is
                 // taken at its true value, by its own sign — a literal by its
                 // written one — and `+ - x` are done in 128 bits, where no
@@ -1673,6 +1698,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     _ => (self.fit(a, y.get_type().into()), b),
                 }
             }
+            // A shift works at the width of what it shifts; its count is a
+            // count. A wider count is clamped to the width first, so one too
+            // big still trips the count's check: widened instead, `uint32
+            // shl int64` shifted at 64 bits and lost bits went unseen.
+            (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) if matches!(op, BinOp::Shl | BinOp::Shr) && !x.is_const() && x.get_type().get_bit_width() != y.get_type().get_bit_width() => {
+                let xt = x.get_type();
+                let w = xt.get_bit_width();
+                let y = if y.get_type().get_bit_width() > w {
+                    let cap = y.get_type().const_int(w as u64, false);
+                    let past = self.builder.build_int_compare(IntPredicate::UGT, y, cap, "count_past").ok()?;
+                    let y = self.builder.build_select(past, cap, y, "count").ok()?.into_int_value();
+                    self.builder.build_int_truncate(y, xt, "count").ok()?
+                } else {
+                    // Zero-extended: a negative count reads as a huge one,
+                    // past the width, and trips the same check.
+                    self.builder.build_int_z_extend(y, xt, "count").ok()?
+                };
+                (a, y.into())
+            }
             (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) if x.get_type().get_bit_width() != y.get_type().get_bit_width() => {
                 // One side is a literal, which has no width of its own: it
                 // takes the other's.
@@ -1735,6 +1779,27 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 BinOp::WrapMul => self.builder.build_int_mul(x, y, "wmul").ok()?,
                 // Each rounds as named (`operators.md`): `-7 div.floor 2 =
                 // -4`, `-7 mod.floor 2 = 1`, `-7 div.trunc 2 = -3`.
+                // The hardware's division (owner, 2026-10-03): the lowest
+                // value by -1 is itself, which every rounding of it by 1
+                // gives — so -1 is asked as 1 there, and nothing is undefined.
+                BinOp::DivWrap(round) => {
+                    if let Some(s) = divzero {
+                        let zero = self.builder.build_int_compare(IntPredicate::EQ, y, y.get_type().const_zero(), "by_zero").ok()?;
+                        self.guard(fi, s, zero, func)?;
+                    }
+                    let y = if signed {
+                        let bits = x.get_type().get_bit_width();
+                        let min = const_i128(x.get_type(), if bits >= 128 { i128::MIN } else { -(1i128 << (bits - 1)) });
+                        let min = if bits > 128 { const_big(x.get_type(), &crate::bigint::Big::pow2(bits - 1).neg())? } else { min };
+                        let is_min = self.builder.build_int_compare(IntPredicate::EQ, x, min, "is_min").ok()?;
+                        let by_m1 = self.builder.build_int_compare(IntPredicate::EQ, y, y.get_type().const_all_ones(), "by_m1").ok()?;
+                        let both = self.builder.build_and(is_min, by_m1, "min_by_m1").ok()?;
+                        self.builder.build_select(both, y.get_type().const_int(1, false), y, "by").ok()?.into_int_value()
+                    } else {
+                        y
+                    };
+                    self.div_round(x, y, signed, false, *round)?.0
+                }
                 BinOp::Div(round) | BinOp::Mod(round) => {
                     // A zero divisor, and the lowest signed value divided by
                     // -1, are both undefined to LLVM: checked before the

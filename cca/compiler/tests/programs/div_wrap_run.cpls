@@ -1,0 +1,20 @@
+# A division that wraps like the hardware (owner, 2026-10-03): `div.X.wrap`
+# gives the true quotient wrapped at the type's width, so the smallest int8
+# by -1 is -128 under all four roundings, and an int128's too; an ordinary
+# quotient is the true one. Run-time values, through C: 1 + 2 + 4 = 7.
+extern.C fn exit ['code': int32];
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
+MAIN {
+    let 's' := "x";
+    nocheck let 'n': uint64 = strlen[lend 's'];
+    let 'a': int8 = to.int8[-129 plus to.int64['n']];
+    let 'm1': int8 = to.int8[-2 plus to.int64['n']];
+    let 'm': int128 = -170141183460469231731687303715884105728 plus to.int128['n'] minus 1;
+    let mut 'code': int32 = 0;
+    if (('a' div.trunc.wrap 'm1') == -128) and (('a' div.floor.wrap 'm1') == -128) and (('a' div.ceil.wrap 'm1') == -128) and (('a' div.near.wrap 'm1') == -128) { change 'code' = 'code' plus 1; }
+    let 'two': int128 = to.int128['n'] plus 1;
+    if (('m' div.trunc.wrap to.int128['m1']) == 'm') and (('m' div.near.wrap 'two') == -85070591730234615865843651857942052864) { change 'code' = 'code' plus 2; }
+    let 'u': uint8 = to.uint8['n'] plus 6;
+    if (('u' div.ceil.wrap 2) == 4) and (('a' div.floor.wrap 3) == -43) { change 'code' = 'code' plus 4; }
+    nocheck exit['code'];
+}
