@@ -118,7 +118,13 @@ So far:
   requiring IEG, and `inline.MSL` moves into it, being syntax (owner:
   "`b`", over one "speed" core for both; design claude's reason: many
   programs want threads and no GPU, and Metal is not everywhere). Open:
-  both cores' names.
+  both cores' names. **They require IEG, not std** (owner: "Nah, it's
+  fine. They already have base, so yeah"): a program with the parallel
+  core and no std has threads but writes its own `plus` from IEG's raw
+  operations, which the owner found funny ("I have to make my own plus
+  operator, and then my loop somehow auto para") and accepted. Design
+  claude had offered (a) both require std too, recommended, (b) `plus`
+  back into IEG, (c) leave it.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
