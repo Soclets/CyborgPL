@@ -114,8 +114,11 @@ So far:
   IEG"), over (a) IEG with an off switch and (c) std with a second power
   (the owner: "idk if a limb has that much authority"). A program without
   it, a kernel, runs its loops in order, still proven and still SIMD, and
-  `for para` is refused there. Open: its name; whether GPU offload goes in
-  it or in a core of its own.
+  `for para` is refused there. **GPU offload is a core of its own**, also
+  requiring IEG, and `inline.MSL` moves into it, being syntax (owner:
+  "`b`", over one "speed" core for both; design claude's reason: many
+  programs want threads and no GPU, and Metal is not everywhere). Open:
+  both cores' names.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 

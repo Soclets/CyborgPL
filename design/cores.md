@@ -39,6 +39,7 @@ IEG (core)          raw machine operations; inline.LLVM
 other cores         anything, even dialects; may build on IEG
 a parallel core     splits proven loops across cores (threads); needs IEG;
                     a kernel leaves it out and runs its loops in order
+a GPU core          GPU offload and inline.MSL; needs IEG
 std (limb + power)  plus, minus, times, div.floor …, pow, printing,
                     friendly names for LLVM operations (std::bits.count_ones …)
 your limbs          everything else
@@ -98,7 +99,9 @@ Precog's proofs and SIMD are the base language's: they need nothing at run
 time. Running a loop across cores needs threads, so it comes from a
 higher-level official core that requires IEG; a program without it (an OS
 kernel) runs every loop in order, still proven and still SIMD, and `for
-para` is refused there. Its name, and whether GPU offload joins it, are open.
+para` is refused there. GPU offload is a core of its own, also requiring
+IEG, and `inline.MSL` belongs to it (owner, 2026-10-06: "`b`"). Both
+names are open.
 
 ## Open
 
