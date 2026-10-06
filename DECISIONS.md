@@ -14,8 +14,17 @@ Asked twice about speed: neither costs anything at run time (both happen
 while compiling; the program holds a plain 8-bit constant). Design claude
 noted C compilers warn ("overflow in conversion changes value from 256 to
 0") and Linux builds with `-Werror`. The owner: "`a`". So an `int8`
-takes the literals 0 to 255, its bits read as signed. Whether this rule
-is Signatar's or IEG's: asked next.
+takes the literals 0 to 255, its bits read as signed. **The rule is
+Signatar's** (owner: "Signatar's, then"), over IEG's: design claude
+argued that literals and types are Signatar's, so one rule serves every
+level, and a compile-time refusal is the kind of check the bottom layer
+has (an ARM assembler refuses a constant it cannot encode). The owner
+asked what C does (checked with Apple Clang: `int8_t x = 256;` builds as
+0 with a default warning, as does `uint8_t`, and even `int8_t z = 128;`
+warns "changes value from 128 to -128"), and whether Signatar has a
+manual way (a literal is any pattern the writer picks, so the cut value
+is written by hand; a run-time cut is assembly, IEG's raw calls or ASP's
+`to.int8.bits[…]`).
 
 ### 2026-10-06 — std needs ASP: a manifest listing std without ASP is refused (owner)
 

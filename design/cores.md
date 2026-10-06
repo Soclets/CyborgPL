@@ -80,7 +80,9 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   operator from std cannot), **`on.target`** (below);
 - **fixed arrays** (`array[T]`) and **text literals**, which need no heap;
 - **raw numbers**: literals are bit patterns, as the machine's (an `int8`
-  holding `128` holds -128's bits), with no negative literals;
+  holding `128` holds -128's bits), with no negative literals; a literal
+  wider than its type's bits (`256` in an `int8`) is refused (owner,
+  2026-10-06);
 - **kernel-grade raw memory**, beside ownership: pointers as values,
   addresses as numbers and back, volatile access, memory with no owner;
 - **no operators, no `to.` conversions, no markers**: in Signatar alone, a
