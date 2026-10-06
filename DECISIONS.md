@@ -5,11 +5,11 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-06 — The root path is `mine.`, not `limb.` (owner; not built yet)
+### 2026-10-06 — The root path is `my.`, not `limb.` (owner; not built yet)
 
 ```
-mine.helper[…]              # was limb.helper[…]
-mine.list.append[…]         # a Limb's own name, where a bare one clashes
+my.helper[…]                # was limb.helper[…]
+my.list.append[…]           # a Limb's own name, where a bare one clashes
 ```
 
 Asked, after a Limb's own clashing name was ruled to be reached through
@@ -17,9 +17,14 @@ its root ("yea"), "but should it be `mine.` instead?". Design claude: for
 `mine.`, it reads as "my own" and cannot be read as "some Limb"; for
 `limb.`, it pairs with `pub.limb`; leaned slightly to `mine.`, leaving
 `pub.limb` as it is ("public within the Limb" is another idea than "my
-root"). The owner: "`mine.`". Reverses 2026-09-19's `limb.` (chosen
-over the floated `std:to` / `std:::to`). About ten uses in the examples
-and tests. Asked next: the root file, `limb.cpls`.
+root"). The owner: "`mine.`" (recorded, 251e9dd), then, asked about the
+root file: "Actually... Is it `my.`?" Design claude: "my" goes before a
+noun and a path always has one (`my.helper`, "my helper"); Perl's `my`
+declares a variable, but here it is always followed by `.`; recommended
+`my.`. The owner: "yea". Reverses 2026-09-19's `limb.` (chosen over the
+floated `std:to` / `std:::to`). About ten uses in the examples and tests.
+Asked next: the root file, `limb.cpls` (design claude recommends keeping
+it: it names what the file is).
 
 ### 2026-10-06 — A Limb says whether its path is required or optional, per item, per module and per kind (owner: "all"; not built; reverses 2026-09-23's "drop bare")
 
@@ -73,8 +78,8 @@ without its path** (owner: "`a`"): "write `std::list.append` or
 `fastlists::list.append`"; depending on both is fine. **A Limb's own
 name does not win over them** (owner: "no", to design claude's "your own
 wins"). **A Limb's own clashing name is reached through its root**, as any name
-is: `limb.list.append[…]` (design claude's reading; the owner: "yea, but
-should it be `mine.` instead?", asked next). Open: how this sits with 2026-10-02's registry rule (a
+is: `my.list.append[…]` (design claude's reading; the owner: "yea"; the
+root became `my.`, below). Open: how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
 ### 2026-10-06 — Without ASP, a literal wider than its type's bits is refused (owner: a; not built)
