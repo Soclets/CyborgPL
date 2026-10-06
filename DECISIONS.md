@@ -36,8 +36,11 @@ the kinds are the keywords `fn`, `op`, `struct`, `enum`, `const`,
 be able to forbid"), so three choices: required (the default), optional
 (`bare`), forbidden. Asked after design claude said a path was always
 allowed, so a clash always had the fix "write the path" (glyph operators
-like `~=` already have no path, 2026-10-02). Open: the spelling of
-forbidden, how two Limbs' optional
+like `~=` already have no path, 2026-10-02). **Forbidden is
+`bare.only`** (owner: "yea"), the `.` narrowing `bare`, at every level:
+`pub bare.only fn …`, `pub bare.only module …`, `bare.only;`,
+`bare.only [op];`; writing the path to one is refused ("`list` forbids
+its path: write `list.append`"). Open: how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
