@@ -23,7 +23,11 @@ binding (design claude asked about that twin; the owner: "`<<>>` too").
 beside it, and **`<---->`** too (design claude asked, since `-->` and
 `<--` are main and the two-way arrow was only ever `<->`; the owner:
 "yea. Also, shouldn't there be `<---->` too? Two long arrows"). So the
-both-ways binding is `<-->`, or `<->`, `<<>>`, `<<<>>>`, `<---->`.
+both-ways binding is `<-->`, or `<->`, `<<>>`, `<<<>>>`, `<---->`. **And
+the walled ones: `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>`** (the owner:
+"`<--|-->` should be too, I think"; asked about the twins and how many,
+nine two-way spellings with them: "`b`"). Seventeen arrow spellings in
+all: four out, four in, nine both ways.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
 

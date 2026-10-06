@@ -289,7 +289,7 @@ nocheck inline.ASM {
   copies the variable in before the block, `'v' <-- x0` stores the
   register into `'v'` after (declaring it, like `let 'v' := …`), `'v' <--> x0`
   both (`<-->` the main spelling since 2026-10-06; `<->`, `<<>>`, `<<<>>>`,
-  `<---->` the others); `clobber x16` says a register was overwritten.
+  `<---->`, `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>` the others); `clobber x16` says a register was overwritten.
 - **A lend goes into a register as the address of the lent data**
   (owner, 2026-09-30: a): `lend 'text' --> x1`, and `lend.mut 'buf' --> x1`
   for data the assembly may write through — the rule an `extern` call
