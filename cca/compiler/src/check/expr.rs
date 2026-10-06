@@ -643,7 +643,8 @@ impl Checker {
                     };
                     return Ok(Expr { kind: K::Int(value), ty: t.clone(), span: v.span });
                 }
-                Ty::Infer(_) => {}
+                // Not settled yet: the literal waits, as anywhere.
+                Ty::Infer(_) | Ty::Int(IntW::Free(_)) => {}
                 _ => return err(Diagnostic::error(format!("what a literal means in {} without ASP is not decided", self.spell(&t))).at(v.span)),
             }
         }
@@ -1648,6 +1649,22 @@ impl Checker {
             };
             return err(Diagnostic::error(format!("`{}` is not an operator here: {}", spelling, hint)).at(op_span));
         };
+        // Another Limb's word operator follows its mark (owner,
+        // 2026-10-06): `bare.never` needs the path, `bare.only` refuses it.
+        let decl = &self.items.fns[fn_id.0 as usize];
+        let (here, there) = (self.items.limb_root(ctx.module), self.items.limb_root(decl.module));
+        if here != there {
+            match (limb, self.items.bare_marks.get(&decl.name_span)) {
+                (None, Some(ast::Bare::Never)) => {
+                    let prefix = self.items.limb_deps.get(&here).and_then(|d| d.iter().find(|(_, r)| **r == there)).map(|(p, _)| p.clone()).unwrap_or_default();
+                    return err(Diagnostic::error(format!("`{n}` is `{p}`'s and `bare.never`: write `{p}::{n}`", n = name, p = prefix)).at(op_span));
+                }
+                (Some((prefix, _)), Some(ast::Bare::Only)) => {
+                    return err(Diagnostic::error(format!("`{p}::{n}` is `bare.only`: `{p}` forbids its path, so write `{n}`", n = name, p = prefix)).at(op_span));
+                }
+                _ => {}
+            }
+        }
         self.user_op_call(ctx, fn_id, spelling, op_span, lhs, rhs, span)
     }
 
@@ -1938,6 +1955,18 @@ impl Checker {
     // ------------------------------------------------------------ calls
 
     fn call(&mut self, ctx: &mut FnCtx, path: &ast::Path, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
+        // std marks everything `bare.optional` (owner, 2026-10-06): its
+        // names may drop `std::`, and the built-ins it owns may carry it.
+        if path.limb.as_ref().is_some_and(|l| l.name == "std") && std_builtin(path) {
+            let plain = ast::Path { limb: None, segs: path.segs.clone(), span: path.span };
+            return self.call(ctx, &plain, args, otherwise, span, used);
+        }
+        if path.limb.is_none() && std_name(path) {
+            if let crate::resolve::Bareness::Std = self.items.resolve_bare(path, ctx.module, true)? {
+                let with = ast::Path { limb: Some(ast::Ident { name: "std".into(), span: path.span }), segs: path.segs.clone(), span: path.span };
+                return self.call(ctx, &with, args, otherwise, span, used);
+            }
+        }
         // The prints are one family (owner, dc7e2e4): the old names say the
         // new ones, with std or without it.
         if path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
@@ -2002,7 +2031,7 @@ impl Checker {
                 if path.segs.len() == 1 && path.limb.is_none() && self.items.ops.contains_key(path.head()) {
                     return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `'a' {} 'b'`, never `{}[…]`", path.head(), path.head(), path.head())).at(span));
                 }
-                if path.segs.len() == 1 && path.limb.is_none() && args.iter().any(|a| matches!(a, AArg::Named(..))) {
+                if path.segs.len() == 1 && path.limb.is_none() && args.iter().any(|a| matches!(a, AArg::Named(..))) && e.sentence.starts_with("there is no") {
                     return err(Diagnostic::error(format!("there is no struct named `{}` here", path.head())).at(path.span));
                 }
                 return Err(e);
@@ -2846,6 +2875,15 @@ impl Checker {
         // deci — the conversion says which.
         let (form, stripped) = conv_form(target)?;
         let target = stripped.as_ref().unwrap_or(target);
+        // `to.int8.bits[…]` (owner, 2026-10-06): ASP's raw form.
+        if let ast::TypeKind::Path { path, args } = &target.kind {
+            if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "bits") {
+                let mut p = path.clone();
+                p.segs.pop();
+                let inner = ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span };
+                return self.to_bits(ctx, &inner, operand, otherwise, span);
+            }
+        }
         let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
         if let Some(u) = form {
             if !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
@@ -2999,7 +3037,50 @@ impl Checker {
             }
         }
         let fails_owned: Vec<String> = fails.iter().map(|s| s.to_string()).collect();
-        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful }, ty: t, span })
+        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful, bits: false }, ty: t, span })
+    }
+
+    /// `to.int8.bits[…]` (owner, 2026-10-06): a whole number's bits read as
+    /// the type's — `to.int8.bits[128]` is -128, `to.uint8.bits[-1]` is 255.
+    /// A value from -2^(N-1) to 2^N - 1 has them (design claude's reading,
+    /// not ruled); what `.bits` means past whole numbers is not decided.
+    fn to_bits(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span) -> Result<Expr> {
+        let mut blanks = Vec::new();
+        let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
+        let n = match &t {
+            Ty::Int(IntW::Fixed { bits, .. }) if t.exact_limit().is_none() => *bits,
+            _ => return err(Diagnostic::error(format!("`.bits` is for whole-number types: what `to.{}.bits` means is not decided", self.spell(&t))).at(span)),
+        };
+        if otherwise.is_some() {
+            return err(Diagnostic::error(format!("`to.{}.bits` cannot fail: a value past its bits is a check site, not a failure; drop the `otherwise`", self.spell(&t))).at(span));
+        }
+        let v = self.expr(ctx, operand)?;
+        let literal = match &v.kind {
+            K::Int(i) => Some(*i),
+            K::Unary { op: UnOp::Neg, expr } => match expr.kind {
+                K::Int(i) => Some(-i),
+                _ => None,
+            },
+            _ => None,
+        };
+        if let (Some(i), true) = (literal, matches!(self.resolve(&v.ty).base(), Ty::Int(IntW::Free(_)))) {
+            let room = 1i128.checked_shl(n).filter(|_| n < 127);
+            if let Some(room) = room {
+                if i < -(room / 2) || i >= room {
+                    return err(Diagnostic::error(format!("`{}` does not fit the {} bits of {}: `to.{}.bits` reads a pattern of {} bits", i, n, self.spell(&t), self.spell(&t), n)).at(v.span));
+                }
+                let signed = matches!(t, Ty::Int(IntW::Fixed { signed: true, .. }));
+                let pattern = i.rem_euclid(room);
+                let value = if signed && pattern >= room / 2 { pattern - room } else { pattern };
+                return Ok(Expr { kind: K::Int(value), ty: t, span });
+            }
+        }
+        let v = self.as_operand(ctx, v)?;
+        let vt = self.resolve(&v.ty);
+        if !matches!(vt.base(), Ty::Int(_)) {
+            return err(Diagnostic::error(format!("`to.{}.bits` reads a whole number's bits, and this is {}", self.spell(&t), article(&self.spell(&vt)))).at(v.span));
+        }
+        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: None, fails: Vec::new(), useful: false, bits: true }, ty: t, span })
     }
 
     // ------------------------------------------------------------ builtins
@@ -3767,6 +3848,30 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
 }
 
 /// Every leaf a literal, every node arithmetic.
+/// One of std's names the oracle stands in for (owner, 2026-10-06: std
+/// is `bare.optional` for all), written without `std::`.
+fn std_name(path: &ast::Path) -> bool {
+    let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
+    match segs.as_slice() {
+        ["print" | "printu" | "printf", ..] => true,
+        ["exit" | "round" | "floor" | "ceil" | "trunc"] => true,
+        ["time" | "input", _, ..] => true,
+        ["str", op] => matches!(*op, "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join"),
+        _ => false,
+    }
+}
+
+/// std's lists, maps and text units, which the language builds in, with
+/// `std::` in front.
+fn std_builtin(path: &ast::Path) -> bool {
+    let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
+    match segs.as_slice() {
+        ["list" | "map", _, ..] => true,
+        ["str", unit, ..] => matches!(*unit, "bytes" | "points" | "graphemes" | "each"),
+        _ => false,
+    }
+}
+
 fn literal_only(e: &Expr) -> bool {
     match &e.kind {
         K::Int(_) | K::BigInt(_) => true,

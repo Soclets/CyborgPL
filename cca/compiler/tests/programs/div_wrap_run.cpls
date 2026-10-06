@@ -16,5 +16,5 @@ MAIN {
     if (('m' div.trunc.wrap to.int128['m1']) == 'm') and (('m' div.near.wrap 'two') == -85070591730234615865843651857942052864) { change 'code' = 'code' plus 2; }
     let 'u': uint8 = to.uint8['n'] plus 6;
     if (('u' div.ceil.wrap 2) == 4) and (('a' div.floor.wrap 3) == -43) { change 'code' = 'code' plus 4; }
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

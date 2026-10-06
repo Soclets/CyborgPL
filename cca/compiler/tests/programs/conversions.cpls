@@ -37,5 +37,5 @@ MAIN {
     if 'h' == 7 { change 'got' = 'got' plus 64; }
     let 'i' := to.uint8[" 1"] otherwise 3;
     if 'i' == 3 { change 'got' = 'got' plus 128; }
-    nocheck exit['got' mod.floor 256];
+    nocheck my.exit['got' mod.floor 256];
 }

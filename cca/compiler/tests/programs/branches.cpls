@@ -10,5 +10,5 @@ MAIN {
     let 'a': int32 = grade[95];
     let 'b': int32 = grade[60];
     let 'c': int32 = grade[10];
-    nocheck exit[('a' times 100) plus ('b' times 10) plus 'c'];     # 123
+    nocheck my.exit[('a' times 100) plus ('b' times 10) plus 'c'];     # 123
 }

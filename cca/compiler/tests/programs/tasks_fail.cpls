@@ -13,5 +13,5 @@ MAIN {
         concur with [] { judge[20] otherwise fail; }
             otherwise { small { change 'seen' = 'seen' plus 7; } odd 'v' { change 'seen' = 'seen' plus 7; } };
     }
-    nocheck exit['seen'];
+    nocheck my.exit['seen'];
 }

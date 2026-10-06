@@ -9,5 +9,5 @@ fn first [lent 'a': list[int32]] -> lent list[int32] {
 MAIN {
     let 's': list[int32] = [1, 2, 3];
     let 'r' := first[lend 's'];
-    nocheck exit['r'[3]];
+    nocheck my.exit['r'[3]];
 }

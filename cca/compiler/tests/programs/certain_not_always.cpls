@@ -9,5 +9,5 @@ MAIN {
     if 'n' > 100000000 {
         let 'x': uint64 = to.uint64['p'];
     }
-    nocheck exit[0];
+    nocheck my.exit[0];
 }

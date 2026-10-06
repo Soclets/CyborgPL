@@ -9,5 +9,5 @@ MAIN {
     nocheck let 'n': uint64 = strlen[lend 's'];
     let 'a': uint64 = 'n' mod.floor 255;
     let 'b': uint64 = 'n' mod.floor 65535;
-    nocheck exit[to.int32['a' plus 'b']];
+    nocheck my.exit[to.int32['a' plus 'b']];
 }

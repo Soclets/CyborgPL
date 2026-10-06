@@ -26,5 +26,5 @@ MAIN {
     let mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
     simd.store[lend.mut 'out', 2, 'a' plus 'b'];
     if 'out'[1] == 0 and 'out'[2] == 13 and 'out'[5] == 13 and 'out'[6] == 0 { change 'got' = 'got' plus 64; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

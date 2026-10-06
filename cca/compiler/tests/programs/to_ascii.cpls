@@ -13,5 +13,5 @@ MAIN {
     let 'c' := to.str.ascii['e'] otherwise "x";
     let 'd' := to.str.ascii['k'];
     let 'n': uint64 = str.bytes[lend 'a'] times 16 plus str.bytes[lend 'b'] times 4 plus str.bytes[lend 'c'] plus str.bytes[lend 'd'];
-    nocheck exit[to.int32['n']];
+    nocheck my.exit[to.int32['n']];
 }

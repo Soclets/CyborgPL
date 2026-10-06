@@ -26,5 +26,5 @@ MAIN {
     let 'dn' := to.int32['d'] otherwise 0;
     let mut 'bonus': int32 = 0;
     if 'le' { change 'bonus' = 100; }
-    nocheck exit['sum' plus 'product' plus 'down' plus 'n' plus 'm' plus 'dn' plus 'bonus'];
+    nocheck my.exit['sum' plus 'product' plus 'down' plus 'n' plus 'm' plus 'dn' plus 'bonus'];
 }

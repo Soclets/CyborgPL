@@ -3,3 +3,4 @@
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
 
+std_op_path :: `1 std::shl 3` straight into a print has no width: operators.md ("Where a shift's width comes from") takes it from where the value goes, and context stops at a call; the oracle prints 8. Asked design claude, 2026-10-06

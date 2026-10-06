@@ -43,5 +43,5 @@ MAIN {
     let 'w': bin64 = 5.5;
     let 'g' := to.stored.deci64[0.0, 1.0]['w'] otherwise 'disc';
     change 'got' = 'got' plus same['g', "0.15"];
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

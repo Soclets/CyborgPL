@@ -1476,7 +1476,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 };
                 self.binary(fi, op, a, b, sites, func, blocks, signed)
             }
-            Rvalue::Convert { to, operand, useful } => {
+            Rvalue::Convert { to, operand, useful, .. } => {
                 let mut v = self.operand(fi, operand, slots)?;
                 if let Some(from) = self.operand_cy_ty(fi, operand) {
                     if matches!(from.base(), Ty::Deci(_)) && !matches!(to.base(), Ty::Str(_)) || matches!(to.base(), Ty::Deci(_)) {

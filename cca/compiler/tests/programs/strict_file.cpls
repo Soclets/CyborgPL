@@ -17,5 +17,5 @@ MAIN {
     let immut 'f' := fn ['n': int32[0, 1000]] -> int32 { return 'n' times 2; };
     let immut 'r' := ratio[4];
     let immut 'six' := 'f'[3];
-    nocheck exit['total' plus 'mid'[pos 1] plus 'mid'[pos 2] plus 'r' plus 'six'];
+    nocheck my.exit['total' plus 'mid'[pos 1] plus 'mid'[pos 2] plus 'r' plus 'six'];
 }

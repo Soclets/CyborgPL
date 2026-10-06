@@ -17,5 +17,5 @@ MAIN {
     let 'm': fn[int32, int32] -> int32 = op mod.floor;
     let 'r' := 'm'[17, 5];
     let 'd' := pairwise[V[x = 1, y = 2], V[x = 3, y = 4], op dot];
-    nocheck exit['sum' plus 'prod' plus 'r' plus 'd'];
+    nocheck my.exit['sum' plus 'prod' plus 'r' plus 'd'];
 }

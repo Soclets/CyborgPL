@@ -7,5 +7,5 @@ MAIN {
     let mut 'got': int32 = 0;
     if str.bytes[lend 't'] == 3 and str.graphemes[lend 't'] == 1 { change 'got' = 'got' plus 1; }
     if 'g' == `é` { change 'got' = 'got' plus 2; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

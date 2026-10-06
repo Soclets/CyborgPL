@@ -15,5 +15,5 @@ MAIN {
     let 'a' := Shape.dot;
     let 'b' := Shape.line[5];
     let 'c' := Shape.box[7];
-    nocheck exit[measure[give 'a'] plus measure[give 'b'] plus measure[give 'c']];
+    nocheck my.exit[measure[give 'a'] plus measure[give 'b'] plus measure[give 'c']];
 }

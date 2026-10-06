@@ -28,5 +28,5 @@ fn run [] -> int32 {
     return width[lend 'l'] times 100 plus width[lend 'p'] times 10 plus width[lend 'f'];
 }
 MAIN {
-    nocheck exit[run[]];
+    nocheck my.exit[run[]];
 }

@@ -5,5 +5,5 @@ extern.C fn getuid [] -> uint32;
 MAIN {
     nocheck let 'u' := getuid[];
     let 'b': uint8 = 'u';
-    nocheck exit[to.int32['b']];
+    nocheck my.exit[to.int32['b']];
 }

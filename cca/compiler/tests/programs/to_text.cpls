@@ -33,5 +33,5 @@ MAIN {
     if short['small'] == "?" and short[-12] == "-12" { change 'got' = 'got' plus 32; }
     let 'joined' := "n=" ++ to.stored.str.utf8['small' plus 4];
     if 'joined' == "n=1004" { change 'got' = 'got' plus 64; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

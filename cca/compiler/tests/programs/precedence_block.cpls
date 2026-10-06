@@ -31,5 +31,5 @@ MAIN {
     let 'w': int32 = 2 times 3 pow 2;
     let mut 'k': int32 = 0;
     if 'p' ~= 13 { change 'k' = 1; }
-    nocheck exit['p' plus 'q' plus 'r' plus 's' plus 't' plus 'w' plus 'k'];
+    nocheck my.exit['p' plus 'q' plus 'r' plus 's' plus 't' plus 'w' plus 'k'];
 }

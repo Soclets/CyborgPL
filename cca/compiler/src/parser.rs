@@ -224,6 +224,25 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     p.prec.extend(precedence_blocks(toks)?);
     p.no_std = NO_STD.with(|c| c.get());
     p.cores = CORES.with(|c| c.borrow().clone());
+    // Growing lists, maps and text operations are std's (owner,
+    // 2026-10-06), as a type, a literal or an operation; fixed arrays and
+    // text literals stay.
+    if p.no_std {
+        for i in 0..toks.len() {
+            let Tok::Word(w) = &toks[i].tok else { continue };
+            if i > 0 && matches!(toks[i - 1].tok, Tok::Dot | Tok::ColonColon) {
+                continue;
+            }
+            let next = toks.get(i + 1).map(|t| &t.tok);
+            let what = match (w.as_str(), next) {
+                ("list", Some(Tok::Dot | Tok::LBracket)) => "a growing list (`list`)",
+                ("map", Some(Tok::Dot | Tok::LBracket)) => "a map (`map`)",
+                ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
+                _ => continue,
+            };
+            return err(Diagnostic::error(format!("{} is std's, and this Limb's CCA.cplr does not list std: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+        }
+    }
     // A core's words, in a Limb that does not list the core.
     if let Some(cores) = &p.cores {
         for i in 0..toks.len() {
@@ -2799,9 +2818,18 @@ impl<'a> Parser<'a> {
     fn expr(&mut self, min_bp: u16) -> Result<Expr> {
         let mut lhs = self.prefix()?;
         loop {
-            let Some(t) = self.binop() else { break };
+            // std's word operators with their path, `'a' std::plus 'b'`
+            // (owner, 2026-10-06: std is `bare.optional` for all), read as
+            // the operator itself; `std::pow` has its own arm.
+            let skip = if self.is_word("std") && matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(w) if matches!(w.as_str(), "plus" | "minus" | "times" | "div" | "mod" | "and" | "or" | "xor" | "shl" | "shr")) { 2 } else { 0 };
+            self.pos += skip;
+            let Some(t) = self.binop() else {
+                self.pos -= skip;
+                break;
+            };
             let (mut op, l_bp, r_bp, op_span) = (t.op.clone(), t.l, t.r, t.span);
             if l_bp < min_bp {
+                self.pos -= skip;
                 break;
             }
             // consume the operator token(s)

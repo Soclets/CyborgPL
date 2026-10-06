@@ -17,5 +17,5 @@ MAIN {
     if 'big' > 'neg' { change 'got' = 'got' plus 4; }
     if 'neg' < 'big' { change 'got' = 'got' plus 8; }
     if 'neg' == 'u' { change 'got' = 'got' plus 16; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

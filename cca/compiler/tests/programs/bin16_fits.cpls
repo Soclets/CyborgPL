@@ -8,6 +8,6 @@ MAIN {
     let mut 'x': bin64 = 1.0;
     if 'there' { change 'x' = 65519.0; }
     let 'h': bin16 = 'x';
-    if 'h' == 65504.0 { nocheck exit[3]; }
-    nocheck exit[4];
+    if 'h' == 65504.0 { nocheck my.exit[3]; }
+    nocheck my.exit[4];
 }

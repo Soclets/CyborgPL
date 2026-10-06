@@ -19,5 +19,5 @@ fn run [] -> int32 or fail[missing, out_of_range] {
 }
 MAIN {
     let 'code' := run[] otherwise 2;
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

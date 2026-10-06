@@ -11,5 +11,5 @@ MAIN {
         change 'total' = 'total' plus str.bytes[lend 'page'];
     }
     let 'extra' := channel.take[lend 'results'] otherwise "closed!";
-    nocheck exit['total' plus str.bytes[lend 'extra']];
+    nocheck my.exit['total' plus str.bytes[lend 'extra']];
 }

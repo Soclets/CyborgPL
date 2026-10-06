@@ -26,5 +26,5 @@ MAIN {
     }
     let 'b': int32 = to.int32['bsum' div.near 1000.0] otherwise 1;
     let 'd': int32 = to.int32[('dsum' times 'dprod') div.near 1000] otherwise 1;
-    nocheck exit['b' plus 'd' plus to.int32['sign' plus 2]];
+    nocheck my.exit['b' plus 'd' plus to.int32['sign' plus 2]];
 }

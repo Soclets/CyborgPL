@@ -21,5 +21,5 @@ MAIN {
     change 'code' = 'code' plus to.int64['eights'[4]];
     let 'twice': int64 = to.int64['bs'[2] times 2.0] otherwise 0;
     change 'code' = 'code' plus 'twice';
-    nocheck exit[to.int32['code']];
+    nocheck my.exit[to.int32['code']];
 }

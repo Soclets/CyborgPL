@@ -10,5 +10,5 @@ MAIN {
             change 'got' = 'x' plus 'y';
         }
     }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

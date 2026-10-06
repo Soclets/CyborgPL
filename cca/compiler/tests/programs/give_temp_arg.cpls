@@ -9,5 +9,5 @@ MAIN {
     let 'a' := count[to.stored.str.utf8[123]];
     let 'b' := count[make[12345]];
     let 'c' := count[make[-7]];
-    nocheck exit['a' plus 'b' plus 'c'];
+    nocheck my.exit['a' plus 'b' plus 'c'];
 }

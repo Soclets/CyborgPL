@@ -1,2 +1,2 @@
 extern.C fn exit ['code': int32];
-MAIN { nocheck exit[bare_dep::sum[3, 4] plus 1]; }
+MAIN { nocheck my.exit[bare_dep::sum[3, 4] plus 1]; }

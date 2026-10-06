@@ -10,6 +10,6 @@ MAIN {
     let 'g': int32 = 1 mod.floor (-2000000000);
     let 'c': int64 = -7 mod.floor 3;
     let 'ok': int32 = 0;
-    if 'a' == -2 and 'b' == -2 and 'd' == -2 and 'e' == -2982098350919537421 and 'g' == -1999999999 and 'c' == 2 { nocheck exit[42]; }
-    nocheck exit[1];
+    if 'a' == -2 and 'b' == -2 and 'd' == -2 and 'e' == -2982098350919537421 and 'g' == -1999999999 and 'c' == 2 { nocheck my.exit[42]; }
+    nocheck my.exit[1];
 }

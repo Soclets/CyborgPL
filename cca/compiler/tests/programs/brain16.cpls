@@ -26,5 +26,5 @@ MAIN {
     let 'k5' := to.int32['h'] otherwise -1;
     let 'k6' := to.int32['back'] otherwise -1;
     let 'total' := 'n' plus ('cc' mod.floor 1000) plus str.bytes[lend 's'] plus str.bytes[lend 't'] plus 'k1' plus ('k2' mod.floor 1000) plus 'k3' plus ('k4' mod.floor 1000) plus 'k5' plus 'k6';
-    nocheck exit[to.int32['total' mod.floor 256]];
+    nocheck my.exit[to.int32['total' mod.floor 256]];
 }

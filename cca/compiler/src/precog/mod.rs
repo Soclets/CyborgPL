@@ -1431,8 +1431,13 @@ impl Precog {
                 }
                 r
             }
-            Rvalue::Convert { to, operand, useful } => {
+            Rvalue::Convert { to, operand, useful, bits } => {
                 let d = self.read_operand(f, env, operand);
+                // A value's bits read as another type's: the same value only
+                // where it already fits.
+                if *bits && !matches!(self.convert(to, &d), x if x == d) {
+                    return Domain::of_ty(to, &self.prog().items);
+                }
                 let from = operand.place().map(|p| self.place_ty(f, p)).map(|t| t.base().clone());
                 // An enum case as text is its name, and the useful text of a
                 // bin, deci or case is not modelled: any text of the type,

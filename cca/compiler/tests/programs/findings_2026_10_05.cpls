@@ -19,5 +19,5 @@ MAIN {
     let 'big' := to.deci128["1e400"] otherwise -21.363;
     let 'small' := to.deci32['big'] otherwise -180.0;
     if 'small' == -180.0 { change 'code' = 'code' plus 8; }
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

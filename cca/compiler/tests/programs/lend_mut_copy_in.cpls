@@ -11,5 +11,5 @@ MAIN {
         change 'x' = 7;
         change 't' = 't' plus to.int32['v'] plus to.int32['x'];
     }
-    nocheck exit['t' plus to.int32['xs'[1]]];
+    nocheck my.exit['t' plus to.int32['xs'[1]]];
 }

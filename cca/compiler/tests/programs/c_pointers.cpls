@@ -10,5 +10,5 @@ MAIN {
     nocheck let 'a' := ptr.read['buf'];
     nocheck let 'b' := ptr.read[ptr.at['buf', 1]];
     nocheck free['buf'];
-    nocheck exit[to.int32['a'] plus to.int32['b'] minus 170];
+    nocheck my.exit[to.int32['a'] plus to.int32['b'] minus 170];
 }

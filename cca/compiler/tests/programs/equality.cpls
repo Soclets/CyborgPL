@@ -23,5 +23,5 @@ MAIN {
     let 'a' := P[x = to.int32['n'], y = 2];
     if 'a' == P[x = 3, y = 2] { change 'got' = 'got' plus 16; }
     if "a" ++ "bc" == 'k' { change 'got' = 'got' plus 32; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

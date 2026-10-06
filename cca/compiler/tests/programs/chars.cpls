@@ -39,5 +39,5 @@ MAIN {
     if 'bb' == 'pp' { change 'got' = 'got' plus 32; }
     let 'j' := 'p' ++ "!" ++ 'pp';
     if 'j' == "é!A" { change 'got' = 'got' plus 64; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

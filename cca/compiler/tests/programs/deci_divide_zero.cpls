@@ -7,5 +7,5 @@ fn half ['d': deci64] -> deci64 {
 MAIN {
     let 'z': deci64 = 0.00;
     let 'h' := half['z'];
-    nocheck exit[7];
+    nocheck my.exit[7];
 }

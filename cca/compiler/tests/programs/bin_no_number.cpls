@@ -12,5 +12,5 @@ MAIN {
     let 'r': bin64 = 2.0 pow 0.5;
     let 'b' := base[];
     let 'q': bin64 = 'b' pow 0.5;
-    nocheck exit[7];
+    nocheck my.exit[7];
 }

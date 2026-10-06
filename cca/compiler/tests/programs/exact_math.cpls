@@ -25,5 +25,5 @@ MAIN {
     if 'below' == -5 { change 'got' = 'got' plus 16; }
     if 'h' == 3705032704 { change 'got' = 'got' plus 32; }
     if 'v' < 200 { change 'got' = 'got' plus 64; }
-    nocheck exit[to.int32['got']];
+    nocheck my.exit[to.int32['got']];
 }

@@ -40,5 +40,5 @@ MAIN {
     let mut 'h' := 'g';
     if 'there' { change 'h' = fn ['s': int32] -> bool { return 's' > 90; }; }
     if count_if[lend 'scores', 'h'] == 1 and count_if[lend 'scores', 'g'] == 1 { change 'got' = 'got' plus 32; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

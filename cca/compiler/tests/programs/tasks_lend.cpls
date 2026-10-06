@@ -16,5 +16,5 @@ MAIN {
     let 'la': int32 = list.length[lend 'a'];
     let 'lb': int32 = list.length[lend 'b'];
     let 'last': int32 = 'b'[5];
-    nocheck exit['la' plus 'lb' plus 'last'];
+    nocheck my.exit['la' plus 'lb' plus 'last'];
 }

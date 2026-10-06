@@ -46,5 +46,5 @@ MAIN {
     NO_FUCKING_CHECKS let 'trusted' := ptr.read['p'];
     nocheck free['p'];
     let 'bits' := flag[num[give 'zero'] == 3, 1] plus flag[num[give 'two'] == 2, 2] plus flag[by_memset[] == 3, 4] plus flag[by_memcpy[] == 4, 8] plus flag[num[give 'trusted'] == 2, 16];
-    nocheck exit['bits'];
+    nocheck my.exit['bits'];
 }

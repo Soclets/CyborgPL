@@ -19,5 +19,5 @@ MAIN {
     nocheck let 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
     let 'code' := 'q'.x times 10 plus 'q'.y plus 'second';
     nocheck free['raw'];
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

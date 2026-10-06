@@ -16,5 +16,5 @@ MAIN {
     map.set[lend.mut 'users', User[id = 'id' plus 100, name = "Ann again"], 2];
     let 'n' := map.get[lend 'users', User[id = 'id' plus 200, name = "x"]] otherwise 0;
     let 'm' := map.get[lend 'users', User[id = 3, name = "y"]] otherwise 9;
-    nocheck exit['n' times 10 plus 'm' plus to.int32[map.length[lend 'users']] times 100];
+    nocheck my.exit['n' times 10 plus 'm' plus to.int32[map.length[lend 'users']] times 100];
 }

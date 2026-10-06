@@ -4,5 +4,5 @@ MAIN {
     let mut 'xs': list[int32] = [1, 2, 3];
     nocheck let 'n': int32 = getpid[];
     let 'v': int32 = 'xs'['n'];
-    nocheck exit['v'];
+    nocheck my.exit['v'];
 }

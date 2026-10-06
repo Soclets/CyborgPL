@@ -18,5 +18,5 @@ MAIN {
         }
         break;
     }
-    nocheck exit[list.length[lend 'out'] plus 'out'[1]];
+    nocheck my.exit[list.length[lend 'out'] plus 'out'[1]];
 }

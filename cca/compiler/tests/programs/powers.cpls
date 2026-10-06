@@ -14,5 +14,5 @@ MAIN {
     if 'w' pow.wrap 'e5' == 243 { change 'got' = 'got' plus 8; }
     let 'e6': uint8 = to.uint8['two' plus 4];
     if 'w' pow.wrap 'e6' == 217 { change 'got' = 'got' plus 16; }
-    nocheck exit[to.int32['got']];
+    nocheck my.exit[to.int32['got']];
 }

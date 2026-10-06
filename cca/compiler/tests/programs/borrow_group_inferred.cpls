@@ -11,5 +11,5 @@ MAIN {
     let 's': list[int32] = [1,];
     let 't': list[int32] = [2, 3];
     let 'r' := b2[lend 's', lend 't'];
-    nocheck exit[to.int32[list.length[lend 'r']]];
+    nocheck my.exit[to.int32[list.length[lend 'r']]];
 }

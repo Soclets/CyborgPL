@@ -16,5 +16,5 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     nocheck let 'end' := ptr.read[ptr.at['argv', 'argc']];
     let mut 'null': int32 = 0;
     if ptr.is_null['end'] { change 'null' = 100; }
-    nocheck exit['argc' plus to.int32['a'] plus 'n' plus 'null'];
+    nocheck my.exit['argc' plus to.int32['a'] plus 'n' plus 'null'];
 }

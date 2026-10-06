@@ -7,5 +7,5 @@ fn twice ['n': int32] -> int32 { return 'n' times 2; }
 
 MAIN {
     let 'sum': int32 = add[20, 1];
-    nocheck exit[twice['sum']];       # 42
+    nocheck my.exit[twice['sum']];       # 42
 }

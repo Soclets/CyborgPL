@@ -19,5 +19,5 @@ fn width ['s': Status] -> int32 {
     return to.int32['n'];
 }
 MAIN {
-    nocheck exit[width[Status.claimed["bo"]]];
+    nocheck my.exit[width[Status.claimed["bo"]]];
 }

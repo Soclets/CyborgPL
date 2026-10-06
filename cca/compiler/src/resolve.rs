@@ -16,6 +16,16 @@ pub struct FnId(pub u32);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OpId(pub u32);
 
+/// Where a bare path leads (owner, 2026-10-06).
+#[derive(Debug, Clone)]
+pub enum Bareness {
+    Own(ItemRef),
+    /// Another Limb's, by its prefix.
+    Dep(String, ItemRef),
+    /// One of std's names.
+    Std,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ItemRef {
     Fn(FnId),
@@ -139,6 +149,12 @@ pub struct Items {
     /// Files of a Limb whose `CCA.cplr` does not list ASP (owner,
     /// 2026-10-06): a whole-number literal there lands as a bit pattern.
     pub raw_files: std::collections::HashSet<crate::source::FileId>,
+    /// Each pub thing's `bare` mark, by its name's span (owner,
+    /// 2026-10-06).
+    pub bare_marks: HashMap<Span, crate::ast::Bare>,
+    /// The roots of Limbs whose `CCA.cplr` does not list std: std's names
+    /// are not theirs to write bare.
+    pub no_std_roots: std::collections::HashSet<ModuleId>,
     pub modules: Vec<Module>,
     pub fns: Vec<FnDeclInfo>,
     pub externs: Vec<ExternInfo>,
@@ -615,6 +631,100 @@ impl Items {
 
     /// Look up the first segment of a path in module `m`, then walk.
     pub fn lookup_path(&self, path: &ast::Path, m: ModuleId) -> Result<ItemRef> {
+        match self.resolve_bare(path, m, false)? {
+            Bareness::Own(i) | Bareness::Dep(_, i) => Ok(i),
+            Bareness::Std => unreachable!("std is asked for only by calls"),
+        }
+    }
+
+    /// Where a path written in module `m` leads (owner, 2026-10-06): a
+    /// bare one may be this Limb's own, std's (when `std` says the name is
+    /// one of std's and this Limb lists std), or another Limb's marked
+    /// `bare.optional` or `bare.only`; more than one is refused where it is
+    /// written, and this Limb's own does not win (owner: "no"). One with
+    /// another Limb's prefix is refused when that Limb forbids the path.
+    pub fn resolve_bare(&self, path: &ast::Path, m: ModuleId, std: bool) -> Result<Bareness> {
+        if let Some(limb) = path.limb.as_ref().filter(|l| l.name != "std") {
+            let item = self.lookup_plain(path, m)?;
+            let span = self.dependency(limb, m).ok().and_then(|root| self.lookup_pub_from(path, root)).map(|(_, s)| s);
+            if span.and_then(|s| self.bare_marks.get(&s)) == Some(&ast::Bare::Only) {
+                let bare = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
+                let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "[…]" } else { "" };
+                return err(Diagnostic::error(format!("`{}` is `bare.only`: `{}` forbids its path, so write `{}{}`", path.spelled(), limb.name, bare, call)).at(path.span));
+            }
+            return Ok(Bareness::Own(item));
+        }
+        let own = self.lookup_plain(path, m);
+        if path.limb.is_some() || path.head() == "my" {
+            return own.map(Bareness::Own);
+        }
+        // Inside a module, a name found there is that module's.
+        let here = self.limb_root(m);
+        if here != m {
+            if let Ok(i) = own {
+                return Ok(Bareness::Own(i));
+            }
+        }
+        let written = path.spelled();
+        let mut found: Vec<(String, Bareness)> = Vec::new();
+        if let Ok(i) = &own {
+            if !matches!(i, ItemRef::Module(_)) {
+                found.push((format!("`my.{}` (this Limb's)", written), Bareness::Own(*i)));
+            }
+        }
+        if std && !self.no_std_roots.contains(&here) {
+            found.push((format!("`std::{}`", written), Bareness::Std));
+        }
+        let mut never: Option<String> = None;
+        if let Some(deps) = self.limb_deps.get(&here) {
+            let mut deps: Vec<(&String, &ModuleId)> = deps.iter().collect();
+            deps.sort_by(|a, b| a.0.cmp(b.0));
+            for (prefix, root) in deps {
+                let Some((item, span)) = self.lookup_pub_from(path, *root) else { continue };
+                if matches!(item, ItemRef::Module(_)) {
+                    continue;
+                }
+                match self.bare_marks.get(&span) {
+                    Some(ast::Bare::Optional | ast::Bare::Only) => found.push((format!("`{}::{}`", prefix, written), Bareness::Dep(prefix.clone(), item))),
+                    Some(ast::Bare::Never) if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) => {
+                        never.get_or_insert(prefix.clone());
+                    }
+                    _ => {}
+                }
+            }
+        }
+        if found.len() > 1 {
+            return err(Diagnostic::error(format!("`{}` could be any of {}: write the path", written, found.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>().join(", "))).at(path.span));
+        }
+        if let Some((_, b)) = found.pop() {
+            return Ok(b);
+        }
+        if let Some(prefix) = never {
+            return err(Diagnostic::error(format!("`{w}` is `{p}`'s and `bare.never`: `{p}` requires its path, so write `{p}::{w}[…]`", w = written, p = prefix)).at(path.span));
+        }
+        own.map(Bareness::Own)
+    }
+
+    /// A `pub` item of another Limb, from its root, and its name's span.
+    fn lookup_pub_from(&self, path: &ast::Path, root: ModuleId) -> Option<(ItemRef, Span)> {
+        let mut cur = root;
+        let last = path.segs.len() - 1;
+        for (i, seg) in path.segs.iter().enumerate() {
+            let (item, vis, span) = self.modules[cur.0 as usize].items.get(&seg.name)?;
+            if *vis != Vis::Pub {
+                return None;
+            }
+            match item {
+                _ if i == last => return Some((*item, *span)),
+                ItemRef::Module(child) => cur = *child,
+                _ => return None,
+            }
+        }
+        None
+    }
+
+    /// The path walked as written, from module `m`.
+    fn lookup_plain(&self, path: &ast::Path, m: ModuleId) -> Result<ItemRef> {
         let mut cur = m;
         if let Some(limb) = &path.limb {
             if limb.name == "std" {

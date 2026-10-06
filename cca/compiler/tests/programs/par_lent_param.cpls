@@ -18,5 +18,5 @@ MAIN {
     let mut 'xs': list[int64] = list.fill[3, 200000];
     scale[lend.mut 'xs', 5];
     let 'a' := total[lend 'xs'];
-    nocheck exit[to.int32['a' mod.floor 256]];
+    nocheck my.exit[to.int32['a' mod.floor 256]];
 }

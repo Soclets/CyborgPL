@@ -20,5 +20,5 @@ MAIN {
             's' from lend 'quiet' { change 'sevens' = 'sevens' plus 's'; }
         } otherwise { closed { change 'closed' = 'closed' plus 1; } };
     }
-    nocheck exit['batches' plus 'sevens' plus 'closed' times 10];
+    nocheck my.exit['batches' plus 'sevens' plus 'closed' times 10];
 }

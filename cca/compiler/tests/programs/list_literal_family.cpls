@@ -13,5 +13,5 @@ MAIN {
     let 'd': int32 = to.int32['ds'[1] plus 'ds'[2]] otherwise 91;
     let 'f': int32 = to.int32['fs'[3]] otherwise 92;
     let 'e': int32 = to.int32['qs'[2] times 4] otherwise 93;
-    nocheck exit['b' plus 'd' plus 'f' plus 'e'];
+    nocheck my.exit['b' plus 'd' plus 'f' plus 'e'];
 }

@@ -42,5 +42,5 @@ MAIN {
     if 'there' { change 'words' = ["a", "bcd"]; }
     if keep[...copy 'words'] == 2 and list.length[lend 'words'] == 2 { change 'got' = 'got' plus 32; }
     if keep[...give 'words'] == 2 and list.length[lend 'words'] == 0 { change 'got' = 'got' plus 64; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

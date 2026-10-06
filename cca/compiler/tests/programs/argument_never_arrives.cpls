@@ -12,5 +12,5 @@ MAIN {
         if 'k' == 0 { change 'total' = half[0 minus 1]; }
     }
     let 'c': int32 = to.int32['total'];
-    nocheck exit['c'];
+    nocheck my.exit['c'];
 }

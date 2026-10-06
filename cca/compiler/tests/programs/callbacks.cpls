@@ -18,5 +18,5 @@ MAIN {
     let 'f' := descending;
     nocheck qsort[lend.mut 'nums', 5, size.of[int32], 'f'];
     if 'nums'[1] == 5 and 'nums'[2] == 4 and 'nums'[5] == 1 { change 'got' = 'got' plus 2; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

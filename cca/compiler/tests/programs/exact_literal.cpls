@@ -8,5 +8,5 @@ MAIN {
     let 'total' := 'tenth' plus *0.2;
     let 'half': deci32 = *0.5;
     let 'n': int32 = to.int32[('total' times 10) plus ('price' times 100) plus to.stored.deci64['half' times 2]] otherwise 0;
-    nocheck exit['n' mod.floor 256];
+    nocheck my.exit['n' mod.floor 256];
 }

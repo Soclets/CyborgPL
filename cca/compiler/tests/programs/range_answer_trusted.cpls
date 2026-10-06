@@ -15,5 +15,5 @@ fn widen ['w': int64] -> int64 {
 }
 MAIN {
     let 'n' := pick[] otherwise 0;
-    nocheck exit[to.int32['n' plus widen[3]]];
+    nocheck my.exit[to.int32['n' plus widen[3]]];
 }

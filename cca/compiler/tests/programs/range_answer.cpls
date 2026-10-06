@@ -18,5 +18,5 @@ MAIN {
         change 'sum' = 'sum' plus 'i';
         change 'i' = 'i' plus 1;
     }
-    nocheck exit[to.int32['sum']];
+    nocheck my.exit[to.int32['sum']];
 }

@@ -23,6 +23,6 @@ MAIN {
         if 'a'['k'] == 'b'['k'] { change 'same' = 'same' plus 1; }
         change 's' = ('s' plus 'a'['k']) mod.floor 256;
     }
-    if 'same' !== 'n' { nocheck exit[1]; }
-    nocheck exit[to.int32['s']];
+    if 'same' !== 'n' { nocheck my.exit[1]; }
+    nocheck my.exit[to.int32['s']];
 }

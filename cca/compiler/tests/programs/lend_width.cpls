@@ -10,5 +10,5 @@ fn total [lent 'xs': list[int32]] -> int32 {
 MAIN {
     let 'scores' := [72, 40, 95, 55];
     let 'first' := 'scores'[1] plus 1;
-    nocheck exit[(total[lend 'scores'] plus to.int32['first']) mod.floor 256];
+    nocheck my.exit[(total[lend 'scores'] plus to.int32['first']) mod.floor 256];
 }

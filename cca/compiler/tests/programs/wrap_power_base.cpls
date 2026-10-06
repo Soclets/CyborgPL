@@ -13,5 +13,5 @@ MAIN {
     let 'p' := 'h' pow.wrap 'n';
     let 'q': uint8 = 7;
     let 'r' := 'q' pow.wrap 'n';
-    nocheck exit[to.int32[('p' mod.floor 256) plus ('r' mod.floor 8)]];
+    nocheck my.exit[to.int32[('p' mod.floor 256) plus ('r' mod.floor 8)]];
 }

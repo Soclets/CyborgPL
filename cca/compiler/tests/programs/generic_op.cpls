@@ -22,5 +22,5 @@ MAIN {
     if 50 ~= 'm' { change 'k' = 'k' plus 2; }
     let 'p' := A[x = 3];
     let 'q' := B[y = 3];
-    nocheck exit['k' plus ('p' <+> 'p') times 10 plus ('q' <+> 'q') times 100];
+    nocheck my.exit['k' plus ('p' <+> 'p') times 10 plus ('q' <+> 'q') times 100];
 }

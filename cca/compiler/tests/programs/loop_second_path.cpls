@@ -16,5 +16,5 @@ MAIN {
         if 'b' { change 'got' = pick[3]; }
     }
     let 'last' := pick[1];
-    nocheck exit[to.int32['got' plus 'last']];
+    nocheck my.exit[to.int32['got' plus 'last']];
 }

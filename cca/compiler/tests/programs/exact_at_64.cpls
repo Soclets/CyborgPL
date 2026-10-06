@@ -13,5 +13,5 @@ MAIN {
         change 'acc' = ('acc' plus (('i' times 'i') mod.floor 7)) mod.floor 1000000007;
         change 'i' = 'i' plus 1;
     }
-    nocheck exit[to.int32['acc']];
+    nocheck my.exit[to.int32['acc']];
 }

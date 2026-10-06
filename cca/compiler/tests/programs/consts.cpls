@@ -25,5 +25,5 @@ MAIN {
     for 'i' in range[1, 'max', 4] { change 'n' = 'n' plus 1; }
     if 'n' == 2 { change 'got' = 'got' plus 16; }
     if 'big' == 1152921504606846976 { change 'got' = 'got' plus 32; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

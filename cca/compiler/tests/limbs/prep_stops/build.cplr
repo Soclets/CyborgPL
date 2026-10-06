@@ -6,10 +6,10 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'at' := "here-stops";
     nocheck let 'found' := access[lend 'at', 0];
-    if 'found' !== 0 { nocheck exit[9]; }
+    if 'found' !== 0 { nocheck my.exit[9]; }
     let 'say' := "stops";
     let 'nl': list[uint8] = [10,];
     nocheck let 'w' := write[1, lend 'say', 5];
     nocheck let 'e' := write[1, lend 'nl', 1];
-    nocheck exit[0];
+    nocheck my.exit[0];
 }

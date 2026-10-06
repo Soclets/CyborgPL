@@ -26,5 +26,5 @@ MAIN {
     let 'up' := to.char.grapheme[`x`];
     if to.str.utf8['up'] ++ "!" == "x!" { change 'got' = 'got' plus 8; }
     if short[lend 'w'] == 0 and short["ab"] == 1 and short["abc"] == 0 { change 'got' = 'got' plus 16; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

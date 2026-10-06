@@ -14,5 +14,5 @@ MAIN {
         change 'acc' = 'acc' plus (('i' times 'i') mod.floor 7);
     }
     let 'h': int32 = to.int32['half' div.near 1000.0] otherwise 1;
-    nocheck exit[to.int32[('acc' plus to.int64['h']) mod.floor 256]];
+    nocheck my.exit[to.int32[('acc' plus to.int64['h']) mod.floor 256]];
 }

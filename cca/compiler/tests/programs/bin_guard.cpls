@@ -13,5 +13,5 @@ MAIN {
     } else {
         check let 'y': bin16 = 'x';
     }
-    nocheck exit[7];
+    nocheck my.exit[7];
 }

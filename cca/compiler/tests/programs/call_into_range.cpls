@@ -16,5 +16,5 @@ fn one [] -> int32 {
 }
 MAIN {
     let 'c': int32[0, 1] = twice[one[]];
-    nocheck exit[7];
+    nocheck my.exit[7];
 }

@@ -13,5 +13,5 @@ MAIN {
     if 'b' > 1999999999 nanos and 'b' < 2001 millis { change 'got' = 'got' plus 2; }
     let 'c' := 'b' minus 1 second;
     if 'c' == 1000 millis { change 'got' = 'got' plus 4; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

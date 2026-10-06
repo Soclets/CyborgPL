@@ -17,5 +17,5 @@ MAIN {
             check change 'v2' = ((to.int8[(126 or.bit 'v2') div.floor (not.bit 'v2')] shl 6) mod.floor 7) minus 102;
         }
     }
-    nocheck exit[to.int32[0 minus 'v2']];
+    nocheck my.exit[to.int32[0 minus 'v2']];
 }

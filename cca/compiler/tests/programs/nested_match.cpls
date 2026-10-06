@@ -14,5 +14,5 @@ MAIN {
         paid { match 's' { pickup { change 'went' = 1; } post { change 'went' = 2; } } }
     }
     let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
-    nocheck exit['went' times 10 plus 'price'];
+    nocheck my.exit['went' times 10 plus 'price'];
 }

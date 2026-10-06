@@ -31,5 +31,5 @@ MAIN {
     if trample[41] == 42 { change 'got' = 'got' plus 4; }
     nocheck let 'c' := getpid[];
     if to.int32['pid'] == 'c' { change 'got' = 'got' plus 2; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

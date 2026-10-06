@@ -20,5 +20,5 @@ MAIN {
     let 'k' := "N";
     nocheck let 'n': int32 = atoi[getenv[lend 'k']];
     let 'xs': list[int32] = [2147483647,];
-    nocheck exit[stale[lend 'xs', 'n'] mod.floor 256];
+    nocheck my.exit[stale[lend 'xs', 'n'] mod.floor 256];
 }

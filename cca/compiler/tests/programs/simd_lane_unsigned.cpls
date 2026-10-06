@@ -9,5 +9,5 @@ MAIN {
     let 'v': uint64 = to.uint64['h'[8]];
     let 'w': simd[uint32, 4] = simd.fill[4000000000];
     let 'x': uint64 = to.uint64['w'[2]];
-    nocheck exit[to.int32[('u' plus 'v' plus 'x' minus 4000060000) mod.floor 256]];
+    nocheck my.exit[to.int32[('u' plus 'v' plus 'x' minus 4000060000) mod.floor 256]];
 }

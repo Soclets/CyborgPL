@@ -13,5 +13,5 @@ MAIN {
     let 'a' := bit[raw::min_int8[] == -128, 1] plus bit[raw::all_ones[] == 255, 2] plus bit[raw::wide[] == -25536, 4];
     let 'b' := bit[raw::through_an_argument[] == -56, 8] plus bit[raw::after_a_change[] == -1, 16];
     let 'c' := bit['p'.lo == 255, 32] plus bit['p'.hi == -1, 64];
-    nocheck exit['a' plus 'b' plus 'c'];
+    nocheck my.exit['a' plus 'b' plus 'c'];
 }

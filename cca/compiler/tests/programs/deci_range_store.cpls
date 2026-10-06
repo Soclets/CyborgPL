@@ -7,5 +7,5 @@ fn twice ['d': deci64] -> deci64 {
 }
 MAIN {
     let 'c': deci64[0.0, 1.0] = twice[1];
-    nocheck exit[7];
+    nocheck my.exit[7];
 }

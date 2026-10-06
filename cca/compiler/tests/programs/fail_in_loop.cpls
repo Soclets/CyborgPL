@@ -14,5 +14,5 @@ MAIN {
         let 'h' := half['i'] otherwise 0;
         change 'acc' = ('acc' plus 'h') mod.floor 1000;
     }
-    nocheck exit[to.int32['acc' mod.floor 100] plus 7];
+    nocheck my.exit[to.int32['acc' mod.floor 100] plus 7];
 }

@@ -16,5 +16,5 @@ MAIN {
     let 'zs': list[list[uint8]] = [[0 minus.wrap 2,], [1,]];
     let 'big': list[uint64] = [9692729768110883998 minus 3166240359165959856,];
     let 'inner' := copy 'zs'[1];
-    nocheck exit[flag['xs'[1] == 255, 1] plus flag['xs'[2] == 251, 2] plus flag['xs'[3] == 4, 4] plus flag['ys'[1] == 16, 8] plus flag['ys'[2] == 4294967295, 16] plus flag['inner'[1] == 254, 32] plus flag['big'[1] == 6526489408944924142, 64]];
+    nocheck my.exit[flag['xs'[1] == 255, 1] plus flag['xs'[2] == 251, 2] plus flag['xs'[3] == 4, 4] plus flag['ys'[1] == 16, 8] plus flag['ys'[2] == 4294967295, 16] plus flag['inner'[1] == 254, 32] plus flag['big'[1] == 6526489408944924142, 64]];
 }

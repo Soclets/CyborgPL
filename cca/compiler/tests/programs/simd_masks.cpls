@@ -21,5 +21,5 @@ MAIN {
     let 'flip' := not 'm';
     let 'either' := 'flip' or 'm';
     let 'few': simd[bool, 16] = simd.fill[false];
-    nocheck exit[flag[simd.any['m'], 1] plus flag[simd.all['m'], 2] plus flag[all_on['both'], 4] plus flag[simd.any['flip'], 8] plus flag[simd.all['either'], 16] plus flag[simd.any['few'], 32]];   # 1 + 8 + 16 = 25
+    nocheck my.exit[flag[simd.any['m'], 1] plus flag[simd.all['m'], 2] plus flag[all_on['both'], 4] plus flag[simd.any['flip'], 8] plus flag[simd.all['either'], 16] plus flag[simd.any['few'], 32]];   # 1 + 8 + 16 = 25
 }

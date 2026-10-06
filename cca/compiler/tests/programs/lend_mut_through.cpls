@@ -9,5 +9,5 @@ MAIN {
         change 'x' = 'x' times 3;
     }
     let 'y': int8 = to.int8['xs'[1] times 50];
-    nocheck exit[to.int32['y']];
+    nocheck my.exit[to.int32['y']];
 }

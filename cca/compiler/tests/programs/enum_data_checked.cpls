@@ -12,7 +12,7 @@ MAIN {
     let 'k': int64 = to.int64['n'] minus 8;
     let 'e' := E1.c4['k'];
     match 'e' {
-        c1 'a' { nocheck exit[1]; }
-        c4 'b' { nocheck exit[to.int32['b' mod.floor 256]]; }
+        c1 'a' { nocheck my.exit[1]; }
+        c4 'b' { nocheck my.exit[to.int32['b' mod.floor 256]]; }
     }
 }

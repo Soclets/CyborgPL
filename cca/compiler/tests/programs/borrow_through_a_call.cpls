@@ -7,5 +7,5 @@ fn second [lent 'a': list[int32]] -> lent list[int32] { return first[lend 'a']; 
 MAIN {
     let 's': list[int32] = [1, 2, 3];
     let 'r' := second[lend 's'];
-    nocheck exit['r'[2]];
+    nocheck my.exit['r'[2]];
 }

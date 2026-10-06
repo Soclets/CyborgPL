@@ -13,5 +13,5 @@ MAIN {
     let 'small': uint8 = 250;
     let mut 'n': int32 = 0;
     for 'i': uint8 in range['small', 255, 3] { change 'n' = 'n' plus 1; }   # 250, 253: widening a uint8 is not sign-extending it
-    nocheck exit['score' plus 'n' times 100];
+    nocheck my.exit['score' plus 'n' times 100];
 }

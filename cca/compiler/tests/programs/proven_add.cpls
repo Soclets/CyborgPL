@@ -9,8 +9,8 @@ MAIN {
     if 'n' > 0 {
         if 'n' < 1000 {
             let 'x': int32 = 'n' plus 1;
-            nocheck exit[0];
+            nocheck my.exit[0];
         }
     }
-    nocheck exit[0];
+    nocheck my.exit[0];
 }

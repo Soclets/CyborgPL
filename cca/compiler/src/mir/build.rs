@@ -781,13 +781,13 @@ impl<'a> FnBuilder<'a> {
         self.cur = next;
         let wide = Ty::int(true, 128);
         let rem = self.into_temp(
-            Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(stop_t)), useful: false },
+            Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(stop_t)), useful: false, bits: false },
             &wide,
             span,
         );
-        let at = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(c)), useful: false }, &wide, span);
+        let at = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(c)), useful: false, bits: false }, &wide, span);
         let rem = self.into_temp(Rvalue::Binary { op: BinOp::Sub, lhs: rem, rhs: at.clone() }, &wide, span);
-        let by = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(step_t)), useful: false }, &wide, span);
+        let by = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(step_t)), useful: false, bits: false }, &wide, span);
         let up2 = self.into_temp(
             Rvalue::Binary { op: BinOp::Ge, lhs: Operand::Read(Place::local(step_t)), rhs: Operand::Const(Const::Int(0)) },
             &Ty::Bool,
@@ -810,7 +810,7 @@ impl<'a> FnBuilder<'a> {
         let cty = self.locals[c.0 as usize].ty.clone();
         let next_v = self.into_temp(Rvalue::Binary { op: BinOp::Add, lhs: at, rhs: by }, &wide, span);
         self.site_of(SiteKind::Narrow { to: cty.clone() }, vec![next_v.clone()], Some(cty.clone()), span);
-        self.assign(Place::local(c), Rvalue::Convert { to: cty, operand: next_v, useful: false }, span);
+        self.assign(Place::local(c), Rvalue::Convert { to: cty, operand: next_v, useful: false, bits: false }, span);
         self.terminate(Terminator::Goto(head));
 
         self.cur = exit;
@@ -1601,16 +1601,35 @@ impl<'a> FnBuilder<'a> {
                 }
                 (c, margs, otherwise.as_deref(), fails.clone())
             }
-            hir::ExprKind::Conv { target, expr, otherwise, fails, useful } => {
+            hir::ExprKind::Conv { target, expr, otherwise, fails, useful, bits } => {
                 let mut op = self.eval(expr, span);
                 let mut from_ty = self.resolve_ty(&expr.ty);
+                // `to.int8.bits[…]`: at most the type's bits, -128 to 255
+                // for an int8, then read as its (owner, 2026-10-06).
+                if *bits {
+                    let n = match self.resolve_ty(target).base() {
+                        Ty::Int(IntW::Fixed { bits, .. }) => *bits,
+                        _ => 64,
+                    };
+                    let room = Ty::Bounded { inner: Box::new(Ty::Int(IntW::Fixed { signed: true, bits: n + 1 })), bound: Bound::Int { lo: -(1i128 << (n - 1)), hi: (1i128 << n) - 1 } };
+                    self.narrow_arg(&op, &from_ty, &room, span);
+                    let rv = Rvalue::Convert { to: target.clone(), operand: op, useful: false, bits: true };
+                    match dest {
+                        Some(p) => self.assign(p, rv, span),
+                        None => {
+                            let ty = target.clone();
+                            let _ = self.into_temp(rv, &ty, span);
+                        }
+                    }
+                    return;
+                }
                 // A C enum is its number, C's `int` (owner, 2026-09-28): that
                 // first, and the rest is a conversion from an `int32`.
                 if let Ty::Enum { id, .. } = from_ty.base() {
                     // As text it is its case's name (owner, 2026-09-30).
                     if self.arena.items.enums[id.0 as usize].numbers.is_some() && !matches!(self.resolve_ty(target).base(), Ty::Str(_)) {
                         let n = Ty::Int(IntW::Fixed { signed: true, bits: 32 });
-                        op = self.into_temp(Rvalue::Convert { to: n.clone(), operand: op, useful: false }, &n, span);
+                        op = self.into_temp(Rvalue::Convert { to: n.clone(), operand: op, useful: false, bits: false }, &n, span);
                         from_ty = n;
                     }
                 }
@@ -1622,7 +1641,7 @@ impl<'a> FnBuilder<'a> {
                     // it fits, and only `check` makes the compiler say so.
                     let from = from_ty.clone();
                     self.narrow_arg(&op, &from, &self.resolve_ty(target), span);
-                    let rv = Rvalue::Convert { to: target.clone(), operand: op, useful: *useful };
+                    let rv = Rvalue::Convert { to: target.clone(), operand: op, useful: *useful, bits: false };
                     match dest {
                         Some(p) => self.assign(p, rv, span),
                         None => {

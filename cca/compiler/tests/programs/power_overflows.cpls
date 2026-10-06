@@ -5,5 +5,5 @@ MAIN {
     let 's' := "ab";
     nocheck let 'two': int64 = to.int64[strlen[lend 's']];
     let 'p': int64 = ('two' plus 1) pow ('two' times 25);
-    nocheck exit[to.int32['p' mod.floor 256]];
+    nocheck my.exit[to.int32['p' mod.floor 256]];
 }

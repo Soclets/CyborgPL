@@ -32,5 +32,5 @@ MAIN {
         change 'sum' = 'sum' plus ('i' mod.trunc 3) plus ('i' div.trunc 3);
     }
     if 'sum' == 0 { change 'code' = 'code' plus 128; }
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

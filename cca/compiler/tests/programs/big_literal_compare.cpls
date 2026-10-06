@@ -12,5 +12,5 @@ MAIN {
     if 'w' == 18446744073709551615 { change 'got' = 'got' plus 4; }
     if 'v1' < 9223372036854775808 { change 'got' = 'got' plus 8; }
     if 'w' < 18446744073709551615 { change 'got' = 'got' plus 16; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

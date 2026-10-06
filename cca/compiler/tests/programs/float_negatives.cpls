@@ -14,5 +14,5 @@ MAIN {
     let 'ta' := to.useful.str.utf8['a'];
     let 'tb' := to.stored.str.utf8['b'];
     let 't' := to.int64[str.bytes[lend 'ta'] plus str.bytes[lend 'tb']];
-    nocheck exit[to.int32['n1' plus 'n2' plus 'n3' plus 'n4' plus 100 plus 't']];
+    nocheck my.exit[to.int32['n1' plus 'n2' plus 'n3' plus 'n4' plus 100 plus 't']];
 }

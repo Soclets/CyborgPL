@@ -8,5 +8,5 @@ MAIN {
     let 'b': int32 = (0 minus 'seven') mod.floor 2;     # 1
     let 'c': int32 = 'seven' div.floor -2;            # -4
     let 'd': int32 = 'seven' mod.floor -2;          # -1
-    nocheck exit[('a' plus 4) times 1000 plus ('b' minus 1) times 100 plus ('c' plus 4) times 10 plus ('d' plus 1) plus 42];
+    nocheck my.exit[('a' plus 4) times 1000 plus ('b' minus 1) times 100 plus ('c' plus 4) times 10 plus ('d' plus 1) plus 42];
 }

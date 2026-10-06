@@ -13,5 +13,5 @@ fn run [] -> int32 {
     return 'xs'[1] times 10 plus to.int32[list.length[lend 'xs']];
 }
 MAIN {
-    nocheck exit[run[]];
+    nocheck my.exit[run[]];
 }

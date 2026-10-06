@@ -301,7 +301,7 @@ pub enum ExprKind {
     UserOp { inst: FnInst, lhs: Box<Arg>, rhs: Box<Arg> },
     /// `to.T[e]`: `fails` non-empty when the conversion can fail.
     /// `useful`: `to.useful.deci64[…]` or `to.useful.str.utf8[…]`, the useful form.
-    Conv { target: Ty, expr: Box<Expr>, otherwise: Option<Box<Otherwise>>, fails: Vec<String>, useful: bool },
+    Conv { target: Ty, expr: Box<Expr>, otherwise: Option<Box<Otherwise>>, fails: Vec<String>, useful: bool, bits: bool },
     /// A named function as a value.
     FnRef(FnInst),
     /// An anonymous function with its captures.

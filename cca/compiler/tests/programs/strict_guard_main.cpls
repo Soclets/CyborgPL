@@ -14,5 +14,5 @@ MAIN {
     if 'v' !== 0 and.then (15 mod.floor 'v') !== 3 {
         change 'code' = 5;
     }
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

@@ -19,5 +19,5 @@ MAIN {
     let 'a': int64 = f[3, 587];
     let 'b': int64 = g[0, 1];
     let 'c': int64 = g[2, 1];
-    nocheck exit[to.int32['a' plus 'b' minus 'c' minus 560]];
+    nocheck my.exit[to.int32['a' plus 'b' minus 'c' minus 560]];
 }

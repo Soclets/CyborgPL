@@ -56,11 +56,20 @@ bare_kind_disagree [fnv:e3a4fefd8054dcfd] :: marks that disagree are an error
 bare_kind_unknown [fnv:61121c79d3fb4bbd] :: `module` is not a kind a `bare` mark covers
 bare_kinds_in_module [fnv:7fc6b403e02e9b30] :: covers the whole Limb, so it is written in `limb.cpls`
 bare_list_type [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
+bare_never_op [fnv:d5a8c10e8fadaad1] :: `merge` is `greet`'s and `bare.never`: write `greet::merge`
+bare_never_without_path [fnv:fb7503be4f3b3837] :: `formal` is `greet`'s and `bare.never`: `greet` requires its path, so write `greet::formal[…]`
 bare_no_pub [fnv:2b46ad50cede3431] :: a `bare` mark is `bare.never;` at the top of a file
+bare_only_clash [fnv:8d848622a11f25cf] :: both forbid the path to `fn wave` (`bare.only`)
+bare_only_with_path [fnv:53a2f9ce7fabbd40] :: `greet::wave` is `bare.only`: `greet` forbids its path, so write `wave[…]`
+bare_optional_clash [fnv:04651577553f08b9] :: `hello` could be any of `greet::hello`, `wave::hello`: write the path
+bare_own_does_not_win [fnv:b18ee101b5b3b453] :: `hello` could be any of `my.hello` (this Limb's), `greet::hello`: write the path
 bare_owned_assign [fnv:53ce1c0805c37af3] :: say what happens to it
 bare_plain [fnv:0b88d482d372e883] :: a plain `bare` does not say
 bare_pub_limb [fnv:fd76363fd87a59c5] :: a `pub.limb` thing is never reached from them
 bare_str [fnv:b78f2a1f98dce47b] :: `str` is never bare: say the encoding
+bare_type_never [fnv:037dc0ed954fe338] :: no struct named `Tally`
+bare_type_only_with_path [fnv:ab3895b0a748dd52] :: `greet::Tone` is `bare.only`: `greet` forbids its path, so write `Tone`
+bare_type_own_does_not_win [fnv:92203127a54fc62d] :: `Note` could be any of `my.Note` (this Limb's), `greet::Note`: write the path
 bare_unknown_mode [fnv:4c3063f476958c3e] :: no `bare.sometimes`
 bare_unmarked [fnv:ae7fd65307577bd4] :: `fn area` is `pub`, and nothing says how other Limbs write its path
 bin16_rounds_past [fnv:10faad936b06526e] :: the value can be outside what a `bin16` holds
@@ -394,10 +403,13 @@ no_mcps_para [fnv:80b8efddb44c83df] :: `for para` is MCPS's
 no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
 no_std_compare [fnv:ad0a410619fb2a92] :: `==` is std's
 no_std_div [fnv:b7650e5cced51ca5] :: `div.floor` is std's
+no_std_list [fnv:9722ce7973a65431] :: a growing list (`list`) is std's
+no_std_map [fnv:948ea297c44df56a] :: a map (`map`) is std's
 no_std_negative [fnv:9f62a471ad06d7c9] :: `-` is std's
 no_std_not [fnv:08e0cf4fc29c8223] :: `not` is std's
 no_std_plus [fnv:c83c0b171e45551c] :: `plus` is std's, and this Limb's CCA.cplr does not list std
 no_std_print [fnv:28dfc91b3d048a78] :: `std::print` is std's, and this Limb's CCA.cplr does not list std
+no_std_text [fnv:75f33ba2cee9cf5b] :: a text operation (`str.…`) is std's
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
 nocheck_lied [fnv:ee1996e7ba5a0e26] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
@@ -545,7 +557,6 @@ str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, 
 str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
 str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
 str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is std's
-str_toolbox_in_language [fnv:366a14926afb6c66] :: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet
 strict_decl [fnv:b8025f0c47e84bab] :: a declaration says whether it changes
 strict_for [fnv:06b3bea872c594a0] :: a `for` says whether its variable outlives it
 strict_lifetime [fnv:a1a89ccd784cb0b3] :: hands back a borrow, so it names what the borrow depends on
@@ -587,6 +598,8 @@ text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.point` can fail (not_o
 times_old [fnv:b5fdcc466f65f1ef] :: `x` is `times` now
 to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so
 to_ascii_needs_otherwise [fnv:44581da139b15bb0] :: `to.str.ascii` can fail (not_ascii)
+to_bits_bin [fnv:c018fb9e467c5ade] :: `.bits` is for whole-number types
+to_bits_too_wide [fnv:9e1dae2bebcc5f70] :: `256` does not fit the 8 bits of int8
 to_bool [fnv:fef2b7077f153711] :: there is no truthiness
 to_c_enum_unhandled [fnv:d5c360ddcb700642] :: `to.Key` can fail (out_of_range)
 to_list [fnv:fe57458270798005] :: keeps the element type, so it is not written

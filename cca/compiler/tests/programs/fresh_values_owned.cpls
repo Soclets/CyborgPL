@@ -14,5 +14,5 @@ fn run [] -> int32 {
     return to.int32[list.length[lend 'xs']] plus to.int32[map.length[lend 'm']];
 }
 MAIN {
-    nocheck exit[run[]];
+    nocheck my.exit[run[]];
 }

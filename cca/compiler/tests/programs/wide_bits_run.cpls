@@ -31,5 +31,5 @@ MAIN {
     let 'flip': uint128 = not.bit 'u';
     if to.stored.str.utf8['top'] == "170141183460469231731687303715884105728" { change 'right' = 'right' plus 1; }
     if to.stored.str.utf8['flip'] == "340282366920938463463374607431768211454" { change 'right' = 'right' plus 1; }
-    nocheck exit['right'];
+    nocheck my.exit['right'];
 }

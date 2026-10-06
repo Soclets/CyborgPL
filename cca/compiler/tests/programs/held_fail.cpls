@@ -27,5 +27,5 @@ MAIN {
     if apply['g', 3] == 3 and apply['g', 'n'] == -12 { change 'got' = 'got' plus 4; }
     let 'direct' := 'g'['n'] otherwise 99;
     if 'direct' == 99 { change 'got' = 'got' plus 8; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

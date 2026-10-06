@@ -13,5 +13,5 @@ MAIN {
     let 'b': uint32 = ('v' mod.floor 16) shl 2;
     let 'c': uint32 = ('v' plus 1) shl 'k';
     let 'd': uint32 = ('v' plus 1) shr 1;
-    nocheck exit[to.int32[('b' plus ('c' shr 24) plus 'd') mod.floor 256]];
+    nocheck my.exit[to.int32[('b' plus ('c' shr 24) plus 'd') mod.floor 256]];
 }

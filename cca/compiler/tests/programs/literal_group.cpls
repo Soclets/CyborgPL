@@ -3,6 +3,6 @@ MAIN {
     let 'u': uint64 = 1;
     let 'a': uint64 = (0 plus 10702988103728947458) plus 'u';
     let 'ok': int32 = 0;
-    if 'a' == 10702988103728947459 { nocheck exit[9]; }
-    nocheck exit['ok'];
+    if 'a' == 10702988103728947459 { nocheck my.exit[9]; }
+    nocheck my.exit['ok'];
 }

@@ -13,5 +13,5 @@ fn f3 ['p1': uint32] -> uint16 {
     return 0;
 }
 MAIN {
-    nocheck exit[to.int32[f3[0]]];
+    nocheck my.exit[to.int32[f3[0]]];
 }

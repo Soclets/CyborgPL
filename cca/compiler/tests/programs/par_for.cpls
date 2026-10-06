@@ -26,5 +26,5 @@ MAIN {
     for 'v' in lend 'grid' {
         change 'g' = 'g' plus 'v';
     }
-    nocheck exit[to.int32[('total' plus 'g') mod.floor 256]];
+    nocheck my.exit[to.int32[('total' plus 'g') mod.floor 256]];
 }

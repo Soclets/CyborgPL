@@ -20,5 +20,5 @@ MAIN {
         change 'i' = 'i' plus 1;
     }
     let 'a' := average[lend 'xs'] otherwise 0;
-    nocheck exit['a' mod.floor 256];
+    nocheck my.exit['a' mod.floor 256];
 }

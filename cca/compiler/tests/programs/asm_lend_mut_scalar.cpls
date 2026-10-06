@@ -10,5 +10,5 @@ MAIN {
         str x2, [x1]
     } with [lend.mut 'x' -> x1, clobber x2];
     let 'y': uint8 = to.uint8['x' times 3];
-    nocheck exit[to.int32['y']];
+    nocheck my.exit[to.int32['y']];
 }

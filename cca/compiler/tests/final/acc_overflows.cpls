@@ -12,5 +12,5 @@ MAIN {
         change 'acc' = 'acc' plus 4611686018427387904;
         change 'i' = 'i' plus 1;
     }
-    nocheck exit[to.int32['acc' mod.floor 256]];
+    nocheck my.exit[to.int32['acc' mod.floor 256]];
 }

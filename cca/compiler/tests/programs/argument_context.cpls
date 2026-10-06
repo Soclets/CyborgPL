@@ -16,5 +16,5 @@ MAIN {
     let 'n' := wide[not.bit 0];
     let mut 'xs': list[uint8] = [1,];
     list.append[lend.mut 'xs', 0 minus.wrap 2];
-    nocheck exit[flag['a' == 255, 1] plus flag['v' == 16, 2] plus flag['n' == 4294967295, 4] plus flag['xs'[2] == 254, 8]];
+    nocheck my.exit[flag['a' == 255, 1] plus flag['v' == 16, 2] plus flag['n' == 4294967295, 4] plus flag['xs'[2] == 254, 8]];
 }

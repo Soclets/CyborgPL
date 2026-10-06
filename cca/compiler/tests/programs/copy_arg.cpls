@@ -14,5 +14,5 @@ MAIN {
     let 'a' := first[copy 'l'];
     let 'b' := first[copy 'l'];
     let 'c' := first[give 'l'];
-    nocheck exit['a' plus 'b' plus 'c'];
+    nocheck my.exit['a' plus 'b' plus 'c'];
 }

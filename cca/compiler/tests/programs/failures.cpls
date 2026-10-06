@@ -12,5 +12,5 @@ MAIN {
         odd          { change 'c' = 1; }
         negative 'v' { change 'c' = 0 minus 'v'; }
     };
-    nocheck exit['a' plus 'b' plus 'c'];
+    nocheck my.exit['a' plus 'b' plus 'c'];
 }

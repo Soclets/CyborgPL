@@ -8,5 +8,5 @@ fn true [] -> int32 { return 1; }
 MAIN {
     let 'x' := my.to[];
     let 'y' := my.true[];
-    nocheck exit['x' times 10 plus 'y'];
+    nocheck my.exit['x' times 10 plus 'y'];
 }

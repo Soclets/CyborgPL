@@ -9,5 +9,5 @@ MAIN {
     let mut 'x': int32 = 5;
     if 'there' { change 'x' = 300; }
     let 'xs': list[int8] = [1, 'x'];
-    nocheck exit[to.int32['xs'[2]]];
+    nocheck my.exit[to.int32['xs'[2]]];
 }

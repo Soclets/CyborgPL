@@ -12,5 +12,5 @@ MAIN {
     for !cheat seq 'i': int64 in range[1, 10] {
         change 'more' = 'more' plus 'i';
     }
-    nocheck exit[to.int32[('acc' mod.floor 256) plus 'more']];
+    nocheck my.exit[to.int32[('acc' mod.floor 256) plus 'more']];
 }

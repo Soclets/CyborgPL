@@ -8,5 +8,5 @@ MAIN {
     for para 'x' in lend 'xs' {
         change 'total' = 'total' plus 'x';
     }
-    nocheck exit[to.int32['total']];
+    nocheck my.exit[to.int32['total']];
 }

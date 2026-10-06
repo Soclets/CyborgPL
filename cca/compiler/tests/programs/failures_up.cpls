@@ -13,5 +13,5 @@ MAIN {
     outer[-1] otherwise {
         bad 'why' { change 'n' = list.length[lend 'why']; }
     };
-    nocheck exit['ok' plus 'n'];
+    nocheck my.exit['ok' plus 'n'];
 }

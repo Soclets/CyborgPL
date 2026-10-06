@@ -20,5 +20,5 @@ MAIN {
     if not f[5] { change 'code' = 'code' plus 1; }
     if not g[5] { change 'code' = 'code' plus 2; }
     if not h[5] { change 'code' = 'code' plus 4; }
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

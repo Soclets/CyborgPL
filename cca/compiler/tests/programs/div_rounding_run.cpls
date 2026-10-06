@@ -34,5 +34,5 @@ MAIN {
     let 'p': deci64 = -7.5 plus to.deci64['z'];
     let 'q': deci64 = 2.0 plus to.deci64['z'];
     if (('p' div.near 'q') == -3.75) and (('p' div.floor 'q') == -4) and (('p' mod.floor 'q') == 0.5) and (('p' div.trunc 'q') == -3) and (('p' mod.trunc 'q') == -1.5) and (('p' mod.ceil 'q') == -1.5) { change 'code' = 'code' plus 128; }
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

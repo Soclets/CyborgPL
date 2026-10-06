@@ -12,5 +12,5 @@ MAIN {
     let 'w': uint16 = to.uint16['n' mod.floor 65536];
     let 'a' := r[0, 6, 'w'];
     let 'b' := r[12, 4, 'w'];
-    nocheck exit[to.int32['a' plus 'b']];
+    nocheck my.exit[to.int32['a' plus 'b']];
 }

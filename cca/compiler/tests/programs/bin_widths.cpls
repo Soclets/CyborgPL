@@ -21,5 +21,5 @@ MAIN {
     let mut 'h': int32 = 0;
     check if 'x' > 0.0 { change 'h' = to.int32['x' div.near 2.0] otherwise 0; }
     if 'h' == 8388608 { change 'got' = 'got' plus 16; }
-    nocheck exit['got'];
+    nocheck my.exit['got'];
 }

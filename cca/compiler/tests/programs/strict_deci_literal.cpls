@@ -9,5 +9,5 @@ fn f [] -> int32 {
 }
 MAIN {
     let immut 'x': int32 = f[];
-    nocheck exit['x'];
+    nocheck my.exit['x'];
 }

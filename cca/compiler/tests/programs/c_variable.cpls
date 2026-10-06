@@ -6,5 +6,5 @@ MAIN {
     nocheck let 'first' := 'optind';
     nocheck change 'optind' = 5;
     nocheck let 'after' := 'optind';
-    nocheck exit['first' times 10 plus 'after'];
+    nocheck my.exit['first' times 10 plus 'after'];
 }

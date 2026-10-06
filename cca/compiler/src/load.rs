@@ -135,7 +135,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     if !path.is_dir() {
         let m = new_module(&mut items, "limb", None, Vis::Pub);
         let file = parse_file(sources, path)?;
-        check_bare(sources, &file, "", true)?;
+        check_bare(sources, &mut items, &file, "", true)?;
         items.collect_file(&file, m, true)?;
     }
     items.resolve_all()?;
@@ -353,7 +353,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     let first_file = sources.files.len();
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
-        check_bare(sources, &file, "", true)?;
+        check_bare(sources, items, &file, "", true)?;
         // A dependency's `MAIN` runs only when that Limb itself is run, and
         // is left out when another Limb uses it (owner, 2026-09-29: a).
         if from.is_some() {
@@ -370,13 +370,38 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if dir.join("CCA.cplr").is_file() && !manifest.cores.iter().any(|c| c == "ASP") {
         items.raw_files.extend((first_file..sources.files.len()).map(|f| FileId(f as u32)));
     }
+    if dir.join("CCA.cplr").is_file() && !manifest.has_std {
+        items.no_std_roots.insert(m);
+    }
     state.stack.push((key.clone(), prefix.clone()));
     let mut deps = std::collections::HashMap::new();
+    let mut in_order: Vec<(String, ModuleId)> = Vec::new();
     let manifest_at = dir.join("CCA.cplr");
     for d in &manifest.deps {
         let at = dir.join(&d.path);
         let (r, p) = load_limb(sources, items, &at, Some((&manifest_at, &d.path)), state)?;
-        deps.insert(p, r);
+        deps.insert(p.clone(), r);
+        in_order.push((p, r));
+    }
+    // Two Limbs that both forbid the path to one name cannot be told
+    // apart, so depending on both is refused, as for a prefix clash
+    // (owner, 2026-10-06).
+    let mut only: Vec<(String, String)> = Vec::new();
+    for (p, r) in &in_order {
+        for f in &items.fns {
+            if f.vis != Vis::Pub || items.limb_root(f.module) != *r || items.bare_marks.get(&f.name_span) != Some(&crate::ast::Bare::Only) {
+                continue;
+            }
+            let module = items.modules[f.module.0 as usize].path.clone();
+            let rel = module.rsplit("::").next().unwrap_or(&module);
+            let path = if items.modules[f.module.0 as usize].parent.is_none() { f.name.clone() } else { format!("{}.{}", rel, f.name) };
+            let kind = if f.op.is_some() { "op" } else { "fn" };
+            let named = format!("{} {}", kind, path);
+            if let Some((other, _)) = only.iter().find(|(o, n)| *n == named && o != p) {
+                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.only`), so it cannot tell them apart: edit one Limb's source, as for a prefix clash", other, p, named)).place(manifest_at.display().to_string()));
+            }
+            only.push((p.clone(), named));
+        }
     }
     state.stack.pop();
     items.limb_deps.insert(m, deps);
@@ -707,7 +732,7 @@ thread_local! {
 /// first line, and its kind in `limb.cpls`. `base` is the file's module
 /// path, empty at the root; `root` is whether this is the root file, the
 /// only one whose kind lines count.
-fn check_bare(sources: &SourceMap, file: &crate::ast::File, base: &str, root: bool) -> Result<()> {
+fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, base: &str, root: bool) -> Result<()> {
     use crate::ast::{Bare, Item, ItemKind};
     if root {
         BARE_KINDS.with(|k| *k.borrow_mut() = file.bare_kinds.clone());
@@ -748,6 +773,15 @@ fn check_bare(sources: &SourceMap, file: &crate::ast::File, base: &str, root: bo
         if it.vis != Vis::Pub {
             return Ok(());
         }
+        let name_span = match &it.kind {
+            ItemKind::Fn(d) | ItemKind::ExternFn(d) => d.name.span,
+            ItemKind::Struct(d) => d.name.span,
+            ItemKind::Enum(d) => d.name.span,
+            ItemKind::Interface(d) => d.name.span,
+            ItemKind::Const(d) => d.name.span,
+            ItemKind::Op(d) => d.op.span,
+            _ => it.span,
+        };
         let kind = match &it.kind {
             ItemKind::Fn(_) | ItemKind::ExternFn(_) => "fn",
             ItemKind::Struct(_) => "struct",
@@ -775,7 +809,10 @@ fn check_bare(sources: &SourceMap, file: &crate::ast::File, base: &str, root: bo
             None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other Limbs write its path: mark it (`pub bare.never {k} …`), its module, or its kind in `limb.cpls` (`bare.never [{k}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
             Some(&first) => match all.iter().find(|m| m.0 != first.0) {
                 Some(&other) => both(first, other),
-                None => Ok(()),
+                None => {
+                    items.bare_marks.insert(name_span, first.0);
+                    Ok(())
+                }
             },
         }
     })
@@ -821,7 +858,7 @@ fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: Modu
         items.modules[parent.0 as usize].items.insert(stem.clone(), (crate::resolve::ItemRef::Module(m), Vis::Pub, crate::source::Span::new(FileId(0), 0, 0)));
         let file = parse_file(sources, e)?;
         let base = items.modules[m.0 as usize].path.clone();
-        check_bare(sources, &file, base.rsplit("::").next().unwrap_or(&base), false)?;
+        check_bare(sources, items, &file, base.rsplit("::").next().unwrap_or(&base), false)?;
         items.collect_file(&file, m, false)?;
         file_modules.push((stem, m));
     }

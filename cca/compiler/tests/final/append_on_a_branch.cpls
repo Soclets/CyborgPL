@@ -18,5 +18,5 @@ MAIN {
         if 'xs'[to.uint64['p']] { change 'c' = 'c' plus 1; }
         change 'p' = 'p' plus 1;
     }
-    nocheck exit[to.int32['c' mod.floor 256]];
+    nocheck my.exit[to.int32['c' mod.floor 256]];
 }

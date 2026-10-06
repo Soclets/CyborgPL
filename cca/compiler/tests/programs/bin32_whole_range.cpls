@@ -13,5 +13,5 @@ MAIN {
     let 'x': bin32 = 0.0 times 'one';
     let mut 'code': int32 = 0;
     if 'x' == 0.0 { change 'code' = 7; }
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }
