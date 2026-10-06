@@ -17,7 +17,7 @@ let 'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
 fn count [lent 'text': str.utf8] --> int32 { … }     # looks at it
 fn edit  [lent.mut 'text': str.utf8] { … }          # may modify it
 fn keep  ['text': str.utf8] { … }                   # owns it
-fn twice [immut 'n': int32] --> int32 { … }          # stated mutability
+fn twice [!mut 'n': int32] --> int32 { … }          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
@@ -26,7 +26,7 @@ fn twice [immut 'n': int32] --> int32 { … }          # stated mutability
   sits before the name and mirrors the caller exactly: the caller writes
   `lend 's'`, the parameter reads `lent 'text': …`; `lend.mut` ↔ `lent.mut`.
   An **owning parameter has no keyword** — the caller writes `give`/`copy`.
-  `mut`/`immut` go where they go on a declaration: before the name.
+  `mut`/`!mut` go where they go on a declaration: before the name.
   A parameter with no type (`lent 'items'`) is legal: Precog infers its
   best type from every call site in the program.
 - **A function that can fail says so**: `--> bool or fail[full, bad_item: str.utf8]`
@@ -141,14 +141,14 @@ depends on may have one too, run only when that Limb is run itself
 
 ```
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    nocheck let 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
+    !check let 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
     …
 }
 ```
 
 Exactly these two types (the names are free); the program's name comes
 first, each word ends in a NUL, and `argv[argc]` is a null pointer. Reading
-them is C's world, so `nocheck`. Anything friendlier — a list of text,
+them is C's world, so `!check`. Anything friendlier — a list of text,
 flags, `--help` — is written in CyborgPL on top, in std or a Limb. The
 2026-09-14 line here said the arguments "come from the std Limb"; the
 owner put the door in the base language instead. Proposed alternatives: a

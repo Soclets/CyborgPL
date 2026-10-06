@@ -36,7 +36,7 @@ A generated program must print something, or the harness has nothing to
 compare but the exit code. CCA refuses every `std::` call until std
 exists (owner, 2026-09-22), so **each generated program carries a small
 printer written in the base language**: the number turned into ASCII
-digits in a `list[uint8]`, handed to C's `write` under `nocheck`, as
+digits in a `list[uint8]`, handed to C's `write` under `!check`, as
 `examples/ffi.cpls` does. Both implementations already agree on it.
 The printer is ordinary CyborgPL, so a bug in *it* is a finding too.
 When std has a print, the generator switches to `std::print.useful` and the

@@ -89,15 +89,15 @@ behind the word that means none.
 A plain `let 'x' := 1000;` is the standard practice — Precog already knows
 whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 *may* state it, as a bare word before the name (revised 2026-09-19; it was
-a chain segment, `var.immut.int32`), and the compiler then holds them to it:
+a chain segment, `var.!mut.int32`), and the compiler then holds them to it:
 
 ```
-let immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
+let !mut 'limit': int32 = 10;      # assigning to 'limit' later is an error
 let mut 'counter' := 0;             # states the intent; nothing to enforce
-fn twice [immut 'n': int32] --> int32 { … }
+fn twice [!mut 'n': int32] --> int32 { … }
 ```
 
-`immut` is a verified contract, like `check` and the optional lifetime
+`!mut` is a verified contract, like `check` and the optional lifetime
 annotation. `mut` is documentation. Neither is expected in ordinary code.
 
 Not the same thing as a constant (a value known at compile time, baked into

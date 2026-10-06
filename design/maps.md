@@ -49,7 +49,7 @@ check site guarded by `has`; a found/missing enum to `match`.
   case-insensitive username, a normalised path. **Consistency is a check
   site** (owner: yes): "equal keys hash the same" must be proven by
   Precog for any type used as a key this way, or the final build
-  refuses the map; `nocheck` is the way out. This is the bug every other
+  refuses the map; `!check` is the way out. This is the bug every other
   language's custom-hash map has and cannot catch; the oracle tests the
   rule on every comparison it makes.
 - Not keys: functions, pointers, maps.

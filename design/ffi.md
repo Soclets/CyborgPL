@@ -39,11 +39,11 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 - `extern` before `fn`, like `pub`; no body, a `;` instead. A normal
   signature otherwise. Which library provides it is Synthia's business
   (the manifest (`Synthia.ttsr` / `CCA.cplr`)), never the source's. One calling convention: C's.
-- **An `extern` call is a `nocheck` site** — Precog cannot see inside it,
-  so nothing about it can be proven; `nocheck` already means "on my
+- **An `extern` call is a `!check` site** — Precog cannot see inside it,
+  so nothing about it can be proven; `!check` already means "on my
   word", and the build output already lists every such site, so it now
   lists every place a program leaves the language. No second `unsafe`
-  word. The mark lives in wrappers: std's `print` has one `nocheck`
+  word. The mark lives in wrappers: std's `print` has one `!check`
   line; user programs calling `std::print` have none.
 - A returned plain value is a boundary value (its type known, its range
   not) — the wrapper's `if 'n' < 0 { fail io; }` makes it ordinary.
@@ -64,17 +64,17 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   written through**:
 
   ```
-  nocheck 'c' := ptr.read['p'];         # the T at 'p'
-  nocheck ptr.write['p', 65];               # needs ptr.mut
-  nocheck 'q' := ptr.at['p', 3];        # 3 elements further — in T units, never bytes
+  !check 'c' := ptr.read['p'];         # the T at 'p'
+  !check ptr.write['p', 65];               # needs ptr.mut
+  !check 'q' := ptr.at['p', 3];        # 3 elements further — in T units, never bytes
   if ptr.is_null['f'] { fail not_found; }   # C's null; reading it would crash
   ```
-  All `nocheck` sites. No pointer↔integer conversion; a pointer comes
+  All `!check` sites. No pointer↔integer conversion; a pointer comes
   only from a lend or from C.
 - **`ptr.cast[T]['p']` sees the same address as pointing at a `T`**
   (owner, 2026-09-30: a): `malloc`'s `ptr.mut[uint8]` becomes a
   `ptr.mut[Point]`. No byte moves and nothing converts — `ptr.read` then
-  reads a `T`, `ptr.at` steps whole `T`s. Always a `nocheck` site: only
+  reads a `T`, `ptr.at` steps whole `T`s. Always a `!check` site: only
   the programmer can say the bytes really are a `T`. The target is
   C-shaped, as anything a pointer points at. **A cast keeps whether the
   pointer may write** (owner: a): a `ptr` stays read-only, a `ptr.mut`
@@ -91,9 +91,9 @@ extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
                  'cmp': fn[ptr[int32], ptr[int32]] --> int32];
 
 fn ascending ['a': ptr[int32], 'b': ptr[int32]] --> int32 {
-    nocheck return ptr.read['a'] minus ptr.read['b'];
+    !check return ptr.read['a'] minus ptr.read['b'];
 }
-nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
+!check qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 ```
 
 - **Only capture-free functions cross** (owner: a, over smuggling captures
@@ -107,7 +107,7 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
   function with C's convention when it is handed over.
 - A function pointer C hands *to* Cyborg (`signal` returns the previous
   handler) is a `fn[…]` value to hold and pass back; calling it is an
-  `extern` call, a `nocheck` site.
+  `extern` call, a `!check` site.
 - Consequence: `ptr[T]` may now appear in any function's parameters and
   return (a callback receives pointers); a declaration still cannot hold one.
 
@@ -115,7 +115,7 @@ nocheck qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 
 ```
 extern.C fn strlen ['s': ptr[uint8]] --> uint64[0, 1_000_000];
-nocheck let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
+!check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
 An extern's return may be a range type. It is a promise about C that
@@ -123,13 +123,13 @@ Cyborg does not trust: the value is compared against the range at the
 door, and outside it the call **fails `out_of_range`**, which the caller
 handles like any failure. Inside it, Precog knows the value's domain
 and everything downstream is provable. It is a failure, not a check
-site — so `nocheck` (which the call needs) does not remove it, and the
+site — so `!check` (which the call needs) does not remove it, and the
 final build keeps it: one compare per call, the program's own logic,
 the same rule as `to.int32[0, 100][…]` at the input boundary. An extern
 with a plain return still cannot fail. Parameters cannot be ranged (C
 receives what it is given). Proposed: (a) nothing on the extern, a
 guard `if` after each call; (b) a trusted range, unverified — a
-`nocheck` in disguise, rejected; (c) this. Owner asked the safety and
+`!check` in disguise, rejected; (c) this. Owner asked the safety and
 performance difference against (a): none — same compare, same proofs;
 written once in the signature instead of after every call. Owner: c.
 `examples/extern_range.cpls`.
@@ -158,7 +158,7 @@ type is the request to check. To skip the check, write the plain type
 let 'k' := to.Key['code'] otherwise { out_of_range { return; } };
 ```
 
-`nocheck` does not remove these. It turns off *check sites*, the bugs
+`!check` does not remove these. It turns off *check sites*, the bugs
 ("calling C here is fine"), not *failures*, which are answers you handle.
 Returns were ruled so on 2026-09-22. A **callback's** parameter must be the
 plain number: C calls it, so a failure would have nowhere to go.
@@ -170,7 +170,7 @@ comparison or two, under a nanosecond, beside a call into C.
 
 Proposed and not chosen: `nocheck` vouching for the number where it is
 already written (b); stopping the program on a bad number (c); a fourth
-tier trusting C's answers too. The owner asked whether `nocheck` was then
+tier trusting C's answers too. The owner asked whether `!check` was then
 "lying" (it isn't, for the reason above), then chose this rule.
 `examples/c_enum_convert.cpls`.
 
@@ -214,14 +214,14 @@ design claude's recommendation with a, not asked separately.
 extern.C 'lib_version': int32;        # C: extern int lib_version;   read-only
 extern.C mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
 
-nocheck let 'v' := 'lib_version';       # reading C's variable is a nocheck site
-nocheck change 'lib_verbose' = 1;              # so is writing one
+!check let 'v' := 'lib_version';       # reading C's variable is a !check site
+!check change 'lib_verbose' = 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern.C fn` names its functions.
 The type is required and C-shaped (numbers, `bool`, `ptr`, `layout.C`
-structs); no value — C owns it; `mut` says it may be written, `immut` is
-meaningless. Every read and write is a nocheck site, like an extern call:
+structs); no value — C owns it; `mut` says it may be written, `!mut` is
+meaningless. Every read and write is a `!check` site, like an extern call:
 nothing about C's memory can be proven. It is a plain value that copies
 by itself — no verbs. Proposed alternatives: no extern data at all (a C
 helper function per variable) and `extern.C 'x': ptr[T]` read through
@@ -236,7 +236,7 @@ there; the std Limb offers `std::c.errno[]` backed by the real thing.
 ## `layout.C` — a struct in C's shape
 
 **A language's name is capitalized wherever CyborgPL writes it** (owner,
-2026-10-02: "BIG"): `layout.C`, `inline.ASM`, `inline.MSL`, `inline.C`
+2026-10-02: "BIG"): `layout.C`, `inline.Assembly`, `inline.MSL`, `inline.C`
 when it comes. The owner said "inline.C has a big c" on 2026-10-01;
 design claude generalized it then without recording it, and `layout.c`
 (2026-09-19) kept its lowercase until this ruling. `layout.c` is refused,
@@ -259,14 +259,14 @@ Compile-time constants, spelled like `to.`: `malloc[10 times size.of[Timeval]]`.
 A `layout.C` struct has C's size; a normal struct's is whatever Precog
 chose.
 
-## Inline assembly — `inline.ASM` (decided 2026-09-20)
+## Inline assembly — `inline.Assembly` (decided 2026-09-20)
 
-**`inline.S` is another name for `inline.ASM`** (owner, 2026-10-02: "Add
+**`inline.Assembly` is another name for `inline.Assembly`** (owner, 2026-10-02: "Add
 `S` as an alias to `ASM`"), as assembly's `.S` files: the same block,
 the same rules. Capitals, as every language's name: `inline.s` is refused.
 
 ```
-nocheck inline.ASM {
+!check inline.Assembly {
     mov x16, #4
     svc 0
 } with ['fd' --> x0, 'buf' --> x1, 'len' --> x2, 'n' <-- x0, clobber x16];
@@ -302,7 +302,7 @@ nocheck inline.ASM {
   ignores a clobber of those two when written as `xN` (fixed in 23; Clang
   never hit it because it always emits the ABI names). The programmer
   keeps writing `x30`; the rename is invisible and harmless on 23.
-- Always a `nocheck` site. Per-architecture by nature.
+- Always a `!check` site. Per-architecture by nature.
 - The oracle parses and checks all of this and then refuses to run it
   ("the oracle cannot run assembly"), with nine reject tests.
 

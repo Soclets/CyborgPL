@@ -67,7 +67,7 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   literal, arithmetic on literals, another const, a pure call; anything
   with an effect or a runtime input is a compile error. It has no storage:
   Precog bakes it in at every use. It is never assignable, never `mut` /
-  `immut`, never shadowed, and no ownership verb applies to it — nobody
+  `!mut`, never shadowed, and no ownership verb applies to it — nobody
   owns it, every use is a fresh value.
 - **Named like a variable, quoted**: `'pi'`, used in expressions as
   `'pi' times 2`, reached from another Limb as `mathstuff::'pi'` (owner,

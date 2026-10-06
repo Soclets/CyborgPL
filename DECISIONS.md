@@ -98,6 +98,10 @@ Then: **`!` is the main spelling of `not`, and the word `not` moves to
 MTM** (owner: "Make `!` the main spelling for `not`, so them kernel
 makers won't trip `!check` as `check`"): one `!` meaning "not" across
 the language, so `!check` reads as "not check" to anyone who knows it.
+**The design notes are rewritten to the main spellings** (`!check`,
+`!mut`, `! 'x'`, `inline.Assembly`), the owner's quotes and the lines
+naming MTM's spellings kept as written (owner: "Bro, of course that my
+exact words/rulings"); this log keeps the spelling of each entry's day.
 **`not.bit` stays a word** (owner: "`a`"), with the bitwise family
 (`and.bit`, `or.bit`, `xor`, `shl`, `shr`), all std's. Not built. **MTM adds
 other spellings for any layer, each working only where its owner is**

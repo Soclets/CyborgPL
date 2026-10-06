@@ -38,7 +38,7 @@ std::print.weird.stored.stdout <- "stored: " <- 'tenth' <- \n;
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
 seems like a good name, maybe use `->` arrows"). Each value follows a
 **`<--`**, pointing into the output, as C++'s `<<` points into `cout`
-and as `<-` points into a variable in `inline.ASM` (owner: "`<-`", over
+and as `<-` points into a variable in `inline.Assembly` (owner: "`<-`", over
 `-->`, which would point away from the screen — CyborgPL's arrows point
 where the value goes). It takes no `[ ]`, and at least one value. **`.weird.stored`**
 shows the stored form, as `print.stored`; **`.weird.useful`** the
@@ -93,7 +93,7 @@ holes"):
   it first, so `\\` is one backslash: `"C:\\temp"` prints `C:\temp`. An
   unknown escape is an error (owner: "Fine") — so `\%` is refused and
   `\\%` prints a backslash and a percent. **`%` is plain text.**
-- A format that is not a literal cannot be checked and is a `nocheck`
+- A format that is not a literal cannot be checked and is a `!check`
   site; it is read as stored text.
 
 Before 2026-10-01 it was C's `printf` language (`%d %x %.2f`, `%%`, then

@@ -64,7 +64,7 @@ Vec satisfies Ordered;
 
 It does not make `Vec` ordered; it asks the compiler to check that it is,
 and errors at the definition rather than at some later use — the
-`immut` / `check` pattern: statable, verified, not standard. The word is
+`!mut` / `check` pattern: statable, verified, not standard. The word is
 `satisfies` (owner, over `is`: "Vec is Iterator" reads oddly for
 noun-named interfaces; `satisfies` reads right for any name).
 

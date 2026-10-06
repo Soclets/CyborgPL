@@ -12,7 +12,7 @@ The 2026-09-14 form is under **History** at the bottom.
 ```
 struct Locker {
     name: str.utf8
-    immut number: int32
+    !mut number: int32
     occupied: bool
 }
 
@@ -37,7 +37,7 @@ MAIN {
 let 'x' := 1000;                 # Precog picks the best type
 let 'x': bin16 = 1000;           # explicit type; must be fully explicit
 let mut 'n': int32 = 0;          # mutability, when stated, before the name
-let immut 'limit' := 10;
+let !mut 'limit' := 10;
 let 'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
 pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
 ```
@@ -57,12 +57,12 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   name: variables, parameters, struct fields, loop counters.
 - **`:=` only without a type, `=` only with one.** Unchanged. `:=` marks
   "the compiler chooses the best type"; `=` marks "you said everything".
-- **`mut` / `immut`** (`!mut` is the same as `immut`) are bare words
+- **`mut` / `!mut`** (`!mut` is the same as `!mut`) are bare words
   between `let` and the name, and `!$` before those says the name cannot
   be shadowed (2026-09-25): `let !$ mut 'total' := 0;`. Statable, not standard — see `ownership-syntax.md`. **Plain
   means Precog infers**: `let 'x' := 1; change 'x' = 2;` is legal; `mut` states
-  intent, `immut` is the enforced contract. The same rule holds for an
-  owning parameter (`'items': T` may be changed; `immut 'n': T` may not).
+  intent, `!mut` is the enforced contract. The same rule holds for an
+  owning parameter (`'items': T` may be changed; `!mut 'n': T` may not).
   Not Rust's default-fixed — a fifth cold reader assumed it was
   (2026-09-21).
 - Style: a space after `:`, none around `::`.
@@ -82,8 +82,8 @@ without the rest of that redesign. See `DECISIONS.md`.
 - **Keywords are bare and reserved** (decided 2026-09-14). The language's
   words — `fn`, `change`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
-  `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `struct`, `pub`, `const`, `module`, `limb`, `my`, `check`, `nocheck`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
+  `!check`, `true`, `false`, `mut`, `!mut`, `temp`, `perm`, `range`, `seq`,
+  `list`, `array`, `struct`, `pub`, `const`, `module`, `limb`, `my`, `check`, `!check`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
   be used bare as function names; a function *may* be named with one, and
   is then reached only through a path (`std::to[…]`, `my.to[…]`;
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
@@ -151,7 +151,7 @@ without the rest of that redesign. See `DECISIONS.md`.
   2026-09-20; `print` and `print.useful` are the prints.
 - **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
   needs the `$`; `let 'x' $:= 2;`. A name marked `!$` cannot be shadowed; an
-  `immut` one can (2026-09-25: `immut` only forbids `change`).
+  `!mut` one can (2026-09-25: `!mut` only forbids `change`).
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
   (`1_000_000`); `1,000` is an error that points at `_`; leading zeros are
   illegal.

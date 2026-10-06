@@ -45,7 +45,7 @@ owner: "shouldn't they just use the normal way?" A program reaching for
 `simd` is writing for a machine, and a type that pretends otherwise
 lies; portability is the plain loop. A `simd` program built for another
 target fails to build rather than running slowly — the honesty
-`inline.ASM` already has. The shapes come from the target description
+`inline.Assembly` already has. The shapes come from the target description
 in the manifest (`Synthia.ttsr` / `CCA.cplr`), never from the host.
 
 ## The operators, element-wise (owner: a)
@@ -100,7 +100,7 @@ against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 ```
 fn all_on ['m': simd[bool, 4]] --> bool { return simd.all['m']; }
 let 'm': simd[bool, 4] = 'a' > simd.fill[10];
-let 'flip' := not 'm';
+let 'flip' := ! 'm';
 ```
 
 A vector comparison's result can be written as a type, so a function can

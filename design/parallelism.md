@@ -58,7 +58,7 @@ A loop that prints, reads input or calls C stays in order by itself
 parallel but you want in order, like an exact `bin` total. The other way,
 **`for para`** forces a loop parallel (owner: "`para`"). It overrides
 only that automatic order (owner: "`a`, because `nocheck` exists"): the
-`nocheck` every C call already carries is also the writer's word that the
+`!check` every C call already carries is also the writer's word that the
 C is safe on many cores at once, and printing under `para` may come out in
 any order. A conflict Precog can see — two iterations writing the same
 place, other than a reduction — stays an error, `para` or not.
@@ -84,7 +84,7 @@ work faster — SIMD, or across cores — so `!cheat` is about whether the work
 happens, not how; add `seq` for one round at a time, in order (owner:
 "Skipping work, because `seq` could be used with `!c`"). Written in
 CyborgPL for timing code and the like, where today an empty
-`inline.ASM` passing the value through a register does the job.
+`inline.Assembly` passing the value through a register does the job.
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
 `!cheat` changes what the loop must do, `seq` and `para` only how its rounds

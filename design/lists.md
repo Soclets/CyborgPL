@@ -128,7 +128,7 @@ default tier, proven away by Precog where it can be.
 change 'xs'[2] = 5;
 ```
 
-The list must be assignable (not `immut`, not a shared `lent`); the position
+The list must be assignable (not `!mut`, not a shared `lent`); the position
 is range-checked; the value obeys the ownership verbs (an owned value is
 `give`n or `copy`d in). Works on `array` too — writing into a slot is not
 growth.

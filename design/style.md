@@ -26,17 +26,17 @@ recommended.
    Everything downstream is then proven, with no guard at each use
    (`input.md`).
 3. **No `mut` by habit.** Plain is the standard, and `change` already
-   marks every change. Keep `immut` / `!mut` / `!$` for values whose
+   marks every change. Keep `!mut` / `!$` for values whose
    fixedness matters to the reader: a rate, a limit.
 
 ## Safety
 
 4. **The proven path first, then `check`.** A guard `if` in front of the
    site, and `check` on the ones that matter, so the compiler says whether
-   the guard is enough. `nocheck` is for what no guard can prove, mostly C.
-5. **Wrap `nocheck` once.** As std does: one small function holds the
-   `nocheck` C call, and everything else calls that safe wrapper. The
-   build's `nocheck` list stays short enough to review.
+   the guard is enough. `!check` is for what no guard can prove, mostly C.
+5. **Wrap `!check` once.** As std does: one small function holds the
+   `!check` C call, and everything else calls that safe wrapper. The
+   build's `!check` list stays short enough to review.
 6. **`NO_FUCKING_CHECKS` only after measuring.** Never a first resort.
 7. **`#strict` for public Limbs, plain files for programs.** A library's
    safety should not depend on who calls it, and `#strict` makes sure it

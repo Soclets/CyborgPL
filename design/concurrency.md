@@ -34,7 +34,7 @@ concur { … }                       # a block, run alongside
 concur fetch[lend 'url'];          # a call, run alongside
 ```
 
-A bare word in front of a statement, the family of `check` / `nocheck`.
+A bare word in front of a statement, the family of `check` / `!check`.
 The first six letters of *concurrent*; the owner weighed the English
 reading ("agree") against `task` and chose `concur`.
 

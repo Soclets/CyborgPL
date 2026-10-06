@@ -45,6 +45,6 @@ and "compile for the exact machine" makes the target part of the input.
 ## Making it observable
 
 Synthia records a **proof summary** in the lock file: for every check site,
-proven / checked / nocheck. A rebuild whose summary differs is flagged
+proven / checked / `!check`. A rebuild whose summary differs is flagged
 before anyone wonders why the binary changed. Determinism you cannot observe
 is determinism you will not notice losing.

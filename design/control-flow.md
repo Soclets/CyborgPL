@@ -39,8 +39,8 @@ if true {
 ```
 
 A name marked `!$` cannot be shadowed, and neither can a loop's
-counter. An `immut` one can (2026-09-25): shadowing makes a new variable
-and changes nothing, so `immut` only forbids `change`.
+counter. An `!mut` one can (2026-09-25): shadowing makes a new variable
+and changes nothing, so `!mut` only forbids `change`.
 
 ## Loops
 

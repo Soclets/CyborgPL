@@ -26,8 +26,8 @@ struct Locker {
 - No declaration word on a field: a struct always *owns* its fields, so there is nothing
   to choose (a parameter's `lent` chooses; a field cannot).
 - No `;` after a field: fields are not statements.
-- `immut` is allowed on a field — `immut number: int32` — under the same
-  rule as `immut` on a variable: a verified contract, allowed, not standard.
+- `!mut` is allowed on a field — `!mut number: int32` — under the same
+  rule as `!mut` on a variable: a verified contract, allowed, not standard.
 - A field may be any type, including another struct or a list.
 
 ## Making a value — by field name
@@ -53,8 +53,8 @@ change 'mine'.number = 8;                  # write
 
 A quoted name followed by `.` is field access — a new shape, unambiguous
 because nothing else follows a quoted name with a dot. Writing obeys the
-same rules as assignment: the struct must be assignable (not `immut`, not a
-shared `lent`), the field must not be `immut`.
+same rules as assignment: the struct must be assignable (not `!mut`, not a
+shared `lent`), the field must not be `!mut`.
 
 ## Ownership
 
