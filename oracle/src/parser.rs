@@ -19,6 +19,23 @@ pub const KEYWORDS: &[&str] = &[
     "var", "func",
 ];
 
+/// std's registry ID (owner, 2026-10-06: design claude's `openssl rand -hex 32`) and the version the
+/// oracle stands in for (its release's date and time with the offset, owner: "date and time of update")
+pub const STD_ID: &str = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936";
+pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
+
+/// The operators that are std's (owner, 2026-10-05/06), as the oracle spells them inside; `and.then` and
+/// `or.else` stay Signatar's, and a Limb's own operators are that Limb's.
+fn is_std_op(op: &str) -> bool {
+    matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "pow" | "pow.wrap" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
+        || BIT_OPS.contains(&op) || op.starts_with("div.") || op.starts_with("mod.")
+}
+
+/// An operator as code writes it (`+` inside is `plus`).
+fn op_shown(op: &str) -> String {
+    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), o => o.into() }
+}
+
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
 /// Bitwise operators (decided 2026-09-21): the boolean words narrowed with `.bit`, plus xor/shl/shr;
 /// no precedence — parentheses whenever one meets another operator.
@@ -74,6 +91,8 @@ pub struct Parser {
     /// this Limb's operator levels from its `precedence` block: name → (level, how a chain reads:
     /// 0 left first, 1 right first, 2 refused), on the language's scale (`base_level`)
     pub user_levels: std::collections::HashMap<String, (u16, u8)>,
+    /// this file's Limb does not list std in its `CCA.cplr` (owner, 2026-10-06)
+    no_std: bool,
 }
 
 type PResult<T> = Result<T, ParseError>;
@@ -81,18 +100,32 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// Every `precedence` block of the program, all its Limbs' (owner, 2026-10-03: a Limb's levels
     /// apply wherever its operators are used); filled by a first pass over every file (`main.rs`)
+    /// The Limbs (by root: `[]` for the one being built, `["::areas"]` for a dependency) whose
+    /// `CCA.cplr` does not list std (owner, 2026-10-06): their code reaches no operator and no `std::`.
+    pub static NO_STD: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
     pub static SHARED_LEVELS: std::cell::RefCell<std::collections::HashMap<String, (u16, u8)>> = std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
     /// A parser for a dependency Limb's file: its modules sit under `limb_root`.
-    pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self { let mut p = Parser::new_in(toks, module); p.limb_root = limb_root; p }
+    pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self {
+        let mut p = Parser::new_in(toks, module);
+        p.no_std = NO_STD.with(|n| n.borrow().contains(&limb_root));
+        p.limb_root = limb_root;
+        p
+    }
+
+    /// Everything std brings is refused in a Limb whose `CCA.cplr` does not list it (owner, 2026-10-06:
+    /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
+    fn std_missing<T>(&self, what: &str) -> PResult<T> {
+        self.err(format!("{what} is std's, and this Limb's CCA.cplr does not list std: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+    }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
         if segs.first().map(|s| s == "limb").unwrap_or(false) { let mut out = self.limb_root.clone(); out.extend(segs[1..].iter().cloned()); return out; }
@@ -139,6 +172,13 @@ impl Parser {
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() };
+        if self.no_std {
+            if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon) {
+                self.pos = i;
+                let what = match &self.toks.get(i + 2).map(|t| &t.tok) { Some(Tok::Word(w)) => format!("`std::{w}`"), _ => "`std::`".into() };
+                return self.std_missing(&what);
+            }
+        }
         // a `precedence` block applies to the whole file, wherever it is written: read it first
         self.scan_levels()?;
         self.items(&mut prog, 0)?;
@@ -2432,6 +2472,7 @@ impl Parser {
             let Some(op) = self.binop() else { break };
             if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
             if self.op_old.get() && !self.internal_ops { return self.old_op_error(&op); }
+            if self.no_std && is_std_op(&op) { return self.std_missing(&format!("`{}`", op_shown(&op))); }
             if op == "div" || op == "mod" {
                 return self.err(format!("say how `{op}` rounds: `{op}.floor`, `{op}.ceil`, `{op}.trunc` or `{op}.near` (owner, 2026-10-02)"));
             }
@@ -2507,6 +2548,11 @@ impl Parser {
     // unary := ('not' | '-') unary | primary
     fn unary(&mut self) -> PResult<Expr> {
         let line = self.line();
+        if self.no_std && self.is_word("not") {
+            let bit = *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bit");
+            return self.std_missing(if bit { "`not.bit`" } else { "`not`" });
+        }
+        if self.no_std && *self.peek() == Tok::Op("-".into()) { return self.std_missing("`-`"); }
         if self.is_word("not") {
             self.advance();
             if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(b) if b == "bit") {

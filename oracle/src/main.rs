@@ -49,11 +49,21 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
 fn load(path: &Path) -> Result<ast::Program, String> {
     // first every file's `precedence` blocks, then the program with all of them known
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
+    parser::NO_STD.with(|n| n.borrow_mut().clear());
     LEVELS_ONLY.with(|f| f.set(true));
     let first = load_files(path);
     LEVELS_ONLY.with(|f| f.set(false));
     first?;
     load_files(path)
+}
+
+/// A Limb whose `CCA.cplr` does not list std reaches none of it (owner, 2026-10-06). One with no
+/// `CCA.cplr` gets what the machine's package installed, and the oracle stands in for the full package.
+fn mark_std(dir: &Path, root: &[String]) -> Result<(), String> {
+    if !dir.join("CCA.cplr").is_file() { return Ok(()); }
+    let (_, deps, _) = read_manifest(dir)?;
+    if !deps.iter().any(Dep::is_std) { parser::NO_STD.with(|n| n.borrow_mut().push(root.to_vec())); }
+    Ok(())
 }
 
 fn load_files(path: &Path) -> Result<ast::Program, String> {
@@ -62,6 +72,7 @@ fn load_files(path: &Path) -> Result<ast::Program, String> {
         return parse_file(path, Vec::new());
     }
     if !path.is_dir() { return Err(format!("oracle: {} is neither a .cpls file nor a Limb directory", path.display())); }
+    mark_std(path, &[])?;
     let mut prog = load_limb(path, Vec::new())?;
     // the Limbs it depends on, from its `CCA.cplr` (owner, 2026-09-29), each under a root of its own
     let mut loaded: Vec<(String, PathBuf)> = Vec::new();
@@ -108,6 +119,8 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
 /// A dependency from `CCA.cplr`: `cca::Dep[path = "../geometry"]` (or an `id` and `version`, from
 /// the registry, which the oracle cannot fetch). It names no word: code writes the Limb's own 'prefix'.
 struct Dep { what: String, path: Option<String>, version: Option<String>, id: Option<String> }
+
+impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID) } }
 
 /// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
 /// cannot load.
@@ -215,6 +228,13 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                         if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
                     }
                     if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a Limb by its ID: `id = \"…\"`, 64 hex digits")); }
+                    // std is listed like any limb, by its ID and version; CCA uses the installed copy when they
+                    // match (owner, 2026-10-06), and the oracle stands in for that copy
+                    if d.is_std() {
+                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: std is listed twice")); }
+                        if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(format!("{shown}: line {line}: the oracle stands in for std `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or(""))); }
+                        d.what = "std".into();
+                    }
                     deps.push(d);
                 }
             }
@@ -257,6 +277,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
     chain.push(here);
     for d in deps {
         let here_file = dir.join("CCA.cplr");
+        if d.is_std() { continue; }
         let Some(rel) = &d.path else {
             return Err(format!("{}: {} comes from the registry; the oracle takes `path` dependencies only", here_file.display(), d.what));
         };
@@ -273,6 +294,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         }
         loaded.push((prefix.clone(), canon.clone()));
         let root = vec![format!("::{prefix}")];
+        mark_std(&depdir, &root)?;
         let mut dep = load_limb(&depdir, root.clone())?;
         // a dependency's MAIN never runs: only the Limb being built has one (the oracle's reading)
         dep.main = None;

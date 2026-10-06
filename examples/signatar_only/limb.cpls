@@ -1,0 +1,32 @@
+# No std listed: no operators and no printing (owner, 2026-10-06). Functions, `let`, `if`,
+# structs, `match`, and.then / or.else (Signatar's, since they skip their right side) still work.
+
+struct Point {
+    x: int32
+    y: int32
+}
+
+enum Light {
+    on
+    off
+}
+
+fn ready [] --> bool {
+    return true;
+}
+
+fn origin [] --> Point {
+    return Point[x = 0, y = 0];
+}
+
+MAIN {
+    let 'p' := origin[];
+    let 'l' := Light.on;
+    if ready[] and.then false {
+        let 'unused': int32 = 1;
+    }
+    match 'l' {
+        on { }
+        off { }
+    }
+}
