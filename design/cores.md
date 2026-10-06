@@ -67,6 +67,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   mostly borrows, types and shape, since its maths is assembly);
 - **SIMD**, `and.then` / `or.else` (they skip their right side, which an
   operator from std cannot), **`on.target`** (below);
+- **fixed arrays** (`array[T]`) and **text literals**, which need no heap;
 - **raw numbers**: literals are bit patterns, as the machine's (an `int8`
   holding `128` holds -128's bits), with no negative literals;
 - **kernel-grade raw memory**, beside ownership: pointers as values,
@@ -82,6 +83,8 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   `NO_FUCKING_CHECKS`, and the rule that raw memory and unproven code sit
   under `nocheck`, so a kernel on Signatar + IEG has clear syntax ("like
   Rust's kernel mode also has clear syntax", owner). Not fully unsafe.
+  It also brings **`on.machine`**, the startup check of the chip's
+  features.
 - **ASP, "Abit Safer, Please".** Numbers mean their true values: literals
   as values (`200` is two hundred, refused in an `int8`), exact in between
   and checked where they land, the middle limit (the widest operand's
@@ -110,7 +113,9 @@ express yet. It holds **every operator**: `plus`, `minus`, `times`,
 (so `-5` is std's `-` applied to `5`), bitwise and `++`; the text and
 decimal conversions it adds into ASP's `to.`; printing; friendly names
 for LLVM operations (`std::bits.count_ones` *sketch*); the everyday
-interfaces (`Number`, `Ordered`).
+interfaces (`Number`, `Ordered`); and what needs a heap: growing
+**lists**, **maps**, and **text operations** (`str.bytes`, `++`). A kernel
+makes its own lists and allocator, as Linux does.
 
 ## Powers and who grants them
 
@@ -119,8 +124,10 @@ interfaces (`Number`, `Ordered`).
 - **Cores grant powers to limbs**: to every limb built with them, and
   extra to favourites named by registry ID (names repeat, IDs do not).
 - **A limb lists the powers it uses** in its manifest; each works only if
-  a core it is built for granted it. std's three: operators on built-in
-  types and prefix operators (from IEG), adding conversions (from ASP).
+  a core it is built for granted it. std's: operators on built-in types
+  and prefix operators (from IEG), adding conversions (from ASP), and
+  plugging its list into `for`, a power IEG may grant every limb, so a
+  kernel's own list works with `for` too.
 - **The program may take powers away, never add** (`deny`), and **an
   upgrade that starts using a new power is flagged**.
 
@@ -177,8 +184,6 @@ is nothing to write it in.
 
 ## Open
 
-- **Lists, maps and text** (`list.length`, `map.get`, `str.bytes`): which
-  layer.
 - **What a codextra hands the base** (LLVM IR, or a shared middle form),
   and the stable **plugin interface** for codextras and cores.
 - **The unverified-core warning's wording.**
