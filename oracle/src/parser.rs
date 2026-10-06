@@ -341,9 +341,10 @@ impl Parser {
                     if depth > 0 || self.module != self.limb_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole Limb, so it is written in `limb.cpls`"); }
                     self.advance();
                     loop {
-                        let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `op`, `struct`, `enum`, `const`, `interface`), found {other}")) };
-                        if !["fn", "op", "struct", "enum", "const", "interface"].contains(&kind.as_str()) {
-                            return self.err(format!("`{kind}` is not a kind a `bare` mark covers: `fn`, `op`, `struct`, `enum`, `const`, `interface` (a module is marked on itself)"));
+                        let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `op`, `struct`, `enum`, `interface`), found {other}")) };
+                        if kind == "const" { return self.err("a const takes no `bare` mark: `'pi'` alone is a variable, so another Limb's const always has its path (owner, 2026-10-06)"); }
+                        if !["fn", "op", "struct", "enum", "interface"].contains(&kind.as_str()) {
+                            return self.err(format!("`{kind}` is not a kind a `bare` mark covers: `fn`, `op`, `struct`, `enum`, `interface` (a module is marked on itself)"));
                         }
                         prog.bare_marks.push(BareMark { target: BareTarget::Kind(kind), mode, line, limb_root: self.limb_root.clone() });
                         if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
@@ -669,9 +670,9 @@ impl Parser {
                     BareTarget::Item(if f.is_op { "op".into() } else { "fn".into() }, f.module.iter().cloned().chain(std::iter::once(f.name.clone())).collect::<Vec<_>>().join("."))
                 } else if prog.structs.len() > before.1 { BareTarget::Item("struct".into(), prog.structs[before.1].name.clone()) }
                 else if prog.enums.len() > before.2 { BareTarget::Item("enum".into(), prog.enums[before.2].name.clone()) }
-                else if prog.consts.len() > before.3 { let c = &prog.consts[before.3]; BareTarget::Item("const".into(), c.module.iter().cloned().chain(std::iter::once(c.name.clone())).collect::<Vec<_>>().join(".")) }
+                else if prog.consts.len() > before.3 { return Err(ParseError { line, col: 0, msg: "a const takes no `bare` mark: `'pi'` alone is a variable, so another Limb's const always has its path (owner, 2026-10-06)".into() }); }
                 else if prog.interfaces.len() > before.4 { BareTarget::Item("interface".into(), prog.interfaces[before.4].name.clone()) }
-                else { return Err(ParseError { line, col: 0, msg: "a `bare` mark goes on a `fn`, `op`, `struct`, `enum`, `const`, `interface` or `module`".into() }); };
+                else { return Err(ParseError { line, col: 0, msg: "a `bare` mark goes on a `fn`, `op`, `struct`, `enum`, `interface` or `module`".into() }); };
                 prog.bare_marks.push(BareMark { target, mode, line, limb_root: self.limb_root.clone() });
             }
         }

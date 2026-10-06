@@ -382,7 +382,7 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
     let module_of = |name: &str| { let mut v: Vec<String> = name.split('.').map(str::to_string).collect(); v.pop(); v };
     for d in &prog.structs { if d.vis == Vis::Pub { items.push(("struct", &d.name, module_of(&d.name), d.line)); } }
     for d in &prog.enums { if d.vis == Vis::Pub { items.push(("enum", &d.name, d.module.clone(), d.line)); } }
-    for d in &prog.consts { if d.vis == Vis::Pub { items.push(("const", &d.name, d.module.clone(), d.line)); } }
+    // a const takes no mark: `'pi'` alone is a variable, so its path is always written (owner, 2026-10-06: "`b`")
     for d in &prog.interfaces { if d.vis == Vis::Pub { items.push(("interface", &d.name, d.module.clone(), d.line)); } }
     for (kind, name, module, line) in items {
         let root: Vec<String> = match module.first() { Some(r) if r.starts_with("::") => vec![r.clone()], _ => Vec::new() };

@@ -1,7 +1,7 @@
 # A small Limb used by examples/uses_a_limb (a dependency: it has no MAIN). Only `pub` items reach
-# another Limb; `pub.limb` and private ones stay home. `limb.` here is this Limb's root.
+# another Limb; `pub.limb` and private ones stay home. `my.` here is this Limb's root.
 
-bare.never [fn, struct, const];
+bare.never [fn, struct];
 bare.optional [op];
 
 pub const 'pi': bin64 = 3.14159;

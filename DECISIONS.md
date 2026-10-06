@@ -72,7 +72,7 @@ looks), over a list in `limb.cpls` or in `CCA.cplr`: every `pub` thing in
 `CCA.cplr`: a plain `bare;` means this file, a `bare [ … ]` list means
 those kinds everywhere in the Limb and is allowed only in `limb.cpls`;
 the kinds are the keywords `fn`, `op`, `struct`, `enum`, `const`,
-`interface`. **A Limb may also forbid the path** (owner: "Limbs should
+`interface` (`const` dropped the same day, below). **A Limb may also forbid the path** (owner: "Limbs should
 be able to forbid"), so three choices: required (the default), optional
 (`bare`), forbidden. Asked after design claude said a path was always
 allowed, so a clash always had the fix "write the path" (glyph operators
@@ -117,6 +117,11 @@ can carry no path (`'a' geometry::<+> 'b'` does not exist), so it takes no
 mark and a mark on it is refused, over (b) marking it, which could only
 ever be `bare.only`. std's glyph operators (`++`, `==`, `<`) have no
 `std::` form either; its word operators do (`std::plus`).
+**A const is exempt too** (owner: "`b`"): `'pi'` alone is always a
+variable, so another Limb's const is always written with its path
+(`geometry::'pi'`) whatever its mark; a mark on a const, or `const` in a
+kind list, is refused. Over (a) still requiring a mark, of which only
+`bare.never` would mean anything.
 **A Limb's own clashing name is reached through its root**, as any name
 is: `my.list.append[…]` (design claude's reading; the owner: "yea"; the
 root became `my.`, below). Open: how this sits with 2026-10-02's registry rule (a

@@ -1,5 +1,3 @@
-bare.never [const];
-
 pub const 'capacity' := 12;
 
 struct Locker {
