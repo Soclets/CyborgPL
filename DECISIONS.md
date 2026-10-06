@@ -19,7 +19,23 @@ stays the default, raw memory the marked exception, as Rust's `unsafe`.
 Over (a) Signatar's own `alloc`/`free`, (b) as before, (c) an allocation
 core, (d) whole regions without the borrow rules. The owner: "`e`". It
 reverses 2026-09-19's "pointers only in signatures", which was made for
-calling C. How it is marked is asked next.
+calling C. **How it is marked** (owner: "since cores exist, does
+Signatar really have to mark what's nocheck, and stuff?"): **Signatar
+marks nothing**; it is raw and assembly-level throughout. The owner then
+asked for "clear syntax for a kernel? But not a full safety wrap". Design
+claude offered a separate markers core, ASP in pieces, or optional labels
+in Signatar, and had called IEG "full power, no guard rails"; the owner:
+"wasn't IEG fully unsafe decided, before codextra existed?" It was not:
+what was recorded (2026-10-05 19:31) is "not so practical for normal
+stuff", and IEG's raw operations carry contracts RRx2 verifies. The owner:
+"I don't think IEG should be fully unsafe, but you did say that. IEG was
+before codextras existed." So **IEG brings the markers**: `nocheck` and
+`NO_FUCKING_CHECKS`, and the rule that raw memory and unproven code sit
+under `nocheck`, beside its raw operations and `inline.LLVM`; **ASP brings
+`check` and the run-time checks themselves**, which exist only once
+numbers have true values. A kernel on Signatar + IEG gets clear syntax
+without ASP's number safety (owner: "I think so. I mean, like Rust's
+kernel mode also has clear syntax").
 
 ### 2026-10-06 — Signatar's numbers are raw, like the hardware; safe numbers come from their own official core (owner)
 
