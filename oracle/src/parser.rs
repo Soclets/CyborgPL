@@ -117,6 +117,9 @@ thread_local! {
     /// Bare type names that resolved to another Limb's: (this Limb's would-be name, theirs, as written,
     /// their root), checked once every file is read, since this Limb's own does not win
     pub static BARE_TYPE_USES: std::cell::RefCell<Vec<(String, String, String, String)>> = std::cell::RefCell::new(Vec::new());
+    /// Every call written with no path: (the module it is in, the path as written, whether std may be
+    /// meant, its line), checked for clashes once the program is read, whether or not it runs
+    pub static BARE_CALLS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, bool, usize)>> = std::cell::RefCell::new(Vec::new());
     pub static SHARED_LEVELS: std::cell::RefCell<std::collections::HashMap<String, (u16, u8)>> = std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
@@ -2272,6 +2275,7 @@ impl Parser {
         let mut args = self.bracket()?;
         if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
         let path = if limb.is_none() { self.resolve(&path) } else { path };
+        if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), limb.as_deref() == Some("std"), line))); }
         Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line, bare, written })
     }
 

@@ -69,7 +69,27 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     }
     parser::BARE_TYPES.with(|t| *t.borrow_mut() = bare_types);
     parser::BARE_TYPE_USES.with(|u| u.borrow_mut().clear());
+    parser::BARE_CALLS.with(|b| b.borrow_mut().clear());
     let prog = load_files(path)?;
+    // a bare call with more than one candidate is refused where it is written, run or not (owner,
+    // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
+    for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
+        let shown = written.join(".");
+        let own_module: Vec<String> = from.iter().cloned().chain(written[..written.len() - 1].iter().cloned()).collect();
+        let own = prog.funcs.iter().any(|f| f.module == own_module && Some(&f.name) == written.last() && !f.is_op);
+        let mine = from.first().filter(|r| r.starts_with("::")).cloned();
+        let mut who: Vec<String> = Vec::new();
+        if own { who.push(format!("`my.{}` (this Limb's)", own_module.iter().filter(|m| !m.starts_with("::")).chain(written.last()).cloned().collect::<Vec<_>>().join("."))); }
+        if std { who.push(format!("`std::{shown}`")); }
+        for f in &prog.funcs {
+            let Some(root) = f.module.first().filter(|r| r.starts_with("::")) else { continue };
+            if Some(root) == mine.as_ref() || f.vis != ast::Vis::Pub || f.is_op { continue; }
+            let rel: Vec<&str> = f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect();
+            if rel != written.iter().map(String::as_str).collect::<Vec<_>>() { continue; }
+            if matches!(marks.get(&interp::bare_key("fn", &f.module, &f.name)), Some(ast::Bare::Optional | ast::Bare::Only)) { who.push(format!("`{}::{shown}`", root.trim_start_matches("::"))); }
+        }
+        if who.len() > 1 { return Err(format!("{}: line {line}: `{shown}` could be any of {}: write the path", path.display(), who.join(", "))); }
+    }
     // this Limb's own struct or enum does not win over another Limb's bare one (owner, 2026-10-06: "no")
     for (own, theirs, written, root) in parser::BARE_TYPE_USES.with(|u| u.borrow().clone()) {
         if prog.structs.iter().any(|d| d.name == own) || prog.enums.iter().any(|d| d.name == own) || prog.interfaces.iter().any(|d| d.name == own) {
