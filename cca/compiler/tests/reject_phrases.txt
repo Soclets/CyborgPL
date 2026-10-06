@@ -26,17 +26,25 @@ array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is a `arra
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 asm_as_s [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.S, another name for inline.ASM, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_bare_word [fnv:c83c99fb8348768d] :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
+asm_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
 asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
 asm_lend_mut_immut [fnv:af116253c2e3ddaf] :: is `immut`, so `lend.mut 'buf'`
 asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
 asm_long_arrows [fnv:4b6fbabf0d368c63] :: !by-design CCA compiles inline.ASM, its bindings written with the long arrows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_long_both [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_long_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<<>>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_lowercase [fnv:675e6a4df23aee31] :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
 asm_s_lowercase [fnv:b1269b11eef34dc7] :: is written in capitals
 asm_strings [fnv:c9b7ee31e6eab60e] :: `inline.ASM { mov x16, #4 }`
 asm_top_level [fnv:f8444caf9620e916] :: `inline.ASM` goes inside a body, as a statement, under `nocheck`
+asm_two_long_arrows [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<---->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
+asm_walled_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<|>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_walled_long [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<--|-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_walled_long_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<<|>>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_walled_short [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-|->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_without_nocheck [fnv:5216009b1679357d] :: nothing inside it can be proven
 assign_counter [fnv:e6ba851195255f72] :: belongs to the loop and cannot be changed
 assign_elem_immut [fnv:3fec8bc09c3281b1] :: cannot be changed: it is `immut`

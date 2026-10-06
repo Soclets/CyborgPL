@@ -52,6 +52,10 @@ impl Tok {
             Tok::Num { text, .. } => text.clone(),
             Tok::Newline => "\\n".into(),
             Tok::Word(w) => format!("`{}`", w),
+            // An arrow by its main spelling (owner, 2026-10-03, 2026-10-06).
+            Tok::Op(o) if o == "->" => "`-->`".to_string(),
+            Tok::Op(o) if o == "<-" => "`<--`".to_string(),
+            Tok::Op(o) if o == "<->" => "`<-->`".to_string(),
             Tok::Op(o) => format!("`{}`", o),
             Tok::Raw(_) => "a raw block".into(),
             Tok::Strict => "`#strict`".into(),
@@ -192,8 +196,12 @@ impl<'a> Lexer<'a> {
                     // `->` and `<-` the others (owner, 2026-10-03): one
                     // token, so neither names a custom operator.
                     // `>>` and `>>>` spell `-->`, and `<<` and `<<<` spell `<--`
-                    // (owner, 2026-10-06), wherever an arrow goes.
+                    // (owner, 2026-10-06), wherever an arrow goes; the
+                    // both-ways binding is `<-->`, or `<->`, `<<>>`, `<<<>>>`
+                    // and `<---->` ("Two long arrows"), and with a wall between,
+                    // `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>` (owner: "`b`").
                     let text = match (text.as_str(), text.strip_prefix("-->"), text.strip_prefix("<--")) {
+                        ("<-->" | "<<>>" | "<<<>>>" | "<---->" | "<--|-->" | "<-|->" | "<<|>>" | "<<<|>>>", _, _) => "<->".to_string(),
                         (">>" | ">>>", _, _) => "->".to_string(),
                         ("<<" | "<<<", _, _) => "<-".to_string(),
                         (_, Some(rest), _) => format!("->{}", rest),

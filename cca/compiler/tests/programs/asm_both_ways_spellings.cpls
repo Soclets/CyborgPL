@@ -1,0 +1,17 @@
+# The both-ways binding in each of its nine spellings (owner, 2026-10-06):
+# `<-->`, `<->`, `<<>>`, `<<<>>>`, `<---->`, and walled, `<--|-->`, `<-|->`,
+# `<<|>>`, `<<<|>>>`; each adds 1 in x0, so 1 becomes 10.
+extern.C fn exit ['code': int32];
+MAIN {
+    let mut 'v': int64 = 1;
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <--> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <-> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <<>> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <<<>>> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <----> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <--|--> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <-|-> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <<|>> x0];
+    nocheck inline.ASM { add x0, x0, #1 } with ['v' <<<|>>> x0];
+    nocheck my.exit[to.int32['v']];
+}
