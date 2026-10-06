@@ -29,7 +29,11 @@ So: **Signatar's literals are bit patterns, as the machine's** (an
 `int8` holding `128` holds -128's bits); **a separate official core makes
 numbers values again** ("`200` is two hundred, refused in an `int8`",
 the exact-and-checked-where-it-lands rules). A kernel takes IEG without
-it and gets raw literals. Open: that core's name; exactly which rules it
+it and gets raw literals. **The core is ASP, "Abit Safer, Please"**
+(owner), and **even with ASP, a way to write numbers like the hardware
+stays, but never as the default** (owner: "There should still be a way to
+write it like hardware, but shouldn't be the default"); its spelling is
+asked next. Open: exactly which rules ASP
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
