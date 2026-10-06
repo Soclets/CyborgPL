@@ -1,8 +1,99 @@
 # Benchmark results
 
-Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's. CyborgPL's loops are `for`, run on 3 threads and on 1 (README). Lust is its own release build (`LUST=…/lust-lang/target/release/lust`).
+Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
-## sum (N = 300,000,000)
+## 2026-10-06: CyborgPL against C and Go
+
+Run at 20:36 (+07) with `CYBORG_BENCH_THREADS=10 python3 run.py cyborgpl cyborgpl1 c go`, after the day's cores revision (CCA at `c5179dbd`), with nothing else running (owner: "Bench 1v2, uncapped").
+
+**The nuance** (owner: "note the nuance"):
+
+- **The parallel rows are not like for like.** CyborgPL spreads a proven `for` loop over the cores by itself (`design/parallelism.md`); the C and Go programs are the plain single-threaded code anyone would write first, with no threads added by hand. So the 10-thread row shows what CyborgPL gives for free, not what C or Go could do with work. **The 1-thread row is the fair comparison**: on it CyborgPL ties or beats C on all four (sum 0.091 s against 0.094, fib and lists equal, sieve 0.379 against 0.384, though the capped run below had it behind on sieve, 0.431 against 0.407, so that one is within run-to-run noise), and beats Go on three; on sieve Go's single thread is faster (0.352 s against 0.379).
+- **fib cannot be split**: it is all function calls, so every row is one core, and CyborgPL ties C.
+- **sieve is held back by memory, not cores**: going from 3 threads to 10 took it only from 0.257 s to 0.231 s, while sum halved (0.043 s to 0.022 s).
+- **Startup is included**, so these short runs (tens of milliseconds) also measure how fast each program starts.
+
+### sum (N = 300,000,000)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| CyborgPL (CCA, final build, 10 threads) | 0.022 s | 1.00× |
+| CyborgPL (CCA, final build, 1 thread) | 0.091 s | 4.14× |
+| C (clang -O2) | 0.094 s | 4.27× |
+| Go | 0.141 s | 6.41× |
+
+### fib (N = 35)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| C (clang -O2) | 0.016 s | 0.91× |
+| CyborgPL (CCA, final build, 1 thread) | 0.016 s | 0.91× |
+| CyborgPL (CCA, final build, 10 threads) | 0.017 s | 1.00× |
+| Go | 0.022 s | 1.25× |
+
+### lists (N = 20,000,000)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| CyborgPL (CCA, final build, 10 threads) | 0.029 s | 1.00× |
+| C (clang -O2) | 0.038 s | 1.29× |
+| CyborgPL (CCA, final build, 1 thread) | 0.038 s | 1.30× |
+| Go | 0.096 s | 3.30× |
+
+### sieve (N = 100,000,000)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| CyborgPL (CCA, final build, 10 threads) | 0.231 s | 1.00× |
+| Go | 0.352 s | 1.52× |
+| CyborgPL (CCA, final build, 1 thread) | 0.379 s | 1.64× |
+| C (clang -O2) | 0.384 s | 1.66× |
+
+## 2026-10-06: the same, capped at 3 threads
+
+Run at about 20:00 (+07) with `python3 run.py cyborgpl cyborgpl1 c go`, this session's share of the cores (3) while other sessions were working.
+
+### sum (N = 300,000,000)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| CyborgPL (CCA, final build, 3 threads) | 0.043 s | 1.00× |
+| CyborgPL (CCA, final build, 1 thread) | 0.093 s | 2.17× |
+| C (clang -O2) | 0.101 s | 2.35× |
+| Go | 0.144 s | 3.37× |
+
+### fib (N = 35)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| CyborgPL (CCA, final build, 1 thread) | 0.017 s | 0.95× |
+| C (clang -O2) | 0.017 s | 0.98× |
+| CyborgPL (CCA, final build, 3 threads) | 0.018 s | 1.00× |
+| Go | 0.025 s | 1.41× |
+
+### lists (N = 20,000,000)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| CyborgPL (CCA, final build, 3 threads) | 0.037 s | 1.00× |
+| CyborgPL (CCA, final build, 1 thread) | 0.038 s | 1.03× |
+| C (clang -O2) | 0.041 s | 1.11× |
+| Go | 0.122 s | 3.31× |
+
+### sieve (N = 100,000,000)
+
+| Language | Time | vs CyborgPL |
+|---|---|---|
+| CyborgPL (CCA, final build, 3 threads) | 0.257 s | 1.00× |
+| Go | 0.394 s | 1.53× |
+| C (clang -O2) | 0.407 s | 1.58× |
+| CyborgPL (CCA, final build, 1 thread) | 0.431 s | 1.68× |
+
+## 2026-09-30: every language installed (before the cores revision)
+
+The CyborgPL measured here predates the 2026-10-03 operator words and the 2026-10-06 cores revision; its programs no longer parse as written then (`bench/` was updated to today's spellings on 2026-10-06), so these rows are history. 3 threads and 1.
+
+### sum (N = 300,000,000)
 
 | Language | Time | vs CyborgPL |
 |---|---|---|
@@ -36,7 +127,7 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 | Python (CPython) | 16.650 s | 412.23× |
 | R | 27.499 s | 680.81× |
 
-## fib (N = 35)
+### fib (N = 35)
 
 | Language | Time | vs CyborgPL |
 |---|---|---|
@@ -70,7 +161,7 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 | Perl | 2.051 s | 117.14× |
 | R | 3.095 s | 176.80× |
 
-## lists (N = 20,000,000)
+### lists (N = 20,000,000)
 
 | Language | Time | vs CyborgPL |
 |---|---|---|
@@ -104,7 +195,7 @@ Machine: arm64, Darwin 27.0.0; run 2026-09-30 by `bench/run.py`. Best of 3 runs,
 | Erlang (escript) | 6.259 s | 163.10× |
 | Python (CPython) | 9.075 s | 236.51× |
 
-## sieve (N = 100,000,000)
+### sieve (N = 100,000,000)
 
 | Language | Time | vs CyborgPL |
 |---|---|---|
