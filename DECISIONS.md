@@ -52,8 +52,8 @@ spaces; the owner: "`Low_Level_Virtual_Machine_Intermediate_Representation`
 style, I think"). Design claude noted LLVM is no longer an acronym (the
 project dropped "Low Level Virtual Machine"; LLVM is its whole name);
 the owner: "Yeah. Welp, I mean, maybe not much of a VM. Mf, that shit
-powers multiple langs", so `LLVM_Intermediate_Representation`. Not built;
-MTM's ID not generated yet.
+powers multiple langs", so `LLVM_Intermediate_Representation`. Not built.
+**MTM's ID** (owner: "gen ID now"): `9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56`, first version `2026-10-06T19:18:54+07:00`.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
 
