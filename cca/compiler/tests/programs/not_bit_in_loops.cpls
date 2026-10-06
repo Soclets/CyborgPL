@@ -5,10 +5,10 @@
 # quotient is exact now (owner, 2026-10-02) and a shift of an exact answer
 # is open, so it is an int8 first, as it was.
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 MAIN {
     let 's' := "seven!!";
-    nocheck let 'n': uint64 = strlen[lend 's'];
+    !check let 'n': uint64 = strlen[lend 's'];
     let mut 'v2': int8 = (to.int8['n' mod.floor 100] mod.floor 7) minus 102;
     let mut 'w3': int16 = 7;
     while 'w3' > 0 {
@@ -17,5 +17,5 @@ MAIN {
             check change 'v2' = ((to.int8[(126 or.bit 'v2') div.floor (not.bit 'v2')] shl 6) mod.floor 7) minus 102;
         }
     }
-    nocheck my.exit[to.int32[0 minus 'v2']];
+    !check my.exit[to.int32[0 minus 'v2']];
 }

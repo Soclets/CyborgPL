@@ -3,11 +3,11 @@
 # function and then again by the caller, and the program crashed in
 # `free`. 3 + 5 + 2 = 10.
 extern.C fn exit ['code': int32];
-fn count ['s': str.utf8] -> int32 { return to.int32[str.bytes[lend 's']]; }
-fn make ['n': int32] -> str.utf8 { return to.stored.str.utf8['n']; }
+fn count ['s': str.utf8] --> int32 { return to.int32[str.bytes[lend 's']]; }
+fn make ['n': int32] --> str.utf8 { return to.stored.str.utf8['n']; }
 MAIN {
     let 'a' := count[to.stored.str.utf8[123]];
     let 'b' := count[make[12345]];
     let 'c' := count[make[-7]];
-    nocheck my.exit['a' plus 'b' plus 'c'];
+    !check my.exit['a' plus 'b' plus 'c'];
 }

@@ -4,7 +4,7 @@
 # (examples/c_enum_convert.cpls as an exit code: 2, 0, 3 → 203).
 extern.C fn exit ['code': int32];
 layout.C enum Key { a = 65  b = 66  escape = 256 }
-fn on_key ['code': int32] -> int32 {
+fn on_key ['code': int32] --> int32 {
     let 'k' := to.Key['code'] otherwise { out_of_range { return 0; } };
     match 'k' {
         a { return 1; }
@@ -13,5 +13,5 @@ fn on_key ['code': int32] -> int32 {
     }
 }
 MAIN {
-    nocheck my.exit[on_key[66] times 100 plus on_key[302] times 10 plus on_key[256]];
+    !check my.exit[on_key[66] times 100 plus on_key[302] times 10 plus on_key[256]];
 }

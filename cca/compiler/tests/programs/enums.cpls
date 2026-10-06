@@ -4,7 +4,7 @@ enum Shape {
     line: int32
     box: int32
 }
-fn measure ['s': Shape] -> int32 {
+fn measure ['s': Shape] --> int32 {
     match 's' {
         dot        { return 1; }
         line 'n'   { return 'n' plus 10; }
@@ -15,5 +15,5 @@ MAIN {
     let 'a' := Shape.dot;
     let 'b' := Shape.line[5];
     let 'c' := Shape.box[7];
-    nocheck my.exit[measure[give 'a'] plus measure[give 'b'] plus measure[give 'c']];
+    !check my.exit[measure[give 'a'] plus measure[give 'b'] plus measure[give 'c']];
 }

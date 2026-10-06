@@ -4,5 +4,5 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let 'xs' := list.fill[-336, ((-9223372036854775808) times 4611686018427387904) mod.floor 9];
-    nocheck my.exit[to.int32[list.length[lend 'xs']]];
+    !check my.exit[to.int32[list.length[lend 'xs']]];
 }

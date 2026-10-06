@@ -5,10 +5,10 @@
 # division and the others give a whole quotient. The smallest int8 by -1
 # is 128, exact where it lands. Each right group adds its own bit: 255.
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 MAIN {
     let 's' := "x";
-    nocheck let 'n': uint64 = strlen[lend 's'];
+    !check let 'n': uint64 = strlen[lend 's'];
     let 'z': int32 = to.int32['n'] minus 1;
     let 'a': int32 = -7 plus 'z';
     let 'b': int32 = 2 plus 'z';
@@ -34,5 +34,5 @@ MAIN {
     let 'p': deci64 = -7.5 plus to.deci64['z'];
     let 'q': deci64 = 2.0 plus to.deci64['z'];
     if (('p' div.near 'q') == -3.75) and (('p' div.floor 'q') == -4) and (('p' mod.floor 'q') == 0.5) and (('p' div.trunc 'q') == -3) and (('p' mod.trunc 'q') == -1.5) and (('p' mod.ceil 'q') == -1.5) { change 'code' = 'code' plus 128; }
-    nocheck my.exit['code'];
+    !check my.exit['code'];
 }

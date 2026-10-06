@@ -583,7 +583,7 @@ impl Checker {
             ast::StmtKind::Whichever { arms, otherwise } => self.whichever_stmt(ctx, arms, otherwise.as_ref(), s.span),
             ast::StmtKind::InlineAsm { text, bindings } => {
                 if !ctx.tier.is_some_and(Tier::trusts) {
-                    return err(Diagnostic::error("an inline block is a nocheck site: nothing inside it can be proven — write `nocheck inline.ASM { … }`").at(s.span));
+                    return err(Diagnostic::error("an inline block is a !check site: nothing inside it can be proven — write `!check inline.Assembly { … }`").at(s.span));
                 }
                 let mut ins = Vec::new();
                 let mut outs = Vec::new();
@@ -599,7 +599,7 @@ impl Checker {
                             if *mutable {
                                 let local = &ctx.locals[id.0 as usize];
                                 let why = if local.mutability == Some(ast::Mutability::Immut) {
-                                    Some("is `immut`")
+                                    Some("is `!mut`")
                                 } else if local.kind == LocalKind::Lent {
                                     Some("is lent (shared)")
                                 } else if local.kind == LocalKind::LoopVar {

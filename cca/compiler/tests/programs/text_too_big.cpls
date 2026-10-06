@@ -2,14 +2,14 @@
 # many digits, above or below; never a check site, never `not_a_number`
 # (owner, 2026-09-24: c). `examples/text_to_number.cpls`.
 extern.C fn exit ['code': int32];
-fn read ['t': str.utf8] -> int32 {
+fn read ['t': str.utf8] --> int32 {
     let 'v' := to.int32['t'] otherwise {
         not_a_number { return -1; }
         out_of_range { return -2; }
     };
     return 'v';
 }
-fn byte ['t': str.utf8] -> int32 {
+fn byte ['t': str.utf8] --> int32 {
     let 'v' := to.uint8['t'] otherwise {
         not_a_number { return -1; }
         out_of_range { return -2; }
@@ -26,5 +26,5 @@ MAIN {
     if read["12x"] == -1 and byte["x"] == -1 { change 'got' = 'got' plus 32; }
     let 'b' := to.int64["99999999999999999999999999999999999999999999"] otherwise -1;
     if 'b' == -1 { change 'got' = 'got' plus 64; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

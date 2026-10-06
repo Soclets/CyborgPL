@@ -53,5 +53,5 @@ MAIN {
     if to.useful.str.utf8['l'] == "0.0001" { change 'got' = 'got' plus 1; }
     let 'p': bin64 = 1000000000000000000000000000000.0;
     if to.useful.str.utf8['p'] == "1000000000000000000000000000000" { change 'got' = 'got' plus 1; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

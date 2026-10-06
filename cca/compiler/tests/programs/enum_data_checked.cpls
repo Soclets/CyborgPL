@@ -8,11 +8,11 @@ enum E1 {
 }
 MAIN {
     let 's' := "xyz";
-    nocheck let 'n': uint64 = strlen[lend 's'];
+    !check let 'n': uint64 = strlen[lend 's'];
     let 'k': int64 = to.int64['n'] minus 8;
     let 'e' := E1.c4['k'];
     match 'e' {
-        c1 'a' { nocheck my.exit[1]; }
-        c4 'b' { nocheck my.exit[to.int32['b' mod.floor 256]]; }
+        c1 'a' { !check my.exit[1]; }
+        c4 'b' { !check my.exit[to.int32['b' mod.floor 256]]; }
     }
 }

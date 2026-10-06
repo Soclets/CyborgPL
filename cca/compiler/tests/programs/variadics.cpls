@@ -3,28 +3,28 @@
 # a length known only at run time, or a bundle passed on), `...copy` and
 # `...give` of owned elements. The call builds the bundle.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-fn sum [...'nums'] -> bin64 {
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+fn sum [...'nums'] --> bin64 {
     let mut 'total': bin64 = 0.0;
     for 'n' in lend 'nums' { change 'total' = 'total' plus to.bin64['n']; }
     return 'total';
 }
-fn add [...'nums': int32] -> int32 {
+fn add [...'nums': int32] --> int32 {
     let mut 'total': int32 = 0;
     for 'n' in lend 'nums' { change 'total' = 'total' plus 'n'; }
     return 'total';
 }
-fn count [...'nums': int32] -> uint64 { return list.length[lend 'nums']; }
-fn bytes [lent 'label': str.utf8, lent ...'parts': str.utf8] -> uint64 {
+fn count [...'nums': int32] --> uint64 { return list.length[lend 'nums']; }
+fn bytes [lent 'label': str.utf8, lent ...'parts': str.utf8] --> uint64 {
     let mut 'n': uint64 = str.bytes[lend 'label'];
     for 'p' in lend 'parts' { change 'n' = 'n' plus str.bytes[lend 'p']; }
     return 'n';
 }
-fn pass_on [lent ...'parts': str.utf8] -> uint64 { return bytes["x", ...'parts']; }
-fn keep [...'names': str.utf8] -> uint64 { return list.length[lend 'names']; }
+fn pass_on [lent ...'parts': str.utf8] --> uint64 { return bytes["x", ...'parts']; }
+fn keep [...'names': str.utf8] --> uint64 { return list.length[lend 'names']; }
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    !check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'got': int32 = 0;
     let mut 'three': int32 = 4;
     if 'there' { change 'three' = 3; }
@@ -42,5 +42,5 @@ MAIN {
     if 'there' { change 'words' = ["a", "bcd"]; }
     if keep[...copy 'words'] == 2 and list.length[lend 'words'] == 2 { change 'got' = 'got' plus 32; }
     if keep[...give 'words'] == 2 and list.length[lend 'words'] == 0 { change 'got' = 'got' plus 64; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

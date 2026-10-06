@@ -3,7 +3,7 @@
 # to 0 — never whether 2030534677 shifted still fits a uint32, "proved"
 # the shift, and the binary printed wrapped values. It stops at the first.
 extern.C fn exit ['code': int32];
-fn f1 ['p1': int64] -> int32 {
+fn f1 ['p1': int64] --> int32 {
     let mut 'w10': int8 = 6;
     let mut 'sum': uint64 = 0;
     loop {
@@ -16,5 +16,5 @@ fn f1 ['p1': int64] -> int32 {
 }
 MAIN {
     let 'x': int32 = f1[2030534677];
-    nocheck my.exit['x'];
+    !check my.exit['x'];
 }

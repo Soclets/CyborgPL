@@ -1,13 +1,13 @@
 # A bin64 into a bin16, known only at run time: 65520 rounds past a bin16's largest: the narrowing's check fires.
 # (oracle 3996169: rounded where it lands; what rounds to a finite value fits)
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    !check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'x': bin64 = 1.0;
     if 'there' { change 'x' = 65520.0; }
     let 'h': bin16 = 'x';
-    if 'h' == 65504.0 { nocheck my.exit[3]; }
-    nocheck my.exit[4];
+    if 'h' == 65504.0 { !check my.exit[3]; }
+    !check my.exit[4];
 }

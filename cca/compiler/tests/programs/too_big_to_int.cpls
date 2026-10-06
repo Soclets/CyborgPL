@@ -15,5 +15,5 @@ MAIN {
     if 'x' == -1 { change 'code' = 'code' plus 100; }
     if 'y' == -2 { change 'code' = 'code' plus 50; }
     if 'w' == 99 { change 'code' = 'code' plus 20; }
-    nocheck my.exit[to.int32['code']];
+    !check my.exit[to.int32['code']];
 }

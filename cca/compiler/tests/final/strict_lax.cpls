@@ -1,12 +1,12 @@
 # The same program without #strict: the call sites say 4 and 5, and four's
 # body says 4, so every division is proven (compare strict_caller.cpls).
 extern.C fn exit ['code': int32];
-fn half ['n': int32] -> int32 { return 100 div.floor 'n'; }
-fn four [] -> int32 { return 4; }
-fn ratio ['n': int32[1, max]] -> int32 { return 100 div.floor 'n'; }
+fn half ['n': int32] --> int32 { return 100 div.floor 'n'; }
+fn four [] --> int32 { return 4; }
+fn ratio ['n': int32[1, max]] --> int32 { return 100 div.floor 'n'; }
 MAIN {
     let 'a' := half[4];
     let 'b' := 100 div.floor four[];
     let 'c' := ratio[5];
-    nocheck my.exit['a' plus 'b' plus 'c'];
+    !check my.exit['a' plus 'b' plus 'c'];
 }

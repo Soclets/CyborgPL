@@ -17,5 +17,5 @@ MAIN {
         }
         change 'i' = 'i' plus 1;
     }
-    nocheck my.exit[('hits' times 100) plus 'kept'];     # 109
+    !check my.exit[('hits' times 100) plus 'kept'];     # 109
 }

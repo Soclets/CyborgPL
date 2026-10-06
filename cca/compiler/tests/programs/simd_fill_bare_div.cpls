@@ -6,5 +6,5 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 's': simd[uint64, 2] = simd.fill[15059671820752541943 div.floor 3];
     let 'x': uint64 = 's'[1];
-    nocheck my.exit[to.int32['x' mod.floor 256]];
+    !check my.exit[to.int32['x' mod.floor 256]];
 }

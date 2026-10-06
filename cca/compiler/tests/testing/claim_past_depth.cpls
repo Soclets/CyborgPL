@@ -8,9 +8,9 @@ fn r ['d': int32[0, 12], 'v': uint8, 'w': uint16] --> int8 {
 }
 MAIN {
     let 's' := "x";
-    nocheck let 'n': uint64 = strlen[lend 's'];
+    !check let 'n': uint64 = strlen[lend 's'];
     let 'w': uint16 = to.uint16['n' mod.floor 65536];
     let 'a' := r[0, 6, 'w'];
     let 'b' := r[12, 4, 'w'];
-    nocheck my.exit[to.int32['a' plus 'b']];
+    !check my.exit[to.int32['a' plus 'b']];
 }

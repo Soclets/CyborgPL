@@ -12,7 +12,7 @@
 # being. `!by-design` marks one CCA is *right* to accept: the oracle refuses
 # it for a reason that is not a rule, and the line says which.
 
-amp_binary_undefined [fnv:8b81ac388cbba9c1] :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
+amp_binary_undefined [fnv:8b81ac388cbba9c1] :: is not an operator here
 amp_mut_word [fnv:7e931924847dd7d4] :: `&'x'` or `&mut 'x'`; `&mutt` is neither
 amp_needs_var [fnv:7e931924847dd7d4] :: write `&'x'` (`lend 'x'`) or `&mut 'x'` (`lend.mut 'x'`)
 ampersand_group_unnamed [fnv:a2e7523dea803765] :: a lifetime group is named after `@`: `&@x`
@@ -25,31 +25,31 @@ arith_overflow [fnv:7eddcdfe6e78e8b0] :: the value can be outside what a `int32`
 array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is a `array[int32]`
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 asm_as_s [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.S, another name for inline.ASM, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
-asm_bare_word [fnv:c83c99fb8348768d] :: an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `nocheck`
+asm_bare_word [fnv:c83c99fb8348768d] :: an inline block is `inline.Assembly { … }`
 asm_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
 asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
-asm_lend_mut_immut [fnv:af116253c2e3ddaf] :: is `immut`, so `lend.mut 'buf'`
+asm_lend_mut_immut [fnv:f704a9ff8059b8ba] :: is `!mut`, so `lend.mut 'buf'`
 asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
 asm_long_arrows [fnv:4b6fbabf0d368c63] :: !by-design CCA compiles inline.ASM, its bindings written with the long arrows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_long_both [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_long_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<<>>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
-asm_lowercase [fnv:675e6a4df23aee31] :: the inline language's name is written in capitals, like `MAIN`, so a block is easy to spot: `inline.ASM`
+asm_lowercase [fnv:675e6a4df23aee31] :: written whole and capitalised, like `MAIN`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
-asm_s_lowercase [fnv:b1269b11eef34dc7] :: is written in capitals
-asm_strings [fnv:c9b7ee31e6eab60e] :: `inline.ASM { mov x16, #4 }`
-asm_top_level [fnv:f8444caf9620e916] :: `inline.ASM` goes inside a body, as a statement, under `nocheck`
+asm_s_lowercase [fnv:b1269b11eef34dc7] :: written whole and capitalised, like `MAIN`
+asm_strings [fnv:c9b7ee31e6eab60e] :: not a list of strings
+asm_top_level [fnv:f8444caf9620e916] :: goes inside a body
 asm_two_long_arrows [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<---->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
 asm_walled_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<|>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_walled_long [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<--|-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_walled_long_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<<|>>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_walled_short [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-|->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
-asm_without_nocheck [fnv:5216009b1679357d] :: nothing inside it can be proven
+asm_without_nocheck [fnv:65c92eb99823acb7] :: !check site
 assign_counter [fnv:e6ba851195255f72] :: belongs to the loop and cannot be changed
-assign_elem_immut [fnv:3fec8bc09c3281b1] :: cannot be changed: it is `immut`
+assign_elem_immut [fnv:3fec8bc09c3281b1] :: cannot be changed: it is `!mut`
 assign_elem_past_end [fnv:7914d123bba99015] :: the position can be past the end
-assign_immut [fnv:2276edc1d8291184] :: cannot be changed: it is `immut`
+assign_immut [fnv:bfec91449b920409] :: cannot be changed: it is `!mut`
 assign_needs_change [fnv:f405d0a490121ee9] :: changing a variable says so: `change 'x' = …;`
 assign_to_lent [fnv:6538114fa50ad28c] :: it belongs to whoever lent it
 assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
@@ -89,7 +89,7 @@ bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be 
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
 bin_to_int_unhandled [fnv:19f1e20a8a83665c] :: `to.int32` can fail (not_whole, out_of_range)
-bit_ampersand [fnv:41b7e0e05bfa1187] :: the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is
+bit_ampersand [fnv:41b7e0e05bfa1187] :: the boolean operators are `and`, `or`, `!`
 bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
 bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
@@ -140,7 +140,7 @@ const_bare_name [fnv:c290386092499bc9] :: `const 'max' := …;`
 const_effect_value [fnv:1221654939803659] :: `std::exit` has an effect, so it cannot make one
 const_from_variable [fnv:652fb6ee6f955c44] :: 'y' is not declared
 const_in_body [fnv:9b3a6a83cc747ff7] :: a `const` sits at the top level: inside a body a declaration is `let 'x' := …;`
-const_mut [fnv:9f30cb564f340919] :: it is a value known at compile time, never assigned
+const_mut [fnv:6aa9a8f97da43156] :: neither `mut` nor `!mut`
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
@@ -204,14 +204,14 @@ extern_no_language [fnv:3a252789c569e7d5] :: names its language
 extern_not_c_shaped [fnv:6ab69c7163e3c53f] :: is not C-shaped
 extern_otherwise [fnv:d2a17dcd21891cc1] :: an `extern fn` cannot fail; drop the `otherwise` after `f`
 extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: its return is a range C promised, checked at the door
-extern_read_checked [fnv:6290a80c525fe9a5] :: nothing about C's memory can be proven
+extern_read_checked [fnv:9660ad2c02c77837] :: nothing about C's memory can be proven
 extern_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'a' is not C-shaped
 extern_struct_not_layout [fnv:6e53a6db9ecbfb65] :: a pointer points at something C-shaped
 extern_untyped_param [fnv:74f96f923d17901f] :: C's signature is written in full
 extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s body is in C
 extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
-extern_without_nocheck [fnv:5216009b1679357d] :: nothing about `write` can be proven
-extern_write_checked [fnv:823a6502b3c1ec2d] :: nothing about C's memory can be proven
+extern_without_nocheck [fnv:65c92eb99823acb7] :: !check site
+extern_write_checked [fnv:9e68a9de89f7ef4f] :: nothing about C's memory can be proven
 extern_write_readonly [fnv:7cecff9be0233900] :: …` says C's variable may be written
 fail_arm_falls_through [fnv:0128c6a13e88b457] :: must give the call's value (`{ 0 }`) or leave
 fail_arm_missing [fnv:0d8968bfe13e437e] :: every reason needs an arm
@@ -239,7 +239,7 @@ fnval_capture_without_verb [fnv:6651c83f112f16d2] :: say how 'limit' comes in
 fnval_give_captured_used [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
 fnval_op_as_value [fnv:62b0125508bce133] :: an operator sits between two values
 fnval_silent_capture [fnv:b296dee211a9f22b] :: it sees nothing of the surrounding scope unless `with [lend 'limit']` (or `copy` / `give`) says so
-fnval_type_with_names [fnv:3c0e576199d23fb9] :: a function type has no parameter names: `fn[int32] -> bool`, not `fn['a': int32]`
+fnval_type_with_names [fnv:3c0e576199d23fb9] :: no parameter names
 fnval_unknown_name [fnv:30b76508228be70e] :: a bare name is the function as a value, and none by that name is declared in the root (`limb.cpls`)
 fnval_wrong_return [fnv:13cc98448e4ae7f5] :: expected `apply`'s parameter 'f' (fn[int32] -> int32), found a `fn[int32] -> bool`
 fnval_wrong_shape [fnv:6250f1a435863168] :: expected `apply`'s parameter 'f' (fn[int32, int32] -> int32), found a `fn[int32] -> int32`
@@ -254,7 +254,7 @@ for_no_cheat_order [fnv:c7bc31c32be79e6c] :: `!cheat` comes first
 for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the position
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`
-func_keyword [fnv:06228e3da7cced76] :: `fn name [params] -> type { … }`
+func_keyword [fnv:06228e3da7cced76] :: became `fn`
 generic_any_and [fnv:a8a533fe624275bd] :: `any` stands alone
 generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), and 1 type(s) were given
 generic_bound_on_mention [fnv:2425d9af29f34ce4] :: is said once, where it is announced
@@ -398,6 +398,13 @@ module_relative_from_inside [fnv:427be5d564d39335] :: there is no item `g` in mo
 module_twice [fnv:590a2387e4587ab6] :: a module of that name is already declared
 module_type_clash [fnv:9a463632e47ae022] :: a module and a type cannot share a name
 module_uppercase [fnv:f6e5aa143a6e5454] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
+mtm_ampersand [fnv:fc61e4619e0b4e93] :: `&` is MTM's spelling of `lend` / `lent`
+mtm_immut [fnv:852b91c16d1ee629] :: `immut` is MTM's spelling of `!mut`
+mtm_inline_s [fnv:7502cafbefa124be] :: `S` is MTM's spelling of `inline.Assembly`
+mtm_nocheck [fnv:76b6d0c8816a0dc0] :: `nocheck` is MTM's spelling of `!check`
+mtm_not [fnv:ca0412c7c2cc1974] :: `not` is MTM's spelling of `!`
+mtm_rust_name [fnv:11ce9a925456223a] :: `i32` is MTM's spelling of `int32`
+mtm_short_arrow [fnv:9e63919894849806] :: `->` is MTM's spelling of `-->`: write `-->`, or add the core MTM
 must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
 must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
 mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
@@ -412,7 +419,7 @@ no_checks_lied [fnv:25a223b72a20f04f] :: !by-design CCA builds it and emits a no
 no_genny_generic [fnv:64350b60364cff82] :: a generic is Genny's
 no_genny_interface [fnv:d54522e77c6c628f] :: `interface` is Genny's
 no_ieg_no_checks_at_all [fnv:632142714807fd7f] :: `NO_FUCKING_CHECKS` is IEG's
-no_ieg_nocheck [fnv:48f2786d009d3075] :: `nocheck` is IEG's
+no_ieg_nocheck [fnv:1ad5dd66fef1df1b] :: `!check` is IEG's
 no_mcps_concur [fnv:85f83276fc15bc2c] :: `concur` is MCPS's
 no_mcps_para [fnv:80b8efddb44c83df] :: `for para` is MCPS's
 no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
@@ -421,13 +428,14 @@ no_std_div [fnv:b7650e5cced51ca5] :: `div.floor` is std's
 no_std_list [fnv:9722ce7973a65431] :: a growing list (`list`) is std's
 no_std_map [fnv:948ea297c44df56a] :: a map (`map`) is std's
 no_std_negative [fnv:9f62a471ad06d7c9] :: `-` is std's
-no_std_not [fnv:08e0cf4fc29c8223] :: `not` is std's
+no_std_not [fnv:338d5d71327ab315] :: `!` is std's
 no_std_plus [fnv:c83c0b171e45551c] :: `plus` is std's, and this Limb's CCA.cplr does not list std
 no_std_print [fnv:28dfc91b3d048a78] :: `std::print` is std's, and this Limb's CCA.cplr does not list std
 no_std_text [fnv:75f33ba2cee9cf5b] :: a text operation (`str.…`) is std's
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
-nocheck_lied [fnv:ee1996e7ba5a0e26] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
+nocheck_lied [fnv:3e2ba949fb470634] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
+not_glued [fnv:e33bedbc8af7c387] :: a glued `!` marks a rule
 number_next_to_text [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
 number_to_char [fnv:12ef8394243841eb] :: `char.point.from_code[…] otherwise …` builds one from a code
 on_bare [fnv:5498c2f32cd9b7fa] :: `on` is narrowed: `on.target …`
@@ -484,7 +492,7 @@ print_format_hole_zero [fnv:d041555e923d0b74] :: !pending `std::print.format`'s 
 print_format_lone_brace [fnv:d885f76e08ed722d] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_format_missing_arg [fnv:a9458c5dbdc79cc8] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_format_mixed [fnv:dee02034a539ce5c] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_nonliteral [fnv:86040c08ad0670f5] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_nonliteral [fnv:e697864732903e5f] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_format_type [fnv:68e54257a01e89be] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_format_unused_numbered [fnv:0c9676228756aeee] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
 print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
@@ -502,7 +510,7 @@ ptr_lend_mut_needed [fnv:ed12d99652ef7144] :: C may write through it, so write `
 ptr_read_c_enum_unhandled [fnv:32fe4958b7e20764] :: `ptr.read` of a `Mode` from C can fail (out_of_range)
 ptr_read_null_lied [fnv:4d31d6e728a30b8b] :: !by-design a `nocheck` read through C's pointer; nothing at compile time can know what C returned, and `nocheck` says so — the oracle catches it only by running it
 ptr_read_past_end_lied [fnv:bf3aa6ad6940e787] :: !by-design a `nocheck` read past what C allocated; nothing at compile time can know that, and `nocheck` says so — the oracle catches it only by running it
-ptr_read_without_nocheck [fnv:5216009b1679357d] :: nothing about C's memory can be proven
+ptr_read_without_nocheck [fnv:65c92eb99823acb7] :: !check site
 ptr_write_readonly [fnv:9e0b87326584f59b] :: this pointer is read-only
 pub_in_body [fnv:f825901e8ec3da8a] :: `pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`
 pub_let [fnv:db37187357d70c69] :: is a `const`, not a variable
@@ -597,8 +605,8 @@ struct_field_no_colon [fnv:1b310f9423971d5e] :: a field's type follows its name 
 struct_field_unbracketed [fnv:3a5e01bd7a977ab9] :: a field is written name first, then its type: `x: int32`
 struct_field_walrus [fnv:009d28a4f96e3205] :: the blueprint fixed the types
 struct_give_field_kills [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
-struct_immut_chain [fnv:e46e498118fabc2a] :: `immut` is a bare word before the field's name: `immut number: int32`
-struct_immut_field_write [fnv:0b060e4d362187e5] :: `id` is an `immut` field of `P` and cannot be written
+struct_immut_chain [fnv:e46e498118fabc2a] :: `!mut` goes before the field's name
+struct_immut_field_write [fnv:fa9c53b31316a906] :: !mut` field
 struct_keyword_field [fnv:d10a27914bc3ae70] :: `return` is a keyword and cannot name a field
 struct_missing_field [fnv:81a9a1f64a8049f6] :: every field must be given
 struct_named_rust_alias [fnv:beb39da82ede1c74] :: another name for `int32`

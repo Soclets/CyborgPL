@@ -20,5 +20,5 @@ MAIN {
     let 'x5': bin64 = 'w'[2];
     let 'x6': int32 = 'v'['k'];
     let 'half': int32 = to.int32['x5' times 2.0] otherwise 0;
-    nocheck my.exit['x1' plus 'x4' plus (to.int32['x2'] minus 190) plus to.int32['x3' plus 10] plus 'half' plus 'x6'];
+    !check my.exit['x1' plus 'x4' plus (to.int32['x2'] minus 190) plus to.int32['x3' plus 10] plus 'half' plus 'x6'];
 }

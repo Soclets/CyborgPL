@@ -198,7 +198,7 @@ impl Checker {
             AK::PtrCast { ty, value } => {
                 // Nothing proves what the bytes are (owner, 2026-09-30).
                 if !ctx.tier.is_some_and(ast::Tier::trusts) {
-                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a nocheck site: write `nocheck` in front of the statement").at(span));
+                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a !check site: write `!check` in front of the statement").at(span));
                 }
                 // The function's own generics are announced, so naming one
                 // here is no typo — it just has no size or layout yet.
@@ -227,7 +227,7 @@ impl Checker {
             AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[0, count 10]`").at(span)),
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
-            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),
+            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[int32, int32] --> int32 = op {};`", spelled, spelled, spelled)).at(span)),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
     }
@@ -330,7 +330,7 @@ impl Checker {
                 let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
                 Ok(Expr { kind: K::FnRef(inst), ty, span })
             }
-            Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `nocheck`), and is not a value to hold", path.spelled())).at(span)),
+            Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `!check`), and is not a value to hold", path.spelled())).at(span)),
             Ok(ItemRef::Struct(_)) => err(Diagnostic::error(format!("`{}` is a struct: a value of it is built with `{}[field = …]`", path.spelled(), path.spelled())).at(span)),
             Ok(ItemRef::Enum(id)) => err(Diagnostic::error(format!("`{}` is an enum: a value is one of its cases — `{}.{}`", path.spelled(), path.spelled(), self.items.enums[id.0 as usize].cases.first().map(|c| c.name.as_str()).unwrap_or("case"))).at(span)),
             Ok(other) => err(Diagnostic::error(format!("`{}` is a {}, not a value", path.spelled(), other.what())).at(span)),
@@ -384,7 +384,7 @@ impl Checker {
                 };
                 let f = &info.fields[fi];
                 if use_ == PlaceUse::Write && f.immut {
-                    return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).at(field.span));
+                    return err(Diagnostic::error(format!("`{}` is a `!mut` field of `{}` and cannot be written", field.name, info.name)).at(field.span));
                 }
                 let fty = f.ty.subst(&args);
                 p.proj.push(Proj::Field(fi));
@@ -452,12 +452,12 @@ impl Checker {
         }
     }
 
-    /// An `extern let` is a place of its own kind: a read or write is a nocheck site.
+    /// An `extern let` is a place of its own kind: a read or write is a !check site.
     fn extern_place(&mut self, ctx: &mut FnCtx, id: hir::ExternId, use_: PlaceUse, span: Span) -> Result<Place> {
         let info = self.items.externs[id.0 as usize].clone();
         if !ctx.tier.is_some_and(ast::Tier::trusts) {
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
-            return err(Diagnostic::error(format!("{} C's variable '{}' is a nocheck site: nothing about C's memory can be proven — write `nocheck` in front of the statement", what, info.name)).at(span));
+            return err(Diagnostic::error(format!("{} C's variable '{}' is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", what, info.name)).at(span));
         }
         if use_ == PlaceUse::Write && !info.mutable {
             return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut '{}': …` says C's variable may be written", info.name, info.name)).at(span));
@@ -476,7 +476,7 @@ impl Checker {
         match use_ {
             PlaceUse::Write => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `immut`", name)).at(span).why_at(local.span, "declared `immut` here"));
+                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `!mut`", name)).at(span).why_at(local.span, "declared `!mut` here"));
                 }
                 match local.kind {
                     LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).at(span).why_at(local.span, "lent here")),
@@ -486,7 +486,7 @@ impl Checker {
             }
             PlaceUse::LendMut => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' is `immut`: it cannot be lent mutably", name)).at(span));
+                    return err(Diagnostic::error(format!("'{}' is `!mut`: it cannot be lent mutably", name)).at(span));
                 }
                 if local.kind == LocalKind::Lent {
                     return err(Diagnostic::error(format!("'{}' is lent (shared): it cannot be lent mutably on — `lent.mut` would allow it", name)).at(span));
@@ -841,7 +841,7 @@ impl Checker {
                         return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span });
                     }
                 }
-                self.expect_bool(&v, "`not`'s operand")?;
+                self.expect_bool(&v, "`!`'s operand")?;
                 Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: Ty::Bool, span })
             }
             UnOp::NotBit => {
@@ -889,7 +889,7 @@ impl Checker {
                 let r = self.as_operand(ctx, r)?;
                 return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span });
             }
-            return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} ['a': {}, 'b': {}] -> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).at(op_span));
+            return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} ['a': {}, 'b': {}] --> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).at(op_span));
         }
         let r = self.expr(ctx, rhs)?;
         let mut rt = self.resolve(&r.ty);
@@ -1643,7 +1643,7 @@ impl Checker {
                 "*" => "multiply is `times`",
                 "^" => "the power is std's `pow`",
                 "%" => "remainder is `mod.floor` (or `.ceil`, `.trunc`, `.near`)",
-                "&" | "|" | "!" => "the boolean operators are `and`, `or`, `not`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is `lend 'x'`",
+                "&" | "|" | "!" => "the boolean operators are `and`, `or`, `!`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is `lend 'x'`",
                 "&+" | "&-" | "+%" | "-%" | "*%" => "wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`",
                 _ => "an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`",
             };
@@ -2560,7 +2560,7 @@ impl Checker {
             return err(Diagnostic::error(format!("'{}' is C's variable, not a function", info.name)).at(span));
         }
         if !ctx.tier.is_some_and(ast::Tier::trusts) {
-            return err(Diagnostic::error(format!("a call into C is a nocheck site: nothing about `{}` can be proven — write `nocheck` in front of the statement", info.name)).at(span).fix(None, format!("nocheck … {}[…] …;", info.name)));
+            return err(Diagnostic::error(format!("a call into C is a !check site: nothing about `{}` can be proven — write `!check` in front of the statement", info.name)).at(span).fix(None, format!("!check … {}[…] …;", info.name)));
         }
         let flat = self.flatten_args(ctx, args, span)?;
         if !info.variadic && flat.len() != info.params.len() {
@@ -3439,7 +3439,7 @@ impl Checker {
             }
             Builtin::PtrRead | Builtin::PtrWrite | Builtin::PtrAt | Builtin::PtrIsNull => {
                 if b != Builtin::PtrIsNull && !ctx.tier.is_some_and(ast::Tier::trusts) {
-                    return err(Diagnostic::error(format!("`{}` is a nocheck site: nothing about C's memory can be proven — write `nocheck` in front of the statement", name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", name)).at(span));
                 }
                 let n = match b {
                     Builtin::PtrRead | Builtin::PtrIsNull => 1,

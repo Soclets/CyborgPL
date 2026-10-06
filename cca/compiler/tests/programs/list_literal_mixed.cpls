@@ -13,5 +13,5 @@ MAIN {
     let 'b': int32 = to.int32[('ds'[1] plus 'ds'[2]) times 2] otherwise 91;
     let 'c': int32 = to.int32[('ys'[2] times 2.0) plus 'ys'[3] plus 'ys'[1] plus 10.0] otherwise 92;
     let 'd': int32 = to.int32[('es'[1] plus 'es'[2]) times 10] otherwise 93;
-    nocheck my.exit['a' plus 'b' plus 'c' plus 'd'];
+    !check my.exit['a' plus 'b' plus 'c' plus 'd'];
 }

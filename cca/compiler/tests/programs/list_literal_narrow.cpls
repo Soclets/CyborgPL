@@ -2,12 +2,12 @@
 # narrowing site like a struct field's: without it an int32 of 300 went into
 # a list[int8] as 44. Known only at run time, so the check fires.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    !check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'x': int32 = 5;
     if 'there' { change 'x' = 300; }
     let 'xs': list[int8] = [1, 'x'];
-    nocheck my.exit[to.int32['xs'[2]]];
+    !check my.exit[to.int32['xs'[2]]];
 }

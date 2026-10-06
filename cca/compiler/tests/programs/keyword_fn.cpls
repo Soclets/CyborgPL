@@ -3,10 +3,10 @@
 extern.C fn exit ['code': int32];
 # A keyword may name a function, reached by path, never bare (2026-09-19):
 # bare `to` is the conversion and bare `true` the boolean, so these are `my.to[]`, `my.true[]`.
-fn to [] -> int32 { return 5; }
-fn true [] -> int32 { return 1; }
+fn to [] --> int32 { return 5; }
+fn true [] --> int32 { return 1; }
 MAIN {
     let 'x' := my.to[];
     let 'y' := my.true[];
-    nocheck my.exit['x' times 10 plus 'y'];
+    !check my.exit['x' times 10 plus 'y'];
 }

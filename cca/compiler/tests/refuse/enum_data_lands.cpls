@@ -9,7 +9,7 @@ enum E1 {
 MAIN {
     let 'e' := E1.c4[0 minus 5];
     match 'e' {
-        c1 'a' { nocheck my.exit[1]; }
-        c4 'b' { nocheck my.exit[to.int32['b' mod.floor 256]]; }
+        c1 'a' { !check my.exit[1]; }
+        c4 'b' { !check my.exit[to.int32['b' mod.floor 256]]; }
     }
 }

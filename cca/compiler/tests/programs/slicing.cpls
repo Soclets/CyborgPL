@@ -15,5 +15,5 @@ MAIN {
     # 20 + 30 + 40 + 7, four elements, the original's five, none, two, two
     let 'sum': int64 = 'mid'[1] plus 'mid'[2] plus 'mid'[3] plus 'mid'[4];
     let 'n': uint64 = list.length[lend 'mid'] times 10 plus list.length[lend 'xs'] plus list.length[lend 'none'] plus list.length[lend 'head'] plus list.length[lend 'tail'];
-    nocheck my.exit[to.int32['sum' plus to.int64['n']]];
+    !check my.exit[to.int32['sum' plus to.int64['n']]];
 }

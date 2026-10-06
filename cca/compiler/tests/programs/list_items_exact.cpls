@@ -9,5 +9,5 @@ MAIN {
     let 'small': list[uint8] = [(100 plus 100) minus 150, 7];
     let mut 'k': int32 = 0;
     if 'big'[1] == 6526489408944924142 { change 'k' = 42; }
-    nocheck my.exit['k' plus to.int32['small'[1]]];
+    !check my.exit['k' plus to.int32['small'[1]]];
 }

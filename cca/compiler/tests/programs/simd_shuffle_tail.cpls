@@ -39,5 +39,5 @@ MAIN {
     let 'x10' := 'xs'[10];                         # 16
     let 'none': simd[int32, 4] = simd.load.some[lend 'xs', 11, 0];
     # 40 + 10 + 40 + 55 + 14 + 16 + 0 = 175
-    nocheck my.exit['r1' plus 'p2' plus 'f' plus simd.sum['acc'] plus 'x9' plus 'x10' plus simd.sum['none']];
+    !check my.exit['r1' plus 'p2' plus 'f' plus simd.sum['acc'] plus 'x9' plus 'x10' plus simd.sum['none']];
 }

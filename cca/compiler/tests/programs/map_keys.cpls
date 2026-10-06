@@ -12,5 +12,5 @@ MAIN {
     map.set[lend.mut 'grid', Point[x = 1, y = 2], 9];
     let 'p' := map.get[lend 'grid', Point[x = 1, y = 2]] otherwise 0;
     let 'q' := map.get[lend 'grid', Point[x = 9, y = 9]] otherwise 5;
-    nocheck my.exit['v' minus 290 plus 'gone' plus 'n' minus 197 plus 'p' plus 'q'];
+    !check my.exit['v' minus 290 plus 'gone' plus 'n' minus 197 plus 'p' plus 'q'];
 }

@@ -5,20 +5,20 @@
 # `16 mod 'p'` with no `if` and refused it for p = 0. f[5]: 16 mod 5 is 1,
 # not >= 3, so false; g[5] and h[5] the same; 1 + 2 + 4 when each is false.
 extern.C fn exit ['code': int32];
-fn f ['p': int32] -> bool {
+fn f ['p': int32] --> bool {
     if 'p' !== 0 { return (16 mod.floor 'p') >/== 3; }
     return false;
 }
-fn g ['p': int32] -> bool {
+fn g ['p': int32] --> bool {
     return 'p' !== 0 and.then ((16 mod.floor 'p') >/== 3);
 }
-fn h ['p': int32] -> bool {
+fn h ['p': int32] --> bool {
     return 'p' == 0 or.else ((16 mod.floor 'p') >/== 3);
 }
 MAIN {
     let mut 'code': int32 = 0;
-    if not f[5] { change 'code' = 'code' plus 1; }
-    if not g[5] { change 'code' = 'code' plus 2; }
-    if not h[5] { change 'code' = 'code' plus 4; }
-    nocheck my.exit['code'];
+    if ! f[5] { change 'code' = 'code' plus 1; }
+    if ! g[5] { change 'code' = 'code' plus 2; }
+    if ! h[5] { change 'code' = 'code' plus 4; }
+    !check my.exit['code'];
 }

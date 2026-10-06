@@ -5,18 +5,18 @@
 # the oracle's reading), `==` across units, and `++` beside text. Values
 # are known only at run time: whether an unset variable is there.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-fn point ['code': int64] -> uint32 {
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+fn point ['code': int64] --> uint32 {
     let 'c' := char.point.from_code['code'] otherwise { not_a_char { return 0; } };
     return char.code['c'];
 }
-fn byte ['code': int64] -> uint8 {
+fn byte ['code': int64] --> uint8 {
     let 'c' := char.byte.from_code['code'] otherwise { not_a_char { return 0; } };
     return char.code['c'];
 }
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    !check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'd': int64 = 0;
     if 'there' { change 'd' = 1; }
     let mut 'got': int32 = 0;
@@ -39,5 +39,5 @@ MAIN {
     if 'bb' == 'pp' { change 'got' = 'got' plus 32; }
     let 'j' := 'p' ++ "!" ++ 'pp';
     if 'j' == "é!A" { change 'got' = 'got' plus 64; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

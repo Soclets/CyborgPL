@@ -7,5 +7,5 @@ enum E { a  b: uint64 }
 MAIN {
     let 'v': uint64 = match E.b[284] { a { 1 } b 'd' { 'd' shr 35 } };
     let 'n': uint64 = 5 div.floor 'v';
-    nocheck my.exit[to.int32['n' mod.floor 100]];
+    !check my.exit[to.int32['n' mod.floor 100]];
 }

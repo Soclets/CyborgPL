@@ -7,5 +7,5 @@ MAIN {
     }
     let mut 'n': int32 = 0;
     while 'n' < 3 { change 'n' = 'n' plus 1; }
-    nocheck my.exit['total' plus 'n'];                      # 55 + 3 = 58
+    !check my.exit['total' plus 'n'];                      # 55 + 3 = 58
 }

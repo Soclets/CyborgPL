@@ -1,8 +1,8 @@
-extern.C fn getpid [] -> int32;
+extern.C fn getpid [] --> int32;
 extern.C fn exit ['code': int32];
 MAIN {
     let mut 'xs': list[int32] = [1, 2, 3];
-    nocheck let 'n': int32 = getpid[];
+    !check let 'n': int32 = getpid[];
     let 'v': int32 = 'xs'['n'];
-    nocheck my.exit['v'];
+    !check my.exit['v'];
 }

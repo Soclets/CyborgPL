@@ -3,8 +3,8 @@
 # twice. Both were wrong until 2026-09-29: an answer held in a variable was
 # never freed, which only hid the second.
 extern.C fn exit ['code': int32];
-fn page [lent 'u': str.utf8] -> str.utf8 { return "page of " ++ 'u'; }
-fn run [] -> int32 {
+fn page [lent 'u': str.utf8] --> str.utf8 { return "page of " ++ 'u'; }
+fn run [] --> int32 {
     let mut 'xs': list[str.utf8] = [];
     let 'a' := "a";
     list.append[lend.mut 'xs', page[lend 'a']];
@@ -14,5 +14,5 @@ fn run [] -> int32 {
     return to.int32[list.length[lend 'xs']] plus to.int32[map.length[lend 'm']];
 }
 MAIN {
-    nocheck my.exit[run[]];
+    !check my.exit[run[]];
 }

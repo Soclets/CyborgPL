@@ -1,8 +1,8 @@
 # `mod` takes the divisor's sign (operators.md): 1 mod -3 is -2.
 extern.C fn exit ['code': int32];
-extern.C fn labs ['v': int64] -> int64;
+extern.C fn labs ['v': int64] --> int64;
 MAIN {
-    nocheck let 'x': int64 = labs[1];
+    !check let 'x': int64 = labs[1];
     let 'a': int64 = 1 mod.floor (-3);
     let 'b': int64 = 7 mod.floor (-3);
     let 'd': int64 = 'x' mod.floor (-3);
@@ -10,6 +10,6 @@ MAIN {
     let 'g': int32 = 1 mod.floor (-2000000000);
     let 'c': int64 = -7 mod.floor 3;
     let 'ok': int32 = 0;
-    if 'a' == -2 and 'b' == -2 and 'd' == -2 and 'e' == -2982098350919537421 and 'g' == -1999999999 and 'c' == 2 { nocheck my.exit[42]; }
-    nocheck my.exit[1];
+    if 'a' == -2 and 'b' == -2 and 'd' == -2 and 'e' == -2982098350919537421 and 'g' == -1999999999 and 'c' == 2 { !check my.exit[42]; }
+    !check my.exit[1];
 }

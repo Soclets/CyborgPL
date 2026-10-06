@@ -2,13 +2,13 @@
 # that fires. Layer 3 asked about the first side of the subtraction alone
 # and "proved" it, and codegen checked only that side: it ran on negative.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    !check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'a' := 5 seconds;
     if 'there' { change 'a' = 1500 millis; }
     let 'c' := 'a' minus 2 seconds;
-    if 'c' > 0 nanos { nocheck my.exit[3]; }
-    nocheck my.exit[4];
+    if 'c' > 0 nanos { !check my.exit[3]; }
+    !check my.exit[4];
 }

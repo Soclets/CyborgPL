@@ -4,5 +4,5 @@
 bare.never [fn];
 
 extern.C fn exit ['code': int32];
-pub fn seven [] -> int32 { return 7; }
-MAIN { nocheck my.exit[99]; }
+pub fn seven [] --> int32 { return 7; }
+MAIN { !check my.exit[99]; }

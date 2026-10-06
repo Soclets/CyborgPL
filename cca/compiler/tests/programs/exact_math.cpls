@@ -3,10 +3,10 @@
 # The last line also pins a wrapping answer kept at its own width when
 # stored wider: layer 1 used to fold 8000000000 for 'h'.
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 MAIN {
     let 'z' := "ab";
-    nocheck let 'two': int64 = to.int64[strlen[lend 'z']];
+    !check let 'two': int64 = to.int64[strlen[lend 'z']];
     let 'small': int16 = to.int16['two'] plus 3;
     let 'big': int64 = (20000 plus 20000) plus 'small';
     let 's': int16 = 30000;
@@ -21,9 +21,9 @@ MAIN {
     if 'big' == 40005 { change 'got' = 'got' plus 1; }
     if 'twice' == 60000 { change 'got' = 'got' plus 2; }
     if 'tiny' == 50 { change 'got' = 'got' plus 4; }
-    if not ('v' > ('v' plus 'v')) { change 'got' = 'got' plus 8; }
+    if ! ('v' > ('v' plus 'v')) { change 'got' = 'got' plus 8; }
     if 'below' == -5 { change 'got' = 'got' plus 16; }
     if 'h' == 3705032704 { change 'got' = 'got' plus 32; }
     if 'v' < 200 { change 'got' = 'got' plus 64; }
-    nocheck my.exit[to.int32['got']];
+    !check my.exit[to.int32['got']];
 }

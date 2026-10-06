@@ -13,5 +13,5 @@ MAIN {
     let 'r3' := -2 pow 2;
     let 'r4' := 2 times 3 pow 2;
     let 'w' := ('h' plus.wrap 100) plus ('h' times.wrap 2);
-    nocheck my.exit[to.int32[('r1' plus 'r2' plus 'r3' plus 'r4' plus to.int64['w']) mod.floor 256]];
+    !check my.exit[to.int32[('r1' plus 'r2' plus 'r3' plus 'r4' plus to.int64['w']) mod.floor 256]];
 }

@@ -1,5 +1,5 @@
 extern.C fn exit ['code': int32];
-fn total [lent 'xs': list[int32]] -> int32 {
+fn total [lent 'xs': list[int32]] --> int32 {
     let mut 's': int32 = 0;
     for 'x' in lend 'xs' { change 's' = 's' plus 'x'; }
     return 's';
@@ -18,5 +18,5 @@ MAIN {
         }
         break;
     }
-    nocheck my.exit[list.length[lend 'out'] plus 'out'[1]];
+    !check my.exit[list.length[lend 'out'] plus 'out'[1]];
 }

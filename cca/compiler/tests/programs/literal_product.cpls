@@ -1,8 +1,8 @@
 # Two bare numbers multiplied into a uint64: an unsigned 64-bit multiply,
 # in the ordinary build (folded) and with proofs asserted (computed).
 extern.C fn exit ['code': int32];
-fn put_u ['n': uint64] -> uint64 { return 'n'; }
-fn f3 ['p1': uint32] -> uint16 {
+fn put_u ['n': uint64] --> uint64 { return 'n'; }
+fn f3 ['p1': uint32] --> uint16 {
     let mut 'w6': int32 = 1;
     let mut 'got': uint64 = 0;
     while 'w6' > 0 {
@@ -13,5 +13,5 @@ fn f3 ['p1': uint32] -> uint16 {
     return 0;
 }
 MAIN {
-    nocheck my.exit[to.int32[f3[0]]];
+    !check my.exit[to.int32[f3[0]]];
 }

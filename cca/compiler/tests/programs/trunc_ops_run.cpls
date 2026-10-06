@@ -36,5 +36,5 @@ MAIN {
         change 'fsum' = 'fsum' plus ('f' mod.trunc 360.0);
     }
     if 'fsum' == 7.5 { change 'code' = 'code' plus 16; }
-    nocheck my.exit['code'];
+    !check my.exit['code'];
 }

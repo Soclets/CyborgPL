@@ -6,7 +6,7 @@ extern.C fn exit ['code': int32];
 extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 MAIN {
     let 's' := "x";
-    nocheck let 'n': uint64 = strlen[lend 's'];
+    !check let 'n': uint64 = strlen[lend 's'];
     let 'a': int8 = to.int8[-129 plus to.int64['n']];
     let 'm1': int8 = to.int8[-2 plus to.int64['n']];
     let 'm': int128 = -170141183460469231731687303715884105728 plus to.int128['n'] minus 1;
@@ -16,5 +16,5 @@ MAIN {
     if (('m' div.trunc.wrap to.int128['m1']) == 'm') and (('m' div.near.wrap 'two') == -85070591730234615865843651857942052864) { change 'code' = 'code' plus 2; }
     let 'u': uint8 = to.uint8['n'] plus 6;
     if (('u' div.ceil.wrap 2) == 4) and (('a' div.floor.wrap 3) == -43) { change 'code' = 'code' plus 4; }
-    nocheck my.exit['code'];
+    !check my.exit['code'];
 }

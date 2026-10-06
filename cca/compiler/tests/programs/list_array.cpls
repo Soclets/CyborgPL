@@ -18,5 +18,5 @@ MAIN {
     # 3 + 4 x 10 + 3 x 100 + 3 + (1 + 4 + 9)
     let 'n': uint64 = array.length[lend 'a'] plus list.length[lend 'm'] times 10 plus list.length[lend 's'] times 100 plus list.length[lend 'back'];
     let 'v': int32 = 'a'[1] plus 'm'[4] plus 's'[3];
-    nocheck my.exit[to.int32['n'] plus 'v'];
+    !check my.exit[to.int32['n'] plus 'v'];
 }

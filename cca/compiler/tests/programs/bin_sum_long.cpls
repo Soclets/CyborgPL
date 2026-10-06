@@ -11,5 +11,5 @@ MAIN {
         change 't' = 't' plus 'big';
     }
     let 'r': int32 = to.int32['big' div.near 't'] otherwise 7;
-    nocheck my.exit['r'];
+    !check my.exit['r'];
 }

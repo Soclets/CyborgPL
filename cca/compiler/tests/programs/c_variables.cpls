@@ -5,26 +5,26 @@
 # the oracle cannot link it and the answer is worked out by hand: 1, 11, 10
 # → 100 + 10 + 0 = 110).
 extern.C fn exit ['code': int32];
-extern.C fn malloc ['bytes': uint64] -> ptr.mut[Mode];
+extern.C fn malloc ['bytes': uint64] --> ptr.mut[Mode];
 extern.C fn free ['p': ptr.mut[Mode]];
 extern.C mut 'optind': int32;
 layout.C enum Mode { emacs = 0  vi = 1 }
-fn mode_at ['p': ptr[Mode]] -> int32 {
-    nocheck let 'm' := ptr.read['p'] otherwise Mode.emacs;
+fn mode_at ['p': ptr[Mode]] --> int32 {
+    !check let 'm' := ptr.read['p'] otherwise Mode.emacs;
     match 'm' {
         emacs { return 10; }
         vi { return 11; }
     }
 }
 MAIN {
-    nocheck change 'optind' = to.int32[Mode.vi];
-    nocheck let 'raw' := 'optind';
+    !check change 'optind' = to.int32[Mode.vi];
+    !check let 'raw' := 'optind';
     let 'current' := to.Mode['raw'] otherwise Mode.emacs;
-    nocheck let 'mem' := malloc[8];
-    nocheck ptr.write['mem', 1];
-    nocheck ptr.write[ptr.at['mem', 1], 7];
-    nocheck let 'a' := mode_at['mem'];
-    nocheck let 'b' := mode_at[ptr.at['mem', 1]];
-    nocheck free['mem'];
-    nocheck my.exit[to.int32['current'] times 100 plus ('a' minus 10) times 10 plus ('b' minus 10)];
+    !check let 'mem' := malloc[8];
+    !check ptr.write['mem', 1];
+    !check ptr.write[ptr.at['mem', 1], 7];
+    !check let 'a' := mode_at['mem'];
+    !check let 'b' := mode_at[ptr.at['mem', 1]];
+    !check free['mem'];
+    !check my.exit[to.int32['current'] times 100 plus ('a' minus 10) times 10 plus ('b' minus 10)];
 }

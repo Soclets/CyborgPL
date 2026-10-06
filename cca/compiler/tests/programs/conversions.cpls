@@ -2,21 +2,21 @@
 # into one (not_whole, or out_of_range when too big: owner, 2026-09-30),
 # and anything into a range type (out_of_range).
 extern.C fn exit ['code': int32];
-fn read ['t': str.utf8] -> int32 {
+fn read ['t': str.utf8] --> int32 {
     let 'v' := to.int32['t'] otherwise {
         not_a_number { return -1; }
         out_of_range { return -3; }
     };
     return 'v';
 }
-fn percent ['t': str.utf8] -> int32 {
+fn percent ['t': str.utf8] --> int32 {
     let 'v' := to.int32[0, 100]['t'] otherwise {
         not_a_number { return -1; }
         out_of_range { return -2; }
     };
     return 'v';
 }
-fn whole ['x': bin64] -> int32 {
+fn whole ['x': bin64] --> int32 {
     let 'v' := to.int32['x'] otherwise {
         not_whole { return -1; }
         out_of_range { return -4; }
@@ -37,5 +37,5 @@ MAIN {
     if 'h' == 7 { change 'got' = 'got' plus 64; }
     let 'i' := to.uint8[" 1"] otherwise 3;
     if 'i' == 3 { change 'got' = 'got' plus 128; }
-    nocheck my.exit['got' mod.floor 256];
+    !check my.exit['got' mod.floor 256];
 }

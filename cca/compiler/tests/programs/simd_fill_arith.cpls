@@ -14,5 +14,5 @@ MAIN {
     let 'e' := simd.fill['x' plus 1];
     let 'd2': int64 = 'd'[2];
     let 'e1': int64 = 'e'[1];
-    nocheck my.exit['a'[4] plus 'b'[1] plus to.int32['c'[8]] plus to.int32['d2'] plus to.int32['e1']];
+    !check my.exit['a'[4] plus 'b'[1] plus to.int32['c'[8]] plus to.int32['d2'] plus to.int32['e1']];
 }

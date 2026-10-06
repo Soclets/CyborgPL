@@ -1,14 +1,14 @@
 # C's memory through a pointer (ffi.md): ptr.write, ptr.read, and ptr.at
 # moving a whole number of elements. 72 + 105 - 170 = 7.
 extern.C fn exit ['code': int32];
-extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern.C fn malloc ['bytes': uint64] --> ptr.mut[uint8];
 extern.C fn free ['p': ptr.mut[uint8]];
 MAIN {
-    nocheck let 'buf' := malloc[4];
-    nocheck ptr.write['buf', 72];
-    nocheck ptr.write[ptr.at['buf', 1], 105];
-    nocheck let 'a' := ptr.read['buf'];
-    nocheck let 'b' := ptr.read[ptr.at['buf', 1]];
-    nocheck free['buf'];
-    nocheck my.exit[to.int32['a'] plus to.int32['b'] minus 170];
+    !check let 'buf' := malloc[4];
+    !check ptr.write['buf', 72];
+    !check ptr.write[ptr.at['buf', 1], 105];
+    !check let 'a' := ptr.read['buf'];
+    !check let 'b' := ptr.read[ptr.at['buf', 1]];
+    !check free['buf'];
+    !check my.exit[to.int32['a'] plus to.int32['b'] minus 170];
 }

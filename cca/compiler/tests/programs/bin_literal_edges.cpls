@@ -12,5 +12,5 @@ MAIN {
     if 'c' == 1.00000011920928955078125 { change 'got' = 'got' plus 4; }
     let 'd': bin16 = -65519.9;
     if 'd' == -65504.0 { change 'got' = 'got' plus 8; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

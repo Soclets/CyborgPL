@@ -10,5 +10,5 @@ MAIN {
     if 3876992840477302775 plus 7782534087963747351 > 0 { change 'got' = 'got' plus 1; }
     let 'q': uint64 = to.uint64[0 div.floor ((2 div.floor 10047273927188643194) plus 1)];
     if 'q' == 0 { change 'got' = 'got' plus 2; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

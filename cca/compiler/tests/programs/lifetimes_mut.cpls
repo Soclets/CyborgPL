@@ -1,10 +1,10 @@
 # A `lent.mut` borrow handed back changes what was lent (owner, 2026-09-29):
 # 'xs' becomes [7, 2, 9], so 7 x 10 + 3 = 73 (the oracle agrees).
 extern.C fn exit ['code': int32];
-fn pickmut @x [lent.mut@x 'a': list[int32], lent 'b': list[int32]] -> lent.mut@x list[int32] {
+fn pickmut @x [lent.mut@x 'a': list[int32], lent 'b': list[int32]] --> lent.mut@x list[int32] {
     return lend.mut 'a';
 }
-fn run [] -> int32 {
+fn run [] --> int32 {
     let mut 'xs': list[int32] = [1, 2];
     let 'ys': list[int32] = [5, 6];
     let 'm' := pickmut[lend.mut 'xs', lend 'ys'];
@@ -13,5 +13,5 @@ fn run [] -> int32 {
     return 'xs'[1] times 10 plus to.int32[list.length[lend 'xs']];
 }
 MAIN {
-    nocheck my.exit[run[]];
+    !check my.exit[run[]];
 }

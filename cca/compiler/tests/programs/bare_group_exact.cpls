@@ -13,5 +13,5 @@ MAIN {
     }
     let 'u': uint64 = (18446744073709551615 times 4) div.floor 2 minus 18446744073709551615 minus 1;
     let 't': int8 = ((1000 times 1000) mod.floor 7) minus (200 plus 100) div.floor 3;
-    nocheck my.exit[to.int32['v'] plus to.int32['u' mod.floor 256] plus to.int32['t'] plus 100];
+    !check my.exit[to.int32['v'] plus to.int32['u' mod.floor 256] plus to.int32['t'] plus 100];
 }

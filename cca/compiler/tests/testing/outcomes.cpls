@@ -1,7 +1,7 @@
 # Every way a test ends (testing.md, owner 2026-09-29), as `cca test` reports
 # it: outcomes.test-out, the oracle's words but for a check that fires, which
 # CCA says in its own. A test goes on after its `must.stop` (after_stop).
-fn half ['n': int32] -> int32 or fail[odd] {
+fn half ['n': int32] --> int32 or fail[odd] {
     if ('n' mod.floor 2) == 1 { fail odd; }
     return 'n' div.floor 2;
 }

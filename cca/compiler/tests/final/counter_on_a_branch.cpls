@@ -2,16 +2,16 @@
 # are: for an odd N this loop goes round forever, and the sum overflows.
 # The final build must not bound 'acc' by the counter.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 1000];
-fn read_n ['text': ptr[uint8]] -> int64[0, 1000] or fail[missing, out_of_range] {
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn atoll ['s': ptr[uint8]] --> int64[0, 1000];
+fn read_n ['text': ptr[uint8]] --> int64[0, 1000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck let 'n' := atoll['text'] otherwise fail;
+    !check let 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
-fn run [] -> int32 or fail[missing, out_of_range] {
+fn run [] --> int32 or fail[missing, out_of_range] {
     let 'key' := "N";
-    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    !check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     let mut 'acc': int64 = 0;
     let mut 'i': int64 = 0;
     while 'i' </== 'n' {
@@ -22,5 +22,5 @@ fn run [] -> int32 or fail[missing, out_of_range] {
 }
 MAIN {
     let 'code' := run[] otherwise 2;
-    nocheck my.exit['code'];
+    !check my.exit['code'];
 }

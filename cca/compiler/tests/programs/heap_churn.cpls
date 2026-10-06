@@ -4,7 +4,7 @@
 # reported as no leak at all.
 extern.C fn exit ['code': int32];
 
-fn round ['n': int32] -> int32 {
+fn round ['n': int32] --> int32 {
     let mut 'xs': list[int32] = [];
     for 'i': int32 in range[1, 20] {
         list.append[lend.mut 'xs', 'i' plus 'n'];
@@ -27,5 +27,5 @@ MAIN {
     for 'k': int32 in range[1, 500] {
         change 'total' = my.round['k'];
     }
-    nocheck my.exit['total' minus 32];
+    !check my.exit['total' minus 32];
 }

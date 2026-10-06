@@ -4,7 +4,7 @@
 # `if` the run does not take, so the program ends 2. It was refused as
 # failing every time it reaches the multiply.
 extern.C fn exit ['code': int32];
-fn double ['p': int64] -> int64 {
+fn double ['p': int64] --> int64 {
     return 'p' times 2;
 }
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
@@ -12,5 +12,5 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     if 'argc' > 5 {
         change 'code' = double[5000000000000000000];
     }
-    nocheck my.exit[to.int32['code' mod.floor 256]];
+    !check my.exit[to.int32['code' mod.floor 256]];
 }

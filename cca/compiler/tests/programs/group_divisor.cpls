@@ -8,5 +8,5 @@ MAIN {
     let 'a': uint8 = 'p' mod.floor (((221 times 2) mod.floor 5) plus 1);
     let 'b': uint8 = 'p' div.floor (((221 times 2) mod.floor 5) plus 1);
     let 'c': uint8 = (((221 times 2) mod.floor 5) plus 10) mod.floor 'p';
-    nocheck my.exit[to.int32['a'] plus to.int32['b'] times 10 plus to.int32['c'] times 10];
+    !check my.exit[to.int32['a'] plus to.int32['b'] times 10 plus to.int32['c'] times 10];
 }

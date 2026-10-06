@@ -7,11 +7,11 @@ extern.C fn exit ['code': int32];
 extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 MAIN {
     let 's' := "xyz";
-    nocheck let 'n': uint64 = strlen[lend 's'];
+    !check let 'n': uint64 = strlen[lend 's'];
     let 'v': uint32 = to.uint32['n'];
     let 'k': int32 = to.int32['n'] plus 26;
     let 'b': uint32 = ('v' mod.floor 16) shl 2;
     let 'c': uint32 = ('v' plus 1) shl 'k';
     let 'd': uint32 = ('v' plus 1) shr 1;
-    nocheck my.exit[to.int32[('b' plus ('c' shr 24) plus 'd') mod.floor 256]];
+    !check my.exit[to.int32[('b' plus ('c' shr 24) plus 'd') mod.floor 256]];
 }

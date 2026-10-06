@@ -3,15 +3,15 @@
 # `'i' x 'i'` and its `mod` are 64-bit instructions, not 128-bit ones and a
 # library call. Widening at every busy block had thrown `'i' </== 'n'` away.
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn strlen ['s': ptr[uint8]] --> uint64;
 MAIN {
     let 's' := "ten chars!";
-    nocheck let 'n': int32 = to.int32[strlen[lend 's']];
+    !check let 'n': int32 = to.int32[strlen[lend 's']];
     let mut 'acc': int64 = 0;
     let mut 'i': int64 = 1;
     while 'i' </== to.int64['n'] {
         change 'acc' = ('acc' plus (('i' times 'i') mod.floor 7)) mod.floor 1000000007;
         change 'i' = 'i' plus 1;
     }
-    nocheck my.exit[to.int32['acc']];
+    !check my.exit[to.int32['acc']];
 }

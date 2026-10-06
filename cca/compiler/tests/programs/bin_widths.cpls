@@ -15,11 +15,11 @@ MAIN {
     let 'nw' := to.int32['x' plus 'w' minus 16777216.0] otherwise 99;
     if 'nb' == 0 and 'nw' == 1 { change 'got' = 'got' plus 2; }
     let 'c': bin32 = 0.1;
-    if 'c' > 0.1 and not ('c' == 0.1) { change 'got' = 'got' plus 4; }
+    if 'c' > 0.1 and ! ('c' == 0.1) { change 'got' = 'got' plus 4; }
     let 'd' := 'c' times 10.0;
     if 'd' > 0.99 and 'd' < 1.01 { change 'got' = 'got' plus 8; }
     let mut 'h': int32 = 0;
     check if 'x' > 0.0 { change 'h' = to.int32['x' div.near 2.0] otherwise 0; }
     if 'h' == 8388608 { change 'got' = 'got' plus 16; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

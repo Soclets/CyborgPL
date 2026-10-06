@@ -6,5 +6,5 @@ MAIN {
     let mut 'b': list[int32] = [];
     fill[lend.mut 'b'];
     let 'first': int32 = 'b'[1];
-    nocheck my.exit['first'];
+    !check my.exit['first'];
 }

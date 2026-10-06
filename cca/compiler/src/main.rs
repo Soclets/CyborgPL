@@ -520,7 +520,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     let trusted = analysis.sites.iter().filter(|r| matches!(r.verdict, cca::mir::Verdict::Trusted)).count();
     let checked = analysis.sites.len() - proven - trusted;
     if trusted > 0 {
-        say(format!("{} sites: {} proven, {} checked at run time, {} nocheck\n", analysis.sites.len(), proven, checked, trusted));
+        say(format!("{} sites: {} proven, {} checked at run time, {} !check\n", analysis.sites.len(), proven, checked, trusted));
     } else {
         say(format!("{} sites: {} proven, {} checked at run time\n", analysis.sites.len(), proven, checked));
     }

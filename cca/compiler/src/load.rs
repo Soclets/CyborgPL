@@ -437,7 +437,7 @@ struct Dep {
 
 const FIELDS: [&str; 6] = ["name", "prefix", "version", "targets", "dependencies", "cores"];
 
-use crate::ast::{CORE_VERSION, OFFICIAL_CORES};
+use crate::ast::OFFICIAL_CORES;
 
 const MANIFEST_SHAPE: &str = "`cca::Manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [cca::Target[name = \"aarch64-macos\"],]];`";
 
@@ -628,14 +628,14 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let Some((i, ispan)) = id else {
                         return err(Diagnostic::error("a `cca::Core` says which core: `cca::Core[id = \"…\", version = \"…\"]`").at(e.span));
                     };
-                    let Some(&(n, _)) = OFFICIAL_CORES.iter().find(|(_, oid)| *oid == i) else {
+                    let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i) else {
                         return err(Diagnostic::error(format!("the core `{}…` is not an official one; loading another core is not built yet (a plugin, which CCA cannot load yet)", &i[..i.len().min(8)])).at(ispan));
                     };
                     let Some((v, vspan)) = version else {
                         return err(Diagnostic::error("a core needs its `version`, as a registry limb does").at(e.span));
                     };
-                    if v != CORE_VERSION {
-                        return err(Diagnostic::error(format!("CCA knows {} `{}` only, the installed one; this asks for `{}`", n, CORE_VERSION, v)).at(vspan));
+                    if v != known {
+                        return err(Diagnostic::error(format!("CCA knows {} `{}` only, the installed one; this asks for `{}`", n, known, v)).at(vspan));
                     }
                     if names.iter().any(|x| x == n) {
                         return err(Diagnostic::error(format!("the core {} is listed twice", n)).at(ispan));

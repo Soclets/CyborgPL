@@ -827,7 +827,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 StmtKind::Asm { text, ins, outs, lends, clobbers } => {
                     if self.inline_asm(fi, text, ins, outs, lends, clobbers, slots).is_none() {
-                        self.cannot("this `inline.ASM` has no shape in the generated code yet", Some(f.span(s.span)));
+                        self.cannot("this `inline.Assembly` has no shape in the generated code yet", Some(f.span(s.span)));
                     }
                 }
             }
@@ -1656,7 +1656,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     None => self.operand(fi, &Operand::Read(p.clone()), slots),
                 }
             }
-            // Reading C's variable: a nocheck site, a plain load.
+            // Reading C's variable: a !check site, a plain load.
             Rvalue::ExternRead(id) => {
                 let g = self.extern_global(id.0)?;
                 let t = self.ty(&self.p.items.externs[id.0 as usize].ret.clone())?;

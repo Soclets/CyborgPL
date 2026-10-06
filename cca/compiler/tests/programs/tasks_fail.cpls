@@ -1,5 +1,5 @@
 extern.C fn exit ['code': int32];
-fn judge ['n': int32] -> fail[small, odd: int32] {
+fn judge ['n': int32] --> fail[small, odd: int32] {
     if 'n' < 10 { fail small; }
     if ('n' mod.floor 2) == 1 { fail odd['n']; }
 }
@@ -13,5 +13,5 @@ MAIN {
         concur with [] { judge[20] otherwise fail; }
             otherwise { small { change 'seen' = 'seen' plus 7; } odd 'v' { change 'seen' = 'seen' plus 7; } };
     }
-    nocheck my.exit['seen'];
+    !check my.exit['seen'];
 }

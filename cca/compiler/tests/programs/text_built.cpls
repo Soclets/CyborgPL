@@ -8,5 +8,5 @@ MAIN {
     let 'lit': str.utf8 = "fixed";
     let 'dup': str.utf8 = copy 'lit';
     let 'm': int32 = str.bytes[lend 'dup'];
-    nocheck my.exit['n' plus 'm'];
+    !check my.exit['n' plus 'm'];
 }

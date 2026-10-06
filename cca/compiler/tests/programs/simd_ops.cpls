@@ -3,7 +3,7 @@
 # A store used to leave Precog believing the list unchanged, and an `if`
 # about a stored element was folded to false.
 extern.C fn exit ['code': int32];
-fn is_ascii [lent 'bytes': array[uint8]] -> bool {
+fn is_ascii [lent 'bytes': array[uint8]] --> bool {
     let mut 'acc': simd[uint8, 16] = simd.fill[0];
     for 'i' in range[1, array.length[lend 'bytes'], 16] {
         change 'acc' = 'acc' or.bit simd.load[lend 'bytes', 'i'];
@@ -15,16 +15,16 @@ MAIN {
     let 'thai': array[uint8] = [72, 101, 108, 108, 111, 32, 224, 184, 129, 108, 100, 33, 33, 33, 33, 33];
     let mut 'got': int32 = 0;
     if is_ascii[lend 'plain'] { change 'got' = 'got' plus 1; }
-    if not is_ascii[lend 'thai'] { change 'got' = 'got' plus 2; }
+    if ! is_ascii[lend 'thai'] { change 'got' = 'got' plus 2; }
     let 'a': simd[int32, 4] = simd.fill[10];
     let 'b': simd[int32, 4] = simd.fill[3];
     if simd.sum['a'] == 40 { change 'got' = 'got' plus 4; }
     if simd.max['a' times 'b'] == 30 { change 'got' = 'got' plus 8; }
     let 'm' := 'a' > 'b';
     if simd.all['m'] { change 'got' = 'got' plus 16; }
-    if not simd.any['b' > 'a'] { change 'got' = 'got' plus 32; }
+    if ! simd.any['b' > 'a'] { change 'got' = 'got' plus 32; }
     let mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
     simd.store[lend.mut 'out', 2, 'a' plus 'b'];
     if 'out'[1] == 0 and 'out'[2] == 13 and 'out'[5] == 13 and 'out'[6] == 0 { change 'got' = 'got' plus 64; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

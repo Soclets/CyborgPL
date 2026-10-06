@@ -3,14 +3,14 @@
 # points, 18 bytes); text <-> grapheme conversions; a text bound counted
 # in graphemes, checked at run time. Values chosen at run time.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-fn short [lent 't': str.utf8] -> int32 {
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+fn short [lent 't': str.utf8] --> int32 {
     let 's': str.utf8[0, 2 graphemes] = to.str.utf8[0, 2 graphemes]['t'] otherwise { out_of_range { return 0; } };
     return 1;
 }
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    nocheck let 'there' := ptr.is_null[getenv[lend 'k']];
+    !check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'w' := "ab";
     if 'there' { change 'w' = "เกี่ยว"; }
     let mut 'got': int32 = 0;
@@ -26,5 +26,5 @@ MAIN {
     let 'up' := to.char.grapheme[`x`];
     if to.str.utf8['up'] ++ "!" == "x!" { change 'got' = 'got' plus 8; }
     if short[lend 'w'] == 0 and short["ab"] == 1 and short["abc"] == 0 { change 'got' = 'got' plus 16; }
-    nocheck my.exit['got'];
+    !check my.exit['got'];
 }

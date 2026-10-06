@@ -3,12 +3,12 @@
 # value"): 9999999 to the 15th is past 10^96. The exit before it is never
 # reached.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
 MAIN {
     let 'm': deci32 = 9999999;
     let mut 'q': deci32 = 'm';
     for 'i': int32 in range[1, 15] {
         change 'q' = 'q' times 'm';
     }
-    nocheck my.exit[7];
+    !check my.exit[7];
 }

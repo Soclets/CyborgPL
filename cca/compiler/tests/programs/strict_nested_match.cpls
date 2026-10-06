@@ -5,7 +5,7 @@
 extern.C fn exit ['code': int32];
 enum Order { cancelled  paid }
 enum Ship { pickup  post }
-fn handle ['o': Order, 's': Ship] -> int32 {
+fn handle ['o': Order, 's': Ship] --> int32 {
     let mut 'went': int32 = 0;
     match 'o' {
         cancelled { }
@@ -18,15 +18,15 @@ fn handle ['o': Order, 's': Ship] -> int32 {
     }
     return 'went';
 }
-fn price ['o': Order, 's': Ship] -> int32 {
-    let immut 'p': int32 = match 'o' {
+fn price ['o': Order, 's': Ship] --> int32 {
+    let !mut 'p': int32 = match 'o' {
         cancelled { giveS 0; }
         paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
     };
     return 'p';
 }
 MAIN {
-    let immut 'w': int32 = handle[Order.paid, Ship.post];
-    let immut 'n': int32 = price[Order.paid, Ship.post];
-    nocheck my.exit['w' times 10 plus 'n'];
+    let !mut 'w': int32 = handle[Order.paid, Ship.post];
+    let !mut 'n': int32 = price[Order.paid, Ship.post];
+    !check my.exit['w' times 10 plus 'n'];
 }

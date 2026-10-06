@@ -2,7 +2,7 @@
 # 2026-09-30: a): malloc's bytes as a `layout.C` Point, written and read
 # whole, then as int32s one at a time. 3 x 10 + 4 = 34, and the second
 # int32 is y, 4: 34 + 4 = 38.
-extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern.C fn malloc ['bytes': uint64] --> ptr.mut[uint8];
 extern.C fn free ['p': ptr.mut[uint8]];
 extern.C fn exit ['code': int32];
 
@@ -12,12 +12,12 @@ layout.C struct Point {
 }
 
 MAIN {
-    nocheck let 'raw' := malloc[size.of[Point]];
-    nocheck let 'p' := ptr.cast[Point]['raw'];
-    nocheck ptr.write['p', Point[x = 3, y = 4]];
-    nocheck let 'q' := ptr.read['p'];
-    nocheck let 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
+    !check let 'raw' := malloc[size.of[Point]];
+    !check let 'p' := ptr.cast[Point]['raw'];
+    !check ptr.write['p', Point[x = 3, y = 4]];
+    !check let 'q' := ptr.read['p'];
+    !check let 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
     let 'code' := 'q'.x times 10 plus 'q'.y plus 'second';
-    nocheck free['raw'];
-    nocheck my.exit['code'];
+    !check free['raw'];
+    !check my.exit['code'];
 }

@@ -85,6 +85,10 @@ pub struct Token {
     /// The first token on its line: an interface's types go one per line
     /// (owner, 2026-10-02).
     pub line_first: bool,
+    /// Written in one of MTM's spellings (owner, 2026-10-06): what was
+    /// written and the main spelling it stands for, which a Limb without
+    /// MTM is refused.
+    pub alt: Option<(String, &'static str)>,
 }
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
@@ -134,7 +138,11 @@ impl<'a> Lexer<'a> {
     fn push(&mut self, tok: Tok, start: usize) {
         let span = self.span(start);
         let line_first = self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..start).is_some_and(|gap| gap.contains('\n')));
-        self.toks.push(Token { tok, span, line_first });
+        self.toks.push(Token { tok, span, line_first, alt: None });
+    }
+    fn push_alt(&mut self, tok: Tok, start: usize, alt: Option<(String, &'static str)>) {
+        self.push(tok, start);
+        self.toks.last_mut().unwrap().alt = alt;
     }
     fn fail<T>(&self, start: usize, msg: impl Into<String>) -> Result<T> {
         err(Diagnostic::error(msg).at(self.span(start)))
@@ -192,6 +200,7 @@ impl<'a> Lexer<'a> {
                         self.bump();
                     }
                     let text = self.src[start..self.pos].to_string();
+                    let written = text.clone();
                     // `-->` and `<--` are the main spelling of the arrows,
                     // `->` and `<-` the others (owner, 2026-10-03): one
                     // token, so neither names a custom operator.
@@ -208,7 +217,16 @@ impl<'a> Lexer<'a> {
                         (_, _, Some(rest)) => format!("<-{}", rest),
                         _ => text,
                     };
-                    self.push(Tok::Op(text), start);
+                    // Signatar's arrows are `-->`, `<--`, `<-->`; the
+                    // other fourteen are MTM's (owner, 2026-10-06).
+                    let main = match text.as_str() {
+                        "->" => Some("-->"),
+                        "<-" => Some("<--"),
+                        "<->" => Some("<-->"),
+                        _ => None,
+                    };
+                    let alt = main.filter(|m| *m != written).map(|m| (written, m));
+                    self.push_alt(Tok::Op(text), start, alt);
                 }
                 ':' => {
                     self.bump();
@@ -281,7 +299,7 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true });
+        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None });
         Ok(())
     }
 
@@ -289,7 +307,7 @@ impl<'a> Lexer<'a> {
     fn after_inline_asm(&self) -> bool {
         let n = self.toks.len();
         n >= 3
-            && matches!(&self.toks[n - 1].tok, Tok::Word(w) if w == "ASM" || w == "S")
+            && matches!(&self.toks[n - 1].tok, Tok::Word(w) if w == "Assembly" || w == "ASM" || w == "S")
             && self.toks[n - 2].tok == Tok::Dot
             && matches!(&self.toks[n - 3].tok, Tok::Word(w) if w == "inline")
     }
@@ -488,7 +506,25 @@ impl<'a> Lexer<'a> {
             self.bump();
         }
         let text = self.src[start..self.pos].to_string();
-        self.push(Tok::Word(text), start);
+        // Glued, a `!` marks a rule (owner, 2026-10-06): `!check` and
+        // `!mut` are the main spellings, read as the words they replace;
+        // `nocheck` and `immut` are MTM's.
+        if text == "check" || text == "mut" {
+            if let Some(last) = self.toks.last() {
+                if last.tok == Tok::Op("!".into()) && last.span.end as usize == start {
+                    let from = last.span.start as usize;
+                    self.toks.pop();
+                    self.push(Tok::Word(if text == "check" { "nocheck" } else { "immut" }.into()), from);
+                    return Ok(());
+                }
+            }
+        }
+        let alt = match text.as_str() {
+            "immut" => Some((text.clone(), "!mut")),
+            "nocheck" => Some((text.clone(), "!check")),
+            _ => None,
+        };
+        self.push_alt(Tok::Word(text), start, alt);
         Ok(())
     }
 }

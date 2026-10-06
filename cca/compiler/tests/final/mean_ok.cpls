@@ -2,9 +2,9 @@
 # max divided by n is at most max"), for a list whose length and contents
 # come from outside. The final build accepts it with no checks left.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoi ['s': ptr[uint8]] -> int32;
-fn average [lent 'xs': list[int32]] -> int32 or fail[empty] {
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn atoi ['s': ptr[uint8]] --> int32;
+fn average [lent 'xs': list[int32]] --> int32 or fail[empty] {
     if list.length[lend 'xs'] == 0 { fail empty; }
     let mut 'total' := 0;
     for 'x' in lend 'xs' { change 'total' = 'total' plus 'x'; }
@@ -12,7 +12,7 @@ fn average [lent 'xs': list[int32]] -> int32 or fail[empty] {
 }
 MAIN {
     let 'k' := "N";
-    nocheck let 'n': int32 = atoi[getenv[lend 'k']];
+    !check let 'n': int32 = atoi[getenv[lend 'k']];
     let mut 'xs': list[int32][0, 1000] = list.empty;
     let mut 'i': int32 = 0;
     while 'i' < 'n' and 'i' < 1000 {
@@ -20,5 +20,5 @@ MAIN {
         change 'i' = 'i' plus 1;
     }
     let 'a' := average[lend 'xs'] otherwise 0;
-    nocheck my.exit['a' mod.floor 256];
+    !check my.exit['a' mod.floor 256];
 }

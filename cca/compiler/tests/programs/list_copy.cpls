@@ -8,5 +8,5 @@ MAIN {
     let 'lb': int32 = list.length[lend 'b'];
     let 'a1': int32 = 'a'[1];
     let 'b1': int32 = 'b'[1];
-    nocheck my.exit['la' times 1 plus 'lb' times 10 plus 'a1' times 100 plus 'b1' times 1000];
+    !check my.exit['la' times 1 plus 'lb' times 10 plus 'a1' times 100 plus 'b1' times 1000];
 }
