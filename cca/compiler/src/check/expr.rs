@@ -812,6 +812,9 @@ impl Checker {
             (Ty::Int(_) | Ty::Bin(_), Ty::Str(_)) => format!("{} is text and this value is a `{}`: convert it first with `to.str.utf8[…]`", what, self.spell(&vt)),
             (Ty::Seq { .. }, Ty::Int(_)) if matches!(v.kind, K::List(ref l) if l.is_empty()) => format!("`[]` is an empty list, but {} is a `{}`", what, self.spell(&t)),
             (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) => format!("{} is an `array` and this is a `list`", what),
+            // Two types spelled alike are two Limbs' (owner, 2026-09-30: one
+            // Limb under two prefixes): each named with its own.
+            _ if self.spell(&t) == self.spell(&vt) => format!("expected {} ({}), found {}", what.replace("the ", "a value of the "), self.spell_with_limb(&t), article(&self.spell_with_limb(&vt))),
             _ => format!("expected {} ({}), found {}", what.replace("the ", "a value of the "), self.spell(&t), article(&self.spell(&vt))),
         };
         err(Diagnostic::error(msg).at(v.span))
@@ -1649,6 +1652,26 @@ impl Checker {
             };
             return err(Diagnostic::error(format!("`{}` is not an operator here: {}", spelling, hint)).at(op_span));
         };
+        // Bare, it may be more than one Limb's (owner, 2026-10-06): refused
+        // where it is written, and this Limb's own does not win.
+        if limb.is_none() {
+            let here = self.items.limb_root(ctx.module);
+            let mut roots: Vec<crate::resolve::ModuleId> = Vec::new();
+            for id in self.ops_matching(name, lt.base(), None, false) {
+                let r = self.items.limb_root(self.items.fns[id.0 as usize].module);
+                if !roots.contains(&r) {
+                    roots.push(r);
+                }
+            }
+            if roots.len() > 1 {
+                let mut named: Vec<String> = roots.iter().map(|r| match self.items.limb_deps.get(&here).and_then(|d| d.iter().find(|(_, x)| *x == r)) {
+                    Some((p, _)) => format!("`{}::{}`", p, name),
+                    None => format!("`my.{}` (this Limb's)", name),
+                }).collect();
+                named.sort();
+                return err(Diagnostic::error(format!("`{}` could be any of {}: write the path", name, named.join(", "))).at(op_span));
+            }
+        }
         // Another Limb's word operator follows its mark (owner,
         // 2026-10-06): `bare.never` needs the path, `bare.only` refuses it.
         let decl = &self.items.fns[fn_id.0 as usize];
@@ -3857,6 +3880,19 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
 }
 
 /// Every leaf a literal, every node arithmetic.
+impl Checker {
+    /// A struct's or enum's name with the Limb it comes from: `areas::Circle`.
+    fn spell_with_limb(&self, t: &Ty) -> String {
+        let path = match t.base() {
+            Ty::Struct { id, .. } => self.items.structs[id.0 as usize].path.clone(),
+            Ty::Enum { id, .. } => self.items.enums[id.0 as usize].path.clone(),
+            _ => return self.spell(t),
+        };
+        let path = path.replace("::limb.", "::");
+        path.strip_prefix("limb.").map(|p| format!("my.{}", p)).unwrap_or(path)
+    }
+}
+
 /// One of std's names the oracle stands in for (owner, 2026-10-06: std
 /// is `bare.optional` for all), written without `std::`.
 fn std_name(path: &ast::Path) -> bool {

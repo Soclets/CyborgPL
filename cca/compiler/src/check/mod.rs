@@ -611,6 +611,12 @@ impl Checker {
             }
             for (i, (_, a)) in decls.iter().enumerate() {
                 for (_, b) in decls.iter().skip(i + 1) {
+                    // Two Limbs may each give a word operator its meaning for
+                    // the same types: the path tells them apart (owner,
+                    // 2026-10-02). A glyph operator has none.
+                    if op.starts_with(|c: char| c.is_ascii_alphabetic()) && self.items.limb_root(a.module) != self.items.limb_root(b.module) {
+                        continue;
+                    }
                     let (ag, bg) = (!a.blanks.is_empty(), !b.blanks.is_empty());
                     let types = |d: &crate::resolve::FnDeclInfo| -> Vec<Ty> { d.params.iter().filter_map(|p| p.ty.clone()).collect() };
                     match (ag, bg) {
@@ -656,6 +662,13 @@ impl Checker {
     /// The same, only among the operators of the Limb whose root is `limb`
     /// when one is named: `'x' areas::mean 'y'` (owner, 2026-10-03).
     pub fn find_op_in(&mut self, op: &str, left: &Ty, limb: Option<ModuleId>) -> Option<FnId> {
+        self.ops_matching(op, left, limb, true).into_iter().next()
+    }
+
+    /// Every operator `op` whose left operand takes `left`, in the Limb
+    /// whose root is `limb` when one is named; the first only when `first`.
+    pub fn ops_matching(&mut self, op: &str, left: &Ty, limb: Option<ModuleId>, first: bool) -> Vec<FnId> {
+        let mut found = Vec::new();
         let mut candidates = self.items.ops.get(op).cloned().unwrap_or_default();
         if let Some(root) = limb {
             candidates.retain(|id| self.items.limb_root(self.items.fns[id.0 as usize].module) == root);
@@ -673,11 +686,14 @@ impl Checker {
                     _ => false,
                 };
                 if bare || self.same(&t, left) || (t.contains_var() && !left.contains_var()) {
-                    return Some(id);
+                    found.push(id);
+                    if first {
+                        return found;
+                    }
                 }
             }
         }
-        None
+        found
     }
 
     pub fn has_fn(&mut self, ty: &Ty, name: &str) -> bool {
