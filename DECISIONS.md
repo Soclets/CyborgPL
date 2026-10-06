@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — The report says `parallel on N CPU cores` (owner: yea)
+
+"Core" now names the category (IEG, ASP, …) and a CPU core. Design claude
+found the CPU meaning in one user-facing place, the report's `parallel on
+N cores` line (`design/diagnostics.md`, 2026-09-22), and none in syntax,
+and proposed **`parallel on N CPU cores`** there, keeping "core" for the
+category everywhere else. The owner: "yea". `CLAUDE.md`'s core split is
+for the sessions and stays.
+
 ### 2026-10-06 — The unverified core/codextra warning's wording (owner: yea; design claude's wording)
 
 Design claude's wording, in the `warning:` / `where:` shape of the errors:

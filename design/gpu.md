@@ -82,7 +82,7 @@ expected, not measured. No C++: the Metal runtime is reached from Rust.
 
 ## The report (owner: yes)
 
-A line per `for` Precog considered — offloaded, parallel on cores,
+A line per `for` Precog considered — offloaded, parallel on CPU cores,
 sequential and why (`diagnostics.md`).
 
 ## Measured once, on purpose: `cca tune` (owner, 2026-09-28; CCA's since 2026-09-30)

@@ -199,5 +199,3 @@ is nothing to write it in.
   claude proposes it when building, the owner approves (2026-10-06).
 - **The oracle and CCA**: nothing here is built; today both still have
   the operators built in and reach `std::` without a listing.
-- **A naming clash** (design claude's note): "core" also means a CPU core
-  in these notes (`parallel on N cores`, `CLAUDE.md`'s core split).

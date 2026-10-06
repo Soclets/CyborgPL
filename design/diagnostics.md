@@ -134,7 +134,8 @@ Proposed alternative: the later use.
 
 Beside the three lists (`nocheck` sites, `check` sites passed, default
 sites still checked), a line per `for` Precog considered (owner,
-2026-09-22): `offloaded to GPU`, `parallel on N cores`, `sequential —
+2026-09-22): `offloaded to GPU`, `parallel on N CPU cores` ("CPU" added
+2026-10-06, since a core is also a compiler mod), `sequential —
 body calls extern at line 14`, `sequential — 40 iterations, below the
 launch threshold`, `sequential — for seq`. A writer can always see why a
 loop runs where it runs.
