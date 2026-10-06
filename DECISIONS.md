@@ -32,7 +32,12 @@ looks), over a list in `limb.cpls` or in `CCA.cplr`: every `pub` thing in
 `CCA.cplr`: a plain `bare;` means this file, a `bare [ … ]` list means
 those kinds everywhere in the Limb and is allowed only in `limb.cpls`;
 the kinds are the keywords `fn`, `op`, `struct`, `enum`, `const`,
-`interface`. Open: how two Limbs' optional
+`interface`. **A Limb may also forbid the path** (owner: "Limbs should
+be able to forbid"), so three choices: required (the default), optional
+(`bare`), forbidden. Asked after design claude said a path was always
+allowed, so a clash always had the fix "write the path" (glyph operators
+like `~=` already have no path, 2026-10-02). Open: the spelling of
+forbidden, how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
