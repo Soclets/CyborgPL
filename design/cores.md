@@ -13,7 +13,9 @@ likely Precog) and sets the rules cores play by. The base goes "as low
 level as fuck" (owner): reading files, loading the codextra and cores and
 enforcing their grants, the bridge to LLVM. When people say "CyborgPL",
 they mean the official codextra, "like how they say BIOS for UEFI" (owner).
-What exactly it holds is open.
+Codextra is a category, like cores (owner: "this shit could make another
+Codextra be another lang"); **the official one is Signatar** ("signature
+but cooler", owner). What exactly it holds is open.
 
 ## Two kinds of package
 
