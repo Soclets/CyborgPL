@@ -279,3 +279,4 @@ div_wrap_run 7
 enum_data_checked 101
 findings_2026_10_05 15
 on_target_chain 243
+chevron_arrows_run 69

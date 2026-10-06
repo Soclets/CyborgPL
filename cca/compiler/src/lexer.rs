@@ -191,9 +191,13 @@ impl<'a> Lexer<'a> {
                     // `-->` and `<--` are the main spelling of the arrows,
                     // `->` and `<-` the others (owner, 2026-10-03): one
                     // token, so neither names a custom operator.
-                    let text = match (text.strip_prefix("-->"), text.strip_prefix("<--")) {
-                        (Some(rest), _) => format!("->{}", rest),
-                        (_, Some(rest)) => format!("<-{}", rest),
+                    // `>>` and `>>>` spell `-->`, and `<<` and `<<<` spell `<--`
+                    // (owner, 2026-10-06), wherever an arrow goes.
+                    let text = match (text.as_str(), text.strip_prefix("-->"), text.strip_prefix("<--")) {
+                        (">>" | ">>>", _, _) => "->".to_string(),
+                        ("<<" | "<<<", _, _) => "<-".to_string(),
+                        (_, Some(rest), _) => format!("->{}", rest),
+                        (_, _, Some(rest)) => format!("<-{}", rest),
                         _ => text,
                     };
                     self.push(Tok::Op(text), start);

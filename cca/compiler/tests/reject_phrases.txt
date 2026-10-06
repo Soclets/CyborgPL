@@ -433,6 +433,7 @@ one_ended_below [fnv:a1c7cab21b67229a] :: the value can be outside what a `int8[
 op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`
 op_called_as_fn [fnv:205c076f0bd07158] :: `'a' dot 'b'`, never `dot[…]`
+op_chevron_reserved [fnv:6f872608935f4fa4] :: an arrow cannot name an operator
 op_decl_old [fnv:340eb7660e3e3d6e] :: `op +` is `op plus` now
 op_div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
 op_give_needs_give [fnv:675ca27f7d116f95] :: write `give 'u'` so the value moves in

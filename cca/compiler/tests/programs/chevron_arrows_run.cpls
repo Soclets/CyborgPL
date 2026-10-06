@@ -1,0 +1,9 @@
+# `>>` and `>>>` spell `-->` (owner, 2026-10-06), in a return type and a
+# function type: 6 x 10 + 9 = 69.
+extern.C fn exit ['code': int32];
+fn double ['n': int32] >> int32 { return 'n' times 2; }
+fn triple ['n': int32] >>> int32 { return 'n' times 3; }
+MAIN {
+    let 'f': fn[int32] >>> int32 = double;
+    nocheck my.exit[double[3] times 10 plus triple[3]];
+}

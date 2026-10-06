@@ -1523,6 +1523,9 @@ impl<'a> Parser<'a> {
 
     fn op_name(&mut self) -> Result<Ident> {
         let op = self.op_spelling()?;
+        if op.name == "->" || op.name == "<-" {
+            return self.fail_at(op.span, "an arrow cannot name an operator: `-->`, `->`, `>>`, `>>>` and `<--`, `<-`, `<<`, `<<<` are arrows (owner, 2026-10-06)");
+        }
         // A type's own `plus` is `op plus` (owner, 2026-10-03).
         if let Some(word) = retired_spelling(&op.name) {
             return self.fail_at(op.span, format!("`op {}` is `op {}` now (owner, 2026-10-03): `op {} ['a': V, 'b': V] --> V {{ … }}`", op.name, word, word));
