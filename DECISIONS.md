@@ -63,6 +63,11 @@ the language people actually write, not the bare base. **When std came
 in the package, the installer sets it up so `cca new` lists std** (owner:
 "The installer auto adds std"), over design claude's (a), still empty;
 2026-10-05's empty `CCA.cplr` stands for packages without std.
+Shown the whole picture sketched (a project, std's `plus` on IEG's raw
+`add`, IEG's grants, a kernel without std), the owner: "I think it's
+good, because it's fun, we'll eventually need the no_std equivalent
+anyways, and other stuff". Design claude's suggestion, recorded: let it
+sit a little before compiler claude builds it, since it reshapes CCA.
  Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
