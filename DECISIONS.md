@@ -103,7 +103,9 @@ operand meaning prefix; a program with std; Signatar + IEG with raw
 calls; Signatar alone with `inline.S`'s `neg`), the owner: "I think it's
 like that." So `and`, `or`, `not`, `not.bit` and `-'x'` go to std; the
 minus sign of a written number and `and.then`/`or.else` stay in Signatar;
-IEG has the raw operations. Spellings (`cca::Power.prefix_operators`,
+IEG has the raw operations. **The bitwise operators (`and.bit`,
+`or.bit`, `xor`, `shl`, `shr`) and `++` go to std too** (owner, later the
+same day: "yea"), being two-operand. Spellings (`cca::Power.prefix_operators`,
 IEG's `negate`, `bool_not`) are design claude's sketches.
 
 ### 2026-10-06 — Who decides permission: Signatar → cores → limbs → the program narrows (owner)
