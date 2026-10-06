@@ -52,8 +52,13 @@ unless you use Synthia?" (2026-09-29: "Just edit the source code").
 optional?", then "yea"), as a plain `div` is: "say `bare.optional` or
 `bare.only`". So every earlier `bare` here reads `bare.optional`:
 `pub bare.optional fn …`, `bare.optional;`, `bare.optional [op];`.
-Open: how two Limbs' optional
-names clash, and how this sits with 2026-10-02's registry rule (a
+**Two Limbs' `bare.optional` names clash only where one is written
+without its path** (owner: "`a`"): "write `std::list.append` or
+`fastlists::list.append`"; depending on both is fine. **A Limb's own
+name does not win over them** (owner: "no", to design claude's "your own
+wins"). Open: what then happens to the Limb's own `list.append` (design
+claude's reading, asked: the same error, the Limb writing
+`limb.list.append` for its own), and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
 ### 2026-10-06 — Without ASP, a literal wider than its type's bits is refused (owner: a; not built)
