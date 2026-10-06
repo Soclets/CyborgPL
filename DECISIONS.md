@@ -19,6 +19,11 @@ no longer name its own operator `>>`, since any run of operator
 characters could be one; the owner: "yea.". `-->` and `<--` stay the main
 spelling. **`<<>>` is another spelling of `<->`**, the both-ways asm
 binding (design claude asked about that twin; the owner: "`<<>>` too").
+**The long two-way arrow is the main spelling, `<-->`**, with **`<<<>>>`**
+beside it, and **`<---->`** too (design claude asked, since `-->` and
+`<--` are main and the two-way arrow was only ever `<->`; the owner:
+"yea. Also, shouldn't there be `<---->` too? Two long arrows"). So the
+both-ways binding is `<-->`, or `<->`, `<<>>`, `<<<>>>`, `<---->`.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
 

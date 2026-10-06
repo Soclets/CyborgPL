@@ -73,7 +73,7 @@ fn twice [immut 'n': int32] --> int32 { … }          # stated mutability
   binding, `print.weird`. **`->` and `<-` are other spellings** of them
   (the arrows were short until that day; the long ones came first as the
   aliases, "Implement the `-->` alias"), and so are **`>>` and `>>>`** of
-  `-->`, and **`<<` and `<<<`** of `<--`, and **`<<>>`** of `<->` (owner, 2026-10-06: "yea.", "`<<>>` too"); an
+  `-->`, and **`<<` and `<<<`** of `<--`, and the both-ways binding's main spelling is **`<-->`**, with `<->`, `<<>>`, `<<<>>>` and `<---->` (owner, 2026-10-06: "yea.", "`<<>>` too", "Two long arrows"); an
   arrow cannot name a Limb's operator. `examples/long_arrow.cpls`,
   `examples/short_arrow.cpls`, `examples/chevron_arrows.cpls`.
 
