@@ -80,6 +80,22 @@ width, at least 64 bits), and the checked conversions. Open: exactly which rules
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
+### 2026-10-06 — Generics are their own official core, not Signatar's (owner)
+
+Design claude had placed the generics mechanism in Signatar and the
+everyday interfaces (`Number`, `Ordered`) in std. The owner: "I don't
+think generics should live in Signatar, tbh." Offered: (a) IEG, or (b)
+their own official core, recommended (one core, one idea). Asked whether
+kernels need generics (no, though many want them: Linux fakes them with
+C macros, Rust for Linux uses them heavily) and whether they are
+convenience with no trade-offs (none at run time; bigger programs, longer
+builds and harder errors), the owner: "Ah, separate core". So **a
+generics core** brings `<T>` announcements, bounds and `and`, `any`,
+interfaces and `satisfies`; it requires only Signatar, so a kernel may
+take it or not; std requires it (its `Number` and `Ordered` are generic);
+the packages with std install it. **Lifetime groups (`@x`) stay in
+Signatar**, being the borrow rules. Open: the core's name.
+
 ### 2026-10-06 — The one-operand operators go to std too: `not`, `not.bit`, `-'x'`; Signatar keeps `-5`'s sign (owner)
 
 ```
