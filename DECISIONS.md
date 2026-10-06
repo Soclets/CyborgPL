@@ -680,7 +680,9 @@ freely with the codextra out of it. The owner: "yea".
 The owner: "Also, !c should be changed to !cheat." Design claude noted it
 reads as what it means and ends the "not C" reading, and asked about the
 twin: (a) `!c` refused naming `!cheat`, recommended, or (b) kept as a
-short spelling. The owner: "`a`". In the oracle (the lexer reads
+short spelling. The owner: "`a`" (asked again in the evening, once MTM
+existed for other spellings, whether `!c` should move there: "refuse").
+In the oracle (the lexer reads
 `!cheat` as one word, and still `!c`, so the parser can refuse it);
 `examples/for_no_cheat.cpls`, reject tests `for_no_cheat_order`,
 `no_cheat_old`; `parallelism.md`, `control-flow.md`, `style.md`, except
