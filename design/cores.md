@@ -172,7 +172,7 @@ looks real, but it's not real. It feels like a child roleplaying", owner):
 cca::Manifest[
     name = "shop",
     prefix = "shop",
-    cores = [cca::Core[name = "IEG"],],
+    cores = [cca::Core[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
     dependencies = [cca::Dep[path = "std"],],
     powers = [cca::Power.operators_on_builtin_types,],
     deny = [cca::Power.inline_asm,],

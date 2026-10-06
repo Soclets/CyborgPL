@@ -172,6 +172,20 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 /// cannot load.
 const OFFICIAL_CORES: [&str; 8] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan"];
 
+/// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
+/// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
+const CORE_IDS: [(&str, &str); 8] = [
+    ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
+    ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
+    ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
+    ("MCPS", "7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d"),
+    ("AutoGPU", "67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d"),
+    ("Metal", "3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7"),
+    ("Nvidia", "beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361"),
+    ("Vulkan", "63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec"),
+];
+const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
+
 /// Read a Limb's `CCA.cplr`: one CyborgPL value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
 /// per setting. Returns its 'prefix' (none when there is no `CCA.cplr`), its dependencies and its cores.
@@ -284,21 +298,34 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     deps.push(d);
                 }
             }
-            // the cores a Limb is built for (owner, 2026-10-05: "Limbs should say what cores they are built for")
+            // the cores a Limb is built for (owner, 2026-10-05: "Limbs should say what cores they are built
+            // for"), each by its registry ID and version, or a `path` for one never registered (2026-10-06)
             "cores" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a core is `cca::Core[name = \"IEG\"]`")) };
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a core is `cca::Core[id = \"…\", version = \"…\"]`")) };
                     if shape != "::cca.Core" { return Err(format!("{shown}: line {line}: a core is a `cca::Core`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
-                    let mut core = None;
+                    let (mut id, mut version, mut cpath) = (None, None, None);
                     for (f, b) in &fields {
-                        if f != "name" { return Err(format!("{shown}: line {line}: a `cca::Core` has no `{f}`; it has `name`")); }
-                        core = Some(text(b).ok_or_else(|| format!("{shown}: line {line}: a core's `name` is a text"))?);
+                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a core's `{f}` is a text"))?;
+                        match f.as_str() {
+                            "id" => id = Some(t), "version" => version = Some(t), "path" => cpath = Some(t),
+                            "name" => return Err(format!("{shown}: line {line}: a core is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cca::Core[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
+                            other => return Err(format!("{shown}: line {line}: a `cca::Core` has no `{other}`; it has `id` and `version`, or a `path`")),
+                        }
                     }
-                    let core = core.ok_or_else(|| format!("{shown}: line {line}: a core needs its `name`"))?;
-                    if !OFFICIAL_CORES.contains(&core.as_str()) {
-                        return Err(format!("{shown}: line {line}: `{core}` is not an official core; another core is a Rust plugin, which the oracle cannot load (it knows {})", OFFICIAL_CORES.iter().map(|c| format!("`{c}`")).collect::<Vec<_>>().join(", ")));
+                    if cpath.is_some() {
+                        if id.is_some() || version.is_some() { return Err(format!("{shown}: line {line}: a core says where it comes from once: an `id` and `version` from the registry, or a `path` on this machine")); }
+                        return Err(format!("{shown}: line {line}: the core at `{}` is not registered, so not verified; loading another core is not built yet (a Rust plugin, which the oracle cannot load)", cpath.unwrap()));
                     }
-                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the core `{core}` is listed twice")); }
+                    let id = id.ok_or_else(|| format!("{shown}: line {line}: a core needs its `id` (64 hex digits) and `version`"))?;
+                    if id.len() != 64 || !id.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
+                    let version = version.ok_or_else(|| format!("{shown}: line {line}: a core needs its `version`, as a registry limb does"))?;
+                    let Some((core, _)) = CORE_IDS.iter().find(|(_, i)| *i == id) else {
+                        return Err(format!("{shown}: line {line}: the core `{}…` is not an official one; loading another core is not built yet (a Rust plugin, which the oracle cannot load)", &id[..8]));
+                    };
+                    if version != CORE_VERSION { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{CORE_VERSION}` only, the installed one; this asks for `{version}`")); }
+                    let core = core.to_string();
+                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the core {core} is listed twice")); }
                     cores.push(core);
                 }
             }

@@ -52,7 +52,7 @@ Owner, 2026-09-14.
       name = "shop",
       prefix = "shop",
       version = "1.0.0",
-      cores = [cca::Core[name = "IEG"],],
+      cores = [cca::Core[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
       dependencies = [
           cca::Dep[id = "3f9a…4a5b", version = "1.2"],
           cca::Dep[path = "../money"],
