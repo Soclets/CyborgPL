@@ -24,9 +24,11 @@ which too": **the switch says which names it covers, at every level the
 `bare` marks have** (owner: "`b`"): by kind (`fn`, `struct`, `enum`,
 `interface`, `const`, `case`, `field`, `var`, design claude's list), and
 also on one item and on a module or file, over (a) kinds only in
-`limb.cpls`, which design claude recommended. Open: the spelling
-(design claude's sketch, `names.case_insensitive [fn, struct];`), whether
-there is a default, and marks that disagree.
+`limb.cpls`, which design claude recommended. **Spelled `case.insensitive`
+and its twin `case.sensitive`** (owner: "yea"), as the `bare` marks are:
+`case.insensitive [fn, struct];` in `limb.cpls`, `pub case.insensitive fn
+area […]` on an item, `case.insensitive;` as a file's first line. Open:
+whether there is a default, and marks that disagree.
 
 ### 2026-10-06 — In `Synthia.ttsr`, every needed thing starts with `limb.` or `core.`; a core is listed there by ID and version (owner; relayed by synthia claude)
 
