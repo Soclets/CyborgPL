@@ -374,7 +374,12 @@ So far:
   operations, which the owner found funny ("I have to make my own plus
   operator, and then my loop somehow auto para") and accepted. Design
   claude had offered (a) both require std too, recommended, (b) `plus`
-  back into IEG, (c) leave it.
+  back into IEG, (c) leave it. **`concur` joins the parallel core**
+  (owner, 2026-10-06: "`a`"): tasks, channels, `whichever`, timers and
+  `concur.detached`, beside the automatic parallel loops, sharing one
+  thread pool, over a core of its own. **The parallel core is MCPS, "More
+  Concurrently Parallel Shit"** (owner). Open: the GPU core's name, and
+  whether it is one core or several (asked).
 - **What the base keeps, decided one group at a time** (owner: "let's
   decide number 1 first"). **Comparisons go to std** (`==`, `!==`, `<`,
   `>`, `</==`, `>/==`), as `plus` does (owner: "`a`"); the base keeps
