@@ -80,7 +80,7 @@ width, at least 64 bits), and the checked conversions. Open: exactly which rules
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
-### 2026-10-06 — Code for one target: `on.target … { } else on.target … { } else { }`, chosen when compiling (owner: b; not built)
+### 2026-10-06 — Code for one target: `on_target … { } else on_target … { } else { }`, chosen when compiling (owner: b; not built)
 
 ```
 on.target aarch64 { nocheck inline.S { neg x0, x0 } with [ … ]; }
@@ -98,8 +98,12 @@ function or a constant, and a fallback keeps a program portable; the
 owner's 2026-10-02 Lilith idea, decided when compiling instead of
 running). The owner: "`b`". Only the matching branch is compiled. Design
 claude's reading: it is Signatar's, needing nothing at run time, so a
-kernel has it. Open: what `on.target` matches (the architecture, the OS,
-the whole target name).
+kernel has it. **Spelled `on_target`, one word** (owner: "If there's
+nothing else after `on`, I think it should be `on_target`"): nothing else
+is `on.`, so a dot would narrow nothing; the examples above were written
+`on.target` before this. Open: what it matches (the chip, the OS, the
+whole target name); a new keyword, so synthia claude's name check needs
+it when built.
 
 ### 2026-10-06 — Generics are their own official core, not Signatar's (owner)
 
