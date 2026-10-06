@@ -27,7 +27,12 @@ item, `pub bare module list { … }` for a block module. **A file module
 says `bare;` on its first line** (owner: "`a`", after asking how it
 looks), over a list in `limb.cpls` or in `CCA.cplr`: every `pub` thing in
 `list.cpls` may then be written without `std::` (`list.append[…]` or
-`std::list.append[…]`). Open: the spelling for a kind, how two Limbs' optional
+`std::list.append[…]`). **A kind is marked in `limb.cpls` with a list:
+`bare [op];`, `bare [op, fn];`** (owner: "`a`"), over a `bare` field in
+`CCA.cplr`: a plain `bare;` means this file, a `bare [ … ]` list means
+those kinds everywhere in the Limb and is allowed only in `limb.cpls`;
+the kinds are the keywords `fn`, `op`, `struct`, `enum`, `const`,
+`interface`. Open: how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
