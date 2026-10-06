@@ -335,6 +335,7 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
         } else if let Some(stem) = name.strip_suffix(".cpls") {
             if prefix.is_empty() && stem == "limb" { continue; }
             if stem == "limb" { return Err(format!("{}: `limb` names the root; a module cannot be called that", p.display())); }
+            if stem == "my" { return Err(format!("{}: `my` is the root's path (`my.helper[]`); a module cannot be called that", p.display())); }
             parser::module_name_ok(stem).map_err(|m| format!("{}: `{stem}` cannot name a module: {m}", p.display()))?;
             let mut module = prefix.clone();
             module.push(stem.to_string());

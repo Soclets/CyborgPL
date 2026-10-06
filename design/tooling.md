@@ -107,7 +107,7 @@ Owner, 2026-09-14.
   no limits (owner, 2026-09-30: "It's for fun. You can make a malware
   payload, or be a good person …"): the build has no channel from it, and
   it reaches a Limb only as any program would, by reading its files — no
-  `limb.` or prefix into code (owner: "not a shortcut to reach a limb.
+  `my.` or prefix into code (owner: "not a shortcut to reach a limb.
   It's turing complete, so you build that yourself"), and `cca prepare`
   hands it no words: settings come as any program gets them, from
   environment variables or files (owner: "Might aswell build shit

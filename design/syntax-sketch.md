@@ -83,15 +83,15 @@ without the rest of that redesign. See `DECISIONS.md`.
   words — `fn`, `change`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `nocheck`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `struct`, `pub`, `const`, `module`, `limb`, `check`, `nocheck`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
+  `list`, `array`, `struct`, `pub`, `const`, `module`, `limb`, `my`, `check`, `nocheck`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
   be used bare as function names; a function *may* be named with one, and
-  is then reached only through a path (`std::to[…]`, `limb.to[…]`;
+  is then reached only through a path (`std::to[…]`, `my.to[…]`;
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
   anything.
 - **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
   `std::print.stored.stdout[…]`, `'r': std::uenr`, `crate_x::Locker[…]`. Inside a
-  Limb the same `.` walks modules: `shapes.circle.area[…]`, `limb.helper[…]`
-  for the root (`limbs.md`, 2026-09-19).
+  Limb the same `.` walks modules: `shapes.circle.area[…]`, `my.helper[…]`
+  for the root (`limbs.md`, 2026-09-19; `limb.` until 2026-10-06).
 - **User names are quoted** (`'x'`, `'s'`). **Settled and reaffirmed — see
   `DECISIONS.md`; not open for relitigation.** The word operators (`x`,
   `mod`, `and`, …) and the bare keywords depend on it.

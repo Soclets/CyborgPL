@@ -7,7 +7,7 @@ module counter {
     pub fn bump ['c': Count] --> Count {
         return Count[n = 'c'.n plus step[]];
     }
-    fn step [] --> int32 { return limb.'scale'; }      # private; reaches the root's const
+    fn step [] --> int32 { return my.'scale'; }      # private; reaches the root's const
     pub.limb module inner {
         pub.limb fn twice ['n': int32] --> int32 { return 'n' times 2; }
     }

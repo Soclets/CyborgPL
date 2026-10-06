@@ -5,7 +5,7 @@ pub const 'pi': bin64 = 3.14159;
 pub struct Circle { radius: bin64 }
 
 pub fn circle [lent 'c': Circle] --> bin64 {
-    return 'c'.radius times 'c'.radius times limb.'pi';
+    return 'c'.radius times 'c'.radius times my.'pi';
 }
 
 pub.limb fn internal [] --> int32 { return 2; }

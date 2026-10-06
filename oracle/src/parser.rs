@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "giveS", "gives", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
+    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -77,7 +77,7 @@ pub struct Parser {
     groups: Vec<String>,
     /// captures of the anonymous function just parsed
     pending_captures: Vec<(Verb, String)>,
-    /// where `limb.` points: `[]` for the Limb being built, `["::geometry"]` for a dependency
+    /// where `my.` points: `[]` for the Limb being built, `["::geometry"]` for a dependency
     /// loaded beside it (a segment no source can write, so the two never meet)
     limb_root: Vec<String>,
     /// inside a `test fn`'s body: `must` may appear (owner, 2026-09-29)
@@ -115,7 +115,7 @@ impl Parser {
     pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
-    /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
+    /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
     /// A parser for a dependency Limb's file: its modules sit under `limb_root`.
     pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self {
         let mut p = Parser::new_in(toks, module);
@@ -138,7 +138,7 @@ impl Parser {
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
-        if segs.first().map(|s| s == "limb").unwrap_or(false) { let mut out = self.limb_root.clone(); out.extend(segs[1..].iter().cloned()); return out; }
+        if segs.first().map(|s| s == "my").unwrap_or(false) { let mut out = self.limb_root.clone(); out.extend(segs[1..].iter().cloned()); return out; }
         let mut out = self.module.clone();
         out.extend(segs.iter().cloned());
         out
@@ -182,6 +182,11 @@ impl Parser {
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() };
+        // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.limb` stays
+        if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "limb") && self.toks[i + 1].tok == Tok::Dot && (i == 0 || self.toks[i - 1].tok != Tok::Dot)) {
+            self.pos = i;
+            return self.err("the root of this Limb is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
+        }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
         // `NO_FUCKING_CHECKS`; Genny `interface` and `satisfies`; MCPS `concur`, `whichever`, `channel`
         // and `for para`. A word after `.` or `::` is a name in a path, not the keyword.
@@ -675,7 +680,7 @@ impl Parser {
             other => return self.err(format!("expected a function name, found {other}")),
         };
         // A keyword may name a function (decided 2026-09-19) — it is then never called
-        // bare, only through a path: `limb.to[…]` inside, `std::to[…]` outside.
+        // bare, only through a path: `my.to[…]` inside, `std::to[…]` outside.
         if name == "MAIN" { return self.err("MAIN is the program's block, not a function: `MAIN { … }`"); }
         let gens = if self.in_interface { Vec::new() } else { self.announce("fn")? };
         if *self.peek() == Tok::LParen { return self.err("parameters sit in `[ ]`; `( )` is arithmetic grouping"); }
@@ -954,7 +959,7 @@ impl Parser {
     // type := Word ('.' Word)* ('[' type (',' type)* ']')?
     // Decided 2026-09-19: `.` picks a fixed variant (`str.utf8`, `char.grapheme`);
     // `[ ]` supplies type parameters (`list[int32]`, `list[list[int32]]`). A struct
-    // through modules is a dotted path (`shapes.Locker`, `limb.Locker`).
+    // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     fn ty(&mut self) -> PResult<Ty> {
         // `!std_int24`, `!std_u4` — an integer of a width that is not standard (owner, 2026-10-03):
         // read as one name
@@ -1251,8 +1256,8 @@ impl Parser {
                     return Ok(Ty::Inst(self.canonical(&segs), params));
                 }
                 if segs.len() > 1 {
-                    // a struct reached through modules: `shapes.Locker`, `limb.Locker`
-                    if segs[..segs.len() - 1].iter().any(|m| m == "limb" || module_name_ok(m).is_ok()) {
+                    // a struct reached through modules: `shapes.Locker`, `my.Locker`
+                    if segs[..segs.len() - 1].iter().any(|m| m == "my" || module_name_ok(m).is_ok()) {
                         return Ok(Ty::Struct(self.canonical(&segs)));
                     }
                     return bad(self, format!("`{}` takes no narrowing", segs.join(".")));
@@ -2081,8 +2086,8 @@ impl Parser {
     fn call(&mut self) -> PResult<Call> {
         let line = self.line();
         let first = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a name, found {other}")) };
-        if KEYWORDS.contains(&first.as_str()) && first != "limb" && *self.peek() != Tok::ColonColon {
-            return self.err(format!("`{first}` is a keyword; a function named `{first}` is reached through a path, never bare: `limb.{first}[…]`"));
+        if KEYWORDS.contains(&first.as_str()) && first != "my" && *self.peek() != Tok::ColonColon {
+            return self.err(format!("`{first}` is a keyword; a function named `{first}` is reached through a path, never bare: `my.{first}[…]`"));
         }
         let (limb, mut path) = if *self.peek() == Tok::ColonColon {
             self.advance();
@@ -2940,10 +2945,10 @@ impl Parser {
                     f.bounds = p.bounds;
                     Ok(Expr::OpValue(op, Some(std::rc::Rc::new(f)), line))
                 }
-                "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}[…]` is no call; a function named `{w}` is reached by path: `limb.{w}[…]`")),
+                "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}[…]` is no call; a function named `{w}` is reached by path: `my.{w}[…]`")),
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
-                "limb" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`limb` is the root of this Limb and is followed by `.`: `limb.helper[]`, `limb.'pi'`"),
+                "my" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`my` is the root of this Limb and is followed by `.`: `my.helper[]`, `my.'pi'`"),
                 "fn" => {
                     // fn [params] -> T with [lend 'v', give 'w'] { … } — an anonymous function (2026-09-21)
                     let saved_bounds = std::mem::take(&mut self.bounds);
@@ -2954,7 +2959,7 @@ impl Parser {
                     let caps = std::mem::take(&mut self.pending_captures);
                     Ok(Expr::Lambda(std::rc::Rc::new(f), caps, line))
                 }
-                _ if KEYWORDS.contains(&w.as_str()) && w != "limb" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
+                _ if KEYWORDS.contains(&w.as_str()) && w != "my" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
                 _ if self.is_fn_ref() => {
                     // a bare function name with no brackets: the function as a value
                     let mut segs = Vec::new();
@@ -2978,7 +2983,7 @@ impl Parser {
                     Ok(Expr::EnumValue(self.canonical(&segs), case, None, line))
                 }
                 _ if self.is_const_path() => {
-                    // `shapes.'pi'`, `limb.'pi'`
+                    // `shapes.'pi'`, `my.'pi'`
                     let mut segs = Vec::new();
                     loop {
                         match self.advance().tok { Tok::Word(w) => segs.push(w), _ => unreachable!() }

@@ -45,7 +45,7 @@ bare".
 is unambiguous even though `to` is a keyword; the reservation rule only
 ever protected *bare* positions. So `fn to […]` is legal, and such a
 function is reached through a path everywhere: `std::to[…]` from outside,
-`limb.to[…]` inside its own Limb (owner floated `std:to` / `std:::to` for
+`my.to[…]` inside its own Limb (`limb.to[…]` until 2026-10-06; owner floated `std:to` / `std:::to` for
 the inside; `:` already attaches types and `limb.` already means "my own
 Limb," so `limb.` it is). Bare `to[…]` is the keyword. Structs, consts and
 modules keep the strict rule — their names appear bare in type positions.
@@ -121,12 +121,12 @@ skipped. Why: macOS and Windows file systems are case-insensitive
 (`Shapes.cpls` and `shapes.cpls` collide on some machines and not others),
 and macOS normalises Unicode names differently from Linux.
 
-### Reaching in — `::` crosses, `.` narrows, `limb.` is the root
+### Reaching in — `::` crosses, `.` narrows, `my.` is the root
 
 ```
 shapes.area[…]                 # from the root: a module's item
-limb.helper[…]                 # from inside a module: the root's item
-limb.shapes.circle.area[…]     # from inside any module: an absolute path
+my.helper[…]                   # from inside a module: the root's item
+my.shapes.circle.area[…]       # from inside any module: an absolute path
 circle.area[…]                 # from inside `shapes`: its own child
 geometry::shapes.circle.area[…]   # from another Limb
 'r': shapes.circle.Circle      # a struct through modules
@@ -134,12 +134,12 @@ shapes.circle.'pi'             # a const through modules
 ```
 
 - A bare name is **this module's**. A dotted path is **relative to this
-  module**. `limb.` starts at the root (owner chose (c) over lexical
+  module**. `my.` starts at the root (`limb.` until 2026-10-06, when the
+  owner chose `my.`; owner chose (c) over lexical
   fallback and over the Limb's own name — a root item added later cannot
   break a distant module, and a Limb's source does not depend on its
-  package name). Rust's `crate::`, spelled with the word that already names
-  the root file.
-- From outside, the Limb's name replaces `limb`: `geometry::shapes.area`
+  package name). Rust's `crate::`.
+- From outside, the Limb's prefix replaces `my`: `geometry::shapes.area`
   — the same path with the boundary marked.
 
 ### Visibility — three audiences
@@ -153,7 +153,7 @@ pub.limb module tests { … }        # modules carry it as well
 
 - Nothing: private to the module it is declared in, visible to that module
   and the modules nested inside it (so a block reaches its file's private
-  helpers, and `limb.helper` works from anywhere when `helper` is at the
+  helpers, and `my.helper` works from anywhere when `helper` is at the
   root).
 - **`pub.limb`**: the rest of this Limb. Owner chose the chain over Rust's
   `pub(crate)` — `( )` is arithmetic grouping only — and over having no
@@ -246,7 +246,7 @@ which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
 The name lives in **the manifest** (`Synthia.ttsr` / `CCA.cplr`), beside the version and the
 dependencies, and nowhere in source. Synthia reads it and hands it to
 CCA with the rest of what it is building. Renaming the directory changes
-nothing, and a Limb's own code never names itself: it says `limb.`.
+nothing, and a Limb's own code never names itself: it says `my.` (`limb.` until 2026-10-06).
 Proposed alternative: `limb mathstuff;` at the top of `limb.cpls`, which
 would give the name two places to disagree.
 
