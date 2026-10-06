@@ -80,6 +80,19 @@ width, at least 64 bits), and the checked conversions. Open: exactly which rules
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
+### 2026-10-06 — Lists, maps and text: fixed arrays and text literals in Signatar; growing lists, maps and text operations in std (owner)
+
+The owner: "The revision is the next thing that will be built. So, we
+have to decide first", so the open items one at a time. First, by
+whether a thing needs memory from somewhere (Signatar has no allocator):
+**`array[T]`** (fixed size) and **text literals** (bytes in the program)
+are Signatar's; **`list[T]`** (grows into a heap), **`map[K, V]`** (a heap
+and hashing) and **text operations** (`str.bytes`, `++`, conversions) are
+std's, which brings the allocator. `for 'x' in lend 'xs'` works on both;
+std's list plugs into Signatar's `for` as `plus` plugs into its operator
+syntax. The owner: "yea". A kernel makes its own lists, as Linux's
+`list_head` and allocators are its own.
+
 ### 2026-10-06 — Code for one target: `on.target … { } else on.target … { } else { }`, chosen when compiling, and `on.machine` when running (owner: b; not built)
 
 ```
