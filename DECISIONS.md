@@ -39,7 +39,11 @@ messages are gonna be graphemes, unless you have a better one"); **the
 JSON form counts in the unit the editor asks for, UTF-16 code units by
 default, as the Language Server Protocol does** (design claude's
 proposal; the owner: "yea"), so an editor's cursor lands right on Thai
-and emoji lines.
+and emoji lines. **This is Signatar's rule** (the owner, asked
+whether Signatar's own messages count graphemes: "it's Signatar's, we
+can't force the other codextras to use this anyways"): Signatar's
+messages count graphemes, the Unicode tables living in its compiler
+plugin, never in a program; another codextra chooses its own.
 
 ### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
 
