@@ -41,8 +41,10 @@ is someone else's registered core, the "unverified, used with a warning"
 case (2026-10-05); with no plugin loading yet, the oracle and CCA refuse
 it ("loading another core is not built yet"), and the refusal becomes the
 warning once plugins exist. Over (b) accepting it with the warning now,
-which would build as if the core were there. Asked next: a core never
-registered, by `path`. Open: `Synthia.ttsr`'s spelling (synthia claude's
+which would build as if the core were there. **A core never registered
+is listed by `path`, as a local limb:** `cca::Core[path = "../mycore"]`
+(owner: "`a`", over registered cores only), unverified, so warned, and
+refused like an unknown ID until plugins load. Open: `Synthia.ttsr`'s spelling (synthia claude's
 to ask).
 
 ### 2026-10-06 — `to.int8.bits[…]` takes any value whose bits fit, -128 to 255, and refuses the rest (owner: a)
