@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — std needs ASP: a manifest listing std without ASP is refused (owner)
+
+Asked what `let 'x': uint8 = 200 plus 100;` does in a project with std but
+no ASP ((a) wraps like the hardware, nothing checks, division by zero as
+the chip does it; (b) std needs ASP; (c) wraps, but division by zero
+always stops; design claude recommended c), the owner: "You genuinely
+have to be shitting on my ass, if you installed std without fucking
+ASP". So **std's maths always has true values and checks**: a
+`CCA.cplr` that lists std must list ASP. Raw, hardware-like numbers are
+for programs without std, on Signatar and IEG.
+
 ### 2026-10-06 — A manifest lists std like any limb, by its registry ID and version; CCA uses the installed copy when it matches (owner: yea; not built)
 
 Design claude asked how a `CCA.cplr` says "I want std", offering (a) a new

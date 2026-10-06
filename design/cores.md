@@ -118,6 +118,9 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 
 ## std, a limb with powers
 
+**std needs ASP** (owner, 2026-10-06): a manifest listing std without ASP
+is refused, so std's maths always has true values and checks.
+
 Written in CyborgPL, calling the Rust runtime for what CyborgPL cannot
 express yet. It holds **every operator**: `plus`, `minus`, `times`,
 `div.X` / `mod.X`, `pow`, comparisons, `and`, `or`, `not`, `not.bit`, `-`

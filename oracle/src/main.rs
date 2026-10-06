@@ -269,6 +269,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Limb: {why}: `prefix = \"shop\"`")); }
     if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
     if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [cca::Target[name = \"aarch64-macos\"],]`")); }
+    // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
+    // std without fucking ASP")
+    if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
+        return Err(format!("{shown}: line {mline}: std needs the core ASP, so its maths has true values and checks: add `cca::Core[name = \"ASP\"]` to `cores`"));
+    }
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
         return Err(format!("{shown}: line {mline}: the core MCPS needs IEG: add `cca::Core[name = \"IEG\"]` to `cores`"));
