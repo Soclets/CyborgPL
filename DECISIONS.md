@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
+
+Asked whether CyborgPL is case-sensitive (it is, in the oracle and CCA:
+`Area` and `area`, `'X'` and `'x'` are different names; `Main` is not
+`MAIN`; module, Limb and prefix names are lowercase only, for the file
+systems; not recorded as a ruling, the owner: "No, not yet"), the owner:
+"There should be a way to change to case-insensitive for what". Design
+claude offered (a) names in code (variables, functions, types, fields,
+cases), (b) keywords too, (c) names reached from other Limbs, and
+recommended (a) alone. The owner: "`a`, and `c`. Would depend on their
+respective writers". So **a Limb's writer chooses**; design claude's
+reading: when a Limb chooses it, its names are insensitive inside it, and
+other Limbs reaching them (`geometry::Area[…]` finding `area`) do so
+insensitively too, since the choice belongs to the Limb that owns the
+names. Keywords stay exact. Open: the spelling, and the reading.
+
 ### 2026-10-06 — In `Synthia.ttsr`, every needed thing starts with `limb.` or `core.`; a core is listed there by ID and version (owner; relayed by synthia claude)
 
 ```
