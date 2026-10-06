@@ -34,7 +34,14 @@ official codextra is Signatar** (owner: "`Signatar`, signature but
 cooler"). **Precog lives in Signatar, not the base** (owner: "`a`. Base
 lang so low, even kernel would say wtf"): it proves things about
 Signatar's own rules, so a codextra with other rules brings its own
-checker or none. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
+checker or none. **Syntax is Signatar's too** (owner: "`a`"): a
+codextra brings its own parser through its Rust plugin, so another
+codextra may have wholly different syntax (Lilith's would fit), and the
+base does not know what a quoted name is. Following from both, design
+claude's reading: what earlier rulings put in the base (SIMD, the minus
+sign of a negative, `bool`, `and.then`/`or.else`) moves into Signatar.
+The base keeps: reading files, loading codextras and cores, enforcing
+grants, the bridge to LLVM. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
 ### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
