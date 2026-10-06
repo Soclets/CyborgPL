@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — Signatar gets kernel-grade raw memory, beside ownership (owner: e)
+
+The owner: "Should Signatar have manual too? Too is the keyword here",
+then, after design claude's options missed it, "the manual one that you
+could use to make a kernel". Design claude: a kernel has no `malloc` to
+borrow, so Signatar needs **pointers as ordinary values** (in a `let`, in
+a struct; until now `ptr[T]` lived only in signatures, 2026-09-19),
+**addresses as numbers and back** with pointer arithmetic, **volatile
+access** the compiler never removes or reorders, and **raw memory with no
+owner**, so a kernel writes its own allocator; owned, borrow-checked code
+stays the default, raw memory the marked exception, as Rust's `unsafe`.
+Over (a) Signatar's own `alloc`/`free`, (b) as before, (c) an allocation
+core, (d) whole regions without the borrow rules. The owner: "`e`". It
+reverses 2026-09-19's "pointers only in signatures", which was made for
+calling C. How it is marked is asked next.
+
 ### 2026-10-06 — Signatar's numbers are raw, like the hardware; safe numbers come from their own official core (owner)
 
 Asked whether there is another way than `-5` (std's `0 minus 5` or
