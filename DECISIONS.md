@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — Signatar's names are English only; names in other scripts come from a core (owner; not built)
+
+Asked whether Signatar supports every language in its variables (the
+oracle accepted anything inside quotes, `'ไม่'`, `'😀'`; bare names took
+Unicode letters and digits, so `fn ไม่` and `fn नमस्ते` failed on their
+combining marks; none of it ever decided), with design claude
+recommending Unicode's identifier rule (UAX #31) for bare names, the
+owner: "Bare names should be English only. But should the crazy names
+come from another core?" Design claude: yes, a core may add syntax and
+cores make dialects, so Signatar stays plain and a core opens names to
+every script (or emoji); asked whether quoted variable names are English
+only too: "English only too, crazy ones from the core". So **every name
+in Signatar, bare or quoted, is English letters, digits and `_`**
+(design claude's reading of "English": ASCII `a`–`z`, `A`–`Z`); **names
+in other scripts come from a core**. Text values (`"สวัสดี"`) are not
+names and stay any Unicode. With Signatar's names ASCII, 2026-10-06's
+Unicode case folding matters where that core is used. Open: the core
+(official or not, its name).
+
 ### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
 
 Asked whether CyborgPL is case-sensitive (it is, in the oracle and CCA:
