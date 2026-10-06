@@ -5,6 +5,39 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
+
+```
+cca::Manifest[
+    name = "shop",
+    prefix = "shop",
+    cores = [cca::Core[name = "IEG"],],
+    dependencies = [cca::Dep[path = "../std"],],
+    deny = [cca::Power.inline_asm,],
+];
+```
+
+Explaining the sketched `const 'deny' := …;`, design claude said the
+names in `CCA.cplr` are setting keys CCA looks up (2026-09-29: "one plain
+`const` per setting"), so in that one file a name does something; the
+owner had noticed: "usually a name doesn't do stuff". Compared with
+Synthia's and other package managers' keys (which mean something, in a
+config format), the owner: "I think it would matter more. If `const
+'build'` underneath is really a real `const`", then: "if the syntax looks
+real, but it's not real. It feels like a child roleplaying their
+language being hard". Proposed: (a) keep names as keys, CCA refusing
+unknown ones (it does: "CCA.cplr has no setting 'dney'"); (b) one real
+`const 'build' := cca::Build[ … ];`, one magic name left; (c) the file is
+one value, no names, checked as real CyborgPL types, recommended (as
+Zig's `build.zig` is real Zig). The owner asked what C does (C has no
+manifest; Make, CMake, Meson, Conan and vcpkg each use a language of
+their own), meaning option (c), then: "`c`. It may not look as complex,
+but at least it's not much of a roleplay". So every `CCA.cplr` becomes
+one `cca::Manifest` value: its settings are the struct's fields, typos
+are the type checker's "no such field". Changes every existing
+`CCA.cplr`, CCA's package manager and the oracle's manifest reader; to be
+built when the owner says.
+
 ### 2026-10-05 — Two terms: a *core* extends the language, a *limb* is a library; the operators move out of the base (owner; not built, still being designed)
 
 The owner: "I was thinking of making the base lang more lower-level ...
