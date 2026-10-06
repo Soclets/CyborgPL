@@ -300,9 +300,15 @@ impl<'p> Interp<'p> {
         let generic = |f: &Func| -> Option<Option<String>> { match f.params.first().and_then(|p| p.ty.as_ref()) {
             Some(Ty::Var(v)) => Some(f.bounds.iter().find(|(n, _)| n == v).map(|(_, i)| i.clone())), _ => None } };
         let shapes = |f: &Func| -> Vec<String> { f.params.iter().map(|p| p.ty.as_ref().map(ty_shape).unwrap_or_default()).collect() };
+        let root = |f: &Func| f.module.first().filter(|r| r.starts_with("::")).cloned();
+        let word = |n: &str| n.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '.');
         for (j, g) in ops.iter().enumerate() {
             for f in &ops[..j] {
                 if f.name != g.name { continue; }
+                // two Limbs may each define one word operator for the same types: the path tells them
+                // apart (owner, 2026-10-02), and a bare use of it is refused where it is written; a glyph
+                // operator has no path, so two of them stay an error
+                if root(f) != root(g) && word(&f.name) { continue; }
                 let (later, earlier) = (*g, *f);
                 match (generic(earlier), generic(later)) {
                     (None, None) => if shapes(earlier) == shapes(later) {
@@ -4151,6 +4157,14 @@ impl<'p> Interp<'p> {
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] --> R {{ … }}`"));
             }
         };
+        // written bare, the same word operator for these types in two Limbs is a clash where it is
+        // written, as a bare name is (owner, 2026-10-06: "`a`, and no")
+        if limb.is_none() {
+            let same: Vec<&Func> = candidates.iter().filter(|f| f.params.len() == def.params.len() && f.params.iter().zip(&def.params).all(|(a, b)| a.ty.as_ref().map(ty_shape) == b.ty.as_ref().map(ty_shape))).collect();
+            let mut roots: Vec<String> = same.iter().map(|f| f.module.first().filter(|r| r.starts_with("::")).map(|r| format!("`{}::{name}`", r.trim_start_matches("::"))).unwrap_or_else(|| format!("`{name}` (this Limb's)"))).collect();
+            roots.dedup();
+            if roots.len() > 1 { return rt(line, format!("`{name}` could be any of {}: write the path", roots.join(", "))); }
+        }
         // another Limb's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
         // path, `bare.only` refuses it; a glyph operator has no path and no mark
         if let Some(root) = def.module.first().filter(|r| r.starts_with("::")) {
