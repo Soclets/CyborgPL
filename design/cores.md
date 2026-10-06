@@ -50,6 +50,16 @@ monster" (owner).
   and an unverified core is used with a warning, never refused ("Maybe
   it's their own, maybe it's their friend's", owner). A core need not put
   its name in the syntax.
+- **The warning** for one nobody verified (owner, 2026-10-06):
+
+  ```
+  warning: the core "Fastmath" (registry ID 7f3a…) is not verified
+    where: CCA.cplr, cores
+    note:  a core runs inside the compiler and can change what your
+           program does. Use it only if you trust where it came from.
+  ```
+
+  and the same with "codextra" for a codextra.
 - **Trust**: the official codextra and cores are verified (RRx2 checks
   IEG's IR against its contracts); installing any other is already
   trusting it, as installing any program is.
@@ -187,7 +197,6 @@ is nothing to write it in.
 
 - The stable **plugin interface** for codextras and cores: compiler
   claude proposes it when building, the owner approves (2026-10-06).
-- **The unverified-core warning's wording.**
 - **The oracle and CCA**: nothing here is built; today both still have
   the operators built in and reach `std::` without a listing.
 - **A naming clash** (design claude's note): "core" also means a CPU core

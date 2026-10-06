@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — The unverified core/codextra warning's wording (owner: yea; design claude's wording)
+
+Design claude's wording, in the `warning:` / `where:` shape of the errors:
+
+```
+warning: the core "Fastmath" (registry ID 7f3a…) is not verified
+  where: CCA.cplr, cores
+  note:  a core runs inside the compiler and can change what your
+         program does. Use it only if you trust where it came from.
+```
+
+A codextra nobody has verified gets the same, with "codextra" for
+"core". The owner: "yea". Still a warning, never a refusal (2026-10-05).
+
 ### 2026-10-06 — A codextra hands the base plain LLVM IR; compiler claude proposes the plugin interface (owner: yea)
 
 Design claude asked what a codextra hands the base: LLVM IR, or a shared
