@@ -1,0 +1,3 @@
+MAIN {
+    on aarch64 { }
+}

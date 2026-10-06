@@ -222,5 +222,7 @@ is nothing to write it in.
   Limb whose manifest does not list std reaches no operator and no
   `std::`, nor a core's words when it does not list that core
   (2026-10-06), and without ASP a whole-number literal lands as a bit
-  pattern; lists, maps and text as std's, and ASP's `to.int8.bits[…]`,
-  are not built yet.
+  pattern; lists, maps and text need std; ASP's `to.int8.bits[…]`;
+  `on.target` and `on.machine` (minimum versions not built: how a build
+  names its oldest OS and chip features is open). Not built: IEG's raw
+  operations, the powers, cores as plugins, the installer.

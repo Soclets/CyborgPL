@@ -14,10 +14,38 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "giveS", "gives", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
+    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
+
+/// The target the oracle stands in for (cca/targets.txt has only this one)
+pub const ORACLE_TARGET: &str = "aarch64-macos";
+
+/// `on.machine.chip X`: what the machine the program runs on can do, asked once (owner, 2026-10-06:
+/// IEG's, "the OS's `sysctl` on an ARM Mac"); the oracle asks the machine it runs on
+fn machine_has(f: &str) -> Result<bool, String> {
+    #[cfg(target_arch = "aarch64")]
+    let r = match f {
+        "aarch64" => Some(true), "x86_64" | "x86" | "riscv64" | "arm" => Some(false),
+        "neon" => Some(std::arch::is_aarch64_feature_detected!("neon")),
+        "sve" => Some(std::arch::is_aarch64_feature_detected!("sve")),
+        "sve2" => Some(std::arch::is_aarch64_feature_detected!("sve2")),
+        "aes" => Some(std::arch::is_aarch64_feature_detected!("aes")),
+        "sha2" => Some(std::arch::is_aarch64_feature_detected!("sha2")),
+        "sha3" => Some(std::arch::is_aarch64_feature_detected!("sha3")),
+        "crc" => Some(std::arch::is_aarch64_feature_detected!("crc")),
+        "lse" => Some(std::arch::is_aarch64_feature_detected!("lse")),
+        "dotprod" => Some(std::arch::is_aarch64_feature_detected!("dotprod")),
+        "fp16" => Some(std::arch::is_aarch64_feature_detected!("fp16")),
+        "bf16" => Some(std::arch::is_aarch64_feature_detected!("bf16")),
+        "i8mm" => Some(std::arch::is_aarch64_feature_detected!("i8mm")),
+        _ => None,
+    };
+    #[cfg(not(target_arch = "aarch64"))]
+    let r = match f { "x86_64" => Some(cfg!(target_arch = "x86_64")), "aarch64" => Some(false), _ => None };
+    r.ok_or_else(|| format!("`{f}` is not a chip or feature the oracle can ask about: aarch64, x86_64, neon, sve, sve2, aes, sha2, sha3, crc, lse, dotprod, fp16, bf16, i8mm"))
+}
 
 /// std's registry ID (owner, 2026-10-06: design claude's `openssl rand -hex 32`) and the version the
 /// oracle stands in for (its release's date and time with the offset, owner: "date and time of update")
@@ -307,6 +335,19 @@ impl Parser {
         Ok(prog)
     }
 
+    /// One branch of a top-level `on.target` chain, after its `{`: its items are read either way, and
+    /// kept only if `keep`.
+    fn on_branch(&mut self, prog: &mut Program, depth: usize, keep: bool) -> PResult<()> {
+        let n = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.interfaces.len(), prog.claims.len(), prog.consts.len(), prog.externs.len(), prog.modules.len(), prog.strict_modules.len(), prog.bare_marks.len(), prog.main.is_some());
+        self.items(prog, depth + 1)?;
+        if !keep {
+            prog.funcs.truncate(n.0); prog.structs.truncate(n.1); prog.enums.truncate(n.2); prog.interfaces.truncate(n.3); prog.claims.truncate(n.4);
+            prog.consts.truncate(n.5); prog.externs.truncate(n.6); prog.modules.truncate(n.7); prog.strict_modules.truncate(n.8); prog.bare_marks.truncate(n.9);
+            if !n.10 { prog.main = None; prog.main_args = None; }
+        }
+        Ok(())
+    }
+
     /// Parse items until `}` (depth > 0) or end of file (depth 0).
     fn items(&mut self, prog: &mut Program, depth: usize) -> PResult<()> {
         loop {
@@ -355,6 +396,26 @@ impl Parser {
                     continue;
                 }
                 return self.err("a `bare` mark is `bare.optional;` at the top of a file, `bare.optional [fn, op];` in `limb.cpls`, or `pub bare.optional fn …` on an item");
+            }
+            // `on.target … { items } else { items }` at the top level: only the chosen branch's items exist
+            // (owner, 2026-10-06: a compile-time choice around any code)
+            if self.is_word("on") {
+                let mut chosen = false;
+                loop {
+                    let (machine, held) = self.on_test()?;
+                    if machine { return self.err("`on.machine` chooses when running, so it goes inside a body; around items, `on.target`"); }
+                    self.expect(Tok::LBrace, "`{` after the `on.target` test")?;
+                    let keep = held && !chosen;
+                    self.on_branch(prog, depth, keep)?;
+                    chosen |= keep;
+                    if !self.is_word("else") { break; }
+                    self.advance();
+                    if self.is_word("on") { continue; }
+                    self.expect(Tok::LBrace, "`{` after `else`")?;
+                    self.on_branch(prog, depth, !chosen)?;
+                    break;
+                }
+                continue;
             }
             let mut pending_bare: Option<(Bare, usize)> = None;
             let before = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.consts.len(), prog.interfaces.len(), prog.modules.len());
@@ -1496,6 +1557,7 @@ impl Parser {
                     }
                 }
                 "if" => self.if_stmt(),
+                "on" => self.on_stmt(),
                 "loop" => self.loop_stmt(),
                 "while" => self.while_stmt(),
                 "for" => self.for_stmt(),
@@ -1811,6 +1873,78 @@ impl Parser {
     }
 
     // if := 'if' expr block ('else' 'if' expr block)* ('else' block)?
+    /// One test of an `on` chain (owner, 2026-10-06): `on.target aarch64-macos`, `on.target.chip
+    /// aarch64`, `on.target.os macos` are decided when compiling, against the target built for (the
+    /// oracle's is `aarch64-macos`); `on.machine.chip sve` when running, on the actual machine, and it is
+    /// IEG's. Returns whether it is `on.machine`, and whether it holds.
+    fn on_test(&mut self) -> PResult<(bool, bool)> {
+        self.expect_word("on")?;
+        if *self.peek() != Tok::Dot { return self.err("`on` is narrowed: `on.target …` (chosen when compiling) or `on.machine …` (when running)"); }
+        self.advance();
+        let which = match self.advance().tok { Tok::Word(w) if w == "target" || w == "machine" => w, other => return self.err(format!("`on.target` or `on.machine`, found {other}")) };
+        let narrow = if *self.peek() == Tok::Dot {
+            self.advance();
+            match self.advance().tok { Tok::Word(w) if w == "chip" || w == "os" => Some(w), other => return self.err(format!("`on.{which}` narrows to `.chip` or `.os`, found {other}")) }
+        } else { None };
+        let word = |p: &mut Self, what: &str| -> PResult<String> {
+            match p.advance().tok { Tok::Word(w) => Ok(w), other => p.err(format!("expected {what}, found {other}")) }
+        };
+        if which == "machine" {
+            if self.lacks.iter().any(|c| c == "IEG") { return self.core_missing("IEG", "`on.machine`"); }
+            if narrow.as_deref() != Some("chip") { return self.err("`on.machine` asks the chip what it can do: `on.machine.chip sve { … }`"); }
+            let f = word(self, "a chip or a feature (`aarch64`, `sve`, `neon`, …)")?;
+            return Ok((true, machine_has(&f).map_err(|m| ParseError { line: self.line(), col: 0, msg: m })?));
+        }
+        const CHIPS: &[&str] = &["aarch64", "x86_64", "x86", "arm", "riscv64", "riscv32", "wasm32", "wasm64", "powerpc64", "powerpc64le", "s390x", "mips64", "loongarch64"];
+        const OSES: &[&str] = &["macos", "ios", "linux", "android", "windows", "freebsd", "netbsd", "openbsd", "wasi", "none"];
+        let (chip, os) = ORACLE_TARGET.split_once('-').unwrap();
+        let held = match narrow.as_deref() {
+            Some("chip") => {
+                let c = word(self, "a chip (`aarch64`, `x86_64`, …)")?;
+                if !CHIPS.contains(&c.as_str()) { return self.err(format!("`{c}` is not a chip `on.target.chip` knows: {}", CHIPS.join(", "))); }
+                if matches!(self.peek(), Tok::Word(_)) { return self.err(format!("a chip's minimum (`on.target.chip {c} sve`) is not built in the oracle: how a build names the chip features it needs is not decided; `on.machine.chip` checks when running")); }
+                c == chip
+            }
+            Some(_) => {
+                let o = word(self, "an OS (`macos`, `linux`, `windows`, …)")?;
+                if !OSES.contains(&o.as_str()) { return self.err(format!("`{o}` is not an OS `on.target.os` knows: {}", OSES.join(", "))); }
+                if matches!(self.peek(), Tok::Int(_) | Tok::Bin(..)) { return self.err(format!("an OS minimum (`on.target.os {o} 15`) is not built in the oracle: how a build names the oldest version it runs on is not decided")); }
+                o == os
+            }
+            None => {
+                let mut t = word(self, "a target (`aarch64-macos`)")?;
+                while *self.peek() == Tok::Op("-".into()) { self.advance(); t.push('-'); t.push_str(&word(self, "the rest of the target")?); }
+                let Some((c, o)) = t.split_once('-') else { return self.err(format!("`{t}` is a chip; a whole target is chip-os (`aarch64-macos`), or narrow: `on.target.chip {t}`")) };
+                if !CHIPS.contains(&c) || !OSES.contains(&o) { return self.err(format!("`{t}` is not a target: chip-os, from {} and {}", CHIPS.join(", "), OSES.join(", "))); }
+                t == ORACLE_TARGET
+            }
+        };
+        Ok((false, held))
+    }
+
+    /// `on.target … { } else on.machine … { } else { }` as a statement (owner, 2026-10-06): a branch
+    /// `on.target` rules out is not compiled at all; `on.machine` branches are, and one runs
+    fn on_stmt(&mut self) -> PResult<Stmt> {
+        let line = self.line();
+        let mut arms: Vec<(bool, bool, Vec<Stmt>)> = Vec::new();
+        let (m, h) = self.on_test()?;
+        arms.push((m, h, self.block()?));
+        let mut otherwise = None;
+        while self.is_word("else") {
+            self.advance();
+            if self.is_word("on") { let (m, h) = self.on_test()?; arms.push((m, h, self.block()?)); }
+            else if self.is_word("if") { return self.err("an `on` chain goes on with `else on.…` or ends with `else { }`; an `if` goes inside a branch"); }
+            else { otherwise = Some(self.block()?); break; }
+        }
+        if !arms.iter().any(|(m, ..)| *m) {
+            let body = arms.into_iter().find(|(_, h, _)| *h).map(|(_, _, b)| b).or(otherwise).unwrap_or_default();
+            return Ok(Stmt::Block { body, line });
+        }
+        let arms: Vec<(Bracket, Vec<Stmt>)> = arms.into_iter().filter(|(m, h, _)| *m || *h)
+            .map(|(_, h, b)| (Bracket { values: vec![Value::Expr(Expr::Bool(h, line))], line, one_list: false }, b)).collect();
+        Ok(Stmt::If { arms, otherwise, line })
+    }
+
     fn if_stmt(&mut self) -> PResult<Stmt> {
         let line = self.line();
         self.expect_word("if")?;

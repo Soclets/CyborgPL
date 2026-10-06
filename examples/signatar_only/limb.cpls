@@ -7,8 +7,8 @@ struct Point {
 }
 
 enum Light {
-    on
-    off
+    lit
+    dark
 }
 
 fn ready [] --> bool {
@@ -21,13 +21,13 @@ fn origin [] --> Point {
 
 MAIN {
     let 'p' := origin[];
-    let 'l' := Light.on;
+    let 'l' := Light.lit;
     if ready[] and.then false {
         let 'unused': int32 = 1;
     }
     match 'l' {
-        on { }
-        off { }
+        lit { }
+        dark { }
     }
 }
 

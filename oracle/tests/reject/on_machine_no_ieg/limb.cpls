@@ -1,0 +1,3 @@
+MAIN {
+    on.machine.chip aarch64 { }
+}
