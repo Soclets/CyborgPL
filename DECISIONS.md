@@ -136,7 +136,21 @@ So far:
   (they skip their right side, which a std operator cannot).
 - **A core may give a specific limb more authority than others** (owner,
   same day: "I think that a core could give a specific limb more
-  authority than others"); how is asked next.
+  authority than others"). Design claude offered (a) only the core says
+  it or (b) the limb asks and a core grants; the owner wanted both tiers
+  ("depends on how much authority"), then settled it: "A core should be
+  able to say the permission of a limb. Say, this core gives any limb this
+  ability, and its favourite limb extra ability". So **a core grants
+  powers to every limb built with it, and extra powers to favourites,
+  named by their registry ID** (design claude's point: names repeat, IDs
+  do not). A limb still lists the powers it uses, visible in every build,
+  and each works only if a core it is built for granted it. Then, asked
+  for better ideas, design claude added two, and the owner: "Yea":
+  **the program's own manifest may take powers away, never add** (as
+  Deno's and phones' permissions: the one running decides last), and **an
+  upgrade that starts using a new power is flagged** before it goes ahead.
+  Spellings (`grants_to_all`, `grants`, `deny`, `cca::Power…`) are design
+  claude's sketches.
 - Open: what the base keeps exactly, how a core is installed and named in a
   manifest, what the unverified-core warning says.
 
