@@ -47,6 +47,11 @@ recommended), fixed as a prefix clash is, by editing one Limb's source
 (its `bare.only` to `bare`) or by Synthia doing it: the owner, asked,
 "Aren't you suppose to edit a limb's source code to change its prefix,
 unless you use Synthia?" (2026-09-29: "Just edit the source code").
+**Optional is `bare.optional`, and a plain `bare` is refused** (owner:
+"Shouldn't bare `bare` be an error, because it doesn't say if it's
+optional?", then "yea"), as a plain `div` is: "say `bare.optional` or
+`bare.only`". So every earlier `bare` here reads `bare.optional`:
+`pub bare.optional fn …`, `bare.optional;`, `bare.optional [op];`.
 Open: how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
