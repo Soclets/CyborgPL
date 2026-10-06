@@ -31,7 +31,10 @@ shit could make another Codextra be another lang, bro"), over there
 being only one: anyone may write one, a whole rule set on the same base;
 the official one is verified and others warn, as for cores. **The
 official codextra is Signatar** (owner: "`Signatar`, signature but
-cooler"). Open: what exactly Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
+cooler"). **Precog lives in Signatar, not the base** (owner: "`a`. Base
+lang so low, even kernel would say wtf"): it proves things about
+Signatar's own rules, so a codextra with other rules brings its own
+checker or none. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
 ### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
