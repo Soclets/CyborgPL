@@ -41,7 +41,10 @@ IEG's raw calls); **ASP brings the `to.` syntax**: checked conversions
 (`to.int8['big']`) and the raw form `to.int8.bits[128]`; **std adds the
 text and decimal conversions** (`to.int32["42"]`, `to.stored.str.utf8`)
 into ASP's `to.`, through a power ASP grants it, as IEG grants std
-`plus`. The owner: "seems good". Open: exactly which rules ASP
+`plus`. The owner: "seems good". **ASP carries the whole "numbers mean
+their true values" set** (owner: "yea"): literals as values, "exact in
+between, checked where it lands", the middle limit (the widest operand's
+width, at least 64 bits), and the checked conversions. Open: exactly which rules ASP
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
