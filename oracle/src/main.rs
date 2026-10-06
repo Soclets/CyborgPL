@@ -172,19 +172,7 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 /// cannot load.
 const OFFICIAL_CORES: [&str; 8] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan"];
 
-/// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
-/// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
-const CORE_IDS: [(&str, &str); 8] = [
-    ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
-    ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
-    ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
-    ("MCPS", "7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d"),
-    ("AutoGPU", "67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d"),
-    ("Metal", "3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7"),
-    ("Nvidia", "beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361"),
-    ("Vulkan", "63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec"),
-];
-const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
+use parser::{CORE_IDS, CORE_VERSION};
 
 /// Read a Limb's `CCA.cplr`: one CyborgPL value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
@@ -343,11 +331,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
     // std without fucking ASP")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
-        return Err(format!("{shown}: line {mline}: std needs the core ASP, so its maths has true values and checks: add `cca::Core[name = \"ASP\"]` to `cores`"));
+        return Err(format!("{shown}: line {mline}: std needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", parser::core_line("ASP")));
     }
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
-        return Err(format!("{shown}: line {mline}: the core MCPS needs IEG: add `cca::Core[name = \"IEG\"]` to `cores`"));
+        return Err(format!("{shown}: line {mline}: the core MCPS needs IEG: add `{}` to `cores`", parser::core_line("IEG")));
     }
     Ok((prefix, deps, cores))
 }

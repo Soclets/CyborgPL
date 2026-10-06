@@ -19,6 +19,26 @@ pub const KEYWORDS: &[&str] = &[
     "var", "func",
 ];
 
+/// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
+/// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
+pub const CORE_IDS: [(&str, &str); 8] = [
+    ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
+    ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
+    ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
+    ("MCPS", "7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d"),
+    ("AutoGPU", "67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d"),
+    ("Metal", "3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7"),
+    ("Nvidia", "beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361"),
+    ("Vulkan", "63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec"),
+];
+pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
+
+/// The manifest line that lists an official core, for a message to show
+pub fn core_line(core: &str) -> String {
+    let id = CORE_IDS.iter().find(|(n, _)| *n == core).map(|(_, i)| *i).unwrap_or("");
+    format!("cca::Core[id = \"{id}\", version = \"{CORE_VERSION}\"]")
+}
+
 /// The target the oracle stands in for (cca/targets.txt has only this one)
 pub const ORACLE_TARGET: &str = "aarch64-macos";
 
@@ -170,7 +190,7 @@ impl Parser {
     /// What a core brings is refused in a Limb whose `CCA.cplr` does not list that core (owner, 2026-10-05:
     /// "Limbs should say what cores they are built for").
     fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
-        self.err(format!("{what} is {core}'s, and this Limb's CCA.cplr does not list the core {core}: add `cca::Core[name = \"{core}\"]` to its `cores`"))
+        self.err(format!("{what} is {core}'s, and this Limb's CCA.cplr does not list the core {core}: add `{}` to its `cores` ({core})", core_line(core)))
     }
 
     /// `bare.never`, `bare.optional` or `bare.only`, at the cursor's `bare` (owner, 2026-10-06); a plain
