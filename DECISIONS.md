@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — The base goes as low as it can; a **codextra**, with more authority than a core, holds the language (owner; not built, being designed)
+
+While deciding what the base keeps, group by group (comparisons to std;
+`and.then`/`or.else` asked about: they skip their right side, which a std
+operator cannot, though nested `if`s or inline assembly can do a given
+case by hand), the owner: "Want to know how I want base should be? ...
+Just low level as fuck, even if it then requires another category that
+has more authority than a core." Design claude drew it out: the base
+keeps only what nothing else can provide (reading files and modules,
+loading cores and the new category and enforcing their grants, the bridge
+to LLVM), and the new category gets what makes it CyborgPL (types, `let`,
+`if`, loops, functions, the borrow rules, likely Precog), with more
+authority than a core because it sets the rules cores play by. The owner:
+"i think so, and maybe it would be called a seed, a codex, or a codextra
+(cooler name for codex)". Design claude: "seed" clashes with check
+claude's seeds, "codex" with OpenAI's coding agent; recommended
+codextra. The owner: "codextra. Oh my god, I swear. When people say
+"CyborgPL", they be meaning the official Codextra, like how they say BIOS
+for UEFI".
+
+So: **base (near-empty) → codextra (the language) → cores (IEG …) →
+limbs (std …)**. Open: what exactly the codextra holds and the base
+keeps; whether codextra is a category (several, an official one) and the
+official one's name; how it is installed; how it relates to Precog's and
+RRx2's verification.
+
 ### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
 
 ```

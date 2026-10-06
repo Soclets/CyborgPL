@@ -5,6 +5,16 @@ wanted to move things like, plus, div, you know to std. And even more."
 This note gathers what was decided that day. `DECISIONS.md` has each step
 with the owner's words; this is the picture.
 
+## The codextra (owner, 2026-10-06)
+
+Above the cores in authority sits a **codextra**: the layer that holds the
+language itself (types, `let`, `if`, loops, functions, the borrow rules,
+likely Precog) and sets the rules cores play by. The base goes "as low
+level as fuck" (owner): reading files, loading the codextra and cores and
+enforcing their grants, the bridge to LLVM. When people say "CyborgPL",
+they mean the official codextra, "like how they say BIOS for UEFI" (owner).
+What exactly it holds is open.
+
 ## Two kinds of package
 
 | | A **core** | A **limb** |
