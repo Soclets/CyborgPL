@@ -1,0 +1,7 @@
+cca::Manifest[
+    name = "x",
+    name = "y",
+    prefix = "x",
+    version = "1.0.0",
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

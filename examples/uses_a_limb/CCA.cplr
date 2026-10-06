@@ -1,8 +1,10 @@
-const 'name' := "uses_a_limb";
-const 'prefix' := "uses_a_limb";
-const 'version' := "1.0.0";
-const 'dependencies' := [
-    cca::Dep[path = "../limbs/areas"],
-    cca::Dep[path = "../limbs/runnable"],
+cca::Manifest[
+    name = "uses_a_limb",
+    prefix = "uses_a_limb",
+    version = "1.0.0",
+    dependencies = [
+        cca::Dep[path = "../limbs/areas"],
+        cca::Dep[path = "../limbs/runnable"],
+    ],
+    targets = [cca::Target[name = "aarch64-macos", default = true],]
 ];
-const 'targets' := [cca::Target[name = "aarch64-macos", default = true],];

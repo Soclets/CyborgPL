@@ -1,5 +1,7 @@
-const 'name' := "limb_version_dep";
-const 'prefix' := "limb_version_dep";
-const 'version' := "1.0.0";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
-const 'dependencies' := [cca::Dep[id = "3f9a2c1d4e5b6a708192a3b4c5d6e7f8091a2b3c4d5e6f708a9b0c1d2e3f4a5b", version = "0.1.0"],];
+cca::Manifest[
+    name = "limb_version_dep",
+    prefix = "limb_version_dep",
+    version = "1.0.0",
+    targets = [cca::Target[name = "aarch64-macos"],],
+    dependencies = [cca::Dep[id = "3f9a2c1d4e5b6a708192a3b4c5d6e7f8091a2b3c4d5e6f708a9b0c1d2e3f4a5b", version = "0.1.0"],]
+];

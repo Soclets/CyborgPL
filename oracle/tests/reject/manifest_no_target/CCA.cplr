@@ -1,4 +1,6 @@
-const 'name' := "x";
-const 'prefix' := "x";
-const 'version' := "1.0.0";
-const 'targets' := [];
+cca::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    targets = []
+];

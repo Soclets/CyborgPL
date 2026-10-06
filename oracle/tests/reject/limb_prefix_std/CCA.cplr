@@ -1,5 +1,7 @@
-const 'name' := "x";
-const 'prefix' := "x";
-const 'version' := "1.0.0";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
-const 'dependencies' := [cca::Dep[path = "../../limbs/std_limb"],];
+cca::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    targets = [cca::Target[name = "aarch64-macos"],],
+    dependencies = [cca::Dep[path = "../../limbs/std_limb"],]
+];

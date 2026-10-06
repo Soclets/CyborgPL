@@ -1,4 +1,6 @@
-const 'name' := "not_the_standard_limb";
-const 'prefix' := "std";
-const 'version' := "1.0.0";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "not_the_standard_limb",
+    prefix = "std",
+    version = "1.0.0",
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

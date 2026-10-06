@@ -109,56 +109,69 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
 /// the registry, which the oracle cannot fetch). It names no word: code writes the Limb's own 'prefix'.
 struct Dep { what: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
-/// Read a Limb's `CCA.cplr` (owner, 2026-09-29): one plain `const` per setting, in CyborgPL syntax,
-/// the shapes from the built-in `cca` Limb. Returns its 'prefix' (none when there is no `CCA.cplr`) and its dependencies.
-fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
+/// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
+/// cannot load.
+const OFFICIAL_CORES: [&str; 8] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan"];
+
+/// Read a Limb's `CCA.cplr`: one CyborgPL value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
+/// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
+/// per setting. Returns its 'prefix' (none when there is no `CCA.cplr`), its dependencies and its cores.
+fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), String> {
     let file = dir.join("CCA.cplr");
-    if !file.is_file() { return Ok((None, Vec::new())); }
-    let prog = parse_file(&file, Vec::new())?;
+    if !file.is_file() { return Ok((None, Vec::new(), Vec::new())); }
     let shown = file.display();
-    if prog.main.is_some() || !prog.funcs.is_empty() || !prog.structs.is_empty() || !prog.enums.is_empty() {
-        return Err(format!("{shown}: CCA.cplr holds settings only: one `const` per setting"));
+    let src = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: cannot read: {e}"))?;
+    let toks = lexer::lex(&src).map_err(|e| format!("{shown}: line {}:{}: {}", e.line, e.col, e.msg))?;
+    let one = "CCA.cplr is one value: `cca::Manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [cca::Target[name = \"aarch64-macos\"],]];`";
+    if matches!(toks.first().map(|t| &t.tok), Some(lexer::Tok::Word(w)) if w == "const" || w == "pub") {
+        return Err(format!("{shown}: line {}: settings are no longer `const`s (2026-10-06): {one}", toks[0].line));
     }
+    let (fields, mline) = parser::Parser::new(toks).manifest()
+        .map_err(|e| format!("{shown}: line {}: {}", e.line, e.msg))?
+        .ok_or_else(|| format!("{shown}: {one}"))?;
     let text = |b: &ast::Bracket| -> Option<String> { match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Text(t, _))] => Some(t.clone()), _ => None } };
-    let (mut name, mut prefix, mut deps) = (false, None, Vec::new());
+    fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {
+        match e { ast::Expr::Nested(b) => for v in &b.values { let ast::Value::Expr(x) = v; each(x, out) }, other => out.push(other.clone()) }
+    }
+    let items = |b: &ast::Bracket| { let mut v = Vec::new(); for x in &b.values { let ast::Value::Expr(x) = x; each(x, &mut v); } v };
+    let (mut name, mut prefix, mut deps, mut cores) = (false, None, Vec::new(), Vec::new());
     let (mut has_version, mut targets) = (false, 0);
-    for c in &prog.consts {
-        if c.vis != ast::Vis::Private { return Err(format!("{shown}: line {}: `pub` means nothing in CCA.cplr, which no Limb reads: `const '{}' := …;`", c.line, c.name)); }
-        match c.name.as_str() {
+    let mut seen: Vec<&str> = Vec::new();
+    for (f, value) in &fields {
+        let line = value.line;
+        if seen.contains(&f.as_str()) { return Err(format!("{shown}: line {line}: `{f}` is given twice")); }
+        seen.push(f);
+        match f.as_str() {
             // a label for people; code writes the 'prefix' (owner, 2026-09-29: "Infront and name are different things")
             // strict: the module-name rule (owner, 2026-09-30: "strict"), though code writes the prefix
             "name" => {
-                let n = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'name' is a text: `const 'name' := \"shop\";`", c.line))?;
-                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {}: `{n}` cannot name a Limb: {m}", c.line))?;
+                let n = text(value).ok_or_else(|| format!("{shown}: line {line}: `name` is a text: `name = \"shop\"`"))?;
+                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {line}: `{n}` cannot name a Limb: {m}"))?;
                 name = true;
             }
             // the word code writes in front of `::` to reach this Limb, its maker's pick (owner, 2026-09-29: b, "required")
             "prefix" => {
-                let p = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'prefix' is a text: `const 'prefix' := \"shop\";`", c.line))?;
-                parser::module_name_ok(&p).map_err(|m| format!("{shown}: line {}: `{p}` cannot be a prefix, written in code as `{p}::`: {m}", c.line))?;
+                let p = text(value).ok_or_else(|| format!("{shown}: line {line}: `prefix` is a text: `prefix = \"shop\"`"))?;
+                parser::module_name_ok(&p).map_err(|m| format!("{shown}: line {line}: `{p}` cannot be a prefix, written in code as `{p}::`: {m}"))?;
                 prefix = Some(p);
             }
             "version" => {
-                let v = text(&c.value).ok_or_else(|| format!("{shown}: line {}: 'version' is a text", c.line))?;
+                let v = text(value).ok_or_else(|| format!("{shown}: line {line}: `version` is a text"))?;
                 // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for CCA.cplr: "same")
-                if v.len() > 256 { return Err(format!("{shown}: line {}: 'version' is at most 256 bytes, and this one is {}", c.line, v.len())); }
+                if v.len() > 256 { return Err(format!("{shown}: line {line}: `version` is at most 256 bytes, and this one is {}", v.len())); }
                 has_version = true;
             }
-            "target" => return Err(format!("{shown}: line {}: a Limb builds for several targets, so the setting is 'targets': `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`", c.line)),
+            "target" => return Err(format!("{shown}: line {line}: a Limb builds for several targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`")),
             // several targets, each with its settings (owner, 2026-09-29): CCA's package manager can do
             // whatever Synthia can, in its plainer way
             "targets" => {
-                fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {
-                    match e { ast::Expr::Nested(b) => for v in &b.values { let ast::Value::Expr(x) = v; each(x, out) }, other => out.push(other.clone()) }
-                }
-                let mut items = Vec::new();
-                for v in &c.value.values { let ast::Value::Expr(x) = v; each(x, &mut items); }
+                let items = items(value);
                 let count = items.len();
                 targets += count;
                 let mut defaults = 0;
                 let mut names = Vec::new();
                 for it in items {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a target is `cca::Target[name = …]`, with a `runner` if it has one", c.line)) };
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `cca::Target[name = …]`, with a `runner` if it has one")) };
                     if shape != "::cca.Target" { return Err(format!("{shown}: line {line}: a target is a `cca::Target`")); }
                     if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a target needs its `name`")); }
                     for (f, b) in &fields {
@@ -173,7 +186,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                         if f == "name" { names.push((t, line)); }
                     }
                 }
-                if count > 1 && defaults != 1 { return Err(format!("{shown}: line {}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)", c.line)); }
+                if count > 1 && defaults != 1 { return Err(format!("{shown}: line {line}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)")); }
                 // only a target CCA can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
                 // actually doable"); the one list is CCA's
                 let doable: Vec<&str> = include_str!("../../cca/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
@@ -182,13 +195,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                 }
             }
             "dependencies" => {
-                fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {
-                    match e { ast::Expr::Nested(b) => for v in &b.values { let ast::Value::Expr(x) = v; each(x, out) }, other => out.push(other.clone()) }
-                }
-                let mut items = Vec::new();
-                for v in &c.value.values { let ast::Value::Expr(x) = v; each(x, &mut items); }
-                for it in items {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {}: a dependency is `cca::Dep[path = …]` or `cca::Dep[id = …, version = …]`", c.line)) };
+                for it in items(value) {
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `cca::Dep[path = …]` or `cca::Dep[id = …, version = …]`")) };
                     if shape != "::cca.Dep" { return Err(format!("{shown}: line {line}: a dependency is a `cca::Dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let mut d = Dep { what: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
@@ -210,22 +218,41 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>), String> {
                     deps.push(d);
                 }
             }
-            other => return Err(format!("{shown}: line {}: CCA.cplr has no setting '{other}'; its settings are 'name', 'prefix', 'version', 'dependencies' and 'targets'", c.line)),
+            // the cores a Limb is built for (owner, 2026-10-05: "Limbs should say what cores they are built for")
+            "cores" => {
+                for it in items(value) {
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a core is `cca::Core[name = \"IEG\"]`")) };
+                    if shape != "::cca.Core" { return Err(format!("{shown}: line {line}: a core is a `cca::Core`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let mut core = None;
+                    for (f, b) in &fields {
+                        if f != "name" { return Err(format!("{shown}: line {line}: a `cca::Core` has no `{f}`; it has `name`")); }
+                        core = Some(text(b).ok_or_else(|| format!("{shown}: line {line}: a core's `name` is a text"))?);
+                    }
+                    let core = core.ok_or_else(|| format!("{shown}: line {line}: a core needs its `name`"))?;
+                    if !OFFICIAL_CORES.contains(&core.as_str()) {
+                        return Err(format!("{shown}: line {line}: `{core}` is not an official core; another core is a Rust plugin, which the oracle cannot load (it knows {})", OFFICIAL_CORES.iter().map(|c| format!("`{c}`")).collect::<Vec<_>>().join(", ")));
+                    }
+                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the core `{core}` is listed twice")); }
+                    cores.push(core);
+                }
+            }
+            "powers" | "deny" => return Err(format!("{shown}: line {line}: `{f}` is not in the oracle yet: which powers exist is not decided (design/cores.md)")),
+            other => return Err(format!("{shown}: line {line}: a `cca::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies` and `cores`")),
         }
     }
     // a build needs the Limb's name, version and a target; only publishing needs more (owner, 2026-09-29:
     // "yea", matching Synthia.ttsr)
-    let why = "a build needs the Limb's 'name', 'prefix', 'version' and at least one target";
-    if !name { return Err(format!("{shown}: CCA.cplr has no 'name': {why}: `const 'name' := \"shop\";`")); }
-    if prefix.is_none() { return Err(format!("{shown}: CCA.cplr has no 'prefix', the word code writes in front of `::` to reach this Limb: {why}: `const 'prefix' := \"shop\";`")); }
-    if !has_version { return Err(format!("{shown}: CCA.cplr has no 'version': {why}: `const 'version' := \"1.0.0\";`")); }
-    if targets == 0 { return Err(format!("{shown}: CCA.cplr has no target: {why}: `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`")); }
-    Ok((prefix, deps))
+    let why = "a build needs the Limb's `name`, `prefix`, `version` and at least one target";
+    if !name { return Err(format!("{shown}: line {mline}: the manifest has no `name`: {why}: `name = \"shop\"`")); }
+    if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Limb: {why}: `prefix = \"shop\"`")); }
+    if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
+    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [cca::Target[name = \"aarch64-macos\"],]`")); }
+    Ok((prefix, deps, cores))
 }
 
 /// Load every Limb `dir` depends on, and theirs, each once, under `::prefix`.
 fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, PathBuf)>, chain: &mut Vec<PathBuf>) -> Result<(), String> {
-    let (_, deps) = read_manifest(dir)?;
+    let (_, deps, _) = read_manifest(dir)?;
     let here = dir.canonicalize().map_err(|e| format!("{}: {e}", dir.display()))?;
     chain.push(here);
     for d in deps {
@@ -237,7 +264,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         let canon = depdir.canonicalize().map_err(|_| format!("{}: a dependency is at `{rel}`, and there is no directory there", here_file.display()))?;
         if chain.contains(&canon) { return Err(format!("{}: {} depends, through its dependencies, on itself", here_file.display(), d.what)); }
         if !depdir.join("CCA.cplr").is_file() { return Err(format!("{}: {} has no `CCA.cplr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
-        let (Some(prefix), _) = read_manifest(&depdir)? else { unreachable!() };
+        let (Some(prefix), _, _) = read_manifest(&depdir)? else { unreachable!() };
         // a Limb may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
         if prefix == "std" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which is the built-in `{prefix}::`; edit its 'prefix'", here_file.display(), d.what)); }
         if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == prefix) {

@@ -1,8 +1,10 @@
-const 'name' := "op_path_wrong_limb";
-const 'prefix' := "op_path_wrong_limb";
-const 'version' := "1.0.0";
-const 'dependencies' := [
-    cca::Dep[path = "../../../../examples/limbs/areas"],
-    cca::Dep[path = "../../../../examples/limbs/runnable"],
+cca::Manifest[
+    name = "op_path_wrong_limb",
+    prefix = "op_path_wrong_limb",
+    version = "1.0.0",
+    dependencies = [
+        cca::Dep[path = "../../../../examples/limbs/areas"],
+        cca::Dep[path = "../../../../examples/limbs/runnable"],
+    ],
+    targets = [cca::Target[name = "aarch64-macos", default = true],]
 ];
-const 'targets' := [cca::Target[name = "aarch64-macos", default = true],];

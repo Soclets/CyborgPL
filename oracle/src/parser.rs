@@ -123,6 +123,18 @@ impl Parser {
         if self.is_word(w) { self.advance(); Ok(()) } else { self.err(format!("expected `{w}`, found {}", self.peek())) }
     }
 
+    /// `CCA.cplr`: one value, `cca::Manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
+    /// file holds something else; the fields and the line of the value otherwise.
+    pub fn manifest(&mut self) -> PResult<Option<(Vec<(String, Bracket)>, usize)>> {
+        let b = self.rhs()?;
+        self.expect(Tok::Semi, "`;` after the manifest")?;
+        if *self.peek() != Tok::Eof { return self.err("CCA.cplr holds one value, the `cca::Manifest[ … ];`, and nothing after it"); }
+        match b.values.as_slice() {
+            [Value::Expr(Expr::Construct(shape, fields, line))] if shape == "::cca.Manifest" => Ok(Some((fields.clone(), *line))),
+            _ => Ok(None),
+        }
+    }
+
     // program := item* Eof
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {

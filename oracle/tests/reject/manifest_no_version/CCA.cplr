@@ -1,3 +1,5 @@
-const 'name' := "x";
-const 'prefix' := "x";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "x",
+    prefix = "x",
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

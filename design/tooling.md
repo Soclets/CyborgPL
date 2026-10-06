@@ -42,20 +42,26 @@ Owner, 2026-09-14.
   Its manifest is **`CCA.cplr`**, written in CyborgPL syntax on purpose:
   `.cplr` (*CyborgPL Related*) is the extension for CyborgPL-syntax files
   that belong to the tooling, and the file's name says which one it is.
-  One plain `const` per setting (owner, 2026-09-29), the shapes from
+  **One value, `cca::Manifest[ … ];`** (owner, 2026-10-06: "`c`. It may
+  not look as complex, but at least it's not much of a roleplay"; from
+  2026-09-29 to then, one plain `const` per setting), the shapes from
   `cca`, a tiny built-in Limb only `CCA.cplr` can reach:
 
   ```
-  const 'name' := "shop";
-  const 'version' := "1.0.0";
-  const 'dependencies' := [
-      cca::Dep[name = "geometry", id = "3f9a…4a5b", version = "1.2"],
-      cca::Dep[name = "money", path = "../money"],
+  cca::Manifest[
+      name = "shop",
+      prefix = "shop",
+      version = "1.0.0",
+      cores = [cca::Core[name = "IEG"],],
+      dependencies = [
+          cca::Dep[id = "3f9a…4a5b", version = "1.2"],
+          cca::Dep[path = "../money"],
+      ],
+      targets = [cca::Target[name = "aarch64-macos"],]
   ];
-  const 'targets' := [cca::Target[name = "aarch64-macos"],];
   ```
 
-  Every name and type is checked against the settings CCA knows.
+  Its fields are checked as a struct's are: a typo is "no such field".
   **`name`, `version` and at least one target are required** (owner,
   2026-09-29: "yea"), as in `Synthia.ttsr`. `name` follows the module-name rule, as
   in `Synthia.ttsr` (owner, 2026-09-30: "strict"). A target must be one CCA can
@@ -68,8 +74,7 @@ Owner, 2026-09-14.
   (owner: "yea"). `version` is any text, at most 256 bytes
   (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
   front of `::`** to reach this Limb, picked by its maker and apart from
-  its `name` (owner, 2026-09-29: "yea", then b): `const 'prefix' :=
-  "cash";`. Required (owner: "required"). Two Limbs with the
+  its `name` (owner, 2026-09-29: "yea", then b): `prefix = "cash"`. Required (owner: "required"). Two Limbs with the
   same prefix are an error, fixed by editing one Limb's source (owner:
   "Just edit the source code"), so a dependency line names no word:
   `cca::Dep[path = "../money"]`. Not in the oracle yet. **A

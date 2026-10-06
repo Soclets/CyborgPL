@@ -1,4 +1,6 @@
-const 'name' := "areas_of_shapes";
-const 'prefix' := "areas";
-const 'version' := "0.1.0";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "areas_of_shapes",
+    prefix = "areas",
+    version = "0.1.0",
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

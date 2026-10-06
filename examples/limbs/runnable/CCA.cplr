@@ -1,4 +1,6 @@
-const 'name' := "runnable";
-const 'prefix' := "runnable";
-const 'version' := "0.1.0";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "runnable",
+    prefix = "runnable",
+    version = "0.1.0",
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

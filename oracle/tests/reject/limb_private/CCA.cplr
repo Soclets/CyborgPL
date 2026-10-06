@@ -1,5 +1,7 @@
-const 'name' := "limb_private";
-const 'prefix' := "limb_private";
-const 'version' := "1.0.0";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
-const 'dependencies' := [cca::Dep[path = "../../../../examples/limbs/areas"],];
+cca::Manifest[
+    name = "limb_private",
+    prefix = "limb_private",
+    version = "1.0.0",
+    targets = [cca::Target[name = "aarch64-macos"],],
+    dependencies = [cca::Dep[path = "../../../../examples/limbs/areas"],]
+];
