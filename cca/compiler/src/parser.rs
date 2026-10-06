@@ -196,10 +196,10 @@ fn mtm_spelling(toks: &[Token], i: usize) -> Option<(String, String)> {
     match &toks[i].tok {
         Tok::Op(o) if o.starts_with('&') && !o.starts_with("&&") => Some((o.clone(), "lend` / `lent".into())),
         Tok::Word(w) if after(1, &Tok::Dot) && matches!(w.as_str(), "ASM" | "S") && i >= 2 && toks[i - 2].tok == Tok::Word("inline".into()) => Some((w.clone(), "inline.Assembly".into())),
-        // `!std_i24` for `!std_int24`, `!std_u24` for `!std_uint24`.
-        Tok::Word(w) if after(1, &Tok::Op("!".into())) && w.len() > 5 && (w[4..].starts_with('i') && !w[4..].starts_with("int") || w[4..].starts_with('u') && !w[4..].starts_with("uint")) && w.starts_with("std_") => {
-            let (kind, bits) = w[4..].split_at(1);
-            Some((format!("!{}", w), format!("!std_{}{}", if kind == "i" { "int" } else { "uint" }, bits)))
+        // `!std.i24` for `!std.int24`, `!std.u24` for `!std.uint24`.
+        Tok::Word(w) if after(1, &Tok::Dot) && i >= 3 && toks[i - 2].tok == Tok::Word("std".into()) && toks[i - 3].tok == Tok::Op("!".into()) && w.len() > 1 && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) && w[1..].bytes().all(|c| c.is_ascii_digit()) => {
+            let (kind, bits) = w.split_at(1);
+            Some((format!("!std.{}", w), format!("!std.{}{}", if kind == "i" { "int" } else { "uint" }, bits)))
         }
         Tok::Word(_) if after(1, &Tok::Dot) || after(1, &Tok::ColonColon) => None,
         Tok::Word(w) if w == "not" && !(matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(b)) if b == "bit")) => Some((w.clone(), "!".into())),
@@ -1781,13 +1781,20 @@ impl<'a> Parser<'a> {
                 return self.fail("`range` builds its bounds from values: `for 'i': int32 in range[0, 3]` — the type goes on the counter's name");
             }
             // An integer of any width, marked as not standard (owner,
-            // 2026-10-03): `!std_int24`, `!std_u4`. One name; the resolver
-            // reads the width.
+            // 2026-10-03): `!std.int24`, "not standard" narrowed with `.`
+            // (owner, 2026-10-06; `!std_int24` before). One name inside; the
+            // resolver reads the width.
             Tok::Op(o) if o == "!" && matches!(self.peek_at(1), Tok::Word(w) if w.starts_with("std_")) && self.adjacent(0, 1) => {
+                let Tok::Word(w) = self.peek_at(1).clone() else { unreachable!() };
+                return self.fail(format!("`!{}` is `!std.{}` since 2026-10-06: \"not standard\", narrowed with `.`", w, &w[4..]));
+            }
+            Tok::Op(o) if o == "!" && self.is_word_at(1, "std") && matches!(self.peek_at(2), Tok::Dot) && matches!(self.peek_at(3), Tok::Word(_)) && self.adjacent(0, 1) => {
                 let at = self.bump().span;
+                self.bump();
+                self.bump();
                 let Tok::Word(w) = self.peek().clone() else { unreachable!() };
                 let wspan = self.bump().span;
-                let name = Ident { name: format!("!{}", w), span: at.to(wspan) };
+                let name = Ident { name: format!("!std_{}", w), span: at.to(wspan) };
                 TypeKind::Path { path: Path { limb: None, segs: vec![name], span: at.to(wspan) }, args: Vec::new() }
             }
             Tok::Word(_) => {

@@ -395,7 +395,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
             Ty::Int(IntW::Fixed { signed: true, bits }) if bits & EXACT_FLAG != 0 => write!(f, "integer"),
             Ty::Int(IntW::Fixed { signed, bits }) if matches!(bits, 8 | 16 | 32 | 64 | 128) => write!(f, "{}int{}", if *signed { "" } else { "u" }, bits),
             // Not a standard width: marked as such (owner, 2026-10-03).
-            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "!std_{}int{}", if *signed { "" } else { "u" }, bits),
+            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "!std.{}int{}", if *signed { "" } else { "u" }, bits),
             Ty::Int(IntW::Free(_)) => write!(f, "integer"),
             Ty::Bin(BinW::Fixed(b)) => write!(f, "bin{}", b),
             Ty::Bin(BinW::Free(_)) => write!(f, "bin"),

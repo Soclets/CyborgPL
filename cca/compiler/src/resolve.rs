@@ -1334,7 +1334,8 @@ pub fn rust_alias(w: &str) -> Option<&'static str> {
     })
 }
 
-/// `!std_int24`, `!std_uint4`, `!std_i24`, `!std_u4` (owner, 2026-10-03):
+/// `!std.int24`, `!std.uint4`, `!std.i24`, `!std.u4` (owner, 2026-10-03; `.`
+/// since 2026-10-06), held inside as `!std_…`:
 /// any width from 1 to LLVM's 2^23 bits that is not a standard one.
 fn std_int(rest: &str, span: Span) -> Result<Ty> {
     let (signed, digits, ours) = if let Some(d) = rest.strip_prefix("uint") {
@@ -1348,22 +1349,22 @@ fn std_int(rest: &str, span: Span) -> Result<Ty> {
     } else {
         (true, "", false)
     };
-    let not_a_type = || err(Diagnostic::error(format!("`!std_{}` is not a type: a non-standard integer is `!std_intN` or `!std_uintN` (Rust's style, `!std_iN` or `!std_uN`), N its width in bits", rest)).at(span));
+    let not_a_type = || err(Diagnostic::error(format!("`!std.{}` is not a type: a non-standard integer is `!std.intN` or `!std.uintN` (MTM's `!std.iN` or `!std.uN`), N its width in bits", rest)).at(span));
     if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) {
         return not_a_type();
     }
     let Ok(bits) = digits.parse::<u64>() else {
-        return err(Diagnostic::error(format!("`!std_{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+        return err(Diagnostic::error(format!("`!std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
     };
     if bits == 0 {
-        return err(Diagnostic::error(format!("`!std_{}` holds nothing: a width is at least 1 bit", rest)).at(span));
+        return err(Diagnostic::error(format!("`!std.{}` holds nothing: a width is at least 1 bit", rest)).at(span));
     }
     if bits > crate::types::WIDEST_INT as u64 {
-        return err(Diagnostic::error(format!("`!std_{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+        return err(Diagnostic::error(format!("`!std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
     }
     if matches!(bits, 8 | 16 | 32 | 64 | 128) {
         let std = if ours { format!("{}int{}", if signed { "" } else { "u" }, bits) } else { format!("{}{}", if signed { "i" } else { "u" }, bits) };
-        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `!std_` says a width is not", std, std)).at(span));
+        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `!std.` says a width is not", std, std)).at(span));
     }
     Ok(Ty::int(signed, bits as u32))
 }

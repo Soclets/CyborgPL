@@ -405,7 +405,7 @@ mtm_nocheck [fnv:76b6d0c8816a0dc0] :: `nocheck` is MTM's spelling of `!check`
 mtm_not [fnv:ca0412c7c2cc1974] :: `not` is MTM's spelling of `!`
 mtm_rust_name [fnv:11ce9a925456223a] :: `i32` is MTM's spelling of `int32`
 mtm_short_arrow [fnv:9e63919894849806] :: `->` is MTM's spelling of `-->`: write `-->`, or add the core MTM
-mtm_std_i [fnv:945def8da1156270] :: `!std_i24` is MTM's spelling of `!std_int24`
+mtm_std_i [fnv:24dbd7833b17db48] :: `!std.i24` is MTM's spelling of `!std.int24`
 must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
 must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
 mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
@@ -581,7 +581,8 @@ std_not_a_type [fnv:e456092e8ffcd94f] :: is not a type: a non-standard integer
 std_on_standard [fnv:b6b921c48995d42b] :: `int32` is standard: write `int32`
 std_too_wide [fnv:685422467bc9f0ae] :: past the widest integer there is
 std_twice [fnv:1cb81788bbd8b55f] :: std is listed twice
-std_width_overflow [fnv:77ece6a67fc100a0] :: the value can be outside what a `!std_uint4` holds
+std_underscore_old [fnv:09c87cba9d8224d5] :: `!std_int24` is `!std.int24` since 2026-10-06
+std_width_overflow [fnv:cac0bce460f0a371] :: the value can be outside what a `!std.uint4` holds
 std_wrong_version [fnv:e6eb7f796f0ecbd9] :: CCA knows std `2026-10-06T12:57:14+07:00` only
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
