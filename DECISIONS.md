@@ -88,6 +88,12 @@ optional or forbidden. **Required is `bare.never`** (owner: "yea"), over
 `bare.no` and `path.required`: "never bare, sometimes bare, only bare". A
 Limb wanting every name on its path writes `bare.never [fn, op, struct,
 enum, const, interface];` in `limb.cpls`.
+**std marks everything `bare.optional`** (owner: "optional for all"),
+over design claude's split (operators and `list`/`map`/`str` optional,
+the rest `bare.never` so `std::print` shows its origin): `print.useful
+.stdout[…]` and `std::print.useful.stdout[…]`, `list.append[…]` and
+`std::list.append[…]`, `pow` and `std::pow` are all legal. In std's
+`limb.cpls`: `bare.optional [fn, op, struct, enum, const, interface];`.
 **A Limb's own clashing name is reached through its root**, as any name
 is: `my.list.append[…]` (design claude's reading; the owner: "yea"; the
 root became `my.`, below). Open: how this sits with 2026-10-02's registry rule (a
