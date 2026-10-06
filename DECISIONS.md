@@ -80,6 +80,27 @@ width, at least 64 bits), and the checked conversions. Open: exactly which rules
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
+### 2026-10-06 — Code for one target: `on.target … { } else on.target … { } else { }`, chosen when compiling (owner: b; not built)
+
+```
+on.target aarch64 { nocheck inline.S { neg x0, x0 } with [ … ]; }
+else on.target x86_64 { nocheck inline.S { neg rax } with [ … ]; }
+else { let 'y' := -'x'; }          # plain code for everything else
+```
+
+The owner: "How do you write Assembly that runs on a specific target, and
+runs on another in one file?" Not designed: `inline.S` assumed the one
+target built for. Design claude showed C's `#ifdef` and Rust's
+`#[cfg(target_arch)]`, and offered (a) the target on the block,
+`inline.S.aarch64 { … }`, or (b) a compile-time choice around any code,
+recommended (per-target needs reach past assembly, to a Windows-only C
+function or a constant, and a fallback keeps a program portable; the
+owner's 2026-10-02 Lilith idea, decided when compiling instead of
+running). The owner: "`b`". Only the matching branch is compiled. Design
+claude's reading: it is Signatar's, needing nothing at run time, so a
+kernel has it. Open: what `on.target` matches (the architecture, the OS,
+the whole target name).
+
 ### 2026-10-06 — Generics are their own official core, not Signatar's (owner)
 
 Design claude had placed the generics mechanism in Signatar and the
