@@ -13,8 +13,16 @@ it ((a) Signatar only, (b) what `cca new` lists, (c) refused), the owner:
 website's packages, so **a lone file gets what that package installed**:
 with the std package, std (as `cca new` would list it); with base +
 Signatar + IEG, no std, so `plus` and `print` are refused. The owner:
-"yea". The oracle stands in for the full package. Where the machine
-records what was installed: asked next.
+"yea". The oracle stands in for the full package.
+
+**The installer writes a machine-wide record of what it installed**
+(design claude's proposal; the owner: "Oh, machine wide. Good idea"): one
+per computer, beside no project, read by a lone file, by `cca new` to
+know what to list, and rewritten by another codextra's installer to
+override the default codextra. Design claude's sketch, not ruled: a
+CyborgPL value like the manifest,
+`cca::Installed[codextra = "Signatar", cores = [ … ], limbs = [ … ]];`,
+somewhere like `~/.cyborgpl/`. Its name and place: open.
 
 ### 2026-10-06 — The report says `parallel on N CPU cores` (owner: yea)
 

@@ -168,7 +168,10 @@ codextra, which the base uses to read `CCA.cplr`; another codextra's
 installer overrides it. Packages with std set things up so `cca new`
 lists std (and ASP, Genny); without std, `cca new` writes an empty
 manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
-the machine's package installed (owner, 2026-10-06).
+the machine's package installed (owner, 2026-10-06). The installer writes
+that down in **a machine-wide record** (owner: "Good idea"), which `cca
+new` reads too and another codextra's installer rewrites; its name and
+place are open (*sketch*: `cca::Installed[ … ]` in `~/.cyborgpl/`).
 
 ## Code for one machine
 
