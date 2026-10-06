@@ -30,6 +30,15 @@ fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936
 
 So a manifest lists std as `cca::Dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", version = "…"]`.
 
+**std's version is the date and time of that release** (owner: "date and
+time of update", after design claude asked for a first version, `0.1.0`
+suggested; a version is any text up to 256 bytes, 2026-09-29), **in ISO
+8601 with the releaser's own offset** (owner: "`b`, it does state tz,
+right?"), as `2026-10-06T12:57:14+07:00`, over (a) UTC, `…Z`, which design claude
+recommended because text sorts that way; with the offset stated, versions
+compare correctly as times, only not as plain text. std's first version,
+the one the oracle stands in for: `2026-10-06T12:57:14+07:00`, when this was recorded.
+
 ### 2026-10-06 — A file with no `CCA.cplr` gets what the machine's package installed (owner; not built)
 
 Asked what `cca build hello.cpls` gives a file with no `CCA.cplr` beside
