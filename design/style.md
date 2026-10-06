@@ -58,7 +58,7 @@ recommended.
 
 11. **A plain `for`; Precog parallelises.** `seq` only when order matters,
     `para` only after measuring, `simd` only when the plain loop did not
-    vectorise, `!c` only for timing code.
+    vectorise, `!cheat` only for timing code.
 12. **`print.useful` for people, `print` for debugging numbers,
     `print.format` for shaped output** (columns, hex, places).
 13. **`precedence.low_first` for a Limb's operator levels** (owner,

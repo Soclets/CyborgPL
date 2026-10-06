@@ -275,6 +275,11 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         if two == "!$" { push(Tok::NoShadow, &mut toks); i += 2; col += 2; continue; }
         // `!c`, "no cheat", a loop's first modifier (owner, 2026-10-01): kept as its own word, so no
         // name can spell it
+        // `!cheat` — "no cheat" (owner, 2026-10-06; `!c` before), one word; `!c` is still read as one,
+        // so the parser can refuse it naming `!cheat`
+        if chars[i..].iter().take(6).collect::<String>() == "!cheat" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
+            push(Tok::Word("!cheat".into()), &mut toks); i += 6; col += 6; continue;
+        }
         if two == "!c" && !chars.get(i + 2).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("!c".into()), &mut toks); i += 2; col += 2; continue;
         }

@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — `for !c` is `for !cheat` (owner)
+
+The owner: "Also, !c should be changed to !cheat." Design claude noted it
+reads as what it means and ends the "not C" reading, and asked about the
+twin: (a) `!c` refused naming `!cheat`, recommended, or (b) kept as a
+short spelling. The owner: "`a`". In the oracle (the lexer reads
+`!cheat` as one word, and still `!c`, so the parser can refuse it);
+`examples/for_no_cheat.cpls`, reject tests `for_no_cheat_order`,
+`no_cheat_old`; `parallelism.md`, `control-flow.md`, `style.md`, except
+lines quoting a ruling's words.
+
 ### 2026-10-06 — The base goes as low as it can; a **codextra**, with more authority than a core, holds the language (owner; not built, being designed)
 
 While deciding what the base keeps, group by group (comparisons to std;

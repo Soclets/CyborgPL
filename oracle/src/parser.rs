@@ -1636,18 +1636,19 @@ impl Parser {
         let line = self.line();
         self.expect_word("for")?;
         if *self.peek() == Tok::Dot { return self.err("`for` takes no chain: `for 'x' in …`, `for seq perm 'i' in …`"); }
-        // `for !c` — "no cheat" (owner, 2026-10-01): every round's work really happens; the compiler
+        // `for !cheat` — "no cheat" (owner, 2026-10-01; `!c` until 2026-10-06): every round's work really happens; the compiler
         // may not replace the loop with its result or drop rounds, though it may still use SIMD or
-        // cores. The strongest modifier comes first, so `!c` precedes `seq` / `para`. The oracle
+        // cores. The strongest modifier comes first, so `!cheat` precedes `seq` / `para`. The oracle
         // runs every round of every loop already, so it only reads the word.
-        if self.is_word("!c") { self.advance(); }
+        if self.is_word("!c") { return self.err("`!c` is `!cheat` now: `for !cheat 'i' in …` (owner, 2026-10-06)"); }
+        if self.is_word("!cheat") { self.advance(); }
         let mut seq = false;
         if self.is_word("seq") { self.advance(); seq = true; }
         // `for para` forces a loop parallel, as `for seq` forces it in order (owner, 2026-09-30); the
         // oracle runs every loop in order, one schedule of the design's, so it only reads the word
         else if self.is_word("para") { self.advance(); }
         if self.is_word("seq") || self.is_word("para") { return self.err("a `for` is `seq` or `para`, not both"); }
-        if self.is_word("!c") { return self.err("`!c` comes first, the strongest modifier: `for !c seq 'i' in …`"); }
+        if self.is_word("!cheat") || self.is_word("!c") { return self.err("`!cheat` comes first, the strongest modifier: `for !cheat seq 'i' in …`"); }
         let perm = match self.peek().clone() {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }

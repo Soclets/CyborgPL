@@ -68,29 +68,29 @@ until `para` joined it.
 (`seq` and `para` sit before `temp`/`perm`: `for seq perm 'i'` — see
 `control-flow.md`. The old chain spelling had them the other way round.)
 
-## No cheating: `for !c` (owner, 2026-10-01)
+## No cheating: `for !cheat` (owner, 2026-10-01)
 
 ```
-for !c 'i': int64 in range[1, 'n'] { change 'acc' = 'acc' plus 'i'; }
-for !c seq 'i' in lend 'xs' { … }
-for !c para 'i' in range[1, 'n'] { … }
+for !cheat 'i': int64 in range[1, 'n'] { change 'acc' = 'acc' plus 'i'; }
+for !cheat seq 'i' in lend 'xs' { … }
+for !cheat para 'i' in range[1, 'n'] { … }
 ```
 
 **`!c`, "no cheat"**: every round's work really happens at run time. The
 compiler may not replace the loop with its answer (clang turns
 `acc += i` over a known range into n(n+1)/2, and CCA's slices fold the
 same way) nor drop rounds whose results look unused. It may still do the
-work faster — SIMD, or across cores — so `!c` is about whether the work
+work faster — SIMD, or across cores — so `!cheat` is about whether the work
 happens, not how; add `seq` for one round at a time, in order (owner:
 "Skipping work, because `seq` could be used with `!c`"). Written in
 CyborgPL for timing code and the like, where today an empty
 `inline.ASM` passing the value through a register does the job.
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
-`!c` changes what the loop must do, `seq` and `para` only how its rounds
-are scheduled, so `for !c seq`, never `for seq !c` (refused). It is the
+`!cheat` changes what the loop must do, `seq` and `para` only how its rounds
+are scheduled, so `for !cheat seq`, never `for seq !c` (refused). It is the
 rule `.useful` already follows in `print.useful.stdout` and
-`to.useful.str.utf8`. `!c` is a token of its own, not a reserved name.
+`to.useful.str.utf8`. `!cheat` is a token of its own, not a reserved name.
 `examples/for_no_cheat.cpls`; reject test for_no_cheat_order.
 
 ## The GPU (owner, 2026-09-21: automatic)
