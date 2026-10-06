@@ -103,9 +103,18 @@ nothing else after `on`, I think it should be `on_target`"): nothing else
 is `on.`, so a dot would narrow nothing; the examples above were written
 `on.target` before this. **It narrows** (owner: "`a`"): `on_target.chip
 aarch64 { … }` (any OS), `on_target.os macos { … }` (any chip), and bare
-`on_target aarch64-macos { … }` for one exact target. Open: OS and chip
-versions (asked); a new keyword, so synthia claude's name check needs it
-when built.
+`on_target aarch64-macos { … }` for one exact target. **Versions, both
+ways** (owner: "what about OS versions? Chip version?", then, asked the
+difference, "Both"): **when compiling**, `on_target` names a minimum
+(`on_target.os macos 15 { … }`, `on_target.chip aarch64 sve { … }`), and
+the program refuses to start on anything older, free at run time, as
+Apple's deployment target or C's `-march`; **when running**, one build
+carries both versions and checks the actual machine once at startup
+(`on_machine.chip sve { … } else { … }`, design claude's sketch), as GCC's
+function multiversioning, so it runs everywhere and is fast where it can
+be. Open: `on_machine`'s spelling and layer (it runs a check, so it may
+need IEG or the OS); new keywords, so synthia claude's name check needs
+them when built.
 
 ### 2026-10-06 — Generics are their own official core, not Signatar's (owner)
 
