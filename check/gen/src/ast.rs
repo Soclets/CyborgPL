@@ -466,6 +466,9 @@ pub struct Program {
     /// `for`, `giveS` in a match that gives a value, and every site proven
     /// within its own function.
     pub strict: bool,
+    /// Written in the main spellings of 9a9e573 (`!mut`, `!check`, `! 'x'`);
+    /// otherwise in MTM's, which a lone file also takes.
+    pub new_words: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -534,10 +537,11 @@ fn bare_ok(parent: &Expr, child: &Expr, left: bool) -> bool {
     }
 }
 
-fn tier_prefix(t: Tier) -> &'static str {
+fn tier_prefix(t: Tier, new_words: bool) -> &'static str {
     match t {
         Tier::Default => "",
         Tier::Check => "check ",
+        Tier::Nocheck if new_words => "!check ",
         Tier::Nocheck => "nocheck ",
         Tier::NoChecks => "NO_FUCKING_CHECKS ",
     }
@@ -568,6 +572,8 @@ pub fn addr<T>(x: &T) -> usize {
 }
 
 struct Wr<'a> {
+    /// `!mut`, `!check` and `! 'x'` in place of `immut`, `nocheck` and `not`.
+    new_words: bool,
     out: String,
     loose: bool,
     /// byte offsets while writing
@@ -580,6 +586,11 @@ struct Wr<'a> {
 }
 
 impl<'a> Wr<'a> {
+    /// The word for a name that never changes, in a `#strict` file.
+    fn im(&self) -> &'static str {
+        if self.new_words { "!mut " } else { "immut " }
+    }
+
     fn e(&mut self, e: &Expr) {
         let start = self.out.len();
         self.inner(e);
@@ -617,7 +628,8 @@ impl<'a> Wr<'a> {
                 self.operand(e, a, false);
             }
             Expr::Not(a) => {
-                self.out.push_str("not ");
+                // `! 'x'`, spaced, is the main spelling (owner, 9a9e573); `not` is MTM's
+                self.out.push_str(if self.new_words { "! " } else { "not " });
                 self.operand(e, a, false);
             }
             Expr::Cmp(op, a, b) => {
@@ -749,7 +761,7 @@ impl<'a> Wr<'a> {
     fn simple(&mut self, s: &Stmt, pad: &str, tier: Tier, head: &str, e: &Expr, tail: &str) {
         self.out.push_str(pad);
         let s0 = self.out.len();
-        self.out.push_str(tier_prefix(tier));
+        self.out.push_str(tier_prefix(tier, self.new_words));
         let s1 = self.out.len();
         self.out.push_str(head);
         self.e(e);
@@ -762,11 +774,11 @@ impl<'a> Wr<'a> {
         self.indent = indent;
         match s {
             Stmt::EnumLet { name, mutable, en, value } => {
-                let head = format!("let {}{}: {en} = ", if *mutable { "mut " } else if self.strict { "immut " } else { "" }, q(name));
+                let head = format!("let {}{}: {en} = ", if *mutable { "mut " } else if self.strict { self.im() } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::ListFill { name, mutable, elem, value, count } => {
-                let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
+                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
                 self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[", q(name), elem.name()));
@@ -779,16 +791,16 @@ impl<'a> Wr<'a> {
             }
             Stmt::Src(t) => self.out.push_str(&format!("{pad}{t}\n")),
             Stmt::TypedLet { name, mutable, ty, value } => {
-                let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
+                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
                 let head = format!("let {m}{}: {ty} = ", q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::AutoLet { name, value } => {
-                let head = format!("let {}{} := ", if self.strict { "immut " } else { "" }, q(name));
+                let head = format!("let {}{} := ", if self.strict { self.im() } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::SimdLet { name, mutable, elem, lanes, value } => {
-                let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
+                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
                 let head = format!("let {m}{}: simd[{}, {lanes}] = ", q(name), elem.name());
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
@@ -801,10 +813,10 @@ impl<'a> Wr<'a> {
             }
             Stmt::Let { tier, name, mutability, ty, value } => {
                 let m = match mutability {
-                    Mutability::Plain if self.strict => "immut ",
+                    Mutability::Plain if self.strict => self.im(),
                     Mutability::Plain => "",
                     Mutability::Mut => "mut ",
-                    Mutability::Immut => "immut ",
+                    Mutability::Immut => self.im(),
                 };
                 let head = format!("let {m}{}: {} = ", q(name), ty.text());
                 self.simple(s, &pad, *tier, &head, value, ";");
@@ -865,7 +877,7 @@ impl<'a> Wr<'a> {
                 self.out.push_str(&format!("{pad}}}\n"));
             }
             Stmt::Block { tier, body } => {
-                self.out.push_str(&format!("{pad}{}{{\n", tier_prefix(*tier)));
+                self.out.push_str(&format!("{pad}{}{{\n", tier_prefix(*tier, self.new_words)));
                 self.block(body, indent + 1);
                 self.out.push_str(&format!("{pad}}}\n"));
             }
@@ -881,7 +893,7 @@ impl<'a> Wr<'a> {
             }
             Stmt::Return(e) => self.simple(s, &pad, Tier::Default, "return ", e, ";"),
             Stmt::ListLet { name, mutable, elem, items } => {
-                let m = if *mutable { "mut " } else if self.strict { "immut " } else { "" };
+                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
                 self.out.push_str(&format!("let {m}{}: list[{}] = [", q(name), elem.name()));
@@ -899,7 +911,7 @@ impl<'a> Wr<'a> {
             Stmt::SetAt { tier, name, pos, value } => {
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
-                self.out.push_str(tier_prefix(*tier));
+                self.out.push_str(tier_prefix(*tier, self.new_words));
                 let s1 = self.out.len();
                 self.out.push_str(&format!("change {}[{}", q(name), if self.strict { "pos " } else { "" }));
                 self.e(pos);
@@ -914,13 +926,13 @@ impl<'a> Wr<'a> {
                 self.simple(s, &pad, Tier::Default, &head, value, "];");
             }
             Stmt::Borrow { name, value } => {
-                let head = format!("let {}{} := ", if self.strict { "immut " } else { "" }, q(name));
+                let head = format!("let {}{} := ", if self.strict { self.im() } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::Give { name, from } => {
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
-                self.out.push_str(&format!("let {}{} := give {};", if self.strict { "immut " } else { "" }, q(name), q(from)));
+                self.out.push_str(&format!("let {}{} := give {};", if self.strict { self.im() } else { "" }, q(name), q(from)));
                 self.stmt.push((addr(s), s0, s0, self.out.len()));
                 self.out.push('\n');
             }
@@ -939,7 +951,7 @@ impl<'a> Wr<'a> {
 impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
-        let mut w = Wr { out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
+        let mut w = Wr { new_words: self.new_words, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         if self.strict {
             w.out.push_str("#strict\n");
@@ -996,9 +1008,10 @@ impl Program {
         w.out.push_str("\nMAIN {\n");
         for i in &self.inputs {
             let key = format!("{}_key", i.name);
-            let im = if self.strict { "immut " } else { "" };
+            let im = if self.strict { w.im() } else { "" };
             w.out.push_str(&format!("    let {im}{} := \"{}\";\n", q(&key), i.var));
-            w.out.push_str(&format!("    nocheck let {im}{}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
+            let vouch = if w.new_words { "!check" } else { "nocheck" };
+            w.out.push_str(&format!("    {vouch} let {im}{}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
         }
         w.block(&self.main, 1);
         w.out.push_str("}\n");

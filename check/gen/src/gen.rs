@@ -101,11 +101,13 @@ pub struct Config {
     /// The `m1` call lending one list to change and another to read
     /// (38c91e7); the evaluator does not follow it.
     pub mutator: bool,
+    /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
+    pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, new_words: true }
     }
 }
 
@@ -234,6 +236,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     let mut prng = root.split();
     let strict = cfg.strict > 0 && root.below(1000) < cfg.strict;
     let printer = if strict { strict_printer(&mut prng) } else { printer(&mut prng) };
+    // the main spellings of 9a9e573 on most programs, MTM's (which a lone file
+    // also takes) on the rest; no draw at all when they are off
+    let new_words = cfg.new_words && root.chance(75);
+    let printer = if new_words { printer.replace("nocheck ", "!check ").replace("let immut ", "let !mut ") } else { printer };
     let loose = root.chance(50);
     let mut g = Gen {
         rng: root.split(),
@@ -325,7 +331,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict, new_words, unevaluable: g.unevaluable }
 }
 
 fn isqrt(n: i128) -> i128 {

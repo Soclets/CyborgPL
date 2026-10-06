@@ -227,8 +227,12 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `no-cheat`.
+straight at them. Default: `no-cheat,new-words`.
 
+- `new-words`: no `!mut`, `!check` or spaced `! 'x'` (the main spellings of
+  9a9e573; CCA has not reported them yet). With them on, three programs in
+  four use them and the fourth MTM's `immut`, `nocheck` and `not`, which a
+  lone file also takes.
 - `no-cheat`: no `for !cheat` (the oracle's spelling since 2b7f336; CCA
   has not reported it yet).
 
