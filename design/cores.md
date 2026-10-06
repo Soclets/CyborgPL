@@ -1,130 +1,188 @@
-# Cores and limbs (owner, 2026-10-05; in progress, not built)
+# Base, codextras, cores and limbs (owner, 2026-10-05/06; being designed, not built)
 
 The owner: "I was thinking of making the base lang more lower-level ... I
-wanted to move things like, plus, div, you know to std. And even more."
-This note gathers what was decided that day. `DECISIONS.md` has each step
-with the owner's words; this is the picture.
+wanted to move things like, plus, div, you know to std. And even more",
+then: "Just low level as fuck, even if it then requires another category
+that has more authority than a core." This note is the picture;
+`DECISIONS.md` has each step with the owner's words. Spellings marked
+*sketch* are design claude's and not ruled.
 
-## The codextra (owner, 2026-10-06)
+The owner's reasons: "it's fun, we'll eventually need the no_std
+equivalent anyways, and other stuff". The theme was planned: a cyborg
+"can't do shit without a core or limbs" (owner).
 
-Above the cores in authority sits a **codextra**: the layer that holds the
-language itself (types, `let`, `if`, loops, functions, the borrow rules,
-likely Precog) and sets the rules cores play by. The base goes "as low
-level as fuck" (owner): reading files, loading the codextra and cores and
-enforcing their grants, the bridge to LLVM. When people say "CyborgPL",
-they mean the official codextra, "like how they say BIOS for UEFI" (owner).
-Codextra is a category, like cores (owner: "this shit could make another
-Codextra be another lang"); **the official one is Signatar** ("signature
-but cooler", owner). What exactly it holds is open.
-
-## Two kinds of package
-
-| | A **core** | A **limb** |
-|---|---|---|
-| What it is | "kinda more of like a compiler mod" (owner) | a library |
-| Made of | a Rust plugin for CCA, plus CyborgPL code | CyborgPL |
-| Extends the language (new syntax, checks, names without a prefix) | yes, through its plugin | no |
-| Defines operators on the language's own types (`plus` on `int32`) | yes | only with that **power** granted |
-| Gives Precog contracts it believes | yes, if verified | no: Precog proves a limb's code itself |
-| Examples | **IEG**, the official core | **std**, your own libraries |
-
-- **"Core" is a category**: anyone may write one, and cores may depend on
-  cores (a GPU core can build on IEG). Cores are powerful enough to make
-  dialects of CyborgPL, and that is fine (owner).
-- **The official core, IEG** (the Intense Energy Generator), is raw and
-  low-level, "not so practical for normal stuff" (owner). Its plugin adds
-  `inline.LLVM { … }`, LLVM IR written in place: portable assembly that
-  LLVM still optimises, unlike `inline.S`. It is verified: RRx2 checks its
-  IR against its contracts.
-- **An unverified core is used with a warning, never refused** ("Maybe
-  it's their own, maybe it's their friend's", owner): its contracts are
-  believed only as far as its author is trusted. Installing a core is
-  already trusting it, as installing any program is.
-- **A core need not put its name in the syntax** (no `ieg::` unless it
-  wants one).
-
-## The layers
+## The stack
 
 ```
-the base language   syntax, types, borrows, the "exact, checked where it lands" rules
-IEG (core)          raw machine operations; inline.LLVM
-other cores         anything, even dialects; may build on IEG
-a parallel core     splits proven loops across cores (threads); needs IEG;
-                    a kernel leaves it out and runs its loops in order
-a GPU core          GPU offload and inline.MSL; needs IEG
-std (limb + power)  plus, minus, times, div.floor …, pow, printing,
-                    friendly names for LLVM operations (std::bits.count_ones …)
-your limbs          everything else
+base        the ignition: reads files, loads the codextra and cores, enforces
+            grants, hands the result to LLVM; no syntax, nothing to write in
+Signatar    the official codextra: the language itself, very low level
+IEG         the official core: raw operations, inline.LLVM, the nocheck labels
+ASP         numbers mean their true values; to. conversions; run-time checks
+Genny       generics and interfaces
+MCPS        parallel loops and concur (needs threads)
+GPU cores   one for automatic offload on every GPU; Apple, AMD and NVIDIA
+            cores for hand-written GPU code
+std         a limb with powers: every operator, logic, text, printing
+your limbs  everything else
 ```
 
-std is written in CyborgPL (2026-09-30), and may call the `no_std` Rust
-runtime for whatever CyborgPL cannot express yet; the Rust parts shrink
-over time. Its operators are ordinary CyborgPL on top of IEG's raw
-operations, so Precog still checks them and LLVM still sees one `add`.
+When people say "CyborgPL" they mean Signatar with whatever cores, "like
+how they say BIOS for UEFI" (owner); the website will say **Signatar
+CyborgPL** when this lands, "Or else, it would just be an Assembly
+monster" (owner).
 
-## Powers
+## The four kinds of thing
 
-A limb may be granted powers, "just what's necessary" (owner), so one for
-now: **defining operators on the language's own types**, which std needs.
-A power is declared in the limb's manifest and shown by every build that
-uses it:
+| | What it is | Authority | Written in |
+|---|---|---|---|
+| **The base** | the ignition, "basically nothing" (owner) | enforces everyone's grants | (CCA itself) |
+| **A codextra** | a language: syntax, types, its own rules, its checker | highest: defines which powers exist and limits cores | Rust plugin + CyborgPL |
+| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to limbs; may add syntax | Rust plugin + CyborgPL |
+| **A limb** | a library | only the powers granted to it | CyborgPL |
 
-```
-# CCA.cplr
-const 'powers' := [cca::Power.operators_on_builtin_types,];
-```
+- **Codextra is a category.** Another codextra is another language on
+  the CyborgPL base ("this shit could make another Codextra be another
+  lang", owner). Lilith is not one: "That shit ain't in the CyborgPL
+  family" (owner). **Cores make dialects**, which are still CyborgPL.
+- **Core is a category too**: anyone may write one, cores depend on cores,
+  and an unverified core is used with a warning, never refused ("Maybe
+  it's their own, maybe it's their friend's", owner). A core need not put
+  its name in the syntax.
+- **Trust**: the official codextra and cores are verified (RRx2 checks
+  IEG's IR against its contracts); installing any other is already
+  trusting it, as installing any program is.
+
+## Signatar, the official codextra
+
+"Signature but cooler" (owner). Very low level: "not nothing, but it's
+pretty lower-level (say writing fucking Assembly for a lot of things)"
+(owner). It holds:
+
+- **syntax**: a codextra brings its own parser, so the base does not know
+  what a quoted name is;
+- **types, `let`, functions, `if`, loops, `match`, structs, enums, `bool`**;
+- **the borrow rules**, lifetime groups (`@x`) included, and **Precog**
+  (it proves things about Signatar's own rules; at Signatar alone that is
+  mostly borrows, types and shape, since its maths is assembly);
+- **SIMD**, `and.then` / `or.else` (they skip their right side, which an
+  operator from std cannot), **`on.target`** (below);
+- **raw numbers**: literals are bit patterns, as the machine's (an `int8`
+  holding `128` holds -128's bits), with no negative literals;
+- **kernel-grade raw memory**, beside ownership: pointers as values,
+  addresses as numbers and back, volatile access, memory with no owner;
+- **no operators, no `to.` conversions, no markers**: in Signatar alone, a
+  negation or a reinterpretation is assembly.
+
+## The official cores
+
+- **IEG, the Intense Energy Generator.** Raw operations as plain calls
+  (`add`, `negate`, `compare` *sketch*), with contracts Precog trusts;
+  `inline.LLVM { … }`, LLVM IR in place; and the **labels**: `nocheck`,
+  `NO_FUCKING_CHECKS`, and the rule that raw memory and unproven code sit
+  under `nocheck`, so a kernel on Signatar + IEG has clear syntax ("like
+  Rust's kernel mode also has clear syntax", owner). Not fully unsafe.
+- **ASP, "Abit Safer, Please".** Numbers mean their true values: literals
+  as values (`200` is two hundred, refused in an `int8`), exact in between
+  and checked where they land, the middle limit (the widest operand's
+  width, at least 64 bits), and `check` with the run-time checks. It
+  brings the **`to.` syntax**: checked conversions and the raw
+  `to.int8.bits[128]`, never the default.
+- **Genny.** Generics (`<T>`, bounds, `and`, `any`), interfaces and
+  `satisfies`. Needs only Signatar, so a kernel may take it; zero cost at
+  run time, paid in program size and build time.
+- **MCPS, "More Concurrently Parallel Shit".** Splitting proven loops
+  across cores, and `concur`, channels, `whichever`, timers, sharing one
+  thread pool. A program without it (a kernel) runs its loops in order and
+  `for para` is refused. Needs IEG, not std.
+- **GPU**: one core for automatic offload on every GPU (it translates
+  plain `for` loops), and three vendor cores for hand-written GPU code:
+  Apple's (`inline.MSL`), AMD's and NVIDIA's. Listing all runs on all;
+  listing one is a choice, as Valorant chose Windows (owner). Names open.
+
+## std, a limb with powers
+
+Written in CyborgPL, calling the Rust runtime for what CyborgPL cannot
+express yet. It holds **every operator**: `plus`, `minus`, `times`,
+`div.X` / `mod.X`, `pow`, comparisons, `and`, `or`, `not`, `not.bit`, `-`
+(so `-5` is std's `-` applied to `5`), bitwise and `++`; the text and
+decimal conversions it adds into ASP's `to.`; printing; friendly names
+for LLVM operations (`std::bits.count_ones` *sketch*); the everyday
+interfaces (`Number`, `Ordered`).
+
+## Powers and who grants them
+
+- **The codextra defines which powers exist** and limits cores (no core
+  may switch off Signatar's borrow rules).
+- **Cores grant powers to limbs**: to every limb built with them, and
+  extra to favourites named by registry ID (names repeat, IDs do not).
+- **A limb lists the powers it uses** in its manifest; each works only if
+  a core it is built for granted it. std's three: operators on built-in
+  types and prefix operators (from IEG), adding conversions (from ASP).
+- **The program may take powers away, never add** (`deny`), and **an
+  upgrade that starts using a new power is flagged**.
 
 ## Manifests
 
-A limb says which cores it is built for, in a list of its own beside its
-dependencies, so a file in a core's dialect is never a surprise:
+`CCA.cplr` is one real CyborgPL value, not named `const`s ("if the syntax
+looks real, but it's not real. It feels like a child roleplaying", owner):
 
 ```
-# CCA.cplr
-const 'cores' := [cca::Core[name = "IEG"],];
-const 'dependencies' := [cca::Dep[path = "../std"],];
+cca::Manifest[
+    name = "shop",
+    prefix = "shop",
+    cores = [cca::Core[name = "IEG"],],
+    dependencies = [cca::Dep[path = "std"],],
+    powers = [cca::Power.operators_on_builtin_types,],
+    deny = [cca::Power.inline_asm,],
+];
 ```
 
-`Synthia.ttsr` has the same as a `[my cores]` section. Spellings are design
-claude's, not yet ruled.
+`Synthia.ttsr` has the same as sections (`[my cores]` *sketch*).
 
 ## Installing
 
-The download from the website is **CCA and IEG, nothing more**; std is
-installed like any limb ("the highest shit you can get from the website
-is, by installing the language is a core", owner). `cca new` writes an
-empty `CCA.cplr` ("I don't think you're a beginner, if you sign up for
-Precog", owner). CCA says which IEG versions it works with and refuses a
-mismatch.
+The website offers packages: base; base + Signatar; + IEG; + std; all,
+with source (owner). Signatar installs itself as the machine's default
+codextra, which the base uses to read `CCA.cplr`; another codextra's
+installer overrides it. Packages with std set things up so `cca new`
+lists std (and ASP, Genny); without std, `cca new` writes an empty
+manifest.
+
+## Code for one machine
+
+Chosen **when compiling**, with `else` for the rest:
+
+```
+on.target.chip aarch64 { nocheck inline.S { neg x0, x0 } with [ … ]; }
+else on.target.chip x86_64 { nocheck inline.S { neg rax } with [ … ]; }
+else { let 'y' := -'x'; }
+on.target.os macos 15 { … }          # a minimum: refuses to start on older
+on.target aarch64-macos { … }        # one exact target
+```
+
+and **when running**, checking the actual machine once at startup:
+`on.machine.chip sve { … } else { … }`, so one build runs everywhere and is
+fast where it can be.
 
 ## Hello World at every level
 
-The base language through `inline.S` (raw system calls), through C
-(`extern.C fn write`), inside IEG (`inline.LLVM`, which only a core may
-write), through std (`std::print.useful.stdout["Hello, world!", \n];`),
-and through a limb of your own on top. Each step down trades convenience
-for control; the `nocheck`s show where safety becomes the writer's.
-
-## Where the speed lives (owner, 2026-10-05)
-
-Precog's proofs and SIMD are the base language's: they need nothing at run
-time. Running a loop across cores needs threads, so it comes from a
-higher-level official core that requires IEG; a program without it (an OS
-kernel) runs every loop in order, still proven and still SIMD, and `for
-para` is refused there. GPU offload is a core of its own, also requiring
-IEG, and `inline.MSL` belongs to it (owner, 2026-10-06: "`b`"). Both
-names are open.
+Signatar alone: raw system calls in `inline.S`; Signatar through C:
+`extern.C fn write`; inside IEG: `inline.LLVM`; a program on IEG with no
+std: IEG's raw write; with std: `std::print.useful.stdout["Hello, world!",
+\n];`; and a limb of your own on top. The base has no Hello World: there
+is nothing to write it in.
 
 ## Open
 
-- **What the base keeps**: whether `==`, `<`, `and`, `or`, `not` and `++`
-  move to std as `plus` does, or stay in the language.
-- **How a core is installed and named** (beside CCA; its version match).
-- **The plugin interface** CCA offers cores: it must be stable, so CCA's
-  insides can change without breaking every core (design claude's note).
+- **Lists, maps and text** (`list.length`, `map.get`, `str.bytes`): which
+  layer.
+- **`on.machine`'s layer** (it runs a check at startup).
+- **Names**: the automatic GPU core and the three vendor cores.
+- **What a codextra hands the base** (LLVM IR, or a shared middle form),
+  and the stable **plugin interface** for codextras and cores.
 - **The unverified-core warning's wording.**
-- **The oracle**: it keeps its built-in meaning for IEG's and std's
-  operators; RRx2 checks IEG's IR. Nothing here is built yet, and today's
-  oracle and CCA still reach `std::` without a listing.
-- **A naming clash, noted by design claude**: "core" also means a CPU core
+- **The oracle and CCA**: nothing here is built; today both still have
+  the operators built in and reach `std::` without a listing.
+- **A naming clash** (design claude's note): "core" also means a CPU core
   in these notes (`parallel on N cores`, `CLAUDE.md`'s core split).
