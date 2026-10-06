@@ -27,7 +27,8 @@ that** (owner: "The one that an OS gives you for that"), over design
 claude's `~/.cyborgpl/` and `~/.cca/`: on macOS `~/Library/Application
 Support/CyborgPL/`, on Linux the XDG data folder (`~/.local/share/cyborgpl/`),
 on Windows `%APPDATA%\CyborgPL\` (design claude's reading of each). Its
-file name: open (design claude proposed `installed.cplr`).
+file name is **`installed.cplr`** (design claude's proposal; the owner:
+"yea.").
 
 **There is a CyborgPL uninstaller** (owner, same message: "And please,
 there should be a CyborgPL uninstaller"). What it removes: open.

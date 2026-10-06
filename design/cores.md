@@ -173,8 +173,8 @@ that down in **a machine-wide record** (owner: "Good idea"), which `cca
 new` reads too and another codextra's installer rewrites; its name and
 lives where each OS keeps such files (owner; macOS `~/Library/Application
 Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
-`%APPDATA%\CyborgPL\`), its file name open (*sketch*:
-`cca::Installed[ … ]` in `installed.cplr`). **There is an uninstaller**
+`%APPDATA%\CyborgPL\`), named **`installed.cplr`** (owner); its value
+is *sketch*: `cca::Installed[ … ]`. **There is an uninstaller**
 (owner); what it removes is open.
 
 ## Code for one machine
