@@ -31,7 +31,12 @@ file name is **`installed.cplr`** (design claude's proposal; the owner:
 "yea.").
 
 **There is a CyborgPL uninstaller** (owner, same message: "And please,
-there should be a CyborgPL uninstaller"). What it removes: open.
+there should be a CyborgPL uninstaller"). **With nothing named it removes
+everything the installer put there** (base, codextra, cores, std,
+`installed.cplr`); **with a piece named, only that piece**, rewriting
+`installed.cplr` (so dropping std leaves Signatar and IEG); a user's
+projects are never touched. Over (a) everything only and (b) pieces
+only; the owner: "`c`".
 
 ### 2026-10-06 — The report says `parallel on N CPU cores` (owner: yea)
 

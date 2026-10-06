@@ -175,7 +175,8 @@ lives where each OS keeps such files (owner; macOS `~/Library/Application
 Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
 `%APPDATA%\CyborgPL\`), named **`installed.cplr`** (owner); its value
 is *sketch*: `cca::Installed[ … ]`. **There is an uninstaller**
-(owner); what it removes is open.
+(owner): with nothing named it removes everything the installer put
+there, with a piece named (std, say) only that piece; never a project.
 
 ## Code for one machine
 
