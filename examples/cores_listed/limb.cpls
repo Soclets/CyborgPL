@@ -1,0 +1,18 @@
+# Each core's words work once the Limb lists the core (owner, 2026-10-05/06): ASP's `to.` and
+# `check`, IEG's `nocheck`, Genny's generics, MCPS's `concur`; std for the operators and printing.
+
+fn first <T>: any ['a': <T>, 'b': <T>] --> <T> {
+    return 'a';
+}
+
+fn hello [] {
+    std::print.useful.stdout["from a task", \n];
+}
+
+MAIN {
+    let 'n': int64 = to.int64["41"] otherwise 0;
+    check change 'n' = 'n' plus 1;
+    nocheck change 'n' = 'n' times 1;
+    std::print.useful.stdout[first['n', 7], \n];
+    concur hello[];
+}

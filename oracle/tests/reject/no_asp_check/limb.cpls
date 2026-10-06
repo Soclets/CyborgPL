@@ -1,0 +1,4 @@
+MAIN {
+    let 'x': int32 = 1;
+    check change 'x' = 'x' plus 1;
+}

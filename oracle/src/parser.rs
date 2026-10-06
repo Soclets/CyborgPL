@@ -93,6 +93,8 @@ pub struct Parser {
     pub user_levels: std::collections::HashMap<String, (u16, u8)>,
     /// this file's Limb does not list std in its `CCA.cplr` (owner, 2026-10-06)
     no_std: bool,
+    /// the official cores this file's Limb does not list
+    lacks: Vec<String>,
 }
 
 type PResult<T> = Result<T, ParseError>;
@@ -100,25 +102,33 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// Every `precedence` block of the program, all its Limbs' (owner, 2026-10-03: a Limb's levels
     /// apply wherever its operators are used); filled by a first pass over every file (`main.rs`)
-    /// The Limbs (by root: `[]` for the one being built, `["::areas"]` for a dependency) whose
-    /// `CCA.cplr` does not list std (owner, 2026-10-06): their code reaches no operator and no `std::`.
-    pub static NO_STD: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
+    /// What each Limb's `CCA.cplr` does not list, by the Limb's root (`[]` for the one being built,
+    /// `["::areas"]` for a dependency): `std`, and the official cores by name (owner, 2026-10-05/06:
+    /// "Limbs should say what cores they are built for"). A Limb with no `CCA.cplr` lacks nothing.
+    pub static LACKS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>)>> = std::cell::RefCell::new(Vec::new());
     pub static SHARED_LEVELS: std::cell::RefCell<std::collections::HashMap<String, (u16, u8)>> = std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `limb.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
     /// A parser for a dependency Limb's file: its modules sit under `limb_root`.
     pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self {
         let mut p = Parser::new_in(toks, module);
-        p.no_std = NO_STD.with(|n| n.borrow().contains(&limb_root));
+        p.lacks = LACKS.with(|l| l.borrow().iter().find(|(r, _)| *r == limb_root).map(|(_, v)| v.clone()).unwrap_or_default());
+        p.no_std = p.lacks.iter().any(|c| c == "std");
         p.limb_root = limb_root;
         p
+    }
+
+    /// What a core brings is refused in a Limb whose `CCA.cplr` does not list that core (owner, 2026-10-05:
+    /// "Limbs should say what cores they are built for").
+    fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
+        self.err(format!("{what} is {core}'s, and this Limb's CCA.cplr does not list the core {core}: add `cca::Core[name = \"{core}\"]` to its `cores`"))
     }
 
     /// Everything std brings is refused in a Limb whose `CCA.cplr` does not list it (owner, 2026-10-06:
@@ -172,6 +182,28 @@ impl Parser {
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() };
+        // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
+        // `NO_FUCKING_CHECKS`; Genny `interface` and `satisfies`; MCPS `concur`, `whichever`, `channel`
+        // and `for para`. A word after `.` or `::` is a name in a path, not the keyword.
+        if !self.lacks.is_empty() {
+            for i in 0..self.toks.len() {
+                let Tok::Word(w) = &self.toks[i].tok else { continue };
+                if i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon) { continue; }
+                let core = match w.as_str() {
+                    "to" if self.toks.get(i + 1).map(|t| &t.tok) == Some(&Tok::Dot) => "ASP",
+                    "check" => "ASP",
+                    "nocheck" | "NO_FUCKING_CHECKS" => "IEG",
+                    "interface" | "satisfies" => "Genny",
+                    "concur" | "whichever" | "channel" | "para" => "MCPS",
+                    _ => continue,
+                };
+                if self.lacks.iter().any(|c| c == core) {
+                    self.pos = i;
+                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() } else { format!("`{w}`") };
+                    return self.core_missing(core, &what);
+                }
+            }
+        }
         if self.no_std {
             if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon) {
                 self.pos = i;
@@ -779,6 +811,7 @@ impl Parser {
     fn announce(&mut self, what: &str) -> PResult<Vec<(String, Vec<String>)>> {
         let mut gens: Vec<(String, Vec<String>)> = Vec::new();
         let mut groups: Vec<String> = Vec::new();
+        if matches!(self.peek(), Tok::Op(o) if o == "<") && self.lacks.iter().any(|c| c == "Genny") { return self.core_missing("Genny", "a generic"); }
         while matches!(self.peek(), Tok::Op(o) if o == "<") {
             self.advance();
             let name = match self.advance().tok {

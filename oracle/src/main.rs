@@ -49,7 +49,7 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
 fn load(path: &Path) -> Result<ast::Program, String> {
     // first every file's `precedence` blocks, then the program with all of them known
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
-    parser::NO_STD.with(|n| n.borrow_mut().clear());
+    parser::LACKS.with(|n| n.borrow_mut().clear());
     LEVELS_ONLY.with(|f| f.set(true));
     let first = load_files(path);
     LEVELS_ONLY.with(|f| f.set(false));
@@ -57,12 +57,14 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     load_files(path)
 }
 
-/// A Limb whose `CCA.cplr` does not list std reaches none of it (owner, 2026-10-06). One with no
+/// A Limb whose `CCA.cplr` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
 /// `CCA.cplr` gets what the machine's package installed, and the oracle stands in for the full package.
-fn mark_std(dir: &Path, root: &[String]) -> Result<(), String> {
+fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
     if !dir.join("CCA.cplr").is_file() { return Ok(()); }
-    let (_, deps, _) = read_manifest(dir)?;
-    if !deps.iter().any(Dep::is_std) { parser::NO_STD.with(|n| n.borrow_mut().push(root.to_vec())); }
+    let (_, deps, cores) = read_manifest(dir)?;
+    let mut lacks: Vec<String> = OFFICIAL_CORES.iter().filter(|c| !cores.iter().any(|x| x == *c)).map(|c| c.to_string()).collect();
+    if !deps.iter().any(Dep::is_std) { lacks.push("std".into()); }
+    parser::LACKS.with(|n| n.borrow_mut().push((root.to_vec(), lacks)));
     Ok(())
 }
 
@@ -72,7 +74,7 @@ fn load_files(path: &Path) -> Result<ast::Program, String> {
         return parse_file(path, Vec::new());
     }
     if !path.is_dir() { return Err(format!("oracle: {} is neither a .cpls file nor a Limb directory", path.display())); }
-    mark_std(path, &[])?;
+    mark_lacks(path, &[])?;
     let mut prog = load_limb(path, Vec::new())?;
     // the Limbs it depends on, from its `CCA.cplr` (owner, 2026-09-29), each under a root of its own
     let mut loaded: Vec<(String, PathBuf)> = Vec::new();
@@ -267,6 +269,10 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Limb: {why}: `prefix = \"shop\"`")); }
     if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
     if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [cca::Target[name = \"aarch64-macos\"],]`")); }
+    // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
+    if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
+        return Err(format!("{shown}: line {mline}: the core MCPS needs IEG: add `cca::Core[name = \"IEG\"]` to `cores`"));
+    }
     Ok((prefix, deps, cores))
 }
 
@@ -294,7 +300,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         }
         loaded.push((prefix.clone(), canon.clone()));
         let root = vec![format!("::{prefix}")];
-        mark_std(&depdir, &root)?;
+        mark_lacks(&depdir, &root)?;
         let mut dep = load_limb(&depdir, root.clone())?;
         // a dependency's MAIN never runs: only the Limb being built has one (the oracle's reading)
         dep.main = None;

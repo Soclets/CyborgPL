@@ -1,0 +1,3 @@
+MAIN {
+    let 'n': int64 = to.int64["42"] otherwise 0;
+}

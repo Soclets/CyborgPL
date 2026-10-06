@@ -214,6 +214,6 @@ is nothing to write it in.
   claude proposes it when building, the owner approves (2026-10-06).
 - **Building it**: the oracle reads `cca::Manifest` with `cores`, and a
   Limb whose manifest does not list std reaches no operator and no
-  `std::` (2026-10-06); the rest (lists, maps and text as std's, ASP's
-  `to.`, IEG's labels, Signatar's raw numbers, the other cores) is not
-  built yet.
+  `std::`, nor a core's words when it does not list that core
+  (2026-10-06); lists, maps and text as std's, and Signatar's raw
+  numbers, are not built yet.
