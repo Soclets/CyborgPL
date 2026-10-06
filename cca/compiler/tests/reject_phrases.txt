@@ -49,6 +49,8 @@ bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the
 bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
 bare_clash_not_run [fnv:d5b5eb1e3a15c15c] :: `round` could be any of `my.m.round` (this Limb's), `std::round`: write the path
+bare_const_item [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
+bare_const_kind [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
 bare_disagree [fnv:2b664eb8db1601d1] :: `fn shapes.area` is marked both
 bare_file_not_first [fnv:7a0881d6b01f89e3] :: a file's `bare` mark is its first line
 bare_glyph_op [fnv:ff9fd24907e07e6b] :: is a glyph operator, which has nowhere to write a path

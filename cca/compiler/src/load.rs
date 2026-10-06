@@ -787,7 +787,8 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
             ItemKind::Struct(_) => "struct",
             ItemKind::Enum(_) => "enum",
             ItemKind::Interface(_) => "interface",
-            ItemKind::Const(_) => "const",
+            // A const has no mark (owner, 2026-10-06: "`b`").
+            ItemKind::Const(_) => return Ok(()),
             // A glyph operator has no path, so nothing to mark.
             ItemKind::Op(d) if !d.op.name.starts_with(|c: char| c.is_ascii_alphabetic()) => return Ok(()),
             _ => "op",

@@ -708,8 +708,12 @@ impl Bare {
     }
 }
 
-/// The kinds a `bare.never [fn, struct];` line in `limb.cpls` covers.
-pub const BARE_KINDS: [&str; 6] = ["fn", "op", "struct", "enum", "const", "interface"];
+/// The kinds a `bare.never [fn, struct];` line in `limb.cpls` covers. A
+/// const has none (owner, 2026-10-06: "`b`"): `'pi'` alone is a variable,
+/// so another Limb's const always has its path.
+pub const BARE_KINDS: [&str; 5] = ["fn", "op", "struct", "enum", "interface"];
+
+pub const CONST_TAKES_NO_MARK: &str = "a const takes no `bare` mark: `'pi'` alone is a variable, so another Limb's const always has its path (owner, 2026-10-06)";
 
 /// One parsed `.cpls` file.
 #[derive(Debug, Clone, PartialEq)]

@@ -523,6 +523,9 @@ impl<'a> Parser<'a> {
             return Ok(Item { vis, kind, span, bare });
         }
         let kind = self.item_kind(vis)?;
+        if let (ItemKind::Const(_), Some((_, at))) = (&kind, &bare) {
+            return self.fail_at(*at, CONST_TAKES_NO_MARK);
+        }
         if let (ItemKind::Op(d), Some(_)) = (&kind, &bare) {
             if !d.op.name.starts_with(|c: char| c.is_ascii_alphabetic()) {
                 return self.fail_at(d.op.span, format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", d.op.name));
@@ -564,6 +567,9 @@ impl<'a> Parser<'a> {
             let Tok::Word(w) = self.peek().clone() else {
                 return self.fail(format!("expected a kind ({}), found {}", BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "), self.peek().describe()));
             };
+            if w == "const" {
+                return self.fail(CONST_TAKES_NO_MARK);
+            }
             if !BARE_KINDS.contains(&w.as_str()) {
                 return self.fail(format!("`{}` is not a kind a `bare` mark covers: {} (a module is marked on itself)", w, BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")));
             }

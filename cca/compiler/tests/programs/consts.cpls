@@ -1,7 +1,7 @@
 # Consts, worked out once at compile time to the literal each is: integers,
 # text, bin64 and powers, used in a struct, a call, a loop's bound.
 
-bare.never [fn, struct, const];
+bare.never [fn, struct];
 
 extern.C fn exit ['code': int32];
 extern.C fn strlen ['s': ptr[uint8]] -> uint64;
