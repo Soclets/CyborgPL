@@ -32,7 +32,8 @@ area […]` on an item, `case.insensitive;` as a file's first line. **The defaul
 error"), over no default as for `bare` (every name, each local variable
 included, would need covering): names are exact unless marked, and
 writing `case.sensitive` anyway is allowed, never refused as saying
-nothing. Open: marks that disagree.
+nothing. **Marks that disagree are an error** (owner: "`a`"), as for
+`bare`, over the narrowest winning.
 
 ### 2026-10-06 — In `Synthia.ttsr`, every needed thing starts with `limb.` or `core.`; a core is listed there by ID and version (owner; relayed by synthia claude)
 
