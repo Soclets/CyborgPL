@@ -310,7 +310,8 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 "->" | "-->" | ">>" | ">>>" => Tok::Arrow,
                 // `<--` is another spelling of `<-` (owner, 2026-10-03)
                 "<-" | "<--" | "<<" | "<<<" => Tok::LeftArrow,
-                "<->" => Tok::BothArrow,
+                // `<<>>` is another spelling of `<->` (owner, 2026-10-06: "`<<>>` too")
+                "<->" | "<<>>" => Tok::BothArrow,
                 "=" => Tok::Eq,
                 "!=" => return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()),
                 "<=" | "<==" => return err(tl, tc, format!("`{run}` is not an operator; less-or-equal is `</==` (owner, 2026-09-29)")),

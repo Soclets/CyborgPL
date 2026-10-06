@@ -17,8 +17,10 @@ Design claude noted they are free (shifts are `shl`/`shr`, not C's
 `>>`), asked about the twin (`<<`, `<<<` for `<--`), and that a Limb could
 no longer name its own operator `>>`, since any run of operator
 characters could be one; the owner: "yea.". `-->` and `<--` stay the main
-spelling. In the oracle; `examples/chevron_arrows.cpls`, reject test
-`op_chevron_reserved`.
+spelling. **`<<>>` is another spelling of `<->`**, the both-ways asm
+binding (design claude asked about that twin; the owner: "`<<>>` too").
+In the oracle; `examples/chevron_arrows.cpls`, reject tests
+`op_chevron_reserved`, `asm_both_chevrons`.
 
 ### 2026-10-06 — Signatar's names are English only; names in other scripts come from a core (owner; not built)
 
