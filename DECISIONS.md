@@ -128,7 +128,11 @@ Apple's deployment target or C's `-march`; **when running**, one build
 carries both versions and checks the actual machine once at startup
 (`on_machine.chip sve { … } else { … }`, design claude's sketch), as GCC's
 function multiversioning, so it runs everywhere and is fast where it can
-be. **Back to the dot** (owner: "Wait a minute, you said `on_machine`, and
+be. **`on.machine` is IEG's** (owner: "`a`"): it runs a check at startup
+(`cpuid` on x86 anywhere; the OS's `sysctl` on an ARM Mac; a kernel reads
+the chip's registers itself), and asking the chip what it can do is a raw
+machine ability; over Signatar (which runs nothing by itself) and std
+(kernels would lose it). **Back to the dot** (owner: "Wait a minute, you said `on_machine`, and
 `on_target`. Shouldn't it use a dot now? Since, we now have two
 narrowings of `on`"): by the owner's own rule, `on` now has two
 narrowings, so **`on.target`** and **`on.machine`**, each narrowed again:
