@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — A file with no `CCA.cplr` gets what the machine's package installed (owner; not built)
+
+Asked what `cca build hello.cpls` gives a file with no `CCA.cplr` beside
+it ((a) Signatar only, (b) what `cca new` lists, (c) refused), the owner:
+"Where did they get that CyborgPL?" Design claude: from one of the
+website's packages, so **a lone file gets what that package installed**:
+with the std package, std (as `cca new` would list it); with base +
+Signatar + IEG, no std, so `plus` and `print` are refused. The owner:
+"yea". The oracle stands in for the full package. Where the machine
+records what was installed: asked next.
+
 ### 2026-10-06 — The report says `parallel on N CPU cores` (owner: yea)
 
 "Core" now names the category (IEG, ASP, …) and a CPU core. Design claude

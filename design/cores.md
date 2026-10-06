@@ -167,7 +167,8 @@ with source (owner). Signatar installs itself as the machine's default
 codextra, which the base uses to read `CCA.cplr`; another codextra's
 installer overrides it. Packages with std set things up so `cca new`
 lists std (and ASP, Genny); without std, `cca new` writes an empty
-manifest.
+manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
+the machine's package installed (owner, 2026-10-06).
 
 ## Code for one machine
 
