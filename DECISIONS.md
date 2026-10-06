@@ -22,6 +22,15 @@ sync`". `synthia build` would later run it before CCA. Built the same
 day in Synthia: it reads hand-written `CCA.cplr` files (4093555) and
 follows path dependencies with CCA's refusals (4acbd32).
 
+**A needed Limb on this machine with only a `Synthia.ttsr` gets its
+`CCA.cplr` in its own folder** (`limb.money.path = ../money` gives
+`../money/CCA.cplr`, beside its `Synthia.ttsr`), over a copy in the
+project's `.synthia/`; synthia claude recommended it (what a CCA user
+does by hand, one copy of the code, and `money` then builds by itself
+with `cca` too); the owner: "`a`". A hand-written `CCA.cplr` there is
+never replaced (2026-09-30); `synthia takeover` in that folder hands it
+over. Synthia also lists WSTN and MTM as official cores (ec97abb).
+
 ### 2026-10-06 — `>>` and `>>>` are other spellings of `-->`, and `<<` and `<<<` of `<--` (owner)
 
 ```

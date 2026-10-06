@@ -42,6 +42,8 @@ Owner, 2026-09-14.
   has only a `Synthia.ttsr`, and the renamed copies in `.synthia/`, after
   checking the whole tree of path dependencies, so `cca build` follows
   knowing nothing of Synthia; a later `synthia build` would run it first.
+  A needed Limb on this machine with only a `Synthia.ttsr` gets its
+  `CCA.cplr` in its own folder, never a copy (owner: "`a`").
 - **CCA's package manager** (owner, 2026-09-29) — a second, built-in one,
   "because a hobby is supposed to be fun": `cca add …`, no name of its own.
   Its manifest is **`CCA.cplr`**, written in CyborgPL syntax on purpose:
