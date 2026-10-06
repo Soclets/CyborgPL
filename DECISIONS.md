@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — A codextra hands the base plain LLVM IR; compiler claude proposes the plugin interface (owner: yea)
+
+Design claude asked what a codextra hands the base: LLVM IR, or a shared
+middle form the base understands. The owner: "I mean, the base doesn't do
+shit. So, idk". Design claude: then **plain LLVM IR**. The codextra does
+all the thinking (parsing, types, borrows, Precog) and produces the IR; the
+base hands it to LLVM, links and writes the program without reading it. A
+shared middle form would make the base understand programs. Side effect:
+RRx2 checks LLVM IR, so it can check any codextra's output, not only
+Signatar's. The **plugin interface** for codextras and cores is
+engineering inside CCA: **compiler claude proposes it** when it builds the
+revision, bringing the owner only real choices. The owner: "yea".
+
 ### 2026-10-06 — Signatar gets kernel-grade raw memory, beside ownership (owner: e)
 
 The owner: "Should Signatar have manual too? Too is the keyword here",

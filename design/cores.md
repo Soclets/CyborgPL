@@ -15,7 +15,8 @@ equivalent anyways, and other stuff". The theme was planned: a cyborg
 
 ```
 base        the ignition: reads files, loads the codextra and cores, enforces
-            grants, hands the result to LLVM; no syntax, nothing to write in
+            grants, hands the codextra's LLVM IR to LLVM unread; no syntax,
+            nothing to write in
 Signatar    the official codextra: the language itself, very low level
 IEG         the official core: raw operations, inline.LLVM, the nocheck labels
 ASP         numbers mean their true values; to. conversions; run-time checks
@@ -37,7 +38,7 @@ monster" (owner).
 | | What it is | Authority | Written in |
 |---|---|---|---|
 | **The base** | the ignition, "basically nothing" (owner) | enforces everyone's grants | (CCA itself) |
-| **A codextra** | a language: syntax, types, its own rules, its checker | highest: defines which powers exist and limits cores | Rust plugin + CyborgPL |
+| **A codextra** | a language: syntax, types, its own rules, its checker; hands the base LLVM IR | highest: defines which powers exist and limits cores | Rust plugin + CyborgPL |
 | **A core** | "kinda more of like a compiler mod" (owner) | grants powers to limbs; may add syntax | Rust plugin + CyborgPL |
 | **A limb** | a library | only the powers granted to it | CyborgPL |
 
@@ -184,8 +185,8 @@ is nothing to write it in.
 
 ## Open
 
-- **What a codextra hands the base** (LLVM IR, or a shared middle form),
-  and the stable **plugin interface** for codextras and cores.
+- The stable **plugin interface** for codextras and cores: compiler
+  claude proposes it when building, the owner approves (2026-10-06).
 - **The unverified-core warning's wording.**
 - **The oracle and CCA**: nothing here is built; today both still have
   the operators built in and reach `std::` without a listing.
