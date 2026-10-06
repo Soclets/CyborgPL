@@ -138,7 +138,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   `! 'x'`), and for Signatar: The arrows `->`,
   `>>`, `>>>`, `<-`, `<<`, `<<<`, `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`,
   `<-|->`, `<<|>>`, `<<<|>>>` (Signatar: `-->`, `<--`, `<-->`); `&` / `&mut`;
-  Rust's number names; `bfloat16` / `bf16`; `!std_i24`; the short names
+  Rust's number names; `bfloat16` / `bf16`; `!std.i24`; the short names
   for an `inline.` language.
 - **GPU**: **AutoGPU**, automatic offload on every GPU (it translates
   plain `for` loops), and three cores for hand-written GPU code: **Metal**

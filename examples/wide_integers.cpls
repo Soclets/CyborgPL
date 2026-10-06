@@ -1,13 +1,13 @@
-# Integers past 128 bits (owner, 2026-10-03): `!std_uint256` and up, to LLVM's 2^23 bits. The maths is
+# Integers past 128 bits (owner, 2026-10-03): `!std.uint256` and up, to LLVM's 2^23 bits. The maths is
 # exact; in between, the limit is the widest operand's width, and the answer is checked where it lands.
 MAIN {
-    let 'max': !std_uint256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
-    let 'half': !std_uint256 = 'max' div.floor 2;
-    let 'top': !std_uint256 = 2 pow 255;
+    let 'max': !std.uint256 = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
+    let 'half': !std.uint256 = 'max' div.floor 2;
+    let 'top': !std.uint256 = 2 pow 255;
     std::print.useful.stdout['half', \n];
     std::print.useful.stdout[('top' minus 1 plus 'top'), \n];
     std::print.useful.stdout[('top' plus.wrap 'top'), " ", ('top' times.wrap 3), \n];
-    let 'p': !std_int256 = -(2 pow 200);
+    let 'p': !std.int256 = -(2 pow 200);
     std::print.useful.stdout[('p' div.near 3), " ", ('p' mod.floor 7), \n];
     let 'c': int128 = 170141183460469231731687303715884105727;
     std::print.useful.stdout[(('c' plus 'c') div.floor 2), \n];       # two int128s add at 128 bits in between

@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': !std_uint8388609 = 1;
+    let 'x': !std.uint8388609 = 1;
 }

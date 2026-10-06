@@ -159,6 +159,6 @@ folds cover the common cases. Shuffling two vectors together
 
 ## Open
 
-**Lanes are a standard width** (owner, 2026-10-03: a): a `!std_` integer
-(`!std_uint4`, `!std_int256`) is never a lane, since no chip has one and
+**Lanes are a standard width** (owner, 2026-10-03: a): a `!std.` integer
+(`!std.uint4`, `!std.int256`) is never a lane, since no chip has one and
 an emulated vector would be slower than plain code.

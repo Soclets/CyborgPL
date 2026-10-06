@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — `!std.int24`, not `!std_int24`: "not standard", narrowed with `.` (owner: yea)
+
+```
+'n': !std.int24       # was !std_int24
+'m': !std.uint4       # MTM's Rust-style: !std.u4
+```
+
+The owner, looking at the `!` forms ("`!` is becoming as iconic as
+`:=`"): "I don't think there's any other way to write `!std`", which
+design claude read as `!std` being "not standard" too, a `!` that means
+"not" like the rest; then: "should it be `.` instead of `_` now?" Design
+claude: by the owner's rules, `_` joins the words of one name
+(`LLVM_Intermediate_Representation`, `NO_FUCKING_CHECKS`) and `.` narrows
+(`str.utf8`, `div.floor`), and `!std_int24` is a category narrowed to one
+member; MTM's twins become `!std.i24` / `!std.u24`, and `!std_int24` is
+refused naming `!std.int24`. The owner: "yea". In the oracle (type names
+print `!std.int24` too); examples, tests and notes rewritten, the owner's
+quotes kept; reject test `std_underscore_old`.
+
 ### 2026-10-06 — `synthia sync` writes the `CCA.cplr` files and the renamed copies, leaving the project ready for `cca build` (owner; relayed by synthia claude)
 
 ```

@@ -326,7 +326,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             // the value's `not` is a spaced `!` (owner, 2026-10-06: "Why not with a space, `!` without
             // space reads as a rule"); a glued one is refused
             // `!std_int24` reads `!` then the word, as it always has
-            let std_word = chars[j..].iter().take(4).collect::<String>() == "std_";
+            let std_word = matches!(chars[j..].iter().take(4).collect::<String>().as_str(), "std_" | "std.");
             if run == "!" && !std_word {
                 if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); i = j; col += 1; continue; }
                 return err(tl, tc, "a glued `!` marks a rule (`!mut`, `!$`, `!check`, `!cheat`); to negate a value, space it: `! 'ready'`".into());

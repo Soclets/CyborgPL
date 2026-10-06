@@ -301,9 +301,10 @@ impl Parser {
                 let found: Option<(String, String)> = match (&self.toks[i].mtm, &self.toks[i].tok) {
                     (Some((w, m)), _) => Some((w.clone(), m.to_string())),
                     (None, Tok::Word(w)) if !after_path && rust_alias(w).is_some() => Some((w.clone(), rust_alias(w).unwrap().to_string())),
-                    // `!std_i24` / `!std_u24`, Rust's way, read as `!` then the word
-                    (None, Tok::Word(w)) if i > 0 && self.toks[i - 1].tok == Tok::Op("!".into()) && (w.starts_with("std_i") && !w.starts_with("std_int") || w.starts_with("std_u") && !w.starts_with("std_uint")) => {
-                        Some((format!("!{w}"), format!("!{}", w.replacen("std_i", "std_int", 1).replacen("std_u", "std_uint", 1))))
+                    // `!std.i24` / `!std.u24`, Rust's way, read as `!`, `std`, `.`, the width
+                    (None, Tok::Word(w)) if i > 2 && self.toks[i - 3].tok == Tok::Op("!".into()) && matches!(&self.toks[i - 2].tok, Tok::Word(s) if s == "std") && self.toks[i - 1].tok == Tok::Dot
+                        && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) => {
+                        Some((format!("!std.{w}"), format!("!std.{}", w.replacen('i', "int", 1).replacen('u', "uint", 1))))
                     }
                     _ => None,
                 };
@@ -1208,12 +1209,17 @@ impl Parser {
     // `[ ]` supplies type parameters (`list[int32]`, `list[list[int32]]`). A struct
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     fn ty(&mut self) -> PResult<Ty> {
-        // `!std_int24`, `!std_u4` — an integer of a width that is not standard (owner, 2026-10-03):
-        // read as one name
+        // `!std.int24` — an integer of a width that is not standard (owner, 2026-10-03; the `.` since
+        // 2026-10-06: "not standard", narrowed to one): read as one name inside
         if matches!(self.peek(), Tok::Op(o) if o == "!") && matches!(self.peek_at(1), Tok::Word(w) if w.starts_with("std_")) {
             let Tok::Word(w) = self.peek_at(1).clone() else { unreachable!() };
-            self.toks.remove(self.pos);
-            self.toks[self.pos].tok = Tok::Word(format!("!{w}"));
+            let fixed = w.replacen("std_", "std.", 1);
+            return self.err(format!("`!{w}` is `!{fixed}` since 2026-10-06: \"not standard\", narrowed with `.`"));
+        }
+        if matches!(self.peek(), Tok::Op(o) if o == "!") && matches!(self.peek_at(1), Tok::Word(w) if w == "std") && *self.peek_at(2) == Tok::Dot {
+            let Tok::Word(w) = self.peek_at(3).clone() else { return self.err("`!std.` is followed by a width: `!std.int24`, `!std.uint4`") };
+            self.toks.drain(self.pos..self.pos + 3);
+            self.toks[self.pos].tok = Tok::Word(format!("!std_{w}"));
         }
         // `<T>` — a type variable (design/generics.md, 2026-09-20)
         if matches!(self.peek(), Tok::Op(o) if o == "<") {
@@ -1511,14 +1517,14 @@ impl Parser {
                     return bad(self, format!("`{}` takes no narrowing", segs.join(".")));
                 }
                 if let Some(rest) = head.strip_prefix("!std_") {
-                    // our spelling or Rust's: `!std_int24` / `!std_i24`, `!std_uint4` / `!std_u4`
+                    // our spelling or Rust's (MTM's): `!std.int24` / `!std.i24`, `!std.uint4` / `!std.u4`, held inside as `!std_…`
                     let (signed, digits) = if let Some(d) = rest.strip_prefix("uint") { (false, d) } else if let Some(d) = rest.strip_prefix("int") { (true, d) }
                         else if let Some(d) = rest.strip_prefix('u') { (false, d) } else if let Some(d) = rest.strip_prefix('i') { (true, d) } else { (true, "") };
-                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{head}` is not a type: a non-standard integer is `!std_int24` or `!std_uint24` (Rust's `!std_i24`, `!std_u24`)")) };
+                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `!std.int24` or `!std.uint24` (MTM's `!std.i24`, `!std.u24`)", head.replacen("!std_", "!std.", 1))) };
                     let std_name = if signed { "int" } else { "uint" };
                     if int_w(n).is_some() { return bad(self, format!("`{std_name}{n}` is standard: write `{std_name}{n}` (owner, 2026-10-03)")); }
                     // LLVM's widest integer is 2^23 bits (checked with `llvm-as`, 2026-10-03)
-                    if n > 8_388_608 { return bad(self, format!("`{head}` is past the widest integer there is: LLVM's integers go up to 8388608 bits")); }
+                    if n > 8_388_608 { return bad(self, format!("`{}` is past the widest integer there is: LLVM's integers go up to 8388608 bits", head.replacen("!std_", "!std.", 1))); }
                     return Ok(if signed { Ty::Int(IntWidth::Other(n)) } else { Ty::Uint(IntWidth::Other(n)) });
                 }
                 if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }

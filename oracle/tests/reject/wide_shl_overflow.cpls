@@ -1,4 +1,4 @@
 MAIN {
-    let 'b': !std_uint256 = (2 pow 255) minus 1;
-    let 'c': !std_uint256 = 'b' shl 2;
+    let 'b': !std.uint256 = (2 pow 255) minus 1;
+    let 'c': !std.uint256 = 'b' shl 2;
 }
