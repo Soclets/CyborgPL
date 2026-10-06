@@ -3198,7 +3198,7 @@ pub fn notes(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> V
     for (f_idx, site_id, what) in &a.certain_under_nocheck {
         let f = &p.functions[*f_idx];
         let site = f.site(*site_id);
-        let word = if site.tier == Some(Tier::NoChecks) { "NO_FUCKING_CHECKS" } else { "nocheck" };
+        let word = if site.tier == Some(Tier::NoChecks) { "NO_FUCKING_CHECKS" } else { "!check" };
         let d = crate::diag::Diagnostic::note(format!("this `{}` covers something that fails every time it runs", word))
             .at(f.span(site.span))
             .when(what.clone())

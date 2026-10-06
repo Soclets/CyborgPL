@@ -1104,6 +1104,22 @@ impl Checker {
                     }
                 }
                 let ty = if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) { lt.base().clone() } else { rt.base().clone() };
+                // A group of bare numbers beside a typed operand is plain
+                // maths: worked exactly, as wide as its own values need,
+                // then landing in the operator's width (check claude, seeds
+                // 25263 and 26090: `'v' xor (15803055715966303544 minus 8)`
+                // with a `uint64` 'v' is one 64-bit pattern, not past
+                // `int64`).
+                let (mut l, mut r) = (l, r);
+                if matches!(ty, Ty::Int(IntW::Fixed { .. })) {
+                    for side in [&mut l, &mut r] {
+                        if literal_only(side) && !matches!(side.kind, K::Int(_)) && matches!(self.resolve(&side.ty).base(), Ty::Int(IntW::Free(_))) {
+                            if let Some(bits) = literal_group_bits(side) {
+                                retype_literal_arith(side, &Ty::exact_at(bits.max(64)));
+                            }
+                        }
+                    }
+                }
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
             }
             BinOp::Custom(_) => unreachable!(),

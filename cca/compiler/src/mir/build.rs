@@ -1262,9 +1262,22 @@ impl<'a> FnBuilder<'a> {
                         return Rvalue::Use(Operand::Const(Const::Int(v)));
                     }
                 }
-                let l = self.eval(lhs, span);
-                let r = self.eval(rhs, span);
+                let mut l = self.eval(lhs, span);
+                let mut r = self.eval(rhs, span);
                 let result = self.resolve_ty(&e.ty);
+                // A bitwise operator works on one width, the answer's: an
+                // exact operand has to fit it first, a site like any
+                // narrowing (check claude: `'v' xor ('w' minus 13)` with
+                // `uint64`s took -8 as a bit pattern).
+                if matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
+                    for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
+                        let from = self.resolve_ty(&of.ty);
+                        if from.is_exact() {
+                            self.narrow_arg(side, &from, &result, span);
+                            *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: false }, &result, span);
+                        }
+                    }
+                }
                 self.binary_sites(op, &l, &r, &result, span);
                 Rvalue::Binary { op: op.clone(), lhs: l, rhs: r }
             }
