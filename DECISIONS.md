@@ -27,7 +27,13 @@ both-ways binding is `<-->`, or `<->`, `<<>>`, `<<<>>>`, `<---->`. **And
 the walled ones: `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>`** (the owner:
 "`<--|-->` should be too, I think"; asked about the twins and how many,
 nine two-way spellings with them: "`b`"). Seventeen arrow spellings in
-all: four out, four in, nine both ways.
+all: four out, four in, nine both ways. **Signatar has the long arrows only**,
+`-->`, `<--`, `<-->` (owner: "Signatar supports long, not short
+anymore"), after design claude recommended one spelling per direction in
+Signatar and the owner first leaned to the short ones, then saw both
+side by side; the other fourteen come from a core. The owner asked
+whether that is a separate core, "because it also includes `&` and
+`&mut` (yes, no dot)": asked next.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
 
