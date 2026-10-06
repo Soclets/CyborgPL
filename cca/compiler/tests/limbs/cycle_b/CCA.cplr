@@ -1,5 +1,7 @@
-const 'name' := "cycle_b";
-const 'prefix' := "cycle_b";
-const 'version' := "0.1.0";
-const 'dependencies' := [cca::Dep[path = "../cycle_a"],];
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "cycle_b",
+    prefix = "cycle_b",
+    version = "0.1.0",
+    dependencies = [cca::Dep[path = "../cycle_a"],],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

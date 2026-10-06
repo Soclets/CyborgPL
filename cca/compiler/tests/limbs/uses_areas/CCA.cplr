@@ -1,5 +1,7 @@
-const 'name' := "uses_areas";
-const 'prefix' := "uses_areas";
-const 'version' := "0.1.0";
-const 'dependencies' := [cca::Dep[path = "../../../../../examples/limbs/areas"],];
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "uses_areas",
+    prefix = "uses_areas",
+    version = "0.1.0",
+    dependencies = [cca::Dep[path = "../../../../../examples/limbs/areas"],],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

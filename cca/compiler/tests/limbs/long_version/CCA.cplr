@@ -1,4 +1,6 @@
-const 'name' := "long_version";
-const 'prefix' := "long_version";
-const 'version' := "กกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกa";
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "long_version",
+    prefix = "long_version",
+    version = "กกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกกa",
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

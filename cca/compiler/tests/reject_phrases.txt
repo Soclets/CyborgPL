@@ -313,17 +313,22 @@ main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 manifest_bad_name [fnv:20b05ba63cd81271] :: `Areas of shapes` cannot name a Limb
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
+manifest_core_twice [fnv:2038c8308a577f53] :: the core `IEG` is listed twice
+manifest_core_unofficial [fnv:564c7a0c6d55d2d3] :: `Fastmath` is not an official core
+manifest_deny_not_yet [fnv:e2bfe2e1f6359949] :: `deny` is not in CCA yet: which powers exist is not decided
 manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
-manifest_long_version [fnv:6030b12646e47afa] :: 'version' is at most 256 bytes, and this one is 257
+manifest_field_twice [fnv:dd4b619356aeb955] :: `name` is given twice
+manifest_long_version [fnv:a46141b25a099c4e] :: `version` is at most 256 bytes, and this one is 257
 manifest_no_default [fnv:79ff64b431237349] :: exactly one says `default = true`
-manifest_no_name [fnv:d9b8d7b29f7a58b7] :: CCA.cplr has no 'name'
-manifest_no_prefix [fnv:10772fdbb8bbe766] :: CCA.cplr has no 'prefix'
-manifest_no_target [fnv:ad42f8812a087d55] :: CCA.cplr has no target
-manifest_no_version [fnv:131908ccfdc9be94] :: CCA.cplr has no 'version'
-manifest_one_target [fnv:1fb240781150aeaa] :: the setting is 'targets'
-manifest_pub [fnv:e04dd347852c3d54] :: `pub` means nothing in CCA.cplr
+manifest_no_name [fnv:4d3f43697b4ab2f9] :: the manifest has no `name`
+manifest_no_prefix [fnv:400ab5e5ebd0c0b4] :: the manifest has no `prefix`
+manifest_no_target [fnv:0ec242e08a4049e9] :: the manifest has no target
+manifest_no_version [fnv:4888a0212dce5aa4] :: the manifest has no `version`
+manifest_not_a_manifest [fnv:005996073527cb29] :: CCA.cplr is one value: `cca::Manifest[
+manifest_old_consts [fnv:b7041583a1e96bf0] :: settings are no longer `const`s
+manifest_one_target [fnv:469b29d703804c8a] :: so the field is `targets`
 manifest_undoable_target [fnv:994ef28992020067] :: `x86_64-linux` is not a target CCA can build
-manifest_unknown_setting [fnv:ca0a29678045f41c] :: CCA.cplr has no setting 'versoin'
+manifest_unknown_field [fnv:e1975ef746a966f7] :: a `cca::Manifest` has no field `versoin`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
 map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it

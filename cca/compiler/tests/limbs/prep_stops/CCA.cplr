@@ -1,5 +1,7 @@
-const 'name' := "stops";
-const 'prefix' := "stops";
-const 'version' := "0.1.0";
-const 'dependencies' := [cca::Dep[path = "../prep_bad"],];
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "stops",
+    prefix = "stops",
+    version = "0.1.0",
+    dependencies = [cca::Dep[path = "../prep_bad"],],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

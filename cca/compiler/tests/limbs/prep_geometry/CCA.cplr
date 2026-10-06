@@ -1,5 +1,7 @@
-const 'name' := "geometry";
-const 'prefix' := "geometry";
-const 'version' := "0.1.0";
-const 'dependencies' := [cca::Dep[path = "../prep_money"],];
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "geometry",
+    prefix = "geometry",
+    version = "0.1.0",
+    dependencies = [cca::Dep[path = "../prep_money"],],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

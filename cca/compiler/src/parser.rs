@@ -182,6 +182,18 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     Ok(File { items, strict })
 }
 
+/// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
+/// 2026-10-06): `cca::Manifest[ … ];`.
+pub fn parse_value(toks: &[Token]) -> Result<Expr> {
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default() };
+    let value = p.expr(0)?;
+    p.expect_semi("the value")?;
+    if !p.at_eof() {
+        return p.fail("the file is one value and its `;`, with nothing after it");
+    }
+    Ok(value)
+}
+
 const NOT_A_COMMENT: &str = "";
 
 impl<'a> Parser<'a> {

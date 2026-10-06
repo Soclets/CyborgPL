@@ -176,7 +176,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
     fn words_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<(String, String)> {
         if let Some((manifest_at, written)) = from {
             if !dir.join("CCA.cplr").is_file() {
-                return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no 'prefix' for code to reach it by", written)).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
             }
         }
         let m = read_manifest(sources, dir)?;
@@ -313,7 +313,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     // and the depending Limb names no word (owner, 2026-09-29).
     if let Some((manifest_at, written)) = from {
         if !dir.join("CCA.cplr").is_file() {
-            return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no 'prefix' for code to reach it by", written)).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
         }
     }
     let manifest = read_manifest(sources, dir)?;
@@ -323,13 +323,13 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     };
     if let Some((manifest_at, written)) = from {
         if prefix == "std" || prefix == "cca" {
-            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which is the built-in `{}::`; edit its 'prefix'", written, prefix, prefix)).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which is the built-in `{}::`; edit its `prefix`", written, prefix, prefix)).place(manifest_at.display().to_string()));
         }
         // No override: two Limbs with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
         if let Some(other) = state.prefixes.get(&prefix) {
             if *other != key {
-                return err(Diagnostic::error(format!("two Limbs have the prefix `{}` ({} and {}); edit one Limb's 'prefix'", prefix, other.display(), key.display())).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("two Limbs have the prefix `{}` ({} and {}); edit one Limb's `prefix`", prefix, other.display(), key.display())).place(manifest_at.display().to_string()));
             }
         }
         state.prefixes.insert(prefix.clone(), key.clone());
@@ -367,8 +367,10 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     Ok((m, prefix))
 }
 
-/// What a `CCA.cplr` says (owner, 2026-09-29): one plain `const` per
-/// setting, in CyborgPL, its shapes from the built-in `cca` Limb.
+/// What a `CCA.cplr` says: one CyborgPL value, `cca::Manifest[ … ];`, its
+/// fields named (owner, 2026-10-06: "at least it's not much of a
+/// roleplay"; one `const` per setting before), its shapes from the
+/// built-in `cca` Limb.
 struct Manifest {
     name: Option<(String, crate::source::Span)>,
     /// The word code writes in front of `::` to reach this Limb, which its
@@ -386,16 +388,33 @@ struct Dep {
     path: String,
 }
 
-const SETTINGS: [&str; 5] = ["name", "prefix", "version", "dependencies", "targets"];
+const FIELDS: [&str; 6] = ["name", "prefix", "version", "targets", "dependencies", "cores"];
+
+/// The official cores (`design/cores.md`), the ones a `cores` field may
+/// list; another core is a plugin, which CCA cannot load yet.
+const OFFICIAL_CORES: [&str; 8] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan"];
+
+const MANIFEST_SHAPE: &str = "`cca::Manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [cca::Target[name = \"aarch64-macos\"],]];`";
 
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
-    use crate::ast::{Arg as AArg, ExprKind, ItemKind};
+    use crate::ast::{Arg as AArg, ExprKind};
+    use crate::lexer::Tok;
     let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new() };
     let at = dir.join("CCA.cplr");
     if !at.is_file() {
         return Ok(out);
     }
-    let file = parse_file(sources, &at)?;
+    let text = std::fs::read_to_string(&at).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", at.display(), e))))?;
+    let id: FileId = sources.add(&at, text);
+    let toks = crate::lexer::lex(id, &sources.get(id).text)?;
+    if matches!(&toks[0].tok, Tok::Word(w) if w == "const" || w == "pub") {
+        return err(Diagnostic::error(format!("CCA.cplr's settings are no longer `const`s: the file is one value, {}", MANIFEST_SHAPE)).at(toks[0].span));
+    }
+    let value = crate::parser::parse_value(&toks)?;
+    let fields = match &value.kind {
+        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && path.segs.iter().map(|s| s.name.as_str()).eq(["Manifest"]) => args,
+        _ => return err(Diagnostic::error(format!("CCA.cplr is one value: {}", MANIFEST_SHAPE)).at(value.span)),
+    };
     let mut seen: Vec<String> = Vec::new();
     let text = |e: &crate::ast::Expr, what: &str| -> Result<String> {
         match &e.kind {
@@ -403,42 +422,44 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             _ => err(Diagnostic::error(format!("{} is text: `\"…\"`", what)).at(e.span)),
         }
     };
-    for item in &file.items {
-        let ItemKind::Const(c) = &item.kind else {
-            return err(Diagnostic::error("`CCA.cplr` holds settings, one plain `const` each: `const 'name' := \"areas\";`").at(item.span));
+    for a in fields {
+        let AArg::Named(field, v) = a else {
+            return err(Diagnostic::error("a `cca::Manifest` names its fields: `name = …`, `prefix = …`, `version = …`, `targets = […]`").at(a.span()));
         };
-        if item.vis != Vis::Private {
-            return err(Diagnostic::error(format!("`pub` means nothing in CCA.cplr: its settings are read by CCA, never reached from code — write `const '{}' := …;`", c.name.name)).at(item.span));
-        }
-        let setting = c.name.name.as_str();
+        let setting = field.name.as_str();
         // One target became a list (owner, 2026-09-29).
         if setting == "target" {
-            return err(Diagnostic::error("the setting is 'targets', a list: `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`").at(c.name.span));
+            return err(Diagnostic::error("a Limb lists its targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`").at(field.span));
         }
-        if !SETTINGS.contains(&setting) {
-            return err(Diagnostic::error(format!("CCA.cplr has no setting '{}': the settings are {}", setting, SETTINGS.iter().map(|s| format!("'{}'", s)).collect::<Vec<_>>().join(", "))).at(c.name.span));
+        // What a Limb may do (`design/cores.md`): which powers exist is
+        // not decided.
+        if setting == "powers" || setting == "deny" {
+            return err(Diagnostic::error(format!("`{}` is not in CCA yet: which powers exist is not decided", setting)).at(field.span));
+        }
+        if !FIELDS.contains(&setting) {
+            return err(Diagnostic::error(format!("a `cca::Manifest` has no field `{}`: its fields are {}", setting, FIELDS.iter().map(|s| format!("`{}`", s)).collect::<Vec<_>>().join(", "))).at(field.span));
         }
         if seen.iter().any(|s| s == setting) {
-            return err(Diagnostic::error(format!("'{}' is set twice in CCA.cplr: one `const` per setting", setting)).at(c.name.span));
+            return err(Diagnostic::error(format!("`{}` is given twice in the `cca::Manifest`", setting)).at(field.span));
         }
         seen.push(setting.to_string());
         match setting {
             "name" => {
-                let n = text(&c.value, "'name'")?;
-                check_word(&n, c.value.span, "name a Limb")?;
-                out.name = Some((n, c.value.span));
+                let n = text(v, "`name`")?;
+                check_word(&n, v.span, "name a Limb")?;
+                out.name = Some((n, v.span));
             }
             "prefix" => {
-                let p = text(&c.value, "'prefix'")?;
-                check_word(&p, c.value.span, &format!("be a prefix, written in code as `{}::`", p))?;
-                out.prefix = Some((p, c.value.span));
+                let p = text(v, "`prefix`")?;
+                check_word(&p, v.span, &format!("be a prefix, written in code as `{}::`", p))?;
+                out.prefix = Some((p, v.span));
             }
             // Any text, at most 256 bytes (owner, 2026-09-29), as in a
             // Synthia.ttsr.
             "version" => {
-                let v = text(&c.value, "'version'")?;
-                if v.len() > 256 {
-                    return err(Diagnostic::error(format!("'version' is at most 256 bytes, and this one is {}", v.len())).at(c.value.span));
+                let version = text(v, "`version`")?;
+                if version.len() > 256 {
+                    return err(Diagnostic::error(format!("`version` is at most 256 bytes, and this one is {}", version.len())).at(v.span));
                 }
             }
             // The targets a Limb is built for (owner, 2026-09-29): each a
@@ -446,8 +467,8 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // run, a `runner`. CCA reads them and still builds for this
             // machine: which one is built when none is named is open.
             "targets" => {
-                let ExprKind::List(entries) = &c.value.kind else {
-                    return err(Diagnostic::error("'targets' is a list of `cca::Target[…]`: `[cca::Target[name = \"aarch64-macos\"],]`").at(c.value.span));
+                let ExprKind::List(entries) = &v.kind else {
+                    return err(Diagnostic::error("`targets` is a list of `cca::Target[…]`: `[cca::Target[name = \"aarch64-macos\"],]`").at(v.span));
                 };
                 let mut names: Vec<String> = Vec::new();
                 let mut name_spans: Vec<crate::source::Span> = Vec::new();
@@ -488,7 +509,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error("a `cca::Target` needs its `name`: `cca::Target[name = \"aarch64-linux\"]`").at(e.span));
                     };
                     if names.contains(&n) {
-                        return err(Diagnostic::error(format!("the target `{}` is listed twice in 'targets'", n)).at(span));
+                        return err(Diagnostic::error(format!("the target `{}` is listed twice in `targets`", n)).at(span));
                     }
                     if is_default {
                         defaults.push((n.clone(), span));
@@ -503,7 +524,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     return err(Diagnostic::error(format!("`{}` and `{}` both say `default = true`: of several targets, exactly one says `default = true`", defaults[0].0, defaults[1].0)).at(defaults[1].1));
                 }
                 if names.len() > 1 && defaults.is_empty() {
-                    return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = true`", names.len())).at(c.value.span));
+                    return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = true`", names.len())).at(v.span));
                 }
                 // Only a target CCA can build (owner, 2026-09-30: "refuse"),
                 // as in a Synthia.ttsr; the default count is said first.
@@ -518,13 +539,46 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 out.default_target = match defaults.first() {
                     Some((n, s)) => Some((n.clone(), *s)),
                     None if names.len() == 1 && lone_says_not => None,
-                    None => names.first().map(|n| (n.clone(), c.value.span)),
+                    None => names.first().map(|n| (n.clone(), v.span)),
                 };
                 out.targets = names.clone();
             }
+            // The cores a Limb's code is built by (`design/cores.md`):
+            // official ones only, each once. CCA reads the list; which
+            // core builds what is not built yet.
+            "cores" => {
+                let ExprKind::List(entries) = &v.kind else {
+                    return err(Diagnostic::error("`cores` is a list of `cca::Core[…]`: `[cca::Core[name = \"IEG\"],]`").at(v.span));
+                };
+                let mut names: Vec<String> = Vec::new();
+                for e in entries {
+                    let core = match &e.kind {
+                        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && path.segs.iter().map(|s| s.name.as_str()).eq(["Core"]) => args,
+                        _ => return err(Diagnostic::error("each core is a `cca::Core[name = …]`").at(e.span)),
+                    };
+                    let mut name = None;
+                    for a in core {
+                        match a {
+                            AArg::Named(f, cv) if f.name == "name" => name = Some((text(cv, "a core's `name`")?, cv.span)),
+                            AArg::Named(f, _) => return err(Diagnostic::error(format!("a `cca::Core` has no field `{}`: it is a `name`", f.name)).at(f.span)),
+                            _ => return err(Diagnostic::error("a `cca::Core` names its field: `cca::Core[name = \"IEG\"]`").at(a.span())),
+                        }
+                    }
+                    let Some((n, span)) = name else {
+                        return err(Diagnostic::error("a `cca::Core` needs its `name`: `cca::Core[name = \"IEG\"]`").at(e.span));
+                    };
+                    if !OFFICIAL_CORES.contains(&n.as_str()) {
+                        return err(Diagnostic::error(format!("`{}` is not an official core; another core is a plugin, which CCA cannot load yet — the official ones are {}", n, OFFICIAL_CORES.iter().map(|c| format!("`{}`", c)).collect::<Vec<_>>().join(", "))).at(span));
+                    }
+                    if names.contains(&n) {
+                        return err(Diagnostic::error(format!("the core `{}` is listed twice in `cores`", n)).at(span));
+                    }
+                    names.push(n);
+                }
+            }
             _ => {
-                let ExprKind::List(entries) = &c.value.kind else {
-                    return err(Diagnostic::error("'dependencies' is a list of `cca::Dep[…]`: `[cca::Dep[path = \"../areas\"],]`").at(c.value.span));
+                let ExprKind::List(entries) = &v.kind else {
+                    return err(Diagnostic::error("`dependencies` is a list of `cca::Dep[…]`: `[cca::Dep[path = \"../areas\"],]`").at(v.span));
                 };
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
@@ -539,7 +593,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             return err(Diagnostic::error("a `cca::Dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
                         };
                         let slot = match field.name.as_str() {
-                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Limb's own 'prefix', from its `CCA.cplr`").at(field.span)),
+                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Limb's own `prefix`, from its `CCA.cplr`").at(field.span)),
                             "path" => &mut dpath,
                             "version" => &mut version,
                             "id" => &mut id,
@@ -571,7 +625,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         }
                         (Some((p, pspan)), None) => {
                             if out.deps.iter().any(|d| d.path == p) {
-                                return err(Diagnostic::error(format!("`{}` is listed twice in 'dependencies'", p)).at(pspan));
+                                return err(Diagnostic::error(format!("`{}` is listed twice in `dependencies`", p)).at(pspan));
                             }
                             out.deps.push(Dep { path: p });
                         }
@@ -586,12 +640,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     for need in ["name", "prefix", "version"] {
         if !seen.iter().any(|s| s == need) {
             let what = if need == "prefix" { ", the word code writes in front of `::` to reach this Limb" } else { "" };
-            let example = if need == "prefix" { ": `const 'prefix' := \"shop\";`" } else { "" };
-            return err(Diagnostic::error(format!("CCA.cplr has no '{}'{}: a build needs the Limb's 'name', 'prefix', 'version' and at least one target{}", need, what, example)).place(at.display().to_string()));
+            return err(Diagnostic::error(format!("the manifest has no `{}`{}: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(value.span));
         }
     }
     if out.targets.is_empty() {
-        return err(Diagnostic::error("CCA.cplr has no target: a build needs the Limb's 'name', 'prefix', 'version' and at least one target, `const 'targets' := [cca::Target[name = \"aarch64-macos\"],];`").place(at.display().to_string()));
+        return err(Diagnostic::error(format!("the manifest has no target: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));
     }
     Ok(out)
 }

@@ -1,5 +1,7 @@
-const 'name' := "shared";
-const 'prefix' := "shared";
-const 'version' := "0.1.0";
-const 'dependencies' := [cca::Dep[path = "../prep_geometry"], cca::Dep[path = "../prep_geo2"],];
-const 'targets' := [cca::Target[name = "aarch64-macos"],];
+cca::Manifest[
+    name = "shared",
+    prefix = "shared",
+    version = "0.1.0",
+    dependencies = [cca::Dep[path = "../prep_geometry"], cca::Dep[path = "../prep_geo2"],],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

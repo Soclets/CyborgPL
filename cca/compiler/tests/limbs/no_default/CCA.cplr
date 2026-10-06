@@ -1,4 +1,6 @@
-const 'name' := "no_default";
-const 'prefix' := "no_default";
-const 'version' := "0.1.0";
-const 'targets' := [cca::Target[name = "aarch64-macos", default = false],];
+cca::Manifest[
+    name = "no_default",
+    prefix = "no_default",
+    version = "0.1.0",
+    targets = [cca::Target[name = "aarch64-macos", default = false],]
+];
