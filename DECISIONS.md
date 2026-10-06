@@ -32,8 +32,16 @@ the exact-and-checked-where-it-lands rules). A kernel takes IEG without
 it and gets raw literals. **The core is ASP, "Abit Safer, Please"**
 (owner), and **even with ASP, a way to write numbers like the hardware
 stays, but never as the default** (owner: "There should still be a way to
-write it like hardware, but shouldn't be the default"); its spelling is
-asked next. Open: exactly which rules ASP
+write it like hardware, but shouldn't be the default"). Design claude
+offered (a) per value, `to.int8.bits[128]`, recommended, or (b) a `raw { … }`
+block; the owner asked where the `to.` family lives (not placed yet), and
+then: "shouldn't Signatar be writing ASM for that?" So **Signatar has no
+`to.` at all** (in Signatar alone, a reinterpretation is assembly, or
+IEG's raw calls); **ASP brings the `to.` syntax**: checked conversions
+(`to.int8['big']`) and the raw form `to.int8.bits[128]`; **std adds the
+text and decimal conversions** (`to.int32["42"]`, `to.stored.str.utf8`)
+into ASP's `to.`, through a power ASP grants it, as IEG grants std
+`plus`. The owner: "seems good". Open: exactly which rules ASP
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
