@@ -56,9 +56,9 @@ optional?", then "yea"), as a plain `div` is: "say `bare.optional` or
 without its path** (owner: "`a`"): "write `std::list.append` or
 `fastlists::list.append`"; depending on both is fine. **A Limb's own
 name does not win over them** (owner: "no", to design claude's "your own
-wins"). Open: what then happens to the Limb's own `list.append` (design
-claude's reading, asked: the same error, the Limb writing
-`limb.list.append` for its own), and how this sits with 2026-10-02's registry rule (a
+wins"). **A Limb's own clashing name is reached through its root**, as any name
+is: `limb.list.append[…]` (design claude's reading; the owner: "yea, but
+should it be `mine.` instead?", asked next). Open: how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
 ### 2026-10-06 — Without ASP, a literal wider than its type's bits is refused (owner: a; not built)
