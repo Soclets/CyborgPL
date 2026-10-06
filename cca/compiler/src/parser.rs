@@ -241,13 +241,27 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
         p.bump();
     }
     let mut items = Vec::new();
+    let mut bare_file = None;
+    let mut bare_kinds = Vec::new();
     while !p.at_eof() {
         if p.is(&Tok::Strict) {
             return p.fail("`#strict` goes once, at the top of the file, before any item");
         }
+        // A file's mark, its first line, and the kind lines (owner,
+        // 2026-10-06).
+        if p.is_word("bare") {
+            let at = p.span();
+            let (mark, kinds) = p.bare_line()?;
+            match kinds {
+                Some(kinds) => bare_kinds.push((mark, kinds, at)),
+                None if items.is_empty() && bare_file.is_none() => bare_file = Some((mark, at)),
+                None => return p.fail_at(at, FILE_MARK_FIRST),
+            }
+            continue;
+        }
         push_item(&mut items, p.item()?);
     }
-    Ok(File { items, strict })
+    Ok(File { items, strict, bare_file, bare_kinds })
 }
 
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
@@ -263,6 +277,8 @@ pub fn parse_value(toks: &[Token]) -> Result<Expr> {
 }
 
 const NOT_A_COMMENT: &str = "";
+
+const FILE_MARK_FIRST: &str = "a file's `bare` mark is its first line, before anything else; a block module takes `pub bare.… module name { … }`";
 
 impl<'a> Parser<'a> {
     // ------------------------------------------------------------ helpers
@@ -433,6 +449,15 @@ impl<'a> Parser<'a> {
     fn item(&mut self) -> Result<Item> {
         let start = self.span();
         let mut vis = Vis::Private;
+        let mut bare = None;
+        // A mark line inside a block module, or a mark with no `pub`.
+        if self.is_word("bare") {
+            let at = self.span();
+            return match self.bare_line()? {
+                (_, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole Limb, so it is written in `limb.cpls`"),
+                (_, None) => self.fail_at(at, FILE_MARK_FIRST),
+            };
+        }
         if self.is_word("pub") {
             self.bump();
             if self.eat(&Tok::Dot) {
@@ -445,7 +470,11 @@ impl<'a> Parser<'a> {
                 vis = Vis::Pub;
             }
             if self.is_word("bare") {
-                return self.fail("there are no bare names from another Limb: what a Limb makes `pub` is reached by its path, and only operators come bare (owner, 2026-09-23)");
+                let (mark, at) = self.bare_mark()?;
+                if vis == Vis::Limb {
+                    return self.fail_at(at, "a `bare` mark says how other Limbs write the path, and a `pub.limb` thing is never reached from them");
+                }
+                bare = Some((mark, at));
             }
             if self.is_word("MAIN") {
                 return self.fail("`MAIN` is never `pub`: it is the program's block, not something another Limb can reach");
@@ -472,11 +501,62 @@ impl<'a> Parser<'a> {
                 other => other,
             };
             let span = start.to(self.prev_span());
-            return Ok(Item { vis, kind, span });
+            return Ok(Item { vis, kind, span, bare });
         }
         let kind = self.item_kind(vis)?;
+        if let (ItemKind::Op(d), Some(_)) = (&kind, &bare) {
+            if !d.op.name.starts_with(|c: char| c.is_ascii_alphabetic()) {
+                return self.fail_at(d.op.span, format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", d.op.name));
+            }
+        }
         let span = start.to(self.prev_span());
-        Ok(Item { vis, kind, span })
+        Ok(Item { vis, kind, span, bare })
+    }
+
+    /// `bare.never`, `bare.optional` or `bare.only` (owner, 2026-10-06).
+    fn bare_mark(&mut self) -> Result<(Bare, Span)> {
+        let at = self.span();
+        self.bump();
+        if !self.eat(&Tok::Dot) {
+            return self.fail_at(at, "say how other Limbs write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say");
+        }
+        let mode = self.ident("`never`, `optional` or `only`")?;
+        let mark = match mode.name.as_str() {
+            "never" => Bare::Never,
+            "optional" => Bare::Optional,
+            "only" => Bare::Only,
+            other => return self.fail_at(mode.span, format!("no `bare.{}`: a path is `bare.never` (required), `bare.optional` or `bare.only` (forbidden)", other)),
+        };
+        Ok((mark, at.to(mode.span)))
+    }
+
+    /// A mark line: `bare.optional;` (a file's), or `bare.never [fn,
+    /// struct];` (by kind); `None` kinds for the first.
+    fn bare_line(&mut self) -> Result<(Bare, Option<Vec<String>>)> {
+        let (mark, at) = self.bare_mark()?;
+        if self.eat(&Tok::Semi) {
+            return Ok((mark, None));
+        }
+        if !self.eat(&Tok::LBracket) {
+            return self.fail_at(at, format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `limb.cpls`, or `pub {m} fn …` on an item", m = mark.spelled()));
+        }
+        let mut kinds = Vec::new();
+        loop {
+            let Tok::Word(w) = self.peek().clone() else {
+                return self.fail(format!("expected a kind ({}), found {}", BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "), self.peek().describe()));
+            };
+            if !BARE_KINDS.contains(&w.as_str()) {
+                return self.fail(format!("`{}` is not a kind a `bare` mark covers: {} (a module is marked on itself)", w, BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")));
+            }
+            self.bump();
+            kinds.push(w);
+            if !self.eat(&Tok::Comma) || self.is(&Tok::RBracket) {
+                break;
+            }
+        }
+        self.expect(&Tok::RBracket, "`]` closing the kinds")?;
+        self.expect_semi("the kinds")?;
+        Ok((mark, Some(kinds)))
     }
 
     fn item_kind(&mut self, vis: Vis) -> Result<ItemKind> {
@@ -3444,7 +3524,7 @@ const _: &str = NOT_A_COMMENT;
 /// lines, each with the block's visibility.
 fn push_item(items: &mut Vec<Item>, it: Item) {
     match it.kind {
-        ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span })),
-        kind => items.push(Item { vis: it.vis, kind, span: it.span }),
+        ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span, bare: it.bare })),
+        kind => items.push(Item { vis: it.vis, kind, span: it.span, bare: it.bare }),
     }
 }

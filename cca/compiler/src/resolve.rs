@@ -307,7 +307,7 @@ impl Items {
             ItemKind::ExternBlock(lines) => {
                 for (v, k) in lines {
                     let v = if vis == ast::Vis::Private { *v } else { vis };
-                    self.collect_item(&Item { vis: v, kind: k.clone(), span: item.span }, m, is_root)?;
+                    self.collect_item(&Item { vis: v, kind: k.clone(), span: item.span, bare: item.bare }, m, is_root)?;
                 }
             }
             ItemKind::Satisfies { ty, iface } => {

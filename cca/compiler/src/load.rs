@@ -135,6 +135,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     if !path.is_dir() {
         let m = new_module(&mut items, "limb", None, Vis::Pub);
         let file = parse_file(sources, path)?;
+        check_bare(sources, &file, "", true)?;
         items.collect_file(&file, m, true)?;
     }
     items.resolve_all()?;
@@ -352,6 +353,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     let first_file = sources.files.len();
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
+        check_bare(sources, &file, "", true)?;
         // A dependency's `MAIN` runs only when that Limb itself is run, and
         // is left out when another Limb uses it (owner, 2026-09-29: a).
         if from.is_some() {
@@ -693,6 +695,92 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     Ok(out)
 }
 
+thread_local! {
+    /// The kind lines of the Limb whose files are being read: they cover
+    /// every file of it.
+    static BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, Vec<String>, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Every `pub` thing says how other Limbs write its path, and the marks
+/// that cover it agree (owner, 2026-10-06: no default; "`c`"). A mark
+/// covers from the item itself, the block modules around it, its file's
+/// first line, and its kind in `limb.cpls`. `base` is the file's module
+/// path, empty at the root; `root` is whether this is the root file, the
+/// only one whose kind lines count.
+fn check_bare(sources: &SourceMap, file: &crate::ast::File, base: &str, root: bool) -> Result<()> {
+    use crate::ast::{Bare, Item, ItemKind};
+    if root {
+        BARE_KINDS.with(|k| *k.borrow_mut() = file.bare_kinds.clone());
+    } else if let Some((m, _, at)) = file.bare_kinds.first() {
+        return err(Diagnostic::error(format!("`{} [ … ];` covers the whole Limb, so it is written in `limb.cpls`", m.spelled())).at(*at));
+    }
+    let kinds = BARE_KINDS.with(|k| k.borrow().clone());
+    let line = |at: crate::source::Span| sources.get(at.file).line_col(at.start).0;
+    fn walk(items: &[Item], path: &str, chain: &mut Vec<(Bare, crate::source::Span)>, each: &mut dyn FnMut(&Item, String, &[(Bare, crate::source::Span)]) -> Result<()>) -> Result<()> {
+        for it in items {
+            let named = |n: &str| if path.is_empty() { n.to_string() } else { format!("{}.{}", path, n) };
+            if let ItemKind::Module { name, items } = &it.kind {
+                let pushed = it.bare.is_some();
+                if let Some(b) = it.bare {
+                    chain.insert(0, b);
+                }
+                walk(items, &named(&name.name), chain, each)?;
+                if pushed {
+                    chain.remove(0);
+                }
+                continue;
+            }
+            let name = match &it.kind {
+                ItemKind::Fn(d) | ItemKind::ExternFn(d) => named(&d.name.name),
+                ItemKind::Struct(d) => named(&d.name.name),
+                ItemKind::Enum(d) => named(&d.name.name),
+                ItemKind::Interface(d) => named(&d.name.name),
+                ItemKind::Const(d) => named(&d.name.name),
+                ItemKind::Op(d) => named(&d.op.name),
+                _ => continue,
+            };
+            each(it, name, chain)?;
+        }
+        Ok(())
+    }
+    let mut chain = Vec::new();
+    walk(&file.items, base, &mut chain, &mut |it, name, modules| {
+        if it.vis != Vis::Pub {
+            return Ok(());
+        }
+        let kind = match &it.kind {
+            ItemKind::Fn(_) | ItemKind::ExternFn(_) => "fn",
+            ItemKind::Struct(_) => "struct",
+            ItemKind::Enum(_) => "enum",
+            ItemKind::Interface(_) => "interface",
+            ItemKind::Const(_) => "const",
+            // A glyph operator has no path, so nothing to mark.
+            ItemKind::Op(d) if !d.op.name.starts_with(|c: char| c.is_ascii_alphabetic()) => return Ok(()),
+            _ => "op",
+        };
+        let both = |a: (Bare, crate::source::Span), b: (Bare, crate::source::Span)| {
+            err(Diagnostic::error(format!("`{} {}` is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error", kind, name, a.0.spelled(), line(a.1), b.0.spelled(), line(b.1))).at(it.span))
+        };
+        // Its own mark, then the block modules around it, inner first.
+        let chain: Vec<(Bare, crate::source::Span)> = it.bare.iter().copied().chain(modules.iter().copied()).collect();
+        if let Some(&first) = chain.first() {
+            if let Some(&other) = chain.iter().find(|m| m.0 != first.0) {
+                return both(first, other);
+            }
+        }
+        // That, the file's and the kind's, in the order they are written.
+        let mut all: Vec<(Bare, crate::source::Span)> = chain.first().copied().into_iter().chain(file.bare_file).chain(kinds.iter().filter(|(_, ks, _)| ks.iter().any(|k| k == kind)).map(|(m, _, at)| (*m, *at))).collect();
+        all.sort_by_key(|m| (m.1.file != it.span.file, line(m.1)));
+        match all.first() {
+            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other Limbs write its path: mark it (`pub bare.never {k} …`), its module, or its kind in `limb.cpls` (`bare.never [{k}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
+            Some(&first) => match all.iter().find(|m| m.0 != first.0) {
+                Some(&other) => both(first, other),
+                None => Ok(()),
+            },
+        }
+    })
+}
+
 fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {
     let path = crate::resolve::module_path(items, name, parent);
     let id = ModuleId(items.modules.len() as u32);
@@ -732,6 +820,8 @@ fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: Modu
         let m = new_module(items, &stem, Some(parent), Vis::Pub);
         items.modules[parent.0 as usize].items.insert(stem.clone(), (crate::resolve::ItemRef::Module(m), Vis::Pub, crate::source::Span::new(FileId(0), 0, 0)));
         let file = parse_file(sources, e)?;
+        let base = items.modules[m.0 as usize].path.clone();
+        check_bare(sources, &file, base.rsplit("::").next().unwrap_or(&base), false)?;
         items.collect_file(&file, m, false)?;
         file_modules.push((stem, m));
     }

@@ -1,1 +1,3 @@
+bare.never [fn];
+
 pub fn one [] -> int32 { return 1; }

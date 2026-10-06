@@ -1,3 +1,6 @@
 # Its CCA.cplr has a version of exactly 256 bytes, in Thai: the most
 # there may be (owner, 2026-09-29).
+
+bare.never [fn];
+
 pub fn one [] -> int32 { return 1; }

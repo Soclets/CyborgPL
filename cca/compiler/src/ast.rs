@@ -684,7 +684,32 @@ pub struct Item {
     pub vis: Vis,
     pub kind: ItemKind,
     pub span: Span,
+    /// `pub bare.never fn …`: how other Limbs write its path.
+    pub bare: Option<(Bare, Span)>,
 }
+
+/// How other Limbs write the path to a `pub` thing (owner, 2026-10-06):
+/// `bare.never` (required), `bare.optional`, `bare.only` (forbidden).
+/// There is no default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Bare {
+    Never,
+    Optional,
+    Only,
+}
+
+impl Bare {
+    pub fn spelled(self) -> &'static str {
+        match self {
+            Bare::Never => "bare.never",
+            Bare::Optional => "bare.optional",
+            Bare::Only => "bare.only",
+        }
+    }
+}
+
+/// The kinds a `bare.never [fn, struct];` line in `limb.cpls` covers.
+pub const BARE_KINDS: [&str; 6] = ["fn", "op", "struct", "enum", "const", "interface"];
 
 /// One parsed `.cpls` file.
 #[derive(Debug, Clone, PartialEq)]
@@ -692,4 +717,10 @@ pub struct File {
     pub items: Vec<Item>,
     /// `#strict` at its top: which file it is.
     pub strict: Option<crate::source::FileId>,
+    /// `bare.optional;` as its first line: covers its module and the block
+    /// modules written in it.
+    pub bare_file: Option<(Bare, Span)>,
+    /// `bare.never [fn, struct];` lines, which cover the whole Limb and
+    /// belong in `limb.cpls`.
+    pub bare_kinds: Vec<(Bare, Vec<String>, Span)>,
 }
