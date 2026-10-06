@@ -345,14 +345,23 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
             id
         }
     };
-    let mut file = parse_file(sources, &root)?;
-    // A dependency's `MAIN` runs only when that Limb itself is run, and
-    // is left out when another Limb uses it (owner, 2026-09-29: a).
-    if from.is_some() {
-        file.items.retain(|i| !matches!(i.kind, crate::ast::ItemKind::Main(..)));
-    }
-    items.collect_file(&file, m, from.is_none())?;
-    load_dir(sources, items, dir, m, true)?;
+    // A Limb without std reaches none of it; its dependencies are judged
+    // by their own `CCA.cplr` (owner, 2026-10-06).
+    crate::parser::set_no_std(dir.join("CCA.cplr").is_file() && !manifest.has_std);
+    crate::parser::set_cores(dir.join("CCA.cplr").is_file().then(|| manifest.cores.clone()));
+    let parsed = (|| {
+        let mut file = parse_file(sources, &root)?;
+        // A dependency's `MAIN` runs only when that Limb itself is run, and
+        // is left out when another Limb uses it (owner, 2026-09-29: a).
+        if from.is_some() {
+            file.items.retain(|i| !matches!(i.kind, crate::ast::ItemKind::Main(..)));
+        }
+        items.collect_file(&file, m, from.is_none())?;
+        load_dir(sources, items, dir, m, true)
+    })();
+    crate::parser::set_no_std(false);
+    crate::parser::set_cores(None);
+    parsed?;
     state.stack.push((key.clone(), prefix.clone()));
     let mut deps = std::collections::HashMap::new();
     let manifest_at = dir.join("CCA.cplr");
@@ -382,6 +391,11 @@ struct Manifest {
     default_target: Option<(String, crate::source::Span)>,
     /// Every target listed.
     targets: Vec<String>,
+    /// std is listed, by its ID and version (owner, 2026-10-06); a Limb
+    /// that does not list it reaches no operator and no `std::`.
+    has_std: bool,
+    /// The cores listed (owner, 2026-10-06).
+    cores: Vec<String>,
 }
 
 struct Dep {
@@ -399,7 +413,7 @@ const MANIFEST_SHAPE: &str = "`cca::Manifest[name = \"areas\", prefix = \"areas\
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
     use crate::lexer::Tok;
-    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new() };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), has_std: false, cores: Vec::new() };
     let at = dir.join("CCA.cplr");
     if !at.is_file() {
         return Ok(out);
@@ -544,8 +558,8 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 out.targets = names.clone();
             }
             // The cores a Limb's code is built by (`design/cores.md`):
-            // official ones only, each once. CCA reads the list; which
-            // core builds what is not built yet.
+            // official ones only, each once. A Limb reaches only the words
+            // of the cores it lists; CCA's code is built the same either way.
             "cores" => {
                 let ExprKind::List(entries) = &v.kind else {
                     return err(Diagnostic::error("`cores` is a list of `cca::Core[…]`: `[cca::Core[name = \"IEG\"],]`").at(v.span));
@@ -575,6 +589,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     }
                     names.push(n);
                 }
+                // MCPS works on IEG (owner: "Needs IEG, not std").
+                if names.iter().any(|n| n == "MCPS") && !names.iter().any(|n| n == "IEG") {
+                    return err(Diagnostic::error("the core MCPS needs IEG: add `cca::Core[name = \"IEG\"]` to `cores`").at(v.span));
+                }
+                out.cores = names;
             }
             _ => {
                 let ExprKind::List(entries) = &v.kind else {
@@ -610,6 +629,20 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             return err(Diagnostic::error(format!("a dependency's `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", i)).at(*ispan));
                         }
                     }
+                    // std, listed like any Limb (owner, 2026-10-06): CCA
+                    // knows one version of it, and downloads nothing.
+                    if let (Some((i, ispan)), Some((v, vspan))) = (&id, &version) {
+                        if i == crate::parser::STD_ID {
+                            if v != crate::parser::STD_VERSION {
+                                return err(Diagnostic::error(format!("CCA knows std `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
+                            }
+                            if out.has_std {
+                                return err(Diagnostic::error("std is listed twice in `dependencies`").at(*ispan));
+                            }
+                            out.has_std = true;
+                            continue;
+                        }
+                    }
                     match (dpath, version) {
                         (Some(_), Some((_, vspan))) => {
                             return err(Diagnostic::error("a dependency says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both").at(vspan));
@@ -642,6 +675,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             let what = if need == "prefix" { ", the word code writes in front of `::` to reach this Limb" } else { "" };
             return err(Diagnostic::error(format!("the manifest has no `{}`{}: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(value.span));
         }
+    }
+    // std's maths always has true values and checks (owner, 2026-10-06):
+    // a Limb that lists std lists ASP.
+    if out.has_std && !out.cores.iter().any(|c| c == "ASP") {
+        return err(Diagnostic::error("std needs the core ASP, so its maths has true values and checks: add `cca::Core[name = \"ASP\"]` to `cores`").at(value.span));
     }
     if out.targets.is_empty() {
         return err(Diagnostic::error(format!("the manifest has no target: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));

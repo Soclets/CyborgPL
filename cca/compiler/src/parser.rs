@@ -39,6 +39,12 @@ pub fn is_primitive_head(w: &str) -> bool {
 struct Parser<'a> {
     toks: &'a [Token],
     pos: usize,
+    /// A Limb whose `CCA.cplr` does not list std (owner, 2026-10-06):
+    /// no `std::` and none of std's operators.
+    no_std: bool,
+    /// The cores a Limb's `CCA.cplr` lists (owner, 2026-10-06); `None`
+    /// for a program without one, which has every core.
+    cores: Option<Vec<String>>,
     /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
     /// every parameter's type, a return type, `mut`/`immut` on every
     /// declaration, `temp`/`perm` on every `for`.
@@ -137,13 +143,63 @@ thread_local! {
     static SHARED_PREC: std::cell::RefCell<std::collections::HashMap<String, (u16, Chain)>> = Default::default();
 }
 
+thread_local! { static NO_STD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+
+/// Whether the files parsed next belong to a Limb whose `CCA.cplr` does
+/// not list std (owner, 2026-10-06); a program with no `CCA.cplr` gets the
+/// full package, as the machine's install gives it.
+pub fn set_no_std(on: bool) {
+    NO_STD.with(|c| c.set(on));
+}
+
+thread_local! { static CORES: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) }; }
+
+/// The cores the Limb whose files are parsed next lists (owner,
+/// 2026-10-06: "Limbs should say what cores they are built for"); `None`
+/// for a program with no `CCA.cplr`, which has them all.
+pub fn set_cores(cores: Option<Vec<String>>) {
+    CORES.with(|c| *c.borrow_mut() = cores);
+}
+
+/// Each core's own words, and the core that has them (owner, 2026-10-06).
+fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
+    let Tok::Word(w) = &toks[i].tok else { return None };
+    // A word right after `.` or `::` is a name in a path, not the keyword.
+    if i > 0 && matches!(toks[i - 1].tok, Tok::Dot | Tok::ColonColon) {
+        return None;
+    }
+    let next_is = |n: usize, t: &str| matches!(toks.get(i + n).map(|t| &t.tok), Some(Tok::Word(x)) if x == t);
+    Some(match w.as_str() {
+        "to" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) => ("`to.`", "ASP"),
+        "check" => ("`check`", "ASP"),
+        "nocheck" => ("`nocheck`", "IEG"),
+        "NO_FUCKING_CHECKS" => ("`NO_FUCKING_CHECKS`", "IEG"),
+        "interface" => ("`interface`", "Genny"),
+        "satisfies" => ("`satisfies`", "Genny"),
+        "concur" => ("`concur`", "MCPS"),
+        "whichever" => ("`whichever`", "MCPS"),
+        "channel" => ("`channel`", "MCPS"),
+        // `for para`, or `for !cheat para`.
+        "for" if next_is(1, "para") || (matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Op(o)) if o == "!") && next_is(2, "cheat") && next_is(3, "para")) => ("`for para`", "MCPS"),
+        _ => return None,
+    })
+}
+
+fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
+    err(Diagnostic::error(format!("{} is {}'s, and this Limb's CCA.cplr does not list the core {}: add `cca::Core[name = \"{}\"]` to its `cores`", what, core, core, core)).at(at))
+}
+
+/// std's registry ID and the one version CCA knows (owner, 2026-10-06).
+pub const STD_ID: &str = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936";
+pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
+
 pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chain)>) {
     SHARED_PREC.with(|t| *t.borrow_mut() = table);
 }
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -161,11 +217,23 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None };
     // Every Limb's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
     p.prec.extend(precedence_blocks(toks)?);
+    p.no_std = NO_STD.with(|c| c.get());
+    p.cores = CORES.with(|c| c.borrow().clone());
+    // A core's words, in a Limb that does not list the core.
+    if let Some(cores) = &p.cores {
+        for i in 0..toks.len() {
+            if let Some((what, core)) = core_word(toks, i) {
+                if !cores.iter().any(|c| c == core) {
+                    return core_missing(what, core, toks[i].span);
+                }
+            }
+        }
+    }
     let mut strict = None;
     if p.is(&Tok::Strict) {
         strict = Some(p.span().file);
@@ -185,7 +253,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -270,6 +338,15 @@ impl<'a> Parser<'a> {
         self.span_at(a).end == self.span_at(b).start
     }
 
+    /// Refuses one of std's operators or paths in a Limb that does not
+    /// list std (owner, 2026-10-06).
+    fn std_gate(&self, what: &str, span: Span) -> Result<()> {
+        if !self.no_std {
+            return Ok(());
+        }
+        self.fail_at(span, format!("`{}` is std's, and this Limb's CCA.cplr does not list std: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
+    }
+
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {
         err(Diagnostic::error(msg).at(self.span()))
     }
@@ -340,6 +417,9 @@ impl<'a> Parser<'a> {
             segs.push(self.ident("a name after `.`")?);
         }
         let span = start.to(self.prev_span());
+        if let Some(l) = limb.as_ref().filter(|l| l.name == "std") {
+            self.std_gate(&format!("std::{}", segs[0].name), l.span.to(segs[0].span))?;
+        }
         Ok(Path { limb, segs, span })
     }
 
@@ -604,6 +684,9 @@ impl<'a> Parser<'a> {
     fn announce(&mut self, owner: &str, what: &str) -> Result<Announce> {
         let mut a = Announce::default();
         while self.is_op("<") && matches!(self.peek_at(1), Tok::Word(_)) {
+            if self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "Genny")) {
+                return core_missing("a generic", "Genny", self.span_at(1));
+            }
             self.bump();
             let name = self.ident("the generic's name")?;
             self.expect_close_angle(&name.name)?;
@@ -2705,6 +2788,16 @@ impl<'a> Parser<'a> {
                     return self.fail_at(op_span, format!("`{}` is not an operator here: {}", c, h));
                 }
             }
+            // Every operator is std's but Signatar's `and.then` / `or.else`
+            // and a Limb's own.
+            let std_op = match &op {
+                BinOp::AndThen | BinOp::OrElse => false,
+                BinOp::Custom(c) => c.starts_with("std::"),
+                _ => true,
+            };
+            if std_op {
+                self.std_gate(&op.spelled(), op_span)?;
+            }
             let rhs = self.expr(r_bp)?;
             let span = lhs.span.to(rhs.span);
             self.check_precedence(&op, op_span, &lhs, &rhs)?;
@@ -2781,6 +2874,8 @@ impl<'a> Parser<'a> {
                 self.postfix_on(Expr { kind: ExprKind::Exact(text.replace('_', "")), span })
             }
             Tok::Op(o) if o == "-" => {
+                // Signatar has no negative numbers: `-5` is std's too.
+                self.std_gate("-", start)?;
                 self.bump();
                 // A negative binds below std's `pow`: `-2 pow 2` is -4.
                 let operand = self.expr(2 * NEG_LEVEL)?;
@@ -2808,6 +2903,7 @@ impl<'a> Parser<'a> {
             Tok::Word(w) => match w.as_str() {
                 "not" => {
                     self.bump();
+                    self.std_gate(if self.is(&Tok::Dot) { "not.bit" } else { "not" }, start)?;
                     if self.eat(&Tok::Dot) {
                         let b = self.ident("`bit`")?;
                         if b.name != "bit" {
@@ -2981,6 +3077,9 @@ impl<'a> Parser<'a> {
                     self.bump();
                     let Tok::Name(n) = self.peek().clone() else { unreachable!() };
                     let span = self.bump().span;
+                    if limb.name == "std" {
+                        self.std_gate(&format!("std::'{}'", n), limb.span.to(span))?;
+                    }
                     let path = Path { limb: Some(limb.clone()), segs: Vec::new(), span: limb.span.to(span) };
                     let e = Expr { span: start.to(span), kind: ExprKind::ConstPath { path, name: QName { name: n, span } } };
                     self.postfix_on(e)

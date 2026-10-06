@@ -1,0 +1,10 @@
+# No std listed: no operators here, while the Limb it uses lists std and
+# has them (owner, 2026-10-06: the check is per Limb).
+cca::Manifest[
+    name = "bare_root",
+    prefix = "bare_root",
+    version = "0.1.0",
+    dependencies = [cca::Dep[path = "../adds"],],
+    cores = [cca::Core[name = "IEG"],],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];
