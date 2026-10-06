@@ -73,7 +73,14 @@ MTM** (owner: "Make `!` the main spelling for `not`, so them kernel
 makers won't trip `!check` as `check`"): one `!` meaning "not" across
 the language, so `!check` reads as "not check" to anyone who knows it.
 **`not.bit` stays a word** (owner: "`a`"), with the bitwise family
-(`and.bit`, `or.bit`, `xor`, `shl`, `shr`), all std's. Not built.
+(`and.bit`, `or.bit`, `xor`, `shl`, `shr`), all std's. Not built. **MTM adds
+other spellings for any layer, each working only where its owner is**
+(design claude's reading, the owner: "yea"): `immut` for Signatar's
+`!mut`, `nocheck` for IEG's `!check` (the markers are IEG's, 2026-10-06;
+design claude had called `nocheck` Signatar's and corrected it), `not` for
+std's `!`, and the arrows, `&`, Rust's names for Signatar's own. The
+owner: "the other lang writers would be fucking confused, even though
+it's actually consistent. Which is fine".
 **MTM's ID** (owner: "gen ID now"): `9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56`, first version `2026-10-06T19:18:54+07:00`.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.

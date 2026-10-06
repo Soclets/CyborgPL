@@ -132,8 +132,10 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 - **WSTN, "Wanted Some Thai Names"** (owner, 2026-10-06): names in every
   script. Signatar's names, bare and quoted, are English letters, digits
   and `_`; WSTN opens them to every script and to emoji (owner: "`b`").
-- **MTM, "Maybe Too Much"** (owner, 2026-10-06): every other spelling
-  of something Signatar has, so Signatar keeps one. The arrows `->`,
+- **MTM, "Maybe Too Much"** (owner, 2026-10-06): other spellings, so
+  each layer keeps one, each working only where its owner is listed:
+  `immut` (Signatar's `!mut`), `nocheck` (IEG's `!check`), `not` (std's
+  `! 'x'`), and for Signatar: The arrows `->`,
   `>>`, `>>>`, `<-`, `<<`, `<<<`, `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`,
   `<-|->`, `<<|>>`, `<<<|>>>` (Signatar: `-->`, `<--`, `<-->`); `&` / `&mut`;
   Rust's number names; `bfloat16` / `bf16`; `!std_i24`; the short names
