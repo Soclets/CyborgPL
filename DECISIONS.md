@@ -33,7 +33,16 @@ anymore"), after design claude recommended one spelling per direction in
 Signatar and the owner first leaned to the short ones, then saw both
 side by side; the other fourteen come from a core. The owner asked
 whether that is a separate core, "because it also includes `&` and
-`&mut` (yes, no dot)": asked next.
+`&mut` (yes, no dot)". **A separate official core, MTM, "Maybe Too
+Much"** (owner: "yea, all in one separate core. `MTM` (Maybe Too Much)"),
+holds every other spelling of something Signatar has: the fourteen other
+arrows; `&` / `&mut` for `lend` / `lend.mut` and `&'x': T` / `&mut 'x': T`
+for `lent` / `lent.mut`; Rust's number names (`i32`, `u8`, `f64`, …);
+`bfloat16` / `bf16` for `brain16`; `!std_i24` / `!std_u24`; and `inline.S`
+for `inline.ASM`. Signatar keeps one spelling of each. The owner also:
+"Signatar would use the entire language's name when inline instead", so
+Signatar's `inline.` takes the language's full name (asked next: the
+spellings). MTM's ID: not generated yet.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
 
