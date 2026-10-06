@@ -64,7 +64,15 @@ answers), offering `!check.C`; the owner: "The fuck is `!check.C`?",
 then **"keep `NO_FUCKING_CHECKS` main"**. Not built. **`and`, `or`, `not` stay
 words** (std's operators, as `plus`), **and MTM brings `!` for `not`**
 (owner: "stay words, while MTM has `!` for not"); design claude had
-floated C's `&&` / `||` for MTM too, which the owner did not take up.
+floated C's `&&` / `||` for MTM too, which the owner did not take up. **The value's `!` is spaced: `! 'ready'`** (owner: "Why not with a
+space, `!` without space reads as a rule"), and **a glued `!'ready'` is
+refused** (owner: "`a`"), naming the spaced form: a glued `!` marks a
+rule (`!mut`, `!$`, `!check`, `!cheat`), a spaced one negates a value.
+Then: **`!` is the main spelling of `not`, and the word `not` moves to
+MTM** (owner: "Make `!` the main spelling for `not`, so them kernel
+makers won't trip `!check` as `check`"): one `!` meaning "not" across
+the language, so `!check` reads as "not check" to anyone who knows it.
+Not built.
 **MTM's ID** (owner: "gen ID now"): `9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56`, first version `2026-10-06T19:18:54+07:00`.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
