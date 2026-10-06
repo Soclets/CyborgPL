@@ -19,8 +19,24 @@ by ID in both manifests, the owner: "ID". Replaces the `cca::Core[name =
 (owner: "`a`"), over (b) the ID alone meaning the installed release:
 a core changes the language, so a project pins the release it was
 written for; CCA uses the installed copy when the ID and version match,
-as for std. Open: the official cores' IDs, whether "official cores only"
-stays (by ID), and `Synthia.ttsr`'s spelling (synthia claude's to ask).
+as for std. **The official cores' IDs and first version** (owner: "yea",
+to doing it as for std: design claude ran `openssl rand -hex 32` once per
+core and took what came out; the version is the release's date and time
+with the offset, std's rule), every first version `2026-10-06T18:04:29+07:00`:
+
+```
+IEG      5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085
+ASP      4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f
+Genny    c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9
+MCPS     7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d
+AutoGPU  67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d
+Metal    3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7
+Nvidia   beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361
+Vulkan   63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec
+```
+
+Open: whether "official cores only" stays (by ID), and `Synthia.ttsr`'s
+spelling (synthia claude's to ask).
 
 ### 2026-10-06 — `to.int8.bits[…]` takes any value whose bits fit, -128 to 255, and refuses the rest (owner: a)
 
