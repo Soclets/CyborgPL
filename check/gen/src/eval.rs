@@ -363,9 +363,12 @@ impl<'a> Ev<'a> {
                 let r = if y > 200 { if x == 0 || x == 1 { x } else if x == -1 { if y % 2 == 0 { 1 } else { -1 } } else { i128::MAX } } else { x.checked_pow(y as u32).unwrap_or(i128::MAX) };
                 self.limit64(r)
             }
-            AndBit => Ok(x & y),
-            OrBit => Ok(x | y),
-            Xor => Ok(x ^ y),
+            // An exact operand first fits the operator's width (CCA c1973f02,
+            // as the oracle does), then the bits are combined.
+            AndBit | OrBit | Xor => {
+                let (x, y) = (self.land(x, t.into())?, self.land(y, t.into())?);
+                Ok(match op { AndBit => x & y, OrBit => x | y, _ => x ^ y })
+            }
             Shl | Shr => {
                 self.check("shift_count", y, 0 <= y && y < w)?;
                 if op == Shl {

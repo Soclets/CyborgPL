@@ -2374,6 +2374,19 @@ impl Gen {
                 (mk(a, b), clip(Some(Iv::new(lo, hi))))
             }
             AndBit | OrBit | Xor => {
+                // A risk taken: an exact operand pushed past the operator's
+                // width, where it is a narrowing site (CCA c1973f02).
+                let (b, ib) = if risk && self.rng.chance(40) {
+                    if self.rng.chance(50) {
+                        let k = ib.lo - r.lo + self.rng.range(1, 20);
+                        (Expr::Bin(Sub, Box::new(b), Box::new(Expr::Lit(k))), Iv::new(ib.lo - k, ib.hi - k))
+                    } else {
+                        let k = r.hi - ib.hi + self.rng.range(1, 20);
+                        (Expr::Bin(Add, Box::new(b), Box::new(Expr::Lit(k))), Iv::new(ib.lo + k, ib.hi + k))
+                    }
+                } else {
+                    (b, ib)
+                };
                 if ia.lo >= 0 && ib.lo >= 0 {
                     let top = ia.hi.max(ib.hi);
                     let mask = if top == 0 { 0 } else { (1i128 << (128 - top.leading_zeros())) - 1 };
