@@ -36,7 +36,12 @@ everything the installer put there** (base, codextra, cores, std,
 `installed.cplr`); **with a piece named, only that piece**, rewriting
 `installed.cplr` (so dropping std leaves Signatar and IEG); a user's
 projects are never touched. Over (a) everything only and (b) pieces
-only; the owner: "`c`".
+only; the owner: "`c`". **The uninstaller comes with Synthia** (owner:
+"Btw, the uninstaller comes with Synthia"; asked whether that means the
+CyborgPL uninstaller is a Synthia command, or Synthia also gets one for
+itself: "both"): CyborgPL is uninstalled through Synthia, and Synthia can
+uninstall itself too. Spellings (`synthia uninstall`, `synthia uninstall
+std`) are design claude's sketches.
 
 ### 2026-10-06 — The report says `parallel on N CPU cores` (owner: yea)
 

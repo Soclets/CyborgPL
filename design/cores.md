@@ -176,7 +176,8 @@ Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
 `%APPDATA%\CyborgPL\`), named **`installed.cplr`** (owner); its value
 is *sketch*: `cca::Installed[ … ]`. **There is an uninstaller**
 (owner): with nothing named it removes everything the installer put
-there, with a piece named (std, say) only that piece; never a project.
+there, with a piece named (std, say) only that piece; never a project. It
+comes with Synthia, which can uninstall itself too (owner: "both").
 
 ## Code for one machine
 
