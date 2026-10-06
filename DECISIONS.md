@@ -22,7 +22,15 @@ know what to list, and rewritten by another codextra's installer to
 override the default codextra. Design claude's sketch, not ruled: a
 CyborgPL value like the manifest,
 `cca::Installed[codextra = "Signatar", cores = [ … ], limbs = [ … ]];`,
-somewhere like `~/.cyborgpl/`. Its name and place: open.
+somewhere like `~/.cyborgpl/`. **Its place is the one each OS gives for
+that** (owner: "The one that an OS gives you for that"), over design
+claude's `~/.cyborgpl/` and `~/.cca/`: on macOS `~/Library/Application
+Support/CyborgPL/`, on Linux the XDG data folder (`~/.local/share/cyborgpl/`),
+on Windows `%APPDATA%\CyborgPL\` (design claude's reading of each). Its
+file name: open (design claude proposed `installed.cplr`).
+
+**There is a CyborgPL uninstaller** (owner, same message: "And please,
+there should be a CyborgPL uninstaller"). What it removes: open.
 
 ### 2026-10-06 — The report says `parallel on N CPU cores` (owner: yea)
 

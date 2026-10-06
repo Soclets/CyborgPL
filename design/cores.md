@@ -171,7 +171,11 @@ manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
 the machine's package installed (owner, 2026-10-06). The installer writes
 that down in **a machine-wide record** (owner: "Good idea"), which `cca
 new` reads too and another codextra's installer rewrites; its name and
-place are open (*sketch*: `cca::Installed[ … ]` in `~/.cyborgpl/`).
+lives where each OS keeps such files (owner; macOS `~/Library/Application
+Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
+`%APPDATA%\CyborgPL\`), its file name open (*sketch*:
+`cca::Installed[ … ]` in `installed.cplr`). **There is an uninstaller**
+(owner); what it removes is open.
 
 ## Code for one machine
 
