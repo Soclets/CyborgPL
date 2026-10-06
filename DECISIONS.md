@@ -19,7 +19,14 @@ respective writers". So **a Limb's writer chooses**; design claude's
 reading: when a Limb chooses it, its names are insensitive inside it, and
 other Limbs reaching them (`geometry::Area[…]` finding `area`) do so
 insensitively too, since the choice belongs to the Limb that owns the
-names. Keywords stay exact. Open: the spelling, and the reading.
+names. Keywords stay exact. The owner: "yea" to the reading, "but for
+which too": **the switch says which names it covers, at every level the
+`bare` marks have** (owner: "`b`"): by kind (`fn`, `struct`, `enum`,
+`interface`, `const`, `case`, `field`, `var`, design claude's list), and
+also on one item and on a module or file, over (a) kinds only in
+`limb.cpls`, which design claude recommended. Open: the spelling
+(design claude's sketch, `names.case_insensitive [fn, struct];`), whether
+there is a default, and marks that disagree.
 
 ### 2026-10-06 — In `Synthia.ttsr`, every needed thing starts with `limb.` or `core.`; a core is listed there by ID and version (owner; relayed by synthia claude)
 
