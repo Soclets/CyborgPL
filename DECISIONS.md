@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — `to.int8.bits[…]` takes any value whose bits fit, -128 to 255, and refuses the rest (owner: a)
+
+`to.int8.bits[200]` is -56 and `to.uint8.bits[-1]` is 255 (both are an
+8-bit pattern, read either way); `to.int8.bits[300]` is refused (it needs
+9 bits). Over (b) the target's unsigned patterns only, 0 to 255, and (c)
+keeping the low 8 bits, as C's cast and Rust's `as` do. Design claude's
+reasoning: it matches the owner's refusal of too-wide literals, and -1
+really is an 8-bit pattern. The owner asked what fits (an `int8` holds
+-128 to 127, a `uint8` 0 to 255, the same 256 patterns read two ways),
+noted the usual `to.int8[…]` stays checked and only a written `.bits`
+reinterprets, and asked the cost: a literal costs nothing; a value known
+only at run time costs one comparison, none when Precog proves it fits or
+under `nocheck`, where (c) would have been free. The owner: "`a`". To
+cut on purpose, the writer says so: `to.int8.bits['x' and.bit 255]` or
+`to.int8.bits['x' mod.floor 256]` (300 gives 44, -300 gives -44 with
+`and.bit`).
+
 ### 2026-10-06 — The root path is `my.`, not `limb.` (owner; not built yet)
 
 ```
