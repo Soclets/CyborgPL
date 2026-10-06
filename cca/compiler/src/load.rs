@@ -734,6 +734,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     if out.has_std && !out.cores.iter().any(|c| c == "ASP") {
         return err(Diagnostic::error(format!("std needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", crate::ast::core_line("ASP"))).at(value.span));
     }
+    // And IEG, which grants it the operators on built-in types (owner,
+    // 2026-10-06: "`a`").
+    if out.has_std && !out.cores.iter().any(|c| c == "IEG") {
+        return err(Diagnostic::error(format!("std needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", crate::ast::core_line("IEG"))).at(value.span));
+    }
     if out.targets.is_empty() {
         return err(Diagnostic::error(format!("the manifest has no target: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));
     }
