@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — The root path is `mine.`, not `limb.` (owner; not built yet)
+
+```
+mine.helper[…]              # was limb.helper[…]
+mine.list.append[…]         # a Limb's own name, where a bare one clashes
+```
+
+Asked, after a Limb's own clashing name was ruled to be reached through
+its root ("yea"), "but should it be `mine.` instead?". Design claude: for
+`mine.`, it reads as "my own" and cannot be read as "some Limb"; for
+`limb.`, it pairs with `pub.limb`; leaned slightly to `mine.`, leaving
+`pub.limb` as it is ("public within the Limb" is another idea than "my
+root"). The owner: "`mine.`". Reverses 2026-09-19's `limb.` (chosen
+over the floated `std:to` / `std:::to`). About ten uses in the examples
+and tests. Asked next: the root file, `limb.cpls`.
+
 ### 2026-10-06 — A Limb says whether its path is required or optional, per item, per module and per kind (owner: "all"; not built; reverses 2026-09-23's "drop bare")
 
 Asked how std's list, map and text operations are written now that they
