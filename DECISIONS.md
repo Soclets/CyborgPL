@@ -378,8 +378,16 @@ So far:
   (owner, 2026-10-06: "`a`"): tasks, channels, `whichever`, timers and
   `concur.detached`, beside the automatic parallel loops, sharing one
   thread pool, over a core of its own. **The parallel core is MCPS, "More
-  Concurrently Parallel Shit"** (owner). Open: the GPU core's name, and
-  whether it is one core or several (asked).
+  Concurrently Parallel Shit"** (owner). **GPU: one core for automatic
+  offload on every GPU, plus three vendor cores for hand-written GPU code**
+  (owner: "one GPU core that adds support for all without manual, and 3
+  more for manual too"): Apple's (`inline.MSL`), AMD's and NVIDIA's, each
+  bringing its own inline language; the automatic one translates plain
+  `for` loops for whatever GPU the target has (2026-09-21's automatic
+  offload). Design claude had first proposed one core with backends,
+  warning a vendor core would lock a program to one GPU; the owner: "Isn't
+  that like saying "Why does Valorant not work on Linux?"", then that
+  listing all of them runs on all. Open: the cores' names.
 - **What the base keeps, decided one group at a time** (owner: "let's
   decide number 1 first"). **Comparisons go to std** (`==`, `!==`, `<`,
   `>`, `</==`, `>/==`), as `plus` does (owner: "`a`"); the base keeps
