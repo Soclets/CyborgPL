@@ -21,7 +21,7 @@ IEG         the official core: raw operations, inline.LLVM, the nocheck labels
 ASP         numbers mean their true values; to. conversions; run-time checks
 Genny       generics and interfaces
 MCPS        parallel loops and concur (needs threads)
-GPU cores   one for automatic offload on every GPU; Apple, AMD and NVIDIA
+AutoGPU     automatic offload on every GPU; Metal, Nvidia and Vulkan
             cores for hand-written GPU code
 std         a limb with powers: every operator, logic, text, printing
 your limbs  everything else
@@ -95,10 +95,12 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   across cores, and `concur`, channels, `whichever`, timers, sharing one
   thread pool. A program without it (a kernel) runs its loops in order and
   `for para` is refused. Needs IEG, not std.
-- **GPU**: one core for automatic offload on every GPU (it translates
-  plain `for` loops), and three vendor cores for hand-written GPU code:
-  Apple's (`inline.MSL`), AMD's and NVIDIA's. Listing all runs on all;
-  listing one is a choice, as Valorant chose Windows (owner). Names open.
+- **GPU**: **AutoGPU**, automatic offload on every GPU (it translates
+  plain `for` loops), and three cores for hand-written GPU code: **Metal**
+  (`inline.MSL`), **Nvidia** and **Vulkan** (AMD, NVIDIA, Intel, Android).
+  Listing all runs on all; listing one is a choice, as Valorant chose
+  Windows (owner). Core names are not trademarked; the categories and
+  names like Signatar are (owner).
 
 ## std, a limb with powers
 
@@ -177,8 +179,6 @@ is nothing to write it in.
 
 - **Lists, maps and text** (`list.length`, `map.get`, `str.bytes`): which
   layer.
-- **`on.machine`'s layer** (it runs a check at startup).
-- **Names**: the automatic GPU core and the three vendor cores.
 - **What a codextra hands the base** (LLVM IR, or a shared middle form),
   and the stable **plugin interface** for codextras and cores.
 - **The unverified-core warning's wording.**

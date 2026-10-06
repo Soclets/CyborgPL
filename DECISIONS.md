@@ -448,7 +448,15 @@ So far:
   offload). Design claude had first proposed one core with backends,
   warning a vendor core would lock a program to one GPU; the owner: "Isn't
   that like saying "Why does Valorant not work on Linux?"", then that
-  listing all of them runs on all. Open: the cores' names.
+  listing all of them runs on all. **Names: AutoGPU** for the automatic
+  core (owner), and for the hand-written ones **Metal**, **Nvidia** and
+  **Vulkan** (owner: "We could just say "Vulkan", "Nvidia", and "Metal"").
+  Design claude had proposed MetalGPU / CUDAGPU / HIPGPU and cautioned that
+  Metal, CUDA and ROCm are their companies' trademarks; the owner: "we
+  aren't trying to trademark our limb, and core names. Except the
+  categories, and stuff (like Signatar)". The third core is Vulkan rather
+  than an AMD-only one: Vulkan runs on AMD, NVIDIA, Intel and Android
+  alike.
 - **What the base keeps, decided one group at a time** (owner: "let's
   decide number 1 first"). **Comparisons go to std** (`==`, `!==`, `<`,
   `>`, `</==`, `>/==`), as `plus` does (owner: "`a`"); the base keeps
