@@ -135,7 +135,7 @@ Precog. Skipping ahead is a `while` with your own counter.
 
 ### Modifier order
 
-`for [!c] [seq|para] [temp|perm] 'name'[: type] in …` — `!cheat` (no cheating,
+`for [!cheat] [seq|para] [temp|perm] 'name'[: type] in …` — `!cheat` (no cheating,
 2026-10-01) first, then `seq` or `para` (opt out of or force parallelism,
 see `parallelism.md`), then `perm` if the variable outlives the loop, then
 the name, reading "for, sequentially, a permanent 'i'": `for seq perm 'i':

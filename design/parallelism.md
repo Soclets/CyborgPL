@@ -76,7 +76,7 @@ for !cheat seq 'i' in lend 'xs' { … }
 for !cheat para 'i' in range[1, 'n'] { … }
 ```
 
-**`!c`, "no cheat"**: every round's work really happens at run time. The
+**`!cheat`, "no cheat"** (`!c` until 2026-10-06): every round's work really happens at run time. The
 compiler may not replace the loop with its answer (clang turns
 `acc += i` over a known range into n(n+1)/2, and CCA's slices fold the
 same way) nor drop rounds whose results look unused. It may still do the
@@ -88,7 +88,7 @@ CyborgPL for timing code and the like, where today an empty
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
 `!cheat` changes what the loop must do, `seq` and `para` only how its rounds
-are scheduled, so `for !cheat seq`, never `for seq !c` (refused). It is the
+are scheduled, so `for !cheat seq`, never `for seq !cheat` (refused). It is the
 rule `.useful` already follows in `print.useful.stdout` and
 `to.useful.str.utf8`. `!cheat` is a token of its own, not a reserved name.
 `examples/for_no_cheat.cpls`; reject test for_no_cheat_order.
