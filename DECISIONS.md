@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — Without IEG nothing needs `!check`: the marking rule is IEG's (owner: yes)
+
+The owner: "If `inline.Assembly` comes with Signatar, shouldn't it not
+require `!check`? And only require when IEG is here?" Design claude: that
+is this morning's ruling ("Signatar marks nothing … IEG brings the
+markers … and the rule that raw memory and unproven code sit under
+`nocheck`"), which the oracle and CCA had never applied, and asked whether
+the same holds for the rest of that family: C calls, `ptr.read` /
+`ptr.write` / `ptr.cast`, C variables, a non-literal `print.format`. The
+owner: "yes". So in a Limb without IEG these are written plainly; where
+IEG is listed (and in a lone file, which has every core) each sits under
+`!check`. `examples/signatar_hello_c` (Hello World on Signatar alone,
+through C's `write`), reject test `asm_signatar_unmarked`.
+
 ### 2026-10-06 — `!std.int24`, not `!std_int24`: "not standard", narrowed with `.` (owner: yea)
 
 ```

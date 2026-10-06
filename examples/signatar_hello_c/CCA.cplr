@@ -1,0 +1,6 @@
+cca::Manifest[
+    name = "signatar_hello_c",
+    prefix = "signatar_hello_c",
+    version = "1.0.0",
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

@@ -178,6 +178,14 @@ impl<'p> Interp<'p> {
     pub fn set_args(&mut self, args: Vec<String>) { self.args = args; }
     pub fn set_bare(&mut self, b: HashMap<String, crate::ast::Bare>) { self.bare_of = b; }
 
+    /// Whether this code's Limb has IEG, whose rule puts raw memory and unproven code under `!check`;
+    /// Signatar alone marks nothing (owner, 2026-10-06: "Signatar marks nothing", then "yes" to
+    /// `inline.Assembly` and the rest needing `!check` only where IEG is)
+    fn marks_needed(&self) -> bool {
+        let root: Vec<String> = self.module.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect();
+        !crate::parser::LACKS.with(|l| l.borrow().iter().any(|(r, lacks)| *r == root && lacks.iter().any(|c| c == "IEG")))
+    }
+
     /// Another Limb's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
     /// those marked `bare.optional` or `bare.only`, in a Limb other than the caller's.
     fn bare_fns_elsewhere(&self, from: &[String], written: &[String], op: bool) -> Vec<&'p Func> {
@@ -690,7 +698,7 @@ impl<'p> Interp<'p> {
                 };
                 if kind == SlotKind::Const { return rt(*line, format!("'{name}' is a const and cannot be assigned to")); }
                 if kind == SlotKind::Extern { return rt(*line, format!("'{name}' is `extern let`, read-only; declare it `extern let mut` to write C's variable")); }
-                if kind == SlotKind::ExternMut && self.nocheck_depth == 0 { return rt(*line, format!("'{name}' is extern: writing C's variable is a !check site: `!check '{name}' = …;`")); }
+                if kind == SlotKind::ExternMut && self.nocheck_depth == 0 && self.marks_needed() { return rt(*line, format!("'{name}' is extern: writing C's variable is a !check site: `!check '{name}' = …;`")); }
                 if immut { return rt(*line, format!("'{name}' cannot be changed: it is `!mut` (or a loop's counter or element, which belong to the loop)")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 self.stale(name, self.lookup(name).unwrap(), *line)?;
@@ -1053,7 +1061,7 @@ impl<'p> Interp<'p> {
                 Ok(Flow::Give(v))
             }
             Stmt::Asm { text, binds, line } => {
-                if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a !check site: the compiler cannot see inside it"); }
+                if self.nocheck_depth == 0 && self.marks_needed() { return rt(*line, "an `asm` block is a !check site: the compiler cannot see inside it"); }
                 for b in binds {
                     match b {
                         AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("'{v}' is not declared")); } }
@@ -1678,7 +1686,7 @@ impl<'p> Interp<'p> {
     fn read_var(&self, name: &str, line: usize) -> Result<Value, RuntimeError> {
         match self.lookup(name) {
             None => rt(line, format!("'{name}' is not declared")),
-            Some(s) if matches!(s.kind, SlotKind::Extern | SlotKind::ExternMut) && self.nocheck_depth == 0 =>
+            Some(s) if matches!(s.kind, SlotKind::Extern | SlotKind::ExternMut) && self.nocheck_depth == 0 && self.marks_needed() =>
                 rt(line, format!("'{name}' is extern: C's variable, which nothing can be proven about — reading it is a !check site: `!check … '{name}' …`")),
             Some(s) if !s.alive => rt(line, format!("'{name}' was given away and no longer owns anything")),
             Some(s) => { self.stale(name, s, line)?; Ok(s.cell.borrow().clone()) }
@@ -2600,7 +2608,7 @@ impl<'p> Interp<'p> {
             }
             Expr::PtrCast(ty, args, line) => {
                 let line = *line;
-                if self.nocheck_depth == 0 { return rt(line, "`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a !check site"); }
+                if self.nocheck_depth == 0 && self.marks_needed() { return rt(line, "`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a !check site"); }
                 if let Err(m) = self.c_shaped(ty) { return rt(line, format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {m}")); }
                 let (pv, _) = self.value(&args.values[0])?;
                 // the address and whether it may write stay as they were: a `ptr` stays read-only
@@ -3809,7 +3817,7 @@ impl<'p> Interp<'p> {
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
         if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `cca test` runs it, and nothing calls it")); }
         if func.is_extern {
-            if self.nocheck_depth == 0 { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a !check site: `!check … {name}[…]`")); }
+            if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a !check site: `!check … {name}[…]`")); }
             let ranged_ret = matches!(func.ret, Some(Ty::Ranged(..)));
             if !ranged_ret && c.handler.is_some() { return rt(c.line, format!("`{name}` is extern and cannot fail; drop the `otherwise` (a wrapper turns its return into a failure — or give the extern a ranged return, which fails `out_of_range`)")); }
             if ranged_ret {
@@ -4421,7 +4429,7 @@ impl<'p> Interp<'p> {
         let (pv, _) = self.value(&args.values[0])?;
         let p = match pv { Value::Ptr(p) => p, other => return rt(line, format!("`ptr.{op}` needs a pointer, got {}", other.kind())) };
         if op == "is_null" { return Ok(Value::Bool(p.cell.is_none())); }
-        if self.nocheck_depth == 0 { return rt(line, format!("`ptr.{op}` goes through a pointer the compiler cannot vouch for — it is a !check site")); }
+        if self.nocheck_depth == 0 && self.marks_needed() { return rt(line, format!("`ptr.{op}` goes through a pointer the compiler cannot vouch for — it is a !check site")); }
         let Some(cell) = p.cell.clone() else { return site(line, format!("`ptr.{op}` on a null pointer")) };
         match op {
             "at" => {
@@ -4731,7 +4739,7 @@ impl<'p> Interp<'p> {
                 let fmt = match &c.args.values[0] {
                     crate::ast::Value::Expr(Expr::Text(t, _)) => t.clone(),
                     _ => {
-                        if self.nocheck_depth == 0 { return rt(c.line, format!("std::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a !check site: `!check std::{path}[…]`")); }
+                        if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("std::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a !check site: `!check std::{path}[…]`")); }
                         match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("std::{path} takes a text as its format, got {}", other.kind())) }
                     }
                 };

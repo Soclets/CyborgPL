@@ -1,0 +1,11 @@
+# Hello World on Signatar alone, through C (design/cores.md, "Hello World at every level"): no
+# cores, no std. Signatar marks nothing, so a C call needs no `!check` here; that rule is IEG's
+# (owner, 2026-10-06).
+
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+
+MAIN {
+    let 'text' := "Hello, world!
+";
+    let 'n' := write[1, lend 'text', 14];
+}
