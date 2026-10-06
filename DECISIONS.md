@@ -17,8 +17,11 @@ carries its path, only operators bare), which had itself reversed
 "for what" covers: (a) per item (`pub path.optional fn …`, *sketch*),
 (b) per kind, once for the Limb ("my operators and my `list.` functions:
 optional"), (c) per module, recommended. The owner: "all". So the
-writer of a Limb can mark the path optional at any of the three. Open:
-which wins when they disagree, the spelling, how two Limbs' optional
+writer of a Limb can mark the path optional at any of the three. **Marks
+that disagree are an error** (owner: "`c`"), over (a) the narrowest
+wins, recommended, and (b) "required" always wins: a Limb marking the
+module `list` optional and its item `list.clear` required is refused,
+and the writer makes them agree. Open: the spelling, how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
