@@ -20,6 +20,16 @@ downloads; `cca new` writes the line. No new form, no special case. The
 owner: "yea". Design claude's (a) was a form nobody needed: an ID says
 *which* limb, not that it must be downloaded.
 
+**std's registry ID** (owner: "do it yourself, I guess", after the
+owner's own `openssl rand -hex 32` was masked in the terminal; design
+claude ran `openssl rand -hex 32` once and took what came out):
+
+```
+fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936
+```
+
+So a manifest lists std as `cca::Dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", version = "…"]`.
+
 ### 2026-10-06 — A file with no `CCA.cplr` gets what the machine's package installed (owner; not built)
 
 Asked what `cca build hello.cpls` gives a file with no `CCA.cplr` beside

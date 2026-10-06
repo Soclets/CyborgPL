@@ -167,7 +167,8 @@ with source (owner). Signatar installs itself as the machine's default
 codextra, which the base uses to read `CCA.cplr`; another codextra's
 installer overrides it. Packages with std set things up so `cca new`
 lists std (and ASP, Genny), std by its registry ID and version like
-any limb, CCA using the installed copy when it matches (owner, 2026-10-06); without std, `cca new` writes an empty
+any limb, CCA using the installed copy when it matches (owner, 2026-10-06;
+std's ID is `fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936`); without std, `cca new` writes an empty
 manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
 the machine's package installed (owner, 2026-10-06). The installer writes
 that down in **a machine-wide record** (owner: "Good idea"), which `cca
