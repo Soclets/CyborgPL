@@ -367,8 +367,8 @@ pub enum Stmt {
     Let { tier: Tier, name: String, mutability: Mutability, ty: TyR, value: Expr },
     Assign { tier: Tier, name: String, value: Expr },
     If { arms: Vec<(Expr, Vec<Stmt>)>, otherwise: Option<Vec<Stmt>> },
-    /// `cheat`: `for !c` (owner, 2026-10-01): every round really runs; same
-    /// answers as a plain `for`. 0 plain, 1 `!c`, 2 `!c seq`.
+    /// `cheat`: `for !cheat` (owner, 2026-10-01; once `!c`): every round really runs; same
+    /// answers as a plain `for`. 0 plain, 1 `!cheat`, 2 `!cheat seq`.
     For { perm: bool, cheat: u8, name: String, ty: Ty, start: Expr, stop: Expr, step: Option<i128>, body: Vec<Stmt> },
     While { cond: Expr, body: Vec<Stmt> },
     Loop { body: Vec<Stmt> },
@@ -829,8 +829,9 @@ impl<'a> Wr<'a> {
             }
             Stmt::For { perm, cheat, name, ty, start, stop, step, body } => {
                 let perm = if *perm { "perm " } else if self.strict { "temp " } else { "" };
-                // the strongest modifier first: `for !c seq perm` (owner, 2026-10-01)
-                let cheat = ["", "!c ", "!c seq "][*cheat as usize];
+                // the strongest modifier first: `for !cheat seq perm` (owner, 2026-10-01;
+                // `!cheat` since 2b7f336, 2026-10-06)
+                let cheat = ["", "!cheat ", "!cheat seq "][*cheat as usize];
                 self.out.push_str(&format!("{pad}for {cheat}{perm}{}: {} in range[", q(name), ty.name()));
                 if self.strict {
                     // labelled, and `by` always written (owner, 2026-09-27)

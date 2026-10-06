@@ -86,7 +86,8 @@ pub struct Config {
     pub deci: bool,
     /// The `to.useful.…` forms (CCA does not take the 2026-09-30 spelling yet).
     pub deci_useful: bool,
-    /// `for !c` / `for !c seq` on some range loops (owner, 2026-10-01).
+    /// `for !cheat` / `for !cheat seq` on some range loops (owner, 2026-10-01;
+    /// spelled `!c` until 2b7f336).
     pub no_cheat: bool,
     /// `brain16` (owner, 2026-10-02): its own family, each step rounded,
     /// seen through conversions; never inside a `check`.

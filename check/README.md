@@ -104,8 +104,9 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
   `.ceil`, `.trunc` and their `mod`s (never `mod.near`, refused there).
   The roundings past `.floor` are avoided by default until CCA has them
   (`rounding`).
-  **`for !c`** (owner, 2026-10-01; `--avoid no-cheat`): about one range
-  loop in seven is `for !c` or `for !c seq`; same answers as a plain `for`.
+  **`for !cheat`** (owner, 2026-10-01, `!cheat` since 2b7f336; `--avoid
+  no-cheat`): about one range loop in seven is `for !cheat` or `for !cheat
+  seq`; same answers as a plain `for`.
   **Enums** (design/enums.md; `--avoid enums` turns them off): about
   half of programs get one or two, with integer data on some cases; enum
   names, changes, `==` on them, `match` statements, and `match` giving a
@@ -226,7 +227,10 @@ no input reached — that is what attacks (a)–(c) are for.
 
 `--avoid` keeps the generator away from bugs already reported, so they do
 not drown new ones; their cases are in `corpus/`. `--avoid none` aims
-straight at them. Default: `none`.
+straight at them. Default: `no-cheat`.
+
+- `no-cheat`: no `for !cheat` (the oracle's spelling since 2b7f336; CCA
+  has not reported it yet).
 
 - `rounding`: only `div.floor` / `mod.floor` on integers and `div.near` /
   `mod.floor` on decis and brain16 (all four roundings in CCA 81445c7).
