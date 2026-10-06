@@ -84,7 +84,10 @@ default"): asked whether a Limb's operators follow a default of "path
 required" ((a), recommended) or stay optional as before ((b)), the owner
 ruled out a default altogether, so every `pub` thing a Limb offers is
 covered by a mark (on it, its module or its kind) saying required,
-optional or forbidden. Asked next: the spelling of "required".
+optional or forbidden. **Required is `bare.never`** (owner: "yea"), over
+`bare.no` and `path.required`: "never bare, sometimes bare, only bare". A
+Limb wanting every name on its path writes `bare.never [fn, op, struct,
+enum, const, interface];` in `limb.cpls`.
 **A Limb's own clashing name is reached through its root**, as any name
 is: `my.list.append[…]` (design claude's reading; the owner: "yea"; the
 root became `my.`, below). Open: how this sits with 2026-10-02's registry rule (a
