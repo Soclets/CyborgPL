@@ -1428,6 +1428,13 @@ impl<'p> Interp<'p> {
             Expr::Convert(t, _, _, _, _) => Some(t.clone()),
             Expr::Unary(_, inner, _) => self.expr_ty_own(inner),
             Expr::Binary(_, l, r, _) => self.expr_ty_own(l).or_else(|| self.expr_ty_own(r)),
+            // a call's return type answers for it (operators.md, 2026-09-23 a: any operand whose type
+            // is known; check claude, seeds 55 and 123, after `shl` came to need a width)
+            Expr::Call(c) if c.limb.is_none() => {
+                let (module, name) = c.path.split_at(c.path.len().max(1) - 1);
+                self.prog.funcs.iter().find(|f| f.module == module && name.first() == Some(&f.name) && !f.is_op)
+                    .and_then(|f| f.ret.clone()).filter(|t| !matches!(t, Ty::Var(_) | Ty::Inst(..)))
+            }
             _ => None,
         }
     }
