@@ -80,7 +80,7 @@ width, at least 64 bits), and the checked conversions. Open: exactly which rules
 carries (literals only, or all of "exact, checked where it lands" and
 the middle limit).
 
-### 2026-10-06 — Code for one target: `on_target … { } else on_target … { } else { }`, chosen when compiling (owner: b; not built)
+### 2026-10-06 — Code for one target: `on.target … { } else on.target … { } else { }`, chosen when compiling, and `on.machine` when running (owner: b; not built)
 
 ```
 on.target aarch64 { nocheck inline.S { neg x0, x0 } with [ … ]; }
@@ -112,9 +112,14 @@ Apple's deployment target or C's `-march`; **when running**, one build
 carries both versions and checks the actual machine once at startup
 (`on_machine.chip sve { … } else { … }`, design claude's sketch), as GCC's
 function multiversioning, so it runs everywhere and is fast where it can
-be. Open: `on_machine`'s spelling and layer (it runs a check, so it may
-need IEG or the OS); new keywords, so synthia claude's name check needs
-them when built.
+be. **Back to the dot** (owner: "Wait a minute, you said `on_machine`, and
+`on_target`. Shouldn't it use a dot now? Since, we now have two
+narrowings of `on`"): by the owner's own rule, `on` now has two
+narrowings, so **`on.target`** and **`on.machine`**, each narrowed again:
+`on.target.chip`, `on.target.os`, `on.machine.chip`. The `on_target`
+spelling above lasted the same morning. Open: `on.machine`'s layer (it
+runs a check, so it may need IEG or the OS); `on` is a new keyword, so
+synthia claude's name check needs it when built.
 
 ### 2026-10-06 — Generics are their own official core, not Signatar's (owner)
 
