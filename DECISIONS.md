@@ -14,10 +14,13 @@ gives a core a registry ID (the "Fastmath" warning), that names repeat
 and IDs do not, that a core runs inside the compiler, and that Synthia
 can use IDs only if `CCA.cplr` does too; asked whether cores are listed
 by ID in both manifests, the owner: "ID". Replaces the `cca::Core[name =
-"IEG"]` shape (built in the oracle and CCA). Open: `CCA.cplr`'s spelling,
-the official cores' IDs, whether a core entry carries a version, whether
-"official cores only" stays (by ID), and `Synthia.ttsr`'s spelling
-(synthia claude's to ask).
+"IEG"]` shape (built in the oracle and CCA). **In `CCA.cplr` a core is
+`cca::Core[id = "…64 hex…", version = "…"]`, with a version, as a limb**
+(owner: "`a`"), over (b) the ID alone meaning the installed release:
+a core changes the language, so a project pins the release it was
+written for; CCA uses the installed copy when the ID and version match,
+as for std. Open: the official cores' IDs, whether "official cores only"
+stays (by ID), and `Synthia.ttsr`'s spelling (synthia claude's to ask).
 
 ### 2026-10-06 — `to.int8.bits[…]` takes any value whose bits fit, -128 to 255, and refuses the rest (owner: a)
 
