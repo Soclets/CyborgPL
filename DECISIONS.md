@@ -32,8 +32,11 @@ using an emoji do?" Design claude: the messages were made plain text,
 with no carets under the source, partly because Thai graphemes are not
 code points (`diagnostics.md`, 2026-09-22), though what unit a message's
 column counts is not stated there; a name costs nothing at run time
-(names vanish when compiling, kept only as debug symbols). Open: WSTN's
-ID, and a message column's unit.
+(names vanish when compiling, kept only as debug symbols). **WSTN's ID**
+(owner: "yea", generated as the other cores' were): `e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4`, first
+version `2026-10-06T18:48:22+07:00`. **A message's column counts graphemes** (owner: "our error
+messages are gonna be graphemes, unless you have a better one"; asked
+next: the machine form).
 
 ### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
 
