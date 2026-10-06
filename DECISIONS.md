@@ -41,7 +41,13 @@ only; the owner: "`c`". **The uninstaller comes with Synthia** (owner:
 CyborgPL uninstaller is a Synthia command, or Synthia also gets one for
 itself: "both"): CyborgPL is uninstalled through Synthia, and Synthia can
 uninstall itself too. Spellings (`synthia uninstall`, `synthia uninstall
-std`) are design claude's sketches.
+std`) are design claude's sketches. **Synthia only**: CCA has no uninstaller.
+Design claude had asked about the twin ((a) `cca uninstall` doing the
+work with `synthia uninstall` running it, as `tune`; (b) Synthia only,
+every package including it; (c) Synthia only, a CCA-only user downloading
+it); the owner: "Synthia only, just like how a CCA user would have to
+change a limb's prefix themselves", so a CCA-only user removes CyborgPL
+by hand. Whether a package includes Synthia: open.
 
 ### 2026-10-06 — The report says `parallel on N CPU cores` (owner: yea)
 

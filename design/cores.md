@@ -177,7 +177,9 @@ Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
 is *sketch*: `cca::Installed[ … ]`. **There is an uninstaller**
 (owner): with nothing named it removes everything the installer put
 there, with a piece named (std, say) only that piece; never a project. It
-comes with Synthia, which can uninstall itself too (owner: "both").
+comes with Synthia only, which can uninstall itself too (owner); a
+CCA-only user removes CyborgPL by hand, "just like how a CCA user would
+have to change a limb's prefix themselves" (owner).
 
 ## Code for one machine
 
