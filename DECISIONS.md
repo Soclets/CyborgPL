@@ -94,6 +94,12 @@ the rest `bare.never` so `std::print` shows its origin): `print.useful
 .stdout[…]` and `std::print.useful.stdout[…]`, `list.append[…]` and
 `std::list.append[…]`, `pow` and `std::pow` are all legal. In std's
 `limb.cpls`: `bare.optional [fn, op, struct, enum, const, interface];`.
+**A glyph operator is exempt from the marks** (owner: "`a`, because I
+think doing `std::++` beats the purpose of making it with symbols"): it
+can carry no path (`'a' geometry::<+> 'b'` does not exist), so it takes no
+mark and a mark on it is refused, over (b) marking it, which could only
+ever be `bare.only`. std's glyph operators (`++`, `==`, `<`) have no
+`std::` form either; its word operators do (`std::plus`).
 **A Limb's own clashing name is reached through its root**, as any name
 is: `my.list.append[…]` (design claude's reading; the owner: "yea"; the
 root became `my.`, below). Open: how this sits with 2026-10-02's registry rule (a
