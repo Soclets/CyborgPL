@@ -10,7 +10,7 @@ enum Size {
 
 layout.C enum Mode {
     off = 0
-    on = 7
+    lit = 7
 }
 
 MAIN {
@@ -32,9 +32,9 @@ MAIN {
     let 's' := Size.big;
     if to.stored.str.utf8['s'] == "Size.big" { change 'got' = 'got' plus 1; }
     if to.useful.str.utf8['s'] == "big" { change 'got' = 'got' plus 1; }
-    let 'o' := Mode.on;
-    if to.stored.str.utf8['o'] == "Mode.on" { change 'got' = 'got' plus 1; }
-    if to.useful.str.utf8['o'] == "on" { change 'got' = 'got' plus 1; }
+    let 'o' := Mode.lit;
+    if to.stored.str.utf8['o'] == "Mode.lit" { change 'got' = 'got' plus 1; }
+    if to.useful.str.utf8['o'] == "lit" { change 'got' = 'got' plus 1; }
     let 'g': bin32 = 0.1;
     if to.useful.str.utf8['g'] == "0.1" { change 'got' = 'got' plus 1; }
     let 'b': bin64 = 100.0;

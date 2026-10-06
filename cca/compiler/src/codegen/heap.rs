@@ -34,6 +34,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_par_for" => w.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_realloc" => p.fn_type(&[p.into(), w.into()], false),
             "cyborg_free" => self.ctx.void_type().fn_type(&[p.into()], false),
+            "cyborg_machine_has" => self.ctx.bool_type().fn_type(&[self.ctx.i32_type().into()], false),
             "cyborg_copy" | "cyborg_move" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_str_concat" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into(), p.into(), w.into()], false),
             "cyborg_str_copy" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),

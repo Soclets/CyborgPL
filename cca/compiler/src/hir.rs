@@ -214,6 +214,9 @@ pub enum Builtin {
     StrGraphemes,
     StrEach(crate::types::Unit),
     CharCode,
+    /// `on.machine.chip sve` (owner, 2026-10-06): whether the machine
+    /// running has it, by its place in `ast::ON_FEATURES`.
+    MachineHas(u32),
     CharFromCode(crate::types::Unit),
     PtrRead,
     PtrWrite,

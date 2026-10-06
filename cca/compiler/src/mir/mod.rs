@@ -164,6 +164,8 @@ pub enum Op {
     StrGraphemes,
     StrEach(Unit),
     CharCode,
+    /// Whether the machine running has a chip or feature (`hir`).
+    MachineHas(u32),
     CharFromCode(Unit),
     PtrRead,
     PtrWrite,

@@ -418,6 +418,13 @@ nocheck_lied [fnv:ee1996e7ba5a0e26] :: !by-design CCA builds it and emits a note
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
 number_next_to_text [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
 number_to_char [fnv:12ef8394243841eb] :: `char.point.from_code[…] otherwise …` builds one from a code
+on_bare [fnv:5498c2f32cd9b7fa] :: `on` is narrowed: `on.target …`
+on_else_if [fnv:48319131dc22b511] :: an `on` chain goes on with `else on.…` or ends with `else { }`
+on_machine_no_ieg [fnv:8e642b877b27d0ac] :: `on.machine` is IEG's
+on_machine_top_level [fnv:b86c139ea15f48e6] :: `on.machine` chooses when running, so it goes inside a body
+on_target_half [fnv:cd13379047ebb6c8] :: `aarch64` is a chip; a whole target is chip-os
+on_target_os_version [fnv:c6206898ad46136d] :: an OS minimum (`on.target.os macos 15`) is not built
+on_target_unknown_chip [fnv:7417416629ca9575] :: `arm64` is not a chip `on.target.chip` knows
 one_ended_below [fnv:a1c7cab21b67229a] :: the value can be outside what a `int8[1, 127]` holds
 op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`

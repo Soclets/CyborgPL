@@ -1884,6 +1884,8 @@ impl Precog {
                 }
             }
             Op::CharCode => Domain::Ints(ISet::Range { lo: 0, hi: 0x10FFFF }),
+            // Known only when the program runs.
+            Op::MachineHas(_) => Domain::Bools(true, true),
             Op::Std(name) => {
                 if name.starts_with("input") {
                     self.reads_outside = true;

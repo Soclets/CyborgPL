@@ -2145,6 +2145,7 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::StrGraphemes => Op::StrGraphemes,
         Builtin::StrEach(u) => Op::StrEach(*u),
         Builtin::CharCode => Op::CharCode,
+        Builtin::MachineHas(f) => Op::MachineHas(*f),
         Builtin::CharFromCode(u) => Op::CharFromCode(*u),
         Builtin::PtrRead => Op::PtrRead,
         Builtin::PtrWrite => Op::PtrWrite,

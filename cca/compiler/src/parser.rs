@@ -11,7 +11,7 @@ use crate::source::Span;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
     "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "para", "list", "array", "struct", "pub",
-    "const", "module", "limb", "my", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
+    "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
     "layout", "size", "align", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
     "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "bin16", "bin32", "bin64",
     "bin128", "deci32", "deci64", "deci128",
@@ -176,6 +176,7 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "NO_FUCKING_CHECKS" => ("`NO_FUCKING_CHECKS`", "IEG"),
         "interface" => ("`interface`", "Genny"),
         "satisfies" => ("`satisfies`", "Genny"),
+        "on" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && next_is(2, "machine") => ("`on.machine`", "IEG"),
         "concur" => ("`concur`", "MCPS"),
         "whichever" => ("`whichever`", "MCPS"),
         "channel" => ("`channel`", "MCPS"),
@@ -276,6 +277,10 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 None if items.is_empty() && bare_file.is_none() => bare_file = Some((mark, at)),
                 None => return p.fail_at(at, FILE_MARK_FIRST),
             }
+            continue;
+        }
+        if p.is_word("on") {
+            items.extend(p.on_items()?);
             continue;
         }
         push_item(&mut items, p.item()?);
@@ -535,6 +540,179 @@ impl<'a> Parser<'a> {
         Ok(Item { vis, kind, span, bare })
     }
 
+    /// One condition of an `on` chain, up to its `{` (owner, 2026-10-06):
+    /// `on.target aarch64-macos`, `on.target.chip x86_64`, `on.target.os
+    /// windows` — `Ok(Ok(matched))`, chosen against the target now — or
+    /// `on.machine.chip sve`, asked when running: `Ok(Err(what))`.
+    fn on_cond(&mut self, top: bool) -> Result<std::result::Result<bool, String>> {
+        let narrowed = "`on` is narrowed: `on.target …` (chosen when compiling) or `on.machine …` (when running)";
+        self.bump();
+        if !self.is(&Tok::Dot) {
+            return self.fail(narrowed);
+        }
+        self.bump();
+        let which = self.ident("`target` or `machine`")?;
+        let list = |names: &[&str]| names.join(", ");
+        match which.name.as_str() {
+            "machine" => {
+                if top {
+                    return self.fail_at(which.span, "`on.machine` chooses when running, so it goes inside a body; around items, `on.target`");
+                }
+                if !self.is(&Tok::Dot) || !self.is_word_at(1, "chip") {
+                    return self.fail("`on.machine` asks the chip what it can do: `on.machine.chip sve { … }`");
+                }
+                self.bump();
+                self.bump();
+                let f = self.ident("a chip or a feature")?;
+                if !ON_FEATURES.contains(&f.name.as_str()) {
+                    return self.fail_at(f.span, format!("`{}` is not a chip or feature CCA can ask about: {}", f.name, list(&ON_FEATURES)));
+                }
+                Ok(Err(f.name))
+            }
+            "target" => {
+                // The target CCA builds for is this machine's so far.
+                let (chip, os) = (std::env::consts::ARCH, std::env::consts::OS);
+                if self.eat(&Tok::Dot) {
+                    let part = self.ident("`chip` or `os`")?;
+                    let name = self.ident("a name")?;
+                    let matched = match part.name.as_str() {
+                        "chip" => {
+                            if !ON_CHIPS.contains(&name.name.as_str()) {
+                                return self.fail_at(name.span, format!("`{}` is not a chip `on.target.chip` knows: {}", name.name, list(&ON_CHIPS)));
+                            }
+                            if let Tok::Word(f) = self.peek().clone() {
+                                return self.fail(format!("a chip's minimum (`on.target.chip {} {}`) is not built: how a build names the chip features it needs is not decided; `on.machine.chip` checks when running", name.name, f));
+                            }
+                            name.name == chip
+                        }
+                        "os" => {
+                            if !ON_OSES.contains(&name.name.as_str()) {
+                                return self.fail_at(name.span, format!("`{}` is not an OS `on.target.os` knows: {}", name.name, list(&ON_OSES)));
+                            }
+                            if let Tok::Num { text, .. } = self.peek().clone() {
+                                return self.fail(format!("an OS minimum (`on.target.os {} {}`) is not built: how a build names the oldest version it runs on is not decided", name.name, text));
+                            }
+                            name.name == os
+                        }
+                        other => return self.fail_at(part.span, format!("`on.target.{}` is not a narrowing: `on.target.chip …` or `on.target.os …`", other)),
+                    };
+                    return Ok(Ok(matched));
+                }
+                let c = self.ident("a target, chip-os")?;
+                if !self.is_op("-") {
+                    return self.fail_at(c.span, format!("`{}` is a chip; a whole target is chip-os (`{}-macos`), or narrow: `on.target.chip {}`", c.name, c.name, c.name));
+                }
+                self.bump();
+                let o = self.ident("an OS after `-`")?;
+                if !ON_CHIPS.contains(&c.name.as_str()) || !ON_OSES.contains(&o.name.as_str()) {
+                    return self.fail_at(c.span.to(o.span), format!("`{}-{}` is not a target: chip-os, from {} and {}", c.name, o.name, list(&ON_CHIPS), list(&ON_OSES)));
+                }
+                Ok(Ok(c.name == chip && o.name == os))
+            }
+            _ => self.fail_at(which.span, narrowed),
+        }
+    }
+
+    /// After a branch: `else on.…` goes on, `else { … }` ends, and
+    /// `else if` is refused. `Some(true)` when another condition follows.
+    fn on_else(&mut self) -> Result<Option<bool>> {
+        if !self.is_word("else") {
+            return Ok(None);
+        }
+        self.bump();
+        if self.is_word("on") {
+            return Ok(Some(true));
+        }
+        if self.is_word("if") {
+            return self.fail("an `on` chain goes on with `else on.…` or ends with `else { }`; an `if` goes inside a branch");
+        }
+        Ok(Some(false))
+    }
+
+    /// An `on` chain inside a body: the branches `on.target` rules out are
+    /// read and dropped, and what is left is an `if` chain asking the
+    /// machine, its `else` the branch the target chose.
+    fn on_stmt(&mut self) -> Result<StmtKind> {
+        let start = self.span();
+        let mut asked: Vec<(String, Block)> = Vec::new();
+        let mut chosen: Option<Block> = None;
+        loop {
+            let cond = self.on_cond(false)?;
+            let body = self.block("this branch")?;
+            match cond {
+                Ok(true) if chosen.is_none() => chosen = Some(body),
+                Err(what) if chosen.is_none() => asked.push((what, body)),
+                _ => {}
+            }
+            match self.on_else()? {
+                Some(true) => continue,
+                Some(false) => {
+                    let body = self.block("`else`")?;
+                    if chosen.is_none() {
+                        chosen = Some(body);
+                    }
+                }
+                None => {}
+            }
+            break;
+        }
+        let mut rest = chosen.map(ElseArm::Block);
+        for (what, then) in asked.into_iter().rev() {
+            let at = then.span;
+            let segs = ["on", "machine", "chip", &what].iter().map(|n| Ident { name: n.to_string(), span: at }).collect();
+            let cond = Expr { kind: ExprKind::Call { path: Path { limb: None, segs, span: at }, args: Vec::new(), otherwise: None }, span: at };
+            let kind = StmtKind::If { cond, then, else_: rest };
+            rest = Some(ElseArm::If(Box::new(Stmt { kind, span: at })));
+        }
+        Ok(match rest {
+            Some(ElseArm::If(s)) => s.kind,
+            Some(ElseArm::Block(b)) => StmtKind::Block(b),
+            None => StmtKind::Block(Block { stmts: Vec::new(), span: start.to(self.prev_span()) }),
+        })
+    }
+
+    /// An `on.target` chain around items: only the chosen branch's items
+    /// exist.
+    fn on_items(&mut self) -> Result<Vec<Item>> {
+        let mut chosen: Option<Vec<Item>> = None;
+        loop {
+            let matched = self.on_cond(true)?.unwrap_or(false);
+            let items = self.on_item_block()?;
+            if matched && chosen.is_none() {
+                chosen = Some(items);
+            }
+            match self.on_else()? {
+                Some(true) => continue,
+                Some(false) => {
+                    let items = self.on_item_block()?;
+                    if chosen.is_none() {
+                        chosen = Some(items);
+                    }
+                }
+                None => {}
+            }
+            break;
+        }
+        Ok(chosen.unwrap_or_default())
+    }
+
+    fn on_item_block(&mut self) -> Result<Vec<Item>> {
+        let open = self.expect(&Tok::LBrace, "`{` opening the branch")?;
+        let mut items = Vec::new();
+        while !self.is(&Tok::RBrace) {
+            if self.at_eof() {
+                return self.fail_at(open, "this branch's `{` is never closed");
+            }
+            if self.is_word("on") {
+                items.extend(self.on_items()?);
+                continue;
+            }
+            push_item(&mut items, self.item()?);
+        }
+        self.bump();
+        Ok(items)
+    }
+
     /// `bare.never`, `bare.optional` or `bare.only` (owner, 2026-10-06).
     fn bare_mark(&mut self) -> Result<(Bare, Span)> {
         let at = self.span();
@@ -714,6 +892,10 @@ impl<'a> Parser<'a> {
                 while !self.is(&Tok::RBrace) {
                     if self.at_eof() {
                         return self.fail(format!("module `{}` is never closed", name.name));
+                    }
+                    if self.is_word("on") {
+                        items.extend(self.on_items()?);
+                        continue;
                     }
                     push_item(&mut items, self.item()?);
                 }
@@ -1892,6 +2074,7 @@ impl<'a> Parser<'a> {
                 self.expect_semi("`continue`")?;
                 Ok(StmtKind::Continue)
             }
+            "on" => self.on_stmt(),
             "concur" => {
                 self.bump();
                 self.concur_rest()

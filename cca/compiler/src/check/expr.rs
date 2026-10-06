@@ -3124,6 +3124,11 @@ impl Checker {
             },
             ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is std's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet", other)).at(span)),
             ("char", ["code"]) => BuiltinHead::B(Builtin::CharCode),
+            // Built by the parser from `on.machine.chip X` (owner, 2026-10-06).
+            ("on", ["machine", "chip", f]) => match ast::ON_FEATURES.iter().position(|n| n == f) {
+                Some(i) => BuiltinHead::B(Builtin::MachineHas(i as u32)),
+                None => return Ok(None),
+            },
             ("char", [unit, "from_code"]) => match *unit {
                 "byte" => BuiltinHead::B(Builtin::CharFromCode(Unit::Byte)),
                 "point" => BuiltinHead::B(Builtin::CharFromCode(Unit::Point)),
@@ -3404,6 +3409,10 @@ impl Checker {
                     u => Ty::Char(*u),
                 };
                 (vec![a], Ty::Seq { elem: Box::new(elem), kind: SeqKind::Array })
+            }
+            Builtin::MachineHas(_) => {
+                arity(0, self)?;
+                (Vec::new(), Ty::Bool)
             }
             Builtin::CharCode => {
                 arity(1, self)?;

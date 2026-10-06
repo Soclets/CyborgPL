@@ -713,6 +713,13 @@ impl Bare {
 /// so another Limb's const always has its path.
 pub const BARE_KINDS: [&str; 5] = ["fn", "op", "struct", "enum", "interface"];
 
+/// Code for one target (owner, 2026-10-06), design claude's lists, not
+/// ruled: the chips and OSes `on.target` knows, and what
+/// `on.machine.chip` can ask the machine.
+pub const ON_CHIPS: [&str; 13] = ["aarch64", "x86_64", "x86", "arm", "riscv64", "riscv32", "wasm32", "wasm64", "powerpc64", "powerpc64le", "s390x", "mips64", "loongarch64"];
+pub const ON_OSES: [&str; 10] = ["macos", "ios", "linux", "android", "windows", "freebsd", "netbsd", "openbsd", "wasi", "none"];
+pub const ON_FEATURES: [&str; 14] = ["aarch64", "x86_64", "neon", "sve", "sve2", "aes", "sha2", "sha3", "crc", "lse", "dotprod", "fp16", "bf16", "i8mm"];
+
 pub const CONST_TAKES_NO_MARK: &str = "a const takes no `bare` mark: `'pi'` alone is a variable, so another Limb's const always has its path (owner, 2026-10-06)";
 
 /// One parsed `.cpls` file.

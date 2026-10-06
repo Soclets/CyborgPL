@@ -24,6 +24,46 @@ extern "C" {
     fn memmove(dst: *mut u8, src: *const u8, bytes: usize) -> *mut u8;
 }
 
+/// `on.machine.chip X` (owner, 2026-10-06): whether the machine running
+/// has the chip or feature at `code` in the compiler's list (`aarch64`,
+/// `x86_64`, `neon`, `sve`, `sve2`, `aes`, `sha2`, `sha3`, `crc`, `lse`,
+/// `dotprod`, `fp16`, `bf16`, `i8mm`). On macOS the kernel says, under the
+/// names Rust's `is_aarch64_feature_detected!` reads there.
+#[no_mangle]
+pub extern "C" fn cyborg_machine_has(code: i32) -> bool {
+    match code {
+        0 => cfg!(target_arch = "aarch64"),
+        1 => cfg!(target_arch = "x86_64"),
+        _ if !cfg!(all(target_arch = "aarch64", target_os = "macos")) => false,
+        2 => sysctl_says(b"hw.optional.neon\0"),
+        3 => sysctl_says(b"hw.optional.arm.FEAT_SVE\0"),
+        4 => sysctl_says(b"hw.optional.arm.FEAT_SVE2\0"),
+        5 => sysctl_says(b"hw.optional.arm.FEAT_AES\0"),
+        6 => sysctl_says(b"hw.optional.arm.FEAT_SHA256\0"),
+        7 => sysctl_says(b"hw.optional.arm.FEAT_SHA3\0") && sysctl_says(b"hw.optional.arm.FEAT_SHA512\0"),
+        8 => sysctl_says(b"hw.optional.armv8_crc32\0"),
+        9 => sysctl_says(b"hw.optional.arm.FEAT_LSE\0"),
+        10 => sysctl_says(b"hw.optional.arm.FEAT_DotProd\0"),
+        11 => sysctl_says(b"hw.optional.arm.FEAT_FP16\0"),
+        12 => sysctl_says(b"hw.optional.arm.FEAT_BF16\0"),
+        13 => sysctl_says(b"hw.optional.arm.FEAT_I8MM\0"),
+        _ => false,
+    }
+}
+
+extern "C" {
+    fn sysctlbyname(name: *const u8, old: *mut core::ffi::c_void, oldlen: *mut usize, new: *mut core::ffi::c_void, newlen: usize) -> i32;
+}
+
+/// A `hw.optional` flag the kernel sets to 1; a name it does not know is 0.
+fn sysctl_says(name: &[u8]) -> bool {
+    let mut v: u32 = 0;
+    let mut len = core::mem::size_of::<u32>();
+    // SAFETY: `name` ends in its 0, and `v` holds the `len` bytes asked for.
+    let r = unsafe { sysctlbyname(name.as_ptr(), &mut v as *mut u32 as *mut core::ffi::c_void, &mut len, core::ptr::null_mut(), 0) };
+    r == 0 && v != 0
+}
+
 /// A check fired. `msg` is the site's own words, built at compile time, so
 /// nothing has to be formatted here.
 ///

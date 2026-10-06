@@ -3216,6 +3216,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 };
                 Some(Some(self.builder.build_int_z_extend_or_bit_cast(v, want, "code").ok()?.into()))
             }
+            // `on.machine.chip X` (owner, 2026-10-06): the runtime asks the
+            // chip, as the oracle does.
+            Op::MachineHas(f) => {
+                let has = self.rt("cyborg_machine_has");
+                let code = self.ctx.i32_type().const_int(*f as u64, false);
+                let v = basic_result(self.builder.build_call(has, &[code.into()], "has").ok()?)?;
+                Some(Some(v))
+            }
             // `must` in a `test fn` (owner, 2026-09-29).
             Op::MustReport => {
                 let v = self.operand(fi, args.first()?, slots)?;
