@@ -228,6 +228,23 @@ impl Parser {
                 }
             }
         }
+        // growing lists, maps and text operations are std's; fixed arrays and text literals are
+        // Signatar's (owner, 2026-10-06)
+        if self.no_std {
+            for i in 0..self.toks.len() {
+                let Tok::Word(w) = &self.toks[i].tok else { continue };
+                if i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon) { continue; }
+                let next = self.toks.get(i + 1).map(|t| &t.tok);
+                let what = match w.as_str() {
+                    "list" if matches!(next, Some(Tok::Dot | Tok::LBracket)) => "a growing list (`list`)",
+                    "map" if matches!(next, Some(Tok::Dot | Tok::LBracket)) => "a map (`map`)",
+                    "str" if next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if ["bytes", "points", "graphemes", "each"].contains(&u.as_str()) || STD_STR_OPS.contains(&u.as_str())) => "a text operation (`str.…`)",
+                    _ => continue,
+                };
+                self.pos = i;
+                return self.std_missing(what);
+            }
+        }
         if self.no_std {
             if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon) {
                 self.pos = i;
@@ -2374,10 +2391,22 @@ impl Parser {
     /// `times.wrap` is `x~`); `op_len` says how many tokens it takes, `op_old` whether it is a
     /// retired symbol (owner, 2026-10-03: the operators are words).
     fn binop(&self) -> Option<String> {
+        // `'a' std::plus 'b'`: std's word operators with their path (owner, 2026-10-06: std is
+        // `bare.optional` for everything; `std::pow` since 2026-10-02)
+        if matches!(self.peek(), Tok::Word(w) if w == "std") && *self.peek_at(1) == Tok::ColonColon
+            && matches!(self.peek_at(2), Tok::Word(x) if ["plus", "minus", "times", "div", "mod", "and", "or", "xor", "shl", "shr"].contains(&x.as_str())) {
+            let r = self.binop_from(2);
+            if r.is_some() { self.op_len.set(self.op_len.get() + 2); }
+            return r;
+        }
+        self.binop_from(0)
+    }
+
+    fn binop_from(&self, k: usize) -> Option<String> {
         self.op_len.set(1);
         self.op_old.set(false);
-        let dot_word = |b: &str| *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(x) if x == b);
-        match self.peek() {
+        let dot_word = |b: &str| *self.peek_at(k + 1) == Tok::Dot && matches!(self.peek_at(k + 2), Tok::Word(x) if x == b);
+        match self.peek_at(k) {
             Tok::Op(o) => { if matches!(o.as_str(), "+" | "-" | "+~" | "-~" | "x~" | "xx~") { self.op_old.set(true); } Some(o.clone()) }
             // `times` / `plus` / `minus`, and `.wrap` for the wrapping ones (owner, 2026-10-03)
             Tok::Word(w) if w == "times" || w == "plus" || w == "minus" => {
@@ -2386,8 +2415,8 @@ impl Parser {
             }
             // std's `pow`, bare or with its path, and `pow.wrap` (owner, 2026-10-03)
             Tok::Word(w) if w == "pow" => { if dot_word("wrap") { self.op_len.set(3); Some("pow.wrap".into()) } else { Some("pow".into()) } }
-            Tok::Word(w) if w == "std" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(x) if x == "pow") => {
-                if *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(x) if x == "wrap") { self.op_len.set(5); Some("pow.wrap".into()) } else { self.op_len.set(3); Some("pow".into()) }
+            Tok::Word(w) if w == "std" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "pow") => {
+                if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") { self.op_len.set(5); Some("pow.wrap".into()) } else { self.op_len.set(3); Some("pow".into()) }
             }
             // `and.bit` / `or.bit` — one operator spelled as a chain
             Tok::Word(w) if (w == "and" || w == "or") && dot_word("bit") => { self.op_len.set(3); Some(format!("{w}.bit")) }
@@ -2396,9 +2425,9 @@ impl Parser {
             Tok::Word(w) if w == "or" && dot_word("else") => { self.op_len.set(3); Some("or.else".into()) }
             // `div.floor` / `div.ceil` / `div.trunc` / `div.near`, and `mod.` the same: every division
             // says how it rounds (owner, 2026-10-02); a bare `div` or `mod` is refused in `climb`
-            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(1) == Tok::Dot => match self.peek_at(2) {
+            Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(k + 1) == Tok::Dot => match self.peek_at(k + 2) {
                 // `div.trunc.wrap`: wraps at the type's width instead of overflowing (owner, 2026-10-03)
-                Tok::Word(b) if *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(x) if x == "wrap") => { self.op_len.set(5); Some(format!("{w}.{b}.wrap")) }
+                Tok::Word(b) if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") => { self.op_len.set(5); Some(format!("{w}.{b}.wrap")) }
                 Tok::Word(b) => { self.op_len.set(3); Some(format!("{w}.{b}")) }
                 _ => Some(w.clone())
             },
@@ -2406,20 +2435,20 @@ impl Parser {
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a Limb's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
-            Tok::Word(p) if *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(n) if !KEYWORDS.contains(&n.as_str())) && !matches!(self.peek_at(3), Tok::LBracket | Tok::ColonColon) => {
-                let Tok::Word(n) = self.peek_at(2).clone() else { unreachable!() };
-                if *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(_)) && *self.peek_at(5) != Tok::LBracket {
-                    let Tok::Word(b) = self.peek_at(4).clone() else { unreachable!() };
+            Tok::Word(p) if *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(n) if !KEYWORDS.contains(&n.as_str())) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::ColonColon) => {
+                let Tok::Word(n) = self.peek_at(k + 2).clone() else { unreachable!() };
+                if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(_)) && *self.peek_at(k + 5) != Tok::LBracket {
+                    let Tok::Word(b) = self.peek_at(k + 4).clone() else { unreachable!() };
                     self.op_len.set(5); Some(format!("{p}::{n}.{b}"))
                 } else { self.op_len.set(3); Some(format!("{p}::{n}")) }
             }
             // a narrowed custom word operator, `dot.fast` (owner, 2026-10-02/03)
-            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(_)) && !matches!(self.peek_at(3), Tok::LBracket | Tok::Dot) => {
-                let Tok::Word(b) = self.peek_at(2).clone() else { unreachable!() };
+            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(k + 1) == Tok::Dot && matches!(self.peek_at(k + 2), Tok::Word(_)) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::Dot) => {
+                let Tok::Word(b) = self.peek_at(k + 2).clone() else { unreachable!() };
                 self.op_len.set(3); Some(format!("{w}.{b}"))
             }
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
-            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(1) != Tok::LBracket && *self.peek_at(1) != Tok::ColonColon && *self.peek_at(1) != Tok::Dot => Some(w.clone()),
+            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(k + 1) != Tok::LBracket && *self.peek_at(k + 1) != Tok::ColonColon && *self.peek_at(k + 1) != Tok::Dot => Some(w.clone()),
             Tok::Eq => Some("=".into()),
             _ => None,
         }
@@ -2959,10 +2988,21 @@ impl Parser {
                     // `to.stored.str.utf8[…]`: the stored form, said outright as prints say it (owner, 2026-10-02)
                     let stored_first = !useful_first && matches!(self.peek(), Tok::Word(w) if w == "stored") && matches!(self.peek_at(1), Tok::Dot);
                     if stored_first { self.advance(); self.advance(); }
+                    // `to.int8.bits[128]`: the raw form, the value's bits as the type's (owner, 2026-10-06:
+                    // ASP keeps a way to write numbers like the hardware, never the default)
+                    let bits = !useful_first && !stored_first && matches!(self.peek(), Tok::Word(_)) && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bits");
+                    if bits { self.toks.drain(self.pos + 1..self.pos + 3); }
                     self.to_target = true;
                     let ty = self.ty();
                     self.to_target = false;
                     let ty = ty?;
+                    if bits {
+                        if !matches!(ty, Ty::Int(_) | Ty::Uint(_)) { return self.err(format!("`.bits` is for whole-number types (`to.int8.bits[…]`); what `to.{}.bits` means is not decided", ty_name(&ty))); }
+                        if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}.bits` converts a value: `to.{}.bits[…]`", ty_name(&ty), ty_name(&ty))); }
+                        let b = self.bracket()?;
+                        if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
+                        return Ok(Expr::Convert(ty, b, None, 3, line));
+                    }
                     if matches!(ty, Ty::List(_) | Ty::Array(_)) { return self.err("`to.list[…]` / `to.array[…]` keep the element type, so it is not written: `to.array[give 'l']`"); }
                     // a named type is allowed here only if it is a `layout.C enum` (checked when it runs:
                     // the parser cannot yet tell a struct's name from an enum's)

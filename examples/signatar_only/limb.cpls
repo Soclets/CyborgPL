@@ -30,3 +30,12 @@ MAIN {
         off { }
     }
 }
+
+# a fixed array and a text literal are Signatar's too (owner, 2026-10-06)
+fn greeting [] --> str.utf8 {
+    return "hi";
+}
+
+fn three [] --> array[int32] {
+    return [1, 2, 3,];
+}

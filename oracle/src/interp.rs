@@ -2117,6 +2117,20 @@ impl<'p> Interp<'p> {
                     }
                 }
             }
+            // `to.int8.bits[128]`: the value's bits read as the type's (owner, 2026-10-06), as a literal
+            // lands without ASP; a value the type's bits cannot hold is refused, as there
+            Expr::Convert(ty @ (Ty::Int(w) | Ty::Uint(w)), b, _, 3, _) => {
+                let (v, _) = self.single(b, line)?;
+                let bits = match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128, IntWidth::Other(n) => *n };
+                let Value::Int(i) = v else { return rt(line, format!("`to.{}.bits[…]` takes a whole number, not {}", ty_name(ty), v.kind())) };
+                if bits >= 128 { return rt(line, format!("`to.{}.bits` is not built in the oracle", ty_name(ty))); }
+                if i < -(1i128 << (bits - 1)) || i >= 1i128 << bits {
+                    return rt(line, format!("`{i}` does not fit the {bits} bits of {}: `to.{}.bits` reads a pattern of {bits} bits", ty_name(ty), ty_name(ty)));
+                }
+                let u = i.rem_euclid(1i128 << bits);
+                let out = if matches!(ty, Ty::Int(_)) && u >= 1i128 << (bits - 1) { u - (1i128 << bits) } else { u };
+                Ok((Value::Int(out), Prov::Fresh))
+            }
             Expr::Convert(ty, b, handler, form, _) => {
                 let form = *form;
                 let useful_flag = form == 2;
