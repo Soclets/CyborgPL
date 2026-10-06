@@ -1,1 +1,1 @@
-is `inline.ASM
+inline assembly is `inline.Assembly { … }`

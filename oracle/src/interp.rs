@@ -4151,7 +4151,7 @@ impl<'p> Interp<'p> {
             None => {
                 let hint = match op {
                     "*" => "; multiply is `times`, power is std's `pow`", "^" => "; power is std's `pow`", "%" => "; remainder is `mod`",
-                    "&" | "|" | "!" => "; use `and`, `or`, `not`", _ => "",
+                    "&" | "|" | "!" => "; use `and`, `or`, `!`", _ => "",
                 };
                 if let Some(l) = &limb { return rt(line, format!("the Limb `{}` has no operator `{name}` for these values", &l[2..])); }
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] --> R {{ … }}`"));
