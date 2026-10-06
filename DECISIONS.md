@@ -5,6 +5,34 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — Signatar's numbers are raw, like the hardware; safe numbers come from their own official core (owner)
+
+Asked whether there is another way than `-5` (std's `0 minus 5` or
+`not.bit 4`, IEG's raw negate, assembly's `movn`), the owner: "Signatar
+is supposed to be very lower-level, because it's not really supposed to
+be use practically", so **Signatar has no negative literals**; with std,
+`-5` is std's `-` applied to 5, written the same. Then: "should `let 'x':
+int8 = -128;` really be possible with Signatar alone? ... shouldn't it
+do it like hardware?" Design claude: hardware has bit patterns, so
+`let 'x': int8 = 128;` would store -128's bits, and since Signatar's rules
+reach every program, recommended keeping literals as checked values.
+The owner: "There's cores, right?" Design claude: (a) Signatar raw, a
+core brings the safe meaning, or (b) Signatar safe, a hardware core
+opt-in, recommending (b). The owner: "You can't even write neg without
+Assembly using Signatar, so that would be pretty weird", so (a); the
+packages with std install the safe-numbers core too and the installer
+lists it in new projects, as std. Asked which core: IEG, or **its own
+official core**; the owner: "its own core. Pretty crazy how many things
+you need to install to write a Hello World, but it's fine".
+
+So: **Signatar's literals are bit patterns, as the machine's** (an
+`int8` holding `128` holds -128's bits); **a separate official core makes
+numbers values again** ("`200` is two hundred, refused in an `int8`",
+the exact-and-checked-where-it-lands rules). A kernel takes IEG without
+it and gets raw literals. Open: that core's name; exactly which rules it
+carries (literals only, or all of "exact, checked where it lands" and
+the middle limit).
+
 ### 2026-10-06 — The one-operand operators go to std too: `not`, `not.bit`, `-'x'`; Signatar keeps `-5`'s sign (owner)
 
 ```
