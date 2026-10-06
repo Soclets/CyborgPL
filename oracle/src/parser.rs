@@ -804,6 +804,7 @@ impl Parser {
             Tok::Word(n) => n,
             Tok::Op(o) => o,
             Tok::Var(v) => return self.err(format!("an operator's name is bare — a word or a run of operator characters, not `'{v}'`")),
+            Tok::Arrow | Tok::LeftArrow => return self.err("an arrow cannot name an operator: `-->`, `->`, `>>`, `>>>` and `<--`, `<-`, `<<`, `<<<` are arrows (owner, 2026-10-06)"),
             other => return self.err(format!("expected an operator name after `op`, found {other}")),
         };
         let gens = if self.in_interface { Vec::new() } else { self.announce("op")? };

@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — `>>` and `>>>` are other spellings of `-->`, and `<<` and `<<<` of `<--` (owner)
+
+```
+fn double ['n': int32] >> int32 { … }
+std::print.weird.useful.stdout << double[3] <<< \n;
+```
+
+The owner: "I think we should add `>>` & `>>>` as alias for the arrows".
+Design claude noted they are free (shifts are `shl`/`shr`, not C's
+`>>`), asked about the twin (`<<`, `<<<` for `<--`), and that a Limb could
+no longer name its own operator `>>`, since any run of operator
+characters could be one; the owner: "yea.". `-->` and `<--` stay the main
+spelling. In the oracle; `examples/chevron_arrows.cpls`, reject test
+`op_chevron_reserved`.
+
 ### 2026-10-06 — Signatar's names are English only; names in other scripts come from a core (owner; not built)
 
 Asked whether Signatar supports every language in its variables (the
