@@ -94,7 +94,7 @@ generics core** brings `<T>` announcements, bounds and `and`, `any`,
 interfaces and `satisfies`; it requires only Signatar, so a kernel may
 take it or not; std requires it (its `Number` and `Ordered` are generic);
 the packages with std install it. **Lifetime groups (`@x`) stay in
-Signatar**, being the borrow rules. Open: the core's name.
+Signatar**, being the borrow rules. **The core is Genny** (owner).
 
 ### 2026-10-06 — The one-operand operators go to std too: `not`, `not.bit`, `-'x'`; Signatar keeps `-5`'s sign (owner)
 
