@@ -2785,6 +2785,11 @@ impl<'p> Interp<'p> {
                     "shl" | "shr" => {
                         if y < 0 { return rt(line, format!("`{op}` by a negative count")); }
                         let width_ty = self.expr_ty(l);
+                        // `shl` pushes bits off the left end, so its width must be known (operators.md,
+                        // owner 2026-09-23: from any operand or the context; context stops at a call)
+                        if op == "shl" && width_ty.is_none() {
+                            return rt(line, "`shl` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 shl 3;`) or write `to.uint32[1] shl 3`");
+                        }
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
                         // compare before narrowing: `y as u32` would wrap a huge count to a small one (seed 1125)
                         if y >= bits as i128 {
@@ -3725,7 +3730,10 @@ impl<'p> Interp<'p> {
             let std = c.limb.as_deref() == Some("std");
             let others = self.bare_fns_elsewhere(&c.from, &c.written, false);
             let mut who: Vec<String> = Vec::new();
-            if own { who.push(format!("`my.{shown}` (this Limb's)")); }
+            if own {
+                let mine: Vec<&str> = own_module.iter().filter(|m| !m.starts_with("::")).map(String::as_str).chain(c.written.last().map(String::as_str)).collect();
+                who.push(format!("`my.{}` (this Limb's)", mine.join(".")));
+            }
             if std { who.push(format!("`std::{shown}`")); }
             for f in &others { who.push(format!("`{}::{shown}`", f.module[0].trim_start_matches("::"))); }
             if who.len() > 1 { return rt(c.line, format!("`{shown}` could be any of {}: write the path", who.join(", "))); }

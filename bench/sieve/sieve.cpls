@@ -17,13 +17,13 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     let 'key' := "N";
     nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
-    let mut 'comp': list[bool] = list.fill[false, 'n' + 1];
+    let mut 'comp': list[bool] = list.fill[false, 'n' plus 1];
     let mut 'count': int64 = 0;
     for 'p': int64 in range[2, 'n'] {
-        if not 'comp'[to.uint64['p' + 1]] {
-            change 'count' = 'count' + 1;
-            for 'm': int64 in range['p' x 'p', 'n', 'p'] {
-                change 'comp'[to.uint64['m' + 1]] = true;
+        if not 'comp'[to.uint64['p' plus 1]] {
+            change 'count' = 'count' plus 1;
+            for 'm': int64 in range['p' times 'p', 'n', 'p'] {
+                change 'comp'[to.uint64['m' plus 1]] = true;
             }
         }
     }
@@ -32,5 +32,5 @@ fn run [] -> int32 or fail[missing, out_of_range] {
 
 MAIN {
     let 'code' := run[] otherwise 2;
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

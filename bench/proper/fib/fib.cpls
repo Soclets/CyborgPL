@@ -15,7 +15,7 @@ fn read_n ['text': ptr[uint8]] -> int64[0, 92] or fail[missing, out_of_range] {
 
 fn fib ['n': int64[0, 92]] -> int64 {
     if 'n' < 2 { return 'n'; }
-    return fib['n' - 1] + fib['n' - 2];
+    return fib['n' minus 1] plus fib['n' minus 2];
 }
 
 fn run [] -> int32 or fail[missing, out_of_range] {
@@ -26,5 +26,5 @@ fn run [] -> int32 or fail[missing, out_of_range] {
 
 MAIN {
     let 'code' := run[] otherwise 2;
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }

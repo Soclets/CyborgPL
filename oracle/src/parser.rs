@@ -2241,8 +2241,8 @@ impl Parser {
         // written with no path at all: another Limb's bare name may be meant (owner, 2026-10-06)
         let bare = limb.is_none() && path[0] != "my";
         let written = if path[0] == "my" { path[1..].to_vec() } else { path.clone() };
-        // std's names come bare too (owner, 2026-10-06: std is "optional for all")
-        let limb = if bare && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { limb };
+        // std's names come bare too (owner, 2026-10-06: std is "optional for all"), where std is listed
+        let limb = if bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { limb };
         // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {

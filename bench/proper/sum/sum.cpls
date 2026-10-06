@@ -19,12 +19,12 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     let mut 'acc': int64 = 0;
     for 'i': int64 in range[1, 'n'] {
-        change 'acc' = 'acc' + (('i' x 'i') mod.floor 7);
+        change 'acc' = 'acc' plus (('i' times 'i') mod.floor 7);
     }
     return to.int32[('acc' mod.floor 1_000_000_007) mod.floor 256];
 }
 
 MAIN {
     let 'code' := run[] otherwise 2;
-    nocheck exit['code'];
+    nocheck my.exit['code'];
 }
