@@ -58,7 +58,10 @@ main spelling of the things like that? Say `nocheck`, `!$`, etc", then
 "yea"): **`!mut`** is main and `immut` moves to MTM; **`!check`** is main
 and `nocheck` moves to MTM; `!$`, `!cheat` and `!==` already were. For
 `NO_FUCKING_CHECKS` the owner: "would become `UB` main, if `UB` is
-accurate" (asked next). Not built.
+accurate"; design claude: not accurate (undefined behaviour follows any
+wrong vouch, plain `!check`'s too; what this tier adds is trusting C's
+answers), offering `!check.C`; the owner: "The fuck is `!check.C`?",
+then **"keep `NO_FUCKING_CHECKS` main"**. Not built.
 **MTM's ID** (owner: "gen ID now"): `9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56`, first version `2026-10-06T19:18:54+07:00`.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
