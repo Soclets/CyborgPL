@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — A core is listed by its registry ID, in `CCA.cplr` and `Synthia.ttsr` alike (owner: "ID"; relayed by synthia claude; not built)
+
+Synthia claude asked how `Synthia.ttsr` lists cores ((a) a `[my cores]`
+section with `ASP = yes` lines, (b) one line `cores = ASP, IEG`); the
+owner: "Shouldn't it use ID?" Synthia claude noted that cores.md already
+gives a core a registry ID (the "Fastmath" warning), that names repeat
+and IDs do not, that a core runs inside the compiler, and that Synthia
+can use IDs only if `CCA.cplr` does too; asked whether cores are listed
+by ID in both manifests, the owner: "ID". Replaces the `cca::Core[name =
+"IEG"]` shape (built in the oracle and CCA). Open: `CCA.cplr`'s spelling,
+the official cores' IDs, whether a core entry carries a version, whether
+"official cores only" stays (by ID), and `Synthia.ttsr`'s spelling
+(synthia claude's to ask).
+
 ### 2026-10-06 — `to.int8.bits[…]` takes any value whose bits fit, -128 to 255, and refuses the rest (owner: a)
 
 `to.int8.bits[200]` is -56 and `to.uint8.bits[-1]` is 255 (both are an
