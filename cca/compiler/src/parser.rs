@@ -1756,8 +1756,12 @@ impl<'a> Parser<'a> {
         let mut seq = false;
         let mut para = false;
         let mut perm = false;
-        // `!c`, "no cheat", first: the strongest modifier (owner, 2026-10-01).
-        let nocheat = self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c");
+        // `!cheat`, "no cheat", first: the strongest modifier (owner,
+        // 2026-10-01; `!c` until 2026-10-06, refused now naming `!cheat`).
+        if self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c") {
+            return self.fail("`!c` is `!cheat` now: `for !cheat 'i' in …`");
+        }
+        let nocheat = self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "cheat");
         if nocheat {
             self.bump();
             self.bump();
@@ -1772,8 +1776,8 @@ impl<'a> Parser<'a> {
         if self.is_word("seq") || self.is_word("para") {
             return self.fail("a `for` is `seq` or `para`, not both");
         }
-        if self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c") {
-            return self.fail("`!c` comes first, the strongest modifier first: `for !c seq …`, `for !c para …`");
+        if self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c" || w == "cheat") {
+            return self.fail("`!cheat` comes first, the strongest modifier first: `for !cheat seq …`, `for !cheat para …`");
         }
         if self.eat_word("perm") {
             perm = true;

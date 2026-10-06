@@ -479,7 +479,7 @@ pub enum StmtKind {
     /// (owner, 2026-09-29).
     /// `para`: made parallel by its writer (owner, 2026-09-30); not yet
     /// acted on — every loop runs in order so far.
-    /// `nocheat`: `for !c` (owner, 2026-10-01), every round really runs.
+    /// `nocheat`: `for !cheat` (owner, 2026-10-01), every round really runs.
     For { nocheat: bool, seq: bool, para: bool, perm: bool, name: QName, pos: Option<QName>, ty: Option<Type>, iter: ForIter, body: Block },
     Return(Option<Expr>),
     Fail { name: Ident, payload: Option<Expr> },

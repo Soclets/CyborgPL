@@ -204,7 +204,7 @@ struct FnBuilder<'a> {
     task_fails: Vec<Vec<(u32, FnIdx, Vec<FailArm>, BlockId)>>,
     /// Every `for` lowered so far (`ForLoop`).
     fors: Vec<ForLoop>,
-    /// The next loop built is a `for !c`.
+    /// The next loop built is a `for !cheat`.
     nocheat_next: bool,
     /// Per scope: the group its tasks join, made when the first one starts.
     task_group: Vec<Option<u32>>,

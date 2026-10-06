@@ -150,7 +150,7 @@ struct Cg<'a, 'ctx> {
     par: crate::par::Plan,
     /// The slice being written, when one is.
     par_child: Option<par::ParChild<'ctx>>,
-    /// The blocks of `for !c` loops: (function, block).
+    /// The blocks of `for !cheat` loops: (function, block).
     nocheat: std::collections::HashSet<(usize, usize)>,
 }
 
@@ -685,7 +685,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // against the lowest value divided by -1, and keeping only the last
         // site read dropped the first check.
         let mut pending: Vec<SiteId> = Vec::new();
-        // `for !c` (owner, 2026-10-01): each store to a local in the loop
+        // `for !cheat` (owner, 2026-10-01): each store to a local in the loop
         // passes through a barrier LLVM cannot see into, so no round's
         // work is folded away or dropped.
         let nocheat = self.nocheat.contains(&(fi, b));
@@ -3347,7 +3347,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// A value LLVM must take as unknown: an empty `asm volatile` hands the
     /// local's value back through a register, so a loop's rounds can be
-    /// neither folded to their answer nor dropped (`for !c`).
+    /// neither folded to their answer nor dropped (`for !cheat`).
     pub(super) fn no_cheat_barrier(&mut self, fi: usize, l: LocalId, slots: &[Option<PointerValue<'ctx>>]) {
         let local = &self.p.functions[fi].locals[l.0 as usize];
         if matches!(local.kind, LocalKind::Lent { .. }) {
@@ -4175,7 +4175,7 @@ fn runtime_path() -> Option<std::path::PathBuf> {
     None
 }
 
-/// Every block of a `for !c` loop, by function.
+/// Every block of a `for !cheat` loop, by function.
 fn nocheat_blocks(p: &crate::mir::Program) -> std::collections::HashSet<(usize, usize)> {
     let mut out = std::collections::HashSet::new();
     for (fi, f) in p.functions.iter().enumerate() {

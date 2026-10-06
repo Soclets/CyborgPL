@@ -32,7 +32,7 @@ pub(super) struct ParChild<'ctx> {
     pub partials: Vec<PointerValue<'ctx>>,
     pub flags: Vec<Option<PointerValue<'ctx>>>,
     pub folds: Vec<Fold>,
-    /// `for !c`: each partial passes through the barrier after each add.
+    /// `for !cheat`: each partial passes through the barrier after each add.
     pub nocheat: bool,
 }
 

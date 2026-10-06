@@ -501,7 +501,7 @@ pub struct ForLoop {
     pub seq: bool,
     pub para: bool,
     pub perm: bool,
-    /// `for !c`: every round's work really happens (owner, 2026-10-01).
+    /// `for !cheat`: every round's work really happens (owner, 2026-10-01).
     pub nocheat: bool,
     pub span: SpanId,
 }

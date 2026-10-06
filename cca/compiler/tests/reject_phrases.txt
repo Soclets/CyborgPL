@@ -216,7 +216,7 @@ for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it 
 for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`
-for_no_cheat_order [fnv:779a7d6b67f2e942] :: `!c` comes first
+for_no_cheat_order [fnv:c7bc31c32be79e6c] :: `!cheat` comes first
 for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the position
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
 for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`
@@ -364,6 +364,7 @@ mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
 ne [fnv:ef1c886d3712dd70] :: `!=` is not an operator here: not-equal is `!==`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
+no_cheat_old [fnv:a97d72b683a4c0fb] :: `!c` is `!cheat` now
 no_checks_lied [fnv:25a223b72a20f04f] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
