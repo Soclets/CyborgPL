@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — Who decides permission: Signatar → cores → limbs → the program narrows (owner)
+
+With the codextra added above cores, the owner: "First, we have to decide,
+since codextra got added. Who decides permission?" Design claude
+proposed a chain: **the codextra defines which powers exist and limits
+what cores may do** (it "sets the rules cores play by"; no core may switch
+off Signatar's borrow rules); **cores grant those powers to limbs**, to
+every limb or to favourites by ID (07:01 this morning), only from the
+codextra's list; **the program may take powers away, never add**. Over
+(b) the codextra granting everything itself, and (c) cores granting
+freely with the codextra out of it. The owner: "yea".
+
 ### 2026-10-06 — `for !c` is `for !cheat` (owner)
 
 The owner: "Also, !c should be changed to !cheat." Design claude noted it
