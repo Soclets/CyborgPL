@@ -41,8 +41,19 @@ for `lent` / `lent.mut`; Rust's number names (`i32`, `u8`, `f64`, …);
 `bfloat16` / `bf16` for `brain16`; `!std_i24` / `!std_u24`; and `inline.S`
 for `inline.ASM`. Signatar keeps one spelling of each. The owner also:
 "Signatar would use the entire language's name when inline instead", so
-Signatar's `inline.` takes the language's full name (asked next: the
-spellings). MTM's ID: not generated yet.
+Signatar's `inline.` takes the language's full name: **`inline.Assembly`**
+(Signatar's), **`inline.LLVM_Intermediate_Representation`** (IEG's),
+**`inline.Metal_Shading_Language`** (the Metal core's); `extern.C` and
+`layout.C` stay, C being the whole name; MTM keeps `inline.ASM`,
+`inline.S`, `inline.LLVM`, `inline.MSL`. Words joined by `_`, every word
+written out (owner, asked whether a dot narrows there: "Idk about dots,
+man, do they really narrow?"; design claude: barely, so `_` for the
+spaces; the owner: "`Low_Level_Virtual_Machine_Intermediate_Representation`
+style, I think"). Design claude noted LLVM is no longer an acronym (the
+project dropped "Low Level Virtual Machine"; LLVM is its whole name);
+the owner: "Yeah. Welp, I mean, maybe not much of a VM. Mf, that shit
+powers multiple langs", so `LLVM_Intermediate_Representation`. Not built;
+MTM's ID not generated yet.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
 
