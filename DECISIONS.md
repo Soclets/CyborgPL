@@ -79,7 +79,13 @@ optional?", then "yea"), as a plain `div` is: "say `bare.optional` or
 without its path** (owner: "`a`"): "write `std::list.append` or
 `fastlists::list.append`"; depending on both is fine. **A Limb's own
 name does not win over them** (owner: "no", to design claude's "your own
-wins"). **A Limb's own clashing name is reached through its root**, as any name
+wins"). **There is no default** (owner: "I don't think there should be a
+default"): asked whether a Limb's operators follow a default of "path
+required" ((a), recommended) or stay optional as before ((b)), the owner
+ruled out a default altogether, so every `pub` thing a Limb offers is
+covered by a mark (on it, its module or its kind) saying required,
+optional or forbidden. Asked next: the spelling of "required".
+**A Limb's own clashing name is reached through its root**, as any name
 is: `my.list.append[…]` (design claude's reading; the owner: "yea"; the
 root became `my.`, below). Open: how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
