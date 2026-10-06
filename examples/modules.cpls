@@ -1,4 +1,7 @@
 # Modules as blocks in one file (a Limb of one root file). See examples/geometry/ for files.
+
+bare.never [fn, struct, const];
+
 const 'scale' := 10;
 
 module counter {

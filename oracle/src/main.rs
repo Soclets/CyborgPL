@@ -37,7 +37,7 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
     if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "CCA.cplr") {
         parser::Parser::new_in_limb(toks, module, limb_root).scan_levels()
             .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;
-        return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new() });
+        return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new() });
     }
     parser::Parser::new_in_limb(toks, module, limb_root).program()
         .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })
@@ -111,6 +111,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
         prog.externs.extend(part.externs);
         prog.modules.extend(part.modules);
         prog.strict_modules.extend(part.strict_modules);
+        prog.bare_marks.extend(part.bare_marks);
         prog.enums.extend(part.enums);
         prog.interfaces.extend(part.interfaces);
         prog.claims.extend(part.claims);
@@ -313,10 +314,52 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         prog.modules.push(ast::ModuleDef { path: root, vis: ast::Vis::Pub, line: 0 });
         prog.funcs.extend(dep.funcs); prog.structs.extend(dep.structs); prog.enums.extend(dep.enums);
         prog.interfaces.extend(dep.interfaces); prog.claims.extend(dep.claims); prog.consts.extend(dep.consts);
-        prog.externs.extend(dep.externs); prog.modules.extend(dep.modules); prog.strict_modules.extend(dep.strict_modules);
+        prog.externs.extend(dep.externs); prog.modules.extend(dep.modules); prog.strict_modules.extend(dep.strict_modules); prog.bare_marks.extend(dep.bare_marks);
         load_deps(&depdir, prog, loaded, chain)?;
     }
     chain.pop();
+    Ok(())
+}
+
+/// Every `pub` thing says how other Limbs write its path, on itself, its module or its kind, and the
+/// marks that cover it agree (owner, 2026-10-06: "I don't think there should be a default"; "`c`").
+fn check_bare(prog: &ast::Program) -> Result<(), String> {
+    use ast::{Bare, BareTarget, Vis};
+    let block = |m: &[String]| prog.modules.iter().any(|d| d.path == m && d.line > 0);
+    let word = |m: Bare| match m { Bare::Never => "bare.never", Bare::Optional => "bare.optional", Bare::Only => "bare.only" };
+    let mut items: Vec<(&str, &str, Vec<String>, usize)> = Vec::new();
+    for f in &prog.funcs {
+        if f.vis != Vis::Pub || f.is_test { continue; }
+        let last = f.name.rsplit('.').next().unwrap_or("");
+        // a glyph operator has nowhere to write a path (2026-10-02)
+        if f.is_op && !last.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') { continue; }
+        items.push((if f.is_op { "op" } else { "fn" }, &f.name, f.module.clone(), f.line));
+    }
+    let module_of = |name: &str| { let mut v: Vec<String> = name.split('.').map(str::to_string).collect(); v.pop(); v };
+    for d in &prog.structs { if d.vis == Vis::Pub { items.push(("struct", &d.name, module_of(&d.name), d.line)); } }
+    for d in &prog.enums { if d.vis == Vis::Pub { items.push(("enum", &d.name, d.module.clone(), d.line)); } }
+    for d in &prog.consts { if d.vis == Vis::Pub { items.push(("const", &d.name, d.module.clone(), d.line)); } }
+    for d in &prog.interfaces { if d.vis == Vis::Pub { items.push(("interface", &d.name, d.module.clone(), d.line)); } }
+    for (kind, name, module, line) in items {
+        let root: Vec<String> = match module.first() { Some(r) if r.starts_with("::") => vec![r.clone()], _ => Vec::new() };
+        // `shapes.area` in this Limb, `areas::shapes.area` in a dependency
+        let last = name.rsplit('.').next().unwrap_or(name);
+        let mut segs: Vec<String> = module.iter().map(|m| m.trim_start_matches("::").to_string()).collect();
+        segs.push(last.to_string());
+        let shown = if root.is_empty() { segs.join(".") } else { format!("{}::{}", segs[0], segs[1..].join(".")) };
+        let covering: Vec<&ast::BareMark> = prog.bare_marks.iter().filter(|m| match &m.target {
+            BareTarget::Item(k, n) => k == kind && n == name,
+            BareTarget::Block(p) => module.starts_with(p),
+            BareTarget::File(p) => module.starts_with(p) && (p.len()..module.len()).all(|i| block(&module[..=i])),
+            BareTarget::Kind(k) => k == kind && m.limb_root == root,
+        }).collect();
+        let Some(first) = covering.first() else {
+            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other Limbs write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `limb.cpls` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
+        };
+        if let Some(other) = covering.iter().find(|m| m.mode != first.mode) {
+            return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error", word(first.mode), first.line, word(other.mode), other.line));
+        }
+    }
     Ok(())
 }
 
@@ -357,6 +400,7 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
 /// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
     let prog = load(path)?;
+    check_bare(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let mut interp = interp::Interp::new(&prog, out);
     let mut argv = vec![path.display().to_string()];
     argv.extend(args);

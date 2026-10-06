@@ -1,3 +1,5 @@
+bare.never [fn, struct, const];
+
 pub const 'max' := 8;
 const 'pi': bin64 = 3.141_592_653_589_793;
 const 'twice_max' := 'max' times 2;

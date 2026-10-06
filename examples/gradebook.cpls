@@ -1,3 +1,5 @@
+bare.never [const];
+
 pub const 'passing' := 60;
 
 struct Student {

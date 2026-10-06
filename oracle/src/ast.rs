@@ -251,6 +251,19 @@ pub struct Claim {
     pub line: usize,
 }
 
+/// How other Limbs write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
+/// required), `bare.optional`, `bare.only` (the path is forbidden). There is no default.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Bare { Never, Optional, Only }
+
+/// What a `bare` mark covers: one item (its kind and canonical name), a block module (everything in
+/// it), a file (its module and the block modules written in it), or a kind across the Limb.
+#[derive(Debug, Clone)]
+pub enum BareTarget { Item(String, String), Block(Vec<String>), File(Vec<String>), Kind(String) }
+
+#[derive(Debug, Clone)]
+pub struct BareMark { pub target: BareTarget, pub mode: Bare, pub line: usize, pub limb_root: Vec<String> }
+
 pub struct Program {
     pub funcs: Vec<Func>,
     pub structs: Vec<StructDef>,
@@ -265,6 +278,8 @@ pub struct Program {
     pub main_args: Option<(String, String)>,
     /// modules written under `#strict` (owner, 2026-09-27)
     pub strict_modules: Vec<Vec<String>>,
+    /// `bare.never` / `bare.optional` / `bare.only` marks (owner, 2026-10-06)
+    pub bare_marks: Vec<BareMark>,
 }
 
 #[derive(Debug, Clone)]

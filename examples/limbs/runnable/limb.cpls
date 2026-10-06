@@ -1,5 +1,8 @@
 # A Limb that is both a library and a program (owner, 2026-09-29: a): its MAIN runs when this Limb is
 # run itself, and is ignored when another Limb uses it (examples/uses_a_limb).
+
+bare.never [fn];
+
 pub fn seven [] --> int32 { return 7; }
 
 MAIN {

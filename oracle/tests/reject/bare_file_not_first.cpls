@@ -1,0 +1,7 @@
+pub bare.never fn area [] --> int32 {
+    return 1;
+}
+
+bare.optional;
+
+MAIN { }
