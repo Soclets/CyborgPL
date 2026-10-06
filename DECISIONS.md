@@ -23,8 +23,14 @@ in other scripts come from a core**. Text values (`"สวัสดี"`) are no
 names and stay any Unicode. With Signatar's names ASCII, 2026-10-06's
 Unicode case folding matters where that core is used. **It is a new
 official core, WSTN, "Wanted Some Thai Names"** (owner: "`a`, `WSTN`
-(Wanted Some Thai Names) is the name"), over leaving it to anyone. Open:
-which names WSTN allows, and its ID.
+(Wanted Some Thai Names) is the name"), over leaving it to anyone.
+**WSTN allows every script, and emoji** (owner: "`b`"), over (a) Unicode's
+identifier rule (UAX #31) alone, which design claude recommended (emoji
+may be several code points, and two can look the same and differ). The
+owner: "don't our err msgs use graphemes? And what cost does a var name
+using an emoji do?" Design claude: messages do count columns in
+graphemes (`diagnostics.md`); a name costs nothing at run time (names
+vanish when compiling, kept only as debug symbols). Open: WSTN's ID.
 
 ### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
 
