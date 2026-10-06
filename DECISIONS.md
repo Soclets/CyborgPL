@@ -101,9 +101,11 @@ claude's reading: it is Signatar's, needing nothing at run time, so a
 kernel has it. **Spelled `on_target`, one word** (owner: "If there's
 nothing else after `on`, I think it should be `on_target`"): nothing else
 is `on.`, so a dot would narrow nothing; the examples above were written
-`on.target` before this. Open: what it matches (the chip, the OS, the
-whole target name); a new keyword, so synthia claude's name check needs
-it when built.
+`on.target` before this. **It narrows** (owner: "`a`"): `on_target.chip
+aarch64 { … }` (any OS), `on_target.os macos { … }` (any chip), and bare
+`on_target aarch64-macos { … }` for one exact target. Open: OS and chip
+versions (asked); a new keyword, so synthia claude's name check needs it
+when built.
 
 ### 2026-10-06 — Generics are their own official core, not Signatar's (owner)
 
