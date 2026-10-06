@@ -28,9 +28,12 @@ official core, WSTN, "Wanted Some Thai Names"** (owner: "`a`, `WSTN`
 identifier rule (UAX #31) alone, which design claude recommended (emoji
 may be several code points, and two can look the same and differ). The
 owner: "don't our err msgs use graphemes? And what cost does a var name
-using an emoji do?" Design claude: messages do count columns in
-graphemes (`diagnostics.md`); a name costs nothing at run time (names
-vanish when compiling, kept only as debug symbols). Open: WSTN's ID.
+using an emoji do?" Design claude: the messages were made plain text,
+with no carets under the source, partly because Thai graphemes are not
+code points (`diagnostics.md`, 2026-09-22), though what unit a message's
+column counts is not stated there; a name costs nothing at run time
+(names vanish when compiling, kept only as debug symbols). Open: WSTN's
+ID, and a message column's unit.
 
 ### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
 
