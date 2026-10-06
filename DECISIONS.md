@@ -40,7 +40,14 @@ like `~=` already have no path, 2026-10-02). **Forbidden is
 `bare.only`** (owner: "yea"), the `.` narrowing `bare`, at every level:
 `pub bare.only fn …`, `pub bare.only module …`, `bare.only;`,
 `bare.only [op];`; writing the path to one is refused ("`list` forbids
-its path: write `list.append`"). Open: how two Limbs' optional
+its path: write `list.append`"). **Two Limbs that both forbid the path
+to one name are an error as soon as both are depended on** (owner:
+"`a`", over (b) only where the name is used, which design claude
+recommended), fixed as a prefix clash is, by editing one Limb's source
+(its `bare.only` to `bare`) or by Synthia doing it: the owner, asked,
+"Aren't you suppose to edit a limb's source code to change its prefix,
+unless you use Synthia?" (2026-09-29: "Just edit the source code").
+Open: how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
