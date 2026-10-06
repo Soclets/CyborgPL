@@ -1,3 +1,3 @@
 # #strict (owner, 2026-09-27): a list read says pos
 #strict
-MAIN { let immut 'xs' := [1, 2]; let immut 'y' := 'xs'[2]; }
+MAIN { let !mut 'xs' := [1, 2]; let !mut 'y' := 'xs'[2]; }

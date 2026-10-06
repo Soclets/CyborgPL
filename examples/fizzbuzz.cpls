@@ -13,7 +13,7 @@ fn say ['n': int32] {
 }
 
 MAIN {
-    let immut 'limit': int32 = 15;
+    let !mut 'limit': int32 = 15;
     let 'i' := 1;
     while 'i' </== 'limit' {
         say['i'];

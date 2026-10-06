@@ -12,7 +12,7 @@ fn hello [] {
 MAIN {
     let 'n': int64 = to.int64["41"] otherwise 0;
     check change 'n' = 'n' plus 1;
-    nocheck change 'n' = 'n' times 1;
+    !check change 'n' = 'n' times 1;
     std::print.useful.stdout[first['n', 7], \n];
     concur hello[];
 }

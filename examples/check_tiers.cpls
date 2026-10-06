@@ -18,7 +18,7 @@ MAIN {
         }
     }
     std::print.stored.stdout[\n];
-    nocheck change 'xs'[2] = 9;
+    !check change 'xs'[2] = 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
     check if 'x' > 0.0 { change 'xs'[1] = to.int32['x' div.near 2.0] otherwise 0; }
     std::print.useful.stdout['xs', \n];

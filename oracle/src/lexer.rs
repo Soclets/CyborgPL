@@ -90,6 +90,9 @@ pub struct Token {
     pub tok: Tok,
     pub line: usize,
     pub col: usize,
+    /// MTM's spelling (owner, 2026-10-06): as written, and the main spelling it stands for; refused
+    /// in a Limb whose CCA.cplr does not list the core MTM
+    pub mtm: Option<(String, &'static str)>,
 }
 
 #[derive(Debug)]
@@ -111,7 +114,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
     while i < chars.len() {
         let c = chars[i];
         let (tl, tc) = (line, col);
-        let push = |tok: Tok, toks: &mut Vec<Token>| toks.push(Token { tok, line: tl, col: tc });
+        let push = |tok: Tok, toks: &mut Vec<Token>| toks.push(Token { tok, line: tl, col: tc, mtm: None });
 
         // whitespace
         if c == '\n' {
@@ -244,8 +247,19 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 i += 1; col += 1;
                 continue;
             }
-            let is_asm = (s == "ASM" || s == "S") && toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
+            let after_inline = toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
+            let is_asm = (s == "ASM" || s == "S" || s == "Assembly") && after_inline;
+            // MTM's spellings, each standing for a main one (owner, 2026-10-06); `not.bit` is std's own word
+            let main: Option<&'static str> = match s.as_str() {
+                "immut" => Some("!mut"),
+                "nocheck" => Some("!check"),
+                "not" if !(i + 3 < chars.len() && chars[i] == '.' && chars[i + 1] == 'b' && chars[i + 2] == 'i' && chars[i + 3] == 't') => Some("!"),
+                "ASM" | "S" if after_inline => Some("inline.Assembly"),
+                _ => None,
+            };
+            let written = s.clone();
             push(Tok::Word(s), &mut toks);
+            if let Some(m) = main { toks.last_mut().unwrap().mtm = Some((written, m)); }
             if is_asm {
                 let mut j = i;
                 while j < chars.len() && chars[j].is_whitespace() && chars[j] != '\n' { j += 1; }
@@ -262,7 +276,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                     }
                     if k >= chars.len() { return err(bl, bc, "unclosed `asm {`".into()); }
                     for d in chars[i..=k].iter() { if *d == '\n' { line += 1; col = 1; } else { col += 1; } }
-                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc });
+                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None });
                     i = k + 1;
                 }
             }
@@ -280,10 +294,15 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         if chars[i..].iter().take(6).collect::<String>() == "!cheat" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("!cheat".into()), &mut toks); i += 6; col += 6; continue;
         }
+        // `!check` is the main spelling of `nocheck` (owner, 2026-10-06): read as the word `nocheck`,
+        // which is MTM's spelling when written out
+        if chars[i..].iter().take(6).collect::<String>() == "!check" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
+            push(Tok::Word("nocheck".into()), &mut toks); i += 6; col += 6; continue;
+        }
         if two == "!c" && !chars.get(i + 2).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("!c".into()), &mut toks); i += 2; col += 2; continue;
         }
-        // `!mut` is `immut` written another way (owner, 2026-09-25)
+        // `!mut` is the main spelling and `immut` MTM's (owner, 2026-09-25, then 2026-10-06)
         if rest.starts_with("!mu") && chars[i..].iter().take(4).collect::<String>() == "!mut" && !chars.get(i + 4).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("immut".into()), &mut toks); i += 4; col += 4; continue;
         }
@@ -304,6 +323,23 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
             let mut j = i;
             while j < chars.len() && OP_CHARS.contains(chars[j]) { run.push(chars[j]); j += 1; }
             let n = run.len();
+            // the value's `not` is a spaced `!` (owner, 2026-10-06: "Why not with a space, `!` without
+            // space reads as a rule"); a glued one is refused
+            // `!std_int24` reads `!` then the word, as it always has
+            let std_word = chars[j..].iter().take(4).collect::<String>() == "std_";
+            if run == "!" && !std_word {
+                if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); i = j; col += 1; continue; }
+                return err(tl, tc, "a glued `!` marks a rule (`!mut`, `!$`, `!check`, `!cheat`); to negate a value, space it: `! 'ready'`".into());
+            }
+            // MTM's arrows and `&` (owner, 2026-10-06): Signatar's are `-->`, `<--`, `<-->` and `lend`
+            let main: Option<&'static str> = match run.as_str() {
+                "->" | ">>" | ">>>" => Some("-->"),
+                "<-" | "<<" | "<<<" => Some("<--"),
+                "<->" | "<<>>" | "<<<>>>" | "<---->" | "<--|-->" | "<-|->" | "<<|>>" | "<<<|>>>" => Some("<-->"),
+                "&" | "&@" => Some("lend` / `lent"),
+                _ => None,
+            };
+            let written = run.clone();
             let tok = match run.as_str() {
                 // `-->` is another spelling of `->`, everywhere (owner, 2026-10-03)
                 // and `>>`, `>>>` too, as `<<`, `<<<` are of `<-` (owner, 2026-10-06: "yea")
@@ -323,6 +359,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                 _ => Tok::Op(run),   // built-in or custom; the parser tells them apart
             };
             push(tok, &mut toks);
+            if let Some(m) = main { toks.last_mut().unwrap().mtm = Some((written, m)); }
             i = j; col += n; continue;
         }
 
@@ -345,7 +382,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
                     // `#strict` (owner, 2026-09-27): every check site's proof written in its own
                     // function. A compile-time rule about proofs, which the oracle has none of, so
                     // here it is recognised and changes nothing.
-                    toks.push(Token { tok: Tok::Strict, line: tl, col: tc });
+                    toks.push(Token { tok: Tok::Strict, line: tl, col: tc, mtm: None });
                     col += j - i; i = j; continue;
                 }
                 if word == "wl" {
@@ -378,6 +415,6 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         push(single, &mut toks);
         i += 1; col += 1;
     }
-    toks.push(Token { tok: Tok::Eof, line, col });
+    toks.push(Token { tok: Tok::Eof, line, col, mtm: None });
     Ok(toks)
 }

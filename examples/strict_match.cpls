@@ -3,9 +3,9 @@
 #strict
 enum Status { empty  claimed: str.utf8  locked }
 fn label ['s': Status] --> str.utf8 {
-    let immut 'text' := match 's' {
+    let !mut 'text' := match 's' {
         empty         { giveS "free"; }
-        claimed 'who' { let immut 'prefix' := "taken by "; giveS 'prefix' ++ 'who'; }
+        claimed 'who' { let !mut 'prefix' := "taken by "; giveS 'prefix' ++ 'who'; }
         locked        { giveS "locked"; }
     };
     return give 'text';

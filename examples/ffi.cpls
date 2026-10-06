@@ -12,7 +12,7 @@ layout.C struct Timeval {
 }
 
 fn say [lent 'text': str.utf8] --> fail[io] {
-    nocheck let 'n' := write[1, lend 'text', strlen[lend 'text']];   # a lend is the pointer; the call is a nocheck site
+    !check let 'n' := write[1, lend 'text', strlen[lend 'text']];   # a lend is the pointer; the call is a nocheck site
     if 'n' < 0 { fail io; }
 }
 
@@ -21,15 +21,15 @@ MAIN {
     say["hello again" ++ \n] otherwise std::exit[1];
 
     let 'key' := "HOME";                            # the lent text ends where C expects a 0
-    nocheck let 'home' := getenv[lend 'key'];
+    !check let 'home' := getenv[lend 'key'];
     if ptr.is_null['home'] { std::print.stored.stdout["no HOME", \n]; }
-    else { nocheck if strlen['home'] > 0 { std::print.stored.stdout["HOME is set", \n]; } }
+    else { !check if strlen['home'] > 0 { std::print.stored.stdout["HOME is set", \n]; } }
 
-    nocheck let 'buf' := malloc[4];                 # bytes nobody owns
-    nocheck ptr.write['buf', 72];
-    nocheck ptr.write[ptr.at['buf', 1], 105];
-    nocheck std::print.useful.stdout[ptr.read['buf'], " ", ptr.read[ptr.at['buf', 1]], \n];
-    nocheck free['buf'];
+    !check let 'buf' := malloc[4];                 # bytes nobody owns
+    !check ptr.write['buf', 72];
+    !check ptr.write[ptr.at['buf', 1], 105];
+    !check std::print.useful.stdout[ptr.read['buf'], " ", ptr.read[ptr.at['buf', 1]], \n];
+    !check free['buf'];
 
     std::print.useful.stdout[size.of[int32], " ", size.of[Timeval], " ", align.of[int64], " ", size.of[ptr[uint8]], \n];
 }

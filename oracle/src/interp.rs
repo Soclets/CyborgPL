@@ -684,8 +684,8 @@ impl<'p> Interp<'p> {
                 };
                 if kind == SlotKind::Const { return rt(*line, format!("'{name}' is a const and cannot be assigned to")); }
                 if kind == SlotKind::Extern { return rt(*line, format!("'{name}' is `extern let`, read-only; declare it `extern let mut` to write C's variable")); }
-                if kind == SlotKind::ExternMut && self.nocheck_depth == 0 { return rt(*line, format!("'{name}' is extern: writing C's variable is a nocheck site: `nocheck '{name}' = …;`")); }
-                if immut { return rt(*line, format!("'{name}' cannot be changed: it is `immut` (or a loop's counter or element, which belong to the loop)")); }
+                if kind == SlotKind::ExternMut && self.nocheck_depth == 0 { return rt(*line, format!("'{name}' is extern: writing C's variable is a !check site: `!check '{name}' = …;`")); }
+                if immut { return rt(*line, format!("'{name}' cannot be changed: it is `!mut` (or a loop's counter or element, which belong to the loop)")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 self.stale(name, self.lookup(name).unwrap(), *line)?;
                 let (v, prov) = {
@@ -718,7 +718,7 @@ impl<'p> Interp<'p> {
                     Some(s) => (s.kind, s.ty.clone(), s.immut, s.cell.clone()),
                     None => return rt(*line, format!("'{name}' is not declared")),
                 };
-                if immut { return rt(*line, format!("'{name}' is `immut`; its elements cannot be assigned to")); }
+                if immut { return rt(*line, format!("'{name}' is `!mut`; its elements cannot be assigned to")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); its elements cannot be assigned to — a `lent.mut` could")); }
                 self.stale(name, self.lookup(name).unwrap(), *line)?;
                 self.wrote(name, *line, "changed");
@@ -761,14 +761,14 @@ impl<'p> Interp<'p> {
                     None => return rt(*line, format!("'{name}' is not declared")),
                 };
                 if !self.lookup(name).unwrap().alive { return rt(*line, format!("'{name}' was given away and no longer owns anything")); }
-                if immut { return rt(*line, format!("'{name}' is `immut`; its fields cannot be assigned to")); }
+                if immut { return rt(*line, format!("'{name}' is `!mut`; its fields cannot be assigned to")); }
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); its fields cannot be assigned to — a `lent.mut` could")); }
                 self.stale(name, self.lookup(name).unwrap(), *line)?;
                 self.wrote(name, *line, "changed");
                 let sname = match &*cell.borrow() { Value::Struct(n, _) => n.clone(), other => return rt(*line, format!("'{name}' is {}, not a struct; it has no field `{field}`", other.kind())) };
                 let def = self.prog.structs.iter().find(|d| d.name == sname).cloned().unwrap();
                 let fdef = match def.fields.iter().find(|f| &f.name == field) { Some(f) => f.clone(), None => return rt(*line, format!("{sname} has no field `{field}`")) };
-                if fdef.immut { return rt(*line, format!("'{field}' is an `immut` field of {sname}; it cannot be assigned to")); }
+                if fdef.immut { return rt(*line, format!("'{field}' is a `!mut` field of {sname}; it cannot be assigned to")); }
                 let (v, prov) = self.bracket(value, *line)?;
                 match prov {
                     Prov::Bare(n) => return rt(*line, format!("storing bare '{n}' into '{name}'.{field}: say `give '{n}'` or `copy '{n}'`")),
@@ -1047,14 +1047,14 @@ impl<'p> Interp<'p> {
                 Ok(Flow::Give(v))
             }
             Stmt::Asm { text, binds, line } => {
-                if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a nocheck site: the compiler cannot see inside it"); }
+                if self.nocheck_depth == 0 { return rt(*line, "an `asm` block is a !check site: the compiler cannot see inside it"); }
                 for b in binds {
                     match b {
                         AsmBind::In(v, _) | AsmBind::InOut(v, _) => { if self.lookup(v).is_none() { return rt(*line, format!("'{v}' is not declared")); } }
                         AsmBind::Lend(v, _, mutable) => {
                             let Some(s) = self.lookup(v) else { return rt(*line, format!("'{v}' is not declared")) };
                             if *mutable && s.kind == SlotKind::Lent { return rt(*line, format!("'{v}' is lent (shared); it cannot be lent mutably")); }
-                            if *mutable && s.immut { return rt(*line, format!("'{v}' is `immut`, so `lend.mut '{v}'` cannot hand the assembly its address to write through")); }
+                            if *mutable && s.immut { return rt(*line, format!("'{v}' is `!mut`, so `lend.mut '{v}'` cannot hand the assembly its address to write through")); }
                         }
                         _ => {}
                     }
@@ -1097,7 +1097,7 @@ impl<'p> Interp<'p> {
                     Err(e) if e.site => {
                         let msg = match tier {
                             Tier::Check => format!("`check` at line {line} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", e.msg),
-                            Tier::NoCheck => format!("`nocheck` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
+                            Tier::NoCheck => format!("`!check` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
                             Tier::NoChecksAtAll => format!("`NO_FUCKING_CHECKS` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
                         };
                         Err(RuntimeError { line: e.line, msg, exit: None, site: false, leave: None })
@@ -1666,7 +1666,7 @@ impl<'p> Interp<'p> {
         match self.lookup(name) {
             None => rt(line, format!("'{name}' is not declared")),
             Some(s) if matches!(s.kind, SlotKind::Extern | SlotKind::ExternMut) && self.nocheck_depth == 0 =>
-                rt(line, format!("'{name}' is extern: C's variable, which nothing can be proven about — reading it is a nocheck site: `nocheck … '{name}' …`")),
+                rt(line, format!("'{name}' is extern: C's variable, which nothing can be proven about — reading it is a !check site: `!check … '{name}' …`")),
             Some(s) if !s.alive => rt(line, format!("'{name}' was given away and no longer owns anything")),
             Some(s) => { self.stale(name, s, line)?; Ok(s.cell.borrow().clone()) }
         }
@@ -2587,7 +2587,7 @@ impl<'p> Interp<'p> {
             }
             Expr::PtrCast(ty, args, line) => {
                 let line = *line;
-                if self.nocheck_depth == 0 { return rt(line, "`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a nocheck site"); }
+                if self.nocheck_depth == 0 { return rt(line, "`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a !check site"); }
                 if let Err(m) = self.c_shaped(ty) { return rt(line, format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {m}")); }
                 let (pv, _) = self.value(&args.values[0])?;
                 // the address and whether it may write stay as they were: a `ptr` stays read-only
@@ -3360,7 +3360,7 @@ impl<'p> Interp<'p> {
             // the consistency site: equal keys must hash the same (decided 2026-09-22)
             let ha = self.call_named("hash", &shape, a.clone(), line)?;
             let hb = self.call_named("hash", &shape, b.clone(), line)?;
-            if ha != hb { return site(line, format!("`op ==` says two {shape} keys are equal but `hash` gives {} and {}; a map cannot trust this key type (prove or `nocheck`)", ha.show_useful(), hb.show_useful())); }
+            if ha != hb { return site(line, format!("`op ==` says two {shape} keys are equal but `hash` gives {} and {}; a map cannot trust this key type (prove or `!check`)", ha.show_useful(), hb.show_useful())); }
         }
         Ok(eq)
     }
@@ -3796,7 +3796,7 @@ impl<'p> Interp<'p> {
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
         if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `cca test` runs it, and nothing calls it")); }
         if func.is_extern {
-            if self.nocheck_depth == 0 { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a nocheck site: `nocheck … {name}[…]`")); }
+            if self.nocheck_depth == 0 { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a !check site: `!check … {name}[…]`")); }
             let ranged_ret = matches!(func.ret, Some(Ty::Ranged(..)));
             if !ranged_ret && c.handler.is_some() { return rt(c.line, format!("`{name}` is extern and cannot fail; drop the `otherwise` (a wrapper turns its return into a failure — or give the extern a ranged return, which fails `out_of_range`)")); }
             if ranged_ret {
@@ -4400,7 +4400,7 @@ impl<'p> Interp<'p> {
         let (pv, _) = self.value(&args.values[0])?;
         let p = match pv { Value::Ptr(p) => p, other => return rt(line, format!("`ptr.{op}` needs a pointer, got {}", other.kind())) };
         if op == "is_null" { return Ok(Value::Bool(p.cell.is_none())); }
-        if self.nocheck_depth == 0 { return rt(line, format!("`ptr.{op}` goes through a pointer the compiler cannot vouch for — it is a nocheck site")); }
+        if self.nocheck_depth == 0 { return rt(line, format!("`ptr.{op}` goes through a pointer the compiler cannot vouch for — it is a !check site")); }
         let Some(cell) = p.cell.clone() else { return site(line, format!("`ptr.{op}` on a null pointer")) };
         match op {
             "at" => {
@@ -4710,7 +4710,7 @@ impl<'p> Interp<'p> {
                 let fmt = match &c.args.values[0] {
                     crate::ast::Value::Expr(Expr::Text(t, _)) => t.clone(),
                     _ => {
-                        if self.nocheck_depth == 0 { return rt(c.line, format!("std::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a nocheck site: `nocheck std::{path}[…]`")); }
+                        if self.nocheck_depth == 0 { return rt(c.line, format!("std::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a !check site: `!check std::{path}[…]`")); }
                         match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("std::{path} takes a text as its format, got {}", other.kind())) }
                     }
                 };

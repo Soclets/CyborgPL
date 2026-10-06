@@ -170,9 +170,9 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 
 /// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
 /// cannot load.
-const OFFICIAL_CORES: [&str; 8] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan"];
+const OFFICIAL_CORES: [&str; 10] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "MTM"];
 
-use parser::{CORE_IDS, CORE_VERSION};
+use parser::CORE_IDS;
 
 /// Read a Limb's `CCA.cplr`: one CyborgPL value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
@@ -311,7 +311,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     let Some((core, _)) = CORE_IDS.iter().find(|(_, i)| *i == id) else {
                         return Err(format!("{shown}: line {line}: the core `{}…` is not an official one; loading another core is not built yet (a Rust plugin, which the oracle cannot load)", &id[..8]));
                     };
-                    if version != CORE_VERSION { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{CORE_VERSION}` only, the installed one; this asks for `{version}`")); }
+                    let want = parser::core_version(core);
+                    if version != want { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{want}` only, the installed one; this asks for `{version}`")); }
                     let core = core.to_string();
                     if cores.contains(&core) { return Err(format!("{shown}: line {line}: the core {core} is listed twice")); }
                     cores.push(core);

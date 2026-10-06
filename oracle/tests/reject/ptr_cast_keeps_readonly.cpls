@@ -1,7 +1,7 @@
 extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
 MAIN {
     let 'key' := "HOME";
-    nocheck let 'home' := getenv[lend 'key'];
-    nocheck let 'p' := ptr.cast[int8]['home'];
-    nocheck ptr.write['p', 0];
+    !check let 'home' := getenv[lend 'key'];
+    !check let 'p' := ptr.cast[int8]['home'];
+    !check ptr.write['p', 0];
 }

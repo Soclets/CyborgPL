@@ -4,7 +4,7 @@ MAIN {
     let 'text' := "Hello, world!" ++ \n;
     let 'fd': int64 = 1;
     let 'len': int64 = 14;
-    nocheck inline.ASM {
+    !check inline.Assembly {
         mov x16, #4
         svc #0x80
     } with ['fd' --> x0, lend 'text' --> x1, 'len' --> x2, 'n' <-- x0, clobber x16];

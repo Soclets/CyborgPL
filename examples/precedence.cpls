@@ -8,7 +8,7 @@ MAIN {
     std::print.useful.stdout[((6 div.floor 2) times 3), \n];
     let 'a' := 5;
     let 'b' := 7;
-    if 'a' plus 1 > 'b' minus 2 and not ('a' == 'b') or false {
+    if 'a' plus 1 > 'b' minus 2 and ! ('a' == 'b') or false {
         std::print.stored.stdout["logic holds", \n];
     }
 }

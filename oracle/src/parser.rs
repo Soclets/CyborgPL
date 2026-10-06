@@ -21,7 +21,7 @@ pub const KEYWORDS: &[&str] = &[
 
 /// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
 /// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
-pub const CORE_IDS: [(&str, &str); 8] = [
+pub const CORE_IDS: [(&str, &str); 10] = [
     ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
     ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
     ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
@@ -30,13 +30,18 @@ pub const CORE_IDS: [(&str, &str); 8] = [
     ("Metal", "3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7"),
     ("Nvidia", "beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361"),
     ("Vulkan", "63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec"),
+    ("WSTN", "e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4"),
+    ("MTM", "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56"),
 ];
+/// WSTN and MTM came later the same day, each first released when its ID was made (owner, 2026-10-06)
+pub const LATER_CORE_VERSIONS: [(&str, &str); 2] = [("WSTN", "2026-10-06T18:48:22+07:00"), ("MTM", "2026-10-06T19:18:54+07:00")];
+pub fn core_version(core: &str) -> &'static str { LATER_CORE_VERSIONS.iter().find(|(n, _)| *n == core).map(|(_, v)| *v).unwrap_or(CORE_VERSION) }
 pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
 
 /// The manifest line that lists an official core, for a message to show
 pub fn core_line(core: &str) -> String {
     let id = CORE_IDS.iter().find(|(n, _)| *n == core).map(|(_, i)| *i).unwrap_or("");
-    format!("cca::Core[id = \"{id}\", version = \"{CORE_VERSION}\"]")
+    format!("cca::Core[id = \"{id}\", version = \"{}\"]", core_version(core))
 }
 
 /// The target the oracle stands in for (cca/targets.txt has only this one)
@@ -289,6 +294,24 @@ impl Parser {
             self.pos = i;
             return self.err("the root of this Limb is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
+        // MTM's spellings (owner, 2026-10-06: other spellings, each standing for a main one)
+        if self.lacks.iter().any(|c| c == "MTM") {
+            for i in 0..self.toks.len() {
+                let after_path = i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon);
+                let found: Option<(String, String)> = match (&self.toks[i].mtm, &self.toks[i].tok) {
+                    (Some((w, m)), _) => Some((w.clone(), m.to_string())),
+                    (None, Tok::Word(w)) if !after_path && rust_alias(w).is_some() => Some((w.clone(), rust_alias(w).unwrap().to_string())),
+                    (None, Tok::Word(w)) if w.starts_with("!std_i") || w.starts_with("!std_u") && !w.starts_with("!std_uint") => {
+                        if w.starts_with("!std_int") { None } else { Some((w.clone(), w.replacen("!std_i", "!std_int", 1).replacen("!std_u", "!std_uint", 1))) }
+                    }
+                    _ => None,
+                };
+                if let Some((w, m)) = found {
+                    self.pos = i;
+                    return self.err(format!("`{w}` is MTM's spelling of `{m}`: write `{m}`, or add the core MTM to this Limb's `cores` (`{}`)", core_line("MTM")));
+                }
+            }
+        }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
         // `NO_FUCKING_CHECKS`; Genny `interface` and `satisfies`; MCPS `concur`, `whichever`, `channel`
         // and `for para`. A word after `.` or `::` is a name in a path, not the keyword.
@@ -306,7 +329,7 @@ impl Parser {
                 };
                 if self.lacks.iter().any(|c| c == core) {
                     self.pos = i;
-                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() } else { format!("`{w}`") };
+                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() } else if w == "nocheck" { "`!check`".to_string() } else { format!("`{w}`") };
                     return self.core_missing(core, &what);
                 }
             }
@@ -620,7 +643,7 @@ impl Parser {
                     d.vis = vis; d.layout_c = true;
                     prog.structs.push(d);
                 }
-                Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.ASM` block is a statement; it goes inside a body, under `nocheck`"),
+                Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.ASM` block is a statement; it goes inside a body, under `!check`"),
                 Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.vis = vis; prog.consts.push(c) }
                 Tok::Word(w) if w == "module" => {
                     let line = self.line();
@@ -763,7 +786,7 @@ impl Parser {
     fn const_def(&mut self) -> PResult<ConstDef> {
         let line = self.line();
         self.expect_word("const")?;
-        if self.is_word("mut") || self.is_word("immut") { return self.err("a `const` is neither `mut` nor `immut`; it is a constant"); }
+        if self.is_word("mut") || self.is_word("immut") { return self.err("a `const` is neither `mut` nor `!mut`; it is a constant"); }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) => return self.err(format!("a const is named like a variable, quoted: `const '{w}'`")),
@@ -866,7 +889,7 @@ impl Parser {
             let mut immut = false;
             if self.is_word("immut") { self.advance(); immut = true; }
             else if self.is_word("mut") { self.advance(); }
-            if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut number: int32`"); }
+            if *self.peek() == Tok::Dot { return self.err("`!mut` is a bare word before the field's name: `!mut number: int32`"); }
             let fname = match self.advance().tok {
                 Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword and cannot name a field")),
                 Tok::Word(w) => w,
@@ -1013,7 +1036,7 @@ impl Parser {
         if self.is_word("mut") || self.is_word("immut") || matches!(self.peek(), Tok::Var(_)) {
             // a C global (decided 2026-09-21; no `let` since 2026-09-25)
             let mutable = if self.is_word("mut") { self.advance(); true } else { false };
-            if self.is_word("immut") { return self.err("an extern variable is C's; it is read-only unless `mut`, never `immut`"); }
+            if self.is_word("immut") { return self.err("an extern variable is C's; it is read-only unless `mut`, never `!mut`"); }
             let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern.C '{w}': …`")), other => return self.err(format!("expected a quoted name, found {other}")) };
             if *self.peek() != Tok::Colon { return self.err(format!("the extern variable '{name}' needs a type; C has no inference: `extern.C '{name}': int32;`")); }
             self.advance();
@@ -1293,7 +1316,7 @@ impl Parser {
                 self.expect(Tok::Comma, "`,` between the bounds")?;
                 let hi = self.bound()?;
                 self.expect(Tok::RBracket, "`]` after the bounds")?;
-                let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0 }, Token { tok: Tok::Eof, line: 0, col: 0 }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
+                let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0, mtm: None }, Token { tok: Tok::Eof, line: 0, col: 0, mtm: None }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
                 match (&base, &lo, &hi) {
                     (Ty::Int(_) | Ty::Uint(_), Bound::Bin(_), _) | (Ty::Int(_) | Ty::Uint(_), _, Bound::Bin(_)) => return self.err("an integer's bounds are integers"),
                     (Ty::Bin(_) | Ty::Deci(_), Bound::Int(_), _) | (Ty::Bin(_) | Ty::Deci(_), _, Bound::Int(_)) => return self.err("a bin's bounds are written as bins: `bin64[0.0, 1.0]`"),
@@ -1720,7 +1743,8 @@ impl Parser {
                     self.expect(Tok::Dot, "`.ASM` after `inline` (`inline.ASM { … }`)")?;
                     match self.advance().tok {
                         // `inline.S` is another name for it, as assembly's `.S` files (owner, 2026-10-02)
-                        Tok::Word(l) if l == "ASM" || l == "S" => {}
+                        // `inline.Assembly`, the language's whole name (owner, 2026-10-06); `ASM` and `S` are MTM's
+                        Tok::Word(l) if l == "Assembly" || l == "ASM" || l == "S" => {}
                         Tok::Word(l) if l == "asm" || l == "s" => return self.err(format!("the inline language is in capitals, like MAIN: `inline.{}`", l.to_uppercase())),
                         Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; only `inline.ASM` (or `inline.S`) exists (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
@@ -1863,11 +1887,11 @@ impl Parser {
         else if self.is_word("immut") { self.advance(); mutability = Some(Mutability::Immut); }
         if self.strict && mutability.is_none() {
             let n = match self.peek() { Tok::Var(v) => v.clone(), _ => "x".into() };
-            return self.err(format!("`#strict`: a declaration says whether it changes: `let mut '{n}' := …` or `let immut '{n}' := …`"));
+            return self.err(format!("`#strict`: a declaration says whether it changes: `let mut '{n}' := …` or `let !mut '{n}' := …`"));
         }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
-            Tok::Word(w) if w == "mut" || w == "immut" => return self.err("say `mut` or `immut` once, before the name"),
+            Tok::Word(w) if w == "mut" || w == "immut" => return self.err("say `mut` or `!mut` once, before the name"),
             Tok::Word(w) if w == "let" => return self.err("say `let` once: `let 'x' := …;`"),
             Tok::Word(w) => return self.err(format!("variable names are quoted: `'{w}'` (a type goes after the name: `'x': {w}`)")),
             other => return self.err(format!("expected a quoted variable name, found {other}")),
@@ -2453,7 +2477,7 @@ impl Parser {
         self.expect_word("ptr")?;
         self.expect(Tok::Dot, "`.` after `ptr` (`ptr.read[…]`, `ptr.write[…]`, `ptr.at[…]`, `ptr.is_null[…]`)")?;
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `ptr.`, found {other}")) };
-        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `nocheck 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast")) };
+        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `!check 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast")) };
         if *self.peek() != Tok::LBracket { return self.err(format!("`ptr.{op}` is a call and needs `[…]`")); }
         let args = self.bracket()?;
         if args.values.len() != want { return self.err(format!("`ptr.{op}` takes {want} argument(s), given {}", args.values.len())); }
@@ -2903,7 +2927,7 @@ impl Parser {
         let line = self.line();
         if self.no_std && self.is_word("not") {
             let bit = *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bit");
-            return self.std_missing(if bit { "`not.bit`" } else { "`not`" });
+            return self.std_missing(if bit { "`not.bit`" } else { "`!`" });
         }
         if self.no_std && *self.peek() == Tok::Op("-".into()) { return self.std_missing("`-`"); }
         if self.is_word("not") {

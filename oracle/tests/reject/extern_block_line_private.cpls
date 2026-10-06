@@ -8,5 +8,5 @@ module text {
 }
 MAIN {
     let 'msg' := "hi";
-    nocheck let 'n' := text.write[1, lend 'msg', 2];
+    !check let 'n' := text.write[1, lend 'msg', 2];
 }

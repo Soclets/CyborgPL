@@ -1,4 +1,4 @@
 # #strict: a case says its value with giveS (owner, 2026-09-29)
 #strict
 enum S { a  b }
-MAIN { let immut 'x' := match S.a { a { 1 } b { 2 } }; }
+MAIN { let !mut 'x' := match S.a { a { 1 } b { 2 } }; }

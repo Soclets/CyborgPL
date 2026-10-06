@@ -2,10 +2,10 @@
 layout.C enum Mode { emacs = 0 }
 extern.C fn malloc ['bytes': uint64] --> ptr.mut[Mode];
 fn f ['p': ptr[Mode]] --> int32 {
-    nocheck let 'm' := ptr.read['p'];
+    !check let 'm' := ptr.read['p'];
     return 0;
 }
 MAIN {
-    nocheck let 'mem' := malloc[4];
-    nocheck let 'x' := f['mem'];
+    !check let 'mem' := malloc[4];
+    !check let 'x' := f['mem'];
 }

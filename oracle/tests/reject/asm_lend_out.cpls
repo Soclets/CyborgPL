@@ -1,6 +1,6 @@
 MAIN {
     let 'text' := "hi";
-    nocheck inline.ASM {
+    !check inline.Assembly {
         ldr x0, [x1]
     } with [lend 'text' <-- x1];
 }

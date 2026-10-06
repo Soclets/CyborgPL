@@ -1,5 +1,5 @@
 MAIN {
-    inline.ASM {
+    inline.Assembly {
         nop
     };
 }

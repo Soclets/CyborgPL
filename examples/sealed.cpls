@@ -3,7 +3,7 @@
 #   !$    — the name may not be shadowed; it means this variable all the way down
 # Shadowing (`$:=`) makes a new variable under the old name, so it needs no `mut`.
 MAIN {
-    let immut 'a' := 1;
+    let !mut 'a' := 1;
     let 'a' $:= 2;                  # an immut can be shadowed: nothing is changed
     let !mut 'b' := 3;              # !mut is immut written another way
     let !$ mut 'total' := 0;        # changeable, and 'total' always means this one

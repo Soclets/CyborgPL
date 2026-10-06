@@ -1,3 +1,3 @@
 MAIN {
-    let 'b': bool = not true;
+    let 'b': bool = ! true;
 }

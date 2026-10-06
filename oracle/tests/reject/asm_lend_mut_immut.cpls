@@ -1,6 +1,6 @@
 MAIN {
-    let immut 'buf': str.utf8 = "hi";
-    nocheck inline.ASM {
+    let !mut 'buf': str.utf8 = "hi";
+    !check inline.Assembly {
         strb wzr, [x1]
     } with [lend.mut 'buf' --> x1];
 }

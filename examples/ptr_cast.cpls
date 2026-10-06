@@ -9,10 +9,10 @@ layout.C struct Point {
 }
 
 MAIN {
-    nocheck let 'raw' := malloc[size.of[Point]];
-    nocheck let 'p' := ptr.cast[Point]['raw'];
-    nocheck ptr.write['p', Point[x = 3, y = 4]];
-    nocheck let 'q' := ptr.read['p'];
+    !check let 'raw' := malloc[size.of[Point]];
+    !check let 'p' := ptr.cast[Point]['raw'];
+    !check ptr.write['p', Point[x = 3, y = 4]];
+    !check let 'q' := ptr.read['p'];
     std::print.stored.stdout['q'.x, " ", 'q'.y, \n];
-    nocheck free['raw'];
+    !check free['raw'];
 }

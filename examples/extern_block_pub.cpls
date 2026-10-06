@@ -10,13 +10,13 @@ module text {
         fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
     }
     pub fn say [lent 'msg': str.utf8] {
-        nocheck let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+        !check let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
     }
 }
 
 MAIN {
     let 'word' := "hello";
-    nocheck let 'n' := text.strlen[lend 'word'];
+    !check let 'n' := text.strlen[lend 'word'];
     std::print.useful.stdout["strlen: ", 'n', \n];
     let 'line' := "written by the wrapper" ++ \n;
     text.say[lend 'line'];

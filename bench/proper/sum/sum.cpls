@@ -3,20 +3,20 @@
 # 1_000_000_000: `atoll`'s answer is checked at the door, and anything else
 # ends the program with exit code 2, as does no N at all.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 1_000_000_000];
+extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
+extern.C fn atoll ['s': ptr[uint8]] --> int64[0, 1_000_000_000];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-fn read_n ['text': ptr[uint8]] -> int64[0, 1_000_000_000] or fail[missing, out_of_range] {
+fn read_n ['text': ptr[uint8]] --> int64[0, 1_000_000_000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
-    nocheck let 'n' := atoll['text'] otherwise fail;
+    !check let 'n' := atoll['text'] otherwise fail;
     return 'n';
 }
 
-fn run [] -> int32 or fail[missing, out_of_range] {
+fn run [] --> int32 or fail[missing, out_of_range] {
     let 'key' := "N";
-    nocheck let 'n' := read_n[getenv[lend 'key']] otherwise fail;
+    !check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     let mut 'acc': int64 = 0;
     for 'i': int64 in range[1, 'n'] {
         change 'acc' = 'acc' plus (('i' times 'i') mod.floor 7);
@@ -26,5 +26,5 @@ fn run [] -> int32 or fail[missing, out_of_range] {
 
 MAIN {
     let 'code' := run[] otherwise 2;
-    nocheck my.exit['code'];
+    !check my.exit['code'];
 }

@@ -3,9 +3,9 @@ extern.C 'lib_version': int32;              # C: extern int lib_version;
 extern.C mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we may write it)
 
 MAIN {
-    nocheck let 'v' := 'lib_version';
+    !check let 'v' := 'lib_version';
     std::print.useful.stdout["version ", 'v', \n];
-    nocheck change 'lib_verbose' = 1;
-    nocheck let 'on' := 'lib_verbose';
+    !check change 'lib_verbose' = 1;
+    !check let 'on' := 'lib_verbose';
     std::print.useful.stdout["verbose ", 'on', \n];
 }

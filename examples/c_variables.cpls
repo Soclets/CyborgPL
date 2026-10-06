@@ -6,20 +6,20 @@ layout.C enum Mode { emacs = 0  vi = 1 }
 extern.C fn malloc ['bytes': uint64] --> ptr.mut[Mode];
 extern.C mut 'edit_mode': int32;
 fn mode_at ['p': ptr[Mode]] --> int32 {
-    nocheck let 'm' := ptr.read['p'] otherwise Mode.emacs;
+    !check let 'm' := ptr.read['p'] otherwise Mode.emacs;
     match 'm' {
         emacs { return 10; }
         vi { return 11; }
     }
 }
 MAIN {
-    nocheck change 'edit_mode' = to.int32[Mode.vi];
-    nocheck let 'raw' := 'edit_mode';
+    !check change 'edit_mode' = to.int32[Mode.vi];
+    !check let 'raw' := 'edit_mode';
     let 'current' := to.Mode['raw'] otherwise Mode.emacs;
-    nocheck let 'mem' := malloc[8];
-    nocheck ptr.write['mem', 1];
-    nocheck ptr.write[ptr.at['mem', 1], 7];
-    nocheck let 'a' := mode_at['mem'];
-    nocheck let 'b' := mode_at[ptr.at['mem', 1]];
+    !check let 'mem' := malloc[8];
+    !check ptr.write['mem', 1];
+    !check ptr.write[ptr.at['mem', 1], 7];
+    !check let 'a' := mode_at['mem'];
+    !check let 'b' := mode_at[ptr.at['mem', 1]];
     std::print.useful.stdout[to.int32['current'], " ", 'a', " ", 'b', \n];
 }

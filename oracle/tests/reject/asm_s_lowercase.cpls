@@ -1,3 +1,3 @@
 MAIN {
-    nocheck inline.s { nop };
+    !check inline.s { nop };
 }

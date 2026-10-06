@@ -15,7 +15,7 @@ fn handle ['o': Order, 's': Ship] {
     }
 }
 fn price ['o': Order, 's': Ship] --> int32 {
-    let immut 'p': int32 = match 'o' {
+    let !mut 'p': int32 = match 'o' {
         cancelled { giveS 0; }
         paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
     };
@@ -23,6 +23,6 @@ fn price ['o': Order, 's': Ship] --> int32 {
 }
 MAIN {
     handle[Order.paid, Ship.post];
-    let immut 'n': int32 = price[Order.paid, Ship.post];
+    let !mut 'n': int32 = price[Order.paid, Ship.post];
     std::print.useful.stdout['n', \n];
 }

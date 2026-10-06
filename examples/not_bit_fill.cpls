@@ -24,7 +24,7 @@ fn emit ['m': uint64, 'neg': bool] {
         change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
-    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+    !check write[1, lend 'buf', list.length[lend 'buf']];
 }
 
 fn put_u ['n': uint64] {

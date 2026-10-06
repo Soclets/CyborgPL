@@ -1,7 +1,7 @@
 MAIN {
     let 'correct?': bool = true;
-    let 'wrong?' := not 'correct?';
-    if 'correct?' and (not 'wrong?') {
+    let 'wrong?' := ! 'correct?';
+    if 'correct?' and (! 'wrong?') {
         std::print.stored.stdout["fine", \n];
     }
     if 'wrong?' == false {

@@ -1,3 +1,3 @@
 MAIN {
-    check nocheck let 'x' := 1;
+    check !check let 'x' := 1;
 }

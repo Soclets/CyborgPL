@@ -2,7 +2,7 @@
 # refuses to run assembly, as for any asm block.
 MAIN {
     let 'fd': int64 = 1;
-    nocheck inline.S {
+    !check inline.Assembly {
         mov x16, #1
         svc #0x80
     } with ['fd' --> x0, clobber x16];
