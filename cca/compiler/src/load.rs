@@ -349,6 +349,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     // by their own `CCA.cplr` (owner, 2026-10-06).
     crate::parser::set_no_std(dir.join("CCA.cplr").is_file() && !manifest.has_std);
     crate::parser::set_cores(dir.join("CCA.cplr").is_file().then(|| manifest.cores.clone()));
+    let first_file = sources.files.len();
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
         // A dependency's `MAIN` runs only when that Limb itself is run, and
@@ -362,6 +363,11 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     crate::parser::set_no_std(false);
     crate::parser::set_cores(None);
     parsed?;
+    // Without ASP a literal is a bit pattern, as the machine's (owner,
+    // 2026-10-06).
+    if dir.join("CCA.cplr").is_file() && !manifest.cores.iter().any(|c| c == "ASP") {
+        items.raw_files.extend((first_file..sources.files.len()).map(|f| FileId(f as u32)));
+    }
     state.stack.push((key.clone(), prefix.clone()));
     let mut deps = std::collections::HashMap::new();
     let manifest_at = dir.join("CCA.cplr");

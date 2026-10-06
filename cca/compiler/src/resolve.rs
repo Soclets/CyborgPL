@@ -136,6 +136,9 @@ pub struct Items {
     pub trusted_door: bool,
     /// Files marked `#strict` (owner, 2026-09-27).
     pub strict_files: std::collections::HashSet<crate::source::FileId>,
+    /// Files of a Limb whose `CCA.cplr` does not list ASP (owner,
+    /// 2026-10-06): a whole-number literal there lands as a bit pattern.
+    pub raw_files: std::collections::HashSet<crate::source::FileId>,
     pub modules: Vec<Module>,
     pub fns: Vec<FnDeclInfo>,
     pub externs: Vec<ExternInfo>,

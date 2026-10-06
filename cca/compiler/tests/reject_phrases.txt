@@ -481,6 +481,9 @@ range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what a `
 range_reassign_out [fnv:0642e09a92a7c67b] :: the value can be outside what a `int32[0, 100]` holds
 range_to_c [fnv:89768fbb7f2f8a1a] :: 'a' is written as the plain `int32`
 range_type_on_range [fnv:bde7b04c0713065f] :: int32 in range[0, 3]`
+raw_in_bin [fnv:ad5eb2ee2d32acbc] :: what a literal means in bin64 without ASP is not decided
+raw_too_wide [fnv:c4428a0590df9bd5] :: `256` does not fit the 8 bits of int8: without ASP a literal is a bit pattern, 0 to 255
+raw_too_wide_return [fnv:83b3b1ac9aa76dd9] :: `65536` does not fit the 16 bits of uint16
 return_group_through_call [fnv:0d648b1bc81e861d] :: returns a borrow of 'c', which is not in @x
 return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
 return_type_colon [fnv:940ae1aff445aa14] :: the return type is `-> int32`, not `: int32`

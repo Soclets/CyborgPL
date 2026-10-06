@@ -625,6 +625,28 @@ impl Checker {
         // meaning, and 70000 in a `bin16` would silently become 69984.
         // Bare numbers in a `deci` place are decimals, exactly as written
         // (owner, 2026-09-29): `let 'a': deci64 = 0.1 + 0.2;` is 0.3.
+        // Without ASP, Signatar's literals are bit patterns (owner,
+        // 2026-10-06): one lands as the type's bits, read as signed for an
+        // `intN`, and one wider than those bits is refused (owner: "a").
+        // What a literal means anywhere else is not decided.
+        if let (K::Int(i), true) = (&v.kind, self.items.raw_files.contains(&v.span.file) && matches!(vt.base(), Ty::Int(IntW::Free(_)))) {
+            match &t {
+                Ty::Int(IntW::Fixed { signed, bits }) if t.exact_limit().is_none() => {
+                    let (signed, bits) = (*signed, *bits);
+                    let room = 1i128.checked_shl(bits).filter(|_| bits < 127);
+                    if room.is_some_and(|room| *i >= room) {
+                        return err(Diagnostic::error(format!("`{}` does not fit the {} bits of {}: without ASP a literal is a bit pattern, 0 to {}", i, bits, self.spell(&t), room.unwrap() - 1)).at(v.span));
+                    }
+                    let value = match room {
+                        Some(room) if signed && *i >= room / 2 => *i - room,
+                        _ => *i,
+                    };
+                    return Ok(Expr { kind: K::Int(value), ty: t.clone(), span: v.span });
+                }
+                Ty::Infer(_) => {}
+                _ => return err(Diagnostic::error(format!("what a literal means in {} without ASP is not decided", self.spell(&t))).at(v.span)),
+            }
+        }
         if matches!(vt.base(), Ty::Deci(EXACT_FREE)) && matches!(t.base(), Ty::Bin(_) | Ty::Int(_)) {
             return err(Diagnostic::error(format!("a `*` literal is exactly what is written, a deci, and {} is {}, which cannot hold it exactly: drop the `*` for a bin, or make it a `deci`", what, article(&self.spell(&t)))).at(v.span));
         }
