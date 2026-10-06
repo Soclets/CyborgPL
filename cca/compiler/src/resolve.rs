@@ -155,6 +155,10 @@ pub struct Items {
     /// The roots of Limbs whose `CCA.cplr` does not list std: std's names
     /// are not theirs to write bare.
     pub no_std_roots: std::collections::HashSet<ModuleId>,
+    /// The roots of Limbs whose `CCA.cplr` does not list IEG: the rule
+    /// that marks raw memory and unproven code `!check` is IEG's, so
+    /// nothing there needs the mark (owner, 2026-10-06: "yes").
+    pub no_ieg_roots: std::collections::HashSet<ModuleId>,
     pub modules: Vec<Module>,
     pub fns: Vec<FnDeclInfo>,
     pub externs: Vec<ExternInfo>,

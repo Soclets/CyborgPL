@@ -37,6 +37,7 @@ asm_long_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.
 asm_lowercase [fnv:d7fd4875eda20406] :: written whole and capitalised, like `MAIN`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
 asm_s_lowercase [fnv:d7fd4875eda20406] :: written whole and capitalised, like `MAIN`
+asm_signatar_unmarked [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.Assembly in a Limb without IEG, unmarked as Signatar allows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_strings [fnv:c9b7ee31e6eab60e] :: not a list of strings
 asm_top_level [fnv:f8444caf9620e916] :: goes inside a body
 asm_two_long_arrows [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<---->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly

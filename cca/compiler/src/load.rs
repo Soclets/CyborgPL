@@ -373,6 +373,9 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if dir.join("CCA.cplr").is_file() && !manifest.has_std {
         items.no_std_roots.insert(m);
     }
+    if dir.join("CCA.cplr").is_file() && !manifest.cores.iter().any(|c| c == "IEG") {
+        items.no_ieg_roots.insert(m);
+    }
     state.stack.push((key.clone(), prefix.clone()));
     let mut deps = std::collections::HashMap::new();
     let mut in_order: Vec<(String, ModuleId)> = Vec::new();

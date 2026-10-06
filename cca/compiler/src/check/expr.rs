@@ -197,7 +197,7 @@ impl Checker {
             }
             AK::PtrCast { ty, value } => {
                 // Nothing proves what the bytes are (owner, 2026-09-30).
-                if !ctx.tier.is_some_and(ast::Tier::trusts) {
+                if self.needs_mark(ctx) {
                     return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a !check site: write `!check` in front of the statement").at(span));
                 }
                 // The function's own generics are announced, so naming one
@@ -455,7 +455,7 @@ impl Checker {
     /// An `extern let` is a place of its own kind: a read or write is a !check site.
     fn extern_place(&mut self, ctx: &mut FnCtx, id: hir::ExternId, use_: PlaceUse, span: Span) -> Result<Place> {
         let info = self.items.externs[id.0 as usize].clone();
-        if !ctx.tier.is_some_and(ast::Tier::trusts) {
+        if self.needs_mark(ctx) {
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
             return err(Diagnostic::error(format!("{} C's variable '{}' is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", what, info.name)).at(span));
         }
@@ -2582,7 +2582,7 @@ impl Checker {
         if info.is_let {
             return err(Diagnostic::error(format!("'{}' is C's variable, not a function", info.name)).at(span));
         }
-        if !ctx.tier.is_some_and(ast::Tier::trusts) {
+        if self.needs_mark(ctx) {
             return err(Diagnostic::error(format!("a call into C is a !check site: nothing about `{}` can be proven — write `!check` in front of the statement", info.name)).at(span).fix(None, format!("!check … {}[…] …;", info.name)));
         }
         let flat = self.flatten_args(ctx, args, span)?;
@@ -3461,7 +3461,7 @@ impl Checker {
                 (vec![Arg::Value(v)], Ty::Char(*unit))
             }
             Builtin::PtrRead | Builtin::PtrWrite | Builtin::PtrAt | Builtin::PtrIsNull => {
-                if b != Builtin::PtrIsNull && !ctx.tier.is_some_and(ast::Tier::trusts) {
+                if b != Builtin::PtrIsNull && self.needs_mark(ctx) {
                     return err(Diagnostic::error(format!("`{}` is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", name)).at(span));
                 }
                 let n = match b {
@@ -3881,6 +3881,13 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
 
 /// Every leaf a literal, every node arithmetic.
 impl Checker {
+    /// Whether raw memory or unproven code here needs `!check` in front:
+    /// the marking rule is IEG's, so a Limb without IEG marks nothing
+    /// (owner, 2026-10-06: "yes"); a lone file has every core.
+    pub(super) fn needs_mark(&self, ctx: &FnCtx) -> bool {
+        !ctx.tier.is_some_and(ast::Tier::trusts) && !self.items.no_ieg_roots.contains(&self.items.limb_root(ctx.module))
+    }
+
     /// A struct's or enum's name with the Limb it comes from: `areas::Circle`.
     fn spell_with_limb(&self, t: &Ty) -> String {
         let path = match t.base() {

@@ -1,6 +1,6 @@
 //! Statements.
 
-use crate::ast::{self, Tier};
+use crate::ast;
 use crate::diag::{err, Diagnostic, Result};
 use crate::hir::{self, Local, LocalId, LocalKind};
 use crate::types::*;
@@ -582,7 +582,7 @@ impl Checker {
             ast::StmtKind::Concur { detached, captures, body, otherwise } => self.concur_stmt(ctx, *detached, captures, body, otherwise.as_ref(), s.span),
             ast::StmtKind::Whichever { arms, otherwise } => self.whichever_stmt(ctx, arms, otherwise.as_ref(), s.span),
             ast::StmtKind::InlineAsm { text, bindings } => {
-                if !ctx.tier.is_some_and(Tier::trusts) {
+                if self.needs_mark(ctx) {
                     return err(Diagnostic::error("an inline block is a !check site: nothing inside it can be proven — write `!check inline.Assembly { … }`").at(s.span));
                 }
                 let mut ins = Vec::new();
