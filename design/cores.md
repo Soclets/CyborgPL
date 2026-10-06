@@ -221,5 +221,6 @@ is nothing to write it in.
 - **Building it**: the oracle reads `cca::Manifest` with `cores`, and a
   Limb whose manifest does not list std reaches no operator and no
   `std::`, nor a core's words when it does not list that core
-  (2026-10-06); lists, maps and text as std's, and Signatar's raw
-  numbers, are not built yet.
+  (2026-10-06), and without ASP a whole-number literal lands as a bit
+  pattern; lists, maps and text as std's, and ASP's `to.int8.bits[…]`,
+  are not built yet.

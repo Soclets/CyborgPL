@@ -374,6 +374,8 @@ pub enum Value {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i128, usize),
+    /// a whole-number literal in a Limb without ASP: a bit pattern, as the machine's (owner, 2026-10-06)
+    RawInt(i128, usize),
     /// a literal past i128: its digits (owner, 2026-10-03)
     BigInt(String, usize),
     Bin(f64, String, usize),   // value, digits as written, line
@@ -450,7 +452,7 @@ pub enum Expr {
 impl Expr {
     pub fn line(&self) -> usize {
         match self {
-            Expr::Int(_, l) | Expr::BigInt(_, l) | Expr::Bin(_, _, l) | Expr::Exact(_, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
+            Expr::Int(_, l) | Expr::RawInt(_, l) | Expr::BigInt(_, l) | Expr::Bin(_, _, l) | Expr::Exact(_, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
             | Expr::Newline(l) | Expr::Var(_, l) | Expr::Owned(_, _, l)
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,

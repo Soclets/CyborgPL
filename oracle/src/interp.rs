@@ -76,6 +76,7 @@ struct Task {
 /// What an evaluated expression *is*, for ownership and typing purposes.
 enum Prov {
     Literal,                             // a bare numeric literal: untyped, adopts its context's family
+    Raw,                                 // a whole-number literal in a Limb without ASP: its bits land as they are
     Plain,                               // a plain value: copies freely
     Fresh,                               // a newly made owned value (literal, call result): storable
     Given,                               // `give 'x'`: ownership transferred here
@@ -914,6 +915,7 @@ impl<'p> Interp<'p> {
                         let r = self.bracket(b, *line);
                         self.expected = saved;
                         let (v, prov) = r?;
+                        let (v, prov) = match &self.cur_ret { Some(t) => raw_land(v, prov, t, *line)?, None => (v, prov) };
                         self.ret_kind = self.last_kind.take();
                         self.ret_line = *line;
                         match prov {
@@ -1122,6 +1124,7 @@ impl<'p> Interp<'p> {
         let have = self.last_kind.take();
         let lit = self.last_lit.take();
         let Some(t) = ty else { return Ok(v) };
+        let (v, prov) = raw_land(v, prov, t, line)?;
         let written = v.clone();
         // a bin literal landing in a bin16/bin32 is rounded once, from its digits
         let v = match (&v, &prov, &lit, bin_w(t)) {
@@ -1829,6 +1832,7 @@ impl<'p> Interp<'p> {
             Expr::Int(i, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(crate::deci::Deci::from_int(*i, w).or_else(|m| rt(line, format!("`{i}` {m}: write fewer digits, or use a wider deci")))?), Prov::Literal)) }
             Expr::Bin(_, digits, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(self.deci_literal(digits, w, line)?), Prov::Literal)) }
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
+            Expr::RawInt(i, _) => Ok((Value::Int(*i), Prov::Raw)),
             Expr::BigInt(s, _) => Ok((Value::Big(crate::bigint::BigInt::parse(s).expect("lexed digits")), Prov::Literal)),
             // `*0.1` — exactly this, a deci (owner, 2026-10-02): of the width the place wants, or,
             // under `:=`, deci64 — the oracle's pick; Precog chooses the width
@@ -4690,6 +4694,25 @@ fn round_f16(x: f64) -> f64 {
 }
 
 /// The digits of a bin literal as written (with a leading `-`), looking through parentheses.
+/// Without ASP a literal is a bit pattern, as the machine's: an `int8` holding `128` holds -128's bits,
+/// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "Signatar's, then").
+fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), RuntimeError> {
+    match (&prov, &v, t) {
+        (Prov::Raw, Value::Int(i), Ty::Int(w) | Ty::Uint(w)) if int_range(t).is_some() => {
+            let bits = match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128, IntWidth::Other(n) => *n };
+            if *i < 0 || (bits < 128 && *i >= 1i128 << bits) {
+                return rt(line, format!("`{i}` does not fit the {bits} bits of {}: without ASP a literal is a bit pattern, 0 to {}", ty_name(t), if bits < 128 { ((1i128 << bits) - 1).to_string() } else { "2^128 - 1".into() }));
+            }
+            let v = if matches!(t, Ty::Int(_)) && bits < 128 && *i >= 1i128 << (bits - 1) { *i - (1i128 << bits) } else { *i };
+            Ok((Value::Int(v), Prov::Literal))
+        }
+        (Prov::Raw, Value::Int(_), Ty::Int(_) | Ty::Uint(_)) => rt(line, format!("a literal landing in {} without ASP is not built in the oracle", ty_name(t))),
+        (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: Signatar's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
+        (Prov::Raw, _, _) => Ok((v, Prov::Literal)),
+        _ => Ok((v, prov)),
+    }
+}
+
 fn lit_digits(e: &Expr) -> Option<String> {
     match e {
         Expr::Bin(_, t, _) => Some(t.clone()),

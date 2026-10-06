@@ -2221,7 +2221,7 @@ impl Parser {
         // (owner, 2026-09-27: a), so it is one instruction and Precog sees through it
         if head == "simd" && op == "shuffle" {
             let fixed = match args.values.get(1) {
-                Some(Value::Expr(Expr::Nested(b))) => b.values.iter().all(|v| matches!(v, Value::Expr(Expr::Int(..)))),
+                Some(Value::Expr(Expr::Nested(b))) => b.values.iter().all(|v| matches!(v, Value::Expr(Expr::Int(..) | Expr::RawInt(..)))),
                 _ => false,
             };
             if args.values.len() != 2 || !fixed { return self.err("`simd.shuffle` takes a vector and the new order as fixed lane numbers: `simd.shuffle['v', [4, 3, 2, 1]]`"); }
@@ -2613,6 +2613,8 @@ impl Parser {
                         return Ok(Expr::Duration(i * per, line));
                     }
                 }
+                // without ASP a literal is a bit pattern (owner, 2026-10-06); ASP makes it a value again
+                if self.lacks.iter().any(|c| c == "ASP") { return Ok(Expr::RawInt(i, line)); }
                 Ok(Expr::Int(i, line))
             }
             Tok::BigInt(s) => { self.advance(); Ok(Expr::BigInt(s, line)) }

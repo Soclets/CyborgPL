@@ -1,0 +1,7 @@
+cca::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    cores = [cca::Core[name = "IEG"],],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];
