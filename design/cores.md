@@ -166,7 +166,8 @@ The website offers packages: base; base + Signatar; + IEG; + std; all,
 with source (owner). Signatar installs itself as the machine's default
 codextra, which the base uses to read `CCA.cplr`; another codextra's
 installer overrides it. Packages with std set things up so `cca new`
-lists std (and ASP, Genny); without std, `cca new` writes an empty
+lists std (and ASP, Genny), std by its registry ID and version like
+any limb, CCA using the installed copy when it matches (owner, 2026-10-06); without std, `cca new` writes an empty
 manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
 the machine's package installed (owner, 2026-10-06). The installer writes
 that down in **a machine-wide record** (owner: "Good idea"), which `cca

@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — A manifest lists std like any limb, by its registry ID and version; CCA uses the installed copy when it matches (owner: yea; not built)
+
+Design claude asked how a `CCA.cplr` says "I want std", offering (a) a new
+`cca::Dep[installed = "std"]`, recommended, (b) std's registry ID and
+version like any limb, (c) a special `std = true`, having said std fits
+neither `path` nor `id`. The owner asked who defined `std` (the name: the
+owner, 2026-09-14, "`std` is one Limb"; the limb: not written yet, faked
+in the oracle and CCA), then, pasting the two dependency forms: "Shouldn't
+that work?" It does: the official std is published to the registry, so
+`cca::Dep[id = "…", version = "1.0"]` names it; the installer's copy is
+that same std, so CCA uses it when the ID and version match, and nothing
+downloads; `cca new` writes the line. No new form, no special case. The
+owner: "yea". Design claude's (a) was a form nobody needed: an ID says
+*which* limb, not that it must be downloaded.
+
 ### 2026-10-06 — A file with no `CCA.cplr` gets what the machine's package installed (owner; not built)
 
 Asked what `cca build hello.cpls` gives a file with no `CCA.cplr` beside
