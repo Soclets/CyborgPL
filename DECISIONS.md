@@ -26,9 +26,12 @@ codextra. The owner: "codextra. Oh my god, I swear. When people say
 for UEFI".
 
 So: **base (near-empty) → codextra (the language) → cores (IEG …) →
-limbs (std …)**. Open: what exactly the codextra holds and the base
-keeps; whether codextra is a category (several, an official one) and the
-official one's name; how it is installed; how it relates to Precog's and
+limbs (std …)**. **Codextra is a category** (owner: "`a`. Haha, mf, this
+shit could make another Codextra be another lang, bro"), over there
+being only one: anyone may write one, a whole rule set on the same base;
+the official one is verified and others warn, as for cores. Open: what
+exactly the codextra holds and the base keeps; the official codextra's
+name; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
 ### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
