@@ -23,8 +23,10 @@ noun and a path always has one (`my.helper`, "my helper"); Perl's `my`
 declares a variable, but here it is always followed by `.`; recommended
 `my.`. The owner: "yea". Reverses 2026-09-19's `limb.` (chosen over the
 floated `std:to` / `std:::to`). About ten uses in the examples and tests.
-Asked next: the root file, `limb.cpls` (design claude recommends keeping
-it: it names what the file is).
+**The root file stays `limb.cpls`** (owner: "`a`, but I thought it was
+`main`"), over renaming it `my.cpls`. It was never `main`: `limb.cpls`
+was chosen 2026-09-19 over having no root; `MAIN { }` is the entry
+block, which lives in it.
 
 ### 2026-10-06 — A Limb says whether its path is required or optional, per item, per module and per kind (owner: "all"; not built; reverses 2026-09-23's "drop bare")
 
