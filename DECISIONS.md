@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — A Limb says whether its path is required or optional, per item, per module and per kind (owner: "all"; not built; reverses 2026-09-23's "drop bare")
+
+Asked how std's list, map and text operations are written now that they
+are std's ((a) bare, refused without std, as std's operators; (b)
+`std::list.append[…]`), the owner: "A limb should be able to say if path
+is required, or optional, and for what". Design claude flagged that this
+reverses **2026-09-23's "drop bare"** (everything from another Limb
+carries its path, only operators bare), which had itself reversed
+2026-09-19's "the Limb maker decides bare reachability", and asked what
+"for what" covers: (a) per item (`pub path.optional fn …`, *sketch*),
+(b) per kind, once for the Limb ("my operators and my `list.` functions:
+optional"), (c) per module, recommended. The owner: "all". So the
+writer of a Limb can mark the path optional at any of the three. Open:
+which wins when they disagree, the spelling, how two Limbs' optional
+names clash, and how this sits with 2026-10-02's registry rule (a
+published Limb writing another Limb's word operator bare is refused).
+
 ### 2026-10-06 — Without ASP, a literal wider than its type's bits is refused (owner: a; not built)
 
 Signatar's literals are bit patterns (`let 'x': int8 = 128;` holds -128's
