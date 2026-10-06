@@ -91,7 +91,10 @@ and hashing) and **text operations** (`str.bytes`, `++`, conversions) are
 std's, which brings the allocator. `for 'x' in lend 'xs'` works on both;
 std's list plugs into Signatar's `for` as `plus` plugs into its operator
 syntax. The owner: "yea". A kernel makes its own lists, as Linux's
-`list_head` and allocators are its own.
+`list_head` and allocators are its own. So **plugging a type into `for`
+is a power**, any limb can be granted (owner: "`a`"): IEG may grant it to
+every limb, so a kernel's own list works with `for` as std's does, over
+(b) an iteration interface, which would need Genny.
 
 ### 2026-10-06 — Code for one target: `on.target … { } else on.target … { } else { }`, chosen when compiling, and `on.machine` when running (owner: b; not built)
 
