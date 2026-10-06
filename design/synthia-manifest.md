@@ -12,9 +12,13 @@ time.created = 2026-09-29T17:40:00+07:00
 time.stated_ver.created = 2026-09-29T17:40:00+07:00
 
 [my needed things]
-geometry.id = 3f9a2c1d4e5b6a708192a3b4c5d6e7f8091a2b3c4d5e6f708a9b0c1d2e3f4a5b
-geometry.version = 1.2
-money.path = ../money
+core.asp.id = 4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f
+core.asp.version = 2026-10-06T18:04:29+07:00
+limb.std.id = fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936
+limb.std.version = 2026-10-06T12:57:14+07:00
+limb.geometry.id = 3f9a2c1d4e5b6a708192a3b4c5d6e7f8091a2b3c4d5e6f708a9b0c1d2e3f4a5b
+limb.geometry.version = 1.2
+limb.money.path = ../money
 
 [my target]
 aarch64-macos.default = yes
@@ -42,8 +46,18 @@ x86_64-windows.runner = wine
   checked (owner: "Raw", "exactly, because there's `--readable` for the
   more readable ver"); `--readable` changes only the time values. Builds never read these times
   (reproducible builds).
-- **A dependency is dotted keys** (owner: b): `geometry.version = 1.2`,
-  `money.path = ../money`. A published one is named by **its ID**, which
+- **A dependency is dotted keys** (owner: b), **each line starting with
+  what it needs, `limb.` or `core.`** (owner, 2026-10-06, relayed by
+  synthia claude: "`core.asp.id`, I think, and `limb.geometry.id`", then
+  "yea" to a whole section; until then `geometry.version = 1.2`,
+  `money.path = ../money`, a form now refused naming `limb.geometry.id`):
+  `limb.geometry.version = 1.2`, `limb.money.path = ../money`. **A core is
+  listed there by its ID and version** (`core.asp.id = …`,
+  `core.asp.version = …`), not in a section of its own (owner: "inside
+  `[my needed things]`", over a `[my cores]` section, which synthia claude
+  recommended); a core and a Limb may share a label. As in `CCA.cplr`
+  (2026-10-06: a core by registry ID; official IDs only until cores can
+  be loaded, and `core.x.path` refused for now; std needs the core ASP). A published one is named by **its ID**, which
   its creator generates: **256 bits of randomness, as 64 hex digits**,
   needed to register in the Limb registry (owner). The value takes no quotes
   or braces: the key already says it is an ID, and a line ends where its
@@ -89,7 +103,7 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   CCA an ordinary path dependency. The override is a dotted `prefix` line
   on the needed Limb's key (owner, 2026-09-30: "Prefix shall be narrowed
   using a dot", "yea"): `money.path = ../money` with `money.prefix =
-  cash2`, and code writes `cash2::`. The key (`money`) is this
+  cash2` (`limb.money.path`, `limb.money.prefix` since 2026-10-06), and code writes `cash2::`. The key (`money`) is this
   manifest's label for the Limb, following the name rule; without a
   `prefix` line code writes the Limb's own prefix. The copy lives in the
   project, in Synthia's own `.synthia/` folder beside `Synthia.ttsr`
@@ -115,7 +129,7 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   section), `code:`, and `fix:` when there is one right line to write.
 - **Names may repeat; IDs never do** (owner: "Names could be the same, IDs
   can't"). A name is a label; the key before `.id` in `[my needed things]` is
-  what this Limb's code calls that dependency (`geometry.id = …` →
+  what this Limb's code calls that dependency (`geometry.id = …`, now `limb.geometry.id`, →
   `geometry::area[…]`), so two Limbs both called "geometry" live side by
   side as `geometry.id` and `geo2.id`, and a clash never breaks a build.
   Proposed alternative: names unique in the registry too, first come.

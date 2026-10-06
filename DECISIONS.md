@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — In `Synthia.ttsr`, every needed thing starts with `limb.` or `core.`; a core is listed there by ID and version (owner; relayed by synthia claude)
+
+```
+[my needed things]
+core.asp.id = 4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f
+core.asp.version = 2026-10-06T18:04:29+07:00
+limb.std.id = fff4302d…1936
+limb.std.version = 2026-10-06T12:57:14+07:00
+limb.money.path = ../money
+limb.money.prefix = cash2
+```
+
+Synthia claude offered (a) a `[my cores]` section with `asp.id`,
+recommended, or (b) inside `[my needed things]` as `asp.core = …`; the
+owner: "inside `[my needed things]`". Confirming `asp.core` +
+`asp.version`, the owner: "`core.asp.id`, I think, and
+`limb.geometry.id`"; shown a whole section, noting it changes the ruled
+Limb lines (`geometry.id` becomes `limb.geometry.id`): "yea". The old form
+is refused, showing `limb.geometry.id = …`. Built in Synthia (776300d):
+official core IDs only, `core.x.path` refused for now, std without ASP
+refused in `Synthia.ttsr` itself, and the written `CCA.cplr` lists the
+cores. Design claude ran the oracle on Synthia's output for
+`examples/limbs/areas`: accepted, same program output.
+`synthia-manifest.md`.
+
 ### 2026-10-06 — A core is listed by its registry ID, in `CCA.cplr` and `Synthia.ttsr` alike (owner: "ID"; relayed by synthia claude; not built)
 
 Synthia claude asked how `Synthia.ttsr` lists cores ((a) a `[my cores]`
