@@ -35,8 +35,15 @@ Nvidia   beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361
 Vulkan   63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec
 ```
 
-Open: whether "official cores only" stays (by ID), and `Synthia.ttsr`'s
-spelling (synthia claude's to ask).
+**Until cores can be loaded, any other ID is refused** (owner: "`a`"):
+an ID is registered in the official registry (2026-09-29), so another ID
+is someone else's registered core, the "unverified, used with a warning"
+case (2026-10-05); with no plugin loading yet, the oracle and CCA refuse
+it ("loading another core is not built yet"), and the refusal becomes the
+warning once plugins exist. Over (b) accepting it with the warning now,
+which would build as if the core were there. Asked next: a core never
+registered, by `path`. Open: `Synthia.ttsr`'s spelling (synthia claude's
+to ask).
 
 ### 2026-10-06 — `to.int8.bits[…]` takes any value whose bits fit, -128 to 255, and refuses the rest (owner: a)
 
