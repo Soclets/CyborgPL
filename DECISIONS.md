@@ -21,7 +21,11 @@ writer of a Limb can mark the path optional at any of the three. **Marks
 that disagree are an error** (owner: "`c`"), over (a) the narrowest
 wins, recommended, and (b) "required" always wins: a Limb marking the
 module `list` optional and its item `list.clear` required is refused,
-and the writer makes them agree. Open: the spelling, how two Limbs' optional
+and the writer makes them agree. **The word is `bare`, as 2026-09-23's
+`pub bare fn pow […]`** (owner: "yea"): `pub bare fn append […]` for an
+item, `pub bare module list { … }` for a block module. Open: the
+spelling for a file module and for a kind (design claude's sketch: a
+`bare [list, map, str];` / `bare [ops];` line in `limb.cpls`), how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
