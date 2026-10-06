@@ -334,6 +334,10 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
         return Err(format!("{shown}: line {mline}: std needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", parser::core_line("ASP")));
     }
+    // std needs IEG too: its operators on built-in types are a power IEG grants (owner, 2026-10-06: "`a`")
+    if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "IEG") {
+        return Err(format!("{shown}: line {mline}: std needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", parser::core_line("IEG")));
+    }
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
         return Err(format!("{shown}: line {mline}: the core MCPS needs IEG: add `{}` to `cores`", parser::core_line("IEG")));

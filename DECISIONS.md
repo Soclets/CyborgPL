@@ -429,6 +429,13 @@ ASP". So **std's maths always has true values and checks**: a
 `CCA.cplr` that lists std must list ASP. Raw, hardware-like numbers are
 for programs without std, on Signatar and IEG.
 
+**std needs IEG too** (owner: "`a`"): std's operators on built-in types
+are a power IEG grants (this morning's chain of permission), but the
+oracle had let a manifest list std and ASP without IEG; design claude
+asked (a) std needs IEG, refused without it, or (b) as built, IEG's grant
+invisible underneath, after the owner's "I want the beginners to learn
+it the diabolical way. Imagine if they didn't install IEG". The std
+package already includes IEG.
 **The std package includes ASP and Genny** (owner: "yea"): the packages
 are base; base + Signatar; + IEG; **+ ASP + Genny + std**; all, with
 source. Design claude pointed out that the 2026-10-06 package list
