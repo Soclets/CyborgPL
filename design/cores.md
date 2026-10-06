@@ -165,8 +165,9 @@ cca::Manifest[
 
 ## Installing
 
-The website offers packages: base; base + Signatar; + IEG; + std; all,
-with source (owner). Signatar installs itself as the machine's default
+The website offers packages: base; base + Signatar; + IEG; + ASP +
+Genny + std (std needs ASP; owner, 2026-10-06); all, with source
+(owner). Signatar installs itself as the machine's default
 codextra, which the base uses to read `CCA.cplr`; another codextra's
 installer overrides it. Packages with std set things up so `cca new`
 lists std (and ASP, Genny), std by its registry ID and version like

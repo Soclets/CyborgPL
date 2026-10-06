@@ -16,6 +16,14 @@ ASP". So **std's maths always has true values and checks**: a
 `CCA.cplr` that lists std must list ASP. Raw, hardware-like numbers are
 for programs without std, on Signatar and IEG.
 
+**The std package includes ASP and Genny** (owner: "yea"): the packages
+are base; base + Signatar; + IEG; **+ ASP + Genny + std**; all, with
+source. Design claude pointed out that the 2026-10-06 package list
+("base + Signatar + IEG + std") predated ASP (owner: "Fuck, I forgot ASP
+even existed") and asked (a) ASP in the std package, recommended, or (b)
+an ASP package of its own; and, since `cca new` lists ASP and Genny,
+whether Genny goes in too. One "yea" to both.
+
 ### 2026-10-06 — A manifest lists std like any limb, by its registry ID and version; CCA uses the installed copy when it matches (owner: yea; not built)
 
 Design claude asked how a `CCA.cplr` says "I want std", offering (a) a new
