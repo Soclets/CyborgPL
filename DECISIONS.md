@@ -59,8 +59,11 @@ so different"), correcting design claude, which had floated it twice as
 an example. **When this lands, the website says "Signatar CyborgPL"**
 (owner: "we better say Signatar CyborgPL on the website, when it comes
 in. Or else, it would just be an Assembly monster"), so the name names
-the language people actually write, not the bare base.
-Open: whether `cca new` lists std when std came in the package. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
+the language people actually write, not the bare base. **When std came
+in the package, the installer sets it up so `cca new` lists std** (owner:
+"The installer auto adds std"), over design claude's (a), still empty;
+2026-10-05's empty `CCA.cplr` stands for packages without std.
+ Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
 ### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
