@@ -658,18 +658,18 @@ impl Items {
         if path.limb.is_some() || path.head() == "my" {
             return own.map(Bareness::Own);
         }
-        // Inside a module, a name found there is that module's.
+        // A bare name means this module's, and a module sees the same
+        // clash as the root (design claude, 2026-10-06); its own is named
+        // from the root, `my.m.exit`.
         let here = self.limb_root(m);
-        if here != m {
-            if let Ok(i) = own {
-                return Ok(Bareness::Own(i));
-            }
-        }
         let written = path.spelled();
         let mut found: Vec<(String, Bareness)> = Vec::new();
         if let Ok(i) = &own {
             if !matches!(i, ItemRef::Module(_)) {
-                found.push((format!("`my.{}` (this Limb's)", written), Bareness::Own(*i)));
+                let module = &self.modules[m.0 as usize].path;
+                let inner = module.rsplit("::").next().unwrap_or(module);
+                let at = if m == here { String::new() } else { format!("{}.", inner) };
+                found.push((format!("`my.{}{}` (this Limb's)", at, written), Bareness::Own(*i)));
             }
         }
         if std && !self.no_std_roots.contains(&here) {

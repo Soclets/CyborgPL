@@ -519,6 +519,7 @@ shadow [fnv:6f58e8bff03be94f] :: 'x' is already declared in an enclosing scope; 
 shadow_nothing [fnv:21615fa293366dc7] :: `$` shadows a visible 'y', and none is visible here: write `:=`
 shadow_sealed [fnv:89d14c915689d264] :: cannot be shadowed: it is `!$`
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
+shl_no_width [fnv:93c25ad48c4751b2] :: `shl` needs a width, and nothing here gives one
 short_name_one_limb [fnv:c62ad7b10088ce87] :: gives other Limbs a shorter name
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
 simd_lane_step [fnv:693bf5e5af5f3ed9] :: `plus` can leave what the type holds
