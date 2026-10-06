@@ -49,10 +49,11 @@ the manifest is CyborgPL, CyborgPL is Signatar's). **The website offers
 packages** (owner: "There will likely be 4-5 packages. Base lang, base +
 Signatar, base + Signatar + IEG, base + Signatar + IEG + std, All
 (include source too)"), replacing 2026-10-05's "the download is CCA and
-IEG". Open: whether a project on another codextra names it in a first
-line (`#codextra Lilith`, design claude's proposal, as Rust's
-`rust-toolchain` overrides its default); whether `cca new` lists std when
-std came in the package. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
+IEG". **Another codextra's installer overrides the default** (owner:
+"Your other codextra installer would just have to override it"), over
+design claude's per-project first line (`#codextra Lilith`, as Rust's
+`rust-toolchain`). So one codextra is the machine's default at a time.
+Open: whether `cca new` lists std when std came in the package. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
 ### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
