@@ -36,7 +36,7 @@ lang so low, even kernel would say wtf"): it proves things about
 Signatar's own rules, so a codextra with other rules brings its own
 checker or none. **Syntax is Signatar's too** (owner: "`a`"): a
 codextra brings its own parser through its Rust plugin, so another
-codextra may have wholly different syntax (Lilith's would fit), and the
+codextra may have wholly different syntax, and the
 base does not know what a quoted name is. Following from both, design
 claude's reading: what earlier rulings put in the base (SIMD, the minus
 sign of a negative, `bool`, `and.then`/`or.else`) moves into Signatar.
@@ -51,8 +51,15 @@ Signatar, base + Signatar + IEG, base + Signatar + IEG + std, All
 (include source too)"), replacing 2026-10-05's "the download is CCA and
 IEG". **Another codextra's installer overrides the default** (owner:
 "Your other codextra installer would just have to override it"), over
-design claude's per-project first line (`#codextra Lilith`, as Rust's
+design claude's per-project first line (`#codextra X`, as Rust's
 `rust-toolchain`). So one codextra is the machine's default at a time.
+**Lilith is not a codextra and not in the CyborgPL family** (owner:
+"Lilith does not fit, bro. That shit ain't in the CyborgPL family, it's
+so different"), correcting design claude, which had floated it twice as
+an example. **When this lands, the website says "Signatar CyborgPL"**
+(owner: "we better say Signatar CyborgPL on the website, when it comes
+in. Or else, it would just be an Assembly monster"), so the name names
+the language people actually write, not the bare base.
 Open: whether `cca new` lists std when std came in the package. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
