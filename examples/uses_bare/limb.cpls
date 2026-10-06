@@ -1,8 +1,15 @@
-# `greet` marks `hello` bare.optional, `wave` bare.only, and `formal` and `merge` bare.never
-# (owner, 2026-10-06).
+# `greet` marks `hello` and `Note` bare.optional, `wave` and `Tone` bare.only, and `formal`, `Tally`
+# and `merge` bare.never (owner, 2026-10-06).
+
+fn describe ['t': Tone] --> str.utf8 {
+    return match 't' { soft { "soft" } loud { "loud" } };
+}
 
 MAIN {
     print.useful.stdout[hello[], " ", greet::hello[], " ", wave[], " ", greet::formal[], \n];
     let 't' := greet::Tally[n = 2] greet::merge greet::Tally[n = 3];
     print.useful.stdout['t'.n, \n];
+    let 'a' := Note[text = "bare"];
+    let 'b': greet::Note = greet::Note[text = "with the path"];
+    print.useful.stdout['a'.text, ", ", 'b'.text, ", ", describe[Tone.loud], \n];
 }

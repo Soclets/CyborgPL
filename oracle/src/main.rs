@@ -54,7 +54,30 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let first = load_files(path);
     LEVELS_ONLY.with(|f| f.set(false));
     first?;
-    load_files(path)
+    // then the program once to learn which of other Limbs' structs and enums may be written bare
+    // (owner, 2026-10-06), and again with that known
+    parser::BARE_TYPES.with(|t| t.borrow_mut().clear());
+    let once = load_files(path)?;
+    let marks = check_bare(&once).unwrap_or_default();
+    let mut bare_types = Vec::new();
+    for (key, mode) in &marks {
+        let Some((kind, path)) = key.split_once(':') else { continue };
+        if !["struct", "enum", "interface"].contains(&kind) || *mode == ast::Bare::Never { continue; }
+        let Some(rest) = path.strip_prefix("::") else { continue };
+        let (root, rel) = rest.split_once('.').unwrap_or((rest, ""));
+        bare_types.push((rel.split('.').map(str::to_string).collect::<Vec<_>>(), path.to_string(), format!("::{root}"), *mode == ast::Bare::Only));
+    }
+    parser::BARE_TYPES.with(|t| *t.borrow_mut() = bare_types);
+    parser::BARE_TYPE_USES.with(|u| u.borrow_mut().clear());
+    let prog = load_files(path)?;
+    // this Limb's own struct or enum does not win over another Limb's bare one (owner, 2026-10-06: "no")
+    for (own, theirs, written, root) in parser::BARE_TYPE_USES.with(|u| u.borrow().clone()) {
+        if prog.structs.iter().any(|d| d.name == own) || prog.enums.iter().any(|d| d.name == own) || prog.interfaces.iter().any(|d| d.name == own) {
+            let _ = theirs;
+            return Err(format!("{}: `{written}` could be any of `my.{written}` (this Limb's), `{}::{written}`: write the path", path.display(), root.trim_start_matches("::")));
+        }
+    }
+    Ok(prog)
 }
 
 /// A Limb whose `CCA.cplr` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no

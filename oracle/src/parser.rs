@@ -111,6 +111,12 @@ thread_local! {
     /// `["::areas"]` for a dependency): `std`, and the official cores by name (owner, 2026-10-05/06:
     /// "Limbs should say what cores they are built for"). A Limb with no `CCA.cplr` lacks nothing.
     pub static LACKS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>)>> = std::cell::RefCell::new(Vec::new());
+    /// Other Limbs' structs and enums that may be written bare (`bare.optional` / `bare.only`): the path
+    /// as written, the canonical name, the Limb's root, and whether it is `bare.only` (owner, 2026-10-06)
+    pub static BARE_TYPES: std::cell::RefCell<Vec<(Vec<String>, String, String, bool)>> = std::cell::RefCell::new(Vec::new());
+    /// Bare type names that resolved to another Limb's: (this Limb's would-be name, theirs, as written,
+    /// their root), checked once every file is read, since this Limb's own does not win
+    pub static BARE_TYPE_USES: std::cell::RefCell<Vec<(String, String, String, String)>> = std::cell::RefCell::new(Vec::new());
     pub static SHARED_LEVELS: std::cell::RefCell<std::collections::HashMap<String, (u16, u8)>> = std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
@@ -164,6 +170,32 @@ impl Parser {
     }
 
     fn canonical(&self, segs: &[String]) -> String { self.resolve(segs).join(".") }
+
+    /// A struct or enum name as written: this Limb's, or another Limb's `bare.optional` / `bare.only` one
+    /// (owner, 2026-10-06); two other Limbs' are an error where written
+    fn type_name(&self, segs: &[String]) -> PResult<String> {
+        let own = self.canonical(segs);
+        if segs.first().map_or(true, |s| s == "my") { return Ok(own); }
+        let mine = self.limb_root.first().cloned();
+        let hits: Vec<(String, String)> = BARE_TYPES.with(|t| t.borrow().iter().filter(|(rel, _, root, _)| rel.as_slice() == segs && Some(root) != mine.as_ref()).map(|(_, c, r, _)| (c.clone(), r.clone())).collect());
+        match hits.as_slice() {
+            [] => Ok(own),
+            [(theirs, root)] => {
+                BARE_TYPE_USES.with(|u| u.borrow_mut().push((own, theirs.clone(), segs.join("."), root.clone())));
+                Ok(theirs.clone())
+            }
+            many => self.err(format!("`{}` could be any of {}: write the path", segs.join("."), many.iter().map(|(_, r)| format!("`{}::{}`", r.trim_start_matches("::"), segs.join("."))).collect::<Vec<_>>().join(", "))),
+        }
+    }
+
+    /// `greet::Tally` where `greet` marks `Tally` `bare.only`: the path is forbidden (owner, 2026-10-06)
+    fn path_forbidden(&self, canonical: &str) -> PResult<()> {
+        if let Some((rel, _, root, _)) = BARE_TYPES.with(|t| t.borrow().iter().find(|(_, c, _, only)| *only && c == canonical).cloned()) {
+            let l = root.trim_start_matches("::");
+            return self.err(format!("`{l}::{}` is `bare.only`: `{l}` forbids its path, so write `{}`", rel.join("."), rel.join(".")));
+        }
+        Ok(())
+    }
 
     fn peek(&self) -> &Tok { &self.toks[self.pos].tok }
     fn peek_at(&self, n: usize) -> &Tok { &self.toks[(self.pos + n).min(self.toks.len() - 1)].tok }
@@ -611,7 +643,7 @@ impl Parser {
                         break;
                     }
                     self.expect(Tok::Semi, "`;` after the claim")?;
-                    prog.claims.push(Claim { ty, iface: self.canonical(&segs), line });
+                    prog.claims.push(Claim { ty, iface: self.type_name(&segs)?, line });
                 }
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
                 Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`: `const 'x' := 1;`"),
@@ -946,7 +978,7 @@ impl Parser {
                         if *self.peek() == Tok::Dot { self.advance(); continue; }
                         break;
                     }
-                    let iface = self.canonical(&segs);
+                    let iface = self.type_name(&segs)?;
                     if bound.contains(&iface) { return self.err(format!("`{iface}` is named twice for `<{name}>`")); }
                     bound.push(iface);
                     if self.is_word("and") { self.advance(); continue; }
@@ -1139,6 +1171,7 @@ impl Parser {
                 if *self.peek() == Tok::Dot { self.advance(); continue; }
                 break;
             }
+            self.path_forbidden(&segs.join("."))?;
             return Ok(Ty::Struct(segs.join(".")));
         }
         let mut segs = Vec::new();
@@ -1358,12 +1391,12 @@ impl Parser {
                     let builtin = ["int", "uint", "bin", "deci"].iter().any(|p| width(head, p).is_some());
                     if builtin { return bad(self, format!("`{head}` takes no type parameters")); }
                     // `Stack[int32]` — a generic struct or enum with its blanks filled
-                    return Ok(Ty::Inst(self.canonical(&segs), params));
+                    return Ok(Ty::Inst(self.type_name(&segs)?, params));
                 }
                 if segs.len() > 1 {
                     // a struct reached through modules: `shapes.Locker`, `my.Locker`
                     if segs[..segs.len() - 1].iter().any(|m| m == "my" || module_name_ok(m).is_ok()) {
-                        return Ok(Ty::Struct(self.canonical(&segs)));
+                        return Ok(Ty::Struct(self.type_name(&segs)?));
                     }
                     return bad(self, format!("`{}` takes no narrowing", segs.join(".")));
                 }
@@ -1391,7 +1424,7 @@ impl Parser {
                 }
                 if let Some(n) = width(head, "deci") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; deci is 32/64/128 (IEEE 754 defines only these)")) }; }
                 // anything else is a struct name in this module; the interpreter checks it was declared
-                Ok(Ty::Struct(self.canonical(&segs)))
+                Ok(Ty::Struct(self.type_name(&segs)?))
             }
         }
     }
@@ -3114,7 +3147,7 @@ impl Parser {
                         break;
                     }
                     let case = segs.pop().unwrap();
-                    Ok(Expr::EnumValue(self.canonical(&segs), case, None, line))
+                    Ok(Expr::EnumValue(self.type_name(&segs)?, case, None, line))
                 }
                 _ if self.is_const_path() => {
                     // `shapes.'pi'`, `my.'pi'`
@@ -3143,6 +3176,7 @@ impl Parser {
                         break;
                     }
                     let w = segs.join(".");
+                    self.path_forbidden(&w)?;
                     self.advance(); // [
                     self.construct_body(w, line)
                 }
@@ -3153,7 +3187,7 @@ impl Parser {
                         if *self.peek() == Tok::Dot { self.advance(); continue; }
                         break;
                     }
-                    let w = self.canonical(&segs);
+                    let w = self.type_name(&segs)?;
                     self.advance(); // [
                     self.construct_body(w, line)
                 }

@@ -19,3 +19,12 @@ pub bare.never struct Tally {
 pub bare.never op merge ['a': Tally, 'b': Tally] --> Tally {
     return Tally[n = 'a'.n plus 'b'.n];
 }
+
+pub bare.optional struct Note {
+    text: str.utf8
+}
+
+pub bare.only enum Tone {
+    soft
+    loud
+}
