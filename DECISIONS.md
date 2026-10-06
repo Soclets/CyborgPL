@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — `synthia sync` writes the `CCA.cplr` files and the renamed copies, leaving the project ready for `cca build` (owner; relayed by synthia claude)
+
+```
+synthia sync     # checks the whole tree of path dependencies, writes the CCA.cplr files
+cca build        # builds, knowing nothing of Synthia
+```
+
+`synthia sync` writes the project's `CCA.cplr` from `Synthia.ttsr`,
+writes one for each needed Limb that has only a `Synthia.ttsr`, and makes
+the renamed copies in `.synthia/`, after checking the whole tree of path
+dependencies. Synthia claude offered (a) `synthia sync` (uv's word for the
+same job), (b) nothing until `synthia build` exists, (c) `synthia write`;
+the owner: "what"; re-asked plainly with the two-command example: "`synthia
+sync`". `synthia build` would later run it before CCA. Built the same
+day in Synthia: it reads hand-written `CCA.cplr` files (4093555) and
+follows path dependencies with CCA's refusals (4acbd32).
+
 ### 2026-10-06 — `>>` and `>>>` are other spellings of `-->`, and `<<` and `<<<` of `<--` (owner)
 
 ```

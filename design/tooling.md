@@ -37,6 +37,11 @@ Owner, 2026-09-14.
 
 - **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
   deliberately avoided.
+- **`synthia sync`** (owner, 2026-10-06, via synthia claude): writes the
+  project's `CCA.cplr` from `Synthia.ttsr`, one for each needed Limb that
+  has only a `Synthia.ttsr`, and the renamed copies in `.synthia/`, after
+  checking the whole tree of path dependencies, so `cca build` follows
+  knowing nothing of Synthia; a later `synthia build` would run it first.
 - **CCA's package manager** (owner, 2026-09-29) — a second, built-in one,
   "because a hobby is supposed to be fun": `cca add …`, no name of its own.
   Its manifest is **`CCA.cplr`**, written in CyborgPL syntax on purpose:
