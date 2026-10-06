@@ -11,7 +11,7 @@ Run at 20:36 (+07) with `CYBORG_BENCH_THREADS=10 python3 run.py cyborgpl cyborgp
 - **The parallel rows are not like for like.** CyborgPL spreads a proven `for` loop over the cores by itself (`design/parallelism.md`); the C and Go programs are the plain single-threaded code anyone would write first, with no threads added by hand. So the 10-thread row shows what CyborgPL gives for free, not what C or Go could do with work. **The 1-thread row is the fair comparison**: on it CyborgPL ties or beats C on all four (sum 0.091 s against 0.094, fib and lists equal, sieve 0.379 against 0.384, though the capped run below had it behind on sieve, 0.431 against 0.407, so that one is within run-to-run noise), and beats Go on three; on sieve Go's single thread is faster (0.352 s against 0.379).
 - **fib cannot be split**: it is all function calls, so every row is one core, and CyborgPL ties C.
 - **sieve is held back by memory, not cores**: going from 3 threads to 10 took it only from 0.257 s to 0.231 s, while sum halved (0.043 s to 0.022 s).
-- **Startup is included**, so these short runs (tens of milliseconds) also measure how fast each program starts.
+- **Startup is included, but it is small**: all four are compiled ahead of time. Measured the same way with N = 1 (best of 30, launching the process included): C 1.35 ms, CyborgPL 1.52 ms on 1 thread and 1.48 ms on 10, Go 1.94 ms (its runtime starts up first). That is a fixed ~1.5–2 ms in every row, about a tenth of the 16–22 ms runs (fib, sum) and almost nothing in sieve.
 
 ### sum (N = 300,000,000)
 
