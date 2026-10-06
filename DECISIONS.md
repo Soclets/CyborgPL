@@ -23,9 +23,11 @@ wins, recommended, and (b) "required" always wins: a Limb marking the
 module `list` optional and its item `list.clear` required is refused,
 and the writer makes them agree. **The word is `bare`, as 2026-09-23's
 `pub bare fn pow […]`** (owner: "yea"): `pub bare fn append […]` for an
-item, `pub bare module list { … }` for a block module. Open: the
-spelling for a file module and for a kind (design claude's sketch: a
-`bare [list, map, str];` / `bare [ops];` line in `limb.cpls`), how two Limbs' optional
+item, `pub bare module list { … }` for a block module. **A file module
+says `bare;` on its first line** (owner: "`a`", after asking how it
+looks), over a list in `limb.cpls` or in `CCA.cplr`: every `pub` thing in
+`list.cpls` may then be written without `std::` (`list.append[…]` or
+`std::list.append[…]`). Open: the spelling for a kind, how two Limbs' optional
 names clash, and how this sits with 2026-10-02's registry rule (a
 published Limb writing another Limb's word operator bare is refused).
 
