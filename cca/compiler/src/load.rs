@@ -437,9 +437,7 @@ struct Dep {
 
 const FIELDS: [&str; 6] = ["name", "prefix", "version", "targets", "dependencies", "cores"];
 
-/// The official cores (`design/cores.md`), the ones a `cores` field may
-/// list; another core is a plugin, which CCA cannot load yet.
-const OFFICIAL_CORES: [&str; 8] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan"];
+use crate::ast::{CORE_VERSION, OFFICIAL_CORES};
 
 const MANIFEST_SHAPE: &str = "`cca::Manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [cca::Target[name = \"aarch64-macos\"],]];`";
 
@@ -595,36 +593,58 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // of the cores it lists; CCA's code is built the same either way.
             "cores" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`cores` is a list of `cca::Core[…]`: `[cca::Core[name = \"IEG\"],]`").at(v.span));
+                    return err(Diagnostic::error(format!("`cores` is a list of `cca::Core[…]`: `[{},]`", crate::ast::core_line("IEG"))).at(v.span));
                 };
                 let mut names: Vec<String> = Vec::new();
                 for e in entries {
                     let core = match &e.kind {
                         ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && path.segs.iter().map(|s| s.name.as_str()).eq(["Core"]) => args,
-                        _ => return err(Diagnostic::error("each core is a `cca::Core[name = …]`").at(e.span)),
+                        _ => return err(Diagnostic::error("each core is a `cca::Core[id = …, version = …]`").at(e.span)),
                     };
-                    let mut name = None;
+                    // A core is listed by its registry ID and a version, or
+                    // by a path when it is not registered (owner,
+                    // 2026-10-06: "ID", "`a`", "`a`").
+                    let (mut id, mut version, mut where_) = (None, None, None);
                     for a in core {
-                        match a {
-                            AArg::Named(f, cv) if f.name == "name" => name = Some((text(cv, "a core's `name`")?, cv.span)),
-                            AArg::Named(f, _) => return err(Diagnostic::error(format!("a `cca::Core` has no field `{}`: it is a `name`", f.name)).at(f.span)),
-                            _ => return err(Diagnostic::error("a `cca::Core` names its field: `cca::Core[name = \"IEG\"]`").at(a.span())),
+                        let AArg::Named(f, cv) = a else {
+                            return err(Diagnostic::error("a `cca::Core` names its fields: `cca::Core[id = \"…\", version = \"…\"]`").at(a.span()));
+                        };
+                        match f.name.as_str() {
+                            "name" => return err(Diagnostic::error(format!("a core is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cca::Core[id = \"…\", version = \"…\"]`; IEG's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
+                            "id" => id = Some((text(cv, "a core's `id`")?, cv.span)),
+                            "version" => version = Some((text(cv, "a core's `version`")?, cv.span)),
+                            "path" => where_ = Some((text(cv, "a core's `path`")?, cv.span)),
+                            other => return err(Diagnostic::error(format!("a `cca::Core` has no field `{}`: it is an `id` and a `version`, or a `path`", other)).at(f.span)),
                         }
                     }
-                    let Some((n, span)) = name else {
-                        return err(Diagnostic::error("a `cca::Core` needs its `name`: `cca::Core[name = \"IEG\"]`").at(e.span));
+                    if let (Some(_), Some((_, at))) = (&id, &where_) {
+                        return err(Diagnostic::error("a core says where it comes from once: an `id` and a `version` (the registry) or a `path` (a folder on this machine)").at(*at));
+                    }
+                    // Until cores can be loaded, only the official ones
+                    // (owner, 2026-10-06: "`a`").
+                    if let Some((p, at)) = where_ {
+                        return err(Diagnostic::error(format!("the core at `{}` is not registered, so not verified; loading another core is not built yet (a plugin, which CCA cannot load yet)", p)).at(at));
+                    }
+                    let Some((i, ispan)) = id else {
+                        return err(Diagnostic::error("a `cca::Core` says which core: `cca::Core[id = \"…\", version = \"…\"]`").at(e.span));
                     };
-                    if !OFFICIAL_CORES.contains(&n.as_str()) {
-                        return err(Diagnostic::error(format!("`{}` is not an official core; another core is a plugin, which CCA cannot load yet — the official ones are {}", n, OFFICIAL_CORES.iter().map(|c| format!("`{}`", c)).collect::<Vec<_>>().join(", "))).at(span));
+                    let Some(&(n, _)) = OFFICIAL_CORES.iter().find(|(_, oid)| *oid == i) else {
+                        return err(Diagnostic::error(format!("the core `{}…` is not an official one; loading another core is not built yet (a plugin, which CCA cannot load yet)", &i[..i.len().min(8)])).at(ispan));
+                    };
+                    let Some((v, vspan)) = version else {
+                        return err(Diagnostic::error("a core needs its `version`, as a registry limb does").at(e.span));
+                    };
+                    if v != CORE_VERSION {
+                        return err(Diagnostic::error(format!("CCA knows {} `{}` only, the installed one; this asks for `{}`", n, CORE_VERSION, v)).at(vspan));
                     }
-                    if names.contains(&n) {
-                        return err(Diagnostic::error(format!("the core `{}` is listed twice in `cores`", n)).at(span));
+                    if names.iter().any(|x| x == n) {
+                        return err(Diagnostic::error(format!("the core {} is listed twice", n)).at(ispan));
                     }
-                    names.push(n);
+                    names.push(n.to_string());
                 }
                 // MCPS works on IEG (owner: "Needs IEG, not std").
                 if names.iter().any(|n| n == "MCPS") && !names.iter().any(|n| n == "IEG") {
-                    return err(Diagnostic::error("the core MCPS needs IEG: add `cca::Core[name = \"IEG\"]` to `cores`").at(v.span));
+                    return err(Diagnostic::error(format!("the core MCPS needs IEG: add `{}` to `cores`", crate::ast::core_line("IEG"))).at(v.span));
                 }
                 out.cores = names;
             }
@@ -712,7 +732,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // std's maths always has true values and checks (owner, 2026-10-06):
     // a Limb that lists std lists ASP.
     if out.has_std && !out.cores.iter().any(|c| c == "ASP") {
-        return err(Diagnostic::error("std needs the core ASP, so its maths has true values and checks: add `cca::Core[name = \"ASP\"]` to `cores`").at(value.span));
+        return err(Diagnostic::error(format!("std needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", crate::ast::core_line("ASP"))).at(value.span));
     }
     if out.targets.is_empty() {
         return err(Diagnostic::error(format!("the manifest has no target: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));

@@ -136,6 +136,10 @@ const_mut [fnv:9f30cb564f340919] :: it is a value known at compile time, never a
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
+core_by_name [fnv:9cd0be34feaebe9d] :: a core is listed by its registry ID since 2026-10-06
+core_by_path [fnv:eb1421226a148df0] :: the core at `../mycore` is not registered, so not verified; loading another core is not built yet
+core_no_version [fnv:76ee9ac969d7f85b] :: a core needs its `version`, as a registry limb does
+core_wrong_version [fnv:a4a7a39fc18a028d] :: CCA knows IEG `2026-10-06T18:04:29+07:00` only
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
 deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
 deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
@@ -335,8 +339,8 @@ main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 manifest_bad_name [fnv:20b05ba63cd81271] :: `Areas of shapes` cannot name a Limb
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
-manifest_core_twice [fnv:2038c8308a577f53] :: the core `IEG` is listed twice
-manifest_core_unofficial [fnv:564c7a0c6d55d2d3] :: `Fastmath` is not an official core
+manifest_core_twice [fnv:0e32e454b22e9575] :: the core IEG is listed twice
+manifest_core_unofficial [fnv:a8509f2d96e82710] :: is not an official one; loading another core is not built yet
 manifest_deny_not_yet [fnv:e2bfe2e1f6359949] :: `deny` is not in CCA yet: which powers exist is not decided
 manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
 manifest_field_twice [fnv:dd4b619356aeb955] :: `name` is given twice

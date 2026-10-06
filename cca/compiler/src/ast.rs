@@ -720,6 +720,29 @@ pub const ON_CHIPS: [&str; 13] = ["aarch64", "x86_64", "x86", "arm", "riscv64", 
 pub const ON_OSES: [&str; 10] = ["macos", "ios", "linux", "android", "windows", "freebsd", "netbsd", "openbsd", "wasi", "none"];
 pub const ON_FEATURES: [&str; 14] = ["aarch64", "x86_64", "neon", "sve", "sve2", "aes", "sha2", "sha3", "crc", "lse", "dotprod", "fp16", "bf16", "i8mm"];
 
+/// The official cores and their registry IDs (`design/cores.md`; owner,
+/// 2026-10-06), the ones a `cores` field may list; another core is a
+/// plugin, which CCA cannot load yet.
+pub const OFFICIAL_CORES: [(&str, &str); 8] = [
+    ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
+    ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
+    ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
+    ("MCPS", "7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d"),
+    ("AutoGPU", "67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d"),
+    ("Metal", "3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7"),
+    ("Nvidia", "beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361"),
+    ("Vulkan", "63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec"),
+];
+
+/// The one version of each official core CCA knows (owner, 2026-10-06).
+pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
+
+/// The line that lists an official core, for a message to show.
+pub fn core_line(name: &str) -> String {
+    let id = OFFICIAL_CORES.iter().find(|(n, _)| *n == name).map(|(_, i)| *i).unwrap_or("");
+    format!("cca::Core[id = \"{}\", version = \"{}\"]", id, CORE_VERSION)
+}
+
 pub const CONST_TAKES_NO_MARK: &str = "a const takes no `bare` mark: `'pi'` alone is a variable, so another Limb's const always has its path (owner, 2026-10-06)";
 
 /// One parsed `.cpls` file.

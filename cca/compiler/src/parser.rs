@@ -187,7 +187,7 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
 }
 
 fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
-    err(Diagnostic::error(format!("{} is {}'s, and this Limb's CCA.cplr does not list the core {}: add `cca::Core[name = \"{}\"]` to its `cores`", what, core, core, core)).at(at))
+    err(Diagnostic::error(format!("{} is {}'s, and this Limb's CCA.cplr does not list the core {}: add `{}` to its `cores`", what, core, core, core_line(core))).at(at))
 }
 
 /// std's registry ID and the one version CCA knows (owner, 2026-10-06).
