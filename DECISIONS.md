@@ -63,6 +63,15 @@ the language people actually write, not the bare base. **When std came
 in the package, the installer sets it up so `cca new` lists std** (owner:
 "The installer auto adds std"), over design claude's (a), still empty;
 2026-10-05's empty `CCA.cplr` stands for packages without std.
+**Dialect or language** (owner: "Isn't a dialect a core, not a
+codextra?", correcting design claude, then "I think so"): **cores make
+dialects** (2026-10-05), still CyborgPL; **another codextra makes a
+different language** on the CyborgPL base. "CyborgPL" means Signatar with
+whatever cores. The base has no syntax and nothing to write in: it reads
+files, loads the codextra and cores, enforces grants, and hands the
+codextra's output to LLVM; it is "basically nothing" (owner), not a
+backend like the JVM. What a codextra hands back (LLVM IR, or a shared
+middle form) is open.
 Shown the whole picture sketched (a project, std's `plus` on IEG's raw
 `add`, IEG's grants, a kernel without std), the owner: "I think it's
 good, because it's fun, we'll eventually need the no_std equivalent
