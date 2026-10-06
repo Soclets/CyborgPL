@@ -21,8 +21,10 @@ in Signatar, bare or quoted, is English letters, digits and `_`**
 (design claude's reading of "English": ASCII `a`–`z`, `A`–`Z`); **names
 in other scripts come from a core**. Text values (`"สวัสดี"`) are not
 names and stay any Unicode. With Signatar's names ASCII, 2026-10-06's
-Unicode case folding matters where that core is used. Open: the core
-(official or not, its name).
+Unicode case folding matters where that core is used. **It is a new
+official core, WSTN, "Wanted Some Thai Names"** (owner: "`a`, `WSTN`
+(Wanted Some Thai Names) is the name"), over leaving it to anyone. Open:
+which names WSTN allows, and its ID.
 
 ### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
 

@@ -127,6 +127,9 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   across cores, and `concur`, channels, `whichever`, timers, sharing one
   thread pool. A program without it (a kernel) runs its loops in order and
   `for para` is refused. Needs IEG, not std.
+- **WSTN, "Wanted Some Thai Names"** (owner, 2026-10-06): names in every
+  script. Signatar's names, bare and quoted, are English letters, digits
+  and `_`; WSTN opens them to other languages. Which names exactly: open.
 - **GPU**: **AutoGPU**, automatic offload on every GPU (it translates
   plain `for` loops), and three cores for hand-written GPU code: **Metal**
   (`inline.MSL`), **Nvidia** and **Vulkan** (AMD, NVIDIA, Intel, Android).
