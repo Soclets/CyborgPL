@@ -621,17 +621,17 @@ impl Items {
                 return err(Diagnostic::error(format!("`{}` is not available yet: there is no `std` Limb for now — the base language comes first", path.spelled())).at(path.span));
             }
             cur = self.dependency(limb, m)?;
-            if path.segs.first().map_or(false, |s| s.name == "limb") {
-                return err(Diagnostic::error(format!("`{}::` already starts at that Limb's root: write `{}::…` without `limb.`", limb.name, limb.name)).at(path.span));
+            if path.segs.first().map_or(false, |s| s.name == "my") {
+                return err(Diagnostic::error(format!("`{}::` already starts at that Limb's root: write `{}::…` without `my.`", limb.name, limb.name)).at(path.span));
             }
         }
         let mut segs = path.segs.iter().peekable();
         let first = segs.peek().unwrap();
-        if first.name == "limb" {
+        if first.name == "my" {
             segs.next();
             cur = self.limb_root(m);
             if segs.peek().is_none() {
-                return err(Diagnostic::error("`limb` is followed by `.` and the root item it reaches: `limb.helper[…]`").at(path.span));
+                return err(Diagnostic::error("`my` is followed by `.` and the root item it reaches: `my.helper[…]`").at(path.span));
             }
         }
         let mut result = None;
@@ -668,7 +668,7 @@ impl Items {
                 return self.lookup_const_in(root, name, m);
             }
         }
-        let target = if path.is(&["limb"]) {
+        let target = if path.is(&["my"]) {
             self.limb_root(m)
         } else {
             match self.lookup_path(path, m)? {

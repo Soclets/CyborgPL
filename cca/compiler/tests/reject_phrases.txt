@@ -290,7 +290,6 @@ lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', 
 lifetime_unannounced [fnv:a45d01df7619f11b] :: `@x` was never announced
 lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
 lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
-limb_alone [fnv:8b049ab55a911000] :: `limb` is followed by `.` and the root item it reaches: `limb.helper[…]`
 limb_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
 limb_dep_names_word [fnv:4e354bca24585094] :: a dependency names no word
 limb_prefix_clash [fnv:5613861e39c25451] :: two Limbs have the prefix `areas`
@@ -298,6 +297,7 @@ limb_prefix_std [fnv:40f475138f8b47da] :: has the prefix `std`, which is the bui
 limb_private [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_pub_limb [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_registry_needs_id [fnv:59952df433346243] :: which knows a Limb by its ID
+limb_root_old [fnv:ab3a0f3b1cfed550] :: the root of this Limb is `my.` since 2026-10-06, no longer `limb.`
 limb_unlisted [fnv:7b3deec9ecbae94d] :: no Limb with the prefix `geometry`
 limb_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
@@ -367,6 +367,7 @@ module_uppercase [fnv:f6e5aa143a6e5454] :: module names are lowercase ASCII lett
 must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
 must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
 mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
+my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it reaches: `my.helper[…]`
 ne [fnv:ef1c886d3712dd70] :: `!=` is not an operator here: not-equal is `!==`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_asp_check [fnv:2bd1fa17f630e35f] :: `check` is ASP's

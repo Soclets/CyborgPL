@@ -17,7 +17,7 @@ pub struct QName {
     pub span: Span,
 }
 
-/// `a.b.c`, `limb.helper`, `std::print.stdout`, `list.length`, `to.int32`.
+/// `a.b.c`, `my.helper`, `std::print.stdout`, `list.length`, `to.int32`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Path {
     /// The Limb before `::`, if any.

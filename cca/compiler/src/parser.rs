@@ -7,11 +7,11 @@ use crate::lexer::{Tok, Token};
 use crate::source::Span;
 
 /// Bare words the language owns. A function may be named with one only
-/// through a path (`limb.to[…]`); a bare `to[…]` is the keyword.
+/// through a path (`my.to[…]`); a bare `to[…]` is the keyword.
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
     "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "para", "list", "array", "struct", "pub",
-    "const", "module", "limb", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
+    "const", "module", "limb", "my", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
     "layout", "size", "align", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
     "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "bin16", "bin32", "bin64",
     "bin128", "deci32", "deci64", "deci128",
@@ -417,6 +417,11 @@ impl<'a> Parser<'a> {
             segs.push(self.ident("a name after `.`")?);
         }
         let span = start.to(self.prev_span());
+        // The root path is `my.` (owner, 2026-10-06: "Is it `my.`?" —
+        // "yea"); `pub.limb` and `limb.cpls` keep the word.
+        if limb.is_none() && segs[0].name == "limb" {
+            return self.fail_at(segs[0].span, "the root of this Limb is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
+        }
         if let Some(l) = limb.as_ref().filter(|l| l.name == "std") {
             self.std_gate(&format!("std::{}", segs[0].name), l.span.to(segs[0].span))?;
         }
@@ -3096,8 +3101,8 @@ impl<'a> Parser<'a> {
                             return self.postfix_on(e);
                         }
                     }
-                    if path.segs.len() == 1 && path.limb.is_none() && path.head() == "limb" && !self.is(&Tok::Dot) {
-                        return self.fail_at(path.span, "`limb` is followed by `.` and the root item it reaches: `limb.helper[…]`");
+                    if path.segs.len() == 1 && path.limb.is_none() && path.head() == "my" && !self.is(&Tok::Dot) {
+                        return self.fail_at(path.span, "`my` is followed by `.` and the root item it reaches: `my.helper[…]`");
                     }
                     // `std::print.weird…` takes each value after a `<-`, C++'s
                     // `cout <<` (owner, 2026-10-01), and no `[ ]`.
