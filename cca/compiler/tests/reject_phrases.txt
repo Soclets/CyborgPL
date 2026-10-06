@@ -25,7 +25,7 @@ arith_overflow [fnv:7eddcdfe6e78e8b0] :: the value can be outside what a `int32`
 array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is a `array[int32]`
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 asm_as_s [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.S, another name for inline.ASM, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
-asm_bare_word [fnv:c83c99fb8348768d] :: an inline block is `inline.Assembly { … }`
+asm_bare_word [fnv:f0e494d873f3e3a9] :: an inline block is `inline.Assembly { … }`
 asm_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
 asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
@@ -34,9 +34,9 @@ asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
 asm_long_arrows [fnv:4b6fbabf0d368c63] :: !by-design CCA compiles inline.ASM, its bindings written with the long arrows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_long_both [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_long_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<<>>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
-asm_lowercase [fnv:675e6a4df23aee31] :: written whole and capitalised, like `MAIN`
+asm_lowercase [fnv:d7fd4875eda20406] :: written whole and capitalised, like `MAIN`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
-asm_s_lowercase [fnv:b1269b11eef34dc7] :: written whole and capitalised, like `MAIN`
+asm_s_lowercase [fnv:d7fd4875eda20406] :: written whole and capitalised, like `MAIN`
 asm_strings [fnv:c9b7ee31e6eab60e] :: not a list of strings
 asm_top_level [fnv:f8444caf9620e916] :: goes inside a body
 asm_two_long_arrows [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<---->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
@@ -89,7 +89,7 @@ bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be 
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
 bin_to_int_unhandled [fnv:19f1e20a8a83665c] :: `to.int32` can fail (not_whole, out_of_range)
-bit_ampersand [fnv:41b7e0e05bfa1187] :: the boolean operators are `and`, `or`, `!`
+bit_ampersand [fnv:7e57905052e45925] :: the boolean operators are `and`, `or`, `!`
 bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
 bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
@@ -405,6 +405,7 @@ mtm_nocheck [fnv:76b6d0c8816a0dc0] :: `nocheck` is MTM's spelling of `!check`
 mtm_not [fnv:ca0412c7c2cc1974] :: `not` is MTM's spelling of `!`
 mtm_rust_name [fnv:11ce9a925456223a] :: `i32` is MTM's spelling of `int32`
 mtm_short_arrow [fnv:9e63919894849806] :: `->` is MTM's spelling of `-->`: write `-->`, or add the core MTM
+mtm_std_i [fnv:945def8da1156270] :: `!std_i24` is MTM's spelling of `!std_int24`
 must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
 must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
 mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
