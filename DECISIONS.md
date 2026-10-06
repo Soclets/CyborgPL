@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — The one-operand operators go to std too: `not`, `not.bit`, `-'x'`; Signatar keeps `-5`'s sign (owner)
+
+```
+let 'y' := -'x';              # std's - (a prefix operator)
+if not 'done' { … }           # std's not
+let 'k' := -5;                # Signatar: a written number
+let 'y' := negate['x'];       # Signatar + IEG, no std: IEG's raw call (sketch)
+```
+
+Design claude had recommended `and`/`or` to std and `not` staying in
+Signatar (std cannot define prefix operators, 2026-09-20). The owner:
+"why?", then "We could give more authority". So **a second power,
+prefix operators**, defined by Signatar and granted by IEG to std (a big
+power, changing what others' code means). Design claude then swung to
+keeping the one-operand ones in Signatar on "Signatar is supposed to be
+hella lower level, but not nothing"; the owner corrected: "I meant that
+it's not nothing, but it's pretty lower-level (say writing fucking
+Assembly for a lot of things). There's already IEG above, before std."
+Shown the syntax at each level (std defining `op not ['a': bool]`, one
+operand meaning prefix; a program with std; Signatar + IEG with raw
+calls; Signatar alone with `inline.S`'s `neg`), the owner: "I think it's
+like that." So `and`, `or`, `not`, `not.bit` and `-'x'` go to std; the
+minus sign of a written number and `and.then`/`or.else` stay in Signatar;
+IEG has the raw operations. Spellings (`cca::Power.prefix_operators`,
+IEG's `negate`, `bool_not`) are design claude's sketches.
+
 ### 2026-10-06 — Who decides permission: Signatar → cores → limbs → the program narrows (owner)
 
 With the codextra added above cores, the owner: "First, we have to decide,
