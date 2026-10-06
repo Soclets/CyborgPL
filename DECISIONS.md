@@ -35,8 +35,11 @@ column counts is not stated there; a name costs nothing at run time
 (names vanish when compiling, kept only as debug symbols). **WSTN's ID**
 (owner: "yea", generated as the other cores' were): `e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4`, first
 version `2026-10-06T18:48:22+07:00`. **A message's column counts graphemes** (owner: "our error
-messages are gonna be graphemes, unless you have a better one"; asked
-next: the machine form).
+messages are gonna be graphemes, unless you have a better one"); **the
+JSON form counts in the unit the editor asks for, UTF-16 code units by
+default, as the Language Server Protocol does** (design claude's
+proposal; the owner: "yea"), so an editor's cursor lands right on Thai
+and emoji lines.
 
 ### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
 

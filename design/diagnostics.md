@@ -5,6 +5,10 @@ it should be helpful like Rust's, there should be a human-readable
 location and an IDE-readable location." The oracle's one-line messages
 are a test tool's; CCA's are these.
 
+**Columns** (owner, 2026-10-06): the text message counts graphemes, what
+a reader counts; the JSON counts in the unit the editor asks for, UTF-16
+code units by default, as the Language Server Protocol does.
+
 ## The shape — plain text is the message (owner, 2026-09-22)
 
 A drawing with carets under the source breaks in a proportional font,
