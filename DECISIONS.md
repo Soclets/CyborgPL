@@ -41,7 +41,18 @@ base does not know what a quoted name is. Following from both, design
 claude's reading: what earlier rulings put in the base (SIMD, the minus
 sign of a negative, `bool`, `and.then`/`or.else`) moves into Signatar.
 The base keeps: reading files, loading codextras and cores, enforcing
-grants, the bridge to LLVM. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
+grants, the bridge to LLVM. **Signatar installs itself** (owner:
+"Shouldn't Signatar install itself? I mean, it's very powerful. Like,
+say a Signatar installer from the website"), as the machine's default
+codextra, which the base uses to read `CCA.cplr` (the chicken-and-egg:
+the manifest is CyborgPL, CyborgPL is Signatar's). **The website offers
+packages** (owner: "There will likely be 4-5 packages. Base lang, base +
+Signatar, base + Signatar + IEG, base + Signatar + IEG + std, All
+(include source too)"), replacing 2026-10-05's "the download is CCA and
+IEG". Open: whether a project on another codextra names it in a first
+line (`#codextra Lilith`, design claude's proposal, as Rust's
+`rust-toolchain` overrides its default); whether `cca new` lists std when
+std came in the package. Open: what else Signatar holds and the base keeps; how it is installed; how it relates to Precog's and
 RRx2's verification.
 
 ### 2026-10-06 — `CCA.cplr` is one real CyborgPL value, `cca::Manifest[ … ]`, not named `const`s (owner: c; not built yet)
