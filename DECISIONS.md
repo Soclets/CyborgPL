@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-06 — Without ASP, a literal wider than its type's bits is refused (owner: a; not built)
+
+Signatar's literals are bit patterns (`let 'x': int8 = 128;` holds -128's
+bits). Design claude asked about `let 'x': int8 = 256;` (256 needs 9 bits):
+(a) refused, recommended, or (b) cut to the low 8 bits, `0`, as C does.
+Asked twice about speed: neither costs anything at run time (both happen
+while compiling; the program holds a plain 8-bit constant). Design claude
+noted C compilers warn ("overflow in conversion changes value from 256 to
+0") and Linux builds with `-Werror`. The owner: "`a`". So an `int8`
+takes the literals 0 to 255, its bits read as signed. Whether this rule
+is Signatar's or IEG's: asked next.
+
 ### 2026-10-06 — std needs ASP: a manifest listing std without ASP is refused (owner)
 
 Asked what `let 'x': uint8 = 200 plus 100;` does in a project with std but
