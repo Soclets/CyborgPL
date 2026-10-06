@@ -31,6 +31,11 @@ fn is_std_op(op: &str) -> bool {
         || BIT_OPS.contains(&op) || op.starts_with("div.") || op.starts_with("mod.")
 }
 
+/// std's names the oracle emulates, which may be written without `std::` since std marks everything
+/// `bare.optional` (owner, 2026-10-06: "optional for all")
+const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
+const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lower", "replace", "starts_with", "ends_with", "at", "slice", "join"];
+
 /// An operator as code writes it (`+` inside is `plus`).
 fn op_shown(op: &str) -> String {
     match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), o => o.into() }
@@ -229,6 +234,20 @@ impl Parser {
                 let what = match &self.toks.get(i + 2).map(|t| &t.tok) { Some(Tok::Word(w)) => format!("`std::{w}`"), _ => "`std::`".into() };
                 return self.std_missing(&what);
             }
+        }
+        // `std::list.append[…]` is `list.append[…]`: std marks everything `bare.optional` (owner,
+        // 2026-10-06), and its lists, maps and text units are the oracle's built-ins
+        let mut i = 0;
+        while i + 3 < self.toks.len() {
+            let std_head = matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon
+                && (i == 0 || self.toks[i - 1].tok != Tok::Dot)
+                && match (&self.toks[i + 2].tok, &self.toks[i + 3].tok, self.toks.get(i + 4).map(|t| &t.tok)) {
+                    (Tok::Word(h), Tok::Dot, _) if h == "list" || h == "map" => true,
+                    (Tok::Word(h), Tok::Dot, Some(Tok::Word(u))) if h == "str" => ["bytes", "points", "graphemes", "each"].contains(&u.as_str()),
+                    _ => false,
+                };
+            if std_head { self.toks.drain(i..i + 2); }
+            i += 1;
         }
         // a `precedence` block applies to the whole file, wherever it is written: read it first
         self.scan_levels()?;
@@ -595,10 +614,10 @@ impl Parser {
                     if f.is_op && !f.name.rsplit('.').next().unwrap_or("").chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
                         return Err(ParseError { line, col: 0, msg: format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", f.name.rsplit('.').next().unwrap_or("")) });
                     }
-                    BareTarget::Item(if f.is_op { "op".into() } else { "fn".into() }, f.name.clone())
+                    BareTarget::Item(if f.is_op { "op".into() } else { "fn".into() }, f.module.iter().cloned().chain(std::iter::once(f.name.clone())).collect::<Vec<_>>().join("."))
                 } else if prog.structs.len() > before.1 { BareTarget::Item("struct".into(), prog.structs[before.1].name.clone()) }
                 else if prog.enums.len() > before.2 { BareTarget::Item("enum".into(), prog.enums[before.2].name.clone()) }
-                else if prog.consts.len() > before.3 { BareTarget::Item("const".into(), prog.consts[before.3].name.clone()) }
+                else if prog.consts.len() > before.3 { let c = &prog.consts[before.3]; BareTarget::Item("const".into(), c.module.iter().cloned().chain(std::iter::once(c.name.clone())).collect::<Vec<_>>().join(".")) }
                 else if prog.interfaces.len() > before.4 { BareTarget::Item("interface".into(), prog.interfaces[before.4].name.clone()) }
                 else { return Err(ParseError { line, col: 0, msg: "a `bare` mark goes on a `fn`, `op`, `struct`, `enum`, `const`, `interface` or `module`".into() }); };
                 prog.bare_marks.push(BareMark { target, mode, line, limb_root: self.limb_root.clone() });
@@ -2169,6 +2188,11 @@ impl Parser {
             self.advance();
             match self.advance().tok { Tok::Word(w) => path.push(w), other => return self.err(format!("expected a name after `.`, found {other}")) }
         }
+        // written with no path at all: another Limb's bare name may be meant (owner, 2026-10-06)
+        let bare = limb.is_none() && path[0] != "my";
+        let written = if path[0] == "my" { path[1..].to_vec() } else { path.clone() };
+        // std's names come bare too (owner, 2026-10-06: std is "optional for all")
+        let limb = if bare && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { limb };
         // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
@@ -2180,7 +2204,7 @@ impl Parser {
             let mut values = Vec::new();
             while *self.peek() == Tok::LeftArrow { self.advance(); values.push(self.value()?); }
             if values.is_empty() { return self.err(format!("`std::{}` needs at least one value: `std::{} <- \"text\";`", path.join("."), path.join("."))); }
-            return Ok(Call { handler: None, limb, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line });
+            return Ok(Call { handler: None, limb, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written });
         }
         if *self.peek() != Tok::LBracket {
             let shown = match &limb { Some(l) => format!("{l}::{}", path.join(".")), None => path.join(".") };
@@ -2198,7 +2222,7 @@ impl Parser {
         let mut args = self.bracket()?;
         if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
         let path = if limb.is_none() { self.resolve(&path) } else { path };
-        Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line })
+        Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line, bare, written })
     }
 
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
@@ -2858,6 +2882,7 @@ impl Parser {
                     Ok(Expr::PtrCast(ty, args, line))
                 }
                 "ptr" => { let (h, o, a) = self.ptr_op()?; Ok(Expr::Builtin(h, o, a, line)) }
+                "str" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(o) if STD_STR_OPS.contains(&o.as_str())) => Ok(Expr::Call(self.call()?)),
                 "str" if matches!(self.peek_at(1), Tok::Dot) && !matches!(self.peek_at(2), Tok::Word(u) if u == "utf8" || u == "utf16" || u == "utf32" || u == "ascii") => {
                     // str.bytes[…] / str.points[…] / str.graphemes[…] / str.each.<unit>[…]  (decided 2026-09-20)
                     self.advance(); self.advance();

@@ -1,0 +1,1 @@
+`formal` is `greet`'s and `bare.never`: `greet` requires its path, so write `greet::formal[…]`

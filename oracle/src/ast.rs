@@ -366,6 +366,10 @@ pub struct Call {
     pub from: Vec<String>,
     pub args: Bracket,
     pub line: usize,
+    /// written with no path (no `x::`, no `my.`), so another Limb's `bare.optional` / `bare.only`
+    /// name may be meant (owner, 2026-10-06); `written` is the path as written
+    pub bare: bool,
+    pub written: Vec<String>,
 }
 
 /// `[ … ]` — one or more comma-separated values. One value is that value;

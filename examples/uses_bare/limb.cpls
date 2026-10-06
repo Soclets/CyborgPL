@@ -1,0 +1,8 @@
+# `greet` marks `hello` bare.optional, `wave` bare.only, and `formal` and `merge` bare.never
+# (owner, 2026-10-06).
+
+MAIN {
+    print.useful.stdout[hello[], " ", greet::hello[], " ", wave[], " ", greet::formal[], \n];
+    let 't' := greet::Tally[n = 2] greet::merge greet::Tally[n = 3];
+    print.useful.stdout['t'.n, \n];
+}

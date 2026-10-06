@@ -165,15 +165,32 @@ pub struct Interp<'p> {
     mut_walks: Vec<MutWalk>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
+    /// each `pub` thing's `bare` mark, by `kind:module.name` (owner, 2026-10-06)
+    bare_of: HashMap<String, crate::ast::Bare>,
 }
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out }
+        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new() }
     }
 
     /// Ok(code): the program ran; Err: it failed.
     pub fn set_args(&mut self, args: Vec<String>) { self.args = args; }
+    pub fn set_bare(&mut self, b: HashMap<String, crate::ast::Bare>) { self.bare_of = b; }
+
+    /// Another Limb's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
+    /// those marked `bare.optional` or `bare.only`, in a Limb other than the caller's.
+    fn bare_fns_elsewhere(&self, from: &[String], written: &[String], op: bool) -> Vec<&'p Func> {
+        let mine = from.first().filter(|r| r.starts_with("::")).cloned();
+        let prog: &'p Program = self.prog;
+        prog.funcs.iter().filter(|f| {
+            let Some(root) = f.module.first().filter(|r| r.starts_with("::")) else { return false };
+            if Some(root) == mine.as_ref() || f.vis != crate::ast::Vis::Pub || f.is_op != op { return false; }
+            let rel: Vec<&str> = f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect();
+            rel == written.iter().map(String::as_str).collect::<Vec<_>>()
+                && matches!(self.bare_of.get(&bare_key(if op { "op" } else { "fn" }, &f.module, &f.name)), Some(crate::ast::Bare::Optional | crate::ast::Bare::Only))
+        }).collect()
+    }
 
     pub fn run(&mut self) -> Result<u8, RuntimeError> {
         self.prepare()?;
@@ -3684,6 +3701,37 @@ impl<'p> Interp<'p> {
 
     fn call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         self.one_lend_mut(&c.args, c.line)?;
+        let shown = c.written.join(".");
+        // a name written bare may be this Limb's, std's, or another Limb's `bare.optional` / `bare.only`
+        // one; more than one is an error where it is written, and this Limb's own does not win
+        // (owner, 2026-10-06: "`a`, and no")
+        if c.bare {
+            let own_module: Vec<String> = c.from.iter().cloned().chain(c.written[..c.written.len() - 1].iter().cloned()).collect();
+            let own = self.prog.funcs.iter().any(|f| f.module == own_module && Some(&f.name) == c.written.last() && !f.is_op);
+            let std = c.limb.as_deref() == Some("std");
+            let others = self.bare_fns_elsewhere(&c.from, &c.written, false);
+            let mut who: Vec<String> = Vec::new();
+            if own { who.push(format!("`my.{shown}` (this Limb's)")); }
+            if std { who.push(format!("`std::{shown}`")); }
+            for f in &others { who.push(format!("`{}::{shown}`", f.module[0].trim_start_matches("::"))); }
+            if who.len() > 1 { return rt(c.line, format!("`{shown}` could be any of {}: write the path", who.join(", "))); }
+            if who.is_empty() {
+                // another Limb's name that needs its path says so, rather than "no function"
+                let prog: &'p Program = self.prog;
+                if let Some(f) = prog.funcs.iter().find(|f| f.module.first().map_or(false, |r| r.starts_with("::")) && f.vis == crate::ast::Vis::Pub && !f.is_op
+                    && f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect::<Vec<_>>() == c.written.iter().map(String::as_str).collect::<Vec<_>>()
+                    && self.bare_of.get(&bare_key("fn", &f.module, &f.name)) == Some(&crate::ast::Bare::Never)) {
+                    let l = f.module[0].trim_start_matches("::");
+                    return rt(c.line, format!("`{shown}` is `{l}`'s and `bare.never`: `{l}` requires its path, so write `{l}::{shown}[…]`"));
+                }
+            }
+            if !std && !own && others.len() == 1 {
+                let mut local = c.clone();
+                local.bare = false;
+                local.path = others[0].module.iter().cloned().chain(std::iter::once(others[0].name.clone())).collect();
+                return self.user_call(&local);
+            }
+        }
         match &c.limb {
             Some(l) if l == "std" => self.std_call(c),
             // another Limb, loaded from `CCA.cplr` under its own root (owner, 2026-09-29)
@@ -3691,9 +3739,14 @@ impl<'p> Interp<'p> {
                 let mut local = c.clone();
                 local.limb = None;
                 local.path.insert(0, format!("::{l}"));
+                // a `bare.only` name forbids its path (owner, 2026-10-06)
+                let (module, name) = local.path.split_at(local.path.len() - 1);
+                if self.bare_of.get(&bare_key("fn", module, &name[0])) == Some(&crate::ast::Bare::Only) {
+                    return rt(c.line, format!("`{l}::{shown}` is `bare.only`: `{l}` forbids its path, so write `{shown}[…]`"));
+                }
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no Limb with the prefix `{l}`: a Limb this one uses is listed in its `CCA.cplr` (`const 'dependencies' := [cca::Dep[path = …],];`), and its own `CCA.cplr` says `const 'prefix' := \"{l}\";`")),
+            Some(l) => rt(c.line, format!("no Limb with the prefix `{l}`: a Limb this one uses is listed in its `CCA.cplr` (`dependencies = [cca::Dep[path = …],]`), and its own `CCA.cplr` says `prefix = \"{l}\"`")),
             None => self.user_call(c),
         }
     }
@@ -3985,7 +4038,7 @@ impl<'p> Interp<'p> {
         self.call_is_stmt = false;
         self.check_handler(handler, &func.fails, name, line)?;
         let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
-        let synthetic = Call { handler: handler.cloned(), limb: None, path: vec![func.name.clone()], from: self.module.clone(), args: args.clone(), line };
+        let synthetic = Call { handler: handler.cloned(), limb: None, path: vec![func.name.clone()], from: self.module.clone(), args: args.clone(), line, bare: false, written: vec![func.name.clone()] };
         let r = self.call_func_with(&func, &synthetic, name, value_used, fv.captures.clone());
         *self.tvars.borrow_mut() = saved_tvars;
         r
@@ -4069,6 +4122,17 @@ impl<'p> Interp<'p> {
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] --> R {{ … }}`"));
             }
         };
+        // another Limb's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
+        // path, `bare.only` refuses it; a glyph operator has no path and no mark
+        if let Some(root) = def.module.first().filter(|r| r.starts_with("::")) {
+            let here = self.module.first().filter(|r| r.starts_with("::"));
+            let l = root.trim_start_matches("::");
+            match (self.bare_of.get(&bare_key("op", &def.module, &def.name)), &limb) {
+                (Some(crate::ast::Bare::Never), None) if here != Some(root) => return rt(line, format!("`{name}` is `{l}`'s and `bare.never`: write `{l}::{name}`")),
+                (Some(crate::ast::Bare::Only), Some(_)) => return rt(line, format!("`{l}::{name}` is `bare.only`: `{l}` forbids its path, so write `{name}`")),
+                _ => {}
+            }
+        }
         let mut bound = Vec::new();
         let mut left = Some(left);
         for (expr, param) in [(l, &def.params[0]), (r, &def.params[1])] {
@@ -4711,6 +4775,13 @@ fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), 
         (Prov::Raw, _, _) => Ok((v, Prov::Literal)),
         _ => Ok((v, prov)),
     }
+}
+
+/// The key of a `pub` thing's `bare` mark: its kind, module and name (`fn:shapes.area`).
+pub fn bare_key(kind: &str, module: &[String], name: &str) -> String {
+    let mut p = module.join(".");
+    if !p.is_empty() { p.push('.'); }
+    format!("{kind}:{p}{name}")
 }
 
 fn lit_digits(e: &Expr) -> Option<String> {

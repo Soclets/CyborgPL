@@ -323,10 +323,11 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
 
 /// Every `pub` thing says how other Limbs write its path, on itself, its module or its kind, and the
 /// marks that cover it agree (owner, 2026-10-06: "I don't think there should be a default"; "`c`").
-fn check_bare(prog: &ast::Program) -> Result<(), String> {
+fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, ast::Bare>, String> {
     use ast::{Bare, BareTarget, Vis};
     let block = |m: &[String]| prog.modules.iter().any(|d| d.path == m && d.line > 0);
     let word = |m: Bare| match m { Bare::Never => "bare.never", Bare::Optional => "bare.optional", Bare::Only => "bare.only" };
+    let mut marks = std::collections::HashMap::new();
     let mut items: Vec<(&str, &str, Vec<String>, usize)> = Vec::new();
     for f in &prog.funcs {
         if f.vis != Vis::Pub || f.is_test { continue; }
@@ -348,7 +349,7 @@ fn check_bare(prog: &ast::Program) -> Result<(), String> {
         segs.push(last.to_string());
         let shown = if root.is_empty() { segs.join(".") } else { format!("{}::{}", segs[0], segs[1..].join(".")) };
         let covering: Vec<&ast::BareMark> = prog.bare_marks.iter().filter(|m| match &m.target {
-            BareTarget::Item(k, n) => k == kind && n == name,
+            BareTarget::Item(k, n) => k == kind && *n == module.iter().map(String::as_str).chain(std::iter::once(last)).collect::<Vec<_>>().join("."),
             BareTarget::Block(p) => module.starts_with(p),
             BareTarget::File(p) => module.starts_with(p) && (p.len()..module.len()).all(|i| block(&module[..=i])),
             BareTarget::Kind(k) => k == kind && m.limb_root == root,
@@ -359,8 +360,24 @@ fn check_bare(prog: &ast::Program) -> Result<(), String> {
         if let Some(other) = covering.iter().find(|m| m.mode != first.mode) {
             return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error", word(first.mode), first.line, word(other.mode), other.line));
         }
+        marks.insert(interp::bare_key(kind, &module, last), first.mode);
     }
-    Ok(())
+    // two Limbs forbidding the path to one name clash as soon as both are depended on (owner,
+    // 2026-10-06: "`a`"), fixed as a prefix clash is, by editing one Limb's source
+    let mut only: Vec<(String, String)> = Vec::new();
+    for (key, mode) in &marks {
+        if *mode != Bare::Only { continue; }
+        let Some((kind, path)) = key.split_once(':') else { continue };
+        let Some(rest) = path.strip_prefix("::") else { continue };
+        let (root, rel) = rest.split_once('.').unwrap_or((rest, ""));
+        let rel = format!("{kind} {rel}");
+        if let Some((other, _)) = only.iter().find(|(r, x)| *x == rel && r != root) {
+            let mut two = [other.clone(), root.to_string()]; two.sort();
+            return Err(format!("`{}` and `{}` both forbid the path to `{rel}` (`bare.only`), so it cannot tell them apart: edit one Limb's source, as for a prefix clash", two[0], two[1]));
+        }
+        only.push((root.to_string(), rel));
+    }
+    Ok(marks)
 }
 
 fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, PathBuf)>) -> Result<(), String> {
@@ -400,8 +417,9 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
 /// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
     let prog = load(path)?;
-    check_bare(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    let marks = check_bare(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let mut interp = interp::Interp::new(&prog, out);
+    interp.set_bare(marks);
     let mut argv = vec![path.display().to_string()];
     argv.extend(args);
     interp.set_args(argv);
