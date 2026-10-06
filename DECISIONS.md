@@ -34,6 +34,10 @@ included, would need covering): names are exact unless marked, and
 writing `case.sensitive` anyway is allowed, never refused as saying
 nothing. **Marks that disagree are an error** (owner: "`a`"), as for
 `bare`, over the narrowest winning.
+**Insensitive means full Unicode case folding** (owner: "`b`"), over ASCII
+letters only: names may hold any Unicode letter (`'café'`, `Größe`), so
+`É`/`é` and `ß`/`SS` match as Unicode defines; names are compared while
+compiling, so it costs nothing at run time.
 
 ### 2026-10-06 — In `Synthia.ttsr`, every needed thing starts with `limb.` or `core.`; a core is listed there by ID and version (owner; relayed by synthia claude)
 
