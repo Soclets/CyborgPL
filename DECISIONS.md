@@ -61,7 +61,10 @@ and `nocheck` moves to MTM; `!$`, `!cheat` and `!==` already were. For
 accurate"; design claude: not accurate (undefined behaviour follows any
 wrong vouch, plain `!check`'s too; what this tier adds is trusting C's
 answers), offering `!check.C`; the owner: "The fuck is `!check.C`?",
-then **"keep `NO_FUCKING_CHECKS` main"**. Not built.
+then **"keep `NO_FUCKING_CHECKS` main"**. Not built. **`and`, `or`, `not` stay
+words** (std's operators, as `plus`), **and MTM brings `!` for `not`**
+(owner: "stay words, while MTM has `!` for not"); design claude had
+floated C's `&&` / `||` for MTM too, which the owner did not take up.
 **MTM's ID** (owner: "gen ID now"): `9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56`, first version `2026-10-06T19:18:54+07:00`.
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
