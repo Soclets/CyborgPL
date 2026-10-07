@@ -249,6 +249,13 @@ default could be written"), over (a) `temp` or `perm` on every `for`, as
 already allowed outside `#strict` (checked in the oracle), so this keeps
 today's rule.
 
+**`pos` comes back on every index** (owner: "`a`"): `'xs'[pos 'i']`,
+`'xs'[pos 2]`, over (b) staying removed as since 2026-09-27 ("Remove
+`pos`"), which design claude recommended. Design claude's reading, not
+asked: everywhere `#strict` wrote `pos`, so every position a list or
+array call takes too (`list.slice[lend 'xs', pos 2, pos 3]`), and the bare
+form refused naming `pos`.
+
 ### 2026-10-07 — A slimmer base: `brain16`, non-standard integers, Unicode text and the case marks move out; `#strict` will be deprecated (owner; not built)
 
 The owner: "Let's make base CyborgPL slimmer". Design claude listed what
