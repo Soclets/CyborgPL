@@ -84,7 +84,7 @@ work faster — SIMD, or across cores — so `!cheat` is about whether the work
 happens, not how; add `seq` for one round at a time, in order (owner:
 "Skipping work, because `seq` could be used with `!c`"). Written in
 CyborgPL for timing code and the like, where today an empty
-`inline.Assembly` passing the value through a register does the job.
+`inline.ASM` passing the value through a register does the job.
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
 `!cheat` changes what the loop must do, `seq` and `para` only how its rounds

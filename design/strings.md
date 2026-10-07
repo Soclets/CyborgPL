@@ -38,7 +38,7 @@ std::print.weird.stored.stdout <- "stored: " <- 'tenth' <- \n;
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
 seems like a good name, maybe use `->` arrows"). Each value follows a
 **`<--`**, pointing into the output, as C++'s `<<` points into `cout`
-and as `<-` points into a variable in `inline.Assembly` (owner: "`<-`", over
+and as `<-` points into a variable in `inline.ASM` (owner: "`<-`", over
 `-->`, which would point away from the screen — CyborgPL's arrows point
 where the value goes). It takes no `[ ]`, and at least one value. **`.weird.stored`**
 shows the stored form, as `print.stored`; **`.weird.useful`** the

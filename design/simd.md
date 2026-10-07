@@ -45,7 +45,7 @@ owner: "shouldn't they just use the normal way?" A program reaching for
 `simd` is writing for a machine, and a type that pretends otherwise
 lies; portability is the plain loop. A `simd` program built for another
 target fails to build rather than running slowly — the honesty
-`inline.Assembly` already has. The shapes come from the target description
+`inline.ASM` already has. The shapes come from the target description
 in the manifest (`Synthia.ttsr` / `CCA.cplr`), never from the host.
 
 ## The operators, element-wise (owner: a)

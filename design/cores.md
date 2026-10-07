@@ -18,7 +18,7 @@ base        the ignition: reads files, loads the codextra and cores, enforces
             grants, hands the codextra's LLVM IR to LLVM unread; no syntax,
             nothing to write in
 Signatar    the official codextra: the language itself, very low level
-IEG         the official core: raw operations, inline.LLVM, the !check labels
+IEG         the official core: raw operations, inline.LL, the !check labels
 ASP         numbers mean their true values; to. conversions; run-time checks
 Genny       generics and interfaces
 MCPS        parallel loops and concur (needs threads)
@@ -110,7 +110,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 
 - **IEG, the Intense Energy Generator.** Raw operations as plain calls
   (`add`, `negate`, `compare` *sketch*), with contracts Precog trusts;
-  `inline.LLVM { … }`, LLVM IR in place; and the **labels**: `!check`,
+  `inline.LL { … }`, LLVM IR in place; and the **labels**: `!check`,
   `NO_FUCKING_CHECKS`, and the rule that raw memory and unproven code sit
   under `!check`, so a kernel on Signatar + IEG has clear syntax ("like
   Rust's kernel mode also has clear syntax", owner). Not fully unsafe.
@@ -231,8 +231,8 @@ have to change a limb's prefix themselves" (owner).
 Chosen **when compiling**, with `else` for the rest:
 
 ```
-on.target.chip aarch64 { !check inline.Assembly { neg x0, x0 } with [ … ]; }
-else on.target.chip x86_64 { !check inline.Assembly { neg rax } with [ … ]; }
+on.target.chip aarch64 { !check inline.ASM { neg x0, x0 } with [ … ]; }
+else on.target.chip x86_64 { !check inline.ASM { neg rax } with [ … ]; }
 else { let 'y' := -'x'; }
 on.target.os macos 15 { … }          # a minimum: refuses to start on older
 on.target aarch64-macos { … }        # one exact target
@@ -244,8 +244,8 @@ fast where it can be.
 
 ## Hello World at every level
 
-Signatar alone: raw system calls in `inline.Assembly`; Signatar through C:
-`extern.C fn write`; inside IEG: `inline.LLVM`; a program on IEG with no
+Signatar alone: raw system calls in `inline.ASM`; Signatar through C:
+`extern.C fn write`; inside IEG: `inline.LL`; a program on IEG with no
 std: IEG's raw write; with std: `std::print.useful.stdout["Hello, world!",
 \n];`; and a limb of your own on top. The base has no Hello World: there
 is nothing to write it in.

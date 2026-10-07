@@ -224,6 +224,37 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — The inline languages' main names are `inline.ASM`, `inline.LL`, `inline.MSL`; the whole names go to MTM (owner: a)
+
+```
+!check inline.ASM { neg x0, x0 } with [ … ];   # Signatar's
+inline.LL { … }                                # IEG's: LLVM IR in place
+inline.MSL threads 'n' { … } with [ … ];       # the Metal core's
+```
+
+Asked to see the inline names, main spellings not the others, design
+claude listed 2026-10-06's whole names (`inline.Assembly`,
+`inline.LLVM_Intermediate_Representation`, `inline.Metal_Shading_Language`,
+with MTM's `inline.ASM`/`inline.S`, `inline.LLVM`, `inline.MSL`). The
+owner: "Main should now be `inline.ASM`, `inline.LL`, `inline.MSL`".
+This replaces 2026-10-06's "the entire language's name when inline".
+Asked what the displaced spellings become, (a) all MTM's, recommended,
+or (b) refused naming the main, the owner: "`a`". So MTM has
+`inline.Assembly` and `inline.S` for `inline.ASM`,
+`inline.LLVM_Intermediate_Representation` and `inline.LLVM` for
+`inline.LL`, and `inline.Metal_Shading_Language` for `inline.MSL`.
+Design claude noted that `.ll` is LLVM IR's text file extension.
+`extern.C` and `layout.C` are unchanged. The Nvidia and Vulkan cores'
+inline languages are still unnamed, and `inline.C` is still only
+possible. In the oracle (which reads only `inline.ASM`; `inline.LL` and
+`inline.MSL` are refused as not read yet): reject tests
+`mtm_inline_assembly`, `mtm_inline_s`, `inline_ll_not_built`,
+`inline_msl_not_built`; every example and test uses `inline.ASM`. While
+listing them, design claude also found and fixed its own 2026-10-06
+rewrite of the design notes, which had left `inline.LLVM` in
+`design/cores.md` and made `design/ffi.md` read "`inline.Assembly` is
+another name for `inline.Assembly`".
+
 ### 2026-10-07 — `simd.sum` is a plain number, checked where it lands; `simd.sum.lane` and `simd.sum.wrap` work at the lane's type (owner: yea)
 
 ```

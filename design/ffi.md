@@ -236,7 +236,7 @@ there; the std Limb offers `std::c.errno[]` backed by the real thing.
 ## `layout.C` — a struct in C's shape
 
 **A language's name is capitalized wherever CyborgPL writes it** (owner,
-2026-10-02: "BIG"): `layout.C`, `inline.Assembly`, `inline.MSL`, `inline.C`
+2026-10-02: "BIG"): `layout.C`, `inline.ASM`, `inline.MSL`, `inline.C`
 when it comes. The owner said "inline.C has a big c" on 2026-10-01;
 design claude generalized it then without recording it, and `layout.c`
 (2026-09-19) kept its lowercase until this ruling. `layout.c` is refused,
@@ -259,14 +259,21 @@ Compile-time constants, spelled like `to.`: `malloc[10 times size.of[Timeval]]`.
 A `layout.C` struct has C's size; a normal struct's is whatever Precog
 chose.
 
-## Inline assembly — `inline.Assembly` (decided 2026-09-20)
+## Inline assembly — `inline.ASM` (decided 2026-09-20)
 
-**`inline.Assembly` is another name for `inline.Assembly`** (owner, 2026-10-02: "Add
-`S` as an alias to `ASM`"), as assembly's `.S` files: the same block,
-the same rules. Capitals, as every language's name: `inline.s` is refused.
+**The main names are `inline.ASM`, `inline.LL`, `inline.MSL`** (owner,
+2026-10-07: "Main should now be `inline.ASM`, `inline.LL`, `inline.MSL`"),
+replacing 2026-10-06's whole names; **the whole names and the older short
+ones are MTM's** (owner: "`a`"): `inline.Assembly` and `inline.S` for
+`inline.ASM`, `inline.LLVM_Intermediate_Representation` and `inline.LLVM`
+for `inline.LL` (IEG's), `inline.Metal_Shading_Language` for `inline.MSL`
+(the Metal core's). `inline.S` came first as an alias (owner, 2026-10-02:
+"Add `S` as an alias to `ASM`"), as assembly's `.S` files: the same
+block, the same rules. Capitals, as every language's name: `inline.s` is
+refused.
 
 ```
-!check inline.Assembly {
+!check inline.ASM {
     mov x16, #4
     svc 0
 } with ['fd' --> x0, 'buf' --> x1, 'len' --> x2, 'n' <-- x0, clobber x16];

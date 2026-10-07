@@ -31,7 +31,7 @@ offload a loop whose body uses only:
   branch is predicted away and the atomic runs only on failing
   iterations. The GPU was 13–42× one CPU core across those sizes.
 
-Never offloadable: `extern` calls, `std::input` / `print`, `inline.Assembly`,
+Never offloadable: `extern` calls, `std::input` / `print`, `inline.ASM`,
 `!check` sites (nothing proven, nothing offloadable), text
 (allocation per `++` on a GPU is 10–100× slower than on the CPU; a
 text loop is never worth offloading), `std::uenr` and `deci` (software
@@ -126,9 +126,9 @@ Beside the automatic loops, a program may take the GPU in hand: **std**
 moves data to GPU memory and back, launches GPU code with N threads, and
 forces a loop onto the GPU over Precog's choice (as `for para` forces
 cores); the **base language** has **`inline.MSL { … }`**, Metal Shading
-Language written inline — a `!check` site like `inline.Assembly`, checked by
+Language written inline — a `!check` site like `inline.ASM`, checked by
 Apple's Metal compiler at build time. A block runs where it is
-written, as `inline.Assembly` does, and needs no std (owner): reuse is a
+written, as `inline.ASM` does, and needs no std (owner): reuse is a
 function holding it.
 
 The **thread count** — how many copies of the kernel run, which plain
@@ -145,10 +145,10 @@ Metal sets from the host with `dispatchThreads` — comes **after the name**
 
 How the block runs comes first; `with` holds what it touches. The code
 inside the braces is Metal's, passed to Apple's compiler unchanged. A lent
-list binds with **`-->`**, as in `inline.Assembly`: `lend.mut` says the kernel
+list binds with **`-->`**, as in `inline.ASM`: `lend.mut` says the kernel
 may write it, and the changes are in `'xs'` when the block ends (owner,
 2026-10-01: a). The slot is named as Metal names it, `buffer(0)`,
-matching the kernel's `[[buffer(0)]]`, as `inline.Assembly` writes ARM's `x0`
+matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
 (owner, 2026-10-01).
 
 ## Open
