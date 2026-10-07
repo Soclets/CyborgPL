@@ -2549,11 +2549,15 @@ impl Parser {
         if head == "simd" && (op == "load" || op == "store") && *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "some") {
             self.advance(); self.advance(); op = format!("{op}.some");
         }
+        // `simd.sum.lane` / `simd.sum.wrap`: the sum at the lane's type, checked or wrapped (owner, 2026-10-07: "yea")
+        if head == "simd" && op == "sum" && *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "lane" || w == "wrap") {
+            self.advance(); let Tok::Word(w) = self.advance().tok else { unreachable!() }; op = format!("sum.{w}");
+        }
         let ok = match (head.as_str(), op.as_str()) {
             ("list", "length" | "append" | "remove" | "empty" | "slice" | "fill") | ("array", "length" | "slice") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
             ("channel", "send" | "take") => true,
-            ("simd", "fill" | "load" | "store" | "load.some" | "store.some" | "all" | "any" | "max" | "min" | "sum" | "shuffle") => true,
+            ("simd", "fill" | "load" | "store" | "load.some" | "store.some" | "all" | "any" | "max" | "min" | "sum" | "sum.lane" | "sum.wrap" | "shuffle") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
         };

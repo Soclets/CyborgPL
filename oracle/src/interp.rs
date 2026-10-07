@@ -1450,7 +1450,7 @@ impl<'p> Interp<'p> {
                 _ => None,
             },
             // a vector folded to one lane answers with the lane's type (check claude, seed 4094)
-            Expr::Builtin(h, op, args, _) if h == "simd" && matches!(op.as_str(), "max" | "min" | "sum") => {
+            Expr::Builtin(h, op, args, _) if h == "simd" && matches!(op.as_str(), "max" | "min" | "sum" | "sum.lane" | "sum.wrap") => {
                 match args.values.first() {
                     Some(crate::ast::Value::Expr(e)) => match self.expr_ty_own(e) { Some(Ty::Simd(lane, _)) => Some(*lane), _ => None },
                     _ => None,
@@ -3721,6 +3721,39 @@ impl<'p> Interp<'p> {
                         (Value::Bin(a), Value::Bin(b)) => Value::Bin(match op { "max" => a.max(*b), "min" => a.min(*b), _ => a + b }),
                         (a, b) => return rt(line, format!("`simd.{op}` folds numbers, not {} and {}", a.kind(), b.kind())),
                     };
+                }
+                Ok(no_neg_zero(acc))
+            }
+            // `simd.sum` is worked out in full and checked where it lands, as any plain number; `.lane`
+            // checks it at the lane's type, `.wrap` wraps it there as the chip's own sum does, never a
+            // check (owner, 2026-10-07: "There should be a way to do the other option too", then "yea")
+            "sum.lane" | "sum.wrap" => {
+                if args.values.len() != 1 { return rt(line, format!("`simd.{op}` takes one simd")); }
+                let lane_ty = match args.values.first() { Some(crate::ast::Value::Expr(e)) => match self.expr_ty(e) { Some(Ty::Simd(t, _)) => Some(*t), _ => None }, _ => None };
+                let (v, _) = self.value(&args.values[0])?;
+                let lanes = self.simd_lanes(&v, op, line)?;
+                let Some(lane_ty) = lane_ty else { return rt(line, format!("`simd.{op}` works at the lane's type, so it needs to know it: give the vector a type")) };
+                if op == "sum.wrap" {
+                    let (bits, signed) = match &lane_ty { Ty::Int(w) => (true_bits(w), true), Ty::Uint(w) => (true_bits(w), false), t => return rt(line, format!("`simd.sum.wrap` wraps modulo an integer's size, and {} is not an integer", ty_name(t))) };
+                    let m: i128 = 1i128 << bits;
+                    let mut acc: i128 = 0;
+                    for l in &lanes { let Value::Int(x) = l else { return rt(line, "`simd.sum.wrap` is integer arithmetic") }; acc = (acc + x).rem_euclid(m); }
+                    if signed && acc >= m / 2 { acc -= m; }
+                    return Ok(Value::Int(acc));
+                }
+                let mut acc = lanes[0].clone();
+                for l in &lanes[1..] {
+                    acc = match (&acc, l) {
+                        (Value::Int(a), Value::Int(b)) => Value::Int(a + b),
+                        (Value::Bin(a), Value::Bin(b)) => round_to_width(&lane_ty, Value::Bin(a + b)),
+                        (a, b) => return rt(line, format!("`simd.{op}` folds numbers, not {} and {}", a.kind(), b.kind())),
+                    };
+                    if matches!(acc, Value::Bin(x) if x.is_infinite()) { return site(line, format!("`simd.sum.lane` goes past the largest {}: the sum is checked at the lane's type", ty_name(&lane_ty))); }
+                }
+                // the total is checked, whatever order the lanes are added in: a wrapped partial sum
+                // comes back, so only the answer can be wrong
+                if self.check_type(&acc, &lane_ty, line).is_err() {
+                    return site(line, format!("`simd.sum.lane` is {}, which does not fit {}: the sum is checked at the lane's type", acc.show_stored(), ty_name(&lane_ty)));
                 }
                 Ok(no_neg_zero(acc))
             }
