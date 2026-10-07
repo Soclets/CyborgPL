@@ -245,7 +245,17 @@ only (an integer or deci has none: refused naming the plain operator).
 Design claude's readings, not asked: `div.near` takes no `.ieee` (on a bin
 it is ordinary division, no rounded zero), nor does `mod.X` (a zero
 remainder already takes the divisor's sign). In the oracle:
-`examples/zero_quotient.cpls`, reject tests `ieee_on_int`, `ieee_on_mod`.
+`examples/zero_quotient.cpls`, reject tests `ieee_on_int`, `ieee_on_mod`. **Then no `-0` anywhere**
+(check claude, seed 30208: a zero `times` a negative, and `-'b'` of a
+zero, gave `-0` in the oracle and `0` in CCA): asked (a) no `-0` in any
+bin or `brain16` result, every operation that could make one adding
+`+0.0` (free where Precog proves the answer is not zero), the `.ieee` forms
+keeping it, or (b) only rounded quotients, the owner: "`a`". Asked "what's
+correct?": by IEEE 754, `-0` is a real value, kept so that `1 / -0` is
+negative infinity and a result too small to hold remembers its sign; in
+maths zero has no sign. CyborgPL's bins hold no infinity at all
+(2026-09-29), so `-0`'s main use is gone, and plain `0` is the better
+answer here.
 
 ### 2026-10-06 — Without IEG nothing needs `!check`: the marking rule is IEG's (owner: yes)
 
