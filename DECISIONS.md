@@ -581,8 +581,9 @@ multiply are pairs of 64-bit operations, division a library call), then
 atomic compare-and-swap, which is an atomics feature rather than
 arithmetic, a multiply's high half, some cryptography; Linux's `u128` is
 opt-in per architecture). So **the base keeps the register sizes, 8 to
-64 bits**; whether they keep their plain names (`int128`) under WSMW or
-take `not_std.` was not asked. Not yet
+64 bits**. **They keep their plain names, `int128` / `uint128`**
+(owner: "a"), over `not_std.int128`: 128 is a standard width, living in
+a core as `deci64` does in Money. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
