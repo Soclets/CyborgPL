@@ -1,8 +1,8 @@
-# Question 2026-10-06 (check evaltest --risk 30, seeds 4263 and 4076, cut down by hand), not a ruled
-# finding: 'v' and.bit (('v' and.bit 3) minus 7), all uint32, into a uint32. The right operand is -6.
-# CCA (c1973f02) holds an exact operand of and.bit/or.bit/xor to the operator's width, so -6 fails
-# there; check's evaluator follows it. The oracle checks only where the answer lands: it combines the
-# bits (5 and -6 is 0) and prints 0. Which is meant is asked of the owner via design claude.
+# Finding 2026-10-07 (check run, seeds 27256, 27273, 27516, cut down by hand): (to.uint64['v'] plus 7)
+# xor (2582910339 times 4182534762), into a uint64. The bare group is 10799508542929826518, which a
+# uint64 holds. The oracle prints the answer. CCA refuses: "`times` can leave what the type holds ...
+# integer". With the name 'v' alone on the left it builds (c1973f02); beside an exact answer it does
+# not. The same with the group as a mod.floor operand inside such an expression.
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
@@ -58,7 +58,7 @@ fn b3 [lent 'a': list[int16], lent 'b': list[int16]] --> lent list[int16] {
 }
 
 MAIN {
-    let 'v': uint32 = 5;
-    let 'r': uint32 = 'v' and.bit (('v' and.bit 3) minus 7);
-    put_u[to.uint64['r']];
+    let 'v': uint64 = 1;
+    let 'r': uint64 = (to.uint64['v'] plus 7) xor (2582910339 times 4182534762);
+    put_u['r'];
 }

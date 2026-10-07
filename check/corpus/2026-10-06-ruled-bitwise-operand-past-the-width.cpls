@@ -1,8 +1,7 @@
-# Question 2026-10-06 (check evaltest --risk 30, seed 4106, cut down by hand), not a ruled finding:
-# to.int64[((-53) shr 'c') mod.floor 23] with 'c' an int8 of 9. The bare -53 can take its width from
-# its context or from the typed count (owner: a, 2026-09-23: any operand whose type is known). CCA
-# takes the count's 8 bits and refuses (every bit lost); the oracle takes 64 bits and prints 22. Asked
-# of the owner via design claude.
+# Finding 2026-10-06, ruled 2026-10-07 (owner: "yea", oracle e91b8acf): an operand of and.bit/or.bit/
+# xor must fit the operator's width, a check site (the .wrap forms take its bits). 'v' and.bit
+# (('v' and.bit 3) minus 7), all uint32: -6 does not fit, as CCA (c1973f02) refused; the oracle had
+# combined the bits and printed 0 (seeds 4263, 4076).
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
@@ -58,6 +57,7 @@ fn b3 [lent 'a': list[int16], lent 'b': list[int16]] --> lent list[int16] {
 }
 
 MAIN {
-    let 'c': int8 = 9;
-    put_i[to.int64[((-53) shr 'c') mod.floor 23]];
+    let 'v': uint32 = 5;
+    let 'r': uint32 = 'v' and.bit (('v' and.bit 3) minus 7);
+    put_u[to.uint64['r']];
 }

@@ -1,8 +1,8 @@
-# Question 2026-10-06 (check run, seeds 25502 and 26092, cut down by hand), not a ruled finding:
-# 0.5 div.ceil (-1.75) on a brain16 (and a bin64) is the ceiling of -0.2857..., zero. The oracle keeps
-# IEEE's negative zero: its useful text is "-0" (2 bytes); on a deci64 it gives "0". CCA gives "0"
-# (1 byte). No ruling says which sign a zero whole quotient has (the mod rule gives a zero remainder
-# the divisor's sign). Asked of the owner via design claude.
+# Finding 2026-10-07 (check run, seed 27222, shrunk): ('v2' mod.floor 1) shl (1 div.floor
+# 17822710905774487822), 'v2' a uint64 of 0. The count is 1 div.floor 17822710905774487822, 0, so this
+# shifts 0 by 0. The oracle prints 0. CCA builds it, but its --assert-proofs binary fails: "proof
+# failed: the shift can move bits out of the type" (as if the bare divisor, past int64, were
+# negative and the count -1). With a plain name on the left instead of ('v2' mod.floor 1) it agrees.
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
@@ -58,8 +58,7 @@ fn b3 [lent 'a': list[int16], lent 'b': list[int16]] --> lent list[int16] {
 }
 
 MAIN {
-    let 'a': brain16 = 0.5;
-    let 'q': brain16 = 'a' div.ceil (-1.75);
-    let 't' := to.useful.str.utf8['q'];
-    put_u[str.bytes[lend 't']];
+    let 'v2': uint64 = 0;
+    let 'v21': uint64 = ('v2' mod.floor 1) shl (1 div.floor 17822710905774487822);
+    put_u['v21'];
 }

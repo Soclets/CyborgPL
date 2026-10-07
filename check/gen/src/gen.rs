@@ -2233,14 +2233,17 @@ impl Gen {
             self.int_expr(t, depth - 1)
         };
         let (b, ib) = self.int_expr(t, depth - 1);
-        // `shl`'s left operand is a name or a conversion: CCA takes the width
-        // only from those (question open with the design session, 2026-09-23).
-        let named = matches!(a, Expr::Var(_) | Expr::To(..));
-        let bare_left = op == Shl && !(self.cfg.width_from_context && !is_literal_only(&a));
-        let (op, a, ia) = if matches!(op, Shl | Shr) && !named && bare_left {
+        // A shift's width comes from the shifted number, or its context when
+        // that is bare numbers alone, never from the count; with no width
+        // anywhere `shl` and `shr` are refused (owner, 2026-10-07; 4866c834).
+        // Bare numbers alone on the left become a typed name: their context
+        // may give no width (a comparison, an enum's data), and the generator
+        // does not follow which contexts do.
+        let bare_left = matches!(op, Shl | Shr) && is_literal_only(&a);
+        let (op, a, ia) = if bare_left {
             match self.typed_leaf(t) {
                 Some((v, iv)) => (op, v, iv),
-                None => (Shr, a, ia),
+                None => (Add, a, ia),
             }
         } else {
             (op, a, ia)
