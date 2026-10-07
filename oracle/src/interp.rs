@@ -1442,6 +1442,13 @@ impl<'p> Interp<'p> {
             Expr::Convert(t, _, _, _, _) => Some(t.clone()),
             Expr::Unary(_, inner, _) => self.expr_ty_own(inner),
             Expr::Binary(_, l, r, _) => self.expr_ty_own(l).or_else(|| self.expr_ty_own(r)),
+            // a vector folded to one lane answers with the lane's type (check claude, seed 4094)
+            Expr::Builtin(h, op, args, _) if h == "simd" && matches!(op.as_str(), "max" | "min" | "sum") => {
+                match args.values.first() {
+                    Some(crate::ast::Value::Expr(e)) => match self.expr_ty_own(e) { Some(Ty::Simd(lane, _)) => Some(*lane), _ => None },
+                    _ => None,
+                }
+            }
             // a call's return type answers for it (operators.md, 2026-09-23 a: any operand whose type
             // is known; check claude, seeds 55 and 123, after `shl` came to need a width)
             Expr::Call(c) if c.limb.is_none() => {
@@ -2814,7 +2821,7 @@ impl<'p> Interp<'p> {
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
                         // compare before narrowing: `y as u32` would wrap a huge count to a small one (seed 1125)
                         if y >= bits as i128 {
-                            let what = if width_ty.is_some() { format!("a {bits}-bit value") } else { "a value of any width".to_string() };
+                            let what = if width_ty.is_some() { format!("{} {bits}-bit value", if bits.to_string().starts_with('8') || bits == 11 || bits == 18 { "an" } else { "a" }) } else { "a value of any width".to_string() };
                             return site(line, format!("`{op}` by {y} on {what}: every bit is lost"));
                         }
                         if op == "shl" {
@@ -3529,7 +3536,12 @@ impl<'p> Interp<'p> {
         match op {
             "fill" => {
                 if args.values.len() != 1 { return rt(line, "`simd.fill` takes one value: `simd.fill[0]`"); }
-                let (v, _) = self.value(&args.values[0])?;
+                // the value lands in a lane, so the lane's type is its context (check claude, seed 4106)
+                let lane = match &self.expected { Some(Ty::Simd(t, _)) => Some((**t).clone()), _ => None };
+                let saved = std::mem::replace(&mut self.expected, lane.clone());
+                let r = self.value(&args.values[0]);
+                self.expected = saved;
+                let (v, _) = r?;
                 if !matches!(v, Value::Int(_) | Value::Bin(_) | Value::Bool(_)) { return rt(line, format!("a simd holds plain numbers or bools, not {}", v.kind())); }
                 // the lane count comes from the declared type; 16 when nothing states one
                 let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };

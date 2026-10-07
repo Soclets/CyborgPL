@@ -127,9 +127,12 @@ impl Deci {
             None => 0,
             Some(e) => { let body = e.strip_prefix(['-', '+']).unwrap_or(e); if !digits(body) { return Ok(None); } e.parse().unwrap_or(if e.starts_with('-') { i64::MIN / 2 } else { i64::MAX / 2 }) }
         };
-        let coef = trim(format!("{int}{frac}").bytes().map(|b| b - b'0').collect());
-        let exp = e - frac.len() as i64;
+        let mut coef = trim(format!("{int}{frac}").bytes().map(|b| b - b'0').collect());
+        let mut exp = e - frac.len() as i64;
         let p = precision(width);
+        // trailing zeros past the width move into the exponent, the value unchanged: 9220000000000000000
+        // is 922 × 10^16 (check claude, seed 25294: a brain16's useful form is such a number)
+        while coef.len() > p && coef.last() == Some(&0) { coef.pop(); exp += 1; }
         if coef.len() > p { return Err(format!("has {} digits; deci{width} holds {p}", coef.len())); }
         if exp > qmax(width) as i64 + p as i64 || exp < qmin(width) as i64 { return Err(format!("is past what deci{width} holds")); }
         Deci::round(neg, coef, exp as i32, width, false).map(Some)
