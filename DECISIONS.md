@@ -485,7 +485,8 @@ is, and (c) C's escapes in plain quotes), and the piece outside quotes is
 **`newln`**, matching `auto_newln`: `print.useful["Hello, World!",
 newln];`, `"Hello" ++ newln`. Inside a format, `\n` stays, being format's
 own escape. Design claude's reading: `\n` outside quotes is refused naming
-`newln`; it was the only piece of its kind. Design
+`newln`; it was the only piece of its kind. No `tab` piece beside it (owner: "Isn't tab for
+format?"): a tab is `format`'s `\t`. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
