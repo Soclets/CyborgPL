@@ -465,7 +465,11 @@ where one choice is ordinary (`plus`, `temp`, `case.sensitive`) and
 requires a choice where both are reasonable (`div.X`, the `bare` marks,
 `print.useful` / `print.stored`). Design claude's readings, not asked:
 every print (`.format`, `.weird`, `.auto_newline`) takes the default, and
-`.stdout` may still be written, as `temp` may. Design
+`.stdout` may still be written, as `temp` may. **`lend` / `lent` stay** (owner: "`a`"), the caller lending and
+the parameter lent, over (b) `lend` on both sides; design claude
+recommended (a). **`print.useful.auto_newline` becomes
+`print.useful.auto_newln`** (owner: "`auto_newline` should be
+`auto_newln`"): `print.useful.auto_newln["Hello, World!"];`. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
