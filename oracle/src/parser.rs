@@ -413,6 +413,34 @@ impl Parser {
                 }
             }
         }
+        // what the base was slimmed into (owner, 2026-10-07): testing is TAS's, `brain16` AI's,
+        // `int128` and the other widths WSMW's, `deci` Money's, Unicode text UniTect's, the case
+        // marks CAPS's. A word after `::` names something in a path.
+        if self.lacks.iter().any(|c| ["TAS", "AI", "WSMW", "Money", "UniTect", "CAPS"].contains(&c.as_str())) {
+            for i in 0..self.toks.len() {
+                if i > 0 && self.toks[i - 1].tok == Tok::ColonColon { continue; }
+                let prev_word = |k: usize| -> Option<&str> { if i >= k { if let Tok::Word(w) = &self.toks[i - k].tok { return Some(w.as_str()); } } None };
+                let after_dot = i > 0 && self.toks[i - 1].tok == Tok::Dot;
+                let next = self.toks.get(i + 1).map(|t| &t.tok);
+                let found: Option<(&str, String)> = match &self.toks[i].tok {
+                    Tok::Word(w) if w == "test" && matches!(next, Some(Tok::Word(f)) if f == "fn") => Some(("TAS", "`test fn`".into())),
+                    Tok::Word(w) if w == "must" && !after_dot => Some(("TAS", "`must`".into())),
+                    Tok::Word(w) if w == "brain16" => Some(("AI", "`brain16`".into())),
+                    Tok::Word(w) if w == "int128" || w == "uint128" => Some(("WSMW", format!("`{w}`"))),
+                    Tok::Op(o) if o == "!" && matches!(next, Some(Tok::Word(s)) if s == "std") => Some(("WSMW", "a `not_std.` width".into())),
+                    Tok::Word(w) if w.starts_with("deci") && w[4..].parse::<u32>().is_ok() => Some(("Money", format!("`{w}`"))),
+                    Tok::Op(o) if o == "*" && matches!(next, Some(Tok::Bin(..))) => Some(("Money", "an exact decimal literal (`*0.1`)".into())),
+                    Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("UniTect", format!("`str.{w}`"))),
+                    Tok::Word(w) if after_dot && prev_word(2) == Some("char") && (w == "point" || w == "grapheme") => Some(("UniTect", format!("`char.{w}`"))),
+                    Tok::Word(w) if w == "graphemes" || w == "points" || (after_dot && (w == "grapheme" || w == "point")) => Some(("UniTect", format!("counting in {w}"))),
+                    Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if m == "insensitive" || m == "sensitive") => Some(("CAPS", "a `case` mark".into())),
+                    _ => None,
+                };
+                if let Some((core, what)) = found {
+                    if self.lacks.iter().any(|c| c == core) { self.pos = i; return self.core_missing(core, &what); }
+                }
+            }
+        }
         // growing lists, maps and text operations are std's; fixed arrays and text literals are
         // Signatar's (owner, 2026-10-06)
         if self.no_std {
@@ -1363,7 +1391,16 @@ impl Parser {
     // Decided 2026-09-19: `.` picks a fixed variant (`str.utf8`, `char.grapheme`);
     // `[ ]` supplies type parameters (`list[int32]`, `list[list[int32]]`). A struct
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
+    /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
     fn ty(&mut self) -> PResult<Ty> {
+        let t = self.ty_inner()?;
+        if matches!(t, Ty::Ranged(..) | Ty::TextRanged(..)) && self.lacks.iter().any(|c| c == "ASP") {
+            return self.core_missing("ASP", "a range or a length bound on a type");
+        }
+        Ok(t)
+    }
+
+    fn ty_inner(&mut self) -> PResult<Ty> {
         // `!std.int24` — an integer of a width that is not standard (owner, 2026-10-03; the `.` since
         // 2026-10-06: "not standard", narrowed to one): read as one name inside
         if matches!(self.peek(), Tok::Op(o) if o == "!") && matches!(self.peek_at(1), Tok::Word(w) if w.starts_with("std_")) {
