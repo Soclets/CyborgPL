@@ -224,6 +224,8 @@ struct Gen {
     /// `m1 [lent.mut 'a', lent 'b']` is defined: one call may not lend one
     /// list both ways (owner: a, 38c91e7).
     mutator: bool,
+    /// How many call arguments the expression being built is inside.
+    call_nest: u32,
     /// A `#strict` file: the whole program under the generator's `check`
     /// rules (no risk, no positions, nothing unseen), since every site must
     /// be proven in its own function, and promised ranges are whole types.
@@ -265,6 +267,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         unevaluable: false,
         extra_fns: vec![],
         mutator: false,
+        call_nest: 0,
     };
     if strict {
         g.in_check = 1;
@@ -2124,6 +2127,11 @@ impl Gen {
     }
 
     fn call(&mut self, t: Ty) -> Option<(Expr, Iv)> {
+        // Calls inside call arguments, at most 3 deep: a cheap function's
+        // budget alone let one expression nest 2000 brackets (seed 32299).
+        if self.call_nest >= 3 {
+            return None;
+        }
         let fits: Vec<Sig> = self.sigs[..self.callable]
             .iter()
             .filter(|s| s.ret == t && (self.in_check == 0 || self.strict || s.ret_ranged) && self.spent + s.cost.saturating_mul(self.mult) <= self.budget)
@@ -2135,10 +2143,12 @@ impl Gen {
         let s = self.rng.pick(&fits).clone();
         self.spent += s.cost.saturating_mul(self.mult);
         let mut args = vec![];
+        self.call_nest += 1;
         for (_, pt, piv) in &s.params {
             let (a, _) = if *pt == Ty::Bool { (self.bool_expr(1), Iv::new(0, 1)) } else { self.value_in(*pt, *piv) };
             args.push(a);
         }
+        self.call_nest -= 1;
         Some((Expr::Call(s.name.clone(), args), s.ret_iv))
     }
 
