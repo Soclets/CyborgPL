@@ -431,7 +431,11 @@ good"), over (a) the working build refusing them too, as `#strict` did,
 and (c) a build switch; design claude recommended (b). The owner had
 asked "How the fuck would you test a runtime-dependant overflow with
 `#strict`?": you could not, the program never building until the
-overflow was made impossible. That was `#strict`'s last leftover. Design
+overflow was made impossible. That was `#strict`'s last leftover. **`[ ]` keeps all its jobs** (calls, building a struct,
+indexing, lists, type arguments, parameters, labelled built-ins): shown
+them, with (a) no change, the labels and `pos` having removed the
+ambiguity, recommended, or (b) calls in `( )`, the owner: "It's likely
+gonna collide either way, because `()` is also grouping". Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
