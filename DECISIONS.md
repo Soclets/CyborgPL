@@ -471,7 +471,13 @@ recommended (a). **`print.useful.auto_newline` becomes
 `print.useful.auto_newln`** (owner: "`auto_newline` should be
 `auto_newln`"): `print.useful.auto_newln["Hello, World!"];`. **`:=` and `=` stay** (owner: "`a`, it's fucking iconic, bro"):
 `let 'x' := 1;` with the type inferred, `let 'x': int32 = 1;` with it
-written, over (b) always `=` and (c) always `:=`. Design
+written, over (b) always `=` and (c) always `:=`. **`and` / `or` and `and.then` / `or.else` stay** (owner:
+"`a`"): offered (a) unchanged, (b) swap which gets the plain word, (c)
+only the skipping forms, design claude first leaning (c); the owner: "Why
+does the other exist?" Design claude gave 2026-09-25's reasons (the code
+does not lie, constant-time comparisons, every check reporting) and two
+more (a mask's `and` works lane by lane; a type may define `and`, never
+`and.then`), withdrew (c) and recommended (a). Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
