@@ -3,10 +3,10 @@
 # so 1.50 and 1.5 are one key (maps.md: plain values by value); map.set's key takes the key type.
 MAIN {
     let 'a': deci64 = 1.00;
-    stdkit::print.stored.stdout['a' plus (1.5 times 2), " ", 'a' plus 1.5 times 2, newln];
+    stdkit::print.stored['a' plus (1.5 times 2), " ", 'a' plus 1.5 times 2, newln];
     let 'f': bin32 = 0.1;
-    stdkit::print.stored.stdout[to.useful.deci64['f'], " ", to.stored.deci64['f'], newln];
+    stdkit::print.stored[to.useful.deci64['f'], " ", to.stored.deci64['f'], newln];
     let mut 'm': map[deci64, int32] = map.empty;
     map.set[lend.mut 'm', 1.50, 7];
-    stdkit::print.stored.stdout[map.has[lend 'm', 1.5], newln];
+    stdkit::print.stored[map.has[lend 'm', 1.5], newln];
 }

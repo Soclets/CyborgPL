@@ -5,15 +5,15 @@ MAIN {
     let 'x': bin64 = 0.1;
 
     # print: any values, each in its stored form, nothing between
-    stdkit::print.stored.stdout["x is ", 'x', newln];
+    stdkit::print.stored["x is ", 'x', newln];
 
     # print.useful: the same, each in its useful form
-    stdkit::print.useful.stdout["x is ", 'x', newln];
+    stdkit::print.useful["x is ", 'x', newln];
 
     # a joined text is already text: print and print.useful agree on it
     let 'line' := 'name' ++ " scored " ++ to.stored.str.utf8['count'];
-    stdkit::print.stored.stdout['line', newln];
-    stdkit::print.useful.stdout['line', newln];
+    stdkit::print.stored['line', newln];
+    stdkit::print.useful['line', newln];
 
     # stderr
     stdkit::print.useful.stderr["warning: ", 'count', " is low", newln];

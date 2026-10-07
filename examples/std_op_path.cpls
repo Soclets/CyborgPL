@@ -5,5 +5,5 @@ MAIN {
     let 'a': int32 = 2 stdkit::plus 3 stdkit::times 4;
     let 'b': int32 = 7 stdkit::div.floor 2;
     let 'c': uint32 = 1 stdkit::shl 3;
-    stdkit::print.useful.stdout['a', " ", 'b', " ", 'c', newln];
+    stdkit::print.useful['a', " ", 'b', " ", 'c', newln];
 }

@@ -1,3 +1,3 @@
 MAIN {
-    stdkit::print.stored.stdout[10 20];
+    stdkit::print.stored[10 20];
 }

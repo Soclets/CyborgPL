@@ -8,5 +8,5 @@ fn Größe [] -> int32 {
 
 MAIN {
     let 'Café' := GRÖSSE[];
-    stdkit::print.useful.stdout[größe[], " ", 'CAFÉ', " ", 'café', newln];
+    stdkit::print.useful[größe[], " ", 'CAFÉ', " ", 'café', newln];
 }

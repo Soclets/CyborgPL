@@ -284,6 +284,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "Metal_Shading_Language" if after_inline => Some("inline.MSL"),
                 "std" if !after_bang => Some("stdkit"),
                 "auto_newline" => Some("auto_newln"),
+                "giveS" | "gives" => Some("is"),
                 _ => None,
             };
             let inside: Option<Tok> = match s.as_str() {
@@ -297,6 +298,8 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "newln" => Some(Tok::Newline),
                 "stdkit" => Some(Tok::Word("std".into())),
                 "auto_newln" => Some(Tok::Word("auto_newline".into())),
+                // a case's value says `is` (owner, 2026-10-07), held inside as `#strict`'s `giveS`
+                "is" => Some(Tok::Word("giveS".into())),
                 _ => None,
             };
             if s == "not_std" {

@@ -20,5 +20,5 @@ MAIN {
     let 'l' := longer[lend 's', lend 't'];
     let 'p' := pick[lend 't', lend 's'];
     let 'f' := first[lend 's'];
-    stdkit::print.useful.stdout['l', " ", 'p', " ", 'f', newln];
+    stdkit::print.useful['l', " ", 'p', " ", 'f', newln];
 }

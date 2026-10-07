@@ -1,10 +1,10 @@
 # Input and range types (design/input.md). Try: echo 42 | oracle input.cpls
 MAIN {
     let 'text' := stdkit::input.line[] otherwise "(no input)";     # a boundary: fails with `closed`
-    stdkit::print.stored.stdout["got: ", 'text', newln];
+    stdkit::print.stored["got: ", 'text', newln];
 
     # into a range type, the conversion fails on a bad number or an out-of-range one —
     # a failure to handle, never a crash; past it 'n' is provably 0..100
     let 'n' := to.int32[0, 100]['text'] otherwise 50;
-    stdkit::print.useful.stdout["n = ", 'n', newln];
+    stdkit::print.useful["n = ", 'n', newln];
 }

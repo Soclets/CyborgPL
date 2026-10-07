@@ -2,9 +2,9 @@ MAIN {
     let 'correct?': bool = true;
     let 'wrong?' := not 'correct?';
     if 'correct?' and (not 'wrong?') {
-        stdkit::print.stored.stdout["fine", newln];
+        stdkit::print.stored["fine", newln];
     }
     if 'wrong?' equal_to false {
-        stdkit::print.stored.stdout['correct?', " ", 'wrong?', newln];
+        stdkit::print.stored['correct?', " ", 'wrong?', newln];
     }
 }

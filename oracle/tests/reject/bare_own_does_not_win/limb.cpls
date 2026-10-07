@@ -5,5 +5,5 @@ pub fn hello [] -> str.utf8 {
 }
 
 MAIN {
-    print.useful.stdout[hello[], newln];
+    print.useful[hello[], newln];
 }

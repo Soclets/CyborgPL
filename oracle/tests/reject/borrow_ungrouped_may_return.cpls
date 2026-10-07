@@ -9,5 +9,5 @@ MAIN {
     let 't': list[int32] = [4,];
     let 'r' := longer[lend 's', lend 't'];
     let 'g' := give 't';
-    stdkit::print.useful.stdout[list.length[lend 'r'], newln];
+    stdkit::print.useful[list.length[lend 'r'], newln];
 }

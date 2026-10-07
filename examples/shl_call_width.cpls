@@ -2,5 +2,5 @@
 # so `g[] shl 1` is an 8-bit shift (check claude's seeds 55 and 123, 2026-10-06).
 fn g [] -> int8 { return 10; }
 MAIN {
-    if 3 > (g[] shl 1) { stdkit::print.useful.stdout["yes", newln]; } else { stdkit::print.useful.stdout["no", newln]; }
+    if 3 > (g[] shl 1) { stdkit::print.useful["yes", newln]; } else { stdkit::print.useful["no", newln]; }
 }

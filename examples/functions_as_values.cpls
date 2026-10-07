@@ -22,17 +22,17 @@ fn keep [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> list[int32] {
 
 MAIN {
     let 'lockers' := [Locker[number = 7, owner = "Cy"], Locker[number = 2, owner = "Ann"], Locker[number = 5, owner = "Bo"]];
-    stdkit::print.stored.stdout[first_by[lend 'lockers', by_number], newln];          # a named function, as a value: its bare name
-    stdkit::print.stored.stdout[first_by[lend 'lockers', by_owner], newln];
+    stdkit::print.stored[first_by[lend 'lockers', by_number], newln];          # a named function, as a value: its bare name
+    stdkit::print.stored[first_by[lend 'lockers', by_owner], newln];
 
     let 'f' := by_number;                                                 # held in a variable
-    stdkit::print.useful.stdout['f'[lend 'lockers'[pos 1], lend 'lockers'[pos 2]], newln];   # called: 'f'[…]
+    stdkit::print.useful['f'[lend 'lockers'[pos 1], lend 'lockers'[pos 2]], newln];   # called: 'f'[…]
 
     let 'limit' := 60;
     let 'scores' := [72, 40, 95, 55];
     let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' at_least 'limit'; }];
-    stdkit::print.useful.stdout['passing', newln];
+    stdkit::print.useful['passing', newln];
 
     let 'evens' := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) equal_to 0; }];   # captures nothing
-    stdkit::print.useful.stdout['evens', newln];
+    stdkit::print.useful['evens', newln];
 }

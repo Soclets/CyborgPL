@@ -10,17 +10,17 @@ MAIN {
     let 'e60': bin64 = 'e30' times 'e30';
     let 'e120': bin64 = 'e60' times 'e60';
     let 'tiny': bin64 = 'e120' times 'e120';
-    stdkit::print.useful.stdout['z' times 'n', " ", 'z' times.ieee 'n', newln];
-    stdkit::print.useful.stdout[-'z', " ", neg.ieee 'z', newln];
-    stdkit::print.useful.stdout['tiny' times (-'tiny'), " ", 'tiny' times.ieee (-'tiny'), newln];
-    stdkit::print.useful.stdout['z' div.near 'n', " ", 'z' div.near.ieee 'n', newln];
+    stdkit::print.useful['z' times 'n', " ", 'z' times.ieee 'n', newln];
+    stdkit::print.useful[-'z', " ", neg.ieee 'z', newln];
+    stdkit::print.useful['tiny' times (-'tiny'), " ", 'tiny' times.ieee (-'tiny'), newln];
+    stdkit::print.useful['z' div.near 'n', " ", 'z' div.near.ieee 'n', newln];
     let 'm': bin64 = neg.ieee 'z';
-    stdkit::print.useful.stdout['m' plus 'm', " ", 'm' plus.ieee 'm', " ", 'm' minus 'z', " ", 'm' minus.ieee 'z', newln];
+    stdkit::print.useful['m' plus 'm', " ", 'm' plus.ieee 'm', " ", 'm' minus 'z', " ", 'm' minus.ieee 'z', newln];
     let 'b': brain16 = 0.0;
     let 'c': brain16 = -3.0;
-    stdkit::print.useful.stdout['b' times 'c', " ", 'b' times.ieee 'c', " ", -'b', " ", neg.ieee 'b', newln];
+    stdkit::print.useful['b' times 'c', " ", 'b' times.ieee 'c', " ", -'b', " ", neg.ieee 'b', newln];
     let 'w': bin32 = 'e30' times 'e30' times (-1.0);
-    stdkit::print.useful.stdout['w', " ", 3.0 mod.floor (-3.0), " ", 3.0 mod.floor.ieee (-3.0), " ", (-3.0) mod.trunc 3.0, " ", (-3.0) mod.trunc.ieee 3.0, newln];
+    stdkit::print.useful['w', " ", 3.0 mod.floor (-3.0), " ", 3.0 mod.floor.ieee (-3.0), " ", (-3.0) mod.trunc 3.0, " ", (-3.0) mod.trunc.ieee 3.0, newln];
     # `mod` and `pow` keep it too (owner, 2026-10-07: "yea")
-    stdkit::print.useful.stdout[(-'e120') pow 3, " ", (-'e120') pow.ieee 3, " ", (-'e120') stdkit::pow.ieee 3, newln];
+    stdkit::print.useful[(-'e120') pow 3, " ", (-'e120') pow.ieee 3, " ", (-'e120') stdkit::pow.ieee 3, newln];
 }

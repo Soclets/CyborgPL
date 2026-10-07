@@ -10,14 +10,14 @@ fn hash [lent 'text': str.utf8] -> uint32 {
 }
 
 MAIN {
-    stdkit::print.useful.stdout[hash["hello"], newln];
+    stdkit::print.useful[hash["hello"], newln];
     let 'c': uint8 = 250;
     change 'c' = 'c' plus.wrap 10;                                # 260 wraps to 4
-    stdkit::print.useful.stdout['c', newln];
+    stdkit::print.useful['c', newln];
     let 'i': int8 = 127;
     change 'i' = 'i' plus.wrap 1;                                 # 128 wraps to -128
-    stdkit::print.useful.stdout['i', newln];
+    stdkit::print.useful['i', newln];
     let 'p': uint16 = 3;
     change 'p' = 'p' pow.wrap 20;                               # 3^20 modulo 65536
-    stdkit::print.useful.stdout['p', newln];
+    stdkit::print.useful['p', newln];
 }

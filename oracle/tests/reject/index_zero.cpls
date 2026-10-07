@@ -1,4 +1,4 @@
 MAIN {
     let 'xs' := [1, 2, 3];
-    stdkit::print.useful.stdout['xs'[pos 0]];
+    stdkit::print.useful['xs'[pos 0]];
 }

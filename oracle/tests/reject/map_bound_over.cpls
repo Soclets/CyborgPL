@@ -4,6 +4,6 @@ MAIN {
     map.set[lend.mut 'small', "cd", 7];
     let 'n' := map.length[lend 'small'];
     let 'tiny': int8 = 'n';                          # proven by the bound: at most 2
-    stdkit::print.useful.stdout['tiny', newln];
+    stdkit::print.useful['tiny', newln];
     map.set[lend.mut 'small', "ef", 1];              # a third: does not fit [0, 2]
 }

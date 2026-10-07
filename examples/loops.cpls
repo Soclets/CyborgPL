@@ -1,7 +1,7 @@
 MAIN {
     let 'i' := 0;
     while 'i' < 3 {
-        stdkit::print.useful.stdout["while ", 'i', newln];
+        stdkit::print.useful["while ", 'i', newln];
         change 'i' = 'i' plus 1;
     }
     let 'n' := 0;
@@ -13,11 +13,11 @@ MAIN {
         if 'n' > 4 {
             break;
         }
-        stdkit::print.useful.stdout["loop ", 'n', newln];
+        stdkit::print.useful["loop ", 'n', newln];
     }
     let 'chars' := [`a`, `é`, `🍎`];
     for seq 'c' in lend 'chars' {
-        stdkit::print.stored.stdout['c', newln];
+        stdkit::print.stored['c', newln];
     }
     stdkit::exit[3];
 }

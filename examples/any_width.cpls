@@ -3,5 +3,5 @@ MAIN {
     let 'sample': not_std.int24 = -8_000_000;
     let 'flags': not_std.uint4 = 9;
     let 'big': not_std.int100 = 1_000_000_000_000_000_000;
-    stdkit::print.useful.stdout['sample', " ", 'flags', " ", 'big', " ", ('flags' plus.wrap 9), newln];
+    stdkit::print.useful['sample', " ", 'flags', " ", 'big', " ", ('flags' plus.wrap 9), newln];
 }

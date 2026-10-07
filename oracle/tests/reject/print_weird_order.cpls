@@ -1,1 +1,1 @@
-MAIN { stdkit::print.useful.weird.stdout <- "hi"; }
+MAIN { stdkit::print.useful.weird <- "hi"; }

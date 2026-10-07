@@ -4,17 +4,17 @@
 enum Status { empty  claimed: str.utf8  locked }
 fn label ['s': Status] -> str.utf8 {
     let 'text' := match 's' {
-        empty         { "free" }
-        claimed 'who' { "taken by " ++ 'who' }
+        empty         { is "free"; }
+        claimed 'who' { is "taken by " ++ 'who'; }
         locked        { return "(locked)"; }
     };
     return give 'text';
 }
 MAIN {
-    let 'n' := to.int32["12x"] otherwise { not_a_number { -2 } out_of_range { -1 } };
-    stdkit::print.useful.stdout[label[Status.empty], " / ", label[Status.claimed["ann"]], " / ", label[Status.locked], " / ", 'n', newln];
+    let 'n' := to.int32["12x"] otherwise { not_a_number { is -2; } out_of_range { is -1; } };
+    stdkit::print.useful[label[Status.empty], " / ", label[Status.claimed["ann"]], " / ", label[Status.locked], " / ", 'n', newln];
     match Status.empty {
-        empty { stdkit::print.useful.stdout["statement match still works", newln]; }
+        empty { stdkit::print.useful["statement match still works", newln]; }
         claimed 'w' { }
         locked { }
     }

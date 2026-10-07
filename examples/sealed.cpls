@@ -8,5 +8,5 @@ MAIN {
     let immut 'b' := 3;              # immut is immut written another way
     let no_shadow mut 'total' := 0;        # changeable, and 'total' always means this one
     change 'total' = 'total' plus 'a' plus 'b';
-    stdkit::print.useful.stdout['a', " ", 'b', " ", 'total', newln];
+    stdkit::print.useful['a', " ", 'b', " ", 'total', newln];
 }

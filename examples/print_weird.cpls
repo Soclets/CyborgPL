@@ -5,6 +5,6 @@
 MAIN {
     let 'tenth': bin64 = 0.1;
     let 'n' := 3;
-    stdkit::print.weird.useful.stdout <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- newln;
-    stdkit::print.weird.stored.stdout <- "stored: " <- 'tenth' <- newln;
+    stdkit::print.weird.useful <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- newln;
+    stdkit::print.weird.stored <- "stored: " <- 'tenth' <- newln;
 }

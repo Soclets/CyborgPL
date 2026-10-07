@@ -8,11 +8,11 @@ fn count [lent 'items'] -> int32 {
 
 MAIN {
     let 'grid' := [[1, 2], [3, 4]];
-    stdkit::print.useful.stdout['grid', newln];
+    stdkit::print.useful['grid', newln];
     for 'row' in lend 'grid' {
-        stdkit::print.useful.stdout[count[lend 'row'], newln];
+        stdkit::print.useful[count[lend 'row'], newln];
     }
-    stdkit::print.useful.stdout[count[["a", "b", "c"]], newln];
+    stdkit::print.useful[count[["a", "b", "c"]], newln];
     let 'one' := [7,];
-    stdkit::print.useful.stdout['one', " ", count[lend 'one'], newln];
+    stdkit::print.useful['one', " ", count[lend 'one'], newln];
 }

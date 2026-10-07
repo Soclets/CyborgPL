@@ -9,11 +9,11 @@ MAIN {
     let 'price': bin64 = 12.5;
     let 'pay': deci64 = 37.5 times 12.40;
     let 'tenth': bin64 = 0.1;
-    stdkit::print.format.stdout["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
-    stdkit::print.format.stdout["pay ${:.2}, readable {}, stored {:?}\n", 'pay', 'pay', 'pay'];
-    stdkit::print.format.stdout["tenth {} is really {:?}\n", 'tenth', 'tenth'];
-    stdkit::print.format.stdout["0x{:x} 0x{:04X} 0o{:o} 0b{:08b}\n", 255, 255, 8, 10];
-    stdkit::print.format.stdout["[{:>6}] [{:<6}] [{:*^7}] [{:+}] [{:05}] {:.2e}\n", 42, 42, "ab", 5, 42, 'price'];
-    stdkit::print.format.stdout["{2} vs {1}, and {2} wins\n", "a", "b"];
-    stdkit::print.format.stdout["\{ \"count\": {} \} in C:\\temp, tab[\t]\n", 'count'];
+    stdkit::print.format["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
+    stdkit::print.format["pay ${:.2}, readable {}, stored {:?}\n", 'pay', 'pay', 'pay'];
+    stdkit::print.format["tenth {} is really {:?}\n", 'tenth', 'tenth'];
+    stdkit::print.format["0x{:x} 0x{:04X} 0o{:o} 0b{:08b}\n", 255, 255, 8, 10];
+    stdkit::print.format["[{:>6}] [{:<6}] [{:*^7}] [{:+}] [{:05}] {:.2e}\n", 42, 42, "ab", 5, 42, 'price'];
+    stdkit::print.format["{2} vs {1}, and {2} wins\n", "a", "b"];
+    stdkit::print.format["\{ \"count\": {} \} in C:\\temp, tab[\t]\n", 'count'];
 }

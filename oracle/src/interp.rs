@@ -4849,7 +4849,7 @@ impl<'p> Interp<'p> {
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
             }
-            "print.format.stdout" | "print.format.stderr" => {
+            "format" | "print.format.stdout" | "print.format.stderr" => {
                 // The formatting print (owner, 2026-09-22; `printf` until 2026-09-29; `{}` holes since
                 // 2026-10-01, C's `%` codes before): escapes and holes, checked against the values'
                 // types because the format is a literal — a non-literal format is a nocheck site.
@@ -4868,6 +4868,7 @@ impl<'p> Interp<'p> {
                     vals.push((self.value(a)?.0, ty));
                 }
                 let text = hole_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("stdkit::{path}: {m}"), exit: None, site: false, leave: None })?;
+                if path == "format" { return Ok(Value::Str(text)); }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)

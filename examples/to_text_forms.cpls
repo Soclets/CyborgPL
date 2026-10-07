@@ -11,10 +11,10 @@ MAIN {
     let 'n': int32 = 42;
     let 'ok' := true;
     let 's' := Size.big;
-    stdkit::print.stored.stdout[to.stored.str.utf8['x'], " | ", to.useful.str.utf8['x'], newln];
-    stdkit::print.stored.stdout[to.stored.str.utf8['d'], " | ", to.useful.str.utf8['d'], newln];
-    stdkit::print.stored.stdout[to.stored.str.utf8['n'], " | ", to.useful.str.utf8['n'], newln];
-    stdkit::print.stored.stdout[to.stored.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], newln];
-    stdkit::print.stored.stdout[to.stored.str.utf8['s'], " | ", to.useful.str.utf8['s'], newln];
-    stdkit::print.useful.stdout['s', newln];
+    stdkit::print.stored[to.stored.str.utf8['x'], " | ", to.useful.str.utf8['x'], newln];
+    stdkit::print.stored[to.stored.str.utf8['d'], " | ", to.useful.str.utf8['d'], newln];
+    stdkit::print.stored[to.stored.str.utf8['n'], " | ", to.useful.str.utf8['n'], newln];
+    stdkit::print.stored[to.stored.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], newln];
+    stdkit::print.stored[to.stored.str.utf8['s'], " | ", to.useful.str.utf8['s'], newln];
+    stdkit::print.useful['s', newln];
 }

@@ -1,5 +1,5 @@
 MAIN {
     let 's' := "a";
     let 't' := give 's';
-    stdkit::print.stored.stdout['s'];
+    stdkit::print.stored['s'];
 }

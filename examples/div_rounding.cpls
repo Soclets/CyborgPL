@@ -3,18 +3,18 @@
 # a equal_to (a div.X b) times b plus (a mod.X b). On numbers with a fraction, `div.near` is ordinary division
 # and `floor`/`ceil`/`trunc` give a whole quotient.
 MAIN {
-    stdkit::print.useful.stdout[(7 div.floor 2), " ", (7 div.ceil 2), " ", (7 div.trunc 2), " ", (7 div.near 2), newln];
-    stdkit::print.useful.stdout[(-7 div.floor 2), " ", (-7 div.ceil 2), " ", (-7 div.trunc 2), " ", (-7 div.near 2), newln];
-    stdkit::print.useful.stdout[(7 mod.floor 2), " ", (7 mod.ceil 2), " ", (7 mod.trunc 2), " ", (7 mod.near 2), newln];
-    stdkit::print.useful.stdout[(-7 mod.floor 2), " ", (-7 mod.ceil 2), " ", (-7 mod.trunc 2), " ", (-7 mod.near 2), newln];
-    stdkit::print.useful.stdout[(5 div.near 2), " ", (5 mod.near 2), newln];        # 2.5 is a tie: to the even 2, 1 left
+    stdkit::print.useful[(7 div.floor 2), " ", (7 div.ceil 2), " ", (7 div.trunc 2), " ", (7 div.near 2), newln];
+    stdkit::print.useful[(-7 div.floor 2), " ", (-7 div.ceil 2), " ", (-7 div.trunc 2), " ", (-7 div.near 2), newln];
+    stdkit::print.useful[(7 mod.floor 2), " ", (7 mod.ceil 2), " ", (7 mod.trunc 2), " ", (7 mod.near 2), newln];
+    stdkit::print.useful[(-7 mod.floor 2), " ", (-7 mod.ceil 2), " ", (-7 mod.trunc 2), " ", (-7 mod.near 2), newln];
+    stdkit::print.useful[(5 div.near 2), " ", (5 mod.near 2), newln];        # 2.5 is a tie: to the even 2, 1 left
     let 'items': int32 = 7;
     let 'per_page': int32 = 2;
-    stdkit::print.useful.stdout["pages: ", ('items' div.ceil 'per_page'), newln];
+    stdkit::print.useful["pages: ", ('items' div.ceil 'per_page'), newln];
     let 'board': bin64 = 7.5;
     let 'plank': bin64 = 2.0;
-    stdkit::print.useful.stdout[('board' div.near 'plank'), " ", ('board' div.floor 'plank'), " ", ('board' mod.floor 'plank'), " ", ('board' div.ceil 'plank'), " ", ('board' mod.ceil 'plank'), newln];
+    stdkit::print.useful[('board' div.near 'plank'), " ", ('board' div.floor 'plank'), " ", ('board' mod.floor 'plank'), " ", ('board' div.ceil 'plank'), " ", ('board' mod.ceil 'plank'), newln];
     let 'p': deci64 = -7.5;
     let 'q': deci64 = 2.0;
-    stdkit::print.useful.stdout[('p' div.near 'q'), " ", ('p' div.floor 'q'), " ", ('p' mod.floor 'q'), " ", ('p' div.trunc 'q'), " ", ('p' mod.trunc 'q'), " ", ('p' div.near 'q'), newln];
+    stdkit::print.useful[('p' div.near 'q'), " ", ('p' div.floor 'q'), " ", ('p' mod.floor 'q'), " ", ('p' div.trunc 'q'), " ", ('p' mod.trunc 'q'), " ", ('p' div.near 'q'), newln];
 }

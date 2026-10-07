@@ -18,20 +18,20 @@ fn claim [lent.mut 'l': Locker] {
 
 MAIN {
     let 'mine' := Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
-    stdkit::print.useful.stdout['mine'.name, " is #", 'mine'.number, newln];
-    stdkit::print.useful.stdout["free: ", free_space[lend 'mine'], newln];
+    stdkit::print.useful['mine'.name, " is #", 'mine'.number, newln];
+    stdkit::print.useful["free: ", free_space[lend 'mine'], newln];
     claim[lend.mut 'mine'];
-    stdkit::print.useful.stdout["free: ", free_space[lend 'mine'], newln];
+    stdkit::print.useful["free: ", free_space[lend 'mine'], newln];
     change 'mine'.capacity = 20;
-    stdkit::print.useful.stdout['mine', newln];
+    stdkit::print.useful['mine', newln];
     let 'label' := copy 'mine'.name;
-    stdkit::print.useful.stdout['label', newln];
+    stdkit::print.useful['label', newln];
     let 'taken' := give 'mine'.name;
-    stdkit::print.useful.stdout['taken', newln];
+    stdkit::print.useful['taken', newln];
     let 'spare': Locker = Locker[name = "spare", number = 8, capacity = 4, occupied = false];
     let 'lockers' := [copy 'spare', Locker[name = "third", number = 9, capacity = 4, occupied = true]];
     for 'l' in lend 'lockers' {
-        stdkit::print.useful.stdout['l'.number, " "];
+        stdkit::print.useful['l'.number, " "];
     }
-    stdkit::print.stored.stdout[newln];
+    stdkit::print.stored[newln];
 }

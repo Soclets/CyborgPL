@@ -1,6 +1,6 @@
 MAIN {
     let 'n' := 1;
     if 'n' {
-        stdkit::print.stored.stdout["yes"];
+        stdkit::print.stored["yes"];
     }
 }

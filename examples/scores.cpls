@@ -34,16 +34,16 @@ MAIN {
     let 'average' := 'total' div.floor 'count';
     let 'curved' := clamp['average' plus 10, 0, 100];
 
-    stdkit::print.useful.stdout["scored ", 'count', " tests", newln];
-    stdkit::print.useful.stdout["total ", 'total', ", best ", 'best', newln];
-    stdkit::print.useful.stdout["even scores: ", 'evens', newln];
-    stdkit::print.useful.stdout["average ", 'average', ", curved ", 'curved', newln];
+    stdkit::print.useful["scored ", 'count', " tests", newln];
+    stdkit::print.useful["total ", 'total', ", best ", 'best', newln];
+    stdkit::print.useful["even scores: ", 'evens', newln];
+    stdkit::print.useful["average ", 'average', ", curved ", 'curved', newln];
 
     if 'average' at_least 90 {
-        stdkit::print.useful.stdout["grade A", newln];
+        stdkit::print.useful["grade A", newln];
     } else if 'average' at_least 75 {
-        stdkit::print.useful.stdout["grade B", newln];
+        stdkit::print.useful["grade B", newln];
     } else {
-        stdkit::print.useful.stdout["keep going", newln];
+        stdkit::print.useful["keep going", newln];
     }
 }

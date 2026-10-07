@@ -15,5 +15,5 @@ fn name ['k': Key] -> str.utf8 {
 
 MAIN {
     let 'k' := Key.escape;
-    stdkit::print.useful.stdout[name[copy 'k'], " ", name[Key.a], newln];
+    stdkit::print.useful[name[copy 'k'], " ", name[Key.a], newln];
 }

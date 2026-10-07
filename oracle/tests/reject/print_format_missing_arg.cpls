@@ -1,1 +1,1 @@
-MAIN { stdkit::print.format.stdout["{} {}\n", 1]; }
+MAIN { stdkit::print.format["{} {}\n", 1]; }

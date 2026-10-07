@@ -3,7 +3,7 @@
 # Reading them is C's world, so it is no_check; a friendly list will be written in CyborgPL on top.
 # examples/args.args holds the words the test passes: apples, 3, hello world.
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    stdkit::print.stored.stdout["argc = ", 'argc', newln];
+    stdkit::print.stored["argc = ", 'argc', newln];
     let mut 'i': int32 = 1;
     while 'i' < 'argc' {
         no_check let 'word' := ptr.read[ptr.at['argv', 'i']];
@@ -16,9 +16,9 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
             change 'k' = 'k' plus 1;
         }
         let 'text' := to.str.utf8['bytes'] otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
-        stdkit::print.stored.stdout["argument ", 'i', ": ", 'text', newln];
+        stdkit::print.stored["argument ", 'i', ": ", 'text', newln];
         change 'i' = 'i' plus 1;
     }
     no_check let 'end' := ptr.read[ptr.at['argv', 'argc']];
-    stdkit::print.stored.stdout["argv[argc] is null: ", ptr.is_null['end'], newln];
+    stdkit::print.stored["argv[argc] is null: ", ptr.is_null['end'], newln];
 }

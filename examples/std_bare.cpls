@@ -5,6 +5,6 @@ MAIN {
     let 's' := "a b c";
     let 'parts' := str.split[lend 's', " "];
     let 'same' := stdkit::str.split[lend 's', " "];
-    print.useful.stdout[list.length[lend 'parts'], " ", stdkit::list.length[lend 'same'], newln];
-    stdkit::print.useful.stdout[round[2.5], newln];
+    print.useful[list.length[lend 'parts'], " ", stdkit::list.length[lend 'same'], newln];
+    stdkit::print.useful[round[2.5], newln];
 }

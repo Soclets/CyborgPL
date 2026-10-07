@@ -1,1 +1,1 @@
-MAIN { stdkit::print.format.stdout["{:#x}\n", 255]; }
+MAIN { stdkit::print.format["{:#x}\n", 255]; }

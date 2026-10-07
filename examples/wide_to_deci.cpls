@@ -5,5 +5,5 @@ MAIN {
     let 'huge': not_std.int300 = 2 pow 200;
     let 'a' := to.deci128['small'] otherwise 0.0;
     let 'b' := to.deci128['huge'] otherwise 0.0;
-    stdkit::print.useful.stdout['a', " ", 'b', newln];
+    stdkit::print.useful['a', " ", 'b', newln];
 }

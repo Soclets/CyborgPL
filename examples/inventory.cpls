@@ -31,14 +31,14 @@ MAIN {
 
     let 'count' := list.length[lend 'shelf'];
     let 'left': int8 = 4 minus 'count';
-    stdkit::print.useful.stdout['count', " items, room for ", 'left', " more", newln];
+    stdkit::print.useful['count', " items, room for ", 'left', " more", newln];
 
-    let 'top' := heaviest[...copy 'shelf'] otherwise { none { stdkit::print.useful.stdout["empty shelf", newln]; stdkit::exit[0]; } };
-    stdkit::print.useful.stdout["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, newln];
+    let 'top' := heaviest[...copy 'shelf'] otherwise { none { stdkit::print.useful["empty shelf", newln]; stdkit::exit[0]; } };
+    stdkit::print.useful["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, newln];
 
     let 'kg' := kilos['top'.grams] otherwise -1;
-    stdkit::print.useful.stdout['top'.name, " is ", 'kg', " kg", newln];
+    stdkit::print.useful['top'.name, " is ", 'kg', " kg", newln];
 
     let 'gone' := list.remove[lend.mut 'shelf', 2];
-    stdkit::print.useful.stdout["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", newln];
+    stdkit::print.useful["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", newln];
 }

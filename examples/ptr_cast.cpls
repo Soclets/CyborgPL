@@ -13,6 +13,6 @@ MAIN {
     no_check let 'p' := ptr.cast[Point]['raw'];
     no_check ptr.write['p', Point[x = 3, y = 4]];
     no_check let 'q' := ptr.read['p'];
-    stdkit::print.stored.stdout['q'.x, " ", 'q'.y, newln];
+    stdkit::print.stored['q'.x, " ", 'q'.y, newln];
     no_check free['raw'];
 }

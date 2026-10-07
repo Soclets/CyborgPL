@@ -1,5 +1,5 @@
-# A `match` alone in a case: the outer match decides (owner, 2026-09-29: a). In a statement match
-# the inner one runs; in a value match it is the case's value.
+# A `match` alone in a case is a statement (owner, 2026-09-29); a nested match that is the case's value
+# says `is match …` (owner, 2026-10-07: a case says its value with `is`).
 enum Order { cancelled  paid }
 enum Ship { pickup  post }
 MAIN {
@@ -7,8 +7,8 @@ MAIN {
     let 's' := Ship.post;
     match 'o' {
         cancelled { }
-        paid { match 's' { pickup { stdkit::print.useful.stdout["counter", newln]; } post { stdkit::print.useful.stdout["mail", newln]; } } }
+        paid { match 's' { pickup { stdkit::print.useful["counter", newln]; } post { stdkit::print.useful["mail", newln]; } } }
     }
-    let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
-    stdkit::print.useful.stdout['price', newln];
+    let 'price' := match 'o' { cancelled { is 0; } paid { is match 's' { pickup { is 5; } post { is 9; } }; } };
+    stdkit::print.useful['price', newln];
 }

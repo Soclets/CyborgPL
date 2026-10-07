@@ -3,16 +3,16 @@
 # therefore written as two `if`s; tests/reject/and_does_not_guard.cpls is the one-line
 # form, which stops when the right side is out of range.
 fn loud ['name': str.utf8, 'answer': bool] -> bool {
-    stdkit::print.useful.stdout["checked ", 'name', newln];
+    stdkit::print.useful["checked ", 'name', newln];
     return 'answer';
 }
 MAIN {
     let 'ok' := loud["first", false] and loud["second", true];    # both print
-    stdkit::print.useful.stdout['ok', newln];
+    stdkit::print.useful['ok', newln];
     let 'xs' := [3, 5, 8];
     let 'i': uint64 = 7;
     if 'i' at_most list.length[lend 'xs'] {
-        if 'xs'['i'] equal_to 5 { stdkit::print.useful.stdout["found", newln]; }
+        if 'xs'['i'] equal_to 5 { stdkit::print.useful["found", newln]; }
     }
-    stdkit::print.useful.stdout["done", newln];
+    stdkit::print.useful["done", newln];
 }

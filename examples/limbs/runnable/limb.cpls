@@ -6,5 +6,5 @@ bare.never [fn];
 pub fn seven [] -> int32 { return 7; }
 
 MAIN {
-    stdkit::print.stored.stdout["runnable on its own", newln];
+    stdkit::print.stored["runnable on its own", newln];
 }

@@ -12,7 +12,7 @@ use crate::value::ty_name;
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "change", "giveS", "gives", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
+    "fn", "let", "change", "giveS", "gives", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
     "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
@@ -97,7 +97,7 @@ fn is_std_op(op: &str) -> bool {
 
 /// std's names the oracle emulates, which may be written without `std::` since std marks everything
 /// `bare.optional` (owner, 2026-10-06: "optional for all")
-pub const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
+pub const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "format", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
 const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lower", "replace", "starts_with", "ends_with", "at", "slice", "join"];
 
 /// An operator as code writes it (`+` inside is `plus`).
@@ -1869,10 +1869,9 @@ impl Parser {
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
                 "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20; `inline.ASM` again since 2026-10-07)"),
-                "gives" => return self.err("`gives` is spelled `giveS` (owner, 2026-09-29: the capital S keeps it apart from `give`)"),
                 "giveS" => {
-                    if !self.strict { return self.err("`giveS` belongs to `#strict` files; elsewhere a case's value is written alone: `empty { \"free\" }`"); }
-                    if self.arm_depth == 0 { return self.err("`giveS` gives a `match` or `otherwise` case its value; there is no case here"); }
+                    // `is "free";` gives a case its value (owner, 2026-10-07: "`is`")
+                    if self.arm_depth == 0 { return self.err("`is` gives a `match` or `otherwise` case its value; there is no case here"); }
                     self.advance();
                     let value = self.rhs()?;
                     self.expect(Tok::Semi, "`;` after the value")?;
@@ -2521,25 +2520,17 @@ impl Parser {
                 other => return self.err(format!("expected a case name to handle, found {other}")),
             };
             let bind = if let Tok::Var(v) = self.peek().clone() { self.advance(); Some(v) } else { None };
-            // `{ "free" }` — a block holding only a value is that value (owner, 2026-09-29: a); in a
-            // `#strict` file the value is said with `giveS` instead (b)
-            let mut value = None;
+            // a case says its value with `is`: `empty { is "free"; }` (owner, 2026-10-07), so a block
+            // holding only a bare value is refused; a `match` alone is a statement (owner, 2026-09-29)
+            let value: Option<Expr> = None;
             if *self.peek() == Tok::LBrace && *self.peek_at(1) != Tok::RBrace {
                 let save = self.pos;
                 self.advance();
                 let try_value = self.expr();
-                if matches!(try_value, Ok(_)) && *self.peek() == Tok::RBrace {
-                    if self.strict {
-                        // a `match` alone in a strict case is a statement: a value would say `giveS` (owner, 2026-09-29)
-                        if !matches!(try_value, Ok(Expr::Match(..))) { return self.err(format!("`#strict`: a case says its value with `giveS`: `{name} {{ giveS …; }}`")); }
-                        self.pos = save;
-                    } else {
-                        self.advance();
-                        value = try_value.ok();
-                    }
-                } else {
-                    self.pos = save;
+                if matches!(try_value, Ok(_)) && *self.peek() == Tok::RBrace && !matches!(try_value, Ok(Expr::Match(..))) {
+                    return self.err(format!("a case says its value with `is`: `{name} {{ is …; }}` (owner, 2026-10-07)"));
                 }
+                self.pos = save;
             }
             let body = if value.is_some() { Vec::new() } else {
                 self.arm_depth += 1;
@@ -2577,6 +2568,11 @@ impl Parser {
         let written = if path[0] == "my" { path[1..].to_vec() } else { path.clone() };
         // std's names come bare too (owner, 2026-10-06: std is "optional for all"), where std is listed
         let limb = if bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { limb };
+        // a print goes to stdout unless it says `.stderr` (owner, 2026-10-07: "default to out")
+        let mut path = path;
+        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {
+            path.push("stdout".into());
+        }
         // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
@@ -2601,6 +2597,8 @@ impl Parser {
         // (owner, 2026-10-01: "Format print has its own rules"): `\\` there is one backslash
         let raw_format = match (limb.as_deref(), path.first().map(|s| s.as_str()), path.get(1).map(|s| s.as_str()), self.peek_at(1)) {
             (Some("std"), Some("print"), Some("format"), Tok::Text(_, raw)) => Some(raw.clone()),
+            // `format[…]` makes the text `print.format` prints (owner, 2026-10-07: "`a`")
+            (Some("std"), Some("format"), None, Tok::Text(_, raw)) => Some(raw.clone()),
             _ => None,
         };
         let mut args = self.bracket()?;

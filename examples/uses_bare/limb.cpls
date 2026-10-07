@@ -2,14 +2,14 @@
 # and `merge` bare.never (owner, 2026-10-06).
 
 fn describe ['t': Tone] -> str.utf8 {
-    return match 't' { soft { "soft" } loud { "loud" } };
+    return match 't' { soft { is "soft"; } loud { is "loud"; } };
 }
 
 MAIN {
-    print.useful.stdout[hello[], " ", greet::hello[], " ", wave[], " ", greet::formal[], newln];
+    print.useful[hello[], " ", greet::hello[], " ", wave[], " ", greet::formal[], newln];
     let 't' := greet::Tally[n = 2] greet::merge greet::Tally[n = 3];
-    print.useful.stdout['t'.n, newln];
+    print.useful['t'.n, newln];
     let 'a' := Note[text = "bare"];
     let 'b': greet::Note = greet::Note[text = "with the path"];
-    print.useful.stdout['a'.text, ", ", 'b'.text, ", ", describe[Tone.loud], newln];
+    print.useful['a'.text, ", ", 'b'.text, ", ", describe[Tone.loud], newln];
 }

@@ -1,6 +1,6 @@
 #strict
 # In a #strict file a bare nested `match` is a statement, and a nested match that is the value
-# says `giveS` (owner, 2026-09-29).
+# says `is` (owner, 2026-09-29).
 enum Order { cancelled  paid }
 enum Ship { pickup  post }
 fn handle ['o': Order, 's': Ship] {
@@ -8,21 +8,21 @@ fn handle ['o': Order, 's': Ship] {
         cancelled { }
         paid {
             match 's' {
-                pickup { stdkit::print.useful.stdout["counter", newln]; }
-                post { stdkit::print.useful.stdout["mail", newln]; }
+                pickup { stdkit::print.useful["counter", newln]; }
+                post { stdkit::print.useful["mail", newln]; }
             }
         }
     }
 }
 fn price ['o': Order, 's': Ship] -> int32 {
     let immut 'p': int32 = match 'o' {
-        cancelled { giveS 0; }
-        paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
+        cancelled { is 0; }
+        paid { is match 's' { pickup { is 5; } post { is 9; } }; }
     };
     return 'p';
 }
 MAIN {
     handle[Order.paid, Ship.post];
     let immut 'n': int32 = price[Order.paid, Ship.post];
-    stdkit::print.useful.stdout['n', newln];
+    stdkit::print.useful['n', newln];
 }

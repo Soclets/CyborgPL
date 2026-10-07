@@ -25,15 +25,15 @@ fn describe [lent 'p': Pair[int32, str.utf8]] -> str.utf8 {
 }
 
 MAIN {
-    stdkit::print.useful.stdout[max[3, 9], " ", max[2.5, 1.5], newln];       # int32 and bin64 versions, one source
+    stdkit::print.useful[max[3, 9], " ", max[2.5, 1.5], newln];       # int32 and bin64 versions, one source
     let 'nums' := [4, 5, 6];
     let 'f' := first[lend 'nums'] otherwise 0;
-    stdkit::print.useful.stdout['f', newln];
+    stdkit::print.useful['f', newln];
     let 'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];
-    stdkit::print.useful.stdout[describe[lend 'p'], newln];
+    stdkit::print.useful[describe[lend 'p'], newln];
     let 'm' := Maybe.some[42];
     match 'm' {
-        none     { stdkit::print.stored.stdout["nothing", newln]; }
-        some 'v' { stdkit::print.useful.stdout["got ", 'v', newln]; }
+        none     { stdkit::print.stored["nothing", newln]; }
+        some 'v' { stdkit::print.useful["got ", 'v', newln]; }
     }
 }

@@ -4,7 +4,7 @@ MAIN {
     let 'bs': list[bin64] = [1, 2];
     let 'more': list[bin64] = list.fill[value 1, count 3];
     let 'ds': list[deci64] = list.fill[value 0.25, count 3];
-    stdkit::print.stored.stdout['bs', newln];
-    stdkit::print.stored.stdout['more', newln];
-    stdkit::print.stored.stdout['ds', newln];
+    stdkit::print.stored['bs', newln];
+    stdkit::print.stored['more', newln];
+    stdkit::print.stored['ds', newln];
 }

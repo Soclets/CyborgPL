@@ -4,8 +4,8 @@
 MAIN {
     let 'a': int32 = 7;
     let 'b': int32 = 3;
-    stdkit::print.useful.stdout[('a' plus 'b'), " ", ('a' minus 'b'), " ", ('a' times 'b'), " ", ('a' pow 'b'), " ", ('a' stdkit::pow 2), " ", -'a', newln];
+    stdkit::print.useful[('a' plus 'b'), " ", ('a' minus 'b'), " ", ('a' times 'b'), " ", ('a' pow 'b'), " ", ('a' stdkit::pow 2), " ", -'a', newln];
     let 'h': uint8 = 200;
-    stdkit::print.useful.stdout[('h' plus.wrap 100), " ", ('h' times.wrap 2), " ", ('h' pow.wrap 2), newln];
-    stdkit::print.useful.stdout[(2 pow 3) plus 1, " ", 1 plus 2 times 3, newln];
+    stdkit::print.useful[('h' plus.wrap 100), " ", ('h' times.wrap 2), " ", ('h' pow.wrap 2), newln];
+    stdkit::print.useful[(2 pow 3) plus 1, " ", 1 plus 2 times 3, newln];
 }

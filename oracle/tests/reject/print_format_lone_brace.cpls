@@ -1,1 +1,1 @@
-MAIN { stdkit::print.format.stdout["oops }\n"]; }
+MAIN { stdkit::print.format["oops }\n"]; }

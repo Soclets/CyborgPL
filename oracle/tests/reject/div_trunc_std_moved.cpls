@@ -1,3 +1,3 @@
 MAIN {
-    stdkit::print.useful.stdout[stdkit::div.trunc[-7, 2], newln];
+    stdkit::print.useful[stdkit::div.trunc[-7, 2], newln];
 }

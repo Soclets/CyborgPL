@@ -2,13 +2,13 @@
 MAIN {
     let 'a': uint8 = 12;                       # 0000 1100
     let 'b': uint8 = 10;                       # 0000 1010
-    stdkit::print.useful.stdout['a' and.bit 'b', newln];   # 0000 1000 = 8
-    stdkit::print.useful.stdout['a' or.bit 'b', newln];    # 0000 1110 = 14
-    stdkit::print.useful.stdout['a' xor 'b', newln];       # 0000 0110 = 6
-    stdkit::print.useful.stdout[not.bit 'a', newln];       # 1111 0011 = 243
-    stdkit::print.useful.stdout['a' shl 2, " ", 'a' shr 2, newln];   # 48 3
+    stdkit::print.useful['a' and.bit 'b', newln];   # 0000 1000 = 8
+    stdkit::print.useful['a' or.bit 'b', newln];    # 0000 1110 = 14
+    stdkit::print.useful['a' xor 'b', newln];       # 0000 0110 = 6
+    stdkit::print.useful[not.bit 'a', newln];       # 1111 0011 = 243
+    stdkit::print.useful['a' shl 2, " ", 'a' shr 2, newln];   # 48 3
     let 'flags': uint8 = 0;
     change 'flags' = 'flags' or.bit 4;                # set bit 2
     change 'flags' = 'flags' or.bit 1;                # set bit 0
-    stdkit::print.useful.stdout['flags', " ", ('flags' and.bit 4) not_equal 0, newln];   # 5 true — parenthesised next to not_equal 
+    stdkit::print.useful['flags', " ", ('flags' and.bit 4) not_equal 0, newln];   # 5 true — parenthesised next to not_equal 
 }

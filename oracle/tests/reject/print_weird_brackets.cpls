@@ -1,1 +1,1 @@
-MAIN { stdkit::print.weird.stored.stdout["hi", newln]; }
+MAIN { stdkit::print.weird.stored["hi", newln]; }

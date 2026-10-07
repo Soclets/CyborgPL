@@ -33,9 +33,9 @@ fn whole <T>: any | @x [lent@x 'xs': list[<T>]] -> lent@x list[<T>] { return len
 struct Box <T>: Number { item: <T> }
 
 MAIN {
-    stdkit::print.useful.stdout[bigger[3, 9], " ", bigger[2.5, 1.5], " ", smaller[3, 9], newln];
+    stdkit::print.useful[bigger[3, 9], " ", bigger[2.5, 1.5], " ", smaller[3, 9], newln];
     let 'xs' := ["a", "b"];
-    stdkit::print.useful.stdout[whole[lend 'xs'], newln];
+    stdkit::print.useful[whole[lend 'xs'], newln];
     let 'b': Box[int32] = Box[item = 4];
-    stdkit::print.useful.stdout['b'.item, newln];
+    stdkit::print.useful['b'.item, newln];
 }

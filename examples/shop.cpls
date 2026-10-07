@@ -46,19 +46,19 @@ MAIN {
         Item[name = "helmet", cents = 8_999, stock = Stock.few[2]],
         Item[name = "torch",  cents = 450,   stock = Stock.out]
     ];
-    for 'i' in lend 'shelf' { stdkit::print.stored.stdout[describe[lend 'i'], newln]; }
+    for 'i' in lend 'shelf' { stdkit::print.stored[describe[lend 'i'], newln]; }
 
     let 'limit' := 5_000;
     let 'affordable' := keep[lend 'shelf', fn [lent 'i': Item] -> bool with [lend 'limit'] { return 'i'.cents at_most 'limit'; }];
-    stdkit::print.useful.stdout[list.length[lend 'affordable'], " affordable", newln];
+    stdkit::print.useful[list.length[lend 'affordable'], " affordable", newln];
 
     let 'pick' := cheapest[lend 'affordable'] otherwise stdkit::exit[0];
-    stdkit::print.stored.stdout["cheapest: ", 'pick'.name, newln];
+    stdkit::print.stored["cheapest: ", 'pick'.name, newln];
 
     let 'text' := stdkit::input.line[] otherwise "";
     let 'budget' := to.int32[0, 100_000]['text'] otherwise {
-        not_a_number { stdkit::print.stored.stdout["no budget given", newln]; stdkit::exit[0]; }
-        out_of_range { stdkit::print.stored.stdout["budget must be 0..100000 cents", newln]; stdkit::exit[1]; }
+        not_a_number { stdkit::print.stored["no budget given", newln]; stdkit::exit[0]; }
+        out_of_range { stdkit::print.stored["budget must be 0..100000 cents", newln]; stdkit::exit[1]; }
     };
-    stdkit::print.useful.stdout["budget ok: ", 'budget', newln];
+    stdkit::print.useful["budget ok: ", 'budget', newln];
 }

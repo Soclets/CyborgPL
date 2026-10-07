@@ -3,16 +3,16 @@
 MAIN {
     let 'a': not_std.uint256 = 2 pow 200 plus 12345;
     let 'b': not_std.uint256 = (2 pow 255) minus 1;
-    stdkit::print.useful.stdout[('a' and.bit 'b'), newln];
-    stdkit::print.useful.stdout[('a' xor 'b'), newln];
-    stdkit::print.useful.stdout[('a' shl 55), " ", ('a' shr 190), newln];
+    stdkit::print.useful[('a' and.bit 'b'), newln];
+    stdkit::print.useful[('a' xor 'b'), newln];
+    stdkit::print.useful[('a' shl 55), " ", ('a' shr 190), newln];
     let 'n': not_std.int256 = -(2 pow 200);
-    stdkit::print.useful.stdout[('n' or.bit 7), " ", ('n' shr 3), newln];
+    stdkit::print.useful[('n' or.bit 7), " ", ('n' shr 3), newln];
     let 'z': not_std.uint256 = 0;
     let 'all': not_std.uint256 = not.bit 'z';
-    stdkit::print.useful.stdout['all', newln];
+    stdkit::print.useful['all', newln];
     let 'u': uint128 = 1;
     let 'top': uint128 = 'u' shl 127;
     let 'flip': uint128 = not.bit 'u';
-    stdkit::print.useful.stdout['top', " ", 'flip', newln];
+    stdkit::print.useful['top', " ", 'flip', newln];
 }

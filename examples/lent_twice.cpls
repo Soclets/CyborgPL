@@ -6,5 +6,5 @@ fn pick @x [lent 'a': list[int32], lent@x 'b': list[int32]] -> lent@x list[int32
 MAIN {
     let 's': list[int32] = [1, 2];
     let 'r' := pick[lend 's', lend 's'];
-    stdkit::print.useful.stdout[list.length[lend 'r'], newln];
+    stdkit::print.useful[list.length[lend 'r'], newln];
 }

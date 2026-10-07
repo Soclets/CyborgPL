@@ -9,6 +9,6 @@ MAIN {
         let 'a': int32 = 10;
         let 'b': int32 = 2;
         let 'q' := 'a' div.floor 'b';
-        stdkit::print.useful.stdout[newln, 'q', newln];
+        stdkit::print.useful[newln, 'q', newln];
     }
 }

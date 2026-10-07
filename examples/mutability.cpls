@@ -8,5 +8,5 @@ MAIN {
     let mut 'counter' := 0;
     change 'counter' = 'counter' plus 1;
     let immut 'limit': int32 = 10;
-    stdkit::print.useful.stdout['plain', " ", 'counter', " ", 'limit', " ", twice['limit'], newln];
+    stdkit::print.useful['plain', " ", 'counter', " ", 'limit', " ", twice['limit'], newln];
 }

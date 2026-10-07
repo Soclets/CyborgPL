@@ -2,5 +2,5 @@
 # (owner, 2026-10-03: "Long arrow is main in CyborgPL").
 fn double ['n': int32] -> int32 { return 'n' times 2; }
 MAIN {
-    stdkit::print.weird.useful.stdout <- double[3] <- newln;
+    stdkit::print.weird.useful <- double[3] <- newln;
 }

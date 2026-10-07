@@ -5,5 +5,5 @@ fn twice ['d': duration] -> duration {
 }
 MAIN {
     let 'w': duration = 2 seconds;
-    stdkit::print.useful.stdout[twice['w'] equal_to 4 seconds, newln];
+    stdkit::print.useful[twice['w'] equal_to 4 seconds, newln];
 }

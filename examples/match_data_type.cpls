@@ -4,11 +4,11 @@ enum E1 { c1: int32  c2: uint8  c3 }
 MAIN {
     let 'e' := E1.c1[5];
     match 'e' {
-        c1 'd' { stdkit::print.useful.stdout[not.bit 'd', " ", 'd' times.wrap 1000000000, newln]; }
+        c1 'd' { stdkit::print.useful[not.bit 'd', " ", 'd' times.wrap 1000000000, newln]; }
         c2 'b' { }
         c3 { }
     }
     let 'f' := E1.c2[250];
-    let 'w' := match 'f' { c1 'd' { 0 } c2 'b' { to.int64['b' plus.wrap 10] } c3 { 1 } };
-    stdkit::print.useful.stdout['w', newln];
+    let 'w' := match 'f' { c1 'd' { is 0; } c2 'b' { is to.int64['b' plus.wrap 10]; } c3 { is 1; } };
+    stdkit::print.useful['w', newln];
 }

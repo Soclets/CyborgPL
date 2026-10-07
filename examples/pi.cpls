@@ -18,19 +18,19 @@ fn pi_digits ['n': int32] {
         if 'q' equal_to 9 {
             change 'nines' = 'nines' plus 1;
         } else if 'q' equal_to 10 {
-            stdkit::print.useful.stdout['predigit' plus 1];
-            for 'k' in range[from 1, to 'nines', by 1] { stdkit::print.useful.stdout[0]; }
+            stdkit::print.useful['predigit' plus 1];
+            for 'k' in range[from 1, to 'nines', by 1] { stdkit::print.useful[0]; }
             change 'predigit' = 0;
             change 'nines' = 0;
         } else {
-            if 'j' > 1 { stdkit::print.useful.stdout['predigit']; }
-            if 'j' equal_to 2 { stdkit::print.useful.stdout["."]; }
+            if 'j' > 1 { stdkit::print.useful['predigit']; }
+            if 'j' equal_to 2 { stdkit::print.useful["."]; }
             change 'predigit' = 'q';
-            for 'k' in range[from 1, to 'nines', by 1] { stdkit::print.useful.stdout[9]; }
+            for 'k' in range[from 1, to 'nines', by 1] { stdkit::print.useful[9]; }
             change 'nines' = 0;
         }
     }
-    stdkit::print.useful.stdout['predigit', newln];
+    stdkit::print.useful['predigit', newln];
 }
 
 MAIN { pi_digits[60]; }
