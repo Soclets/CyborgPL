@@ -2774,7 +2774,11 @@ impl<'p> Interp<'p> {
                 }
             }
             // Bitwise (decided 2026-09-21): integers only; `shl` past the width is a check site.
-            Expr::Binary(op, l, r, _) if matches!(op.as_str(), "and.bit" | "or.bit" | "xor" | "shl" | "shr") => {
+            Expr::Binary(op_full, l, r, _) if matches!(op_full.as_str(), "and.bit" | "or.bit" | "xor" | "shl" | "shr" | "and.bit.wrap" | "or.bit.wrap" | "xor.wrap") => {
+                // `.wrap` takes each operand as its bits at the operator's width; without it an operand must
+                // fit that width (owner, 2026-10-07: "yea", strict by default, `.wrap` the hardware way)
+                let (op, wrap_bits) = match op_full.strip_suffix(".wrap") { Some(b) => (b.to_string(), true), None => (op_full.clone(), false) };
+                let op = &op;
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
                 // a vector is N of the same operation, lane by lane (design/simd.md)
@@ -2805,7 +2809,23 @@ impl<'p> Interp<'p> {
                     };
                     return Ok((from_big(v), Prov::Plain));
                 }
-                let (x, y) = match (a, b) { (Value::Int(x), Value::Int(y)) => (x, y), (a, b) => return rt(line, format!("`{op}` works on integers, got {} and {}", a.kind(), b.kind())) };
+                let (mut x, mut y) = match (a, b) { (Value::Int(x), Value::Int(y)) => (x, y), (a, b) => return rt(line, format!("`{op}` works on integers, got {} and {}", a.kind(), b.kind())) };
+                if !op.starts_with("sh") {
+                    let wty = self.expr_ty_own(l).or_else(|| self.expr_ty_own(r)).or_else(|| self.expected.clone());
+                    let wty = match wty { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t };
+                    if let (Some(t @ (Ty::Int(w) | Ty::Uint(w))), Some((lo, hi))) = (wty.as_ref(), wty.as_ref().and_then(crate::value::int_range)) {
+                        let bits = true_bits(w);
+                        if wrap_bits && bits < 127 {
+                            let m = 1i128 << bits;
+                            let fit = |v: i128| { let u = v.rem_euclid(m); if matches!(t, Ty::Int(_)) && u >= m / 2 { u - m } else { u } };
+                            x = fit(x); y = fit(y);
+                        } else if !wrap_bits {
+                            for v in [x, y] {
+                                if v < lo || v > hi { return site(line, format!("{v} does not fit {}: a bitwise operand is taken at the operator's width (`{op}.wrap` takes its bits instead)", ty_name(t))); }
+                            }
+                        }
+                    }
+                }
                 let v = match op.as_str() {
                     "and.bit" => x & y,
                     "or.bit" => x | y,

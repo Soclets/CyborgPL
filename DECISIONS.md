@@ -5,6 +5,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-07 — A bitwise operand must fit the operator's width; `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` take its bits (owner: yea)
+
+```
+'v' and.bit (1 minus 7)          # refused: -6 does not fit uint32
+'v' and.bit.wrap (0 minus 1)     # -1's bits are all ones: 'v' unchanged
+```
+
+Check claude's question (seeds in 7e9b1361): CCA (c1973f02) refused an
+exact operand that does not fit, the oracle combined the bits and checked
+only the answer. Design claude first recommended the strict way, then,
+asked "Is `a` consistent?", checked: it matches conversions
+(`to.uint32[-6]` is refused) but not the `.wrap` family, which takes an
+out-of-range operand as its bits (`'v' plus.wrap (1 minus 7)` is
+4294967295), so recommended the oracle's way instead. Asked the
+difference and the cost (strict: a compare per unproven operand; bits:
+none, only the answer checked), the owner: "Is there like a way to say how
+in the dot chain". Design claude: `.wrap`, which already means "at the
+type's width, as bits"; the owner: "yea". So the **default is strict**
+(an operand must fit, a check site) and **`.wrap` is the hardware way**:
+operands taken as their bits, the answer an N-bit pattern that always
+fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
+reject test `bitwise_operand_too_wide`.
+
 ### 2026-10-07 — A whole quotient that rounds to zero is `0`, never `-0`; `div.ceil.ieee` keeps it (owner: b, a)
 
 ```

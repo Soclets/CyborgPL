@@ -97,7 +97,7 @@ fn op_shown(op: &str) -> String {
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
 /// Bitwise operators (decided 2026-09-21): the boolean words narrowed with `.bit`, plus xor/shl/shr;
 /// no precedence — parentheses whenever one meets another operator.
-const BIT_OPS: &[&str] = &["and.bit", "or.bit", "xor", "shl", "shr"];
+const BIT_OPS: &[&str] = &["and.bit", "or.bit", "xor", "shl", "shr", "and.bit.wrap", "or.bit.wrap", "xor.wrap"];
 
 #[derive(Debug)]
 pub struct ParseError {
@@ -2643,6 +2643,9 @@ impl Parser {
                 if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") { self.op_len.set(5); Some("pow.wrap".into()) } else { self.op_len.set(3); Some("pow".into()) }
             }
             // `and.bit` / `or.bit` — one operator spelled as a chain
+            // `and.bit.wrap`, `or.bit.wrap`, `xor.wrap`: operands taken as their bits (owner, 2026-10-07)
+            Tok::Word(w) if (w == "and" || w == "or") && dot_word("bit") && *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") => { self.op_len.set(5); Some(format!("{w}.bit.wrap")) }
+            Tok::Word(w) if w == "xor" && dot_word("wrap") => { self.op_len.set(3); Some("xor.wrap".into()) }
             Tok::Word(w) if (w == "and" || w == "or") && dot_word("bit") => { self.op_len.set(3); Some(format!("{w}.bit")) }
             // `and.then` / `or.else` — the right side only when the left has not decided (owner, 2026-09-25)
             Tok::Word(w) if w == "and" && dot_word("then") => { self.op_len.set(3); Some("and.then".into()) }
