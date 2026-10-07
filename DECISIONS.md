@@ -397,7 +397,11 @@ ways), and with MTM gone the long ones are refused naming the short. **A case's 
 simple, a multi-statement, a nested and an `otherwise` case, then beside
 `gives` (`gives give 'box'` against `is give 'box'`). Design claude's
 reading: required wherever a case gives a value, the bare value refused
-naming `is`; a case that only does something has none. Design
+naming `is`; a case that only does something has none. **A returned borrow names its lifetime group only when there is
+a choice** (owner: "`b`"): with two or more borrowed inputs, `-> lent@x
+T` is required; with one, it is inferred, close to Rust's rule; over (a)
+always, as `#strict`, and (c) never. The owner then: "And man, we have to
+change the fn lifetime and generics syntax". Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
