@@ -224,6 +224,41 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — No base and no codextras: Signatar is the lowest level; a core may take powers away (owner: a)
+
+Asked what the base does (reads the files, loads the codextra and cores,
+enforces the grants, hands the codextra's LLVM IR to LLVM unread; no
+syntax), the owner: "Tbh, there's no reason to create a language on this
+base. So, could we remove it, and let Signatar be the lowest level?"
+Design claude: the base's four jobs stay, as Signatar's; nothing changes
+in speed; what goes is the codextra category and the rulings worded
+"another codextra chooses its own". The owner: "Is there really a reason
+for a lang to build on this base? It's not like it's the JVM, or
+something that major." Design claude: no; the JVM gives a runtime, a
+collector, a JIT and a shared library world, while the base gives only
+what LLVM already gives, and core loading for cores written for
+Signatar. The owner: "True. But before you remove codextra. How would
+say, a game engine makes their CyborgPL dialect that's restricted, so
+their games don't need verification?" Design claude: where the engine is
+the program and games are limbs it loads, `deny` (built) does it; where
+each game is its own program, only a codextra above it could restrict
+it, so offered (a) **a core may take powers away too**, not only grant
+them, the engine shipping a core its games list and its store requiring
+it, Signatar still setting the limits no core lifts, recommended; (b)
+nothing new, a store reading the build's power ledger. The owner: "`a`".
+
+So: **there is no base**, and **"codextra" is no longer a category**:
+Signatar is the language and the lowest level, and does the base's work
+(reading files, loading cores, enforcing grants, handing IR to LLVM).
+Signatar defines which powers exist and limits what cores may do; **a
+core may grant powers and may take them away** from the programs and
+limbs built with it; a program still only takes powers away. Rulings
+that said "Signatar's rule; another codextra chooses its own" are now
+the language's rules. Not asked: how a core spells what it takes away,
+and which wins when one listed core grants a power another takes away.
+Design claude's own question, "by 'don't need verification', the engine
+not reviewing each game, or skipping Precog's proofs?", was not answered.
+
 ### 2026-10-07 — The inline languages' main names are `inline.ASM`, `inline.LL`, `inline.MSL`; the whole names go to MTM (owner: a)
 
 ```

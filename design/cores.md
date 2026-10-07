@@ -1,4 +1,11 @@
-# Base, codextras, cores and limbs (owner, 2026-10-05/06; being designed, not built)
+# Signatar, cores and limbs (owner, 2026-10-05/06/07; being designed, not built)
+
+**2026-10-07: no base, no codextras** (owner: "there's no reason to
+create a language on this base. So, could we remove it, and let Signatar
+be the lowest level?", then "`a`" to a core taking powers away). Signatar
+is the language and the lowest level, and does what the base did.
+`DECISIONS.md` 2026-10-07 has it; older passages quoting the base keep
+their words.
 
 The owner: "I was thinking of making the base lang more lower-level ... I
 wanted to move things like, plus, div, you know to std. And even more",
@@ -14,10 +21,8 @@ equivalent anyways, and other stuff". The theme was planned: a cyborg
 ## The stack
 
 ```
-base        the ignition: reads files, loads the codextra and cores, enforces
-            grants, hands the codextra's LLVM IR to LLVM unread; no syntax,
-            nothing to write in
-Signatar    the official codextra: the language itself, very low level
+Signatar    the language itself, the lowest level: reads the files, loads
+            the cores, enforces the grants, hands its LLVM IR to LLVM
 IEG         the official core: raw operations, inline.LL, the !check labels
 ASP         numbers mean their true values; to. conversions; run-time checks
 Genny       generics and interfaces
@@ -33,19 +38,19 @@ how they say BIOS for UEFI" (owner); the website will say **Signatar
 CyborgPL** when this lands, "Or else, it would just be an Assembly
 monster" (owner).
 
-## The four kinds of thing
+## The three kinds of thing
 
 | | What it is | Authority | Written in |
 |---|---|---|---|
-| **The base** | the ignition, "basically nothing" (owner) | enforces everyone's grants | (CCA itself) |
-| **A codextra** | a language: syntax, types, its own rules, its checker; hands the base LLVM IR | highest: defines which powers exist and limits cores | Rust plugin + CyborgPL |
-| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to limbs; may add syntax | Rust plugin + CyborgPL |
+| **Signatar** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits cores | (CCA itself) |
+| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to limbs, and may take them away (2026-10-07); may add syntax | Rust plugin + CyborgPL |
 | **A limb** | a library | only the powers granted to it | CyborgPL |
 
-- **Codextra is a category.** Another codextra is another language on
-  the CyborgPL base ("this shit could make another Codextra be another
-  lang", owner). Lilith is not one: "That shit ain't in the CyborgPL
-  family" (owner). **Cores make dialects**, which are still CyborgPL.
+- **Cores make dialects**, which are still CyborgPL. A restricted
+  dialect, a game engine's say, is a core that takes powers away from the
+  programs that list it (owner, 2026-10-07: "`a`"). Until 2026-10-07 a
+  codextra was a category, another language on the base ("this shit could
+  make another Codextra be another lang", owner); there is no base now.
 - **Core is a category too**: anyone may write one, cores depend on cores,
   and an unverified core is used with a warning, never refused ("Maybe
   it's their own, maybe it's their friend's", owner). A core need not put
@@ -59,8 +64,7 @@ monster" (owner).
            program does. Use it only if you trust where it came from.
   ```
 
-  and the same with "codextra" for a codextra.
-- **Trust**: the official codextra and cores are verified (RRx2 checks
+- **Trust**: Signatar and the official cores are verified (RRx2 checks
   IEG's IR against its contracts); installing any other is already
   trusting it, as installing any program is.
 
@@ -82,14 +86,14 @@ MTM      9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56  (firs
 std      fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936  (a limb, 2026-10-06T12:57:14+07:00)
 ```
 
-## Signatar, the official codextra
+## Signatar, the language
 
 "Signature but cooler" (owner). Very low level: "not nothing, but it's
 pretty lower-level (say writing fucking Assembly for a lot of things)"
 (owner). It holds:
 
-- **syntax**: a codextra brings its own parser, so the base does not know
-  what a quoted name is;
+- **syntax**, and what the base did: reading the files, loading the cores,
+  enforcing the grants, handing its LLVM IR to LLVM;
 - **types, `let`, functions, `if`, loops, `match`, structs, enums, `bool`**;
 - **the borrow rules**, lifetime groups (`@x`) included, and **Precog**
   (it proves things about Signatar's own rules; at Signatar alone that is
@@ -165,10 +169,14 @@ makes its own lists and allocator, as Linux does.
 
 ## Powers and who grants them
 
-- **The codextra defines which powers exist** and limits cores (no core
+- **Signatar defines which powers exist** and limits cores (no core
   may switch off Signatar's borrow rules).
 - **Cores grant powers to limbs**: to every limb built with them, and
   extra to favourites named by registry ID (names repeat, IDs do not).
+  **A core may also take powers away** from the programs and limbs built
+  with it (owner, 2026-10-07: "`a`"), so a game engine's core makes a
+  restricted dialect its store can require; how a core spells it, and
+  which wins when one core grants what another takes away, are open.
 - **A limb lists the powers it uses** in its manifest; each works only if
   a core it is built for granted it. std's: operators on built-in types
   and prefix operators (from IEG), adding conversions (from ASP), and
@@ -203,11 +211,9 @@ cca::Manifest[
 
 ## Installing
 
-The website offers packages: base; base + Signatar; + IEG; + ASP +
+The website offers packages: Signatar; + IEG; + ASP +
 Genny + std (std needs ASP; owner, 2026-10-06); all, with source
-(owner). Signatar installs itself as the machine's default
-codextra, which the base uses to read `CCA.cplr`; another codextra's
-installer overrides it. Packages with std set things up so `cca new`
+(owner). Packages with std set things up so `cca new`
 lists std (and ASP, Genny), std by its registry ID and version like
 any limb, CCA using the installed copy when it matches (owner, 2026-10-06;
 std's ID is `fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936`; its version is the release's date and time, ISO 8601 with
@@ -215,7 +221,7 @@ the releaser's offset, first `2026-10-06T12:57:14+07:00`); without std, `cca new
 manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
 the machine's package installed (owner, 2026-10-06). The installer writes
 that down in **a machine-wide record** (owner: "Good idea"), which `cca
-new` reads too and another codextra's installer rewrites; its name and
+new` reads too; its name and
 lives where each OS keeps such files (owner; macOS `~/Library/Application
 Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
 `%APPDATA%\CyborgPL\`), named **`installed.cplr`** (owner); its value
@@ -247,12 +253,12 @@ fast where it can be.
 Signatar alone: raw system calls in `inline.ASM`; Signatar through C:
 `extern.C fn write`; inside IEG: `inline.LL`; a program on IEG with no
 std: IEG's raw write; with std: `std::print.useful.stdout["Hello, world!",
-\n];`; and a limb of your own on top. The base has no Hello World: there
-is nothing to write it in.
+\n];`; and a limb of your own on top. The lowest level is Signatar's raw
+assembly; there is no base below it now.
 
 ## Open
 
-- The stable **plugin interface** for codextras and cores: compiler
+- The stable **plugin interface** for cores: compiler
   claude proposes it when building, the owner approves (2026-10-06).
 - **Building it**: the oracle reads `cca::Manifest` with `cores`, and a
   Limb whose manifest does not list std reaches no operator and no
