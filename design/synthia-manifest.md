@@ -36,7 +36,13 @@ x86_64-windows.runner = wine
   `power.c_calls.functions = sqrt, sin` is written to `CCA.cplr` as
   `cca::Power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
   since cores may add powers; `= no` is refused (an unused power has no
-  line). `deny`'s spelling here is not asked yet.
+  line). **A program takes powers away in a `[my denied powers]` section**
+  (owner, 2026-10-08: "`a`", relayed by synthia claude, over `deny.` lines in
+  `[my needed things]`; a denial is a rule set for others, not a need),
+  written to `CCA.cplr`'s `deny`: `raw_memory = yes` (all of it),
+  `c_calls.functions = system` (the things named), `c_calls.except = sqrt,
+  sin` (all but these), `inline_assembly.for = fastjson` (only to that Limb,
+  by prefix); `= no` is refused.
 - **The sections are the owner's**: `[my identity]` (proposed by the owner
   as `[my credentials]`; renamed because "credentials" reads as passwords
   and tokens — owner: b), `[my needed things]`, `[my target]`.
