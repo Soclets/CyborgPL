@@ -587,7 +587,11 @@ a core as `deci64` does in Money. **Unicode text goes to a core of its own** (ow
 `str.utf16`, `str.utf32`, `char.point`, `char.grapheme` and the Unicode
 tables, over joining WSTN (names), so a program may print Thai or emoji
 with English names. **It is UniTect** (owner: "UniTect, spelled like
-that. C replaced X for code"): "UniText" with the X made a C, for code. Not yet
+that. C replaced X for code"): "UniText" with the X made a C, for code. **The case marks go to a core of their own** (owner: "`a`, name
+this one yourself"), over joining UniTect (case marks are about names, not
+text) or WSTN (they serve English names too); it carries the folding
+rules it needs. **Design claude named it CAPS, "Capitals Are Pretty
+Similar"**, at the owner's word. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
