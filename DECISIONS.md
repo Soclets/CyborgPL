@@ -586,7 +586,8 @@ opt-in per architecture). So **the base keeps the register sizes, 8 to
 a core as `deci64` does in Money. **Unicode text goes to a core of its own** (owner: "`a`"):
 `str.utf16`, `str.utf32`, `char.point`, `char.grapheme` and the Unicode
 tables, over joining WSTN (names), so a program may print Thai or emoji
-with English names. Name not yet chosen. Not yet
+with English names. **It is UniTect** (owner: "UniTect, spelled like
+that. C replaced X for code"): "UniText" with the X made a C, for code. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
