@@ -560,7 +560,11 @@ right?" (no). **The core is TAS, "Test And Shit"** (owner: "`tests`",
 then, interrupting, "I meant `TAS` (This And Shit)", then "SHit, it's
 Test, not This, mb"). **Its registry ID** (owner: "gen ID now"),
 made as the other cores' were (`openssl rand -hex 32`): `63baa4cf89d8b6df6adceb812df005b30ea2771fd56f2117d0246ef911de21aa`,
-first version `2026-10-07T18:08:59+07:00`. Not yet
+first version `2026-10-07T18:08:59+07:00`. **`brain16`, the non-standard integers and `deci` go to a core
+each** (owner: "`b`"), over one core for all three; design claude
+recommended separate cores, since machine learning, cryptography and
+money rarely want each other's numbers or software maths. Names not yet
+chosen. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
