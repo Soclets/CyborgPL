@@ -299,15 +299,20 @@ is `-0` in IEEE). The owner: "yea". So: **`plus.ieee`, `minus.ieee`,
 gives one. This replaces design claude's earlier unasked reading that
 `div.near` takes no `.ieee`.
 
-Design claude's readings in the oracle, not asked (open questions):
-`mod.X` and `pow` have no `.ieee` form (refused: "has no `.ieee` form"); the
-old reason for `mod` (its zero takes the divisor's sign) no longer holds,
-since `3.0 mod.floor -3.0` is now `0`. Rounding where a value lands (a
+**`mod` and `pow` too** (owner, 2026-10-07). The oracle first refused
+`.ieee` on them (design claude's reading; its reason for `mod`, that a zero
+remainder takes the divisor's sign, no longer held once `3.0 mod.floor -3.0`
+became `0`). Asked "Should every operator that can make a `-0` have an
+`.ieee` form, `mod` and `pow` included?", recommended yes, the owner:
+"yea.". So **`mod.floor.ieee`, `mod.ceil.ieee`, `mod.trunc.ieee` and
+`pow.ieee`** (bare or `std::pow.ieee`) keep it as well; `mod.near` has none
+(on a bin it leaves nothing over). Design claude's readings, not asked:
+rounding where a value lands (a
 bin64 into a bin32), std's `round`/`floor`/`ceil`/`trunc` and a
 conversion into `brain16` never make a `-0` of a number that was not zero,
 and keep one the `.ieee` forms made; `simd.max`/`min`/`sum` give `0`. In
-the oracle: `examples/zero_everywhere.cpls`, reject tests `ieee_on_mod`,
-`ieee_on_pow`, `neg_ieee_on_int`, `plus_ieee_on_int`.
+the oracle: `examples/zero_everywhere.cpls`, reject tests `ieee_on_mod` (now
+`mod.near.ieee`), `neg_ieee_on_int`, `plus_ieee_on_int`.
 
 ### 2026-10-06 — Without IEG nothing needs `!check`: the marking rule is IEG's (owner: yes)
 
