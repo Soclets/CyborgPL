@@ -101,7 +101,7 @@ pub const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "format", "ex
 const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lower", "replace", "starts_with", "ends_with", "at", "slice", "join"];
 
 /// An operator as code writes it (`+` inside is `plus`).
-fn op_shown(op: &str) -> String {
+pub fn op_shown(op: &str) -> String {
     match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "==" => "equal_to".into(), "!==" => "not_equal".into(), "</==" => "at_most".into(), ">/==" => "at_least".into(), o => o.into() }
 }
 

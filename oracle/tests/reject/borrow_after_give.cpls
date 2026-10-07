@@ -3,5 +3,5 @@ MAIN {
     let 's': list[int32] = [1, 2, 3];
     let 'r' := lend 's';
     let 't' := give 's';
-    stdkit::print.useful['r'[1], newln];
+    stdkit::print.useful['r'[pos 1], newln];
 }

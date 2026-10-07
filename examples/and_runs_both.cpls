@@ -12,7 +12,7 @@ MAIN {
     let 'xs' := [3, 5, 8];
     let 'i': uint64 = 7;
     if 'i' at_most list.length[lend 'xs'] {
-        if 'xs'['i'] equal_to 5 { stdkit::print.useful["found", newln]; }
+        if 'xs'[pos 'i'] equal_to 5 { stdkit::print.useful["found", newln]; }
     }
     stdkit::print.useful["done", newln];
 }

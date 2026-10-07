@@ -631,7 +631,7 @@ impl<'p> Interp<'p> {
                             if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==") {
                                 let (a, _) = self.eval(l)?;
                                 let (b, _) = self.eval(r)?;
-                                return rt(*line, format!("`must` does not hold: the left side is {}, and it must be `{op}` {}", a.show_useful(), b.show_useful()));
+                                return rt(*line, format!("`must` does not hold: the left side is {}, and it must be `{}` {}", a.show_useful(), crate::parser::op_shown(op), b.show_useful()));
                             }
                         }
                         rt(*line, "`must` does not hold")
