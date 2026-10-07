@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-07 — A whole quotient that rounds to zero is `0`, never `-0` (owner: b; not built in the oracle)
+
+```
+let 'q': bin64 = 0.5 div.ceil (-1.75);    # -0.2857… rounded up: 0, not IEEE's -0
+```
+
+Check claude found it (seeds 25502, 26092): on a bin or `brain16` the
+oracle gave IEEE's `-0`, CCA gave `0`, a `deci` has no `-0`, and no ruling
+covered it. Design claude offered (a) keep `-0` as the hardware does, (b)
+always `0`, recommended, (c) the dividend's or divisor's sign; asked the
+cost: one floating-point add of `+0.0` after the rounding, none where
+Precog proves the answer cannot be `-0`. The owner: "`b`, but is there a
+way to do like hardware?" (asked next).
+
 ### 2026-10-06 — Without IEG nothing needs `!check`: the marking rule is IEG's (owner: yes)
 
 The owner: "If `inline.Assembly` comes with Signatar, shouldn't it not
