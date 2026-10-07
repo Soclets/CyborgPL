@@ -74,7 +74,12 @@ that names the fold to use.
 - `simd.store[lend.mut 'xs', 'i', 'v']` — the other way.
 - `simd.all['m']` / `simd.any['m']` — a `simd[bool, N]` to one `bool`.
 - `simd.max['v']` / `simd.min['v']` / `simd.sum['v']` — a numeric
-  vector to one value. `sum` is a check site (it can overflow `T`).
+  vector to one value. `sum` is a plain number, worked out in full and
+  checked where it lands (owner, 2026-10-07); `simd.sum.lane['v']` checks it
+  at the lane's type, and `simd.sum.wrap['v']` wraps it there as the chip's
+  own sum does, never a check (owner, 2026-10-07: "There should be a way to
+  do the other option too", then "yea"). Until 2026-10-07 this said "`sum` is
+  a check site (it can overflow `T`)".
 
 ## What Precog knows
 

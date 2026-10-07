@@ -224,6 +224,36 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — `simd.sum` is a plain number, checked where it lands; `simd.sum.lane` and `simd.sum.wrap` work at the lane's type (owner: yea)
+
+```
+'v': simd[int32, 4] = simd.fill[1200000000];
+'s': int64 = simd.sum['v'];         # 4800000000: worked out in full, checked where it lands
+'t': int32 = simd.sum.lane['v'];    # stops: the sum is checked at int32
+'w': int32 = simd.sum.wrap['v'];    # 505032704: wrapped at int32, never a check
+```
+
+Check claude found it (seed 30022): design/simd.md (2026-09-22) says `sum`
+"can overflow T", and CCA stopped; the oracle worked it out in full and
+ran. Design claude asked (a) checked at the lane's type or (b) worked out
+in full, checked where it lands, first recommending (a) after the
+2026-09-29 (b) ruling that lanes are checked at their type. The owner:
+"Would `b` defeat the purpose of simd?" Design claude: no: the lanes stay
+their size through the loop, the sum is done once and its answer is a plain
+number, not a lane; ARM adds four int32s straight into an int64 in one
+instruction (`SADDLV`); so it changed its recommendation to (b). The owner:
+"There should be a way to do the other option too". Design claude offered
+(b) as the default, `simd.sum.lane` for (a), and `simd.sum.wrap`, the
+chip's own `ADDV`, wrapping as `plus.wrap` does. The owner: "yea, you said
+no check, so would it need `!check`?" Design claude: no; `plus.wrap` is
+"always defined, never a check, nothing to `!check`" (2026-09-20), and
+wrapping is the meaning, not a skipped check. `simd.max`/`min` cannot pass
+their type and have neither form. Design claude's readings, not asked:
+`simd.sum.lane` checks the total, not each partial sum (the order the
+chip adds lanes in is not the program's, and a wrapped partial sum comes
+back); `.wrap` takes integer lanes only, as `plus.wrap` does. In the
+oracle: `examples/simd_sum_forms.cpls`, reject test `simd_sum_lane_past`.
+
 ### 2026-10-07 — A whole quotient that rounds to zero is `0`, never `-0`; `div.ceil.ieee` keeps it (owner: b, a)
 
 ```
