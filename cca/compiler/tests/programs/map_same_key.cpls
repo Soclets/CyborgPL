@@ -7,5 +7,5 @@ MAIN {
     map.set[lend.mut 'm', "ab", 5];
     map.set[lend.mut 'm', "ab", 7];
     let 'v' := map.get[lend 'm', "ab"] otherwise 0;
-    !check my.exit['v' plus to.int32[map.length[lend 'm']]];
+    no_check my.exit['v' plus to.int32[map.length[lend 'm']]];
 }

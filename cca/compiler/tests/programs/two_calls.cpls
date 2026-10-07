@@ -1,8 +1,8 @@
 extern.C fn exit ['code': int32];
 struct P { x: int32 }
-fn get ['p': P] --> int32 { return 'p'.x; }
+fn get ['p': P] -> int32 { return 'p'.x; }
 MAIN {
     let 'a' := P[x = 5];
     let 'b' := P[x = 9];
-    !check my.exit[get[give 'a'] plus get[give 'b']];
+    no_check my.exit[get[give 'a'] plus get[give 'b']];
 }

@@ -4,9 +4,9 @@
 # takes it through `plus.wrap`. r2 is 10803112279996704310 (mod 200: 110),
 # the comparison holds (1), r1 and w are 0: 111.
 extern.C fn exit ['code': int32];
-fn one [] --> uint64 { return 1; }
-fn zero [] --> uint64 { return 0; }
-fn five [] --> uint32 { return 5; }
+fn one [] -> uint64 { return 1; }
+fn zero [] -> uint64 { return 0; }
+fn five [] -> uint32 { return 5; }
 MAIN {
     let 'v2': uint64 = zero[];
     let 'r1': uint64 = ('v2' mod.floor 1) shl (1 div.floor 17822710905774487822);
@@ -15,6 +15,6 @@ MAIN {
     let 'u': uint32 = five[];
     let 'w': int32 = (0 shr 0) plus.wrap 0;
     let mut 'n': int32 = to.int32['r2' mod.floor 200] plus to.int32['r1'] plus 'w';
-    if 'u' !== 4207507906 pow 17 { change 'n' = 'n' plus 1; }
-    !check my.exit['n'];
+    if 'u' not_equal 4207507906 pow 17 { change 'n' = 'n' plus 1; }
+    no_check my.exit['n'];
 }

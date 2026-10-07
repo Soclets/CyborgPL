@@ -4,15 +4,15 @@
 # now made once, in the function's first block. The sum of 1 to 10^7 is
 # 50000005000000; 0 mod 1000, and 7 is the exit.
 extern.C fn exit ['code': int32];
-fn half ['n': int64] --> int64 or fail[odd] {
-    if ('n' mod.floor 2) == 1 { fail odd; }
+fn half ['n': int64] -> int64 or fail[odd] {
+    if ('n' mod.floor 2) equal_to 1 { fail odd; }
     return 'n' div.floor 2;
 }
 MAIN {
     let mut 'acc': int64 = 0;
-    for 'i': int64 in range[1, 20000000] {
+    for 'i': int64 in range[from 1, to 20000000, by 1] {
         let 'h' := half['i'] otherwise 0;
         change 'acc' = ('acc' plus 'h') mod.floor 1000;
     }
-    !check my.exit[to.int32['acc' mod.floor 100] plus 7];
+    no_check my.exit[to.int32['acc' mod.floor 100] plus 7];
 }

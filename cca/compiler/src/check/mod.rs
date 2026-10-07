@@ -463,7 +463,7 @@ impl Checker {
                 }
                 Ok(())
             }
-            hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(name)), .. } => err(Diagnostic::error(format!("a const is a value known at compile time: `std::{}` has an effect, so it cannot make one", name)).at(e.span)),
+            hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(name)), .. } => err(Diagnostic::error(format!("a const is a value known at compile time: `stdkit::{}` has an effect, so it cannot make one", name)).at(e.span)),
             hir::ExprKind::Call { callee: hir::Callee::Extern(_), .. } => err(Diagnostic::error("a const is a value known at compile time: a call into C cannot make one").at(e.span)),
             _ => err(Diagnostic::error("a const is a value known at compile time: a literal, arithmetic on literals, another const, or a pure call").at(e.span)),
         }
@@ -605,11 +605,11 @@ impl Checker {
         let base = self.resolve(ty);
         let base = base.base().clone();
         let builtin = match &base {
-            Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) => matches!(op, "plus" | "minus" | "times" | "pow" | "==" | "!==" | "<" | ">" | "</==" | ">/==") || op.starts_with("div.") || op.starts_with("mod."),
-            Ty::Bool => matches!(op, "==" | "!=="),
-            Ty::Str(_) | Ty::Char(_) => matches!(op, "==" | "!=="),
-            Ty::Duration => matches!(op, "==" | "!==" | "<" | ">" | "</==" | ">/==" | "plus" | "minus"),
-            Ty::Enum { .. } => op == "==" || op == "!==",
+            Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) => matches!(op, "plus" | "minus" | "times" | "pow" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least") || op.starts_with("div.") || op.starts_with("mod."),
+            Ty::Bool => matches!(op, "equal_to" | "not_equal"),
+            Ty::Str(_) | Ty::Char(_) => matches!(op, "equal_to" | "not_equal"),
+            Ty::Duration => matches!(op, "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "plus" | "minus"),
+            Ty::Enum { .. } => op == "equal_to" || op == "not_equal",
             _ => false,
         };
         if builtin {
@@ -628,7 +628,7 @@ impl Checker {
         names.sort_by(|a, b| a.0.cmp(&b.0));
         for (op, ids) in names {
             let decls: Vec<(FnId, crate::resolve::FnDeclInfo)> = ids.iter().map(|id| (*id, self.items.fns[id.0 as usize].clone())).collect();
-            let language = matches!(op.as_str(), "plus" | "minus" | "times" | "pow" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "++" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || op.starts_with("div") || op.starts_with("mod");
+            let language = matches!(op.as_str(), "plus" | "minus" | "times" | "pow" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "++" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || op.starts_with("div") || op.starts_with("mod");
             for (_, d) in &decls {
                 if language && !d.blanks.is_empty() {
                     return err(Diagnostic::error(format!("a generic operator cannot be `{}`: that is the language's own, and a generic one would take it over for every type", op)).at(d.name_span));

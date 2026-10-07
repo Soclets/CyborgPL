@@ -12,8 +12,8 @@ MAIN {
     let 'z' := to.int64['small'] otherwise -3;
     let 'w' := to.int32['d'] otherwise 99;
     let mut 'code': int64 = 'z';
-    if 'x' == -1 { change 'code' = 'code' plus 100; }
-    if 'y' == -2 { change 'code' = 'code' plus 50; }
-    if 'w' == 99 { change 'code' = 'code' plus 20; }
-    !check my.exit[to.int32['code']];
+    if 'x' equal_to -1 { change 'code' = 'code' plus 100; }
+    if 'y' equal_to -2 { change 'code' = 'code' plus 50; }
+    if 'w' equal_to 99 { change 'code' = 'code' plus 20; }
+    no_check my.exit[to.int32['code']];
 }

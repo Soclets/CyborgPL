@@ -59,16 +59,10 @@ impl Checker {
             Some((l, r)) => (Some(l), r),
             None => (None, &b.stmts[..]),
         };
-        // A `match` alone at the end of a case follows the outer match:
-        // here, a value one, so it is the case's value (owner, 2026-09-29:
-        // a) — except in a `#strict` file, which says `giveS match …;`.
-        let nested;
+        // A nested match that is the case's value says so, `is match …;`
+        // (owner, 2026-10-07).
         let value = match last {
             Some(ast::Stmt { kind: ast::StmtKind::Gives { value, .. }, .. }) => value,
-            Some(ast::Stmt { kind: ast::StmtKind::Match { value, arms }, span }) if !self.items.strict_files.contains(&span.file) => {
-                nested = ast::Expr { kind: ast::ExprKind::Match { value: Box::new(value.clone()), arms: arms.clone() }, span: *span };
-                &nested
-            }
             _ => return Ok((self.block(ctx, b)?, None)),
         };
         ctx.push_scope();
@@ -124,7 +118,7 @@ impl Checker {
         if let ast::StmtKind::Tier { tier, stmt } = &s.kind {
             // Vouching is a power IEG grants (owner, 2026-10-07).
             match tier {
-                Tier::Nocheck => self.power_use(ctx, &["vouch"], None, "vouches with `!check`".into(), s.span),
+                Tier::Nocheck => self.power_use(ctx, &["vouch"], None, "vouches with `no_check`".into(), s.span),
                 Tier::NoChecks => self.power_use(ctx, &["vouch", "c"], None, "vouches with `NO_FUCKING_CHECKS`".into(), s.span),
                 _ => {}
             }
@@ -266,7 +260,7 @@ impl Checker {
                 let sealed_prev = |ctx: &FnCtx, prev: LocalId| -> Option<Result<hir::StmtKind>> {
                     let p = &ctx.locals[prev.0 as usize];
                     if ctx.sealed.contains(&prev) {
-                        return Some(err(Diagnostic::error(format!("'{}' cannot be shadowed: it is `!$`", name.name)).at(name.span).why_at(p.span, "declared `!$` here")));
+                        return Some(err(Diagnostic::error(format!("'{}' cannot be shadowed: it is `no_shadow`", name.name)).at(name.span).why_at(p.span, "declared `no_shadow` here")));
                     }
                     if p.kind == LocalKind::LoopVar {
                         return Some(err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be shadowed: the header alone says what it is on every pass", name.name)).at(name.span).why_at(p.span, "the loop's counter")));
@@ -462,7 +456,7 @@ impl Checker {
                     return err(Diagnostic::error("a task is a block, not a function: `return` cannot leave it").at(s.span));
                 }
                 if ctx.is_main {
-                    return err(Diagnostic::error("`MAIN` is a block, not a function: it has no `return` — ending it exits 0, and any other code is `std::exit[n]`").at(s.span));
+                    return err(Diagnostic::error("`MAIN` is a block, not a function: it has no `return` — ending it exits 0, and any other code is `stdkit::exit[n]`").at(s.span));
                 }
                 match value {
                     Some(v) => {
@@ -590,7 +584,7 @@ impl Checker {
             ast::StmtKind::InlineAsm { text, bindings } => {
                 self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.ASM`)".into(), s.span);
                 if self.needs_mark(ctx) {
-                    return err(Diagnostic::error("an inline block is a !check site: nothing inside it can be proven — write `!check inline.ASM { … }`").at(s.span));
+                    return err(Diagnostic::error("an inline block is a no_check site: nothing inside it can be proven — write `no_check inline.ASM { … }`").at(s.span));
                 }
                 let mut ins = Vec::new();
                 let mut outs = Vec::new();
@@ -606,7 +600,7 @@ impl Checker {
                             if *mutable {
                                 let local = &ctx.locals[id.0 as usize];
                                 let why = if local.mutability == Some(ast::Mutability::Immut) {
-                                    Some("is `!mut`")
+                                    Some("is `immut`")
                                 } else if local.kind == LocalKind::Lent {
                                     Some("is lent (shared)")
                                 } else if local.kind == LocalKind::LoopVar {
@@ -669,14 +663,14 @@ impl Checker {
                 .fix(None, "simd.any[…]   # when one lane is enough"));
         }
         if t.base() != &Ty::Bool {
-            return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: there is no truthiness — compare it (`'n' !== 0`)", what, crate::types::a_type(&self.spell(&t)))).at(e.span));
+            return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: there is no truthiness — compare it (`'n' not_equal 0`)", what, crate::types::a_type(&self.spell(&t)))).at(e.span));
         }
         Ok(())
     }
 
     fn fail_stmt(&mut self, ctx: &mut FnCtx, name: &ast::Ident, payload: Option<&ast::Expr>, span: Span) -> Result<hir::StmtKind> {
         if ctx.is_main {
-            return err(Diagnostic::error("`MAIN` cannot fail: it exits — `std::exit[1]` says the code").at(span));
+            return err(Diagnostic::error("`MAIN` cannot fail: it exits — `stdkit::exit[1]` says the code").at(span));
         }
         let Some(index) = ctx.fails.iter().position(|(n, _)| *n == name.name) else {
             if ctx.fails.is_empty() {

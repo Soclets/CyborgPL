@@ -4,15 +4,15 @@
 # on a path that cannot happen, and "proven" came back (check claude,
 # seed 133). `0 - 'n'` with 'n' = 2 is -2, which no `uint64` holds: storing
 # it must stop. (Since plain math is exact, the site is the store.)
-extern.C fn strlen ['s': ptr[uint8]] --> uint64;
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "ab";
-    !check let 'n': uint64 = strlen[lend 's'];
-    for 'i': int16 in range[37, 40] {
+    no_check let 'n': uint64 = strlen[lend 's'];
+    for 'i': int16 in range[from 37, to 40, by 1] {
     }
     let mut 'w': uint16 = 4;
     loop {
-        if 'w' </== 0 { break; }
+        if 'w' at_most 0 { break; }
         change 'w' = 'w' minus 1;
         let 'v': uint64 = 0 minus 'n';
     }

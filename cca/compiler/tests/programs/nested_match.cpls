@@ -13,6 +13,6 @@ MAIN {
         cancelled { }
         paid { match 's' { pickup { change 'went' = 1; } post { change 'went' = 2; } } }
     }
-    let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
-    !check my.exit['went' times 10 plus 'price'];
+    let 'price' := match 'o' { cancelled { is 0; } paid { is match 's' { pickup { is 5; } post { is 9; } }; } };
+    no_check my.exit['went' times 10 plus 'price'];
 }

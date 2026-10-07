@@ -2,7 +2,7 @@
 # already, so the slices take a copy of what is there, not of the address.
 # The oracle: 64.
 extern.C fn exit ['code': int32];
-fn total [lent 'xs': list[int64]] --> int64 {
+fn total [lent 'xs': list[int64]] -> int64 {
     let mut 'acc': int64 = 0;
     for 'x' in lend 'xs' {
         change 'acc' = 'acc' plus ('x' mod.floor 7);
@@ -10,13 +10,13 @@ fn total [lent 'xs': list[int64]] --> int64 {
     return 'acc';
 }
 fn scale [lent.mut 'xs': list[int64], 'k': int64] {
-    for 'i': uint64 in range[1, list.length[lend 'xs']] {
-        change 'xs'['i'] = ('xs'['i'] times 'k') mod.floor 1000;
+    for 'i': uint64 in range[from 1, to list.length[lend 'xs'], by 1] {
+        change 'xs'[pos 'i'] = ('xs'[pos 'i'] times 'k') mod.floor 1000;
     }
 }
 MAIN {
-    let mut 'xs': list[int64] = list.fill[3, 200000];
+    let mut 'xs': list[int64] = list.fill[value 3, count 200000];
     scale[lend.mut 'xs', 5];
     let 'a' := total[lend 'xs'];
-    !check my.exit[to.int32['a' mod.floor 256]];
+    no_check my.exit[to.int32['a' mod.floor 256]];
 }

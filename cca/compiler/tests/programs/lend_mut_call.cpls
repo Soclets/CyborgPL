@@ -5,6 +5,6 @@ fn fill [lent.mut 'into': list[int32]] {
 MAIN {
     let mut 'b': list[int32] = [];
     fill[lend.mut 'b'];
-    let 'first': int32 = 'b'[1];
-    !check my.exit['first'];
+    let 'first': int32 = 'b'[pos 1];
+    no_check my.exit['first'];
 }

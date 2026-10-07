@@ -1,16 +1,16 @@
 # A value from outside, guarded until Precog can prove the addition cannot
 # leave an int32 — so the binary carries the plain instruction with the fact
 # attached, and no check. Not foldable: nobody knows what getpid returns.
-extern.C fn getpid [] --> int32;
+extern.C fn getpid [] -> int32;
 extern.C fn exit ['code': int32];
 
 MAIN {
-    !check let 'n' := getpid[];
+    no_check let 'n' := getpid[];
     if 'n' > 0 {
         if 'n' < 1000 {
             let 'x': int32 = 'n' plus 1;
-            !check my.exit[0];
+            no_check my.exit[0];
         }
     }
-    !check my.exit[0];
+    no_check my.exit[0];
 }

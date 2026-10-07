@@ -9,13 +9,13 @@ MAIN {
     let mut 'hits': int32 = 0;
     let mut 'kept': int32 = 0;
     while 'i' < 10 {
-        if 'i' >/== 1 and.then 'i' </== list.length[lend 'xs'] and.then 'xs'['i'] == 5 {
+        if 'i' at_least 1 and.then 'i' at_most list.length[lend 'xs'] and.then 'xs'[pos 'i'] equal_to 5 {
             change 'hits' = 'hits' plus 1;
         }
-        if 'i' == 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'['i'] > 4 {
+        if 'i' equal_to 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'[pos 'i'] > 4 {
             change 'kept' = 'kept' plus 1;
         }
         change 'i' = 'i' plus 1;
     }
-    !check my.exit[('hits' times 100) plus 'kept'];     # 109
+    no_check my.exit[('hits' times 100) plus 'kept'];     # 109
 }

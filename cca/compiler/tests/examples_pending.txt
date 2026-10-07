@@ -3,3 +3,5 @@
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
 
+and_runs_both :: line 15 reads 'xs'['i'] without `pos` (2026-10-07: `pos` on every index), on a line that never runs, so the oracle does not see it; told design claude 2026-10-08
+and_then_or_else :: line 12 reads 'xs'['i'] without `pos`, on the side `and.then` skips, so the oracle does not see it; told design claude 2026-10-08

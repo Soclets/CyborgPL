@@ -4,26 +4,26 @@
 bare.never [fn, struct];
 
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] --> uint64;
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 pub const 'max' := 8;
 const 'pi': bin64 = 3.141_592_653_589_793;
 const 'twice_max' := 'max' times 2;
 const 'greeting' := "hello " ++ "world";
 const 'big': int64 = 'max' pow 20;
 pub struct P { x: int32 }
-pub fn area ['r': bin64] --> bin64 { return 'pi' times 'r' times 'r'; }
+pub fn area ['r': bin64] -> bin64 { return 'pi' times 'r' times 'r'; }
 MAIN {
     let mut 'got': int32 = 0;
-    if 'twice_max' == 16 { change 'got' = 'got' plus 1; }
+    if 'twice_max' equal_to 16 { change 'got' = 'got' plus 1; }
     let 's' := 'greeting';
-    !check if strlen[lend 's'] == 11 { change 'got' = 'got' plus 2; }
+    no_check if strlen[lend 's'] equal_to 11 { change 'got' = 'got' plus 2; }
     let 'p' := P[x = 'max'];
-    if 'p'.x == 8 { change 'got' = 'got' plus 4; }
+    if 'p'.x equal_to 8 { change 'got' = 'got' plus 4; }
     let 'a' := area[2.0];
     if 'a' > 12.56 and 'a' < 12.57 { change 'got' = 'got' plus 8; }
     let mut 'n': int32 = 0;
-    for 'i' in range[1, 'max', 4] { change 'n' = 'n' plus 1; }
-    if 'n' == 2 { change 'got' = 'got' plus 16; }
-    if 'big' == 1152921504606846976 { change 'got' = 'got' plus 32; }
-    !check my.exit['got'];
+    for 'i' in range[from 1, to 'max', by 4] { change 'n' = 'n' plus 1; }
+    if 'n' equal_to 2 { change 'got' = 'got' plus 16; }
+    if 'big' equal_to 1152921504606846976 { change 'got' = 'got' plus 32; }
+    no_check my.exit['got'];
 }

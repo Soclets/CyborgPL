@@ -4,34 +4,34 @@
 # a bounded text it fails out_of_range, and the text made is given back.
 # The values are known only at run time: whether an unset variable is there.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
-fn short ['n': int64] --> str.utf8 {
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+fn short ['n': int64] -> str.utf8 {
     let 's' := to.stored.str.utf8[0, 3 bytes]['n'] otherwise { out_of_range { return "?"; } };
     return give 's';
 }
 MAIN {
     let 'k' := "CCA_SURELY_UNSET_VARIABLE";
-    !check let 'there' := ptr.is_null[getenv[lend 'k']];
+    no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'got': int32 = 0;
     let mut 'n': int64 = -9223372036854775807;
     if 'there' { change 'n' = 'n' minus 1; }
-    if to.stored.str.utf8['n'] == "-9223372036854775808" { change 'got' = 'got' plus 1; }
+    if to.stored.str.utf8['n'] equal_to "-9223372036854775808" { change 'got' = 'got' plus 1; }
     let mut 'u': uint64 = 18446744073709551614;
     if 'there' { change 'u' = 'u' plus 1; }
-    if to.stored.str.utf8['u'] == "18446744073709551615" and to.stored.str.utf8[7] == "7" { change 'got' = 'got' plus 2; }
+    if to.stored.str.utf8['u'] equal_to "18446744073709551615" and to.stored.str.utf8[7] equal_to "7" { change 'got' = 'got' plus 2; }
     let mut 'x': bin64 = 0.1;
     if 'there' { change 'x' = 'x' times 1.0; }
-    if to.stored.str.utf8['x'] == "0.1000000000000000055511151231257827021181583404541015625" { change 'got' = 'got' plus 4; }
+    if to.stored.str.utf8['x'] equal_to "0.1000000000000000055511151231257827021181583404541015625" { change 'got' = 'got' plus 4; }
     let mut 'f': bin32 = 0.1;
     if 'there' { change 'f' = 'f' times 1.0; }
-    if to.stored.str.utf8['f'] == "0.100000001490116119384765625" { change 'got' = 'got' plus 8; }
+    if to.stored.str.utf8['f'] equal_to "0.100000001490116119384765625" { change 'got' = 'got' plus 8; }
     let mut 'z': bin64 = -0.5;
     if 'there' { change 'z' = 'z' times.ieee 0.0; }
-    if to.stored.str.utf8['z'] == "-0" and to.stored.str.utf8['there'] == "true" and to.stored.str.utf8[! 'there'] == "false" { change 'got' = 'got' plus 16; }
+    if to.stored.str.utf8['z'] equal_to "-0" and to.stored.str.utf8['there'] equal_to "true" and to.stored.str.utf8[not 'there'] equal_to "false" { change 'got' = 'got' plus 16; }
     let mut 'small': int64 = 999;
     if 'there' { change 'small' = 'small' plus 1; }
-    if short['small'] == "?" and short[-12] == "-12" { change 'got' = 'got' plus 32; }
+    if short['small'] equal_to "?" and short[-12] equal_to "-12" { change 'got' = 'got' plus 32; }
     let 'joined' := "n=" ++ to.stored.str.utf8['small' plus 4];
-    if 'joined' == "n=1004" { change 'got' = 'got' plus 64; }
-    !check my.exit['got'];
+    if 'joined' equal_to "n=1004" { change 'got' = 'got' plus 64; }
+    no_check my.exit['got'];
 }

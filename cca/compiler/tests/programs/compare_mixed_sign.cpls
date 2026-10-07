@@ -3,10 +3,10 @@
 # `int64` became -55 and `198 > 201` was true (check claude, seed 77).
 # `strlen` is extern, so nothing here is known before it runs; 'n' is 63.
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] --> uint64;
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "three hundred characters are too many to type, so this is fewer";
-    !check let 'n': uint64 = strlen[lend 's'];
+    no_check let 'n': uint64 = strlen[lend 's'];
     let 'x': int64 = to.int64['n'] plus 135;
     let 'u': uint8 = to.uint8['n'] plus 138;
     let 'big': uint64 = 'n' plus 18446744073709551000;
@@ -16,6 +16,6 @@ MAIN {
     if 'u' > 'x' { change 'got' = 'got' plus 2; }
     if 'big' > 'neg' { change 'got' = 'got' plus 4; }
     if 'neg' < 'big' { change 'got' = 'got' plus 8; }
-    if 'neg' == 'u' { change 'got' = 'got' plus 16; }
-    !check my.exit['got'];
+    if 'neg' equal_to 'u' { change 'got' = 'got' plus 16; }
+    no_check my.exit['got'];
 }

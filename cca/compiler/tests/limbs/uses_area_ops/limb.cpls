@@ -12,5 +12,5 @@ MAIN {
     let 'c': int32 = to.int32[('x' mean.low 'y') times 10.0] otherwise 0;
     let 'd': int32 = to.int32[('x' areas::mean 'y') times 2.0] otherwise 0;
     let 'e': int32 = to.int32[('x' mean 'y' plus 1.0) times 2.0] otherwise 0;
-    !check my.exit['a' plus 'b' plus 'c' plus 'd' minus 7 plus 'e'];
+    no_check my.exit['a' plus 'b' plus 'c' plus 'd' minus 7 plus 'e'];
 }

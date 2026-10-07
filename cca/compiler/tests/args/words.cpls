@@ -4,17 +4,17 @@
 # null. 4 + 97 + 11 + 100 = 212.
 extern.C fn exit ['code': int32];
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    !check let 'first' := ptr.read[ptr.at['argv', 1]];
-    !check let 'a' := ptr.read['first'];
-    !check let 'last' := ptr.read[ptr.at['argv', 'argc' minus 1]];
+    no_check let 'first' := ptr.read[ptr.at['argv', 1]];
+    no_check let 'a' := ptr.read['first'];
+    no_check let 'last' := ptr.read[ptr.at['argv', 'argc' minus 1]];
     let mut 'n': int32 = 0;
     loop {
-        !check let 'b' := ptr.read[ptr.at['last', 'n']];
-        if 'b' == 0 { break; }
+        no_check let 'b' := ptr.read[ptr.at['last', 'n']];
+        if 'b' equal_to 0 { break; }
         change 'n' = 'n' plus 1;
     }
-    !check let 'end' := ptr.read[ptr.at['argv', 'argc']];
+    no_check let 'end' := ptr.read[ptr.at['argv', 'argc']];
     let mut 'null': int32 = 0;
     if ptr.is_null['end'] { change 'null' = 100; }
-    !check my.exit['argc' plus to.int32['a'] plus 'n' plus 'null'];
+    no_check my.exit['argc' plus to.int32['a'] plus 'n' plus 'null'];
 }

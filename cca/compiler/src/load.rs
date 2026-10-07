@@ -325,7 +325,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     };
     if let Some((manifest_at, written)) = from {
         if prefix == "std" || prefix == "cca" {
-            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which is the built-in `{}::`; edit its `prefix`", written, prefix, prefix)).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, if prefix == "std" { "stdkit" } else { &prefix })).place(manifest_at.display().to_string()));
         }
         // No override: two Limbs with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
@@ -661,6 +661,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let Some((i, ispan)) = id else {
                         return err(Diagnostic::error("a `cca::Core` says which core: `cca::Core[id = \"…\", version = \"…\"]`").at(e.span));
                     };
+                    // MTM's ID is retired (owner, 2026-10-07: "MTM is gone.").
+                    if i == crate::ast::MTM_ID {
+                        return err(Diagnostic::error("the core `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `cores`").at(ispan));
+                    }
                     let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i) else {
                         return err(Diagnostic::error(format!("the core `{}…` is not an official one; loading another core is not built yet (a plugin, which CCA cannot load yet)", &i[..i.len().min(8)])).at(ispan));
                     };
@@ -720,10 +724,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     if let (Some((i, ispan)), Some((v, vspan))) = (&id, &version) {
                         if i == crate::parser::STD_ID {
                             if v != crate::parser::STD_VERSION {
-                                return err(Diagnostic::error(format!("CCA knows std `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
+                                return err(Diagnostic::error(format!("CCA knows stdkit `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
                             }
                             if out.has_std {
-                                return err(Diagnostic::error("std is listed twice in `dependencies`").at(*ispan));
+                                return err(Diagnostic::error("stdkit is listed twice in `dependencies`").at(*ispan));
                             }
                             out.has_std = true;
                             continue;
@@ -765,12 +769,12 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // std's maths always has true values and checks (owner, 2026-10-06):
     // a Limb that lists std lists ASP.
     if out.has_std && !out.cores.iter().any(|c| c == "ASP") {
-        return err(Diagnostic::error(format!("std needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", crate::ast::core_line("ASP"))).at(value.span));
+        return err(Diagnostic::error(format!("stdkit needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", crate::ast::core_line("ASP"))).at(value.span));
     }
     // And IEG, which grants it the operators on built-in types (owner,
     // 2026-10-06: "`a`").
     if out.has_std && !out.cores.iter().any(|c| c == "IEG") {
-        return err(Diagnostic::error(format!("std needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", crate::ast::core_line("IEG"))).at(value.span));
+        return err(Diagnostic::error(format!("stdkit needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", crate::ast::core_line("IEG"))).at(value.span));
     }
     if out.targets.is_empty() {
         return err(Diagnostic::error(format!("the manifest has no target: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));

@@ -2,8 +2,8 @@
 # but checked by the program itself: each value's text against the
 # oracle's, one point each, so the exit is how many agree (30).
 extern.C fn exit ['code': int32];
-fn same ['v': deci64, 'want': str.utf8] --> int32 {
-    if to.stored.str.utf8['v'] == 'want' { return 1; }
+fn same ['v': deci64, 'want': str.utf8] -> int32 {
+    if to.stored.str.utf8['v'] equal_to 'want' { return 1; }
     return 0;
 }
 MAIN {
@@ -11,22 +11,22 @@ MAIN {
     let 'a': deci64 = 0.1;
     let 'b': deci64 = 'a' plus 0.2;
     change 'got' = 'got' plus same['b', "0.3"];
-    if 'b' == 0.3 { change 'got' = 'got' plus 1; }
+    if 'b' equal_to 0.3 { change 'got' = 'got' plus 1; }
     let 'price': deci64 = 19.99;
     let 'sub': deci64 = 'price' times 3;
     let 'tax': deci64 = 'sub' times 0.075;
     change 'got' = 'got' plus same['sub', "59.97"] plus same['tax', "4.49775"] plus same['sub' plus 'tax', "64.46775"];
     let 'h': deci64 = 2.50;
     change 'got' = 'got' plus same['h' times 2, "5.00"] plus same['h', "2.50"];
-    if 'h' times 2 == 5 { change 'got' = 'got' plus 1; }
+    if 'h' times 2 equal_to 5 { change 'got' = 'got' plus 1; }
     let 'third': deci64 = 1;
     change 'got' = 'got' plus same['third' div.near 3, "0.3333333333333333"] plus same['h' div.near 2, "1.25"];
     let 'e1': deci32 = 1.000005;
-    if to.stored.str.utf8['e1' plus 0.0000005] == "1.000006" { change 'got' = 'got' plus 1; }
+    if to.stored.str.utf8['e1' plus 0.0000005] equal_to "1.000006" { change 'got' = 'got' plus 1; }
     let 'w': bin64 = 0.1;
     change 'got' = 'got' plus same[to.stored.deci64['w'], "0.1000000000000000"];
-    if to.stored.str.utf8[to.stored.deci128['w']] == "0.1000000000000000055511151231257827" { change 'got' = 'got' plus 1; }
-    if to.stored.str.utf8[to.useful.deci128['w']] == "0.1" { change 'got' = 'got' plus 1; }
+    if to.stored.str.utf8[to.stored.deci128['w']] equal_to "0.1000000000000000055511151231257827" { change 'got' = 'got' plus 1; }
+    if to.stored.str.utf8[to.useful.deci128['w']] equal_to "0.1" { change 'got' = 'got' plus 1; }
     let 'n': int32 = 12345;
     change 'got' = 'got' plus same[to.deci64['n'], "12345"];
     let 'big': int64 = 12345678901234567;
@@ -35,17 +35,17 @@ MAIN {
     let 'fd' := to.deci64['fits'] otherwise 'price';
     change 'got' = 'got' plus same['bd', "19.99"] plus same['fd', "1234567890123456"];
     let 't' := to.deci64["1.250"] otherwise 'price';
-    let 'u' := to.deci64["0.12345678901234567"] otherwise { too_many_digits { 'a' } not_a_number { 'h' } out_of_range { 'h' } };
-    let 'v' := to.deci64["abc"] otherwise { not_a_number { 'h' } too_many_digits { 'a' } out_of_range { 'a' } };
-    let 'x' := to.deci64["1e999"] otherwise { out_of_range { 'third' } too_many_digits { 'a' } not_a_number { 'a' } };
+    let 'u' := to.deci64["0.12345678901234567"] otherwise { too_many_digits { is 'a'; } not_a_number { is 'h'; } out_of_range { is 'h'; } };
+    let 'v' := to.deci64["abc"] otherwise { not_a_number { is 'h'; } too_many_digits { is 'a'; } out_of_range { is 'a'; } };
+    let 'x' := to.deci64["1e999"] otherwise { out_of_range { is 'third'; } too_many_digits { is 'a'; } not_a_number { is 'a'; } };
     change 'got' = 'got' plus same['t', "1.250"] plus same['u', "0.1"] plus same['v', "2.50"] plus same['x', "1"];
     let 'i' := to.int32['h' times 2] otherwise -1;
     let 'j' := to.int32['h'] otherwise -1;
-    if 'i' == 5 and 'j' == -1 { change 'got' = 'got' plus 1; }
-    if to.bin64['h'] == 2.5 { change 'got' = 'got' plus 1; }
+    if 'i' equal_to 5 and 'j' equal_to -1 { change 'got' = 'got' plus 1; }
+    if to.bin64['h'] equal_to 2.5 { change 'got' = 'got' plus 1; }
     let 'neg': deci64 = -1.5;
     change 'got' = 'got' plus same[-'neg', "1.5"] plus same['neg', "-1.5"];
-    if 'neg' < 'h' and ! ('h' < 'neg') and 'h' >/== 2.5 { change 'got' = 'got' plus 1; }
+    if 'neg' < 'h' and not ('h' < 'neg') and 'h' at_least 2.5 { change 'got' = 'got' plus 1; }
     let 'g': deci64 = 0.1 plus 0.2;
     change 'got' = 'got' plus same['g', "0.3"];
     let 'r': deci32 = 2.5;
@@ -53,5 +53,5 @@ MAIN {
     change 'got' = 'got' plus same['wide' times 'h', "6.250"];
     let 'z': deci64 = 0;
     change 'got' = 'got' plus same[-'z', "-0"] plus same['h' minus 'h', "0.00"];
-    !check my.exit['got'];
+    no_check my.exit['got'];
 }

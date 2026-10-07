@@ -199,7 +199,7 @@ impl Checker {
                 self.power_use(ctx, &["raw_memory", "cast"], None, "casts raw memory (`ptr.cast`)".into(), span);
                 // Nothing proves what the bytes are (owner, 2026-09-30).
                 if self.needs_mark(ctx) {
-                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a !check site: write `!check` in front of the statement").at(span));
+                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a no_check site: write `no_check` in front of the statement").at(span));
                 }
                 // The function's own generics are announced, so naming one
                 // here is no typo — it just has no size or layout yet.
@@ -225,10 +225,11 @@ impl Checker {
                 };
                 Ok(Expr { kind: K::PtrCast(Box::new(v)), ty: Ty::Ptr { mutable, elem: Box::new(t) }, span })
             }
-            AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[0, count 10]`").at(span)),
+            AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[value 0, count 10]`").at(span)),
+            AK::Value(_) => err(Diagnostic::error("`value` labels what a fill fills with: `list.fill[value 0, count 10]`, `simd.fill[value 0]`").at(span)),
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
-            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[int32, int32] --> int32 = op {};`", spelled, spelled, spelled)).at(span)),
+            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
     }
@@ -331,7 +332,7 @@ impl Checker {
                 let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
                 Ok(Expr { kind: K::FnRef(inst), ty, span })
             }
-            Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `!check`), and is not a value to hold", path.spelled())).at(span)),
+            Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `no_check`), and is not a value to hold", path.spelled())).at(span)),
             Ok(ItemRef::Struct(_)) => err(Diagnostic::error(format!("`{}` is a struct: a value of it is built with `{}[field = …]`", path.spelled(), path.spelled())).at(span)),
             Ok(ItemRef::Enum(id)) => err(Diagnostic::error(format!("`{}` is an enum: a value is one of its cases — `{}.{}`", path.spelled(), path.spelled(), self.items.enums[id.0 as usize].cases.first().map(|c| c.name.as_str()).unwrap_or("case"))).at(span)),
             Ok(other) => err(Diagnostic::error(format!("`{}` is a {}, not a value", path.spelled(), other.what())).at(span)),
@@ -385,7 +386,7 @@ impl Checker {
                 };
                 let f = &info.fields[fi];
                 if use_ == PlaceUse::Write && f.immut {
-                    return err(Diagnostic::error(format!("`{}` is a `!mut` field of `{}` and cannot be written", field.name, info.name)).at(field.span));
+                    return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).at(field.span));
                 }
                 let fty = f.ty.subst(&args);
                 p.proj.push(Proj::Field(fi));
@@ -410,7 +411,7 @@ impl Checker {
                         return err(Diagnostic::error("one lane of a vector is read (`'v'[1]`) and written (`change 'v'[3] = 30;`); lending one out to be changed is not decided yet").at(e.span));
                     }
                     Ty::Simd { elem, .. } => (**elem).clone(),
-                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `std::str.at.<unit>` when std exists, or walk it with `str.each.<unit>`").at(e.span)),
+                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `stdkit::str.at.<unit>` when stdkit exists, or walk it with `str.each.<unit>`").at(e.span)),
                     Ty::Map { .. } => return err(Diagnostic::error("a map is looked up by key with `map.get[lend 'm', key] otherwise …`, not by position").at(e.span)),
                     Ty::Bundle(_) => return err(Diagnostic::error("a mixed bundle has no `[…]`: walk it with `for`").at(e.span)),
                     other => {
@@ -459,7 +460,7 @@ impl Checker {
         self.power_use(ctx, &["c_calls", "variables"], Some(info.name.clone()), format!("uses C's variable '{}'", info.name), span);
         if self.needs_mark(ctx) {
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
-            return err(Diagnostic::error(format!("{} C's variable '{}' is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", what, info.name)).at(span));
+            return err(Diagnostic::error(format!("{} C's variable '{}' is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", what, info.name)).at(span));
         }
         if use_ == PlaceUse::Write && !info.mutable {
             return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut '{}': …` says C's variable may be written", info.name, info.name)).at(span));
@@ -478,7 +479,7 @@ impl Checker {
         match use_ {
             PlaceUse::Write => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `!mut`", name)).at(span).why_at(local.span, "declared `!mut` here"));
+                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `immut`", name)).at(span).why_at(local.span, "declared `immut` here"));
                 }
                 match local.kind {
                     LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).at(span).why_at(local.span, "lent here")),
@@ -488,7 +489,7 @@ impl Checker {
             }
             PlaceUse::LendMut => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' is `!mut`: it cannot be lent mutably", name)).at(span));
+                    return err(Diagnostic::error(format!("'{}' is `immut`: it cannot be lent mutably", name)).at(span));
                 }
                 if local.kind == LocalKind::Lent {
                     return err(Diagnostic::error(format!("'{}' is lent (shared): it cannot be lent mutably on — `lent.mut` would allow it", name)).at(span));
@@ -929,7 +930,7 @@ impl Checker {
                 let r = self.as_operand(ctx, r)?;
                 return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span });
             }
-            return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} ['a': {}, 'b': {}] --> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).at(op_span));
+            return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} ['a': {}, 'b': {}] -> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).at(op_span));
         }
         let r = self.expr(ctx, rhs)?;
         let mut rt = self.resolve(&r.ty);
@@ -1067,7 +1068,7 @@ impl Checker {
                 let lt = self.resolve(&l.ty);
                 let r = self.expect_operand(ctx, r, &lt, op, op_span)?;
                 if matches!(lt.base(), Ty::Fn(_) | Ty::Ptr { .. } | Ty::Channel(_)) {
-                    return err(Diagnostic::error(format!("`==` has no meaning for {}", crate::types::a_type(&self.spell(&lt)))).at(op_span));
+                    return err(Diagnostic::error(format!("`equal_to` has no meaning for {}", crate::types::a_type(&self.spell(&lt)))).at(op_span));
                 }
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
             }
@@ -1087,12 +1088,12 @@ impl Checker {
                 self.bare_group_exact(&mut r);
                 let lt = self.resolve(&l.ty);
                 if lt.is_text() {
-                    return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is std's — compare lengths or use a std function", op.spelled())).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is stdkit's — compare lengths or use a stdkit function", op.spelled())).at(op_span));
                 }
                 // Characters compare by content (`==`); an order between
                 // them was never decided, and the oracle refuses one.
                 if lt.is_char() {
-                    return err(Diagnostic::error(format!("`{}` on characters has no meaning yet: `==` compares them, and `char.code[…]` gives the number under one", op.spelled())).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` on characters has no meaning yet: `equal_to` compares them, and `char.code[…]` gives the number under one", op.spelled())).at(op_span));
                 }
                 if !lt.is_numeric() && lt.base() != &Ty::Duration {
                     return err(Diagnostic::error(format!("`{}` compares numbers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(&lt)))).at(op_span));
@@ -1716,7 +1717,7 @@ impl Checker {
                 return Ok((l, r, Ty::Deci(*b)));
             }
             if matches!(lt.base(), Ty::Deci(_)) {
-                return err(Diagnostic::error(format!("a deci power's exponent is an integer or a whole literal, and this one is {}: roots are std's math", crate::types::a_type(&self.spell(&rt)))).at(r.span));
+                return err(Diagnostic::error(format!("a deci power's exponent is an integer or a whole literal, and this one is {}: roots are stdkit's math", crate::types::a_type(&self.spell(&rt)))).at(r.span));
             }
             return err(Diagnostic::error("a deci power's exponent is an integer or a whole literal: the deci goes on the left of `xx`").at(op_span));
         }
@@ -1793,7 +1794,7 @@ impl Checker {
             }
             let hint = match spelling {
                 "*" => "multiply is `times`",
-                "^" => "the power is std's `pow`",
+                "^" => "the power is stdkit's `pow`",
                 "%" => "remainder is `mod.floor` (or `.ceil`, `.trunc`, `.near`)",
                 "&" | "|" | "!" => "the boolean operators are `and`, `or`, `!`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is `lend 'x'`",
                 "&+" | "&-" | "+%" | "-%" | "*%" => "wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`",
@@ -2151,7 +2152,7 @@ impl Checker {
             if let Some(new) = renamed {
                 let rest = segs[1..].join(".");
                 let (old, new) = if rest.is_empty() { (segs[0].to_string(), new.to_string()) } else { (format!("{}.{}", segs[0], rest), format!("{}.{}", new, rest)) };
-                return err(Diagnostic::error(format!("std::{} is spelled std::{} now", old, new)).at(span));
+                return err(Diagnostic::error(format!("stdkit::{} is spelled stdkit::{} now", old, new)).at(span));
             }
         }
         // Every print says its form (owner, 2026-10-02): `.stored` or
@@ -2159,14 +2160,17 @@ impl Checker {
         if path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) && path.segs.first().is_some_and(|s| s.name == "print") {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             match segs.as_slice() {
+                ["print"] => {
+                    return err(Diagnostic::error("say which form a print shows: `stdkit::print.stored[…]` (what is stored) or `stdkit::print.useful[…]` (the useful value) (owner, 2026-10-02)").at(span));
+                }
                 ["print", stream @ ("stdout" | "stderr")] => {
-                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.stored.{}[…]` (what is stored) or `std::print.useful.{}[…]` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                    return err(Diagnostic::error(format!("say which form a print shows: `stdkit::print.stored.{}[…]` (what is stored) or `stdkit::print.useful.{}[…]` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
                 }
                 ["print", "weird", stream @ ("stdout" | "stderr")] => {
-                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.weird.stored.{} <- …` (what is stored) or `std::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                    return err(Diagnostic::error(format!("say which form a print shows: `stdkit::print.weird.stored.{} <- …` (what is stored) or `stdkit::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
                 }
                 ["print", f @ ("stored" | "useful"), "weird", rest @ ..] => {
-                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `std::print.weird.{}.{} <- …`", f, rest.join("."))).at(span));
+                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `stdkit::print.weird.{}.{} <- …`", f, rest.join("."))).at(span));
                 }
                 _ => {}
             }
@@ -2175,7 +2179,7 @@ impl Checker {
         if path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             if let [w @ ("div" | "mod"), "trunc"] = segs.as_slice() {
-                return err(Diagnostic::error(format!("`std::{w}.trunc` is an operator in the language now: `'a' {w}.trunc 'b'`")).at(span));
+                return err(Diagnostic::error(format!("`stdkit::{w}.trunc` is an operator in the language now: `'a' {w}.trunc 'b'`")).at(span));
             }
         }
         if self.std_stubs && path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
@@ -2457,7 +2461,7 @@ impl Checker {
                         None => None,
                     };
                     if used && given.is_none() && !super::stmt::leaves_block(&body) {
-                        return err(Diagnostic::error(format!("the `{}` arm must give the call's value (`{{ 0 }}`) or leave (`return`, `fail`, `break`, `continue` or `std::exit`)", arm.name.name)).at(arm.body.span));
+                        return err(Diagnostic::error(format!("the `{}` arm must give the call's value (`{{ 0 }}`) or leave (`return`, `fail`, `break`, `continue` or `stdkit::exit`)", arm.name.name)).at(arm.body.span));
                     }
                     out.push(hir::FailArm { index: fi, bind, body, gives: given });
                 }
@@ -2702,10 +2706,11 @@ impl Checker {
         let ct = self.resolve(&c.ty);
         let ft = match ct.base() {
             Ty::Fn(f) => (**f).clone(),
-            Ty::Seq { .. } if self.items.strict_files.contains(&span.file) => return err(Diagnostic::error(format!("a list read says it is a position: `{}[pos …]` — a `#strict` file writes it out", self.expr_name(ctx, &c))).at(span)),
+            // `pos` on every index (owner, 2026-10-07).
+            Ty::Seq { .. } if args.len() == 1 => return err(Diagnostic::error(format!("a read says it is a position: `{}[pos 2]`", self.expr_name(ctx, &c))).at(span)),
             Ty::Seq { .. } if otherwise.is_some() => return err(Diagnostic::error(format!("reading {}[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`", self.expr_name(ctx, &c))).at(span)),
-            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).at(span)),
-            other => return err(Diagnostic::error(format!("{} is {}, not a function: `'f'[…]` calls a held function, and `'xs'[2]` reads a list", self.expr_name(ctx, &c), crate::types::a_type(&self.spell(other)))).at(span)),
+            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[pos 2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).at(span)),
+            other => return err(Diagnostic::error(format!("{} is {}, not a function: `'f'[…]` calls a held function, and `'xs'[pos 2]` reads a list", self.expr_name(ctx, &c), crate::types::a_type(&self.spell(other)))).at(span)),
         };
         let flat = self.flatten_args(ctx, args, span)?;
         if flat.len() != ft.params.len() {
@@ -2734,7 +2739,7 @@ impl Checker {
             return err(Diagnostic::error(format!("'{}' is C's variable, not a function", info.name)).at(span));
         }
         if self.needs_mark(ctx) {
-            return err(Diagnostic::error(format!("a call into C is a !check site: nothing about `{}` can be proven — write `!check` in front of the statement", info.name)).at(span).fix(None, format!("!check … {}[…] …;", info.name)));
+            return err(Diagnostic::error(format!("a call into C is a no_check site: nothing about `{}` can be proven — write `no_check` in front of the statement", info.name)).at(span).fix(None, format!("!check … {}[…] …;", info.name)));
         }
         let flat = self.flatten_args(ctx, args, span)?;
         if !info.variadic && flat.len() != info.params.len() {
@@ -3167,7 +3172,7 @@ impl Checker {
             }
             (Ty::Char(_), Ty::Int(_)) => return err(Diagnostic::error("a character does not convert to a number: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit) — `char.code[…]` gives the code, `to.int32[to.str.utf8[…]] otherwise …` the digit").at(span)),
             (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.point.from_code[…] otherwise …` builds one from a code").at(span)),
-            (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`'n' !== 0`)").at(span)),
+            (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`'n' not_equal 0`)").at(span)),
             // Bytes read as text (owner, 2026-09-30: "yea"): UTF-8 only.
             (Ty::Seq { elem, .. }, Ty::Str(enc)) if matches!(elem.base(), Ty::Int(IntW::Fixed { signed: false, bits: 8 })) => {
                 if *enc != Enc::Utf8 {
@@ -3311,7 +3316,7 @@ impl Checker {
                 "grapheme" => BuiltinHead::B(Builtin::StrEach(Unit::Grapheme)),
                 other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).at(span)),
             },
-            ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is std's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet", other)).at(span)),
+            ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is stdkit's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `stdkit::` is not available yet", other)).at(span)),
             ("char", ["code"]) => BuiltinHead::B(Builtin::CharCode),
             // Built by the parser from `on.machine.chip X` (owner, 2026-10-06).
             ("on", ["machine", "chip", f]) => match ast::ON_FEATURES.iter().position(|n| n == f) {
@@ -3410,13 +3415,14 @@ impl Checker {
             // bare name of one says `copy`.
             Builtin::ListFill => {
                 arity(2, self)?;
-                let strict = self.items.strict_files.contains(&positional[1].span.file);
                 let ce = match &positional[1].kind {
                     AK::Count(inner) => &**inner,
-                    _ if strict => return err(Diagnostic::error("`#strict`: the count says `count`: `list.fill[0, count 10]`").at(positional[1].span)),
-                    _ => positional[1],
+                    _ => return err(Diagnostic::error("the count says `count`: `list.fill[value 0, count 10]`").at(positional[1].span)),
                 };
-                let value_e = positional[0];
+                let value_e = match &positional[0].kind {
+                    AK::Value(inner) => &**inner,
+                    _ => return err(Diagnostic::error("the value says `value`: `list.fill[value 0, count 10]`").at(positional[0].span)),
+                };
                 if let AK::Name(n) = &value_e.kind {
                     if self.peek_ty(ctx, value_e).is_some_and(|t| self.resolve(&t).is_owned()) {
                         return err(Diagnostic::error(format!("`list.fill` makes copies of '{}': `copy '{}'`", n.name, n.name)).at(value_e.span));
@@ -3636,7 +3642,7 @@ impl Checker {
                     _ => {}
                 }
                 if b != Builtin::PtrIsNull && self.needs_mark(ctx) {
-                    return err(Diagnostic::error(format!("`{}` is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", name)).at(span));
                 }
                 let n = match b {
                     Builtin::PtrRead | Builtin::PtrIsNull => 1,
@@ -3717,7 +3723,11 @@ impl Checker {
             }
             Builtin::SimdFill => {
                 arity(1, self)?;
-                let mut v = self.expr(ctx, positional[0])?;
+                // `simd.fill[value 0]` (owner, 2026-10-07: "`a`").
+                let AK::Value(fill) = &positional[0].kind else {
+                    return err(Diagnostic::error("the value says `value`: `simd.fill[value 0]`").at(positional[0].span));
+                };
+                let mut v = self.expr(ctx, fill)?;
                 // Bare numbers alone are worked out exactly (dc83c05): left
                 // with an open width, `15059671820752541943 div 3` was done
                 // at a signed 64 bits, where the literal is negative, in any
@@ -3949,14 +3959,13 @@ impl Checker {
         Ok(self.value_arg(v))
     }
 
-    /// `pos i` where a position is wanted.
-    /// A position, written bare (owner, 2026-09-27: `pos` is removed).
+    /// `pos i` where a position is wanted (owner, 2026-10-07: on every
+    /// position).
     fn pos_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str) -> Result<Arg> {
-        // A strict file says every position (owner, 2026-09-27).
         let e = match &e.kind {
             AK::Pos(inner) => &**inner,
-            _ if self.items.strict_files.contains(&e.span.file) => return err(Diagnostic::error(format!("`{}` says each position with `pos` — `pos 2` — in a `#strict` file", name)).at(e.span)),
-            _ => e,
+            _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}[lend 'xs', pos 2, pos 4]`", name)).at(e.span)),
+            _ => return err(Diagnostic::error(format!("a position says `pos`: `{}[lend 'xs', pos 1]`", name)).at(e.span)),
         };
         let v = self.expr(ctx, e)?;
         let vt = self.resolve(&v.ty);
@@ -4111,7 +4120,7 @@ impl Checker {
 fn std_name(path: &ast::Path) -> bool {
     let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
     match segs.as_slice() {
-        ["print" | "printu" | "printf", ..] => true,
+        ["print" | "printu" | "printf" | "format", ..] => true,
         ["exit" | "round" | "floor" | "ceil" | "trunc"] => true,
         ["time" | "input", _, ..] => true,
         ["str", op] => matches!(*op, "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join"),
@@ -4338,7 +4347,10 @@ impl Checker {
         let mut hargs = Vec::new();
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let ty = match name.as_str() {
-            "print.stored.stdout" | "print.stored.stderr" | "print.useful.stdout" | "print.useful.stderr" | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr" | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
+            // A print goes to stdout unless it says `.stderr` (owner,
+            // 2026-10-07); `.stdout` may still be written. `format[…]` makes
+            // the text `print.format` would print ("`a`").
+            "format" | "print.stored" | "print.useful" | "print.weird.stored" | "print.weird.useful" | "print.useful.auto_newline" | "print.format" | "print.stored.stdout" | "print.stored.stderr" | "print.useful.stdout" | "print.useful.stderr" | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr" | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
                 for e in &positional {
                     // A print only looks: a borrow handed back may go
                     // straight to it.
@@ -4352,11 +4364,11 @@ impl Checker {
                     let v = self.as_operand(ctx, v)?;
                     hargs.push(Arg::Value(v));
                 }
-                Ty::Nothing
+                if name == "format" { Ty::utf8() } else { Ty::Nothing }
             }
             "exit" => {
                 if positional.len() != 1 {
-                    return err(Diagnostic::error("`std::exit` takes one value, the exit code").at(span));
+                    return err(Diagnostic::error("`stdkit::exit` takes one value, the exit code").at(span));
                 }
                 let v = self.expr(ctx, positional[0])?;
                 let v = self.expect_store(ctx, v, &Ty::int(false, 8), "the exit code")?;
@@ -4365,7 +4377,7 @@ impl Checker {
             }
             "input.line" | "input.all" => {
                 if !positional.is_empty() {
-                    return err(Diagnostic::error(format!("`std::{}` takes no arguments", name)).at(span));
+                    return err(Diagnostic::error(format!("`stdkit::{}` takes no arguments", name)).at(span));
                 }
                 fails.push(("closed".into(), None));
                 Ty::utf8()
@@ -4418,10 +4430,10 @@ impl Checker {
                         fails.push(("out_of_range".into(), None));
                         Ty::utf8()
                     }
-                    other => return err(Diagnostic::error(format!("`std::str.{}` does not exist", other)).at(span)),
+                    other => return err(Diagnostic::error(format!("`stdkit::str.{}` does not exist", other)).at(span)),
                 }
             }
-            _ => return err(Diagnostic::error(format!("`std::{}` does not exist", name)).at(span)),
+            _ => return err(Diagnostic::error(format!("`stdkit::{}` does not exist", name)).at(span)),
         };
         let ow = self.call_otherwise(ctx, otherwise, &fails, &ty, used, span, &format!("std::{}", name))?;
         Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::Std(name)), args: hargs, otherwise: ow, fails }, ty, span })

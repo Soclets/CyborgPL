@@ -3,10 +3,10 @@
 # worked out at 64 bits. `pick` gives 3 here (no CCA_NO_SUCH_VARIABLE),
 # and the sum of 1 to 3 is 6.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
-fn pick [] --> int64[0, 1000] or fail[missing] {
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+fn pick [] -> int64[0, 1000] or fail[missing] {
     let 'key' := "CCA_NO_SUCH_VARIABLE";
-    !check let 'p' := getenv[lend 'key'];
+    no_check let 'p' := getenv[lend 'key'];
     if ptr.is_null['p'] { return 3; }
     fail missing;
 }
@@ -14,9 +14,9 @@ MAIN {
     let 'n' := pick[] otherwise 0;
     let mut 'sum': int64 = 0;
     let mut 'i': int64 = 1;
-    while 'i' </== 'n' {
+    while 'i' at_most 'n' {
         change 'sum' = 'sum' plus 'i';
         change 'i' = 'i' plus 1;
     }
-    !check my.exit[to.int32['sum']];
+    no_check my.exit[to.int32['sum']];
 }

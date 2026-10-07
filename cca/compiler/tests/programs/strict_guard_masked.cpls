@@ -1,4 +1,3 @@
-#strict
 # A strict guard at a value inside the range (check claude, seed 7141):
 # 'v' is any int32 C hands back, masked with `and.bit 16383`, which is 0
 # to 16383 — `and.bit` with one side never negative never is — so
@@ -6,13 +5,13 @@
 # 0. It was all of int32, 0 inside it, and the `mod` was refused.
 # Whatever the pid, the guard holds (18 mod v is at most 18): 7.
 extern.C fn exit ['code': int32];
-extern.C fn getpid [] --> int32;
+extern.C fn getpid [] -> int32;
 MAIN {
-    !check let !mut 'p': int32 = getpid[];
-    let !mut 'v': int32 = 'p' and.bit 16383;
+    no_check let immut 'p': int32 = getpid[];
+    let immut 'v': int32 = 'p' and.bit 16383;
     let mut 'code': int32 = 0;
-    if 'v' == 0 or.else (18 mod.floor 'v') < 20 {
+    if 'v' equal_to 0 or.else (18 mod.floor 'v') < 20 {
         change 'code' = 7;
     }
-    !check my.exit['code'];
+    no_check my.exit['code'];
 }

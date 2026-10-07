@@ -7,10 +7,10 @@ MAIN {
     let 'a' := areas::circle[lend 'c'];
     let 'whole': int32 = to.int32[floor_of['a']] otherwise 0;
     let 'p': int32 = to.int32[floor_of[areas::'pi']] otherwise 0;
-    !check my.exit['whole' plus areas::shapes.square[4] plus 'p'];
+    no_check my.exit['whole' plus areas::shapes.square[4] plus 'p'];
 }
-fn floor_of ['x': bin64] --> bin64 {
+fn floor_of ['x': bin64] -> bin64 {
     let mut 'n': bin64 = 0.0;
-    while 'n' plus 1.0 </== 'x' { change 'n' = 'n' plus 1.0; }
+    while 'n' plus 1.0 at_most 'x' { change 'n' = 'n' plus 1.0; }
     return 'n';
 }

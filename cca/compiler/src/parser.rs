@@ -110,7 +110,7 @@ fn language_level(name: &str) -> Option<(u16, Option<Chain>)> {
     Some(match (name, base) {
         ("or" | "or.else", _) => (OR_LEVEL, Some(Chain::Left)),
         ("and" | "and.then", _) => (AND_LEVEL, Some(Chain::Left)),
-        ("==" | "!==" | "<" | ">" | "</==" | ">/==", _) => (CMP_LEVEL, Some(Chain::Refused)),
+        ("==" | "!==" | "<" | ">" | "</==" | ">/==" | "equal_to" | "not_equal" | "at_most" | "at_least", _) => (CMP_LEVEL, Some(Chain::Refused)),
         ("++", _) => (JOIN_LEVEL, Some(Chain::Left)),
         ("plus" | "minus" | "plus.wrap" | "minus.wrap", _) => (ADD_LEVEL, Some(Chain::Left)),
         ("times" | "times.wrap", _) | (_, "div" | "mod") => (MUL_LEVEL, Some(Chain::Left)),
@@ -169,10 +169,23 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         return None;
     }
     let next_is = |n: usize, t: &str| matches!(toks.get(i + n).map(|t| &t.tok), Some(Tok::Word(x)) if x == t);
+    let dot_then = |t: &[&str]| matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(x)) if t.contains(&x.as_str()));
     Some(match w.as_str() {
+        // The slimmer base (owner, 2026-10-07): what left it, by core.
+        "test" if next_is(1, "fn") => ("`test fn`", "TAS"),
+        "must" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Name(_) | Tok::Word(_) | Tok::Num { .. } | Tok::LParen)) => ("`must`", "TAS"),
+        "brain16" => ("`brain16`", "AI"),
+        "int128" | "uint128" => (if w == "int128" { "`int128`" } else { "`uint128`" }, "WSMW"),
+        "not_std" => ("a `not_std.` width", "WSMW"),
+        "deci32" | "deci64" | "deci128" => (match w.as_str() { "deci32" => "`deci32`", "deci64" => "`deci64`", _ => "`deci128`" }, "Money"),
+        "str" if dot_then(&["utf16", "utf32"]) => (if next_is(2, "utf16") { "`str.utf16`" } else { "`str.utf32`" }, "UniTect"),
+        "str" if dot_then(&["points", "graphemes"]) => (if next_is(2, "points") { "`str.points`" } else { "`str.graphemes`" }, "UniTect"),
+        "str" if dot_then(&["each", "at"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "point" || x == "grapheme") => ("counting in points or graphemes", "UniTect"),
+        "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.point`" } else { "`char.grapheme`" }, "UniTect"),
+        "case" if dot_then(&["insensitive", "sensitive"]) => ("a `case` mark", "CAPS"),
         "to" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) => ("`to.`", "ASP"),
         "check" => ("`check`", "ASP"),
-        "nocheck" => ("`!check`", "IEG"),
+        "nocheck" => ("`no_check`", "IEG"),
         "NO_FUCKING_CHECKS" => ("`NO_FUCKING_CHECKS`", "IEG"),
         "interface" => ("`interface`", "Genny"),
         "satisfies" => ("`satisfies`", "Genny"),
@@ -181,40 +194,59 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "whichever" => ("`whichever`", "MCPS"),
         "channel" => ("`channel`", "MCPS"),
         // `for para`, or `for !cheat para`.
-        "for" if next_is(1, "para") || (matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Op(o)) if o == "!") && next_is(2, "cheat") && next_is(3, "para")) => ("`for para`", "MCPS"),
+        "for" if next_is(1, "para") || (next_is(1, "no_cheat") && next_is(2, "para")) => ("`for para`", "MCPS"),
         _ => return None,
     })
 }
 
-/// One of MTM's spellings at token `i` (owner, 2026-10-06), and the main
-/// spelling it stands for.
-fn mtm_spelling(toks: &[Token], i: usize) -> Option<(String, String)> {
+/// An old spelling at token `i` (the 2026-10-07 revision; owner: "MTM is
+/// gone."), and what to say: each names the one that replaced it.
+fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
+    let old = |w: &str, m: &str| Some(format!("`{}` is an old spelling: write `{}`", w, m));
     if let Some((w, m)) = &toks[i].alt {
-        return Some((w.clone(), m.to_string()));
+        return old(w, m);
     }
     let after = |n: usize, t: &Tok| i >= n && toks[i - n].tok == *t;
+    let glued = |n: usize| toks.get(i + n).is_some_and(|t| t.span.start == toks[i + n - 1].span.end);
+    let next = |n: usize| toks.get(i + n).map(|t| &t.tok);
     match &toks[i].tok {
-        Tok::Op(o) if o.starts_with('&') && !o.starts_with("&&") => Some((o.clone(), "lend` / `lent".into())),
+        // The `!` marks became words (owner, 2026-10-07).
+        Tok::Op(o) if o == "!" => {
+            if glued(1) {
+                match next(1) {
+                    Some(Tok::Word(w)) if w == "check" => return old("!check", "no_check"),
+                    Some(Tok::Word(w)) if w == "mut" => return old("!mut", "immut"),
+                    Some(Tok::Word(w)) if w == "cheat" => return old("!cheat", "no_cheat"),
+                    Some(Tok::Word(w)) if w == "c" => return Some("`!c` is `no_cheat` now".into()),
+                    Some(Tok::Word(w)) if (w == "std" && matches!(next(2), Some(Tok::Dot))) || w.starts_with("std_") => return old("!std.", "not_std."),
+                    Some(Tok::Dollar) => return old("!$", "no_shadow"),
+                    Some(Tok::Name(n)) => return Some(format!("`!` is not an operator since 2026-10-07: a value's not is `not '{}'`", n)),
+                    _ => {}
+                }
+            }
+            old("!", "not")
+        }
+        Tok::Op(o) if o.starts_with('&') && !o.starts_with("&&") && !matches!(o.as_str(), "&+" | "&-" | "&*") => Some(format!("`{}` is an old spelling: write `lend` / `lent`; a bitwise and is `and.bit`", o)),
         // The inline languages' whole names (owner, 2026-10-07: "`a`").
         Tok::Word(w) if after(1, &Tok::Dot) && i >= 2 && toks[i - 2].tok == Tok::Word("inline".into()) => match w.as_str() {
-            "Assembly" | "S" => Some((format!("inline.{}", w), "inline.ASM".into())),
-            "LLVM_Intermediate_Representation" | "LLVM" => Some((format!("inline.{}", w), "inline.LL".into())),
-            "Metal_Shading_Language" => Some((format!("inline.{}", w), "inline.MSL".into())),
+            "Assembly" | "S" => old(&format!("inline.{}", w), "inline.ASM"),
+            "LLVM_Intermediate_Representation" | "LLVM" => old(&format!("inline.{}", w), "inline.LL"),
+            "Metal_Shading_Language" => old(&format!("inline.{}", w), "inline.MSL"),
             _ => None,
         },
-        // `!std.i24` for `!std.int24`, `!std.u24` for `!std.uint24`.
-        Tok::Word(w) if after(1, &Tok::Dot) && i >= 3 && toks[i - 2].tok == Tok::Word("std".into()) && toks[i - 3].tok == Tok::Op("!".into()) && w.len() > 1 && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) && w[1..].bytes().all(|c| c.is_ascii_digit()) => {
+        // `not_std.i24` for `not_std.int24`, `not_std.u24` for `not_std.uint24`.
+        Tok::Word(w) if after(1, &Tok::Dot) && i >= 2 && toks[i - 2].tok == Tok::Word("not_std".into()) && w.len() > 1 && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) && w[1..].bytes().all(|c| c.is_ascii_digit()) => {
             let (kind, bits) = w.split_at(1);
-            Some((format!("!std.{}", w), format!("!std.{}{}", if kind == "i" { "int" } else { "uint" }, bits)))
+            old(&format!("not_std.{}", w), &format!("not_std.{}{}", if kind == "i" { "int" } else { "uint" }, bits))
         }
         Tok::Word(_) if after(1, &Tok::Dot) || after(1, &Tok::ColonColon) => None,
-        Tok::Word(w) if w == "not" && !(matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(b)) if b == "bit")) => Some((w.clone(), "!".into())),
-        Tok::Word(w) => rust_name(w).map(|m| (w.clone(), m.to_string())),
+        Tok::Word(w) => rust_name(w).and_then(|m| old(w, m)),
         _ => None,
     }
 }
 
-/// Rust's number names and `bf16`/`bfloat16`, MTM's (owner, 2026-10-06).
+/// Rust's number names and `bf16`/`bfloat16`, old spellings since MTM went
+/// (owner, 2026-10-07).
 fn rust_name(w: &str) -> Option<&'static str> {
     Some(match w {
         "i8" => "int8",
@@ -279,6 +311,13 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     // text literals stay.
     if p.no_std {
         for i in 0..toks.len() {
+            // A duration and its literals are stdkit's (owner, 2026-09-22
+            // "Time: std, with duration literals"; d690ed91).
+            if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
+                if DURATION_UNITS.contains(&u.as_str()) {
+                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is stdkit's, and this Limb's CCA.cplr does not list stdkit: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
+                }
+            }
             let Tok::Word(w) = &toks[i].tok else { continue };
             if i > 0 && matches!(toks[i - 1].tok, Tok::Dot | Tok::ColonColon) {
                 continue;
@@ -287,10 +326,11 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             let what = match (w.as_str(), next) {
                 ("list", Some(Tok::Dot | Tok::LBracket)) => "a growing list (`list`)",
                 ("map", Some(Tok::Dot | Tok::LBracket)) => "a map (`map`)",
+                ("duration", _) => "`duration`",
                 ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is std's, and this Limb's CCA.cplr does not list std: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+            return err(Diagnostic::error(format!("{} is stdkit's, and this Limb's CCA.cplr does not list stdkit: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
         }
     }
     // Signatar's names are English letters, digits and `_`, bare or
@@ -305,13 +345,11 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             return err(Diagnostic::error(format!("{} is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Limb's `cores` (`{}`)", shown, core_line("WSTN"))).at(t.span));
         }
     }
-    // MTM's spellings, in a Limb that does not list MTM (owner,
-    // 2026-10-06): each refused naming the main one.
-    if p.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "MTM")) {
-        for i in 0..toks.len() {
-            if let Some((written, main)) = mtm_spelling(toks, i) {
-                return err(Diagnostic::error(format!("`{w}` is MTM's spelling of `{m}`: write `{m}`, or add the core MTM to this Limb's `cores` (`{c}`)", w = written, m = main, c = core_line("MTM"))).at(toks[i].span));
-            }
+    // Old spellings, in every Limb (the 2026-10-07 revision; owner: "MTM
+    // is gone."): each refused naming the one that replaced it.
+    for i in 0..toks.len() {
+        if let Some(msg) = old_spelling(toks, i) {
+            return err(Diagnostic::error(msg).at(toks[i].span));
         }
     }
     // A core's words, in a Limb that does not list the core.
@@ -324,11 +362,11 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             }
         }
     }
-    let mut strict = None;
+    let strict = None;
+    // `#strict` is gone (owner, 2026-10-07: "We ain't no C stability,
+    // remove it now"); what it wrote out is every file's.
     if p.is(&Tok::Strict) {
-        strict = Some(p.span().file);
-        p.strict = true;
-        p.bump();
+        return p.fail("`#strict` is gone: the labelled ranges, `pos`, `count`, `is` and typed parameters it asked for are every file's now");
     }
     let mut items = Vec::new();
     let mut bare_file = None;
@@ -473,7 +511,7 @@ impl<'a> Parser<'a> {
         if !self.no_std {
             return Ok(());
         }
-        self.fail_at(span, format!("`{}` is std's, and this Limb's CCA.cplr does not list std: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
+        self.fail_at(span, format!("`{}` is stdkit's, and this Limb's CCA.cplr does not list stdkit: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
     }
 
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {
@@ -552,7 +590,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(segs[0].span, "the root of this Limb is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
         if let Some(l) = limb.as_ref().filter(|l| l.name == "std") {
-            self.std_gate(&format!("std::{}", segs[0].name), l.span.to(segs[0].span))?;
+            self.std_gate(&format!("stdkit::{}", segs[0].name), l.span.to(segs[0].span))?;
         }
         Ok(Path { limb, segs, span })
     }
@@ -955,7 +993,7 @@ impl<'a> Parser<'a> {
                 let decl = self.fn_decl(true)?;
                 Ok(ItemKind::Fn(decl))
             }
-            "func" => self.fail("`func` became `fn`: `fn name [params] --> type { … }`"),
+            "func" => self.fail("`func` became `fn`: `fn name [params] -> type { … }`"),
             "extern" => {
                 self.bump();
                 // `extern` names its language (owner, 2026-10-02): `extern.C`,
@@ -1076,7 +1114,7 @@ impl<'a> Parser<'a> {
                     self.fail(format!("`{}` goes in front of a statement inside a body, never at the top level: the tiers are never global", w))
                 }
             }
-            "inline" => self.fail("`inline.ASM` goes inside a body, as a statement, under `!check`"),
+            "inline" => self.fail("`inline.ASM` goes inside a body, as a statement, under `no_check`"),
             "var" => self.fail("`var` is gone, and a Limb's top-level value is a `const`: `const 'name' := …;`"),
             _ => {
                 // `Vec satisfies Ordered;`
@@ -1123,7 +1161,6 @@ impl<'a> Parser<'a> {
                 Ok(())
             }
             Tok::Op(o) if o.starts_with('>') => self.fail(format!("`{}` is one operator: put a space after the `>` closing `<{}>`", o, name)),
-            Tok::Colon => self.fail(format!("the bound goes after the bracket: `<{}>: any`, not `<{}: any>`", name, name)),
             other => self.fail(format!("expected `>` closing `<{}>`, found {}", name, other.describe())),
         }
     }
@@ -1134,56 +1171,74 @@ impl<'a> Parser<'a> {
     /// lifetime groups, `@x @y`, with a `|` between the two kinds only.
     fn announce(&mut self, owner: &str, what: &str) -> Result<Announce> {
         let mut a = Announce::default();
-        while self.is_op("<") && matches!(self.peek_at(1), Tok::Word(_)) {
+        // `<T: Number, U: any>` (owner, 2026-10-07): one `< >`, each
+        // blank with what it accepts, commas between.
+        if self.is_op("<") && matches!(self.peek_at(1), Tok::Word(_)) {
             if self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "Genny")) {
                 return core_missing("a generic", "Genny", self.span_at(1));
             }
             self.bump();
-            let name = self.ident("the generic's name")?;
-            self.expect_close_angle(&name.name)?;
-            if !self.eat(&Tok::Colon) {
-                return self.fail_at(name.span, format!("`<{}>` says what it accepts, never every type by default: `{} {} <{}>: any`, or an interface — `<{}>: Number`", name.name, what, owner, name.name, name.name));
-            }
-            let mut bounds = Vec::new();
-            if self.is_word("any") {
-                let any = self.bump().span;
-                if self.is_word("and") {
-                    return self.fail_at(any, format!("`any` stands alone: `<{}>: any` accepts every type, so nothing joins it with `and`", name.name));
+            loop {
+                let name = self.ident("the generic's name")?;
+                if self.is_op(">") && matches!(self.peek_at(1), Tok::Colon) {
+                    return self.fail_at(name.span, format!("what `<{n}>` accepts goes inside the brackets: `<{n}: any>`", n = name.name));
                 }
-            } else {
-                loop {
-                    if self.is_word("any") {
-                        return self.fail(format!("`any` stands alone: `<{}>: any` accepts every type, so nothing joins it with `and`", name.name));
+                if !self.eat(&Tok::Colon) {
+                    return self.fail_at(name.span, format!("`<{n}>` says what it accepts, never every type by default: `{w} {o} <{n}: any>`, or an interface — `<{n}: Number>`", n = name.name, w = what, o = owner));
+                }
+                let mut bounds = Vec::new();
+                if self.is_word("any") {
+                    let any = self.bump().span;
+                    if self.is_word("and") {
+                        return self.fail_at(any, format!("`any` stands alone: `<{}: any>` accepts every type, so nothing joins it with `and`", name.name));
                     }
-                    bounds.push(self.path()?);
-                    if !self.eat_word("and") {
+                } else {
+                    loop {
+                        if self.is_word("any") {
+                            return self.fail(format!("`any` stands alone: `<{}: any>` accepts every type, so nothing joins it with `and`", name.name));
+                        }
+                        bounds.push(self.path()?);
+                        if !self.eat_word("and") {
+                            break;
+                        }
+                    }
+                }
+                a.generics.push(Generic { name, bounds });
+                if self.eat(&Tok::Comma) {
+                    if self.is_op(">") {
                         break;
                     }
+                    continue;
+                }
+                break;
+            }
+            let last = a.generics.last().map(|g| g.name.name.clone()).unwrap_or_default();
+            self.expect_close_angle(&last)?;
+            if self.is_op("<") && matches!(self.peek_at(1), Tok::Word(_)) {
+                return self.fail("the blanks go in one `< >`, commas between: `<A: any, B: Hashable>`");
+            }
+        }
+        // The lifetime groups in a bracket of their own, before the
+        // parameters (owner, 2026-10-07): `[@x, @y]`.
+        if self.is_op("|") || self.is_op("@") {
+            return self.fail(format!("lifetime groups go in a bracket of their own, before the parameters: `{} {} [@x, @y] [...]`", what, owner));
+        }
+        if self.is(&Tok::LBracket) && self.is_op_at(1, "@") {
+            self.bump();
+            loop {
+                let at = self.span();
+                if !self.eat_op("@") {
+                    return self.fail_at(at, "a lifetime group is named after `@`: `[@x, @y]`");
+                }
+                match self.peek().clone() {
+                    Tok::Word(_) => a.groups.push(self.ident("the lifetime group's name")?),
+                    _ => return self.fail_at(at, "a lifetime group is named after `@`: `@x`"),
+                }
+                if !self.eat(&Tok::Comma) || self.is(&Tok::RBracket) {
+                    break;
                 }
             }
-            a.generics.push(Generic { name, bounds });
-        }
-        let bar = if self.is_op("|") {
-            let at = self.bump().span;
-            if a.generics.is_empty() {
-                return self.fail_at(at, format!("a `|` only separates generics from lifetime groups; with groups alone they follow the name: `{} {} @x […]`", what, owner));
-            }
-            true
-        } else {
-            false
-        };
-        while self.is_op("@") {
-            let at = self.bump().span;
-            match self.peek().clone() {
-                Tok::Word(_) => a.groups.push(self.ident("the lifetime group's name")?),
-                _ => return self.fail_at(at, "a lifetime group is named after `@`: `@x`"),
-            }
-            if !bar && !a.generics.is_empty() {
-                return self.fail_at(at, format!("a `|` separates the generics from the lifetime groups: `{} {} <{}>: … | @{} […]`", what, owner, a.generics[0].name.name, a.groups[0].name));
-            }
-        }
-        if bar && a.groups.is_empty() {
-            return self.fail(format!("a lifetime group follows the `|`: `| @x`, found {}", self.peek().describe()));
+            self.expect(&Tok::RBracket, "`]` closing the lifetime groups")?;
         }
         Ok(a)
     }
@@ -1204,7 +1259,7 @@ impl<'a> Parser<'a> {
         }
         let mutable = self.eat_word("mut");
         if self.is_word("immut") {
-            return self.fail("`!mut` means nothing on C's variable: it is read-only unless you write `mut`");
+            return self.fail("`immut` means nothing on C's variable: it is read-only unless you write `mut`");
         }
         let name = self.qname("the C variable's name")?;
         if !self.is(&Tok::Colon) {
@@ -1224,7 +1279,7 @@ impl<'a> Parser<'a> {
             return self.fail(format!("function names are bare: `fn {} […]`, not `fn '{}'` — quotes mark a value you hold, and a function is not one", n, n));
         }
         if self.is(&Tok::Dot) {
-            return self.fail("the return type goes after the parameters — `fn name [params] --> int32 { … }` — not on `fn`");
+            return self.fail("the return type goes after the parameters — `fn name [params] -> int32 { … }` — not on `fn`");
         }
         // A keyword may name a function — `fn true`, `fn to` — reached by
         // path, never bare (limbs.md, 2026-09-19): `limb.true[…]`.
@@ -1236,9 +1291,11 @@ impl<'a> Parser<'a> {
         }
         let (ret, fails) = self.return_spec()?;
         let ret_lent = self.ret_lent.take();
-        // A strict caller sees only signatures (owner, 2026-09-29).
-        if let (true, Some(RetLent { group: None, span, .. })) = (self.strict, &ret_lent) {
-            return self.fail_at(*span, format!("`{}` hands back a borrow, so it names what the borrow depends on: `-> lent@x …`, with `lent@x` on those parameters — a `#strict` file writes it out", name.name));
+        // A returned borrow names its group only when there is a choice
+        // (owner, 2026-10-07: "`b`"): two or more borrowed inputs.
+        let borrowed = params.iter().filter(|p| matches!(p.kind, ParamKind::Lent | ParamKind::LentMut)).count();
+        if let (true, Some(RetLent { group: None, span, .. })) = (borrowed >= 2, &ret_lent) {
+            return self.fail_at(*span, format!("`{n}` hands back a borrow and borrows more than one input: say which with a group, `fn {n} [@x] [lent @x 'a': …, lent 'b': …] -> lent @x …`", n = name.name));
         }
         let body = if has_body {
             if self.is(&Tok::Semi) {
@@ -1246,8 +1303,9 @@ impl<'a> Parser<'a> {
             }
             let outer = std::mem::replace(&mut self.returns_value, false);
             let b = self.block("the function")?;
-            if self.strict && self.returns_value && ret.is_none() {
-                return self.fail_at(name.span, format!("`{}` returns a value, so it says its type: `fn {} […] --> int32 {{ … }}` — a `#strict` file writes it out", name.name, name.name));
+            // Every return is typed (owner, 2026-10-07: "`a`").
+            if self.returns_value && ret.is_none() {
+                return self.fail_at(name.span, format!("`{}` returns a value, so it says its type: `-> int32`", name.name));
             }
             self.returns_value = outer;
             Some(b)
@@ -1262,6 +1320,18 @@ impl<'a> Parser<'a> {
     }
 
     /// The group's name, right after its `@`.
+    /// `lent @x`, the group spaced from `lent` (owner, 2026-10-07).
+    fn lent_group(&mut self) -> Result<Option<Ident>> {
+        if !self.is_op("@") {
+            return Ok(None);
+        }
+        if self.prev_span().end == self.span().start {
+            return self.fail("a space before the group: `lent @x`");
+        }
+        self.bump();
+        Ok(Some(self.group_after_at("lent @x")?))
+    }
+
     fn group_after_at(&mut self, shape: &str) -> Result<Ident> {
         match self.peek().clone() {
             Tok::Word(_) => self.ident("the lifetime group's name after `@`"),
@@ -1307,7 +1377,7 @@ impl<'a> Parser<'a> {
             } else {
                 false
             };
-            let group = if self.eat_op("@") { Some(self.group_after_at("lent@x")?) } else { None };
+            let group = self.lent_group()?;
             self.ret_lent = Some(RetLent { mutable, group, span: start.to(self.prev_span()) });
         }
         if self.is_word("fail") {
@@ -1374,10 +1444,10 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect(&Tok::RBracket, "`]` closing the parameters")?;
-        if self.strict {
-            if let Some(p) = params.iter().find(|p| p.ty.is_none()) {
-                return self.fail_at(p.name.span, format!("parameter '{}' says its type: `'{}': int32` — a `#strict` file writes every parameter's type", p.name.name, p.name.name));
-            }
+        // Every parameter is typed (owner, 2026-10-07: "`a`"); an untyped
+        // variadic keeps each argument's own (design claude's reading).
+        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) {
+            return self.fail_at(p.name.span, format!("parameter '{}' says its type: `'{}': int32`", p.name.name, p.name.name));
         }
         Ok(params)
     }
@@ -1402,9 +1472,7 @@ impl<'a> Parser<'a> {
                 } else {
                     kind = ParamKind::Lent;
                 }
-                if self.eat_op("@") {
-                    group = Some(self.group_after_at("lent@x")?);
-                }
+                group = self.lent_group()?;
                 if ctx == ParamContext::Op {
                     return self.fail_at(start, "an operator's operands are lent by default: write `'a': T` with no `lent`; `give 'a': T` takes it by value");
                 }
@@ -1515,11 +1583,11 @@ impl<'a> Parser<'a> {
             if self.is_word("immut") {
                 self.bump();
                 if self.is(&Tok::Dot) {
-                    return self.fail("`!mut` goes before the field's name: `!mut number: int32`");
+                    return self.fail("`immut` goes before the field's name: `immut number: int32`");
                 }
                 immut = true;
             } else if self.is_word("mut") {
-                return self.fail("a struct field is not `mut`: a struct always owns its fields and may change them unless the field is `!mut`");
+                return self.fail("a struct field is not `mut`: a struct always owns its fields and may change them unless the field is `immut`");
             } else if self.is_word("let") || self.is_word("var") {
                 return self.fail("a field has no `let`: a struct always owns its fields — write `name: type`");
             }
@@ -1628,10 +1696,10 @@ impl<'a> Parser<'a> {
         let own = if self.is_op("<") {
             self.bump();
             let t = self.ident("the interface's type's name")?;
-            self.expect_close_angle(&t.name)?;
             if self.is(&Tok::Colon) {
                 return self.fail(format!("an interface's own `<{}>` accepts nothing in particular — the interface is what it accepts: `interface {} <{}> {{ … }}`", t.name, name.name, t.name));
             }
+            self.expect_close_angle(&t.name)?;
             Some(t)
         } else {
             None
@@ -1661,7 +1729,7 @@ impl<'a> Parser<'a> {
             let params = self.params(ParamContext::Iface)?;
             let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] --> lent T`)");
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
         }
             if self.is(&Tok::LBrace) {
                 return self.fail("an interface lists promises, not code: end the signature with `;` and leave the body out");
@@ -1683,11 +1751,11 @@ impl<'a> Parser<'a> {
     fn op_name(&mut self) -> Result<Ident> {
         let op = self.op_spelling()?;
         if op.name == "->" || op.name == "<-" || op.name == "<->" {
-            return self.fail_at(op.span, "an arrow cannot name an operator: `-->`, `->`, `>>`, `>>>`, `<--`, `<-`, `<<`, `<<<`, and `<-->`, `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>` are arrows (owner, 2026-10-06)");
+            return self.fail_at(op.span, "an arrow cannot name an operator: `->`, `<-` and `<->` are arrows (owner, 2026-10-07)");
         }
         // A type's own `plus` is `op plus` (owner, 2026-10-03).
         if let Some(word) = retired_spelling(&op.name) {
-            return self.fail_at(op.span, format!("`op {}` is `op {}` now (owner, 2026-10-03): `op {} ['a': V, 'b': V] --> V {{ … }}`", op.name, word, word));
+            return self.fail_at(op.span, format!("`op {}` is `op {}` now (owner, 2026-10-03): `op {} ['a': V, 'b': V] -> V {{ … }}`", op.name, word, word));
         }
         Ok(op)
     }
@@ -1696,7 +1764,15 @@ impl<'a> Parser<'a> {
         match self.peek().clone() {
             Tok::Op(o) => {
                 let span = self.bump().span;
-                Ok(Ident { name: o, span })
+                // A comparison is named by its word (owner, 2026-10-07).
+                let name = match o.as_str() {
+                    "==" => "equal_to".to_string(),
+                    "!==" => "not_equal".to_string(),
+                    "</==" => "at_most".to_string(),
+                    ">/==" => "at_least".to_string(),
+                    _ => o,
+                };
+                Ok(Ident { name, span })
             }
             Tok::Word(w) => {
                 let span = self.bump().span;
@@ -1721,17 +1797,17 @@ impl<'a> Parser<'a> {
             return self.fail_at(op.span, format!("an operator takes exactly two operands; `{}` is declared with {}", op.name, params.len()));
         }
         if !self.is_op("->") {
-            return self.fail(format!("`--> T` is required on an operator: `op {} [...] --> T {{ … }}`", op.name));
+            return self.fail(format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
         }
         let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] --> lent T`)");
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
         }
         if !fails.is_empty() {
             return self.fail_at(op.span, format!("an operator cannot fail; make `{}` a `fn` if it needs `fail[…]`", op.name));
         }
         if ret.is_none() {
-            return self.fail_at(op.span, format!("`--> T` is required on an operator: `op {} [...] --> T {{ … }}`", op.name));
+            return self.fail_at(op.span, format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
         }
         let body = self.block("the operator")?;
         Ok(OpDecl { op, announce, params, ret, body })
@@ -1739,7 +1815,7 @@ impl<'a> Parser<'a> {
 
     fn const_decl(&mut self) -> Result<ConstDecl> {
         if self.is_word("mut") || self.is_word("immut") {
-            return self.fail("a `const` is neither `mut` nor `!mut`: it is a value known at compile time, never assigned");
+            return self.fail("a `const` is neither `mut` nor `immut`: it is a value known at compile time, never assigned");
         }
         let name = match self.peek().clone() {
             Tok::Name(n) => {
@@ -1857,7 +1933,7 @@ impl<'a> Parser<'a> {
                         kind = if self.eat_word("mut") { ParamKind::LentMut } else { ParamKind::Lent };
                     }
                     if let Tok::Name(n) = self.peek().clone() {
-                        return self.fail(format!("a function type has no parameter names: `fn[int32] --> bool`, not `fn['{}': int32]` — it is the signature without the names", n));
+                        return self.fail(format!("a function type has no parameter names: `fn[int32] -> bool`, not `fn['{}': int32]` — it is the signature without the names", n));
                     }
                     let ty = self.type_()?;
                     params.push(FnTypeParam { kind, amp, ty });
@@ -1868,7 +1944,7 @@ impl<'a> Parser<'a> {
                 self.expect(&Tok::RBracket, "`]` closing the function type's parameters")?;
                 let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] --> lent T`)");
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
         }
                 TypeKind::Fn { params, ret: ret.map(Box::new), fails }
             }
@@ -1893,11 +1969,11 @@ impl<'a> Parser<'a> {
             // resolver reads the width.
             Tok::Op(o) if o == "!" && matches!(self.peek_at(1), Tok::Word(w) if w.starts_with("std_")) && self.adjacent(0, 1) => {
                 let Tok::Word(w) = self.peek_at(1).clone() else { unreachable!() };
-                return self.fail(format!("`!{}` is `!std.{}` since 2026-10-06: \"not standard\", narrowed with `.`", w, &w[4..]));
+                return self.fail(format!("`!{}` is `not_std.{}` since 2026-10-06: \"not standard\", narrowed with `.`", w, &w[4..]));
             }
-            Tok::Op(o) if o == "!" && self.is_word_at(1, "std") && matches!(self.peek_at(2), Tok::Dot) && matches!(self.peek_at(3), Tok::Word(_)) && self.adjacent(0, 1) => {
+            // `not_std.int24` (owner, 2026-10-07; `!std.int24` before).
+            Tok::Word(n) if n == "not_std" && matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(_)) => {
                 let at = self.bump().span;
-                self.bump();
                 self.bump();
                 let Tok::Word(w) = self.peek().clone() else { unreachable!() };
                 let wspan = self.bump().span;
@@ -1934,12 +2010,19 @@ impl<'a> Parser<'a> {
         let mut ty = Type { span: start.to(self.prev_span()), kind };
         // A bound: `T[lo, hi]`, `str.utf8[1, 40 graphemes]`, `list[T][0, 10]`.
         while self.is(&Tok::LBracket) && self.bracket_is_bound() {
+            // Range types and length bounds are ASP's (owner, 2026-10-07).
+            if self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "ASP")) {
+                return core_missing("a range or a length bound on a type", "ASP", self.span());
+            }
             let bstart = self.span();
             self.bump();
             let lo = self.bound_value()?;
             self.expect(&Tok::Comma, "`,` between the bounds")?;
             let hi = self.bound_value()?;
             let unit = if let Tok::Word(w) = self.peek().clone() {
+                if matches!(w.as_str(), "points" | "graphemes") && self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "UniTect")) {
+                    return core_missing("counting in points or graphemes", "UniTect", self.span());
+                }
                 if !is_keyword(&w) && w != "x" {
                     Some(self.ident("a unit")?)
                 } else {
@@ -2041,15 +2124,9 @@ impl<'a> Parser<'a> {
         let mut sealed = false;
         let mut mutability = None;
         loop {
-            if self.is_op("!") {
-                self.bump();
-                if self.eat(&Tok::Dollar) {
-                    sealed = true;
-                } else if self.eat_word("mut") {
-                    mutability = Some(Mutability::Immut);
-                } else {
-                    return self.fail("`!` in front of a declaration is `!$` (the name cannot be shadowed) or `!mut` (the value cannot be changed)");
-                }
+            // `no_shadow` (owner, 2026-10-07; `!$` before).
+            if self.eat_word("no_shadow") {
+                sealed = true;
             } else if self.eat_word("mut") {
                 mutability = Some(Mutability::Mut);
             } else if self.eat_word("immut") {
@@ -2080,7 +2157,7 @@ impl<'a> Parser<'a> {
         let (ty, shadow) = self.let_type_and_marker("declaration")?;
         let value = self.expr_top()?;
         if self.is_op("=") {
-            return self.fail("`=` gives a declaration its value once; equality is `==`");
+            return self.fail("`=` gives a declaration its value once; equality is `equal_to`");
         }
         self.expect_semi("the declaration")?;
         Ok(StmtKind::Let { mutability, name, ty, shadow, value, sealed })
@@ -2103,7 +2180,7 @@ impl<'a> Parser<'a> {
                     _ => self.expr_stmt(),
                 };
             }
-            Tok::Op(o) if o == "!" => return self.fail("a declaration starts with `let`: `let !$ 'x' := …;`, `let !mut 'x' := …;`"),
+            Tok::Op(o) if o == "!" => return self.fail("a declaration starts with `let`: `let no_shadow 'x' := …;`, `let immut 'x' := …;`"),
             _ => return self.expr_stmt(),
         };
         match w.as_str() {
@@ -2120,6 +2197,8 @@ impl<'a> Parser<'a> {
                 match &target.kind {
                     ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::Index { .. } => {}
                     ExprKind::ConstPath { .. } => return self.fail_at(target.span, "a const is never changed: it is a value known at compile time"),
+                    // `pos` on every index (owner, 2026-10-07).
+                    ExprKind::CallValue { args, .. } if args.len() == 1 => return self.fail_at(target.span, "an index says it is a position: `'xs'[pos 2]`"),
                     _ => return self.fail_at(target.span, "only a variable, a field or an element can be changed"),
                 }
                 if !self.eat_op("=") {
@@ -2127,17 +2206,18 @@ impl<'a> Parser<'a> {
                 }
                 let value = self.expr_top()?;
                 if self.is_op("=") {
-                    return self.fail("`=` changes once; equality is `==`");
+                    return self.fail("`=` changes once; equality is `equal_to`");
                 }
                 self.expect_semi("the change")?;
                 Ok(StmtKind::Assign { target, value })
             }
             w if is_primitive_head(w) && matches!(self.peek_at(1), Tok::Name(_)) => self.fail(format!("a type goes after the name: `let 'x': {} = …;`", w)),
             "check" | "nocheck" | "NO_FUCKING_CHECKS" => {
+                let w = if w == "nocheck" { "no_check".to_string() } else { w };
                 let tier_span = self.bump().span;
                 let tier = match w.as_str() {
                     "check" => Tier::Check,
-                    "nocheck" => Tier::Nocheck,
+                    "no_check" => Tier::Nocheck,
                     _ => Tier::NoChecks,
                 };
                 if self.is(&Tok::Semi) {
@@ -2256,15 +2336,10 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.match_rest()
             }
-            // Spelled `giveS` since 2026-09-29, to keep it apart from `give`.
-            "gives" if !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot) => self.fail("`gives` is spelled `giveS`: `{ giveS 1; }` in a `#strict` file"),
-            // `giveS` (owner, 2026-09-29: b) is a strict file's; elsewhere
-            // a case's value stands alone. `giveS[…]` is a call.
-            "giveS" if !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot) => {
-                let at = self.bump().span;
-                if !self.strict {
-                    return self.fail_at(at, "`giveS` belongs to `#strict` files; elsewhere a case's value stands alone: `{ 1 }`");
-                }
+            // A case says its value with `is` (owner, 2026-10-07), `is
+            // match …;` when the value is a match. `is[…]` is a call.
+            "is" if !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot) => {
+                self.bump();
                 let value = self.expr_top()?;
                 self.expect_semi("the case's value")?;
                 Ok(StmtKind::Gives { value, bare: false })
@@ -2273,7 +2348,7 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.inline_rest()
             }
-            "asm" => self.fail("an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `!check`"),
+            "asm" => self.fail("an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `no_check`"),
             "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
             "fn" | "struct" | "interface" | "op" => self.fail(format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
             "enum" => self.fail("an `enum` sits at the top level of a file or a module, not inside a body"),
@@ -2313,16 +2388,9 @@ impl<'a> Parser<'a> {
         let mut seq = false;
         let mut para = false;
         let mut perm = false;
-        // `!cheat`, "no cheat", first: the strongest modifier (owner,
-        // 2026-10-01; `!c` until 2026-10-06, refused now naming `!cheat`).
-        if self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c") {
-            return self.fail("`!c` is `!cheat` now: `for !cheat 'i' in …`");
-        }
-        let nocheat = self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "cheat");
-        if nocheat {
-            self.bump();
-            self.bump();
-        }
+        // `no_cheat` first: the strongest modifier (owner, 2026-10-01;
+        // `!c`, then `!cheat`, before 2026-10-07).
+        let nocheat = self.eat_word("no_cheat");
         // `seq` keeps a loop in order, `para` makes it parallel (owner,
         // 2026-09-30); never both. CCA runs every loop in order so far.
         if self.eat_word("seq") {
@@ -2333,8 +2401,8 @@ impl<'a> Parser<'a> {
         if self.is_word("seq") || self.is_word("para") {
             return self.fail("a `for` is `seq` or `para`, not both");
         }
-        if self.is_op("!") && matches!(self.peek_at(1), Tok::Word(w) if w == "c" || w == "cheat") {
-            return self.fail("`!cheat` comes first, the strongest modifier first: `for !cheat seq …`, `for !cheat para …`");
+        if self.is_word("no_cheat") {
+            return self.fail("`no_cheat` comes first, the strongest modifier first: `for no_cheat seq …`, `for no_cheat para …`");
         }
         if self.eat_word("perm") {
             perm = true;
@@ -2385,37 +2453,22 @@ impl<'a> Parser<'a> {
             if self.is(&Tok::Walrus) || self.is_op("=") {
                 return self.fail("the bounds of a `range` are plain values: `range[0, 3]` — the `:=` / `=` markers are gone (they would say the same thing twice)");
             }
-            // A strict file labels each bound and always writes the step
-            // (owner, 2026-09-27): `range[from 2, to 8, by 2]`.
-            let (start, stop, step) = if self.strict {
-                let labelled = |this: &mut Self, word: &str| -> Result<Expr> {
-                    if this.range_label() != Some(word) {
-                        return this.fail(format!("each bound says what it is: `range[from 2, to 8, by 2]` — `{}` goes here, in a `#strict` file", word));
-                    }
-                    this.bump();
-                    this.expr(0)
-                };
-                let start = labelled(self, "from")?;
-                self.expect(&Tok::Comma, "`,` between the range's start and stop")?;
-                let stop = labelled(self, "to")?;
-                if !self.eat(&Tok::Comma) {
-                    return self.fail("a range writes its step too, even 1: `range[from 2, to 8, by 1]` — a `#strict` file writes it out");
+            // Every range labels each bound and writes its step (owner,
+            // 2026-10-07: "`a`"): `range[from 2, to 8, by 1]`.
+            let labelled = |this: &mut Self, word: &str| -> Result<Expr> {
+                if this.range_label() != Some(word) {
+                    return this.fail(format!("each bound says what it is: `range[from 2, to 8, by 1]` — this one is `{}`", word));
                 }
-                let step = labelled(self, "by")?;
-                (start, stop, Some(step))
-            } else {
-                let unlabelled = |this: &mut Self| -> Result<Expr> {
-                    if let Some(w) = this.range_label() {
-                        return this.fail(format!("label a range in a `#strict` file; elsewhere its bounds are bare — `range[2, 8, 2]`, not `{} …`", w));
-                    }
-                    this.expr(0)
-                };
-                let start = unlabelled(self)?;
-                self.expect(&Tok::Comma, "`,` between the range's start and stop")?;
-                let stop = unlabelled(self)?;
-                let step = if self.eat(&Tok::Comma) { Some(unlabelled(self)?) } else { None };
-                (start, stop, step)
+                this.bump();
+                this.expr(0)
             };
+            let start = labelled(self, "from")?;
+            self.expect(&Tok::Comma, "`,` between the range's start and stop")?;
+            let stop = labelled(self, "to")?;
+            if !self.eat(&Tok::Comma) {
+                return self.fail("a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]`");
+            }
+            let step = Some(labelled(self, "by")?);
             self.expect(&Tok::RBracket, "`]` closing the range")?;
             let _ = rstart;
             ForIter::Range { start, stop, step }
@@ -2614,7 +2667,7 @@ impl<'a> Parser<'a> {
                         bindings.push(AsmBinding::Clobber(reg));
                     }
                     Tok::Word(w) if w == "in" || w == "out" || w == "inout" => {
-                        return self.fail(format!("there is no `{}` word: the arrow is the direction — `'v' --> x0` copies in, `'v' <-- x0` stores out, `'v' <--> x0` both", w));
+                        return self.fail(format!("there is no `{}` word: the arrow is the direction — `'v' -> x0` copies in, `'v' <- x0` stores out, `'v' <-> x0` both", w));
                     }
                     // A lend satisfies a pointer, as at an extern call
                     // (owner, 2026-09-30: a): `lend 'text' -> x1`.
@@ -2633,7 +2686,7 @@ impl<'a> Parser<'a> {
                         match self.peek().clone() {
                             Tok::Op(o) if o == "->" => {}
                             Tok::Op(o) if o == "<-" || o == "<->" => {
-                                return self.fail(format!("a lend goes into a register only: `{} '{}' --> x1` puts the address of '{}' there", if mutable { "lend.mut" } else { "lend" }, name.name, name.name));
+                                return self.fail(format!("a lend goes into a register only: `{} '{}' -> x1` puts the address of '{}' there", if mutable { "lend.mut" } else { "lend" }, name.name, name.name));
                             }
                             other => return self.fail(format!("expected `->` after `lend '{}'`: its address goes into a register, found {}", name.name, other.describe())),
                         }
@@ -2653,7 +2706,7 @@ impl<'a> Parser<'a> {
                         let reg = self.ident("a register")?;
                         bindings.push(AsmBinding::Reg { name, dir, reg });
                     }
-                    other => return self.fail(format!("expected a binding (`'v' --> x0`, `'n' <-- x0`, `lend 'text' --> x1`, `clobber x16`), found {}", other.describe())),
+                    other => return self.fail(format!("expected a binding (`'v' -> x0`, `'n' <- x0`, `lend 'text' -> x1`, `clobber x16`), found {}", other.describe())),
                 }
                 if !self.eat(&Tok::Comma) {
                     break;
@@ -2671,10 +2724,7 @@ impl<'a> Parser<'a> {
         // A value alone before the `}` is its block's value — a `match`
         // case's or an `otherwise` arm's (owner, 2026-09-29: a).
         if self.is(&Tok::RBrace) {
-            if self.strict {
-                return self.fail_at(e.span, "a case says its value with `giveS`: `{ giveS 1; }` — a `#strict` file writes it out");
-            }
-            return Ok(StmtKind::Gives { value: e, bare: true });
+            return self.fail_at(e.span, "a case says its value with `is`: `a { is …; }`");
         }
         if self.is(&Tok::Colon) {
             if let ExprKind::Name(n) = &e.kind {
@@ -3009,9 +3059,9 @@ impl<'a> Parser<'a> {
                     ">" => BinOp::Gt,
                     "</==" => BinOp::Le,
                     ">/==" => BinOp::Ge,
-                    "<==" => return self.fail_at(at, "less-or-equal is `</==`: `op </==`"),
-                    ">==" => return self.fail_at(at, "greater-or-equal is `>/==`: `op >/==`"),
-                    "=" => return self.fail_at(at, "`=` is not an operator: equality is `op ==`"),
+                    "<==" => return self.fail_at(at, "less-or-equal is `at_most`: `op at_most`"),
+                    ">==" => return self.fail_at(at, "greater-or-equal is `at_least`: `op at_least`"),
+                    "=" => return self.fail_at(at, "`=` is not an operator: equality is `op equal_to`"),
                     other => BinOp::Custom(other.to_string()),
                 }
             }
@@ -3301,10 +3351,17 @@ impl<'a> Parser<'a> {
             }
             // The near-misses the language refuses by name.
             if let BinOp::Custom(c) = &op {
+                // The comparisons are words (owner, 2026-10-07).
+                let word = match c.as_str() {
+                    "!=" => Some("not-equal is `not_equal`"),
+                    ">=" | ">==" => Some("greater-or-equal is `at_least`"),
+                    "<=" | "<==" => Some("less-or-equal is `at_most`"),
+                    _ => None,
+                };
+                if let Some(h) = word {
+                    return self.fail_at(op_span, format!("`{}` is not an operator; {}", c, h));
+                }
                 let hint = match c.as_str() {
-                    "!=" => Some("not-equal is `!==`"),
-                    ">=" | ">==" => Some("greater-or-equal is `>/==`, the slash read as \"or\""),
-                    "<=" | "<==" => Some("less-or-equal is `</==`, the slash read as \"or\""),
                     "/" => Some("division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `'a' div.floor 'b'`"),
                     "--" => Some("there is no decrement: write `change 'i' = 'i' minus 1;`"),
                     "+=" | "-=" => Some("there is no compound assignment: write `change 'i' = 'i' plus 1;`"),
@@ -3369,7 +3426,7 @@ impl<'a> Parser<'a> {
                 }
                 if op.is_mod() || inner.is_mod() {
                     let m = if op.is_mod() { op.spelled() } else { inner.spelled() };
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`('i' {} 2) == 0`)", inner.spelled(), op.spelled(), m, if m.contains('.') { m.clone() } else { format!("{}.floor", m) }));
+                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`('i' {} 2) equal_to 0`)", inner.spelled(), op.spelled(), m, if m.contains('.') { m.clone() } else { format!("{}.floor", m) }));
                 }
                 if (op.is_div() && inner.is_multiplicative()) || (op.is_multiplicative() && inner.is_div()) {
                     return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div.floor 2 times 3`) — parenthesise one side", inner.spelled(), op.spelled()));
@@ -3379,7 +3436,7 @@ impl<'a> Parser<'a> {
                 }
             }
             if op.is_comparison() && matches!(side.kind, ExprKind::Unary { op: UnOp::Not, .. }) {
-                return self.fail_at(op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ('a' == 'b')`)", op.spelled()));
+                return self.fail_at(op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ('a' equal_to 'b')`)", op.spelled()));
             }
         }
         Ok(())
@@ -3440,14 +3497,14 @@ impl<'a> Parser<'a> {
             // std's; glued, it marks a rule.
             Tok::Op(o) if o == "!" => {
                 if self.adjacent(0, 1) {
-                    return self.fail("a glued `!` marks a rule (`!mut`, `!$`, `!check`, `!cheat`); to negate a value, space it: `! 'ready'`");
+                    return self.fail("a glued `!` marks a rule (`immut`, `no_shadow`, `no_check`, `no_cheat`); to negate a value, space it: `! 'ready'`");
                 }
                 self.std_gate("!", start)?;
                 self.bump();
                 let operand = self.expr(2 * CMP_LEVEL)?;
                 if let ExprKind::Binary { op, op_span, .. } = &operand.kind {
                     if op.is_comparison() {
-                        return self.fail_at(*op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ('a' == 'b')`)", op.spelled()));
+                        return self.fail_at(*op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ('a' equal_to 'b')`)", op.spelled()));
                     }
                 }
                 let span = start.to(operand.span);
@@ -3470,7 +3527,7 @@ impl<'a> Parser<'a> {
                     let operand = self.expr(2 * CMP_LEVEL)?;
                     if let ExprKind::Binary { op, op_span, .. } = &operand.kind {
                         if op.is_comparison() {
-                            return self.fail_at(*op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ('a' == 'b')`)", op.spelled()));
+                            return self.fail_at(*op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ('a' equal_to 'b')`)", op.spelled()));
                         }
                     }
                     let span = start.to(operand.span);
@@ -3574,10 +3631,17 @@ impl<'a> Parser<'a> {
                         return self.fail("`range` builds its bounds from values; a counter's type goes on its name: `for 'i': int32 in range[0, 3]`");
                     }
                     self.expect(&Tok::LBracket, "`[` after `range`")?;
+                    self.eat_word("from");
                     let s = self.expr(0)?;
                     self.expect(&Tok::Comma, "`,`")?;
+                    self.eat_word("to");
                     let e = self.expr(0)?;
-                    let step = if self.eat(&Tok::Comma) { Some(Box::new(self.expr(0)?)) } else { None };
+                    let step = if self.eat(&Tok::Comma) {
+                        self.eat_word("by");
+                        Some(Box::new(self.expr(0)?))
+                    } else {
+                        None
+                    };
                     self.expect(&Tok::RBracket, "`]`")?;
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::Range { start: Box::new(s), stop: Box::new(e), step }, span })
@@ -3632,7 +3696,7 @@ impl<'a> Parser<'a> {
                     let Tok::Name(n) = self.peek().clone() else { unreachable!() };
                     let span = self.bump().span;
                     if limb.name == "std" {
-                        self.std_gate(&format!("std::'{}'", n), limb.span.to(span))?;
+                        self.std_gate(&format!("stdkit::'{}'", n), limb.span.to(span))?;
                     }
                     let path = Path { limb: Some(limb.clone()), segs: Vec::new(), span: limb.span.to(span) };
                     let e = Expr { span: start.to(span), kind: ExprKind::ConstPath { path, name: QName { name: n, span } } };
@@ -3655,9 +3719,11 @@ impl<'a> Parser<'a> {
                     }
                     // `std::print.weird…` takes each value after a `<-`, C++'s
                     // `cout <<` (owner, 2026-10-01), and no `[ ]`.
-                    let weird = path.limb.as_ref().is_some_and(|l| l.name == "std") && path.segs.len() >= 2 && path.segs[0].name == "print" && path.segs.iter().any(|s| s.name == "weird");
+                    // Bare too: stdkit is `bare.optional` for all (owner,
+                    // 2026-10-06).
+                    let weird = path.limb.as_ref().is_none_or(|l| l.name == "std") && path.segs.len() >= 2 && path.segs[0].name == "print" && path.segs.iter().any(|s| s.name == "weird");
                     if weird && self.is(&Tok::LBracket) {
-                        return self.fail(format!("`{}` takes its values with arrows, not `[ ]`: `{} <-- \"n is \" <-- 'n' <-- \\n;`", path.spelled(), path.spelled()));
+                        return self.fail(format!("`{}` takes its values with arrows, not `[ ]`: `{} <- \"n is \" <- 'n' <- newln;`", path.spelled(), path.spelled()));
                     }
                     if weird && self.is_op("<-") {
                         let mut args = Vec::new();
@@ -3672,7 +3738,7 @@ impl<'a> Parser<'a> {
                         return Ok(e);
                     }
                     if weird {
-                        return self.fail(format!("`{}` takes at least one value, each after a `<--`: `{} <-- 'n' <-- \\n;`", path.spelled(), path.spelled()));
+                        return self.fail(format!("`{}` takes at least one value, each after a `<-`: `{} <- 'n' <- newln;`", path.spelled(), path.spelled()));
                     }
                     if self.is(&Tok::LBracket) {
                         self.bump();
@@ -3807,13 +3873,9 @@ impl<'a> Parser<'a> {
                     self.bump();
                     let mut args = self.args()?;
                     let span = e.span.to(self.prev_span());
-                    // A strict file says `pos` on every position, so there
-                    // a read is `[pos …]` and anything else is a call.
-                    let one = if self.strict {
-                        args.len() == 1 && matches!(&args[0], Arg::Positional(x) if matches!(x.kind, ExprKind::Pos(_)))
-                    } else {
-                        args.len() == 1 && matches!(&args[0], Arg::Positional(x) if !matches!(x.kind, ExprKind::Verb { .. } | ExprKind::Spread { .. }))
-                    };
+                    // `pos` on every position (owner, 2026-10-07), so a read
+                    // is `[pos …]` and anything else is a call.
+                    let one = args.len() == 1 && matches!(&args[0], Arg::Positional(x) if matches!(x.kind, ExprKind::Pos(_)));
                     if one {
                         let Some(Arg::Positional(index)) = args.pop() else { unreachable!() };
                         let index = match index.kind {
@@ -3865,33 +3927,21 @@ impl<'a> Parser<'a> {
                     return self.fail(format!("a field's name is bare in a construction: `{} = …`, not `'{}' = …`", n, n));
                 }
             }
-            // `list.fill[0, count 10]`: a strict file labels the count
-            // (owner, 2026-09-30); elsewhere it is refused, as `pos` is.
-            if self.is_word("count") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket) {
-                if !self.strict {
-                    return self.fail("`count` belongs to `#strict` files: `list.fill[0, 10]`");
-                }
+            // The labels (owner, 2026-10-07): `pos 2` where a position
+            // goes, `list.fill[value 0, count 10]`, `simd.fill[value 0]` —
+            // the words, not a function someone named so.
+            let label = ["pos", "count", "value"].into_iter().find(|w| self.is_word(w));
+            if let Some(w) = label.filter(|_| !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket)) {
                 let start = self.span();
                 self.bump();
-                let inner = self.expr(0)?;
+                let inner = Box::new(self.expr(0)?);
                 let span = start.to(self.prev_span());
-                args.push(Arg::Positional(Expr { kind: ExprKind::Count(Box::new(inner)), span }));
-                if !self.eat(&Tok::Comma) {
-                    break;
-                }
-                continue;
-            }
-            // `pos` the old keyword, not a function someone named `pos`.
-            if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket) {
-                if !self.strict {
-                    return self.fail("`pos` is gone: a position is written bare — `'xs'[2]`, `list.slice[lend 'xs', 2, 4]`");
-                }
-                // A strict file says every position (owner, 2026-09-27).
-                let start = self.span();
-                self.bump();
-                let inner = self.expr(0)?;
-                let span = start.to(self.prev_span());
-                args.push(Arg::Positional(Expr { kind: ExprKind::Pos(Box::new(inner)), span }));
+                let kind = match w {
+                    "pos" => ExprKind::Pos(inner),
+                    "count" => ExprKind::Count(inner),
+                    _ => ExprKind::Value(inner),
+                };
+                args.push(Arg::Positional(Expr { kind, span }));
                 if !self.eat(&Tok::Comma) {
                     break;
                 }
@@ -3920,13 +3970,13 @@ impl<'a> Parser<'a> {
         let params = self.params(ParamContext::Fn)?;
         let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] --> lent T`)");
+            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent 'a': T] -> lent T`)");
         }
         let captures = if self.eat_word("with") { self.captures()? } else { Vec::new() };
         let outer = std::mem::replace(&mut self.returns_value, false);
         let body = self.block("the function")?;
-        if self.strict && self.returns_value && ret.is_none() {
-            return self.fail_at(start, "this function returns a value, so it says its type: `fn [ … ] --> int32 { … }` — a `#strict` file writes it out");
+        if self.returns_value && ret.is_none() {
+            return self.fail_at(start, "this function returns a value, so it says its type: `-> int32`");
         }
         self.returns_value = outer;
         let span = start.to(self.prev_span());

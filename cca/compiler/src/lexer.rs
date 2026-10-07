@@ -50,12 +50,13 @@ impl Tok {
             Tok::Str(_) => "a text".into(),
             Tok::Char(_) => "a character".into(),
             Tok::Num { text, .. } => text.clone(),
-            Tok::Newline => "\\n".into(),
+            Tok::Newline => "`newln`".into(),
             Tok::Word(w) => format!("`{}`", w),
-            // An arrow by its main spelling (owner, 2026-10-03, 2026-10-06).
-            Tok::Op(o) if o == "->" => "`-->`".to_string(),
-            Tok::Op(o) if o == "<-" => "`<--`".to_string(),
-            Tok::Op(o) if o == "<->" => "`<-->`".to_string(),
+            // The comparisons by their words (owner, 2026-10-07).
+            Tok::Op(o) if o == "==" => "`equal_to`".to_string(),
+            Tok::Op(o) if o == "!==" => "`not_equal`".to_string(),
+            Tok::Op(o) if o == "</==" => "`at_most`".to_string(),
+            Tok::Op(o) if o == ">/==" => "`at_least`".to_string(),
             Tok::Op(o) => format!("`{}`", o),
             Tok::Raw(_) => "a raw block".into(),
             Tok::Strict => "`#strict`".into(),
@@ -85,9 +86,9 @@ pub struct Token {
     /// The first token on its line: an interface's types go one per line
     /// (owner, 2026-10-02).
     pub line_first: bool,
-    /// Written in one of MTM's spellings (owner, 2026-10-06): what was
-    /// written and the main spelling it stands for, which a Limb without
-    /// MTM is refused.
+    /// Written in an old spelling (the 2026-10-07 revision; MTM's before
+    /// it, owner: "MTM is gone."): what was written and the spelling that
+    /// replaces it, which every Limb is refused, naming it.
     pub alt: Option<(String, &'static str)>,
 }
 
@@ -191,7 +192,8 @@ impl<'a> Lexer<'a> {
                     self.bump();
                     if self.peek() == Some('n') {
                         self.bump();
-                        self.push(Tok::Newline, start);
+                        // `newln` since 2026-10-07 (owner).
+                        self.push_alt(Tok::Newline, start, Some(("\\n".into(), "newln")));
                     } else {
                         return self.fail(start, "a bare backslash: only `\\n` is a value outside a text; inside a text only `\\\"` and `\\\\` escape");
                     }
@@ -220,12 +222,17 @@ impl<'a> Lexer<'a> {
                         (_, _, Some(rest)) => format!("<-{}", rest),
                         _ => text,
                     };
-                    // Signatar's arrows are `-->`, `<--`, `<-->`; the
-                    // other fourteen are MTM's (owner, 2026-10-06).
+                    // The arrows are short again, `->`, `<-`, `<->` (owner,
+                    // 2026-10-07); the others are old spellings. So are the
+                    // comparisons' glyphs, words since that day.
                     let main = match text.as_str() {
-                        "->" => Some("-->"),
-                        "<-" => Some("<--"),
-                        "<->" => Some("<-->"),
+                        "->" => Some("->"),
+                        "<-" => Some("<-"),
+                        "<->" => Some("<->"),
+                        "==" => Some("equal_to"),
+                        "!==" => Some("not_equal"),
+                        "</==" => Some("at_most"),
+                        ">/==" => Some("at_least"),
                         _ => None,
                     };
                     let alt = main.filter(|m| *m != written).map(|m| (written, m));
@@ -511,25 +518,30 @@ impl<'a> Lexer<'a> {
             self.bump();
         }
         let text = self.src[start..self.pos].to_string();
-        // Glued, a `!` marks a rule (owner, 2026-10-06): `!check` and
-        // `!mut` are the main spellings, read as the words they replace;
-        // `nocheck` and `immut` are MTM's.
-        if text == "check" || text == "mut" {
-            if let Some(last) = self.toks.last() {
-                if last.tok == Tok::Op("!".into()) && last.span.end as usize == start {
-                    let from = last.span.start as usize;
-                    self.toks.pop();
-                    self.push(Tok::Word(if text == "check" { "nocheck" } else { "immut" }.into()), from);
-                    return Ok(());
-                }
-            }
-        }
+        // The 2026-10-07 revision's words (owner), read as the tokens the
+        // compiler always used: `no_check` is the old `!check`, the
+        // comparisons are their glyphs, `newln` the newline piece, `stdkit`
+        // the Limb that was `std`.
+        let tok = match text.as_str() {
+            "no_check" => Tok::Word("nocheck".into()),
+            "equal_to" => Tok::Op("==".into()),
+            "not_equal" => Tok::Op("!==".into()),
+            "at_most" => Tok::Op("</==".into()),
+            "at_least" => Tok::Op(">/==".into()),
+            "newln" => Tok::Newline,
+            "stdkit" => Tok::Word("std".into()),
+            "auto_newln" => Tok::Word("auto_newline".into()),
+            _ => Tok::Word(text.clone()),
+        };
+        // Its old spellings, refused naming the new (owner: "MTM is gone.").
         let alt = match text.as_str() {
-            "immut" => Some((text.clone(), "!mut")),
-            "nocheck" => Some((text.clone(), "!check")),
+            "nocheck" => Some((text.clone(), "no_check")),
+            "std" => Some((text.clone(), "stdkit")),
+            "auto_newline" => Some((text.clone(), "auto_newln")),
+            "gives" | "giveS" => Some((text.clone(), "is")),
             _ => None,
         };
-        self.push_alt(Tok::Word(text), start, alt);
+        self.push_alt(tok, start, alt);
         Ok(())
     }
 }

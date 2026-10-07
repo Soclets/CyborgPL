@@ -2,11 +2,11 @@
 # 63), the bits past it cut off, a signed answer read as signed. 254 + 64 + 127
 # - 1 - 128 - 64 = 252, as the oracle has it.
 extern.C fn exit ['code': int32];
-fn n255 [] --> uint8 { return 255; }
-fn one [] --> int64 { return 1; }
-fn one8 [] --> int8 { return 1; }
-fn low8 [] --> int8 { return -128; }
-fn minus1 [] --> int32 { return -1; }
+fn n255 [] -> uint8 { return 255; }
+fn one [] -> int64 { return 1; }
+fn one8 [] -> int8 { return 1; }
+fn low8 [] -> int8 { return -128; }
+fn minus1 [] -> int32 { return -1; }
 MAIN {
     let 'up': uint8 = n255[] shl.masked 1;
     let 'far': int64 = one[] shl.masked 70;
@@ -16,5 +16,5 @@ MAIN {
     let 'ar': int8 = low8[] shr.masked 9;
     let 'a': int32 = to.int32['up'] plus to.int32['far'] plus to.int32['down'];
     let 'b': int32 = to.int32['neg' shr 63] plus to.int32['sgn'] plus to.int32['ar'];
-    !check my.exit[('a' plus 'b') mod.floor 256];
+    no_check my.exit[('a' plus 'b') mod.floor 256];
 }

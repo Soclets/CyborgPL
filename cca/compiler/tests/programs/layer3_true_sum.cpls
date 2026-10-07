@@ -4,14 +4,14 @@
 # asked at the true value now: this must stop. 'n' is 97, and up(97) goes
 # through up(98).
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] --> uint64;
-fn up ['n': int64[0, 100]] --> int64 {
-    if 'n' >/== 100 { return 1; }
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+fn up ['n': int64[0, 100]] -> int64 {
+    if 'n' at_least 100 { return 1; }
     return up['n' plus 1] plus 9_000_000_000_000_000_000;
 }
 MAIN {
     let 's' := "ninety-eight bytes of text, counted by strlen at run time so nothing is known while compiling!!!!";
-    !check let 'n': uint64 = strlen[lend 's'];
+    no_check let 'n': uint64 = strlen[lend 's'];
     let 'k': int64[0, 100] = to.int64['n' mod.floor 101];
-    !check my.exit[to.int32[up['k'] mod.floor 256]];
+    no_check my.exit[to.int32[up['k'] mod.floor 256]];
 }

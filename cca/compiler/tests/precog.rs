@@ -103,7 +103,7 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
          \x20   return 'y';\n\
          }\n\
          MAIN {\n\
-         \x20   nocheck let 'u' := getuid[];\n\
+         \x20   no_check let 'u' := getuid[];\n\
          \x20   let 'r' := bump['u'];\n\
          }\n",
     );
@@ -128,8 +128,8 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
     let p = build(
         "extern.C fn getpid [] -> int32;\n\
          MAIN {\n\
-         \x20   nocheck let 'a': uint8 = to.uint8[getpid[]];\n\
-         \x20   nocheck let 'b': uint8 = to.uint8[getpid[]];\n\
+         \x20   no_check let 'a': uint8 = to.uint8[getpid[]];\n\
+         \x20   no_check let 'b': uint8 = to.uint8[getpid[]];\n\
          \x20   if 'a' < 'b' {\n\
          \x20       let 'gap': uint8 = 'b' minus 'a';\n\
          \x20   }\n\
@@ -158,13 +158,13 @@ const PROGRAMS: &[&str] = &[
      fn b8 ['x': int8] -> int8 { let 'y': int8 = 'x' plus 1; return 'y'; }\n\
      fn b64 ['x': int64] -> int64 { let 'y': int64 = 'x' plus 1; return 'y'; }\n\
      MAIN {\n\
-     \x20   nocheck let 'p' := getpid[];\n\
-     \x20   nocheck let 'u8': uint8 = to.uint8['p'];\n\
-     \x20   nocheck let 'u16': uint16 = to.uint16['p'];\n\
-     \x20   nocheck let 'u32': uint32 = to.uint32['p'];\n\
-     \x20   nocheck let 'u64': uint64 = to.uint64['p'];\n\
-     \x20   nocheck let 'i8': int8 = to.int8['p'];\n\
-     \x20   nocheck let 'i64': int64 = to.int64['p'];\n\
+     \x20   no_check let 'p' := getpid[];\n\
+     \x20   no_check let 'u8': uint8 = to.uint8['p'];\n\
+     \x20   no_check let 'u16': uint16 = to.uint16['p'];\n\
+     \x20   no_check let 'u32': uint32 = to.uint32['p'];\n\
+     \x20   no_check let 'u64': uint64 = to.uint64['p'];\n\
+     \x20   no_check let 'i8': int8 = to.int8['p'];\n\
+     \x20   no_check let 'i64': int64 = to.int64['p'];\n\
      \x20   let 'r1' := a8['u8'];\n\
      \x20   let 'r2' := a16['u16'];\n\
      \x20   let 'r3' := a32['u32'];\n\
@@ -174,10 +174,10 @@ const PROGRAMS: &[&str] = &[
      }\n",
     "extern.C fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'a': uint8 = to.uint8[getpid[]];\n\
-     \x20   nocheck let 'b': uint16 = to.uint16[getpid[]];\n\
-     \x20   nocheck let 'c': uint32 = to.uint32[getpid[]];\n\
-     \x20   nocheck let 'd': uint64 = to.uint64[getpid[]];\n\
+     \x20   no_check let 'a': uint8 = to.uint8[getpid[]];\n\
+     \x20   no_check let 'b': uint16 = to.uint16[getpid[]];\n\
+     \x20   no_check let 'c': uint32 = to.uint32[getpid[]];\n\
+     \x20   no_check let 'd': uint64 = to.uint64[getpid[]];\n\
      \x20   let 'w': uint8 = 'a' plus 1;\n\
      \x20   let 'x': uint16 = 'b' plus 1;\n\
      \x20   let 'y': uint32 = 'c' plus 1;\n\
@@ -185,10 +185,10 @@ const PROGRAMS: &[&str] = &[
      }\n",
     "extern.C fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'a': int8 = to.int8[getpid[]];\n\
-     \x20   nocheck let 'b': int16 = to.int16[getpid[]];\n\
-     \x20   nocheck let 'c': int32 = getpid[];\n\
-     \x20   nocheck let 'd': int64 = to.int64[getpid[]];\n\
+     \x20   no_check let 'a': int8 = to.int8[getpid[]];\n\
+     \x20   no_check let 'b': int16 = to.int16[getpid[]];\n\
+     \x20   no_check let 'c': int32 = getpid[];\n\
+     \x20   no_check let 'd': int64 = to.int64[getpid[]];\n\
      \x20   let 'w': int8 = 'a' minus 1;\n\
      \x20   let 'x': int16 = 'b' times 2;\n\
      \x20   let 'y': int32 = 'c' plus 'c';\n\
@@ -196,16 +196,16 @@ const PROGRAMS: &[&str] = &[
      }\n",
     "extern.C fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'n': int32 = getpid[];\n\
+     \x20   no_check let 'n': int32 = getpid[];\n\
      \x20   let 'r': int32[1, 10] = 'n';\n\
      \x20   let 'q': int32 = 100 div.floor 'n';\n\
      \x20   let 'm': int32 = 100 mod.floor 'n';\n\
      }\n",
     "extern.C fn getpid [] -> int32;\n\
      MAIN {\n\
-     \x20   nocheck let 'n': int32 = getpid[];\n\
+     \x20   no_check let 'n': int32 = getpid[];\n\
      \x20   let mut 'total': int32 = 0;\n\
-     \x20   for 'i': int32 in range[1, 10] {\n\
+     \x20   for 'i': int32 in range[from 1, to 10, by 1] {\n\
      \x20       change 'total' = 'total' plus 'i' plus 'n';\n\
      \x20   }\n\
      }\n",

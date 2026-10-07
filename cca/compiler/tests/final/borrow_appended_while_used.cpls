@@ -1,10 +1,10 @@
 # An append changes the list (check claude, 2026-09-29): while 'r', a borrow
 # of 's' that `first` handed back, is still used, 1000 appends would move
 # 's''s storage from under it — CCA's binary read freed memory. Refused.
-fn first [lent 'a': list[int32]] --> lent list[int32] { return lend 'a'; }
+fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
 MAIN {
     let mut 's': list[int32] = [1, 2, 3];
     let 'r' := first[lend 's'];
-    for 'k': int32 in range[1, 1000] { list.append[lend.mut 's', 'k']; }
+    for 'k': int32 in range[from 1, to 1000, by 1] { list.append[lend.mut 's', 'k']; }
     let 'n' := list.length[lend 'r'];
 }

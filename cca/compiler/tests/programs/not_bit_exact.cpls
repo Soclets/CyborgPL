@@ -7,5 +7,5 @@ MAIN {
     let 'c': uint32 = not.bit ('v' plus 1);
     let 'x': int8 = -102;
     let 'y': int8 = not.bit 'x';
-    !check my.exit[to.int32[('c' mod.floor 256) plus to.uint32['y']]];
+    no_check my.exit[to.int32[('c' mod.floor 256) plus to.uint32['y']]];
 }

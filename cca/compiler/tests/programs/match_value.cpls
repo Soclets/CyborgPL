@@ -5,24 +5,24 @@
 # not a number, -2 → 4 + 12 + 8 + 100 - 2 = 122).
 extern.C fn exit ['code': int32];
 enum Status { empty  claimed: str.utf8  locked }
-fn label ['s': Status] --> str.utf8 {
+fn label ['s': Status] -> str.utf8 {
     let 'text' := match 's' {
-        empty         { "free" }
-        claimed 'who' { "taken by " ++ 'who' }
+        empty         { is "free"; }
+        claimed 'who' { is "taken by " ++ 'who'; }
         locked        { return "(locked)"; }
     };
     return give 'text';
 }
-fn width ['s': Status] --> int32 {
+fn width ['s': Status] -> int32 {
     let 'l' := label[give 's'];
     return to.int32[str.bytes[lend 'l']];
 }
 MAIN {
-    let 'n' := to.int32["12x"] otherwise { not_a_number { -2 } out_of_range { -1 } };
+    let 'n' := to.int32["12x"] otherwise { not_a_number { is -2; } out_of_range { is -1; } };
     let 'k': int32 = match Status.empty {
-        empty { 100 }
-        claimed 'w' { 0 }
-        locked { 0 }
+        empty { is 100; }
+        claimed 'w' { is 0; }
+        locked { is 0; }
     };
-    !check my.exit[width[Status.empty] plus width[Status.claimed["ann"]] plus width[Status.locked] plus 'k' plus 'n'];
+    no_check my.exit[width[Status.empty] plus width[Status.claimed["ann"]] plus width[Status.locked] plus 'k' plus 'n'];
 }

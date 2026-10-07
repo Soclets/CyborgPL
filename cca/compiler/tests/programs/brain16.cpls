@@ -1,11 +1,11 @@
-# The brain float (owner, 2026-10-02): `brain16`, `bfloat16`, `bf16`. Literals
+# The brain float (owner, 2026-10-02): `brain16` (`bf16` and `bfloat16` were old spellings). Literals
 # round to the nearest, each step rounds, and it converts to and from every
 # number family and text, both forms of each. The oracle gives 66.
 extern.C fn exit ['code': int32];
 MAIN {
     let 'a': brain16 = 0.1;
-    let 'b': bf16 = 0.2;
-    let 'c': bfloat16 = 'a' plus 'b';
+    let 'b': brain16 = 0.2;
+    let 'c': brain16 = 'a' plus 'b';
     let 'x': bin64 = 300.7;
     let 'w' := to.brain16['x'];
     let 'back' := to.bin32['w'];
@@ -21,10 +21,10 @@ MAIN {
     let 'h' := to.bin16['w'];
     let 'k1' := to.int32['d' times 10] otherwise -1;
     let 'k2' := to.int32['ds' times 100000000000] otherwise -1;
-    let 'k3' := to.int32['p' times 'xs'[3]] otherwise -1;
+    let 'k3' := to.int32['p' times 'xs'[pos 3]] otherwise -1;
     let 'k4' := to.int32['q'] otherwise -1;
     let 'k5' := to.int32['h'] otherwise -1;
     let 'k6' := to.int32['back'] otherwise -1;
     let 'total' := 'n' plus ('cc' mod.floor 1000) plus str.bytes[lend 's'] plus str.bytes[lend 't'] plus 'k1' plus ('k2' mod.floor 1000) plus 'k3' plus ('k4' mod.floor 1000) plus 'k5' plus 'k6';
-    !check my.exit[to.int32['total' mod.floor 256]];
+    no_check my.exit[to.int32['total' mod.floor 256]];
 }

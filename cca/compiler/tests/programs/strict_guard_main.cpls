@@ -1,18 +1,17 @@
-#strict
 # A strict file's MAIN says its own reason too (check claude, seed 6430):
 # 'v' is whatever `pick` declares, any `uint32`, and `'v' !== 0 and.then
 # (15 mod 'v')` is guarded by the `!==` alone. A range could not lose a
 # value it holds at one end; now 0 at the bottom of a `uint32` goes.
 # 15 mod 1 is 0; 0 !== 3, so 5.
 extern.C fn exit ['code': int32];
-fn pick ['n': uint32] --> uint32 {
+fn pick ['n': uint32] -> uint32 {
     return 'n';
 }
 MAIN {
-    let !mut 'v': uint32 = pick[1];
+    let immut 'v': uint32 = pick[1];
     let mut 'code': int32 = 0;
-    if 'v' !== 0 and.then (15 mod.floor 'v') !== 3 {
+    if 'v' not_equal 0 and.then (15 mod.floor 'v') not_equal 3 {
         change 'code' = 5;
     }
-    !check my.exit['code'];
+    no_check my.exit['code'];
 }

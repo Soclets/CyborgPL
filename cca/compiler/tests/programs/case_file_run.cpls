@@ -15,16 +15,16 @@ enum Mood {
     Grumpy
 }
 
-fn Sum ['p': Point] --> int32 {
+fn Sum ['p': Point] -> int32 {
     return 'P'.x plus 'p'.y plus 'LIMIT';
 }
 
-fn Score ['m': Mood] --> int32 {
-    return match 'M' { HAPPY { 2 } grumpy { 1 } };
+fn Score ['m': Mood] -> int32 {
+    return match 'M' { HAPPY { is 2; } grumpy { is 1; } };
 }
 
 MAIN {
     let 'pt' := POINT[x = 1, y = 2];
     let 'Total' := SUM[copy 'PT'] plus sum[copy 'Pt'] times 10;
-    !check my.EXIT['total' plus score[mood.happy]];
+    no_check my.EXIT['total' plus score[mood.happy]];
 }

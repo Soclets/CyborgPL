@@ -1,4 +1,3 @@
-#strict
 # A `#strict` file (owner, 2026-09-27): `pos` on every position, every
 # parameter's and return type, `mut`/`immut` on every declaration,
 # `temp`/`perm` on every `for`, labelled ranges, and each site proven from its own function —
@@ -6,16 +5,16 @@
 # as an exit code; the closure's 'n' carries a range, so its multiply is
 # proven there too). 100 + (20 + 30) + 25 + 6 = 181.
 extern.C fn exit ['code': int32];
-fn ratio ['n': int32[1, max]] --> int32 { return 100 div.floor 'n'; }
+fn ratio ['n': int32[1, max]] -> int32 { return 100 div.floor 'n'; }
 MAIN {
-    let !mut 'xs': list[int32] = [10, 20, 30, 40];
+    let immut 'xs': list[int32] = [10, 20, 30, 40];
     let mut 'total': int32 = 0;
     for temp 'i': uint64 in range[from 1, to 4, by 1] {
         change 'total' = 'total' plus 'xs'[pos 'i'];
     }
-    let !mut 'mid' := list.slice[lend 'xs', pos 2, pos 3];
-    let !mut 'f' := fn ['n': int32[0, 1000]] --> int32 { return 'n' times 2; };
-    let !mut 'r' := ratio[4];
-    let !mut 'six' := 'f'[3];
-    !check my.exit['total' plus 'mid'[pos 1] plus 'mid'[pos 2] plus 'r' plus 'six'];
+    let immut 'mid' := list.slice[lend 'xs', pos 2, pos 3];
+    let immut 'f' := fn ['n': int32[0, 1000]] -> int32 { return 'n' times 2; };
+    let immut 'r' := ratio[4];
+    let immut 'six' := 'f'[pos 3];
+    no_check my.exit['total' plus 'mid'[pos 1] plus 'mid'[pos 2] plus 'r' plus 'six'];
 }

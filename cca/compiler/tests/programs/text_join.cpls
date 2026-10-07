@@ -1,5 +1,5 @@
 extern.C fn exit ['code': int32];
-fn greet [lent 'who': str.utf8] --> str.utf8 {
+fn greet [lent 'who': str.utf8] -> str.utf8 {
     return "hello, " ++ 'who';
 }
 MAIN {
@@ -7,5 +7,5 @@ MAIN {
     let 'msg' := greet[lend 'name'];
     let 'n': int32 = str.bytes[lend 'msg'];
     let 'plain': int32 = str.bytes[lend 'name'];
-    !check my.exit['n' plus 'plain'];
+    no_check my.exit['n' plus 'plain'];
 }

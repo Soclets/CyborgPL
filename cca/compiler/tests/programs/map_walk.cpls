@@ -13,5 +13,5 @@ MAIN {
     for 'k' in map.keys[lend 'm'] {
         change 'keylen' = 'keylen' plus str.bytes[lend 'k'];
     }
-    !check my.exit['acc' plus 'keylen'];
+    no_check my.exit['acc' plus 'keylen'];
 }

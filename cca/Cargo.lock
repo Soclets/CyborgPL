@@ -29,11 +29,19 @@ name = "cca-base"
 version = "0.0.1"
 
 [[package]]
+name = "cca-core-ai"
+version = "0.0.1"
+
+[[package]]
 name = "cca-core-asp"
 version = "0.0.1"
 
 [[package]]
 name = "cca-core-autogpu"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-caps"
 version = "0.0.1"
 
 [[package]]
@@ -53,7 +61,7 @@ name = "cca-core-metal"
 version = "0.0.1"
 
 [[package]]
-name = "cca-core-mtm"
+name = "cca-core-money"
 version = "0.0.1"
 
 [[package]]
@@ -61,7 +69,19 @@ name = "cca-core-nvidia"
 version = "0.0.1"
 
 [[package]]
+name = "cca-core-tas"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-unitect"
+version = "0.0.1"
+
+[[package]]
 name = "cca-core-vulkan"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-wsmw"
 version = "0.0.1"
 
 [[package]]

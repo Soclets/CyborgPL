@@ -1,4 +1,21 @@
-# Plugins: how codextras and cores plug into CCA (proposal)
+# Plugins: how cores plug into CCA (proposal)
+
+**Since 2026-10-07 (owner; DECISIONS 2026-10-07, "No base and no
+codextras")**: there is no base below the language and no codextras.
+Signatar is the lowest level and does what this proposal gave the base
+(reading files and manifests, loading cores, checking powers, handing IR
+to LLVM); dialects were tried and dropped the same day ("just let them
+fork so they could do whatever they want"). A core may also **take powers
+away** (owner: "`a`"; a game engine's core forbidding raw memory to the
+limbs built with it). So the three boundaries below are one, Signatar ↔
+core; (A) and (C) are inside Signatar now, and the `cca-base` crate from
+step 1 is Signatar's power ledger, not a layer under it. The rename of
+Signatar to "base CyborgPL" is recorded and not applied ("Record, don't
+implement yet"). MTM is gone (its spellings are old ones, refused); the
+slimmer base added TAS, AI, WSMW, Money, UniTect and CAPS, and ASP took
+the range types and length bounds (section 1). The text below is the
+proposal as answered, with "the base" and "the codextra" read as
+Signatar.
 
 Compiler claude's proposal, 2026-10-07, for the owner to approve
 (2026-10-06: "compiler claude proposes the plugin interface, with the
@@ -31,16 +48,17 @@ lets `concur` and `for para` parse; and so on. Concretely, today:
 
 | Core | Where it lives in CCA now |
 |---|---|
-| ASP | `to.` and `check` in the parser's word gate; literal meaning in `check/expr.rs` (`raw_files`); `to.T.bits` |
-| IEG | `!check` / `NO_FUCKING_CHECKS` in the gate; the marking rule (`needs_mark`); `on.machine` |
+| ASP | `to.` and `check` in the parser's word gate; literal meaning in `check/expr.rs` (`raw_files`); `to.T.bits`; range types and length bounds (the type parser) |
+| IEG | `no_check` / `NO_FUCKING_CHECKS` in the gate; the marking rule (`needs_mark`); `on.machine` |
 | Genny | generics and `interface` in the gate, then all of `check/` |
 | MCPS | `concur`, `whichever`, `channel`, `for para` in the gate; `par.rs`, `codegen/par.rs`, `codegen/tasks.rs` |
-| MTM | a mark on the lexer's tokens (`Token.alt`), refused by a parser pre-scan |
-| WSTN | nothing yet (names are not limited to English yet) |
-| std | not a core: a limb CCA does not have yet (`std::` is a stub) |
+| WSTN | a parser pre-scan refusing a name past ASCII |
+| TAS, AI, WSMW, Money, UniTect, CAPS | words in the gate (`test fn`, `must`, `brain16`, `int128`, `not_std.`, `deci64`, `char.grapheme`, `case.insensitive`, …); their meaning still all of `check/` |
+| stdkit | not a core: a limb CCA does not have yet (`stdkit::` is a stub) |
+| MTM | gone (2026-10-07): its spellings are old ones, refused by name in every limb |
 
-So "moving the cores out" is two different jobs: the thin ones (MTM,
-WSTN, the syntax half of MCPS) are already almost separate; the deep ones
+So "moving the cores out" is two different jobs: the thin ones (WSTN,
+the gate words, the syntax half of MCPS) are already almost separate; the deep ones
 (ASP, IEG, Genny) are woven through the type checker, Precog and the IR,
 because they change what a number or a type *means*. The proposal treats
 them differently on purpose.
@@ -187,7 +205,10 @@ All engineering, given the rulings, except where marked:
    extend, and nothing lifts Signatar's limits (borrows, Precog).
 2. **Grants.** Signatar grants its defaults to every limb (the three
    dangerous powers). Each core grants to every limb built with it, and
-   may grant more to favourites named by registry ID.
+   may grant more to favourites named by registry ID. **A core may also
+   take a power away** from every limb built with it (owner, 2026-10-07:
+   "`a`"): a taken power is not granted, whoever else grants it, and the
+   message names the core that took it.
 3. **Listing.** Each limb's manifest lists the powers it uses
    (`powers = [cca::Power.c_calls,]`); the program's own limb too.
 4. **Using.** The codextra reports every use as `(limb, power path,
@@ -337,8 +358,9 @@ question above changes it):
 3. **The hook menu** (Q1) inside Signatar, with today's switches rewired
    through it: the gate tables become claims made by `cores/asp`,
    `cores/mcps`, and so on.
-4. **Move MTM out** first (only spellings), then **WSTN** (only name
-   characters): the smallest cores, proving the menu.
+4. **Move WSTN out** first (only name characters), then the slimmer
+   base's word-only cores (TAS, AI, WSMW, Money, UniTect, CAPS): the
+   smallest cores, proving the menu. (MTM was to be first; it is gone.)
 5. **MCPS's syntax and runtime**, then the **GPU cores**, which are mostly
    new syntax lowering to runtime calls (section 5, way 3).
 6. **ASP, IEG, Genny** as Q4 decides.
@@ -348,8 +370,8 @@ question above changes it):
 
 ## 8. Gaps that block parts of this (the owner's)
 
-1. **Which powers MCPS, AutoGPU / Metal / Nvidia / Vulkan, WSTN and MTM
-   add.** Section 4 can be built without them, but each core's
+1. **Which powers MCPS, AutoGPU / Metal / Nvidia / Vulkan, WSTN and the
+   new cores add, and which a core may take away.** Section 4 can be built without them, but each core's
    `powers()` cannot be written, and step 5 cannot start, until it is
    known whether (say) spawning threads, a GPU queue, or a name in another
    script is a power a program may deny.
@@ -358,7 +380,5 @@ question above changes it):
    contracts decide IEG's nodes and the IR templates RRx2 checks; IEG
    cannot move out (step 6) before them.
 
-Also worth the owner's eye, though not blocking: whether another
-codextra is loaded the same way as a core (this proposal says yes, Q5's
-answer for both), and whether Signatar itself stays built into CCA as
-the default codextra (recommended, so the common case loads nothing).
+(The question of loading another codextra is gone with codextras,
+2026-10-07: a deeper change than a core can make is a fork.)

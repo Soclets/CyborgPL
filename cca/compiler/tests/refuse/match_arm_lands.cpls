@@ -4,13 +4,13 @@
 # seed 102).
 extern.C fn exit ['code': int32];
 enum E { c1 c2 }
-fn zero [] --> uint32 { return 0; }
-fn pick [] --> E { return E.c2; }
+fn zero [] -> uint32 { return 0; }
+fn pick [] -> E { return E.c2; }
 MAIN {
     let 'w': uint32 = zero[];
     let 'v': uint32 = match pick[] {
-        c1 { 1 }
-        c2 { 'w' minus 1 }
+        c1 { is 1; }
+        c2 { is 'w' minus 1; }
     };
-    !check my.exit[to.int32['v' mod.floor 100]];
+    no_check my.exit[to.int32['v' mod.floor 100]];
 }

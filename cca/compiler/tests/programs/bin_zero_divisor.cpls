@@ -2,15 +2,15 @@
 # would be a NaN, and the divisor is asked first. The divisor comes from
 # run time, so the check is the program's.
 extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] --> ptr[uint8];
-fn divisor [] --> bin64 {
+extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
+fn divisor [] -> bin64 {
     let 'key' := "CCA_NO_SUCH_VARIABLE";
-    !check let 'p' := getenv[lend 'key'];
+    no_check let 'p' := getenv[lend 'key'];
     if ptr.is_null['p'] { return 0.0; }
     return 2.0;
 }
 MAIN {
     let 'd' := divisor[];
     let 'q': bin64 = 1.0 div.near 'd';
-    !check my.exit[7];
+    no_check my.exit[7];
 }

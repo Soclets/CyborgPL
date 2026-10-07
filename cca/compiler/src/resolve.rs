@@ -192,7 +192,7 @@ pub struct Items {
     pub case_fields: HashSet<Span>,
     pub case_cases: HashSet<Span>,
     pub case_vars: HashSet<Span>,
-    /// The roots of Limbs whose `CCA.cplr` does not list std: std's names
+    /// The roots of Limbs whose `CCA.cplr` does not list stdkit: std's names
     /// are not theirs to write bare.
     pub no_std_roots: std::collections::HashSet<ModuleId>,
     /// The roots of Limbs whose `CCA.cplr` does not list IEG: the rule
@@ -653,7 +653,7 @@ impl Items {
             if params.len() != 2 {
                 return err(Diagnostic::error(format!("an operator takes exactly two operands; `{}` is declared with {}", o, params.len())).at(decl.name.span));
             }
-            let language_op = matches!(o.as_str(), "plus" | "minus" | "times" | "pow" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "++" | "and" | "or" | "not" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || o.starts_with("div") || o.starts_with("mod");
+            let language_op = matches!(o.as_str(), "plus" | "minus" | "times" | "pow" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "++" | "and" | "or" | "not" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || o.starts_with("div") || o.starts_with("mod");
             if matches!(o.as_str(), "and" | "or" | "not") {
                 return err(Diagnostic::error(format!("`{}` cannot be redefined: `not`, `and` and `or` stay the language's", o)).at(decl.name.span));
             }
@@ -728,7 +728,7 @@ impl Items {
             }
         }
         if std && !self.no_std_roots.contains(&here) {
-            found.push((format!("`std::{}`", written), Bareness::Std));
+            found.push((format!("`stdkit::{}`", written), Bareness::Std));
         }
         let mut never: Option<String> = None;
         if let Some(deps) = self.limb_deps.get(&here) {
@@ -783,7 +783,7 @@ impl Items {
         let mut cur = m;
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
-                return err(Diagnostic::error(format!("`{}` is not available yet: there is no `std` Limb for now — the base language comes first", path.spelled())).at(path.span));
+                return err(Diagnostic::error(format!("`{}` is not available yet: there is no `stdkit` Limb for now — the base language comes first", path.spelled())).at(path.span));
             }
             cur = self.dependency(limb, m)?;
             if path.segs.first().map_or(false, |s| s.name == "my") {
@@ -826,7 +826,7 @@ impl Items {
     pub fn lookup_const_path(&self, path: &ast::Path, name: &ast::QName, m: ModuleId) -> Result<crate::hir::ConstId> {
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
-                return err(Diagnostic::error("`std::` is not available yet: there is no `std` Limb for now").at(path.span));
+                return err(Diagnostic::error("`stdkit::` is not available yet: there is no `stdkit` Limb for now").at(path.span));
             }
             if path.segs.is_empty() {
                 let root = self.dependency(limb, m)?;
@@ -1269,7 +1269,7 @@ impl Items {
                 }
                 "duration" => return Ok(Ty::Duration),
                 "fn" => unreachable!(),
-                "uenr" => return err(Diagnostic::error("`uenr` is the standard Limb's type, `std::uenr`, and `std::` is not available yet").at(span)),
+                "uenr" => return err(Diagnostic::error("`uenr` is the standard Limb's type, `stdkit::uenr`, and `stdkit::` is not available yet").at(span)),
                 _ => {}
             }
         }
@@ -1404,22 +1404,22 @@ fn std_int(rest: &str, span: Span) -> Result<Ty> {
     } else {
         (true, "", false)
     };
-    let not_a_type = || err(Diagnostic::error(format!("`!std.{}` is not a type: a non-standard integer is `!std.intN` or `!std.uintN` (MTM's `!std.iN` or `!std.uN`), N its width in bits", rest)).at(span));
+    let not_a_type = || err(Diagnostic::error(format!("`not_std.{}` is not a type: a non-standard integer is `not_std.intN` or `not_std.uintN` (MTM's `not_std.iN` or `not_std.uN`), N its width in bits", rest)).at(span));
     if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) {
         return not_a_type();
     }
     let Ok(bits) = digits.parse::<u64>() else {
-        return err(Diagnostic::error(format!("`!std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
     };
     if bits == 0 {
-        return err(Diagnostic::error(format!("`!std.{}` holds nothing: a width is at least 1 bit", rest)).at(span));
+        return err(Diagnostic::error(format!("`not_std.{}` holds nothing: a width is at least 1 bit", rest)).at(span));
     }
     if bits > crate::types::WIDEST_INT as u64 {
-        return err(Diagnostic::error(format!("`!std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
     }
     if matches!(bits, 8 | 16 | 32 | 64 | 128) {
         let std = if ours { format!("{}int{}", if signed { "" } else { "u" }, bits) } else { format!("{}{}", if signed { "i" } else { "u" }, bits) };
-        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `!std.` says a width is not", std, std)).at(span));
+        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `not_std.` says a width is not", std, std)).at(span));
     }
     Ok(Ty::int(signed, bits as u32))
 }

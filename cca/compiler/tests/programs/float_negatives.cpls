@@ -3,8 +3,8 @@
 # two bytes, so every negative brain16 went wrong (check claude, 13ca93c).
 extern.C fn exit ['code': int32];
 MAIN {
-    let 'a': bf16 = -0.3;
-    let 'b': bf16 = -1.75;
+    let 'a': brain16 = -0.3;
+    let 'b': brain16 = -1.75;
     let 'c': bin32 = -0.5;
     let 'h': bin16 = -2.5;
     let 'n1' := to.int64['a' times 10.0] otherwise -100;
@@ -14,5 +14,5 @@ MAIN {
     let 'ta' := to.useful.str.utf8['a'];
     let 'tb' := to.stored.str.utf8['b'];
     let 't' := to.int64[str.bytes[lend 'ta'] plus str.bytes[lend 'tb']];
-    !check my.exit[to.int32['n1' plus 'n2' plus 'n3' plus 'n4' plus 100 plus 't']];
+    no_check my.exit[to.int32['n1' plus 'n2' plus 'n3' plus 'n4' plus 100 plus 't']];
 }

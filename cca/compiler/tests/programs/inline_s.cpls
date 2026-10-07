@@ -4,32 +4,32 @@
 # syscall (getpid, 20) checked against C's, and x29/x30 clobbered in a
 # function that then returns (spelled fp/lr for LLVM: the compiler rule).
 extern.C fn exit ['code': int32];
-extern.C fn getpid [] --> int32;
-fn trample ['n': int64] --> int64 {
-    !check inline.S {
+extern.C fn getpid [] -> int32;
+fn trample ['n': int64] -> int64 {
+    no_check inline.ASM {
         mov x30, #0
         mov x29, #0
         add x0, x0, #1
-    } with ['n' --> x0, 'm' <-- x0, clobber x30, clobber x29];
+    } with ['n' -> x0, 'm' <- x0, clobber x30, clobber x29];
     return 'm';
 }
 MAIN {
     let 'a': int64 = 20;
     let 'b': int64 = 2;
-    !check inline.S {
+    no_check inline.ASM {
         add x0, x0, x1
         mul x0, x0, x1
         mov x16, #1
         add x0, x0, x16
-    } with ['a' --> x0, 'b' --> x1, 'r' <-- x0, clobber x16];
-    !check inline.S {
+    } with ['a' -> x0, 'b' -> x1, 'r' <- x0, clobber x16];
+    no_check inline.ASM {
         mov x16, #20
         svc #0x80
-    } with ['pid' <-- x0, clobber x16, clobber x1];
+    } with ['pid' <- x0, clobber x16, clobber x1];
     let mut 'got': int32 = 0;
-    if 'r' == 45 { change 'got' = 'got' plus 1; }
-    if trample[41] == 42 { change 'got' = 'got' plus 4; }
-    !check let 'c' := getpid[];
-    if to.int32['pid'] == 'c' { change 'got' = 'got' plus 2; }
-    !check my.exit['got'];
+    if 'r' equal_to 45 { change 'got' = 'got' plus 1; }
+    if trample[41] equal_to 42 { change 'got' = 'got' plus 4; }
+    no_check let 'c' := getpid[];
+    if to.int32['pid'] equal_to 'c' { change 'got' = 'got' plus 2; }
+    no_check my.exit['got'];
 }

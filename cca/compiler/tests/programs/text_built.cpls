@@ -1,12 +1,12 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let mut 'out': str.utf8 = "";
-    for 'i': int32 in range[1, 20] {
+    for 'i': int32 in range[from 1, to 20, by 1] {
         change 'out' = copy 'out' ++ "ab";
     }
     let 'n': int32 = str.bytes[lend 'out'];
     let 'lit': str.utf8 = "fixed";
     let 'dup': str.utf8 = copy 'lit';
     let 'm': int32 = str.bytes[lend 'dup'];
-    !check my.exit['n' plus 'm'];
+    no_check my.exit['n' plus 'm'];
 }

@@ -3,11 +3,11 @@
 # took the ends for the whole range and folded "always 0" (check claude,
 # generator seed 106). `strlen` is extern, so its answer is any `uint64`.
 extern.C fn exit ['code': int32];
-extern.C fn strlen ['s': ptr[uint8]] --> uint64;
+extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 MAIN {
     let 's' := "three hundred characters are too many to type, so this is fewer";
-    !check let 'n': uint64 = strlen[lend 's'];
+    no_check let 'n': uint64 = strlen[lend 's'];
     let 'a': uint64 = 'n' mod.floor 255;
     let 'b': uint64 = 'n' mod.floor 65535;
-    !check my.exit[to.int32['a' plus 'b']];
+    no_check my.exit[to.int32['a' plus 'b']];
 }

@@ -10,15 +10,15 @@
 extern.C fn exit ['code': int32];
 
 precedence.low_first {
-    level.when_chained.refused 1 { ==  ~= }
+    level.when_chained.refused 1 { equal_to ~= }
     level.when_chained.left_first 2 { plus }
     level.when_chained.left_first 3 { gap }
     level.when_chained.left_first 4 { times  dot }
 }
 
-op dot ['a': int32, 'b': int32] --> int32 { return 'a' times 'b'; }
-op gap ['a': int32, 'b': int32] --> int32 { return 'a' minus 'b'; }
-op ~= ['a': int32, 'b': int32] --> bool { return ('a' minus 'b') < 2 and ('b' minus 'a') < 2; }
+op dot ['a': int32, 'b': int32] -> int32 { return 'a' times 'b'; }
+op gap ['a': int32, 'b': int32] -> int32 { return 'a' minus 'b'; }
+op ~= ['a': int32, 'b': int32] -> bool { return ('a' minus 'b') < 2 and ('b' minus 'a') < 2; }
 
 MAIN {
     let 'u': int32 = 3;
@@ -31,5 +31,5 @@ MAIN {
     let 'w': int32 = 2 times 3 pow 2;
     let mut 'k': int32 = 0;
     if 'p' ~= 13 { change 'k' = 1; }
-    !check my.exit['p' plus 'q' plus 'r' plus 's' plus 't' plus 'w' plus 'k'];
+    no_check my.exit['p' plus 'q' plus 'r' plus 's' plus 't' plus 'w' plus 'k'];
 }

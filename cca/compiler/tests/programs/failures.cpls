@@ -1,7 +1,7 @@
 extern.C fn exit ['code': int32];
-fn half ['n': int32] --> int32 or fail[odd, negative: int32] {
+fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
     if 'n' < 0 { fail negative['n']; }
-    if ('n' mod.floor 2) == 1 { fail odd; }
+    if ('n' mod.floor 2) equal_to 1 { fail odd; }
     return 'n' div.floor 2;
 }
 MAIN {
@@ -12,5 +12,5 @@ MAIN {
         odd          { change 'c' = 1; }
         negative 'v' { change 'c' = 0 minus 'v'; }
     };
-    !check my.exit['a' plus 'b' plus 'c'];
+    no_check my.exit['a' plus 'b' plus 'c'];
 }

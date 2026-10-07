@@ -5,5 +5,5 @@ MAIN {
     for 'x' in lend 'xs' {
         change 'acc' = 'acc' plus 'x';
     }
-    !check my.exit['acc'];
+    no_check my.exit['acc'];
 }

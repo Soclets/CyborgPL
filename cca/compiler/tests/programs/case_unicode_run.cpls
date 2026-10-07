@@ -3,11 +3,11 @@
 case.insensitive [fn, var];
 extern.C fn exit ['code': int32];
 
-fn Größe [] --> int32 {
+fn Größe [] -> int32 {
     return 7;
 }
 
 MAIN {
     let 'Café' := GRÖSSE[];
-    !check my.exit['CAFÉ' plus größe[]];
+    no_check my.exit['CAFÉ' plus größe[]];
 }

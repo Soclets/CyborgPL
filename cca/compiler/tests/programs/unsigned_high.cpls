@@ -1,17 +1,17 @@
 # The upper half of a uint64 is a big number, not a negative one: compare,
 # divide and widen it as unsigned. From C, so it is decided at run time.
 extern.C fn exit ['code': int32];
-extern.C fn labs ['v': int64] --> int64;
+extern.C fn labs ['v': int64] -> int64;
 MAIN {
-    !check let 'one': int64 = labs[-1];
-    !check let 'u': uint64 = to.uint64['one'];
+    no_check let 'one': int64 = labs[-1];
+    no_check let 'u': uint64 = to.uint64['one'];
     let 'big': uint64 = 'u' times 10000000000000000000;     # 10^19: above 2^63
     let mut 'score': int32 = 0;
     if 'big' > 'u' { change 'score' = 'score' plus 1; }             # unsigned compare
     let 'half': uint64 = 'big' div.floor 2;                      # unsigned divide
-    if 'half' == 5000000000000000000 { change 'score' = 'score' plus 10; }
+    if 'half' equal_to 5000000000000000000 { change 'score' = 'score' plus 10; }
     let 'small': uint8 = 250;
     let mut 'n': int32 = 0;
-    for 'i': uint8 in range['small', 255, 3] { change 'n' = 'n' plus 1; }   # 250, 253: widening a uint8 is not sign-extending it
-    !check my.exit['score' plus 'n' times 100];
+    for 'i': uint8 in range[from 'small', to 255, by 3] { change 'n' = 'n' plus 1; }   # 250, 253: widening a uint8 is not sign-extending it
+    no_check my.exit['score' plus 'n' times 100];
 }

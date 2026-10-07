@@ -6,12 +6,12 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'bs': list[bin64] = [1, -2, 5];
     let 'ds': list[deci64] = [1, 2];
-    let 'fs': list[bin64] = list.fill[2, 3];
+    let 'fs': list[bin64] = list.fill[value 2, count 3];
     let 'q': deci64 = 1.25;
-    let 'qs': list[deci64] = list.fill['q', 2];
-    let 'b': int32 = to.int32['bs'[1] plus 'bs'[2] plus 'bs'[3]] otherwise 90;
-    let 'd': int32 = to.int32['ds'[1] plus 'ds'[2]] otherwise 91;
-    let 'f': int32 = to.int32['fs'[3]] otherwise 92;
-    let 'e': int32 = to.int32['qs'[2] times 4] otherwise 93;
-    !check my.exit['b' plus 'd' plus 'f' plus 'e'];
+    let 'qs': list[deci64] = list.fill[value 'q', count 2];
+    let 'b': int32 = to.int32['bs'[pos 1] plus 'bs'[pos 2] plus 'bs'[pos 3]] otherwise 90;
+    let 'd': int32 = to.int32['ds'[pos 1] plus 'ds'[pos 2]] otherwise 91;
+    let 'f': int32 = to.int32['fs'[pos 3]] otherwise 92;
+    let 'e': int32 = to.int32['qs'[pos 2] times 4] otherwise 93;
+    no_check my.exit['b' plus 'd' plus 'f' plus 'e'];
 }

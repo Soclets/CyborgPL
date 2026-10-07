@@ -6,13 +6,13 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'n': int64 = 300000;
     let mut 'half': bin64 = 0.0;
-    for 'i': int64 in range[1, 'n'] {
+    for 'i': int64 in range[from 1, to 'n', by 1] {
         change 'half' = 'half' plus 0.5;
     }
     let mut 'acc': int64 = 0;
-    for 'i': int64 in range[1, 'n'] {
+    for 'i': int64 in range[from 1, to 'n', by 1] {
         change 'acc' = 'acc' plus (('i' times 'i') mod.floor 7);
     }
     let 'h': int32 = to.int32['half' div.near 1000.0] otherwise 1;
-    !check my.exit[to.int32[('acc' plus to.int64['h']) mod.floor 256]];
+    no_check my.exit[to.int32[('acc' plus to.int64['h']) mod.floor 256]];
 }

@@ -18,15 +18,16 @@ cargo build
 Split as `PLUGINS.md` lays out (step 1, 2026-10-07; the owner's answers
 are in it):
 
-- `compiler/` — the `signatar` crate, Signatar, the official codextra,
+- `compiler/` — the `signatar` crate, Signatar, the lowest level of the
+  language since there is no base and no codextras (owner, 2026-10-07),
   still holding the whole language and the `cca` binary: `source` (files,
   spans), `diag` (the labelled message shape), `lexer`, `ast`, `parser`,
   `resolve` (items and modules), `check` (names, types, verbs, failures)
   producing `hir`, `mir` (the flow graph, its domains, its verifier and
   its printer), `precog` and `codegen`. Its folder keeps its name, since
   other sessions read `cca/compiler/tests`.
-- `base/` — `cca-base`, the base: loading and the grants, filled step by
-  step (the power ledger first).
+- `base/` — `cca-base`, Signatar's power ledger (step 2), kept a crate
+  of its own; "the base" it was named for is Signatar's since 2026-10-07.
 - `cores/<name>/` — one crate per official core (`cca-core-ieg`, …),
   each its name, registry ID and version for now; each core's features
   move in at its step.

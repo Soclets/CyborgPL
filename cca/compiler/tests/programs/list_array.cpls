@@ -9,7 +9,7 @@ MAIN {
     let 'a' := to.array[give 'l'];
     let mut 'm' := to.list[copy 'a'];
     list.append[lend.mut 'm', 4];
-    let mut 's': list[int32] = array.slice[lend 'a', 2, 3];
+    let mut 's': list[int32] = array.slice[lend 'a', pos 2, pos 3];
     list.append[lend.mut 's', 9];
     let mut 'w': list[str.utf8] = ["x", "yy"];
     list.append[lend.mut 'w', "zzz"];
@@ -17,6 +17,6 @@ MAIN {
     let 'back' := to.list[give 'fw'];
     # 3 + 4 x 10 + 3 x 100 + 3 + (1 + 4 + 9)
     let 'n': uint64 = array.length[lend 'a'] plus list.length[lend 'm'] times 10 plus list.length[lend 's'] times 100 plus list.length[lend 'back'];
-    let 'v': int32 = 'a'[1] plus 'm'[4] plus 's'[3];
-    !check my.exit[to.int32['n'] plus 'v'];
+    let 'v': int32 = 'a'[pos 1] plus 'm'[pos 4] plus 's'[pos 3];
+    no_check my.exit[to.int32['n'] plus 'v'];
 }

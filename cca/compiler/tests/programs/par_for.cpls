@@ -6,25 +6,25 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let 'n': int64 = 300000;
-    let mut 'xs': list[int64] = list.fill[3, 'n'];
-    for 'i': int64 in range[1, 'n'] {
-        change 'xs'['i'] = ('xs'['i'] times 7) mod.floor 11;
+    let mut 'xs': list[int64] = list.fill[value 3, count 'n'];
+    for 'i': int64 in range[from 1, to 'n', by 1] {
+        change 'xs'[pos 'i'] = ('xs'[pos 'i'] times 7) mod.floor 11;
     }
     let mut 'total': int64 = 0;
     for 'x' in lend 'xs' {
         change 'total' = 'total' plus ('x' mod.floor 7);
     }
-    let mut 'grid': list[int64] = list.fill[0, 2000];
-    for 'r': int64 in range[1, 2000] {
+    let mut 'grid': list[int64] = list.fill[value 0, count 2000];
+    for 'r': int64 in range[from 1, to 2000, by 1] {
         let mut 'row': int64 = 0;
-        for 'c': int64 in range[1, 200] {
+        for 'c': int64 in range[from 1, to 200, by 1] {
             change 'row' = 'row' plus (('r' times 'c') mod.floor 5);
         }
-        change 'grid'['r'] = 'row';
+        change 'grid'[pos 'r'] = 'row';
     }
     let mut 'g': int64 = 0;
     for 'v' in lend 'grid' {
         change 'g' = 'g' plus 'v';
     }
-    !check my.exit[to.int32[('total' plus 'g') mod.floor 256]];
+    no_check my.exit[to.int32[('total' plus 'g') mod.floor 256]];
 }

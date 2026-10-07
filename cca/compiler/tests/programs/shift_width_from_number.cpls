@@ -8,5 +8,5 @@ MAIN {
     let 'r': int64 = ((0 minus 53) shr 'c') mod.floor 23;
     let 'a': int8 = 33;
     let 's': int64 = 7 shr (('a' minus 1) mod.floor 32);
-    !check my.exit[to.int32['r' plus 's']];
+    no_check my.exit[to.int32['r' plus 's']];
 }

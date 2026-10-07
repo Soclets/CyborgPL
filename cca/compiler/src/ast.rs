@@ -45,7 +45,8 @@ impl Path {
     pub fn spelled(&self) -> String {
         let mut s = String::new();
         if let Some(l) = &self.limb {
-            s.push_str(&l.name);
+            // `std` inside, `stdkit` as written (owner, 2026-10-07).
+            s.push_str(if l.name == "std" { "stdkit" } else { &l.name });
             s.push_str("::");
         }
         s.push_str(&self.segs.iter().map(|x| x.name.as_str()).collect::<Vec<_>>().join("."));
@@ -248,12 +249,12 @@ impl BinOp {
             BinOp::WrapMul => "times.wrap".into(),
             BinOp::WrapPow => "pow.wrap".into(),
             BinOp::Join => "++".into(),
-            BinOp::Eq => "==".into(),
-            BinOp::Ne => "!==".into(),
+            BinOp::Eq => "equal_to".into(),
+            BinOp::Ne => "not_equal".into(),
             BinOp::Lt => "<".into(),
             BinOp::Gt => ">".into(),
-            BinOp::Le => "</==".into(),
-            BinOp::Ge => ">/==".into(),
+            BinOp::Le => "at_most".into(),
+            BinOp::Ge => "at_least".into(),
             BinOp::And => "and".into(),
             BinOp::Or => "or".into(),
             BinOp::AndThen => "and.then".into(),
@@ -417,11 +418,14 @@ pub enum ExprKind {
     FnLit(Box<FnLit>),
     /// `...'xs'`, `...copy 'xs'`
     Spread { verb: Option<Verb>, expr: Box<Expr> },
-    /// `pos i` in a `#strict` file: a position, where one goes.
+    /// `pos i`: a position, where one goes (owner, 2026-10-07: on every
+    /// index and position).
     Pos(Box<Expr>),
-    /// `count n`: `list.fill`'s count, labelled in a `#strict` file (owner,
-    /// 2026-09-30).
+    /// `count n`: `list.fill`'s count (owner, 2026-10-07).
     Count(Box<Expr>),
+    /// `value v`: what `list.fill` and `simd.fill` fill with (owner,
+    /// 2026-10-07: "`b`").
+    Value(Box<Expr>),
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
     /// `ptr.cast[T]['p']`: the same address, seen as pointing at a T
@@ -802,7 +806,7 @@ pub const ON_FEATURES: [&str; 14] = ["aarch64", "x86_64", "neon", "sve", "sve2",
 /// knows (`design/cores.md`; owner, 2026-10-06), the ones a `cores` field
 /// may list; another core is a plugin, which CCA cannot load yet. WSTN is
 /// listed but builds nothing yet.
-pub const OFFICIAL_CORES: [(&str, &str, &str); 10] = [
+pub const OFFICIAL_CORES: [(&str, &str, &str); 15] = [
     ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", "2026-10-06T18:04:29+07:00"),
     ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f", "2026-10-06T18:04:29+07:00"),
     ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9", "2026-10-06T18:04:29+07:00"),
@@ -811,9 +815,18 @@ pub const OFFICIAL_CORES: [(&str, &str, &str); 10] = [
     ("Metal", "3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7", "2026-10-06T18:04:29+07:00"),
     ("Nvidia", "beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361", "2026-10-06T18:04:29+07:00"),
     ("Vulkan", "63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec", "2026-10-06T18:04:29+07:00"),
-    ("MTM", "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56", "2026-10-06T19:18:54+07:00"),
     ("WSTN", "e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4", "2026-10-06T18:48:22+07:00"),
+    // The slimmer base's cores (owner, 2026-10-07); MTM is gone.
+    ("TAS", "63baa4cf89d8b6df6adceb812df005b30ea2771fd56f2117d0246ef911de21aa", "2026-10-07T18:08:59+07:00"),
+    ("AI", "8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21", "2026-10-07T20:22:24+07:00"),
+    ("WSMW", "0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0", "2026-10-07T20:22:24+07:00"),
+    ("Money", "d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f", "2026-10-07T20:22:24+07:00"),
+    ("UniTect", "137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96", "2026-10-07T20:22:24+07:00"),
+    ("CAPS", "90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01", "2026-10-07T20:22:24+07:00"),
 ];
+
+/// MTM's registry ID, retired (owner, 2026-10-07: "MTM is gone.").
+pub const MTM_ID: &str = "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56";
 
 /// The line that lists an official core, for a message to show.
 pub fn core_line(name: &str) -> String {

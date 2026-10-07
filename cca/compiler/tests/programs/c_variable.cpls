@@ -3,8 +3,8 @@
 extern.C fn exit ['code': int32];
 extern.C mut 'optind': int32;
 MAIN {
-    !check let 'first' := 'optind';
-    !check change 'optind' = 5;
-    !check let 'after' := 'optind';
-    !check my.exit['first' times 10 plus 'after'];
+    no_check let 'first' := 'optind';
+    no_check change 'optind' = 5;
+    no_check let 'after' := 'optind';
+    no_check my.exit['first' times 10 plus 'after'];
 }

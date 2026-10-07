@@ -5,15 +5,15 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let 'xs': list[int64] = [10, 20, 30, 40, 50];
-    let mut 'mid' := list.slice[lend 'xs', 2, 4];
+    let mut 'mid' := list.slice[lend 'xs', pos 2, pos 4];
     list.append[lend.mut 'mid', 7];
-    let 'none' := list.slice[lend 'xs', 3, 2];
+    let 'none' := list.slice[lend 'xs', pos 3, pos 2];
     let 'fixed': array[int32] = [1, 2, 3];
-    let 'head' := array.slice[lend 'fixed', 1, 2];
+    let 'head' := array.slice[lend 'fixed', pos 1, pos 2];
     let 'words': list[str.utf8] = ["a", "bb", "ccc"];
-    let 'tail' := list.slice[lend 'words', 2, 3];
+    let 'tail' := list.slice[lend 'words', pos 2, pos 3];
     # 20 + 30 + 40 + 7, four elements, the original's five, none, two, two
-    let 'sum': int64 = 'mid'[1] plus 'mid'[2] plus 'mid'[3] plus 'mid'[4];
+    let 'sum': int64 = 'mid'[pos 1] plus 'mid'[pos 2] plus 'mid'[pos 3] plus 'mid'[pos 4];
     let 'n': uint64 = list.length[lend 'mid'] times 10 plus list.length[lend 'xs'] plus list.length[lend 'none'] plus list.length[lend 'head'] plus list.length[lend 'tail'];
-    !check my.exit[to.int32['sum' plus to.int64['n']]];
+    no_check my.exit[to.int32['sum' plus to.int64['n']]];
 }

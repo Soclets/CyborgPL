@@ -4,10 +4,10 @@
 # program stops, as the oracle does.
 extern.C fn exit ['code': int32];
 MAIN {
-    let mut 'xs': list[int64] = list.fill[2, 3];
+    let mut 'xs': list[int64] = list.fill[value 2, count 3];
     for 'x' in lend.mut 'xs' {
         change 'x' = 'x' times 3;
     }
-    let 'y': int8 = to.int8['xs'[1] times 50];
-    !check my.exit[to.int32['y']];
+    let 'y': int8 = to.int8['xs'[pos 1] times 50];
+    no_check my.exit[to.int32['y']];
 }

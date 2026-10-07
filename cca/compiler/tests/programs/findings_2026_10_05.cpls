@@ -10,14 +10,14 @@ MAIN {
     let mut 'code': int32 = 0;
     let 'a': int8 = 20;
     let 'b': int8 = (-('a' minus 1)) shr 1;
-    if 'b' == -10 { change 'code' = 'code' plus 1; }
+    if 'b' equal_to -10 { change 'code' = 'code' plus 1; }
     let 'u': uint32 = 5;
     let 'c': uint32 = 7 shr (('u' minus 1) mod.floor 32);
-    if 'c' == 0 { change 'code' = 'code' plus 2; }
+    if 'c' equal_to 0 { change 'code' = 'code' plus 2; }
     let 'n': uint64 = (4294967294 pow 12) mod.floor 2147483649;
-    if 'n' == 16777216 { change 'code' = 'code' plus 4; }
+    if 'n' equal_to 16777216 { change 'code' = 'code' plus 4; }
     let 'big' := to.deci128["1e400"] otherwise -21.363;
     let 'small' := to.deci32['big'] otherwise -180.0;
-    if 'small' == -180.0 { change 'code' = 'code' plus 8; }
-    !check my.exit['code'];
+    if 'small' equal_to -180.0 { change 'code' = 'code' plus 8; }
+    no_check my.exit['code'];
 }

@@ -2291,7 +2291,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// constant it can be handed.
     pub(super) fn map_spec(&mut self, t: &Ty) -> Option<PointerValue<'ctx>> {
         let (k, v) = Self::map_key_val(t)?;
-        // `maps.md` lets a key type bring its own `hash` and `op ==`, and
+        // `maps.md` lets a key type bring its own `hash` and `op equal_to`, and
         // makes "equal keys hash the same" a check site: where it is not
         // proven or trusted, every comparison that finds two keys equal
         // asks whether they hash the same (as the oracle does), and a map
@@ -2361,7 +2361,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         (m.as_pointer_value(), l.as_pointer_value())
     }
 
-    /// A key type's own `hash` and `op ==` (`maps.md`), as the map's hash
+    /// A key type's own `hash` and `op equal_to` (`maps.md`), as the map's hash
     /// and sameness: each a small wrapper around the program's function.
     /// Checked, the sameness also asks, whenever `==` says two keys are
     /// equal, whether `hash` agrees — and stops the program if not, with
@@ -2379,9 +2379,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 f.name == name && f.params.len() == n && f.params.iter().all(|p| f.locals[p.0 as usize].ty.base() == k.base())
             })
         };
-        let (Some(hi), Some(ei)) = (find(self, "hash", 1), find(self, "==", 2)) else {
+        let (Some(hi), Some(ei)) = (find(self, "hash", 1), find(self, "equal_to", 2)) else {
             let spelled = crate::types::TySpelling { ty: k, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
-            self.cannot(format!("`{}` has its own `hash` and `op ==`, and one of them is not in the program", spelled), None);
+            self.cannot(format!("`{}` has its own `hash` and `op equal_to`, and one of them is not in the program", spelled), None);
             return None;
         };
         let (uh, ue) = (*self.fns.get(&hi)?, *self.fns.get(&ei)?);
