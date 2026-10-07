@@ -446,7 +446,16 @@ moving to inline values, reopening 2026-10-01's numbered holes; design
 claude recommended (a), and, asked whether it collides with arrays or
 lists, answered no: a word before `[ ]` is a call, a bare `[ ]` a list, a
 quoted name before it indexing. One format language, used to print or to
-make text. Design
+make text. **No `print.weird.format`** (owner: "`b`"): asked "Could you do
+something like `stdkit::print.weird.format.useful.stderr`?", design claude
+first offered it (without `.useful`, each hole choosing its form); the
+owner: "Does format require shit being in one `""`?" (yes: a format is one
+literal so its holes are checked; anything else is a vouch site), then
+"No, I meant, wouldn't that make it incompat with `weird`?" Design claude
+agreed: `.weird` prints every `<-` piece in order, a format's first piece
+is a template and the rest fill holes, so it withdrew (a). `.weird` gets
+shapes by sending `format[…]`'s text down an arrow: `print.weird.useful.
+stdout <- "hex: " <- format["{:x}", 'n'] <- \n;`. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
