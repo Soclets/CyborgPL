@@ -524,3 +524,10 @@ pub fn simd_final_lanes(elem: &Ty) -> u32 {
 pub fn simd_shapes_for(elem: &Ty) -> Option<u32> {
     simd_lane_bits(elem).map(|bits| TARGET_SIMD_BITS / bits)
 }
+
+/// A type's name with its article, for a message: "a `uint64`", "an
+/// `int8`", "an `integer`".
+pub fn a_type(name: &str) -> String {
+    let an = name.starts_with(|c: char| matches!(c, 'a' | 'e' | 'i' | 'o'));
+    format!("{} `{}`", if an { "an" } else { "a" }, name)
+}

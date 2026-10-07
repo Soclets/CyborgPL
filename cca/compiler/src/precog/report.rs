@@ -156,7 +156,7 @@ pub fn render_json(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
         let fits = fits_ty.as_ref().map(|t| esc(&spell(t))).unwrap_or_else(|| "null".into());
         let (verdict, how) = match &r.verdict {
             Verdict::Proven { how } => ("proven", *how),
-            Verdict::Trusted => ("nocheck", ""),
+            Verdict::Trusted => ("!check", ""),
             Verdict::Fails { .. } | Verdict::Unproven => (if site.tier == Some(Tier::Check) { "refused" } else { "checked" }, ""),
         };
         let layer = if !matches!(r.verdict, Verdict::Proven { .. }) {

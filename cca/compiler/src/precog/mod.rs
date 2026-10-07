@@ -2364,13 +2364,13 @@ impl Precog {
                 let (Some(a), Some(Domain::Ints(b))) = (ds.first().and_then(|d| d.wide_bounds()), ds.get(1)) else { return Verdict::Unproven };
                 let Some((blo, bhi)) = b.bounds() else { return Verdict::Unproven };
                 if blo >= width {
-                    return Verdict::Fails { counterexample: format!("every time: a shift of {} moves every bit out of a `{}`, which is {} bits wide", blo, self.spell(&ty), width) };
+                    return Verdict::Fails { counterexample: format!("every time: a shift of {} moves every bit out of {}, which is {} bits wide", blo, crate::types::a_type(&self.spell(&ty)), width) };
                 }
                 if bhi < 0 {
                     return Verdict::Fails { counterexample: format!("every time: a shift of {} — a count is never negative; the other direction is the other word", bhi) };
                 }
                 if bhi >= width {
-                    return Verdict::Fails { counterexample: format!("a shift of {} would move every bit out of a `{}`, which is {} bits wide", bhi, self.spell(&ty), width) };
+                    return Verdict::Fails { counterexample: format!("a shift of {} would move every bit out of {}, which is {} bits wide", bhi, crate::types::a_type(&self.spell(&ty)), width) };
                 }
                 if blo < 0 {
                     return Verdict::Fails { counterexample: format!("the count can be {}, and a count is never negative", blo) };
@@ -2469,11 +2469,11 @@ impl Precog {
         }
         if s.misses(lo, hi) {
             let (slo, shi) = s.bounds().unwrap();
-            return Verdict::Fails { counterexample: format!("every time: the answer is {} and a `{}` holds {} to {}", if slo == shi { slo.to_string() } else { format!("{} to {}", slo, shi) }, self.spell(ty), lo, hi) };
+            return Verdict::Fails { counterexample: format!("every time: the answer is {} and {} holds {} to {}", if slo == shi { slo.to_string() } else { format!("{} to {}", slo, shi) }, crate::types::a_type(&self.spell(ty)), lo, hi) };
         }
         let (slo, shi) = s.bounds().unwrap();
         let bad = if shi > hi { shi } else { slo };
-        Verdict::Fails { counterexample: format!("the answer can be {}, and a `{}` holds {} to {}", bad, self.spell(ty), lo, hi) }
+        Verdict::Fails { counterexample: format!("the answer can be {}, and {} holds {} to {}", bad, crate::types::a_type(&self.spell(ty)), lo, hi) }
     }
 
     /// `fit` at any size.
@@ -2484,10 +2484,10 @@ impl Precog {
         }
         let show = |a: &crate::bigint::Big, b: &crate::bigint::Big| if a == b { a.to_string() } else { format!("{} to {}", a, b) };
         if shi < lo || slo > hi {
-            return Verdict::Fails { counterexample: format!("every time: the answer is {} and a `{}` holds {} to {}", show(slo, shi), self.spell(ty), lo, hi) };
+            return Verdict::Fails { counterexample: format!("every time: the answer is {} and {} holds {} to {}", show(slo, shi), crate::types::a_type(&self.spell(ty)), lo, hi) };
         }
         let bad = if shi > hi { shi } else { slo };
-        Verdict::Fails { counterexample: format!("the answer can be {}, and a `{}` holds {} to {}", bad, self.spell(ty), lo, hi) }
+        Verdict::Fails { counterexample: format!("the answer can be {}, and {} holds {} to {}", bad, crate::types::a_type(&self.spell(ty)), lo, hi) }
     }
 
     fn fits_type(&self, d: &Domain, to: &Ty) -> Verdict {
@@ -2552,18 +2552,18 @@ impl Precog {
                         }
                         let v = if *b >= limit { *b } else { *a };
                         return if *b <= -limit || *a >= limit {
-                            Verdict::Fails { counterexample: format!("every time: the value is {} and a `{}` holds {} to {}, what rounds to it included", show_bin(*a, *b), self.spell(to), x, y) }
+                            Verdict::Fails { counterexample: format!("every time: the value is {} and {} holds {} to {}, what rounds to it included", show_bin(*a, *b), crate::types::a_type(&self.spell(to)), x, y) }
                         } else {
-                            Verdict::Fails { counterexample: format!("the value can be {}, which rounds past what a `{}` holds ({} to {})", v, self.spell(to), x, y) }
+                            Verdict::Fails { counterexample: format!("the value can be {}, which rounds past what {} holds ({} to {})", v, crate::types::a_type(&self.spell(to)), x, y) }
                         };
                     }
                 }
                 if *a >= x && *b <= y {
                     Verdict::Proven { how: "layer 2" }
                 } else if *b < x || *a > y {
-                    Verdict::Fails { counterexample: format!("every time: the value is {} and a `{}` holds {} to {}", show_bin(*a, *b), self.spell(to), x, y) }
+                    Verdict::Fails { counterexample: format!("every time: the value is {} and {} holds {} to {}", show_bin(*a, *b), crate::types::a_type(&self.spell(to)), x, y) }
                 } else {
-                    Verdict::Fails { counterexample: format!("the value can be {}, and a `{}` holds {} to {}", if *b > y { *b } else { *a }, self.spell(to), x, y) }
+                    Verdict::Fails { counterexample: format!("the value can be {}, and {} holds {} to {}", if *b > y { *b } else { *a }, crate::types::a_type(&self.spell(to)), x, y) }
                 }
             }
             (Domain::Seq { len, .. }, Domain::Seq { len: limit, .. }) => {
@@ -2764,7 +2764,7 @@ fn note_of(v: &Verdict) -> String {
     match v {
         Verdict::Proven { how } => (*how).to_string(),
         Verdict::Fails { counterexample } => counterexample.clone(),
-        Verdict::Trusted => "nocheck".into(),
+        Verdict::Trusted => "!check".into(),
         Verdict::Unproven => "not proven".into(),
     }
 }

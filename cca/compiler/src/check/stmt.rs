@@ -558,7 +558,7 @@ impl Checker {
                     }
                     None => {
                         if ctx.ret != Ty::Nothing {
-                            return err(Diagnostic::error(format!("`{}` returns a `{}`: `return` needs the value", ctx.name, self.spell(&ctx.ret))).at(s.span));
+                            return err(Diagnostic::error(format!("`{}` returns {}: `return` needs the value", ctx.name, crate::types::a_type(&self.spell(&ctx.ret)))).at(s.span));
                         }
                         Ok(hir::StmtKind::Return(None))
                     }
@@ -656,13 +656,13 @@ impl Checker {
         let t = self.resolve(&e.ty);
         if let Ty::Simd { elem, lanes } = t.base() {
             let what_it_is = if elem.base() == &Ty::Bool { "one answer per lane".to_string() } else { format!("{} lanes of `{}`", lanes, self.spell(elem)) };
-            return err(Diagnostic::error(format!("{} must be a `bool`, and this is a `{}`: a vector is never a single answer — it is {}", what, self.spell(&t), what_it_is))
+            return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: a vector is never a single answer — it is {}", what, crate::types::a_type(&self.spell(&t)), what_it_is))
                 .at(e.span)
                 .fix(None, "simd.all[…]   # when every lane must hold")
                 .fix(None, "simd.any[…]   # when one lane is enough"));
         }
         if t.base() != &Ty::Bool {
-            return err(Diagnostic::error(format!("{} must be a `bool`, and this is a `{}`: there is no truthiness — compare it (`'n' !== 0`)", what, self.spell(&t))).at(e.span));
+            return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: there is no truthiness — compare it (`'n' !== 0`)", what, crate::types::a_type(&self.spell(&t)))).at(e.span));
         }
         Ok(())
     }
@@ -686,7 +686,7 @@ impl Checker {
                 self.check_stored_value(ctx, &e, &t)?;
                 Some(e)
             }
-            (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries a `{}`, and `fail {}` needs it: `fail {}[…]`", name.name, self.spell(&t), name.name, name.name)).at(span)),
+            (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries {}, and `fail {}` needs it: `fail {}[…]`", name.name, crate::types::a_type(&self.spell(&t)), name.name, name.name)).at(span)),
             (Some(p), None) => return err(Diagnostic::error(format!("`{}` carries nothing: write `fail {};` with no value", name.name, name.name)).at(p.span)),
         };
         Ok(hir::StmtKind::Fail { name: name.name.clone(), index, payload })
@@ -774,7 +774,7 @@ impl Checker {
                     _ if it_ty.is_text() => {
                         return err(Diagnostic::error("a text is not a list of anything until you say what: `str.each.grapheme[lend 's']`, `.point`, or `.byte`").at(e.span));
                     }
-                    _ => return err(Diagnostic::error(format!("a `for` needs a list to run over, and this is a `{}`", self.spell(&it_ty))).at(e.span)),
+                    _ => return err(Diagnostic::error(format!("a `for` needs a list to run over, and this is {}", crate::types::a_type(&self.spell(&it_ty)))).at(e.span)),
                 };
                 // A mixed bundle: the body is checked once per element, unrolled.
                 if let Ty::Bundle(ts) = self.resolve(&elem_ty) {
@@ -835,7 +835,7 @@ impl Checker {
             Ty::Seq { elem, .. } => Ok((**elem).clone()),
             Ty::Bundle(ts) => Ok(Ty::Bundle(ts.clone())),
             Ty::Str(_) => err(Diagnostic::error("a text is not a list of anything until you say what: `str.each.grapheme[lend 's']`, `.point`, or `.byte`").at(span)),
-            other => err(Diagnostic::error(format!("{} a `{}` is not possible: a `for` needs a list", what, self.spell(other))).at(span)),
+            other => err(Diagnostic::error(format!("{} {} is not possible: a `for` needs a list", what, crate::types::a_type(&self.spell(other)))).at(span)),
         }
     }
 
@@ -864,7 +864,7 @@ impl Checker {
         let vt = self.resolve(&v.ty);
         let (id, args) = match vt.base() {
             Ty::Enum { id, args } => (*id, args.clone()),
-            other => return err(Diagnostic::error(format!("`match` takes an enum value, and this is a `{}`: use `if`", self.spell(other))).at(value.span)),
+            other => return err(Diagnostic::error(format!("`match` takes an enum value, and this is {}: use `if`", crate::types::a_type(&self.spell(other)))).at(value.span)),
         };
         let info = self.items.enums[id.0 as usize].clone();
         let mut out = Vec::new();
@@ -890,7 +890,7 @@ impl Checker {
                     Some(ctx.declare(&b.name, Local { name: b.name.clone(), ty: t, mutability: None, kind, from_blank: false, span: b.span }))
                 }
                 (Some(b), None) => return err(Diagnostic::error(format!("`{}` carries nothing, so there is no value to name '{}'", arm.case.name, b.name)).at(b.span)),
-                (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries a `{}`: name it — `{} 'value' {{ … }}`", arm.case.name, self.spell(t), arm.case.name)).at(arm.case.span)),
+                (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries {}: name it — `{} 'value' {{ … }}`", arm.case.name, crate::types::a_type(&self.spell(t)), arm.case.name)).at(arm.case.span)),
             };
             let (body, given) = match gives {
                 Some(t) => {
@@ -981,7 +981,7 @@ impl Checker {
             let ct = self.resolve(&ch.ty);
             let elem = match ct.base() {
                 Ty::Channel(e) => (**e).clone(),
-                other => return err(Diagnostic::error(format!("an arm of `whichever` takes from a channel, and this is a `{}`", self.spell(other))).at(arm.channel.span)),
+                other => return err(Diagnostic::error(format!("an arm of `whichever` takes from a channel, and this is {}", crate::types::a_type(&self.spell(other)))).at(arm.channel.span)),
             };
             if !matches!(ch.kind, hir::ExprKind::Lend { .. }) {
                 return err(Diagnostic::error("a channel is lent to `whichever`: `'v' from lend 'c' { … }`").at(arm.channel.span));

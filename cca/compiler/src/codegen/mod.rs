@@ -2899,7 +2899,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 if !self.same_layout(&have, w) {
                     let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
-                    self.cannot(format!("handing a `{}` to a parameter that takes a `{}` has no shape in the generated code yet: their elements differ in width", spell(&have), spell(w)), None);
+                    self.cannot(format!("handing {} to a parameter that takes {} has no shape in the generated code yet: their elements differ in width", crate::types::a_type(&spell(&have)), crate::types::a_type(&spell(w))), None);
                     return None;
                 }
             }
