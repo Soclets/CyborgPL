@@ -288,5 +288,5 @@ shift_width_from_number 29
 shift_masked_run 252
 bare_groups_2026_10_07 111
 bare_groups_2026_10_07b 198
-zero_everywhere_run 46
+zero_everywhere_run 56
 simd_sum_forms_run 31

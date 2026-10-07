@@ -2850,9 +2850,9 @@ impl<'a> Parser<'a> {
         self.bump();
         self.bump();
         let at = at.to(self.prev_span());
-        // `mod.X` has none (design claude's reading, in the oracle).
-        if w == "mod" {
-            return self.fail_at(at, format!("`.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `mod.{}` has no `.ieee` form", r.word()));
+        // `mod.near` leaves nothing over on a bin (owner, 2026-10-07).
+        if w == "mod" && r == Round::Near {
+            return self.fail_at(at, "`.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form");
         }
         Ok(true)
     }
@@ -3029,13 +3029,14 @@ impl<'a> Parser<'a> {
                     // The operators are words (owner, 2026-10-02/03), and
                     // `.wrap` narrows them to the wrapping forms.
                     // `.ieee` keeps IEEE's -0 (owner, 2026-10-07: "yea").
-                    "plus" | "minus" | "times" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "ieee") && !matches!(self.peek_at(3), Tok::Dot) => {
-                        let (op, level) = match w.as_str() {
-                            "plus" => (BinOp::AddIeee, ADD_LEVEL),
-                            "minus" => (BinOp::SubIeee, ADD_LEVEL),
-                            _ => (BinOp::MulIeee, MUL_LEVEL),
+                    "plus" | "minus" | "times" | "pow" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "ieee") && !matches!(self.peek_at(3), Tok::Dot) => {
+                        let (op, level, chain) = match w.as_str() {
+                            "plus" => (BinOp::AddIeee, ADD_LEVEL, Chain::Left),
+                            "minus" => (BinOp::SubIeee, ADD_LEVEL, Chain::Left),
+                            "times" => (BinOp::MulIeee, MUL_LEVEL, Chain::Left),
+                            _ => (BinOp::PowIeee, POW_LEVEL, Chain::Right),
                         };
-                        OpTok { len: 3, ..lang(op, level, Chain::Left) }
+                        OpTok { len: 3, ..lang(op, level, chain) }
                     }
                     "plus" | "minus" | "times" | "pow" if matches!(self.peek_at(1), Tok::Dot) && !self.is_word_at(2, "wrap") => {
                         let (name, end) = dotted(1, w);
@@ -3073,8 +3074,12 @@ impl<'a> Parser<'a> {
                     limb if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(_)) => {
                         let Tok::Word(first) = self.peek_at(2) else { unreachable!() };
                         let (name, end) = dotted(3, first);
-                        if limb == "std" && (name == "pow" || name == "pow.wrap") {
-                            let op = if name == "pow" { BinOp::Pow } else { BinOp::WrapPow };
+                        if limb == "std" && matches!(name.as_str(), "pow" | "pow.wrap" | "pow.ieee") {
+                            let op = match name.as_str() {
+                                "pow" => BinOp::Pow,
+                                "pow.wrap" => BinOp::WrapPow,
+                                _ => BinOp::PowIeee,
+                            };
                             OpTok { len: end, ..lang(op, POW_LEVEL, Chain::Right) }
                         } else {
                             leveled(&name, BinOp::Custom(format!("{}::{}", limb, name)), end)
@@ -3124,7 +3129,8 @@ impl<'a> Parser<'a> {
                     let ieee = self.ieee_narrow(w, r)?;
                     let wrap = !ieee && self.wrap_narrow(w, r)?;
                     op = match (op.is_div(), wrap) {
-                        _ if ieee => BinOp::DivIeee(r),
+                        (true, _) if ieee => BinOp::DivIeee(r),
+                        (false, _) if ieee => BinOp::ModIeee(r),
                         (true, true) => BinOp::DivWrap(r),
                         (true, false) => BinOp::Div(r),
                         (false, _) => BinOp::Mod(r),
@@ -3175,14 +3181,8 @@ impl<'a> Parser<'a> {
             }
             if let BinOp::Custom(name) = &op {
                 if let Some((base, narrow)) = name.split_once('.') {
-                    if narrow == "ieee" && base == "pow" {
-                        return self.fail_at(op_span, "`.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `pow` has no `.ieee` form");
-                    }
-                    if matches!(base, "plus" | "minus" | "times") {
+                    if matches!(base, "plus" | "minus" | "times" | "pow") {
                         return self.fail_at(op_span, format!("`{}.{}` is not an operator: the narrowings of `{}` are `{}.wrap` and `{}.ieee`", base, narrow, base, base, base));
-                    }
-                    if base == "pow" {
-                        return self.fail_at(op_span, format!("`{}.{}` is not an operator: the only narrowing of `{}` is `{}.wrap`", base, narrow, base, base));
                     }
                 }
             }

@@ -115,6 +115,7 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
                         B::SubIeee => x - y,
                         B::MulIeee => x * y,
                         B::DivIeee(r) => crate::rounding::bin_divmod(x, y, *r).0,
+                        B::ModIeee(r) if *r != crate::ast::Round::Near => crate::rounding::bin_divmod(x, y, *r).1,
                         B::Add => x + y + 0.0,
                         B::Sub => x - y + 0.0,
                         B::Mul => x * y + 0.0,

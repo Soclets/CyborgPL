@@ -184,6 +184,10 @@ pub enum BinOp {
     AddIeee,
     SubIeee,
     MulIeee,
+    /// `mod.floor/ceil/trunc.ieee`, `pow.ieee` (owner, 2026-10-07:
+    /// "yea."): every operator that can make a -0 has its `.ieee` form.
+    ModIeee(Round),
+    PowIeee,
     /// `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` (owner, 2026-10-07:
     /// "yea"): operands taken as their bits at the operator's width, where
     /// the plain ones must fit it.
@@ -236,6 +240,8 @@ impl BinOp {
             BinOp::AddIeee => "plus.ieee".into(),
             BinOp::SubIeee => "minus.ieee".into(),
             BinOp::MulIeee => "times.ieee".into(),
+            BinOp::ModIeee(r) => format!("mod.{}.ieee", r.word()),
+            BinOp::PowIeee => "pow.ieee".into(),
             BinOp::Mod(r) => format!("mod.{}", r.word()),
             BinOp::WrapAdd => "plus.wrap".into(),
             BinOp::WrapSub => "minus.wrap".into(),
@@ -273,12 +279,14 @@ impl BinOp {
             BinOp::SubIeee => BinOp::Sub,
             BinOp::MulIeee => BinOp::Mul,
             BinOp::DivIeee(r) => BinOp::Div(*r),
+            BinOp::ModIeee(r) => BinOp::Mod(*r),
+            BinOp::PowIeee => BinOp::Pow,
             other => other.clone(),
         }
     }
     /// A form that keeps IEEE's `-0`.
     pub fn is_ieee(&self) -> bool {
-        matches!(self, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::DivIeee(_))
+        matches!(self, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::DivIeee(_) | BinOp::ModIeee(_) | BinOp::PowIeee)
     }
     pub fn is_comparison(&self) -> bool {
         matches!(self, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge)
@@ -296,10 +304,10 @@ impl BinOp {
     }
     /// A `mod.X`: beside any operator it needs parentheses.
     pub fn is_mod(&self) -> bool {
-        matches!(self, BinOp::Mod(_))
+        matches!(self, BinOp::Mod(_) | BinOp::ModIeee(_))
     }
     pub fn is_multiplicative(&self) -> bool {
-        matches!(self, BinOp::Mul | BinOp::MulIeee | BinOp::Div(_) | BinOp::DivWrap(_) | BinOp::DivIeee(_) | BinOp::Mod(_) | BinOp::WrapMul)
+        matches!(self, BinOp::Mul | BinOp::MulIeee | BinOp::Div(_) | BinOp::DivWrap(_) | BinOp::DivIeee(_) | BinOp::Mod(_) | BinOp::ModIeee(_) | BinOp::WrapMul)
     }
 }
 

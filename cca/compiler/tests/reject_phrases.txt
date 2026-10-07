@@ -280,8 +280,7 @@ grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `cha
 grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 gte [fnv:695f5e2be2fe7158] :: greater-or-equal is `>/==`
 ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
-ieee_on_mod [fnv:52735b91ae289d1f] :: `.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `mod.floor` has no `.ieee` form
-ieee_on_pow [fnv:eb5bd81d429d7b05] :: `.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `pow` has no `.ieee` form
+ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
 neg_ieee_on_int [fnv:49dd57d5cf27f472] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`
 plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `plus`
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
@@ -578,6 +577,7 @@ simd_shuffle_lane [fnv:9019a13509c2627b] :: lane 5 does not exist
 simd_shuffle_not_fixed [fnv:10de2b5101aae9ec] :: takes the new order as fixed lane numbers
 simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past the end
 simd_std_lane [fnv:5ea45cd90b3704c8] :: a vector's lanes are a standard width
+simd_sum_lane_past [fnv:b4b58287404c8c2f] :: the value can be outside what an `int32` holds
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is followed by `.of`: `size.of[int32]`

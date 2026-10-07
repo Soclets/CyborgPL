@@ -900,7 +900,7 @@ impl Checker {
     fn binary(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
         // `plus.ieee`, `minus.ieee`, `times.ieee` (owner, 2026-10-07):
         // checked as the plain operator, then kept as IEEE's own answer.
-        if matches!(op, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee) {
+        if matches!(op, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::ModIeee(_) | BinOp::PowIeee) {
             let mut e = self.binary(ctx, &op.plain(), op_span, lhs, rhs, span)?;
             let ty = self.resolve(&e.ty);
             self.ieee_takes(&op.spelled(), &op.plain().spelled(), &ty, op_span)?;
@@ -1192,7 +1192,7 @@ impl Checker {
                 }
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
             }
-            BinOp::Custom(_) | BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee => unreachable!(),
+            BinOp::Custom(_) | BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::ModIeee(_) | BinOp::PowIeee => unreachable!(),
         }
     }
 
