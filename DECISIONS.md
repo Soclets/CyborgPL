@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-07 — The plugin interface: compiler claude's proposal, answered question by question (owner; not built)
+
+`cca/PLUGINS.md` (735fc8c0), written by compiler claude at the owner's
+request ("yea", design claude asking it for a proposal only). Three
+boundaries: base ↔ codextra (small, stable: the codextra returns IR, a
+list of power uses and messages, and the base checks the uses itself),
+codextra ↔ core (Signatar's to define), base ↔ core (loading, identity,
+dependencies, the power catalogue). Its six questions, as the owner
+answers them:
+
+- **Q1, how a core adds syntax: a fixed menu of hooks** (a statement
+  word, a prefix head like `to.`, a narrowing after an operator, a word
+  operator with its level, a prefix operator, a type head, a modifier on
+  `for`, a marker before a statement, an item kind, an `inline.` language,
+  a spelling of an existing token, the characters a name may hold), **with
+  raw token runs allowed inside the statement-word and prefix-head hooks
+  only**; two cores claiming one entry are refused when the manifest is
+  read (the owner: "yea", to compiler claude's recommendation, which
+  design claude seconded), over token rewriting everywhere (Rust-macro
+  style) and grammar fragments merged into Signatar's parser.
+
 ### 2026-10-07 — The dangerous abilities are powers too: Signatar grants them to every limb, and a program may deny them (owner: a; not built)
 
 ```
