@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-07 — The dangerous abilities are powers too: Signatar grants them to every limb, and a program may deny them (owner: a; not built)
+
+```
+cca::Manifest[
+    …,
+    deny = [cca::Power.inline_assembly, cca::Power.c_calls,],    # design claude's spellings
+]
+```
+
+Designing the powers (owner: "design", over asking compiler claude for
+the plugin interface first). The four decided so far all let a limb
+extend the language (operators on built-in types, prefix operators,
+adding conversions, plugging into `for`). Design claude asked whether
+the abilities a program may not want its dependencies to have
+(`inline.Assembly`, `extern.C` calls, raw pointers) are powers too: (a)
+yes, **granted by Signatar itself to every limb by default**, so pure
+Signatar's Hello World through C still works, and a program may `deny`
+them; (b) no, they stay unrestricted. Asked the difference: under (a)
+every build lists which limb uses which, `deny` stops a build that
+needs one, and an upgrade that starts using one is flagged (2026-10-06);
+under (b) only reading the source tells. The owner: "`a`".
+
 ### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 
 ```
