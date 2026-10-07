@@ -2774,6 +2774,22 @@ impl<'p> Interp<'p> {
                 }
             }
             // Bitwise (decided 2026-09-21): integers only; `shl` past the width is a check site.
+            // `shl.masked` / `shr.masked` (owner, 2026-10-07): the count taken modulo the width, the bits pushed
+            // past it dropped; no check site
+            Expr::Binary(op, l, r, _) if op == "shl.masked" || op == "shr.masked" => {
+                let (a, _) = self.eval(l)?;
+                let (b, _) = self.eval(r)?;
+                let width_ty = self.expr_ty(l);
+                let Some(t @ (Ty::Int(w) | Ty::Uint(w))) = width_ty.as_ref() else { return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes, or write `to.uint32[…] {op} …`")) };
+                let bits = true_bits(w);
+                if bits >= 127 { return rt(line, format!("`{op}` on {} is not built in the oracle", ty_name(t))); }
+                let (Value::Int(x), Value::Int(y)) = (a, b) else { return rt(line, format!("`{op}` works on integers")) };
+                let c = y.rem_euclid(bits as i128) as u32;
+                let m = 1i128 << bits;
+                let v = if op == "shl.masked" { (x << c).rem_euclid(m) } else { x >> c };
+                let v = if matches!(t, Ty::Int(_)) { let u = v.rem_euclid(m); if u >= m / 2 { u - m } else { u } } else { v.rem_euclid(m) };
+                Ok((Value::Int(v), Prov::Plain))
+            }
             Expr::Binary(op_full, l, r, _) if matches!(op_full.as_str(), "and.bit" | "or.bit" | "xor" | "shl" | "shr" | "and.bit.wrap" | "or.bit.wrap" | "xor.wrap") => {
                 // `.wrap` takes each operand as its bits at the operator's width; without it an operand must
                 // fit that width (owner, 2026-10-07: "yea", strict by default, `.wrap` the hardware way)
@@ -2835,8 +2851,8 @@ impl<'p> Interp<'p> {
                         let width_ty = self.expr_ty(l);
                         // `shl` pushes bits off the left end, so its width must be known (operators.md,
                         // owner 2026-09-23: from any operand or the context; context stops at a call)
-                        if op == "shl" && width_ty.is_none() {
-                            return rt(line, "`shl` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 shl 3;`) or write `to.uint32[1] shl 3`");
+                        if width_ty.is_none() {
+                            return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {op} 3;`) or write `to.uint32[1] {op} 3`"));
                         }
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
                         // compare before narrowing: `y as u32` would wrap a huge count to a small one (seed 1125)

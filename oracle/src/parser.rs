@@ -97,7 +97,7 @@ fn op_shown(op: &str) -> String {
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
 /// Bitwise operators (decided 2026-09-21): the boolean words narrowed with `.bit`, plus xor/shl/shr;
 /// no precedence — parentheses whenever one meets another operator.
-const BIT_OPS: &[&str] = &["and.bit", "or.bit", "xor", "shl", "shr", "and.bit.wrap", "or.bit.wrap", "xor.wrap"];
+const BIT_OPS: &[&str] = &["and.bit", "or.bit", "xor", "shl", "shr", "and.bit.wrap", "or.bit.wrap", "xor.wrap", "shl.masked", "shr.masked"];
 
 #[derive(Debug)]
 pub struct ParseError {
@@ -2646,6 +2646,9 @@ impl Parser {
             // `and.bit.wrap`, `or.bit.wrap`, `xor.wrap`: operands taken as their bits (owner, 2026-10-07)
             Tok::Word(w) if (w == "and" || w == "or") && dot_word("bit") && *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") => { self.op_len.set(5); Some(format!("{w}.bit.wrap")) }
             Tok::Word(w) if w == "xor" && dot_word("wrap") => { self.op_len.set(3); Some("xor.wrap".into()) }
+            // `shl.masked` / `shr.masked`: the count masked to the width and the answer cut to it, as the
+            // chip does (owner, 2026-10-07: "both", then "Whatever's accurate")
+            Tok::Word(w) if (w == "shl" || w == "shr") && dot_word("masked") => { self.op_len.set(3); Some(format!("{w}.masked")) }
             Tok::Word(w) if (w == "and" || w == "or") && dot_word("bit") => { self.op_len.set(3); Some(format!("{w}.bit")) }
             // `and.then` / `or.else` — the right side only when the left has not decided (owner, 2026-09-25)
             Tok::Word(w) if w == "and" && dot_word("then") => { self.op_len.set(3); Some("and.then".into()) }

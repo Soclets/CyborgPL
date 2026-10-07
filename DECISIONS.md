@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-07 — A shift's width comes from the shifted number, never from its count (owner: yea)
+### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 
 ```
 let 'c': int8 = 9;
@@ -21,7 +21,21 @@ the point (taken modulo 64 or 32); x86's `shl rax, cl` always takes an
 8-bit count; C and Rust give the result the left side's type. The owner:
 "yea": **the width is the shifted number's own type, or, when it is
 bare, its context; the count never decides it.** The oracle already did
-this; CCA changes. Asked next: a hardware-style shift.
+this; CCA changes. **The hardware way is `shl.masked` / `shr.masked`**: the
+count taken modulo the width (70 on 64 bits shifts by 6) and the bits
+pushed past the width cut off, with no check site; plain `shl` / `shr`
+stay checked. Design claude offered `.wrap` (the family's word) and asked
+whether it should do both of the chip's behaviours; the owner: "both. But
+is `wrap` the right word? Not consistency, but the meaning". Design claude:
+the count and the number do wrap around their ranges, but bits pushed off
+do not come back at the other end, so on a shift "wrap" reads as rotating
+(ARM's `ror`); offered `.hardware` (the owner: "sounds a bit like it
+depends on where it's running": it does not, CyborgPL defines it), then,
+by meaning alone, `.masked` (cut to fit: the count masked to the width,
+the answer to it) against `.wrap` (Rust's `wrapping_shl` masks the count
+too). The owner: "Whatever's accurate, man": `.masked`. A shift with no
+width anywhere is refused for `shr` as for `shl` (design claude's,
+matching CCA). `examples/shift_masked.cpls`, reject test `shr_no_width`.
 
 ### 2026-10-07 — A bitwise operand must fit the operator's width; `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` take its bits (owner: yea)
 
