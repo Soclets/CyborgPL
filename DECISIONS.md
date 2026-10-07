@@ -36,7 +36,11 @@ think that's already fine, but there should be a way to be a lot more
 specific". So **a core may add powers of its own** (design claude's
 reading, asked: alongside Signatar's, which still sets the limits no
 core lifts, 2026-10-06), and **a power can be named more specifically**
-than these three (how: asked next).
+than these three: **narrowed with `.`** (`raw_memory.read` /
+`raw_memory.write`, `c_calls.functions` / `c_calls.variables`) and **exact
+things named in `[ ]`** (`cca::Power.c_calls["sqrt", "sin"]`, only those C
+functions) (owner: "yea"). The narrowings shown and an `allow_only` field
+beside `deny` are design claude's sketches, not ruled.
 
 ### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 
