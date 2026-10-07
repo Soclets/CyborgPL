@@ -492,7 +492,18 @@ or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
 deprecating `#strict` means (warned now, refused later?); SIMD, ranges and
 `test fn`. The owner then: "Feeling like a syntax revision right now,
-likely not gonna be removing, but adding for clarity".
+likely not gonna be removing, but adding for clarity". **Later: `deci` leaves the base too; `bin` stays**
+(owner: "What has more chance of not having native? `bin` vs `deci`.
+Remove the more"). Asked first "Can't you just write ASM for types?",
+design claude: the maths yes, the type no (its size, its registers, what
+LLVM optimizes and what Precog proves are the compiler's; a core, being
+a compiler mod, can add a real type). Then: `bin` has hardware on nearly
+every CPU built for (ARM64, x86-64, RISC-V with F/D; not the smallest
+microcontrollers), `deci` only on IBM POWER (from POWER6) and z, software
+everywhere else. So **`deci32` / `deci64` / `deci128` move to a core**,
+which one not yet asked; design claude's reading, not asked: the
+2026-09-29 layout ruling (DPD on POWER and z, BID elsewhere) goes with
+it.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
 
