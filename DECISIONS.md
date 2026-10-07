@@ -387,7 +387,17 @@ is less"), shown the same functions, a failing one, a lent return, a
 closure and assembly bindings with `->` and with `-->`; this reverses
 2026-10-06's "Signatar supports long, not short anymore". Design claude's
 reading: the whole family goes short (`<-` for a binding out, `<->` both
-ways), and with MTM gone the long ones are refused naming the short. Design
+ways), and with MTM gone the long ones are refused naming the short. **A case's value says `is`** (owner: "`is`"):
+`match 'l' { empty { is "free"; } claimed { is "taken"; } }`, and in
+`otherwise` cases too, replacing `#strict`'s `giveS`. Asked whether
+`#strict`'s `gives` should be required everywhere, the owner: "Does
+`gives` make sense?" Design claude: not really, it collides with `give`
+(the reason for 2026-09-29's capital S); offered (a) `is`, recommended,
+(b) the arrow, `empty -> "free"`, (c) the bare value; shown `is` in a
+simple, a multi-statement, a nested and an `otherwise` case, then beside
+`gives` (`gives give 'box'` against `is give 'box'`). Design claude's
+reading: required wherever a case gives a value, the bare value refused
+naming `is`; a case that only does something has none. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
