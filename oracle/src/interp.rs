@@ -2844,7 +2844,7 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !is_div_mod(op) && !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(op, l, r, _) => {
@@ -2999,7 +2999,7 @@ impl<'p> Interp<'p> {
     /// bins, `brain16` and decis `floor`, `ceil` and `trunc` give a whole quotient and `near` is
     /// ordinary division, rounded to the nearest value the type holds, so `mod.near` is refused there
     /// (it leaves nothing over). `a == (a div.X b) x b + (a mod.X b)` for the whole ones.
-    fn div_mod(&self, kind: &str, mode: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
+    fn div_mod(&self, kind: &str, mode: &str, a: Value, b: Value, line: usize, ieee: bool) -> Result<Value, RuntimeError> {
         use Value::*;
         let op = format!("{kind}.{mode}");
         let zero = if kind == "div" { "division by zero".to_string() } else { "`mod` by zero".to_string() };
@@ -3025,12 +3025,15 @@ impl<'p> Interp<'p> {
             (Bin(_), Bin(y)) | (Brain(_), Brain(y)) if y == 0.0 => return site(line, zero),
             (Bin(x), Bin(y)) => {
                 let v = if kind == "div" && mode == "near" { x / y } else { let (q, r) = float_div_mod(x, y, mode); if kind == "div" { q } else { r } };
+                // a whole quotient that rounds to zero is 0, never -0 (owner, 2026-10-07: "`b`"): `+ 0.0`
+                let v = if kind == "div" && mode != "near" && !ieee { v + 0.0 } else { v };
                 if v.is_infinite() || v.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest bin (it would be infinity): a bin never holds one")); }
                 Bin(v)
             }
             (Brain(x), Brain(y)) => {
                 let v = if kind == "div" && mode == "near" { ((x as f32) / (y as f32)) as f64 } else { let (q, r) = float_div_mod(x, y, mode); if kind == "div" { q } else { r } };
                 let v = crate::value::round_brain(v);
+                let v = if kind == "div" && mode != "near" && !ieee { v + 0.0 } else { v };
                 // rounding to brain16 can reach the divisor again (359 rounds to 360): still below it
                 let v = if kind == "mod" { below_divisor(v, y, mode) } else { v };
                 if v.is_infinite() || v.is_nan() { return site(line, format!("`{op}` on {x:e} and {y:e} goes past the largest brain16 (it would be infinity)")); }
@@ -3078,10 +3081,15 @@ impl<'p> Interp<'p> {
         }
         // `div.X` / `mod.X` (owner, 2026-10-02): every division says how it rounds, `floor`, `ceil`,
         // `trunc` or `near`, on every number family, and each `mod.X` is what `div.X` leaves over
+        // `div.ceil.ieee` keeps IEEE's -0 (owner, 2026-10-07): only a bin or brain16 has one
+        let (op, ieee) = match op.strip_suffix(".ieee") { Some(b) => (b, true), None => (op, false) };
+        if ieee && !matches!((&a, &b), (Bin(_), Bin(_)) | (Brain(_), Brain(_))) {
+            return rt(line, format!("`{op}.ieee` keeps a -0, which only a bin or brain16 has, and a {} has none: write `{op}`", a.kind()));
+        }
         if let Some((kind, mode)) = op.split_once('.') {
             if (kind == "div" || kind == "mod") && matches!(mode, "floor" | "ceil" | "trunc" | "near") {
                 let same = matches!((&a, &b), (Int(_), Int(_)) | (Bin(_), Bin(_)) | (Brain(_), Brain(_))) || matches!((&a, &b), (Deci(x), Deci(y)) if x.width == y.width);
-                if same { return self.div_mod(kind, mode, a, b, line); }
+                if same { return self.div_mod(kind, mode, a, b, line, ieee); }
             }
         }
         Ok(match (op, a, b) {

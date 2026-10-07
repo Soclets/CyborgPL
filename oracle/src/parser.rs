@@ -2652,6 +2652,8 @@ impl Parser {
             Tok::Word(w) if (w == "div" || w == "mod") && *self.peek_at(k + 1) == Tok::Dot => match self.peek_at(k + 2) {
                 // `div.trunc.wrap`: wraps at the type's width instead of overflowing (owner, 2026-10-03)
                 Tok::Word(b) if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") => { self.op_len.set(5); Some(format!("{w}.{b}.wrap")) }
+                // `div.ceil.ieee`: IEEE's own rounding, a zero from below kept as -0 (owner, 2026-10-07: "`a`")
+                Tok::Word(b) if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "ieee") => { self.op_len.set(5); Some(format!("{w}.{b}.ieee")) }
                 Tok::Word(b) => { self.op_len.set(3); Some(format!("{w}.{b}")) }
                 _ => Some(w.clone())
             },
@@ -2863,6 +2865,9 @@ impl Parser {
             if let Some(base) = op.strip_suffix(".wrap") {
                 if op.starts_with("mod.") { return self.err(format!("`mod` never overflows, so there is nothing to wrap: write `{base}` (owner, 2026-10-03)")); }
                 if op.starts_with("div.") && !crate::interp::is_div_mod(base) { return self.err(format!("no `{base}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`")); }
+            } else if let Some(base) = op.strip_suffix(".ieee") {
+                if op.starts_with("mod.") { return self.err(format!("`.ieee` keeps a quotient's -0; `{base}` is a remainder, whose zero takes the divisor's sign already")); }
+                if !matches!(base, "div.floor" | "div.ceil" | "div.trunc") { return self.err(format!("`.ieee` goes on a rounded division, `div.floor`, `div.ceil` or `div.trunc`; `{base}` gives no rounded zero to keep")); }
             } else if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
                 return self.err(format!("no `{op}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`"));
             }

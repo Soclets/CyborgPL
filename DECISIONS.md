@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-07 — A whole quotient that rounds to zero is `0`, never `-0` (owner: b; not built in the oracle)
+### 2026-10-07 — A whole quotient that rounds to zero is `0`, never `-0`; `div.ceil.ieee` keeps it (owner: b, a)
 
 ```
 let 'q': bin64 = 0.5 div.ceil (-1.75);    # -0.2857… rounded up: 0, not IEEE's -0
@@ -17,7 +17,16 @@ covered it. Design claude offered (a) keep `-0` as the hardware does, (b)
 always `0`, recommended, (c) the dividend's or divisor's sign; asked the
 cost: one floating-point add of `+0.0` after the rounding, none where
 Precog proves the answer cannot be `-0`. The owner: "`b`, but is there a
-way to do like hardware?" (asked next).
+way to do like hardware?" Design claude offered (a) a narrowing on the
+operator, `div.ceil.ieee`, std's, beside `div.trunc.wrap`, free, written
+where wanted, recommended; (b) no new syntax, IEG's raw float operations
+or `inline.Assembly`. The owner: "`a`". So **`div.floor.ieee`,
+`div.ceil.ieee`, `div.trunc.ieee` keep IEEE's `-0`**, on a bin or `brain16`
+only (an integer or deci has none: refused naming the plain operator).
+Design claude's readings, not asked: `div.near` takes no `.ieee` (on a bin
+it is ordinary division, no rounded zero), nor does `mod.X` (a zero
+remainder already takes the divisor's sign). In the oracle:
+`examples/zero_quotient.cpls`, reject tests `ieee_on_int`, `ieee_on_mod`.
 
 ### 2026-10-06 — Without IEG nothing needs `!check`: the marking rule is IEG's (owner: yes)
 
