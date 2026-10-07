@@ -425,7 +425,13 @@ operator", the space in `-> <T>` required and a missing one met by an
 error saying so, recommended, (b) `->` always its own token and no
 operator starting with `->`, `<-` or `<->`, (c) the parser splitting
 `-><` only where a return type goes. The owner: "`a`". So `-><` stays
-someone's possible operator, and `-> <T>` keeps its space. Design
+someone's possible operator, and `-> <T>` keeps its space. **The working build keeps checking unproven sites at run time;
+only the final build refuses them** (owner: "unchanged, if it's already
+good"), over (a) the working build refusing them too, as `#strict` did,
+and (c) a build switch; design claude recommended (b). The owner had
+asked "How the fuck would you test a runtime-dependant overflow with
+`#strict`?": you could not, the program never building until the
+overflow was made impossible. That was `#strict`'s last leftover. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
