@@ -121,9 +121,14 @@ deny = [
 ],
 ```
 
-so a program still only takes powers away (2026-10-06). The narrowings
-shown (`raw_memory.read`, `c_calls.functions`, …) are design claude's
-sketches.
+so a program still only takes powers away (2026-10-06). **The narrowings,
+ruled 2026-10-07** (owner: "`a`"; they had been design claude's sketches,
+the owner having ruled the dot and the brackets: "Didn't I already decide
+this?"): `inline_assembly` has none; `c_calls.functions["name"]` and
+`c_calls.variables["name"]`; `raw_memory.read` (`ptr.read`, `ptr.at`,
+reading by address, volatile reads), `raw_memory.write` (`ptr.write`,
+writing by address, volatile writes), `raw_memory.cast` (`ptr.cast`,
+bytes read as another type).
 **A limb lists every power it uses, the dangerous ones included**
 (owner: "`a`"): `powers = [cca::Power.c_calls,]` in its manifest, and code
 using an unlisted one is refused ("`fastjson` calls C but does not list
