@@ -515,10 +515,18 @@ Design claude offered `simd.128[int32]`, lanes as today, or the
 instruction set (`simd.neon`); the owner: "If bit needs narrowing there,
 why doesn't types?", so the width is glued as in `int32`. **The rule (the
 owner's): a width is part of the name, glued on, never a `.` narrowing,
-even where it looks like one.** Replaces `simd[T, N]`. Not yet asked:
-whether SIMD stays in the base; how a mask (`simd[bool, 4]`) says its
-lanes; a width the target lacks (refused, or chosen by `on.machine`);
-SVE's and RISC-V's run-time lengths.
+even where it looks like one.** **Then undone: SIMD keeps its lane
+count, `simd[int32, 4]`** (owner: "`a`"): asked how a mask says its lanes
+under widths (`simd128[bool]` cannot: a `bool` has no width to divide
+128 by; `mask128[int32]` offered), the owner: "Actually, maybe we should
+consider `The lane count`". Offered (a) lanes as today, masks
+`simd[bool, 4]`, the width following (4 × 32 = 128) and one lane count
+naming one width; (b) widths with `mask128[int32]`; (c) both written.
+Design claude recommended (a). So `simd[int32, 8]` is the 256-bit vector,
+refused where the target has none or chosen by `on.machine` (design
+claude's reading); the owner's rule on widths stands for any later type.
+Not yet asked: whether SIMD stays in the base; SVE's and RISC-V's
+run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
 
