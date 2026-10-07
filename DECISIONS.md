@@ -224,7 +224,29 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
-### 2026-10-07 — Dialects: between the base and cores, each brings the syntax; Signatar is the base, CyborgPL the official dialect; no use across dialects (owner: b)
+### 2026-10-07 — No dialects after all: Signatar is the language again, cores customize, anything deeper is a fork (owner)
+
+Asked how a dialect would tailor optimization, design claude offered MIR
+passes run before the ownership check and Precog, and LLVM passes after
+it (trusted); the owner: "I honestly want LLVM passes too, any other way
+to do it better like that?" Design claude offered tuning LLVM's own
+passes, and custom LLVM passes checked by translation validation (RRx2-TV's
+way), recommending both in final builds. The owner: "Or just fuck the
+Dialect shit, and just let them fork so they could do whatever they
+want". Design claude agreed: with no use across dialects a dialect is
+nearly a fork already, and a dialect needs a stable AST, a MIR pass
+interface and an LLVM pass interface kept stable for dialects nobody may
+write; a fork may do anything under Apache-2.0 WITH LLVM-exception but
+cannot be called CyborgPL (trademark) and merges our updates itself.
+Asked whether to go back to the morning's design, the owner: "Yeah". So
+**there are no dialects**: the two dialect entries below are undone, and
+**the morning's design holds**: no base below the language, the language
+is the lowest level and does the base's work, cores add words and
+features and **a core may take powers away** (owner: "`a`", the game
+engine's restricted setup), and **anything deeper, its own syntax or
+optimizer, is a fork**.
+
+### 2026-10-07 — (undone the same day: no dialects) Dialects: between the base and cores, each brings the syntax; Signatar is the base, CyborgPL the official dialect; no use across dialects (owner: b)
 
 Right after there was no base, the owner: "We might wanna add a category
 above core, but below Signatar, in rank. Btw, you could just call
