@@ -1444,7 +1444,7 @@ impl<'p> Interp<'p> {
             Expr::Binary(_, l, r, _) => self.expr_ty_own(l).or_else(|| self.expr_ty_own(r)),
             // a length is a uint64, and an item has its list's element type (check claude, seeds 5018, 5054)
             Expr::Builtin(h, op, _, _) if (h == "list" || h == "array") && op == "length" => Some(Ty::Uint(IntWidth::W64)),
-            Expr::Index(name, _, _) => match self.lookup(name).and_then(|s| s.ty.clone()) {
+            Expr::Index(name, _, _) | Expr::CallValue(name, _, _, _) => match self.lookup(name).and_then(|s| s.ty.clone()) {
                 Some(Ty::List(t)) | Some(Ty::Array(t)) => Some(*t),
                 Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(*t), _ => None },
                 _ => None,
