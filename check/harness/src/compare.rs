@@ -105,7 +105,8 @@ pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, env
         (Oracle::Ran { .. }, _) => "oracle-accepted-borrow-mistake",
         (_, Build::Built(_)) => "cca-accepted-borrow-mistake",
         (Oracle::Timeout, _) => "oracle-timeout",
-        _ => return Verdict::Agree { oracle_stopped: None },
+        // both refused it, as they should: say so, not "both ran"
+        _ => return Verdict::Agree { oracle_stopped: Some(format!("a borrow mistake on purpose, refused by both: {}", oracle_text(&o))) },
     };
     Verdict::Finding(Finding { kind, mode: Mode::Normal, sig: kind.to_string(), env, detail: d })
 }
