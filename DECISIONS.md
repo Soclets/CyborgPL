@@ -243,6 +243,12 @@ recommended; (c) unchanged. The owner: "`a`". So **every range is
 `range[from …, to …, by …]`**, everywhere, and the unlabelled form is
 refused naming the labelled one (design claude's reading, one spelling).
 
+**`temp` stays the default and may be written** (owner: "`b`, but the
+default could be written"), over (a) `temp` or `perm` on every `for`, as
+`#strict` does; design claude had recommended (b). Writing `temp` was
+already allowed outside `#strict` (checked in the oracle), so this keeps
+today's rule.
+
 ### 2026-10-07 — A slimmer base: `brain16`, non-standard integers, Unicode text and the case marks move out; `#strict` will be deprecated (owner; not built)
 
 The owner: "Let's make base CyborgPL slimmer". Design claude listed what
