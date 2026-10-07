@@ -1065,3 +1065,14 @@ pub fn fold_bare(e: &Expr) -> Option<i128> {
         _ => None,
     }
 }
+
+/// Whether `e` is an exact answer (plain arithmetic or bare numbers), not a
+/// value that already holds a type.
+pub fn is_exact(e: &Expr) -> bool {
+    match e {
+        Expr::Lit(_) => true,
+        Expr::Neg(a) => is_exact(a),
+        Expr::Bin(op, ..) => !matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr | BinOp::WAdd | BinOp::WSub | BinOp::WMul),
+        _ => false,
+    }
+}

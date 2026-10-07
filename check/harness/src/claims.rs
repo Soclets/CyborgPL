@@ -203,8 +203,10 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
         }
         out.matched += 1;
         // Several instances of one site (a function inlined at each call)
-        // share its node and statement; different sites do not.
-        let mut groups: Vec<(usize, usize)> = ks.iter().map(|k| (enc.sites[*k].node, enc.sites[*k].stmt)).collect();
+        // share its node, statement and what it checks; different sites do
+        // not (a bitwise operator's two operands and the landing of its
+        // answer share the operator's span in Precog's report, 2026-10-07).
+        let mut groups: Vec<(usize, usize, &str)> = ks.iter().map(|k| (enc.sites[*k].node, enc.sites[*k].stmt, enc.sites[*k].what.as_str())).collect();
         groups.sort();
         groups.dedup();
         if groups.len() > 1 {

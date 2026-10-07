@@ -305,7 +305,19 @@ impl<'a> Ev<'a> {
                     }
                     Val::S(out)
                 } else {
-                    Val::I(self.binary(*op, x.i(), y.i(), t)?)
+                    let (mut x, mut y) = (x.i(), y.i());
+                    if matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor) {
+                        // Only an exact answer is a site: a typed operand (a
+                        // name, a conversion, a wrapping or bitwise result)
+                        // already holds its type.
+                        if crate::ast::is_exact(a) {
+                            x = self.land(x, t.into())?;
+                        }
+                        if crate::ast::is_exact(b) {
+                            y = self.land(y, t.into())?;
+                        }
+                    }
+                    Val::I(self.binary(*op, x, y, t)?)
                 }
             }
             Expr::SimdFill(a) => Val::S(vec![self.expr(env, a)?.i()]),
@@ -363,12 +375,11 @@ impl<'a> Ev<'a> {
                 let r = if y > 200 { if x == 0 || x == 1 { x } else if x == -1 { if y % 2 == 0 { 1 } else { -1 } } else { i128::MAX } } else { x.checked_pow(y as u32).unwrap_or(i128::MAX) };
                 self.limit64(r)
             }
-            // An exact operand first fits the operator's width (CCA c1973f02,
-            // as the oracle does), then the bits are combined.
-            AndBit | OrBit | Xor => {
-                let (x, y) = (self.land(x, t.into())?, self.land(y, t.into())?);
-                Ok(match op { AndBit => x & y, OrBit => x | y, _ => x ^ y })
-            }
+            // An exact operand fits the operator's width first (owner, 2026-10-07;
+            // checked where the operands are, in `expr`), then the bits combine.
+            AndBit => Ok(x & y),
+            OrBit => Ok(x | y),
+            Xor => Ok(x ^ y),
             Shl | Shr => {
                 self.check("shift_count", y, 0 <= y && y < w)?;
                 if op == Shl {
@@ -782,3 +793,4 @@ pub fn run(p: &Program, inputs: &[u64]) -> Run {
     };
     Run { seen: ev.seen, stopped, exhausted }
 }
+

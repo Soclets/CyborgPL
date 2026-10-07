@@ -318,6 +318,16 @@ impl<'a> Enc<'a> {
                 let x = self.expr(ctx, a, Some(t));
                 let y = self.expr(ctx, b, Some(t));
                 self.node = addr(e);
+                // An exact operand of a bitwise operator fits its width first
+                // (owner, 2026-10-07), as the evaluator holds it.
+                if matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor) {
+                    if crate::ast::is_exact(a) {
+                        self.land(ctx, &x, t.into(), &format!("{}'s left", op.text()));
+                    }
+                    if crate::ast::is_exact(b) {
+                        self.land(ctx, &y, t.into(), &format!("{}'s right", op.text()));
+                    }
+                }
                 self.binary(ctx, *op, &x, &y, t)
             }
         }
