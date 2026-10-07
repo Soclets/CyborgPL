@@ -646,8 +646,14 @@ fn main() {
         [_, flag, t] if flag == "--test" => (true, t),
         _ => { eprintln!("usage: oracle [--test] <file.cpls | limb-directory> [-- program arguments]"); exit(2); }
     };
-    match run_with_args(Path::new(target), Box::new(std::io::stdout()), tests, rest) {
-        Ok(code) => exit(code as i32),
-        Err(msg) => { eprintln!("{msg}"); exit(1); }
+    // the parser and the interpreter recurse, so a call nested a few thousand deep in one expression
+    // needs more than the main thread's 8 MB (check claude, seed 32299): 1 GB, only what is used is touched
+    let target = target.clone();
+    let run = std::thread::Builder::new().stack_size(1 << 30).spawn(move || run_with_args(Path::new(&target), Box::new(std::io::stdout()), tests, rest))
+        .expect("the oracle's thread");
+    match run.join() {
+        Ok(Ok(code)) => exit(code as i32),
+        Ok(Err(msg)) => { eprintln!("{msg}"); exit(1); }
+        Err(_) => exit(101),
     };
 }
