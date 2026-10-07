@@ -134,6 +134,11 @@ writes before `::`, unique within a program and what the code already
 shows (`fastjson::parse[…]`), over its name (names repeat) and its
 registry ID (unreadable, and a local limb has none); a prefix Synthia
 renamed is the renamed one.
+**`operators_on_builtin_types` is needed only by an operator whose every
+operand is a built-in type** (`op mean ['a': bin64, 'b': bin64]`); one
+taking any of the limb's own types (`op scale ['v': Vec2, 'k': bin64]`)
+is free, since it cannot change what `bin64 plus bin64` means in anyone
+else's code (owner: "`a`"), over any built-in operand needing it.
 **A limb lists every power it uses, the dangerous ones included**
 (owner: "`a`"): `powers = [cca::Power.c_calls,]` in its manifest, and code
 using an unlisted one is refused ("`fastjson` calls C but does not list
