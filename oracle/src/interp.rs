@@ -3084,7 +3084,7 @@ impl<'p> Interp<'p> {
         // `div.ceil.ieee` keeps IEEE's -0 (owner, 2026-10-07): only a bin or brain16 has one
         let (op, ieee) = match op.strip_suffix(".ieee") { Some(b) => (b, true), None => (op, false) };
         if ieee && !matches!((&a, &b), (Bin(_), Bin(_)) | (Brain(_), Brain(_))) {
-            return rt(line, format!("`{op}.ieee` keeps a -0, which only a bin or brain16 has, and a {} has none: write `{op}`", a.kind()));
+            return rt(line, format!("`{op}.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `{op}`", if a.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, a.kind()));
         }
         if let Some((kind, mode)) = op.split_once('.') {
             if (kind == "div" || kind == "mod") && matches!(mode, "floor" | "ceil" | "trunc" | "near") {
