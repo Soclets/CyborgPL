@@ -30,6 +30,15 @@ answers them:
   instead leave a word unreserved, found by its position** (the owner:
   "`a`, `b` depends on the core"), over every core's words being keywords
   everywhere (as `on` and `my` became).
+- **Q3, whether Precog trusts a core's contracts: yes, every core's**
+  (owner: "`a`"). Compiler claude had recommended trusting only verified
+  (official) cores, unverified ones' operations being opaque; the owner:
+  "Holy registry lock in". Design claude offered (d) trust by proof, any
+  core whose contracts RRx2 confirms, whoever wrote it; the owner: "Atp,
+  they're just gonna fork our entire project instead", then "`a`": every
+  core's contracts are trusted, the core being trusted already by the
+  warning's terms. So Precog's proofs are as sound as the cores a program
+  lists, and no core is privileged by who wrote it.
 
 ### 2026-10-07 — The dangerous abilities are powers too: Signatar grants them to every limb, and a program may deny them (owner: a; not built)
 
