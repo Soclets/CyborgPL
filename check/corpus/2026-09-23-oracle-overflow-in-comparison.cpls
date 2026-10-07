@@ -1,10 +1,10 @@
 # Finding 2026-09-23 (generator seed 23, shrunk). Reversed by the owner, dc83c05:
 # plain math is exact until it lands, so 112 > 224 is simply false and this runs.
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
     let 'v': int8 = 112;
     let 'yes' := "in ";
-    if 'v' > ('v' plus 'v') { nocheck write[1, lend 'yes', 3]; }
+    if 'v' > ('v' plus 'v') { no_check write[1, lend 'yes', 3]; }
     let 'end' := "end";
-    nocheck write[1, lend 'end', 3];
+    no_check write[1, lend 'end', 3];
 }

@@ -4,7 +4,7 @@
 # (owner: a, 2026-09-23), so 32 bits; the oracle prints 0. CCA refuses: "`shr` only knows a
 # declared width". The same inside a comparison with a bare number (seed 20020).
 # check claude generator, seed 20067
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -14,10 +14,10 @@ fn emit ['m': uint64, 'neg': bool] {
     loop {
         list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
-        if 'v' == 0 { break; }
+        if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
-        list.append[lend.mut 'buf', 'ds'['k']];
+    for 'k': uint64 in range[from list.length[lend 'ds'], to 1, by -1] {
+        list.append[lend.mut 'buf', 'ds'[pos 'k']];
     }
     list.append[lend.mut 'buf', 10];
     NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
@@ -35,14 +35,14 @@ fn put_i ['n': int64] {
     }
 }
 
-fn b1 [lent 'a': list[uint16], lent 'b': list[uint16], lent 'c': list[uint16]] --> lent list[uint16] {
+fn b1 [@x] [lent @x 'a': list[uint16], lent @x 'b': list[uint16], lent @x 'c': list[uint16]] -> lent @x list[uint16] {
     if list.length[lend 'b'] > 1 {
         return lend 'b';
     }
     return lend 'a';
 }
 
-fn b2 @y @x [lent@y 'a': list[uint16], lent@y 'b': list[uint16], lent@x 'c': list[uint16]] --> lent@x list[uint16] {
+fn b2 [@y, @x] [lent @y 'a': list[uint16], lent @y 'b': list[uint16], lent @x 'c': list[uint16]] -> lent @x list[uint16] {
     return lend 'c';
 }
 

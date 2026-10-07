@@ -2,7 +2,7 @@
 # return. The oracle reports it at the call (line 44, "301 does not fit uint8"), not at the
 # return (line 41), where the value lands in the return type. CCA points at the return.
 # check claude generator, seed 1
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -16,8 +16,8 @@ fn emit ['m': uint64, 'neg': bool] {
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
-    while 'k' >/== 1 {
-        list.append[lend.mut 'buf', 'ds'['k']];
+    while 'k' at_least 1 {
+        list.append[lend.mut 'buf', 'ds'[pos 'k']];
         change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
@@ -29,7 +29,7 @@ fn put_u ['n': uint64] {
 }
 
 fn put_i ['n': int64] {
-    if 'n' >/== 0 {
+    if 'n' at_least 0 {
         emit[to.uint64['n'], false];
     } else {
         let 'up': int64 = -('n' plus 1);
@@ -37,7 +37,7 @@ fn put_i ['n': int64] {
     }
 }
 
-fn f2 ['x': uint8] --> uint8 {
+fn f2 ['x': uint8] -> uint8 {
     return 'x' plus 201;
 }
 MAIN {

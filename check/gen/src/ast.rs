@@ -262,12 +262,12 @@ pub enum CmpOp {
 impl CmpOp {
     pub fn text(self) -> &'static str {
         match self {
-            CmpOp::Eq => "==",
-            CmpOp::Ne => "!==",
+            CmpOp::Eq => "equal_to",
+            CmpOp::Ne => "not_equal",
             CmpOp::Lt => "<",
             CmpOp::Gt => ">",
-            CmpOp::Le => "</==",
-            CmpOp::Ge => ">/==",
+            CmpOp::Le => "at_most",
+            CmpOp::Ge => "at_least",
         }
     }
 }
@@ -424,7 +424,7 @@ pub struct Func {
 
 /// A function that hands back a borrow of one of its lists
 /// (design/ownership-syntax.md, 46faa74, 09044b6):
-/// `fn b1 [lent@x 'a': list[int32], lent@y 'b': list[int32]] --> lent@x list[int32]`.
+/// `fn b1 [lent@x 'a': list[int32], lent@y 'b': list[int32]] -> lent@x list[int32]`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BFunc {
     pub name: String,
@@ -537,12 +537,11 @@ fn bare_ok(parent: &Expr, child: &Expr, left: bool) -> bool {
     }
 }
 
-fn tier_prefix(t: Tier, new_words: bool) -> &'static str {
+fn tier_prefix(t: Tier, _new_words: bool) -> &'static str {
     match t {
         Tier::Default => "",
         Tier::Check => "check ",
-        Tier::Nocheck if new_words => "!check ",
-        Tier::Nocheck => "nocheck ",
+        Tier::Nocheck => "no_check ",
         Tier::NoChecks => "NO_FUCKING_CHECKS ",
     }
 }
@@ -588,7 +587,7 @@ struct Wr<'a> {
 impl<'a> Wr<'a> {
     /// The word for a name that never changes, in a `#strict` file.
     fn im(&self) -> &'static str {
-        if self.new_words { "!mut " } else { "immut " }
+        "immut "
     }
 
     fn e(&mut self, e: &Expr) {
@@ -629,7 +628,7 @@ impl<'a> Wr<'a> {
             }
             Expr::Not(a) => {
                 // `! 'x'`, spaced, is the main spelling (owner, 9a9e573); `not` is MTM's
-                self.out.push_str(if self.new_words { "! " } else { "not " });
+                self.out.push_str("not ");
                 self.operand(e, a, false);
             }
             Expr::Cmp(op, a, b) => {
@@ -675,7 +674,7 @@ impl<'a> Wr<'a> {
             }
             Expr::At(n, p) => {
                 self.out.push_str(&q(n));
-                self.out.push_str(if self.strict { "[pos " } else { "[" });
+                self.out.push_str("[pos ");
                 self.e(p);
                 self.out.push(']');
             }
@@ -696,12 +695,12 @@ impl<'a> Wr<'a> {
             Expr::ToEnum(en, v, fallback) => {
                 self.out.push_str(&format!("to.{en}["));
                 self.e(v);
-                self.out.push_str(if self.strict { "] otherwise { out_of_range { giveS " } else { "] otherwise { out_of_range { " });
+                self.out.push_str("] otherwise { out_of_range { is ");
                 self.e(fallback);
-                self.out.push_str(if self.strict { "; } }" } else { " } }" });
+                self.out.push_str("; } }");
             }
             Expr::SimdFill(v) => {
-                self.out.push_str("simd.fill[");
+                self.out.push_str("simd.fill[value ");
                 self.e(v);
                 self.out.push(']');
             }
@@ -738,11 +737,12 @@ impl<'a> Wr<'a> {
                 self.out.push_str(&format!(" {}", q(b)));
             }
             if let Some(v) = &a.value {
-                self.out.push_str(if self.strict { " { giveS " } else { " { " });
+                // a case says its value with `is` (owner, 2026-10-07)
+                self.out.push_str(" { is ");
                 let saved = std::mem::replace(&mut self.indent, indent);
                 self.e(v);
                 self.indent = saved;
-                self.out.push_str(if self.strict { "; }\n" } else { " }\n" });
+                self.out.push_str("; }\n");
             } else if a.body.is_empty() {
                 self.out.push_str(" { }\n");
             } else {
@@ -781,9 +781,9 @@ impl<'a> Wr<'a> {
                 let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
-                self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[", q(name), elem.name()));
+                self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[value ", q(name), elem.name()));
                 self.e(value);
-                self.out.push_str(if self.strict { ", count " } else { ", " });
+                self.out.push_str(", count ");
                 self.e(count);
                 self.out.push_str("];");
                 self.stmt.push((addr(s), s0, s0, self.out.len()));
@@ -843,23 +843,14 @@ impl<'a> Wr<'a> {
                 let perm = if *perm { "perm " } else if self.strict { "temp " } else { "" };
                 // the strongest modifier first: `for !cheat seq perm` (owner, 2026-10-01;
                 // `!cheat` since 2b7f336, 2026-10-06)
-                let cheat = ["", "!cheat ", "!cheat seq "][*cheat as usize];
+                let cheat = ["", "no_cheat ", "no_cheat seq "][*cheat as usize];
                 self.out.push_str(&format!("{pad}for {cheat}{perm}{}: {} in range[", q(name), ty.name()));
-                if self.strict {
-                    // labelled, and `by` always written (owner, 2026-09-27)
-                    self.out.push_str("from ");
-                    self.e(start);
-                    self.out.push_str(", to ");
-                    self.e(stop);
-                    self.out.push_str(&format!(", by {}", step.unwrap_or(1)));
-                } else {
-                    self.e(start);
-                    self.out.push_str(", ");
-                    self.e(stop);
-                    if let Some(st) = step {
-                        self.out.push_str(&format!(", {st}"));
-                    }
-                }
+                // labelled, and `by` always written (owner, 2026-10-07)
+                self.out.push_str("from ");
+                self.e(start);
+                self.out.push_str(", to ");
+                self.e(stop);
+                self.out.push_str(&format!(", by {}", step.unwrap_or(1)));
                 self.out.push_str("] {\n");
                 self.block(body, indent + 1);
                 self.out.push_str(&format!("{pad}}}\n"));
@@ -913,7 +904,7 @@ impl<'a> Wr<'a> {
                 let s0 = self.out.len();
                 self.out.push_str(tier_prefix(*tier, self.new_words));
                 let s1 = self.out.len();
-                self.out.push_str(&format!("change {}[{}", q(name), if self.strict { "pos " } else { "" }));
+                self.out.push_str(&format!("change {}[pos ", q(name)));
                 self.e(pos);
                 self.out.push_str("] = ");
                 self.e(value);
@@ -953,16 +944,13 @@ impl Program {
     pub fn render_spans(&self) -> (String, Spans) {
         let mut w = Wr { new_words: self.new_words, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
-        if self.strict {
-            w.out.push_str("#strict\n");
-        }
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written
-        let write = "fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;\n";
+        let write = "fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n";
         if self.inputs.is_empty() {
             w.out.push_str(&format!("extern.C {write}"));
         } else {
-            w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[uint8]] --> ptr[uint8];\n    fn strlen ['s': ptr[uint8]] --> uint64;\n}}\n"));
+            w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[uint8]] -> ptr[uint8];\n    fn strlen ['s': ptr[uint8]] -> uint64;\n}}\n"));
         }
         w.out.push('\n');
         w.out.push_str(&self.printer);
@@ -980,7 +968,7 @@ impl Program {
         }
         for f in &self.bfuncs {
             let t = f.elem.name();
-            let group = |g: &Option<String>| g.as_ref().map(|g| format!("@{g}")).unwrap_or_default();
+            let group = |g: &Option<String>| g.as_ref().map(|g| format!(" @{g}")).unwrap_or_default();
             let params: Vec<String> = f.params.iter().map(|(n, g)| format!("lent{} {}: list[{t}]", group(g), q(n))).collect();
             let ret = if f.unsaid { format!("list[{t}]") } else { format!("lent{} list[{t}]", group(&f.ret_group)) };
             // every lifetime group is announced after the name (owner, 2026-10-02)
@@ -990,8 +978,8 @@ impl Program {
                     groups.push(g.clone());
                 }
             }
-            let announce: String = groups.iter().map(|g| format!(" @{g}")).collect();
-            w.out.push_str(&format!("\nfn {}{announce} [{}] --> {ret} {{\n", f.name, params.join(", ")));
+            let announce = if groups.is_empty() { String::new() } else { format!(" [{}]", groups.iter().map(|g| format!("@{g}")).collect::<Vec<_>>().join(", ")) };
+            w.out.push_str(&format!("\nfn {}{announce} [{}] -> {ret} {{\n", f.name, params.join(", ")));
             w.block(&f.body, 1);
             w.out.push_str("}\n");
         }
@@ -1001,7 +989,7 @@ impl Program {
         }
         for f in &self.funcs {
             let params: Vec<String> = f.params.iter().map(|p| format!("{}: {}", q(&p.name), p.ty.text())).collect();
-            w.out.push_str(&format!("\nfn {} [{}] --> {} {{\n", f.name, params.join(", "), f.ret.text()));
+            w.out.push_str(&format!("\nfn {} [{}] -> {} {{\n", f.name, params.join(", "), f.ret.text()));
             w.block(&f.body, 1);
             w.out.push_str("}\n");
         }
@@ -1010,7 +998,7 @@ impl Program {
             let key = format!("{}_key", i.name);
             let im = if self.strict { w.im() } else { "" };
             w.out.push_str(&format!("    let {im}{} := \"{}\";\n", q(&key), i.var));
-            let vouch = if w.new_words { "!check" } else { "nocheck" };
+            let vouch = "no_check";
             w.out.push_str(&format!("    {vouch} let {im}{}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
         }
         w.block(&self.main, 1);

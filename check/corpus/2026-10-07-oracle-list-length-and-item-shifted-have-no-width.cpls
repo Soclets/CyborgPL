@@ -4,7 +4,7 @@
 # number), as a call's result (f679f11) and a SIMD fold (b6c5c532) do. The oracle stops: "`shl` needs
 # a width, and nothing here gives one". CCA runs it and prints 1 and 2.
 # check claude generator, seed 1
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -18,8 +18,8 @@ fn emit ['m': uint64, 'neg': bool] {
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
-    while 'k' >/== 1 {
-        list.append[lend.mut 'buf', 'ds'['k']];
+    while 'k' at_least 1 {
+        list.append[lend.mut 'buf', 'ds'[pos 'k']];
         change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
@@ -31,7 +31,7 @@ fn put_u ['n': uint64] {
 }
 
 fn put_i ['n': int64] {
-    if 'n' >/== 0 {
+    if 'n' at_least 0 {
         emit[to.uint64['n'], false];
     } else {
         let 'up': int64 = -('n' plus 1);
@@ -39,26 +39,26 @@ fn put_i ['n': int64] {
     }
 }
 
-fn b1 @x [lent@x 'a': list[int16], lent@x 'b': list[int16]] --> lent@x list[int16] {
+fn b1 [@x] [lent @x 'a': list[int16], lent @x 'b': list[int16]] -> lent @x list[int16] {
     if list.length[lend 'b'] > 2 {
         return lend 'b';
     }
     return lend 'a';
 }
 
-fn b2 @x [lent@x 'a': list[int16]] --> lent@x list[int16] {
+fn b2 [@x] [lent @x 'a': list[int16]] -> lent @x list[int16] {
     if list.length[lend 'a'] > 2 {
         return b1[lend 'a', lend 'a'];
     }
     return lend 'a';
 }
 
-fn b3 [lent 'a': list[int16], lent 'b': list[int16]] --> lent list[int16] {
+fn b3 [@x] [lent @x 'a': list[int16], lent @x 'b': list[int16]] -> lent @x list[int16] {
     return lend 'a';
 }
 
 MAIN {
     let 'xs': list[uint16] = [40000, 2];
     if 3 < (list.length[lend 'xs'] shl 1) { put_u[1]; }
-    if 3 < ('xs'[1] shr 2) { put_u[2]; }
+    if 3 < ('xs'[pos 1] shr 2) { put_u[2]; }
 }

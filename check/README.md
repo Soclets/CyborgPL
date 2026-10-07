@@ -10,6 +10,14 @@ cd check && cargo build --release        # needs oracle/ and cca/ built with --r
 ./target/release/check corpus
 ```
 
+
+**The 2026-10-07 revision** (design/revision-2026-10-07.md): the generator, the printer and the
+corpus are written in it — `->`, `equal_to` / `not_equal` / `at_most` / `at_least`, `not`,
+`immut`, `no_check`, `no_cheat`, `range[from a, to b, by c]`, `pos` on every index,
+`list.fill[value v, count n]`, `simd.fill[value v]`, `is` for a case's value, `[@x, @y]` groups
+(required for a borrow from two inputs), `brain16` only. `#strict` and MTM are gone, so the
+generator writes neither. Older notes below keep the spellings of their day.
+
 ## What is here
 
 - **`gen/`** — the program generator. `seed → program` is a pure function

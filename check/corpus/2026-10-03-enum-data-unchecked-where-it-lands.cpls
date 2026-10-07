@@ -3,7 +3,7 @@
 # binary runs and the match prints 18446744073709551611 (2^64 - 5, wrapped). The same with an int64
 # name holding -5 as the data. In the seed it was bare numbers worth about -2 x 10^37.
 # check claude generator, seed 15174
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -13,13 +13,13 @@ fn emit ['m': uint64, 'neg': bool] {
     loop {
         list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
-        if 'v' == 0 { break; }
+        if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 in range[list.length[lend 'ds'], 1, -1] {
-        list.append[lend.mut 'buf', 'ds'['k']];
+    for 'k': uint64 in range[from list.length[lend 'ds'], to 1, by -1] {
+        list.append[lend.mut 'buf', 'ds'[pos 'k']];
     }
     list.append[lend.mut 'buf', 10];
-    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+    no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
 
 fn put_u ['n': uint64] {

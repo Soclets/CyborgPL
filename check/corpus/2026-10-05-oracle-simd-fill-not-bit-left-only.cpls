@@ -5,7 +5,7 @@
 # many". With ('v17' plus 5) it runs, as it does for not.bit (5 plus 'v17') in a comparison or a
 # print: inside simd.fill it looks at the left operand only. CCA runs it.
 # check claude generator, seed 24126
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
@@ -19,12 +19,12 @@ fn emit ['m': uint64, 'neg': bool] {
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
-    while 'k' >/== 1 {
-        list.append[lend.mut 'buf', 'ds'['k']];
+    while 'k' at_least 1 {
+        list.append[lend.mut 'buf', 'ds'[pos 'k']];
         change 'k' = 'k' minus 1;
     }
     list.append[lend.mut 'buf', 10];
-    nocheck write[1, lend 'buf', list.length[lend 'buf']];
+    no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
 
 fn put_u ['n': uint64] {
@@ -40,6 +40,6 @@ fn put_i ['n': int64] {
 }
 MAIN {
     let 'v17': uint16 = 0;
-    let mut 's21': simd[uint16, 8] = simd.fill[not.bit (5 plus 'v17')];
+    let mut 's21': simd[uint16, 8] = simd.fill[value not.bit (5 plus 'v17')];
     put_u[to.uint64[simd.max['s21']]];
 }

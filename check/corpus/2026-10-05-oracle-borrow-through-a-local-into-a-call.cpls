@@ -4,12 +4,12 @@
 # 'o2' away while 's' is used is a mistake: CCA refuses it. The oracle runs it (exit 0). Without
 # 's' (the length of 'r' read directly) the oracle refuses too, so it is the borrow passed through
 # the local 'r' into a second call that it loses.
-fn b1 [lent 'a': list[int32], lent 'b': list[int32], lent 'c': list[int32]] --> lent list[int32] {
+fn b1 [@x] [lent @x 'a': list[int32], lent @x 'b': list[int32], lent @x 'c': list[int32]] -> lent @x list[int32] {
     return lend 'c';
 }
 
-fn b2 [lent 'a': list[int32], lent 'b': list[int32]] --> lent list[int32] {
-    if list.length[lend 'a'] >/== 1 {
+fn b2 [@x] [lent @x 'a': list[int32], lent @x 'b': list[int32]] -> lent @x list[int32] {
+    if list.length[lend 'a'] at_least 1 {
         return lend 'a';
     }
     return b1[lend 'a', lend 'a', lend 'b'];

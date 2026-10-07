@@ -238,12 +238,14 @@ const FN_BUDGET: u64 = 400;
 pub fn generate(seed: u64, cfg: &Config) -> Program {
     let mut root = Rng::new(seed);
     let mut prng = root.split();
-    let strict = cfg.strict > 0 && root.below(1000) < cfg.strict;
+    // `#strict` is gone; what it wrote out is every file's (owner, 2026-10-07)
+    let _ = cfg.strict;
+    let strict = false;
     let printer = if strict { strict_printer(&mut prng) } else { printer(&mut prng) };
     // the main spellings of 9a9e573 on most programs, MTM's (which a lone file
     // also takes) on the rest; no draw at all when they are off
-    let new_words = cfg.new_words && root.chance(75);
-    let printer = if new_words { printer.replace("nocheck ", "!check ").replace("let immut ", "let !mut ") } else { printer };
+    // MTM is gone: one spelling each (owner, 2026-10-07)
+    let new_words = false;
     let loose = root.chance(50);
     let mut g = Gen {
         rng: root.split(),
@@ -1035,7 +1037,9 @@ impl Gen {
         // The signature: no groups (Precog reads the body), or @x on exactly
         // what the body can return and @y (or nothing) on the rest.
         // A strict file names the group (owner, 09044b6).
-        let annotated = self.strict || self.rng.chance(65);
+        // with two or more borrowed inputs the group is required (owner, 2026-10-07);
+        // with one it is inferred
+        let annotated = self.rng.chance(65) || self.strict || n >= 2;
         let mut groups: Vec<Option<String>> = (0..n)
             .map(|i| if !annotated { None } else if deps.contains(&i) { Some("x".into()) } else if self.rng.chance(70) { Some("y".into()) } else { None })
             .collect();
@@ -1651,7 +1655,7 @@ impl Gen {
     fn brain_episode(&mut self) -> Stmt {
         self.unevaluable = true;
         const LITS: &[&str] = &["0.1", "0.2", "0.5", "1.5", "2.5", "-1.75", "3.0", "12.75", "300.7", "0.001", "1000.0", "-0.3"];
-        let names = ["brain16", "bfloat16", "bf16"];
+        let names = ["brain16"]; // its other names were MTM's, gone (owner, 2026-10-07)
         let mut body = vec![];
         let mut bs: Vec<String> = vec![];
         let first = self.name("w");

@@ -1,8 +1,8 @@
 # Finding 2026-09-24 (generator seed 1086, shrunk): --assert-proofs takes this branch;
 # 2^63 compared as a negative number. The oracle and the normal build do not.
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
     let 'v1': uint16 = 0;
     let 'yes' := "taken";
-    if 9223372036854775808 </== 'v1' { nocheck write[1, lend 'yes', 5]; }
+    if 9223372036854775808 at_most 'v1' { no_check write[1, lend 'yes', 5]; }
 }
