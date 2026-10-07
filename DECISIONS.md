@@ -583,7 +583,10 @@ arithmetic, a multiply's high half, some cryptography; Linux's `u128` is
 opt-in per architecture). So **the base keeps the register sizes, 8 to
 64 bits**. **They keep their plain names, `int128` / `uint128`**
 (owner: "a"), over `not_std.int128`: 128 is a standard width, living in
-a core as `deci64` does in Money. Not yet
+a core as `deci64` does in Money. **Unicode text goes to a core of its own** (owner: "`a`"):
+`str.utf16`, `str.utf32`, `char.point`, `char.grapheme` and the Unicode
+tables, over joining WSTN (names), so a program may print Thai or emoji
+with English names. Name not yet chosen. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
