@@ -27,6 +27,17 @@ every build lists which limb uses which, `deny` stops a build that
 needs one, and an upgrade that starts using one is flagged (2026-10-06);
 under (b) only reading the source tells. The owner: "`a`".
 
+**Three of them, `inline_assembly`, `c_calls` (C functions and
+variables), `raw_memory` (pointers as values, `ptr.read`/`write`/`cast`,
+addresses as numbers, volatile, memory with no owner)**, design claude's
+grouping by what each lets a library do, over one `unsafe` power or a
+finer split. The owner: "cores can add abilities to that list. And I
+think that's already fine, but there should be a way to be a lot more
+specific". So **a core may add powers of its own** (design claude's
+reading, asked: alongside Signatar's, which still sets the limits no
+core lifts, 2026-10-06), and **a power can be named more specifically**
+than these three (how: asked next).
+
 ### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 
 ```
