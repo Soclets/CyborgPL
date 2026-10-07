@@ -503,7 +503,22 @@ microcontrollers), `deci` only on IBM POWER (from POWER6) and z, software
 everywhere else. So **`deci32` / `deci64` / `deci128` move to a core**,
 which one not yet asked; design claude's reading, not asked: the
 2026-09-29 layout ruling (DPD on POWER and z, BID elsewhere) goes with
-it.
+it. **SIMD says its width: `simd128[int32]`, `simd256[int32]`,
+`simd512[int32]`**, the lanes following from the element (owner: "`a`,
+so the rule is even width looks like it should be dot narrowed, we just
+don't narrow them"). Asked whether SIMD stays in the base (128-bit is
+required on every ARM64 chip, NEON, and every x86-64 one, SSE2; LLVM falls
+back to scalar code elsewhere), the owner asked which chips are not
+128-bit (AVX/AVX2 256, AVX-512 512, SVE 128 to 2048, RISC-V V up to the
+chip) and: "I think the syntax should be able to say which it is".
+Design claude offered `simd.128[int32]`, lanes as today, or the
+instruction set (`simd.neon`); the owner: "If bit needs narrowing there,
+why doesn't types?", so the width is glued as in `int32`. **The rule (the
+owner's): a width is part of the name, glued on, never a `.` narrowing,
+even where it looks like one.** Replaces `simd[T, N]`. Not yet asked:
+whether SIMD stays in the base; how a mask (`simd[bool, 4]`) says its
+lanes; a width the target lacks (refused, or chosen by `on.machine`);
+SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
 
