@@ -168,6 +168,12 @@ pub enum BinOp {
     /// `div.X.ieee` (owner, 2026-10-07: "`a`"): a bin's or brain16's
     /// quotient keeping IEEE's `-0`, where the plain one gives `0`.
     DivIeee(Round),
+    /// `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` (owner, 2026-10-07:
+    /// "yea"): operands taken as their bits at the operator's width, where
+    /// the plain ones must fit it.
+    AndBitWrap,
+    OrBitWrap,
+    XorWrap,
     WrapAdd,
     WrapSub,
     WrapMul,
@@ -223,6 +229,9 @@ impl BinOp {
             BinOp::AndThen => "and.then".into(),
             BinOp::OrElse => "or.else".into(),
             BinOp::AndBit => "and.bit".into(),
+            BinOp::AndBitWrap => "and.bit.wrap".into(),
+            BinOp::OrBitWrap => "or.bit.wrap".into(),
+            BinOp::XorWrap => "xor.wrap".into(),
             BinOp::OrBit => "or.bit".into(),
             BinOp::Xor => "xor".into(),
             BinOp::Shl => "shl".into(),
@@ -234,7 +243,7 @@ impl BinOp {
         matches!(self, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge)
     }
     pub fn is_bitwise(&self) -> bool {
-        matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr)
+        matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr)
     }
     /// A `div.X`: beside another multiplicative operator it needs
     /// parentheses.

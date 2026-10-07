@@ -1272,12 +1272,22 @@ impl<'a> FnBuilder<'a> {
                 // exact operand has to fit it first, a site like any
                 // narrowing (check claude: `'v' xor ('w' minus 13)` with
                 // `uint64`s took -8 as a bit pattern).
+                // `.wrap` takes the operands as their bits instead (owner,
+                // 2026-10-07: "yea"): no site, the answer an N-bit pattern.
+                let (op, wrap) = match op {
+                    BinOp::AndBitWrap => (&BinOp::AndBit, true),
+                    BinOp::OrBitWrap => (&BinOp::OrBit, true),
+                    BinOp::XorWrap => (&BinOp::Xor, true),
+                    other => (other, false),
+                };
                 if matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
                     for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
                         let from = self.resolve_ty(&of.ty);
-                        if from.is_exact() {
-                            self.narrow_arg(side, &from, &result, span);
-                            *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: false }, &result, span);
+                        if from.is_exact() || (wrap && from.base() != result.base()) {
+                            if !wrap {
+                                self.narrow_arg(side, &from, &result, span);
+                            }
+                            *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: wrap }, &result, span);
                         }
                     }
                 }

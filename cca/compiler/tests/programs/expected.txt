@@ -283,3 +283,4 @@ chevron_arrows_run 69
 asm_both_ways_spellings 10
 bitwise_bare_group 50
 zero_quotient_sign 5
+bitwise_wrap_run 53

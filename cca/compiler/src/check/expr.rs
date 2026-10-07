@@ -1045,7 +1045,7 @@ impl Checker {
                 self.expect_bool(&r, &format!("the right side of `{}`", op.spelled()))?;
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
             }
-            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => {
+            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr => {
                 if !lt.is_int() || !rt.is_int() {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(bad)))).at(op_span));
@@ -1260,7 +1260,7 @@ impl Checker {
                 self.rounding_takes(op, op_span, &lane_r)?;
                 lane_r.is_numeric()
             }
-            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
+            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
             BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => lane_r.is_numeric() || lane_r.base() == &Ty::Bool,
             BinOp::And | BinOp::Or => lane_r.base() == &Ty::Bool,
             BinOp::AndThen | BinOp::OrElse => {
@@ -3954,7 +3954,7 @@ fn literal_only(e: &Expr) -> bool {
         // arithmetic, shifts, bitwise, wrapping.
         K::Binary { op, lhs, rhs, .. } => {
             use crate::ast::BinOp as B;
-            matches!(op, B::Add | B::Sub | B::Mul | B::Pow | B::Div(_) | B::Mod(_) | B::Shl | B::Shr | B::AndBit | B::OrBit | B::Xor | B::WrapAdd | B::WrapSub | B::WrapMul | B::WrapPow) && literal_only(lhs) && literal_only(rhs)
+            matches!(op, B::Add | B::Sub | B::Mul | B::Pow | B::Div(_) | B::Mod(_) | B::Shl | B::Shr | B::AndBit | B::OrBit | B::Xor | B::AndBitWrap | B::OrBitWrap | B::XorWrap | B::WrapAdd | B::WrapSub | B::WrapMul | B::WrapPow) && literal_only(lhs) && literal_only(rhs)
         }
         K::Unary { op: crate::ast::UnOp::NotBit, expr } => literal_only(expr),
         _ => false,

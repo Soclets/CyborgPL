@@ -96,6 +96,7 @@ bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing h
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
 bit_shl_overflow [fnv:c5fefa909a258208] :: the shift can move bits out of the type
 bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move bits out of the type
+bitwise_operand_too_wide [fnv:73ad90f0d2a05341] :: the value can be outside what a `uint32` holds
 borrow_after_append [fnv:edbe062db4b885e9] :: 's' cannot be changed here: 'r' still borrows it and is used on line 7
 borrow_after_change [fnv:ff276a932d706c72] :: 's' cannot be changed here: 'r' still borrows it and is used on line 6
 borrow_after_give [fnv:37eec041911a30e1] :: 's' cannot be given away here: 'r' still borrows it and is used on line 6

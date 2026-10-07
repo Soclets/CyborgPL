@@ -3130,6 +3130,17 @@ impl<'a> Parser<'a> {
                     if b.name != "bit" {
                         return self.fail_at(b.span, format!("`{}.{}` is not an operator: the bitwise forms are `and.bit` and `or.bit`", op.spelled().trim_end_matches(".bit"), b.name));
                     }
+                    // `.wrap`: the operands as their bits (owner, 2026-10-07).
+                    if self.is(&Tok::Dot) && self.is_word_at(1, "wrap") {
+                        self.bump();
+                        self.bump();
+                        op = if op == BinOp::AndBit { BinOp::AndBitWrap } else { BinOp::OrBitWrap };
+                    }
+                }
+                BinOp::Xor if self.is(&Tok::Dot) && self.is_word_at(1, "wrap") => {
+                    self.bump();
+                    self.bump();
+                    op = BinOp::XorWrap;
                 }
                 _ => {
                     for _ in 1..t.len {
