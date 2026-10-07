@@ -374,7 +374,14 @@ revision is built, over a slow deprecation or a core. Its useful parts
 became normal syntax (labelled ranges, `pos`, `count`); its five
 leftovers (parameter types, return types, `gives`, `@x` on a returned
 borrow, the working build refusing unproven sites) are each ruled on
-separately. Design
+separately. **Parameter and return types are required on every function**
+(owner: "`a`"), asked (a) every function, (b) `pub` functions only,
+first recommended, (c) optional as today; asked what `fn area ['r'] {
+return 'r' times 'r'; }` even meant (a parameter whose type Precog
+infers from every caller, 2026-09-19, and a return type from the
+`return`), design claude then recommended (a), a function that works for
+several types naming them with Genny's `<T>`. So 2026-09-19's untyped
+parameter goes: `fn area ['r': bin64] --> bin64 { … }`. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
