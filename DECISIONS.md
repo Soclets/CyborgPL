@@ -542,9 +542,11 @@ the `else`), the owner chose that. So no `.fallback` or `.split`. (Asked whether
 recommending it stay its own word, the owner: "nvm": unchanged.) **Range
 types move to ASP** (owner: "move"): `int32[0, 150]`, `int32[1, max]`,
 since bounds need ASP's numbers-as-values (without it the oracle already
-refuses a literal in one as undecided) and are not hardware. Not yet
-asked: the length bounds on text and lists (`str.utf8[1, 40 graphemes]`,
-`list[T][lo, hi]`). Not yet
+refuses a literal in one as undecided) and are not hardware. **Length
+bounds go with them** (owner: "`a`"): `str.utf8[1, 40 bytes]` and
+`list[int32][0, 100]` are ASP's too, all bounds in one place, over (b)
+each beside its type (stdkit's lists, the text's owner); a bound counted
+in graphemes also needs the Unicode text core. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
