@@ -59,6 +59,9 @@ using an unlisted one is refused ("`fastjson` calls C but does not list
 `c_calls`"), over the compiler working it out and only reporting it. The
 manifest is an honest label the registry can show before a download, and
 an upgrade that starts using a new power is found by comparing lists.
+**The program's own Limb lists its powers too** (owner: "`a`"), the same
+rule as any limb, so a program can later be published as one unchanged;
+a lone `.cpls` with no `CCA.cplr` has every power, as it has every core.
 
 ### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 
