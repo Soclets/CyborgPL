@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-07 — A shift's width comes from the shifted number, never from its count (owner: yea)
+
+```
+let 'c': int8 = 9;
+let 'r': int64 = ((0 minus 53) shr 'c') mod.floor 23;    # a 64-bit shift: 22
+```
+
+Check claude's question (corpus 7e9b1361): a bare shifted number took the
+count's `int8` in CCA (refused: 9 past 8 bits) and the destination's
+`int64` in the oracle (22); 2026-09-23 (a), "any operand whose type is
+known", did not rank them. Asked how the hardware does it: ARM's `lsl x0,
+x1, x2` shifts at the shifted register's width, the count's size beside
+the point (taken modulo 64 or 32); x86's `shl rax, cl` always takes an
+8-bit count; C and Rust give the result the left side's type. The owner:
+"yea": **the width is the shifted number's own type, or, when it is
+bare, its context; the count never decides it.** The oracle already did
+this; CCA changes. Asked next: a hardware-style shift.
+
 ### 2026-10-07 — A bitwise operand must fit the operator's width; `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` take its bits (owner: yea)
 
 ```
