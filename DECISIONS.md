@@ -49,6 +49,18 @@ answers them:
   design claude recommended. The cost, accepted: a far larger interface,
   every change to Signatar's checker being a change to it. In keeping with
   Q3: no core is privileged by who wrote it.
+- **Q5, what a plugin file is: the OS's own native library** (`.dylib` on
+  macOS, `.so` on Linux, `.dll` on Windows, behind a stable C ABI) (owner:
+  "the OS lib thingies file type"), over a WebAssembly component in a
+  sandbox (compiler claude's recommendation for third-party cores) and a
+  separate process. Asked along the way: a core mods the compiler either
+  way (the sandbox would only have limited what else it could do on the
+  machine while compiling); the owner asked why the language was becoming
+  restricted (Rust's procedural macros and `build.rs` run unsandboxed too);
+  a dylib is about as fast as code built into CCA, and **the finished
+  program is the same either way**: a plugin runs only while compiling and
+  hands back IR. A core is trusted when listed, as the approved warning
+  says. One build per platform.
 
 ### 2026-10-07 — The dangerous abilities are powers too: Signatar grants them to every limb, and a program may deny them (owner: a; not built)
 
