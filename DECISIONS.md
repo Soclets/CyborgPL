@@ -264,6 +264,9 @@ asked "What does `0` there mean?" (the value every element starts as).
 Asked whether the value is labelled too: (a) no; (b) `value`,
 recommended; (c) `each`. The owner: "`b`". So **`list.fill[value 0, count
 10]`**.
+Its twin, asked: `simd.fill[value 0]` too, (a) required, recommended so
+both `fill`s read alike, or (b) `simd.fill[0]` unchanged, its one
+argument unambiguous. The owner: "`a`". So **`simd.fill[value 0]`**.
 
 ### 2026-10-07 — A slimmer base: `brain16`, non-standard integers, Unicode text and the case marks move out; `#strict` will be deprecated (owner; not built)
 
