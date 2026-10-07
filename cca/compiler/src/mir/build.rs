@@ -1272,6 +1272,28 @@ impl<'a> FnBuilder<'a> {
                 // exact operand has to fit it first, a site like any
                 // narrowing (check claude: `'v' xor ('w' minus 13)` with
                 // `uint64`s took -8 as a bit pattern).
+                // `shl.masked` / `shr.masked` (owner, 2026-10-07): the count
+                // modulo the width, -1 being width - 1 as the chip masks it,
+                // and the bits past the width cut off; no site. Worked as the
+                // plain shift on the masked count, its answer read as bits.
+                if let BinOp::ShlMasked | BinOp::ShrMasked = op {
+                    let plain = if *op == BinOp::ShlMasked { BinOp::Shl } else { BinOp::Shr };
+                    let width = match result.base() {
+                        Ty::Int(IntW::Fixed { bits, .. }) => *bits,
+                        _ => 64,
+                    };
+                    let whole = Ty::Int(IntW::Fixed { signed: true, bits: 129 });
+                    let count = self.into_temp(Rvalue::Convert { to: whole.clone(), operand: r, useful: false, bits: false }, &whole, span);
+                    let masked = self.into_temp(Rvalue::Binary { op: BinOp::Mod(crate::ast::Round::Floor), lhs: count, rhs: Operand::Const(Const::Int(width as i128)) }, &whole, span);
+                    let from = self.resolve_ty(&lhs.ty);
+                    let x = if from.base() != result.base() {
+                        self.into_temp(Rvalue::Convert { to: result.clone(), operand: l, useful: false, bits: true }, &result, span)
+                    } else {
+                        l
+                    };
+                    let shifted = self.into_temp(Rvalue::Binary { op: plain, lhs: x, rhs: masked }, &result, span);
+                    return Rvalue::Convert { to: result.clone(), operand: shifted, useful: false, bits: true };
+                }
                 // `.wrap` takes the operands as their bits instead (owner,
                 // 2026-10-07: "yea"): no site, the answer an N-bit pattern.
                 let (op, wrap) = match op {

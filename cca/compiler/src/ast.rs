@@ -174,6 +174,11 @@ pub enum BinOp {
     AndBitWrap,
     OrBitWrap,
     XorWrap,
+    /// `shl.masked`, `shr.masked` (owner, 2026-10-07: "both", "Whatever's
+    /// accurate"): the count taken modulo the width and the bits pushed
+    /// past it cut off, as the chip does; no check site.
+    ShlMasked,
+    ShrMasked,
     WrapAdd,
     WrapSub,
     WrapMul,
@@ -232,6 +237,8 @@ impl BinOp {
             BinOp::AndBitWrap => "and.bit.wrap".into(),
             BinOp::OrBitWrap => "or.bit.wrap".into(),
             BinOp::XorWrap => "xor.wrap".into(),
+            BinOp::ShlMasked => "shl.masked".into(),
+            BinOp::ShrMasked => "shr.masked".into(),
             BinOp::OrBit => "or.bit".into(),
             BinOp::Xor => "xor".into(),
             BinOp::Shl => "shl".into(),
@@ -243,7 +250,7 @@ impl BinOp {
         matches!(self, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge)
     }
     pub fn is_bitwise(&self) -> bool {
-        matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr)
+        matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked)
     }
     /// A `div.X`: beside another multiplicative operator it needs
     /// parentheses.

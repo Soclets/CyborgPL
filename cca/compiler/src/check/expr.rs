@@ -1053,7 +1053,7 @@ impl Checker {
                 self.expect_bool(&r, &format!("the right side of `{}`", op.spelled()))?;
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
             }
-            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr => {
+            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked => {
                 if !lt.is_int() || !rt.is_int() {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(bad)))).at(op_span));
@@ -1062,7 +1062,7 @@ impl Checker {
                 // a count, exact or not. On an exact answer, the width of the
                 // typed operands inside it, as `plus.wrap` takes it (owner,
                 // 2026-09-23, confirmed 2026-10-03).
-                if matches!(op, BinOp::Shl | BinOp::Shr) && (lt.is_exact() || rt.is_exact()) {
+                if matches!(op, BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked) && (lt.is_exact() || rt.is_exact()) {
                     let ty = if lt.is_exact() {
                         self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?
                     } else if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) {
@@ -1098,7 +1098,7 @@ impl Checker {
                 // A shift's width is the shifted number's own type, or, when
                 // it is bare, where the value goes; the count never decides
                 // it (owner, 2026-10-07: "yea").
-                if matches!(op, BinOp::Shl | BinOp::Shr) && matches!(lt.base(), Ty::Int(IntW::Free(_))) {
+                if matches!(op, BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked) && matches!(lt.base(), Ty::Int(IntW::Free(_))) {
                     if literal_only(&l) {
                         let t = self.fresh();
                         self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
@@ -1257,7 +1257,7 @@ impl Checker {
                 self.rounding_takes(op, op_span, &lane_r)?;
                 lane_r.is_numeric()
             }
-            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr => lane_r.is_int(),
+            BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked => lane_r.is_int(),
             BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => lane_r.is_numeric() || lane_r.base() == &Ty::Bool,
             BinOp::And | BinOp::Or => lane_r.base() == &Ty::Bool,
             BinOp::AndThen | BinOp::OrElse => {

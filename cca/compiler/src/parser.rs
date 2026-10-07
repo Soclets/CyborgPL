@@ -3137,6 +3137,11 @@ impl<'a> Parser<'a> {
                         op = if op == BinOp::AndBit { BinOp::AndBitWrap } else { BinOp::OrBitWrap };
                     }
                 }
+                BinOp::Shl | BinOp::Shr if self.is(&Tok::Dot) && self.is_word_at(1, "masked") => {
+                    self.bump();
+                    self.bump();
+                    op = if op == BinOp::Shl { BinOp::ShlMasked } else { BinOp::ShrMasked };
+                }
                 BinOp::Xor if self.is(&Tok::Dot) && self.is_word_at(1, "wrap") => {
                     self.bump();
                     self.bump();
