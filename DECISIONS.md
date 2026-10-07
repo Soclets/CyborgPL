@@ -410,8 +410,22 @@ look like a placeholder, which a generic could be. And that `,` was for
 more generics". So **a function's blanks are announced in their own
 bracket before the parameters, in one `< >` with commas between**, and
 **every mention keeps `<T>`**: `fn pair_up [<A: any, B: Hashable>] ['a':
-<A>, 'b': <B>] -> Pair[<A>, <B>]`. Not yet asked: where lifetime groups
-go; whether structs, enums and interfaces announce the same way. Design
+<A>, 'b': <B>] -> Pair[<A>, <B>]` was recorded first; then, asked where
+lifetime groups go ((a) in the same bracket, recommended, (b) their own,
+(c) unannounced), the owner: "`fn pick <T: any> [@x, @y] [lent @x 'a':
+list[<T>], lent @y 'b': list[<T>]] -> lent @x list[<T>]`?" So **the
+signature is `fn name <generics> [lifetimes] [parameters] -> return`**:
+blanks in `< >` straight after the name, commas between (no outer `[ ]`),
+lifetime groups in a bracket of their own, and **`lent @x` spaced**. The
+owner: "yea" to that, **with structs, enums and interfaces the same**
+(`struct Pair <A: any, B: any> { … }`), "but what if they want `-><T>` as
+an op?" Design claude had suggested the lexer always end `->` at the `>`;
+offered (a) keep 2026-09-20's "a run of operator characters is one
+operator", the space in `-> <T>` required and a missing one met by an
+error saying so, recommended, (b) `->` always its own token and no
+operator starting with `->`, `<-` or `<->`, (c) the parser splitting
+`-><` only where a return type goes. The owner: "`a`". So `-><` stays
+someone's possible operator, and `-> <T>` keeps its space. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
