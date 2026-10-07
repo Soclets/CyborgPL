@@ -254,8 +254,20 @@ could blend it with the reader's `=`, when they pronounce it in their
 head, or out loud)"). Design claude had offered (a) only `==` to
 `equal`, (b) every comparison a word (`equal`, `not_equal`, `less`,
 `greater`, `less_or_equal`, `greater_or_equal`), recommended, (c) `==`
-kept. So `'a' equal_to 'b'`, `'a' < 'b'`, `'a' > 'b'`. Not yet asked:
-`not_equal` or `not_equal_to`, and what `</==` and `>/==` become.
+kept. So `'a' equal_to 'b'`, `'a' < 'b'`, `'a' > 'b'`.
+
+**`at_most` and `at_least` replace `</==` and `>/==`; `!==` is
+`not_equal`** (owner: "If `c` is correct, then yes. But `not_equal_to` is
+a bit longer, but it has more eye movement to see two variables there.
+So, it would be `not_equal`"). Design claude first offered `<=` / `>=`,
+saying equality being a word removed 2026-09-29's reason; the owner:
+"`>=` greater than assign?", and design claude agreed it was wrong (the
+reason, no lone `=` inside a comparison, still holds). Offered (a)
+`less_or_equal_to` / `greater_or_equal_to`, (b) `</==` / `>/==` kept
+(built from an `==` the language no longer has), (c) `at_most` /
+`at_least`, recommended; and `not_equal_to` to match `equal_to`, which
+the owner declined. The family: **`equal_to`, `not_equal`, `<`, `>`,
+`at_most`, `at_least`** (`'i' at_most 'n'` is `'i'` ≤ `'n'`).
 
 ### 2026-10-07 — Syntax revision, loops: every `range` is labelled, `range[from 1, to 4, by 1]`, `by` always written (owner: a; not built)
 
