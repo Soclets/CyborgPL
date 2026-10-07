@@ -129,6 +129,11 @@ this?"): `inline_assembly` has none; `c_calls.functions["name"]` and
 reading by address, volatile reads), `raw_memory.write` (`ptr.write`,
 writing by address, volatile writes), `raw_memory.cast` (`ptr.cast`,
 bytes read as another type).
+**`.for[ … ]` names a limb by its prefix** (owner: "`b`"), the word code
+writes before `::`, unique within a program and what the code already
+shows (`fastjson::parse[…]`), over its name (names repeat) and its
+registry ID (unreadable, and a local limb has none); a prefix Synthia
+renamed is the renamed one.
 **A limb lists every power it uses, the dangerous ones included**
 (owner: "`a`"): `powers = [cca::Power.c_calls,]` in its manifest, and code
 using an unlisted one is refused ("`fastjson` calls C but does not list
