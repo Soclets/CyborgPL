@@ -1,5 +1,7 @@
 # Lists and arrays
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-17.
 
 ## Two types
@@ -23,9 +25,9 @@ programmer only says which at a boundary.
 ## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
 
 ```
-let 'mid' := list.slice[lend 'xs', 2, 4];      # elements 2, 3 and 4
-let 'head' := array.slice[lend 'fixed', 1, 2];
-let 'none' := list.slice[lend 'xs', 3, 2];     # empty: last is first minus 1
+let 'mid' := list.slice[lend 'xs', pos 2, pos 4];      # elements 2, 3 and 4
+let 'head' := array.slice[lend 'fixed', pos 1, pos 2];
+let 'none' := list.slice[lend 'xs', pos 3, pos 2];     # empty: last is first minus 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -137,8 +139,8 @@ Selecting by *value* (`'xs'[value-is 2]`) was considered and dropped: it is a
 search, and a search is a loop the reader should see —
 
 ```
-for perm 'i' in range[1, list.length[lend 'xs']] {
-    if 'xs'['i'] == 2 { break; }
+for perm 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
+    if 'xs'['i'] equal_to 2 { break; }
 }
 change 'xs'['i'] = 5;
 ```
@@ -238,7 +240,7 @@ is an error.
 
 ```
 for 'i', 'x' in lend 'xs' {
-    std::print.useful.stdout['i', ". ", 'x', \n];      # 1. ann  2. bob  3. cy
+    stdkit::print.useful['i', ". ", 'x', newln];      # 1. ann  2. bob  3. cy
 }
 ```
 
@@ -255,8 +257,8 @@ reading, not asked). Proposed alternative: leave it, looping over
 ## A list of n copies — `list.fill` (owner, 2026-09-30)
 
 ```
-let mut 'scores' := list.fill[0, 10];              # ten 0s
-let 'flags': list[bool] = list.fill[false, 'n'];   # 'n' falses
+let mut 'scores' := list.fill[value 0, count 10];              # ten 0s
+let 'flags': list[bool] = list.fill[value false, count 'n'];   # 'n' falses
 ```
 
 The value, then the count, as `simd.fill[7]` fills every lane. A count

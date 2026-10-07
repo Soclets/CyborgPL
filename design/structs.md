@@ -1,5 +1,7 @@
 # Structs
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-18; spelling revised 2026-09-19 (name-then-type fields,
 no brackets around field values). A struct is a blueprint: a named shape made of typed
 slots. A struct *value* is that shape filled in; each value has its own copy

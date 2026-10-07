@@ -1,5 +1,7 @@
 # Reproducible builds
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-14. Same source, same compiler, same *named* target →
 byte-identical binary, on any machine, any day.
 

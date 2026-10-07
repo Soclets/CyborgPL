@@ -1,5 +1,7 @@
 # Functions as values
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-21, three questions; the fourth, operators, 2026-09-29. What it is for (owner asked): handing
 behaviour to someone else — a sort's comparison, a callback a library
 runs later, the test in a `keep`/`filter`, C's `qsort`. Without it every
@@ -23,10 +25,10 @@ calls it. Since `pos` went (2026-09-27), a list read looks the same
 ## 2. The type of a function is its signature without the names
 
 ```
-fn by_number [lent 'a': Locker, lent 'b': Locker] --> bool { … }     # the definition
-                fn[lent Locker,      lent Locker]  --> bool           # its type
+fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { … }     # the definition
+                fn[lent Locker,      lent Locker]  -> bool           # its type
 
-fn sort <T>: any [lent.mut 'xs': list[<T>], 'less': fn[lent <T>, lent <T>] --> bool] { … }
+fn sort <T: any> [lent.mut 'xs': list[<T>], 'less': fn[lent <T>, lent <T>] -> bool] { … }
 ```
 
 Parameter kinds (`lent`, `lent.mut`, none) are part of the type — the
@@ -39,8 +41,8 @@ difference.
 
 ```
 let 'limit' := 60;
-let 'passing' := keep[lend 'scores', fn ['s': int32] --> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
-let 'evens'   := keep[lend 'scores', fn ['s': int32] --> bool { return ('s' mod.floor 2) == 0; }];   # captures nothing
+let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' at_least 'limit'; }];
+let 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) equal_to 0; }];   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -58,7 +60,7 @@ silently, which is where "why is this borrowed" bugs come from.
 let 'sum'     := fold[lend 'xs', 0, op plus];
 let 'product' := fold[lend 'xs', 1, op times];
 let 'flipped' := map[lend 'xs', op neg];
-let 'f': fn[int32, int32] --> int32 = op mod.floor;
+let 'f': fn[int32, int32] -> int32 = op mod.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it

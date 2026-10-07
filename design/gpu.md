@@ -1,5 +1,7 @@
 # GPU offload
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
 `parallelism.md`'s, extended: the programmer writes `for`, Precog
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
@@ -136,11 +138,11 @@ Metal sets from the host with `dispatchThreads` — comes **after the name**
 (owner, 2026-10-01: b), as any number:
 
 ```
-!check inline.MSL threads list.length[lend 'xs'] {
+no_check inline.MSL threads list.length[lend 'xs'] {
     kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
         xs[id] = xs[id] * 2;
     }
-} with [lend.mut 'xs' --> buffer(0)];
+} with [lend.mut 'xs' -> buffer(0)];
 ```
 
 How the block runs comes first; `with` holds what it touches. The code

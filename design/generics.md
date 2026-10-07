@@ -1,5 +1,7 @@
 # Generics — `<T>`, a blank the compiler fills
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-20. Owner asked "how's it without generics?" — you write
 the same struct or function once per type, by hand, and fix every bug in
 every copy (C; Go for ten years). With generics you write it once with a
@@ -16,12 +18,12 @@ comptime and Rust's monomorphisation do the same.
 ## Spelling (revised 2026-10-02)
 
 ```
-fn max <T>: Number ['a': <T>, 'b': <T>] --> <T> { … }           # announced after the name, with what it accepts
-fn first <T>: any [lent 'xs': list[<T>]] --> <T> or fail[empty] { … }
-fn pick <T>: any | @x [lent@x 'xs': list[<T>]] --> lent@x <T> { … }   # then the lifetime groups, after a `|`
+fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> { … }           # announced after the name, with what it accepts
+fn first <T: any> [lent 'xs': list[<T>]] -> <T> or fail[empty] { … }
+fn pick <T: any> [@x] [lent @x 'xs': list[<T>]] -> lent @x <T> { … }   # then the lifetime groups, after a `|`
 
-struct Pair <A>: any <B>: any { left: <A>  right: <B> }         # blanks in the order announced
-enum Maybe <T>: any { none  some: <T> }
+struct Pair <A: any, B: any> { left: <A>  right: <B> }         # blanks in the order announced
+enum Maybe <T: any> { none  some: <T> }
 
 let 'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
 let 'm' := Maybe.some[42];                                          # filled from the value
@@ -78,7 +80,7 @@ a plain `T` they do nothing (`interfaces.md`).
 ## A generic `op` (owner, 2026-09-29)
 
 ```
-op ~= <T>: Number ['a': <T>, 'b': <T>] --> bool { … }   # once, for any type keeping Number's promises
+op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool { … }   # once, for any type keeping Number's promises
 ```
 
 An operator may be generic, with the rules of a generic `fn`: announced

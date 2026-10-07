@@ -1,5 +1,7 @@
 # Control flow
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-14; spelling revised 2026-09-19 (owner): bare keywords,
 conditions without `[ ]`, one `for`.
 
@@ -60,7 +62,7 @@ for 'item' in lend 'items' {                   # each element; 'item' gone after
     …
 }
 
-for 'i' in range[0, 1000] {                    # 'i' from 0 to 1000 inclusive
+for 'i' in range[from 0, to 1000, by 1] {                    # 'i' from 0 to 1000 inclusive
     …
 }
 ```
@@ -76,10 +78,10 @@ body ran with after a full run (the stop value when the step lands on it; for
 body never ran. One rule for every way a loop can end.
 
 ```
-for perm 'i' in range[0, 100] {
+for perm 'i' in range[from 0, to 100, by 1] {
     if found['i'] { break; }
 }
-std::print.useful.stdout["stopped at ", 'i', \n];
+stdkit::print.useful["stopped at ", 'i', newln];
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an
@@ -111,8 +113,8 @@ file each bound is labelled and the step always written,
 `range[from 2, to 8, by 2]` (owner, 2026-09-27; `core-features.md`):
 
 ```
-for 'i' in range[0, 9] { }                 # like  'i' := 0;
-for 'i': int8 in range[0, 9] { }           # like  'i': int8 = 0;
+for 'i' in range[from 0, to 9, by 1] { }                 # like  'i' := 0;
+for 'i': int8 in range[from 0, to 9, by 1] { }           # like  'i': int8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a

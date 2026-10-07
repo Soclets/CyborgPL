@@ -1,5 +1,7 @@
 # Concurrency — `concur`, channels, `whichever`
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-22, one question at a time. Not parallelism
 (`parallelism.md`: the same work on many pieces, Precog spreads a `for`
 over cores or a GPU, the programmer writes nothing). Concurrency is
@@ -11,9 +13,9 @@ let 'results' := channel[str.utf8];
 let 'a' := "a.com";
 concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }   # a call's result is fresh: no verb
 concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
-for 'i' in range[1, 2] {
+for 'i' in range[from 1, to 2, by 1] {
     let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
-    std::print.useful.stdout[str.bytes[lend 'page'], \n];
+    stdkit::print.useful[str.bytes[lend 'page'], newln];
 }
 ```
 
@@ -64,7 +66,7 @@ the goroutine leak).
 
 ```
 concur with [give 'url'] { let 'p' := fetch['url'] otherwise fail; … }
-    otherwise { no_network { std::print.useful.stdout["offline", \n]; } };
+    otherwise { no_network { stdkit::print.useful["offline", newln]; } };
 ```
 
 A task that can fail says so where it is written, like every failing
@@ -131,12 +133,12 @@ without it). The word: first `pick`; owner asked why not `pick_first`
 Time is the outside world, so it is std's, like input:
 
 ```
-std::time.wait[5 seconds];
-let 'deadline' := std::time.after[500 millis];     # a channel that sends once
-let 'tick' := std::time.every[1 second];           # a channel that sends every second
+stdkit::time.wait[5 seconds];
+let 'deadline' := stdkit::time.after[500 millis];     # a channel that sends once
+let 'tick' := stdkit::time.every[1 second];           # a channel that sends every second
 whichever {
     'msg' from lend 'inbox'     { … }
-    'now' from lend 'deadline'  { std::print.useful.stdout["timed out", \n]; }
+    'now' from lend 'deadline'  { stdkit::print.useful["timed out", newln]; }
 }
 ```
 

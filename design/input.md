@@ -1,5 +1,7 @@
 # Input, and range types
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-20. The last pillar-level hole: the language had no way to
 take a value from outside, and no way to say what that value could be.
 
@@ -24,15 +26,15 @@ limit. Owner chose words, as with `x`, `mod`, `and`, `shl`.
 ## Reading — a boundary in std
 
 ```
-let 'text' := std::input.line[] otherwise "";      # one line, newline removed; fails with `closed`
-let 'all'  := std::input.all[] otherwise "";       # everything until the end
+let 'text' := stdkit::input.line[] otherwise "";      # one line, newline removed; fails with `closed`
+let 'all'  := stdkit::input.all[] otherwise "";       # everything until the end
 ```
 
 Text as it came, `str.utf8`, no interpretation. A number is that plus the
 conversion: two lines, two failures, each handled where it happens —
 
 ```
-let 'text' := std::input.line[] otherwise "";
+let 'text' := stdkit::input.line[] otherwise "";
 let 'n' := to.int32['text'] otherwise 0;
 ```
 

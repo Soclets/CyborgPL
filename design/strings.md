@@ -1,5 +1,7 @@
 # Text — the units, walking, and the toolbox
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-20, one question at a time. A `str` is an owned value
 (`str.utf8` / `utf16` / `utf32` / `ascii`, `types.md`); this file is what
 you can *do* with one.
@@ -17,7 +19,7 @@ asked whether it works; it doesn't — the oracle stores the backslash.)
 ## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
 
 ```
-std::print.useful.auto_newline.stdout["Hello, World!"];
+stdkit::print.useful.auto_newln["Hello, World!"];
 ```
 
 `print.useful` with a newline after the values, the same as writing `\n`
@@ -31,8 +33,8 @@ form is decided: `print` and `print.format` have no `auto_newline`.
 ## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
 
 ```
-std::print.weird.useful.stdout <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- \n;
-std::print.weird.stored.stdout <- "stored: " <- 'tenth' <- \n;
+stdkit::print.weird.useful <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- newln;
+stdkit::print.weird.stored <- "stored: " <- 'tenth' <- newln;
 ```
 
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
@@ -54,10 +56,10 @@ print_weird_brackets, print_weird_order.
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-std::print.format.stdout["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
-std::print.format.stdout["0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5];
-std::print.format.stdout["{2} vs {1}, and {2} wins\n", "a", "b"];
-std::print.format.stderr["error: {}\n", 'msg'];
+stdkit::print.format["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
+stdkit::print.format["0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5];
+stdkit::print.format["{2} vs {1}, and {2} wins\n", "a", "b"];
+stdkit::print.format.stderr["error: {}\n", 'msg'];
 ```
 
 The third print, beside `print.stored` (stored form) and `print.useful` (useful
@@ -104,7 +106,7 @@ reject tests `print_format_*`.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let 'name': str.utf8[1, 40 graphemes] = std::input.line[] otherwise "";
+let 'name': str.utf8[1, 40 graphemes] = stdkit::input.line[] otherwise "";
 fn greet [lent 'who': str.utf8[1, 10 graphemes]] { … }
 let 'field': str.utf8[0, 255 bytes] = …;
 let 'code': str.utf8[4, 4 points] = …;
@@ -163,14 +165,14 @@ to walk them. Everything else is ordinary library code, and case tables
 change with every Unicode release, so they belong in something updatable:
 
 ```
-std::str.split[lend 's', " "]          -> list[str.utf8]
-std::str.join[lend 'parts', "_"]
-std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
-std::str.trim / upper / lower[lend 's']
-std::str.replace[lend 's', "a", "b"]
-std::str.find.grapheme[lend 's', "x"]  -> int32 or fail[missing]   (1-based grapheme position)
-std::str.at.<unit>[lend 's', 3]        --> that unit, or fail[out_of_range]
-std::str.slice.grapheme[lend 's', 1, 5] --> str, or fail[out_of_range]
+stdkit::str.split[lend 's', " "]          -> list[str.utf8]
+stdkit::str.join[lend 'parts', "_"]
+stdkit::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
+stdkit::str.trim / upper / lower[lend 's']
+stdkit::str.replace[lend 's', "a", "b"]
+stdkit::str.find.grapheme[lend 's', "x"]  -> int32 or fail[missing]   (1-based grapheme position)
+stdkit::str.at.<unit>[lend 's', 3]        -> that unit, or fail[out_of_range]
+stdkit::str.slice.grapheme[lend 's', 1, 5] -> str, or fail[out_of_range]
 ```
 
 The oracle emulates these so examples run (`examples/text.cpls`); std's

@@ -1,5 +1,7 @@
 # Core features of CyborgPL
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 > The compile-time technology described under "Everything at compile time"
 > is named **Precog** (decided 2026-09-14).
 
@@ -112,8 +114,8 @@ block is a statement, so a region is `check { … }` with no second rule.
 
 ```
 check change 'xs'['i'] = 'total' plus 'score';     # prove: index in range, add fits
-!check change 'hash' = 'hash' times 31 plus 'c';          # I want the wrap; on my word
-check { for 'i' in range[1, 'n'] { … } }     # every site in the region
+no_check change 'hash' = 'hash' times 31 plus 'c';          # I want the wrap; on my word
+check { for 'i' in range[from 1, to 'n', by 1] { … } }     # every site in the region
 check if 'x' > 0 { … }                       # an if or a loop is a statement too
 ```
 

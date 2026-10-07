@@ -9,10 +9,10 @@ types are for when it does not, or when the algorithm is a vector
 algorithm.
 
 ```
-fn is_ascii [lent 'bytes': array[uint8]] --> bool {
-    let mut 'acc' := simd.fill[0];                          # simd[uint8, 16]
-    for 'i' in range[1, array.length[lend 'bytes'], 16] {
-        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', 'i'];
+fn is_ascii [lent 'bytes': array[uint8]] -> bool {
+    let mut 'acc' := simd.fill[value 0];                          # simd[uint8, 16]
+    for 'i' in range[from 1, to array.length[lend 'bytes'], by 16] {
+        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
     }
     return simd.max['acc'] < 128;
 }
@@ -103,9 +103,9 @@ against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 ## A mask is a type: `simd[bool, N]` (owner, 2026-09-27: a)
 
 ```
-fn all_on ['m': simd[bool, 4]] --> bool { return simd.all['m']; }
-let 'm': simd[bool, 4] = 'a' > simd.fill[10];
-let 'flip' := ! 'm';
+fn all_on ['m': simd[bool, 4]] -> bool { return simd.all['m']; }
+let 'm': simd[bool, 4] = 'a' > simd.fill[value 10];
+let 'flip' := not 'm';
 ```
 
 A vector comparison's result can be written as a type, so a function can
@@ -118,8 +118,8 @@ on the spot. `examples/simd_mask.cpls`.
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
 ```
-let 'v': simd[int32, 4] = simd.load.some[lend 'xs', 9, 2];   # 2 items; lanes 3–4 are zero
-simd.store.some[lend.mut 'xs', 9, 2, 'v'];               # writes lanes 1–2 only
+let 'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 9, 2];   # 2 items; lanes 3–4 are zero
+simd.store.some[lend.mut 'xs', pos 9, 2, 'v'];               # writes lanes 1–2 only
 ```
 
 Every vector loop over a list whose length is not a multiple of N has a

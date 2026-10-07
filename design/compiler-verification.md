@@ -1,5 +1,7 @@
 # Verifying the compiler
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 For CyborgPL's own developers — not for users of CyborgPL. Nothing here
 ships or is user-configurable. Owner's direction, 2026-09-14: an oracle plus
 the optimised generator.

@@ -1,5 +1,7 @@
 # Operators
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-14.
 
 **`div` and `</==` / `>/==`** (owner, 2026-09-29): division is the word
@@ -256,8 +258,8 @@ alternative: 64-bit intermediates rounded once where stored.
 
 ```
 let 'ok' := check_name['f'] and check_age['f'];     # both run, left then right
-if 'i' </== list.length[lend 'xs'] {             # a check that protects the next
-    if 'xs'['i'] == 5 { … }                 # step is written as two `if`s
+if 'i' at_most list.length[lend 'xs'] {             # a check that protects the next
+    if 'xs'['i'] equal_to 5 { … }                 # step is written as two `if`s
 }
 ```
 
@@ -276,8 +278,8 @@ run both and refuse such lines at compile time.
 day), for when the second half should depend on the first:
 
 ```
-if 'i' </== list.length[lend 'xs'] and.then 'xs'['i'] == 5 { … }
-if 'n' == 0 or.else 100 div.floor 'n' < 2 { … }
+if 'i' at_most list.length[lend 'xs'] and.then 'xs'['i'] equal_to 5 { … }
+if 'n' equal_to 0 or.else 100 div.floor 'n' < 2 { … }
 ```
 
 A variant of `and`/`or` by the dot rule, like `and.bit`. It reads as the
@@ -299,9 +301,9 @@ mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
 ```
 struct Vec { x: bin64  y: bin64 }
-op <+> ['a': Vec, 'b': Vec] --> Vec { return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y]; }
-op dot ['a': Vec, 'b': Vec] --> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
-op **  [give 'a': Vec, 'b': bin64] --> Vec { … return give 'a'; }
+op <+> ['a': Vec, 'b': Vec] -> Vec { return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y]; }
+op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
+op **  [give 'a': Vec, 'b': bin64] -> Vec { … return give 'a'; }
 
 let 'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
 let 'd' := ('u' <+> 'v') dot 'v';       # parenthesise when operators meet
@@ -350,7 +352,7 @@ operators are not offered.
 
 ```
 precedence.low_first {                          # level 1 binds loosest (good practice)
-    level.when_chained.refused 1 { ==  ~= }     # a language operator pins its level
+    level.when_chained.refused 1 { equal_to ~= }     # a language operator pins its level
     level.when_chained.left_first 2 { plus }
     level.when_chained.left_first 3 { times  dot }
     level.when_chained.left_first 4 { scale }   # no language operator: above times, by number

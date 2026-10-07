@@ -1,5 +1,7 @@
 # Enums — one of a few named cases
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-20. Owner asked "what are enums?" — a type that means *one
 of these few options*, like `bool` with your own names, where an option may
 carry a detail. A function's `fail[…]` list has this shape already
@@ -37,7 +39,7 @@ struct Locker { number: int32  status: Status }
 ## `match` — when every case matters
 
 ```
-fn describe [lent 'l': Locker] --> str.utf8 {
+fn describe [lent 'l': Locker] -> str.utf8 {
     match 'l'.status {
         empty         { return "free"; }
         claimed 'who' { return "taken by " ++ 'who'; }

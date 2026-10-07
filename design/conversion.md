@@ -1,5 +1,7 @@
 # Conversion — `to.<type>[…]`
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-19. Nothing converts by itself; a conversion is spelled as
 `to`, the target type, and the value in brackets.
 
@@ -8,7 +10,7 @@ to.stored.str.utf8['avg']          # number → text, in its stored form; never 
 to.bin64['n']                      # int → bin, widening; never fails
 to.int8['big']                     # narrowing: a check site (does it fit?), like a typed assignment
 to.int32["42"] otherwise 0         # text → number: can fail with `not_a_number` or `out_of_range`
-to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exit[3]; } }
+to.int32["7"] otherwise { not_a_number { stdkit::exit[2]; } out_of_range { stdkit::exit[3]; } }
 ```
 
 - **`to`** is a keyword and the head of the chain, like `list` in

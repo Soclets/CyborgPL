@@ -1,5 +1,7 @@
 # Parallelism
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-14. Concurrency (tasks that wait on the outside world —
 `concur`, channels, `pick`) is `concurrency.md`, decided 2026-09-22.
 
@@ -49,7 +51,7 @@ A loop that is parallel-safe but must run in order for an external reason
 
 ```
 for seq 'line' in lend 'lines' {
-    std::print.stored.stdout['line', \n];
+    stdkit::print.stored['line', newln];
 }
 ```
 
@@ -71,9 +73,9 @@ until `para` joined it.
 ## No cheating: `for !cheat` (owner, 2026-10-01)
 
 ```
-for !cheat 'i': int64 in range[1, 'n'] { change 'acc' = 'acc' plus 'i'; }
-for !cheat seq 'i' in lend 'xs' { … }
-for !cheat para 'i' in range[1, 'n'] { … }
+for no_cheat 'i': int64 in range[from 1, to 'n', by 1] { change 'acc' = 'acc' plus 'i'; }
+for no_cheat seq 'i' in lend 'xs' { … }
+for no_cheat para 'i' in range[from 1, to 'n', by 1] { … }
 ```
 
 **`!cheat`, "no cheat"** (`!c` until 2026-10-06): every round's work really happens at run time. The

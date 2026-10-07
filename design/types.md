@@ -1,5 +1,7 @@
 # Types
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Owner's initial type family, 2026-09-14. Spelled as they appear in a chain
 (`'x': bin16`, `'s': str.utf8`, …; the type follows the name since 2026-09-19). A type parameter goes in brackets — `list[int32]`, `array[str.utf8]` — while `.` picks a fixed variant of a type (decided 2026-09-19; see `lists.md`).
 
@@ -59,8 +61,8 @@ and `deci`/`uenr` are ours to write rather than vendored.
 ## Integers of any width: `!std.int24` (owner, 2026-10-03; the `.` since 2026-10-06)
 
 ```
-let 'sample': !std.int24 = -8_000_000;     # Rust-style: !std.i24
-let 'flags': !std.uint4 = 9;               # !std.u4
+let 'sample': not_std.int24 = -8_000_000;     # Rust-style: !std.i24
+let 'flags': not_std.uint4 = 9;               # !std.u4
 ```
 
 Any width LLVM takes (from 1 bit to its own limit, about 8 million),

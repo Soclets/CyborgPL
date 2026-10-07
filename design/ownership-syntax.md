@@ -1,5 +1,7 @@
 # Ownership syntax
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-14. Semantics are in `core-features.md` (one owner per
 value; moves, copies, borrows; Rust-style borrow checking; inferred
 lifetimes with optional verified annotation).
@@ -71,7 +73,7 @@ question: a parameter receives whatever the caller wrote.
 ## A lend's sizes must match (owner, 2026-09-24: a)
 
 ```
-fn total [lent 'xs': list[int32]] --> int64 { … }
+fn total [lent 'xs': list[int32]] -> int64 { … }
 let 'big': list[int64] = [1, 2, 3];
 total[lend 'big'];          # error: a list[int64] lent where a list[int32] is looked at
 ```
@@ -92,9 +94,9 @@ whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 a chain segment, `var.!mut.int32`), and the compiler then holds them to it:
 
 ```
-let !mut 'limit': int32 = 10;      # assigning to 'limit' later is an error
+let immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
 let mut 'counter' := 0;             # states the intent; nothing to enforce
-fn twice [!mut 'n': int32] --> int32 { … }
+fn twice [immut 'n': int32] -> int32 { … }
 ```
 
 `!mut` is a verified contract, like `check` and the optional lifetime
@@ -116,7 +118,7 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-fn count [lent 'text': str.utf8] --> int32 { … }    # looks at it
+fn count [lent 'text': str.utf8] -> int32 { … }    # looks at it
 fn edit  [lent.mut 'text': str.utf8] { … }         # may modify it
 fn keep  ['text': str.utf8] { … }                  # owns it
 ```
@@ -153,11 +155,11 @@ outliving `'s'`.
 ## Handing back a borrow: `--> lent@x T` (owner, 2026-09-29)
 
 ```
-fn longer @x [lent@x 'a': str.utf8, lent@x 'b': str.utf8] --> lent@x str.utf8 {
-    if str.bytes[lend 'a'] >/== str.bytes[lend 'b'] { return lend 'a'; }
+fn longer [@x] [lent @x 'a': str.utf8, lent @x 'b': str.utf8] -> lent @x str.utf8 {
+    if str.bytes[lend 'a'] at_least str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
-fn pick @x @y [lent@x 'a': str.utf8, lent@y 'b': str.utf8] --> lent@x str.utf8 { return lend 'a'; }
+fn pick [@x, @y] [lent @x 'a': str.utf8, lent @y 'b': str.utf8] -> lent @x str.utf8 { return lend 'a'; }
 ```
 
 A function may hand back a borrow of what it was lent (2026-09-21: a lend

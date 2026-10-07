@@ -1,5 +1,7 @@
 # Diagnostics — what the compiler says
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-22 (owner): "It should say what started the fail chain,
 it should be helpful like Rust's, there should be a human-readable
 location and an IDE-readable location." The oracle's one-line messages

@@ -715,6 +715,37 @@ and which wins when one listed core grants a power another takes away.
 Design claude's own question, "by 'don't need verification', the engine
 not reviewing each game, or skipping Precog's proofs?", was not answered.
 
+### 2026-10-07 — The revision and the slimmer base are built in the oracle (owner: "Build now")
+
+Everything decided today in the syntax revision and the slimming is built
+in the oracle, in seven commits (spellings, labels, cases and printing,
+signatures, `#strict`, the new cores, two fixes), every example and test
+rewritten, 692 reject tests compared one by one against their errors
+before the build so each still fails for its own reason (the ones that
+tested MTM's spellings, `#strict`'s rules or the arrow variants became
+tests that the old form is refused). The old → new table is
+`design/revision-2026-10-07.md`; the design notes' code blocks are
+converted (their comments, which may quote the owner, untouched), and each
+affected note points to the table. The rename of Signatar is not applied
+(owner: "Record, don't implement yet").
+
+Design claude's readings while building, not asked (open questions):
+- An untyped variadic (`...'parts'`, each argument keeping its own type,
+  2026-09-19) is still allowed under "types required on every function";
+  requiring a type would remove that feature.
+- `otherwise 0`, the short form with no cases, takes no `is`.
+- A nested `match` that is a case's value says `is match …`, the lone
+  `match` in a case being a statement; this replaces 2026-09-29's "the
+  outer match decides", which `is` everywhere made moot.
+- `.stdout` may still be written; `.stderr` is the only one needed.
+- A `std` prefix stays reserved beside `stdkit` (it names the built-in's
+  old spelling).
+- Counting in points or graphemes (`str.graphemes`, a `40 graphemes`
+  bound) needs UniTect; an exact decimal literal (`*0.1`) needs Money.
+- Two bugs found today are fixed: an undeclared type name in a function
+  nothing calls is refused, and a vector in an `on.target` branch ruled out
+  for this target is not judged against it.
+
 ### 2026-10-07 — The inline languages' main names are `inline.ASM`, `inline.LL`, `inline.MSL`; the whole names go to MTM (owner: a)
 
 ```

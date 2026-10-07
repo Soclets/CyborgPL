@@ -1,5 +1,7 @@
 # Syntax sketch
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 The language's surface as decided so far. Revised 2026-09-19 (owner):
 `fn`, the type after the name, and `[ ]` only where it builds a value;
 revised 2026-09-25 (owner): changing says `change`; revised 2026-10-02
@@ -12,22 +14,22 @@ The 2026-09-14 form is under **History** at the bottom.
 ```
 struct Locker {
     name: str.utf8
-    !mut number: int32
+    immut number: int32
     occupied: bool
 }
 
-fn count [lent 'text': str.utf8] --> int32 { … }
+fn count [lent 'text': str.utf8] -> int32 { … }
 
 MAIN {
     let 'mine' := Locker[name = "A", number = 7, occupied = false];
     let mut 'total': int32 = 0;
-    for 'i' in range[1, 10] {
-        if ('i' mod.floor 2) == 0 { change 'total' = 'total' plus 'i'; }
-        else if 'i' == 7 { break; }
+    for 'i' in range[from 1, to 10, by 1] {
+        if ('i' mod.floor 2) equal_to 0 { change 'total' = 'total' plus 'i'; }
+        else if 'i' equal_to 7 { break; }
         else { continue; }
     }
-    let 's' := "line 1" ++ \n ++ "line 2";
-    std::print.useful.stdout["total: ", 'total', \n];
+    let 's' := "line 1" ++ newln ++ "line 2";
+    stdkit::print.useful["total: ", 'total', newln];
 }
 ```
 
@@ -37,8 +39,8 @@ MAIN {
 let 'x' := 1000;                 # Precog picks the best type
 let 'x': bin16 = 1000;           # explicit type; must be fully explicit
 let mut 'n': int32 = 0;          # mutability, when stated, before the name
-let !mut 'limit' := 10;
-let 'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
+let immut 'limit' := 10;
+let 'r': stdkit::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
 pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
 ```
 
@@ -172,9 +174,9 @@ Closed 2026-09-14: the typed form is always fully explicit (no bare
 
 ```
 var.bin16 'x' = [1000];
-var 's' := ["line 1" \n "line 2"];
+var 's' := ["line 1" newln "line 2"];
 func.int32 add [var.int32 'a', var.int32 'b'] { return ['a' plus 'b']; }
-loop.temp.range.int32 'i' [= 0, = 9] { if ['i' == 7] { break; } }
+loop.temp.range.int32 'i' [= 0, = 9] { if ['i' equal_to 7] { break; } }
 ```
 
 The type rode on the keyword chain, every value position wore `[ ]`, and

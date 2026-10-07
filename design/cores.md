@@ -1,5 +1,7 @@
 # Signatar, cores and limbs (owner, 2026-10-05/06/07; being designed, not built)
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 **2026-10-07: no base, no codextras** (owner: "there's no reason to
 create a language on this base. So, could we remove it, and let Signatar
 be the lowest level?", then "`a`" to a core taking powers away). Signatar
@@ -27,7 +29,7 @@ equivalent anyways, and other stuff". The theme was planned: a cyborg
 ```
 Signatar    the language itself, the lowest level: reads the files, loads
             the cores, enforces the grants, hands its LLVM IR to LLVM
-IEG         the official core: raw operations, inline.LL, the !check labels
+IEG         the official core: raw operations, inline.LL, the no_check labels
 ASP         numbers mean their true values; to. conversions; run-time checks
 Genny       generics and interfaces
 MCPS        parallel loops and concur (needs threads)
@@ -247,8 +249,8 @@ have to change a limb's prefix themselves" (owner).
 Chosen **when compiling**, with `else` for the rest:
 
 ```
-on.target.chip aarch64 { !check inline.ASM { neg x0, x0 } with [ … ]; }
-else on.target.chip x86_64 { !check inline.ASM { neg rax } with [ … ]; }
+on.target.chip aarch64 { no_check inline.ASM { neg x0, x0 } with [ … ]; }
+else on.target.chip x86_64 { no_check inline.ASM { neg rax } with [ … ]; }
 else { let 'y' := -'x'; }
 on.target.os macos 15 { … }          # a minimum: refuses to start on older
 on.target aarch64-macos { … }        # one exact target

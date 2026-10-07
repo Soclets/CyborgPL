@@ -1,5 +1,7 @@
 # The scripting language
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Owner's direction, 2026-09-18. A higher-level language on top of CyborgPL.
 
 ## What is decided

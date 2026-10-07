@@ -1,5 +1,7 @@
 # Tooling names
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Owner, 2026-09-14.
 
 - **Cyborg Chassis Assembler (CCA)** — the CyborgPL compiler (owner,

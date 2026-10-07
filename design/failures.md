@@ -1,5 +1,7 @@
 # Failures — how a function says "this didn't work"
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-19, one question at a time.
 
 ## The model: failure is a value the caller must handle
@@ -18,14 +20,14 @@ and may carry a payload of any type. The reasons are listed **inline, in the
 function's own signature** (owner: option 1, over a named reusable type):
 
 ```
-fn stash [lent.mut 'l': Locker, 'item': str.utf8] --> bool or fail[full, bad_item: str.utf8] {
-    if free_slots[lend 'l'] == 0 { fail full; }
-    if 'item' == "" { fail bad_item[copy 'item']; }
+fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
+    if free_slots[lend 'l'] equal_to 0 { fail full; }
+    if 'item' equal_to "" { fail bad_item[copy 'item']; }
     list.append[lend.mut 'l'.items, give 'item'];
     return true;
 }
 
-fn save [lent 'l': Locker] --> fail[disk_full, no_permission] { … }   # nothing on success, or a failure
+fn save [lent 'l': Locker] -> fail[disk_full, no_permission] { … }   # nothing on success, or a failure
 ```
 
 - `-> T or fail[…]`: "returns a T, or fails one of these ways."
@@ -55,9 +57,9 @@ let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise return false;   # leave, 
 let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise fail;           # pass it up unchanged
 let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {               # one arm per reason
     full           { break; }
-    bad_item 'why' { std::print.stored.stdout["bad: ", 'why', \n]; continue; }
+    bad_item 'why' { stdkit::print.stored["bad: ", 'why', newln]; continue; }
 };
-save[lend 'mine'] otherwise { disk_full { std::print.stored.stdout["not saved", \n]; } };
+save[lend 'mine'] otherwise { disk_full { stdkit::print.stored["not saved", newln]; } };
 ```
 
 - **A value** — used instead. **A leaving statement** (`return …`, `fail …`,

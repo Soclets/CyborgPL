@@ -1,5 +1,7 @@
 # Maps
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-22, one question at a time. The third collection, beside
 `list` and `array` (`lists.md`): look a value up by a key.
 

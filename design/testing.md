@@ -1,12 +1,12 @@
 # Testing — `test fn` and `must` (owner, 2026-09-29)
 
 ```
-fn add ['a': int32, 'b': int32] --> int32 { return 'a' plus 'b'; }
+fn add ['a': int32, 'b': int32] -> int32 { return 'a' plus 'b'; }
 
 test fn adds_up [] {
-    must add[2, 3] == 5;                        # what must hold
+    must add[2, 3] equal_to 5;                        # what must hold
     let 'n' := to.int32["42"] otherwise 0;
-    must 'n' == 42;
+    must 'n' equal_to 42;
     must.fail to.int32["abc"];                  # it must fail
     must.fail.not_a_number to.int32["abc"];     # …with exactly this reason
     let 'xs': list[int32] = [1, 2, 3];

@@ -1,5 +1,7 @@
 # Low level — `extern`, pointers, C layout, `size.of`
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-19, one question at a time, after the owner asked how
 std's print gets made and then: "Syscall and lower-level stuff should be
 able to do, using the base Cyborg language." So the door to the OS is the
@@ -12,12 +14,12 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 extern.C fn exit ['code': int32];
-extern.C fn printf ['fmt': ptr[uint8], ...'args'] --> int32;      # C's own varargs
+extern.C fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
 
 extern.C {                                  # a library's worth at once
-    fn malloc ['bytes': uint64] --> ptr.mut[uint8];
+    fn malloc ['bytes': uint64] -> ptr.mut[uint8];
     fn free ['p': ptr.mut[uint8]];
     'lib_version': int32;
     mut 'lib_verbose': int32;
@@ -88,12 +90,12 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 
 ```
 extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
-                 'cmp': fn[ptr[int32], ptr[int32]] --> int32];
+                 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
 
-fn ascending ['a': ptr[int32], 'b': ptr[int32]] --> int32 {
-    !check return ptr.read['a'] minus ptr.read['b'];
+fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+    no_check return ptr.read['a'] minus ptr.read['b'];
 }
-!check qsort[lend.mut 'nums', 5, size.of[int32], ascending];
+no_check qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 ```
 
 - **Only capture-free functions cross** (owner: a, over smuggling captures
@@ -114,8 +116,8 @@ fn ascending ['a': ptr[int32], 'b': ptr[int32]] --> int32 {
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-extern.C fn strlen ['s': ptr[uint8]] --> uint64[0, 1_000_000];
-!check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
+extern.C fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
+no_check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
 An extern's return may be a range type. It is a promise about C that
@@ -192,7 +194,7 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 
 ```
 layout.C enum Key { a = 65  b = 66  escape = 256 }
-extern.C fn IsKeyDown ['key': Key] --> bool;
+extern.C fn IsKeyDown ['key': Key] -> bool;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out
@@ -214,8 +216,8 @@ design claude's recommendation with a, not asked separately.
 extern.C 'lib_version': int32;        # C: extern int lib_version;   read-only
 extern.C mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
 
-!check let 'v' := 'lib_version';       # reading C's variable is a !check site
-!check change 'lib_verbose' = 1;              # so is writing one
+no_check let 'v' := 'lib_version';       # reading C's variable is a !check site
+no_check change 'lib_verbose' = 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern.C fn` names its functions.
@@ -273,10 +275,10 @@ block, the same rules. Capitals, as every language's name: `inline.s` is
 refused.
 
 ```
-!check inline.ASM {
+no_check inline.ASM {
     mov x16, #4
     svc 0
-} with ['fd' --> x0, 'buf' --> x1, 'len' --> x2, 'n' <-- x0, clobber x16];
+} with ['fd' -> x0, 'buf' -> x1, 'len' -> x2, 'n' <- x0, clobber x16];
 ```
 
 - **`inline.<LANGUAGE>`** — owner's shape, over bare `asm`: a family, with

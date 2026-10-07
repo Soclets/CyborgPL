@@ -1,5 +1,7 @@
 # Precog
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Opened 2026-09-22. What the compiler does between the checked AST and
 LLVM: run the whole program at compile time over sets of values, prove
 every check site it can, and report the rest. The rules Precog must meet
@@ -308,7 +310,7 @@ Per check site, in source order:
 ```
 line 7   'total' plus square['i']   overflow           proven    (layer 2: max 333833500)
 line 12  'xs'['k']           out of bounds      checked   (layer 3: sat, k=100 when len=100)
-line 15  'a' div.floor 'b'       division by zero   trusted   (!check)
+line 15  'a' div.floor 'b'       division by zero   trusted   (no_check)
 line 9   square: 'x' times 'x'       overflow           proven    (layer 2, at 1 call site)
 ```
 

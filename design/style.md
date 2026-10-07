@@ -1,5 +1,7 @@
 # Good practice
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 How CyborgPL is meant to be written: the practices the language's rules
 make easy, collected in one place. Proposed by design claude and approved
 by the owner, 2026-10-02 ("all that you said there seems like a good

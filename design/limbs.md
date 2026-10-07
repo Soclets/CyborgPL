@@ -1,5 +1,7 @@
 # Limbs — reaching into one
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-19 onward. The module-system pieces settled so far; what
 is still open is listed at the end.
 
@@ -53,7 +55,7 @@ modules keep the strict rule — their names appear bare in type positions.
 ## `pub` and `const` (decided 2026-09-19)
 
 ```
-pub fn add ['a': int32, 'b': int32] --> int32 { … }
+pub fn add ['a': int32, 'b': int32] -> int32 { … }
 pub struct Locker { … }
 pub const 'max_players' := 8;
 const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
@@ -177,7 +179,7 @@ refusal: nothing to disambiguate, for the reader or for Precog.
 
 ```
 # geometry/shapes/circle.cpls
-pub.limb fn area ['r': bin64] --> bin64 { … }
+pub.limb fn area ['r': bin64] -> bin64 { … }
 pub.limb struct Circle { r: bin64 }
 
 # geometry/limb.cpls

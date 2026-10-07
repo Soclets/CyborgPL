@@ -1,10 +1,12 @@
 # Functions
 
+> Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
+
 Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-fn add ['a': int32, 'b': int32] --> int32 {
+fn add ['a': int32, 'b': int32] -> int32 {
     return 'a' plus 'b';
 }
 let 'sum' := add[10, 20];              # this Limb: bare
@@ -14,10 +16,10 @@ let 'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
 ## Definition
 
 ```
-fn count [lent 'text': str.utf8] --> int32 { … }     # looks at it
+fn count [lent 'text': str.utf8] -> int32 { … }     # looks at it
 fn edit  [lent.mut 'text': str.utf8] { … }          # may modify it
 fn keep  ['text': str.utf8] { … }                   # owns it
-fn twice [!mut 'n': int32] --> int32 { … }          # stated mutability
+fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
@@ -116,7 +118,7 @@ return;                       # in a nothing-function
 ```
 MAIN {
     let 'sum' := add[10, 20];
-    std::print.useful.stdout["sum: ", 'sum', \n];
+    stdkit::print.useful["sum: ", 'sum', newln];
 }
 ```
 
@@ -141,7 +143,7 @@ depends on may have one too, run only when that Limb is run itself
 
 ```
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    !check let 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
+    no_check let 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
     …
 }
 ```
