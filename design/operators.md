@@ -42,6 +42,7 @@ the symbols where they quote a ruling's day.
 | `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`; above a negative, right pair first, as `xx` was (`-2 pow 2` is -4, `2 pow 3 pow 2` is 512) |
 | `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
 | `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |
+| `plus.ieee` `minus.ieee` `times.ieee` `div.floor.ieee` `div.ceil.ieee` `div.trunc.ieee` `div.near.ieee`, and `neg.ieee 'x'` | IEEE 754's own answer, keeping a `-0`; on a bin or `brain16` only. Every other bin or `brain16` result is never `-0`: a zero times a negative, `-'x'` of a zero, a product too small to hold are all `0` (owner, 2026-10-07: "`a`", then "yea" to the family and to `neg.ieee`; `-.ieee 'x'` "defeats the purpose of a symbol"). `examples/zero_everywhere.cpls` |
 | `==` | equal |
 | `!==` | not equal — built from `==` |
 | `<`, `>` | less than, greater than |

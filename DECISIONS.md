@@ -257,6 +257,28 @@ maths zero has no sign. CyborgPL's bins hold no infinity at all
 (2026-09-29), so `-0`'s main use is gone, and plain `0` is the better
 answer here.
 
+**The `.ieee` family** (owner, 2026-10-07). Design claude asked whether
+`.ieee` should go on `times`, `minus` and `div.near` too, and noted that
+negation would be `-.ieee 'x'`, which reads oddly. The owner: "yea, and
+`-.ieee 'x'` defeats the purpose of a symbol". Design claude offered the word
+CyborgPL already has for negation, `neg` (`op neg`, precedence levels),
+narrowed: `neg.ieee 'x'`, with `plus.ieee` in the family as well (`-0 plus -0`
+is `-0` in IEEE). The owner: "yea". So: **`plus.ieee`, `minus.ieee`,
+`times.ieee`, `div.floor.ieee`, `div.ceil.ieee`, `div.trunc.ieee`,
+`div.near.ieee`, and `neg.ieee 'x'`** keep IEEE's `-0`; plain `-'x'` never
+gives one. This replaces design claude's earlier unasked reading that
+`div.near` takes no `.ieee`.
+
+Design claude's readings in the oracle, not asked (open questions):
+`mod.X` and `pow` have no `.ieee` form (refused: "has no `.ieee` form"); the
+old reason for `mod` (its zero takes the divisor's sign) no longer holds,
+since `3.0 mod.floor -3.0` is now `0`. Rounding where a value lands (a
+bin64 into a bin32), std's `round`/`floor`/`ceil`/`trunc` and a
+conversion into `brain16` never make a `-0` of a number that was not zero,
+and keep one the `.ieee` forms made; `simd.max`/`min`/`sum` give `0`. In
+the oracle: `examples/zero_everywhere.cpls`, reject tests `ieee_on_mod`,
+`ieee_on_pow`, `neg_ieee_on_int`, `plus_ieee_on_int`.
+
 ### 2026-10-06 — Without IEG nothing needs `!check`: the marking rule is IEG's (owner: yes)
 
 The owner: "If `inline.Assembly` comes with Signatar, shouldn't it not
