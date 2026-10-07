@@ -238,13 +238,13 @@ Check claude found it (seed 30022): design/simd.md (2026-09-22) says `sum`
 ran. Design claude asked (a) checked at the lane's type or (b) worked out
 in full, checked where it lands, first recommending (a) after the
 2026-09-29 (b) ruling that lanes are checked at their type. The owner:
-"Would `b` defeat the purpose of simd?" Design claude: no: the lanes stay
+"Would `b` defeat the purpose of simd>" Design claude: no: the lanes stay
 their size through the loop, the sum is done once and its answer is a plain
 number, not a lane; ARM adds four int32s straight into an int64 in one
 instruction (`SADDLV`); so it changed its recommendation to (b). The owner:
 "There should be a way to do the other option too". Design claude offered
 (b) as the default, `simd.sum.lane` for (a), and `simd.sum.wrap`, the
-chip's own `ADDV`, wrapping as `plus.wrap` does. The owner: "yea, you said
+chip's own `ADDV`, wrapping as `plus.wrap` does. The owner: "yea, you sad
 no check, so would it need `!check`?" Design claude: no; `plus.wrap` is
 "always defined, never a check, nothing to `!check`" (2026-09-20), and
 wrapping is the meaning, not a skipped check. `simd.max`/`min` cannot pass
