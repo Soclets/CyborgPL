@@ -366,7 +366,15 @@ deprecating `#strict`." So **out of the base, into cores: `brain16`;
 the non-standard integers (`!std.int24`, `!std.uint256`, …); Unicode text
 (`str.utf16`, `str.utf32`, `char.point`, `char.grapheme` and the Unicode
 tables; the base keeps byte text and `char.byte`); `case.insensitive` /
-`case.sensitive`; and `#strict`**, which **will be deprecated**. Design
+`case.sensitive`; and `#strict`**, which **will be deprecated**. **Then: `#strict` is
+removed, not moved to a core** (owner: "We ain't no C stability, remove it
+now. But not literally now"), after design claude pointed out "moved to a
+core" and "deprecated" contradicted each other: it is refused once the
+revision is built, over a slow deprecation or a core. Its useful parts
+became normal syntax (labelled ranges, `pos`, `count`); its five
+leftovers (parameter types, return types, `gives`, `@x` on a returned
+borrow, the working build refusing unproven sites) are each ruled on
+separately. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
