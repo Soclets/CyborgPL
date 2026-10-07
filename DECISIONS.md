@@ -573,7 +573,16 @@ is not** (owner: "That's actually a lot of work, money & AI. So, for
 first public release, we only have to cover money"). **WSMW is in the
 first release too** (owner: "First release."), after asking what it
 helps with (odd widths matching audio, pixels, registers and protocols;
-huge ones for cryptography, Ethereum's `uint256`, exact big numbers). Not yet
+huge ones for cryptography, Ethereum's `uint256`, exact big numbers). **`int128` and `uint128` move to WSMW** (owner: "Yes"),
+replacing design claude's earlier reading that they stay. Asked about
+their hardware (no 128-bit registers anywhere; add, compare and
+multiply are pairs of 64-bit operations, division a library call), then
+"I mean, do the low level shit really use int128?" (rarely: 128-bit
+atomic compare-and-swap, which is an atomics feature rather than
+arithmetic, a multiply's high half, some cryptography; Linux's `u128` is
+opt-in per architecture). So **the base keeps the register sizes, 8 to
+64 bits**; whether they keep their plain names (`int128`) under WSMW or
+take `not_std.` was not asked. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
