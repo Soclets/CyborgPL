@@ -62,6 +62,13 @@ an upgrade that starts using a new power is found by comparing lists.
 **The program's own Limb lists its powers too** (owner: "`a`"), the same
 rule as any limb, so a program can later be published as one unchanged;
 a lone `.cpls` with no `CCA.cplr` has every power, as it has every core.
+**Vouching is a power IEG grants** (owner: "`a`"): `cca::Power.vouch` for
+`!check` and `cca::Power.vouch.c` for `NO_FUCKING_CHECKS` (design claude's
+spellings), listed by a limb that vouches and deniable like any power
+(`deny = [cca::Power.vouch.for["fastjson"],]`), over leaving it to the
+build's list of `!check` sites. The owner: "And yes, if you disable
+`check`, it's just not gonna work": a limb that vouches does not build
+where its vouching is denied; that is the point.
 
 ### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 
