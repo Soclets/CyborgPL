@@ -287,6 +287,18 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             return err(Diagnostic::error(format!("{} is std's, and this Limb's CCA.cplr does not list std: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
         }
     }
+    // Signatar's names are English letters, digits and `_`, bare or
+    // quoted (owner, 2026-10-06); any other script, or an emoji, is WSTN's.
+    if p.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "WSTN")) {
+        for t in toks.iter() {
+            let shown = match &t.tok {
+                Tok::Word(w) if !w.is_ascii() => format!("`{}`", w),
+                Tok::Name(n) if !n.is_ascii() => format!("`'{}'`", n),
+                _ => continue,
+            };
+            return err(Diagnostic::error(format!("{} is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Limb's `cores` (`{}`)", shown, core_line("WSTN"))).at(t.span));
+        }
+    }
     // MTM's spellings, in a Limb that does not list MTM (owner,
     // 2026-10-06): each refused naming the main one.
     if p.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "MTM")) {

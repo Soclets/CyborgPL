@@ -127,8 +127,8 @@ pub fn render_json(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
         let site = f.site(r.site);
         let span = f.span(site.span);
         let file = sources.get(span.file);
-        let (sl, sc) = file.line_col(span.start);
-        let (el, ec) = file.line_col(span.end);
+        let (sl, sc) = file.line_col_utf16(span.start);
+        let (el, ec) = file.line_col_utf16(span.end);
         let spell = |t: &crate::types::Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
         let (kind, construct): (&str, String) = match &site.kind {
             SiteKind::Overflow(op) if site.result_ty.as_ref().map_or(false, |t| t.is_exact()) => ("past_64_bits", op.spelled()),

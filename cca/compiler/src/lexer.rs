@@ -97,12 +97,15 @@ pub fn is_op_char(c: char) -> bool {
     OP_CHARS.contains(c)
 }
 
+/// Any character past ASCII that is not a space is a name's (owner,
+/// 2026-10-06): every script and emoji, which WSTN lets a Limb use; without
+/// it the parser refuses the name (Signatar's are English).
 pub fn is_word_start(c: char) -> bool {
-    c.is_ascii_alphabetic() || c == '_'
+    c.is_ascii_alphabetic() || c == '_' || (!c.is_ascii() && !c.is_whitespace())
 }
 
 pub fn is_word_char(c: char) -> bool {
-    c.is_ascii_alphanumeric() || c == '_'
+    c.is_ascii_alphanumeric() || c == '_' || (!c.is_ascii() && !c.is_whitespace())
 }
 
 struct Lexer<'a> {

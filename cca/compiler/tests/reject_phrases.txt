@@ -691,3 +691,6 @@ wrap_on_bin [fnv:cafed6afa93a0c84] :: it only knows a declared integer width
 wrap_percent_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
 wrap_untyped_left [fnv:1dd0601c6eead672] :: `plus.wrap` needs a width, and nothing here gives one
 wrong_arg_count [fnv:eb88fab86c650ec3] :: `one` takes 1 argument, and 2 were given
+
+wstn_emoji_fn [fnv:bfe94183ed066284] :: is not an English name: Signatar's names are English letters, digits and `_`
+wstn_thai_name [fnv:bfe94183ed066284] :: is not an English name: Signatar's names are English letters, digits and `_`

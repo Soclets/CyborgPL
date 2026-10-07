@@ -48,15 +48,26 @@ impl SourceFile {
         SourceFile { id, path, text, line_starts }
     }
 
-    /// 1-based line and column (column in characters) of a byte offset.
+    /// 1-based line and column (column in graphemes) of a byte offset.
     pub fn line_col(&self, offset: u32) -> (u32, u32) {
         let line = match self.line_starts.binary_search(&offset) {
             Ok(i) => i,
             Err(i) => i - 1,
         };
         let start = self.line_starts[line] as usize;
-        let col = self.text[start..(offset as usize).min(self.text.len())].chars().count();
+        // Graphemes, as the reader sees them (owner, 2026-10-06): a Thai
+        // vowel mark or an emoji's parts are one column with their base.
+        let col = unicode_segmentation::UnicodeSegmentation::graphemes(&self.text[start..(offset as usize).min(self.text.len())], true).count();
         (line as u32 + 1, col as u32 + 1)
+    }
+
+    /// The same, the column in UTF-16 code units: the JSON form's, as the
+    /// Language Server Protocol counts (owner, 2026-10-06: "yea").
+    pub fn line_col_utf16(&self, offset: u32) -> (u32, u32) {
+        let (line, _) = self.line_col(offset);
+        let start = self.line_starts[line as usize - 1] as usize;
+        let col = self.text[start..(offset as usize).min(self.text.len())].encode_utf16().count();
+        (line, col as u32 + 1)
     }
 
     pub fn line_text(&self, line: u32) -> &str {
@@ -93,5 +104,24 @@ impl SourceMap {
     }
     pub fn slice(&self, span: Span) -> &str {
         self.get(span.file).slice(span)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A message counts graphemes; the JSON form UTF-16 code units (owner,
+    /// 2026-10-06). Before ` :=` stand `let '` (5), `น้ำ` (three code
+    /// points, one grapheme, three units), `🍕` (one grapheme, two units)
+    /// and `'`.
+    #[test]
+    fn columns_count_graphemes_and_utf16() {
+        let text = "let 'น้ำ🍕' := x;\nok".to_string();
+        let f = SourceFile::new(FileId(0), PathBuf::from("t.cpls"), text.clone());
+        let at = text.find(" :=").unwrap() as u32;
+        assert_eq!(f.line_col(at), (1, 9));
+        assert_eq!(f.line_col_utf16(at), (1, 12));
+        assert_eq!(f.line_col(text.find("ok").unwrap() as u32), (2, 1));
     }
 }
