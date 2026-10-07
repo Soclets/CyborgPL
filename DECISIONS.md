@@ -243,6 +243,11 @@ it; the new name is not chosen. Not asked yet: the shadow word; whether
 move to MTM or are refused; what MTM's `nocheck` becomes;
 `NO_FUCKING_CHECKS` is untouched.
 
+**The shadow word is `no_shadow`** (owner: "If `a`, `no_check` has to
+change. And I think it becomes too long. So, `c`"), over (a)
+`no_shadowing`, which design claude recommended for its grammar, and (b)
+`unshadowable`: `let no_shadow 'limit' := 10;`.
+
 ### 2026-10-07 — Syntax revision, loops: every `range` is labelled, `range[from 1, to 4, by 1]`, `by` always written (owner: a; not built)
 
 ```
