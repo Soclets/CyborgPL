@@ -591,7 +591,8 @@ that. C replaced X for code"): "UniText" with the X made a C, for code. **The ca
 this one yourself"), over joining UniTect (case marks are about names, not
 text) or WSTN (they serve English names too); it carries the folding
 rules it needs. **Design claude named it CAPS, "Capitals Are Pretty
-Similar"**, at the owner's word. Not yet
+Similar"**, at the owner's word. **Their registry IDs** (owner: "Gen"), made as the other
+cores' were, first version `2026-10-07T20:22:24+07:00`: AI `8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21`; WSMW `0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0`; Money `d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f`; UniTect `137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96`; CAPS `90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01`. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
