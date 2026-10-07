@@ -39,6 +39,16 @@ answers them:
   core's contracts are trusted, the core being trusted already by the
   warning's terms. So Precog's proofs are as sound as the cores a program
   lists, and no core is privileged by who wrote it.
+- **Q4, how the deep official cores move out (ASP's number meaning,
+  Genny's generics, IEG's marking rule): real separation** (owner:
+  "`b`"): Signatar opens its type checker and Precog to the plugin
+  interface far enough that ASP, Genny and IEG are written outside it, so
+  anyone could write their own (an "ASP2" whose numbers saturate). Over
+  (a) policies kept inside Signatar that only the official cores switch
+  on, and (c) (a) now, (b) when someone asks, which compiler claude and
+  design claude recommended. The cost, accepted: a far larger interface,
+  every change to Signatar's checker being a change to it. In keeping with
+  Q3: no core is privileged by who wrote it.
 
 ### 2026-10-07 — The dangerous abilities are powers too: Signatar grants them to every limb, and a program may deny them (owner: a; not built)
 
