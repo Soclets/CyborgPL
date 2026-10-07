@@ -538,7 +538,13 @@ Design claude offered `simd.fallback[…]` (LLVM's fastest: two narrower
 halves, or lane by lane where the chip has no SIMD), `simd.split[…]`
 (halves only) or both; asked whether the hand-written way can do what
 the automatic one would (yes: two 128-bit operations, or a plain loop, in
-the `else`), the owner chose that. So no `.fallback` or `.split`. Not yet
+the `else`), the owner chose that. So no `.fallback` or `.split`. (Asked whether `on.machine` should be an `if`, design claude
+recommending it stay its own word, the owner: "nvm": unchanged.) **Range
+types move to ASP** (owner: "move"): `int32[0, 150]`, `int32[1, max]`,
+since bounds need ASP's numbers-as-values (without it the oracle already
+refuses a literal in one as undecided) and are not hardware. Not yet
+asked: the length bounds on text and lists (`str.utf8[1, 40 graphemes]`,
+`list[T][lo, hi]`). Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
