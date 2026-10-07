@@ -280,6 +280,15 @@ Rust's number names, `bf16` / `bfloat16`, `inline.Assembly` / `inline.S` /
 `not` as MTM's, `!std.i24`). MTM's registry ID
 `9c6c7730…3a56` is retired.
 
+**std is renamed `stdkit`** (owner: "`stdkit`"), over design claude's
+`parts`, `kit` and `common`, so it is not confused with `not_std`:
+`stdkit::print.useful.stdout[…]`, still `bare.optional` for everything.
+Design claude's readings, not asked: its registry ID and version stay
+(an ID names the Limb, not its name: `fff4302d…1936`); the prefix
+`stdkit` is reserved as `std` was; every rule that named std (needs ASP
+and IEG, refused unlisted) now names `stdkit`; `not_std.int24` keeps its
+`std` meaning "standard width", unrelated to the Limb.
+
 ### 2026-10-07 — Syntax revision, loops: every `range` is labelled, `range[from 1, to 4, by 1]`, `by` always written (owner: a; not built)
 
 ```
