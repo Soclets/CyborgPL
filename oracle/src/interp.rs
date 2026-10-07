@@ -2330,7 +2330,7 @@ impl<'p> Interp<'p> {
                     // bin32/bin64 is exact, into a bin16 rounds (a check site past bin16's largest)
                     (Ty::Brain, Value::Int(i)) => Value::Brain(crate::value::round_brain(*i as f64)),
                     (Ty::Brain, Value::Bin(x)) => {
-                        let r = crate::value::round_brain(*x);
+                        let r = no_new_neg_zero(*x, crate::value::round_brain(*x));
                         if r.is_infinite() { return site(line, format!("{x} does not fit brain16: it rounds past the largest value")); }
                         Value::Brain(r)
                     }
@@ -2678,8 +2678,12 @@ impl<'p> Interp<'p> {
                     ("not", o) => rt(line, format!("`not` needs a bool, got {}", o.kind())),
                     ("-", Value::Int(i)) => Ok((match i.checked_neg() { Some(n) => Value::Int(n), None => from_big(crate::bigint::BigInt::from_i128(i).neg()) }, keep)),
                     ("-", Value::Big(b)) => Ok((from_big(b.neg()), keep)),
-                    ("-", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
-                    ("-", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
+                    // plain negation never gives -0; `neg.ieee` flips the sign, so 0 becomes -0 (owner, 2026-10-07: "yea")
+                    ("-", Value::Bin(b)) => Ok((Value::Bin(-b + 0.0), keep)),
+                    ("-", Value::Brain(b)) => Ok((Value::Brain(-b + 0.0), keep)),
+                    ("neg.ieee", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
+                    ("neg.ieee", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
+                    ("neg.ieee", o) => rt(line, format!("`neg.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `-'x'`", if o.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, o.kind())),
                     ("-", Value::Deci(d)) => Ok((Value::Deci(d.neg()), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),
@@ -2895,10 +2899,13 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.as_str(), "+" | "-" | "x" | "xx" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "-" | "x" | "xx" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
-            Expr::Binary(op, l, r, _) => {
+            Expr::Binary(full, l, r, _) => {
+                // `plus.ieee` is `plus` keeping IEEE's -0 (owner, 2026-10-07)
+                let ieee = full.ends_with(".ieee");
+                let op = &full.strip_suffix(".ieee").unwrap_or(full).to_string();
                 // A comparison's operands take their width from each other (2026-09-23): the
                 // stored `bool` says nothing, but a typed side sizes a literal group on the other
                 // (`'n' > (0 -~ 1)` wraps in uint64; verification session, seed 90).
@@ -2919,8 +2926,8 @@ impl<'p> Interp<'p> {
                 // the language's operator, defined for a user type (2026-09-20)
                 if matches!(a, Value::Struct(..) | Value::Enum(..)) {
                     let shape = shape_of(&a);
-                    if self.prog.funcs.iter().any(|f| f.is_op && f.name == *op && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false)) {
-                        return self.custom_op_with(op, (a, pa), l, r, line);
+                    if self.prog.funcs.iter().any(|f| f.is_op && f.name == *full && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false)) {
+                        return self.custom_op_with(full, (a, pa), l, r, line);
                     }
                 }
                 if cmp { self.expected = None; let other = self.expr_ty(l); self.expected = other; }
@@ -2982,7 +2989,7 @@ impl<'p> Interp<'p> {
                     return rt(line, "a deci power's exponent is an integer or a whole literal, not a deci that may hold a fraction: `'r' xx to.int32['k'] otherwise …`");
                 }
                 let divisor = if op.starts_with("mod.") { if let Value::Bin(y) = &b { Some(*y) } else { None } } else { None };
-                let mut v = self.binary(op, a, b, line)?;
+                let mut v = self.binary(full, a, b, line)?;
                 // a bin16/bin32 remainder is rounded where it lands, and that can reach the divisor
                 // again (-0.000001 mod.floor 360.0 is 360 in a bin32): still below it (owner, 2026-10-02: b)
                 if let (Some(y), Value::Bin(rem)) = (divisor, &v) {
@@ -3012,7 +3019,8 @@ impl<'p> Interp<'p> {
                         (a, b) => a.or(b).or_else(|| match &self.expected { Some(Ty::Bin(w)) => Some(*w), Some(Ty::Ranged(b, _, _)) => match **b { Ty::Bin(w) => Some(w), _ => None }, _ => None }),
                     };
                     if let Some(w @ (16 | 32)) = w {
-                        let r = round_to_width(&Ty::Bin(w), Value::Bin(x));
+                        // `.ieee` rounds as IEEE does, an underflow keeping its sign
+                        let r = if ieee { Value::Bin(if w == 32 { (x as f32) as f64 } else { round_f16(x) }) } else { round_to_width(&Ty::Bin(w), Value::Bin(x)) };
                         if let Value::Bin(y) = r {
                             if x.is_finite() && y.is_infinite() { return site(line, format!("{x} does not fit bin{w}: `{op}` rounds past the largest value")); }
                         }
@@ -3101,24 +3109,33 @@ impl<'p> Interp<'p> {
         })
     }
 
+    /// No bin or brain16 result is ever -0 (owner, 2026-10-07: "`a`"); an operator's `.ieee` form keeps
+    /// IEEE's -0 (owner, 2026-10-07: "yea"), `plus.ieee`, `times.ieee`, `div.near.ieee` and the rest.
     fn binary(&self, op: &str, a: Value, b: Value, line: usize) -> Result<Value, RuntimeError> {
+        match op.strip_suffix(".ieee") {
+            Some(base) => self.binary_at(base, a, b, line, true),
+            None => Ok(no_neg_zero(self.binary_at(op, a, b, line, false)?)),
+        }
+    }
+
+    fn binary_at(&self, op: &str, a: Value, b: Value, line: usize, ieee: bool) -> Result<Value, RuntimeError> {
         // A vector is N of what the operator already does (design/simd.md, 2026-09-22):
         // lane by lane, the scalar rule. A comparison gives a simd of bools, never one bool.
         match (&a, &b) {
             (Value::Simd(x), Value::Simd(y)) => {
                 if x.len() != y.len() { return rt(line, format!("`{op}` between a simd of {} lanes and one of {}", x.len(), y.len())); }
                 let mut out = Vec::with_capacity(x.len());
-                for (l, r) in x.iter().zip(y) { out.push(self.binary(op, l.clone(), r.clone(), line)?); }
+                for (l, r) in x.iter().zip(y) { out.push(self.binary_at(op, l.clone(), r.clone(), line, ieee)?); }
                 return Ok(Value::Simd(out));
             }
             (Value::Simd(x), scalar) if matches!(scalar, Value::Int(_) | Value::Bin(_) | Value::Bool(_)) => {
                 let mut out = Vec::with_capacity(x.len());
-                for l in x { out.push(self.binary(op, l.clone(), scalar.clone(), line)?); }
+                for l in x { out.push(self.binary_at(op, l.clone(), scalar.clone(), line, ieee)?); }
                 return Ok(Value::Simd(out));
             }
             (scalar, Value::Simd(y)) if matches!(scalar, Value::Int(_) | Value::Bin(_) | Value::Bool(_)) => {
                 let mut out = Vec::with_capacity(y.len());
-                for r in y { out.push(self.binary(op, scalar.clone(), r.clone(), line)?); }
+                for r in y { out.push(self.binary_at(op, scalar.clone(), r.clone(), line, ieee)?); }
                 return Ok(Value::Simd(out));
             }
             _ => {}
@@ -3132,8 +3149,7 @@ impl<'p> Interp<'p> {
         }
         // `div.X` / `mod.X` (owner, 2026-10-02): every division says how it rounds, `floor`, `ceil`,
         // `trunc` or `near`, on every number family, and each `mod.X` is what `div.X` leaves over
-        // `div.ceil.ieee` keeps IEEE's -0 (owner, 2026-10-07): only a bin or brain16 has one
-        let (op, ieee) = match op.strip_suffix(".ieee") { Some(b) => (b, true), None => (op, false) };
+        // `.ieee` keeps IEEE's -0 (owner, 2026-10-07): only a bin or brain16 has one
         if ieee && !matches!((&a, &b), (Bin(_), Bin(_)) | (Brain(_), Brain(_))) {
             return rt(line, format!("`{op}.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `{op}`", if a.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, a.kind()));
         }
@@ -3706,7 +3722,7 @@ impl<'p> Interp<'p> {
                         (a, b) => return rt(line, format!("`simd.{op}` folds numbers, not {} and {}", a.kind(), b.kind())),
                     };
                 }
-                Ok(acc)
+                Ok(no_neg_zero(acc))
             }
             _ => unreachable!(),
         }
@@ -4745,7 +4761,7 @@ impl<'p> Interp<'p> {
                 if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one bin")); }
                 let (a, _) = self.value(&c.args.values[0])?;
                 match a {
-                    Value::Bin(x) => Ok(Value::Bin(match path.as_str() { "round" => x.round(), "floor" => x.floor(), "ceil" => x.ceil(), _ => x.trunc() })),
+                    Value::Bin(x) => Ok(Value::Bin(no_new_neg_zero(x, match path.as_str() { "round" => x.round(), "floor" => x.floor(), "ceil" => x.ceil(), _ => x.trunc() }))),
                     other => rt(c.line, format!("std::{path} takes a bin, got {}", other.kind())),
                 }
             }
@@ -5024,10 +5040,24 @@ fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {
 }
 
 /// Round every bin inside a value to the width its type gives it (bin16, bin32); bin64 is as held.
+/// A bin or brain16 -0 made plain 0, lane by lane (owner, 2026-10-07: "`a`", no -0 in any result).
+fn no_neg_zero(v: Value) -> Value {
+    match v {
+        Value::Bin(x) => Value::Bin(x + 0.0),
+        Value::Brain(x) => Value::Brain(x + 0.0),
+        Value::Simd(ls) => Value::Simd(ls.into_iter().map(no_neg_zero).collect()),
+        o => o,
+    }
+}
+
+/// Rounding never makes a -0 of a number that was not zero (owner, 2026-10-07: "`a`"); a -0 the
+/// `.ieee` forms made stays one.
+fn no_new_neg_zero(before: f64, after: f64) -> f64 { if after == 0.0 && before != 0.0 { 0.0 } else { after } }
+
 fn round_to_width(t: &Ty, v: Value) -> Value {
     match (t, v) {
-        (Ty::Bin(32), Value::Bin(x)) => Value::Bin((x as f32) as f64),
-        (Ty::Bin(16), Value::Bin(x)) => Value::Bin(round_f16(x)),
+        (Ty::Bin(32), Value::Bin(x)) => Value::Bin(no_new_neg_zero(x, (x as f32) as f64)),
+        (Ty::Bin(16), Value::Bin(x)) => Value::Bin(no_new_neg_zero(x, round_f16(x))),
         (Ty::Ranged(b, _, _), v) => round_to_width(b, v),
         (Ty::List(e) | Ty::Array(e), Value::List(items)) => Value::List(items.into_iter().map(|i| round_to_width(e, i)).collect()),
         (Ty::Simd(e, _), Value::Simd(lanes)) => Value::Simd(lanes.into_iter().map(|i| round_to_width(e, i)).collect()),

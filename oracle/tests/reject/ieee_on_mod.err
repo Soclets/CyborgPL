@@ -1,1 +1,1 @@
-`.ieee` keeps a quotient's -0
+`.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `mod.floor` has no `.ieee` form

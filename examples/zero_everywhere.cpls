@@ -1,0 +1,23 @@
+# No bin or brain16 result is ever -0 (owner, 2026-10-07: "`a`"): a zero times a negative, a
+# negated zero, a product too small to hold, are all plain 0. Each operator's `.ieee` form keeps
+# IEEE's -0 where it is wanted ("yea"), and `neg.ieee` is IEEE's negation ("yea"): `-.ieee 'x'`
+# "defeats the purpose of a symbol".
+MAIN {
+    let 'z': bin64 = 0.0;
+    let 'n': bin64 = -2.0;
+    let 'e30': bin64 = 0.000000000000000000000000000001;
+    let 'e60': bin64 = 'e30' times 'e30';
+    let 'e120': bin64 = 'e60' times 'e60';
+    let 'tiny': bin64 = 'e120' times 'e120';
+    std::print.useful.stdout['z' times 'n', " ", 'z' times.ieee 'n', \n];
+    std::print.useful.stdout[-'z', " ", neg.ieee 'z', \n];
+    std::print.useful.stdout['tiny' times (-'tiny'), " ", 'tiny' times.ieee (-'tiny'), \n];
+    std::print.useful.stdout['z' div.near 'n', " ", 'z' div.near.ieee 'n', \n];
+    let 'm': bin64 = neg.ieee 'z';
+    std::print.useful.stdout['m' plus 'm', " ", 'm' plus.ieee 'm', " ", 'm' minus 'z', " ", 'm' minus.ieee 'z', \n];
+    let 'b': brain16 = 0.0;
+    let 'c': brain16 = -3.0;
+    std::print.useful.stdout['b' times 'c', " ", 'b' times.ieee 'c', " ", -'b', " ", neg.ieee 'b', \n];
+    let 'w': bin32 = 'e30' times 'e30' times (-1.0);
+    std::print.useful.stdout['w', " ", 3.0 mod.floor (-3.0), \n];
+}

@@ -80,7 +80,7 @@ pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
 /// The operators that are std's (owner, 2026-10-05/06), as the oracle spells them inside; `and.then` and
 /// `or.else` stay Signatar's, and a Limb's own operators are that Limb's.
 fn is_std_op(op: &str) -> bool {
-    matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "pow" | "pow.wrap" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
+    matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "+.ieee" | "-.ieee" | "x.ieee" | "pow" | "pow.wrap" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
         || BIT_OPS.contains(&op) || op.starts_with("div.") || op.starts_with("mod.")
 }
 
@@ -91,7 +91,7 @@ const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lo
 
 /// An operator as code writes it (`+` inside is `plus`).
 fn op_shown(op: &str) -> String {
-    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), o => o.into() }
+    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), o => o.into() }
 }
 
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
@@ -2684,10 +2684,12 @@ impl Parser {
             // `times` / `plus` / `minus`, and `.wrap` for the wrapping ones (owner, 2026-10-03)
             Tok::Word(w) if w == "times" || w == "plus" || w == "minus" => {
                 let base = match w.as_str() { "times" => "x", "plus" => "+", _ => "-" };
-                if dot_word("wrap") { self.op_len.set(3); Some(format!("{base}~")) } else { Some(base.into()) }
+                if dot_word("wrap") { self.op_len.set(3); Some(format!("{base}~")) }
+                // `plus.ieee`: IEEE's own answer, a -0 kept (owner, 2026-10-07: "yea")
+                else if dot_word("ieee") { self.op_len.set(3); Some(format!("{base}.ieee")) } else { Some(base.into()) }
             }
             // std's `pow`, bare or with its path, and `pow.wrap` (owner, 2026-10-03)
-            Tok::Word(w) if w == "pow" => { if dot_word("wrap") { self.op_len.set(3); Some("pow.wrap".into()) } else { Some("pow".into()) } }
+            Tok::Word(w) if w == "pow" => { if dot_word("wrap") || dot_word("ieee") { self.op_len.set(3); Some(format!("pow.{}", if dot_word("wrap") { "wrap" } else { "ieee" })) } else { Some("pow".into()) } }
             Tok::Word(w) if w == "std" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "pow") => {
                 if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") { self.op_len.set(5); Some("pow.wrap".into()) } else { self.op_len.set(3); Some("pow".into()) }
             }
@@ -2790,6 +2792,7 @@ impl Parser {
     fn lvl(&self, op: &str) -> (u16, u8) {
         // a path names whose operator it is; its level is the operator's own
         let op = op.rsplit("::").next().unwrap_or(op);
+        let op = op.strip_suffix(".ieee").unwrap_or(op);
         self.user_levels.get(op).copied().unwrap_or((Parser::base_level(op), Parser::base_chain(op)))
     }
 
@@ -2921,8 +2924,7 @@ impl Parser {
                 if op.starts_with("mod.") { return self.err(format!("`mod` never overflows, so there is nothing to wrap: write `{base}` (owner, 2026-10-03)")); }
                 if op.starts_with("div.") && !crate::interp::is_div_mod(base) { return self.err(format!("no `{base}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`")); }
             } else if let Some(base) = op.strip_suffix(".ieee") {
-                if op.starts_with("mod.") { return self.err(format!("`.ieee` keeps a quotient's -0; `{base}` is a remainder, whose zero takes the divisor's sign already")); }
-                if !matches!(base, "div.floor" | "div.ceil" | "div.trunc") { return self.err(format!("`.ieee` goes on a rounded division, `div.floor`, `div.ceil` or `div.trunc`; `{base}` gives no rounded zero to keep")); }
+                if !matches!(base, "+" | "-" | "x" | "div.floor" | "div.ceil" | "div.trunc" | "div.near") { return self.err(format!("`.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `{}` has no `.ieee` form", op_shown(base))); }
             } else if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
                 return self.err(format!("no `{op}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`"));
             }
@@ -2932,7 +2934,7 @@ impl Parser {
                 // follow the same rule (2026-09-21): mathematics has no reading for them.
                 if min > 0 { break; }
                 let what = if BIT_OPS.contains(&op.as_str()) { "a bitwise operator" } else { "a custom operator" };
-                if matches!(lhs, Expr::Binary(..)) || matches!(&lhs, Expr::Unary(u, ..) if u == "-") { return self.err(format!("`{op}` next to another operator: {what} has no precedence — parenthesise")); }
+                if matches!(lhs, Expr::Binary(..)) || matches!(&lhs, Expr::Unary(u, ..) if u == "-" || u == "neg.ieee") { return self.err(format!("`{op}` next to another operator: {what} has no precedence — parenthesise")); }
                 for _ in 0..self.op_len.get() { self.advance(); }
                 let rhs = self.unary()?;
                 if let Some(next) = self.binop() { if next != "=" { return self.err(format!("`{next}` after `{op}`: {what} has no precedence — parenthesise")); } }
@@ -2997,6 +2999,12 @@ impl Parser {
             return self.std_missing(if bit { "`not.bit`" } else { "`!`" });
         }
         if self.no_std && *self.peek() == Tok::Op("-".into()) { return self.std_missing("`-`"); }
+        // `neg.ieee 'x'`: IEEE's negation, 0 becoming -0 (owner, 2026-10-07: "yea"); it binds as `-` does
+        if self.is_word("neg") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "ieee") {
+            if self.no_std { return self.std_missing("`neg.ieee`"); }
+            self.advance(); self.advance(); self.advance();
+            return Ok(Expr::Unary("neg.ieee".into(), Box::new(self.climb(701)?), line));
+        }
         if self.is_word("not") {
             self.advance();
             if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(b) if b == "bit") {
