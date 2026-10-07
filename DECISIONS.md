@@ -546,7 +546,17 @@ refuses a literal in one as undecided) and are not hardware. **Length
 bounds go with them** (owner: "`a`"): `str.utf8[1, 40 bytes]` and
 `list[int32][0, 100]` are ASP's too, all bounds in one place, over (b)
 each beside its type (stdkit's lists, the text's owner); a bound counted
-in graphemes also needs the Unicode text core. Not yet
+in graphemes also needs the Unicode text core. **`test fn` and `must` move to a core of their own** (owner:
+"yea"): asked whether `test fn` stays in the base, moves to a core, or to
+stdkit, design claude first argued kernels need tests; the owner: "I
+mean, there could be specilized kernel building cores", so a kernel core
+may bring its own testing instead. It cannot be stdkit's (a Limb adds no
+syntax). Design claude had twice been wrong, saying `check` keeps
+run-time checks (it asks Precog to prove a guardrail at compile time in
+every build) and that tests use it (they use `must`, 2026-09-29); the
+owner had asked "I though `check` was IEG's" (`check` is ASP's,
+`no_check` IEG's) and "`check` only does runtime with debug build,
+right?" (no). The core's name is not chosen. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
