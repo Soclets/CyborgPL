@@ -1,4 +1,4 @@
 MAIN {
     let 'fd' := 1;
-    !check inline.Assembly { nop } with [in 'fd' --> x0];
+    !check inline.ASM { nop } with [in 'fd' --> x0];
 }

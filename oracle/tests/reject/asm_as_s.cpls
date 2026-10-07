@@ -1,8 +1,8 @@
-# `inline.S` is another name for `inline.ASM` (owner, 2026-10-02): it checks, then the oracle
+# `inline.S` is MTM's name for `inline.ASM` (owner, 2026-10-07: "`a`"); a lone file has MTM: it checks, then the oracle
 # refuses to run assembly, as for any asm block.
 MAIN {
     let 'fd': int64 = 1;
-    !check inline.Assembly {
+    !check inline.S {
         mov x16, #1
         svc #0x80
     } with ['fd' --> x0, clobber x16];

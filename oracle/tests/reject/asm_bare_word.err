@@ -1,1 +1,1 @@
-inline assembly is `inline.Assembly { … }`
+inline assembly is `inline.ASM { … }`

@@ -276,10 +276,14 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "immut" => Some("!mut"),
                 "nocheck" => Some("!check"),
                 "not" if !(i + 3 < chars.len() && chars[i] == '.' && chars[i + 1] == 'b' && chars[i + 2] == 'i' && chars[i + 3] == 't') => Some("!"),
-                "ASM" | "S" if after_inline => Some("inline.Assembly"),
+                // the inline languages' main names are `inline.ASM`, `inline.LL`, `inline.MSL` (owner, 2026-10-07);
+                // the whole names and the older short ones are MTM's ("`a`")
+                "Assembly" | "S" if after_inline => Some("inline.ASM"),
+                "LLVM" | "LLVM_Intermediate_Representation" if after_inline => Some("inline.LL"),
+                "Metal_Shading_Language" if after_inline => Some("inline.MSL"),
                 _ => None,
             };
-            let written = s.clone();
+            let written = if after_inline && main.is_some() { format!("inline.{s}") } else { s.clone() };
             push(Tok::Word(s), &mut toks);
             if let Some(m) = main { toks.last_mut().unwrap().mtm = Some((written, m)); }
             if is_asm {

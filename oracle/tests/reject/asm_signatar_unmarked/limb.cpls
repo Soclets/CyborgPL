@@ -2,5 +2,5 @@
 # checks, then the oracle refuses to run assembly, as for any asm block.
 MAIN {
     let mut 'v': int64 = 1;
-    inline.Assembly { add x0, x0, #1 } with ['v' <--> x0];
+    inline.ASM { add x0, x0, #1 } with ['v' <--> x0];
 }

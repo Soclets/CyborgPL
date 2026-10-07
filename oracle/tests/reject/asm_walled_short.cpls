@@ -2,5 +2,5 @@
 # refuses to run assembly.
 MAIN {
     let mut 'v': int64 = 1;
-    !check inline.Assembly { add x0, x0, #1 } with ['v' <-|-> x0];
+    !check inline.ASM { add x0, x0, #1 } with ['v' <-|-> x0];
 }

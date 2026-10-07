@@ -180,7 +180,7 @@ impl<'p> Interp<'p> {
 
     /// Whether this code's Limb has IEG, whose rule puts raw memory and unproven code under `!check`;
     /// Signatar alone marks nothing (owner, 2026-10-06: "Signatar marks nothing", then "yes" to
-    /// `inline.Assembly` and the rest needing `!check` only where IEG is)
+    /// `inline.ASM` and the rest needing `!check` only where IEG is)
     fn marks_needed(&self) -> bool {
         let root: Vec<String> = self.module.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect();
         !crate::parser::LACKS.with(|l| l.borrow().iter().any(|(r, lacks)| *r == root && lacks.iter().any(|c| c == "IEG")))

@@ -13,7 +13,7 @@ MAIN {
         std::print.useful.stdout["built for aarch64-macos", \n];
     } else on.target.chip x86_64 {
         let 'n': int64 = 5;
-        !check inline.Assembly { neg rax } with ['n' --> rax, 'n' <-- rax];   # never compiled here: x86 assembly
+        !check inline.ASM { neg rax } with ['n' --> rax, 'n' <-- rax];   # never compiled here: x86 assembly
     } else {
         std::print.useful.stdout["built for something else", \n];
     }

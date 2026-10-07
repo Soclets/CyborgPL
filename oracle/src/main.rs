@@ -484,7 +484,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             let segs: Vec<&str> = path.split('.').collect();
             let who = if root.is_empty() { "this Limb".to_string() } else { format!("`{}`", limb.prefix) };
             let what = match (segs[0], segs.get(1).copied(), &thing) {
-                ("inline_assembly", _, _) => "runs assembly (`inline.Assembly`)".to_string(),
+                ("inline_assembly", _, _) => "runs assembly (`inline.ASM`)".to_string(),
                 ("c_calls", Some("functions"), Some(t)) => format!("calls C (`{t}`)"),
                 ("c_calls", Some("variables"), Some(t)) => format!("uses C's variable '{t}'"),
                 ("raw_memory", Some(n), Some(t)) => format!("{} raw memory (`{t}`)", match n { "read" => "reads", "write" => "writes", _ => "casts" }),

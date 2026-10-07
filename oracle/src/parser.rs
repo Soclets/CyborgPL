@@ -754,7 +754,7 @@ impl Parser {
                     d.vis = vis; d.layout_c = true;
                     prog.structs.push(d);
                 }
-                Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.Assembly` block is a statement; it goes inside a body, under `!check`"),
+                Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.ASM` block is a statement; it goes inside a body, under `!check`"),
                 Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.vis = vis; prog.consts.push(c) }
                 Tok::Word(w) if w == "module" => {
                     let line = self.line();
@@ -1850,7 +1850,7 @@ impl Parser {
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
-                "asm" | "ASM" => self.err("inline assembly is `inline.Assembly { … }` (decided 2026-09-20; the whole name since 2026-10-06)"),
+                "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20; `inline.ASM` again since 2026-10-07)"),
                 "gives" => return self.err("`gives` is spelled `giveS` (owner, 2026-09-29: the capital S keeps it apart from `give`)"),
                 "giveS" => {
                     if !self.strict { return self.err("`giveS` belongs to `#strict` files; elsewhere a case's value is written alone: `empty { \"free\" }`"); }
@@ -1873,19 +1873,22 @@ impl Parser {
                     // nocheck inline.ASM { … } with [ … ];   (design/ffi.md, 2026-09-20)
                     // The language's name is in capitals, like MAIN: easy to spot (owner).
                     self.advance();
-                    self.expect(Tok::Dot, "`.Assembly` after `inline` (`inline.Assembly { … }`)")?;
+                    self.expect(Tok::Dot, "`.ASM` after `inline` (`inline.ASM { … }`)")?;
                     match self.advance().tok {
-                        // `inline.S` is another name for it, as assembly's `.S` files (owner, 2026-10-02)
-                        // `inline.Assembly`, the language's whole name (owner, 2026-10-06); `ASM` and `S` are MTM's
-                        Tok::Word(l) if l == "Assembly" || l == "ASM" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
-                        Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("a language's name is capitalized, written whole: `inline.Assembly` (MTM's `inline.ASM`, `inline.S`)".to_string()),
-                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; only `inline.Assembly` exists (MTM's `inline.ASM`, `inline.S`) (`inline.C` is possible later — LLVM ships clang)")),
+                        // `inline.ASM`, `inline.LL`, `inline.MSL` are the main names (owner, 2026-10-07); `inline.Assembly`
+                        // and `inline.S` are MTM's ("`a`"), refused before here in a Limb without it
+                        Tok::Word(l) if l == "ASM" || l == "Assembly" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
+                        Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("an inline language's name is in capitals: `inline.ASM` (MTM's `inline.Assembly`, `inline.S`)".to_string()),
+                        Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is IEG's (owner, 2026-10-07); the oracle does not read it yet"),
+                        Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal core's (owner, 2026-10-07); the oracle does not read it yet"),
+                        Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Signatar's), `inline.LL` (IEG's) and `inline.MSL` (the Metal core's) (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
                     }
                     let text = match self.advance().tok {
                         Tok::Raw(t) => t,
-                        Tok::LBracket => return self.err("assembly goes in braces, verbatim: `inline.Assembly { mov x16, #4 … }` — not a list of strings"),
-                        other => return self.err(format!("expected `{{` after `inline.Assembly`, found {other}")),
+                        Tok::LBracket => return self.err("assembly goes in braces, verbatim: `inline.ASM { mov x16, #4 … }` — not a list of strings"),
+                        other => return self.err(format!("expected `{{` after `inline.ASM`, found {other}")),
                     };
                     let mut binds = Vec::new();
                     if self.is_word("with") {
