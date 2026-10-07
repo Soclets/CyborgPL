@@ -224,6 +224,22 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
+
+With no codextras and no dialects, the owner: "But should Signatar even
+have a name anymore? Could just say base CyborgPL." Design claude agreed
+(the name told the language apart from other codextras, "Signatar
+CyborgPL" "like how they say BIOS for UEFI"; with one language a second
+name only confuses) and proposed **CyborgPL** for the language and
+**base CyborgPL** for it with no cores, a description like Rust's
+`no_std`, rules worded "Signatar's" becoming "CyborgPL's" or "base
+CyborgPL's". The owner: "Yeah. Record, don't implement yet. I may change
+my mind." So **the rename is decided but not applied**: design notes, the
+oracle, examples and CCA keep "Signatar" until the owner says go (about
+130 places outside this file: design 28, the oracle ~37, CCA's compiler
+55 and `PLUGINS.md` 36, CCA's crate `signatar` included); entries here
+keep their words as history.
+
 ### 2026-10-07 — No dialects after all: Signatar is the language again, cores customize, anything deeper is a fork (owner)
 
 Asked how a dialect would tailor optimization, design claude offered MIR
