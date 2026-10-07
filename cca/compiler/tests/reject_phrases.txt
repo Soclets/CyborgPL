@@ -88,8 +88,8 @@ bit_shl_overflow [fnv:c5fefa909a258208] :: the shift can move bits out of the ty
 bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move bits out of the type
 bitwise_operand_too_wide [fnv:73ad90f0d2a05341] :: the value can be outside what a `uint32` holds
 borrow_after_append [fnv:edbe062db4b885e9] :: 's' cannot be changed here: 'r' still borrows it and is used on line 7
-borrow_after_change [fnv:ff276a932d706c72] :: a read says it is a position
-borrow_after_give [fnv:37eec041911a30e1] :: a read says it is a position
+borrow_after_change [fnv:ff276a932d706c72] :: 's' cannot be changed here: 'r' still borrows it and is used on line 6
+borrow_after_give [fnv:37eec041911a30e1] :: 's' cannot be given away here: 'r' still borrows it and is used on line 6
 borrow_chain_through_local [fnv:0b277a9492cf82e4] :: 'o2' cannot be given away here: 's' still borrows it and is used on line 24
 borrow_choice_needs_group [fnv:1e7e66e4f7d01460] :: `longer` hands back a borrow and borrows more than one input: say which with a group, `fn longer [@x] [lent @x 'a': …, lent 'b': …] -> lent @x …`
 borrow_ungrouped_may_return [fnv:ed533803bcb93efa] :: 't' cannot be given away here: 'r' still borrows it and is used on line 13
@@ -352,7 +352,7 @@ level_bit_op [fnv:8d3148a71e0946dc] :: has no precedence in the language
 level_refused_chain [fnv:4d8b77dbb9ca92d4] :: this level does not chain
 level_two_numbers [fnv:c78764fe74dbd903] :: two levels numbered 1
 level_wrong_chain [fnv:a42fc63dbff8bf8e] :: must say `level.when_chained.left_first`
-lifetime_group_given [fnv:d0ed618004b47c50] :: a read says it is a position
+lifetime_group_given [fnv:d0ed618004b47c50] :: 't' cannot be given away here: 'r' still borrows it and is used on line 8
 lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
 lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
 lifetime_unannounced [fnv:a45d01df7619f11b] :: `@x` was never announced

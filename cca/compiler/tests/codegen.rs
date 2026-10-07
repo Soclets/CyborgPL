@@ -182,9 +182,7 @@ fn tests_run_and_report() {
         }
         let r = Command::new(cca()).arg("test").arg(&src).env("CCA_STD_STUBS", "1").output().unwrap();
         let got = String::from_utf8_lossy(&r.stdout).to_string();
-        // `==` is `equal_to` since 2026-10-07; examples/testing.test-out
-        // still says `==` (design claude's to change, told 2026-10-08).
-        let want = std::fs::read_to_string(&want).unwrap().replace("must be `==` ", "must be `equal_to` ");
+        let want = std::fs::read_to_string(&want).unwrap();
         assert_eq!(got, want, "`cca test {}` reported otherwise:\n{}", src.display(), String::from_utf8_lossy(&r.stderr));
         assert_eq!(r.status.code(), Some(1), "a failing test did not make `cca test` exit 1");
     }
