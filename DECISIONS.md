@@ -68,9 +68,9 @@ answers them:
   over refusing them there (compiler claude's recommendation), which
   would have left unofficial cores out of published limbs.
 
-The official cores are built into CCA (the proposal's "the common case
-loads nothing"; with native plugins equal in trust and speed, being built
-in is no privilege). The two gaps stay open: which powers MCPS, the GPU
+Not asked, left as the proposal has it: the official cores built into CCA
+("the common case loads nothing"); with native plugins equal in trust and
+speed, being built in would be no privilege. The two gaps stay open: which powers MCPS, the GPU
 cores, WSTN and MTM add, and IEG's raw operations. Compiler claude's
 build order (split CCA; the power ledger; the hook menu; MTM, WSTN; MCPS
 and the GPU cores; ASP, IEG, Genny; external loading) stands as
