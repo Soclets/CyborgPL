@@ -334,11 +334,15 @@ impl<'a> Ev<'a> {
                     "min" => Val::I(*xs.iter().min().unwrap_or(&0)),
                     "all" => Val::B(xs.iter().all(|x| *x != 0)),
                     "any" => Val::B(xs.iter().any(|x| *x != 0)),
+                    // the lane type's own site, and its wrap with none
+                    "sum.lane" => {
+                        (self.node, self.stmt) = (addr(e), 0);
+                        Val::I(self.land(xs.iter().sum(), t.into())?)
+                    }
+                    "sum.wrap" => Val::I(Self::wrap(xs.iter().sum(), t)),
                     _ => {
                         // sum: a plain number, worked out in full and checked
-                        // where it lands (owner: b, 2026-10-07; f8175e20);
-                        // `simd.sum.lane` is the one checked at the lane type
-                        let _ = t;
+                        // where it lands (owner: b, 2026-10-07; f8175e20)
                         (self.node, self.stmt) = (addr(e), 0);
                         Val::I(self.limit64(xs.iter().sum())?)
                     }

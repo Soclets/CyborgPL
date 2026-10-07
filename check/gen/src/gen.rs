@@ -101,13 +101,15 @@ pub struct Config {
     /// The `m1` call lending one list to change and another to read
     /// (38c91e7); the evaluator does not follow it.
     pub mutator: bool,
+    /// The `.ieee` operators and `neg.ieee` in brain16 blocks (owner, 2026-10-07).
+    pub ieee: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, new_words: true }
     }
 }
 
@@ -1438,7 +1440,13 @@ impl Gen {
                 let k = self.rng.range(1, n);
                 (Expr::At(v.name, Box::new(Expr::Lit(k))), v.iv)
             }
-            1 if sum.within(t.range()) || self.take_risk() => (Expr::SimdFold("sum", var), sum.meet(t.range()).unwrap_or(t.range())),
+            // `sum` is exact and checked where it lands, `sum.lane` at the lane
+            // type, `sum.wrap` wrapped there with no site (owner: b, 2026-10-07)
+            1 if self.rng.chance(30) => (Expr::SimdFold("sum.wrap", var), t.range()),
+            1 if sum.within(t.range()) || self.take_risk() => {
+                let f = if self.rng.chance(50) { "sum.lane" } else { "sum" };
+                (Expr::SimdFold(f, var), sum.meet(t.range()).unwrap_or(t.range()))
+            }
             2 => (Expr::SimdFold("min", var), v.iv),
             _ => (Expr::SimdFold("max", var), v.iv),
         }
@@ -1649,7 +1657,20 @@ impl Gen {
         bs.push(first);
         for _ in 0..1 + self.rng.below(4) {
             let a = Expr::Var(self.rng.pick(&bs).clone());
-            let value = match self.rng.below(8) {
+            // the .ieee family keeps IEEE's -0 where a plain operator gives 0
+            // (owner, 2026-10-07; 72d6946d, 3806bfdf); written as text, since
+            // a brain16 block is compared between the engines only
+            let value = if self.cfg.ieee && self.rng.chance(20) {
+                let x = self.rng.pick(&bs).clone();
+                let y = if self.rng.chance(50) { format!("'{}'", self.rng.pick(&bs)) } else { format!("({})", self.rng.pick(LITS)) };
+                let ops = ["plus", "minus", "times", "div.floor", "div.ceil", "div.trunc", "div.near", "mod.floor", "mod.ceil", "mod.trunc"];
+                let src = match self.rng.below(12) {
+                    0 => format!("neg.ieee '{x}'"),
+                    1 => format!("'{x}' pow.ieee {}", self.rng.range(0, 2)),
+                    _ => format!("'{x}' {}.ieee {y}", self.rng.pick(&ops)),
+                };
+                Expr::Src(format!("({src})"))
+            } else { match self.rng.below(8) {
                 0..=3 => {
                     let op = self.fraction_op(self.cfg.brain_mod);
                     let b = if self.rng.chance(50) { Expr::Var(self.rng.pick(&bs).clone()) } else { Expr::Num(self.rng.pick(LITS).to_string()) };
@@ -1675,7 +1696,7 @@ impl Gen {
                     body.push(Stmt::TypedLet { name: d.clone(), mutable: false, ty: ty.into(), value: Expr::Num(self.rng.pick(LITS).to_string()) });
                     Expr::Conv("brain16".into(), Box::new(Expr::Var(d)), None)
                 }
-            };
+            } };
             let name = self.name("w");
             let typed = !matches!(value, Expr::Conv(..));
             body.push(if typed { Stmt::TypedLet { name: name.clone(), mutable: false, ty: self.rng.pick(&names).to_string(), value } } else { Stmt::AutoLet { name: name.clone(), value } });

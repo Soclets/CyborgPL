@@ -108,6 +108,7 @@ impl Args {
             brain_mod: !avoid.contains("brain-mod"),
             roundings: !avoid.contains("rounding"),
             mutator: !avoid.contains("mutator"),
+            ieee: !avoid.contains("ieee"),
             new_words: !avoid.contains("new-words"),
         }
     }
