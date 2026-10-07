@@ -126,6 +126,13 @@ callback_lent_param [fnv:acc6e686bfb5348a] :: the `extern.C fn f` parameter 'cb'
 callback_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'cb' is not C-shaped
 callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
 callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
+case_bad_kind [fnv:1784123126ebe5b3] :: `op` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)
+case_differ_only [fnv:0f13f9f14cad08cc] :: `Area` and `area` (line 2) differ only in case, and `area` is `case.insensitive`: they would be one name
+case_disagree [fnv:5538f2bae6e6c267] :: `fn Area` is marked both `case.insensitive` (line 1) and `case.sensitive` (line 2): marks that disagree are an error (owner, 2026-10-06)
+case_file_not_first [fnv:4f364d8fce7ca49c] :: a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`
+case_kinds_in_module [fnv:a400e271c042630a] :: a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`
+case_pub_after [fnv:c644387294c3f297] :: `pub` comes first: `pub case.insensitive fn …`
+case_sensitive_default [fnv:a1b5964ecf87547c] :: there is no item `area` in the root (`limb.cpls`)
 chained_cmp [fnv:fb46d9317941f47c] :: comparisons do not chain
 char_to_number [fnv:f0322c3a10514c25] :: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit)
 check_bare [fnv:413f5a3fb67ec940] :: `check` goes in front of a statement

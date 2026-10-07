@@ -327,7 +327,20 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     let mut items = Vec::new();
     let mut bare_file = None;
     let mut bare_kinds = Vec::new();
+    let mut case_file = None;
+    let mut case_kinds = Vec::new();
     while !p.at_eof() {
+        // A file's `case` mark at its top, beside its `bare` mark in either
+        // order, and the kind lines (owner, 2026-10-06).
+        if p.at_case_mark() && matches!(p.peek_at(3), Tok::Semi | Tok::LBracket) {
+            let (mark, at, kinds) = p.case_line()?;
+            match kinds {
+                Some(kinds) => case_kinds.push((mark, kinds, at)),
+                None if items.is_empty() && case_file.is_none() => case_file = Some((mark, at)),
+                None => return p.fail_at(at, CASE_FILE_MARK_FIRST),
+            }
+            continue;
+        }
         if p.is(&Tok::Strict) {
             return p.fail("`#strict` goes once, at the top of the file, before any item");
         }
@@ -349,7 +362,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
         }
         push_item(&mut items, p.item()?);
     }
-    Ok(File { items, strict, bare_file, bare_kinds })
+    Ok(File { items, strict, bare_file, bare_kinds, case_file, case_kinds })
 }
 
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
@@ -365,6 +378,12 @@ pub fn parse_value(toks: &[Token]) -> Result<Expr> {
 }
 
 const NOT_A_COMMENT: &str = "";
+
+const CASE_FILE_MARK_FIRST: &str = "a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`";
+
+fn case_spelled(insensitive: bool) -> &'static str {
+    if insensitive { "case.insensitive" } else { "case.sensitive" }
+}
 
 const FILE_MARK_FIRST: &str = "a file's `bare` mark is its first line, before anything else; a block module takes `pub bare.… module name { … }`";
 
@@ -538,6 +557,22 @@ impl<'a> Parser<'a> {
         let start = self.span();
         let mut vis = Vis::Private;
         let mut bare = None;
+        let mut case = None;
+        // `case.insensitive fn …` with no `pub`; a mark line here is in a
+        // block module or not at the top (owner, 2026-10-06).
+        if self.at_case_mark() {
+            let (mark, at) = self.case_mark()?;
+            if self.is_word("pub") {
+                return self.fail_at(at, format!("`pub` comes first: `pub {} fn …`", case_spelled(mark)));
+            }
+            if self.is(&Tok::LBracket) {
+                return self.fail_at(at, "a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`");
+            }
+            if self.is(&Tok::Semi) {
+                return self.fail_at(at, CASE_FILE_MARK_FIRST);
+            }
+            case = Some((mark, at));
+        }
         // A mark line inside a block module, or a mark with no `pub`.
         if self.is_word("bare") {
             let at = self.span();
@@ -557,12 +592,18 @@ impl<'a> Parser<'a> {
             } else {
                 vis = Vis::Pub;
             }
+            if self.at_case_mark() {
+                case = Some(self.case_mark()?);
+            }
             if self.is_word("bare") {
                 let (mark, at) = self.bare_mark()?;
                 if vis == Vis::Limb {
                     return self.fail_at(at, "a `bare` mark says how other Limbs write the path, and a `pub.limb` thing is never reached from them");
                 }
                 bare = Some((mark, at));
+            }
+            if case.is_none() && self.at_case_mark() {
+                case = Some(self.case_mark()?);
             }
             if self.is_word("MAIN") {
                 return self.fail("`MAIN` is never `pub`: it is the program's block, not something another Limb can reach");
@@ -589,7 +630,7 @@ impl<'a> Parser<'a> {
                 other => other,
             };
             let span = start.to(self.prev_span());
-            return Ok(Item { vis, kind, span, bare });
+            return Ok(Item { vis, kind, span, bare, case });
         }
         let kind = self.item_kind(vis)?;
         if let (ItemKind::Const(_), Some((_, at))) = (&kind, &bare) {
@@ -600,8 +641,11 @@ impl<'a> Parser<'a> {
                 return self.fail_at(d.op.span, format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", d.op.name));
             }
         }
+        if let (ItemKind::Main(..), Some((_, at))) = (&kind, &case) {
+            return self.fail_at(*at, "`MAIN` has no name to mark: a `case` mark goes on a named item, a module, or a file");
+        }
         let span = start.to(self.prev_span());
-        Ok(Item { vis, kind, span, bare })
+        Ok(Item { vis, kind, span, bare, case })
     }
 
     /// One condition of an `on` chain, up to its `{` (owner, 2026-10-06):
@@ -775,6 +819,51 @@ impl<'a> Parser<'a> {
         }
         self.bump();
         Ok(items)
+    }
+
+    /// `case.insensitive` or `case.sensitive` here (owner, 2026-10-06):
+    /// `case` is no keyword, read as a mark only so.
+    fn at_case_mark(&self) -> bool {
+        self.is_word("case") && matches!(self.peek_at(1), Tok::Dot) && (self.is_word_at(2, "insensitive") || self.is_word_at(2, "sensitive"))
+    }
+
+    /// `true` for `case.insensitive`.
+    fn case_mark(&mut self) -> Result<(bool, Span)> {
+        let at = self.span();
+        self.bump();
+        self.bump();
+        let mode = self.bump().clone();
+        Ok((matches!(&mode.tok, Tok::Word(w) if w == "insensitive"), at.to(mode.span)))
+    }
+
+    /// A `case` mark line: `case.insensitive;` (a file's), or
+    /// `case.insensitive [fn, var];` (by kind); `None` kinds for the first.
+    fn case_line(&mut self) -> Result<(bool, Span, Option<Vec<String>>)> {
+        let (mark, at) = self.case_mark()?;
+        if self.eat(&Tok::Semi) {
+            return Ok((mark, at, None));
+        }
+        if !self.eat(&Tok::LBracket) {
+            return self.fail_at(at, format!("a `case` mark is `{m};` at the top of a file, `{m} [fn, var];` in `limb.cpls`, `pub {m} fn …` on an item, or `{m} module name {{ … }}`", m = case_spelled(mark)));
+        }
+        let kinds_list = || CASE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ");
+        let mut kinds = Vec::new();
+        loop {
+            let Tok::Word(w) = self.peek().clone() else {
+                return self.fail(format!("expected a kind ({}), found {}", kinds_list(), self.peek().describe()));
+            };
+            if !CASE_KINDS.contains(&w.as_str()) {
+                return self.fail(format!("`{}` is not a kind a `case` mark covers: {} (a module is marked on itself)", w, kinds_list()));
+            }
+            self.bump();
+            kinds.push(w);
+            if !self.eat(&Tok::Comma) || self.is(&Tok::RBracket) {
+                break;
+            }
+        }
+        self.expect(&Tok::RBracket, "`]` closing the kinds")?;
+        self.expect_semi("the kinds")?;
+        Ok((mark, at, Some(kinds)))
     }
 
     /// `bare.never`, `bare.optional` or `bare.only` (owner, 2026-10-06).
@@ -3895,7 +3984,7 @@ const _: &str = NOT_A_COMMENT;
 /// lines, each with the block's visibility.
 fn push_item(items: &mut Vec<Item>, it: Item) {
     match it.kind {
-        ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span, bare: it.bare })),
-        kind => items.push(Item { vis: it.vis, kind, span: it.span, bare: it.bare }),
+        ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span, bare: it.bare, case: it.case })),
+        kind => items.push(Item { vis: it.vis, kind, span: it.span, bare: it.bare, case: it.case }),
     }
 }

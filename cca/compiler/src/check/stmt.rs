@@ -650,7 +650,7 @@ impl Checker {
     }
 
     fn const_visible(&self, ctx: &FnCtx, name: &str) -> bool {
-        self.items.modules[ctx.module.0 as usize].consts.contains_key(name)
+        self.items.modules[ctx.module.0 as usize].const_named(name).is_some()
     }
 
     /// The type a `:=` local takes from its value: a fixed source keeps its
@@ -877,7 +877,7 @@ impl Checker {
         let mut out = Vec::new();
         let mut covered = vec![false; info.cases.len()];
         for arm in arms {
-            let Some(ci) = info.cases.iter().position(|c| c.name == arm.case.name) else {
+            let Some(ci) = info.cases.iter().position(|c| self.items.same_name(&self.items.case_cases, info.span, &c.name, &arm.case.name)) else {
                 return err(Diagnostic::error(format!("`{}` has no case `{}`: its cases are {}", info.name, arm.case.name, info.cases.iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", "))).at(arm.case.span));
             };
             if covered[ci] {

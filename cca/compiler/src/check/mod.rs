@@ -133,12 +133,19 @@ pub struct FnCtx {
     /// What each borrowing local borrows, followed back to owners or
     /// `lent` parameters: a borrow of one is a borrow of those.
     pub borrow_src: HashMap<LocalId, Vec<LocalId>>,
+    /// Its variables are `case.insensitive` (owner, 2026-10-06): held and
+    /// found by their folded names.
+    pub fold_vars: bool,
 }
 
 impl FnCtx {
+    fn key<'a>(&self, name: &'a str) -> std::borrow::Cow<'a, str> {
+        if self.fold_vars { std::borrow::Cow::Owned(crate::ast::fold_case(name)) } else { std::borrow::Cow::Borrowed(name) }
+    }
     pub fn lookup(&self, name: &str) -> Option<LocalId> {
+        let name = self.key(name);
         for scope in self.scopes.iter().rev() {
-            if let Some(id) = scope.get(name) {
+            if let Some(id) = scope.get(name.as_ref()) {
                 return Some(*id);
             }
         }
@@ -147,7 +154,8 @@ impl FnCtx {
     pub fn declare(&mut self, name: &str, local: Local) -> LocalId {
         let id = LocalId(self.locals.len() as u32);
         self.locals.push(local);
-        self.scopes.last_mut().unwrap().insert(name.to_string(), id);
+        let name = self.key(name).into_owned();
+        self.scopes.last_mut().unwrap().insert(name, id);
         id
     }
     pub fn push_scope(&mut self) {
@@ -158,15 +166,16 @@ impl FnCtx {
     }
     /// Is `name` declared in an *enclosing* scope (not the innermost)?
     pub fn visible_outside(&self, name: &str) -> Option<LocalId> {
+        let name = self.key(name);
         for scope in self.scopes.iter().rev().skip(1) {
-            if let Some(id) = scope.get(name) {
+            if let Some(id) = scope.get(name.as_ref()) {
                 return Some(*id);
             }
         }
         None
     }
     pub fn in_current_scope(&self, name: &str) -> Option<LocalId> {
-        self.scopes.last().unwrap().get(name).copied()
+        self.scopes.last().unwrap().get(self.key(name).as_ref()).copied()
     }
 }
 
@@ -366,6 +375,7 @@ impl Checker {
                 let key = InstKey { fn_id: FnId(u32::MAX), blanks: Vec::new(), bundle: None, owning: Vec::new() };
                 self.instances.push(Instance { key, sig: hir::Signature { params: Vec::new(), ret: Ty::Nothing, fails: Vec::new() }, body: None, captures: Vec::new() });
                 let mut ctx = self.new_ctx(inst, module, "MAIN".to_string(), Ty::Nothing, Vec::new(), true);
+                ctx.fold_vars = self.items.case_vars.contains(&span);
                 // C's `argc` and `argv` (owner, 2026-09-29): exactly these
                 // two types, the names the writer's.
                 let mut params = Vec::new();
@@ -460,7 +470,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new() }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {
@@ -486,6 +496,7 @@ impl Checker {
         let decl = self.items.fns[key.fn_id.0 as usize].clone();
         let Some(body) = &decl.body else { return Ok(()) };
         let mut ctx = self.new_ctx(inst, decl.module, decl.name.clone(), sig.ret.clone(), sig.fails.clone(), false);
+        ctx.fold_vars = self.items.case_vars.contains(&decl.name_span);
         ctx.is_test = decl.test;
         ctx.blank_names = decl.blanks.iter().map(|(n, _)| n.clone()).collect();
         // Captures of a literal come first, then the parameters.

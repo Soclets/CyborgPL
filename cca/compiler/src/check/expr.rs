@@ -97,7 +97,7 @@ impl Checker {
             AK::Name(n) => {
                 let Some(id) = ctx.lookup(&n.name) else {
                     // A const of this module, or C's variable.
-                    if let Some((cid, _, _)) = self.items.modules[ctx.module.0 as usize].consts.get(&n.name).cloned() {
+                    if let Some((cid, _, _)) = self.items.modules[ctx.module.0 as usize].const_named(&n.name).cloned() {
                         let ty = self.const_type(cid, span)?;
                         return Ok(Expr { kind: K::Const(cid), ty, span });
                     }
@@ -242,7 +242,7 @@ impl Checker {
             AK::Field { base, field } => match self.peek_ty(ctx, base)?.base() {
                 Ty::Struct { id, args } => {
                     let info = &self.items.structs[id.0 as usize];
-                    info.fields.iter().find(|f| f.name == field.name)?.ty.subst(args)
+                    info.fields.iter().find(|f| self.items.same_name(&self.items.case_fields, info.span, &f.name, &field.name))?.ty.subst(args)
                 }
                 _ => return None,
             },
@@ -354,7 +354,7 @@ impl Checker {
                     if let Some(w) = self.extern_let_named(&n.name, ctx) {
                         return self.extern_place(ctx, w, use_, e.span);
                     }
-                    if self.items.modules[ctx.module.0 as usize].consts.contains_key(&n.name) {
+                    if self.items.modules[ctx.module.0 as usize].const_named(&n.name).is_some() {
                         return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).at(e.span));
                     }
                     return self.undeclared(ctx, n);
@@ -380,7 +380,7 @@ impl Checker {
                     other => return err(Diagnostic::error(format!("`.{}` reaches into a struct, and this is {}", field.name, crate::types::a_type(&self.spell(other)))).at(field.span)),
                 };
                 let info = &self.items.structs[sid.0 as usize];
-                let Some(fi) = info.fields.iter().position(|f| f.name == field.name) else {
+                let Some(fi) = info.fields.iter().position(|f| self.items.same_name(&self.items.case_fields, info.span, &f.name, &field.name)) else {
                     return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, field.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).at(field.span));
                 };
                 let f = &info.fields[fi];
@@ -2006,7 +2006,7 @@ impl Checker {
 
     fn enum_case(&mut self, ctx: &mut FnCtx, id: EnumId, case: &ast::Ident, payload: Option<&[AArg]>, span: Span) -> Result<Expr> {
         let info = self.items.enums[id.0 as usize].clone();
-        let Some(ci) = info.cases.iter().position(|c| c.name == case.name) else {
+        let Some(ci) = info.cases.iter().position(|c| self.items.same_name(&self.items.case_cases, info.span, &c.name, &case.name)) else {
             return err(Diagnostic::error(format!("`{}` has no case `{}`: its cases are {}", info.name, case.name, info.cases.iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", "))).at(case.span));
         };
         let args: Vec<Ty> = info.blanks.iter().map(|_| self.fresh()).collect();
@@ -2039,7 +2039,7 @@ impl Checker {
         for a in args {
             match a {
                 AArg::Named(name, e) => {
-                    let Some(fi) = info.fields.iter().position(|f| f.name == name.name) else {
+                    let Some(fi) = info.fields.iter().position(|f| self.items.same_name(&self.items.case_fields, info.span, &f.name, &name.name)) else {
                         return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, name.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).at(name.span));
                     };
                     if given[fi].is_some() {
@@ -2842,6 +2842,10 @@ impl Checker {
 
     fn fn_literal(&mut self, ctx: &mut FnCtx, lit: &ast::FnLit, span: Span) -> Result<Expr> {
         let fn_id = self.declare_literal(lit, ctx.module, span)?;
+        // A function written inside one keeps its variables' case.
+        if ctx.fold_vars {
+            self.items.case_vars.insert(span);
+        }
         // Captures: resolved in the enclosing scope, each with its verb.
         let mut caps = Vec::new();
         let mut inst_caps = Vec::new();
@@ -2917,6 +2921,7 @@ impl Checker {
         let decl = self.items.fns[key.fn_id.0 as usize].clone();
         let body = decl.body.clone().unwrap();
         let mut ctx = self.new_ctx(inst, decl.module, "the function".to_string(), sig.ret.clone(), sig.fails.clone(), false);
+        ctx.fold_vars = self.items.case_vars.contains(&decl.name_span);
         ctx.captured_outer = Some(outer);
         let captures = self.instances[inst.0 as usize].captures.clone();
         for (name, verb, ty) in &captures {

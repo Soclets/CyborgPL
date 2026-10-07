@@ -203,7 +203,7 @@ fn limbs_reach_their_dependencies() {
     }
     // A dependency's MAIN runs when that Limb is run itself, and is left
     // out when another uses it (owner, 2026-09-29: a).
-    for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 49), ("bare_root", 7), ("uses_raw", 127)] {
+    for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 49), ("bare_root", 7), ("uses_raw", 127), ("uses_shout", 131)] {
         let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }

@@ -2,7 +2,7 @@
 //! struct, enum, interface, operator, const and extern, and how a path
 //! written in one module reaches an item in another (`limbs.md`).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::ast::{self, Item, ItemKind, Vis};
 use crate::diag::{err, Diagnostic, Result};
@@ -73,6 +73,28 @@ pub struct Module {
     pub items: HashMap<String, (ItemRef, Vis, Span)>,
     /// Consts live in the value namespace, keyed by their quoted name.
     pub consts: HashMap<String, (crate::hir::ConstId, Vis, Span)>,
+    /// The `case.insensitive` names, folded, and as declared.
+    pub folded: HashMap<String, String>,
+    pub folded_consts: HashMap<String, String>,
+}
+
+impl Items {
+    /// A field or case name as written against the one declared: the same,
+    /// or the same folded where its struct or enum (by its name's span) is
+    /// `case.insensitive` for them (owner, 2026-10-06).
+    pub fn same_name(&self, set: &HashSet<Span>, owner: Span, declared: &str, written: &str) -> bool {
+        declared == written || (set.contains(&owner) && ast::fold_case(declared) == ast::fold_case(written))
+    }
+}
+
+impl Module {
+    /// An item by its name, or by the folded name of an insensitive one.
+    pub fn item(&self, name: &str) -> Option<&(ItemRef, Vis, Span)> {
+        self.items.get(name).or_else(|| self.folded.get(&ast::fold_case(name)).and_then(|n| self.items.get(n)))
+    }
+    pub fn const_named(&self, name: &str) -> Option<&(crate::hir::ConstId, Vis, Span)> {
+        self.consts.get(name).or_else(|| self.folded_consts.get(&ast::fold_case(name)).and_then(|n| self.consts.get(n)))
+    }
 }
 
 /// A parameter as declared, before instantiation.
@@ -162,6 +184,14 @@ pub struct Items {
     /// Each pub thing's `bare` mark, by its name's span (owner,
     /// 2026-10-06).
     pub bare_marks: HashMap<Span, crate::ast::Bare>,
+    /// `case.insensitive` (owner, 2026-10-06), worked out where each file
+    /// is read: the names that match in any case, by their name's span;
+    /// the structs whose fields and the enums whose cases do; the
+    /// functions (and `MAIN`, by its span) whose variables do.
+    pub case_names: HashSet<Span>,
+    pub case_fields: HashSet<Span>,
+    pub case_cases: HashSet<Span>,
+    pub case_vars: HashSet<Span>,
     /// The roots of Limbs whose `CCA.cplr` does not list std: std's names
     /// are not theirs to write bare.
     pub no_std_roots: std::collections::HashSet<ModuleId>,
@@ -228,7 +258,7 @@ impl Items {
     fn add_module(&mut self, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {
         let path = module_path(self, name, parent);
         let id = ModuleId(self.modules.len() as u32);
-        self.modules.push(Module { name: name.to_string(), path, parent, vis, items: HashMap::new(), consts: HashMap::new() });
+        self.modules.push(Module { name: name.to_string(), path, parent, vis, items: HashMap::new(), consts: HashMap::new(), folded: HashMap::new(), folded_consts: HashMap::new() });
         id
     }
 
@@ -247,6 +277,9 @@ impl Items {
             return err(Diagnostic::error(msg).at(span).why_at(*prev_span, format!("the first `{}` is declared here", name)));
         }
         module.items.insert(name.to_string(), (r, vis, span));
+        if self.case_names.contains(&span) {
+            module.folded.insert(ast::fold_case(name), name.to_string());
+        }
         Ok(())
     }
 
@@ -329,6 +362,9 @@ impl Items {
                     return err(Diagnostic::error(format!("'{}' is declared twice at the top level", decl.name.name)).at(decl.name.span));
                 }
                 module.consts.insert(decl.name.name.clone(), (id, vis, decl.name.span));
+                if self.case_names.contains(&decl.name.span) {
+                    module.folded_consts.insert(ast::fold_case(&decl.name.name), decl.name.name.clone());
+                }
                 self.pending_consts.push((id, decl.ty.clone(), m));
             }
             ItemKind::Module { name, items } => {
@@ -342,7 +378,7 @@ impl Items {
             ItemKind::ExternBlock(lines) => {
                 for (v, k) in lines {
                     let v = if vis == ast::Vis::Private { *v } else { vis };
-                    self.collect_item(&Item { vis: v, kind: k.clone(), span: item.span, bare: item.bare }, m, is_root)?;
+                    self.collect_item(&Item { vis: v, kind: k.clone(), span: item.span, bare: item.bare, case: item.case }, m, is_root)?;
                 }
             }
             ItemKind::Satisfies { ty, iface } => {
@@ -729,7 +765,7 @@ impl Items {
         let mut cur = root;
         let last = path.segs.len() - 1;
         for (i, seg) in path.segs.iter().enumerate() {
-            let (item, vis, span) = self.modules[cur.0 as usize].items.get(&seg.name)?;
+            let (item, vis, span) = self.modules[cur.0 as usize].item(&seg.name)?;
             if *vis != Vis::Pub {
                 return None;
             }
@@ -766,7 +802,7 @@ impl Items {
         let mut result = None;
         while let Some(seg) = segs.next() {
             let module = &self.modules[cur.0 as usize];
-            let Some((item, vis, _)) = module.items.get(&seg.name) else {
+            let Some((item, vis, _)) = module.item(&seg.name) else {
                 let kind = if segs.peek().is_none() { "item" } else { "module" };
                 return err(Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).at(seg.span).why(self.hint_for_missing(&seg.name, cur)));
             };
@@ -810,7 +846,7 @@ impl Items {
 
     pub fn lookup_const_in(&self, target: ModuleId, name: &ast::QName, from: ModuleId) -> Result<crate::hir::ConstId> {
         let module = &self.modules[target.0 as usize];
-        let Some((id, vis, _)) = module.consts.get(&name.name) else {
+        let Some((id, vis, _)) = module.const_named(&name.name) else {
             return err(Diagnostic::error(format!("there is no const '{}' in {}", name.name, describe_module(&module.path))).at(name.span));
         };
         if !self.visible(*vis, target, from) && self.limb_root(target) != self.limb_root(from) {

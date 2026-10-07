@@ -136,6 +136,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         let m = new_module(&mut items, "limb", None, Vis::Pub);
         let file = parse_file(sources, path)?;
         check_bare(sources, &mut items, &file, "", true)?;
+        check_case(sources, &mut items, &file, true)?;
         items.collect_file(&file, m, true)?;
     }
     items.resolve_all()?;
@@ -342,7 +343,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
         None => new_module(items, "limb", None, Vis::Pub),
         Some(_) => {
             let id = ModuleId(items.modules.len() as u32);
-            items.modules.push(crate::resolve::Module { name: "limb".to_string(), path: format!("{}::limb", prefix), parent: None, vis: Vis::Pub, items: Default::default(), consts: Default::default() });
+            items.modules.push(crate::resolve::Module { name: "limb".to_string(), path: format!("{}::limb", prefix), parent: None, vis: Vis::Pub, items: Default::default(), consts: Default::default(), folded: Default::default(), folded_consts: Default::default() });
             id
         }
     };
@@ -354,6 +355,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
         check_bare(sources, items, &file, "", true)?;
+        check_case(sources, items, &file, true)?;
         // A dependency's `MAIN` runs only when that Limb itself is run, and
         // is left out when another Limb uses it (owner, 2026-09-29: a).
         if from.is_some() {
@@ -782,6 +784,131 @@ thread_local! {
     static BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, Vec<String>, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
+thread_local! {
+    /// The `case` kind lines of the Limb whose files are being read.
+    static CASE_LINES: std::cell::RefCell<Vec<(bool, Vec<String>, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// Which names match in any case (owner, 2026-10-06): a name is covered by
+/// its item's mark, the block modules around it, its file's top line, and
+/// its kind in `limb.cpls`; the default is exact. Marks that cover one name
+/// and disagree are an error, and so are two names of one module that
+/// differ only in case when either is insensitive. Fields and cases take
+/// the `field` and `case` kinds, variables `var`: no item mark covers them.
+fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, root: bool) -> Result<()> {
+    use crate::ast::{fold_case, Item, ItemKind};
+    use crate::source::Span;
+    if root {
+        CASE_LINES.with(|k| *k.borrow_mut() = file.case_kinds.clone());
+    } else if let Some((_, _, at)) = file.case_kinds.first() {
+        return err(Diagnostic::error("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`").at(*at));
+    }
+    let lines = CASE_LINES.with(|k| k.borrow().clone());
+    let line = |at: Span| sources.get(at.file).line_col(at.start).0;
+    let spelled = |b: bool| if b { "case.insensitive" } else { "case.sensitive" };
+    let decide = |marks: &[(bool, Span)], what: &str, at: Span| -> Result<bool> {
+        if let (Some(i), Some(s)) = (marks.iter().find(|m| m.0), marks.iter().find(|m| !m.0)) {
+            return err(Diagnostic::error(format!("{} is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error (owner, 2026-10-06)", what, spelled(true), line(i.1), spelled(false), line(s.1))).at(at));
+        }
+        Ok(marks.first().is_some_and(|m| m.0))
+    };
+    let of_kind = |k: &str| lines.iter().filter(|(_, ks, _)| ks.iter().any(|x| x == k)).map(|(b, _, at)| (*b, *at)).collect::<Vec<_>>();
+    // One name space: its names, folded, with where and whether insensitive.
+    let one_name = |seen: &mut Vec<(String, Span, bool)>, name: &str, shown: &dyn Fn(&str) -> String, at: Span, ins: bool| -> Result<()> {
+        let f = fold_case(name);
+        if let Some((other, other_at, other_ins)) = seen.iter().find(|(n, _, _)| *n != name && fold_case(n) == f) {
+            if ins || *other_ins {
+                let which = if *other_ins { other.as_str() } else { name };
+                return err(Diagnostic::error(format!("{} and {} (line {}) differ only in case, and {} is `case.insensitive`: they would be one name", shown(name), shown(other), line(*other_at), shown(which))).at(at));
+            }
+        }
+        seen.push((name.to_string(), at, ins));
+        Ok(())
+    };
+    let plain = |n: &str| format!("`{}`", n);
+    let quoted = |n: &str| format!("`'{}'`", n);
+    fn walk(items: &mut Items, list: &[Item], chain: &[(bool, Span)], cx: &dyn Fn(&mut Items, &Item, &[(bool, Span)], &mut Vec<(String, Span, bool)>, &mut Vec<(String, Span, bool)>) -> Result<()>) -> Result<()> {
+        let (mut names, mut consts) = (Vec::new(), Vec::new());
+        for it in list {
+            if let ItemKind::Module { items: inner, .. } = &it.kind {
+                let mut c: Vec<(bool, Span)> = it.case.into_iter().collect();
+                c.extend_from_slice(chain);
+                walk(items, inner, &c, cx)?;
+                continue;
+            }
+            cx(items, it, chain, &mut names, &mut consts)?;
+        }
+        Ok(())
+    }
+    let chain: Vec<(bool, Span)> = file.case_file.into_iter().collect();
+    walk(items, &file.items, &chain, &|items, it, chain, names, consts| {
+        let marks = |kind: Option<&str>, own: bool| {
+            let mut m: Vec<(bool, Span)> = if own { it.case.into_iter().collect() } else { Vec::new() };
+            m.extend_from_slice(chain);
+            if let Some(k) = kind {
+                m.extend(of_kind(k));
+            }
+            m
+        };
+        let (word, name) = match &it.kind {
+            ItemKind::Fn(d) | ItemKind::ExternFn(d) => ("fn", &d.name),
+            ItemKind::Struct(d) => ("struct", &d.name),
+            ItemKind::Enum(d) => ("enum", &d.name),
+            ItemKind::Interface(d) => ("interface", &d.name),
+            ItemKind::Const(d) => {
+                let ins = decide(&marks(Some("const"), true), &format!("`const '{}'`", d.name.name), d.name.span)?;
+                if ins {
+                    items.case_names.insert(d.name.span);
+                }
+                return one_name(consts, &d.name.name, &quoted, d.name.span, ins);
+            }
+            ItemKind::Op(d) => ("op", &d.op),
+            ItemKind::Main(..) => {
+                if decide(&marks(Some("var"), false), "`MAIN`'s variables", it.span)? {
+                    items.case_vars.insert(it.span);
+                }
+                return Ok(());
+            }
+            _ => return Ok(()),
+        };
+        let kind = (word != "op").then_some(word);
+        let ins = decide(&marks(kind, true), &format!("`{} {}`", word, name.name), name.span)?;
+        if ins {
+            items.case_names.insert(name.span);
+        }
+        if word != "op" {
+            one_name(names, &name.name, &plain, name.span, ins)?;
+        }
+        match &it.kind {
+            ItemKind::Struct(d) => {
+                if decide(&marks(Some("field"), false), &format!("the fields of `{}`", name.name), name.span)? {
+                    items.case_fields.insert(name.span);
+                    let mut seen = Vec::new();
+                    for f in &d.fields {
+                        one_name(&mut seen, &f.name.name, &plain, f.name.span, true)?;
+                    }
+                }
+            }
+            ItemKind::Enum(d) => {
+                if decide(&marks(Some("case"), false), &format!("the cases of `{}`", name.name), name.span)? {
+                    items.case_cases.insert(name.span);
+                    let mut seen = Vec::new();
+                    for c in &d.cases {
+                        one_name(&mut seen, &c.name.name, &plain, c.name.span, true)?;
+                    }
+                }
+            }
+            ItemKind::Fn(_) | ItemKind::Op(_) => {
+                if decide(&marks(Some("var"), false), &format!("the variables of `{}`", name.name), name.span)? {
+                    items.case_vars.insert(name.span);
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    })
+}
+
 /// Every `pub` thing says how other Limbs write its path, and the marks
 /// that cover it agree (owner, 2026-10-06: no default; "`c`"). A mark
 /// covers from the item itself, the block modules around it, its file's
@@ -960,7 +1087,7 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
 fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {
     let path = crate::resolve::module_path(items, name, parent);
     let id = ModuleId(items.modules.len() as u32);
-    items.modules.push(crate::resolve::Module { name: name.to_string(), path, parent, vis, items: Default::default(), consts: Default::default() });
+    items.modules.push(crate::resolve::Module { name: name.to_string(), path, parent, vis, items: Default::default(), consts: Default::default(), folded: Default::default(), folded_consts: Default::default() });
     id
 }
 
@@ -998,6 +1125,7 @@ fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: Modu
         let file = parse_file(sources, e)?;
         let base = items.modules[m.0 as usize].path.clone();
         check_bare(sources, items, &file, base.rsplit("::").next().unwrap_or(&base), false)?;
+        check_case(sources, items, &file, false)?;
         items.collect_file(&file, m, false)?;
         file_modules.push((stem, m));
     }
