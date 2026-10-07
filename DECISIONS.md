@@ -258,8 +258,8 @@ form refused naming `pos`.
 
 **`count` is required in `list.fill` everywhere** (owner: "`a`"),
 `list.fill[0, count 10]`, the twin of `pos`, over (b) keeping it
-strict-only, which the owner pointed out cannot be: "\"count stays
-strict-only\", it can't" (`#strict` is being deprecated). The owner then
+strict-only, which the owner pointed out cannot be: "“count stays
+strict-only”, it can't" (`#strict` is being deprecated). The owner then
 asked "What does `0` there mean?" (the value every element starts as).
 
 ### 2026-10-07 — A slimmer base: `brain16`, non-standard integers, Unicode text and the case marks move out; `#strict` will be deprecated (owner; not built)
