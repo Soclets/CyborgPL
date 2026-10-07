@@ -19,6 +19,8 @@ limb.std.version = 2026-10-06T12:57:14+07:00
 limb.geometry.id = 3f9a2c1d4e5b6a708192a3b4c5d6e7f8091a2b3c4d5e6f708a9b0c1d2e3f4a5b
 limb.geometry.version = 1.2
 limb.money.path = ../money
+power.operators_on_builtin_types = yes
+power.c_calls.functions = sqrt, sin
 
 [my target]
 aarch64-macos.default = yes
@@ -26,6 +28,15 @@ aarch64-linux.runner = qemu-aarch64
 x86_64-windows.runner = wine
 ```
 
+- **The powers a Limb uses are `power.` lines in `[my needed things]`**,
+  beside `core.` and `limb.` (owner, 2026-10-08: "`a`", relayed by synthia
+  claude, over a `[my powers]` section; asked "Does this say what it needs,
+  or what it allows the others", synthia claude answered that it is what the
+  Limb itself uses, allowing or forbidding others being `deny`).
+  `power.c_calls.functions = sqrt, sin` is written to `CCA.cplr` as
+  `cca::Power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
+  since cores may add powers; `= no` is refused (an unused power has no
+  line). `deny`'s spelling here is not asked yet.
 - **The sections are the owner's**: `[my identity]` (proposed by the owner
   as `[my credentials]`; renamed because "credentials" reads as passwords
   and tokens — owner: b), `[my needed things]`, `[my target]`.

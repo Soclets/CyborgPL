@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — In `Synthia.ttsr`, a Limb's powers are `power.` lines in `[my needed things]` (owner: a; relayed by synthia claude)
+
+```
+[my needed things]
+power.operators_on_builtin_types = yes
+power.raw_memory.read = yes
+power.c_calls.functions = sqrt, sin
+```
+
+Synthia claude offered (a) `power.` lines in `[my needed things]`, beside
+`core.` and `limb.`, recommended, or (b) a `[my powers]` section. The
+owner asked "Does this say what it needs, or what it allows the others";
+synthia claude answered that it is what the Limb itself uses, an honest
+label, allowing or forbidding others being `deny`. The owner: "`a`". The
+last line is written to `CCA.cplr` as
+`cca::Power.c_calls.functions["sqrt", "sin"]`. Built in Synthia
+("decision.manifest.powers"): only the shape is checked, since cores may
+add powers; `= no` is refused. `examples/limbs/areas` written as a
+`Synthia.ttsr` syncs to its `CCA.cplr` byte for byte except `default =
+true`. `deny`'s spelling in `Synthia.ttsr` is not asked yet. Synthia also
+caught up with the 2026-10-07 revision (24df7d3). Separately, the key in
+`limb.<key>.id` is the manifest writer's own label (owner: "Idk, because
+doesn't the user of Synthia name that?"), so std's rename to `stdkit`
+needs no ruling there.
+
 ### 2026-10-07 — The plugin interface: compiler claude's proposal, answered question by question (owner; not built)
 
 `cca/PLUGINS.md` (735fc8c0), written by compiler claude at the owner's
