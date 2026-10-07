@@ -3,5 +3,5 @@
 MAIN {
     let 'xs' := [3, 5, 8];
     let 'i': uint64 = 7;
-    if 'i' at_most list.length[lend 'xs'] and 'xs'['i'] equal_to 5 { }
+    if 'i' at_most list.length[lend 'xs'] and 'xs'[pos 'i'] equal_to 5 { }
 }

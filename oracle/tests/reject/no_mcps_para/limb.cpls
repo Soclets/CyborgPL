@@ -1,3 +1,3 @@
 MAIN {
-    for para temp 'i' in range[1, 3] { }
+    for para temp 'i' in range[from 1, to 3, by 1] { }
 }

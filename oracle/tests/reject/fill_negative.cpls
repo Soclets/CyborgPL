@@ -1,4 +1,4 @@
 MAIN {
     let 'n': int64 = -1;
-    let 'xs': list[int32] = list.fill[0, 'n'];
+    let 'xs': list[int32] = list.fill[value 0, count 'n'];
 }

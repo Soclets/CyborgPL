@@ -6,7 +6,7 @@ MAIN {
     let 'a' := "a.com";
     concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }
     concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
-    for 'i' in range[1, 2] {
+    for 'i' in range[from 1, to 2, by 1] {
         let 'page' := channel.take[lend 'results'] otherwise "";
         stdkit::print.useful.stdout['page', newln];
     }

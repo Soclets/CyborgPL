@@ -6,9 +6,9 @@ fn count_on ['m': simd[bool, 4]] -> bool {
 }
 MAIN {
     let 'xs': array[int32] = [5, 20, 30, 40];
-    let 'a': simd[int32, 4] = simd.load[lend 'xs', 1];
-    let 'm': simd[bool, 4] = 'a' > simd.fill[10];
-    let 'all': simd[bool, 4] = simd.fill[true];
+    let 'a': simd[int32, 4] = simd.load[lend 'xs', pos 1];
+    let 'm': simd[bool, 4] = 'a' > simd.fill[value 10];
+    let 'all': simd[bool, 4] = simd.fill[value true];
     let 'both' := 'm' and 'all';
     let 'flip' := not 'm';
     stdkit::print.useful.stdout[simd.any['m'], " ", simd.all['m'], " ", count_on['both'], " ", simd.any['flip'], newln];

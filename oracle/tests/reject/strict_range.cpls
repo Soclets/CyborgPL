@@ -1,3 +1,0 @@
-# #strict (owner, 2026-09-27): each range bound says what it is
-#strict
-MAIN { for temp 'i': int32 in range[2, 8, 2] { } }

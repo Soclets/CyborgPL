@@ -8,24 +8,24 @@ fn sum [lent 'items': list[int32]] -> int32 {
 
 MAIN {
     let 'xs': list[int32] = [10, 20, 30];
-    stdkit::print.useful.stdout["first ", 'xs'[1], ", last ", 'xs'[3], newln];
+    stdkit::print.useful.stdout["first ", 'xs'[pos 1], ", last ", 'xs'[pos 3], newln];
     let 'n' := list.length[lend 'xs'];
     stdkit::print.useful.stdout["length ", 'n', newln];
     list.append[lend.mut 'xs', 40];
     list.remove[lend.mut 'xs', 1];
     stdkit::print.useful.stdout['xs', " length ", list.length[lend 'xs'], newln];
     stdkit::print.useful.stdout["sum ", sum[lend 'xs'], newln];
-    for 'i' in range[1, list.length[lend 'xs']] {
-        stdkit::print.useful.stdout['xs'['i'], " "];
+    for 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
+        stdkit::print.useful.stdout['xs'[pos 'i'], " "];
     }
     stdkit::print.stored.stdout[newln];
     let 'days': array[str.utf8] = ["mon", "tue"];
-    stdkit::print.stored.stdout['days'[2], " of ", array.length[lend 'days'], newln];
+    stdkit::print.stored.stdout['days'[pos 2], " of ", array.length[lend 'days'], newln];
     let 'grid' := [[1, 2], [3, 4]];
-    stdkit::print.useful.stdout['grid'[2], newln];
-    for perm 'i' in range[1, list.length[lend 'xs']] {
-        if 'xs'['i'] equal_to 30 { break; }
+    stdkit::print.useful.stdout['grid'[pos 2], newln];
+    for perm 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
+        if 'xs'[pos 'i'] equal_to 30 { break; }
     }
-    change 'xs'['i'] = 33;
+    change 'xs'[pos 'i'] = 33;
     stdkit::print.useful.stdout['xs', newln];
 }

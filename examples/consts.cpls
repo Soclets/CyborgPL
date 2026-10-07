@@ -10,6 +10,6 @@ MAIN {
     stdkit::print.useful.stdout['max', " ", 'twice_max', " ", 'greeting', " ", area[2.0], newln];
     let 's' := 'greeting';
     let 'p' := P[x = 'max'];
-    for 'i' in range[1, 'max', 4] { stdkit::print.useful.stdout['i', " "]; }
+    for 'i' in range[from 1, to 'max', by 4] { stdkit::print.useful.stdout['i', " "]; }
     stdkit::print.stored.stdout[newln];
 }

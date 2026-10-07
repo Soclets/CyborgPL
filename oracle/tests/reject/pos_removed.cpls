@@ -1,5 +1,0 @@
-# `pos` is gone (owner, 2026-09-27): a position is written bare, 'xs'[2]
-MAIN {
-    let 'xs' := [1, 2, 3];
-    let 'x' := 'xs'[pos 2];
-}

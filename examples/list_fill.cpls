@@ -1,12 +1,12 @@
-# A list of n copies of one value (owner, 2026-09-30): `list.fill[value, count]`. A strict file
-# labels the count, `list.fill[0, count 10]`, as a position says `pos`.
+# A list of n copies of one value (owner, 2026-09-30): `list.fill[value value, count count]`. A strict file
+# labels the count, `list.fill[value 0, count 10]`, as a position says `pos`.
 MAIN {
-    let mut 'scores' := list.fill[0, 5];
-    change 'scores'[2] = 7;
+    let mut 'scores' := list.fill[value 0, count 5];
+    change 'scores'[pos 2] = 7;
     stdkit::print.stored.stdout['scores', newln];
     let 'n': int64 = 3;
-    let 'flags': list[bool] = list.fill[false, 'n'];
+    let 'flags': list[bool] = list.fill[value false, count 'n'];
     stdkit::print.stored.stdout['flags', " ", list.length[lend 'flags'], newln];
-    let 'none': list[int32] = list.fill[1, 0];
+    let 'none': list[int32] = list.fill[value 1, count 0];
     stdkit::print.stored.stdout[list.length[lend 'none'], newln];
 }

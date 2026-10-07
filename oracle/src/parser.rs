@@ -2249,32 +2249,29 @@ impl Parser {
     // range bounds := '[' expr ',' expr (',' expr)? ']'   — start, inclusive stop, step
     fn range_bounds(&mut self) -> PResult<Bracket> {
         let line = self.line();
-        if *self.peek() != Tok::LBracket { return self.err("`range` builds its bounds in `[ ]`: `range[1, 10]` or `range[1, 10, 2]`"); }
+        if *self.peek() != Tok::LBracket { return self.err("`range` builds its bounds in `[ ]`: `range[from 1, to 10, by 1]`"); }
         self.advance();
         let mut values = Vec::new();
-        // In a `#strict` file each bound says what it is — `range[from 2, to 8, by 2]` — and `by`
-        // is always written (owner, 2026-09-27); elsewhere the labels are not used.
+        // Each bound says what it is — `range[from 2, to 8, by 2]` — and `by` is always written
+        // (owner, 2026-09-27 for `#strict`; everywhere since 2026-10-07: "`a`").
         const LABELS: [&str; 3] = ["from", "to", "by"];
         loop {
             if matches!(self.peek(), Tok::Walrus | Tok::Eq) {
-                return self.err("range bounds are plain values: `range[0, 9]` — the counter's type goes on its name (`'i': int32`)");
+                return self.err("range bounds are plain values: `range[from 0, to 9, by 1]` — the counter's type goes on its name (`'i': int32`)");
             }
             let k = values.len().min(2);
             let labelled = matches!(self.peek(), Tok::Word(w) if LABELS.contains(&w.as_str())) && !matches!(self.peek_at(1), Tok::Dot | Tok::LBracket | Tok::Comma | Tok::RBracket);
-            if self.strict {
-                if !self.is_word(LABELS[k]) { return self.err(format!("`#strict`: each bound says what it is: `range[from 2, to 8, by 1]` — this one is `{}`", LABELS[k])); }
-                self.advance();
-            } else if labelled {
-                return self.err("`from` / `to` / `by` label a range in a `#strict` file; here it is `range[2, 8]` or `range[2, 8, 2]`");
-            }
+            let _ = labelled;
+            if !self.is_word(LABELS[k]) { return self.err(format!("each bound says what it is: `range[from 2, to 8, by 1]` — this one is `{}` (owner, 2026-10-07)", LABELS[k])); }
+            self.advance();
             values.push(Value::Expr(self.expr()?));
             if *self.peek() == Tok::Comma { self.advance(); continue; }
             break;
         }
         self.expect(Tok::RBracket, "`]`")?;
-        if self.strict && values.len() == 2 { return Err(ParseError { line, col: 0, msg: "`#strict`: a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]`".into() }); }
+        if values.len() == 2 { return Err(ParseError { line, col: 0, msg: "a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]` (owner, 2026-10-07)".into() }); }
         if values.len() < 2 || values.len() > 3 {
-            return Err(ParseError { line, col: 0, msg: format!("a range is `range[start, stop]` or `range[start, stop, step]`, not {} value(s)", values.len()) });
+            return Err(ParseError { line, col: 0, msg: format!("a range is `range[from 2, to 8, by 1]`, not {} value(s)", values.len()) });
         }
         Ok(Bracket { values, line, one_list: false })
     }
@@ -2617,10 +2614,12 @@ impl Parser {
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
     fn index_bracket(&mut self, name: &str) -> PResult<Expr> {
         self.expect(Tok::LBracket, "`[`")?;
-        if self.strict {
-            if !self.is_word("pos") { return self.err(format!("`#strict`: an index says it is a position: `'{name}'[pos 2]`")); }
-            self.advance();
-        } else if self.is_word("pos") && !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::RBracket) { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{name}'[2]` (`pos` belongs to `#strict` files)")); }
+        // every index says `pos` (owner, 2026-10-07: "`a`")
+        if !self.is_word("pos") {
+            let shown = if name.contains("'.") { format!("'{name}[pos 2]") } else { format!("'{name}'[pos 2]") };
+            return self.err(format!("an index says it is a position: `{shown}` (owner, 2026-10-07)"));
+        }
+        self.advance();
         let idx = self.expr()?;
         if *self.peek() == Tok::Comma { return self.err(format!("an index is one position: `'{name}'[3]`")); }
         self.expect(Tok::RBracket, "`]` after the position")?;
@@ -2676,24 +2675,36 @@ impl Parser {
             let mut values = vec![self.value()?];
             for which in ["first", "last"] {
                 self.expect(Tok::Comma, &format!("`,` before the {which} position"))?;
-                if self.strict { if !self.is_word("pos") { return self.err(format!("`#strict`: positions say `pos`: `{head}.slice[lend 'xs', pos 2, pos 4]`")); } self.advance(); }
-                else if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `{head}.slice[lend 'xs', 2, 4]` (`pos` belongs to `#strict` files)")); }
+                if !self.is_word("pos") { return self.err(format!("positions say `pos`: `{head}.slice[lend 'xs', pos 2, pos 4]` (owner, 2026-10-07)")); }
+                self.advance();
                 values.push(self.value()?);
             }
             self.expect(Tok::RBracket, "`]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
-        // `list.fill[0, 10]`: ten copies of 0 (owner, 2026-09-30); a strict file labels the count,
-        // `list.fill[0, count 10]` (owner: "count"), as a position says `pos`
+        // `list.fill[value 0, count 10]`: ten copies of 0 (owner, 2026-09-30); both say what they are
+        // (owner, 2026-10-07: "`a`", `count` everywhere, then "`b`", `value`)
         if head == "list" && op == "fill" {
             let line = self.line();
             self.advance();
+            if !self.is_word("value") { return self.err("the value says `value`: `list.fill[value 0, count 10]` (owner, 2026-10-07)"); }
+            self.advance();
             let mut values = vec![self.value()?];
-            self.expect(Tok::Comma, "`,` before the count: `list.fill[0, 10]`")?;
-            if self.strict { if !self.is_word("count") { return self.err("`#strict`: the count says `count`: `list.fill[0, count 10]`"); } self.advance(); }
-            else if self.is_word("count") { return self.err("`count` belongs to `#strict` files: `list.fill[0, 10]`"); }
+            self.expect(Tok::Comma, "`,` before the count: `list.fill[value 0, count 10]`")?;
+            if !self.is_word("count") { return self.err("the count says `count`: `list.fill[value 0, count 10]` (owner, 2026-10-07)"); }
+            self.advance();
             values.push(self.value()?);
-            self.expect(Tok::RBracket, "`]` after the count: `list.fill[0, 10]`")?;
+            self.expect(Tok::RBracket, "`]` after the count: `list.fill[value 0, count 10]`")?;
+            return Ok((head, op, Bracket { values, line, one_list: false }));
+        }
+        // `simd.fill[value 0]`, as `list.fill` (owner, 2026-10-07: "`a`")
+        if head == "simd" && op == "fill" {
+            let line = self.line();
+            self.advance();
+            if !self.is_word("value") { return self.err("the value says `value`: `simd.fill[value 0]` (owner, 2026-10-07)"); }
+            self.advance();
+            let values = vec![self.value()?];
+            self.expect(Tok::RBracket, "`]` after the value: `simd.fill[value 0]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
         if head == "simd" && op.starts_with("load") || head == "simd" && op.starts_with("store") {
@@ -2701,8 +2712,8 @@ impl Parser {
             self.advance();
             let mut values = vec![self.value()?];
             self.expect(Tok::Comma, "`,` after the list")?;
-            if self.strict { if !self.is_word("pos") { return self.err(format!("`#strict`: the position says `pos`: `simd.{op}[lend 'xs', pos 'i']`")); } self.advance(); }
-            else if self.is_word("pos") { return self.err(format!("`pos` is gone (2026-09-27): `simd.{op}[lend 'xs', 'i']` (`pos` belongs to `#strict` files)")); }
+            if !self.is_word("pos") { return self.err(format!("the position says `pos`: `simd.{op}[lend 'xs', pos 'i']` (owner, 2026-10-07)")); }
+            self.advance();
             values.push(self.value()?);
             while *self.peek() == Tok::Comma { self.advance(); values.push(self.value()?); }
             self.expect(Tok::RBracket, "`]`")?;
@@ -3160,14 +3171,13 @@ impl Parser {
             Tok::Var(v) => {
                 self.advance();
                 if *self.peek() == Tok::LBracket {
-                    // 'f'[args] calls a function value, 'xs'[2] reads a list: which one is decided by
-                    // what the variable holds (no `pos` since 2026-09-27, owner)
+                    // 'xs'[pos 2] reads a list, 'f'[args] calls a function value (owner, 2026-10-07: every
+                    // index says `pos`)
                     let says_pos = matches!(self.peek_at(1), Tok::Word(w) if w == "pos") && !matches!(self.peek_at(2), Tok::LBracket | Tok::Dot | Tok::RBracket | Tok::Comma);
-                    if self.strict && says_pos {
+                    if says_pos {
                         let idx = self.index_bracket(&v)?;
                         return Ok(Expr::Index(v, Box::new(idx), line));
                     }
-                    if says_pos { return self.err(format!("`pos` is gone (2026-09-27): a position is written bare, `'{v}'[2]` (`pos` belongs to `#strict` files)")); }
                     let args = self.bracket()?;
                     return Ok(Expr::CallValue(v, args, None, line));
                 }

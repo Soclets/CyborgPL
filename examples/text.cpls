@@ -13,7 +13,7 @@ MAIN {
 
     # the toolbox is std's
     let 'words' := stdkit::str.split[lend 's', " "];
-    stdkit::print.useful.stdout[list.length[lend 'words'], " words; first is ", 'words'[1], newln];
+    stdkit::print.useful.stdout[list.length[lend 'words'], " words; first is ", 'words'[pos 1], newln];
     stdkit::print.useful.stdout[stdkit::str.upper[lend 's'], newln];
     stdkit::print.useful.stdout[stdkit::str.contains[lend 's', "wör"], " ", stdkit::str.starts_with[lend 's', "hé"], newln];
     let 'third' := stdkit::str.at.grapheme[lend 's', 3] otherwise `?`;

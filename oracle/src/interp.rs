@@ -1790,15 +1790,12 @@ impl<'p> Interp<'p> {
     }
 
     /// `'xs'[i]` when `'xs'` holds a list or array: the one position inside, as an index.
-    fn as_index(&self, name: &str, args: &Bracket, has_handler: bool, line: usize) -> Result<Option<Expr>, RuntimeError> {
+    /// `'xs'[2]` without `pos` on a list: refused, every index saying `pos` (owner, 2026-10-07: "`a`");
+    /// `None` when the variable holds a function, which `[…]` calls.
+    fn as_index(&self, name: &str, _args: &Bracket, _has_handler: bool, line: usize) -> Result<Option<Expr>, RuntimeError> {
         let holds_list = self.lookup(name).map(|s| matches!(&*s.cell.borrow(), Value::List(_) | Value::Str(_) | Value::Simd(_))).unwrap_or(false);
         if !holds_list { return Ok(None); }
-        if self.prog.strict_modules.iter().any(|m| *m == self.module) { return rt(line, format!("`#strict`: a list read says it is a position: `'{name}'[pos 2]`")); }
-        if has_handler { return rt(line, format!("reading '{name}'[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`")); }
-        match args.values.as_slice() {
-            [crate::ast::Value::Expr(e)] => Ok(Some(e.clone())),
-            _ => rt(line, format!("an index is one position: `'{name}'[3]`")),
-        }
+        rt(line, format!("a read says it is a position: `'{name}'[pos 2]` (owner, 2026-10-07)"))
     }
 
     /// A type C's numbers are checked against when they come in: a `layout.C enum`, a range,

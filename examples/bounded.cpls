@@ -4,7 +4,7 @@
 fn fill ['count': int32] -> list[int32][0, 5] or fail[too_many] {
     if 'count' > 5 { fail too_many; }
     let mut 'out' := list.empty;
-    for 'i' in range[1, 'count'] { list.append[lend.mut 'out', 'i' times 'i']; }
+    for 'i' in range[from 1, to 'count', by 1] { list.append[lend.mut 'out', 'i' times 'i']; }
     return give 'out';
 }
 

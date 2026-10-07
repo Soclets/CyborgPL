@@ -1,4 +1,4 @@
 MAIN {
-    for 'i': int8 in range[120, 130] {
+    for 'i': int8 in range[from 120, to 130, by 1] {
     }
 }

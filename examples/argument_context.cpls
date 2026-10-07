@@ -8,5 +8,5 @@ MAIN {
     stdkit::print.useful.stdout['v', " ", wide[not.bit 0], newln];
     let mut 'xs': list[uint8] = [1,];
     list.append[lend.mut 'xs', 0 minus.wrap 2];
-    stdkit::print.useful.stdout['xs'[2], newln];
+    stdkit::print.useful.stdout['xs'[pos 2], newln];
 }

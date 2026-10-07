@@ -2,6 +2,6 @@
 MAIN {
     let mut 's': list[int32] = [1, 2, 3];
     let 'r' := lend 's';
-    change 's'[1] = 99;
+    change 's'[pos 1] = 99;
     stdkit::print.useful.stdout['r'[1], newln];
 }

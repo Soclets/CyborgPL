@@ -6,10 +6,10 @@ fn step ['p': Particle] -> Particle {
     return Particle[place = 'p'.place plus 'p'.vel, vel = 'p'.vel];
 }
 MAIN {
-    let 'p' := Particle[place = simd.fill[0.0], vel = simd.fill[0.5]];
+    let 'p' := Particle[place = simd.fill[value 0.0], vel = simd.fill[value 0.5]];
     let 'q' := step[give 'p'];
     let mut 'history': list[simd[bin32, 4]] = [];
     list.append[lend.mut 'history', 'q'.place];
     list.append[lend.mut 'history', 'q'.place plus 'q'.vel];
-    stdkit::print.useful.stdout[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[2]], newln];
+    stdkit::print.useful.stdout[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[pos 2]], newln];
 }
