@@ -570,8 +570,10 @@ Widths"**, for the non-standard integers, and **Money** for `deci`
 (design claude's reading of "AI core" and "Money core" as the names AI and
 Money). No registry IDs yet. **For the first public release, Money is covered and AI
 is not** (owner: "That's actually a lot of work, money & AI. So, for
-first public release, we only have to cover money"). WSMW's place in it
-was not said. Not yet
+first public release, we only have to cover money"). **WSMW is in the
+first release too** (owner: "First release."), after asking what it
+helps with (odd widths matching audio, pixels, registers and protocols;
+huge ones for cryptography, Ethereum's `uint256`, exact big numbers). Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
