@@ -563,8 +563,12 @@ made as the other cores' were (`openssl rand -hex 32`): `63baa4cf89d8b6df6adceb8
 first version `2026-10-07T18:08:59+07:00`. **`brain16`, the non-standard integers and `deci` go to a core
 each** (owner: "`b`"), over one core for all three; design claude
 recommended separate cores, since machine learning, cryptography and
-money rarely want each other's numbers or software maths. Names not yet
-chosen. Not yet
+money rarely want each other's numbers or software maths. **Their names**
+(owner: "1. AI core 2. WSMW (Weirdly Small And Massive Widths) 3. Money
+core"): **AI** for `brain16`, **WSMW, "Weirdly Small And Massive
+Widths"**, for the non-standard integers, and **Money** for `deci`
+(design claude's reading of "AI core" and "Money core" as the names AI and
+Money). No registry IDs yet. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
