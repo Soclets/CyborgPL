@@ -435,7 +435,18 @@ overflow was made impossible. That was `#strict`'s last leftover. **`[ ]` keeps 
 indexing, lists, type arguments, parameters, labelled built-ins): shown
 them, with (a) no change, the labels and `pos` having removed the
 ambiguity, recommended, or (b) calls in `( )`, the owner: "It's likely
-gonna collide either way, because `()` is also grouping". Design
+gonna collide either way, because `()` is also grouping". **`format[…]` makes text the way `print.format` prints it**
+(owner: "`a`"): `let 'x' := format["Hello, {}! You have {} items\n",
+'name', 'n'];`, stdkit's, `bare.optional`. The owner had written `let 'x' :=
+format "Hello, World!\n"`, "Just like format print?"; design claude
+offered the values in brackets with holes, inline (`{'name'}`), or after
+`with`, recommending inline; the owner: "Then it's not the same format".
+Offered (a) `format[…]` taking exactly what `print.format` takes, (b) both
+moving to inline values, reopening 2026-10-01's numbered holes; design
+claude recommended (a), and, asked whether it collides with arrays or
+lists, answered no: a word before `[ ]` is a call, a bare `[ ]` a list, a
+quoted name before it indexing. One format language, used to print or to
+make text. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
