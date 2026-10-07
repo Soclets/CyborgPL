@@ -132,6 +132,9 @@ pub struct Parser {
     saw_value_return: bool,
     /// inside a `match` / `otherwise` case's block: `giveS` may appear
     arm_depth: usize,
+    /// inside an `on.target` branch ruled out for this target: "not compiled at all" (owner,
+    /// 2026-10-06), so nothing in it is judged against this target, a vector's width included
+    ruled_out: usize,
     /// set while parsing a map literal's key: the `=` after it pairs, it is not an assignment
     in_map_key: bool,
     /// set while parsing an extern signature or a layout.C struct: `ptr[T]` is allowed
@@ -193,9 +196,9 @@ thread_local! {
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -489,7 +492,10 @@ impl Parser {
     /// kept only if `keep`.
     fn on_branch(&mut self, prog: &mut Program, depth: usize, keep: bool) -> PResult<()> {
         let n = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.interfaces.len(), prog.claims.len(), prog.consts.len(), prog.externs.len(), prog.modules.len(), prog.strict_modules.len(), prog.bare_marks.len(), prog.main.is_some(), prog.case_marks.len());
-        self.items(prog, depth + 1)?;
+        if !keep { self.ruled_out += 1; }
+        let r = self.items(prog, depth + 1);
+        if !keep { self.ruled_out -= 1; }
+        r?;
         if !keep {
             prog.funcs.truncate(n.0); prog.structs.truncate(n.1); prog.enums.truncate(n.2); prog.interfaces.truncate(n.3); prog.claims.truncate(n.4);
             prog.consts.truncate(n.5); prog.externs.truncate(n.6); prog.modules.truncate(n.7); prog.strict_modules.truncate(n.8); prog.bare_marks.truncate(n.9); prog.case_marks.truncate(n.11);
@@ -1568,6 +1574,7 @@ impl Parser {
             if let Ty::Int(IntWidth::Other(_)) | Ty::Uint(IntWidth::Other(_)) = &t {
                 return self.err(format!("a vector's lanes are a standard width (8, 16, 32 or 64 bits), not `{}` (owner, 2026-10-03)", crate::value::ty_name(&t)));
             }
+            if self.ruled_out > 0 { return Ok(Ty::Simd(Box::new(t), n)); }
             if matches!(t, Ty::Bool) {
                 if ![2, 4, 8, 16].contains(&n) { return self.err(format!("a mask has as many lanes as the vectors it compares: 2, 4, 8 or 16 on this target, not {n}")); }
                 return Ok(Ty::Simd(Box::new(t), n));
@@ -2175,17 +2182,27 @@ impl Parser {
 
     /// `on.target … { } else on.machine … { } else { }` as a statement (owner, 2026-10-06): a branch
     /// `on.target` rules out is not compiled at all; `on.machine` branches are, and one runs
+    /// A branch's block, parsed as ruled out when this target never compiles it
+    fn branch_block(&mut self, ruled_out: bool) -> PResult<Vec<Stmt>> {
+        if ruled_out { self.ruled_out += 1; }
+        let b = self.block();
+        if ruled_out { self.ruled_out -= 1; }
+        b
+    }
+
     fn on_stmt(&mut self) -> PResult<Stmt> {
         let line = self.line();
         let mut arms: Vec<(bool, bool, Vec<Stmt>)> = Vec::new();
         let (m, h) = self.on_test()?;
-        arms.push((m, h, self.block()?));
+        let mut chosen = h;
+        let b = self.branch_block(!m && !h)?;
+        arms.push((m, h, b));
         let mut otherwise = None;
         while self.is_word("else") {
             self.advance();
-            if self.is_word("on") { let (m, h) = self.on_test()?; arms.push((m, h, self.block()?)); }
+            if self.is_word("on") { let (m, h) = self.on_test()?; let b = self.branch_block(!m && (!h || chosen))?; chosen |= h; arms.push((m, h, b)); }
             else if self.is_word("if") { return self.err("an `on` chain goes on with `else on.…` or ends with `else { }`; an `if` goes inside a branch"); }
-            else { otherwise = Some(self.block()?); break; }
+            else { let all_compile_time = arms.iter().all(|(m, ..)| !*m); otherwise = Some(self.branch_block(all_compile_time && chosen)?); break; }
         }
         if !arms.iter().any(|(m, ..)| *m) {
             let body = arms.into_iter().find(|(_, h, _)| *h).map(|(_, _, b)| b).or(otherwise).unwrap_or_default();

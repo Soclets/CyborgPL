@@ -82,6 +82,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::VAR_SITES.with(|u| u.borrow_mut().clear());
     let prog = load_files(path)?;
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     // a bare call with more than one candidate is refused where it is written, run or not (owner,
     // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
     for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
@@ -525,6 +526,42 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
 
 /// Every `pub` thing says how other Limbs write its path, on itself, its module or its kind, and the
 /// marks that cover it agree (owner, 2026-10-06: "I don't think there should be a default"; "`c`").
+/// Every type a signature, field, payload, const or C variable names is declared somewhere, even in
+/// a function nothing calls (found 2026-10-07: `fn f ['v': nosuchtype] { }` ran).
+fn check_type_names(prog: &ast::Program) -> Result<(), String> {
+    use ast::Ty;
+    let known: std::collections::HashSet<&str> = prog.structs.iter().map(|d| d.name.as_str())
+        .chain(prog.enums.iter().map(|d| d.name.as_str()))
+        .chain(prog.interfaces.iter().map(|d| d.name.as_str())).collect();
+    fn walk<'a>(t: &'a Ty, out: &mut Vec<&'a str>) {
+        match t {
+            Ty::Struct(n) => out.push(n),
+            Ty::Inst(n, args) => { out.push(n); for a in args { walk(a, out); } }
+            Ty::List(e) | Ty::Array(e) | Ty::Ptr(e, _) | Ty::Channel(e) | Ty::Simd(e, _) | Ty::Ranged(e, ..) => walk(e, out),
+            Ty::Map(k, v, _) => { walk(k, out); walk(v, out); }
+            Ty::Fn(ps, r, _) => { for (_, p) in ps { walk(p, out); } if let Some(r) = r { walk(r, out); } }
+            _ => {}
+        }
+    }
+    let mut named: Vec<(&str, usize)> = Vec::new();
+    let mut found = Vec::new();
+    for f in &prog.funcs {
+        for p in &f.params { if let Some(t) = &p.ty { found.clear(); walk(t, &mut found); for n in &found { named.push((n, f.line)); } } }
+        if let Some(t) = &f.ret { found.clear(); walk(t, &mut found); for n in &found { named.push((n, f.line)); } }
+    }
+    for d in &prog.structs { for fld in &d.fields { found.clear(); walk(&fld.ty, &mut found); for n in &found { named.push((n, d.line)); } } }
+    for d in &prog.enums { for c in &d.cases { if let Some(t) = &c.ty { found.clear(); walk(t, &mut found); for n in &found { named.push((n, d.line)); } } } }
+    for c in &prog.consts { if let Some(t) = &c.ty { found.clear(); walk(t, &mut found); for n in &found { named.push((n, c.line)); } } }
+    for e in &prog.externs { found.clear(); walk(&e.ty, &mut found); for n in &found { named.push((n, e.line)); } }
+    for (n, line) in named {
+        if !known.contains(n) {
+            let shown = n.trim_start_matches("::");
+            return Err(format!("line {line}: no type named `{shown}` is declared"));
+        }
+    }
+    Ok(())
+}
+
 fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, ast::Bare>, String> {
     use ast::{Bare, BareTarget, Vis};
     let block = |m: &[String]| prog.modules.iter().any(|d| d.path == m && d.line > 0);
