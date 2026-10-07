@@ -25,6 +25,11 @@ answers them:
   read (the owner: "yea", to compiler claude's recommendation, which
   design claude seconded), over token rewriting everywhere (Rust-macro
   style) and grammar fragments merged into Signatar's parser.
+- **Q2, whether a core's words take over names: reserved only in the
+  limbs that list the core** ("`concur` is MCPS's word"), **and a core may
+  instead leave a word unreserved, found by its position** (the owner:
+  "`a`, `b` depends on the core"), over every core's words being keywords
+  everywhere (as `on` and `my` became).
 
 ### 2026-10-07 — The dangerous abilities are powers too: Signatar grants them to every limb, and a program may deny them (owner: a; not built)
 
