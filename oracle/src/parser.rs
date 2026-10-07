@@ -1112,8 +1112,13 @@ impl Parser {
             Tok::Word(_) => return self.err("a return type is written `-> int32` after the parameter list"),
             _ => {}
         }
-        if self.strict {
-            if let Some(p) = params.iter().find(|p| p.ty.is_none()) { return self.err(format!("`#strict`: parameter '{}' says its type", p.name)); }
+        // every parameter says its type (owner, 2026-10-07: "`a`"); an untyped variadic keeps each
+        // argument's own type (2026-09-19), left as it was until the owner says
+        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) { return self.err(format!("parameter '{}' says its type: `'{}': int32` (owner, 2026-10-07)", p.name, p.name)); }
+        // a returned borrow names its group when there is a choice: two or more borrowed inputs (owner,
+        // 2026-10-07: "`b`"); with one, it comes from that one
+        if matches!(ret_lent, Some((_, None))) && params.iter().filter(|p| p.kind != ParamKind::Owned).count() >= 2 {
+            return self.err(format!("`{name}` hands back a borrow and borrows more than one input: say which with a group, `fn {name} [@x] [lent @x 'a': …, lent 'b': …] -> lent @x …` (owner, 2026-10-07)"));
         }
         self.saw_value_return = false;
         let body = if self.at_boundary {
@@ -1126,10 +1131,8 @@ impl Parser {
             self.expect(Tok::Semi, "`;` to end the promise")?;
             Vec::new()
         } else { self.block()? };
-        if self.strict && ret.is_none() && self.saw_value_return { return self.err(format!("`#strict`: `{name}` returns a value, so it says its type: `-> int32`")); }
-        // a returned borrow names its group in a strict file: callers there see only signatures
-        // (owner, 2026-09-29); elsewhere Precog works it out from the body
-        if self.strict && matches!(ret_lent, Some((_, None))) { return self.err(format!("`#strict`: `{name}` hands back a borrow, so it names what the borrow depends on: `-> lent@x …` with `lent@x` on those parameters")); }
+        // a function that returns a value says its type (owner, 2026-10-07: "`a`")
+        if ret.is_none() && ret_lent.is_none() && self.saw_value_return { return self.err(format!("`{name}` returns a value, so it says its type: `-> int32` (owner, 2026-10-07)")); }
         let bounds = Self::flat_bounds(&gens);
         if !self.in_interface { self.declared = None; self.groups.clear(); }
         Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
@@ -1196,59 +1199,75 @@ impl Parser {
         Ok(())
     }
 
+    /// The announcement after an item's name (owner, 2026-10-07): the generics in one `< >`, each with
+    /// what it accepts, commas between (a last one allowed, "for more generics") — `<T: any>`,
+    /// `<A: any, B: Number and Hashable>` — then a `fn`'s lifetime groups in a bracket of their own,
+    /// `[@x, @y]`, before the parameters. An interface announces its `<T>` with no bound (it is the
+    /// type being checked). Since 2026-10-02 until then: `<T>: any | @x @y`.
     fn announce(&mut self, what: &str) -> PResult<Vec<(String, Vec<String>)>> {
         let mut gens: Vec<(String, Vec<String>)> = Vec::new();
         let mut groups: Vec<String> = Vec::new();
         if matches!(self.peek(), Tok::Op(o) if o == "<") && self.lacks.iter().any(|c| c == "Genny") { return self.core_missing("Genny", "a generic"); }
-        while matches!(self.peek(), Tok::Op(o) if o == "<") {
+        if matches!(self.peek(), Tok::Op(o) if o == "<") {
             self.advance();
-            let name = match self.advance().tok {
-                Tok::Word(n) => n,
-                Tok::Var(v) => return self.err(format!("a generic's name is bare: `<{v}>`")),
-                other => return self.err(format!("expected a generic's name after `<`, found {other}")),
-            };
-            if *self.peek() == Tok::Colon { return self.err(format!("what `<{name}>` accepts goes after the bracket: `<{name}>: any`")); }
-            match self.advance().tok { Tok::Op(o) if o == ">" => {}, other => return self.err(format!("expected `>` to close `<{name}`, found {other}")) }
-            if gens.iter().any(|(g, _)| *g == name) { return self.err(format!("`<{name}>` is announced twice")); }
-            let mut bound = Vec::new();
-            if what == "interface" {
-                if *self.peek() == Tok::Colon { return self.err(format!("an interface's `<{name}>` is the type being checked; it accepts nothing in particular")); }
-            } else {
-                if *self.peek() != Tok::Colon { return self.err(format!("`<{name}>` says what it accepts: `<{name}>: any`, or an interface, `<{name}>: Ordered`")); }
-                self.advance();
-                loop {
-                    if self.is_word("any") { self.advance(); if !bound.is_empty() || self.is_word("and") { return self.err("`any` stands alone: it already accepts every type"); } break; }
-                    let mut segs = Vec::new();
+            loop {
+                let name = match self.advance().tok {
+                    Tok::Word(n) => n,
+                    Tok::Var(v) => return self.err(format!("a generic's name is bare: `<{v}: any>`")),
+                    other => return self.err(format!("expected a generic's name after `<`, found {other}")),
+                };
+                if gens.iter().any(|(g, _)| *g == name) { return self.err(format!("`<{name}>` is announced twice")); }
+                let mut bound = Vec::new();
+                if what == "interface" {
+                    if *self.peek() == Tok::Colon { return self.err(format!("an interface's `<{name}>` is the type being checked; it accepts nothing in particular")); }
+                } else {
+                    if matches!(self.peek(), Tok::Op(o) if o == ">") && *self.peek_at(1) == Tok::Colon {
+                        return self.err(format!("what `<{name}>` accepts goes inside the brackets: `<{name}: any>` (owner, 2026-10-07)"));
+                    }
+                    if *self.peek() != Tok::Colon { return self.err(format!("`<{name}>` says what it accepts: `<{name}: any>`, or an interface, `<{name}: Ordered>`")); }
+                    self.advance();
                     loop {
-                        match self.advance().tok { Tok::Word(w) => segs.push(w), other => return self.err(format!("expected an interface's name, or `any`, after `<{name}>:`, found {other}")) }
-                        if *self.peek() == Tok::Dot { self.advance(); continue; }
+                        if self.is_word("any") { self.advance(); if !bound.is_empty() || self.is_word("and") { return self.err("`any` stands alone: it already accepts every type"); } break; }
+                        let mut segs = Vec::new();
+                        loop {
+                            match self.advance().tok { Tok::Word(w) => segs.push(w), other => return self.err(format!("expected an interface's name, or `any`, after `{name}:`, found {other}")) }
+                            if *self.peek() == Tok::Dot { self.advance(); continue; }
+                            break;
+                        }
+                        let iface = self.type_name(&segs)?;
+                        if bound.contains(&iface) { return self.err(format!("`{iface}` is named twice for `<{name}>`")); }
+                        bound.push(iface);
+                        if self.is_word("and") { self.advance(); continue; }
                         break;
                     }
-                    let iface = self.type_name(&segs)?;
-                    if bound.contains(&iface) { return self.err(format!("`{iface}` is named twice for `<{name}>`")); }
-                    bound.push(iface);
-                    if self.is_word("and") { self.advance(); continue; }
-                    break;
                 }
+                gens.push((name, bound));
+                if *self.peek() == Tok::Comma {
+                    self.advance();
+                    if matches!(self.peek(), Tok::Op(o) if o == ">") { self.advance(); break; }
+                    continue;
+                }
+                match self.advance().tok { Tok::Op(o) if o == ">" => break, other => return self.err(format!("expected `,` or `>` after a generic, found {other}")) }
             }
-            gens.push((name, bound));
+            if matches!(self.peek(), Tok::Op(o) if o == "<") { return self.err("one `< >` holds every generic, commas between: `<A: any, B: any>` (owner, 2026-10-07)"); }
         }
-        let mut bar = false;
-        if matches!(self.peek(), Tok::Op(o) if o == "|") {
-            if gens.is_empty() { return self.err("a `|` separates generics from lifetime groups; with no generics, write the groups alone: `@x`"); }
-            self.advance(); bar = true;
-        }
-        if matches!(self.peek(), Tok::Op(o) if o == "|@") { return self.err("a space after the `|`: `| @x`"); }
-        while matches!(self.peek(), Tok::Op(o) if o == "@") {
+        if matches!(self.peek(), Tok::Op(o) if o == "|" || o == "|@") { return self.err("lifetime groups go in a bracket of their own, before the parameters: `fn pick <T: any> [@x, @y] [...]` (owner, 2026-10-07)"); }
+        if matches!(self.peek(), Tok::Op(o) if o == "@") { return self.err("lifetime groups go in a bracket of their own, before the parameters: `fn pick [@x, @y] [...]` (owner, 2026-10-07)"); }
+        if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Op(o) if o == "@") {
             if what != "fn" { return self.err(format!("only a `fn` has lifetime groups; a{} `{what}` cannot hand back a borrow", if what == "op" || what == "enum" || what == "interface" { "n" } else { "" })); }
-            if !gens.is_empty() && !bar { return self.err("a `|` separates the generics from the lifetime groups: `<T>: any | @x`"); }
             self.advance();
-            match self.advance().tok {
-                Tok::Word(g) => { if groups.contains(&g) { return self.err(format!("`@{g}` is announced twice")); } groups.push(g) }
-                other => return self.err(format!("a lifetime group is named after `@`: `@x`, found {other}")),
+            loop {
+                if !matches!(self.peek(), Tok::Op(o) if o == "@") { return self.err(format!("a lifetime group is named after `@`: `[@x, @y]`, found {}", self.peek())); }
+                self.advance();
+                match self.advance().tok {
+                    Tok::Word(g) => { if groups.contains(&g) { return self.err(format!("`@{g}` is announced twice")); } groups.push(g) }
+                    other => return self.err(format!("a lifetime group is named after `@`: `@x`, found {other}")),
+                }
+                if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
+                break;
             }
+            self.expect(Tok::RBracket, "`]` after the lifetime groups")?;
         }
-        if bar && groups.is_empty() { return self.err("after the `|` come the lifetime groups: `<T>: any | @x`"); }
         self.declared = Some(gens.iter().map(|(g, _)| g.clone()).collect());
         self.groups = groups;
         Ok(gens)
@@ -1272,7 +1291,7 @@ impl Parser {
         if glued_at {
             return match self.advance().tok {
                 Tok::Word(w) => {
-                    if !self.groups.contains(&w) { return self.err(format!("`@{w}` was never announced: announce it after the function's name, `fn f @{w} […]`")); }
+                    if !self.groups.contains(&w) { return self.err(format!("`@{w}` was never announced: announce it before the parameters, `fn f [@{w}] […]`")); }
                     Ok((false, Some(w)))
                 }
                 other => self.err(format!("a lifetime group is named after `@`: `&@x`, found {other}")),
@@ -1284,10 +1303,15 @@ impl Parser {
 
     fn life_label(&mut self) -> PResult<Option<String>> {
         if !matches!(self.peek(), Tok::Op(o) if o == "@") { return Ok(None); }
+        // `lent @x`, spaced, so the group stands out (owner, 2026-10-07)
+        if self.pos > 0 {
+            let (prev, at) = (&self.toks[self.pos - 1], &self.toks[self.pos]);
+            if let Tok::Word(w) = &prev.tok { if prev.line == at.line && prev.col + w.len() == at.col { return self.err(format!("a space before the group: `{w} @…` (owner, 2026-10-07)")); } }
+        }
         self.advance();
         match self.advance().tok {
             Tok::Word(w) => {
-                if !self.groups.contains(&w) { return self.err(format!("`@{w}` was never announced: announce it after the function's name, `fn f @{w} […]`")); }
+                if !self.groups.contains(&w) { return self.err(format!("`@{w}` was never announced: announce it before the parameters, `fn f [@{w}] […]`")); }
                 Ok(Some(w))
             }
             other => self.err(format!("a lifetime group is named after `@`: `lent@x`, found {other}")),
@@ -1366,10 +1390,10 @@ impl Parser {
                 other => return self.err(format!("expected a type variable's name after `<`, found {other}")),
             };
             if *self.peek() == Tok::Colon {
-                return self.err(format!("what `<{name}>` accepts is said once, where it is announced after the name: `fn f <{name}>: Ordered […]`"));
+                return self.err(format!("what `<{name}>` accepts is said once, where it is announced after the name: `fn f <{name}: Ordered> […]`"));
             }
             if !self.declared.as_ref().map_or(false, |d| d.contains(&name)) {
-                return self.err(format!("`<{name}>` was never announced: announce it after the name, `fn f <{name}>: any […]` (or `struct S <{name}>: any {{ … }}`)"));
+                return self.err(format!("`<{name}>` was never announced: announce it after the name, `fn f <{name}: any> […]` (or `struct S <{name}: any> {{ … }}`)"));
             }
             match self.advance().tok { Tok::Op(o) if o == ">" => {}, other => return self.err(format!("expected `>` to close `<{name}`, found {other}")) }
             return Ok(Ty::Var(name));
@@ -2385,13 +2409,11 @@ impl Parser {
             else { ret = Some(self.ty()?); if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?; } }
         }
         let caps = self.captures()?;
-        if self.strict {
-            if let Some(p) = params.iter().find(|p| p.ty.is_none()) { return self.err(format!("`#strict`: parameter '{}' says its type", p.name)); }
-        }
+        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) { return self.err(format!("parameter '{}' says its type: `'{}': int32` (owner, 2026-10-07)", p.name, p.name)); }
         let saved_ret = self.saw_value_return;
         self.saw_value_return = false;
         let body = self.block()?;
-        if self.strict && ret.is_none() && self.saw_value_return { return self.err("`#strict`: this function returns a value, so it says its type: `-> int32`"); }
+        if ret.is_none() && self.saw_value_return { return self.err("this function returns a value, so it says its type: `-> int32` (owner, 2026-10-07)"); }
         self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);

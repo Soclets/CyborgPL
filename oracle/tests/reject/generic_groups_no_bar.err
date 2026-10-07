@@ -1,1 +1,1 @@
-a `|` separates the generics from the lifetime groups
+lifetime groups go in a bracket of their own, before the parameters: `fn pick [@x, @y] [...]`

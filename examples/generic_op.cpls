@@ -5,7 +5,7 @@ interface Number <T> {
     op minus ['a': <T>, 'b': <T>] -> <T>;
     op < ['a': <T>, 'b': <T>] -> bool;
 }
-op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool {
+op ~= <T: Number> ['a': <T>, 'b': <T>] -> bool {
     if 'a' < 'b' { return 'b' minus 'a' < 10; }
     return 'a' minus 'b' < 10;
 }

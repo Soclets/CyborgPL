@@ -1,4 +1,4 @@
-fn grow @y [lent.mut@y 'xs': list[int32]] -> lent.mut@y list[int32] { list.append[lend.mut 'xs', 9]; return lend.mut 'xs'; }
+fn grow [@y] [lent.mut @y 'xs': list[int32]] -> lent.mut @y list[int32] { list.append[lend.mut 'xs', 9]; return lend.mut 'xs'; }
 fn two [lent.mut 'a': list[int32], lent 'b': list[int32]] {
     stdkit::print.useful[list.length[lend 'a'] plus list.length[lend 'b'], newln];
 }

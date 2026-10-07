@@ -1,4 +1,0 @@
-# #strict: a returned borrow names its group (owner, 2026-09-29)
-#strict
-fn first [lent 'a': str.utf8] -> lent str.utf8 { return lend 'a'; }
-MAIN { }

@@ -4,6 +4,6 @@ interface Number <T> {
     op minus ['a': <T>, 'b': <T>] -> <T>;
     op < ['a': <T>, 'b': <T>] -> bool;
 }
-op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool { return 'a' < 'b'; }
+op ~= <T: Number> ['a': <T>, 'b': <T>] -> bool { return 'a' < 'b'; }
 op ~= ['a': int32, 'b': int32] -> bool { return true; }
 MAIN { }

@@ -16,7 +16,7 @@ struct Item {
 
 fn price [lent 'i': Item] -> int32 { return 'i'.cents; }
 
-fn cheapest <T>: Priced [lent 'xs': list[<T>]] -> <T> or fail[empty] {
+fn cheapest <T: Priced> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] equal_to 0 { fail empty; }
     let 'best' := 1;
     for 'k' in range[from 2, to list.length[lend 'xs'], by 1] {
