@@ -1026,6 +1026,14 @@ impl Checker {
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
             }
             BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => {
+                // A shift still waiting for its width meets a comparison,
+                // which holds the answer, never its operands: they take
+                // their width from each other (`operators.md`).
+                let pending = |this: &Self, t: &Ty| matches!(t, Ty::Infer(_)) && this.widths_pending.iter().any(|(p, _, _)| this.resolve(p) == *t);
+                if pending(self, &lt) || pending(self, &rt) {
+                    let (l, r, _) = self.numeric_pair(ctx, l, r, op, op_span)?;
+                    return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span });
+                }
                 if lt.is_text() {
                     return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is std's — compare lengths or use a std function", op.spelled())).at(op_span));
                 }
@@ -1059,19 +1067,11 @@ impl Checker {
                         self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?
                     } else if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) {
                         lt.base().clone()
-                    } else if let Some(t) = self.size_of_values(&r) {
-                        // A bare number shifted: the width of any operand
-                        // whose type is known (owner, 2026-09-23: a), the
-                        // count's typed operands here (check claude:
-                        // `7 shr (('a' minus 1) mod.floor 32)`).
-                        let mut l = l;
-                        retype_literal_arith(&mut l, &t);
-                        if let K::Int(_) = l.kind {
-                            l.ty = t.clone();
-                        }
-                        return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     } else {
-                        // Or from where the value goes.
+                        // A bare number shifted takes its width from where
+                        // the value goes, never from its count (owner,
+                        // 2026-10-07: "yea"; as ARM's `lsl` shifts at the
+                        // shifted register's width).
                         let t = self.fresh();
                         self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
                         return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
@@ -1095,19 +1095,16 @@ impl Checker {
                     };
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
                 }
-                // `shl` can push bits off the end, so it needs a width —
-                // from any operand whose type is known, or, when every
-                // operand is a bare number, from where the value goes
-                // (owner, 2026-09-23).
-                if matches!(op, BinOp::Shl) {
-                    if let (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Free(_))) = (lt.base(), rt.base()) {
-                        if literal_only(&l) && literal_only(&r) {
-                            let t = self.fresh();
-                            self.widths_pending.push((t.clone(), op_span, "shl".to_string()));
-                            return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
-                        }
-                        return err(Diagnostic::error("`shl` only knows a declared width: shifting left can lose bits, so an operand needs a type").at(op_span));
+                // A shift's width is the shifted number's own type, or, when
+                // it is bare, where the value goes; the count never decides
+                // it (owner, 2026-10-07: "yea").
+                if matches!(op, BinOp::Shl | BinOp::Shr) && matches!(lt.base(), Ty::Int(IntW::Free(_))) {
+                    if literal_only(&l) {
+                        let t = self.fresh();
+                        self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
+                        return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     }
+                    return err(Diagnostic::error(format!("`{}` only knows a declared width: shifting can lose bits, so the shifted number needs a type", op.spelled())).at(op_span));
                 }
                 let ty = if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) { lt.base().clone() } else { rt.base().clone() };
                 // A group of bare numbers beside a typed operand is plain
@@ -1414,6 +1411,37 @@ impl Checker {
     fn numeric_pair(&mut self, ctx: &mut FnCtx, l: Expr, r: Expr, op: &BinOp, op_span: Span) -> Result<(Expr, Expr, Ty)> {
         let lt = self.resolve(&l.ty);
         let rt = self.resolve(&r.ty);
+        // A shift still waiting for its width (a bare shifted number,
+        // owner 2026-10-07) takes it from here too: from a typed operand
+        // beside it, or, beside bare numbers, from where the whole value
+        // goes, which they share (`((0 minus 53) shr 'c') mod.floor 23`
+        // stored into an `int64`).
+        let pending = |this: &Self, t: &Ty| matches!(t, Ty::Infer(_)) && this.widths_pending.iter().any(|(p, _, _)| this.resolve(p) == *t);
+        if pending(self, &lt) || pending(self, &rt) {
+            let (mut l, mut r) = (l, r);
+            let left_waits = pending(self, &lt);
+            let (var, other_t) = if left_waits { (lt.clone(), rt.clone()) } else { (rt.clone(), lt.clone()) };
+            let other = if left_waits { &mut r } else { &mut l };
+            match other_t.base() {
+                Ty::Int(IntW::Fixed { .. }) if !other_t.is_exact() => {
+                    self.unify(&var, &other_t);
+                    return Ok((l, r, other_t.base().clone()));
+                }
+                Ty::Int(IntW::Free(_)) if literal_only(other) => {
+                    retype_literal_arith(other, &var);
+                    if let K::Int(_) = other.kind {
+                        other.ty = var.clone();
+                    }
+                    return Ok((l, r, var));
+                }
+                Ty::Infer(_) if pending(self, &other_t) => {
+                    self.unify(&var, &other_t);
+                    return Ok((l, r, var));
+                }
+                _ => {}
+            }
+            return Err(Box::new(Diagnostic::error(format!("`{}` beside a shift whose width is still open: give the shifted number a type (`to.int64[…]`)", op.spelled())).at(op_span)));
+        }
         if matches!(lt.base(), Ty::Deci(_)) || matches!(rt.base(), Ty::Deci(_)) {
             return self.deci_pair(l, r, &lt, &rt, op, op_span);
         }
