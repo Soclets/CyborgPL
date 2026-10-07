@@ -3,10 +3,10 @@
 MAIN {
     let 'c': areas::Circle = areas::Circle[radius = 2.0];
     let 'a' := areas::circle[lend 'c'];
-    std::print.useful.stdout['a', " ", areas::shapes.square[4], " ", areas::'pi', \n];
-    std::print.useful.stdout[runnable::seven[] plus 1, \n];      # runnable's own MAIN does not run
+    stdkit::print.useful.stdout['a', " ", areas::shapes.square[4], " ", areas::'pi', newln];
+    stdkit::print.useful.stdout[runnable::seven[] plus 1, newln];      # runnable's own MAIN does not run
     let 'x': bin64 = 3.0;
     let 'y': bin64 = 4.0;
-    std::print.useful.stdout[('x' mean 'y'), " ", ('x' areas::mean 'y'), " ", ('x' mean.low 'y'), " ", ('x' areas::mean.low 'y'), \n];
-    std::print.useful.stdout['x' mean 'y' plus 1.0, \n];     # areas' levels: ('x' mean 'y') plus 1.0
+    stdkit::print.useful.stdout[('x' mean 'y'), " ", ('x' areas::mean 'y'), " ", ('x' mean.low 'y'), " ", ('x' areas::mean.low 'y'), newln];
+    stdkit::print.useful.stdout['x' mean 'y' plus 1.0, newln];     # areas' levels: ('x' mean 'y') plus 1.0
 }

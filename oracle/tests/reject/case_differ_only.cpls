@@ -1,5 +1,5 @@
 case.insensitive [fn];
-fn area [] --> int32 { return 1; }
+fn area [] -> int32 { return 1; }
 struct Area { n: int32 }
 MAIN {
     let 'a' := area[];

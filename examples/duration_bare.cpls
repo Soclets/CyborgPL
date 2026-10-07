@@ -1,9 +1,9 @@
-# `duration` bare is std's `std::duration`: std marks everything `bare.optional` (owner, 2026-10-06:
+# `duration` bare is std's `stdkit::duration`: std marks everything `bare.optional` (owner, 2026-10-06:
 # "optional for all"). Without std, the type and its literals are refused.
-fn twice ['d': duration] --> duration {
+fn twice ['d': duration] -> duration {
     return 'd' plus 'd';
 }
 MAIN {
     let 'w': duration = 2 seconds;
-    std::print.useful.stdout[twice['w'] == 4 seconds, \n];
+    stdkit::print.useful.stdout[twice['w'] equal_to 4 seconds, newln];
 }

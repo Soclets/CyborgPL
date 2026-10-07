@@ -2,17 +2,17 @@
 # line is skipped (owner, 2026-09-25: b). A check that protects the next step is
 # therefore written as two `if`s; tests/reject/and_does_not_guard.cpls is the one-line
 # form, which stops when the right side is out of range.
-fn loud ['name': str.utf8, 'answer': bool] --> bool {
-    std::print.useful.stdout["checked ", 'name', \n];
+fn loud ['name': str.utf8, 'answer': bool] -> bool {
+    stdkit::print.useful.stdout["checked ", 'name', newln];
     return 'answer';
 }
 MAIN {
     let 'ok' := loud["first", false] and loud["second", true];    # both print
-    std::print.useful.stdout['ok', \n];
+    stdkit::print.useful.stdout['ok', newln];
     let 'xs' := [3, 5, 8];
     let 'i': uint64 = 7;
-    if 'i' </== list.length[lend 'xs'] {
-        if 'xs'['i'] == 5 { std::print.useful.stdout["found", \n]; }
+    if 'i' at_most list.length[lend 'xs'] {
+        if 'xs'['i'] equal_to 5 { stdkit::print.useful.stdout["found", newln]; }
     }
-    std::print.useful.stdout["done", \n];
+    stdkit::print.useful.stdout["done", newln];
 }

@@ -1,13 +1,13 @@
 MAIN {
     let 'n' := 3;
     let 's' := "n=" ++ to.stored.str.utf8['n' plus 4];  # arithmetic, convert, then join
-    std::print.stored.stdout['s', \n];
-    std::print.stored.stdout["count: " ++ to.stored.str.utf8[10], \n];   # a number is converted, in its stored form
+    stdkit::print.stored.stdout['s', newln];
+    stdkit::print.stored.stdout["count: " ++ to.stored.str.utf8[10], newln];   # a number is converted, in its stored form
     let 'x': bin64 = 0.1;
     let 't' := "x is " ++ to.stored.str.utf8['x'];   # stored form, always
-    std::print.useful.stdout['t', \n];             # print.useful cannot undo a join…
-    std::print.useful.stdout["x is ", 'x', \n];    # …but renders its own values usefully
-    if "a" ++ "b" == "ab" { std::print.stored.stdout["joined", \n]; }
+    stdkit::print.useful.stdout['t', newln];             # print.useful cannot undo a join…
+    stdkit::print.useful.stdout["x is ", 'x', newln];    # …but renders its own values usefully
+    if "a" ++ "b" equal_to "ab" { stdkit::print.stored.stdout["joined", newln]; }
     let 'c' := `é` ++ "!";
-    std::print.stored.stdout['c', \n];
+    stdkit::print.stored.stdout['c', newln];
 }

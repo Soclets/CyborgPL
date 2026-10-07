@@ -5,16 +5,16 @@ MAIN {
     let 'x': bin64 = 0.1;
 
     # print: any values, each in its stored form, nothing between
-    std::print.stored.stdout["x is ", 'x', \n];
+    stdkit::print.stored.stdout["x is ", 'x', newln];
 
     # print.useful: the same, each in its useful form
-    std::print.useful.stdout["x is ", 'x', \n];
+    stdkit::print.useful.stdout["x is ", 'x', newln];
 
     # a joined text is already text: print and print.useful agree on it
     let 'line' := 'name' ++ " scored " ++ to.stored.str.utf8['count'];
-    std::print.stored.stdout['line', \n];
-    std::print.useful.stdout['line', \n];
+    stdkit::print.stored.stdout['line', newln];
+    stdkit::print.useful.stdout['line', newln];
 
     # stderr
-    std::print.useful.stderr["warning: ", 'count', " is low", \n];
+    stdkit::print.useful.stderr["warning: ", 'count', " is low", newln];
 }

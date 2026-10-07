@@ -1,6 +1,0 @@
-# `>>` and `>>>` are other spellings of `-->`, and `<<` and `<<<` of `<--` (owner, 2026-10-06).
-fn double ['n': int32] >> int32 { return 'n' times 2; }
-fn triple ['n': int32] >>> int32 { return 'n' times 3; }
-MAIN {
-    std::print.weird.useful.stdout << double[3] << " " <<< triple[3] <<< \n;
-}

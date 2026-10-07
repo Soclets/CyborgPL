@@ -1,11 +1,11 @@
 struct Locker {
     name: str.utf8
-    !mut number: int32
+    immut number: int32
     capacity: int32
     occupied: bool
 }
 
-fn free_space [lent 'l': Locker] --> int32 {
+fn free_space [lent 'l': Locker] -> int32 {
     if 'l'.occupied {
         return 0;
     }
@@ -18,20 +18,20 @@ fn claim [lent.mut 'l': Locker] {
 
 MAIN {
     let 'mine' := Locker[name = "field kit", number = 7, capacity = 12, occupied = false];
-    std::print.useful.stdout['mine'.name, " is #", 'mine'.number, \n];
-    std::print.useful.stdout["free: ", free_space[lend 'mine'], \n];
+    stdkit::print.useful.stdout['mine'.name, " is #", 'mine'.number, newln];
+    stdkit::print.useful.stdout["free: ", free_space[lend 'mine'], newln];
     claim[lend.mut 'mine'];
-    std::print.useful.stdout["free: ", free_space[lend 'mine'], \n];
+    stdkit::print.useful.stdout["free: ", free_space[lend 'mine'], newln];
     change 'mine'.capacity = 20;
-    std::print.useful.stdout['mine', \n];
+    stdkit::print.useful.stdout['mine', newln];
     let 'label' := copy 'mine'.name;
-    std::print.useful.stdout['label', \n];
+    stdkit::print.useful.stdout['label', newln];
     let 'taken' := give 'mine'.name;
-    std::print.useful.stdout['taken', \n];
+    stdkit::print.useful.stdout['taken', newln];
     let 'spare': Locker = Locker[name = "spare", number = 8, capacity = 4, occupied = false];
     let 'lockers' := [copy 'spare', Locker[name = "third", number = 9, capacity = 4, occupied = true]];
     for 'l' in lend 'lockers' {
-        std::print.useful.stdout['l'.number, " "];
+        stdkit::print.useful.stdout['l'.number, " "];
     }
-    std::print.stored.stdout[\n];
+    stdkit::print.stored.stdout[newln];
 }

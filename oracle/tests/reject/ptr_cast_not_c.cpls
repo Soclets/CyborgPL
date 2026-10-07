@@ -1,8 +1,8 @@
-extern.C fn malloc ['bytes': uint64] --> ptr.mut[uint8];
+extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
 struct Plain {
     x: int32
 }
 MAIN {
-    !check let 'raw' := malloc[4];
-    !check let 'p' := ptr.cast[Plain]['raw'];
+    no_check let 'raw' := malloc[4];
+    no_check let 'p' := ptr.cast[Plain]['raw'];
 }

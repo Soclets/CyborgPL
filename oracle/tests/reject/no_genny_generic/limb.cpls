@@ -1,4 +1,4 @@
-fn first <T>: any ['a': <T>] --> <T> {
+fn first <T>: any ['a': <T>] -> <T> {
     return 'a';
 }
 

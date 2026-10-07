@@ -1,5 +1,5 @@
 # a borrow of a local is refused at its `return`, even with no call (check claude, 2026-09-29)
-fn b1 [lent 'a': list[int32]] --> lent list[int32] {
+fn b1 [lent 'a': list[int32]] -> lent list[int32] {
     let 'loc': list[int32] = [1, 2];
     return lend 'loc';
 }

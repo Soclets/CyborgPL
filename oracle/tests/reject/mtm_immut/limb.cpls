@@ -1,3 +1,0 @@
-MAIN {
-    let immut 'x': int32 = 1;
-}

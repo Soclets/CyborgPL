@@ -3,8 +3,8 @@
 
 bare.never [fn];
 
-pub fn seven [] --> int32 { return 7; }
+pub fn seven [] -> int32 { return 7; }
 
 MAIN {
-    std::print.stored.stdout["runnable on its own", \n];
+    stdkit::print.stored.stdout["runnable on its own", newln];
 }

@@ -2,16 +2,16 @@
 # written in its own function (the range on 'n' is why 100 div.floor 'n' is safe), and the file
 # writes out what other files leave to Precog: `pos` on every position, labelled ranges, every parameter's
 # type, a return type, `mut` or `immut` on every declaration, `temp` or `perm` on every `for`.
-# `nocheck` is still allowed. The oracle checks the spelling; Precog checks the proofs.
+# `no_check` is still allowed. The oracle checks the spelling; Precog checks the proofs.
 #strict
-fn ratio ['n': int32[1, max]] --> int32 { return 100 div.floor 'n'; }
+fn ratio ['n': int32[1, max]] -> int32 { return 100 div.floor 'n'; }
 MAIN {
-    let !mut 'xs': list[int32] = [10, 20, 30, 40];
+    let immut 'xs': list[int32] = [10, 20, 30, 40];
     let mut 'total': int32 = 0;
     for temp 'i': uint64 in range[from 1, to 4, by 1] {
         change 'total' = 'total' plus 'xs'[pos 'i'];
     }
-    let !mut 'mid' := list.slice[lend 'xs', pos 2, pos 3];
-    let !mut 'f' := fn ['n': int32[0, 1000]] --> int32 { return 'n' times 2; };   # the range is why 'n' times 2 fits
-    std::print.useful.stdout['total', " ", 'mid', " ", ratio[4], " ", 'f'[3], \n];
+    let immut 'mid' := list.slice[lend 'xs', pos 2, pos 3];
+    let immut 'f' := fn ['n': int32[0, 1000]] -> int32 { return 'n' times 2; };   # the range is why 'n' times 2 fits
+    stdkit::print.useful.stdout['total', " ", 'mid', " ", ratio[4], " ", 'f'[3], newln];
 }

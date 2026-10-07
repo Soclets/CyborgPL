@@ -1,5 +1,5 @@
 interface Shape {
-    fn area [lent 's': Self] --> bin64;
+    fn area [lent 's': Self] -> bin64;
 }
 
 MAIN { }

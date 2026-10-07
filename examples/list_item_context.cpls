@@ -8,5 +8,5 @@ MAIN {
     let 'zs': list[list[uint8]] = [[0 minus.wrap 2,], [1,]];
     let 'big': list[uint64] = [9692729768110883998 minus 3166240359165959856,];
     let 'inner' := copy 'zs'[1];
-    std::print.useful.stdout['xs'[1], " ", 'xs'[2], " ", 'xs'[3], " ", 'ys'[1], " ", 'ys'[2], " ", 'inner'[1], " ", 'big'[1], \n];
+    stdkit::print.useful.stdout['xs'[1], " ", 'xs'[2], " ", 'xs'[3], " ", 'ys'[1], " ", 'ys'[2], " ", 'inner'[1], " ", 'big'[1], newln];
 }

@@ -2,7 +2,7 @@
 # element, a parameter, a return value. It is plain, a fixed-size value that copies by
 # itself, and the compiler keeps it on its register-width boundary (16 bytes here).
 struct Particle { place: simd[bin32, 4]  vel: simd[bin32, 4] }
-fn step ['p': Particle] --> Particle {
+fn step ['p': Particle] -> Particle {
     return Particle[place = 'p'.place plus 'p'.vel, vel = 'p'.vel];
 }
 MAIN {
@@ -11,5 +11,5 @@ MAIN {
     let mut 'history': list[simd[bin32, 4]] = [];
     list.append[lend.mut 'history', 'q'.place];
     list.append[lend.mut 'history', 'q'.place plus 'q'.vel];
-    std::print.useful.stdout[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[2]], \n];
+    stdkit::print.useful.stdout[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[2]], newln];
 }

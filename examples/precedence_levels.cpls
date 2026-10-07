@@ -4,21 +4,21 @@
 struct Vec { x: bin64  y: bin64 }
 
 precedence.low_first {
-    level.when_chained.refused 1 { ==  ~= }
+    level.when_chained.refused 1 { equal_to ~= }
     level.when_chained.left_first 2 { plus }
     level.when_chained.left_first 3 { times  dot }
     level.when_chained.left_first 4 { scale }
 }
 
-op dot ['a': Vec, 'b': Vec] --> bin64 {
+op dot ['a': Vec, 'b': Vec] -> bin64 {
     return ('a'.x times 'b'.x) plus ('a'.y times 'b'.y);
 }
 
-op scale ['a': Vec, 'k': bin64] --> Vec {
+op scale ['a': Vec, 'k': bin64] -> Vec {
     return Vec[x = 'a'.x times 'k', y = 'a'.y times 'k'];
 }
 
-op ~= ['a': bin64, 'b': bin64] --> bool {
+op ~= ['a': bin64, 'b': bin64] -> bool {
     return ('a' minus 'b') < 0.000001 and ('b' minus 'a') < 0.000001;
 }
 
@@ -28,6 +28,6 @@ MAIN {
     let 'd' := 'u' dot 'v' plus 1.0;          # ('u' dot 'v') plus 1.0
     let 'w' := 'u' scale 2.0 dot 'v';         # ('u' scale 2.0) dot 'v'
     let 'ok' := 'd' ~= 12.0;
-    std::print.useful.stdout['d', " ", 'w', " ", 'ok', \n];
-    std::print.useful.stdout[2 pow 3 plus 1, " ", 2 pow 3 pow 2, " ", -2 pow 2, " ", 2 times 3 pow 2, \n];
+    stdkit::print.useful.stdout['d', " ", 'w', " ", 'ok', newln];
+    stdkit::print.useful.stdout[2 pow 3 plus 1, " ", 2 pow 3 pow 2, " ", -2 pow 2, " ", 2 times 3 pow 2, newln];
 }

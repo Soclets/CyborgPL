@@ -1,4 +1,4 @@
-pub bare.never fn area [] --> int32 {
+pub bare.never fn area [] -> int32 {
     return 1;
 }
 

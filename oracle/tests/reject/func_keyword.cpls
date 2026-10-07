@@ -1,4 +1,4 @@
-func add ['a': int32] --> int32 {
+func add ['a': int32] -> int32 {
     return 'a';
 }
 MAIN {

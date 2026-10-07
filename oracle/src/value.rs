@@ -204,8 +204,8 @@ pub fn unit_word(u: &CharUnit) -> &'static str { match u { CharUnit::Byte => "by
 
 pub fn ty_name(ty: &Ty) -> String {
     match ty {
-        Ty::Int(w) => format!("{}int{}", if matches!(w, IntWidth::Other(_)) { "!std." } else { "" }, w_num(w)),
-        Ty::Uint(w) => format!("{}uint{}", if matches!(w, IntWidth::Other(_)) { "!std." } else { "" }, w_num(w)),
+        Ty::Int(w) => format!("{}int{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
+        Ty::Uint(w) => format!("{}uint{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
         Ty::Bin(n) => format!("bin{n}"),
         Ty::Brain => "brain16".into(),
         Ty::Deci(n) => format!("deci{n}"),

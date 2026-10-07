@@ -3,23 +3,23 @@
 # with `to.int32[Mode.vi]`, which never fails. `ptr.read` of a C enum is a call, so it takes
 # `otherwise` and fails `out_of_range` for a number no case has (7 here).
 layout.C enum Mode { emacs = 0  vi = 1 }
-extern.C fn malloc ['bytes': uint64] --> ptr.mut[Mode];
+extern.C fn malloc ['bytes': uint64] -> ptr.mut[Mode];
 extern.C mut 'edit_mode': int32;
-fn mode_at ['p': ptr[Mode]] --> int32 {
-    !check let 'm' := ptr.read['p'] otherwise Mode.emacs;
+fn mode_at ['p': ptr[Mode]] -> int32 {
+    no_check let 'm' := ptr.read['p'] otherwise Mode.emacs;
     match 'm' {
         emacs { return 10; }
         vi { return 11; }
     }
 }
 MAIN {
-    !check change 'edit_mode' = to.int32[Mode.vi];
-    !check let 'raw' := 'edit_mode';
+    no_check change 'edit_mode' = to.int32[Mode.vi];
+    no_check let 'raw' := 'edit_mode';
     let 'current' := to.Mode['raw'] otherwise Mode.emacs;
-    !check let 'mem' := malloc[8];
-    !check ptr.write['mem', 1];
-    !check ptr.write[ptr.at['mem', 1], 7];
-    !check let 'a' := mode_at['mem'];
-    !check let 'b' := mode_at[ptr.at['mem', 1]];
-    std::print.useful.stdout[to.int32['current'], " ", 'a', " ", 'b', \n];
+    no_check let 'mem' := malloc[8];
+    no_check ptr.write['mem', 1];
+    no_check ptr.write[ptr.at['mem', 1], 7];
+    no_check let 'a' := mode_at['mem'];
+    no_check let 'b' := mode_at[ptr.at['mem', 1]];
+    stdkit::print.useful.stdout[to.int32['current'], " ", 'a', " ", 'b', newln];
 }

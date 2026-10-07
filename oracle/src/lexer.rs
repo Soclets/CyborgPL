@@ -6,7 +6,7 @@
 //!   [ ] { } ( )                  value slot, body, arithmetic grouping
 //!   ::  .  :=  =  ;  ,           Limb boundary, chain, best-type bind, typed bind, end, separator
 //!   :  ->                        name-to-type, function return type (decided 2026-09-19)
-//!   \n                           a newline piece (bare, outside any string)
+//!   newln                        a newline piece (owner, 2026-10-07; `\n` before)
 //!   ++                           joins text (decided 2026-09-19)
 //!   numbers                      `_` groups digits; `,` never does
 
@@ -90,8 +90,8 @@ pub struct Token {
     pub tok: Tok,
     pub line: usize,
     pub col: usize,
-    /// MTM's spelling (owner, 2026-10-06): as written, and the main spelling it stands for; refused
-    /// in a Limb whose CCA.cplr does not list the core MTM
+    /// an old spelling, as written, and the one that replaced it: refused everywhere since MTM, which
+    /// kept them, is gone (owner, 2026-10-07: "MTM is gone.")
     pub mtm: Option<(String, &'static str)>,
 }
 
@@ -146,13 +146,15 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             i += 1; col += 1; continue;
         }
 
-        // bare \n : a newline piece
+        // `\n` outside a string was the newline piece; it is `newln` since 2026-10-07 (owner: "If `\`
+        // means escape, `\n` could read as escape the letter `n`")
         if c == '\\' {
             if i + 1 < chars.len() && chars[i + 1] == 'n' {
                 push(Tok::Newline, &mut toks);
+                toks.last_mut().unwrap().mtm = Some(("\\n".into(), "newln"));
                 i += 2; col += 2; continue;
             }
-            return err(line, col, "a bare backslash: only `\\n` is a piece outside a string".into());
+            return err(line, col, "a bare backslash: a backslash is only an escape inside text; the newline piece is `newln`".into());
         }
 
         // "text"
@@ -271,18 +273,39 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             }
             let after_inline = toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
             let is_asm = (s == "ASM" || s == "S" || s == "Assembly") && after_inline;
-            // MTM's spellings, each standing for a main one (owner, 2026-10-06); `not.bit` is std's own word
+            // the words that replaced `!` and the comparison symbols (owner, 2026-10-07) are read as the
+            // tokens the oracle has always used inside; the old spellings are kept, to be refused by name
+            let after_bang = matches!(toks.last().map(|t| &t.tok), Some(Tok::Op(o)) if o == "!");
             let main: Option<&'static str> = match s.as_str() {
-                "immut" => Some("!mut"),
-                "nocheck" => Some("!check"),
-                "not" if !(i + 3 < chars.len() && chars[i] == '.' && chars[i + 1] == 'b' && chars[i + 2] == 'i' && chars[i + 3] == 't') => Some("!"),
-                // the inline languages' main names are `inline.ASM`, `inline.LL`, `inline.MSL` (owner, 2026-10-07);
-                // the whole names and the older short ones are MTM's ("`a`")
+                "nocheck" => Some("no_check"),
+                // the inline languages' main names are `inline.ASM`, `inline.LL`, `inline.MSL` (owner, 2026-10-07)
                 "Assembly" | "S" if after_inline => Some("inline.ASM"),
                 "LLVM" | "LLVM_Intermediate_Representation" if after_inline => Some("inline.LL"),
                 "Metal_Shading_Language" if after_inline => Some("inline.MSL"),
+                "std" if !after_bang => Some("stdkit"),
+                "auto_newline" => Some("auto_newln"),
                 _ => None,
             };
+            let inside: Option<Tok> = match s.as_str() {
+                "no_check" => Some(Tok::Word("nocheck".into())),
+                "no_cheat" => Some(Tok::Word("!cheat".into())),
+                "no_shadow" => Some(Tok::NoShadow),
+                "equal_to" => Some(Tok::Op("==".into())),
+                "not_equal" => Some(Tok::Op("!==".into())),
+                "at_most" => Some(Tok::Op("</==".into())),
+                "at_least" => Some(Tok::Op(">/==".into())),
+                "newln" => Some(Tok::Newline),
+                "stdkit" => Some(Tok::Word("std".into())),
+                "auto_newln" => Some(Tok::Word("auto_newline".into())),
+                _ => None,
+            };
+            if s == "not_std" {
+                // `not_std.int24` (owner, 2026-10-07), held inside as `!std_…`
+                push(Tok::Op("!".into()), &mut toks);
+                push(Tok::Word("std".into()), &mut toks);
+                continue;
+            }
+            if let Some(t) = inside { push(t, &mut toks); continue; }
             let written = if after_inline && main.is_some() { format!("inline.{s}") } else { s.clone() };
             push(Tok::Word(s), &mut toks);
             if let Some(m) = main { toks.last_mut().unwrap().mtm = Some((written, m)); }
@@ -312,25 +335,25 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         // multi-char punctuation, longest first
         let rest: String = chars[i..chars.len().min(i + 3)].iter().collect();
         let two: String = rest.chars().take(2).collect();
-        if two == "!$" { push(Tok::NoShadow, &mut toks); i += 2; col += 2; continue; }
+        if two == "!$" { push(Tok::NoShadow, &mut toks); toks.last_mut().unwrap().mtm = Some(("!$".into(), "no_shadow")); i += 2; col += 2; continue; }
         // `!c`, "no cheat", a loop's first modifier (owner, 2026-10-01): kept as its own word, so no
         // name can spell it
         // `!cheat` — "no cheat" (owner, 2026-10-06; `!c` before), one word; `!c` is still read as one,
         // so the parser can refuse it naming `!cheat`
         if chars[i..].iter().take(6).collect::<String>() == "!cheat" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
-            push(Tok::Word("!cheat".into()), &mut toks); i += 6; col += 6; continue;
+            push(Tok::Word("!cheat".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!cheat".into(), "no_cheat")); i += 6; col += 6; continue;
         }
         // `!check` is the main spelling of `nocheck` (owner, 2026-10-06): read as the word `nocheck`,
         // which is MTM's spelling when written out
         if chars[i..].iter().take(6).collect::<String>() == "!check" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
-            push(Tok::Word("nocheck".into()), &mut toks); i += 6; col += 6; continue;
+            push(Tok::Word("nocheck".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!check".into(), "no_check")); i += 6; col += 6; continue;
         }
         if two == "!c" && !chars.get(i + 2).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("!c".into()), &mut toks); i += 2; col += 2; continue;
         }
         // `!mut` is the main spelling and `immut` MTM's (owner, 2026-09-25, then 2026-10-06)
         if rest.starts_with("!mu") && chars[i..].iter().take(4).collect::<String>() == "!mut" && !chars.get(i + 4).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
-            push(Tok::Word("immut".into()), &mut toks); i += 4; col += 4; continue;
+            push(Tok::Word("immut".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!mut".into(), "immut")); i += 4; col += 4; continue;
         }
         if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
         if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
@@ -354,15 +377,24 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // `!std_int24` reads `!` then the word, as it always has
             let std_word = matches!(chars[j..].iter().take(4).collect::<String>().as_str(), "std_" | "std.");
             if run == "!" && !std_word {
-                if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); i = j; col += 1; continue; }
-                return err(tl, tc, "a glued `!` marks a rule (`!mut`, `!$`, `!check`, `!cheat`); to negate a value, space it: `! 'ready'`".into());
+                if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!".into(), "not")); i = j; col += 1; continue; }
+                return err(tl, tc, "`!` is not an operator since 2026-10-07: a value's not is `not 'ready'`".into());
             }
-            // MTM's arrows and `&` (owner, 2026-10-06): Signatar's are `-->`, `<--`, `<-->` and `lend`
+            if run == "!" && std_word {
+                push(Tok::Op("!".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!std.".into(), "not_std.")); i = j; col += 1; continue;
+            }
+            // the arrows are short, `->`, `<-`, `<->` (owner, 2026-10-07: "Short, the neck & eye movement
+            // is less"); the comparisons are words (`equal_to`, `not_equal`, `at_most`, `at_least`); every
+            // other spelling is refused by name, MTM being gone
             let main: Option<&'static str> = match run.as_str() {
-                "->" | ">>" | ">>>" => Some("-->"),
-                "<-" | "<<" | "<<<" => Some("<--"),
-                "<->" | "<<>>" | "<<<>>>" | "<---->" | "<--|-->" | "<-|->" | "<<|>>" | "<<<|>>>" => Some("<-->"),
-                "&" | "&@" => Some("lend` / `lent"),
+                "-->" | ">>" | ">>>" => Some("->"),
+                "<--" | "<<" | "<<<" => Some("<-"),
+                "<-->" | "<<>>" | "<<<>>>" | "<---->" | "<--|-->" | "<-|->" | "<<|>>" | "<<<|>>>" => Some("<->"),
+                "&" | "&@" => Some("lend` / `lent`; a bitwise and is `and.bit"),
+                "==" => Some("equal_to"),
+                "!==" => Some("not_equal"),
+                "</==" => Some("at_most"),
+                ">/==" => Some("at_least"),
                 _ => None,
             };
             let written = run.clone();
@@ -377,11 +409,11 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 // walled ones, `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>` (owner: "`b`")
                 "<-->" | "<->" | "<<>>" | "<<<>>>" | "<---->" | "<--|-->" | "<-|->" | "<<|>>" | "<<<|>>>" => Tok::BothArrow,
                 "=" => Tok::Eq,
-                "!=" => return err(tl, tc, "`!=` is not an operator; not-equal is `!==`".into()),
-                "<=" | "<==" => return err(tl, tc, format!("`{run}` is not an operator; less-or-equal is `</==` (owner, 2026-09-29)")),
-                ">=" | ">==" => return err(tl, tc, format!("`{run}` is not an operator; greater-or-equal is `>/==` (owner, 2026-09-29)")),
+                "!=" => return err(tl, tc, "`!=` is not an operator; not-equal is `not_equal`".into()),
+                "<=" | "<==" => return err(tl, tc, format!("`{run}` is not an operator; less-or-equal is `at_most` (owner, 2026-10-07)")),
+                ">=" | ">==" => return err(tl, tc, format!("`{run}` is not an operator; greater-or-equal is `at_least` (owner, 2026-10-07)")),
                 "/" => return err(tl, tc, "`/` is not an operator; division is `div`: `'a' div 'b'` (owner, 2026-09-29)".into()),
-                "--" | "+=" | "-=" => return err(tl, tc, format!("`{run}` does not exist; write the change in full: change 'i' = 'i' + 1;")),
+                "--" | "+=" | "-=" => return err(tl, tc, format!("`{run}` does not exist; write the change in full: change 'i' = 'i' plus 1;")),
                 _ => Tok::Op(run),   // built-in or custom; the parser tells them apart
             };
             push(tok, &mut toks);

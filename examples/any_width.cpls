@@ -1,8 +1,7 @@
-# Integers of any width, marked as not standard (owner, 2026-10-03): `!std.int24` / `!std.uint4`, or Rust-style
-# `!std.i24` / `!std.u4`. Each holds exactly its width's range; `plus.wrap` wraps at it.
+# Integers of any width, marked as not standard (owner, 2026-10-03): `not_std.int24` / `not_std.uint4`. Each holds exactly its width's range; `plus.wrap` wraps at it.
 MAIN {
-    let 'sample': !std.int24 = -8_000_000;
-    let 'flags': !std.u4 = 9;
-    let 'big': !std.i100 = 1_000_000_000_000_000_000;
-    std::print.useful.stdout['sample', " ", 'flags', " ", 'big', " ", ('flags' plus.wrap 9), \n];
+    let 'sample': not_std.int24 = -8_000_000;
+    let 'flags': not_std.uint4 = 9;
+    let 'big': not_std.int100 = 1_000_000_000_000_000_000;
+    stdkit::print.useful.stdout['sample', " ", 'flags', " ", 'big', " ", ('flags' plus.wrap 9), newln];
 }

@@ -6,5 +6,5 @@ MAIN {
     let 'total' := 'tenth' plus *0.2;              # exactly 0.3
     let 'half': deci32 = *0.5;                  # a typed deci takes it at its width
     let 'speed' := 0.1;                         # a bin
-    std::print.stored.stdout['price', " ", 'total', " ", 'half', " ", 'speed', \n];
+    stdkit::print.stored.stdout['price', " ", 'total', " ", 'half', " ", 'speed', newln];
 }

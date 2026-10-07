@@ -6,6 +6,6 @@
 MAIN {
     let 'a': areas::Circle = areas::Circle[radius = 1.0];
     let 'b': shapes::Circle = shapes::Circle[radius = 2.0];
-    std::print.useful.stdout[areas::circle[lend 'a'], " ", shapes::circle[lend 'b'], \n];
-    std::print.useful.stdout[1.0 areas::mean 3.0, " ", 1.0 shapes::mean.low 4.0, \n];
+    stdkit::print.useful.stdout[areas::circle[lend 'a'], " ", shapes::circle[lend 'b'], newln];
+    stdkit::print.useful.stdout[1.0 areas::mean 3.0, " ", 1.0 shapes::mean.low 4.0, newln];
 }

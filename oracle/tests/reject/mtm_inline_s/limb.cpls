@@ -1,3 +1,0 @@
-MAIN {
-    !check inline.S { nop };
-}

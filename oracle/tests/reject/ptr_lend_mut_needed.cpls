@@ -1,5 +1,5 @@
 extern.C fn fill ['b': ptr.mut[uint8]];
 MAIN {
     let 'xs' := [1, 2];
-    !check fill[lend 'xs'];
+    no_check fill[lend 'xs'];
 }

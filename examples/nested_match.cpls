@@ -7,8 +7,8 @@ MAIN {
     let 's' := Ship.post;
     match 'o' {
         cancelled { }
-        paid { match 's' { pickup { std::print.useful.stdout["counter", \n]; } post { std::print.useful.stdout["mail", \n]; } } }
+        paid { match 's' { pickup { stdkit::print.useful.stdout["counter", newln]; } post { stdkit::print.useful.stdout["mail", newln]; } } }
     }
     let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
-    std::print.useful.stdout['price', \n];
+    stdkit::print.useful.stdout['price', newln];
 }

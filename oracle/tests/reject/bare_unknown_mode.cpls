@@ -1,4 +1,4 @@
-pub bare.sometimes fn area [] --> int32 {
+pub bare.sometimes fn area [] -> int32 {
     return 1;
 }
 

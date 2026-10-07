@@ -1,0 +1,3 @@
+MAIN {
+    stdkit::print.useful.stdout["hi", \n];
+}

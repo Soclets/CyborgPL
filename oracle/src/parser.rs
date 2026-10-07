@@ -21,7 +21,7 @@ pub const KEYWORDS: &[&str] = &[
 
 /// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
 /// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
-pub const CORE_IDS: [(&str, &str); 10] = [
+pub const CORE_IDS: [(&str, &str); 15] = [
     ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
     ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
     ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
@@ -31,10 +31,21 @@ pub const CORE_IDS: [(&str, &str); 10] = [
     ("Nvidia", "beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361"),
     ("Vulkan", "63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec"),
     ("WSTN", "e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4"),
-    ("MTM", "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56"),
+    // the cores the base was slimmed into (owner, 2026-10-07): testing, `brain16`, the other integer
+    // widths, `deci`, Unicode text, the case marks
+    ("TAS", "63baa4cf89d8b6df6adceb812df005b30ea2771fd56f2117d0246ef911de21aa"),
+    ("AI", "8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21"),
+    ("WSMW", "0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0"),
+    ("Money", "d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f"),
+    ("UniTect", "137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96"),
+    ("CAPS", "90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01"),
 ];
-/// WSTN and MTM came later the same day, each first released when its ID was made (owner, 2026-10-06)
-pub const LATER_CORE_VERSIONS: [(&str, &str); 2] = [("WSTN", "2026-10-06T18:48:22+07:00"), ("MTM", "2026-10-06T19:18:54+07:00")];
+/// MTM's ID, retired with it (owner, 2026-10-07: "MTM is gone.")
+pub const MTM_ID: &str = "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56";
+/// The cores made after the first eight, each first released when its ID was made (owner, 2026-10-06/07)
+pub const LATER_CORE_VERSIONS: [(&str, &str); 7] = [("WSTN", "2026-10-06T18:48:22+07:00"), ("TAS", "2026-10-07T18:08:59+07:00"),
+    ("AI", "2026-10-07T20:22:24+07:00"), ("WSMW", "2026-10-07T20:22:24+07:00"), ("Money", "2026-10-07T20:22:24+07:00"),
+    ("UniTect", "2026-10-07T20:22:24+07:00"), ("CAPS", "2026-10-07T20:22:24+07:00")];
 pub fn core_version(core: &str) -> &'static str { LATER_CORE_VERSIONS.iter().find(|(n, _)| *n == core).map(|(_, v)| *v).unwrap_or(CORE_VERSION) }
 pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
 
@@ -91,7 +102,7 @@ const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lo
 
 /// An operator as code writes it (`+` inside is `plus`).
 fn op_shown(op: &str) -> String {
-    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), o => o.into() }
+    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "==" => "equal_to".into(), "!==" => "not_equal".into(), "</==" => "at_most".into(), ">/==" => "at_least".into(), o => o.into() }
 }
 
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
@@ -235,7 +246,7 @@ impl Parser {
     /// Everything std brings is refused in a Limb whose `CCA.cplr` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is std's, and this Limb's CCA.cplr does not list std: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is stdkit's, and this Limb's CCA.cplr does not list stdkit: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
@@ -349,8 +360,8 @@ impl Parser {
             self.pos = i;
             return self.err("the root of this Limb is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
-        // MTM's spellings (owner, 2026-10-06: other spellings, each standing for a main one)
-        if self.lacks.iter().any(|c| c == "MTM") {
+        // the old spellings, refused by name everywhere (owner, 2026-10-07: "MTM is gone.")
+        {
             for i in 0..self.toks.len() {
                 let after_path = i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon);
                 let found: Option<(String, String)> = match (&self.toks[i].mtm, &self.toks[i].tok) {
@@ -359,13 +370,13 @@ impl Parser {
                     // `!std.i24` / `!std.u24`, Rust's way, read as `!`, `std`, `.`, the width
                     (None, Tok::Word(w)) if i > 2 && self.toks[i - 3].tok == Tok::Op("!".into()) && matches!(&self.toks[i - 2].tok, Tok::Word(s) if s == "std") && self.toks[i - 1].tok == Tok::Dot
                         && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) => {
-                        Some((format!("!std.{w}"), format!("!std.{}", w.replacen('i', "int", 1).replacen('u', "uint", 1))))
+                        Some((format!("not_std.{w}"), format!("not_std.{}", w.replacen('i', "int", 1).replacen('u', "uint", 1))))
                     }
                     _ => None,
                 };
                 if let Some((w, m)) = found {
                     self.pos = i;
-                    return self.err(format!("`{w}` is MTM's spelling of `{m}`: write `{m}`, or add the core MTM to this Limb's `cores` (`{}`)", core_line("MTM")));
+                    return self.err(format!("`{w}` is an old spelling: write `{m}` (owner, 2026-10-07; MTM, which kept the old spellings, is gone)"));
                 }
             }
         }
@@ -397,7 +408,7 @@ impl Parser {
                 };
                 if self.lacks.iter().any(|c| c == core) {
                     self.pos = i;
-                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() } else if w == "nocheck" { "`!check`".to_string() } else { format!("`{w}`") };
+                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() } else if w == "nocheck" { "`no_check`".to_string() } else { format!("`{w}`") };
                     return self.core_missing(core, &what);
                 }
             }
@@ -422,7 +433,7 @@ impl Parser {
         if self.no_std {
             if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon) {
                 self.pos = i;
-                let what = match &self.toks.get(i + 2).map(|t| &t.tok) { Some(Tok::Word(w)) => format!("`std::{w}`"), _ => "`std::`".into() };
+                let what = match &self.toks.get(i + 2).map(|t| &t.tok) { Some(Tok::Word(w)) => format!("`stdkit::{w}`"), _ => "`stdkit::`".into() };
                 return self.std_missing(&what);
             }
         }
@@ -754,7 +765,7 @@ impl Parser {
                     d.vis = vis; d.layout_c = true;
                     prog.structs.push(d);
                 }
-                Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.ASM` block is a statement; it goes inside a body, under `!check`"),
+                Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.ASM` block is a statement; it goes inside a body, under `no_check`"),
                 Tok::Word(w) if w == "const" => { let mut c = self.const_def()?; c.vis = vis; prog.consts.push(c) }
                 Tok::Word(w) if w == "module" => {
                     let line = self.line();
@@ -912,7 +923,7 @@ impl Parser {
     fn const_def(&mut self) -> PResult<ConstDef> {
         let line = self.line();
         self.expect_word("const")?;
-        if self.is_word("mut") || self.is_word("immut") { return self.err("a `const` is neither `mut` nor `!mut`; it is a constant"); }
+        if self.is_word("mut") || self.is_word("immut") { return self.err("a `const` is neither `mut` nor `immut`; it is a constant"); }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) => return self.err(format!("a const is named like a variable, quoted: `const '{w}'`")),
@@ -953,7 +964,7 @@ impl Parser {
             Tok::Word(n) => n,
             Tok::Op(o) => o,
             Tok::Var(v) => return self.err(format!("an operator's name is bare — a word or a run of operator characters, not `'{v}'`")),
-            Tok::Arrow | Tok::LeftArrow | Tok::BothArrow => return self.err("an arrow cannot name an operator: `-->`, `->`, `>>`, `>>>`, `<--`, `<-`, `<<`, `<<<`, and `<-->`, `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>` are arrows (owner, 2026-10-06)"),
+            Tok::Arrow | Tok::LeftArrow | Tok::BothArrow => return self.err("an arrow cannot name an operator: `->`, `<-` and `<->` are arrows (owner, 2026-10-07)"),
             other => return self.err(format!("expected an operator name after `op`, found {other}")),
         };
         let gens = if self.in_interface { Vec::new() } else { self.announce("op")? };
@@ -1015,7 +1026,7 @@ impl Parser {
             let mut immut = false;
             if self.is_word("immut") { self.advance(); immut = true; }
             else if self.is_word("mut") { self.advance(); }
-            if *self.peek() == Tok::Dot { return self.err("`!mut` is a bare word before the field's name: `!mut number: int32`"); }
+            if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut number: int32`"); }
             let fname = match self.advance().tok {
                 Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword and cannot name a field")),
                 Tok::Word(w) => w,
@@ -1162,7 +1173,7 @@ impl Parser {
         if self.is_word("mut") || self.is_word("immut") || matches!(self.peek(), Tok::Var(_)) {
             // a C global (decided 2026-09-21; no `let` since 2026-09-25)
             let mutable = if self.is_word("mut") { self.advance(); true } else { false };
-            if self.is_word("immut") { return self.err("an extern variable is C's; it is read-only unless `mut`, never `!mut`"); }
+            if self.is_word("immut") { return self.err("an extern variable is C's; it is read-only unless `mut`, never `immut`"); }
             let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern.C '{w}': …`")), other => return self.err(format!("expected a quoted name, found {other}")) };
             if *self.peek() != Tok::Colon { return self.err(format!("the extern variable '{name}' needs a type; C has no inference: `extern.C '{name}': int32;`")); }
             self.advance();
@@ -1341,7 +1352,7 @@ impl Parser {
             return self.err(format!("`!{w}` is `!{fixed}` since 2026-10-06: \"not standard\", narrowed with `.`"));
         }
         if matches!(self.peek(), Tok::Op(o) if o == "!") && matches!(self.peek_at(1), Tok::Word(w) if w == "std") && *self.peek_at(2) == Tok::Dot {
-            let Tok::Word(w) = self.peek_at(3).clone() else { return self.err("`!std.` is followed by a width: `!std.int24`, `!std.uint4`") };
+            let Tok::Word(w) = self.peek_at(3).clone() else { return self.err("`not_std.` is followed by a width: `not_std.int24`, `not_std.uint4`") };
             self.toks.drain(self.pos..self.pos + 3);
             self.toks[self.pos].tok = Tok::Word(format!("!std_{w}"));
         }
@@ -1406,7 +1417,7 @@ impl Parser {
         // `std::duration` — the one std type the oracle knows (design/concurrency.md)
         if self.is_word("std") && *self.peek_at(1) == Tok::ColonColon {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
-            return self.err("the only std type the oracle knows is `std::duration`");
+            return self.err("the only stdkit type the oracle knows is `stdkit::duration`");
         }
         // another Limb's type: `geometry::Circle` (limbs.md)
         if matches!(self.peek(), Tok::Word(w) if w != "std") && *self.peek_at(1) == Tok::ColonColon {
@@ -1437,7 +1448,7 @@ impl Parser {
             match segs[0].as_str() {
                 "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no CyborgPL type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
                 "String" => return self.err("text is `str.utf8`; Rust's `String` is not an alias"),
-                "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `std::uenr` is exact rather than wider"),
+                "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `stdkit::uenr` is exact rather than wider"),
                 _ => {}
             }
         }
@@ -1651,11 +1662,11 @@ impl Parser {
                     // our spelling or Rust's (MTM's): `!std.int24` / `!std.i24`, `!std.uint4` / `!std.u4`, held inside as `!std_…`
                     let (signed, digits) = if let Some(d) = rest.strip_prefix("uint") { (false, d) } else if let Some(d) = rest.strip_prefix("int") { (true, d) }
                         else if let Some(d) = rest.strip_prefix('u') { (false, d) } else if let Some(d) = rest.strip_prefix('i') { (true, d) } else { (true, "") };
-                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `!std.int24` or `!std.uint24` (MTM's `!std.i24`, `!std.u24`)", head.replacen("!std_", "!std.", 1))) };
+                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `not_std.int24` or `not_std.uint24`", head.replacen("!std_", "not_std.", 1))) };
                     let std_name = if signed { "int" } else { "uint" };
                     if int_w(n).is_some() { return bad(self, format!("`{std_name}{n}` is standard: write `{std_name}{n}` (owner, 2026-10-03)")); }
                     // LLVM's widest integer is 2^23 bits (checked with `llvm-as`, 2026-10-03)
-                    if n > 8_388_608 { return bad(self, format!("`{}` is past the widest integer there is: LLVM's integers go up to 8388608 bits", head.replacen("!std_", "!std.", 1))); }
+                    if n > 8_388_608 { return bad(self, format!("`{}` is past the widest integer there is: LLVM's integers go up to 8388608 bits", head.replacen("!std_", "not_std.", 1))); }
                     return Ok(if signed { Ty::Int(IntWidth::Other(n)) } else { Ty::Uint(IntWidth::Other(n)) });
                 }
                 if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }
@@ -1666,7 +1677,7 @@ impl Parser {
                 if head == "brain16" { return Ok(Ty::Brain); }
                 if let Some(n) = width(head, "brain") { return bad(self, format!("no such width `brain{n}`; the brain float is `brain16` only")); }
                 if let Some(n) = width(head, "bin") {
-                    if n == 128 { return bad(self, "there is no `bin128`: quad precision has no hardware, and `std::uenr` is exact rather than merely wider".into()); }
+                    if n == 128 { return bad(self, "there is no `bin128`: quad precision has no hardware, and `stdkit::uenr` is exact rather than merely wider".into()); }
                     return if [16, 32, 64].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64")) };
                 }
                 if let Some(n) = width(head, "deci") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; deci is 32/64/128 (IEEE 754 defines only these)")) }; }
@@ -1883,9 +1894,9 @@ impl Parser {
                     self.expect(Tok::Dot, "`.ASM` after `inline` (`inline.ASM { … }`)")?;
                     match self.advance().tok {
                         // `inline.ASM`, `inline.LL`, `inline.MSL` are the main names (owner, 2026-10-07); `inline.Assembly`
-                        // and `inline.S` are MTM's ("`a`"), refused before here in a Limb without it
+                        // and `inline.S` were MTM's, refused before here as old spellings (MTM is gone, owner 2026-10-07)
                         Tok::Word(l) if l == "ASM" || l == "Assembly" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
-                        Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("an inline language's name is in capitals: `inline.ASM` (MTM's `inline.Assembly`, `inline.S`)".to_string()),
+                        Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("an inline language's name is in capitals: `inline.ASM`".to_string()),
                         Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is IEG's (owner, 2026-10-07); the oracle does not read it yet"),
                         Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal core's (owner, 2026-10-07); the oracle does not read it yet"),
                         Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
@@ -1954,7 +1965,7 @@ impl Parser {
                 }
             },
             Tok::LBrace => Ok(Stmt::Block { body: self.block()?, line }),
-            Tok::NoShadow => self.err("a declaration starts with `let`: `let !$ 'x' := …;`"),
+            Tok::NoShadow => self.err("a declaration starts with `let`: `let no_shadow 'x' := …;`"),
             Tok::Strict => self.err("`#strict` goes once, at the top of the file, before anything else"),
             Tok::Var(name) => {
                 // a declaration says `let` (owner, 2026-10-02; from 2026-09-25 to then it started with its name)
@@ -2030,11 +2041,11 @@ impl Parser {
         else if self.is_word("immut") { self.advance(); mutability = Some(Mutability::Immut); }
         if self.strict && mutability.is_none() {
             let n = match self.peek() { Tok::Var(v) => v.clone(), _ => "x".into() };
-            return self.err(format!("`#strict`: a declaration says whether it changes: `let mut '{n}' := …` or `let !mut '{n}' := …`"));
+            return self.err(format!("`#strict`: a declaration says whether it changes: `let mut '{n}' := …` or `let immut '{n}' := …`"));
         }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
-            Tok::Word(w) if w == "mut" || w == "immut" => return self.err("say `mut` or `!mut` once, before the name"),
+            Tok::Word(w) if w == "mut" || w == "immut" => return self.err("say `mut` or `immut` once, before the name"),
             Tok::Word(w) if w == "let" => return self.err("say `let` once: `let 'x' := …;`"),
             Tok::Word(w) => return self.err(format!("variable names are quoted: `'{w}'` (a type goes after the name: `'x': {w}`)")),
             other => return self.err(format!("expected a quoted variable name, found {other}")),
@@ -2194,7 +2205,7 @@ impl Parser {
         // may not replace the loop with its result or drop rounds, though it may still use SIMD or
         // cores. The strongest modifier comes first, so `!cheat` precedes `seq` / `para`. The oracle
         // runs every round of every loop already, so it only reads the word.
-        if self.is_word("!c") { return self.err("`!c` is `!cheat` now: `for !cheat 'i' in …` (owner, 2026-10-06)"); }
+        if self.is_word("!c") { return self.err("`!c` is `no_cheat` now: `for no_cheat 'i' in …` (owner, 2026-10-06)"); }
         if self.is_word("!cheat") { self.advance(); }
         let mut seq = false;
         if self.is_word("seq") { self.advance(); seq = true; }
@@ -2202,7 +2213,7 @@ impl Parser {
         // oracle runs every loop in order, one schedule of the design's, so it only reads the word
         else if self.is_word("para") { self.advance(); }
         if self.is_word("seq") || self.is_word("para") { return self.err("a `for` is `seq` or `para`, not both"); }
-        if self.is_word("!cheat") || self.is_word("!c") { return self.err("`!cheat` comes first, the strongest modifier: `for !cheat seq 'i' in …`"); }
+        if self.is_word("!cheat") || self.is_word("!c") { return self.err("`no_cheat` comes first, the strongest modifier: `for no_cheat seq 'i' in …`"); }
         let perm = match self.peek().clone() {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
@@ -2572,14 +2583,14 @@ impl Parser {
         // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
-            return self.err("`.weird` comes first, the strongest modifier: `std::print.weird.useful.stdout <- …`");
+            return self.err("`.weird` comes first, the strongest modifier: `stdkit::print.weird.useful.stdout <- …`");
         }
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.get(1).map(|s| s.as_str()) == Some("weird") {
-            if *self.peek() == Tok::LBracket { return self.err(format!("`std::{}` takes its values with arrows, not `[…]`: `std::{} <- \"text\" <- 'n' <- \\n;`", path.join("."), path.join("."))); }
+            if *self.peek() == Tok::LBracket { return self.err(format!("`stdkit::{}` takes its values with arrows, not `[…]`: `stdkit::{} <- \"text\" <- 'n' <- newln;`", path.join("."), path.join("."))); }
             let bline = self.line();
             let mut values = Vec::new();
             while *self.peek() == Tok::LeftArrow { self.advance(); values.push(self.value()?); }
-            if values.is_empty() { return self.err(format!("`std::{}` needs at least one value: `std::{} <- \"text\";`", path.join("."), path.join("."))); }
+            if values.is_empty() { return self.err(format!("`stdkit::{}` needs at least one value: `stdkit::{} <- \"text\";`", path.join("."), path.join("."))); }
             return Ok(Call { handler: None, limb, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written });
         }
         if *self.peek() != Tok::LBracket {
@@ -2621,7 +2632,7 @@ impl Parser {
         self.expect_word("ptr")?;
         self.expect(Tok::Dot, "`.` after `ptr` (`ptr.read[…]`, `ptr.write[…]`, `ptr.at[…]`, `ptr.is_null[…]`)")?;
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `ptr.`, found {other}")) };
-        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `!check 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast")) };
+        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `no_check 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast")) };
         if *self.peek() != Tok::LBracket { return self.err(format!("`ptr.{op}` is a call and needs `[…]`")); }
         match op.as_str() { "read" | "at" => self.use_power("raw_memory.read", Some(format!("ptr.{op}")), self.line()), "write" => self.use_power("raw_memory.write", Some("ptr.write".into()), self.line()), _ => {} }
         let args = self.bracket()?;
@@ -2833,7 +2844,7 @@ impl Parser {
     /// The word a retired operator symbol became (owner, 2026-10-03).
     fn old_op_error(&self, op: &str) -> PResult<Expr> {
         let now = match op { "+" => "plus", "-" => "minus", "x" => "times", "xx" => "pow", "+~" => "plus.wrap", "-~" => "minus.wrap", "x~" => "times.wrap", _ => "pow.wrap" };
-        let note = if op.starts_with("xx") { ", std's operator" } else { "" };
+        let note = if op.starts_with("xx") { ", stdkit's operator" } else { "" };
         self.err(format!("`{op}` is `{now}` now{note} (owner, 2026-10-03)"))
     }
 
@@ -3007,7 +3018,7 @@ impl Parser {
         let mut lhs = self.unary()?;
         loop {
             let Some(op) = self.binop() else { break };
-            if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `==`"); }
+            if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `equal_to`"); }
             if self.op_old.get() && !self.internal_ops { return self.old_op_error(&op); }
             if self.no_std && is_std_op(&op) { return self.std_missing(&format!("`{}`", op_shown(&op))); }
             if op == "div" || op == "mod" {
@@ -3090,7 +3101,7 @@ impl Parser {
         let line = self.line();
         if self.no_std && self.is_word("not") {
             let bit = *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bit");
-            return self.std_missing(if bit { "`not.bit`" } else { "`!`" });
+            return self.std_missing(if bit { "`not.bit`" } else { "`not`" });
         }
         if self.no_std && *self.peek() == Tok::Op("-".into()) { return self.std_missing("`-`"); }
         // `neg.ieee 'x'`: IEEE's negation, 0 becoming -0 (owner, 2026-10-07: "yea"); it binds as `-` does
@@ -3316,7 +3327,7 @@ impl Parser {
                         }
                         "length" | "len" | "count" => return self.err("a text has no single length: `str.bytes[…]`, `str.points[…]`, or `str.graphemes[…]` — say which (decided 2026-09-20)"),
                         "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" =>
-                            return self.err(format!("`str.{op}` is std's: `std::str.{op}[…]` — the language owns only the units (bytes/points/graphemes) and `each`")),
+                            return self.err(format!("`str.{op}` is stdkit's: `stdkit::str.{op}[…]` — the language owns only the units (bytes/points/graphemes) and `each`")),
                         _ => return self.err(format!("`str.{op}` does not exist; the language has str.bytes, str.points, str.graphemes, str.each.<unit>")),
                     };
                     if *self.peek() != Tok::LBracket { return self.err(format!("`str.{op}` is a call and needs `[…]`")); }

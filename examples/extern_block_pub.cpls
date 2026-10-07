@@ -6,18 +6,18 @@ bare.never [fn];
 
 module text {
     extern.C {
-        pub fn strlen ['s': ptr[uint8]] --> uint64;
-        fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
+        pub fn strlen ['s': ptr[uint8]] -> uint64;
+        fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
     }
     pub fn say [lent 'msg': str.utf8] {
-        !check let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+        no_check let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
     }
 }
 
 MAIN {
     let 'word' := "hello";
-    !check let 'n' := text.strlen[lend 'word'];
-    std::print.useful.stdout["strlen: ", 'n', \n];
-    let 'line' := "written by the wrapper" ++ \n;
+    no_check let 'n' := text.strlen[lend 'word'];
+    stdkit::print.useful.stdout["strlen: ", 'n', newln];
+    let 'line' := "written by the wrapper" ++ newln;
     text.say[lend 'line'];
 }

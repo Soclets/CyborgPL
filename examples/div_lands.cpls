@@ -2,7 +2,7 @@
 # smallest int8 divided by -1 is 128, which no int8 holds, but a print takes the true answer.
 MAIN {
     let 'a': int8 = -128;
-    std::print.useful.stdout[('a' div.trunc -1), " ", ('a' div.floor -1), " ", ('a' mod.floor -1), \n];
+    stdkit::print.useful.stdout[('a' div.trunc -1), " ", ('a' div.floor -1), " ", ('a' mod.floor -1), newln];
     let 'b': int16 = 'a' div.near -1;     # lands in an int16: fits
-    std::print.useful.stdout['b', \n];
+    stdkit::print.useful.stdout['b', newln];
 }

@@ -3,6 +3,6 @@ MAIN {
     for 'x' in lend.mut 'xs' {
         change 'x' = 'x' plus 1;
         let 'n' := list.length[lend 'xs'];
-        std::print.stored.stdout['x', \n];
+        stdkit::print.stored.stdout['x', newln];
     }
 }

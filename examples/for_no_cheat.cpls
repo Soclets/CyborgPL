@@ -1,14 +1,14 @@
-# `for !cheat` — "no cheat" (owner, 2026-10-01): every round's work really happens, so the compiler may
+# `for no_cheat` — "no cheat" (owner, 2026-10-01): every round's work really happens, so the compiler may
 # not replace the loop with its answer (here n(n+1)/2) or drop rounds; SIMD and cores are still
-# allowed. The strongest modifier comes first: `for !cheat seq`, `for !cheat para`.
+# allowed. The strongest modifier comes first: `for no_cheat seq`, `for no_cheat para`.
 MAIN {
     let mut 'acc': int64 = 0;
-    for !cheat 'i': int64 in range[1, 1000] {
+    for no_cheat 'i': int64 in range[1, 1000] {
         change 'acc' = 'acc' plus 'i';
     }
     let mut 'more': int64 = 0;
-    for !cheat seq 'i': int64 in range[1, 10] {
+    for no_cheat seq 'i': int64 in range[1, 10] {
         change 'more' = 'more' plus 'i';
     }
-    std::print.useful.auto_newline.stdout['acc', " ", 'more'];
+    stdkit::print.useful.auto_newln.stdout['acc', " ", 'more'];
 }

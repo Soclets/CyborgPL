@@ -1,23 +1,23 @@
 MAIN {
     let 'i' := 0;
     while 'i' < 3 {
-        std::print.useful.stdout["while ", 'i', \n];
+        stdkit::print.useful.stdout["while ", 'i', newln];
         change 'i' = 'i' plus 1;
     }
     let 'n' := 0;
     loop {
         change 'n' = 'n' plus 1;
-        if 'n' == 2 {
+        if 'n' equal_to 2 {
             continue;
         }
         if 'n' > 4 {
             break;
         }
-        std::print.useful.stdout["loop ", 'n', \n];
+        stdkit::print.useful.stdout["loop ", 'n', newln];
     }
     let 'chars' := [`a`, `é`, `🍎`];
     for seq 'c' in lend 'chars' {
-        std::print.stored.stdout['c', \n];
+        stdkit::print.stored.stdout['c', newln];
     }
-    std::exit[3];
+    stdkit::exit[3];
 }

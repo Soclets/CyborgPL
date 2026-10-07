@@ -1,4 +1,4 @@
-fn f [] --> int32 { return 1; }
+fn f [] -> int32 { return 1; }
 case.insensitive;
 MAIN {
     let 'a' := 1;

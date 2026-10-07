@@ -1,17 +1,17 @@
 struct Vec { x: bin64  y: bin64 }
 
-# a glyph operator: any run of  ! % & * plus minus / < > = ? @ ^ | ~
-op <+> ['a': Vec, 'b': Vec] --> Vec {
+# a glyph operator: any run of  not % & * plus minus / < > = ? @ ^ | ~
+op <+> ['a': Vec, 'b': Vec] -> Vec {
     return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y];
 }
 
 # a word operator, like times / pow / mod.floor
-op dot ['a': Vec, 'b': Vec] --> bin64 {
+op dot ['a': Vec, 'b': Vec] -> bin64 {
     return 'a'.x times 'b'.x plus 'a'.y times 'b'.y;
 }
 
 # operands are lent unless the op says give; then the caller says give too
-op ** [give 'a': Vec, 'b': bin64] --> Vec {
+op ** [give 'a': Vec, 'b': bin64] -> Vec {
     change 'a'.x = 'a'.x times 'b';
     change 'a'.y = 'a'.y times 'b';
     return give 'a';
@@ -21,10 +21,10 @@ MAIN {
     let 'u' := Vec[x = 1, y = 2];
     let 'v' := Vec[x = 3, y = 4];
     let 'w' := 'u' <+> 'v';                      # 'u' and 'v' both still here
-    std::print.useful.stdout['w'.x, " ", 'w'.y, \n];
-    std::print.useful.stdout['u' dot 'v', \n];
+    stdkit::print.useful.stdout['w'.x, " ", 'w'.y, newln];
+    stdkit::print.useful.stdout['u' dot 'v', newln];
     let 'd' := ('u' <+> 'v') dot 'v';            # custom operators have no precedence: parenthesise
-    std::print.useful.stdout['d', \n];
+    stdkit::print.useful.stdout['d', newln];
     let 's' := give 'u' ** 10;                   # 'u' is gone after this
-    std::print.useful.stdout['s'.x, " ", 's'.y, \n];
+    stdkit::print.useful.stdout['s'.x, " ", 's'.y, newln];
 }

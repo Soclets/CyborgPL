@@ -6,5 +6,5 @@ MAIN {
     for 'x' in lend.mut 'prices' {
         change 'x' = 'x' times 2;
     }
-    std::print.stored.stdout['prices', \n];
+    stdkit::print.stored.stdout['prices', newln];
 }

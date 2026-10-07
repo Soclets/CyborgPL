@@ -1,9 +1,9 @@
 bare.never [fn];
 
-pub fn hello [] --> str.utf8 {
+pub fn hello [] -> str.utf8 {
     return "mine";
 }
 
 MAIN {
-    print.useful.stdout[hello[], \n];
+    print.useful.stdout[hello[], newln];
 }

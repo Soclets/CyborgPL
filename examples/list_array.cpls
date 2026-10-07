@@ -9,5 +9,5 @@ MAIN {
     list.append[lend.mut 'm', 4];
     let mut 's': list[int32] = array.slice[lend 'a', 2, 3];   # a slice is a list, an array's too
     list.append[lend.mut 's', 9];
-    std::print.useful.stdout['a', " ", 'm', " ", 's', \n];
+    stdkit::print.useful.stdout['a', " ", 'm', " ", 's', newln];
 }

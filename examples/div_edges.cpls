@@ -6,12 +6,12 @@ MAIN {
     let 'n': bin64 = -0.00000000000000000001;
     let 'two': bin64 = 2.0;
     let 'turn': bin64 = 360.0;
-    std::print.useful.stdout[('x' div.ceil 'two'), " ", ('x' mod.ceil 'two'), " ", ('n' div.floor 'turn'), " ", ('n' mod.floor 'turn'), \n];
+    stdkit::print.useful.stdout[('x' div.ceil 'two'), " ", ('x' mod.ceil 'two'), " ", ('n' div.floor 'turn'), " ", ('n' mod.floor 'turn'), newln];
     let 'a': bin32 = -0.000001;
     let 'b': bin32 = 360.0;
-    std::print.useful.stdout[('a' mod.floor 'b'), \n];
+    stdkit::print.useful.stdout[('a' mod.floor 'b'), newln];
     let 'h': brain16 = -1.0;
     let 'k': brain16 = 360.0;
     let 'one': brain16 = 1.0;
-    std::print.useful.stdout[('h' mod.floor 'k'), " ", ('one' mod.ceil 'k'), \n];
+    stdkit::print.useful.stdout[('h' mod.floor 'k'), " ", ('one' mod.ceil 'k'), newln];
 }

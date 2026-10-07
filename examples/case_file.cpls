@@ -8,11 +8,11 @@ struct Point {
     Y: int32
 }
 
-fn Sum ['p': Point] --> int32 {
+fn Sum ['p': Point] -> int32 {
     return 'P'.x plus 'p'.y plus 'LIMIT';
 }
 
 MAIN {
     let 'pt' := POINT[x = 1, y = 2];
-    std::print.useful.stdout[SUM[copy 'PT'], " ", sum[copy 'Pt'], \n];
+    stdkit::print.useful.stdout[SUM[copy 'PT'], " ", sum[copy 'Pt'], newln];
 }

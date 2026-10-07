@@ -1,7 +1,7 @@
 # Without `@x`, a call's result borrows whatever the body may hand back, on any path (Precog reads
 # the body). This run returns 'a', but 'b' could have been returned, so giving 't' away is refused.
-fn longer [lent 'a': list[int32], lent 'b': list[int32]] --> lent list[int32] {
-    if list.length[lend 'a'] >/== list.length[lend 'b'] { return lend 'a'; }
+fn longer [lent 'a': list[int32], lent 'b': list[int32]] -> lent list[int32] {
+    if list.length[lend 'a'] at_least list.length[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
 MAIN {
@@ -9,5 +9,5 @@ MAIN {
     let 't': list[int32] = [4,];
     let 'r' := longer[lend 's', lend 't'];
     let 'g' := give 't';
-    std::print.useful.stdout[list.length[lend 'r'], \n];
+    stdkit::print.useful.stdout[list.length[lend 'r'], newln];
 }

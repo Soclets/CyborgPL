@@ -1,1 +1,1 @@
-MAIN { let 'f' := "{}"; std::print.format.stdout['f', 1]; }
+MAIN { let 'f' := "{}"; stdkit::print.format.stdout['f', 1]; }

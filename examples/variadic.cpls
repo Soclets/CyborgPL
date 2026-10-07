@@ -1,23 +1,23 @@
-fn sum [...'nums'] --> bin64 {
+fn sum [...'nums'] -> bin64 {
     let 'total': bin64 = 0;
     for 'n' in lend 'nums' { change 'total' = 'total' plus to.bin64['n']; }
     return 'total';
 }
 
-fn count_ints [...'nums': int32] --> uint64 {
+fn count_ints [...'nums': int32] -> uint64 {
     return list.length[lend 'nums'];
 }
 
 fn show [lent 'label': str.utf8, lent ...'parts'] {
-    std::print.useful.stdout['label', ": "];
-    for 'p' in lend 'parts' { std::print.useful.stdout['p', " "]; }
-    std::print.stored.stdout[\n];
+    stdkit::print.useful.stdout['label', ": "];
+    for 'p' in lend 'parts' { stdkit::print.useful.stdout['p', " "]; }
+    stdkit::print.stored.stdout[newln];
 }
 
 MAIN {
-    std::print.useful.stdout[sum[1, 2.5, 3], \n];
-    std::print.useful.stdout[sum[], \n];
-    std::print.useful.stdout[count_ints[4, 5, 6], \n];
+    stdkit::print.useful.stdout[sum[1, 2.5, 3], newln];
+    stdkit::print.useful.stdout[sum[], newln];
+    stdkit::print.useful.stdout[count_ints[4, 5, 6], newln];
     let 'name' := "Ann";
     show["mixed", lend 'name', 7, true, `x`];
     show["none"];

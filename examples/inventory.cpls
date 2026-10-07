@@ -1,7 +1,7 @@
 struct Item { name: str.utf8  grams: int32[1, 50_000] }
 
-fn heaviest [...'items': Item] --> Item or fail[none] {
-    if list.length[lend 'items'] == 0 { fail none; }
+fn heaviest [...'items': Item] -> Item or fail[none] {
+    if list.length[lend 'items'] equal_to 0 { fail none; }
     let mut 'best' := list.remove[lend.mut 'items', 1];
     for 'it' in lend 'items' {
         if 'it'.grams > 'best'.grams { change 'best' = copy 'it'; }
@@ -9,15 +9,15 @@ fn heaviest [...'items': Item] --> Item or fail[none] {
     return give 'best';
 }
 
-fn kilos ['grams': int32] --> int32 or fail[not_whole, out_of_range] {
+fn kilos ['grams': int32] -> int32 or fail[not_whole, out_of_range] {
     let 'k': bin64 = to.bin64['grams'] div.near 1000.0;
     return to.int32['k'] otherwise fail;
 }
 
-fn initial [lent 'name': str.utf8] --> char.point {
-    let 'first' := std::str.at.point[lend 'name', 1] otherwise `?`;
+fn initial [lent 'name': str.utf8] -> char.point {
+    let 'first' := stdkit::str.at.point[lend 'name', 1] otherwise `?`;
     let 'code' := char.code['first'];
-    if 'code' >/== 97 and 'code' </== 122 {
+    if 'code' at_least 97 and 'code' at_most 122 {
         return char.point.from_code['code' minus 32] otherwise `?`;
     }
     return 'first';
@@ -31,14 +31,14 @@ MAIN {
 
     let 'count' := list.length[lend 'shelf'];
     let 'left': int8 = 4 minus 'count';
-    std::print.useful.stdout['count', " items, room for ", 'left', " more", \n];
+    stdkit::print.useful.stdout['count', " items, room for ", 'left', " more", newln];
 
-    let 'top' := heaviest[...copy 'shelf'] otherwise { none { std::print.useful.stdout["empty shelf", \n]; std::exit[0]; } };
-    std::print.useful.stdout["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, \n];
+    let 'top' := heaviest[...copy 'shelf'] otherwise { none { stdkit::print.useful.stdout["empty shelf", newln]; stdkit::exit[0]; } };
+    stdkit::print.useful.stdout["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, newln];
 
     let 'kg' := kilos['top'.grams] otherwise -1;
-    std::print.useful.stdout['top'.name, " is ", 'kg', " kg", \n];
+    stdkit::print.useful.stdout['top'.name, " is ", 'kg', " kg", newln];
 
     let 'gone' := list.remove[lend.mut 'shelf', 2];
-    std::print.useful.stdout["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", \n];
+    stdkit::print.useful.stdout["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", newln];
 }

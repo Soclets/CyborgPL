@@ -1,11 +1,11 @@
-# extern.C 'x': T — a C global (decided 2026-09-21). Reading or writing it is a nocheck site.
+# extern.C 'x': T — a C global (decided 2026-09-21). Reading or writing it is a no_check site.
 extern.C 'lib_version': int32;              # C: extern int lib_version;
 extern.C mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we may write it)
 
 MAIN {
-    !check let 'v' := 'lib_version';
-    std::print.useful.stdout["version ", 'v', \n];
-    !check change 'lib_verbose' = 1;
-    !check let 'on' := 'lib_verbose';
-    std::print.useful.stdout["verbose ", 'on', \n];
+    no_check let 'v' := 'lib_version';
+    stdkit::print.useful.stdout["version ", 'v', newln];
+    no_check change 'lib_verbose' = 1;
+    no_check let 'on' := 'lib_verbose';
+    stdkit::print.useful.stdout["verbose ", 'on', newln];
 }

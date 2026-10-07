@@ -7,5 +7,5 @@ MAIN {
     let 'w': int32 = simd.sum.wrap['v'];
     let 'u': simd[int32, 4] = simd.fill[-500000000];
     let 'l': int32 = simd.sum.lane['u'];
-    std::print.useful.stdout['s', " ", 'w', " ", 'l', \n];
+    stdkit::print.useful.stdout['s', " ", 'w', " ", 'l', newln];
 }

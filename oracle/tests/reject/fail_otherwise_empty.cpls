@@ -1,4 +1,4 @@
-fn f [] --> fail[a] { fail a; }
+fn f [] -> fail[a] { fail a; }
 MAIN {
     f[] otherwise;
 }

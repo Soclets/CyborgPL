@@ -1,4 +1,4 @@
-case.insensitive pub fn Area [] --> int32 { return 1; }
+case.insensitive pub fn Area [] -> int32 { return 1; }
 MAIN {
     let 'a' := area[];
 }

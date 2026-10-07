@@ -7,17 +7,17 @@ const 'scale' := 10;
 module counter {
     pub const 'start' := 1;
     pub struct Count { n: int32 }
-    pub fn bump ['c': Count] --> Count {
+    pub fn bump ['c': Count] -> Count {
         return Count[n = 'c'.n plus step[]];
     }
-    fn step [] --> int32 { return my.'scale'; }      # private; reaches the root's const
+    fn step [] -> int32 { return my.'scale'; }      # private; reaches the root's const
     pub.limb module inner {
-        pub.limb fn twice ['n': int32] --> int32 { return 'n' times 2; }
+        pub.limb fn twice ['n': int32] -> int32 { return 'n' times 2; }
     }
 }
 
 fn show ['c': counter.Count] {
-    std::print.useful.stdout["count ", 'c'.n, \n];
+    stdkit::print.useful.stdout["count ", 'c'.n, newln];
 }
 
 MAIN {
@@ -25,5 +25,5 @@ MAIN {
     show[copy 'c'];
     let 'd' := counter.bump[give 'c'];
     show[copy 'd'];
-    std::print.useful.stdout[counter.inner.twice['d'.n], \n];
+    stdkit::print.useful.stdout[counter.inner.twice['d'.n], newln];
 }

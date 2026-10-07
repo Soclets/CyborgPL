@@ -1,4 +1,4 @@
-fn true [] --> int32 {
+fn true [] -> int32 {
     return 1;
 }
 MAIN {

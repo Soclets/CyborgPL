@@ -1,6 +1,6 @@
-# The short arrows still work: `->` and `<-` are other spellings of the main `-->` and `<--`
+# The short arrows still work: `->` and `<-` are other spellings of the main `->` and `<-`
 # (owner, 2026-10-03: "Long arrow is main in CyborgPL").
 fn double ['n': int32] -> int32 { return 'n' times 2; }
 MAIN {
-    std::print.weird.useful.stdout <- double[3] <- \n;
+    stdkit::print.weird.useful.stdout <- double[3] <- newln;
 }

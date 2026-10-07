@@ -11,11 +11,11 @@ enum Light {
     dark
 }
 
-fn ready [] --> bool {
+fn ready [] -> bool {
     return true;
 }
 
-fn origin [] --> Point {
+fn origin [] -> Point {
     return Point[x = 0, y = 0];
 }
 
@@ -32,11 +32,11 @@ MAIN {
 }
 
 # a fixed array and a text literal are Signatar's too (owner, 2026-10-06)
-fn greeting [] --> str.utf8 {
+fn greeting [] -> str.utf8 {
     return "hi";
 }
 
-fn three [] --> array[int32] {
+fn three [] -> array[int32] {
     return [1, 2, 3,];
 }
 

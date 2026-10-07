@@ -1,4 +1,4 @@
 MAIN {
     let 'z' := 0;
-    !check let 'q' := 1 div.floor 'z';
+    no_check let 'q' := 1 div.floor 'z';
 }

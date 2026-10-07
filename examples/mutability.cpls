@@ -1,4 +1,4 @@
-fn twice [!mut 'n': int32] --> int32 {
+fn twice [immut 'n': int32] -> int32 {
     return 'n' times 2;
 }
 
@@ -7,6 +7,6 @@ MAIN {
     change 'plain' = 'plain' plus 1;
     let mut 'counter' := 0;
     change 'counter' = 'counter' plus 1;
-    let !mut 'limit': int32 = 10;
-    std::print.useful.stdout['plain', " ", 'counter', " ", 'limit', " ", twice['limit'], \n];
+    let immut 'limit': int32 = 10;
+    stdkit::print.useful.stdout['plain', " ", 'counter', " ", 'limit', " ", twice['limit'], newln];
 }

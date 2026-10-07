@@ -1,11 +1,11 @@
 # Functions as values (design/functions-as-values.md, 2026-09-21).
 struct Locker { number: int32  owner: str.utf8 }
 
-fn by_number [lent 'a': Locker, lent 'b': Locker] --> bool { return 'a'.number < 'b'.number; }
-fn by_owner  [lent 'a': Locker, lent 'b': Locker] --> bool { return str.bytes[lend 'a'.owner] < str.bytes[lend 'b'.owner]; }
+fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { return 'a'.number < 'b'.number; }
+fn by_owner  [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[lend 'a'.owner] < str.bytes[lend 'b'.owner]; }
 
 # a function that takes a function: the type is the signature without the names
-fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] --> bool] --> str.utf8 {
+fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> str.utf8 {
     let 'best' := 1;
     for 'i' in range[2, list.length[lend 'xs']] {
         if 'less'[lend 'xs'['i'], lend 'xs'['best']] { change 'best' = 'i'; }
@@ -14,7 +14,7 @@ fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] --> b
     return copy 'winner'.owner;
 }
 
-fn keep [lent 'xs': list[int32], 'test': fn[int32] --> bool] --> list[int32] {
+fn keep [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> list[int32] {
     let 'out': list[int32] = [];
     for 'x' in lend 'xs' { if 'test'['x'] { list.append[lend.mut 'out', 'x']; } }
     return give 'out';
@@ -22,17 +22,17 @@ fn keep [lent 'xs': list[int32], 'test': fn[int32] --> bool] --> list[int32] {
 
 MAIN {
     let 'lockers' := [Locker[number = 7, owner = "Cy"], Locker[number = 2, owner = "Ann"], Locker[number = 5, owner = "Bo"]];
-    std::print.stored.stdout[first_by[lend 'lockers', by_number], \n];          # a named function, as a value: its bare name
-    std::print.stored.stdout[first_by[lend 'lockers', by_owner], \n];
+    stdkit::print.stored.stdout[first_by[lend 'lockers', by_number], newln];          # a named function, as a value: its bare name
+    stdkit::print.stored.stdout[first_by[lend 'lockers', by_owner], newln];
 
     let 'f' := by_number;                                                 # held in a variable
-    std::print.useful.stdout['f'[lend 'lockers'[1], lend 'lockers'[2]], \n];   # called: 'f'[…]
+    stdkit::print.useful.stdout['f'[lend 'lockers'[1], lend 'lockers'[2]], newln];   # called: 'f'[…]
 
     let 'limit' := 60;
     let 'scores' := [72, 40, 95, 55];
-    let 'passing' := keep[lend 'scores', fn ['s': int32] --> bool with [lend 'limit'] { return 's' >/== 'limit'; }];
-    std::print.useful.stdout['passing', \n];
+    let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' at_least 'limit'; }];
+    stdkit::print.useful.stdout['passing', newln];
 
-    let 'evens' := keep[lend 'scores', fn ['s': int32] --> bool { return ('s' mod.floor 2) == 0; }];   # captures nothing
-    std::print.useful.stdout['evens', \n];
+    let 'evens' := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) equal_to 0; }];   # captures nothing
+    stdkit::print.useful.stdout['evens', newln];
 }

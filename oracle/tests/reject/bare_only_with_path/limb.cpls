@@ -1,3 +1,3 @@
 MAIN {
-    print.useful.stdout[greet::wave[], \n];
+    print.useful.stdout[greet::wave[], newln];
 }

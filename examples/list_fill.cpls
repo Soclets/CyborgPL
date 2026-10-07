@@ -3,10 +3,10 @@
 MAIN {
     let mut 'scores' := list.fill[0, 5];
     change 'scores'[2] = 7;
-    std::print.stored.stdout['scores', \n];
+    stdkit::print.stored.stdout['scores', newln];
     let 'n': int64 = 3;
     let 'flags': list[bool] = list.fill[false, 'n'];
-    std::print.stored.stdout['flags', " ", list.length[lend 'flags'], \n];
+    stdkit::print.stored.stdout['flags', " ", list.length[lend 'flags'], newln];
     let 'none': list[int32] = list.fill[1, 0];
-    std::print.stored.stdout[list.length[lend 'none'], \n];
+    stdkit::print.stored.stdout[list.length[lend 'none'], newln];
 }

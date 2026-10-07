@@ -2,15 +2,15 @@
 
 bare.never [fn, struct];
 
-pub fn min_int8 [] --> int8 {
+pub fn min_int8 [] -> int8 {
     return 128;
 }
 
-pub fn all_ones [] --> uint8 {
+pub fn all_ones [] -> uint8 {
     return 255;
 }
 
-pub fn wide [] --> int16 {
+pub fn wide [] -> int16 {
     let 'x': int16 = 40000;
     return 'x';
 }
@@ -20,21 +20,21 @@ pub struct Pair {
     hi: int8
 }
 
-fn echo ['v': int8] --> int8 {
+fn echo ['v': int8] -> int8 {
     return 'v';
 }
 
-pub fn through_an_argument [] --> int8 {
+pub fn through_an_argument [] -> int8 {
     return echo[200];
 }
 
-pub fn after_a_change [] --> int8 {
+pub fn after_a_change [] -> int8 {
     let mut 'x': int8 = 1;
     change 'x' = 255;
     return 'x';
 }
 
-pub fn in_a_struct [] --> Pair {
+pub fn in_a_struct [] -> Pair {
     return Pair[lo = 255, hi = 255];
 }
 

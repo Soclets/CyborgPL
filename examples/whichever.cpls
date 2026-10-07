@@ -1,6 +1,6 @@
 # whichever, timers, structured tasks, a task that fails (design/concurrency.md, 2026-09-22).
-fn fetch [lent 'url': str.utf8] --> str.utf8 or fail[no_network] {
-    if 'url' == "down.com" { fail no_network; }
+fn fetch [lent 'url': str.utf8] -> str.utf8 or fail[no_network] {
+    if 'url' equal_to "down.com" { fail no_network; }
     return "page of " ++ 'url';
 }
 
@@ -9,22 +9,22 @@ MAIN {
     let 'shutdown' := channel[bool];
     concur with [lend 'inbox'] { channel.send[lend 'inbox', "first"]; channel.send[lend 'inbox', "second"]; }
     concur with [lend 'shutdown'] { channel.send[lend 'shutdown', true]; }
-    let 'deadline' := std::time.after[5 seconds];
+    let 'deadline' := stdkit::time.after[5 seconds];
     for 'i' in range[1, 4] {
         whichever {
-            'msg' from lend 'inbox'    { std::print.useful.stdout["got ", 'msg', \n]; }
-            'why' from lend 'shutdown' { std::print.useful.stdout["shutdown", \n]; }
-            'now' from lend 'deadline' { std::print.useful.stdout["timed out after ", 'now', \n]; }
-        } otherwise { closed { std::print.useful.stdout["all closed", \n]; } };
+            'msg' from lend 'inbox'    { stdkit::print.useful.stdout["got ", 'msg', newln]; }
+            'why' from lend 'shutdown' { stdkit::print.useful.stdout["shutdown", newln]; }
+            'now' from lend 'deadline' { stdkit::print.useful.stdout["timed out after ", 'now', newln]; }
+        } otherwise { closed { stdkit::print.useful.stdout["all closed", newln]; } };
     }
     {
-        concur { std::print.useful.stdout["task in a block", \n]; }
-        std::print.useful.stdout["block body", \n];
+        concur { stdkit::print.useful.stdout["task in a block", newln]; }
+        stdkit::print.useful.stdout["block body", newln];
     }
-    std::print.useful.stdout["after the block", \n];
+    stdkit::print.useful.stdout["after the block", newln];
     concur with [lend 'inbox'] { let 'p' := fetch["down.com"] otherwise fail; channel.send[lend 'inbox', give 'p']; }
-        otherwise { no_network { std::print.useful.stdout["offline", \n]; } };
-    let 'tick' := std::time.every[1 second];
+        otherwise { no_network { stdkit::print.useful.stdout["offline", newln]; } };
+    let 'tick' := stdkit::time.every[1 second];
     let 't' := channel.take[lend 'tick'] otherwise 0 seconds;
-    std::print.useful.stdout["tick ", 't', \n];
+    stdkit::print.useful.stdout["tick ", 't', newln];
 }

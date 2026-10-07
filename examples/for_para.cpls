@@ -7,7 +7,7 @@ MAIN {
         change 'total' = 'total' plus 'x';
     }
     for seq 'x' in lend 'xs' {
-        std::print.stored.stdout['x', " "];
+        stdkit::print.stored.stdout['x', " "];
     }
-    std::print.stored.stdout['total', \n];
+    stdkit::print.stored.stdout['total', newln];
 }

@@ -4,19 +4,19 @@
 MAIN {
     let 't': deci64 = 7.50;
     let 'm': deci64 = -7.50;
-    std::print.stored.stdout['t' mod.floor 2, " ", 'm' mod.floor 2, " ", 't' mod.floor -2, \n];
+    stdkit::print.stored.stdout['t' mod.floor 2, " ", 'm' mod.floor 2, " ", 't' mod.floor -2, newln];
     let 'r': deci64 = 1.05;
-    std::print.stored.stdout['r' pow 10, " ", 'r' pow 0, " ", 'r' pow -1, \n];
+    stdkit::print.stored.stdout['r' pow 10, " ", 'r' pow 0, " ", 'r' pow -1, newln];
     let 'r2': deci128 = 1.05;
-    std::print.stored.stdout['r2' pow 10, \n];
+    stdkit::print.stored.stdout['r2' pow 10, newln];
     let 'n': int32 = 3;
-    std::print.stored.stdout['r' pow 'n', \n];
+    stdkit::print.stored.stdout['r' pow 'n', newln];
     let 'x': deci64 = 3.141592653589793;
     let 'y' := to.deci32['x'] otherwise 0;
     let 'z': deci64 = 2.50;
     let 'zz' := to.deci32['z'] otherwise 0;
-    std::print.stored.stdout['y', " ", 'zz', \n];
+    stdkit::print.stored.stdout['y', " ", 'zz', newln];
     let 'disc': deci64[0.0, 1.0] = 0.15;
     let 'p' := to.deci64[0.0, 1.0]["1.5"] otherwise 'disc';
-    std::print.stored.stdout['disc', " ", 'p', \n];
+    stdkit::print.stored.stdout['disc', " ", 'p', newln];
 }

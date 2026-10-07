@@ -1,19 +1,19 @@
-# std::print.format — the formatting print (decided 2026-09-22; `{}` holes since 2026-10-01).
+# stdkit::print.format — the formatting print (decided 2026-09-22; `{}` holes since 2026-10-01).
 # `{}` takes the next value in its readable form; `{1}`, `{2}`… a numbered one (counted from 1, never
 # mixed with `{}`); `:` adds a shape: fill and alignment `< ^ >`, `+`, `0` padding, a width, `.places`,
 # and a kind — times X o b (bases), e (scientific), ? (the stored form). The format text has its own
-# escapes, read in one pass: \n \t \\ \" \{ \} and the rest. `%` is plain text.
+# escapes, read in one pass: newln \t \\ \" \{ \} and the rest. `%` is plain text.
 MAIN {
     let 'name' := "rope";
     let 'count' := 3;
     let 'price': bin64 = 12.5;
     let 'pay': deci64 = 37.5 times 12.40;
     let 'tenth': bin64 = 0.1;
-    std::print.format.stdout["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
-    std::print.format.stdout["pay ${:.2}, readable {}, stored {:?}\n", 'pay', 'pay', 'pay'];
-    std::print.format.stdout["tenth {} is really {:?}\n", 'tenth', 'tenth'];
-    std::print.format.stdout["0x{:x} 0x{:04X} 0o{:o} 0b{:08b}\n", 255, 255, 8, 10];
-    std::print.format.stdout["[{:>6}] [{:<6}] [{:*^7}] [{:+}] [{:05}] {:.2e}\n", 42, 42, "ab", 5, 42, 'price'];
-    std::print.format.stdout["{2} vs {1}, and {2} wins\n", "a", "b"];
-    std::print.format.stdout["\{ \"count\": {} \} in C:\\temp, tab[\t]\n", 'count'];
+    stdkit::print.format.stdout["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
+    stdkit::print.format.stdout["pay ${:.2}, readable {}, stored {:?}\n", 'pay', 'pay', 'pay'];
+    stdkit::print.format.stdout["tenth {} is really {:?}\n", 'tenth', 'tenth'];
+    stdkit::print.format.stdout["0x{:x} 0x{:04X} 0o{:o} 0b{:08b}\n", 255, 255, 8, 10];
+    stdkit::print.format.stdout["[{:>6}] [{:<6}] [{:*^7}] [{:+}] [{:05}] {:.2e}\n", 42, 42, "ab", 5, 42, 'price'];
+    stdkit::print.format.stdout["{2} vs {1}, and {2} wins\n", "a", "b"];
+    stdkit::print.format.stdout["\{ \"count\": {} \} in C:\\temp, tab[\t]\n", 'count'];
 }

@@ -1,13 +1,13 @@
 MAIN {
     let 'x': bin64 = 0.1;
-    std::print.stored.stdout['x', \n];
-    std::print.useful.stdout['x', \n];
+    stdkit::print.stored.stdout['x', newln];
+    stdkit::print.useful.stdout['x', newln];
     let 'y': bin16 = 1000;
-    std::print.useful.stdout['y', \n];
+    stdkit::print.useful.stdout['y', newln];
     let 'big' := 1_000_000 times 1_000_000;
-    std::print.stored.stdout['big', \n];
+    stdkit::print.stored.stdout['big', newln];
     let 's' := "x is " ++ to.stored.str.utf8['x'];
-    std::print.stored.stdout['s', \n];
-    std::print.useful.stdout['s', \n];
-    std::print.useful.stdout["x is ", 'x', \n];
+    stdkit::print.stored.stdout['s', newln];
+    stdkit::print.useful.stdout['s', newln];
+    stdkit::print.useful.stdout["x is ", 'x', newln];
 }

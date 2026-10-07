@@ -12,12 +12,12 @@ case.sensitive struct Exact {
     n: int32
 }
 
-fn Describe ['m': Mood] --> str.utf8 {
+fn Describe ['m': Mood] -> str.utf8 {
     return match 'M' { Happy { "happy" } Grumpy { "grumpy" } };
 }
 
 MAIN {
     let 'Count' := 2;
     let 'e' := Exact[n = 'COUNT'];
-    std::print.useful.stdout[describe[MOOD.Happy], " ", DESCRIBE[mood.Grumpy], " ", 'e'.n, " ", 'count', \n];
+    stdkit::print.useful.stdout[describe[MOOD.Happy], " ", DESCRIBE[mood.Grumpy], " ", 'e'.n, " ", 'count', newln];
 }

@@ -8,5 +8,5 @@ MAIN {
     let 'e' := 5; #2ld this line and two more down
     let 'f' := 6;
     let 'g' := 7;
-    std::print.useful.stdout['a', " ", 'e', \n];
+    stdkit::print.useful.stdout['a', " ", 'e', newln];
 }

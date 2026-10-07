@@ -3,24 +3,24 @@
 # The oracle's target is aarch64-macos.
 
 on.target.os windows {
-    fn where [] --> str.utf8 { return "windows"; }
+    fn where [] -> str.utf8 { return "windows"; }
 } else {
-    fn where [] --> str.utf8 { return "not windows"; }
+    fn where [] -> str.utf8 { return "not windows"; }
 }
 
 MAIN {
     on.target aarch64-macos {
-        std::print.useful.stdout["built for aarch64-macos", \n];
+        stdkit::print.useful.stdout["built for aarch64-macos", newln];
     } else on.target.chip x86_64 {
         let 'n': int64 = 5;
-        !check inline.ASM { neg rax } with ['n' --> rax, 'n' <-- rax];   # never compiled here: x86 assembly
+        no_check inline.ASM { neg rax } with ['n' -> rax, 'n' <- rax];   # never compiled here: x86 assembly
     } else {
-        std::print.useful.stdout["built for something else", \n];
+        stdkit::print.useful.stdout["built for something else", newln];
     }
-    on.target.chip aarch64 { std::print.useful.stdout["an ARM chip, ", where[], \n]; }
+    on.target.chip aarch64 { stdkit::print.useful.stdout["an ARM chip, ", where[], newln]; }
     on.machine.chip aarch64 {
-        std::print.useful.stdout["running on ARM", \n];
+        stdkit::print.useful.stdout["running on ARM", newln];
     } else {
-        std::print.useful.stdout["running elsewhere", \n];
+        stdkit::print.useful.stdout["running elsewhere", newln];
     }
 }

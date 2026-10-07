@@ -1,6 +1,6 @@
 #strict
 # In a strict file the count says `count` (owner, 2026-09-30).
 MAIN {
-    let !mut 'row': list[int32] = list.fill[0, count 4];
-    std::print.stored.stdout['row', \n];
+    let immut 'row': list[int32] = list.fill[0, count 4];
+    stdkit::print.stored.stdout['row', newln];
 }

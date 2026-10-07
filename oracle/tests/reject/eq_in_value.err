@@ -1,1 +1,1 @@
-equality is `==`
+`=` inside a value: assignment is a statement; equality is `equal_to`

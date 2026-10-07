@@ -1,1 +1,1 @@
-is `!mut`, so `lend.mut 'buf'`
+is `immut`, so `lend.mut 'buf'`

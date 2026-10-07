@@ -91,7 +91,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let mut who: Vec<String> = Vec::new();
         if own { who.push(format!("`my.{}` (this Limb's)", own_module.iter().filter(|m| !m.starts_with("::")).chain(written.last()).cloned().collect::<Vec<_>>().join("."))); }
-        if std { who.push(format!("`std::{shown}`")); }
+        if std { who.push(format!("`stdkit::{shown}`")); }
         for f in &prog.funcs {
             let Some(root) = f.module.first().filter(|r| r.starts_with("::")) else { continue };
             if Some(root) == mine.as_ref() || f.vis != ast::Vis::Pub || f.is_op { continue; }
@@ -105,7 +105,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     for (own, theirs, written, root) in parser::BARE_TYPE_USES.with(|u| u.borrow().clone()) {
         if prog.structs.iter().any(|d| d.name == own) || prog.enums.iter().any(|d| d.name == own) || prog.interfaces.iter().any(|d| d.name == own) {
             let _ = theirs;
-            return Err(format!("{}: `{written}` could be any of `my.{written}` (this Limb's), `{}::{written}`: write the path", path.display(), root.trim_start_matches("::")));
+            return Err(format!("{}: `{written}` could be any of `my.{written}` (this Limb's), `{}::{written}`: write the path", path.display(), match root.trim_start_matches("::") { "std" => "stdkit", r => r }));
         }
     }
     Ok(prog)
@@ -221,7 +221,7 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 
 /// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
 /// cannot load.
-const OFFICIAL_CORES: [&str; 10] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "MTM"];
+const OFFICIAL_CORES: [&str; 15] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "TAS", "AI", "WSMW", "Money", "UniTect", "CAPS"];
 
 use parser::CORE_IDS;
 
@@ -331,8 +331,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     // std is listed like any limb, by its ID and version; CCA uses the installed copy when they
                     // match (owner, 2026-10-06), and the oracle stands in for that copy
                     if d.is_std() {
-                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: std is listed twice")); }
-                        if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(format!("{shown}: line {line}: the oracle stands in for std `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or(""))); }
+                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: stdkit is listed twice")); }
+                        if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(format!("{shown}: line {line}: the oracle stands in for stdkit `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or(""))); }
                         d.what = "std".into();
                     }
                     deps.push(d);
@@ -360,6 +360,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     let id = id.ok_or_else(|| format!("{shown}: line {line}: a core needs its `id` (64 hex digits) and `version`"))?;
                     if id.len() != 64 || !id.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
                     let version = version.ok_or_else(|| format!("{shown}: line {line}: a core needs its `version`, as a registry limb does"))?;
+                    if id == parser::MTM_ID { return Err(format!("{shown}: line {line}: MTM is gone (owner, 2026-10-07): every other spelling is refused, naming the one to write; take this core out")); }
                     let Some((core, _)) = CORE_IDS.iter().find(|(_, i)| *i == id) else {
                         return Err(format!("{shown}: line {line}: the core `{}…` is not an official one; loading another core is not built yet (a Rust plugin, which the oracle cannot load)", &id[..8]));
                     };
@@ -395,11 +396,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
     // std without fucking ASP")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
-        return Err(format!("{shown}: line {mline}: std needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", parser::core_line("ASP")));
+        return Err(format!("{shown}: line {mline}: stdkit needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", parser::core_line("ASP")));
     }
     // std needs IEG too: its operators on built-in types are a power IEG grants (owner, 2026-10-06: "`a`")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "IEG") {
-        return Err(format!("{shown}: line {mline}: std needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", parser::core_line("IEG")));
+        return Err(format!("{shown}: line {mline}: stdkit needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", parser::core_line("IEG")));
     }
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
@@ -426,7 +427,8 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         if !depdir.join("CCA.cplr").is_file() { return Err(format!("{}: {} has no `CCA.cplr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
         let (Some(prefix), _, _) = read_manifest(&depdir)? else { unreachable!() };
         // a Limb may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
-        if prefix == "std" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which is the built-in `{prefix}::`; edit its 'prefix'", here_file.display(), d.what)); }
+        // `stdkit` is the built-in's name since 2026-10-07, and `std` its old one, refused in code
+        if prefix == "std" || prefix == "stdkit" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "stdkit" })); }
         if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == prefix) {
             if *p != canon { return Err(format!("{}: two Limbs have the prefix `{prefix}` ({} and {}); edit one Limb's 'prefix'", here_file.display(), p.display(), canon.display())); }
             continue;
@@ -489,7 +491,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
                 ("c_calls", Some("variables"), Some(t)) => format!("uses C's variable '{t}'"),
                 ("raw_memory", Some(n), Some(t)) => format!("{} raw memory (`{t}`)", match n { "read" => "reads", "write" => "writes", _ => "casts" }),
                 ("vouch", Some("c"), _) => "vouches with `NO_FUCKING_CHECKS`".to_string(),
-                ("vouch", _, _) => "vouches with `!check`".to_string(),
+                ("vouch", _, _) => "vouches with `no_check`".to_string(),
                 (_, _, Some(t)) => format!("defines the operator `{t}` on built-in types"),
                 _ => format!("uses `{path}`"),
             };
@@ -631,7 +633,8 @@ pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, arg
 /// names them by their words (owner, 2026-10-03: the operators are words; check claude's note).
 fn op_words(msg: &str) -> String {
     let mut m = msg.to_string();
-    for (sym, word) in [("`xx.ieee`", "`pow.ieee`"), ("`+.ieee`", "`plus.ieee`"), ("`-.ieee`", "`minus.ieee`"), ("`x.ieee`", "`times.ieee`"), ("`xx~`", "`pow.wrap`"), ("`x~`", "`times.wrap`"), ("`+~`", "`plus.wrap`"), ("`-~`", "`minus.wrap`"), ("`xx`", "`pow`"), ("`x`", "`times`"), ("`+`", "`plus`"), ("`-`", "`minus`")] {
+    // the comparisons are words too since 2026-10-07; the interpreter keeps their old symbols inside
+    for (sym, word) in [("`!==`", "`not_equal`"), ("`</==`", "`at_most`"), ("`>/==`", "`at_least`"), ("`==`", "`equal_to`"), ("`xx.ieee`", "`pow.ieee`"), ("`+.ieee`", "`plus.ieee`"), ("`-.ieee`", "`minus.ieee`"), ("`x.ieee`", "`times.ieee`"), ("`xx~`", "`pow.wrap`"), ("`x~`", "`times.wrap`"), ("`+~`", "`plus.wrap`"), ("`-~`", "`minus.wrap`"), ("`xx`", "`pow`"), ("`x`", "`times`"), ("`+`", "`plus`"), ("`-`", "`minus`")] {
         m = m.replace(sym, word);
     }
     m

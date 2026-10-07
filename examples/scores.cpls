@@ -1,8 +1,8 @@
-fn is_even ['n': int32] --> bool {
-    return ('n' mod.floor 2) == 0;
+fn is_even ['n': int32] -> bool {
+    return ('n' mod.floor 2) equal_to 0;
 }
 
-fn clamp ['n': int32, 'low': int32, 'high': int32] --> int32 {
+fn clamp ['n': int32, 'low': int32, 'high': int32] -> int32 {
     if 'n' < 'low' {
         return 'low';
     } else if 'n' > 'high' {
@@ -34,16 +34,16 @@ MAIN {
     let 'average' := 'total' div.floor 'count';
     let 'curved' := clamp['average' plus 10, 0, 100];
 
-    std::print.useful.stdout["scored ", 'count', " tests", \n];
-    std::print.useful.stdout["total ", 'total', ", best ", 'best', \n];
-    std::print.useful.stdout["even scores: ", 'evens', \n];
-    std::print.useful.stdout["average ", 'average', ", curved ", 'curved', \n];
+    stdkit::print.useful.stdout["scored ", 'count', " tests", newln];
+    stdkit::print.useful.stdout["total ", 'total', ", best ", 'best', newln];
+    stdkit::print.useful.stdout["even scores: ", 'evens', newln];
+    stdkit::print.useful.stdout["average ", 'average', ", curved ", 'curved', newln];
 
-    if 'average' >/== 90 {
-        std::print.useful.stdout["grade A", \n];
-    } else if 'average' >/== 75 {
-        std::print.useful.stdout["grade B", \n];
+    if 'average' at_least 90 {
+        stdkit::print.useful.stdout["grade A", newln];
+    } else if 'average' at_least 75 {
+        stdkit::print.useful.stdout["grade B", newln];
     } else {
-        std::print.useful.stdout["keep going", \n];
+        stdkit::print.useful.stdout["keep going", newln];
     }
 }

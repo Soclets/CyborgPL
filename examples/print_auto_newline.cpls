@@ -1,7 +1,7 @@
-# `std::print.useful.auto_newline` ends the line itself, so no `\n` is written (owner, 2026-09-30).
+# `stdkit::print.useful.auto_newln` ends the line itself, so no `newln` is written (owner, 2026-09-30).
 MAIN {
-    std::print.useful.auto_newline.stdout["Hello, World!"];
+    stdkit::print.useful.auto_newln.stdout["Hello, World!"];
     let 'n' := 3;
-    std::print.useful.auto_newline.stdout["n is ", 'n'];
-    std::print.useful.stdout["the same, by hand: ", 'n', \n];
+    stdkit::print.useful.auto_newln.stdout["n is ", 'n'];
+    stdkit::print.useful.stdout["the same, by hand: ", 'n', newln];
 }

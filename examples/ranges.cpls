@@ -1,24 +1,24 @@
 # Range types (design/input.md, 2026-09-20): a type with bounds, provably within them.
 struct Percent { value: uint8[0, 100] }
 
-fn scale ['p': Percent, 'total': int32[0, 1000]] --> int32[0, 1000] {
+fn scale ['p': Percent, 'total': int32[0, 1000]] -> int32[0, 1000] {
     return ('total' times to.int32['p'.value]) div.floor 100;
 }
 
 MAIN {
     let 'half' := Percent[value = 50];
-    std::print.useful.stdout[scale[give 'half', 800], \n];
+    stdkit::print.useful.stdout[scale[give 'half', 800], newln];
     let 'raw' := 250;
-    if 'raw' >/== 0 and 'raw' </== 100 {
+    if 'raw' at_least 0 and 'raw' at_most 100 {
         let 'ok': int32[0, 100] = 'raw';                   # the if is the guardrail; a check site
-        std::print.useful.stdout['ok', \n];
+        stdkit::print.useful.stdout['ok', newln];
     } else {
-        std::print.stored.stdout["250 is not a percentage", \n];
+        stdkit::print.stored.stdout["250 is not a percentage", newln];
     }
     let 'r' := to.uint8[0, 100]["42"] otherwise 0;          # into a range type: fails, does not check
     let 'bad' := to.uint8[0, 100]["142"] otherwise 0;
     let 'huge' := to.uint8[0, 100]["99999999999"] otherwise 0;   # not even a uint8: still out of range, not a crash
-    std::print.useful.stdout['r', " ", 'bad', " ", 'huge', \n];
+    stdkit::print.useful.stdout['r', " ", 'bad', " ", 'huge', newln];
     let 'unit': bin64[0.0, 1.0] = 0.25;
-    std::print.useful.stdout['unit', \n];
+    stdkit::print.useful.stdout['unit', newln];
 }

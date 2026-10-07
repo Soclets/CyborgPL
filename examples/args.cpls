@@ -1,24 +1,24 @@
 # Command-line arguments, as C hands them over (owner, 2026-09-29: "low-level shit, decided"): MAIN may
 # take 'argc' and 'argv', the program's name first, each word NUL-ended, a null pointer after the last.
-# Reading them is C's world, so it is nocheck; a friendly list will be written in CyborgPL on top.
+# Reading them is C's world, so it is no_check; a friendly list will be written in CyborgPL on top.
 # examples/args.args holds the words the test passes: apples, 3, hello world.
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    std::print.stored.stdout["argc = ", 'argc', \n];
+    stdkit::print.stored.stdout["argc = ", 'argc', newln];
     let mut 'i': int32 = 1;
     while 'i' < 'argc' {
-        !check let 'word' := ptr.read[ptr.at['argv', 'i']];
+        no_check let 'word' := ptr.read[ptr.at['argv', 'i']];
         let mut 'k': int32 = 0;
         let mut 'bytes': list[uint8] = [];
         loop {
-            !check let 'b' := ptr.read[ptr.at['word', 'k']];
-            if 'b' == 0 { break; }
+            no_check let 'b' := ptr.read[ptr.at['word', 'k']];
+            if 'b' equal_to 0 { break; }
             list.append[lend.mut 'bytes', 'b'];
             change 'k' = 'k' plus 1;
         }
         let 'text' := to.str.utf8['bytes'] otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
-        std::print.stored.stdout["argument ", 'i', ": ", 'text', \n];
+        stdkit::print.stored.stdout["argument ", 'i', ": ", 'text', newln];
         change 'i' = 'i' plus 1;
     }
-    !check let 'end' := ptr.read[ptr.at['argv', 'argc']];
-    std::print.stored.stdout["argv[argc] is null: ", ptr.is_null['end'], \n];
+    no_check let 'end' := ptr.read[ptr.at['argv', 'argc']];
+    stdkit::print.stored.stdout["argv[argc] is null: ", ptr.is_null['end'], newln];
 }

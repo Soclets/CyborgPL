@@ -1,16 +1,16 @@
-# The brain float (owner, 2026-10-02): `brain16`, also `bfloat16` and `bf16`. bin32's range in 16 bits,
+# The brain float (owner, 2026-10-02): `brain16`. bin32's range in 16 bits,
 # with 7 bits of precision; its own family; each operation rounds to the nearest brain16.
 MAIN {
     let 'a': brain16 = 0.1;                     # a literal rounds to the nearest: 0.10009765625
-    let 'b': bfloat16 = 0.2;
-    let 'c': bf16 = 'a' plus 'b';                  # all three names are one type
-    std::print.stored.stdout['a', " ", 'c', \n];       # what is stored
-    std::print.useful.stdout['a', " ", 'c', \n];  # the shortest text that rounds back to it
+    let 'b': brain16 = 0.2;
+    let 'c': brain16 = 'a' plus 'b';
+    stdkit::print.stored.stdout['a', " ", 'c', newln];       # what is stored
+    stdkit::print.useful.stdout['a', " ", 'c', newln];  # the shortest text that rounds back to it
     let 'x': bin64 = 300.7;
     let 'w' := to.brain16['x'];                 # into it rounds: 300 (7 bits)
     let 'back' := to.bin32['w'];                # out of it into a bin32 is exact
     let 'n' := to.int32['w'] otherwise -1;      # whole, so it converts
-    std::print.useful.stdout['w', " ", 'back', " ", 'n', \n];
+    stdkit::print.useful.stdout['w', " ", 'back', " ", 'n', newln];
     let 'xs': list[brain16] = [0.5, 1.5, 2.5];
-    std::print.format.stdout["{} {:.2} {:?}\n", 'xs', 'a', 'a'];
+    stdkit::print.format.stdout["{} {:.2} {:?}\n", 'xs', 'a', 'a'];
 }

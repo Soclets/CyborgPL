@@ -1,7 +1,7 @@
-# `-->` is another spelling of `-->`, wherever `-->` goes, and `<--` of `<--` (owner, 2026-10-03).
-fn double ['n': int32] --> int32 { return 'n' times 2; }
-fn apply ['v': int32, 'f': fn[int32] --> int32] --> int32 { return 'f'['v']; }
+# `->` is another spelling of `->`, wherever `->` goes, and `<-` of `<-` (owner, 2026-10-03).
+fn double ['n': int32] -> int32 { return 'n' times 2; }
+fn apply ['v': int32, 'f': fn[int32] -> int32] -> int32 { return 'f'['v']; }
 MAIN {
-    std::print.useful.stdout[double[4], " ", apply[5, double], \n];
-    std::print.weird.useful.stdout <-- "weird: " <-- double[2] <-- \n;
+    stdkit::print.useful.stdout[double[4], " ", apply[5, double], newln];
+    stdkit::print.weird.useful.stdout <- "weird: " <- double[2] <- newln;
 }

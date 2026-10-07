@@ -2,11 +2,11 @@
 # matches `é`. Names beyond English come from WSTN, which a file with no CCA.cplr has.
 case.insensitive [fn, var];
 
-fn Größe [] --> int32 {
+fn Größe [] -> int32 {
     return 7;
 }
 
 MAIN {
     let 'Café' := GRÖSSE[];
-    std::print.useful.stdout[größe[], " ", 'CAFÉ', " ", 'café', \n];
+    stdkit::print.useful.stdout[größe[], " ", 'CAFÉ', " ", 'café', newln];
 }

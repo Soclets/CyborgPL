@@ -1,7 +1,7 @@
 MAIN {
-    std::print.useful.stdout[(2 pow (3 pow 2)), \n];
-    std::print.useful.stdout[((2 pow 3) pow 2), \n];
+    stdkit::print.useful.stdout[(2 pow (3 pow 2)), newln];
+    stdkit::print.useful.stdout[((2 pow 3) pow 2), newln];
     let 'kilo' := 2 pow 10;
-    std::print.useful.stdout['kilo', \n];
-    std::print.useful.stdout[(10 minus 3 minus 2), \n];
+    stdkit::print.useful.stdout['kilo', newln];
+    stdkit::print.useful.stdout[(10 minus 3 minus 2), newln];
 }

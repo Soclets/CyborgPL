@@ -8,5 +8,5 @@ MAIN {
     let 'y' := to.int64['d' times 1000] otherwise -2;
     let 'z' := to.int64['small'] otherwise -3;
     let 'w' := to.int32['d'] otherwise 99;
-    std::print.stored.stdout['x', " ", 'y', " ", 'z', " ", 'w', \n];
+    stdkit::print.stored.stdout['x', " ", 'y', " ", 'z', " ", 'w', newln];
 }

@@ -1,8 +1,8 @@
 struct User { name: str.utf8 }
-op == ['a': User, 'b': User] --> bool { return std::str.lower[lend 'a'.name] == std::str.lower[lend 'b'.name]; }
-fn hash [lent 'v': User] --> uint64 {
-    let 'first' := std::str.at.point[lend 'v'.name, 1] otherwise `?`;
-    return char.code['first'];          # case-sensitive: "Ann" and "ann" hash differently, but == says equal
+op equal_to ['a': User, 'b': User] -> bool { return stdkit::str.lower[lend 'a'.name] equal_to stdkit::str.lower[lend 'b'.name]; }
+fn hash [lent 'v': User] -> uint64 {
+    let 'first' := stdkit::str.at.point[lend 'v'.name, 1] otherwise `?`;
+    return char.code['first'];          # case-sensitive: "Ann" and "ann" hash differently, but equal_to says equal
 }
 MAIN {
     let mut 'users': map[User, int32] = map.empty;

@@ -1,4 +1,4 @@
-fn f [] --> int32 or fail[a] { fail a; }
+fn f [] -> int32 or fail[a] { fail a; }
 MAIN {
-    let 'x' := f[] otherwise { a { std::exit[1]; } z { std::exit[1]; } };
+    let 'x' := f[] otherwise { a { stdkit::exit[1]; } z { stdkit::exit[1]; } };
 }

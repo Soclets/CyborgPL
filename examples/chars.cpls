@@ -1,19 +1,19 @@
 # char conversions (decided 2026-09-21): code by name, text ↔ char and unit ↔ unit as failing conversions.
 MAIN {
     let 'a' := `A`;
-    std::print.useful.stdout[char.code['a'], \n];                        # 65 — the number under it
+    stdkit::print.useful.stdout[char.code['a'], newln];                        # 65 — the number under it
     let 'seven' := to.int32[to.str.utf8[`7`]] otherwise -1;        # 7 — a digit's value is a text parse
-    std::print.useful.stdout['seven', \n];
+    stdkit::print.useful.stdout['seven', newln];
     let 'b' := char.point.from_code[66] otherwise `?`;
     let 'bad' := char.point.from_code[1_114_112] otherwise `?`;    # past the last code point: not_a_char
-    std::print.useful.stdout['b', 'bad', \n];                            # B?
+    stdkit::print.useful.stdout['b', 'bad', newln];                            # B?
     let 'one' := to.char.point["Z"] otherwise `?`;                 # text of exactly one point
     let 'two' := to.char.point["ZZ"] otherwise `?`;                # not_one_char
-    std::print.useful.stdout['one', 'two', \n];                          # Z?
+    stdkit::print.useful.stdout['one', 'two', newln];                          # Z?
     let 'g': char.grapheme = `é`;
     let 'p' := to.char.point['g'] otherwise `?`;                   # this é is one point: fine
     let 'y' := to.char.byte['p'] otherwise `?`;                    # é is two bytes: not_one_byte
-    std::print.useful.stdout['p', 'y', \n];                              # é?
+    stdkit::print.useful.stdout['p', 'y', newln];                              # é?
     let 'up' := to.char.grapheme[`x`];                             # up never loses anything: no otherwise
-    std::print.useful.stdout[to.str.utf8['up'] ++ "!", \n];               # x!
+    stdkit::print.useful.stdout[to.str.utf8['up'] ++ "!", newln];               # x!
 }

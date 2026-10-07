@@ -3,7 +3,7 @@
 # ARM. Plain `div.trunc` gives the true 128, checked where it lands. `mod` never overflows: no `.wrap`.
 MAIN {
     let 'a': int8 = -128;
-    std::print.useful.stdout[('a' div.trunc.wrap -1), " ", ('a' div.floor.wrap -1), " ", ('a' div.trunc -1), \n];
+    stdkit::print.useful.stdout[('a' div.trunc.wrap -1), " ", ('a' div.floor.wrap -1), " ", ('a' div.trunc -1), newln];
     let 'm': int128 = -170141183460469231731687303715884105728;
-    std::print.useful.stdout[('m' div.trunc.wrap -1), " ", ('m' div.near.wrap 2), \n];
+    stdkit::print.useful.stdout[('m' div.trunc.wrap -1), " ", ('m' div.near.wrap 2), newln];
 }

@@ -1,33 +1,33 @@
 # `...'xs'` at a call: unpack a list into the variadic part (decided 2026-09-21).
 # Only where the list's length is known — a literal, a `list[T][lo, hi]`, a bundle.
 
-fn sum [...'nums': int32] --> int32 {
+fn sum [...'nums': int32] -> int32 {
     let mut 'total' := 0;
     for 'n' in lend 'nums' { change 'total' = 'total' plus 'n'; }
     return 'total';
 }
 
 fn show [lent 'label': str.utf8, lent ...'parts'] {
-    std::print.useful.stdout['label', ":"];
-    for 'p' in lend 'parts' { std::print.useful.stdout[" ", 'p']; }
-    std::print.stored.stdout[\n];
+    stdkit::print.useful.stdout['label', ":"];
+    for 'p' in lend 'parts' { stdkit::print.useful.stdout[" ", 'p']; }
+    stdkit::print.stored.stdout[newln];
 }
 
 fn shout [lent ...'parts'] { show["loud", ...'parts']; }      # a bundle passed on: its count is known
 
-fn keep [...'names': str.utf8] --> uint64 { return list.length[lend 'names']; }   # takes ownership of each
+fn keep [...'names': str.utf8] -> uint64 { return list.length[lend 'names']; }   # takes ownership of each
 
 MAIN {
     let 'xs' := [1, 2, 3];
-    std::print.useful.stdout[sum[...'xs'], \n];                   # same as sum[1, 2, 3]
-    std::print.useful.stdout[sum[10, ...'xs', 20], \n];           # mixed with hand-typed values
+    stdkit::print.useful.stdout[sum[...'xs'], newln];                   # same as sum[1, 2, 3]
+    stdkit::print.useful.stdout[sum[10, ...'xs', 20], newln];           # mixed with hand-typed values
     let mut 'ys': list[int32][0, 4] = list.empty;
     list.append[lend.mut 'ys', 7];
     list.append[lend.mut 'ys', 8];
-    std::print.useful.stdout[sum[...'ys'], \n];                   # bounded: at most four
+    stdkit::print.useful.stdout[sum[...'ys'], newln];                   # bounded: at most four
     let 'words' := ["a", "b"];
     show["letters", ...'words'];                            # no verb: the elements are lent
     shout[1, true];
-    std::print.useful.stdout[keep[...copy 'words'], " kept, ", 'words', " still here", \n];
-    std::print.useful.stdout[keep[...give 'words'], " kept, ", 'words', " left", \n];
+    stdkit::print.useful.stdout[keep[...copy 'words'], " kept, ", 'words', " still here", newln];
+    stdkit::print.useful.stdout[keep[...give 'words'], " kept, ", 'words', " left", newln];
 }

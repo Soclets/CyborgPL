@@ -1,0 +1,3 @@
+MAIN {
+    for !cheat 'i' in range[from 1, to 2, by 1] { }
+}

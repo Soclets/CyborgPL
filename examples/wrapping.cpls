@@ -1,6 +1,6 @@
 # Wrapping arithmetic (decided 2026-09-20): plus.wrap minus.wrap times.wrap pow.wrap are always defined — modulo the
-# type's size — so a hash needs no nocheck. Plain plus minus times pow stay overflow-checked.
-fn hash [lent 'text': str.utf8] --> uint32 {
+# type's size — so a hash needs no no_check. Plain plus minus times pow stay overflow-checked.
+fn hash [lent 'text': str.utf8] -> uint32 {
     let 'h': uint32 = 2_166_136_261;                 # FNV-1a
     for 'b' in str.each.byte[lend 'text'] {
         change 'h' = 'h' xor 'b';                          # FNV-1a: xor, then a wrapping multiply
@@ -10,14 +10,14 @@ fn hash [lent 'text': str.utf8] --> uint32 {
 }
 
 MAIN {
-    std::print.useful.stdout[hash["hello"], \n];
+    stdkit::print.useful.stdout[hash["hello"], newln];
     let 'c': uint8 = 250;
     change 'c' = 'c' plus.wrap 10;                                # 260 wraps to 4
-    std::print.useful.stdout['c', \n];
+    stdkit::print.useful.stdout['c', newln];
     let 'i': int8 = 127;
     change 'i' = 'i' plus.wrap 1;                                 # 128 wraps to -128
-    std::print.useful.stdout['i', \n];
+    stdkit::print.useful.stdout['i', newln];
     let 'p': uint16 = 3;
     change 'p' = 'p' pow.wrap 20;                               # 3^20 modulo 65536
-    std::print.useful.stdout['p', \n];
+    stdkit::print.useful.stdout['p', newln];
 }

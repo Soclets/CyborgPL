@@ -9,7 +9,7 @@ struct Locker {
     status: Status
 }
 
-fn describe [lent 'l': Locker] --> str.utf8 {
+fn describe [lent 'l': Locker] -> str.utf8 {
     match 'l'.status {
         empty         { return "free"; }
         claimed 'who' { return "taken by " ++ 'who'; }
@@ -24,10 +24,10 @@ MAIN {
         Locker[number = 3, status = Status.locked]
     ];
     for 'l' in lend 'lockers' {
-        std::print.useful.stdout["#", 'l'.number, ": ", describe[lend 'l'], \n];
+        stdkit::print.useful.stdout["#", 'l'.number, ": ", describe[lend 'l'], newln];
     }
     let 's' := Status.locked;
-    if 's' == Status.locked { std::print.stored.stdout["== works on a case", \n]; }
+    if 's' equal_to Status.locked { stdkit::print.stored.stdout["== works on a case", newln]; }
     let 't' := Status.claimed["Bo"];
-    std::print.stored.stdout['t', \n];
+    stdkit::print.stored.stdout['t', newln];
 }

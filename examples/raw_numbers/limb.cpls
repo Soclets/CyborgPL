@@ -1,11 +1,11 @@
 # The Limb `raw` has no ASP, so its literals land as bit patterns; this one has ASP, so they are values.
 
 MAIN {
-    std::print.useful.stdout[raw::min_int8[], \n];             # 128 in an int8: -128's bits
-    std::print.useful.stdout[raw::all_ones[], \n];             # 255 in a uint8
-    std::print.useful.stdout[raw::wide[], \n];                 # 40000 in an int16: -25536's bits
-    std::print.useful.stdout[raw::through_an_argument[], \n];  # 200 as an int8 argument: -56
-    std::print.useful.stdout[raw::after_a_change[], \n];       # 255 changed into an int8: -1
+    stdkit::print.useful.stdout[raw::min_int8[], newln];             # 128 in an int8: -128's bits
+    stdkit::print.useful.stdout[raw::all_ones[], newln];             # 255 in a uint8
+    stdkit::print.useful.stdout[raw::wide[], newln];                 # 40000 in an int16: -25536's bits
+    stdkit::print.useful.stdout[raw::through_an_argument[], newln];  # 200 as an int8 argument: -56
+    stdkit::print.useful.stdout[raw::after_a_change[], newln];       # 255 changed into an int8: -1
     let 'p' := raw::in_a_struct[];
-    std::print.useful.stdout['p'.lo, " ", 'p'.hi, \n];         # 255 and -1
+    stdkit::print.useful.stdout['p'.lo, " ", 'p'.hi, newln];         # 255 and -1
 }
