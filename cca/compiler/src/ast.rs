@@ -249,6 +249,9 @@ impl BinOp {
     pub fn is_comparison(&self) -> bool {
         matches!(self, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge)
     }
+    pub fn is_shift(&self) -> bool {
+        matches!(self, BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked)
+    }
     pub fn is_bitwise(&self) -> bool {
         matches!(self, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked)
     }

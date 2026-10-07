@@ -971,6 +971,11 @@ impl Checker {
                     let ty = self.wrap_size(op, op_span, &[&l, &r])?;
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
                 }
+                // A shift still waiting for its width shares this one's.
+                if self.width_pending(&lt) || self.width_pending(&rt) {
+                    let (l, r, ty) = self.numeric_pair(ctx, l, r, op, op_span)?;
+                    return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
+                }
                 // The width is the left operand's declared type.
                 match lt.base() {
                     Ty::Int(IntW::Fixed { .. }) => {}
@@ -1019,6 +1024,14 @@ impl Checker {
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Str(enc), span })
             }
             BinOp::Eq | BinOp::Ne => {
+                let (mut l, mut r, mut lt) = (l, r, lt);
+                if rt.is_int() && !matches!(rt.base(), Ty::Int(IntW::Free(_))) {
+                    self.bare_group_exact(&mut l);
+                    lt = self.resolve(&l.ty);
+                }
+                if lt.is_int() && !matches!(lt.base(), Ty::Int(IntW::Free(_))) {
+                    self.bare_group_exact(&mut r);
+                }
                 let r = self.expect_operand(ctx, r, &lt, op, op_span)?;
                 if matches!(lt.base(), Ty::Fn(_) | Ty::Ptr { .. } | Ty::Channel(_)) {
                     return err(Diagnostic::error(format!("`==` has no meaning for {}", crate::types::a_type(&self.spell(&lt)))).at(op_span));
@@ -1033,6 +1046,14 @@ impl Checker {
                 if pending(self, &lt) || pending(self, &rt) {
                     let (l, r, _) = self.numeric_pair(ctx, l, r, op, op_span)?;
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span });
+                }
+                let (mut l, mut r, mut lt) = (l, r, lt);
+                if rt.is_int() && !matches!(rt.base(), Ty::Int(IntW::Free(_))) {
+                    self.bare_group_exact(&mut l);
+                    lt = self.resolve(&l.ty);
+                }
+                if lt.is_int() && !matches!(lt.base(), Ty::Int(IntW::Free(_))) {
+                    self.bare_group_exact(&mut r);
                 }
                 if lt.is_text() {
                     return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is std's — compare lengths or use a std function", op.spelled())).at(op_span));
@@ -1054,6 +1075,17 @@ impl Checker {
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
             }
             BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::AndBitWrap | BinOp::OrBitWrap | BinOp::XorWrap | BinOp::Shl | BinOp::Shr | BinOp::ShlMasked | BinOp::ShrMasked => {
+                let (mut l, mut r) = (l, r);
+                // A count is a count, exact or not; a group beside an
+                // exact answer is worked exactly too.
+                if op.is_shift() {
+                    self.bare_group_exact(&mut r);
+                } else if lt.is_exact() {
+                    self.bare_group_exact(&mut r);
+                } else if rt.is_exact() {
+                    self.bare_group_exact(&mut l);
+                }
+                let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
                 if !lt.is_int() || !rt.is_int() {
                     let bad = if !lt.is_int() { &lt } else { &rt };
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(bad)))).at(op_span));
@@ -1080,6 +1112,10 @@ impl Checker {
                 }
                 if lt.is_exact() || rt.is_exact() {
                     let ty = match (lt.is_exact(), rt.is_exact()) {
+                        // A group of bare numbers has no typed operands: the
+                        // other side's width decides.
+                        (true, true) if literal_only(&r) => self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?,
+                        (true, true) if literal_only(&l) => self.size_of_values(&r).ok_or_else(|| self.open_size(op, op_span))?,
                         (true, true) => {
                             let a = self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?;
                             let b = self.size_of_values(&r).ok_or_else(|| self.open_size(op, op_span))?;
@@ -2966,6 +3002,15 @@ impl Checker {
         }
         let mut useful = form == Some(true);
         let mut v = self.expr(ctx, operand)?;
+        // A conversion is not context (`operators.md`): a shift inside it
+        // still waiting for its width has none.
+        if self.width_pending(&self.resolve(&v.ty)) {
+            let t = self.resolve(&v.ty);
+            let what = self.widths_pending.iter().find(|(p, _, _)| self.resolve(p) == t).map(|(_, at, w)| (w.clone(), *at));
+            if let Some((w, at)) = what {
+                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: a conversion takes its value as it is, so the shifted number needs a type (`to.int64[…] shr …`)", w)).at(at));
+            }
+        }
         // Bare numbers alone are worked out exactly, whatever is between
         // them: `to.uint64[0 / ((2 / 10047273927188643194) + 1)]` divides by
         // 1. Held at `int64`, the big one read as negative (seed 371).
@@ -3931,6 +3976,26 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
 
 /// Every leaf a literal, every node arithmetic.
 impl Checker {
+    /// A group of bare numbers (not one literal) worked exactly, as wide as
+    /// its own values need, where nothing else gives it a width: beside an
+    /// exact answer, as a shift's count, in a comparison (check claude,
+    /// seeds 27222, 27256, 27536). Left untyped it took 64 signed bits.
+    fn bare_group_exact(&self, e: &mut Expr) {
+        let t = self.resolve(&e.ty);
+        // Untyped, or already exact at a limit its values pass.
+        if literal_only(e) && !matches!(e.kind, K::Int(_)) && (matches!(t.base(), Ty::Int(IntW::Free(_))) || t.is_exact()) {
+            if let Some(bits) = literal_group_bits(e) {
+                let limit = bits.max(64).max(t.exact_limit().unwrap_or(0));
+                retype_literal_arith(e, &Ty::exact_at(limit));
+            }
+        }
+    }
+
+    /// A shift still waiting for where its value goes (owner, 2026-10-07).
+    fn width_pending(&self, t: &Ty) -> bool {
+        matches!(t, Ty::Infer(_)) && self.widths_pending.iter().any(|(p, _, _)| self.resolve(p) == *t)
+    }
+
     /// Whether raw memory or unproven code here needs `!check` in front:
     /// the marking rule is IEG's, so a Limb without IEG marks nothing
     /// (owner, 2026-10-06: "yes"); a lone file has every core.
