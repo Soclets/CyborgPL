@@ -5244,7 +5244,7 @@ fn graphemes(s: &str) -> Vec<String> {
     out
 }
 
-fn grapheme_count(s: &str) -> usize {
+pub fn grapheme_count(s: &str) -> usize {
     let mut n = 0;
     let mut prev_zwj = false;
     for ch in s.chars() {

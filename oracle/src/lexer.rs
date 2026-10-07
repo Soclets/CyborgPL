@@ -102,7 +102,29 @@ pub struct LexError {
     pub msg: String,
 }
 
+/// A message's column counts graphemes, what a reader counts (owner, 2026-10-06: "our error messages
+/// are gonna be graphemes"; Signatar's rule). The lexer walks code points, so its columns are mapped
+/// here, a line at a time, with the oracle's grapheme approximation.
 pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
+    let lines: Vec<Vec<char>> = src.split('\n').map(|l| l.chars().collect()).collect();
+    let to_graphemes = |line: usize, col: usize| -> usize {
+        if col <= 1 { return col; }
+        let Some(l) = lines.get(line - 1) else { return col };
+        let before: String = l[..(col - 1).min(l.len())].iter().collect();
+        crate::interp::grapheme_count(&before) + 1
+    };
+    match lex_points(src) {
+        Ok(mut toks) => { for t in &mut toks { t.col = to_graphemes(t.line, t.col); } Ok(toks) }
+        Err(mut e) => { e.col = to_graphemes(e.line, e.col); Err(e) }
+    }
+}
+
+/// A name's characters: English letters, digits and `_`, and, for WSTN to allow (owner, 2026-10-06), any
+/// other script or emoji; Signatar refuses those in the parser, where it knows the cores.
+fn name_start(c: char) -> bool { c.is_alphabetic() || c == '_' || (!c.is_ascii() && !c.is_whitespace() && !c.is_control()) }
+fn name_char(c: char) -> bool { c.is_alphanumeric() || c == '_' || (!c.is_ascii() && !c.is_whitespace() && !c.is_control()) }
+
+fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
     let chars: Vec<char> = src.chars().collect();
     let mut toks = Vec::new();
     let mut i = 0;
@@ -232,9 +254,9 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
         }
 
         // bare words: keywords, function names, operator words, chain segments
-        if c.is_alphabetic() || c == '_' {
+        if name_start(c) {
             let mut s = String::new();
-            while i < chars.len() && (chars[i].is_alphanumeric() || chars[i] == '_') {
+            while i < chars.len() && name_char(chars[i]) {
                 s.push(chars[i]);
                 i += 1; col += 1;
             }

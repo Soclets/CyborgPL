@@ -457,7 +457,7 @@ it's actually consistent. Which is fine".
 In the oracle; `examples/chevron_arrows.cpls`, reject tests
 `op_chevron_reserved`, `asm_both_chevrons`.
 
-### 2026-10-06 — Signatar's names are English only; names in other scripts come from a core (owner; not built)
+### 2026-10-06 — Signatar's names are English only; names in other scripts come from a core (owner; built in the oracle 2026-10-07)
 
 Asked whether Signatar supports every language in its variables (the
 oracle accepted anything inside quotes, `'ไม่'`, `'😀'`; bare names took

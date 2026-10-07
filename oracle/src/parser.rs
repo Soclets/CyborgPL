@@ -359,6 +359,17 @@ impl Parser {
                 }
             }
         }
+        // Signatar's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
+        // names should be English only", "English only too, crazy ones from the core"); WSTN allows every
+        // script and emoji ("`b`"). Text values are not names.
+        if self.lacks.iter().any(|c| c == "WSTN") {
+            for i in 0..self.toks.len() {
+                let (name, shown) = match &self.toks[i].tok { Tok::Word(w) => (w, w.clone()), Tok::Var(v) => (v, format!("'{v}'")), _ => continue };
+                if name.is_ascii() { continue; }
+                self.pos = i;
+                return self.err(format!("`{shown}` is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Limb's `cores` (`{}`)", core_line("WSTN")));
+            }
+        }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
         // `NO_FUCKING_CHECKS`; Genny `interface` and `satisfies`; MCPS `concur`, `whichever`, `channel`
         // and `for para`. A word after `.` or `::` is a name in a path, not the keyword.
