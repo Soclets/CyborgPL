@@ -269,6 +269,17 @@ reason, no lone `=` inside a comparison, still holds). Offered (a)
 the owner declined. The family: **`equal_to`, `not_equal`, `<`, `>`,
 `at_most`, `at_least`** (`'i' at_most 'n'` is `'i'` ≤ `'n'`).
 
+**MTM is gone** (owner: "MTM is gone."), asked whether the replaced
+spellings (`!mut`, `!check`, `!cheat`, `!$`, `! 'x'`, `==`, `!==`, `</==`,
+`>/==`, `!std.`) move to MTM or are refused, design claude recommending
+refused. With no MTM, **every other spelling is refused**, naming the
+main one (design claude's reading): the `!` forms, the old comparisons,
+and everything MTM held (the fourteen other arrows, `&` / `&mut` / `&@`,
+Rust's number names, `bf16` / `bfloat16`, `inline.Assembly` / `inline.S` /
+`inline.LLVM…` / `inline.Metal_Shading_Language`, `nocheck`, the word
+`not` as MTM's, `!std.i24`). MTM's registry ID
+`9c6c7730…3a56` is retired.
+
 ### 2026-10-07 — Syntax revision, loops: every `range` is labelled, `range[from 1, to 4, by 1]`, `by` always written (owner: a; not built)
 
 ```
