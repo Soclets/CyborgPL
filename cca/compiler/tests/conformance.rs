@@ -27,39 +27,39 @@ fn repo() -> PathBuf {
 
 /// Load and check one file or Limb directory; `Ok(())` or the message.
 fn check(path: &Path) -> Result<(), String> {
-    let mut sources = cca::source::SourceMap::default();
-    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
-    let mut checker = cca::check::Checker::new(items);
+    let mut sources = signatar::source::SourceMap::default();
+    let items = signatar::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = true;
     checker.check_program().map(|_| ()).map_err(|d| d.render(&sources))
 }
 
 /// Check, then lower to MIR and verify the graph.
 fn lower(path: &Path) -> Result<(), String> {
-    let mut sources = cca::source::SourceMap::default();
-    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
-    let mut checker = cca::check::Checker::new(items);
+    let mut sources = signatar::source::SourceMap::default();
+    let items = signatar::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = true;
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
-    let mir = cca::mir::build::build(program);
-    cca::mir::verify::program(&mir).map_err(|p| p.join("\n"))
+    let mir = signatar::mir::build::build(program);
+    signatar::mir::verify::program(&mir).map_err(|p| p.join("\n"))
 }
 
 /// The whole pipeline, up to and including Precog.
 fn prove(path: &Path) -> Result<(), String> {
-    let mut sources = cca::source::SourceMap::default();
-    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
-    let mut checker = cca::check::Checker::new(items);
+    let mut sources = signatar::source::SourceMap::default();
+    let items = signatar::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = true;
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
-    let mut mir = cca::mir::build::build(program);
-    cca::mir::verify::program(&mir).map_err(|p| p.join("\n"))?;
-    let owned = cca::mir::ownership::check(&mut mir, &sources);
+    let mut mir = signatar::mir::build::build(program);
+    signatar::mir::verify::program(&mir).map_err(|p| p.join("\n"))?;
+    let owned = signatar::mir::ownership::check(&mut mir, &sources);
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
     }
-    let analysis = cca::precog::analyse(&mut mir);
-    let refusals = cca::precog::refusals(&analysis, &mir, &sources);
+    let analysis = signatar::precog::analyse(&mut mir);
+    let refusals = signatar::precog::refusals(&analysis, &mir, &sources);
     if refusals.is_empty() {
         Ok(())
     } else {

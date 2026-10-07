@@ -25,13 +25,48 @@ dependencies = [
 ]
 
 [[package]]
-name = "cca"
+name = "cca-base"
 version = "0.0.1"
-dependencies = [
- "inkwell",
- "llvm-sys",
- "unicode-segmentation",
-]
+
+[[package]]
+name = "cca-core-asp"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-autogpu"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-genny"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-ieg"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-mcps"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-metal"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-mtm"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-nvidia"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-vulkan"
+version = "0.0.1"
+
+[[package]]
+name = "cca-core-wstn"
+version = "0.0.1"
 
 [[package]]
 name = "cca-runtime"
@@ -131,6 +166,15 @@ name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
+
+[[package]]
+name = "signatar"
+version = "0.0.1"
+dependencies = [
+ "inkwell",
+ "llvm-sys",
+ "unicode-segmentation",
+]
 
 [[package]]
 name = "syn"

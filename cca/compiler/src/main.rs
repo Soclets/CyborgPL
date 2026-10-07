@@ -1,8 +1,8 @@
 use std::path::Path;
 use std::process::exit;
 
-use cca::diag::Diagnostic;
-use cca::source::SourceMap;
+use signatar::diag::Diagnostic;
+use signatar::source::SourceMap;
 
 fn usage() -> ! {
     eprintln!("usage: cca parse <file.cpls>…      parse only, report the first refusal");
@@ -293,7 +293,7 @@ fn prepare(rest: &[String]) {
         exit(2);
     }
     let pick = if rest.len() == 1 && rest[0] == "--all" {
-        cca::load::Pick::All
+        signatar::load::Pick::All
     } else {
         // Names, then `--prefix` and prefixes, each a comma list (owner,
         // 2026-09-30: "yea", "yea"): `cca prepare money --prefix geo2, geo3`.
@@ -304,7 +304,7 @@ fn prepare(rest: &[String]) {
         };
         let mut wanted = Vec::new();
         for n in words_list(names, "name", "cca prepare geometry, money") {
-            wanted.push(cca::load::Wanted::Name(n));
+            wanted.push(signatar::load::Wanted::Name(n));
         }
         if let Some(ps) = prefixes {
             if ps.is_empty() {
@@ -312,13 +312,13 @@ fn prepare(rest: &[String]) {
                 exit(2);
             }
             for p in words_list(ps, "prefix", "cca prepare --prefix geo2, geo3") {
-                wanted.push(cca::load::Wanted::Prefix(p));
+                wanted.push(signatar::load::Wanted::Prefix(p));
             }
         }
-        cca::load::Pick::Listed(wanted)
+        signatar::load::Pick::Listed(wanted)
     };
     let mut sources = SourceMap::default();
-    let plan = match cca::load::prepare_plan(&mut sources, Path::new(&dir), &pick) {
+    let plan = match signatar::load::prepare_plan(&mut sources, Path::new(&dir), &pick) {
         Ok(p) => p,
         Err(d) => {
             eprint!("{}", d.render(&sources));
@@ -451,27 +451,27 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         }
     };
     let mut sources = SourceMap::default();
-    let items = cca::load::load_for(path, &mut sources, cca::load::Purpose::Compile(target)).map_err(|d| d.render(&sources))?;
-    let mut checker = cca::check::Checker::new(items);
+    let items = signatar::load::load_for(path, &mut sources, signatar::load::Purpose::Compile(target)).map_err(|d| d.render(&sources))?;
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
-    let mut mir = cca::mir::build::build(program);
-    cca::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in CCA:\n  {}\n", p.join("\n  ")))?;
-    let owned = cca::mir::ownership::check(&mut mir, &sources);
+    let mut mir = signatar::mir::build::build(program);
+    signatar::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in CCA:\n  {}\n", p.join("\n  ")))?;
+    let owned = signatar::mir::ownership::check(&mut mir, &sources);
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
     }
-    let analysis = cca::precog::analyse_opts(&mut mir, !assert_proofs);
-    for n in cca::precog::notes(&analysis, &mir, &sources) {
+    let analysis = signatar::precog::analyse_opts(&mut mir, !assert_proofs);
+    for n in signatar::precog::notes(&analysis, &mir, &sources) {
         say(format!("\n{}", n));
     }
-    let refusals = cca::precog::refusals_opts(&analysis, &mir, &sources, final_build);
+    let refusals = signatar::precog::refusals_opts(&analysis, &mir, &sources, final_build);
     if !refusals.is_empty() {
         return Err(refusals.join(""));
     }
     // Parallel `for` (`parallelism.md`): a `for para` whose iterations
     // conflict is an error; the rest is decided as the loops are written.
-    let plan = cca::par::plan(&mir);
+    let plan = signatar::par::plan(&mir);
     if std::env::var("CCA_PAR").is_ok() {
         for ((fi, pre), pl) in &plan.loops {
             let f = &mir.functions[*fi];
@@ -488,18 +488,18 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     if !plan.errors.is_empty() {
         let mut s = String::new();
         for (fi, span, why) in &plan.errors {
-            let d = cca::diag::Diagnostic::error(format!("this `for para` cannot run in slices: {}", why)).at(mir.functions[*fi].span(*span));
+            let d = signatar::diag::Diagnostic::error(format!("this `for para` cannot run in slices: {}", why)).at(mir.functions[*fi].span(*span));
             s.push_str(&d.render(&sources));
         }
         return Err(s);
     }
-    let ctx = cca::codegen::inkwell::context::Context::create();
+    let ctx = signatar::codegen::inkwell::context::Context::create();
     let name = path.file_stem().unwrap().to_string_lossy().to_string();
     let test_names: Vec<String> = mir.functions.iter().filter(|f| f.is_test).map(|f| f.name.clone()).collect();
-    let lowered = cca::codegen::lower_for(&ctx, &mir, &sources, &name, assert_proofs, tests).map_err(|problems| {
+    let lowered = signatar::codegen::lower_for(&ctx, &mir, &sources, &name, assert_proofs, tests).map_err(|problems| {
         let mut s = String::new();
         for p in problems {
-            let mut d = cca::diag::Diagnostic::error(format!("not yet: {}", p.what));
+            let mut d = signatar::diag::Diagnostic::error(format!("not yet: {}", p.what));
             if let Some(sp) = p.span {
                 d = d.at(sp);
             }
@@ -512,12 +512,12 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         println!("{}", lowered.module.print_to_string().to_string());
     }
     let obj = out.with_extension("o");
-    cca::codegen::write_object(&lowered.module, &obj, emit).map_err(|e| format!("error: {}\n", e))?;
-    cca::codegen::link(&obj, out).map_err(|e| format!("error: {}\n", e))?;
+    signatar::codegen::write_object(&lowered.module, &obj, emit).map_err(|e| format!("error: {}\n", e))?;
+    signatar::codegen::link(&obj, out).map_err(|e| format!("error: {}\n", e))?;
     let _ = std::fs::remove_file(&obj);
     // `nocheck` sites carry no check: counted apart, not as "checked".
-    let proven = analysis.sites.iter().filter(|r| matches!(r.verdict, cca::mir::Verdict::Proven { .. })).count();
-    let trusted = analysis.sites.iter().filter(|r| matches!(r.verdict, cca::mir::Verdict::Trusted)).count();
+    let proven = analysis.sites.iter().filter(|r| matches!(r.verdict, signatar::mir::Verdict::Proven { .. })).count();
+    let trusted = analysis.sites.iter().filter(|r| matches!(r.verdict, signatar::mir::Verdict::Trusted)).count();
     let checked = analysis.sites.len() - proven - trusted;
     if trusted > 0 {
         say(format!("{} sites: {} proven, {} checked at run time, {} !check\n", analysis.sites.len(), proven, checked, trusted));
@@ -532,29 +532,29 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
 
 fn precog_one(path: &Path, json: bool) -> Result<(), String> {
     let mut sources = SourceMap::default();
-    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
-    let mut checker = cca::check::Checker::new(items);
+    let items = signatar::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
-    let mut mir = cca::mir::build::build(program);
-    cca::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in CCA:\n  {}\n", p.join("\n  ")))?;
-    let owned = cca::mir::ownership::check(&mut mir, &sources);
+    let mut mir = signatar::mir::build::build(program);
+    signatar::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in CCA:\n  {}\n", p.join("\n  ")))?;
+    let owned = signatar::mir::ownership::check(&mut mir, &sources);
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
     }
     if std::env::var("CCA_DROPS").is_ok() {
         eprintln!("drops: {} removed as already given away, {} left on some paths only", owned.drops_removed, owned.conditional_drops);
     }
-    let analysis = cca::precog::analyse(&mut mir);
+    let analysis = signatar::precog::analyse(&mut mir);
     if json {
-        print!("{}", cca::precog::report::render_json(&analysis, &mir, &sources));
+        print!("{}", signatar::precog::report::render_json(&analysis, &mir, &sources));
         return Ok(());
     }
-    print!("{}", cca::precog::report::render(&analysis, &mir, &sources));
-    for n in cca::precog::notes(&analysis, &mir, &sources) {
+    print!("{}", signatar::precog::report::render(&analysis, &mir, &sources));
+    for n in signatar::precog::notes(&analysis, &mir, &sources) {
         print!("\n{}", n);
     }
-    let refusals = cca::precog::refusals(&analysis, &mir, &sources);
+    let refusals = signatar::precog::refusals(&analysis, &mir, &sources);
     if !refusals.is_empty() {
         return Err(refusals.join(""));
     }
@@ -563,15 +563,15 @@ fn precog_one(path: &Path, json: bool) -> Result<(), String> {
 
 fn mir_one(path: &Path) -> Result<(), String> {
     let mut sources = SourceMap::default();
-    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
-    let mut checker = cca::check::Checker::new(items);
+    let items = signatar::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
-    let mir = cca::mir::build::build(program);
-    let problems = cca::mir::verify::program(&mir);
+    let mir = signatar::mir::build::build(program);
+    let problems = signatar::mir::verify::program(&mir);
     for (i, f) in mir.functions.iter().enumerate() {
-        println!("# f{}{}", i, if Some(cca::mir::FnIdx(i as u32)) == mir.main { "  (MAIN)" } else { "" });
-        print!("{}", cca::mir::print::function(f, &mir.items));
+        println!("# f{}{}", i, if Some(signatar::mir::FnIdx(i as u32)) == mir.main { "  (MAIN)" } else { "" });
+        print!("{}", signatar::mir::print::function(f, &mir.items));
         println!();
     }
     if let Err(problems) = problems {
@@ -585,15 +585,15 @@ fn parse_one(path: &Path) -> Result<(), String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("error: cannot read {}: {}\n", path.display(), e))?;
     let id = sources.add(path, text);
     let render = |d: Box<Diagnostic>| d.render(&sources);
-    let toks = cca::lexer::lex(id, &sources.get(id).text).map_err(render)?;
-    cca::parser::parse_file(&toks).map_err(render)?;
+    let toks = signatar::lexer::lex(id, &sources.get(id).text).map_err(render)?;
+    signatar::parser::parse_file(&toks).map_err(render)?;
     Ok(())
 }
 
 fn check_one(path: &Path) -> Result<(), String> {
     let mut sources = SourceMap::default();
-    let items = cca::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
-    let mut checker = cca::check::Checker::new(items);
+    let items = signatar::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
     checker.check_program().map_err(|d| d.render(&sources))?;
     Ok(())

@@ -7,8 +7,8 @@
 //! ranges too big for the exact path and ask whether each answer is in the
 //! set.
 
-use cca::ast::{BinOp, Round};
-use cca::mir::domain::ISet;
+use signatar::ast::{BinOp, Round};
+use signatar::mir::domain::ISet;
 
 /// Windows of each sign and across zero, wide enough that the product of
 /// two is past the exact path's cap.
@@ -151,7 +151,7 @@ fn a_bitwise_answer_is_in_the_set() {
 /// intervals, at 32 and at 64 bits, is inside what Precog says.
 #[test]
 fn a_bin_answer_is_in_the_interval() {
-    use cca::mir::domain::Domain;
+    use signatar::mir::domain::Domain;
     let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
     let mut next = move || {
         seed ^= seed << 13;
@@ -181,7 +181,7 @@ fn a_bin_answer_is_in_the_interval() {
                 if whole && bits == 32 {
                     continue;
                 }
-                let Some(Domain::Bins { lo: Some(lo), hi: Some(hi) }) = cca::precog::bin_interval(op, a, b, bits) else { continue };
+                let Some(Domain::Bins { lo: Some(lo), hi: Some(hi) }) = signatar::precog::bin_interval(op, a, b, bits) else { continue };
                 for i in 0..=8 {
                     for j in 0..=8 {
                         let x = at(a.0 + (a.1 - a.0) * i as f64 / 8.0);
@@ -190,7 +190,7 @@ fn a_bin_answer_is_in_the_interval() {
                             continue;
                         }
                         let v = if let (true, BinOp::Div(r) | BinOp::Mod(r)) = (whole, op) {
-                            let (q, m) = cca::rounding::bin_divmod(x, y, *r);
+                            let (q, m) = signatar::rounding::bin_divmod(x, y, *r);
                             if op.is_div() { q } else { m }
                         } else if bits == 32 {
                             let (x, y) = (x as f32, y as f32);

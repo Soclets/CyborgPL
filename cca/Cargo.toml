@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["compiler", "runtime"]
+members = ["base", "compiler", "runtime", "cores/*"]
 
 [profile.release]
 panic = "abort"

@@ -23,32 +23,32 @@ enum Stage {
 }
 
 fn stage(path: &Path) -> Stage {
-    let mut sources = cca::source::SourceMap::default();
-    let items = match cca::load::load(path, &mut sources) {
+    let mut sources = signatar::source::SourceMap::default();
+    let items = match signatar::load::load(path, &mut sources) {
         Ok(i) => i,
         Err(d) => return Stage::Check(d.render(&sources)),
     };
-    let mut checker = cca::check::Checker::new(items);
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = true;
     let program = match checker.check_program() {
         Ok(p) => p,
         Err(d) => return Stage::Check(d.render(&sources)),
     };
-    let mut mir = cca::mir::build::build(program);
-    if let Err(p) = cca::mir::verify::program(&mir) {
+    let mut mir = signatar::mir::build::build(program);
+    if let Err(p) = signatar::mir::verify::program(&mir) {
         return Stage::Lower(p.join("\n"));
     }
-    let owned = cca::mir::ownership::check(&mut mir, &sources);
+    let owned = signatar::mir::ownership::check(&mut mir, &sources);
     if !owned.problems.is_empty() {
         return Stage::Prove(owned.problems.join(""));
     }
-    let analysis = cca::precog::analyse(&mut mir);
-    let refusals = cca::precog::refusals(&analysis, &mir, &sources);
+    let analysis = signatar::precog::analyse(&mut mir);
+    let refusals = signatar::precog::refusals(&analysis, &mir, &sources);
     if !refusals.is_empty() {
         return Stage::Prove(refusals.join(""));
     }
-    let ctx = cca::codegen::inkwell::context::Context::create();
-    let stage = match cca::codegen::lower_opts(&ctx, &mir, &sources, "survey", false) {
+    let ctx = signatar::codegen::inkwell::context::Context::create();
+    let stage = match signatar::codegen::lower_opts(&ctx, &mir, &sources, "survey", false) {
         Ok(_) => Stage::Ok,
         Err(problems) => Stage::Codegen(problems.into_iter().map(|p| p.what).collect()),
     };

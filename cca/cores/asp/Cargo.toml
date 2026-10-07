@@ -1,0 +1,10 @@
+[package]
+name = "cca-core-asp"
+version = "0.0.1"
+edition = "2021"
+description = "ASP, an official core (design/cores.md), built into CCA; empty until its step of cca/PLUGINS.md's build order"
+publish = false
+
+[lib]
+name = "cca_core_asp"
+path = "src/lib.rs"

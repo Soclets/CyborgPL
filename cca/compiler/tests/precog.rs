@@ -11,22 +11,22 @@
 //! Every test here needs a solver. With none on the machine there is
 //! nothing to test and the test says so rather than passing quietly.
 
-use cca::mir::{Verdict, Program};
-use cca::precog::smt;
+use signatar::mir::{Verdict, Program};
+use signatar::precog::smt;
 
 fn build(src: &str) -> Program {
     let dir = std::env::temp_dir().join("cca-precog-tests");
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join(format!("t{}.cpls", hash(src)));
     std::fs::write(&path, src).unwrap();
-    let mut sources = cca::source::SourceMap::default();
-    let items = cca::load::load(&path, &mut sources).unwrap_or_else(|d| panic!("{}", d.render(&sources)));
-    let mut checker = cca::check::Checker::new(items);
+    let mut sources = signatar::source::SourceMap::default();
+    let items = signatar::load::load(&path, &mut sources).unwrap_or_else(|d| panic!("{}", d.render(&sources)));
+    let mut checker = signatar::check::Checker::new(items);
     checker.std_stubs = true;
     let program = checker.check_program().unwrap_or_else(|d| panic!("{}", d.render(&sources)));
-    let mut mir = cca::mir::build::build(program);
-    let _ = cca::mir::ownership::check(&mut mir, &sources);
-    cca::precog::analyse(&mut mir);
+    let mut mir = signatar::mir::build::build(program);
+    let _ = signatar::mir::ownership::check(&mut mir, &sources);
+    signatar::precog::analyse(&mut mir);
     mir
 }
 
@@ -75,7 +75,7 @@ fn a_query_can_always_be_satisfied_by_something() {
         let p = build(src);
         for (fi, f) in p.functions.iter().enumerate() {
             for (si, _) in f.sites.iter().enumerate() {
-                let Some(q) = smt::encode(&p, fi, cca::mir::SiteId(si as u32), &Default::default()) else { continue };
+                let Some(q) = smt::encode(&p, fi, signatar::mir::SiteId(si as u32), &Default::default()) else { continue };
                 asked += 1;
                 assert_eq!(
                     portfolio.ask_text(&q.assumptions),

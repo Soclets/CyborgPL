@@ -1,0 +1,10 @@
+[package]
+name = "cca-core-vulkan"
+version = "0.0.1"
+edition = "2021"
+description = "Vulkan, an official core (design/cores.md), built into CCA; empty until its step of cca/PLUGINS.md's build order"
+publish = false
+
+[lib]
+name = "cca_core_vulkan"
+path = "src/lib.rs"

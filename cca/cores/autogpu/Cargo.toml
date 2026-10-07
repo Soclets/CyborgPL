@@ -1,0 +1,10 @@
+[package]
+name = "cca-core-autogpu"
+version = "0.0.1"
+edition = "2021"
+description = "AutoGPU, an official core (design/cores.md), built into CCA; empty until its step of cca/PLUGINS.md's build order"
+publish = false
+
+[lib]
+name = "cca_core_autogpu"
+path = "src/lib.rs"

@@ -1,12 +1,12 @@
 [package]
-name = "cca"
+name = "signatar"
 version = "0.0.1"
 edition = "2021"
-description = "Cyborg Chassis Assembler — the CyborgPL compiler"
+description = "Signatar, the official codextra: the CyborgPL language, built into CCA (cca/PLUGINS.md)"
 publish = false
 
 [lib]
-name = "cca"
+name = "signatar"
 path = "src/lib.rs"
 
 [[bin]]
