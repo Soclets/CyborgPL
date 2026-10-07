@@ -525,8 +525,9 @@ naming one width; (b) widths with `mask128[int32]`; (c) both written.
 Design claude recommended (a). So `simd[int32, 8]` is the 256-bit vector,
 refused where the target has none or chosen by `on.machine` (design
 claude's reading); the owner's rule on widths stands for any later type.
-Not yet asked: whether SIMD stays in the base; SVE's and RISC-V's
-run-time lengths.
+**SIMD stays in the base** (owner: "`a`"), like `bin`: 128-bit
+vectors are required hardware on every ARM64 and x86-64 chip. Not yet
+asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
 
