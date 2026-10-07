@@ -101,6 +101,14 @@ the answer to it) against `.wrap` (Rust's `wrapping_shl` masks the count
 too). The owner: "Whatever's accurate, man": `.masked`. A shift with no
 width anywhere is refused for `shr` as for `shl` (design claude's,
 matching CCA). `examples/shift_masked.cpls`, reject test `shr_no_width`.
+**The shifted number must fit its width first**, as a bitwise operand
+must (check claude's question; the owner: "`a`"): `(0 minus 1) shr 0` at
+`uint32` is refused ("-1 does not fit uint32: a shifted number is taken
+at its width (`shr.masked` takes its bits instead)"), over shifting the
+exact number and checking only the answer. `.masked` takes it as its
+bits: `(0 minus 1) shr.masked 1` at `uint32` is 2147483647 (the oracle had
+shifted the negative number first, fixed the same hour). Reject test
+`shift_operand_too_wide`.
 
 ### 2026-10-07 — A bitwise operand must fit the operator's width; `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` take its bits (owner: yea)
 

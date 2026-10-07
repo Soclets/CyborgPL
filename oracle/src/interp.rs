@@ -2793,6 +2793,9 @@ impl<'p> Interp<'p> {
                 let (Value::Int(x), Value::Int(y)) = (a, b) else { return rt(line, format!("`{op}` works on integers")) };
                 let c = y.rem_euclid(bits as i128) as u32;
                 let m = 1i128 << bits;
+                // the number as its bits at the width first: an unsigned `shr` brings in zeros, a signed one
+                // copies the sign
+                let x = if matches!(t, Ty::Int(_)) { let u = x.rem_euclid(m); if u >= m / 2 { u - m } else { u } } else { x.rem_euclid(m) };
                 let v = if op == "shl.masked" { (x << c).rem_euclid(m) } else { x >> c };
                 let v = if matches!(t, Ty::Int(_)) { let u = v.rem_euclid(m); if u >= m / 2 { u - m } else { u } } else { v.rem_euclid(m) };
                 Ok((Value::Int(v), Prov::Plain))
@@ -2862,6 +2865,11 @@ impl<'p> Interp<'p> {
                             return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {op} 3;`) or write `to.uint32[1] {op} 3`"));
                         }
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
+                        // the shifted number must fit its width first, as a bitwise operand must (owner,
+                        // 2026-10-07: "`a`"); `.masked` takes its bits instead
+                        if let Some((t, (lo, hi))) = width_ty.as_ref().and_then(|t| crate::value::int_range(t).map(|r| (t, r))) {
+                            if x < lo || x > hi { return site(line, format!("{x} does not fit {}: a shifted number is taken at its width (`{op}.masked` takes its bits instead)", ty_name(t))); }
+                        }
                         // compare before narrowing: `y as u32` would wrap a huge count to a small one (seed 1125)
                         if y >= bits as i128 {
                             let what = if width_ty.is_some() { format!("{} {bits}-bit value", if bits.to_string().starts_with('8') || bits == 11 || bits == 18 { "an" } else { "a" }) } else { "a value of any width".to_string() };
