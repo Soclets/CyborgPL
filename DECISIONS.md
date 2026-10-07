@@ -224,6 +224,37 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — A slimmer base: `brain16`, non-standard integers, Unicode text and the case marks move out; `#strict` will be deprecated (owner; not built)
+
+The owner: "Let's make base CyborgPL slimmer". Design claude listed what
+a kernel needs at the bottom (integers, `bool`, structs, enums,
+functions, control flow, borrows and Precog, raw memory, `inline.ASM`,
+`on.target`, fixed arrays) and candidates to move into cores: floats,
+decimals, Unicode text, SIMD, wide integers, ranges, the case marks,
+`test fn` and `#strict`, first recommending floats and decimals out
+because Linux keeps floating point out of kernel code. The owner: "Wait,
+isn't `bin` one of the fastest types? Why is it banned in Linux?"
+Design claude: it is fast; Linux does not save the floating-point and
+SIMD registers on entering the kernel, so kernel code using them wraps
+itself in `kernel_fpu_begin()` / `kernel_fpu_end()`; "banned" was too
+strong, and it is a rule for kernels, not a reason to take floats out.
+The owner: "Won't we be adding hardware `deci` support?" (yes, on IBM
+POWER and z, if-and-when, 2026-09-29's layout ruling; software elsewhere),
+"Currently, I'm sure that we'll be removing `brain`, non standard types,
+spelling ways, and unicode out of base." Asked what "spelling ways"
+meant: "I meant `#strict`, and `case.sens...`. Also, we'll be
+deprecating `#strict`." So **out of the base, into cores: `brain16`;
+the non-standard integers (`!std.int24`, `!std.uint256`, …); Unicode text
+(`str.utf16`, `str.utf32`, `char.point`, `char.grapheme` and the Unicode
+tables; the base keeps byte text and `char.byte`); `case.insensitive` /
+`case.sensitive`; and `#strict`**, which **will be deprecated**. Design
+claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
+or hardware on POWER and z); `int128` / `uint128` stay (standard, two
+native operations each). Not asked yet: which cores they go to; what
+deprecating `#strict` means (warned now, refused later?); SIMD, ranges and
+`test fn`. The owner then: "Feeling like a syntax revision right now,
+likely not gonna be removing, but adding for clarity".
+
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
 
 With no codextras and no dialects, the owner: "But should Signatar even
