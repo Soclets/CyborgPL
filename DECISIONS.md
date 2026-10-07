@@ -477,7 +477,15 @@ only the skipping forms, design claude first leaning (c); the owner: "Why
 does the other exist?" Design claude gave 2026-09-25's reasons (the code
 does not lie, constant-time comparisons, every check reporting) and two
 more (a mask's `and` works lane by lane; a type may define `and`, never
-`and.then`), withdrew (c) and recommended (a). Design
+`and.then`), withdrew (c) and recommended (a). **The newline piece is `newln`, not `\n`** (owner: "`a`. I think it
+should change from `\n` to `newln`. If `\` means escape, `\n` could read
+as escape the letter `n` to consistent people"): plain quotes stay exact
+and `format` keeps its escapes (option (a), over (b) a word, which this
+is, and (c) C's escapes in plain quotes), and the piece outside quotes is
+**`newln`**, matching `auto_newln`: `print.useful["Hello, World!",
+newln];`, `"Hello" ++ newln`. Inside a format, `\n` stays, being format's
+own escape. Design claude's reading: `\n` outside quotes is refused naming
+`newln`; it was the only piece of its kind. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
