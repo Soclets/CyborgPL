@@ -1147,14 +1147,7 @@ impl Checker {
                         // other side's width decides.
                         (true, true) if literal_only(&r) => self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?,
                         (true, true) if literal_only(&l) => self.size_of_values(&r).ok_or_else(|| self.open_size(op, op_span))?,
-                        (true, true) => {
-                            let a = self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?;
-                            let b = self.size_of_values(&r).ok_or_else(|| self.open_size(op, op_span))?;
-                            if a != b {
-                                return Err(self.open_size(op, op_span));
-                            }
-                            a
-                        }
+                        (true, true) => self.size_of_sides(&[&l, &r]).ok_or_else(|| self.open_size(op, op_span))?,
                         (true, false) if matches!(rt.base(), Ty::Int(IntW::Fixed { .. })) => rt.base().clone(),
                         (false, true) if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) => lt.base().clone(),
                         (true, false) => self.size_of_values(&l).ok_or_else(|| self.open_size(op, op_span))?,
@@ -1201,27 +1194,65 @@ impl Checker {
     /// differ, or when there are none left to see (a `:=` name holding an
     /// exact answer) — which size then is open (asked 2026-09-23).
     fn size_of_values(&self, e: &Expr) -> Option<Ty> {
-        match self.sizes_of_values(e)?.as_slice() {
-            [one] => Some(one.clone()),
-            _ => None,
+        self.size_of_sides(&[e])
+    }
+
+    /// The one size the typed operands of all these share; with none, the
+    /// one their `simd.sum`s' lanes share.
+    fn size_of_sides(&self, sides: &[&Expr]) -> Option<Ty> {
+        let (mut typed, mut lanes) = (Vec::new(), Vec::new());
+        for e in sides {
+            let (t, l) = self.sizes_and_lanes(e)?;
+            typed.extend(t);
+            lanes.extend(l);
         }
+        let one = |v: Vec<Ty>| -> Option<Ty> {
+            let first = v.first()?.clone();
+            v.iter().all(|t| *t == first).then_some(first)
+        };
+        if typed.is_empty() { one(lanes) } else { one(typed) }
     }
 
     /// Every size among an exact answer's typed operands; `None` when one
     /// has no size to see.
     fn sizes_of_values(&self, e: &Expr) -> Option<Vec<Ty>> {
+        let (typed, lanes) = self.sizes_and_lanes(e)?;
+        let mut out: Vec<Ty> = Vec::new();
+        for s in if typed.is_empty() { lanes } else { typed } {
+            if !out.contains(&s) {
+                out.push(s);
+            }
+        }
+        Some(out)
+    }
+
+    /// The sizes of an exact answer's typed operands, and apart from them
+    /// the lanes of each `simd.sum` in it: a plain number (owner,
+    /// 2026-10-07: "b") that gives way to a typed operand and otherwise
+    /// works at its lane's type, as the oracle does (check claude, seed
+    /// 32250).
+    fn sizes_and_lanes(&self, e: &Expr) -> Option<(Vec<Ty>, Vec<Ty>)> {
         let t = self.resolve(&e.ty);
         if !t.is_exact() {
             return match t.base() {
-                Ty::Int(IntW::Fixed { .. }) => Some(vec![t.base().clone()]),
+                Ty::Int(IntW::Fixed { .. }) => Some((vec![t.base().clone()], Vec::new())),
                 _ => None,
             };
         }
         let mut sizes: Vec<Ty> = Vec::new();
-        fn walk(this: &Checker, e: &Expr, sizes: &mut Vec<Ty>) -> bool {
+        let mut lanes: Vec<Ty> = Vec::new();
+        fn walk(this: &Checker, e: &Expr, sizes: &mut Vec<Ty>, lanes: &mut Vec<Ty>) -> bool {
             let t = this.resolve(&e.ty);
             if literal_only(e) {
                 return true;
+            }
+            if let K::Call { callee: hir::Callee::Builtin(hir::Builtin::SimdSum), args, .. } = &e.kind {
+                if let Some(Arg::Value(v)) = args.first() {
+                    if let Ty::Simd { elem, .. } = this.resolve(&v.ty).base() {
+                        lanes.push(elem.base().clone());
+                        return true;
+                    }
+                }
             }
             if !t.is_exact() {
                 if let Ty::Int(IntW::Fixed { .. }) = t.base() {
@@ -1231,23 +1262,17 @@ impl Checker {
                 return false;
             }
             match &e.kind {
-                K::Binary { lhs, rhs, .. } => walk(this, lhs, sizes) && walk(this, rhs, sizes),
+                K::Binary { lhs, rhs, .. } => walk(this, lhs, sizes, lanes) && walk(this, rhs, sizes, lanes),
                 // A negative keeps its operand's size (check claude:
                 // `(-('a' minus 1)) shr 1` with an `int8` 'a').
-                K::Unary { expr, .. } => walk(this, expr, sizes),
+                K::Unary { expr, .. } => walk(this, expr, sizes, lanes),
                 _ => false,
             }
         }
-        if !walk(self, e, &mut sizes) {
+        if !walk(self, e, &mut sizes, &mut lanes) {
             return None;
         }
-        let mut out: Vec<Ty> = Vec::new();
-        for s in sizes {
-            if !out.contains(&s) {
-                out.push(s);
-            }
-        }
-        Some(out)
+        Some((sizes, lanes))
     }
 
     /// Wrapping is at one size, always written (owner, 2026-09-23: b): a
@@ -1572,7 +1597,12 @@ impl Checker {
                         IntW::Fixed { bits, .. } => *bits,
                         IntW::Free(_) => 64,
                     };
-                    let exact = Ty::exact_at(width(a).max(width(b)));
+                    // A group of bare numbers beside one is worked at the
+                    // size its own values reach, too: `((-656682024) pow
+                    // 15) mod.floor 2147483647` passes 400 bits in between
+                    // (check claude, seed 32641).
+                    let group = |e: &Expr, w: &IntW| if literal_only(e) && matches!(w, IntW::Free(_)) { exact_for(e).exact_limit().unwrap_or(64) } else { 0 };
+                    let exact = Ty::exact_at(width(a).max(width(b)).max(group(&l, a)).max(group(&r, b)));
                     if literal_only(&l) && matches!(a, IntW::Free(_)) {
                         retype_literal_arith(&mut l, &exact);
                     }
