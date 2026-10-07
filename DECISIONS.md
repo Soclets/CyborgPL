@@ -526,7 +526,19 @@ Design claude recommended (a). So `simd[int32, 8]` is the 256-bit vector,
 refused where the target has none or chosen by `on.machine` (design
 claude's reading); the owner's rule on widths stands for any later type.
 **SIMD stays in the base** (owner: "`a`"), like `bin`: 128-bit
-vectors are required hardware on every ARM64 and x86-64 chip. Not yet
+vectors are required hardware on every ARM64 and x86-64 chip. **A vector
+the target lacks is refused; a fallback is written by hand** with
+`on.target` / `on.machine` and `else` (owner: "if handwritten could
+already do auto, then handw"). Asked "should it refuse when no supported
+hardware?", the owner asked whether `otherwise` helps (no: it handles a
+call failing while running; missing hardware is known before, and the
+alternative is other code, which `on.machine … else` already gives), then
+"I think there should be a way to select fallback, or just refuse".
+Design claude offered `simd.fallback[…]` (LLVM's fastest: two narrower
+halves, or lane by lane where the chip has no SIMD), `simd.split[…]`
+(halves only) or both; asked whether the hand-written way can do what
+the automatic one would (yes: two 128-bit operations, or a plain loop, in
+the `else`), the owner chose that. So no `.fallback` or `.split`. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
