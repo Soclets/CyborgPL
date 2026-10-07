@@ -5,7 +5,7 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let mut 'x': int64 = 1;
-    !check inline.Assembly {
+    !check inline.ASM {
         mov x2, #100
         str x2, [x1]
     } with [lend.mut 'x' --> x1, clobber x2];

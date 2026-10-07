@@ -827,7 +827,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 StmtKind::Asm { text, ins, outs, lends, clobbers } => {
                     if self.inline_asm(fi, text, ins, outs, lends, clobbers, slots).is_none() {
-                        self.cannot("this `inline.Assembly` has no shape in the generated code yet", Some(f.span(s.span)));
+                        self.cannot("this `inline.ASM` has no shape in the generated code yet", Some(f.span(s.span)));
                     }
                 }
             }

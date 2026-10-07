@@ -306,11 +306,13 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    /// `inline` `.` `ASM` (or `S`) were the last three tokens: the brace opens raw text.
+    /// `inline` `.` and a language were the last three tokens: the brace
+    /// opens raw text (owner, 2026-10-07: `inline.ASM`, `inline.LL`,
+    /// `inline.MSL`, and MTM's whole names for them).
     fn after_inline_asm(&self) -> bool {
         let n = self.toks.len();
         n >= 3
-            && matches!(&self.toks[n - 1].tok, Tok::Word(w) if w == "Assembly" || w == "ASM" || w == "S")
+            && matches!(&self.toks[n - 1].tok, Tok::Word(w) if matches!(w.as_str(), "ASM" | "Assembly" | "S" | "LL" | "LLVM" | "LLVM_Intermediate_Representation" | "MSL" | "Metal_Shading_Language"))
             && self.toks[n - 2].tok == Tok::Dot
             && matches!(&self.toks[n - 3].tok, Tok::Word(w) if w == "inline")
     }

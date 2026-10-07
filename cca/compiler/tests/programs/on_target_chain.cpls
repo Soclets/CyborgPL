@@ -14,7 +14,7 @@ MAIN {
         change 'n' = 'n' plus 10;
     } else on.target.chip x86_64 {
         let 'k': int64 = 5;
-        !check inline.Assembly { neg rax } with ['k' --> rax, 'k' <-- rax];
+        !check inline.ASM { neg rax } with ['k' --> rax, 'k' <-- rax];
     } else {
         change 'n' = 'n' plus 20;
     }

@@ -25,7 +25,7 @@ arith_overflow [fnv:7eddcdfe6e78e8b0] :: the value can be outside what an `int32
 array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is an `array[int32]`
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
 asm_as_s [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.S, another name for inline.ASM, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
-asm_bare_word [fnv:f0e494d873f3e3a9] :: an inline block is `inline.Assembly { … }`
+asm_bare_word [fnv:e899c7f54b468354] :: is `inline.ASM { … }`
 asm_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
 asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
@@ -34,10 +34,10 @@ asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
 asm_long_arrows [fnv:4b6fbabf0d368c63] :: !by-design CCA compiles inline.ASM, its bindings written with the long arrows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_long_both [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_long_both_chevrons [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<<<>>>`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
-asm_lowercase [fnv:d7fd4875eda20406] :: written whole and capitalised, like `MAIN`
+asm_lowercase [fnv:3684b810cb4d2028] :: an inline language's name is in capitals: `inline.ASM`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
-asm_s_lowercase [fnv:d7fd4875eda20406] :: written whole and capitalised, like `MAIN`
-asm_signatar_unmarked [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.Assembly in a Limb without IEG, unmarked as Signatar allows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_s_lowercase [fnv:3684b810cb4d2028] :: an inline language's name is in capitals: `inline.ASM`
+asm_signatar_unmarked [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM in a Limb without IEG, unmarked as Signatar allows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
 asm_strings [fnv:c9b7ee31e6eab60e] :: not a list of strings
 asm_top_level [fnv:f8444caf9620e916] :: goes inside a body
 asm_two_long_arrows [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<---->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
@@ -288,6 +288,9 @@ grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits 
 gte [fnv:695f5e2be2fe7158] :: greater-or-equal is `>/==`
 ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
 ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
+inline_ll_not_built [fnv:e2c382ebdb39d9d5] :: `inline.LL`, LLVM IR in place, is IEG's
+inline_msl_not_built [fnv:ef3056a3ef130c95] :: `inline.MSL`, the Metal Shading Language, is the Metal core's
+mtm_inline_assembly [fnv:f342bb3bb6c4582f] :: `inline.Assembly` is MTM's spelling of `inline.ASM`: write `inline.ASM`, or add the core MTM to this Limb's `cores`
 neg_ieee_on_int [fnv:49dd57d5cf27f472] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`
 plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `plus`
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
@@ -412,7 +415,7 @@ module_type_clash [fnv:9a463632e47ae022] :: a module and a type cannot share a n
 module_uppercase [fnv:f6e5aa143a6e5454] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
 mtm_ampersand [fnv:fc61e4619e0b4e93] :: `&` is MTM's spelling of `lend` / `lent`
 mtm_immut [fnv:852b91c16d1ee629] :: `immut` is MTM's spelling of `!mut`
-mtm_inline_s [fnv:7502cafbefa124be] :: `S` is MTM's spelling of `inline.Assembly`
+mtm_inline_s [fnv:48bab24d8a3acc42] :: `inline.S` is MTM's spelling of `inline.ASM`: write `inline.ASM`, or add the core MTM to this Limb's `cores`
 mtm_nocheck [fnv:76b6d0c8816a0dc0] :: `nocheck` is MTM's spelling of `!check`
 mtm_not [fnv:ca0412c7c2cc1974] :: `not` is MTM's spelling of `!`
 mtm_rust_name [fnv:11ce9a925456223a] :: `i32` is MTM's spelling of `int32`

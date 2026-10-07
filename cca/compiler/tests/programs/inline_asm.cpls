@@ -4,7 +4,7 @@
 extern.C fn exit ['code': int32];
 extern.C fn getpid [] --> int32;
 fn trample ['n': int64] --> int64 {
-    !check inline.Assembly {
+    !check inline.ASM {
         mov x30, #0
         mov x29, #0
         add x0, x0, #1
@@ -14,13 +14,13 @@ fn trample ['n': int64] --> int64 {
 MAIN {
     let 'a': int64 = 20;
     let 'b': int64 = 2;
-    !check inline.Assembly {
+    !check inline.ASM {
         add x0, x0, x1
         mul x0, x0, x1
         mov x16, #1
         add x0, x0, x16
     } with ['a' --> x0, 'b' --> x1, 'r' <-- x0, clobber x16];
-    !check inline.Assembly {
+    !check inline.ASM {
         mov x16, #20
         svc #0x80
     } with ['pid' <-- x0, clobber x16, clobber x1];

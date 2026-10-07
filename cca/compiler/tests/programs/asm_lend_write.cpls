@@ -4,7 +4,7 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let mut 'buf': list[uint8] = [7, 8,];
-    !check inline.Assembly {
+    !check inline.ASM {
         mov w2, #42
         strb w2, [x1]
     } with [lend.mut 'buf' --> x1, clobber x2];

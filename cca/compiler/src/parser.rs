@@ -195,7 +195,13 @@ fn mtm_spelling(toks: &[Token], i: usize) -> Option<(String, String)> {
     let after = |n: usize, t: &Tok| i >= n && toks[i - n].tok == *t;
     match &toks[i].tok {
         Tok::Op(o) if o.starts_with('&') && !o.starts_with("&&") => Some((o.clone(), "lend` / `lent".into())),
-        Tok::Word(w) if after(1, &Tok::Dot) && matches!(w.as_str(), "ASM" | "S") && i >= 2 && toks[i - 2].tok == Tok::Word("inline".into()) => Some((w.clone(), "inline.Assembly".into())),
+        // The inline languages' whole names (owner, 2026-10-07: "`a`").
+        Tok::Word(w) if after(1, &Tok::Dot) && i >= 2 && toks[i - 2].tok == Tok::Word("inline".into()) => match w.as_str() {
+            "Assembly" | "S" => Some((format!("inline.{}", w), "inline.ASM".into())),
+            "LLVM_Intermediate_Representation" | "LLVM" => Some((format!("inline.{}", w), "inline.LL".into())),
+            "Metal_Shading_Language" => Some((format!("inline.{}", w), "inline.MSL".into())),
+            _ => None,
+        },
         // `!std.i24` for `!std.int24`, `!std.u24` for `!std.uint24`.
         Tok::Word(w) if after(1, &Tok::Dot) && i >= 3 && toks[i - 2].tok == Tok::Word("std".into()) && toks[i - 3].tok == Tok::Op("!".into()) && w.len() > 1 && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) && w[1..].bytes().all(|c| c.is_ascii_digit()) => {
             let (kind, bits) = w.split_at(1);
@@ -1070,7 +1076,7 @@ impl<'a> Parser<'a> {
                     self.fail(format!("`{}` goes in front of a statement inside a body, never at the top level: the tiers are never global", w))
                 }
             }
-            "inline" => self.fail("`inline.Assembly` goes inside a body, as a statement, under `!check`"),
+            "inline" => self.fail("`inline.ASM` goes inside a body, as a statement, under `!check`"),
             "var" => self.fail("`var` is gone, and a Limb's top-level value is a `const`: `const 'name' := …;`"),
             _ => {
                 // `Vec satisfies Ordered;`
@@ -2005,7 +2011,7 @@ impl<'a> Parser<'a> {
     fn block(&mut self, what: &str) -> Result<Block> {
         let start = match self.peek() {
             Tok::LBrace => self.bump().span,
-            Tok::Raw(_) => return self.fail("only `inline.Assembly` holds raw text"),
+            Tok::Raw(_) => return self.fail("only `inline.ASM` holds raw text"),
             other => return self.fail(format!("expected `{{` opening {}'s body, found {}", what, other.describe())),
         };
         let mut stmts = Vec::new();
@@ -2267,7 +2273,7 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.inline_rest()
             }
-            "asm" => self.fail("an inline block is `inline.Assembly { … }` (the language's name in capitals, like `MAIN`), under `!check`"),
+            "asm" => self.fail("an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `!check`"),
             "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
             "fn" | "struct" | "interface" | "op" => self.fail(format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
             "enum" => self.fail("an `enum` sits at the top level of a file or a module, not inside a body"),
@@ -2577,21 +2583,24 @@ impl<'a> Parser<'a> {
         self.expect(&Tok::Dot, "`.ASM` after `inline`")?;
         let lang = self.ident("the language after `inline.`")?;
         match lang.name.as_str() {
-            // `S` is another name for it (owner, 2026-10-02), as in `.s` files.
-            // The language's whole name (owner, 2026-10-06); `ASM` and `S`
-            // are MTM's.
-            "Assembly" | "ASM" | "S" => {}
-            "asm" => return self.fail_at(lang.span, "the inline language's name is written whole and capitalised, like `MAIN`, so a block is easy to spot: `inline.Assembly`"),
-            "s" => return self.fail_at(lang.span, "the inline language's name is written whole and capitalised, like `MAIN`, so a block is easy to spot: `inline.Assembly`"),
-            "C" | "c" => return self.fail_at(lang.span, "only `inline.Assembly` exists so far; `inline.C` is not decided"),
-            other => return self.fail_at(lang.span, format!("only `inline.Assembly` exists; `inline.{}` is not a language the compiler can inline", other)),
+            // `inline.ASM` (owner, 2026-10-07: "Main should now be
+            // `inline.ASM`"); `inline.Assembly` and `inline.S` are MTM's.
+            "ASM" | "Assembly" | "S" => {}
+            // IEG's and Metal's, named but not read yet.
+            "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at(lang.span, "`inline.LL`, LLVM IR in place, is IEG's, and CCA does not read it yet"),
+            "MSL" | "Metal_Shading_Language" => return self.fail_at(lang.span, "`inline.MSL`, the Metal Shading Language, is the Metal core's, and CCA does not read it yet"),
+            "asm" | "s" | "assembly" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.ASM`"),
+            "ll" | "llvm" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.LL`"),
+            "msl" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.MSL`"),
+            "C" | "c" => return self.fail_at(lang.span, "the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.C` is not decided"),
+            other => return self.fail_at(lang.span, format!("the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.{}` is not one", other)),
         }
         let text = match self.peek().clone() {
             Tok::Raw(t) => {
                 self.bump();
                 t
             }
-            Tok::LBracket => return self.fail("`inline.Assembly` holds raw assembly in braces, not a list of strings: `inline.Assembly { mov x16, #4 }`"),
+            Tok::LBracket => return self.fail("`inline.ASM` holds raw assembly in braces, not a list of strings: `inline.ASM { mov x16, #4 }`"),
             other => return self.fail(format!("expected `{{` holding the assembly, found {}", other.describe())),
         };
         let mut bindings = Vec::new();
@@ -3761,7 +3770,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Tok::Word(_) | Tok::Op(_) | Tok::Ellipsis => return self.prefix(),
-            Tok::Raw(_) => return self.fail("only `inline.Assembly` holds raw text"),
+            Tok::Raw(_) => return self.fail("only `inline.ASM` holds raw text"),
             other => return self.fail(format!("expected a value, found {}", other.describe())),
         };
         self.postfix_on(e)

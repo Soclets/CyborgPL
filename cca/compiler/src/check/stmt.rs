@@ -588,9 +588,9 @@ impl Checker {
             ast::StmtKind::Concur { detached, captures, body, otherwise } => self.concur_stmt(ctx, *detached, captures, body, otherwise.as_ref(), s.span),
             ast::StmtKind::Whichever { arms, otherwise } => self.whichever_stmt(ctx, arms, otherwise.as_ref(), s.span),
             ast::StmtKind::InlineAsm { text, bindings } => {
-                self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.Assembly`)".into(), s.span);
+                self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.ASM`)".into(), s.span);
                 if self.needs_mark(ctx) {
-                    return err(Diagnostic::error("an inline block is a !check site: nothing inside it can be proven — write `!check inline.Assembly { … }`").at(s.span));
+                    return err(Diagnostic::error("an inline block is a !check site: nothing inside it can be proven — write `!check inline.ASM { … }`").at(s.span));
                 }
                 let mut ins = Vec::new();
                 let mut outs = Vec::new();
