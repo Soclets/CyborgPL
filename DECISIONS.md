@@ -268,6 +268,13 @@ Its twin, asked: `simd.fill[value 0]` too, (a) required, recommended so
 both `fill`s read alike, or (b) `simd.fill[0]` unchanged, its one
 argument unambiguous. The owner: "`a`". So **`simd.fill[value 0]`**.
 
+**`mut` only where a variable changes, as today** (owner: "`b`"), over
+(a) `mut` or `!mut` on every declaration, as `#strict` does, and (c) (b)
+with `!mut` allowed for stress, which design claude recommended. So no
+word means it never changes, and `!mut` is not written on a
+declaration. The owner then: "I'm feeling like replacing `!` with
+characters".
+
 ### 2026-10-07 — A slimmer base: `brain16`, non-standard integers, Unicode text and the case marks move out; `#strict` will be deprecated (owner; not built)
 
 The owner: "Let's make base CyborgPL slimmer". Design claude listed what
