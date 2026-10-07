@@ -24,11 +24,30 @@ last line is written to `CCA.cplr` as
 ("decision.manifest.powers"): only the shape is checked, since cores may
 add powers; `= no` is refused. `examples/limbs/areas` written as a
 `Synthia.ttsr` syncs to its `CCA.cplr` byte for byte except `default =
-true`. `deny`'s spelling in `Synthia.ttsr` is not asked yet. Synthia also
+true`. Synthia also
 caught up with the 2026-10-07 revision (24df7d3). Separately, the key in
 `limb.<key>.id` is the manifest writer's own label (owner: "Idk, because
 doesn't the user of Synthia name that?"), so std's rename to `stdkit`
 needs no ruling there.
+
+**Then: a program takes powers away in a `[my denied powers]` section**
+(owner: "`a`", relayed by synthia claude), over (b) `deny.` lines in
+`[my needed things]`; synthia claude recommended (a), a denial being a rule
+set for others, not a need:
+
+```
+[my denied powers]
+raw_memory = yes                 # all of it
+c_calls.functions = system       # the things named
+c_calls.except = sqrt, sin       # all but these
+inline_assembly.for = fastjson   # only to that Limb, by prefix
+```
+
+written to `CCA.cplr`'s `deny`; `= no` refused. Built in Synthia (bd3dd18).
+Design claude ran the oracle on Synthia's written `CCA.cplr` for
+`examples/limbs/areas`: the multi-line `deny` with `.except["sqrt"]` parses;
+with a `MAIN` added it runs, and a function using `inline.ASM` (its powers
+listed) is refused naming the `deny`.
 
 ### 2026-10-07 — The plugin interface: compiler claude's proposal, answered question by question (owner; not built)
 
