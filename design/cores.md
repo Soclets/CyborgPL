@@ -5,7 +5,12 @@ create a language on this base. So, could we remove it, and let Signatar
 be the lowest level?", then "`a`" to a core taking powers away). Signatar
 is the language and the lowest level, and does what the base did.
 `DECISIONS.md` 2026-10-07 has it; older passages quoting the base keep
-their words.
+their words. **Later that day: Signatar *is* the base, "more like the
+JVM", and a new category, the dialect, ranks between it and cores and
+brings the syntax** (owner: "the syntax should come from a dialect");
+**the official dialect is CyborgPL**; Limbs in different dialects do not
+use each other (owner: "`b`"). Which syntax stays with cores, and where
+MTM and WSTN go, are being decided.
 
 The owner: "I was thinking of making the base lang more lower-level ... I
 wanted to move things like, plus, div, you know to std. And even more",
@@ -21,8 +26,11 @@ equivalent anyways, and other stuff". The theme was planned: a cyborg
 ## The stack
 
 ```
-Signatar    the language itself, the lowest level: reads the files, loads
-            the cores, enforces the grants, hands its LLVM IR to LLVM
+Signatar    the base, "more like the JVM": the meaning (types, ownership,
+            Precog, powers); reads the files, loads the dialect and cores,
+            enforces the grants, hands LLVM IR to LLVM
+CyborgPL    the official dialect: the syntax; may take powers away and
+            require or forbid cores (design claude's reading)
 IEG         the official core: raw operations, inline.LL, the !check labels
 ASP         numbers mean their true values; to. conversions; run-time checks
 Genny       generics and interfaces

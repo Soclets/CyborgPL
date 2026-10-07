@@ -224,6 +224,32 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — Dialects: between the base and cores, each brings the syntax; Signatar is the base, CyborgPL the official dialect; no use across dialects (owner: b)
+
+Right after there was no base, the owner: "We might wanna add a category
+above core, but below Signatar, in rank. Btw, you could just call
+Signatar as `base` or whatever". So **Signatar is the base**. Design
+claude proposed the category's authority: it limits cores and everything
+below (takes powers away, requires or forbids cores), so a game engine's
+restricted dialect lives there and outranks a core that grants what it
+takes away; adding no syntax; one per program. The owner: "It's called a
+`dialect`. I think that the syntax should come from a dialect. While
+Signatar, the base, is more like the JVM. You know?" So **a dialect
+brings the syntax**, and **Signatar, the base, holds the meaning**: types,
+ownership and borrows, Precog, powers, loading, the hand-off to LLVM.
+Asked whether Limbs in different dialects may use each other, as Kotlin
+uses Java's libraries, (a) yes, each `CCA.cplr` naming its dialect,
+recommended, or (b) no, a program is all one dialect, the owner: "`b`,
+we're not aiming for cross-compatibilty here. Because, that may make it
+less customizable. And no shit, the official dialect is CyborgPL." So
+**no use across dialects**: a program and every Limb in it are one
+dialect; **the official dialect is CyborgPL**, today's syntax. Design
+claude's reading, from its table, not separately confirmed: a dialect
+also takes powers away and requires or forbids cores, which moves the
+morning's "a core may take powers away" up to the dialect. A consequence,
+design claude's: a program in another dialect has no std unless that
+dialect brings one.
+
 ### 2026-10-07 — No base and no codextras: Signatar is the lowest level; a core may take powers away (owner: a)
 
 Asked what the base does (reads the files, loads the codextra and cores,
