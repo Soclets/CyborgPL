@@ -248,6 +248,15 @@ change. And I think it becomes too long. So, `c`"), over (a)
 `no_shadowing`, which design claude recommended for its grammar, and (b)
 `unshadowable`: `let no_shadow 'limit' := 10;`.
 
+**Comparisons become words, but `==` is `equal_to`, and `<` and `>`
+stay** (owner: "`b`, with `equal_to`, `>`, `<` (because, making `equal`
+could blend it with the reader's `=`, when they pronounce it in their
+head, or out loud)"). Design claude had offered (a) only `==` to
+`equal`, (b) every comparison a word (`equal`, `not_equal`, `less`,
+`greater`, `less_or_equal`, `greater_or_equal`), recommended, (c) `==`
+kept. So `'a' equal_to 'b'`, `'a' < 'b'`, `'a' > 'b'`. Not yet asked:
+`not_equal` or `not_equal_to`, and what `</==` and `>/==` become.
+
 ### 2026-10-07 — Syntax revision, loops: every `range` is labelled, `range[from 1, to 4, by 1]`, `by` always written (owner: a; not built)
 
 ```
