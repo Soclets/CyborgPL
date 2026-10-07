@@ -1,6 +1,5 @@
-# In a `#strict` file a case says its value with `is` (owner, 2026-09-29: b), and may do
+# A case says its value with `is` (owner, 2026-10-07; `#strict`'s `giveS` before), and may do
 # other work first.
-#strict
 enum Status { empty  claimed: str.utf8  locked }
 fn label ['s': Status] -> str.utf8 {
     let immut 'text' := match 's' {

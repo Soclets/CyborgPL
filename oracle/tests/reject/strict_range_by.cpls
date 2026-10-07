@@ -1,3 +1,0 @@
-# #strict: a range writes its step, even 1 (owner, 2026-09-27)
-#strict
-MAIN { for temp 'i': int32 in range[from 2, to 8] { } }

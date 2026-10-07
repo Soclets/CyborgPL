@@ -1,6 +1,0 @@
-#strict
-# In a strict file the count says `count` (owner, 2026-09-30).
-MAIN {
-    let immut 'row': list[int32] = list.fill[value 0, count 4];
-    stdkit::print.stored['row', newln];
-}

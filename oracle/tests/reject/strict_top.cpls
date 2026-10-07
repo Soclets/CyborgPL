@@ -1,4 +1,0 @@
-# #strict (owner, 2026-09-27): #strict goes at the top, once
-#strict
-MAIN { }
-#strict

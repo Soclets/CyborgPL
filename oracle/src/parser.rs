@@ -478,13 +478,10 @@ impl Parser {
                 if depth > 0 { return self.err("unclosed `module {`"); }
                 return Ok(());
             }
+            // `#strict` is gone (owner, 2026-10-07: "We ain't no C stability, remove it now"): what it
+            // wrote out became the language's own
             if *self.peek() == Tok::Strict {
-                let started = !(prog.funcs.is_empty() && prog.structs.is_empty() && prog.enums.is_empty() && prog.consts.is_empty() && prog.externs.is_empty() && prog.modules.is_empty() && prog.main.is_none() && prog.interfaces.is_empty());
-                if depth > 0 || started || self.strict { return self.err("`#strict` goes once, at the top of the file, before anything else"); }
-                self.advance();
-                self.strict = true;
-                prog.strict_modules.push(self.module.clone());
-                continue;
+                return self.err("`#strict` is gone (owner, 2026-10-07): its labels, `pos`, `count`, the types and `is` are every file's now; take the line out");
             }
             // `case.insensitive;` as a file's first line, `case.insensitive [fn, struct];` in `limb.cpls`
             // (owner, 2026-10-06), as the `bare` marks are; on an item it is read with the item below
@@ -780,7 +777,6 @@ impl Parser {
                     self.expect(Tok::LBrace, "`{` to open the module")?;
                     self.module.push(name);
                     prog.modules.push(ModuleDef { path: self.module.clone(), vis, line });
-                    if self.strict { prog.strict_modules.push(self.module.clone()); }
                     self.items(prog, depth + 1)?;
                     self.module.pop();
                 }
@@ -1989,7 +1985,7 @@ impl Parser {
             },
             Tok::LBrace => Ok(Stmt::Block { body: self.block()?, line }),
             Tok::NoShadow => self.err("a declaration starts with `let`: `let no_shadow 'x' := …;`"),
-            Tok::Strict => self.err("`#strict` goes once, at the top of the file, before anything else"),
+            Tok::Strict => self.err("`#strict` is gone (owner, 2026-10-07): take the line out"),
             Tok::Var(name) => {
                 // a declaration says `let` (owner, 2026-10-02; from 2026-09-25 to then it started with its name)
                 if matches!(self.peek_at(1), Tok::Walrus | Tok::ShadowWalrus | Tok::Colon | Tok::Semi) {
@@ -2062,10 +2058,6 @@ impl Parser {
         let mut mutability = None;
         if self.is_word("mut") { self.advance(); mutability = Some(Mutability::Mut); }
         else if self.is_word("immut") { self.advance(); mutability = Some(Mutability::Immut); }
-        if self.strict && mutability.is_none() {
-            let n = match self.peek() { Tok::Var(v) => v.clone(), _ => "x".into() };
-            return self.err(format!("`#strict`: a declaration says whether it changes: `let mut '{n}' := …` or `let immut '{n}' := …`"));
-        }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
             Tok::Word(w) if w == "mut" || w == "immut" => return self.err("say `mut` or `immut` once, before the name"),
@@ -2241,7 +2233,6 @@ impl Parser {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
             Tok::Word(w) if w == "seq" || w == "para" => return self.err(format!("`{w}` comes first: `for {w} perm 'x' in …`")),
-            _ if self.strict => return self.err("`#strict`: a `for` says whether its variable outlives it: `for temp 'x' in …` or `for perm 'x' in …`"),
             _ => false,
         };
         let mut name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected a quoted loop variable, found {other}")) };

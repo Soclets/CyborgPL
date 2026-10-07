@@ -1,3 +1,0 @@
-# #strict (owner, 2026-09-27): a declaration says mut or immut
-#strict
-MAIN { let 'x' := 1; }
