@@ -401,7 +401,17 @@ naming `is`; a case that only does something has none. **A returned borrow names
 a choice** (owner: "`b`"): with two or more borrowed inputs, `-> lent@x
 T` is required; with one, it is inferred, close to Rust's rule; over (a)
 always, as `#strict`, and (c) never. The owner then: "And man, we have to
-change the fn lifetime and generics syntax". Design
+change the fn lifetime and generics syntax". Shown today's (`fn max <T>: Number ['a':
+<T>, 'b': <T>] -> <T>`, `fn pick <T>: any | @x [lent@x 'xs': list[<T>]]
+-> lent@x <T>`) and offered (a) `<T: Number>` announced then bare `T`,
+recommended, (b) a `where` clause, (c) a `type` parameter, the owner:
+"`fn max [<T: Number,> ] ['a': <T>, 'b': <T>] -> <T> { … }` `<>` makes it
+look like a placeholder, which a generic could be. And that `,` was for
+more generics". So **a function's blanks are announced in their own
+bracket before the parameters, in one `< >` with commas between**, and
+**every mention keeps `<T>`**: `fn pair_up [<A: any, B: Hashable>] ['a':
+<A>, 'b': <B>] -> Pair[<A>, <B>]`. Not yet asked: where lifetime groups
+go; whether structs, enums and interfaces announce the same way. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
