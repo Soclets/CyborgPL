@@ -4256,8 +4256,9 @@ impl<'p> Interp<'p> {
     fn custom_op(&mut self, op: &str, l: &Expr, r: &Expr, line: usize) -> Result<(Value, Prov), RuntimeError> {
         // std's `pow` / `pow.wrap` (owner, 2026-10-03), unless a type of the program's defines its own:
         // the power the language's `xx` / `xx~` was, with its rules
-        if (op == "pow" || op == "pow.wrap") && !self.prog.funcs.iter().any(|f| f.is_op && f.name == op) {
-            let inner = if op == "pow" { "xx" } else { "xx~" };
+        // `pow.ieee` keeps IEEE's -0 (owner, 2026-10-07: "yea")
+        if (op == "pow" || op == "pow.wrap" || op == "pow.ieee") && !self.prog.funcs.iter().any(|f| f.is_op && f.name == op) {
+            let inner = match op { "pow" => "xx", "pow.ieee" => "xx.ieee", _ => "xx~" };
             return self.eval(&Expr::Binary(inner.into(), Box::new(l.clone()), Box::new(r.clone()), line));
         }
         let left = self.eval(l)?;

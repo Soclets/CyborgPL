@@ -80,7 +80,7 @@ pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
 /// The operators that are std's (owner, 2026-10-05/06), as the oracle spells them inside; `and.then` and
 /// `or.else` stay Signatar's, and a Limb's own operators are that Limb's.
 fn is_std_op(op: &str) -> bool {
-    matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "+.ieee" | "-.ieee" | "x.ieee" | "pow" | "pow.wrap" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
+    matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "+.ieee" | "-.ieee" | "x.ieee" | "pow" | "pow.wrap" | "pow.ieee" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
         || BIT_OPS.contains(&op) || op.starts_with("div.") || op.starts_with("mod.")
 }
 
@@ -897,7 +897,7 @@ impl Parser {
         }
         self.expect(Tok::RBracket, "`]`")?;
         if params.len() != 2 { return self.err(format!("an operator takes exactly two operands, `op {name}` has {}", params.len())); }
-        let builtin = (Parser::base_level(&name) != 0 && name != "pow" && name != "pow.wrap") || OP_WORDS.contains(&name.as_str());
+        let builtin = (Parser::base_level(&name) != 0 && name != "pow" && name != "pow.wrap" && name != "pow.ieee") || OP_WORDS.contains(&name.as_str());
         if builtin && !self.in_interface {
             let user_type = matches!(params[0].ty, Some(Ty::Struct(_)) | Some(Ty::Inst(..)));
             if !user_type { return self.err(format!("`{name}` is the language's operator; it can be defined for a struct or enum of yours, never changed for the language's own types")); }
@@ -2695,7 +2695,7 @@ impl Parser {
             // std's `pow`, bare or with its path, and `pow.wrap` (owner, 2026-10-03)
             Tok::Word(w) if w == "pow" => { if dot_word("wrap") || dot_word("ieee") { self.op_len.set(3); Some(format!("pow.{}", if dot_word("wrap") { "wrap" } else { "ieee" })) } else { Some("pow".into()) } }
             Tok::Word(w) if w == "std" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "pow") => {
-                if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap") { self.op_len.set(5); Some("pow.wrap".into()) } else { self.op_len.set(3); Some("pow".into()) }
+                if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap" || x == "ieee") { let Tok::Word(x) = self.peek_at(k + 4).clone() else { unreachable!() }; self.op_len.set(5); Some(format!("pow.{x}")) } else { self.op_len.set(3); Some("pow".into()) }
             }
             // `and.bit` / `or.bit` — one operator spelled as a chain
             // `and.bit.wrap`, `or.bit.wrap`, `xor.wrap`: operands taken as their bits (owner, 2026-10-07)
@@ -2785,13 +2785,13 @@ impl Parser {
             o if o.starts_with("div.") || o.starts_with("mod.") => 600,
             "neg" => 700,
             // std's `pow` binds above a negative, right pair first, as `xx` did (owner, 2026-10-03)
-            "xx" | "xx~" | "pow" | "pow.wrap" => 800,
+            "xx" | "xx~" | "pow" | "pow.wrap" | "pow.ieee" => 800,
             _ => 0,
         }
     }
     /// How a chain of the language's own operator reads: 0 left first, 1 right first, 2 refused.
     fn base_chain(op: &str) -> u8 {
-        match op { "==" | "!==" | "<" | ">" | "</==" | ">/==" => 2, "xx" | "xx~" | "pow" | "pow.wrap" => 1, _ => 0 }
+        match op { "==" | "!==" | "<" | ">" | "</==" | ">/==" => 2, "xx" | "xx~" | "pow" | "pow.wrap" | "pow.ieee" => 1, _ => 0 }
     }
     fn lvl(&self, op: &str) -> (u16, u8) {
         // a path names whose operator it is; its level is the operator's own
@@ -2928,7 +2928,8 @@ impl Parser {
                 if op.starts_with("mod.") { return self.err(format!("`mod` never overflows, so there is nothing to wrap: write `{base}` (owner, 2026-10-03)")); }
                 if op.starts_with("div.") && !crate::interp::is_div_mod(base) { return self.err(format!("no `{base}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`")); }
             } else if let Some(base) = op.strip_suffix(".ieee") {
-                if !matches!(base, "+" | "-" | "x" | "div.floor" | "div.ceil" | "div.trunc" | "div.near") { return self.err(format!("`.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `{}` has no `.ieee` form", op_shown(base))); }
+                // every operator that can make a -0 has one (owner, 2026-10-07: "yea", `mod` and `pow` too)
+                if !matches!(base, "+" | "-" | "x" | "pow" | "div.floor" | "div.ceil" | "div.trunc" | "div.near" | "mod.floor" | "mod.ceil" | "mod.trunc") { return self.err(format!("`.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `{}` has no `.ieee` form", op_shown(base))); }
             } else if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
                 return self.err(format!("no `{op}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`"));
             }

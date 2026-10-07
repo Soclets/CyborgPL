@@ -624,7 +624,7 @@ pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, arg
 /// names them by their words (owner, 2026-10-03: the operators are words; check claude's note).
 fn op_words(msg: &str) -> String {
     let mut m = msg.to_string();
-    for (sym, word) in [("`+.ieee`", "`plus.ieee`"), ("`-.ieee`", "`minus.ieee`"), ("`x.ieee`", "`times.ieee`"), ("`xx~`", "`pow.wrap`"), ("`x~`", "`times.wrap`"), ("`+~`", "`plus.wrap`"), ("`-~`", "`minus.wrap`"), ("`xx`", "`pow`"), ("`x`", "`times`"), ("`+`", "`plus`"), ("`-`", "`minus`")] {
+    for (sym, word) in [("`xx.ieee`", "`pow.ieee`"), ("`+.ieee`", "`plus.ieee`"), ("`-.ieee`", "`minus.ieee`"), ("`x.ieee`", "`times.ieee`"), ("`xx~`", "`pow.wrap`"), ("`x~`", "`times.wrap`"), ("`+~`", "`plus.wrap`"), ("`-~`", "`minus.wrap`"), ("`xx`", "`pow`"), ("`x`", "`times`"), ("`+`", "`plus`"), ("`-`", "`minus`")] {
         m = m.replace(sym, word);
     }
     m
