@@ -78,7 +78,9 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
         hir::ExprKind::Const(id) => done.get(id.0 as usize).cloned().flatten(),
         hir::ExprKind::Unary { op, expr } => match (op, const_eval(expr, done, items)?) {
             (U::Neg, Const::Int(v)) => Some(Const::Int(v.checked_neg()?)),
-            (U::Neg, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()?))),
+            // `-'x'` of a zero is `0`, `neg.ieee` IEEE's `-0` (owner, 2026-10-07).
+            (U::Neg, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()? + 0.0))),
+            (U::NegIeee, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()?))),
             (U::Not, Const::Bool(b)) => Some(Const::Bool(!b)),
             _ => None,
         },
@@ -106,15 +108,18 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
                 // (`reproducible-builds.md`: never round at the host's width).
                 (Const::Bin(x), Const::Bin(y)) if bin64(e) => {
                     let (x, y) = (x.replace('_', "").parse::<f64>().ok()?, y.replace('_', "").parse::<f64>().ok()?);
+                    // No result is `-0` but a `.ieee` form's (owner,
+                    // 2026-10-07: "`a`"); `+ 0.0` turns one into `0`.
                     let v = match op {
-                        B::Add => x + y,
-                        B::Sub => x - y,
-                        B::Mul => x * y,
-                        // A rounded quotient is `0`, never `-0`, but under
-                        // `.ieee` (owner, 2026-10-07).
-                        B::Div(r) => crate::rounding::bin_divmod(x, y, *r).0 + 0.0,
+                        B::AddIeee => x + y,
+                        B::SubIeee => x - y,
+                        B::MulIeee => x * y,
                         B::DivIeee(r) => crate::rounding::bin_divmod(x, y, *r).0,
-                        B::Mod(r) if *r != crate::ast::Round::Near => crate::rounding::bin_divmod(x, y, *r).1,
+                        B::Add => x + y + 0.0,
+                        B::Sub => x - y + 0.0,
+                        B::Mul => x * y + 0.0,
+                        B::Div(r) => crate::rounding::bin_divmod(x, y, *r).0 + 0.0,
+                        B::Mod(r) if *r != crate::ast::Round::Near => crate::rounding::bin_divmod(x, y, *r).1 + 0.0,
                         _ => return None,
                     };
                     // No infinity or NaN is a bin (owner, 2026-09-29): left
@@ -1322,7 +1327,7 @@ impl<'a> FnBuilder<'a> {
                         }
                     }
                 }
-                self.binary_sites(op, &l, &r, &result, span);
+                self.binary_sites(&op.plain(), &l, &r, &result, span);
                 Rvalue::Binary { op: op.clone(), lhs: l, rhs: r }
             }
             hir::ExprKind::UserOp { inst, lhs, rhs } => {
@@ -1731,6 +1736,24 @@ impl<'a> FnBuilder<'a> {
                     }
                 }).collect();
                 let result_ty = self.resolve_ty(&e.ty);
+                // `simd.sum.lane` (owner, 2026-10-07): the whole sum, then
+                // narrowed to the lane's type, checked as any landing is.
+                if let (Op::SimdSum, Some(Ty::Simd { elem, lanes })) = (&op, args.first().map(|a| self.resolve_ty(&self.arg_mir_ty(a))).as_ref().map(|t| t.base().clone())) {
+                    if let (Some(exact), false) = (Ty::simd_sum_exact(&elem, lanes), result_ty.is_exact()) {
+                        let t = self.temp(&exact, span);
+                        self.push(StmtKind::Op { dest: Some(Place::local(t)), op: Op::SimdSum, args: ops }, span);
+                        let o = Operand::Read(Place::local(t));
+                        self.narrow_arg(&o, &exact, &result_ty, span);
+                        let rv = Rvalue::Convert { to: result_ty.clone(), operand: o, useful: false, bits: false };
+                        match dest {
+                            Some(p) => self.assign(p, rv, span),
+                            None => {
+                                let _ = self.into_temp(rv, &result_ty, span);
+                            }
+                        }
+                        return;
+                    }
+                }
                 self.before_op_sites(&op, &args, &result_ty, span);
                 self.push(StmtKind::Op { dest: dest.clone(), op: op.clone(), args: ops }, span);
                 self.after_op_sites(&op, &args, span);
@@ -1847,12 +1870,6 @@ impl<'a> FnBuilder<'a> {
                     let o = arg_as_operand(a);
                     self.narrow_arg(&o, &have, &v, span);
                 }
-            }
-            // Adding N lanes together can leave what one lane holds.
-            Op::SimdSum => {
-                let v = args.first().map(arg_as_operand).unwrap_or(Operand::Const(Const::Nothing));
-                let lane = ty.clone();
-                self.site_of(SiteKind::Overflow(BinOp::Add), vec![v], Some(lane), span);
             }
             _ => {}
         }
@@ -2221,7 +2238,8 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::SimdAny => Op::SimdAny,
         Builtin::SimdMax => Op::SimdMax,
         Builtin::SimdMin => Op::SimdMin,
-        Builtin::SimdSum => Op::SimdSum,
+        Builtin::SimdSum | Builtin::SimdSumLane => Op::SimdSum,
+        Builtin::SimdSumWrap => Op::SimdSumWrap,
         Builtin::SimdShuffle(order) => Op::SimdShuffle(order.clone()),
         Builtin::SimdLoadSome => Op::SimdLoadSome,
         Builtin::SimdStoreSome => Op::SimdStoreSome,

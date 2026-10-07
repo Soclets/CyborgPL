@@ -1,7 +1,8 @@
 # `mod` on a bin or brain16 takes the divisor's sign (owner, 2026-10-02: a):
 # -370 mod 360 is 350, 7.5 mod -2.0 is -0.5, a brain16 -5 mod 3 is 1; a zero
-# takes the divisor's sign (4.0 mod -2.0 is -0, written "-0"); a tiny negative
-# over 360 that rounds up to 360 is 0, always below the divisor (owner: b).
+# is 0, never -0 (owner, 2026-10-07: "a"; until then it took the divisor's
+# sign, "-0"): 4.0 mod -2.0 is "0"; a tiny negative over 360 that rounds up to
+# 360 is 0, always below the divisor (owner: b).
 extern.C fn exit ['code': int32];
 MAIN {
     let 'angle': bin64 = -370.0;

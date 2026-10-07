@@ -2840,9 +2840,8 @@ impl<'a> Parser<'a> {
     /// `.wrap` after a division's rounding (owner, 2026-10-03): the
     /// hardware's wrapped quotient. A remainder never overflows, so `mod`
     /// takes none.
-    /// `div.X.ieee` (owner, 2026-10-07): IEEE's `-0` kept, on a quotient
-    /// only, and not `div.near`'s, which is ordinary division (design
-    /// claude's readings).
+    /// `div.X.ieee` (owner, 2026-10-07): IEEE's `-0` kept, `div.near.ieee`
+    /// too ("yea").
     fn ieee_narrow(&mut self, w: &str, r: Round) -> Result<bool> {
         if !(self.is(&Tok::Dot) && self.is_word_at(1, "ieee")) || r == Round::Bare {
             return Ok(false);
@@ -2851,11 +2850,9 @@ impl<'a> Parser<'a> {
         self.bump();
         self.bump();
         let at = at.to(self.prev_span());
+        // `mod.X` has none (design claude's reading, in the oracle).
         if w == "mod" {
-            return self.fail_at(at, format!("`.ieee` keeps a quotient's -0, and `mod.{}` gives a remainder, whose 0 already takes the divisor's sign: write `mod.{}`", r.word(), r.word()));
-        }
-        if r == Round::Near {
-            return self.fail_at(at, "`div.near` on a bin is ordinary division, which rounds no quotient to 0: it takes no `.ieee`");
+            return self.fail_at(at, format!("`.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `mod.{}` has no `.ieee` form", r.word()));
         }
         Ok(true)
     }
@@ -3031,6 +3028,15 @@ impl<'a> Parser<'a> {
                     "xx" => OpTok { old: Some("pow"), ..lang(BinOp::Pow, POW_LEVEL, Chain::Right) },
                     // The operators are words (owner, 2026-10-02/03), and
                     // `.wrap` narrows them to the wrapping forms.
+                    // `.ieee` keeps IEEE's -0 (owner, 2026-10-07: "yea").
+                    "plus" | "minus" | "times" if matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "ieee") && !matches!(self.peek_at(3), Tok::Dot) => {
+                        let (op, level) = match w.as_str() {
+                            "plus" => (BinOp::AddIeee, ADD_LEVEL),
+                            "minus" => (BinOp::SubIeee, ADD_LEVEL),
+                            _ => (BinOp::MulIeee, MUL_LEVEL),
+                        };
+                        OpTok { len: 3, ..lang(op, level, Chain::Left) }
+                    }
                     "plus" | "minus" | "times" | "pow" if matches!(self.peek_at(1), Tok::Dot) && !self.is_word_at(2, "wrap") => {
                         let (name, end) = dotted(1, w);
                         OpTok { len: end, ..nofix(BinOp::Custom(name)) }
@@ -3169,7 +3175,13 @@ impl<'a> Parser<'a> {
             }
             if let BinOp::Custom(name) = &op {
                 if let Some((base, narrow)) = name.split_once('.') {
-                    if matches!(base, "plus" | "minus" | "times" | "pow") {
+                    if narrow == "ieee" && base == "pow" {
+                        return self.fail_at(op_span, "`.ieee` goes on `plus`, `minus`, `times` and a `div.X`; `pow` has no `.ieee` form");
+                    }
+                    if matches!(base, "plus" | "minus" | "times") {
+                        return self.fail_at(op_span, format!("`{}.{}` is not an operator: the narrowings of `{}` are `{}.wrap` and `{}.ieee`", base, narrow, base, base, base));
+                    }
+                    if base == "pow" {
                         return self.fail_at(op_span, format!("`{}.{}` is not an operator: the only narrowing of `{}` is `{}.wrap`", base, narrow, base, base));
                     }
                 }
@@ -3285,6 +3297,17 @@ impl<'a> Parser<'a> {
                 let operand = self.expr(2 * NEG_LEVEL)?;
                 let span = start.to(operand.span);
                 Ok(Expr { kind: ExprKind::Unary { op: UnOp::Neg, expr: Box::new(operand) }, span })
+            }
+            // `neg.ieee 'x'` (owner, 2026-10-07: "yea"): IEEE's negation,
+            // binding as `-` does.
+            Tok::Word(w) if w == "neg" && matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "ieee") => {
+                self.std_gate("neg.ieee", start)?;
+                self.bump();
+                self.bump();
+                self.bump();
+                let operand = self.expr(2 * NEG_LEVEL)?;
+                let span = start.to(operand.span);
+                Ok(Expr { kind: ExprKind::Unary { op: UnOp::NegIeee, expr: Box::new(operand) }, span })
             }
             Tok::Op(o) if o == "&" => {
                 self.bump();

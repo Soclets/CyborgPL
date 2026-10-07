@@ -646,7 +646,9 @@ pub unsafe extern "C" fn cyborg_bin_to_text_useful(out: *mut Text, x: f64, bits:
         buf[*k] = c;
         *k += 1;
     };
-    if x.is_sign_negative() && x != 0.0 {
+    // A -0 is one only an `.ieee` form makes, and it shows (owner,
+    // 2026-10-07; `examples/zero_everywhere.out`).
+    if x.is_sign_negative() {
         put(b'-', &mut k);
     }
     // Where the point falls after the first digit.

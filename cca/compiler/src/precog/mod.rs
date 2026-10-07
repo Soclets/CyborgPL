@@ -1374,6 +1374,8 @@ impl Precog {
             Rvalue::Duplicate(p) => self.read(f, env, p),
             Rvalue::Lend { place, .. } => self.read(f, env, place),
             Rvalue::Unary { op, operand } => {
+                // `neg.ieee` is `-` but for a zero's sign, which no domain holds.
+                let op = &op.plain();
                 let d = self.read_operand(f, env, operand);
                 match (op, &d) {
                     (UnOp::Neg, Domain::Ints(s)) => Domain::Ints(s.neg()),
@@ -1412,6 +1414,8 @@ impl Precog {
                 }
             }
             Rvalue::Binary { op, lhs, rhs } => {
+                // A `.ieee` form differs only in a zero's sign.
+                let op = &op.plain();
                 let a = self.read_operand(f, env, lhs);
                 let b = self.read_operand(f, env, rhs);
                 if let Some(cmp) = cmp_of(op) {
@@ -1866,7 +1870,20 @@ impl Precog {
                 Domain::Seq { elem, .. } => elem.union(&Domain::Ints(ISet::one(0))),
                 _ => Domain::Any,
             },
-            // N lanes added: N times each lane's range.
+            // N lanes added: N times each lane's range; wrapped, that range
+            // only while it stays inside the lane's type.
+            Op::SimdSumWrap => {
+                let whole = self.eval_op(f, &Op::SimdSum, args, env);
+                let lane = args.first().and_then(|a| a.place()).map(|p| self.place_ty(f, p)).and_then(|t| match t.base() {
+                    Ty::Simd { elem, .. } => Some((**elem).clone()),
+                    _ => None,
+                });
+                let Some(ty) = lane else { return Domain::Any };
+                match (&whole, int_limits(&ty, &self.prog().items)) {
+                    (Domain::Ints(s), Some((lo, hi))) if s.bounds().is_some_and(|(a, z)| a >= lo && z <= hi) => whole,
+                    _ => Domain::of_ty(&ty, &self.prog().items),
+                }
+            }
             Op::SimdSum => {
                 let lanes = args.first().and_then(|a| a.place()).map(|p| self.place_ty(f, p)).and_then(|t| match t.base() {
                     Ty::Simd { lanes, .. } => Some(*lanes as i128),

@@ -115,8 +115,18 @@ impl Verb {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnOp {
     Neg,
+    /// `neg.ieee 'x'` (owner, 2026-10-07: "yea"): IEEE's negation, a `-0`
+    /// of a zero, where `-'x'` gives `0`. A bin or brain16 only.
+    NegIeee,
     Not,
     NotBit,
+}
+
+impl UnOp {
+    /// The operator without `.ieee`: the same number but for a zero's sign.
+    pub fn plain(self) -> UnOp {
+        if self == UnOp::NegIeee { UnOp::Neg } else { self }
+    }
 }
 
 /// How a division rounds (owner, 2026-10-02): every `div` and `mod` names
@@ -168,6 +178,12 @@ pub enum BinOp {
     /// `div.X.ieee` (owner, 2026-10-07: "`a`"): a bin's or brain16's
     /// quotient keeping IEEE's `-0`, where the plain one gives `0`.
     DivIeee(Round),
+    /// `plus.ieee`, `minus.ieee`, `times.ieee` (owner, 2026-10-07: "yea"):
+    /// IEEE's own answer, keeping a `-0`; every other bin or brain16
+    /// result is never one ("`a`").
+    AddIeee,
+    SubIeee,
+    MulIeee,
     /// `and.bit.wrap`, `or.bit.wrap`, `xor.wrap` (owner, 2026-10-07:
     /// "yea"): operands taken as their bits at the operator's width, where
     /// the plain ones must fit it.
@@ -217,6 +233,9 @@ impl BinOp {
             BinOp::Div(r) => format!("div.{}", r.word()),
             BinOp::DivWrap(r) => format!("div.{}.wrap", r.word()),
             BinOp::DivIeee(r) => format!("div.{}.ieee", r.word()),
+            BinOp::AddIeee => "plus.ieee".into(),
+            BinOp::SubIeee => "minus.ieee".into(),
+            BinOp::MulIeee => "times.ieee".into(),
             BinOp::Mod(r) => format!("mod.{}", r.word()),
             BinOp::WrapAdd => "plus.wrap".into(),
             BinOp::WrapSub => "minus.wrap".into(),
@@ -246,6 +265,21 @@ impl BinOp {
             BinOp::Custom(s) => s.clone(),
         }
     }
+    /// The operator without `.ieee`: the same number but for a zero's
+    /// sign, so everything but the code that makes the zero reads it so.
+    pub fn plain(&self) -> BinOp {
+        match self {
+            BinOp::AddIeee => BinOp::Add,
+            BinOp::SubIeee => BinOp::Sub,
+            BinOp::MulIeee => BinOp::Mul,
+            BinOp::DivIeee(r) => BinOp::Div(*r),
+            other => other.clone(),
+        }
+    }
+    /// A form that keeps IEEE's `-0`.
+    pub fn is_ieee(&self) -> bool {
+        matches!(self, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::DivIeee(_))
+    }
     pub fn is_comparison(&self) -> bool {
         matches!(self, BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge)
     }
@@ -265,7 +299,7 @@ impl BinOp {
         matches!(self, BinOp::Mod(_))
     }
     pub fn is_multiplicative(&self) -> bool {
-        matches!(self, BinOp::Mul | BinOp::Div(_) | BinOp::DivWrap(_) | BinOp::DivIeee(_) | BinOp::Mod(_) | BinOp::WrapMul)
+        matches!(self, BinOp::Mul | BinOp::MulIeee | BinOp::Div(_) | BinOp::DivWrap(_) | BinOp::DivIeee(_) | BinOp::Mod(_) | BinOp::WrapMul)
     }
 }
 

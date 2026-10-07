@@ -263,7 +263,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 if t == self.ctx.f64_type() {
                     Some(x.into())
                 } else {
-                    Some(self.builder.build_float_trunc(x, t, "at_width").ok()?.into())
+                    Some(self.float_cast(x, t)?.into())
                 }
             }
             _ => None,

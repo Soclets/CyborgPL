@@ -164,6 +164,19 @@ impl Ty {
     /// The exact answer whose in-between limit is `limit` bits: what some
     /// `limit`-bit type holds, the signed one's lowest to the unsigned
     /// one's highest. Never below 64.
+    /// `simd.sum` of whole-number lanes (owner, 2026-10-07: "b"): an exact
+    /// answer wide enough that the lanes added never pass it. A vector whose
+    /// lanes the target decides (0) is taken as up to 256 of them.
+    pub fn simd_sum_exact(lane: &Ty, lanes: u32) -> Option<Ty> {
+        match lane.base() {
+            Ty::Int(IntW::Fixed { signed, bits }) if bits & EXACT_FLAG == 0 => {
+                let n = if lanes == 0 { 256 } else { lanes };
+                let grow = 32 - (n.max(1) - 1).leading_zeros();
+                Some(Ty::exact_at(*bits as u32 + grow + u32::from(!signed)))
+            }
+            _ => None,
+        }
+    }
     pub fn exact_at(limit: u32) -> Ty {
         Ty::int(true, EXACT_FLAG | limit.max(64))
     }

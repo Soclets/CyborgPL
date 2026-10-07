@@ -231,7 +231,12 @@ pub enum Builtin {
     SimdAny,
     SimdMax,
     SimdMin,
+    /// `simd.sum`: worked out in full, checked where it lands (owner,
+    /// 2026-10-07: "b"). `.lane` checks it at the lane's type, `.wrap`
+    /// wraps it there ("yea").
     SimdSum,
+    SimdSumLane,
+    SimdSumWrap,
     /// `simd.shuffle['v', [4, 3, 2, 1]]`: the new order, 0-based here.
     SimdShuffle(Vec<u32>),
     /// `simd.load.some` / `simd.store.some`: only the first k lanes.

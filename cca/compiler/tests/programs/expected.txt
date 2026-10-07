@@ -264,7 +264,7 @@ brain16 66
 inline_s 7
 list_fill_exact_count 4
 float_negatives 92
-mod_bin 118
+mod_bin 107
 trunc_ops 255
 trunc_ops_run 28
 div_rounding_run 255
@@ -288,3 +288,5 @@ shift_width_from_number 29
 shift_masked_run 252
 bare_groups_2026_10_07 111
 bare_groups_2026_10_07b 198
+zero_everywhere_run 46
+simd_sum_forms_run 31

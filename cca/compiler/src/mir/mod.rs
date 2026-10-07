@@ -183,7 +183,11 @@ pub enum Op {
     SimdAny,
     SimdMax,
     SimdMin,
+    /// The whole sum, at the exact type it is given; `simd.sum.lane` is
+    /// this narrowed to the lane, a site like any landing.
     SimdSum,
+    /// `simd.sum.wrap`: the chip's own sum, wrapped at the lane's type.
+    SimdSumWrap,
     /// The lanes in a new order, fixed when compiling (0-based).
     SimdShuffle(Vec<u32>),
     SimdLoadSome,

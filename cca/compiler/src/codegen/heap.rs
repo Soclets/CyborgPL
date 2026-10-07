@@ -1723,7 +1723,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             BasicTypeEnum::FloatType(t) => t,
             _ => return None,
         };
-        let r = if t == f64t { x } else { self.builder.build_float_trunc(x, t, "at_width").ok()? };
+        let r = if t == f64t { x } else { self.float_cast(x, t)? };
         if let Some(d) = dest {
             self.store_place(fi, d, r.into(), slots);
         }

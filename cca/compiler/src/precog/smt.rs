@@ -1198,9 +1198,12 @@ impl<'a> Enc<'a> {
                 match op {
                     UnOp::Neg => Some(self.define(v.bits, &format!("(bvneg {})", v.term), v.signed)),
                     UnOp::Not | UnOp::NotBit => Some(self.define(v.bits, &format!("(bvnot {})", v.term), v.signed)),
+                    // A bin's: not a bit-vector.
+                    UnOp::NegIeee => None,
                 }
             }
             Rvalue::Binary { op, lhs, rhs } => {
+                let op = &op.plain();
                 let a = self.operand(lhs, env)?;
                 let b = self.operand(rhs, env)?;
                 // Plain math is exact (owner, 2026-09-23), each `div.X` and

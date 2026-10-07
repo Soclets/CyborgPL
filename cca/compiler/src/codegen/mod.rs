@@ -1174,7 +1174,41 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// A value, with the site that guards it — when there is one and it was
     /// not proven, the instruction is the checked one.
     #[allow(clippy::too_many_arguments)]
+    /// No bin or brain16 result is ever `-0` (owner, 2026-10-07: "`a`"):
+    /// an operation that could make one adds `+0`, which turns `-0` into `0`
+    /// and leaves every other value as it is (LLVM drops it where it can
+    /// tell the answer is no `-0`). The `.ieee` forms keep IEEE's own
+    /// answer ("yea"), and are otherwise the plain operators.
     fn rvalue(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], sites: &[SiteId], func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>, want_ty: Option<Ty>) -> Option<BasicValueEnum<'ctx>> {
+        let plain;
+        let (rv, zeroable) = match rv {
+            Rvalue::Binary { op, lhs, rhs } if op.is_ieee() => {
+                plain = Rvalue::Binary { op: op.plain(), lhs: lhs.clone(), rhs: rhs.clone() };
+                (&plain, false)
+            }
+            Rvalue::Unary { op: UnOp::NegIeee, operand } => {
+                plain = Rvalue::Unary { op: UnOp::Neg, operand: operand.clone() };
+                (&plain, false)
+            }
+            Rvalue::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) | BinOp::Pow, .. } | Rvalue::Unary { op: UnOp::Neg, .. } => (rv, true),
+            _ => (rv, false),
+        };
+        let v = self.rvalue_raw(fi, rv, slots, sites, func, blocks, want, want_ty)?;
+        Some(if zeroable { self.no_negative_zero(v)? } else { v })
+    }
+
+    /// `x + 0`, for a bin or a vector of them: IEEE's `-0` becomes `0`.
+    pub(super) fn no_negative_zero(&mut self, v: BasicValueEnum<'ctx>) -> Option<BasicValueEnum<'ctx>> {
+        Some(match v {
+            BasicValueEnum::FloatValue(x) => self.builder.build_float_add(x, x.get_type().const_zero(), "no_negative_zero").ok()?.into(),
+            BasicValueEnum::VectorValue(x) if x.get_type().get_element_type().is_float_type() => {
+                self.builder.build_float_add(x, x.get_type().const_zero(), "no_negative_zero").ok()?.into()
+            }
+            other => other,
+        })
+    }
+
+    fn rvalue_raw(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], sites: &[SiteId], func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>, want_ty: Option<Ty>) -> Option<BasicValueEnum<'ctx>> {
         match rv {
             Rvalue::Use(o) => {
                 // A bin literal landing in a bin16 or bin32 is written at
@@ -1875,7 +1909,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // ordinary division, below).
             if let BinOp::Div(round) | BinOp::DivIeee(round) | BinOp::Mod(round) = op {
                 if *round != crate::ast::Round::Near {
-                    let v = self.bin_div_round(x, y, op.is_mod(), *round, matches!(op, BinOp::DivIeee(_)))?;
+                    let v = self.bin_div_round(x, y, op.is_mod(), *round)?;
                     if let (Some(s), false) = (overflow, op.is_mod()) {
                         self.bin_finite_guard(fi, s, v, func)?;
                     }
@@ -2105,7 +2139,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// A brain16 or bin16 is worked at 32 bits, as its other arithmetic is,
     /// and its remainder asked again at its own width, where one more can
     /// round to the divisor.
-    fn bin_div_round(&mut self, x: inkwell::values::FloatValue<'ctx>, y: inkwell::values::FloatValue<'ctx>, want_mod: bool, round: crate::ast::Round, ieee: bool) -> Option<inkwell::values::FloatValue<'ctx>> {
+    fn bin_div_round(&mut self, x: inkwell::values::FloatValue<'ctx>, y: inkwell::values::FloatValue<'ctx>, want_mod: bool, round: crate::ast::Round) -> Option<inkwell::values::FloatValue<'ctx>> {
         use crate::ast::Round;
         use inkwell::FloatPredicate as FP;
         let t = x.get_type();
@@ -2163,10 +2197,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             None => q,
         };
-        // A whole quotient that rounds to zero is `0`, never `-0` (owner,
-        // 2026-10-07: "`b`"): adding `+0` turns IEEE's `-0` into `0` and
-        // leaves every other value as it is. `.ieee` keeps it ("`a`").
-        let q = if ieee { q } else { self.builder.build_float_add(q, wt.const_zero(), "no_negative_zero").ok()? };
+        // A zero's sign is `rvalue`'s (owner, 2026-10-07).
         if wide {
             self.float_cast(q, t)
         } else {
@@ -2743,29 +2774,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
-    /// `simd.sum` is a check site (`simd.md`): the lanes are added at twice
-    /// their width, where N of them cannot overflow, and the answer is
-    /// checked against T unless Precog proved it fits.
-    fn simd_sum(&mut self, fi: usize, v: inkwell::values::VectorValue<'ctx>, signed: bool, func: FunctionValue<'ctx>) -> Option<BasicValueEnum<'ctx>> {
+    /// `simd.sum` is a plain number (owner, 2026-10-07: "b"): the lanes are
+    /// added at the width of the exact answer it lands as, where N of them
+    /// cannot overflow, and checked only where it lands (`.lane` is that,
+    /// narrowed to the lane's type).
+    fn simd_sum(&mut self, v: inkwell::values::VectorValue<'ctx>, signed: bool, wide: Option<u32>) -> Option<BasicValueEnum<'ctx>> {
         let et = v.get_type().get_element_type().into_int_type();
         let bits = et.get_bit_width();
-        let wide_t = self.ctx.custom_width_int_type(std::num::NonZeroU32::new((bits * 2).min(128))?).ok()?;
+        let wide_bits = wide.unwrap_or(bits * 2).max(bits);
+        let wide_t = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(wide_bits)?).ok()?;
         let wide_v = wide_t.vec_type(v.get_type().get_size());
         let wide = if signed { self.builder.build_int_s_extend(v, wide_v, "wide").ok()? } else { self.builder.build_int_z_extend(v, wide_v, "wide").ok()? };
         let id = inkwell::intrinsics::Intrinsic::find("llvm.vector.reduce.add")?;
         let f = id.get_declaration(self.module, &[wide_v.into()])?;
         let total = basic_result(self.builder.build_call(f, &[wide.into()], "sum").ok()?)?.into_int_value();
-        let site = self.op_sites.iter().copied().find(|s| matches!(self.p.functions[fi].site(*s).kind, SiteKind::Overflow(_)));
-        if let Some(s) = site {
-            if self.gets_check(&self.p.functions[fi].site(s).verdict.clone()) {
-                let (lo, hi) = crate::resolve::int_range(signed, bits as u32);
-                let below = self.builder.build_int_compare(if signed { IntPredicate::SLT } else { IntPredicate::ULT }, total, const_i128(wide_t, lo), "below").ok()?;
-                let above = self.builder.build_int_compare(if signed { IntPredicate::SGT } else { IntPredicate::UGT }, total, const_i128(wide_t, hi), "above").ok()?;
-                let bad = self.builder.build_or(below, above, "sum_out").ok()?;
-                self.guard(fi, s, bad, func)?;
-            }
-        }
-        Some(self.builder.build_int_truncate(total, et, "sum").ok()?.into())
+        Some(total.into())
     }
 
     /// The `T` of a `ptr[T]` operand.
@@ -3075,7 +3098,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(Some(self.builder.build_shuffle_vector(v, v.get_type().get_undef(), mask, "shuffle").ok()?.into()))
             }
             Op::SimdLoadSome | Op::SimdStoreSome => Some(self.simd_some(fi, op, args, slots, dest_ty)?),
-            Op::SimdAll | Op::SimdAny | Op::SimdMax | Op::SimdMin | Op::SimdSum => {
+            Op::SimdAll | Op::SimdAny | Op::SimdMax | Op::SimdMin | Op::SimdSum | Op::SimdSumWrap => {
                 let v = self.operand(fi, args.first()?, slots)?.into_vector_value();
                 let et = v.get_type().get_element_type();
                 let lane = self.operand_lane(fi, args.first()?);
@@ -3094,7 +3117,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     _ => "llvm.vector.reduce.add",
                 };
                 if *op == Op::SimdSum && !float {
-                    return Some(Some(self.simd_sum(fi, v, signed, func)?));
+                    let wide = dest_ty.as_ref().and_then(|t| self.ty(t)).filter(|t| t.is_int_type()).map(|t| t.into_int_type().get_bit_width());
+                    return Some(Some(self.simd_sum(v, signed, wide)?));
                 }
                 let id = inkwell::intrinsics::Intrinsic::find(name)?;
                 let f = id.get_declaration(self.module, &[v.get_type().into()])?;
@@ -3104,7 +3128,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 } else {
                     self.builder.build_call(f, &[v.into()], "reduce").ok()?
                 };
-                Some(Some(basic_result(call)?))
+                // `simd.max`/`min`/`sum` give `0`, never `-0` (design
+                // claude's reading, 2026-10-07).
+                let r = basic_result(call)?;
+                Some(Some(if float { self.no_negative_zero(r)? } else { r }))
             }
             // C's memory (`ffi.md`), all `nocheck` sites: the writer vouches
             // for the address. `read` and `write` move one `T`; `at` moves
@@ -3350,11 +3377,23 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if from == to {
             return Some(x);
         }
-        if (from == bf && to == h) || (from == h && to == bf) {
+        let r = if (from == bf && to == h) || (from == h && to == bf) {
             let mid = self.builder.build_float_ext(x, self.ctx.f32_type(), "via_float").ok()?;
-            return self.builder.build_float_trunc(mid, to, "conv").ok();
+            self.builder.build_float_trunc(mid, to, "conv").ok()?
+        } else {
+            self.builder.build_float_cast(x, to, "conv").ok()?
+        };
+        // Rounding where a value lands never makes a -0 of a number that was
+        // not zero, and keeps one an `.ieee` form made (design claude's
+        // reading, 2026-10-07). Only a narrower type can round to zero.
+        let width = |t: inkwell::types::FloatType<'ctx>| if t == bf || t == h { 16 } else if t == self.ctx.f32_type() { 32 } else { 64 };
+        if width(to) == 64 || (width(to) == 32 && width(from) == 16) {
+            return Some(r);
         }
-        self.builder.build_float_cast(x, to, "conv").ok()
+        let b = &self.builder;
+        let was_zero = b.build_float_compare(inkwell::FloatPredicate::OEQ, x, from.const_zero(), "was_zero").ok()?;
+        let unsigned = b.build_float_add(r, to.const_zero(), "no_negative_zero").ok()?;
+        Some(b.build_select(was_zero, r, unsigned, "landed").ok()?.into_float_value())
     }
 
     /// A value LLVM must take as unknown: an empty `asm volatile` hands the

@@ -824,10 +824,34 @@ impl Checker {
 
     // ------------------------------------------------------------ operators
 
+    /// Only a bin or brain16, or a vector of them, has a -0 for `.ieee` to
+    /// keep (owner, 2026-10-07).
+    fn ieee_takes(&self, spelled: &str, plain: &str, ty: &Ty, at: Span) -> Result<()> {
+        let lane = match ty.base() {
+            Ty::Simd { elem, .. } => elem.base().clone(),
+            t => t.clone(),
+        };
+        if matches!(lane, Ty::Bin(_) | Ty::Brain) {
+            return Ok(());
+        }
+        let none = match lane {
+            Ty::Int(_) => ", and an integer has none".to_string(),
+            Ty::Deci(_) => ", and a deci has none".to_string(),
+            _ => String::new(),
+        };
+        err(Diagnostic::error(format!("`{}` keeps a -0, which only a bin or brain16 has{}: write `{}`", spelled, none, plain)).at(at))
+    }
+
     fn unary(&mut self, ctx: &mut FnCtx, op: UnOp, operand: &ast::Expr, span: Span) -> Result<Expr> {
         let v = self.expr(ctx, operand)?;
         let vt = self.resolve(&v.ty);
         match op {
+            // `neg.ieee 'x'` (owner, 2026-10-07: "yea").
+            UnOp::NegIeee => {
+                self.ieee_takes("neg.ieee", "-'x'", &vt, span)?;
+                let ty = vt.base().clone();
+                Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span })
+            }
             UnOp::Neg => {
                 if !vt.is_numeric() {
                     return err(Diagnostic::error(format!("`-` negates a number, and this is {}", crate::types::a_type(&self.spell(&vt)))).at(span));
@@ -874,6 +898,17 @@ impl Checker {
     }
 
     fn binary(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
+        // `plus.ieee`, `minus.ieee`, `times.ieee` (owner, 2026-10-07):
+        // checked as the plain operator, then kept as IEEE's own answer.
+        if matches!(op, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee) {
+            let mut e = self.binary(ctx, &op.plain(), op_span, lhs, rhs, span)?;
+            let ty = self.resolve(&e.ty);
+            self.ieee_takes(&op.spelled(), &op.plain().spelled(), &ty, op_span)?;
+            if let K::Binary { op: o, .. } = &mut e.kind {
+                *o = op.clone();
+            }
+            return Ok(e);
+        }
         // A user operator takes its operands as a call would: lent by default, `give` by choice.
         if let BinOp::Custom(spelling) = op {
             return self.user_op(ctx, spelling, op_span, lhs, rhs, span);
@@ -942,10 +977,8 @@ impl Checker {
                 }
                 let (l, r, ty) = self.numeric_pair(ctx, l, r, op, op_span)?;
                 // Only a bin or brain16 has a -0 to keep (owner, 2026-10-07).
-                if let BinOp::DivIeee(round) = op {
-                    if !matches!(ty.base(), Ty::Bin(_) | Ty::Brain) {
-                        return err(Diagnostic::error(format!("`{}` keeps a -0, which only a bin or brain16 has: write `div.{}`", op.spelled(), round.word())).at(op_span));
-                    }
+                if let BinOp::DivIeee(_) = op {
+                    self.ieee_takes(&op.spelled(), &op.plain().spelled(), &ty, op_span)?;
                 }
                 self.rounding_takes(op, op_span, &ty)?;
                 if *op == BinOp::Pow && ty.is_int() {
@@ -1159,7 +1192,7 @@ impl Checker {
                 }
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
             }
-            BinOp::Custom(_) => unreachable!(),
+            BinOp::Custom(_) | BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee => unreachable!(),
         }
     }
 
@@ -3270,6 +3303,8 @@ impl Checker {
             ("simd", ["max"]) => BuiltinHead::B(Builtin::SimdMax),
             ("simd", ["min"]) => BuiltinHead::B(Builtin::SimdMin),
             ("simd", ["sum"]) => BuiltinHead::B(Builtin::SimdSum),
+            ("simd", ["sum", "lane"]) => BuiltinHead::B(Builtin::SimdSumLane),
+            ("simd", ["sum", "wrap"]) => BuiltinHead::B(Builtin::SimdSumWrap),
             ("simd", ["shuffle"]) => BuiltinHead::B(Builtin::SimdShuffle(Vec::new())),
             ("simd", ["load", "some"]) => BuiltinHead::B(Builtin::SimdLoadSome),
             ("simd", ["store", "some"]) => BuiltinHead::B(Builtin::SimdStoreSome),
@@ -3781,17 +3816,28 @@ impl Checker {
                 }
                 (vec![Arg::Value(v)], Ty::Bool)
             }
-            Builtin::SimdMax | Builtin::SimdMin | Builtin::SimdSum => {
+            Builtin::SimdMax | Builtin::SimdMin | Builtin::SimdSum | Builtin::SimdSumLane | Builtin::SimdSumWrap => {
                 arity(1, self)?;
                 let v = self.expr(ctx, positional[0])?;
                 let v = self.as_operand(ctx, v)?;
                 let vt = self.resolve(&v.ty);
-                let lane = match vt.base() {
-                    Ty::Simd { elem, .. } if elem.is_numeric() => (**elem).clone(),
+                let (lane, lanes) = match vt.base() {
+                    Ty::Simd { elem, lanes } if elem.is_numeric() => ((**elem).clone(), *lanes),
                     Ty::Simd { elem, .. } => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this holds `{}` lanes", name, self.spell(elem))).at(positional[0].span)),
                     other => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this is {}", name, crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
                 };
-                (vec![Arg::Value(v)], lane)
+                // `.wrap` wraps whole numbers, as `plus.wrap` does (design
+                // claude's reading, 2026-10-07).
+                if b == Builtin::SimdSumWrap && !lane.is_int() {
+                    return err(Diagnostic::error(format!("`simd.sum.wrap` wraps whole numbers at the lane's type, and these lanes are `{}`: write `simd.sum`", self.spell(&lane))).at(span));
+                }
+                // The plain sum is a plain number, worked out in full and
+                // checked where it lands (owner, 2026-10-07: "b").
+                let ty = match b {
+                    Builtin::SimdSum => Ty::simd_sum_exact(&lane, lanes).unwrap_or(lane),
+                    _ => lane,
+                };
+                (vec![Arg::Value(v)], ty)
             }
             Builtin::Std(_) => unreachable!(),
         };
