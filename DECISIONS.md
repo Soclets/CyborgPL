@@ -39,8 +39,20 @@ core lifts, 2026-10-06), and **a power can be named more specifically**
 than these three: **narrowed with `.`** (`raw_memory.read` /
 `raw_memory.write`, `c_calls.functions` / `c_calls.variables`) and **exact
 things named in `[ ]`** (`cca::Power.c_calls["sqrt", "sin"]`, only those C
-functions) (owner: "yea"). The narrowings shown and an `allow_only` field
-beside `deny` are design claude's sketches, not ruled.
+functions) (owner: "yea"). **One field, `deny`, with `.except[ … ]` and
+`.for[ … ]`** (owner: "yea", to design claude's recommendation, over an
+`allow_only` field beside it):
+
+```
+deny = [
+    cca::Power.c_calls.except["sqrt", "sin"],    # no C calls but these two
+    cca::Power.inline_assembly.for["fastjson"],  # only this limb may not run assembly
+],
+```
+
+so a program still only takes powers away (2026-10-06). The narrowings
+shown (`raw_memory.read`, `c_calls.functions`, …) are design claude's
+sketches.
 
 ### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 

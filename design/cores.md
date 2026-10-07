@@ -176,6 +176,12 @@ makes its own lists and allocator, as Linux does.
   kernel's own list works with `for` too.
 - **The program may take powers away, never add** (`deny`), and **an
   upgrade that starts using a new power is flagged**.
+- **The dangerous abilities are powers too** (owner, 2026-10-07), which
+  Signatar grants every limb by default: `inline_assembly`, `c_calls`,
+  `raw_memory`. **Cores may add powers of their own.** A power narrows with
+  `.` and names exact things in `[ ]`; `deny` takes `.except[ … ]` and
+  `.for[ … ]`: `deny = [cca::Power.c_calls.except["sqrt"],
+  cca::Power.inline_assembly.for["fastjson"],]`.
 
 ## Manifests
 
