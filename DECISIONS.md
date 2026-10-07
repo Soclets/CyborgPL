@@ -455,7 +455,17 @@ literal so its holes are checked; anything else is a vouch site), then
 agreed: `.weird` prints every `<-` piece in order, a format's first piece
 is a template and the rest fill holes, so it withdrew (a). `.weird` gets
 shapes by sending `format[…]`'s text down an arrow: `print.weird.useful.
-stdout <- "hex: " <- format["{:x}", 'n'] <- \n;`. Design
+stdout <- "hex: " <- format["{:x}", 'n'] <- \n;`. **A print goes to stdout unless it says `.stderr`** (owner:
+"default to out"): `print.useful["Hello, World!", \n];`, over (a) the
+destination always written and (c) `print` defaulting the form as well;
+design claude recommended (b). Asked "Is `b` consistent? I mean, the ops
+don't default `ieee`", design claude: they do default, plain `plus` being
+the common case and `.ieee` the written variant; the language defaults
+where one choice is ordinary (`plus`, `temp`, `case.sensitive`) and
+requires a choice where both are reasonable (`div.X`, the `bare` marks,
+`print.useful` / `print.stored`). Design claude's readings, not asked:
+every print (`.format`, `.weird`, `.auto_newline`) takes the default, and
+`.stdout` may still be written, as `temp` may. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
