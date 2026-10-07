@@ -1302,6 +1302,15 @@ impl<'a> FnBuilder<'a> {
                     BinOp::XorWrap => (&BinOp::Xor, true),
                     other => (other, false),
                 };
+                // A shifted number fits its width first too (owner,
+                // 2026-10-07: "a"): its own site, before the count's.
+                if matches!(op, BinOp::Shl | BinOp::Shr) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
+                    let from = self.resolve_ty(&lhs.ty);
+                    if from.is_exact() {
+                        self.narrow_arg(&l, &from, &result, span);
+                        l = self.into_temp(Rvalue::Convert { to: result.clone(), operand: l, useful: false, bits: false }, &result, span);
+                    }
+                }
                 if matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
                     for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
                         let from = self.resolve_ty(&of.ty);
@@ -2014,9 +2023,13 @@ impl<'a> FnBuilder<'a> {
                 }
                 self.stmt(st);
             }
+            // Into the destination's type, checked like any store: an arm's
+            // exact answer lands there (check claude, seed 102: -1 went
+            // into a `uint32` through a `match` unchecked).
             if let (Some(g), Some(d), false) = (&arm.gives, &dest, self.closed()) {
-                let ty = self.resolve_ty(&g.ty);
-                self.store(d.clone(), g, &ty, false, span);
+                let base = self.locals[d.local.0 as usize].ty.clone();
+                let to = self.resolve_ty(&projected_ty(&base, &d.proj, &self.arena.items));
+                self.store(d.clone(), g, &to, true, span);
             }
             self.pop_scope(span);
             self.terminate(Terminator::Goto(join));

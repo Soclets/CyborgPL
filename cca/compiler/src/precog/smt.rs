@@ -568,6 +568,25 @@ impl<'a> Enc<'a> {
         incoming.insert((0, 0), vec![("true".to_string(), env0)]);
         let mut queue = vec![(0usize, 0u32)];
         let mut unrollings = 0usize;
+        // Only the blocks the site can be reached from: what comes after it
+        // says nothing about it, and a loop there must not cut the question
+        // (check claude, seed 28124: a site before any loop was "proved for
+        // the first trips" because a later loop ran out of room).
+        let mut to_site: std::collections::HashSet<usize> = f.blocks.iter().enumerate().filter(|(_, bb)| bb.stmts.iter().any(|st| matches!(st.kind, StmtKind::Site(id) if id == site))).map(|(i, _)| i).collect();
+        let mut preds: HashMap<usize, Vec<usize>> = HashMap::new();
+        for (i, bb) in f.blocks.iter().enumerate() {
+            for t in crate::mir::verify::successors(&bb.term) {
+                preds.entry(t.0 as usize).or_default().push(i);
+            }
+        }
+        let mut stack: Vec<usize> = to_site.iter().copied().collect();
+        while let Some(n) = stack.pop() {
+            for &pb in preds.get(&n).into_iter().flatten() {
+                if to_site.insert(pb) {
+                    stack.push(pb);
+                }
+            }
+        }
 
         while let Some(node) = queue.first().copied() {
             queue.remove(0);
@@ -579,7 +598,7 @@ impl<'a> Enc<'a> {
             let (b, level) = node;
             for t in crate::mir::verify::successors(&f.blocks[b].term) {
                 let ti = t.0 as usize;
-                if ti >= f.blocks.len() {
+                if ti >= f.blocks.len() || !to_site.contains(&ti) {
                     continue;
                 }
                 let is_back = back.contains(&(b, ti));

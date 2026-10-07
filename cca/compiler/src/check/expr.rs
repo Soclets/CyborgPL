@@ -1024,14 +1024,12 @@ impl Checker {
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Str(enc), span })
             }
             BinOp::Eq | BinOp::Ne => {
-                let (mut l, mut r, mut lt) = (l, r, lt);
-                if rt.is_int() && !matches!(rt.base(), Ty::Int(IntW::Free(_))) {
-                    self.bare_group_exact(&mut l);
-                    lt = self.resolve(&l.ty);
-                }
-                if lt.is_int() && !matches!(lt.base(), Ty::Int(IntW::Free(_))) {
-                    self.bare_group_exact(&mut r);
-                }
+                // A comparison compares true values: a group of bare numbers
+                // on either side is worked exactly, as wide as it needs.
+                let (mut l, mut r) = (l, r);
+                self.bare_group_exact(&mut l);
+                self.bare_group_exact(&mut r);
+                let lt = self.resolve(&l.ty);
                 let r = self.expect_operand(ctx, r, &lt, op, op_span)?;
                 if matches!(lt.base(), Ty::Fn(_) | Ty::Ptr { .. } | Ty::Channel(_)) {
                     return err(Diagnostic::error(format!("`==` has no meaning for {}", crate::types::a_type(&self.spell(&lt)))).at(op_span));
@@ -1047,14 +1045,12 @@ impl Checker {
                     let (l, r, _) = self.numeric_pair(ctx, l, r, op, op_span)?;
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span });
                 }
-                let (mut l, mut r, mut lt) = (l, r, lt);
-                if rt.is_int() && !matches!(rt.base(), Ty::Int(IntW::Free(_))) {
-                    self.bare_group_exact(&mut l);
-                    lt = self.resolve(&l.ty);
-                }
-                if lt.is_int() && !matches!(lt.base(), Ty::Int(IntW::Free(_))) {
-                    self.bare_group_exact(&mut r);
-                }
+                // A comparison compares true values: a group of bare numbers
+                // on either side is worked exactly, as wide as it needs.
+                let (mut l, mut r) = (l, r);
+                self.bare_group_exact(&mut l);
+                self.bare_group_exact(&mut r);
+                let lt = self.resolve(&l.ty);
                 if lt.is_text() {
                     return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is std's — compare lengths or use a std function", op.spelled())).at(op_span));
                 }
@@ -1326,7 +1322,7 @@ impl Checker {
                 }
                 Ty::Int(IntW::Fixed { .. }) => {
                     if matches!(self.resolve(&item.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(item) && !matches!(item.kind, K::Int(_)) {
-                        let to = if plain_group(item) { Ty::exact() } else { elem.base().clone() };
+                        let to = if plain_group(item) { exact_for(item) } else { elem.base().clone() };
                         retype_literal_arith(item, &to);
                     }
                 }
@@ -1521,9 +1517,11 @@ impl Checker {
             if let (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Free(_))) = (lt.base(), rt.base()) {
                 if literal_only(&l) && literal_only(&r) {
                     let (mut l, mut r) = (l, r);
-                    retype_literal_arith(&mut l, &Ty::exact());
-                    retype_literal_arith(&mut r, &Ty::exact());
-                    return Ok((l, r, Ty::exact()));
+                    let (el, er) = (exact_for(&l), exact_for(&r));
+                    let both = Ty::exact_at(el.exact_limit().unwrap_or(64).max(er.exact_limit().unwrap_or(64)));
+                    retype_literal_arith(&mut l, &both);
+                    retype_literal_arith(&mut r, &both);
+                    return Ok((l, r, both));
                 }
             }
         }
@@ -1562,7 +1560,7 @@ impl Checker {
             let fixed = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { .. }));
             if (group(&l, &lt) && fixed(&rt)) || (group(&r, &rt) && fixed(&lt)) {
                 let (mut l, mut r) = (l, r);
-                let exact = Ty::exact();
+                let exact = if group(&l, &lt) { exact_for(&l) } else { exact_for(&r) };
                 if group(&l, &lt) {
                     retype_literal_arith(&mut l, &exact);
                 }
@@ -3015,7 +3013,8 @@ impl Checker {
         // them: `to.uint64[0 / ((2 / 10047273927188643194) + 1)]` divides by
         // 1. Held at `int64`, the big one read as negative (seed 371).
         if literal_only(&v) && matches!(self.resolve(&v.ty).base(), Ty::Int(IntW::Free(_))) && matches!(t.base(), Ty::Int(_)) {
-            retype_literal_arith(&mut v, &Ty::exact());
+            let to = exact_for(&v);
+            retype_literal_arith(&mut v, &to);
         }
         let v = self.as_operand(ctx, v)?;
         let vt = self.resolve(&v.ty);
@@ -3369,7 +3368,7 @@ impl Checker {
                 // `((-2^63) x 2^62) mod 9` is 4, and the product in between
                 // fits nothing (check claude, seed 11045).
                 if matches!(self.resolve(&c.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(&c) {
-                    let to = if plain_group(&c) { Ty::exact() } else { Ty::u64() };
+                    let to = if plain_group(&c) { exact_for(&c) } else { Ty::u64() };
                     retype_literal_arith(&mut c, &to);
                 }
                 if !self.resolve(&c.ty).is_int() {
@@ -3644,7 +3643,8 @@ impl Checker {
                 // at a signed 64 bits, where the literal is negative, in any
                 // build that did not fold it (check claude, seed 5120).
                 if literal_only(&v) && !is_int_literal(&v) && matches!(self.resolve(&v.ty).base(), Ty::Int(IntW::Free(_))) {
-                    retype_literal_arith(&mut v, &Ty::exact());
+                    let to = exact_for(&v);
+                    retype_literal_arith(&mut v, &to);
                 }
                 // An answer of plain math is exact, and lands where it is
                 // stored (owner, 2026-09-23): in every lane, whose type the
@@ -4060,6 +4060,12 @@ fn literal_only(e: &Expr) -> bool {
 /// A group of bare numbers worked out exactly: the bits its largest value
 /// on the way takes, signed; `None` where it has no answer (a division by
 /// zero, a negative power) or one past every width there is.
+/// The exact type a group of bare numbers is worked at: as wide as its
+/// values need, at least 64 bits (check claude, seeds 28093, 28563).
+fn exact_for(e: &Expr) -> Ty {
+    Ty::exact_at(literal_group_bits(e).unwrap_or(64).max(64))
+}
+
 fn literal_group_bits(e: &Expr) -> Option<u32> {
     fn eval(e: &Expr, most: &mut u64) -> Option<crate::bigint::Big> {
         use crate::bigint::Big;

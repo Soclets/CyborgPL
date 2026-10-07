@@ -2376,6 +2376,13 @@ impl Precog {
                     return Verdict::Fails { counterexample: format!("the count can be {}, and a count is never negative", blo) };
                 }
                 if matches!(site.kind, SiteKind::ShiftCount) {
+                    // An exact answer shifted lands in the width first, and
+                    // that is this site's question too: the generated code
+                    // checks it here (check claude, seed 28123: -1 shifted
+                    // at a `uint32` width was "proven" by its count alone).
+                    if ty_of(self, 0).is_some_and(|t| t.is_exact()) {
+                        return self.fit_wide(&a, &limit, &ty);
+                    }
                     return Verdict::Proven { how: "layer 2" };
                 }
                 let by = (crate::bigint::Big::pow2(blo.max(0) as u32), crate::bigint::Big::pow2(bhi.max(0) as u32));
