@@ -381,7 +381,13 @@ return 'r' times 'r'; }` even meant (a parameter whose type Precog
 infers from every caller, 2026-09-19, and a return type from the
 `return`), design claude then recommended (a), a function that works for
 several types naming them with Genny's `<T>`. So 2026-09-19's untyped
-parameter goes: `fn area ['r': bin64] --> bin64 { … }`. Design
+parameter goes: `fn area ['r': bin64] -> bin64 { … }`. **The arrows are
+short again: `->`, `<-`, `<->`** (owner: "Short, the neck & eye movement
+is less"), shown the same functions, a failing one, a lent return, a
+closure and assembly bindings with `->` and with `-->`; this reverses
+2026-10-06's "Signatar supports long, not short anymore". Design claude's
+reading: the whole family goes short (`<-` for a binding out, `<->` both
+ways), and with MTM gone the long ones are refused naming the short. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
