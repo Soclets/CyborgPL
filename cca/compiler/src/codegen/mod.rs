@@ -1800,7 +1800,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     };
                     self.div_round(x, y, signed, false, *round)?.0
                 }
-                BinOp::Div(round) | BinOp::Mod(round) => {
+                BinOp::Div(round) | BinOp::DivIeee(round) | BinOp::Mod(round) => {
                     // A zero divisor, and the lowest signed value divided by
                     // -1, are both undefined to LLVM: checked before the
                     // divide, never after.
@@ -1867,15 +1867,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // A bin never holds an infinity or a NaN (owner, 2026-09-29):
             // a zero divisor is asked first, then whether the answer is a
             // real number — `r - r` is 0 only for a finite `r`.
-            if let (BinOp::Div(_) | BinOp::Mod(_), Some(s)) = (op, divzero) {
+            if let (BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_), Some(s)) = (op, divzero) {
                 let zero = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                 self.guard(fi, s, zero, func)?;
             }
             // A whole quotient, and what it leaves over (`div.near` is the
             // ordinary division, below).
-            if let BinOp::Div(round) | BinOp::Mod(round) = op {
+            if let BinOp::Div(round) | BinOp::DivIeee(round) | BinOp::Mod(round) = op {
                 if *round != crate::ast::Round::Near {
-                    let v = self.bin_div_round(x, y, op.is_mod(), *round)?;
+                    let v = self.bin_div_round(x, y, op.is_mod(), *round, matches!(op, BinOp::DivIeee(_)))?;
                     if let (Some(s), false) = (overflow, op.is_mod()) {
                         self.bin_finite_guard(fi, s, v, func)?;
                     }
@@ -1895,7 +1895,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 BinOp::Add => self.builder.build_float_add(x, y, "fadd").ok()?.into(),
                 BinOp::Sub => self.builder.build_float_sub(x, y, "fsub").ok()?.into(),
                 BinOp::Mul => self.builder.build_float_mul(x, y, "fmul").ok()?.into(),
-                BinOp::Div(_) => self.builder.build_float_div(x, y, "fdiv").ok()?.into(),
+                BinOp::Div(_) | BinOp::DivIeee(_) => self.builder.build_float_div(x, y, "fdiv").ok()?.into(),
                 BinOp::Eq => self.builder.build_float_compare(FP::OEQ, x, y, "feq").ok()?.into(),
                 BinOp::Ne => self.builder.build_float_compare(FP::ONE, x, y, "fne").ok()?.into(),
                 BinOp::Lt => self.builder.build_float_compare(FP::OLT, x, y, "flt").ok()?.into(),
@@ -1908,7 +1908,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             };
             if let (Some(s), BasicValueEnum::FloatValue(rv)) = (overflow, r) {
-                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_)) {
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_)) {
                     self.bin_finite_guard(fi, s, rv, func)?;
                 }
             }
@@ -2105,7 +2105,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// A brain16 or bin16 is worked at 32 bits, as its other arithmetic is,
     /// and its remainder asked again at its own width, where one more can
     /// round to the divisor.
-    fn bin_div_round(&mut self, x: inkwell::values::FloatValue<'ctx>, y: inkwell::values::FloatValue<'ctx>, want_mod: bool, round: crate::ast::Round) -> Option<inkwell::values::FloatValue<'ctx>> {
+    fn bin_div_round(&mut self, x: inkwell::values::FloatValue<'ctx>, y: inkwell::values::FloatValue<'ctx>, want_mod: bool, round: crate::ast::Round, ieee: bool) -> Option<inkwell::values::FloatValue<'ctx>> {
         use crate::ast::Round;
         use inkwell::FloatPredicate as FP;
         let t = x.get_type();
@@ -2163,6 +2163,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             None => q,
         };
+        // A whole quotient that rounds to zero is `0`, never `-0` (owner,
+        // 2026-10-07: "`b`"): adding `+0` turns IEEE's `-0` into `0` and
+        // leaves every other value as it is. `.ieee` keeps it ("`a`").
+        let q = if ieee { q } else { self.builder.build_float_add(q, wt.const_zero(), "no_negative_zero").ok()? };
         if wide {
             self.float_cast(q, t)
         } else {
@@ -2272,8 +2276,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // No lane holds an infinity or a NaN (owner, 2026-09-29): a
             // zero divisor in any lane, then any lane's answer not a real
             // number, stops it.
-            if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_)) {
-                if let (BinOp::Div(_), Some(s)) = (op, open(self, &|k| matches!(k, SiteKind::DivZero))) {
+            if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_)) {
+                if let (BinOp::Div(_) | BinOp::DivIeee(_), Some(s)) = (op, open(self, &|k| matches!(k, SiteKind::DivZero))) {
                     let m = self.builder.build_float_compare(FP::OEQ, y, y.get_type().const_zero(), "by_zero").ok()?;
                     let bad = any(self, m)?;
                     self.guard(fi, s, bad, func)?;
@@ -2322,14 +2326,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             BinOp::WrapAdd => self.builder.build_int_add(x, y, "wadd").ok()?.into(),
             BinOp::WrapSub => self.builder.build_int_sub(x, y, "wsub").ok()?.into(),
             BinOp::WrapMul => self.builder.build_int_mul(x, y, "wmul").ok()?.into(),
-            BinOp::Div(round) | BinOp::Mod(round) => {
+            BinOp::Div(round) | BinOp::DivIeee(round) | BinOp::Mod(round) => {
                 if let Some(s) = open(self, &|k| matches!(k, SiteKind::DivZero | SiteKind::ModZero)) {
                     let z = self.builder.build_int_compare(IntPredicate::EQ, y, zero, "by_zero").ok()?;
                     let bad = any(self, z)?;
                     self.guard(fi, s, bad, func)?;
                 }
                 if signed && op.is_div() {
-                    if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(BinOp::Div(_)))) {
+                    if let Some(s) = open(self, &|k| matches!(k, SiteKind::Overflow(BinOp::Div(_) | BinOp::DivIeee(_)))) {
                         let min = const_i128(vt.get_element_type().into_int_type(), -(1i128 << (bits - 1)));
                         let mins = splat(self, min.into())?;
                         let m1 = splat(self, vt.get_element_type().into_int_type().const_all_ones().into())?;

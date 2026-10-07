@@ -1531,7 +1531,7 @@ impl Precog {
                 BinOp::Add => x.add(y),
                 BinOp::Sub => x.sub(y),
                 BinOp::Mul => x.mul(y),
-                BinOp::Div(r) => x.div_round(y, *r),
+                BinOp::Div(r) | BinOp::DivIeee(r) => x.div_round(y, *r),
                 BinOp::Mod(r) => x.mod_round(y, *r),
                 BinOp::Pow => x.pow(y),
                 // Wrapping arithmetic is exact modulo the width; the domain
@@ -2270,7 +2270,7 @@ impl Precog {
                     (BinOp::Sub, Some(Domain::Ints(y))) => a.sub(y),
                     (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
                     (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
-                    (BinOp::Div(r), Some(Domain::Ints(y))) => a.div_round(y, *r),
+                    (BinOp::Div(r) | BinOp::DivIeee(r), Some(Domain::Ints(y))) => a.div_round(y, *r),
                     (BinOp::Mod(r), Some(Domain::Ints(y))) => a.mod_round(y, *r),
                     // A negation, or a fold whose shape is not two operands.
                     (BinOp::Sub, None) => a.neg(),
@@ -3350,7 +3350,7 @@ fn bin_finite(op: &BinOp, ds: &[Domain], w: crate::types::BinW, spelled: &str) -
             BinOp::Add => x + y,
             BinOp::Sub => x - y,
             BinOp::Mul => x * y,
-            BinOp::Div(_) => x / y,
+            BinOp::Div(_) | BinOp::DivIeee(_) => x / y,
             BinOp::Pow => x.powf(y),
             _ => f64::NAN,
         };
@@ -3410,7 +3410,7 @@ pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Opti
             BinOp::Add => x + y,
             BinOp::Sub => x - y,
             BinOp::Mul => x * y,
-            BinOp::Div(_) => x / y,
+            BinOp::Div(_) | BinOp::DivIeee(_) => x / y,
             // A power only between two known values: it is not monotone.
             BinOp::Pow if a.0 == a.1 && b.0 == b.1 => x.powf(y),
             _ => f64::NAN,
@@ -3443,7 +3443,7 @@ pub fn bin_interval(op: &BinOp, a: (f64, f64), b: (f64, f64), bits: u16) -> Opti
     let (lo, hi) = (lo - widen(lo), hi + widen(hi));
     // A whole quotient: the true one's floor or ceiling, a step either way
     // for the rounding of `(x - r) / y`.
-    let (lo, hi) = if matches!(op, BinOp::Div(r) if *r != crate::ast::Round::Near) { (lo.floor() - 1.0, hi.ceil() + 1.0) } else { (lo, hi) };
+    let (lo, hi) = if matches!(op, BinOp::Div(r) | BinOp::DivIeee(r) if *r != crate::ast::Round::Near) { (lo.floor() - 1.0, hi.ceil() + 1.0) } else { (lo, hi) };
     let max = crate::mir::domain::bin_max(crate::types::BinW::Fixed(bits))?;
     if lo < -max || hi > max {
         return None;
@@ -3541,7 +3541,7 @@ fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
                 (BinOp::Sub, Some(Domain::Ints(y))) => a.sub(y),
                 (BinOp::Mul, Some(Domain::Ints(y))) => a.mul(y),
                 (BinOp::Pow, Some(Domain::Ints(y))) => a.pow(y),
-                (BinOp::Div(r), Some(Domain::Ints(y))) => a.div_round(y, *r),
+                (BinOp::Div(r) | BinOp::DivIeee(r), Some(Domain::Ints(y))) => a.div_round(y, *r),
                 (BinOp::Mod(r), Some(Domain::Ints(y))) => a.mod_round(y, *r),
                 (BinOp::Sub, None) => a.neg(),
                 _ => return None,

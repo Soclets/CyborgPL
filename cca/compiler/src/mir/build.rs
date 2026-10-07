@@ -110,7 +110,10 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
                         B::Add => x + y,
                         B::Sub => x - y,
                         B::Mul => x * y,
-                        B::Div(r) => crate::rounding::bin_divmod(x, y, *r).0,
+                        // A rounded quotient is `0`, never `-0`, but under
+                        // `.ieee` (owner, 2026-10-07).
+                        B::Div(r) => crate::rounding::bin_divmod(x, y, *r).0 + 0.0,
+                        B::DivIeee(r) => crate::rounding::bin_divmod(x, y, *r).0,
                         B::Mod(r) if *r != crate::ast::Round::Near => crate::rounding::bin_divmod(x, y, *r).1,
                         _ => return None,
                     };
@@ -1379,7 +1382,7 @@ impl<'a> FnBuilder<'a> {
                 self.site(SiteKind::ModZero, vec![r.clone()], span);
             }
             // A whole quotient can be past the largest bin as well.
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Pow if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Pow if matches!(ty.base(), Ty::Bin(_) | Ty::Brain) => {
                 if op.is_div() {
                     self.site(SiteKind::DivZero, vec![r.clone()], span);
                 }
@@ -1403,7 +1406,7 @@ impl<'a> FnBuilder<'a> {
             BinOp::DivWrap(_) if int => {
                 self.site(SiteKind::DivZero, vec![r.clone()], span);
             }
-            BinOp::Div(_) if int => {
+            BinOp::Div(_) | BinOp::DivIeee(_) if int => {
                 self.site(SiteKind::DivZero, vec![r.clone()], span);
                 // The one overflowing division: the lowest value by -1.
                 self.site_of(SiteKind::Overflow(op.clone()), vec![l.clone(), r.clone()], Some(ty.clone()), span);

@@ -2840,6 +2840,26 @@ impl<'a> Parser<'a> {
     /// `.wrap` after a division's rounding (owner, 2026-10-03): the
     /// hardware's wrapped quotient. A remainder never overflows, so `mod`
     /// takes none.
+    /// `div.X.ieee` (owner, 2026-10-07): IEEE's `-0` kept, on a quotient
+    /// only, and not `div.near`'s, which is ordinary division (design
+    /// claude's readings).
+    fn ieee_narrow(&mut self, w: &str, r: Round) -> Result<bool> {
+        if !(self.is(&Tok::Dot) && self.is_word_at(1, "ieee")) || r == Round::Bare {
+            return Ok(false);
+        }
+        let at = self.span();
+        self.bump();
+        self.bump();
+        let at = at.to(self.prev_span());
+        if w == "mod" {
+            return self.fail_at(at, format!("`.ieee` keeps a quotient's -0, and `mod.{}` gives a remainder, whose 0 already takes the divisor's sign: write `mod.{}`", r.word(), r.word()));
+        }
+        if r == Round::Near {
+            return self.fail_at(at, "`div.near` on a bin is ordinary division, which rounds no quotient to 0: it takes no `.ieee`");
+        }
+        Ok(true)
+    }
+
     fn wrap_narrow(&mut self, w: &str, r: Round) -> Result<bool> {
         if !(self.is(&Tok::Dot) && self.is_word_at(1, "wrap")) || r == Round::Bare {
             return Ok(false);
@@ -3095,8 +3115,10 @@ impl<'a> Parser<'a> {
                 BinOp::Div(_) | BinOp::Mod(_) => {
                     let w = if op.is_div() { "div" } else { "mod" };
                     let r = self.rounding(w)?;
-                    let wrap = self.wrap_narrow(w, r)?;
+                    let ieee = self.ieee_narrow(w, r)?;
+                    let wrap = !ieee && self.wrap_narrow(w, r)?;
                     op = match (op.is_div(), wrap) {
+                        _ if ieee => BinOp::DivIeee(r),
                         (true, true) => BinOp::DivWrap(r),
                         (true, false) => BinOp::Div(r),
                         (false, _) => BinOp::Mod(r),

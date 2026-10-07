@@ -1191,7 +1191,7 @@ impl<'a> Enc<'a> {
                 // sign, wide enough that nothing wraps. Asked at the
                 // operands' width, `up[…] + 9e18` wrapped into a small
                 // number and a landing that overflows read as proven.
-                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) | BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) | BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge) {
                     // Two bits past the wider operand: every answer that some
                     // 64-bit type holds is exact there, sums and products
                     // alike. A product past that wraps — but it is past the
@@ -1209,7 +1209,7 @@ impl<'a> Enc<'a> {
                         BinOp::Add => format!("(bvadd {} {})", x.term, y.term),
                         BinOp::Sub => format!("(bvsub {} {})", x.term, y.term),
                         BinOp::Mul => format!("(bvmul {} {})", x.term, y.term),
-                        BinOp::Div(rounding) | BinOp::Mod(rounding) => {
+                        BinOp::Div(rounding) | BinOp::DivIeee(rounding) | BinOp::Mod(rounding) => {
                             // Truncated, the solvers' own, then one step
                             // where the rounding asks: up (`q + 1`, `r - y`)
                             // when the remainder and the divisor share a
@@ -1467,7 +1467,7 @@ impl<'a> Enc<'a> {
                         let past = if *op == BinOp::Mul { format!(" (bvsmulo {} {})", a.term, b.term) } else { String::new() };
                         Some(format!("(or {} {}{})", self.cmp_const(&r, "bvsgt", hi)?, self.cmp_const(&r, "bvslt", lo)?, past))
                     }
-                    BinOp::Div(_) => {
+                    BinOp::Div(_) | BinOp::DivIeee(_) => {
                         // The one division that leaves the type: the lowest
                         // value by -1.
                         let b = ops.get(1).cloned().flatten()?;

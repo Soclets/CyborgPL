@@ -928,7 +928,7 @@ impl Checker {
             return self.simd_binary(op, op_span, l, r, &lt, &rt, span);
         }
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_) => {
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) => {
                 if lt.base() == &Ty::Duration || rt.base() == &Ty::Duration {
                     if !(lt.base() == &Ty::Duration && rt.base() == &Ty::Duration) || !matches!(op, BinOp::Add | BinOp::Sub) {
                         if matches!(op, BinOp::Mul) && (lt.is_int() || rt.is_int()) {
@@ -939,6 +939,12 @@ impl Checker {
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Duration, span });
                 }
                 let (l, r, ty) = self.numeric_pair(ctx, l, r, op, op_span)?;
+                // Only a bin or brain16 has a -0 to keep (owner, 2026-10-07).
+                if let BinOp::DivIeee(round) = op {
+                    if !matches!(ty.base(), Ty::Bin(_) | Ty::Brain) {
+                        return err(Diagnostic::error(format!("`{}` keeps a -0, which only a bin or brain16 has: write `div.{}`", op.spelled(), round.word())).at(op_span));
+                    }
+                }
                 self.rounding_takes(op, op_span, &ty)?;
                 if *op == BinOp::Pow && ty.is_int() {
                     if let K::Int(e) = &r.kind {
@@ -1250,7 +1256,7 @@ impl Checker {
         let lane_r = self.resolve(&lane);
         let ok = match op {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow => lane_r.is_numeric(),
-            BinOp::Div(_) | BinOp::Mod(_) => {
+            BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) => {
                 self.rounding_takes(op, op_span, &lane_r)?;
                 lane_r.is_numeric()
             }
@@ -1442,7 +1448,7 @@ impl Checker {
         // answer is the exact type, checked when it is stored, passed or
         // returned. Only bare numbers alone stay without a type: they are
         // worked out at compile time.
-        let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) || op.is_comparison();
+        let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_)) || op.is_comparison();
         // Bare numbers compared with bare numbers are worked out exactly
         // too: `3876992840477302775 + 7782534087963747351 > 0` is true — the
         // sum is one some 64-bit type holds — not a sum held at `int64`
@@ -1487,7 +1493,7 @@ impl Checker {
         // The division is then exact as well, and lands where it is stored
         // — as `'p' + (…)` already does. A lone literal still takes the
         // other side's type.
-        if matches!(op, BinOp::Div(_) | BinOp::Mod(_)) {
+        if matches!(op, BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_)) {
             let group = |e: &Expr, t: &Ty| matches!(t.base(), Ty::Int(IntW::Free(_))) && literal_only(e) && !is_int_literal(e);
             let fixed = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { .. }));
             if (group(&l, &lt) && fixed(&rt)) || (group(&r, &rt) && fixed(&lt)) {
@@ -1555,7 +1561,7 @@ impl Checker {
             into_brain(&mut l);
         }
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) | BinOp::Pow => {}
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) | BinOp::Pow => {}
             _ if op.is_comparison() => {}
             _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a brain16 is not one", op.spelled())).at(op_span)),
         }
@@ -1609,7 +1615,7 @@ impl Checker {
         }
         let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
         match op {
-            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::Mod(_) => {}
+            BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) => {}
             _ if op.is_comparison() => {}
             _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a deci is not one", op.spelled())).at(op_span)),
         }
@@ -3833,7 +3839,7 @@ fn builtin_subject(b: &Builtin) -> &'static str {
 /// claude, attack a). Shifts, bitwise and wrapping take the place's width.
 fn plain_group(e: &Expr) -> bool {
     match &e.kind {
-        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) && plain_group(lhs) && plain_group(rhs),
+        K::Binary { op, lhs, rhs, .. } => matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_)) && plain_group(lhs) && plain_group(rhs),
         K::Unary { op: UnOp::Neg, expr } => plain_group(expr),
         K::Int(_) | K::BigInt(_) => true,
         _ => false,
@@ -3978,7 +3984,7 @@ fn literal_group_bits(e: &Expr) -> Option<u32> {
                         let k = b.to_i128().filter(|k| *k >= 0)?;
                         a.pow(u64::try_from(k).ok()?)?
                     }
-                    BinOp::Div(r) => a.divmod(&b, *r)?.0,
+                    BinOp::Div(r) | BinOp::DivIeee(r) => a.divmod(&b, *r)?.0,
                     BinOp::Mod(r) => a.divmod(&b, *r)?.1,
                     _ => return None,
                 }
@@ -4309,7 +4315,9 @@ fn bare_number_group(e: &Expr) -> bool {
         K::Int(_) => matches!(e.ty.base(), Ty::Int(IntW::Free(_))),
         K::Bin(_) => matches!(e.ty.base(), Ty::Bin(BinW::Free(_))),
         K::Unary { op: UnOp::Neg, expr } => bare_number_group(expr),
-        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(Round::Near), lhs, rhs, .. } => bare_number_group(lhs) && bare_number_group(rhs),
+        // Every rounding of a division too, and what it leaves over: a
+        // brain16 takes them all (`div.trunc` beside `div.near`).
+        K::Binary { op: BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_), lhs, rhs, .. } => bare_number_group(lhs) && bare_number_group(rhs),
         _ => false,
     }
 }

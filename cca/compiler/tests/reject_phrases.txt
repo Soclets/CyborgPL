@@ -278,6 +278,8 @@ gives_renamed [fnv:27e786ca6ffe10f6] :: `gives` is spelled `giveS`
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
 grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 gte [fnv:695f5e2be2fe7158] :: greater-or-equal is `>/==`
+ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
+ieee_on_mod [fnv:28acecc63f332008] :: `.ieee` keeps a quotient's -0
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
 iface_empty [fnv:f5b372b2009be52e] :: list at least one `fn` or `op` signature
 iface_false_claim [fnv:6d0a1bbebbb84659] :: the claim `V satisfies Ordered` is false: no `op <` for it
