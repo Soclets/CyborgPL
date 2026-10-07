@@ -469,7 +469,9 @@ every print (`.format`, `.weird`, `.auto_newline`) takes the default, and
 the parameter lent, over (b) `lend` on both sides; design claude
 recommended (a). **`print.useful.auto_newline` becomes
 `print.useful.auto_newln`** (owner: "`auto_newline` should be
-`auto_newln`"): `print.useful.auto_newln["Hello, World!"];`. Design
+`auto_newln`"): `print.useful.auto_newln["Hello, World!"];`. **`:=` and `=` stay** (owner: "`a`, it's fucking iconic, bro"):
+`let 'x' := 1;` with the type inferred, `let 'x': int32 = 1;` with it
+written, over (b) always `=` and (c) always `:=`. Design
 claude's readings, not asked: `bin` and `deci` stay in the base (hardware,
 or hardware on POWER and z); `int128` / `uint128` stay (standard, two
 native operations each). Not asked yet: which cores they go to; what
