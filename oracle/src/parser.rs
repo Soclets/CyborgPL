@@ -1396,6 +1396,13 @@ impl Parser {
             }
             return Ok(Ty::Fn(ps, ret, fails));
         }
+        // `duration` bare is std's `std::duration`: std marks everything `bare.optional` (owner, 2026-10-06:
+        // "optional for all")
+        if self.is_word("duration") && !matches!(self.peek_at(1), Tok::Dot | Tok::ColonColon) {
+            if self.no_std { return self.std_missing("`duration`"); }
+            self.advance();
+            return Ok(Ty::Duration);
+        }
         // `std::duration` — the one std type the oracle knows (design/concurrency.md)
         if self.is_word("std") && *self.peek_at(1) == Tok::ColonColon {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
@@ -3114,6 +3121,8 @@ impl Parser {
                 // `5 seconds` — a duration literal (design/concurrency.md): the unit sits on the number
                 if let Tok::Word(w) = self.peek().clone() {
                     if let Some((_, per)) = DURATION_UNITS.iter().find(|(u, _)| *u == w) {
+                        // time is std's, with its literals (owner, 2026-09-22)
+                        if self.no_std { return self.std_missing(&format!("a duration literal (`{i} {w}`)")); }
                         self.advance();
                         if i < 0 { return self.err("a duration is never negative"); }
                         return Ok(Expr::Duration(i * per, line));
