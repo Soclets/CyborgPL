@@ -1,8 +1,6 @@
-# Question 2026-10-07 (check run --risk 20, seed 30208, shrunk), not a ruled finding: a brain16 zero
-# times (-0.3). IEEE gives -0, and the oracle keeps it: the useful text is "-0" (2 bytes), and it also
-# gives -0 for 0.0 times (-0.3) on a bin64 and for a negated bin zero. CCA gives "0" (1 byte). The
-# 2026-10-07 ruling ("a whole quotient that rounds to zero is 0") is about quotients only. Asked of
-# the owner via design claude.
+# Finding 2026-10-07, ruled the same day (owner: "a", oracle 72d6946d): no bin or brain16 result is
+# ever -0; plus/minus/times/div.X.ieee and neg.ieee keep IEEE's -0. A brain16 zero times (-0.3) is 0,
+# text "0", 1 byte, as CCA gave; the oracle had kept -0 (seed 30208).
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
