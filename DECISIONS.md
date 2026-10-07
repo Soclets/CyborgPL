@@ -61,6 +61,20 @@ answers them:
   program is the same either way**: a plugin runs only while compiling and
   hands back IR. A core is trusted when listed, as the approved warning
   says. One build per platform.
+- **Q6, whether an unofficial core may run in `--assert-proofs` and in the
+  registry's build of a published limb: yes, in both**, the registry
+  building inside a throwaway, sealed machine so a core's native code
+  cannot harm its servers (design claude's suggestion; the owner: "yea"),
+  over refusing them there (compiler claude's recommendation), which
+  would have left unofficial cores out of published limbs.
+
+The official cores are built into CCA (the proposal's "the common case
+loads nothing"; with native plugins equal in trust and speed, being built
+in is no privilege). The two gaps stay open: which powers MCPS, the GPU
+cores, WSTN and MTM add, and IEG's raw operations. Compiler claude's
+build order (split CCA; the power ledger; the hook menu; MTM, WSTN; MCPS
+and the GPU cores; ASP, IEG, Genny; external loading) stands as
+engineering, with Q4's real separation in step 6.
 
 ### 2026-10-07 — The dangerous abilities are powers too: Signatar grants them to every limb, and a program may deny them (owner: a; not built)
 
