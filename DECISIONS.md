@@ -556,7 +556,8 @@ run-time checks (it asks Precog to prove a guardrail at compile time in
 every build) and that tests use it (they use `must`, 2026-09-29); the
 owner had asked "I though `check` was IEG's" (`check` is ASP's,
 `no_check` IEG's) and "`check` only does runtime with debug build,
-right?" (no). The core's name is not chosen. Not yet
+right?" (no). **The core is TAS, "This And Shit"** (owner: "`tests`",
+then, interrupting, "I meant `TAS` (This And Shit)"). No registry ID yet. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
