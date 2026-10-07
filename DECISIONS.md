@@ -568,7 +568,10 @@ money rarely want each other's numbers or software maths. **Their names**
 core"): **AI** for `brain16`, **WSMW, "Weirdly Small And Massive
 Widths"**, for the non-standard integers, and **Money** for `deci`
 (design claude's reading of "AI core" and "Money core" as the names AI and
-Money). No registry IDs yet. Not yet
+Money). No registry IDs yet. **For the first public release, Money is covered and AI
+is not** (owner: "That's actually a lot of work, money & AI. So, for
+first public release, we only have to cover money"). WSMW's place in it
+was not said. Not yet
 asked: SVE's and RISC-V's run-time lengths.
 
 ### 2026-10-07 — No name "Signatar": the language is CyborgPL, and with no cores it is "base CyborgPL" (owner; recorded, not to be applied yet)
