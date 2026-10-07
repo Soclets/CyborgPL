@@ -250,6 +250,27 @@ morning's "a core may take powers away" up to the dialect. A consequence,
 design claude's: a program in another dialect has no std unless that
 dialect brings one.
 
+**Cores bring meaning, and may bring words too** (owner: "C is great").
+Asked whether cores may still add syntax now that it comes from a dialect
+(today IEG's `!check`, MCPS's `concur`, Genny's `<T>`), the owner first
+asked the cost: design claude, none at run time (the base exists only
+while compiling; the output is LLVM's native code, the same for two
+spellings), a small, unmeasured hand-over per file at compile time, tiny
+beside Precog's proving. Then which has more useful possibilities: (a)
+cores bring meaning only, every dialect spelling it; (b) cores bring words
+only to the dialects they name; (c) both. Design claude recommended (c):
+add-ons mix and match (a units core's `5 meters`, a testing core's
+`expect`) without a dialect for each combination, as compiler claude's
+plugin hooks (Q1) already allow, and a game dialect still reuses any
+core's meaning in its own spelling; the dialect stays in charge, since it
+may forbid a core. So **a core brings a feature the base understands,
+which any dialect may spell, and may bring its own words for the
+dialects it names** (`for para` for CyborgPL; a game dialect writing
+`every 'x' in 'xs' at once`, say). Design claude's reading, not asked:
+MTM and WSTN stay cores that bring words to CyborgPL, which (c) already
+fits; and where a dialect takes away a power a core grants, the dialect
+wins, outranking it.
+
 ### 2026-10-07 — No base and no codextras: Signatar is the lowest level; a core may take powers away (owner: a)
 
 Asked what the base does (reads the files, loads the codextra and cores,

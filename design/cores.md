@@ -9,8 +9,11 @@ their words. **Later that day: Signatar *is* the base, "more like the
 JVM", and a new category, the dialect, ranks between it and cores and
 brings the syntax** (owner: "the syntax should come from a dialect");
 **the official dialect is CyborgPL**; Limbs in different dialects do not
-use each other (owner: "`b`"). Which syntax stays with cores, and where
-MTM and WSTN go, are being decided.
+use each other (owner: "`b`"). **A core brings a feature the base
+understands, which any dialect may spell, and may bring its own words for
+the dialects it names** (owner: "C is great"); MTM and WSTN are such cores,
+bringing words to CyborgPL. Where a dialect takes away a power a core
+grants, the dialect wins (design claude's reading).
 
 The owner: "I was thinking of making the base lang more lower-level ... I
 wanted to move things like, plus, div, you know to std. And even more",
