@@ -1,7 +1,8 @@
 # Finding 2026-10-06, ruled 2026-10-07 (owner: "yea", oracle 4866c834): a shift's width comes from the
-# shifted number, or its context when bare, never from the count. to.int64[((-53) shr 'c') mod.floor
-# 23] with 'c' an int8 of 9 is a 64-bit shift, so it runs and prints 22, as the oracle did; CCA had
-# taken the count's 8 bits and refused (seed 4106).
+# shifted number, or its context when bare, never from the count. In to.int64[((-53) shr 'c') mod.floor
+# 23] with 'c' an int8 of 9, the -53 is bare and a conversion is not a context, so nothing gives the
+# shift a width: both engines refuse it ("`shr` needs a width"). Before the ruling the oracle ran it
+# as a 64-bit shift (22) and CCA took the count's 8 bits (seed 4106).
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
