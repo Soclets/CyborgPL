@@ -1,0 +1,7 @@
+cca::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    powers = [cca::Power.operators_on_builtin_types,],
+    targets = [cca::Target[name = "aarch64-macos"],]
+];

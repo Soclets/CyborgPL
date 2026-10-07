@@ -1,0 +1,3 @@
+op mean ['a': bin64, 'b': bin64] --> bin64 { return 'a'; }
+
+MAIN { }

@@ -139,6 +139,11 @@ operand is a built-in type** (`op mean ['a': bin64, 'b': bin64]`); one
 taking any of the limb's own types (`op scale ['v': Vec2, 'k': bin64]`)
 is free, since it cannot change what `bin64 plus bin64` means in anyone
 else's code (owner: "`a`"), over any built-in operand needing it.
+**Built in the oracle the same day** (compiler claude, having split CCA
+into `cca-base`, `signatar` and `cores/*`, asked for the oracle first, as
+the spec): `powers` and `deny` read, every use found from the parse, and
+checked granted, listed, not denied; examples and tests gained their
+`powers` lines.
 **A limb lists every power it uses, the dangerous ones included**
 (owner: "`a`"): `powers = [cca::Power.c_calls,]` in its manifest, and code
 using an unlisted one is refused ("`fastjson` calls C but does not list

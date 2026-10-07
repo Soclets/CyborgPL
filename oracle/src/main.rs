@@ -70,7 +70,12 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::BARE_TYPES.with(|t| *t.borrow_mut() = bare_types);
     parser::BARE_TYPE_USES.with(|u| u.borrow_mut().clear());
     parser::BARE_CALLS.with(|b| b.borrow_mut().clear());
+    LIMB_POWERS.with(|l| l.borrow_mut().clear());
+    parser::POWER_USES.with(|u| u.borrow_mut().clear());
+    parser::CALL_SITES.with(|u| u.borrow_mut().clear());
+    parser::VAR_SITES.with(|u| u.borrow_mut().clear());
     let prog = load_files(path)?;
+    check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     // a bare call with more than one candidate is refused where it is written, run or not (owner,
     // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
     for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
@@ -102,9 +107,48 @@ fn load(path: &Path) -> Result<ast::Program, String> {
 
 /// A Limb whose `CCA.cplr` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
 /// `CCA.cplr` gets what the machine's package installed, and the oracle stands in for the full package.
+/// A power as a manifest names it (owner, 2026-10-07): its path, the things named in `[ ]`, and for a
+/// `deny` its `.except[ … ]` and `.for[ … ]`.
+#[derive(Clone, Debug, Default)]
+struct PowerRef { path: Vec<String>, things: Vec<String>, except: Vec<String>, for_: Vec<String> }
+
+/// Each Limb's manifest, as the power check needs it: its root, prefix, cores, listed powers and denies.
+struct LimbPowers { root: Vec<String>, prefix: String, cores: Vec<String>, powers: Vec<PowerRef>, deny: Vec<PowerRef> }
+
+thread_local! {
+    /// the `powers` and `deny` of the manifest just read
+    static MANIFEST_POWERS: std::cell::RefCell<Option<(Vec<PowerRef>, Vec<PowerRef>)>> = std::cell::RefCell::new(None);
+    static LIMB_POWERS: std::cell::RefCell<Vec<LimbPowers>> = std::cell::RefCell::new(Vec::new());
+}
+
+/// `c_calls.functions["write"].except["x"]`, as the parser turned it into text
+fn parse_power(text: &str) -> Result<PowerRef, String> {
+    let mut p = PowerRef::default();
+    let mut rest = text;
+    let mut last: Option<String> = None;
+    while !rest.is_empty() {
+        if let Some(r) = rest.strip_prefix('[') {
+            let end = r.find(']').ok_or("an unclosed `[`")?;
+            let things: Vec<String> = r[..end].split(',').filter(|t| !t.is_empty()).map(|t| t.trim_matches('"').to_string()).collect();
+            match last.as_deref() { Some("except") => p.except = things, Some("for") => p.for_ = things, _ => p.things = things }
+            rest = &r[end + 1..];
+            continue;
+        }
+        let r = rest.strip_prefix('.').unwrap_or(rest);
+        let end = r.find(['.', '[']).unwrap_or(r.len());
+        let word = &r[..end];
+        if word == "except" || word == "for" { last = Some(word.to_string()); } else { p.path.push(word.to_string()); last = None; }
+        rest = &r[end..];
+    }
+    if p.path.is_empty() { return Err("a power names its path: `cca::Power.c_calls`".into()); }
+    Ok(p)
+}
+
 fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
     if !dir.join("CCA.cplr").is_file() { return Ok(()); }
-    let (_, deps, cores) = read_manifest(dir)?;
+    let (prefix, deps, cores) = read_manifest(dir)?;
+    let (powers, deny) = MANIFEST_POWERS.with(|m| m.borrow_mut().take()).unwrap_or_default();
+    LIMB_POWERS.with(|l| l.borrow_mut().push(LimbPowers { root: root.to_vec(), prefix: prefix.unwrap_or_default(), cores: cores.clone(), powers, deny }));
     let mut lacks: Vec<String> = OFFICIAL_CORES.iter().filter(|c| !cores.iter().any(|x| x == *c)).map(|c| c.to_string()).collect();
     if !deps.iter().any(Dep::is_std) { lacks.push("std".into()); }
     parser::LACKS.with(|n| n.borrow_mut().push((root.to_vec(), lacks)));
@@ -196,6 +240,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     }
     let items = |b: &ast::Bracket| { let mut v = Vec::new(); for x in &b.values { let ast::Value::Expr(x) = x; each(x, &mut v); } v };
     let (mut name, mut prefix, mut deps, mut cores) = (false, None, Vec::new(), Vec::new());
+    let (mut powers_seen, mut deny_seen): (Vec<PowerRef>, Vec<PowerRef>) = (Vec::new(), Vec::new());
     let (mut has_version, mut targets) = (false, 0);
     let mut seen: Vec<&str> = Vec::new();
     for (f, value) in &fields {
@@ -318,8 +363,19 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     cores.push(core);
                 }
             }
-            "powers" | "deny" => return Err(format!("{shown}: line {line}: `{f}` is not in the oracle yet: which powers exist is not decided (design/cores.md)")),
-            other => return Err(format!("{shown}: line {line}: a `cca::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies` and `cores`")),
+            // the powers a Limb uses, and what the program takes away (owner, 2026-10-07)
+            "powers" | "deny" => {
+                let mut list = Vec::new();
+                for it in items(value) {
+                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `cca::Power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
+                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `cca::Power.c_calls`, not a text")) };
+                    let pw = parse_power(text).map_err(|m| format!("{shown}: line {line}: {m}"))?;
+                    if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this Limb uses")); }
+                    list.push(pw);
+                }
+                if f == "powers" { powers_seen = list; } else { deny_seen = list; }
+            }
+            other => return Err(format!("{shown}: line {line}: a `cca::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `cores`, `powers` and `deny`")),
         }
     }
     // a build needs the Limb's name, version and a target; only publishing needs more (owner, 2026-09-29:
@@ -342,6 +398,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
         return Err(format!("{shown}: line {mline}: the core MCPS needs IEG: add `{}` to `cores`", parser::core_line("IEG")));
     }
+    MANIFEST_POWERS.with(|m| *m.borrow_mut() = Some((powers_seen, deny_seen)));
     Ok((prefix, deps, cores))
 }
 
@@ -382,6 +439,79 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
     }
     chain.pop();
     Ok(())
+}
+
+/// The power check (owner, 2026-10-07): each use is granted (Signatar grants the dangerous powers to
+/// every limb, IEG grants vouching and the operator powers to the limbs that list it), listed in the
+/// using Limb's `powers`, and not taken away by the program's `deny`. A Limb with no `CCA.cplr` has
+/// every power, and nothing is checked.
+fn check_powers(prog: &ast::Program) -> Result<(), String> {
+    use ast::Ty;
+    let mut uses: Vec<(Vec<String>, String, Option<String>, usize)> = parser::POWER_USES.with(|u| u.borrow().clone());
+    // C calls: a call whose path is an extern function
+    for (root, path, line) in parser::CALL_SITES.with(|c| c.borrow().clone()) {
+        let (module, name) = path.split_at(path.len().max(1) - 1);
+        if prog.funcs.iter().any(|f| f.is_extern && f.module == module && Some(&f.name) == name.first()) {
+            uses.push((root, "c_calls.functions".into(), name.first().cloned(), line));
+        }
+    }
+    // C variables: a quoted name that is an extern variable of the same Limb
+    for (root, name, line) in parser::VAR_SITES.with(|c| c.borrow().clone()) {
+        let in_root = |m: &[String]| m.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect::<Vec<_>>() == root;
+        if prog.externs.iter().any(|e| e.name == name && in_root(&e.module)) { uses.push((root, "c_calls.variables".into(), Some(name), line)); }
+    }
+    // an operator whose every operand is a built-in type (owner, 2026-10-07: "`a`")
+    for f in prog.funcs.iter().filter(|f| f.is_op && !f.params.is_empty()) {
+        let builtin = |t: &Option<Ty>| matches!(t, Some(Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Bool | Ty::Str(_) | Ty::Char(_)));
+        if f.params.iter().all(|p| builtin(&p.ty)) {
+            let root: Vec<String> = f.module.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect();
+            let what = if f.params.len() == 1 { "prefix_operators" } else { "operators_on_builtin_types" };
+            uses.push((root, what.into(), Some(f.name.rsplit('.').next().unwrap_or(&f.name).to_string()), f.line));
+        }
+    }
+    LIMB_POWERS.with(|lp| {
+        let lp = lp.borrow();
+        let program = lp.iter().find(|l| l.root.is_empty());
+        for (root, path, thing, line) in uses {
+            let Some(limb) = lp.iter().find(|l| l.root == root) else { continue };
+            let segs: Vec<&str> = path.split('.').collect();
+            let who = if root.is_empty() { "this Limb".to_string() } else { format!("`{}`", limb.prefix) };
+            let what = match (segs[0], segs.get(1).copied(), &thing) {
+                ("inline_assembly", _, _) => "runs assembly (`inline.Assembly`)".to_string(),
+                ("c_calls", Some("functions"), Some(t)) => format!("calls C (`{t}`)"),
+                ("c_calls", Some("variables"), Some(t)) => format!("uses C's variable '{t}'"),
+                ("raw_memory", Some(n), Some(t)) => format!("{} raw memory (`{t}`)", match n { "read" => "reads", "write" => "writes", _ => "casts" }),
+                ("vouch", Some("c"), _) => "vouches with `NO_FUCKING_CHECKS`".to_string(),
+                ("vouch", _, _) => "vouches with `!check`".to_string(),
+                (_, _, Some(t)) => format!("defines the operator `{t}` on built-in types"),
+                _ => format!("uses `{path}`"),
+            };
+            let at = if root.is_empty() { format!("line {line}") } else { format!("line {line} of `{}`", limb.prefix) };
+            // 1. granted: Signatar's to every limb; vouching and the operator powers by IEG
+            let by_ieg = matches!(segs[0], "vouch" | "operators_on_builtin_types" | "prefix_operators");
+            if by_ieg && !limb.cores.iter().any(|c| c == "IEG") {
+                return Err(format!("{at}: {who} {what}, a power no core it lists grants: IEG grants `{}` (add `{}` to its `cores`)", segs[0], parser::core_line("IEG")));
+            }
+            // 2. listed by the Limb
+            let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
+            if !limb.powers.iter().any(covers) {
+                return Err(format!("{at}: {who} {what}, and its CCA.cplr does not list `{}`: add `cca::Power.{}` to its `powers`", segs[0], segs[0]));
+            }
+            // 3. not denied by the program
+            if let Some(prog_limb) = program {
+                for d in &prog_limb.deny {
+                    let path_ok = d.path.len() <= segs.len() && d.path.iter().zip(&segs).all(|(a, b)| a == b);
+                    let things_ok = d.things.is_empty() || thing.as_ref().map_or(false, |t| d.things.contains(t));
+                    let for_ok = d.for_.is_empty() || d.for_.contains(&limb.prefix);
+                    let except_hit = thing.as_ref().map_or(false, |t| d.except.contains(t));
+                    if path_ok && things_ok && for_ok && !except_hit {
+                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `cca::Power.{}`)", d.path.join(".")));
+                    }
+                }
+            }
+        }
+        Ok(())
+    })
 }
 
 /// Every `pub` thing says how other Limbs write its path, on itself, its module or its kind, and the

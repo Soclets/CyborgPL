@@ -2,5 +2,6 @@ cca::Manifest[
     name = "x",
     prefix = "x",
     version = "1.0.0",
+    powers = [cca::Power.inline_assembly,],
     targets = [cca::Target[name = "aarch64-macos"],]
 ];

@@ -173,6 +173,11 @@ thread_local! {
     /// Every call written with no path: (the module it is in, the path as written, whether std may be
     /// meant, its line), checked for clashes once the program is read, whether or not it runs
     pub static BARE_CALLS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, bool, usize)>> = std::cell::RefCell::new(Vec::new());
+    /// Power uses seen while parsing (owner, 2026-10-07): the Limb's root, the power's path, the thing
+    /// named, the line. C calls and C variables are found once the program is read (CALL_SITES, VAR_SITES).
+    pub static POWER_USES: std::cell::RefCell<Vec<(Vec<String>, String, Option<String>, usize)>> = std::cell::RefCell::new(Vec::new());
+    pub static CALL_SITES: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, usize)>> = std::cell::RefCell::new(Vec::new());
+    pub static VAR_SITES: std::cell::RefCell<Vec<(Vec<String>, String, usize)>> = std::cell::RefCell::new(Vec::new());
     pub static SHARED_LEVELS: std::cell::RefCell<std::collections::HashMap<String, (u16, u8)>> = std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
@@ -196,6 +201,11 @@ impl Parser {
     /// "Limbs should say what cores they are built for").
     fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
         self.err(format!("{what} is {core}'s, and this Limb's CCA.cplr does not list the core {core}: add `{}` to its `cores` ({core})", core_line(core)))
+    }
+
+    /// A use of a power, for the check once every file is read (owner, 2026-10-07)
+    fn use_power(&self, path: &str, thing: Option<String>, line: usize) {
+        POWER_USES.with(|u| u.borrow_mut().push((self.limb_root.clone(), path.to_string(), thing, line)));
     }
 
     /// `bare.never`, `bare.optional` or `bare.only`, at the cursor's `bare` (owner, 2026-10-06); a plain
@@ -276,6 +286,39 @@ impl Parser {
     /// `CCA.cplr`: one value, `cca::Manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
     /// file holds something else; the fields and the line of the value otherwise.
     pub fn manifest(&mut self) -> PResult<Option<(Vec<(String, Bracket)>, usize)>> {
+        // `cca::Power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
+        // takes apart (owner, 2026-10-07: powers narrow with `.` and name things in `[ ]`)
+        let mut i = 0;
+        while i + 2 < self.toks.len() {
+            if matches!(&self.toks[i].tok, Tok::Word(w) if w == "cca") && self.toks[i + 1].tok == Tok::ColonColon && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "Power") {
+                let mut j = i + 3;
+                let mut text = String::new();
+                loop {
+                    match (&self.toks[j].tok, self.toks.get(j + 1).map(|t| &t.tok)) {
+                        (Tok::Dot, Some(Tok::Word(w))) => { if !text.is_empty() { text.push('.'); } text.push_str(w); j += 2; }
+                        (Tok::LBracket, _) => {
+                            j += 1;
+                            let mut things = Vec::new();
+                            loop {
+                                match &self.toks[j].tok {
+                                    Tok::Text(t, _) => { things.push(t.clone()); j += 1; }
+                                    Tok::Comma => j += 1,
+                                    Tok::RBracket => { j += 1; break; }
+                                    other => { self.pos = j; return self.err(format!("a power names things as texts: `cca::Power.c_calls[\"write\"]`, found {other}")); }
+                                }
+                            }
+                            text.push('[');
+                            text.push_str(&things.iter().map(|t| format!("{t:?}")).collect::<Vec<_>>().join(","));
+                            text.push(']');
+                        }
+                        _ => break,
+                    }
+                }
+                let line = self.toks[i].line;
+                self.toks.splice(i..j, [Token { tok: Tok::Text(format!("power:{text}"), format!("power:{text}")), line, col: 0, mtm: None }]);
+            }
+            i += 1;
+        }
         let b = self.rhs()?;
         self.expect(Tok::Semi, "`;` after the manifest")?;
         if *self.peek() != Tok::Eof { return self.err("CCA.cplr holds one value, the `cca::Manifest[ … ];`, and nothing after it"); }
@@ -289,6 +332,8 @@ impl Parser {
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new() };
+        // every quoted name, for finding C's variables once the program is read (owner, 2026-10-07)
+        for t in &self.toks { if let Tok::Var(v) = &t.tok { VAR_SITES.with(|vs| vs.borrow_mut().push((self.limb_root.clone(), v.clone(), t.line))); } }
         // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.limb` stays
         if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "limb") && self.toks[i + 1].tok == Tok::Dot && (i == 0 || self.toks[i - 1].tok != Tok::Dot)) {
             self.pos = i;
@@ -1632,6 +1677,8 @@ impl Parser {
                     // `NO_FUCKING_CHECKS` (owner, 2026-09-27): `nocheck`, and C's answers trusted too
                     self.advance();
                     let tier = match w.as_str() { "check" => Tier::Check, "nocheck" => Tier::NoCheck, _ => Tier::NoChecksAtAll };
+                    // vouching is a power IEG grants (owner, 2026-10-07: "`a`")
+                    match tier { Tier::NoCheck => self.use_power("vouch", None, line), Tier::NoChecksAtAll => self.use_power("vouch.c", None, line), _ => {} }
                     match self.peek().clone() {
                         Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos 'i'] = 5;` or `{w} {{ … }}`")),
                         Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`{w}` covers a statement, not a `{k}` — a function's safety is the sum of its statements")),
@@ -1751,7 +1798,7 @@ impl Parser {
                     match self.advance().tok {
                         // `inline.S` is another name for it, as assembly's `.S` files (owner, 2026-10-02)
                         // `inline.Assembly`, the language's whole name (owner, 2026-10-06); `ASM` and `S` are MTM's
-                        Tok::Word(l) if l == "Assembly" || l == "ASM" || l == "S" => {}
+                        Tok::Word(l) if l == "Assembly" || l == "ASM" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
                         Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("a language's name is capitalized, written whole: `inline.Assembly` (MTM's `inline.ASM`, `inline.S`)".to_string()),
                         Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; only `inline.Assembly` exists (MTM's `inline.ASM`, `inline.S`) (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
@@ -2463,6 +2510,7 @@ impl Parser {
         if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
         let path = if limb.is_none() { self.resolve(&path) } else { path };
         if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), limb.as_deref() == Some("std"), line))); }
+        if limb.is_none() { CALL_SITES.with(|c| c.borrow_mut().push((self.limb_root.clone(), path.clone(), line))); }
         Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line, bare, written })
     }
 
@@ -2486,6 +2534,7 @@ impl Parser {
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `ptr.`, found {other}")) };
         let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `!check 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast")) };
         if *self.peek() != Tok::LBracket { return self.err(format!("`ptr.{op}` is a call and needs `[…]`")); }
+        match op.as_str() { "read" | "at" => self.use_power("raw_memory.read", Some(format!("ptr.{op}")), self.line()), "write" => self.use_power("raw_memory.write", Some("ptr.write".into()), self.line()), _ => {} }
         let args = self.bracket()?;
         if args.values.len() != want { return self.err(format!("`ptr.{op}` takes {want} argument(s), given {}", args.values.len())); }
         Ok(("ptr".into(), op, args))
@@ -3143,6 +3192,7 @@ impl Parser {
                     if *self.peek() != Tok::LBracket { return self.err("`ptr.cast[T]` then the pointer in its own brackets: `ptr.cast[Point]['p']`"); }
                     let args = self.bracket()?;
                     if args.values.len() != 1 { return self.err(format!("`ptr.cast[T]` takes one pointer, given {}", args.values.len())); }
+                    self.use_power("raw_memory.cast", Some("ptr.cast".into()), line);
                     Ok(Expr::PtrCast(ty, args, line))
                 }
                 "ptr" => { let (h, o, a) = self.ptr_op()?; Ok(Expr::Builtin(h, o, a, line)) }
