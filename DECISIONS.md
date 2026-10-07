@@ -224,6 +224,25 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — `!` gives way to words: `immut`, `no_check`, `no_cheat`, `not`, `not_equal`, `not_std`; std will be renamed (owner; not built)
+
+The owner: "I'm feeling like replacing `!` with characters". Design
+claude listed `!`'s jobs (`!mut`, `!check`, `!cheat`, `!$`, the spaced
+`! 'x'`, `!==`, `!std.int24`) and asked whether that meant words, another
+symbol, or something else, and for which. The owner: "`immut`,
+`no_check`, `no_cheat`, `<correct grammar> shadow or whatever`, `not`,
+`not_equal`, `not_std`. and the std limb's name could change, so it
+won't be confused". So the main spellings become **`immut`** (for
+`!mut`), **`no_check`** (`!check`), **`no_cheat`** (`!cheat`), a
+**shadow word** still to be chosen (`!$`), **`not`** (the spaced `!`),
+**`not_equal`** (`!==`) and **`not_std`** (`!std.int24` becomes
+`not_std.int24`); this reverses 2026-10-06's "`!` is the main spelling
+of not". **std's name will change** so `not_std` is not confused with
+it; the new name is not chosen. Not asked yet: the shadow word; whether
+`==` becomes `equal`, the twin of `not_equal`; whether the `!` spellings
+move to MTM or are refused; what MTM's `nocheck` becomes;
+`NO_FUCKING_CHECKS` is untouched.
+
 ### 2026-10-07 — Syntax revision, loops: every `range` is labelled, `range[from 1, to 4, by 1]`, `by` always written (owner: a; not built)
 
 ```
