@@ -1,0 +1,4 @@
+case.insensitive [op];
+MAIN {
+    let 'a' := 1;
+}

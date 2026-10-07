@@ -497,7 +497,7 @@ can't force the other codextras to use this anyways"): Signatar's
 messages count graphemes, the Unicode tables living in its compiler
 plugin, never in a program; another codextra chooses its own.
 
-### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; not built)
+### 2026-10-06 — A Limb's writer may make its names case-insensitive, in its own code and as reached from other Limbs (owner; built in the oracle 2026-10-07)
 
 Asked whether CyborgPL is case-sensitive (it is, in the oracle and CCA:
 `Area` and `area`, `'X'` and `'x'` are different names; `Main` is not
@@ -530,6 +530,28 @@ nothing. **Marks that disagree are an error** (owner: "`a`"), as for
 letters only: names may hold any Unicode letter (`'café'`, `Größe`), so
 `É`/`é` and `ß`/`SS` match as Unicode defines; names are compared while
 compiling, so it costs nothing at run time.
+
+**Built in the oracle 2026-10-07** (owner: "build them now"). Design
+claude's readings there, not asked:
+- An item's mark covers its own name; a struct's fields and an enum's
+  cases are covered by the `field` / `case` kinds, or by a file or block
+  module mark.
+- A name differing only in case from an insensitive one in the same Limb
+  is refused ("they would be one name"), as is a mark before `pub`
+  (`pub case.insensitive fn …` is the spelling).
+- Keywords, std's words, the built-in types and `my.` stay exact.
+- Local variables are covered by the `var` kind, or by a file or block
+  module mark. A file's `case` mark and its `bare` mark may come in either
+  order at the top.
+- `op` is not one of the kinds, though an item mark may go on one.
+- Other Limbs reach an insensitive name in any case through its path,
+  bare where its `bare` mark allows, and through the fields and cases of
+  its pub types.
+- Full case folding is approximated as upper case, then lower case.
+
+In the oracle: `examples/case_marks.cpls`, `case_file.cpls`,
+`case_unicode.cpls`, `uses_case` (with `limbs/shout`); reject tests
+`case_*`.
 
 ### 2026-10-06 — In `Synthia.ttsr`, every needed thing starts with `limb.` or `core.`; a core is listed there by ID and version (owner; relayed by synthia claude)
 

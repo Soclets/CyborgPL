@@ -1,0 +1,1 @@
+`Area` and `area` (line 2) differ only in case, and `area` is `case.insensitive`: they would be one name

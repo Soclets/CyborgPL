@@ -1,0 +1,7 @@
+# `shout` is case-insensitive (`case.insensitive [fn, struct, field, const];` in its `limb.cpls`), so
+# this Limb reaches its names in any case, with the path and bare (owner, 2026-10-06).
+MAIN {
+    print.useful.stdout[shout::SHOUT["hey"], " ", WHISPER[], " ", shout::'VOLUME', \n];
+    let 'l' := shout::LEVEL[LOUD = true];
+    print.useful.stdout['l'.loud, \n];
+}

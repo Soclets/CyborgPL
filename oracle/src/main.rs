@@ -10,6 +10,7 @@
 
 mod ast;
 mod bigint;
+mod case;
 mod deci;
 mod interp;
 mod lexer;
@@ -33,11 +34,12 @@ thread_local! {
 /// Parse one file of the Limb rooted at `limb_root` (`[]` for the Limb being built).
 fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Result<ast::Program, String> {
     let src = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
-    let toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
+    let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
+    case::rewrite(&mut toks, &limb_root, &module);
     if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "CCA.cplr") {
         parser::Parser::new_in_limb(toks, module, limb_root).scan_levels()
             .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;
-        return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new() });
+        return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() });
     }
     parser::Parser::new_in_limb(toks, module, limb_root).program()
         .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })
@@ -50,6 +52,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     // first every file's `precedence` blocks, then the program with all of them known
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
     parser::LACKS.with(|n| n.borrow_mut().clear());
+    case::PLAN.with(|p| p.borrow_mut().clear());
     LEVELS_ONLY.with(|f| f.set(true));
     let first = load_files(path);
     LEVELS_ONLY.with(|f| f.set(false));
@@ -59,6 +62,9 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::BARE_TYPES.with(|t| t.borrow_mut().clear());
     let once = load_files(path)?;
     let marks = check_bare(&once).unwrap_or_default();
+    // which names are case-insensitive (owner, 2026-10-06), so the last reading spells each as declared
+    let plan = case::plan(&once, &marks).map_err(|m| format!("{}: {m}", path.display()))?;
+    case::PLAN.with(|p| *p.borrow_mut() = plan);
     let mut bare_types = Vec::new();
     for (key, mode) in &marks {
         let Some((kind, path)) = key.split_once(':') else { continue };
@@ -199,6 +205,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
         prog.modules.extend(part.modules);
         prog.strict_modules.extend(part.strict_modules);
         prog.bare_marks.extend(part.bare_marks);
+        prog.case_marks.extend(part.case_marks);
         prog.enums.extend(part.enums);
         prog.interfaces.extend(part.interfaces);
         prog.claims.extend(part.claims);
@@ -434,7 +441,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         prog.modules.push(ast::ModuleDef { path: root, vis: ast::Vis::Pub, line: 0 });
         prog.funcs.extend(dep.funcs); prog.structs.extend(dep.structs); prog.enums.extend(dep.enums);
         prog.interfaces.extend(dep.interfaces); prog.claims.extend(dep.claims); prog.consts.extend(dep.consts);
-        prog.externs.extend(dep.externs); prog.modules.extend(dep.modules); prog.strict_modules.extend(dep.strict_modules); prog.bare_marks.extend(dep.bare_marks);
+        prog.externs.extend(dep.externs); prog.modules.extend(dep.modules); prog.strict_modules.extend(dep.strict_modules); prog.bare_marks.extend(dep.bare_marks); prog.case_marks.extend(dep.case_marks);
         load_deps(&depdir, prog, loaded, chain)?;
     }
     chain.pop();

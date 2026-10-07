@@ -1,0 +1,18 @@
+case.insensitive;
+# A file's mark, its first line, covers every name written in it: functions, types, fields, cases,
+# consts and variables (owner, 2026-10-06: "`b`", at every level the `bare` marks have).
+const 'Limit' := 3;
+
+struct Point {
+    X: int32
+    Y: int32
+}
+
+fn Sum ['p': Point] --> int32 {
+    return 'P'.x plus 'p'.y plus 'LIMIT';
+}
+
+MAIN {
+    let 'pt' := POINT[x = 1, y = 2];
+    std::print.useful.stdout[SUM[copy 'PT'], " ", sum[copy 'Pt'], \n];
+}

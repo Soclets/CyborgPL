@@ -261,6 +261,12 @@ pub enum Bare { Never, Optional, Only }
 #[derive(Debug, Clone)]
 pub enum BareTarget { Item(String, String), Block(Vec<String>), File(Vec<String>), Kind(String) }
 
+/// `case.insensitive` / `case.sensitive` (owner, 2026-10-06): on an item, a block module, a file, or
+/// kinds across the Limb (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
+/// `bare` marks are; names are exact unless marked.
+#[derive(Debug, Clone)]
+pub struct CaseMark { pub target: BareTarget, pub insensitive: bool, pub line: usize, pub limb_root: Vec<String> }
+
 #[derive(Debug, Clone)]
 pub struct BareMark { pub target: BareTarget, pub mode: Bare, pub line: usize, pub limb_root: Vec<String> }
 
@@ -280,6 +286,7 @@ pub struct Program {
     pub strict_modules: Vec<Vec<String>>,
     /// `bare.never` / `bare.optional` / `bare.only` marks (owner, 2026-10-06)
     pub bare_marks: Vec<BareMark>,
+    pub case_marks: Vec<CaseMark>,
 }
 
 #[derive(Debug, Clone)]

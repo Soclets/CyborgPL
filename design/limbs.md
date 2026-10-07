@@ -254,6 +254,19 @@ would give the name two places to disagree.
 that Limb itself is run, and is ignored when another Limb uses it, so a
 library can ship its own demo or tool.
 
+## Case (owner, 2026-10-06)
+
+Names are exact (`case.sensitive`) unless a Limb's writer marks them
+`case.insensitive`: on kinds in `limb.cpls` (`case.insensitive [fn,
+struct, enum, interface, const, case, field, var];`), on one item (`pub
+case.insensitive fn area …`), on a block module, or as a file's first
+line (`case.insensitive;`). Writing `case.sensitive` is allowed; marks
+that disagree are an error. An insensitive name matches in any case, by
+Unicode's full case folding, in its own Limb and from other Limbs.
+Keywords stay exact. It costs nothing at run time. DECISIONS 2026-10-06
+has the rulings and the oracle's readings; `examples/case_marks.cpls`,
+`examples/uses_case`.
+
 ## Open
 
 - A file module's own visibility (provisionally public).

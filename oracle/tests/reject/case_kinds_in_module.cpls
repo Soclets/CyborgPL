@@ -1,0 +1,6 @@
+module m {
+    case.insensitive [fn];
+}
+MAIN {
+    let 'a' := 1;
+}

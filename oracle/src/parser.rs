@@ -86,7 +86,7 @@ fn is_std_op(op: &str) -> bool {
 
 /// std's names the oracle emulates, which may be written without `std::` since std marks everything
 /// `bare.optional` (owner, 2026-10-06: "optional for all")
-const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
+pub const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
 const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lower", "replace", "starts_with", "ends_with", "at", "slice", "join"];
 
 /// An operator as code writes it (`+` inside is `plus`).
@@ -222,6 +222,16 @@ impl Parser {
         self.err("say how other Limbs write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say")
     }
 
+    /// `case.insensitive` / `case.sensitive` at the cursor (owner, 2026-10-06: "yea" to the spelling)
+    fn is_case_mark(&self) -> bool {
+        self.is_word("case") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(w) if w == "insensitive" || w == "sensitive")
+    }
+    fn case_mode(&mut self) -> PResult<bool> {
+        self.advance(); self.advance();
+        let Tok::Word(w) = self.advance().tok else { unreachable!() };
+        Ok(w == "insensitive")
+    }
+
     /// Everything std brings is refused in a Limb whose `CCA.cplr` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
@@ -331,7 +341,7 @@ impl Parser {
     // program := item* Eof
     // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
-        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new() };
+        let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() };
         // every quoted name, for finding C's variables once the program is read (owner, 2026-10-07)
         for t in &self.toks { if let Tok::Var(v) = &t.tok { VAR_SITES.with(|vs| vs.borrow_mut().push((self.limb_root.clone(), v.clone(), t.line))); } }
         // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.limb` stays
@@ -439,11 +449,11 @@ impl Parser {
     /// One branch of a top-level `on.target` chain, after its `{`: its items are read either way, and
     /// kept only if `keep`.
     fn on_branch(&mut self, prog: &mut Program, depth: usize, keep: bool) -> PResult<()> {
-        let n = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.interfaces.len(), prog.claims.len(), prog.consts.len(), prog.externs.len(), prog.modules.len(), prog.strict_modules.len(), prog.bare_marks.len(), prog.main.is_some());
+        let n = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.interfaces.len(), prog.claims.len(), prog.consts.len(), prog.externs.len(), prog.modules.len(), prog.strict_modules.len(), prog.bare_marks.len(), prog.main.is_some(), prog.case_marks.len());
         self.items(prog, depth + 1)?;
         if !keep {
             prog.funcs.truncate(n.0); prog.structs.truncate(n.1); prog.enums.truncate(n.2); prog.interfaces.truncate(n.3); prog.claims.truncate(n.4);
-            prog.consts.truncate(n.5); prog.externs.truncate(n.6); prog.modules.truncate(n.7); prog.strict_modules.truncate(n.8); prog.bare_marks.truncate(n.9);
+            prog.consts.truncate(n.5); prog.externs.truncate(n.6); prog.modules.truncate(n.7); prog.strict_modules.truncate(n.8); prog.bare_marks.truncate(n.9); prog.case_marks.truncate(n.11);
             if !n.10 { prog.main = None; prog.main_args = None; }
         }
         Ok(())
@@ -463,6 +473,35 @@ impl Parser {
                 self.advance();
                 self.strict = true;
                 prog.strict_modules.push(self.module.clone());
+                continue;
+            }
+            // `case.insensitive;` as a file's first line, `case.insensitive [fn, struct];` in `limb.cpls`
+            // (owner, 2026-10-06), as the `bare` marks are; on an item it is read with the item below
+            if self.is_case_mark() && matches!(self.peek_at(3), Tok::Semi | Tok::LBracket) {
+                let line = self.line();
+                let started = !(prog.funcs.is_empty() && prog.structs.is_empty() && prog.enums.is_empty() && prog.consts.is_empty() && prog.externs.is_empty() && prog.modules.is_empty() && prog.main.is_none() && prog.interfaces.is_empty());
+                let insensitive = self.case_mode()?;
+                if *self.peek() == Tok::Semi {
+                    self.advance();
+                    if depth > 0 || started || prog.case_marks.iter().any(|m| matches!(m.target, BareTarget::File(_))) {
+                        return Err(ParseError { line, col: 0, msg: "a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`".into() });
+                    }
+                    prog.case_marks.push(CaseMark { target: BareTarget::File(self.module.clone()), insensitive, line, limb_root: self.limb_root.clone() });
+                    continue;
+                }
+                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`"); }
+                self.advance();
+                loop {
+                    let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), found {other}")) };
+                    if !["fn", "struct", "enum", "interface", "const", "case", "field", "var"].contains(&kind.as_str()) {
+                        return self.err(format!("`{kind}` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)"));
+                    }
+                    prog.case_marks.push(CaseMark { target: BareTarget::Kind(kind), insensitive, line, limb_root: self.limb_root.clone() });
+                    if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
+                    break;
+                }
+                self.expect(Tok::RBracket, "`]` after the kinds")?;
+                self.expect(Tok::Semi, "`;` after the `case` mark")?;
                 continue;
             }
             // `bare.optional;` at the top of a file marks the file's module; `bare.never [fn, op];` in
@@ -519,7 +558,16 @@ impl Parser {
                 continue;
             }
             let mut pending_bare: Option<(Bare, usize)> = None;
+            let mut pending_case: Option<(bool, usize)> = None;
             let before = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.consts.len(), prog.interfaces.len(), prog.modules.len());
+            // `case.insensitive fn area …` on an item (owner, 2026-10-06), before or after `pub` and `bare.…`
+            if self.is_case_mark() {
+                let line = self.line(); pending_case = Some((self.case_mode()?, line));
+                if self.is_word("pub") { return self.err("`pub` comes first: `pub case.insensitive fn …`"); }
+                if !matches!(self.peek(), Tok::Word(w) if ["fn", "struct", "enum", "interface", "const", "module", "op", "extern", "layout"].contains(&w.as_str())) {
+                    return self.err("a `case` mark is `case.insensitive;` at the top of a file, `case.insensitive [fn, struct];` in `limb.cpls`, or `case.insensitive fn …` on an item");
+                }
+            }
             // visibility (decided 2026-09-19): nothing, `pub.limb`, `pub`
             let mut vis = Vis::Private;
             if self.is_word("pub") {
@@ -544,6 +592,11 @@ impl Parser {
                     let line = self.line();
                     if vis == Vis::Limb { return self.err("a `bare` mark says how other Limbs write the path, and a `pub.limb` thing is never reached from them"); }
                     pending_bare = Some((self.bare_mode()?, line));
+                }
+                if self.is_case_mark() {
+                    if pending_case.is_some() { return self.err("one `case` mark on an item"); }
+                    let line = self.line(); pending_case = Some((self.case_mode()?, line));
+                    if pending_bare.is_none() && self.is_word("bare") { let line = self.line(); pending_bare = Some((self.bare_mode()?, line)); }
                 }
                 match self.peek().clone() {
                     Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" => {}
@@ -818,6 +871,21 @@ impl Parser {
                 Tok::Word(w) if w == "check" || w == "nocheck" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Limb-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
                 other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
+            }
+            // the item a `case.…` mark was written on (owner, 2026-10-06): its own name; a struct's fields and
+            // an enum's cases are marked by their module or kind (design claude's reading)
+            if let Some((insensitive, line)) = pending_case {
+                let target = if prog.modules.len() > before.5 && prog.modules[before.5].line == line {
+                    BareTarget::Block(prog.modules[before.5].path.clone())
+                } else if prog.funcs.len() > before.0 {
+                    let f = &prog.funcs[before.0];
+                    BareTarget::Item(if f.is_op { "op".into() } else { "fn".into() }, f.module.iter().cloned().chain(std::iter::once(f.name.rsplit('.').next().unwrap_or("").to_string())).collect::<Vec<_>>().join("."))
+                } else if prog.structs.len() > before.1 { BareTarget::Item("struct".into(), prog.structs[before.1].name.clone()) }
+                else if prog.enums.len() > before.2 { BareTarget::Item("enum".into(), prog.enums[before.2].name.clone()) }
+                else if prog.consts.len() > before.3 { BareTarget::Item("const".into(), prog.consts[before.3].name.clone()) }
+                else if prog.interfaces.len() > before.4 { BareTarget::Item("interface".into(), prog.interfaces[before.4].name.clone()) }
+                else { return Err(ParseError { line, col: 0, msg: "a `case` mark goes on a `fn`, `op`, `struct`, `enum`, `interface`, `const` or `module`".into() }); };
+                prog.case_marks.push(CaseMark { target, insensitive, line, limb_root: self.limb_root.clone() });
             }
             // the item a `pub bare.…` mark was written on (owner, 2026-10-06)
             if let Some((mode, line)) = pending_bare {
