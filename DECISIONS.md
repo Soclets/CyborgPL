@@ -224,6 +224,25 @@ operands taken as their bits, the answer an N-bit pattern that always
 fits. Shifts and `not.bit` unchanged. `examples/bitwise_wrap.cpls`,
 reject test `bitwise_operand_too_wide`.
 
+### 2026-10-07 — Syntax revision, loops: every `range` is labelled, `range[from 1, to 4, by 1]`, `by` always written (owner: a; not built)
+
+```
+for 'i' in range[from 1, to 4, by 1] { … }
+for 'i' in range[from 10, to 0, by -1] { … }
+```
+
+The owner: "Feeling like a syntax revision right now, likely not gonna be
+removing, but adding for clarity", then "Let's do the loops, how do you
+write a loop using `#strict`?" (shown side by side: `#strict` labels the
+range, writes `temp`/`perm` on every `for`, `pos` on every index, `mut`
+or `!mut` on every declaration; `while` and `loop` are the same), then
+"question me". Asked whether the labelled range becomes the normal
+syntax: (a) labels and `by` always written, as `#strict` does; (b) labels
+always, `by` only when not 1, a count-down without `by` refused,
+recommended; (c) unchanged. The owner: "`a`". So **every range is
+`range[from …, to …, by …]`**, everywhere, and the unlabelled form is
+refused naming the labelled one (design claude's reading, one spelling).
+
 ### 2026-10-07 — A slimmer base: `brain16`, non-standard integers, Unicode text and the case marks move out; `#strict` will be deprecated (owner; not built)
 
 The owner: "Let's make base CyborgPL slimmer". Design claude listed what
