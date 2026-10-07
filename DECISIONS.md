@@ -53,6 +53,12 @@ deny = [
 so a program still only takes powers away (2026-10-06). The narrowings
 shown (`raw_memory.read`, `c_calls.functions`, …) are design claude's
 sketches.
+**A limb lists every power it uses, the dangerous ones included**
+(owner: "`a`"): `powers = [cca::Power.c_calls,]` in its manifest, and code
+using an unlisted one is refused ("`fastjson` calls C but does not list
+`c_calls`"), over the compiler working it out and only reporting it. The
+manifest is an honest label the registry can show before a download, and
+an upgrade that starts using a new power is found by comparing lists.
 
 ### 2026-10-07 — A shift's width comes from the shifted number, never from its count; `shl.masked` / `shr.masked` shift as the chip does (owner)
 
