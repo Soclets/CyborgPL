@@ -16,6 +16,16 @@ pub struct FnId(pub u32);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OpId(pub u32);
 
+/// What the power ledger needs of one Limb.
+#[derive(Debug, Clone, Default)]
+pub struct LimbPowers {
+    pub prefix: String,
+    /// The program's own Limb: "this Limb" in a message.
+    pub is_program: bool,
+    pub lists: Vec<cca_base::powers::Power>,
+    pub cores: Vec<String>,
+}
+
 /// Where a bare path leads (owner, 2026-10-06).
 #[derive(Debug, Clone)]
 pub enum Bareness {
@@ -159,6 +169,11 @@ pub struct Items {
     /// that marks raw memory and unproven code `!check` is IEG's, so
     /// nothing there needs the mark (owner, 2026-10-06: "yes").
     pub no_ieg_roots: std::collections::HashSet<ModuleId>,
+    /// Each Limb with a `CCA.cplr`, by its root, for the power ledger
+    /// (owner, 2026-10-07); a lone file has none, and every power.
+    pub limb_powers: HashMap<ModuleId, LimbPowers>,
+    /// The program's own `deny`.
+    pub program_deny: Vec<cca_base::powers::Deny>,
     pub modules: Vec<Module>,
     pub fns: Vec<FnDeclInfo>,
     pub externs: Vec<ExternInfo>,

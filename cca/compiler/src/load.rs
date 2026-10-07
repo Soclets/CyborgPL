@@ -376,6 +376,14 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if dir.join("CCA.cplr").is_file() && !manifest.cores.iter().any(|c| c == "IEG") {
         items.no_ieg_roots.insert(m);
     }
+    // The power ledger's view of this Limb (owner, 2026-10-07): its list,
+    // its cores; and, for the program, its `deny`.
+    if dir.join("CCA.cplr").is_file() {
+        items.limb_powers.insert(m, crate::resolve::LimbPowers { prefix: prefix.clone(), is_program: from.is_none(), lists: manifest.powers.clone(), cores: manifest.cores.clone() });
+        if from.is_none() {
+            items.program_deny = manifest.deny.clone();
+        }
+    }
     state.stack.push((key.clone(), prefix.clone()));
     let mut deps = std::collections::HashMap::new();
     let mut in_order: Vec<(String, ModuleId)> = Vec::new();
@@ -432,13 +440,18 @@ struct Manifest {
     has_std: bool,
     /// The cores listed (owner, 2026-10-06).
     cores: Vec<String>,
+    /// The powers this Limb uses (owner, 2026-10-07).
+    powers: Vec<cca_base::powers::Power>,
+    /// What the program takes away; read in every Limb, applied only from
+    /// the program's.
+    deny: Vec<cca_base::powers::Deny>,
 }
 
 struct Dep {
     path: String,
 }
 
-const FIELDS: [&str; 6] = ["name", "prefix", "version", "targets", "dependencies", "cores"];
+const FIELDS: [&str; 8] = ["name", "prefix", "version", "targets", "dependencies", "cores", "powers", "deny"];
 
 use crate::ast::OFFICIAL_CORES;
 
@@ -447,7 +460,7 @@ const MANIFEST_SHAPE: &str = "`cca::Manifest[name = \"areas\", prefix = \"areas\
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
     use crate::lexer::Tok;
-    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), has_std: false, cores: Vec::new() };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), has_std: false, cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
     let at = dir.join("CCA.cplr");
     if !at.is_file() {
         return Ok(out);
@@ -481,9 +494,6 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         }
         // What a Limb may do (`design/cores.md`): which powers exist is
         // not decided.
-        if setting == "powers" || setting == "deny" {
-            return err(Diagnostic::error(format!("`{}` is not in CCA yet: which powers exist is not decided", setting)).at(field.span));
-        }
         if !FIELDS.contains(&setting) {
             return err(Diagnostic::error(format!("a `cca::Manifest` has no field `{}`: its fields are {}", setting, FIELDS.iter().map(|s| format!("`{}`", s)).collect::<Vec<_>>().join(", "))).at(field.span));
         }
@@ -590,6 +600,24 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     None => names.first().map(|n| (n.clone(), v.span)),
                 };
                 out.targets = names.clone();
+            }
+            // `powers = [cca::Power.c_calls,]` and `deny = [cca::Power.c_calls
+            // .except["write"],]` (owner, 2026-10-07).
+            "powers" | "deny" => {
+                let ExprKind::List(entries) = &v.kind else {
+                    return err(Diagnostic::error(format!("`{}` is a list of `cca::Power.…`: `[cca::Power.c_calls,]`", setting)).at(v.span));
+                };
+                for e in entries {
+                    let (power, except, for_limbs) = read_power(e)?;
+                    if setting == "powers" {
+                        if except.is_some() || for_limbs.is_some() {
+                            return err(Diagnostic::error("`.except` and `.for` belong to `deny`; `powers` lists what this Limb uses").at(e.span));
+                        }
+                        out.powers.push(power);
+                    } else {
+                        out.deny.push(cca_base::powers::Deny { power, except: except.unwrap_or_default(), for_limbs: for_limbs.unwrap_or_default() });
+                    }
+                }
             }
             // The cores a Limb's code is built by (`design/cores.md`):
             // official ones only, each once. A Limb reaches only the words
@@ -845,6 +873,88 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
             },
         }
     })
+}
+
+/// One `cca::Power.…` of a manifest: the path, the things in `[ ]`, and a
+/// `deny`'s `.except[…]` and `.for[…]`.
+type ReadPower = (cca_base::powers::Power, Option<Vec<String>>, Option<Vec<String>>);
+
+fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
+    use crate::ast::{Arg as AArg, ExprKind};
+    enum Step {
+        Word(String),
+        Things(Vec<String>),
+    }
+    fn texts(args: &[AArg]) -> Result<Vec<String>> {
+        args.iter()
+            .map(|a| match a {
+                AArg::Positional(crate::ast::Expr { kind: ExprKind::Str(s), .. }) => Ok(s.clone()),
+                other => err(Diagnostic::error("a power names exact things as texts: `cca::Power.c_calls[\"sqrt\"]`").at(other.span())),
+            })
+            .collect()
+    }
+    fn flat(e: &crate::ast::Expr, out: &mut Vec<Step>) -> Result<()> {
+        match &e.kind {
+            ExprKind::Path(p) | ExprKind::Call { path: p, args: _, .. } if p.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && p.segs.first().is_some_and(|s| s.name == "Power") => {
+                out.extend(p.segs[1..].iter().map(|s| Step::Word(s.name.clone())));
+                if let ExprKind::Call { args, .. } = &e.kind {
+                    out.push(Step::Things(texts(args)?));
+                }
+                Ok(())
+            }
+            ExprKind::Field { base, field } => {
+                flat(base, out)?;
+                out.push(Step::Word(field.name.clone()));
+                Ok(())
+            }
+            ExprKind::CallValue { callee, args, .. } => {
+                flat(callee, out)?;
+                out.push(Step::Things(texts(args)?));
+                Ok(())
+            }
+            ExprKind::Index { base, index } => {
+                flat(base, out)?;
+                out.push(Step::Things(texts(&[AArg::Positional((**index).clone())])?));
+                Ok(())
+            }
+            _ => err(Diagnostic::error("a power is `cca::Power.` and its name: `cca::Power.c_calls`, `cca::Power.raw_memory.read`").at(e.span)),
+        }
+    }
+    let mut steps = Vec::new();
+    flat(e, &mut steps)?;
+    let mut power = cca_base::powers::Power { path: Vec::new(), things: Vec::new() };
+    let (mut except, mut for_limbs) = (None, None);
+    let mut i = 0;
+    while i < steps.len() {
+        match &steps[i] {
+            Step::Word(w) if w == "except" || w == "for" => {
+                let Some(Step::Things(t)) = steps.get(i + 1) else {
+                    return err(Diagnostic::error(format!("`.{}` names things in `[ ]`: `.{}[\"…\"]`", w, w)).at(e.span));
+                };
+                if w == "except" { except = Some(t.clone()) } else { for_limbs = Some(t.clone()) }
+                i += 2;
+            }
+            Step::Word(w) if except.is_none() && for_limbs.is_none() && power.things.is_empty() => {
+                power.path.push(w.clone());
+                i += 1;
+            }
+            Step::Things(t) if power.things.is_empty() && except.is_none() && for_limbs.is_none() => {
+                power.things = t.clone();
+                i += 1;
+            }
+            _ => return err(Diagnostic::error("a power's things come last, after its name, and only `.except[…]` or `.for[…]` follow them").at(e.span)),
+        }
+    }
+    if power.path.is_empty() {
+        return err(Diagnostic::error("a power has a name: `cca::Power.c_calls`").at(e.span));
+    }
+    // The powers there are (owner, 2026-10-07): Signatar's three and their
+    // narrowings, IEG's vouching, and the extension powers built so far.
+    let known: &[&[&str]] = &[&["inline_assembly"], &["c_calls"], &["c_calls", "functions"], &["c_calls", "variables"], &["raw_memory"], &["raw_memory", "read"], &["raw_memory", "write"], &["raw_memory", "cast"], &["vouch"], &["vouch", "c"], &["operators_on_builtin_types"], &["prefix_operators"]];
+    if !known.iter().any(|k| k.iter().copied().eq(power.path.iter().map(String::as_str))) {
+        return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).at(e.span));
+    }
+    Ok((power, except, for_limbs))
 }
 
 fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {

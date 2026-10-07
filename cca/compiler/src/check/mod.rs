@@ -56,7 +56,20 @@ pub struct Program {
     pub notes: Vec<Diagnostic>,
 }
 
+/// One use of a power, as the checker meets it (`cca/PLUGINS.md` §4).
+#[derive(Debug, Clone)]
+pub struct PowerUse {
+    pub module: crate::resolve::ModuleId,
+    pub path: Vec<String>,
+    pub thing: Option<String>,
+    /// "calls C (`write`)", for the message.
+    pub doing: String,
+    pub span: crate::source::Span,
+}
+
 pub struct Checker {
+    /// Every use of a power met while checking (owner, 2026-10-07).
+    pub power_uses: Vec<PowerUse>,
     pub items: Items,
     pub instances: Vec<Instance>,
     inst_index: HashMap<InstKey, FnInst>,
@@ -160,7 +173,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new() }
+        Checker { power_uses: Vec::new(), items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {
@@ -410,6 +423,7 @@ impl Checker {
                     .try_(format!("give the result a type (`let 'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));
             }
         }
+        self.check_powers()?;
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();
         Ok(Program { items: self.items, instances: self.instances, subst: self.subst, main, const_values, notes: self.notes })
     }
@@ -736,5 +750,55 @@ impl Checker {
             Some(Mutability::Mut) => "mut",
             None => "",
         }
+    }
+}
+
+impl Checker {
+    /// Note a use of a power, for the ledger.
+    pub(crate) fn power_use(&mut self, ctx: &FnCtx, path: &[&str], thing: Option<String>, doing: String, span: crate::source::Span) {
+        self.power_uses.push(PowerUse { module: ctx.module, path: path.iter().map(|p| p.to_string()).collect(), thing, doing, span });
+    }
+
+    /// The power ledger (`cca/PLUGINS.md` step 2; owner, 2026-10-07): each
+    /// use, in source order, granted, listed, not denied. A Limb with no
+    /// `CCA.cplr` is not checked: it has every core and power.
+    fn check_powers(&mut self) -> Result<()> {
+        use cca_base::powers::{check, Grant, Limb, Power, Refusal, Use};
+        // An operator on built-in types is a use where it is declared:
+        // `operators_on_builtin_types` when every operand is built in,
+        // `prefix_operators` with one operand (owner: "`a`").
+        let builtin = |t: &Option<crate::types::Ty>| t.as_ref().is_some_and(|t| matches!(t.base(), crate::types::Ty::Int(_) | crate::types::Ty::Bin(_) | crate::types::Ty::Brain | crate::types::Ty::Deci(_) | crate::types::Ty::Bool | crate::types::Ty::Str(_) | crate::types::Ty::Char(_)));
+        let mut uses = std::mem::take(&mut self.power_uses);
+        for f in &self.items.fns {
+            let Some(op) = &f.op else { continue };
+            if f.params.is_empty() || !f.params.iter().all(|p| builtin(&p.ty)) {
+                continue;
+            }
+            let power = if f.params.len() == 1 { "prefix_operators" } else { "operators_on_builtin_types" };
+            uses.push(PowerUse { module: f.module, path: vec![power.to_string()], thing: None, doing: format!("defines the operator `{}` on built-in types", op), span: f.name_span });
+        }
+        uses.sort_by_key(|u| (u.span.file.0, u.span.start));
+        for u in uses {
+            let root = self.items.limb_root(u.module);
+            let Some(lp) = self.items.limb_powers.get(&root).cloned() else { continue };
+            // Signatar grants the dangerous three to every limb; IEG the
+            // vouching and the operator powers to every limb listing it.
+            let mut grants: Vec<Grant> = ["inline_assembly", "c_calls", "raw_memory"].iter().map(|p| Grant { power: Power::new(p), by: "Signatar".into(), to: None }).collect();
+            if lp.cores.iter().any(|c| c == "IEG") {
+                grants.extend(["vouch", "operators_on_builtin_types", "prefix_operators"].iter().map(|p| Grant { power: Power::new(p), by: "IEG".into(), to: None }));
+            }
+            let limb = Limb { name: lp.prefix.clone(), id: None, lists: lp.lists.clone(), grants };
+            let used = Use { limb: lp.prefix.clone(), path: u.path.clone(), thing: u.thing.clone(), doing: u.doing.clone(), at: u.span.start };
+            let who = if lp.is_program { "this Limb".to_string() } else { format!("`{}`", lp.prefix) };
+            let top = &u.path[0];
+            let sentence = match check(&used, &limb, &self.items.program_deny) {
+                Ok(()) => continue,
+                Err(Refusal::NotGranted { .. }) => format!("{} {}, a power no core it lists grants: IEG grants `{}` (add `{}` to its `cores`)", who, u.doing, top, crate::ast::core_line("IEG")),
+                Err(Refusal::NotListed { .. }) => format!("{} {}, and its CCA.cplr does not list `{}`: add `cca::Power.{}` to its `powers`", who, u.doing, top, top),
+                Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`deny`: `cca::Power.{}`)", who, u.doing, entry.power.path.join(".")),
+            };
+            return err(Diagnostic::error(sentence).at(u.span));
+        }
+        Ok(())
     }
 }

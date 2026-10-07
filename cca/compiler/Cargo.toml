@@ -14,6 +14,8 @@ name = "cca"
 path = "src/main.rs"
 
 [dependencies]
+# The base: the power ledger (PLUGINS.md, step 2).
+cca-base = { path = "../base" }
 inkwell = { version = "0.10", features = ["llvm22-1"] }
 # The C API, for what inkwell cannot say: loop metadata naming itself.
 llvm-sys = "221.1"

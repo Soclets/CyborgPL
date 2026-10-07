@@ -1,6 +1,6 @@
 //! Statements.
 
-use crate::ast;
+use crate::ast::{self, Tier};
 use crate::diag::{err, Diagnostic, Result};
 use crate::hir::{self, Local, LocalId, LocalKind};
 use crate::types::*;
@@ -122,6 +122,12 @@ impl Checker {
         // inside — losing it here would make a `nocheck` site checked and a
         // `check` site silent, which is both tiers backwards.
         if let ast::StmtKind::Tier { tier, stmt } = &s.kind {
+            // Vouching is a power IEG grants (owner, 2026-10-07).
+            match tier {
+                Tier::Nocheck => self.power_use(ctx, &["vouch"], None, "vouches with `!check`".into(), s.span),
+                Tier::NoChecks => self.power_use(ctx, &["vouch", "c"], None, "vouches with `NO_FUCKING_CHECKS`".into(), s.span),
+                _ => {}
+            }
             let saved = ctx.tier;
             ctx.tier = Some(*tier);
             let inner = self.stmt(ctx, stmt)?;
@@ -582,6 +588,7 @@ impl Checker {
             ast::StmtKind::Concur { detached, captures, body, otherwise } => self.concur_stmt(ctx, *detached, captures, body, otherwise.as_ref(), s.span),
             ast::StmtKind::Whichever { arms, otherwise } => self.whichever_stmt(ctx, arms, otherwise.as_ref(), s.span),
             ast::StmtKind::InlineAsm { text, bindings } => {
+                self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.Assembly`)".into(), s.span);
                 if self.needs_mark(ctx) {
                     return err(Diagnostic::error("an inline block is a !check site: nothing inside it can be proven — write `!check inline.Assembly { … }`").at(s.span));
                 }

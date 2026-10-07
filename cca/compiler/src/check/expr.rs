@@ -196,6 +196,7 @@ impl Checker {
                 Ok(Expr { kind: K::SizeOf { align: *align, ty: t }, ty: Ty::u64(), span })
             }
             AK::PtrCast { ty, value } => {
+                self.power_use(ctx, &["raw_memory", "cast"], None, "casts raw memory (`ptr.cast`)".into(), span);
                 // Nothing proves what the bytes are (owner, 2026-09-30).
                 if self.needs_mark(ctx) {
                     return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a !check site: write `!check` in front of the statement").at(span));
@@ -455,6 +456,7 @@ impl Checker {
     /// An `extern let` is a place of its own kind: a read or write is a !check site.
     fn extern_place(&mut self, ctx: &mut FnCtx, id: hir::ExternId, use_: PlaceUse, span: Span) -> Result<Place> {
         let info = self.items.externs[id.0 as usize].clone();
+        self.power_use(ctx, &["c_calls", "variables"], Some(info.name.clone()), format!("uses C's variable '{}'", info.name), span);
         if self.needs_mark(ctx) {
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
             return err(Diagnostic::error(format!("{} C's variable '{}' is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", what, info.name)).at(span));
@@ -2662,6 +2664,8 @@ impl Checker {
     }
 
     fn extern_call(&mut self, ctx: &mut FnCtx, id: hir::ExternId, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
+        let name = self.items.externs[id.0 as usize].name.clone();
+        self.power_use(ctx, &["c_calls", "functions"], Some(name.clone()), format!("calls C (`{}`)", name), span);
         let info = self.items.externs[id.0 as usize].clone();
         if info.is_let {
             return err(Diagnostic::error(format!("'{}' is C's variable, not a function", info.name)).at(span));
@@ -3555,6 +3559,12 @@ impl Checker {
                 (vec![Arg::Value(v)], Ty::Char(*unit))
             }
             Builtin::PtrRead | Builtin::PtrWrite | Builtin::PtrAt | Builtin::PtrIsNull => {
+                match b {
+                    Builtin::PtrRead => self.power_use(ctx, &["raw_memory", "read"], None, "reads raw memory (`ptr.read`)".into(), span),
+                    Builtin::PtrAt => self.power_use(ctx, &["raw_memory", "read"], None, "reads raw memory (`ptr.at`)".into(), span),
+                    Builtin::PtrWrite => self.power_use(ctx, &["raw_memory", "write"], None, "writes raw memory (`ptr.write`)".into(), span),
+                    _ => {}
+                }
                 if b != Builtin::PtrIsNull && self.needs_mark(ctx) {
                     return err(Diagnostic::error(format!("`{}` is a !check site: nothing about C's memory can be proven — write `!check` in front of the statement", name)).at(span));
                 }

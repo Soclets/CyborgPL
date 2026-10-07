@@ -353,7 +353,6 @@ manifest_bad_name [fnv:20b05ba63cd81271] :: `Areas of shapes` cannot name a Limb
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
 manifest_core_twice [fnv:0e32e454b22e9575] :: the core IEG is listed twice
 manifest_core_unofficial [fnv:a8509f2d96e82710] :: is not an official one; loading another core is not built yet
-manifest_deny_not_yet [fnv:e2bfe2e1f6359949] :: `deny` is not in CCA yet: which powers exist is not decided
 manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
 manifest_field_twice [fnv:dd4b619356aeb955] :: `name` is given twice
 manifest_long_version [fnv:a46141b25a099c4e] :: `version` is at most 256 bytes, and this one is 257
@@ -464,6 +463,7 @@ op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator: `op <+> [...] --> T { … }`
 op_path_wrong_limb [fnv:f6e2ea45a86399f9] :: the Limb `runnable` has no operator `mean`
 op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: remainder is `mod.floor`
+op_power_not_granted [fnv:48dcf19305aa9efb] :: defines the operator `mean` on built-in types, a power no core it lists grants: IEG grants `operators_on_builtin_types`
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
@@ -488,6 +488,11 @@ plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its rig
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
 pos_removed [fnv:8fd7b8e8ad8219fa] :: `pos` is gone
 pow_old [fnv:f86bba52e868b039] :: `xx` is `pow` now
+power_denied [fnv:d3a05942a2d6ba25] :: this Limb calls C (`write`), which this program denies (`deny`: `cca::Power.c_calls.functions`)
+power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
+power_except_in_powers [fnv:54b297f6474bc3b4] :: `.except` and `.for` belong to `deny`
+power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
+power_not_listed [fnv:329b5cae3d6dcaa6] :: this Limb calls C (`write`), and its CCA.cplr does not list `c_calls`: add `cca::Power.c_calls` to its `powers`
 precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
 print_bare [fnv:7587d85df41ba149] :: say which form
 print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
