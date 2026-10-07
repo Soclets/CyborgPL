@@ -2,7 +2,11 @@
 
 Compiler claude's proposal, 2026-10-07, for the owner to approve
 (2026-10-06: "compiler claude proposes the plugin interface, with the
-owner approving"). **Nothing here is built.** Where there is a real
+owner approving"). **The owner answered all six questions the same day**
+(DECISIONS 2026-10-07, "The plugin interface"); each answer is under its
+question, marked **Decided**, and where it differs from the recommendation
+the text below it describes the decided way. **Nothing here is built**;
+starting is the owner's call. Where there is a real
 choice, it is a numbered question (**Q1**, **Q2**, …) with alternatives
 and a recommendation; those are the owner's. Where the answer follows
 from what is already decided, or is plain engineering, it is marked
@@ -151,7 +155,9 @@ pub trait Core {
   one; ambiguity between two cores' grammars is found only by the
   generator, if at all; and errors get worse.
 
-**Recommendation: (a), with (b) inside the statement-word and prefix-head
+**Decided: (a), with (b) inside the statement-word and prefix-head hooks
+only** (owner: "yea"); two cores claiming one entry are refused when the
+manifest is read. **Recommendation, as it was: (a), with (b) inside the statement-word and prefix-head
 hooks only.** Every syntax the official cores have fits (a); a hook's
 parse may take a balanced run of tokens raw, which covers the odd shape
 without opening the whole grammar. Conflicts are caught at load, where a
@@ -164,6 +170,10 @@ name. (a) A core's words are reserved only in limbs that list it
 (recommended: listing is the opt-in, and the message names the core);
 (b) a core's words never reserve anything, and are found by position;
 (c) as today, a word becomes a keyword everywhere.
+
+**Decided: (a) and (b), the core choosing** (owner: "`a`, `b` depends on
+the core"): a core's words are reserved only in limbs that list it, and a
+core may instead leave a word unreserved, found by its position.
 
 ## 4. Powers: how grants flow and are checked
 
@@ -199,6 +209,12 @@ operations being opaque calls whose results Precog knows nothing about
 (recommended: proofs then never rest on unverified code, at the price of
 more run-time checks where such a core is used); (c) trusted, and every
 site resting on one reported in the build's record.
+
+**Decided: (a), every core's contracts trusted, official or not** (owner:
+"Holy registry lock in" of trusting only verified ones, and on trust by an
+RRx2 proof, "they're just gonna fork our entire project instead"; then
+"`a`"). Precog treats a listed core's contracts as true, as it does
+IEG's; trusting a core is listing it, as the approved warning says.
 
 ## 5. Meaning and IR
 
@@ -239,9 +255,12 @@ needs a mark. None of that is a node to lower.
 - **(c) Some of each**: (a) now, and a policy moves to (b) the day a
   second author wants to write one.
 
-**Recommendation: (c), starting as (a).** Generics and number meaning are
-the language's type system; opening them is a decision to make when
-someone needs it, not before.
+**Decided: (b), real separation** (owner: "`b`"): Signatar opens its type
+checker and Precog far enough that ASP, Genny and IEG are written outside
+it, and anyone could write an ASP2. The cost is accepted: a large
+interface, where a change to the checker is a change to the plugin API.
+(The recommendation had been (c), starting as (a).) Step 6 below is this
+separation.
 
 ## 6. Finding, loading and versioning plugins
 
@@ -265,7 +284,12 @@ someone needs it, not before.
   a language server). Any language, and a crash cannot take the compiler
   down; the slowest, and awkward for fine-grained hooks.
 
-**Recommendation: (b) for every core that is not official; the official
+**Decided: (a), native libraries behind a stable C ABI, for every core;
+no WebAssembly sandbox** (owner: "the OS lib thingies file type"; asking,
+on the way, why the language was getting restricted). A core is trusted
+when it is listed, as the approved warning says. The official cores are
+still built into CCA, and Signatar into CCA as the default codextra (not
+asked; as proposed). **Recommendation, as it was: (b) for every core that is not official; the official
 cores built into CCA as Rust crates behind the same trait.** The registry
 then ships one file per core version, a stranger's core cannot read your
 disk while it compiles your code, and the official cores pay nothing. The
@@ -294,6 +318,10 @@ your program does.
 being where trust is checked (recommended: a published limb's build on
 the registry then never runs strangers' code).
 
+**Decided: (a), an unofficial core runs there too**, and the registry
+builds inside a throwaway, sealed machine, so a native core cannot harm
+its servers (owner: "yea", to design claude's suggestion).
+
 ## 7. What changes in CCA, and in what order
 
 Each step leaves CCA working and the suite green (engineering, unless a
@@ -314,7 +342,7 @@ question above changes it):
 5. **MCPS's syntax and runtime**, then the **GPU cores**, which are mostly
    new syntax lowering to runtime calls (section 5, way 3).
 6. **ASP, IEG, Genny** as Q4 decides.
-7. **External loading** (Q5) last, once the official cores have used the
+7. **External loading** (Q5: native libraries, C ABI) last, once the official cores have used the
    interface long enough to stop it moving; then the warning, the
    lockfile, and `cca::Core[path = …]` working.
 
