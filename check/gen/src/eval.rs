@@ -317,6 +317,11 @@ impl<'a> Ev<'a> {
                             y = self.land(y, t.into())?;
                         }
                     }
+                    // A shifted number fits its width first, as a bitwise
+                    // operand does (owner: a, 2026-10-07; 3fd09056).
+                    if matches!(op, BinOp::Shl | BinOp::Shr) && crate::ast::is_exact(a) {
+                        x = self.land(x, t.into())?;
+                    }
                     Val::I(self.binary(*op, x, y, t)?)
                 }
             }

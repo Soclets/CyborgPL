@@ -328,6 +328,9 @@ impl<'a> Enc<'a> {
                         self.land(ctx, &y, t.into(), &format!("{}'s right", op.text()));
                     }
                 }
+                if matches!(op, BinOp::Shl | BinOp::Shr) && crate::ast::is_exact(a) {
+                    self.land(ctx, &x, t.into(), &format!("{}'s shifted number", op.text()));
+                }
                 self.binary(ctx, *op, &x, &y, t)
             }
         }

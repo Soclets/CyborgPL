@@ -1,8 +1,9 @@
 # Finding 2026-10-07 (check run --risk 20, seed 28123, shrunk): ((0 minus 'v30') shr 0) mod.floor 1
 # with 'v30' a uint32 of 1, into a uint32. The oracle prints 0. CCA builds it, but its --assert-proofs
 # binary fails: "the shift count can be outside 0 to the width - 1", though the count is 0. The value
-# shifted is -1 at the uint32 width; with ('v30' plus 1) instead both agree. Whether a negative exact
-# answer shifted at an unsigned width is itself a site is not ruled; CCA's own proof fails here.
+# shifted is -1 at the uint32 width; with ('v30' plus 1) instead both agree. Ruled since (owner: a,
+# 2026-10-07; oracle 3fd09056): a shifted number must fit its width first, so -1 there is a check
+# site, and the oracle now stops on it ("-1 does not fit uint32").
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 
