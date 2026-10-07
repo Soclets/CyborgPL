@@ -1,8 +1,7 @@
-# Question 2026-10-07 (check run --risk 20, seed 30022, shrunk), not a ruled finding: simd.sum of four
-# int32 lanes each about 1.2 x 10^9, then mod.floor 1. design/simd.md (2026-09-22) says "sum is a
-# check site (it can overflow T)": CCA's binary stops ("`plus` can leave what the type holds"). The
-# oracle works the sum exactly (plain math, 2026-09-23: exact, checked where it lands) and runs. Which
-# rule simd.sum follows is asked of the owner via design claude.
+# Finding 2026-10-07, ruled the same day (owner: b, oracle f8175e20): simd.sum is a plain number,
+# worked out in full and checked where it lands (simd.sum.lane checks at the lane type, simd.sum.wrap
+# wraps there). Four int32 lanes of about 1.2 x 10^9 summed, then mod.floor 1, is 0: the oracle runs
+# it; CCA's binary had stopped, as design/simd.md of 2026-09-22 said (seed 30022).
 # check claude generator, seed 30022
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] --> int64;
 

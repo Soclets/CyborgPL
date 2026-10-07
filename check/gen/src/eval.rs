@@ -335,9 +335,12 @@ impl<'a> Ev<'a> {
                     "all" => Val::B(xs.iter().all(|x| *x != 0)),
                     "any" => Val::B(xs.iter().any(|x| *x != 0)),
                     _ => {
-                        // sum: a check site, it can leave the lane type
+                        // sum: a plain number, worked out in full and checked
+                        // where it lands (owner: b, 2026-10-07; f8175e20);
+                        // `simd.sum.lane` is the one checked at the lane type
+                        let _ = t;
                         (self.node, self.stmt) = (addr(e), 0);
-                        Val::I(self.land(xs.iter().sum(), t.into())?)
+                        Val::I(self.limit64(xs.iter().sum())?)
                     }
                 }
             }
