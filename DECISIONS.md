@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
+
+The owner: "Feeling like making a turing complete compile time language".
+Design claude: CyborgPL already computes anything with known values while
+compiling (Precog runs it, 2026-09-22), but compile-time code has no
+effects (a const's stdkit call is "an effect, not a value"); asked what it
+would help with: deriving code from types (printing, equality, saving),
+looking at types, reading files while building, little languages checked
+while compiling; tables, generics and format checking are covered
+already; its costs are reproducible builds, trusting a Limb's build-time
+code, builds that never end (a step budget) and code nobody wrote. Asked
+where it should be: not the base (not meant to be practical), not a Limb
+(it adds syntax), so a core; inside it (a) CyborgPL itself run at compile
+time, as Zig's `comptime`, recommended, or (b) a distinct sub-language, as
+C++'s templates are. The owner: "Isn't it `compile_time.io`? If it supports
+other narrowings. `b`". So **a distinct compile-time sub-language, in a
+core of its own**, run after the program is typed and before MIR (design
+claude's placement, so generated code is checked and proven as written
+code is), **behind a power `compile_time`, narrowed with `.`
+(`compile_time.io`)** as `raw_memory.read` narrows `raw_memory`, so a
+program may deny it. Not yet asked: the narrowings, the core's name, the
+sub-language's syntax, the step budget. The fourth IR LNIR (2026-10-01)
+is unrelated: it is for loops.
+
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
 
 Right after choosing (c) below, asked whether the heap-free part should be a
