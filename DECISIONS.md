@@ -54,9 +54,12 @@ collector, one arena per run (recommended) or values only. **On a memory
 mistake, Xerpia is lenient by default, and `#bad_girl` makes it an error**
 (owner: "Xerpia is submissive by default. With `#bad_girl`, she'll error."),
 asked whether a use after free, a double free or a leak should stop the
-build (design claude recommended errors, a leak a warning). Not yet asked:
-what the lenient default does with each mistake; where `#bad_girl` goes;
-the core's own name; the step budget. The fourth IR LNIR (2026-10-01)
+build (design claude recommended errors, a leak a warning). **The default
+carries on silently, as C does** (owner: "`b`"): a use after free reads what
+was last there, a double free is ignored, a leak is freed when the run
+ends, with no warning; over (a) the same with a warning naming the line,
+which design claude recommended. Not yet asked: where `#bad_girl` goes; the
+core's own name; the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
