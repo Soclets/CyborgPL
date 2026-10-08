@@ -207,7 +207,12 @@ rename to Nerve is likely, not done**: when it happens, a new GitHub
 repository and a new local folder, with the same code. Nothing is renamed
 or created yet. **The new repository keeps the git history** (owner:
 "`a`"): the existing commits are pushed into it, so the commit IDs the
-notes cite keep working; over (b) one fresh first commit. Not yet asked:
+notes cite keep working; over (b) one fresh first commit. **The new
+repository is `Soclets/Nerve-lang`, private** (owner: "yea, create it under
+Soclets. `Nerve-lang`", over design claude's proposal of
+`Cyborg-Assembly-Manufacturing-Site/Nerve`); design claude created it the
+same day and pushed `main` (3d674c85) into it. The old repository stays
+the one everyone pushes to until the move is finished. Not yet asked:
 whether names inside the code (CCA, stdkit, Limb, core) change
 with it to the Nerve names above; the domain; the other sessions'
 clones.
