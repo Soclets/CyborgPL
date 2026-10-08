@@ -58,8 +58,12 @@ build (design claude recommended errors, a leak a warning). **The default
 carries on silently, as C does** (owner: "`b`"): a use after free reads what
 was last there, a double free is ignored, a leak is freed when the run
 ends, with no warning; over (a) the same with a warning naming the line,
-which design claude recommended. Not yet asked: where `#bad_girl` goes; the
-core's own name; the step budget. The fourth IR LNIR (2026-10-01)
+which design claude recommended. **No Xerpia files: Xerpia lives only in
+`inline.Xerpia { … }` blocks, and `#bad_girl` goes at the top of a block,
+covering it** (owner: "I mean, I don't think C++ templates has a separate
+file. Does it?", then "yea"); this drops design claude's earlier reading that
+separate files might come later. Not yet asked: the core's own name; the
+step budget; Xerpia's syntax, which the owner will show. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
