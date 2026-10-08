@@ -24,7 +24,9 @@ and "compile for the exact machine" makes the target part of the input.
 3. **Compile-time I/O is always a boundary.** Precog never reads a file,
    clock, or environment variable at compile time. Those are bounded values
    with explicit types like any other input. (Closes the earlier open
-   question.)
+   question.) **Revised 2026-10-08** (owner: "We should have env vars"):
+   a build may read environment variables; how it keeps the build
+   repeatable is not yet decided (`DECISIONS.md`).
 4. **Measurements are inputs too** (owner, 2026-09-28): `cca tune` times
    loops once, on purpose, and writes `tune.cplr` (`synthia tune` runs it); builds read the file
    and never time anything themselves (`gpu.md`).
