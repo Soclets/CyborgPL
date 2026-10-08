@@ -43,8 +43,11 @@ does it already). Design claude recommended (a) no writing; the owner chose
 (b), writing too, for example a header for C. Design claude's reading, not
 asked: every path, read or written, is inside the Limb's own folder. **The
 sub-language is named Xerpia** (owner: "Xerpia is the sub lang's name. Let's
-do the syntax"). Not yet asked: the core's own name, the syntax, the step
-budget. The fourth IR LNIR (2026-10-01)
+do the syntax"). **Xerpia is written `inline.Xerpia { … }`** (owner: "`a`"), joining
+`inline.ASM`, `inline.LL`, `inline.MSL`, where an item or a value goes,
+over a keyword `xerpia { … }` or separate files only (which may come later
+for larger code, design claude's reading). Not yet asked: the core's own
+name, Xerpia's syntax inside, the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
