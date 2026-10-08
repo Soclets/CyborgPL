@@ -144,7 +144,7 @@ it's needed": **the static, self-contained build (LLVM and lld built by us
 and copied into `cca`) waits for a release or a need**; Homebrew's shared
 libraries until then.
 
-### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
+### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, then likely): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
 
 Brainstorming names "in case I wanna rename" (owner: "CyborgPL is already a
 good name, just finding more"), checked by design claude for clashes and
@@ -177,6 +177,15 @@ screen, files and clock. **A core would be a Lobe** (owner: "yea"): each
 lobe has its own job, as each core adds its own abilities; design claude
 noted real lobes cannot be removed, while cores are optional.
 
+
+Later the same day, the owner: "Also, we'll likely rename to Nerve. But
+we'll do it cleanly, new GH repo, new local, but same code." So **the
+rename to Nerve is likely, not done**: when it happens, a new GitHub
+repository and a new local folder, with the same code. Nothing is renamed
+or created yet. Not yet asked: whether the new repository keeps the git
+history; whether names inside the code (CCA, stdkit, Limb, core) change
+with it to the Nerve names above; the domain; the other sessions'
+clones.
 ### 2026-10-08 — Xerpia is dropped: Precog is the compile-time language (owner: yea)
 
 The owner, after the talk turned to the name's third reason ("multiple ways
