@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex (owner)
+### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
 
 Brainstorming names "in case I wanna rename" (owner: "CyborgPL is already a
 good name, just finding more"), checked by design claude for clashes and
@@ -25,9 +25,10 @@ Design claude noted a neuron is closer to a function in size. Other Nerve
 Stem, Reflex, Medulla, Spine), the lowest part, keeping you alive with
 nothing above it, as the base runs with no OS and no heap. Other Nerve
 names offered, not asked: Synapse (the linker; CCA calls the system
-linker, so there is none to name), Axon (the runtime, carrying the signal
-while the program runs; the owner's "Wouldn't that be the runtime?" to Axon
-offered for the compiler). **The compiler, CCA, would be the Cortex**
+linker, so there is none to name), and, to Axon offered for the compiler, the owner: "Wouldn't that be the
+runtime?". **The runtime would be the Axon** (owner: "`Axon`", after "Any
+alts?": Impulse, Reflex, Myelin, Synapse, Signal), carrying the signal
+while the program runs; today it is unnamed (`cca-runtime`). **The compiler, CCA, would be the Cortex**
 (owner: "Cortex is CCA"), the part that plans before anything moves, and
 **Precog keeps its name** (owner: "yea, keep Precog"; Prefrontal and
 Cerebellum offered). **stdkit would be the Cord** (owner: "`Cord`", after "Any alts":
