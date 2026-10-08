@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — CyborgPL links with LLVM's lld and never writes its own linker (owner)
+
+The owner asked which linker CCA uses (the system one: `cc` with the object
+and `libcca_runtime.a`, `cca/compiler/src/codegen/mod.rs`, from the
+2026-09-14 pipeline sketch, never ruled on), why Zig's is praised
+(cross-linking anywhere with one download), "Should we make our own
+linker? I mean, Precog is already a thing we're working on", and "How many
+LOC is a linker?" — counted by design claude on today's sources: lld
+~100,700 lines of C++ for four formats (ELF 47,298, Mach-O 21,074, COFF
+19,130, Wasm 10,396) plus ~181,700 of tests; mold ~41,600 lines of Rust for
+ELF alone. Design claude recommended lld (all four formats, cross-linking,
+linker scripts for kernels, part of LLVM, same licence) and no linker of
+our own unless a need lld cannot meet shows up. The owner: "Oh wait, so we
+won't have to make a linker? Just use lld?", then **"We'll use `lld`"**,
+and on design claude's worry about reaching it through C++: "bro, C++ isn't
+gonna make you guys have a stroke". lld has no C interface, so CCA reaches
+it through the C++ LLVM wrapper `implementation-languages.md` already
+allows. Not yet asked: when CCA switches from the system linker.
+
 ### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
 
 Brainstorming names "in case I wanna rename" (owner: "CyborgPL is already a
