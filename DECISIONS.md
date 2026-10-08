@@ -81,7 +81,12 @@ not bare version correct?" (yes: the 2026-09-20 rule; bare refused, the
 generic enum run in the oracle) and "Why is it bare inside `match`?" (the
 matched value names the type; the arms copy `otherwise`'s). `value` is also
 the label in `list.fill[value 0, count 10]`; the prefix keeps them apart.
-Not yet asked: the iterator interface's spelling; how adapters chain.
+**An interface may list a function, so the iterator is one** (owner: "`a`",
+after "what" to a first try that asked two things at once): `for` takes any
+type whose interface says it has a `next` returning `optional[…]`, the rule
+written in CyborgPL like `Ordered`; over (b) the base knowing the shape
+without an interface. Design claude recommended (a). Not yet asked: how
+the interface names its item type; how adapters chain.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
