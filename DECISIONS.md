@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron (owner)
+### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem (owner)
 
 Brainstorming names "in case I wanna rename" (owner: "CyborgPL is already a
 good name, just finding more"), checked by design claude for clashes and
@@ -21,8 +21,11 @@ and Limb is the word for a library. **In Nerve, a library would be a
 Neuron** (owner: "Neuron"), over Plexus (more accurate) and Ganglion
 (accurate, clunky); the owner's bar: "catchy + kinda accurate is fine".
 Design claude noted a neuron is closer to a function in size. Other Nerve
-names offered, not asked: Brainstem (the base), Lobe (cores), Spine
-(stdkit), Synapse (the linker, not the compiler), Precog stays.
+**The base would be the Brainstem** (owner: "Brainstem", after "Any alts?":
+Stem, Reflex, Medulla, Spine), the lowest part, keeping you alive with
+nothing above it, as the base runs with no OS and no heap. Other Nerve
+names offered, not asked: Lobe (cores), Spine (stdkit), Synapse (the
+linker, not the compiler), Precog stays.
 
 ### 2026-10-08 — Xerpia is dropped: Precog is the compile-time language (owner: yea)
 
