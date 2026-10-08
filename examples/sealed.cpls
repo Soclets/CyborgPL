@@ -1,11 +1,11 @@
 # Three separate promises (owner, 2026-09-25):
-#   mut   — the value may be changed          immut / immut — it may not
+#   mut   — the value may be changed          immut — it may not
 #   no_shadow    — the name may not be shadowed; it means this variable all the way down
 # Shadowing (`$:=`) makes a new variable under the old name, so it needs no `mut`.
 MAIN {
     let immut 'a' := 1;
     let 'a' $:= 2;                  # an immut can be shadowed: nothing is changed
-    let immut 'b' := 3;              # immut is immut written another way
+    let 'b' := 3;                    # no word: it may not change either
     let no_shadow mut 'total' := 0;        # changeable, and 'total' always means this one
     change 'total' = 'total' plus 'a' plus 'b';
     stdkit::print.useful['a', " ", 'b', " ", 'total', newln];
