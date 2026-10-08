@@ -62,8 +62,16 @@ which design claude recommended. **No Xerpia files: Xerpia lives only in
 `inline.Xerpia { … }` blocks, and `#bad_girl` goes at the top of a block,
 covering it** (owner: "I mean, I don't think C++ templates has a separate
 file. Does it?", then "yea"); this drops design claude's earlier reading that
-separate files might come later. Not yet asked: the core's own name; the
-step budget; Xerpia's syntax, which the owner will show. The fourth IR LNIR (2026-10-01)
+separate files might come later. **The core is named Xerpia too**, and **a
+variable is declared `bin16 %^x = 1000;`** (owner: "Xerpia is the core's name
+too. var declare syntax: `bin16 %^x = 1000;` And whatever the fuck you have
+to allocate for that. `%` means local, `^` means level, one `^` means
+variable, and then stacking could result in another thing (const, fn,
+whatever)."): the type first, then the name with its marks; `%` marks a
+local (as in LLVM IR), and the count of `^` says what kind of name it is,
+one `^` a variable, more for other kinds not yet assigned. Not yet asked:
+what each further `^` is; the twin of `%` (a non-local name); what
+allocating "for that" means under manual memory; the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
