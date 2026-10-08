@@ -37,8 +37,14 @@ are in it):
 ./target/debug/cca build ../examples/… -o prog       # …then generate, link, and run
 ```
 
-The build needs LLVM 22 where `cca/.cargo/config.toml` says it is, and the
-runtime linked into every binary: `cargo build -p cca-runtime`.
+The build needs LLVM 22 and lld 22 where `cca/.cargo/config.toml` says they
+are (Homebrew's `llvm@22` and `lld@22` for now), a C++ compiler for the lld
+shim (`compiler/lld/shim.cpp`), and the runtime linked into every binary:
+`cargo build -p cca-runtime`. CCA links with lld through its library
+(owner, 2026-10-08: "We'll use `lld`", then "`a`", Zig's way), so LLVM is
+linked as one shared library, the one lld's libraries use; a self-contained
+release will need LLVM and lld built as static libraries. Linking is built
+for macOS hosts so far (the SDK found by `xcrun`).
 
 ```
 cargo test        # every examples/*.cpls checks; every reject program is

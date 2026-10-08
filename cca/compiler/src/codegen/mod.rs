@@ -4184,28 +4184,62 @@ pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result
 
 pub use inkwell;
 
-/// Link the object with the runtime, using the system linker
-/// (`implementation-languages.md`: LLVM, then the system linker).
+extern "C" {
+    /// lld through its library (`lld/shim.cpp`): the exit code, and what
+    /// it said in `said`.
+    fn cca_lld_link(argc: std::os::raw::c_int, argv: *const *const std::os::raw::c_char, said: *mut std::os::raw::c_char, said_len: usize) -> std::os::raw::c_int;
+}
+
+/// Link with lld, built into CCA (owner, 2026-10-08: "We'll use `lld`",
+/// then "`a`": its library, Zig's way); CyborgPL never writes its own
+/// linker. On macOS, the arguments clang gives the system linker: the
+/// architecture, the platform and SDK versions, the SDK as the system
+/// root, the runtime, and libSystem.
 pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
     let runtime = runtime_path().ok_or_else(|| "the runtime is not built: `cargo build -p cca-runtime --release`".to_string())?;
-    let mut cc = std::process::Command::new("cc");
-    if cfg!(target_os = "macos") {
-        if let Some(v) = macos_version() {
-            cc.arg(format!("-mmacosx-version-min={}", v));
+    if !cfg!(target_os = "macos") {
+        return Err("linking with lld is built for macOS so far: this host's system libraries and start files are not found yet".into());
+    }
+    let xcrun = |what: &str| -> Result<String, String> {
+        let o = std::process::Command::new("xcrun").arg(what).output().map_err(|e| format!("`xcrun {}` would not start, and lld needs the macOS SDK: {}", what, e))?;
+        let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+        if !o.status.success() || s.is_empty() {
+            return Err(format!("`xcrun {}` found no macOS SDK, which lld links against: install the Command Line Tools (`xcode-select --install`)", what));
         }
+        Ok(s)
+    };
+    let sdk = xcrun("--show-sdk-path")?;
+    let sdk_version = xcrun("--show-sdk-version")?;
+    let min = macos_version().unwrap_or_else(|| sdk_version.clone());
+    let arch = match std::env::consts::ARCH {
+        "aarch64" => "arm64",
+        other => other,
+    };
+    let args: Vec<String> = vec![
+        "ld64.lld".into(),
+        "-arch".into(),
+        arch.into(),
+        "-platform_version".into(),
+        "macos".into(),
+        min,
+        sdk_version,
+        "-syslibroot".into(),
+        sdk,
+        "-o".into(),
+        out.to_string_lossy().into_owned(),
+        obj.to_string_lossy().into_owned(),
+        runtime.to_string_lossy().into_owned(),
+        "-lSystem".into(),
+    ];
+    let c: Vec<std::ffi::CString> = args.iter().map(|a| std::ffi::CString::new(a.as_str()).map_err(|_| format!("a path holds a NUL byte: {}", a))).collect::<Result<_, _>>()?;
+    let argv: Vec<*const std::os::raw::c_char> = c.iter().map(|a| a.as_ptr()).collect();
+    let mut said = vec![0 as std::os::raw::c_char; 16 * 1024];
+    let code = unsafe { cca_lld_link(argv.len() as std::os::raw::c_int, argv.as_ptr(), said.as_mut_ptr(), said.len()) };
+    if code == 0 {
+        return Ok(());
     }
-    let status = cc
-        .arg(obj)
-        .arg(&runtime)
-        .arg("-o")
-        .arg(out)
-        .status()
-        .map_err(|e| format!("the linker would not start: {}", e))?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err("the linker refused the program".into())
-    }
+    let said = unsafe { std::ffi::CStr::from_ptr(said.as_ptr()) }.to_string_lossy().trim().to_string();
+    Err(if said.is_empty() { "the linker (lld) refused the program".into() } else { format!("the linker (lld) refused the program:\n{}", said) })
 }
 
 fn runtime_path() -> Option<std::path::PathBuf> {

@@ -9,6 +9,9 @@
 # inkwell 0.10 has no feature for it.
 [env]
 LLVM_SYS_221_PREFIX = "/opt/homebrew/opt/llvm@22"
+# lld, built into CCA through its library (owner, 2026-10-08: "`a`", Zig's
+# way): Homebrew's lld 22, matching the LLVM above, for now.
+CCA_LLD_PREFIX = "/opt/homebrew/opt/lld@22"
 # The share below holds for the tests cargo runs side by side, too.
 RUST_TEST_THREADS = "3"
 
