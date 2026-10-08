@@ -35,6 +35,13 @@ run. Over (b) running whatever lld is installed and (c) shipping lld's
 program beside `cca`, Rust's way (`rust-lld`), which compiler claude
 recommended and design claude agreed with. Compiler claude checked first
 that `ld64.lld` links a CCA object and the program runs as with `cc`.
+Built the same day (39229d78): a 36-line shim; LLVM moved from static to
+Homebrew's shared `libLLVM.dylib`, since lld's libraries load it (two LLVMs
+in one process otherwise); a non-macOS host is refused for now. Told, the
+owner: "I guess we'll do the other way when we do the release, or when
+it's needed": **the static, self-contained build (LLVM and lld built by us
+and copied into `cca`) waits for a release or a need**; Homebrew's shared
+libraries until then.
 
 ### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
 
