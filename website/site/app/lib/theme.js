@@ -1,6 +1,6 @@
 // Solarized Light for code, with the standard Solarized roles.
 export const solarizedLight = {
-  name: "solarized-light-cyborgpl",
+  name: "solarized-light-nerve",
   type: "light",
   colors: { "editor.background": "#00000000", "editor.foreground": "#657b83" },
   settings: [
@@ -23,7 +23,7 @@ export const solarizedLight = {
 // Solarized Dark: the same roles, with the base tones mirrored (Solarized's own rule:
 // base0 for body text, base01 for comments and punctuation, base1 for emphasis).
 export const solarizedDark = {
-  name: "solarized-dark-cyborgpl",
+  name: "solarized-dark-nerve",
   type: "dark",
   colors: { "editor.background": "#00000000", "editor.foreground": "#839496" },
   settings: solarizedLight.settings.map((s) => {

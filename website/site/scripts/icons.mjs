@@ -7,7 +7,7 @@ import path from "node:path";
 const brand = path.resolve(process.cwd(), "../../brand");
 mkdirSync("public/icons", { recursive: true });
 mkdirSync("public/language-logos", { recursive: true });
-copyFileSync(path.join(brand, "mark-black.svg"), "public/language-logos/cyborgpl.svg");
+copyFileSync(path.join(brand, "mark-black.svg"), "public/language-logos/nerve.svg");
 const avatar = readFileSync(path.join(brand, "avatar.svg"), "utf8");
 for (const [name, size] of [["icon-192.png", 192], ["icon-512.png", 512], ["apple-touch-icon.png", 180]]) {
   const png = new Resvg(avatar, { fitTo: { mode: "width", value: size } }).render().asPng();

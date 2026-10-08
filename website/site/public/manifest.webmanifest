@@ -1,6 +1,6 @@
 {
-  "name": "CyborgPL",
-  "short_name": "CyborgPL",
+  "name": "Nerve",
+  "short_name": "Nerve",
   "description": "A compiled language where every overflow and bounds check is proven at compile time.",
   "start_url": "/",
   "scope": "/",

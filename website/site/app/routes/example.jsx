@@ -14,8 +14,8 @@ export const meta = ({ loaderData, params, matches }) => {
   const list = matches.find((m) => m?.id === "routes/examples");
   const ex = loaderData?.title ? loaderData : briefOf(list?.loaderData ?? list?.data, params.id);
   return seo({
-  title: `${ex?.title ? plain(ex.title) : "Example"} · CyborgPL`,
-  description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.cpls — a CyborgPL program and the output it prints.`,
+  title: `${ex?.title ? plain(ex.title) : "Example"} · Nerve`,
+  description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.cpls — a Nerve program and the output it prints.`,
   path: `/examples/${params.id}`,
   });
 };

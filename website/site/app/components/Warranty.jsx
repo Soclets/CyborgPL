@@ -6,7 +6,7 @@ export default function Warranty() {
   return (
     <aside className="warning" role="note" aria-label="Warning">
       <span className="warning-label">Warning</span>
-      <p>CyborgPL is unstable by design: any release may change or remove anything. Nothing said about its stability is a guarantee, and it comes with <b>no warranty</b>. See <Link to="/licence" prefetch="intent">our licences</Link>.</p>
+      <p>Nerve is unstable by design: any release may change or remove anything. Nothing said about its stability is a guarantee, and it comes with <b>no warranty</b>. See <Link to="/licence" prefetch="intent">our licences</Link>.</p>
     </aside>
   );
 }

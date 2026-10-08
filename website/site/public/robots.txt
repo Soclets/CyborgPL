@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://cyborgpl.dev/sitemap.xml
+Sitemap: https://nerve-lang.com/sitemap.xml

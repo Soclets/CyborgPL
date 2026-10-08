@@ -20,7 +20,7 @@ export function useCodeIndex(wanted) {
 }
 
 // Kept on this phone only; the page works the same without it.
-const KEY = "cyborgpl.recent";
+const KEY = "nerve.recent";
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) ?? []; } catch { return []; } };
 export function useRecent() {
   const [recent, setRecent] = useState([]);

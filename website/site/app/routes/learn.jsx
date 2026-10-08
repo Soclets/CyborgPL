@@ -5,7 +5,7 @@ import Md from "../components/Md.jsx";
 import { ACCENTS, FEATURES, SYNTAX } from "../lib/content.js";
 import { seo } from "../lib/seo.js";
 
-export const meta = () => seo({ title: "Learn · CyborgPL", description: "Your first CyborgPL program, the syntax in five minutes, and the core features.", path: "/learn" });
+export const meta = () => seo({ title: "Learn · Nerve", description: "Your first Nerve program, the syntax in five minutes, and the core features.", path: "/learn" });
 
 // Build time: highlight the snippets and the first program with the repo's grammar.
 export async function loader() {

@@ -21,8 +21,8 @@ export const links = () => Object.values(LANGUAGE_ARTWORK).map((a) => ({ rel: "p
 // Structured data naming the site (owner, 2026-09-28): Google takes a result's site name from
 // a WebSite block on the home page.
 export const meta = () => [
-  ...seo({ title: "CyborgPL", description: DESCRIPTION, path: "/" }),
-  { "script:ld+json": { "@context": "https://schema.org", "@type": "WebSite", name: "CyborgPL", alternateName: "CyborgPL programming language", url: "https://cyborgpl.dev/" } },
+  ...seo({ title: "Nerve", description: DESCRIPTION, path: "/" }),
+  { "script:ld+json": { "@context": "https://schema.org", "@type": "WebSite", name: "Nerve", alternateName: "Nerve programming language", url: "https://nerve-lang.com/" } },
 ];
 
 // Build time: one small index over everything worth finding.
@@ -32,8 +32,8 @@ export async function loader() {
     { to: "/learn", title: "Learn", text: "Your first program, syntax in five minutes, core features", kind: "Page", icon: "book" },
     { to: "/examples", title: "Examples", text: "Every program in the repo, with its output", kind: "Page", icon: "code" },
     { to: "/download", title: "Download", text: "Nothing to download yet", kind: "Page", icon: "download" },
-    { to: "/more", title: "RRx2 and RR", text: "CyborgPL’s own verifiers: RRx2, a translation validator, and RR, an exact-math language", kind: "Page", icon: "shield" },
-    { to: "/good-practice", title: "Good practice", text: "How CyborgPL is meant to be written: twelve practices, advice not rules", kind: "Page", icon: "check" },
+    { to: "/more", title: "RRx2 and RR", text: "Nerve’s own verifiers: RRx2, a translation validator, and RR, an exact-math language", kind: "Page", icon: "shield" },
+    { to: "/good-practice", title: "Good practice", text: "How Nerve is meant to be written: twelve practices, advice not rules", kind: "Page", icon: "check" },
     { to: "/licence", title: "Licence", text: "Apache-2.0 with the LLVM exception; text CC BY 4.0", kind: "Page", icon: "licence" },
   ];
   const features = FEATURES.map((f) => ({ to: `/learn#${f.id}`, title: plain(f.title), text: plain(f.text), kind: "Feature", icon: f.icon }));
@@ -58,8 +58,8 @@ function Search({ q, setQ, onSubmit, onFocus, onBlur }) {
   return (
     <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
       <Icon name="search" size={17} />
-      <input type="search" placeholder="Search CyborgPL — even code" value={q} onChange={(e) => setQ(e.target.value)} onFocus={onFocus} onBlur={onBlur}
-        enterKeyHint="go" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Search CyborgPL" />
+      <input type="search" placeholder="Search Nerve — even code" value={q} onChange={(e) => setQ(e.target.value)} onFocus={onFocus} onBlur={onBlur}
+        enterKeyHint="go" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Search Nerve" />
     </form>
   );
 }
@@ -86,7 +86,7 @@ function SourceHit() {
   return (
     <a className="source-hit" href={REPO_URL} target="_blank" rel="noopener noreferrer">
       <span className="gh"><Icon name="github" size={24} stroke={1.8} /></span>
-      <span><b>Source code on GitHub</b><small>Cyborg-Assembly-Manufacturing-Site/CyborgPL</small></span>
+      <span><b>Source code on GitHub</b><small>Soclets/Nerve-lang</small></span>
       <Icon name="external" size={18} />
     </a>
   );
@@ -114,8 +114,8 @@ export default function Home() {
   // A second tap on this tab, already at the top, clears the search.
   useEffect(() => {
     const clear = () => { setQ(""); document.activeElement?.blur(); };
-    addEventListener("cyborgpl:retap", clear);
-    return () => removeEventListener("cyborgpl:retap", clear);
+    addEventListener("nerve:retap", clear);
+    return () => removeEventListener("nerve:retap", clear);
   }, []);
 
   const navigate = useNavigate();

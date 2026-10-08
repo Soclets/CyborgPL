@@ -3,7 +3,7 @@ build/
 .react-router/
 .wrangler/
 public/icons/
-public/language-logos/cyborgpl.svg
+public/language-logos/nerve.svg
 public/favicon.svg
 public/search-index.json
 public/favicon.ico

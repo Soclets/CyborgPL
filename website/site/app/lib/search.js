@@ -3,7 +3,7 @@ import { ANSWERS, ANSWER_BY_KEY } from "./answers.js";
 
 export const SOURCE_QUERIES = new Set(["gh", "repo", "source", "source code", "github"]);
 
-// Other words people use for the same idea — only where the idea really is CyborgPL's.
+// Other words people use for the same idea — only where the idea really is Nerve's.
 const SYNONYMS = {
   gc: ["ownership"], garbage: ["ownership"], collector: ["ownership"], memory: ["ownership"], move: ["give", "ownership"],
   exception: ["failures", "fail", "otherwise"], exceptions: ["failures", "fail", "otherwise"], error: ["failures", "fail"], errors: ["failures", "fail"],
@@ -15,7 +15,7 @@ const SYNONYMS = {
   overflow: ["precog", "overflow"], bounds: ["precog", "bounded"], safety: ["precog"], safe: ["precog"], prove: ["precog"], proof: ["precog"],
   compiler: ["llvm"], native: ["llvm"], backend: ["llvm"],
   string: ["str.utf8", "strings", "text"], strings: ["str.utf8", "text"],
-  print: ["std::print.stored.stdout", "prints"], printu: ["print.useful"], printf: ["print.format"], println: ["std::print.stored.stdout", "prints"], output: ["std::print.stored.stdout", "prints"], stdout: ["std::print.stored.stdout"],
+  print: ["stdkit::print.stored", "prints"], printu: ["print.useful"], printf: ["print.format"], println: ["stdkit::print.stored", "prints"], output: ["stdkit::print.stored", "prints"], stdout: ["stdkit::print.stored"],
   loop: ["while", "for", "loops"], iterate: ["for", "range"],
   function: ["fn", "functions"], method: ["fn", "functions"], func: ["fn"],
   enum: ["enums", "match"], variant: ["enums"], union: ["enums"], switch: ["match"],
@@ -25,7 +25,8 @@ const SYNONYMS = {
   dict: ["map", "maps"], dictionary: ["map", "maps"], hashmap: ["map", "maps"],
   comment: ["#", "comments"],
   divide: ["div"], division: ["div"], lifetime: ["@x", "lifetimes"], borrow: ["lend", "ownership", "lifetimes"],
-  assign: ["change"], reassign: ["change"], mutate: ["change", "mut"], mutable: ["mut"], shadow: ["$:=", "sealed"], strict: ["#strict", "strict"],
+  assign: ["change"], reassign: ["change"], mutate: ["change", "mut"], mutable: ["mut"], shadow: ["shadow", "sealed"], strict: ["#strict", "spelled out"],
+  equals: ["equal_to"], equal: ["equal_to"], "<=": ["at_most"], ">=": ["at_least"], "!=": ["not_equal"], newline: ["newln"],
 };
 
 export const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, " ");

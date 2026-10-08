@@ -1,14 +1,15 @@
-# CyborgPL syntax grammar
+# Nerve syntax grammar
 
-`cyborgpl.tmLanguage.json` is a TextMate grammar for `.cpls`. The website uses
+`nerve.tmLanguage.json` is a TextMate grammar for `.cpls`. The website uses
 it to highlight every code sample; it also works in VS Code and anything else
 that reads TextMate grammars.
 
 It was written from the oracle's lexer and parser — `oracle/src/lexer.rs` for
 the token shapes and `oracle/src/parser.rs` for the keyword list and the type
 spellings — so it follows the same rules the reference interpreter enforces,
-including the current `let` declarations, word operators, `-->` return arrow,
-`<--` output arrow, `#strict`, and `@x` lifetime groups.
+including the 2026-10-07 revision: `->` / `<-`, comparison in words
+(`equal_to`, `at_most`…), `immut` / `no_check` / `no_cheat` / `no_shadow`, `newln`,
+`stdkit::`, `shadow`, `is`, `pos` and labelled ranges.
 
 ## What it knows
 
@@ -82,4 +83,12 @@ non-whitespace span left without a scope — there should be none — and, for e
 every distinct word it was given, which is the list to read by hand for words in the
 wrong class. `node website/grammar/audit.mjs <scope>` prints one class.
 
-Last run on 2026-10-06 against all 143 programs: no unscoped spans.
+Since 2026-10-08 it also knows: `newln`; comparison words; `is`; `shadow`; `no_check`,
+`no_cheat`, `no_shadow`; `not_std.int24`; `.ieee`, `.masked` and the bitwise `.wrap` forms;
+`bare.never` / `case.insensitive [fn, var]`; `on.target` / `on.machine` and the target named;
+`my.` paths; std's names written bare (`print.useful[…]`, `duration`); registers in an inline
+block's `with […]`; `list.fill[value 0, count 10]`; names in any script (WSTN). The retired
+spellings (`-->`, `==`, `</==`, `!mut`, `!$`, `$:=`, `nocheck`, `\n` outside text,
+`!std_int24`, `#strict`) are marked deprecated.
+
+Last run on 2026-10-08 against all 159 programs: no unscoped spans.

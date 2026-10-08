@@ -5,7 +5,7 @@ import path from "node:path";
 copyFileSync("build/client/404/index.html", "build/client/404.html");
 
 // The sitemap: every pre-rendered page, by its address (no trailing slash, as served).
-const SITE = "https://cyborgpl.dev";
+const SITE = "https://nerve-lang.com";
 const pages = [];
 (function walk(dir) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {

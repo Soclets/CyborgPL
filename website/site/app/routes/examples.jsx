@@ -6,7 +6,7 @@ import { ACCENTS } from "../lib/content.js";
 import { around, runSearch } from "../lib/search.js";
 import { seo } from "../lib/seo.js";
 
-export const meta = () => seo({ title: "Examples · CyborgPL", description: "Real CyborgPL programs from the repo, each with the output it really prints.", path: "/examples" });
+export const meta = () => seo({ title: "Examples · Nerve", description: "Real Nerve programs from the repo, each with the output it really prints.", path: "/examples" });
 
 // Build time: every program, its card preview and its full plain source.
 export async function loader() {
@@ -39,8 +39,8 @@ export default function Examples() {
   // A second tap on this tab, already at the top, clears the search.
   useEffect(() => {
     const clear = () => { setQ(""); document.activeElement?.blur(); };
-    addEventListener("cyborgpl:retap", clear);
-    return () => removeEventListener("cyborgpl:retap", clear);
+    addEventListener("nerve:retap", clear);
+    return () => removeEventListener("nerve:retap", clear);
   }, []);
   // The source is already here for instant opening; reuse it for code search.
   const code = useMemo(() => Object.fromEntries(examples.map((e) => [e.id,

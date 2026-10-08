@@ -5,7 +5,7 @@ import { LANGUAGE_ARTWORK } from "../lib/language-artwork.js";
 import { REPO_URL, RRX2_URL } from "../lib/content.js";
 import { seo } from "../lib/seo.js";
 
-export const meta = () => seo({ title: "More · CyborgPL", description: "Download CyborgPL, read its source and its licence, and find RRx2, its verifiers.", path: "/more" });
+export const meta = () => seo({ title: "More · Nerve", description: "Download Nerve, read its source and its licence, and find RRx2, its verifiers.", path: "/more" });
 
 export default function More() {
   return (
@@ -21,7 +21,7 @@ export default function More() {
       <div className="list">
         <a href={RRX2_URL} target="_blank" rel="noopener noreferrer" className="row">
           <span className="ri ri-logo"><img src="/icons/rrx2.svg" alt="" width="30" height="15" /></span>
-          <span className="row-text"><b>RRx2</b><small>CyborgPL’s own verifiers: RRx2, its translation validator, and RR, an exact-math language</small></span>
+          <span className="row-text"><b>RRx2</b><small>Nerve’s own verifiers: RRx2, its translation validator, and RR, an exact-math language</small></span>
           <Icon name="external" size={17} />
         </a>
       </div>
@@ -37,9 +37,9 @@ export default function More() {
             </article>
           ))}
         </div>
-        <p className="fineprint">The artwork identifies the languages in the comparison. Third-party marks belong to their owners; their display does not imply endorsement of CyborgPL.</p>
+        <p className="fineprint">The artwork identifies the languages in the comparison. Third-party marks belong to their owners; their display does not imply endorsement of Nerve.</p>
       </section>
-      <p className="fineprint">CyborgPL is in development. Add this site to your home screen and it opens like an app.</p>
+      <p className="fineprint">Nerve is in development. Add this site to your home screen and it opens like an app.</p>
     </div>
   );
 }

@@ -12,7 +12,7 @@ let highlighter;
 function hl() {
   highlighter ??= createHighlighter({
     themes: [solarizedLight, solarizedDark],
-    langs: [JSON.parse(readFileSync(path.join(REPO, "website/grammar/cyborgpl.tmLanguage.json"), "utf8"))],
+    langs: [JSON.parse(readFileSync(path.join(REPO, "website/grammar/nerve.tmLanguage.json"), "utf8"))],
   });
   return highlighter;
 }
@@ -20,7 +20,7 @@ function hl() {
 // Both themes in one pass: each span carries the light colour, and --shiki-dark for the
 // dark theme, which the desktop site switches to (app.css).
 export async function highlight(code) {
-  return (await hl()).codeToHtml(code, { lang: "cyborgpl", themes: { light: solarizedLight.name, dark: solarizedDark.name }, defaultColor: "light" });
+  return (await hl()).codeToHtml(code, { lang: "nerve", themes: { light: solarizedLight.name, dark: solarizedDark.name }, defaultColor: "light" });
 }
 
 // A few names read better by hand; the rest come from the file name.
@@ -29,14 +29,14 @@ const TITLES = {
   hello: "Hello, World", fizzbuzz: "FizzBuzz", enums: "Enums & `match`", concur: "Concurrency",
   ffi: "Talking to C", simd: "SIMD", pi: "Digits of pi", whichever: "`whichever`",
   and_runs_both: "`and` runs both sides", and_then_or_else: "`and.then` / `or.else`", no_checks: "`NO_FUCKING_CHECKS`",
-  strict: "`#strict`", print_vs_print_useful: "`print` vs `print.useful`", print_format: "`print.format`", c_enum: "C enums", list_array: "`list` and `array`",
-  match_value: "`match` gives a value", strict_match: "`match` in `#strict`", operator_values: "Operators as values",
+  spelled_out: "Written out", case_is: "`is` gives a case its value", shadow: "`shadow`", print_vs_print_useful: "`print` vs `print.useful`", print_format: "`print.format`", c_enum: "C enums", list_array: "`list` and `array`",
+  match_value: "`match` gives a value", operator_values: "Operators as values",
   lifetimes: "Lifetimes: `@x`", for_position: "Position and item",
-  for_no_cheat: "`for !c`: no cheating", for_para: "`for para` and `for seq`", print_weird: "`print.weird`",
-  print_auto_newline: "`print.useful.auto_newline`", testing: "Tests: `test fn` and `must`", list_fill: "`list.fill`",
-  list_fill_strict: "`list.fill` in `#strict`", ptr_cast: "`ptr.cast`", deci: "`deci`: exact decimals", deci_more: "`deci`, continued",
+  for_no_cheat: "`for no_cheat`: no cheating", for_para: "`for para` and `for seq`", print_weird: "`print.weird`",
+  print_auto_newline: "`print.useful.auto_newln`", testing: "Tests: `test fn` and `must`", list_fill: "`list.fill`",
+  ptr_cast: "`ptr.cast`", deci: "`deci`: exact decimals", deci_more: "`deci`, continued",
   deci_context: "`deci` beside other numbers", to_ascii: "To ASCII", nested_match: "Nested `match`",
-  strict_nested_match: "Nested `match` in `#strict`", return_in_match: "`return` inside a `match`",
+  return_in_match: "`return` inside a `match`",
   match_data_type: "A `match` arm's data", for_lend_mut: "`for` over `lend.mut`", for_lend_mut_read: "Reading during a `lend.mut` walk",
 };
 export const titleOf = (id) => TITLES[id] ?? id.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()).replace(/^Simd\b/, "SIMD");

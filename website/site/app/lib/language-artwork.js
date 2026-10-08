@@ -1,12 +1,12 @@
 import { REPO_URL } from "./content.js";
 
 export const LANGUAGE_ARTWORK = {
-  cyborgpl: {
-    asset: "/language-logos/cyborgpl.svg", title: "CyborgPL",
-    credit: "CyborgPL project mark. Copyright 2026 Tankun Sriket. CyborgPL and its mark are project trademarks.",
+  nerve: {
+    asset: "/language-logos/nerve.svg", title: "Nerve",
+    credit: "Nerve project mark. Copyright 2026 Tankun Sriket. Nerve and its mark are project trademarks.",
     links: [
       { label: "Project artwork", href: `${REPO_URL}/blob/main/brand/mark-black.svg` },
-      { label: "Usage terms", href: "https://cyborgpl.dev/licence" },
+      { label: "Usage terms", href: "https://nerve-lang.com/licence" },
     ],
   },
   rust: {

@@ -32,7 +32,7 @@ function got(u){if(over||seen[u]||want.indexOf(u)<0)return;seen[u]=1;n++;show(n/
 try{performance.getEntriesByType("resource").forEach(function(e){got(e.name)});new PerformanceObserver(function(l){l.getEntries().forEach(function(e){got(e.name)})}).observe({type:"resource",buffered:true})}catch(e){}
 show(n/total);
 function done(){if(over)return;over=true;show(1);setTimeout(function(){b.setAttribute("data-done","")},Math.max(0,1000-(performance.now()-shown)))}
-window.__cyborgplStarted=done;setTimeout(done,10000);
+window.__nerveStarted=done;setTimeout(done,10000);
 })();`;
 
 export function Layout({ children }) {
@@ -42,7 +42,7 @@ export function Layout({ children }) {
         <meta charSet="utf-8" />
         {/* A computer (a mouse, not a finger) gets the desktop layout, in Solarized Light or Dark
             (owner, 2026-09-28: temporary). Decided before anything paints, so nothing flashes. */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var h=document.documentElement;if(matchMedia("(hover: hover) and (pointer: fine)").matches)h.className="desktop";try{var t=localStorage.getItem("cyborgpl.theme");if(t==="light"||t==="dark")h.dataset.theme=t}catch(e){}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var h=document.documentElement;if(matchMedia("(hover: hover) and (pointer: fine)").matches)h.className="desktop";try{var t=localStorage.getItem("nerve.theme");if(t==="light"||t==="dark")h.dataset.theme=t}catch(e){}})();` }} />
         {/* viewport-fit=cover: draw under the notch and home bar; the CSS keeps content clear of them */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#fdf6e3" />
@@ -50,7 +50,7 @@ export function Layout({ children }) {
         {/* Added to the home screen, it opens full-screen like an app */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-title" content="CyborgPL" />
+        <meta name="apple-mobile-web-app-title" content="Nerve" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <Meta />
         <Links />
@@ -68,7 +68,7 @@ export function Layout({ children }) {
 }
 
 // The app is running: the last step of the loading screen.
-const useStarted = () => useEffect(() => { window.__cyborgplStarted?.(); }, []);
+const useStarted = () => useEffect(() => { window.__nerveStarted?.(); }, []);
 
 export default function App() {
   useStarted();

@@ -1,4 +1,4 @@
-// The CyborgPL mark (brand/mark-black.svg) in the current text colour.
+// The Nerve mark (brand/mark-black.svg) in the current text colour.
 export default function Mark({ size = 26 }) {
   return (
     <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden="true">

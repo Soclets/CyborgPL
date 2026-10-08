@@ -37,7 +37,7 @@ function ThemeSwitch() {
     setTheme(t);
     if (t === "system") delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = t;
-    try { t === "system" ? localStorage.removeItem("cyborgpl.theme") : localStorage.setItem("cyborgpl.theme", t); } catch {}
+    try { t === "system" ? localStorage.removeItem("nerve.theme") : localStorage.setItem("nerve.theme", t); } catch {}
   };
   const cur = THEMES.find((x) => x.key === theme);
   return <button className="theme-switch" onClick={next} aria-label={cur.label} title={cur.label}><Icon name={cur.icon} size={19} /></button>;
@@ -75,7 +75,7 @@ function Topbar({ pathname }) {
   return (
     <header className="topbar">
       <div className="topbar-in">
-        <Link to="/" className="brand" prefetch="intent"><Mark size={26} /><b>CyborgPL</b></Link>
+        <Link to="/" className="brand" prefetch="intent"><Mark size={26} /><b>Nerve</b></Link>
         <nav aria-label="Site" ref={nav}>
           <span className="topbar-pill" ref={pill} aria-hidden="true" />
           {LINKS.map((l, i) => (
@@ -92,7 +92,7 @@ function Topbar({ pathname }) {
 // Tapping the tab you're on: the first tap goes to the top, the next clears the search.
 function retap() {
   if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: "smooth" });
-  else window.dispatchEvent(new Event("cyborgpl:retap"));
+  else window.dispatchEvent(new Event("nerve:retap"));
 }
 
 export default function Tabs() {
