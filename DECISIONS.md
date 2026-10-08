@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — Xerpia is dropped: Precog is the compile-time language (owner: yea)
+
+The owner, after the talk turned to the name's third reason ("multiple ways
+to do a thing"): "Honestly, I might just drop Xerpia. A good name, cute, but
+don't think there's much purpose in a language where Precog is the
+language". Design claude agreed and named what would go with it, reading
+files while building (`compile_time.io.read`) and writing code
+(`compile_time.emit`), since Precog only works out values; generics cover
+most of the second. Design claude recommended dropping it, nothing being
+built; the owner: "yea, drop it". **Xerpia, the sub-language and its core,
+is dropped**, and everything decided about it in the entry below with it
+(`inline.Xerpia`, manual memory, `#bad_girl`, `bin16 %^x`, the `^` ladder,
+`@` and `%`, and the public levels `@(^)`, which were agreed but never
+recorded). The name stays the owner's, free for later use. Design claude's
+reading, not asked: the `compile_time` power and its narrowings were for
+Xerpia and go with it; reading files and writing code at compile time
+could come back later as powers on ordinary CyborgPL run while compiling
+(design claude's suggestion, not asked).
+
 ### 2026-10-08 — The base should be practical, and good at kernels and bootloaders (owner; replaces the morning's principle)
 
 After comparing base CyborgPL with Rust's `core` (operators, `Option` /
@@ -106,7 +125,7 @@ unsure, and makes every wrapper carry the item blank — then "what if
 allowed both?": (b) with (a)'s brackets as a check, recommended. Not yet
 asked: the spelling of a type's item declaration; how adapters chain.
 
-### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
+### 2026-10-08 — (dropped the same day) A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
 The owner: "Feeling like making a turing complete compile time language".
 Design claude: CyborgPL already computes anything with known values while
