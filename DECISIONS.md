@@ -25,9 +25,16 @@ cannot resolve, gets "unknown" or is refused. **The location holds the
 file, line, column and the calling function's name** (owner: "`c`"), as
 `main.cpls:12:5 in parse_header`; over (a) file, line and column, which
 design claude recommended (the names make a program bigger, which matters
-in kernels), and (b) file and line. Not yet asked: how it is shown (the
-owner: "shouldn't there be two location displays, the one for IDE, and
-the one for humans"), its spelling, the base or a core.
+in kernels), and (b) file and line. **Shown, it is two forms, as the
+compiler's messages are (2026-09-22): one for humans and one for IDEs**
+(owner: "shouldn't there be two location displays, the one for IDE, and
+the one for humans"), **and the human one names everything the IDE one
+holds** (owner: "Bro, with that, the human can't see where, if they read
+human ver only" to design claude's first sample, which left out the file;
+then "yea"): `called from parse_header, at line 12, column 5, in
+main.cpls` and `main.cpls:12:5`. Not yet asked: whether the compiler's
+own human location (`diagnostics.md`: "called from MAIN at line 48") gets
+the file too; the spelling; the base or a core.
 
 ### 2026-10-08 — A build may read environment variables (owner; how not yet asked)
 
