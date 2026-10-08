@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — Precog's proof cache has a cache buster, and a final build may use the cache (owner: a; not built)
+
+Talking about LLVM-sized programs under Precog, design claude recalled the
+2026-09-16 allowance to reuse proofs for byte-identical unchanged code. The
+owner: "Though, when we do caching, there should be a cache buster". So
+**there is always a way to drop the cache and prove everything again**.
+Asked whether a final build should always do that, **a final build may use
+the cache like any other** (owner: "`a`"), over (b) every final build
+proving from scratch; design claude recommended (a), since (b) brings back
+the full cost on every release. Design claude's readings, not asked: the
+cache key covers everything a proof depended on (the code, what it calls,
+the compiler version and so the solvers', the target, the cores), the
+buster being the way out when the key misses something; and since builds
+are reproducible (2026-09-14), a cached and a fresh build must be
+identical byte for byte, so comparing the two catches a cache bug (check
+claude could run it). Not yet asked: how the buster is spelled.
+
 ### 2026-10-08 — CyborgPL links with LLVM's lld and never writes its own linker (owner)
 
 The owner asked which linker CCA uses (the system one: `cc` with the object
