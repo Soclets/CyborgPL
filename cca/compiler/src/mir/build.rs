@@ -1300,6 +1300,21 @@ impl<'a> FnBuilder<'a> {
                     let shifted = self.into_temp(Rvalue::Binary { op: plain, lhs: x, rhs: masked }, &result, span);
                     return Rvalue::Convert { to: result.clone(), operand: shifted, useful: false, bits: true };
                 }
+                // An exact operand wider than the limit in between (a group
+                // of bare numbers worked at its own size beside a typed
+                // one) is held to it where it is used (check claude, seed
+                // 36150).
+                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) {
+                    if let Some(limit) = result.exact_limit() {
+                        for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
+                            let from = self.resolve_ty(&of.ty);
+                            if from.exact_limit().is_some_and(|w| w > limit) {
+                                self.site_of(SiteKind::Narrow { to: result.clone() }, vec![side.clone()], Some(result.clone()), span);
+                                *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: false }, &result, span);
+                            }
+                        }
+                    }
+                }
                 // `.wrap` takes the operands as their bits instead (owner,
                 // 2026-10-07: "yea"): no site, the answer an N-bit pattern.
                 let (op, wrap) = match op {

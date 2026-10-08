@@ -1606,17 +1606,18 @@ impl Checker {
                         IntW::Fixed { bits, .. } => *bits,
                         IntW::Free(_) => 64,
                     };
+                    let exact = Ty::exact_at(width(a).max(width(b)));
                     // A group of bare numbers beside one is worked at the
-                    // size its own values reach, too: `((-656682024) pow
-                    // 15) mod.floor 2147483647` passes 400 bits in between
-                    // (check claude, seed 32641).
-                    let group = |e: &Expr, w: &IntW| if literal_only(e) && matches!(w, IntW::Free(_)) { exact_for(e).exact_limit().unwrap_or(64) } else { 0 };
-                    let exact = Ty::exact_at(width(a).max(width(b)).max(group(&l, a)).max(group(&r, b)));
-                    if literal_only(&l) && matches!(a, IntW::Free(_)) {
-                        retype_literal_arith(&mut l, &exact);
-                    }
-                    if literal_only(&r) && matches!(b, IntW::Free(_)) {
-                        retype_literal_arith(&mut r, &exact);
+                    // size its own values reach (check claude, seed 32641:
+                    // `((-656682024) pow 15) mod.floor 2147483647` passes
+                    // 400 bits inside); its value is in between, so it is
+                    // held to the limit where it is used (seed 36150).
+                    for (side, w) in [(&mut l, a), (&mut r, b)] {
+                        if literal_only(side) && matches!(w, IntW::Free(_)) {
+                            let own = exact_for(side);
+                            let at = if own.exact_limit() > exact.exact_limit() { own } else { exact.clone() };
+                            retype_literal_arith(side, &at);
+                        }
                     }
                     return Ok((l, r, exact));
                 }
