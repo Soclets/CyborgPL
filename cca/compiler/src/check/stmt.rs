@@ -274,7 +274,7 @@ impl Checker {
                             return e;
                         }
                     } else {
-                        return err(Diagnostic::error(format!("'{}' is already declared in this scope; to shadow it deliberately write `$:=` or `$=`", name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
+                        return err(Diagnostic::error(format!("'{n}' is already declared in this scope; to shadow it deliberately write `shadow '{n}' := …;`", n = name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
                     }
                 } else if let Some(prev) = ctx.visible_outside(&name.name) {
                     let p = &ctx.locals[prev.0 as usize];
@@ -283,13 +283,13 @@ impl Checker {
                             return e;
                         }
                     } else {
-                        return err(Diagnostic::error(format!("'{}' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`", name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
+                        return err(Diagnostic::error(format!("'{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow '{n}' := …;`", n = name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
                     }
                 } else if *shadow {
                     if self.const_visible(ctx, &name.name) {
                         return err(Diagnostic::error(format!("'{}' is a const and cannot be shadowed", name.name)).at(name.span));
                     }
-                    return err(Diagnostic::error(format!("`$` shadows a visible '{}', and none is visible here: write `:=`", name.name)).at(name.span));
+                    return err(Diagnostic::error(format!("`shadow` takes a visible '{n}', and none is visible here: write `let '{n}' := …;`", n = name.name)).at(name.span));
                 }
                 if !*shadow && self.const_visible(ctx, &name.name) {
                     return err(Diagnostic::error(format!("'{}' is a const of this Limb and cannot be redeclared", name.name)).at(name.span));

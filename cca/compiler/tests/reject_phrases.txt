@@ -307,6 +307,8 @@ old_long_arrow [fnv:e6d19b625f1236c7] :: `-->` is an old spelling: write `->`
 old_ne [fnv:89de9a5280038433] :: `!==` is an old spelling: write `not_equal`
 old_nocheck [fnv:1c0978e44051946b] :: `nocheck` is an old spelling: write `no_check`
 old_rust_name [fnv:ce24587a783da6fe] :: `i32` is an old spelling: write `int32`
+old_shadow_eq [fnv:3ef9fe1da93b0bfc] :: `$=` is an old spelling: write `shadow 'x': T = …`
+old_shadow_walrus [fnv:2b12b45390216440] :: `$:=` is an old spelling: write `shadow 'x' := …`
 old_std_i [fnv:2c5376858ebb8036] :: `not_std.i24` is an old spelling: write `not_std.int24`
 old_std_path [fnv:5671323b2142c858] :: `std` is an old spelling: write `stdkit`
 old_two_long_arrows [fnv:472bf2fa455f76eb] :: `<---->` is an old spelling: write `<->`
@@ -580,9 +582,10 @@ rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
 rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
 seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
-shadow [fnv:6f58e8bff03be94f] :: 'x' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`
-shadow_nothing [fnv:21615fa293366dc7] :: `$` shadows a visible 'y', and none is visible here: write `:=`
+shadow [fnv:6f58e8bff03be94f] :: to shadow it deliberately write `shadow 'x' := …;`
+shadow_nothing [fnv:21615fa293366dc7] :: and none is visible here
 shadow_sealed [fnv:41a31805c19e5721] :: cannot be shadowed: it is `no_shadow`
+shadow_with_let [fnv:46b3a25a780cf743] :: `shadow` takes `let`'s place: `shadow 'x' := …;`
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
 shift_operand_too_wide [fnv:597323e2494de8f5] :: `minus` can leave what the type holds
 shl_no_width [fnv:93c25ad48c4751b2] :: `shl` needs a width, and nothing here gives one

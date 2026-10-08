@@ -9,7 +9,7 @@ use crate::source::Span;
 /// Bare words the language owns. A function may be named with one only
 /// through a path (`my.to[…]`); a bare `to[…]` is the keyword.
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
+    "fn", "let", "shadow", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
     "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "para", "list", "array", "struct", "pub",
     "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
     "layout", "size", "align", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
@@ -226,6 +226,12 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
             }
             old("!", "not")
         }
+        // `$:=` and `$=` were shadowing (owner, 2026-10-07: `shadow`).
+        Tok::Dollar if !after(1, &Tok::Op("!".into())) => match toks.get(i + 1).map(|t| &t.tok) {
+            Some(Tok::Walrus) => Some("`$:=` is an old spelling: write `shadow 'x' := …`".into()),
+            Some(Tok::Op(o)) if o == "=" => Some("`$=` is an old spelling: write `shadow 'x': T = …`".into()),
+            _ => Some("`$` is not in the language since 2026-10-07: shadowing is `shadow 'x' := …;`".into()),
+        },
         Tok::Op(o) if o.starts_with('&') && !o.starts_with("&&") && !matches!(o.as_str(), "&+" | "&-" | "&*") => Some(format!("`{}` is an old spelling: write `lend` / `lent`; a bitwise and is `and.bit`", o)),
         // The inline languages' whole names (owner, 2026-10-07: "`a`").
         Tok::Word(w) if after(1, &Tok::Dot) && i >= 2 && toks[i - 2].tok == Tok::Word("inline".into()) => match w.as_str() {
@@ -1834,13 +1840,10 @@ impl<'a> Parser<'a> {
     /// After a `let`/`const` name: `:= `, `: T =`, and the `$` forms.
     fn let_type_and_marker(&mut self, what: &str) -> Result<(Option<Type>, bool)> {
         let ty = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
-        let mut shadow = false;
-        if self.eat(&Tok::Dollar) {
-            if what == "const" {
-                return self.fail("a `const` cannot shadow anything and cannot be shadowed");
-            }
-            shadow = true;
-        }
+        // Shadowing is the verb `shadow` in `let`'s place since 2026-10-07
+        // (owner: "yea"); `$` is gone (the pre-scan names it).
+        let _ = what;
+        let shadow = false;
         if self.eat(&Tok::Walrus) {
             if ty.is_some() {
                 return self.fail_at(self.prev_span(), "`:=` means Precog chooses the type, so it takes no type; with a type written, use `=` — you said everything");
@@ -2117,7 +2120,7 @@ impl<'a> Parser<'a> {
     /// A declaration, from `let` to its `;` (owner, 2026-10-02): `let 'x'
     /// := …`, `let 'x': T = …`, `mut`/`immut`/`!mut` and `!$` between `let`
     /// and the name, `$` before the `:=`/`=` to shadow.
-    fn declaration(&mut self) -> Result<StmtKind> {
+    fn declaration(&mut self, shadowing: bool) -> Result<StmtKind> {
         if self.is(&Tok::Dot) {
             return self.fail("`let` is a word of its own: `let mut 'x' := …;`");
         }
@@ -2154,7 +2157,8 @@ impl<'a> Parser<'a> {
         if self.is_word("mut") || self.is_word("immut") {
             return self.fail(format!("`{}` goes before the name: `let {} '{}' := …;`", self.word_text(), self.word_text(), name.name));
         }
-        let (ty, shadow) = self.let_type_and_marker("declaration")?;
+        let (ty, marker) = self.let_type_and_marker("declaration")?;
+        let shadow = marker || shadowing;
         let value = self.expr_top()?;
         if self.is_op("=") {
             return self.fail("`=` gives a declaration its value once; equality is `equal_to`");
@@ -2186,7 +2190,16 @@ impl<'a> Parser<'a> {
         match w.as_str() {
             "let" => {
                 self.bump();
-                self.declaration()
+                self.declaration(false)
+            }
+            // `shadow 'x' := 2;` (owner, 2026-10-07: "yea"), a verb in
+            // `let`'s place, as `change` is.
+            "shadow" => {
+                self.bump();
+                if self.is_word("let") {
+                    return self.fail("`shadow` takes `let`'s place: `shadow 'x' := …;`");
+                }
+                self.declaration(true)
             }
             "var" => self.fail("`var` is gone: a declaration starts with `let` — `let 'x' := …;`"),
             "mut" | "immut" => self.fail(format!("a declaration starts with `let`: `let {} 'x' := …;`", w)),
