@@ -1775,6 +1775,16 @@ impl<'a> FnBuilder<'a> {
 
     /// The sites an operation carries before it runs.
     fn before_op_sites(&mut self, op: &Op, args: &[Arg], ty: &Ty, span: SpanId) {
+        // The position `list.remove` takes is within the list, as a read's
+        // is (check claude, 2026-10-08: past the end it read freed memory).
+        if *op == Op::ListRemove {
+            if let (Some(Arg::Lend { place, .. }), Some(at)) = (args.first(), args.get(1)) {
+                let len_ty = Ty::u64();
+                let t = self.temp(&len_ty, span);
+                self.push(StmtKind::Op { dest: Some(Place::local(t)), op: Op::ListLength, args: vec![Operand::Read(place.clone())] }, span);
+                self.site(SiteKind::Bounds, vec![arg_as_operand(at), Operand::Read(Place::local(t))], span);
+            }
+        }
         // A key type with its own `hash` and `op ==`: "equal keys hash the
         // same" is a check site on every use of the map (`maps.md`).
         if matches!(op, Op::MapHas | Op::MapGet | Op::MapSet | Op::MapRemove) {

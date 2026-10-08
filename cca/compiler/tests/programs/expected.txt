@@ -295,3 +295,5 @@ case_marks_run 221
 case_unicode_run 14
 simd_sum_and_bare_pow_beside_typed 128
 wrap_bare_group 121
+list_remove_bounds trap
+list_remove_in_range 157
