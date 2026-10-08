@@ -1,1 +1,1 @@
-MAIN { let 'f' := "{}"; stdkit::print.format['f', 1]; }
+MAIN { let 'f' := "{}"; cord::print.format['f', 1]; }

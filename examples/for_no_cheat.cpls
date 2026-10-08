@@ -10,5 +10,5 @@ MAIN {
     for no_cheat seq 'i': int64 in range[from 1, to 10, by 1] {
         change 'more' = 'more' plus 'i';
     }
-    stdkit::print.useful.auto_newln['acc', " ", 'more'];
+    cord::print.useful.auto_newln['acc', " ", 'more'];
 }

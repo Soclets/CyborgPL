@@ -7,9 +7,9 @@ MAIN {
     let 'b': bin64 = -2.0;
     let 'h': brain16 = -5.0;
     let 'k': brain16 = 3.0;
-    stdkit::print.useful['angle' mod.floor 'turn', " ", 'a' mod.floor 'b', " ", 'h' mod.floor 'k', newln];
-    stdkit::print.useful[('angle' mod.trunc 'turn'), " ", ('a' mod.trunc 'b'), newln];
+    cord::print.useful['angle' mod.floor 'turn', " ", 'a' mod.floor 'b', " ", 'h' mod.floor 'k', newln];
+    cord::print.useful[('angle' mod.trunc 'turn'), " ", ('a' mod.trunc 'b'), newln];
     # a tiny negative would round up to the divisor itself; it is 0 instead, so the answer stays below 360
     let 'tiny': bin64 = -0.00000000000000000001;
-    stdkit::print.useful['tiny' mod.floor 'turn', newln];
+    cord::print.useful['tiny' mod.floor 'turn', newln];
 }

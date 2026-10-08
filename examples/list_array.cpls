@@ -9,5 +9,5 @@ MAIN {
     list.append[lend.mut 'm', 4];
     let mut 's': list[int32] = array.slice[lend 'a', pos 2, pos 3];   # a slice is a list, an array's too
     list.append[lend.mut 's', 9];
-    stdkit::print.useful['a', " ", 'm', " ", 's', newln];
+    cord::print.useful['a', " ", 'm', " ", 's', newln];
 }

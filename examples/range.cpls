@@ -1,33 +1,33 @@
 MAIN {
     for 'i' in range[from 1, to 3, by 1] {
-        stdkit::print.useful['i', " "];
+        cord::print.useful['i', " "];
     }
-    stdkit::print.stored[newln];
+    cord::print.stored[newln];
     for 'k' in range[from 0, to 10, by 5] {
-        stdkit::print.useful['k', " "];
+        cord::print.useful['k', " "];
     }
-    stdkit::print.stored[newln];
+    cord::print.stored[newln];
     for 'd' in range[from 3, to 1, by -1] {
-        stdkit::print.useful['d', " "];
+        cord::print.useful['d', " "];
     }
-    stdkit::print.stored[newln];
+    cord::print.stored[newln];
     for perm 'stop' in range[from 0, to 100, by 1] {
         if ('stop' times 'stop') > 50 { break; }
     }
-    stdkit::print.useful["stopped at ", 'stop', newln];
+    cord::print.useful["stopped at ", 'stop', newln];
     for perm 'never' in range[from 5, to 2, by 1] {
-        stdkit::print.stored["unreachable", newln];
+        cord::print.stored["unreachable", newln];
     }
-    stdkit::print.useful["never ran, holds ", 'never', newln];
+    cord::print.useful["never ran, holds ", 'never', newln];
     for perm 'done' in range[from 0, to 3, by 1] {
     }
-    stdkit::print.useful["ran out, holds ", 'done', newln];
+    cord::print.useful["ran out, holds ", 'done', newln];
     for 'b': int8 in range[from 126, to 127, by 1] {
-        stdkit::print.useful['b', " "];
+        cord::print.useful['b', " "];
     }
-    stdkit::print.stored[newln];
+    cord::print.stored[newln];
     let 'words' := ["a", "b", "c"];
     for perm 'w' in lend 'words' {
     }
-    stdkit::print.stored["last word ", 'w', newln];
+    cord::print.stored["last word ", 'w', newln];
 }

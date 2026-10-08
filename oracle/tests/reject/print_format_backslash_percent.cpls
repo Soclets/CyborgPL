@@ -1,1 +1,1 @@
-MAIN { stdkit::print.format["50\% off\n"]; }
+MAIN { cord::print.format["50\% off\n"]; }

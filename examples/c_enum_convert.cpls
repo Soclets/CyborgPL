@@ -12,5 +12,5 @@ fn on_key ['code': int32] -> int32 {
     }
 }
 MAIN {
-    stdkit::print.useful[on_key[66], " ", on_key[302], " ", on_key[256], newln];
+    cord::print.useful[on_key[66], " ", on_key[302], " ", on_key[256], newln];
 }

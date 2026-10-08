@@ -10,5 +10,5 @@ fn label ['s': Status] -> str.utf8 {
     return give 'text';
 }
 MAIN {
-    stdkit::print.useful[label[Status.claimed["bo"]], newln];
+    cord::print.useful[label[Status.claimed["bo"]], newln];
 }

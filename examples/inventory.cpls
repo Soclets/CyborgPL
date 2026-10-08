@@ -15,7 +15,7 @@ fn kilos ['grams': int32] -> int32 or fail[not_whole, out_of_range] {
 }
 
 fn initial [lent 'name': str.utf8] -> char.point {
-    let 'first' := stdkit::str.at.point[lend 'name', pos 1] otherwise `?`;
+    let 'first' := cord::str.at.point[lend 'name', pos 1] otherwise `?`;
     let 'code' := char.code['first'];
     if 'code' at_least 97 and 'code' at_most 122 {
         return char.point.from_code['code' minus 32] otherwise `?`;
@@ -31,14 +31,14 @@ MAIN {
 
     let 'count' := list.length[lend 'shelf'];
     let 'left': int8 = 4 minus 'count';
-    stdkit::print.useful['count', " items, room for ", 'left', " more", newln];
+    cord::print.useful['count', " items, room for ", 'left', " more", newln];
 
-    let 'top' := heaviest[...copy 'shelf'] otherwise { none { stdkit::print.useful["empty shelf", newln]; stdkit::exit[0]; } };
-    stdkit::print.useful["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, newln];
+    let 'top' := heaviest[...copy 'shelf'] otherwise { none { cord::print.useful["empty shelf", newln]; cord::exit[0]; } };
+    cord::print.useful["heaviest: ", initial[lend 'top'.name], " ", 'top'.name, newln];
 
     let 'kg' := kilos['top'.grams] otherwise -1;
-    stdkit::print.useful['top'.name, " is ", 'kg', " kg", newln];
+    cord::print.useful['top'.name, " is ", 'kg', " kg", newln];
 
     let 'gone' := list.remove[lend.mut 'shelf', pos 2];
-    stdkit::print.useful["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", newln];
+    cord::print.useful["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", newln];
 }

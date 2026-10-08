@@ -34,16 +34,16 @@ MAIN {
     let 'average' := 'total' div.floor 'count';
     let 'curved' := clamp['average' plus 10, 0, 100];
 
-    stdkit::print.useful["scored ", 'count', " tests", newln];
-    stdkit::print.useful["total ", 'total', ", best ", 'best', newln];
-    stdkit::print.useful["even scores: ", 'evens', newln];
-    stdkit::print.useful["average ", 'average', ", curved ", 'curved', newln];
+    cord::print.useful["scored ", 'count', " tests", newln];
+    cord::print.useful["total ", 'total', ", best ", 'best', newln];
+    cord::print.useful["even scores: ", 'evens', newln];
+    cord::print.useful["average ", 'average', ", curved ", 'curved', newln];
 
     if 'average' at_least 90 {
-        stdkit::print.useful["grade A", newln];
+        cord::print.useful["grade A", newln];
     } else if 'average' at_least 75 {
-        stdkit::print.useful["grade B", newln];
+        cord::print.useful["grade B", newln];
     } else {
-        stdkit::print.useful["keep going", newln];
+        cord::print.useful["keep going", newln];
     }
 }

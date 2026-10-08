@@ -24,10 +24,10 @@ MAIN {
         Locker[number = 3, status = Status.locked]
     ];
     for 'l' in lend 'lockers' {
-        stdkit::print.useful["#", 'l'.number, ": ", describe[lend 'l'], newln];
+        cord::print.useful["#", 'l'.number, ": ", describe[lend 'l'], newln];
     }
     let 's' := Status.locked;
-    if 's' equal_to Status.locked { stdkit::print.stored["== works on a case", newln]; }
+    if 's' equal_to Status.locked { cord::print.stored["== works on a case", newln]; }
     let 't' := Status.claimed["Bo"];
-    stdkit::print.stored['t', newln];
+    cord::print.stored['t', newln];
 }

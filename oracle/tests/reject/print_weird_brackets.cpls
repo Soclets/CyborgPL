@@ -1,1 +1,1 @@
-MAIN { stdkit::print.weird.stored["hi", newln]; }
+MAIN { cord::print.weird.stored["hi", newln]; }

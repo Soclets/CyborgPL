@@ -15,7 +15,7 @@ concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend
 concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
 for 'i' in range[from 1, to 2, by 1] {
     let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
-    stdkit::print.useful[str.bytes[lend 'page'], newln];
+    cord::print.useful[str.bytes[lend 'page'], newln];
 }
 ```
 
@@ -66,7 +66,7 @@ the goroutine leak).
 
 ```
 concur with [give 'url'] { let 'p' := fetch['url'] otherwise fail; … }
-    otherwise { no_network { stdkit::print.useful["offline", newln]; } };
+    otherwise { no_network { cord::print.useful["offline", newln]; } };
 ```
 
 A task that can fail says so where it is written, like every failing
@@ -133,12 +133,12 @@ without it). The word: first `pick`; owner asked why not `pick_first`
 Time is the outside world, so it is std's, like input:
 
 ```
-stdkit::time.wait[5 seconds];
-let 'deadline' := stdkit::time.after[500 millis];     # a channel that sends once
-let 'tick' := stdkit::time.every[1 second];           # a channel that sends every second
+cord::time.wait[5 seconds];
+let 'deadline' := cord::time.after[500 millis];     # a channel that sends once
+let 'tick' := cord::time.every[1 second];           # a channel that sends every second
 whichever {
     'msg' from lend 'inbox'     { … }
-    'now' from lend 'deadline'  { stdkit::print.useful["timed out", newln]; }
+    'now' from lend 'deadline'  { cord::print.useful["timed out", newln]; }
 }
 ```
 

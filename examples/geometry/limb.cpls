@@ -8,7 +8,7 @@ fn helper [] -> str.utf8 { return "from the root"; }
 
 module report {
     pub.limb fn line ['label': str.utf8, 'v': bin64] {
-        stdkit::print.useful['label', ": ", 'v', newln];
+        cord::print.useful['label', ": ", 'v', newln];
     }
 }
 
@@ -16,7 +16,7 @@ MAIN {
     report.line["circle", shapes.circle.area[2.0]];
     report.line["square", shapes.square.area[3.0]];
     report.line["unit circle", shapes.circle.area['unit']];
-    stdkit::print.useful[shapes.describe[], newln];
+    cord::print.useful[shapes.describe[], newln];
     let 'r': shapes.circle.Circle = shapes.circle.Circle[radius = 1.5];
-    stdkit::print.useful['r'.radius, " ", shapes.circle.'pi', newln];
+    cord::print.useful['r'.radius, " ", shapes.circle.'pi', newln];
 }

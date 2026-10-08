@@ -29,15 +29,15 @@ MAIN {
     let 'names' := ["rope", "", "helmet", "torch"];
     for 'n' in lend 'names' {
         let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {
-            full           { stdkit::print.stored["full, stopping", newln]; break; }
-            bad_item 'why' { stdkit::print.stored["bad item ", 'why', newln]; continue; }
+            full           { cord::print.stored["full, stopping", newln]; break; }
+            bad_item 'why' { cord::print.stored["bad item ", 'why', newln]; continue; }
         };
-        stdkit::print.stored["stored ", 'n', newln];
+        cord::print.stored["stored ", 'n', newln];
     }
     let 'a' := double_digit["7"] otherwise 0;
     let 'b' := double_digit["x"] otherwise 0;
-    stdkit::print.useful['a', " ", 'b', newln];
-    save[lend 'mine'] otherwise { disk_full { stdkit::print.stored["could not save", newln]; } };
-    let 'c' := parse_digit["x"] otherwise stdkit::exit[3];
-    stdkit::print.stored["unreachable", newln];
+    cord::print.useful['a', " ", 'b', newln];
+    save[lend 'mine'] otherwise { disk_full { cord::print.stored["could not save", newln]; } };
+    let 'c' := parse_digit["x"] otherwise cord::exit[3];
+    cord::print.stored["unreachable", newln];
 }

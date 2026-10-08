@@ -1,1 +1,1 @@
-MAIN { stdkit::print.format["{:x}\n", "text"]; }
+MAIN { cord::print.format["{:x}\n", "text"]; }

@@ -1,5 +1,5 @@
 MAIN {
     for 'i' in range[from 0, to 3, by 1] {
     }
-    stdkit::print.useful['i'];
+    cord::print.useful['i'];
 }

@@ -29,7 +29,7 @@ MAIN {
         else { continue; }
     }
     let 's' := "line 1" ++ newln ++ "line 2";
-    stdkit::print.useful["total: ", 'total', newln];
+    cord::print.useful["total: ", 'total', newln];
 }
 ```
 
@@ -40,7 +40,7 @@ let 'x' := 1000;                 # Precog picks the best type
 let 'x': bin16 = 1000;           # explicit type; must be fully explicit
 let mut 'n': int32 = 0;          # mutability, when stated, before the name
 let immut 'limit' := 10;
-let 'r': stdkit::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
+let 'r': cord::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
 pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
 ```
 

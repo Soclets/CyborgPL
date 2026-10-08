@@ -11,13 +11,13 @@ fn is_ascii [lent 'bytes': array[uint8]] -> bool {
 MAIN {
     let 'plain': array[uint8] = [72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33, 33, 33, 33, 33];
     let 'thai': array[uint8] = [72, 101, 108, 108, 111, 32, 224, 184, 129, 108, 100, 33, 33, 33, 33, 33];
-    stdkit::print.useful[is_ascii[lend 'plain'], " ", is_ascii[lend 'thai'], newln];
+    cord::print.useful[is_ascii[lend 'plain'], " ", is_ascii[lend 'thai'], newln];
     let 'a': simd[int32, 4] = simd.fill[value 10];
     let 'b': simd[int32, 4] = simd.fill[value 3];
-    stdkit::print.useful['a' plus 'b', " ", simd.sum['a'], " ", simd.max['a' times 'b'], newln];
+    cord::print.useful['a' plus 'b', " ", simd.sum['a'], " ", simd.max['a' times 'b'], newln];
     let 'm' := 'a' > 'b';                       # a simd[bool, 4], one answer per lane
-    stdkit::print.useful[simd.all['m'], " ", simd.any['b' > 'a'], newln];
+    cord::print.useful[simd.all['m'], " ", simd.any['b' > 'a'], newln];
     let mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
     simd.store[lend.mut 'out', pos 2, 'a' plus 'b'];
-    stdkit::print.useful['out', newln];
+    cord::print.useful['out', newln];
 }

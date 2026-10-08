@@ -81,7 +81,7 @@ body never ran. One rule for every way a loop can end.
 for perm 'i' in range[from 0, to 100, by 1] {
     if found['i'] { break; }
 }
-stdkit::print.useful["stopped at ", 'i', newln];
+cord::print.useful["stopped at ", 'i', newln];
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an

@@ -282,7 +282,8 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "Assembly" | "S" if after_inline => Some("inline.ASM"),
                 "LLVM" | "LLVM_Intermediate_Representation" if after_inline => Some("inline.LL"),
                 "Metal_Shading_Language" if after_inline => Some("inline.MSL"),
-                "std" if !after_bang => Some("stdkit"),
+                // the standard library is `cord` (owner, 2026-10-09: "lowercase syntax"); `stdkit` (2026-10-07) and `std` before it
+                "std" | "stdkit" if !after_bang => Some("cord"),
                 "auto_newline" => Some("auto_newln"),
                 "giveS" | "gives" => Some("is"),
                 _ => None,
@@ -296,7 +297,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "at_most" => Some(Tok::Op("</==".into())),
                 "at_least" => Some(Tok::Op(">/==".into())),
                 "newln" => Some(Tok::Newline),
-                "stdkit" => Some(Tok::Word("std".into())),
+                "cord" => Some(Tok::Word("std".into())),
                 "auto_newln" => Some(Tok::Word("auto_newline".into())),
                 // a case's value says `is` (owner, 2026-10-07), held inside as `#strict`'s `giveS`
                 "is" => Some(Tok::Word("giveS".into())),

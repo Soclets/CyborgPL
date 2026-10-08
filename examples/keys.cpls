@@ -6,17 +6,17 @@ interface Key <T> { op equal_to ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v'
 struct Point { x: int32  y: int32 }                      # structural: fields decide
 
 struct User { name: str.utf8 }                           # its own rule: names compare lowercased
-op equal_to ['a': User, 'b': User] -> bool { return stdkit::str.lower[lend 'a'.name] equal_to stdkit::str.lower[lend 'b'.name]; }
-fn hash [lent 'v': User] -> uint64 { let 'low' := stdkit::str.lower[lend 'v'.name]; return str.bytes[lend 'low']; }
+op equal_to ['a': User, 'b': User] -> bool { return cord::str.lower[lend 'a'.name] equal_to cord::str.lower[lend 'b'.name]; }
+fn hash [lent 'v': User] -> uint64 { let 'low' := cord::str.lower[lend 'v'.name]; return str.bytes[lend 'low']; }
 User satisfies Key;
 
 MAIN {
     let mut 'grid': map[Point, str.utf8] = map.empty;
     map.set[lend.mut 'grid', Point[x = 1, y = 2], "tree"];
     let 'at' := map.get[lend 'grid', Point[x = 1, y = 2]] otherwise "nothing";
-    stdkit::print.useful['at', newln];
+    cord::print.useful['at', newln];
     let mut 'users': map[User, int32] = map.empty;
     map.set[lend.mut 'users', User[name = "Ann"], 1];
     let 'n' := map.get[lend 'users', User[name = "ANN"]] otherwise 0;     # same key by User's own equal_to 
-    stdkit::print.useful['n', newln];
+    cord::print.useful['n', newln];
 }

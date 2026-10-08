@@ -1,3 +1,3 @@
-const 'x' := stdkit::exit[1];
+const 'x' := cord::exit[1];
 MAIN {
 }

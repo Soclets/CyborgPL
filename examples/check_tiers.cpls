@@ -1,4 +1,4 @@
-fn draw ['y': bin16] { stdkit::print.useful["drawing ", 'y', newln]; }
+fn draw ['y': bin16] { cord::print.useful["drawing ", 'y', newln]; }
 MAIN {
     # A guardrail the compiler can see: past the `if`, the value is inside bin16's range,
     # so the narrowing below is proven and `check` says so. A name never changes numeric
@@ -6,7 +6,7 @@ MAIN {
     # way to cross from an integer, and it would fail rather than round silently.
     let 'x': bin32 = 70000.0;
     if 'x' > 65_504.0 {
-        stdkit::print.stored["too big", newln];
+        cord::print.stored["too big", newln];
     } else {
         check let 'y': bin16 = 'x';
         draw['y'];
@@ -14,12 +14,12 @@ MAIN {
     let 'xs' := [1, 2, 3];
     check {
         for 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
-            stdkit::print.useful['xs'[pos 'i'], " "];
+            cord::print.useful['xs'[pos 'i'], " "];
         }
     }
-    stdkit::print.stored[newln];
+    cord::print.stored[newln];
     no_check change 'xs'[pos 2] = 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
     check if 'x' > 0.0 { change 'xs'[pos 1] = to.int32['x' div.near 2.0] otherwise 0; }
-    stdkit::print.useful['xs', newln];
+    cord::print.useful['xs', newln];
 }

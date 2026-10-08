@@ -5,8 +5,8 @@ MAIN {
     for 'x' in lend 'xs' {
         let 'v': int64 = to.int64['x' plus.wrap 10];
         let 'w': int64 = to.int64[not.bit 'x'];
-        stdkit::print.useful['v', " ", 'w', newln];
+        cord::print.useful['v', " ", 'w', newln];
     }
     let 'ys': list[uint8] = [250, 3];
-    for 'i', 'y' in lend 'ys' { stdkit::print.useful['i', " ", 'y' plus.wrap 10, newln]; }
+    for 'i', 'y' in lend 'ys' { cord::print.useful['i', " ", 'y' plus.wrap 10, newln]; }
 }

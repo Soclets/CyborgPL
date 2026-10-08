@@ -21,10 +21,10 @@ MAIN {
     let 'u' := Vec[x = 1, y = 2];
     let 'v' := Vec[x = 3, y = 4];
     let 'w' := 'u' <+> 'v';                      # 'u' and 'v' both still here
-    stdkit::print.useful['w'.x, " ", 'w'.y, newln];
-    stdkit::print.useful['u' dot 'v', newln];
+    cord::print.useful['w'.x, " ", 'w'.y, newln];
+    cord::print.useful['u' dot 'v', newln];
     let 'd' := ('u' <+> 'v') dot 'v';            # custom operators have no precedence: parenthesise
-    stdkit::print.useful['d', newln];
+    cord::print.useful['d', newln];
     let 's' := give 'u' ** 10;                   # 'u' is gone after this
-    stdkit::print.useful['s'.x, " ", 's'.y, newln];
+    cord::print.useful['s'.x, " ", 's'.y, newln];
 }

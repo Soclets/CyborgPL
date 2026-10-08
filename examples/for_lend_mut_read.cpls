@@ -7,6 +7,6 @@ MAIN {
         change 'x' = 'x' times 10;
         list.append[lend.mut 'seen', 'xs'[pos 1]];
     }
-    stdkit::print.stored['xs', newln];
-    stdkit::print.stored['seen', newln];
+    cord::print.stored['xs', newln];
+    cord::print.stored['seen', newln];
 }

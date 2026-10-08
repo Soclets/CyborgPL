@@ -237,8 +237,8 @@ impl<'p> Interp<'p> {
         self.pop();
         match r {
             Ok(Flow::Normal) => Ok(0),
-            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use stdkit::exit[…] for a code"),
-            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or stdkit::exit[…]")),
+            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use cord::exit[…] for a code"),
+            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or cord::exit[…]")),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
             Ok(Flow::Give(_)) => rt(0, "`giveS` outside a case"),
             Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
@@ -279,7 +279,7 @@ impl<'p> Interp<'p> {
             if self.consts.contains_key(&key) { return rt(c.line, format!("const '{}' is declared twice", c.name)); }
             self.module = c.module.clone();
             if let Some(call) = first_std_call(&c.value) {
-                return rt(c.line, format!("a const's value must be known at compile time; `stdkit::{call}` is an effect, not a value"));
+                return rt(c.line, format!("a const's value must be known at compile time; `cord::{call}` is an effect, not a value"));
             }
             if c.value.values.is_empty() { return rt(c.line, format!("const '{}' needs a value", c.name)); }
             let (v, prov) = self.bracket(&c.value, c.line)?;
@@ -446,7 +446,7 @@ impl<'p> Interp<'p> {
             for s in stmts {
                 match s {
                     Stmt::Fail { name, payload, line } => {
-                        if who == "MAIN" { return rt(*line, "MAIN cannot fail; it exits (`stdkit::exit[…]`) or handles the failure"); }
+                        if who == "MAIN" { return rt(*line, "MAIN cannot fail; it exits (`cord::exit[…]`) or handles the failure"); }
                         match fails.iter().find(|f| &f.name == name) {
                             None if fails.is_empty() => return rt(*line, format!("`{who}` cannot fail: its signature has no `fail[…]`; add `-> … or fail[{name}]`")),
                             None => return rt(*line, format!("`{who}` does not list `{name}` in its `fail[…]` (it lists {})", fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", "))),
@@ -2014,7 +2014,7 @@ impl<'p> Interp<'p> {
                 let items = match v {
                     // a vector's lane, 1-based like every position (simd.md; check claude, 2026-09-29)
                     Value::List(items) | Value::Simd(items) => items,
-                    Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `stdkit::str.at.grapheme[lend '{name}', pos …]` (decided 2026-09-20)")),
+                    Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `cord::str.at.grapheme[lend '{name}', pos …]` (decided 2026-09-20)")),
                     other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())),
                 };
                 let (i, _) = self.eval(idx)?;
@@ -3216,7 +3216,7 @@ impl<'p> Interp<'p> {
             // `mod` takes the divisor's sign, as integer `mod`; `xx` takes a whole exponent and rounds
             // like the other operations (owner, 2026-09-29: a, a)
             ("xx", Deci(x), Deci(y)) => {
-                let n = match y.to_int() { Some(Ok(n)) => n, _ => return rt(line, format!("a deci power takes a whole exponent, not {}: a fractional power is stdkit's math", y.show_stored())) };
+                let n = match y.to_int() { Some(Ok(n)) => n, _ => return rt(line, format!("a deci power takes a whole exponent, not {}: a fractional power is cord's math", y.show_stored())) };
                 match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) }
             }
             ("xx", Deci(x), Int(n)) => match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
@@ -3247,7 +3247,7 @@ impl<'p> Interp<'p> {
             (">", Bin(x), Bin(y)) => Bool(x > y),
             ("</==", Bin(x), Bin(y)) => Bool(x <= y),
             (">/==", Bin(x), Bin(y)) => Bool(x >= y),
-            ("<" | ">" | "</==" | ">/==", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is stdkit's (decided 2026-09-20)")),
+            ("<" | ">" | "</==" | ">/==", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is cord's (decided 2026-09-20)")),
             ("and", Bool(x), Bool(y)) => Bool(x && y),
             ("or", Bool(x), Bool(y)) => Bool(x || y),
             (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
@@ -3795,7 +3795,7 @@ impl<'p> Interp<'p> {
 
     fn chan_send(&mut self, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
         let (c, rest) = self.chan_arg(args, 2, "send", line)?;
-        if c.borrow().timer.is_some() { return rt(line, "a timer channel (`stdkit::time.after`/`every`) only receives from time; nothing can send into it"); }
+        if c.borrow().timer.is_some() { return rt(line, "a timer channel (`cord::time.after`/`every`) only receives from time; nothing can send into it"); }
         // The oracle cannot suspend a task mid-body, so a sender never waits here: a
         // hand-off or a full bounded channel simply queues (provisional — the waiting is
         // unobservable in output; only its absence in a deadlock would be). Takers wait.
@@ -3884,7 +3884,7 @@ impl<'p> Interp<'p> {
                 let mine: Vec<&str> = own_module.iter().filter(|m| !m.starts_with("::")).map(String::as_str).chain(c.written.last().map(String::as_str)).collect();
                 who.push(format!("`my.{}` (this Limb's)", mine.join(".")));
             }
-            if std { who.push(format!("`stdkit::{shown}`")); }
+            if std { who.push(format!("`cord::{shown}`")); }
             for f in &others { who.push(format!("`{}::{shown}`", f.module[0].trim_start_matches("::"))); }
             if who.len() > 1 { return rt(c.line, format!("`{shown}` could be any of {}: write the path", who.join(", "))); }
             if who.is_empty() {
@@ -4288,7 +4288,7 @@ impl<'p> Interp<'p> {
             Some(f) => f.clone(),
             None => {
                 let hint = match op {
-                    "*" => "; multiply is `times`, power is stdkit's `pow`", "^" => "; power is stdkit's `pow`", "%" => "; remainder is `mod`",
+                    "*" => "; multiply is `times`, power is cord's `pow`", "^" => "; power is cord's `pow`", "%" => "; remainder is `mod`",
                     "&" | "|" | "!" => "; use `and`, `or`, `!`", _ => "",
                 };
                 if let Some(l) = &limb { return rt(line, format!("the Limb `{}` has no operator `{name}` for these values", &l[2..])); }
@@ -4412,7 +4412,7 @@ impl<'p> Interp<'p> {
                     // a case that gives a value is the value (owner, 2026-09-29)
                     Flow::Give(v) if value_used => Ok(v),
                     Flow::Give(_) => rt(arm.line, format!("the `{reason}` case gives a value, but the value of `{name}` is not used")),
-                    Flow::Normal if value_used => rt(arm.line, format!("the `{reason}` arm must leave (return, fail, break, continue, or stdkit::exit) because the value of `{name}` is used")),
+                    Flow::Normal if value_used => rt(arm.line, format!("the `{reason}` arm must leave (return, fail, break, continue, or cord::exit) because the value of `{name}` is used")),
                     Flow::Normal => Ok(Value::Nothing),
                     f => Err(leave(f)),
                 }
@@ -4747,19 +4747,19 @@ impl<'p> Interp<'p> {
             // one the oracle does not have says so first, before anything about its `otherwise` (check claude, 2026-10-08)
             let known = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.trim" | "str.upper" | "str.lower" | "str.replace" | "str.join"
                 | "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" | "str.find.grapheme");
-            if !known { return rt(c.line, format!("stdkit::{path} is not in the oracle's stdkit (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")); }
-            self.check_handler(c.handler.as_ref(), &fails, &format!("stdkit::{path}"), c.line)?;
+            if !known { return rt(c.line, format!("cord::{path} is not in the oracle's cord (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")); }
+            self.check_handler(c.handler.as_ref(), &fails, &format!("cord::{path}"), c.line)?;
             let mut vals = Vec::new();
             for a in &c.args.values {
                 let (v, prov) = self.value(a)?;
-                if let Prov::Bare(n) = prov { return rt(c.line, format!("stdkit::{path} looks at '{n}': `lend '{n}'`")); }
+                if let Prov::Bare(n) = prov { return rt(c.line, format!("cord::{path} looks at '{n}': `lend '{n}'`")); }
                 vals.push(v);
             }
-            let text = |i: usize| -> Result<String, RuntimeError> { match vals.get(i) { Some(Value::Str(s)) => Ok(s.clone()), Some(Value::Char(_, ch)) => Ok(ch.clone()), Some(o) => rt(c.line, format!("stdkit::{path}: argument {} must be text, got {}", i + 1, o.kind())), None => rt(c.line, format!("stdkit::{path}: missing argument {}", i + 1)) } };
-            let int = |i: usize| -> Result<i128, RuntimeError> { match vals.get(i) { Some(Value::Int(n)) => Ok(*n), Some(o) => rt(c.line, format!("stdkit::{path}: argument {} must be an integer, got {}", i + 1, o.kind())), None => rt(c.line, format!("stdkit::{path}: missing argument {}", i + 1)) } };
-            let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("stdkit::{path}"), reason.into(), None, value_used) };
+            let text = |i: usize| -> Result<String, RuntimeError> { match vals.get(i) { Some(Value::Str(s)) => Ok(s.clone()), Some(Value::Char(_, ch)) => Ok(ch.clone()), Some(o) => rt(c.line, format!("cord::{path}: argument {} must be text, got {}", i + 1, o.kind())), None => rt(c.line, format!("cord::{path}: missing argument {}", i + 1)) } };
+            let int = |i: usize| -> Result<i128, RuntimeError> { match vals.get(i) { Some(Value::Int(n)) => Ok(*n), Some(o) => rt(c.line, format!("cord::{path}: argument {} must be an integer, got {}", i + 1, o.kind())), None => rt(c.line, format!("cord::{path}: missing argument {}", i + 1)) } };
+            let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("cord::{path}"), reason.into(), None, value_used) };
             return match path.as_str() {
-                "str.split" => { let (s, sep) = (text(0)?, text(1)?); if sep.is_empty() { return rt(c.line, "stdkit::str.split: an empty separator"); } Ok(Value::List(s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect())) }
+                "str.split" => { let (s, sep) = (text(0)?, text(1)?); if sep.is_empty() { return rt(c.line, "cord::str.split: an empty separator"); } Ok(Value::List(s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect())) }
                 "str.contains" => Ok(Value::Bool(text(0)?.contains(text(1)?.as_str()))),
                 "str.starts_with" => Ok(Value::Bool(text(0)?.starts_with(text(1)?.as_str()))),
                 "str.ends_with" => Ok(Value::Bool(text(0)?.ends_with(text(1)?.as_str()))),
@@ -4767,7 +4767,7 @@ impl<'p> Interp<'p> {
                 "str.upper" => Ok(Value::Str(text(0)?.to_uppercase())),
                 "str.lower" => Ok(Value::Str(text(0)?.to_lowercase())),
                 "str.replace" => Ok(Value::Str(text(0)?.replace(text(1)?.as_str(), &text(2)?))),
-                "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("stdkit::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "stdkit::str.join[lend 'parts', sep]") },
+                "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("cord::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "cord::str.join[lend 'parts', sep]") },
                 "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
                     let s = text(0)?; let i = int(1)?;
                     let units: Vec<Value> = match path.as_str() { "str.at.grapheme" => graphemes(&s).into_iter().map(|g| Value::Char(CharUnit::Grapheme, g)).collect(), "str.at.point" => s.chars().map(|ch| Value::Char(CharUnit::Point, ch.to_string())).collect(), _ => s.bytes().map(|b| Value::Int(b as i128)).collect() };
@@ -4783,16 +4783,16 @@ impl<'p> Interp<'p> {
                     let (s, sub) = (text(0)?, text(1)?);
                     match s.find(sub.as_str()) { Some(byte_ix) => Ok(Value::Int(grapheme_count(&s[..byte_ix]) as i128 + 1)), None => fail(self, "missing") }
                 }
-                other => rt(c.line, format!("stdkit::{other} is not in the oracle's stdkit (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")),
+                other => rt(c.line, format!("cord::{other} is not in the oracle's cord (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")),
             };
         }
-        if c.handler.is_some() && !path.starts_with("input.") { return rt(c.line, format!("stdkit::{path} cannot fail; drop the `otherwise`")); }
+        if c.handler.is_some() && !path.starts_with("input.") { return rt(c.line, format!("cord::{path} cannot fail; drop the `otherwise`")); }
         match path.as_str() {
             "input.line" | "input.all" => {
                 // a boundary (decided 2026-09-20): text as it came; `closed` when there is none
-                if !c.args.values.is_empty() { return rt(c.line, format!("stdkit::{path} takes no arguments")); }
+                if !c.args.values.is_empty() { return rt(c.line, format!("cord::{path} takes no arguments")); }
                 let fails = vec![FailCase { name: "closed".into(), ty: None }];
-                self.check_handler(c.handler.as_ref(), &fails, &format!("stdkit::{path}"), c.line)?;
+                self.check_handler(c.handler.as_ref(), &fails, &format!("cord::{path}"), c.line)?;
                 let mut text = String::new();
                 let got = if path == "input.line" {
                     match std::io::stdin().read_line(&mut text) { Ok(0) => false, Ok(_) => { if text.ends_with('\n') { text.pop(); if text.ends_with('\r') { text.pop(); } } true }, Err(_) => false }
@@ -4800,42 +4800,42 @@ impl<'p> Interp<'p> {
                     use std::io::Read;
                     match std::io::stdin().read_to_string(&mut text) { Ok(0) => false, Ok(_) => true, Err(_) => false }
                 };
-                if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("stdkit::{path}"), "closed".into(), None, value_used); }
+                if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("cord::{path}"), "closed".into(), None, value_used); }
                 Ok(Value::Str(text))
             }
             "round" | "floor" | "ceil" | "trunc" => {
                 // the rounding toolbox (std, provisional names): a bin in, a whole bin out — then `to.int32[…]`
-                if c.args.values.len() != 1 { return rt(c.line, format!("stdkit::{path} takes one bin")); }
+                if c.args.values.len() != 1 { return rt(c.line, format!("cord::{path} takes one bin")); }
                 let (a, _) = self.value(&c.args.values[0])?;
                 match a {
                     Value::Bin(x) => Ok(Value::Bin(no_new_neg_zero(x, match path.as_str() { "round" => x.round(), "floor" => x.floor(), "ceil" => x.ceil(), _ => x.trunc() }))),
-                    other => rt(c.line, format!("stdkit::{path} takes a bin, got {}", other.kind())),
+                    other => rt(c.line, format!("cord::{path} takes a bin, got {}", other.kind())),
                 }
             }
             "time.wait" => {
                 // the oracle does not sleep: time is the outside world, and nothing here observes it
-                if c.args.values.len() != 1 { return rt(c.line, "stdkit::time.wait takes one duration: `stdkit::time.wait[5 seconds]`"); }
+                if c.args.values.len() != 1 { return rt(c.line, "cord::time.wait takes one duration: `cord::time.wait[5 seconds]`"); }
                 let (d, _) = self.value(&c.args.values[0])?;
-                if !matches!(d, Value::Duration(_)) { return rt(c.line, format!("stdkit::time.wait takes a duration (`5 seconds`), got {}", d.kind())); }
+                if !matches!(d, Value::Duration(_)) { return rt(c.line, format!("cord::time.wait takes a duration (`5 seconds`), got {}", d.kind())); }
                 Ok(Value::Nothing)
             }
             "time.after" | "time.every" => {
-                if c.args.values.len() != 1 { return rt(c.line, format!("stdkit::{path} takes one duration")); }
+                if c.args.values.len() != 1 { return rt(c.line, format!("cord::{path} takes one duration")); }
                 let (d, _) = self.value(&c.args.values[0])?;
-                let Value::Duration(n) = d else { return rt(c.line, format!("stdkit::{path} takes a duration (`5 seconds`), got {}", d.kind())) };
+                let Value::Duration(n) = d else { return rt(c.line, format!("cord::{path} takes a duration (`5 seconds`), got {}", d.kind())) };
                 self.next_chan_id += 1;
                 let timer = if path == "time.after" { Timer::After { fired: false, nanos: n } } else { Timer::Every { nanos: n } };
                 Ok(Value::Chan(Rc::new(RefCell::new(Chan { queue: std::collections::VecDeque::new(), cap: None, timer: Some(timer), id: self.next_chan_id }))))
             }
             "div.trunc" | "mod.trunc" => {
                 // moved into the language as operators (owner, 2026-10-02)
-                rt(c.line, format!("`stdkit::{path}` is an operator in the language now: `'a' {path} 'b'` (owner, 2026-10-02)"))
+                rt(c.line, format!("`cord::{path}` is an operator in the language now: `'a' {path} 'b'` (owner, 2026-10-02)"))
             }
-            "printu.stdout" | "printu.stderr" => rt(c.line, format!("stdkit::{path} is spelled stdkit::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
-            "printf.stdout" | "printf.stderr" => rt(c.line, format!("stdkit::{path} is spelled stdkit::print.format.{} now (owner, 2026-09-29)", &path[7..])),
+            "printu.stdout" | "printu.stderr" => rt(c.line, format!("cord::{path} is spelled cord::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
+            "printf.stdout" | "printf.stderr" => rt(c.line, format!("cord::{path} is spelled cord::print.format.{} now (owner, 2026-09-29)", &path[7..])),
             // a print says which form it shows (owner, 2026-10-02): `print.stored` or `print.useful`, never bare
-            "print.stdout" | "print.stderr" => rt(c.line, format!("say which form `stdkit::{path}` shows: `stdkit::print.stored.{0}[…]` (what is stored) or `stdkit::print.useful.{0}[…]` (the useful value) (owner, 2026-10-02)", &path[6..])),
-            "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `stdkit::{path}` shows: `stdkit::print.weird.stored.{0}` or `stdkit::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
+            "print.stdout" | "print.stderr" => rt(c.line, format!("say which form `cord::{path}` shows: `cord::print.stored.{0}[…]` (what is stored) or `cord::print.useful.{0}[…]` (the useful value) (owner, 2026-10-02)", &path[6..])),
+            "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `cord::{path}` shows: `cord::print.weird.stored.{0}` or `cord::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
             "print.stored.stdout" | "print.useful.stdout" | "print.stored.stderr" | "print.useful.stderr"
             | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr"
             | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr"
@@ -4848,7 +4848,7 @@ impl<'p> Interp<'p> {
                 // `print.weird` is `print` with arrows, `print.weird.useful` is `print.useful` (owner, 2026-10-01)
                 let useful = path.starts_with("print.useful") || path.starts_with("print.weird.useful") || path.starts_with("this_will_print_the_useful");
                 let path = if path.ends_with("standard_error") { "print.useful.stderr".to_string() } else { path };
-                if c.args.values.is_empty() { return rt(c.line, format!("stdkit::{path} takes at least one value")); }
+                if c.args.values.is_empty() { return rt(c.line, format!("cord::{path} takes at least one value")); }
                 let mut text = String::new();
                 for a in &c.args.values {
                     // the useful form is the shortest text that gives the value back at its own
@@ -4869,12 +4869,12 @@ impl<'p> Interp<'p> {
                 // The formatting print (owner, 2026-09-22; `printf` until 2026-09-29; `{}` holes since
                 // 2026-10-01, C's `%` codes before): escapes and holes, checked against the values'
                 // types because the format is a literal — a non-literal format is a nocheck site.
-                if c.args.values.is_empty() { return rt(c.line, format!("stdkit::{path} takes a format text first: `stdkit::{path}[\"{{}} items\\n\", 'n']`")); }
+                if c.args.values.is_empty() { return rt(c.line, format!("cord::{path} takes a format text first: `cord::{path}[\"{{}} items\\n\", 'n']`")); }
                 let fmt = match &c.args.values[0] {
                     crate::ast::Value::Expr(Expr::Text(t, _)) => t.clone(),
                     _ => {
-                        if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("stdkit::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a no_check site: `no_check stdkit::{path}[…]`")); }
-                        match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("stdkit::{path} takes a text as its format, got {}", other.kind())) }
+                        if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("cord::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a no_check site: `no_check cord::{path}[…]`")); }
+                        match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("cord::{path} takes a text as its format, got {}", other.kind())) }
                     }
                 };
                 let mut vals = Vec::new();
@@ -4883,7 +4883,7 @@ impl<'p> Interp<'p> {
                     let saved = self.expected.take(); let ty = self.expr_ty(e); self.expected = saved;
                     vals.push((self.value(a)?.0, ty));
                 }
-                let text = hole_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("stdkit::{path}: {m}"), exit: None, site: false, leave: None })?;
+                let text = hole_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("cord::{path}: {m}"), exit: None, site: false, leave: None })?;
                 if path == "format" { return Ok(Value::Str(text)); }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
@@ -4891,16 +4891,16 @@ impl<'p> Interp<'p> {
             }
             "printc.stdout" | "printc.stderr" | "printrs.stdout" | "printrs.stderr" | "c.printf" | "c.fprintf.stderr"
             | "rs.print" | "rs.println" | "rs.eprint" | "rs.eprintln" =>
-                rt(c.line, format!("stdkit::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use stdkit::print.stored / stdkit::print.useful")),
+                rt(c.line, format!("cord::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use cord::print.stored / cord::print.useful")),
             "exit" => {
                 let (v, _) = self.single(&c.args, c.line)?;
                 match v {
                     Value::Int(i) if (0..=255).contains(&i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some(i as u8), site: false, leave: None }),
                     Value::Int(i) => site(c.line, format!("exit code {i} does not fit uint8 (0 to 255)")),
-                    o => rt(c.line, format!("stdkit::exit takes a uint8, got {}", o.kind())),
+                    o => rt(c.line, format!("cord::exit takes a uint8, got {}", o.kind())),
                 }
             }
-            other => rt(c.line, format!("stdkit::{other} does not exist in the oracle (it knows print, print.useful, print.useful.auto_newln and print.format, each .stdout/.stderr; input.line/all; exit; round/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
+            other => rt(c.line, format!("cord::{other} does not exist in the oracle (it knows print, print.useful, print.useful.auto_newln and print.format, each .stdout/.stderr; input.line/all; exit; round/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
         }
     }
 }

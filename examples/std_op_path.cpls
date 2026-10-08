@@ -1,9 +1,9 @@
-# std marks everything `bare.optional` (owner, 2026-10-06), so its word operators may carry `stdkit::`
-# as `stdkit::pow` has since 2026-10-02.
+# std marks everything `bare.optional` (owner, 2026-10-06), so its word operators may carry `cord::`
+# as `cord::pow` has since 2026-10-02.
 
 MAIN {
-    let 'a': int32 = 2 stdkit::plus 3 stdkit::times 4;
-    let 'b': int32 = 7 stdkit::div.floor 2;
-    let 'c': uint32 = 1 stdkit::shl 3;
-    stdkit::print.useful['a', " ", 'b', " ", 'c', newln];
+    let 'a': int32 = 2 cord::plus 3 cord::times 4;
+    let 'b': int32 = 7 cord::div.floor 2;
+    let 'c': uint32 = 1 cord::shl 3;
+    cord::print.useful['a', " ", 'b', " ", 'c', newln];
 }

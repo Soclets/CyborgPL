@@ -15,8 +15,8 @@ op <+> ['a': A, 'b': A] -> int32 { return 'a'.x plus 'b'.x; }
 op <+> ['a': B, 'b': B] -> int32 { return 'a'.y times 'b'.y; }
 MAIN {
     let 'm': int32 = 100;
-    stdkit::print.useful[95 ~= 'm', " ", 50 ~= 'm', newln];
+    cord::print.useful[95 ~= 'm', " ", 50 ~= 'm', newln];
     let 'p' := A[x = 3];
     let 'q' := B[y = 3];
-    stdkit::print.useful['p' <+> 'p', " ", 'q' <+> 'q', newln];
+    cord::print.useful['p' <+> 'p', " ", 'q' <+> 'q', newln];
 }

@@ -1,1 +1,1 @@
-a position says `pos`: `stdkit::str.at.point[lend 's', pos 3]`
+a position says `pos`: `cord::str.at.point[lend 's', pos 3]`

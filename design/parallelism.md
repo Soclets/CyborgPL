@@ -51,7 +51,7 @@ A loop that is parallel-safe but must run in order for an external reason
 
 ```
 for seq 'line' in lend 'lines' {
-    stdkit::print.stored['line', newln];
+    cord::print.stored['line', newln];
 }
 ```
 

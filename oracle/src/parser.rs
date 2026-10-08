@@ -249,7 +249,7 @@ impl Parser {
     /// Everything std brings is refused in a Limb whose `CCA.cplr` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is stdkit's, and this Limb's CCA.cplr does not list stdkit: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is cord's, and this Limb's CCA.cplr does not list cord: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
@@ -379,7 +379,7 @@ impl Parser {
                 };
                 if let Some((w, m)) = found {
                     self.pos = i;
-                    return self.err(format!("`{w}` is an old spelling: write `{m}` (owner, 2026-10-07; MTM, which kept the old spellings, is gone)"));
+                    return self.err(format!("`{w}` is an old spelling: write `{m}` (owner, {}; MTM, which kept the old spellings, is gone)", if m == "cord" { "2026-10-09" } else { "2026-10-07" }));
                 }
             }
         }
@@ -464,7 +464,7 @@ impl Parser {
         if self.no_std {
             if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon) {
                 self.pos = i;
-                let what = match &self.toks.get(i + 2).map(|t| &t.tok) { Some(Tok::Word(w)) => format!("`stdkit::{w}`"), _ => "`stdkit::`".into() };
+                let what = match &self.toks.get(i + 2).map(|t| &t.tok) { Some(Tok::Word(w)) => format!("`cord::{w}`"), _ => "`cord::`".into() };
                 return self.std_missing(&what);
             }
         }
@@ -1480,7 +1480,7 @@ impl Parser {
         // `std::duration` — the one std type the oracle knows (design/concurrency.md)
         if self.is_word("std") && *self.peek_at(1) == Tok::ColonColon {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
-            return self.err("the only stdkit type the oracle knows is `stdkit::duration`");
+            return self.err("the only cord type the oracle knows is `cord::duration`");
         }
         // another Limb's type: `geometry::Circle` (limbs.md)
         if matches!(self.peek(), Tok::Word(w) if w != "std") && *self.peek_at(1) == Tok::ColonColon {
@@ -1511,7 +1511,7 @@ impl Parser {
             match segs[0].as_str() {
                 "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no Nerve type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
                 "String" => return self.err("text is `str.utf8`; Rust's `String` is not an alias"),
-                "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `stdkit::uenr` is exact rather than wider"),
+                "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `cord::uenr` is exact rather than wider"),
                 _ => {}
             }
         }
@@ -1741,7 +1741,7 @@ impl Parser {
                 if head == "brain16" { return Ok(Ty::Brain); }
                 if let Some(n) = width(head, "brain") { return bad(self, format!("no such width `brain{n}`; the brain float is `brain16` only")); }
                 if let Some(n) = width(head, "bin") {
-                    if n == 128 { return bad(self, "there is no `bin128`: quad precision has no hardware, and `stdkit::uenr` is exact rather than merely wider".into()); }
+                    if n == 128 { return bad(self, "there is no `bin128`: quad precision has no hardware, and `cord::uenr` is exact rather than merely wider".into()); }
                     return if [16, 32, 64].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64")) };
                 }
                 if let Some(n) = width(head, "deci") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; deci is 32/64/128 (IEEE 754 defines only these)")) }; }
@@ -2648,14 +2648,14 @@ impl Parser {
         // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with Nerve's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
-            return self.err("`.weird` comes first, the strongest modifier: `stdkit::print.weird.useful.stdout <- …`");
+            return self.err("`.weird` comes first, the strongest modifier: `cord::print.weird.useful.stdout <- …`");
         }
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.get(1).map(|s| s.as_str()) == Some("weird") {
-            if *self.peek() == Tok::LBracket { return self.err(format!("`stdkit::{}` takes its values with arrows, not `[…]`: `stdkit::{} <- \"text\" <- 'n' <- newln;`", path.join("."), path.join("."))); }
+            if *self.peek() == Tok::LBracket { return self.err(format!("`cord::{}` takes its values with arrows, not `[…]`: `cord::{} <- \"text\" <- 'n' <- newln;`", path.join("."), path.join("."))); }
             let bline = self.line();
             let mut values = Vec::new();
             while *self.peek() == Tok::LeftArrow { self.advance(); values.push(self.value()?); }
-            if values.is_empty() { return self.err(format!("`stdkit::{}` needs at least one value: `stdkit::{} <- \"text\";`", path.join("."), path.join("."))); }
+            if values.is_empty() { return self.err(format!("`cord::{}` needs at least one value: `cord::{} <- \"text\";`", path.join("."), path.join("."))); }
             return Ok(Call { handler: None, limb, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written });
         }
         if *self.peek() != Tok::LBracket {
@@ -2682,7 +2682,7 @@ impl Parser {
             let mut values = vec![self.value()?];
             while *self.peek() == Tok::Comma {
                 self.advance();
-                if !self.is_word("pos") { return self.err(format!("a position says `pos`: `stdkit::{}[lend 's', pos 3]` (owner, 2026-10-08)", path.join("."))); }
+                if !self.is_word("pos") { return self.err(format!("a position says `pos`: `cord::{}[lend 's', pos 3]` (owner, 2026-10-08)", path.join("."))); }
                 self.advance();
                 values.push(self.value()?);
             }
@@ -2953,7 +2953,7 @@ impl Parser {
     /// The word a retired operator symbol became (owner, 2026-10-03).
     fn old_op_error(&self, op: &str) -> PResult<Expr> {
         let now = match op { "+" => "plus", "-" => "minus", "x" => "times", "xx" => "pow", "+~" => "plus.wrap", "-~" => "minus.wrap", "x~" => "times.wrap", _ => "pow.wrap" };
-        let note = if op.starts_with("xx") { ", stdkit's operator" } else { "" };
+        let note = if op.starts_with("xx") { ", cord's operator" } else { "" };
         self.err(format!("`{op}` is `{now}` now{note} (owner, 2026-10-03)"))
     }
 
@@ -3435,7 +3435,7 @@ impl Parser {
                         }
                         "length" | "len" | "count" => return self.err("a text has no single length: `str.bytes[…]`, `str.points[…]`, or `str.graphemes[…]` — say which (decided 2026-09-20)"),
                         "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" =>
-                            return self.err(format!("`str.{op}` is stdkit's: `stdkit::str.{op}[…]` — the language owns only the units (bytes/points/graphemes) and `each`")),
+                            return self.err(format!("`str.{op}` is cord's: `cord::str.{op}[…]` — the language owns only the units (bytes/points/graphemes) and `each`")),
                         _ => return self.err(format!("`str.{op}` does not exist; the language has str.bytes, str.points, str.graphemes, str.each.<unit>")),
                     };
                     if *self.peek() != Tok::LBracket { return self.err(format!("`str.{op}` is a call and needs `[…]`")); }

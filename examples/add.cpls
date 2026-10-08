@@ -4,5 +4,5 @@ fn add ['a': int32, 'b': int32] -> int32 {
 
 MAIN {
     let 'sum' := add[10, 20];
-    stdkit::print.useful["sum: ", 'sum', newln];
+    cord::print.useful["sum: ", 'sum', newln];
 }

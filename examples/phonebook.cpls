@@ -3,21 +3,21 @@
 MAIN {
     let mut 'phones': map[str.utf8, int32] = map["ann" = 5551, "bob" = 5552];   # a literal: key = value
     map.set[lend.mut 'phones', "ann", 5553];                          # same key: replaced
-    stdkit::print.useful[map.length[lend 'phones'], " entries", newln];
+    cord::print.useful[map.length[lend 'phones'], " entries", newln];
     let 'a' := map.get[lend 'phones', "ann"] otherwise 0;
     let 'c' := map.get[lend 'phones', "cat"] otherwise 0;             # missing → 0
-    stdkit::print.useful["ann ", 'a', ", cat ", 'c', newln];
-    if map.has[lend 'phones', "bob"] { stdkit::print.useful["bob is in", newln]; }
+    cord::print.useful["ann ", 'a', ", cat ", 'c', newln];
+    if map.has[lend 'phones', "bob"] { cord::print.useful["bob is in", newln]; }
     let 'gone' := map.remove[lend.mut 'phones', "bob"] otherwise 0;   # hands the value back
-    stdkit::print.useful["removed ", 'gone', ", ", map.length[lend 'phones'], " left", newln];
-    map.remove[lend.mut 'phones', "nobody"] otherwise { missing { stdkit::print.useful["nobody to remove", newln]; } };
+    cord::print.useful["removed ", 'gone', ", ", map.length[lend 'phones'], " left", newln];
+    map.remove[lend.mut 'phones', "nobody"] otherwise { missing { cord::print.useful["nobody to remove", newln]; } };
     map.set[lend.mut 'phones', "cat", 5554];
-    for 'k' in map.keys[lend 'phones'] { stdkit::print.useful['k', " "]; }        # insertion order: ann cat
-    stdkit::print.stored[newln];
-    for 'e' in map.pairs[lend 'phones'] { stdkit::print.useful['e'.key, "=", 'e'.value, " "]; }
-    stdkit::print.stored[newln];
+    for 'k' in map.keys[lend 'phones'] { cord::print.useful['k', " "]; }        # insertion order: ann cat
+    cord::print.stored[newln];
+    for 'e' in map.pairs[lend 'phones'] { cord::print.useful['e'.key, "=", 'e'.value, " "]; }
+    cord::print.stored[newln];
     let mut 'fast': map.unordered[str.utf8, int32] = map.empty;                     # chosen: never walked
     map.set[lend.mut 'fast', "x", 1];
-    stdkit::print.useful[map.has[lend 'fast', "x"], newln];
-    let 'who' := map.get[lend 'phones', "zed"] otherwise { missing { stdkit::print.useful["no zed", newln]; stdkit::exit[0]; } };
+    cord::print.useful[map.has[lend 'fast', "x"], newln];
+    let 'who' := map.get[lend 'phones', "zed"] otherwise { missing { cord::print.useful["no zed", newln]; cord::exit[0]; } };
 }

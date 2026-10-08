@@ -6,5 +6,5 @@ MAIN {
     let 'b' := to.uint8.bits[-1];        # -1's bits in a uint8: 255
     let 'c': uint8 = 200;
     let 'd' := to.int8.bits['c'];        # 200's bits: -56
-    stdkit::print.useful['a', " ", 'b', " ", 'd', newln];
+    cord::print.useful['a', " ", 'b', " ", 'd', newln];
 }

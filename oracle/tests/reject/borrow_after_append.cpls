@@ -4,5 +4,5 @@ MAIN {
     let mut 's': list[int32] = [1, 2, 3];
     let 'r' := first[lend 's'];
     list.append[lend.mut 's', 4];
-    stdkit::print.useful[list.length[lend 'r'], newln];
+    cord::print.useful[list.length[lend 'r'], newln];
 }

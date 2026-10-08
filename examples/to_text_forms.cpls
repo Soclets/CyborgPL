@@ -11,10 +11,10 @@ MAIN {
     let 'n': int32 = 42;
     let 'ok' := true;
     let 's' := Size.big;
-    stdkit::print.stored[to.stored.str.utf8['x'], " | ", to.useful.str.utf8['x'], newln];
-    stdkit::print.stored[to.stored.str.utf8['d'], " | ", to.useful.str.utf8['d'], newln];
-    stdkit::print.stored[to.stored.str.utf8['n'], " | ", to.useful.str.utf8['n'], newln];
-    stdkit::print.stored[to.stored.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], newln];
-    stdkit::print.stored[to.stored.str.utf8['s'], " | ", to.useful.str.utf8['s'], newln];
-    stdkit::print.useful['s', newln];
+    cord::print.stored[to.stored.str.utf8['x'], " | ", to.useful.str.utf8['x'], newln];
+    cord::print.stored[to.stored.str.utf8['d'], " | ", to.useful.str.utf8['d'], newln];
+    cord::print.stored[to.stored.str.utf8['n'], " | ", to.useful.str.utf8['n'], newln];
+    cord::print.stored[to.stored.str.utf8['ok'], " | ", to.useful.str.utf8['ok'], newln];
+    cord::print.stored[to.stored.str.utf8['s'], " | ", to.useful.str.utf8['s'], newln];
+    cord::print.useful['s', newln];
 }

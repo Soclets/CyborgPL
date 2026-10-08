@@ -1,1 +1,1 @@
-MAIN { stdkit::print.useful.weird <- "hi"; }
+MAIN { cord::print.useful.weird <- "hi"; }

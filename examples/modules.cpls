@@ -17,7 +17,7 @@ module counter {
 }
 
 fn show ['c': counter.Count] {
-    stdkit::print.useful["count ", 'c'.n, newln];
+    cord::print.useful["count ", 'c'.n, newln];
 }
 
 MAIN {
@@ -25,5 +25,5 @@ MAIN {
     show[copy 'c'];
     let 'd' := counter.bump[give 'c'];
     show[copy 'd'];
-    stdkit::print.useful[counter.inner.twice['d'.n], newln];
+    cord::print.useful[counter.inner.twice['d'.n], newln];
 }

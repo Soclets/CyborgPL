@@ -5,5 +5,5 @@ MAIN {
     let 'small': int8[1, max] = 120;
     let 'whole': uint8[0, 255] = 200;          # the whole type: harmless, allowed (owner)
     let 'also': int32[min, max] = -7;
-    stdkit::print.useful['pos', " ", 'score', " ", 'small', " ", 'whole', " ", 'also', newln];
+    cord::print.useful['pos', " ", 'score', " ", 'small', " ", 'whole', " ", 'also', newln];
 }

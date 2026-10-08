@@ -1,10 +1,10 @@
 # std marks everything `bare.optional` (owner, 2026-10-06: "optional for all"): each of std's names
-# may be written with `stdkit::` or without it.
+# may be written with `cord::` or without it.
 
 MAIN {
     let 's' := "a b c";
     let 'parts' := str.split[lend 's', " "];
-    let 'same' := stdkit::str.split[lend 's', " "];
-    print.useful[list.length[lend 'parts'], " ", stdkit::list.length[lend 'same'], newln];
-    stdkit::print.useful[round[2.5], newln];
+    let 'same' := cord::str.split[lend 's', " "];
+    print.useful[list.length[lend 'parts'], " ", cord::list.length[lend 'same'], newln];
+    cord::print.useful[round[2.5], newln];
 }

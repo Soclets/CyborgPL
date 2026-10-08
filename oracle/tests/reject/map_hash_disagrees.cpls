@@ -1,7 +1,7 @@
 struct User { name: str.utf8 }
-op equal_to ['a': User, 'b': User] -> bool { return stdkit::str.lower[lend 'a'.name] equal_to stdkit::str.lower[lend 'b'.name]; }
+op equal_to ['a': User, 'b': User] -> bool { return cord::str.lower[lend 'a'.name] equal_to cord::str.lower[lend 'b'.name]; }
 fn hash [lent 'v': User] -> uint64 {
-    let 'first' := stdkit::str.at.point[lend 'v'.name, pos 1] otherwise `?`;
+    let 'first' := cord::str.at.point[lend 'v'.name, pos 1] otherwise `?`;
     return char.code['first'];          # case-sensitive: "Ann" and "ann" hash differently, but equal_to says equal
 }
 MAIN {

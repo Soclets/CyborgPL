@@ -19,16 +19,16 @@ MAIN {
     let 't' := give 's';
     let 'u' := copy 't';
     shout[lend.mut 'u'];
-    stdkit::print.stored['t', newln];
-    stdkit::print.stored['u', newln];
+    cord::print.stored['t', newln];
+    cord::print.stored['u', newln];
     let 'g' := greet[copy 'u'];
-    stdkit::print.stored['g', newln];
-    stdkit::print.stored['u', newln];
+    cord::print.stored['g', newln];
+    cord::print.stored['u', newln];
     let 'words' := ["a", "b", "c"];
     let 'n' := count[lend 'words'];
-    stdkit::print.useful['n', " words", newln];
+    cord::print.useful['n', " words", newln];
     let 'm' := count[["x", "y"]];
-    stdkit::print.useful['m', " fresh", newln];
+    cord::print.useful['m', " fresh", newln];
     let 'r' := lend 'words';
-    stdkit::print.useful['r', newln];
+    cord::print.useful['r', newln];
 }

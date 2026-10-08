@@ -5,5 +5,5 @@ fn true [] -> int32 { return 1; }
 MAIN {
     let 'x' := my.to[];
     let 'y' := my.true[];
-    stdkit::print.useful['x', " ", 'y', newln];
+    cord::print.useful['x', " ", 'y', newln];
 }

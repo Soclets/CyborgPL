@@ -8,5 +8,5 @@ MAIN {
     let 'b' := 3;                    # no word: it may not change either
     let no_shadow mut 'total' := 0;        # changeable, and 'total' always means this one
     change 'total' = 'total' plus 'a' plus 'b';
-    stdkit::print.useful['a', " ", 'b', " ", 'total', newln];
+    cord::print.useful['a', " ", 'b', " ", 'total', newln];
 }

@@ -4,8 +4,8 @@ extern.C mut 'lib_verbose': int32;          # C: extern int lib_verbose;  (we ma
 
 MAIN {
     no_check let 'v' := 'lib_version';
-    stdkit::print.useful["version ", 'v', newln];
+    cord::print.useful["version ", 'v', newln];
     no_check change 'lib_verbose' = 1;
     no_check let 'on' := 'lib_verbose';
-    stdkit::print.useful["verbose ", 'on', newln];
+    cord::print.useful["verbose ", 'on', newln];
 }

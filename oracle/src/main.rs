@@ -93,7 +93,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let mut who: Vec<String> = Vec::new();
         if own { who.push(format!("`my.{}` (this Limb's)", own_module.iter().filter(|m| !m.starts_with("::")).chain(written.last()).cloned().collect::<Vec<_>>().join("."))); }
-        if std { who.push(format!("`stdkit::{shown}`")); }
+        if std { who.push(format!("`cord::{shown}`")); }
         for f in &prog.funcs {
             let Some(root) = f.module.first().filter(|r| r.starts_with("::")) else { continue };
             if Some(root) == mine.as_ref() || f.vis != ast::Vis::Pub || f.is_op { continue; }
@@ -107,7 +107,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     for (own, theirs, written, root) in parser::BARE_TYPE_USES.with(|u| u.borrow().clone()) {
         if prog.structs.iter().any(|d| d.name == own) || prog.enums.iter().any(|d| d.name == own) || prog.interfaces.iter().any(|d| d.name == own) {
             let _ = theirs;
-            return Err(format!("{}: `{written}` could be any of `my.{written}` (this Limb's), `{}::{written}`: write the path", path.display(), match root.trim_start_matches("::") { "std" => "stdkit", r => r }));
+            return Err(format!("{}: `{written}` could be any of `my.{written}` (this Limb's), `{}::{written}`: write the path", path.display(), match root.trim_start_matches("::") { "std" => "cord", r => r }));
         }
     }
     Ok(prog)
@@ -333,8 +333,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     // std is listed like any limb, by its ID and version; CCA uses the installed copy when they
                     // match (owner, 2026-10-06), and the oracle stands in for that copy
                     if d.is_std() {
-                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: stdkit is listed twice")); }
-                        if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(format!("{shown}: line {line}: the oracle stands in for stdkit `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or(""))); }
+                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: cord is listed twice")); }
+                        if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(format!("{shown}: line {line}: the oracle stands in for cord `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or(""))); }
                         d.what = "std".into();
                     }
                     deps.push(d);
@@ -398,11 +398,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
     // std without fucking ASP")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
-        return Err(format!("{shown}: line {mline}: stdkit needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", parser::core_line("ASP")));
+        return Err(format!("{shown}: line {mline}: cord needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", parser::core_line("ASP")));
     }
     // std needs IEG too: its operators on built-in types are a power IEG grants (owner, 2026-10-06: "`a`")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "IEG") {
-        return Err(format!("{shown}: line {mline}: stdkit needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", parser::core_line("IEG")));
+        return Err(format!("{shown}: line {mline}: cord needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", parser::core_line("IEG")));
     }
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
@@ -429,8 +429,8 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         if !depdir.join("CCA.cplr").is_file() { return Err(format!("{}: {} has no `CCA.cplr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
         let (Some(prefix), _, _) = read_manifest(&depdir)? else { unreachable!() };
         // a Limb may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
-        // `stdkit` is the built-in's name since 2026-10-07, and `std` its old one, refused in code
-        if prefix == "std" || prefix == "stdkit" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "stdkit" })); }
+        // `cord` is the built-in's name since 2026-10-09; `cord` (2026-10-07) and `std` are its old ones, refused in code
+        if prefix == "std" || prefix == "stdkit" || prefix == "cord" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "cord" })); }
         if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == prefix) {
             if *p != canon { return Err(format!("{}: two Limbs have the prefix `{prefix}` ({} and {}); edit one Limb's 'prefix'", here_file.display(), p.display(), canon.display())); }
             continue;

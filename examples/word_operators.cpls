@@ -1,11 +1,11 @@
 # The operators are words (owner, 2026-10-02/03): `plus`, `minus`, `times`, and `.wrap` for the
-# wrapping ones; a negative keeps `-`. The power is std's `pow` (bare or `stdkit::pow`), which has no
+# wrapping ones; a negative keeps `-`. The power is std's `pow` (bare or `cord::pow`), which has no
 # precedence yet, so it is bracketed beside another operator.
 MAIN {
     let 'a': int32 = 7;
     let 'b': int32 = 3;
-    stdkit::print.useful[('a' plus 'b'), " ", ('a' minus 'b'), " ", ('a' times 'b'), " ", ('a' pow 'b'), " ", ('a' stdkit::pow 2), " ", -'a', newln];
+    cord::print.useful[('a' plus 'b'), " ", ('a' minus 'b'), " ", ('a' times 'b'), " ", ('a' pow 'b'), " ", ('a' cord::pow 2), " ", -'a', newln];
     let 'h': uint8 = 200;
-    stdkit::print.useful[('h' plus.wrap 100), " ", ('h' times.wrap 2), " ", ('h' pow.wrap 2), newln];
-    stdkit::print.useful[(2 pow 3) plus 1, " ", 1 plus 2 times 3, newln];
+    cord::print.useful[('h' plus.wrap 100), " ", ('h' times.wrap 2), " ", ('h' pow.wrap 2), newln];
+    cord::print.useful[(2 pow 3) plus 1, " ", 1 plus 2 times 3, newln];
 }

@@ -8,5 +8,5 @@ MAIN {
     let 'e' := 5; #2ld this line and two more down
     let 'f' := 6;
     let 'g' := 7;
-    stdkit::print.useful['a', " ", 'e', newln];
+    cord::print.useful['a', " ", 'e', newln];
 }

@@ -9,15 +9,15 @@ fn count_ints [...'nums': int32] -> uint64 {
 }
 
 fn show [lent 'label': str.utf8, lent ...'parts'] {
-    stdkit::print.useful['label', ": "];
-    for 'p' in lend 'parts' { stdkit::print.useful['p', " "]; }
-    stdkit::print.stored[newln];
+    cord::print.useful['label', ": "];
+    for 'p' in lend 'parts' { cord::print.useful['p', " "]; }
+    cord::print.stored[newln];
 }
 
 MAIN {
-    stdkit::print.useful[sum[1, 2.5, 3], newln];
-    stdkit::print.useful[sum[], newln];
-    stdkit::print.useful[count_ints[4, 5, 6], newln];
+    cord::print.useful[sum[1, 2.5, 3], newln];
+    cord::print.useful[sum[], newln];
+    cord::print.useful[count_ints[4, 5, 6], newln];
     let 'name' := "Ann";
     show["mixed", lend 'name', 7, true, `x`];
     show["none"];

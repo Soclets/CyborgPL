@@ -1,3 +1,3 @@
 MAIN {
-    stdkit::exit[300];
+    cord::exit[300];
 }

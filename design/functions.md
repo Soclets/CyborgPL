@@ -118,7 +118,7 @@ return;                       # in a nothing-function
 ```
 MAIN {
     let 'sum' := add[10, 20];
-    stdkit::print.useful["sum: ", 'sum', newln];
+    cord::print.useful["sum: ", 'sum', newln];
 }
 ```
 

@@ -21,5 +21,5 @@ pub bare.only enum Mood {                 # this enum: written bare only, never 
 }
 
 MAIN {
-    stdkit::print.useful[shapes.area[3], " ", my.'unit', newln];
+    cord::print.useful[shapes.area[3], " ", my.'unit', newln];
 }

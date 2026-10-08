@@ -11,5 +11,5 @@ fn f [] -> uint64 {
 }
 
 MAIN {
-    stdkit::print.stored[f[], newln];
+    cord::print.stored[f[], newln];
 }

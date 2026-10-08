@@ -1,3 +1,3 @@
 MAIN {
-    let 'n' := to.int32[0, 100]["42"] otherwise { not_a_number { stdkit::exit[1]; } };
+    let 'n' := to.int32[0, 100]["42"] otherwise { not_a_number { cord::exit[1]; } };
 }

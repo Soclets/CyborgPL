@@ -8,8 +8,8 @@ MAIN {
     concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
     for 'i' in range[from 1, to 2, by 1] {
         let 'page' := channel.take[lend 'results'] otherwise "";
-        stdkit::print.useful['page', newln];
+        cord::print.useful['page', newln];
     }
     let 'd' := 5 seconds;
-    stdkit::print.useful['d', " ", 1500 millis, " ", 1 hour, " ", 5 seconds equal_to 5_000 millis, newln];
+    cord::print.useful['d', " ", 1500 millis, " ", 1 hour, " ", 5 seconds equal_to 5_000 millis, newln];
 }

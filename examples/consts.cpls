@@ -7,9 +7,9 @@ const 'greeting' := "hello " ++ "world";
 pub struct P { x: int32 }
 pub fn area ['r': bin64] -> bin64 { return 'pi' times 'r' times 'r'; }
 MAIN {
-    stdkit::print.useful['max', " ", 'twice_max', " ", 'greeting', " ", area[2.0], newln];
+    cord::print.useful['max', " ", 'twice_max', " ", 'greeting', " ", area[2.0], newln];
     let 's' := 'greeting';
     let 'p' := P[x = 'max'];
-    for 'i' in range[from 1, to 'max', by 4] { stdkit::print.useful['i', " "]; }
-    stdkit::print.stored[newln];
+    for 'i' in range[from 1, to 'max', by 4] { cord::print.useful['i', " "]; }
+    cord::print.stored[newln];
 }

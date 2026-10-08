@@ -57,9 +57,9 @@ let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise return false;   # leave, 
 let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise fail;           # pass it up unchanged
 let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {               # one arm per reason
     full           { break; }
-    bad_item 'why' { stdkit::print.stored["bad: ", 'why', newln]; continue; }
+    bad_item 'why' { cord::print.stored["bad: ", 'why', newln]; continue; }
 };
-save[lend 'mine'] otherwise { disk_full { stdkit::print.stored["not saved", newln]; } };
+save[lend 'mine'] otherwise { disk_full { cord::print.stored["not saved", newln]; } };
 ```
 
 - **A value** — used instead. **A leaving statement** (`return …`, `fail …`,

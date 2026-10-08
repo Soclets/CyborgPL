@@ -5,5 +5,5 @@ MAIN {
     let 'b' := to.brain16['i'];
     let 'd' := to.useful.deci64['b'];
     let 'n' := to.int64['d'] otherwise -1;
-    stdkit::print.useful['b', " ", 'd', " ", 'n', newln];
+    cord::print.useful['b', " ", 'd', " ", 'n', newln];
 }

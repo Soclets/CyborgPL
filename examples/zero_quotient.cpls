@@ -4,5 +4,5 @@ MAIN {
     let 'q': bin64 = 0.5 div.ceil (-1.75);
     let 'r': bin64 = 0.5 div.ceil.ieee (-1.75);
     let 'b': brain16 = 0.5 div.trunc (-1.75);
-    stdkit::print.useful['q', " ", 'r', " ", 'b', " ", 'q' equal_to 'r', newln];
+    cord::print.useful['q', " ", 'r', " ", 'b', " ", 'q' equal_to 'r', newln];
 }

@@ -2,5 +2,5 @@
 # the neck & eye movement is less"); the long `<--`, main from 2026-10-03, is now refused.
 fn double ['n': int32] -> int32 { return 'n' times 2; }
 MAIN {
-    stdkit::print.weird.useful <- double[3] <- newln;
+    cord::print.weird.useful <- double[3] <- newln;
 }

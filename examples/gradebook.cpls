@@ -30,17 +30,17 @@ MAIN {
 
     for 'm' in lend 'marks' {
         record[lend.mut 'a', 'm'] otherwise {
-            out_of_range 'bad' { stdkit::print.useful["skipping ", 'bad', newln]; }
+            out_of_range 'bad' { cord::print.useful["skipping ", 'bad', newln]; }
         };
     }
-    record[lend.mut 'b', 65] otherwise stdkit::exit[1];
+    record[lend.mut 'b', 65] otherwise cord::exit[1];
 
     let 'students' := [give 'a', give 'b', Student[name = "Cy", scores = list.empty]];
     let 'passed' := 0;
     for 's' in lend 'students' {
-        stdkit::print.stored['s'.name, ": ", grade[lend 's'], newln];
+        cord::print.stored['s'.name, ": ", grade[lend 's'], newln];
         let 'avg' := average[lend 's'] otherwise 0;
         if 'avg' at_least 'passing' { change 'passed' = 'passed' plus 1; }
     }
-    stdkit::print.useful['passed', " of ", list.length[lend 'students'], " passed", newln];
+    cord::print.useful['passed', " of ", list.length[lend 'students'], " passed", newln];
 }

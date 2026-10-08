@@ -19,5 +19,5 @@ fn Describe ['m': Mood] -> str.utf8 {
 MAIN {
     let 'Count' := 2;
     let 'e' := Exact[n = 'COUNT'];
-    stdkit::print.useful[describe[MOOD.Happy], " ", DESCRIBE[mood.Grumpy], " ", 'e'.n, " ", 'count', newln];
+    cord::print.useful[describe[MOOD.Happy], " ", DESCRIBE[mood.Grumpy], " ", 'e'.n, " ", 'count', newln];
 }

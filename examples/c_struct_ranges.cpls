@@ -5,5 +5,5 @@ layout.C struct Rect { w: int32[0, 4096]  h: int32[0, 4096] }
 extern.C fn DrawRect ['r': Rect];
 MAIN {
     let 'r' := Rect[w = 640, h = 480];
-    stdkit::print.useful['r'.w, "x", 'r'.h, " ", size.of[Rect], newln];
+    cord::print.useful['r'.w, "x", 'r'.h, " ", size.of[Rect], newln];
 }

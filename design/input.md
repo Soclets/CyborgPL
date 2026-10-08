@@ -26,15 +26,15 @@ limit. Owner chose words, as with `x`, `mod`, `and`, `shl`.
 ## Reading — a boundary in std
 
 ```
-let 'text' := stdkit::input.line[] otherwise "";      # one line, newline removed; fails with `closed`
-let 'all'  := stdkit::input.all[] otherwise "";       # everything until the end
+let 'text' := cord::input.line[] otherwise "";      # one line, newline removed; fails with `closed`
+let 'all'  := cord::input.all[] otherwise "";       # everything until the end
 ```
 
 Text as it came, `str.utf8`, no interpretation. A number is that plus the
 conversion: two lines, two failures, each handled where it happens —
 
 ```
-let 'text' := stdkit::input.line[] otherwise "";
+let 'text' := cord::input.line[] otherwise "";
 let 'n' := to.int32['text'] otherwise 0;
 ```
 

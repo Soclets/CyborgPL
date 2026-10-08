@@ -3,5 +3,5 @@ MAIN {
     let mut 's': list[int32] = [1, 2, 3];
     let 'r' := lend 's';
     change 's'[pos 1] = 99;
-    stdkit::print.useful['r'[pos 1], newln];
+    cord::print.useful['r'[pos 1], newln];
 }

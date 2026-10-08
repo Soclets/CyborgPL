@@ -240,7 +240,7 @@ is an error.
 
 ```
 for 'i', 'x' in lend 'xs' {
-    stdkit::print.useful['i', ". ", 'x', newln];      # 1. ann  2. bob  3. cy
+    cord::print.useful['i', ". ", 'x', newln];      # 1. ann  2. bob  3. cy
 }
 ```
 

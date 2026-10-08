@@ -2,26 +2,26 @@ MAIN {
     let 's' := "héllo 👨‍👩‍👧 wörld";
 
     # a text has no single length — say which unit (decided 2026-09-20)
-    stdkit::print.useful[str.bytes[lend 's'], " bytes, ", str.points[lend 's'], " points, ", str.graphemes[lend 's'], " graphemes", newln];
+    cord::print.useful[str.bytes[lend 's'], " bytes, ", str.points[lend 's'], " points, ", str.graphemes[lend 's'], " graphemes", newln];
 
     # walking a text says the unit too
     let 'vowels' := 0;
     for 'g' in str.each.grapheme[lend 's'] {
         if 'g' equal_to `o` or 'g' equal_to `e` { change 'vowels' = 'vowels' plus 1; }
     }
-    stdkit::print.useful['vowels', " vowels", newln];
+    cord::print.useful['vowels', " vowels", newln];
 
     # the toolbox is std's
-    let 'words' := stdkit::str.split[lend 's', " "];
-    stdkit::print.useful[list.length[lend 'words'], " words; first is ", 'words'[pos 1], newln];
-    stdkit::print.useful[stdkit::str.upper[lend 's'], newln];
-    stdkit::print.useful[stdkit::str.contains[lend 's', "wör"], " ", stdkit::str.starts_with[lend 's', "hé"], newln];
-    let 'third' := stdkit::str.at.grapheme[lend 's', pos 3] otherwise `?`;
-    let 'family' := stdkit::str.at.grapheme[lend 's', pos 7] otherwise `?`;
-    stdkit::print.useful['third', " ", 'family', newln];
-    let 'where' := stdkit::str.find.grapheme[lend 's', "wör"] otherwise 0;
-    stdkit::print.useful["wör starts at grapheme ", 'where', newln];
-    let 'head' := stdkit::str.slice.grapheme[lend 's', pos 1, pos 5] otherwise "";
-    stdkit::print.useful['head', newln];
-    stdkit::print.useful[stdkit::str.join[lend 'words', "_"], newln];
+    let 'words' := cord::str.split[lend 's', " "];
+    cord::print.useful[list.length[lend 'words'], " words; first is ", 'words'[pos 1], newln];
+    cord::print.useful[cord::str.upper[lend 's'], newln];
+    cord::print.useful[cord::str.contains[lend 's', "wör"], " ", cord::str.starts_with[lend 's', "hé"], newln];
+    let 'third' := cord::str.at.grapheme[lend 's', pos 3] otherwise `?`;
+    let 'family' := cord::str.at.grapheme[lend 's', pos 7] otherwise `?`;
+    cord::print.useful['third', " ", 'family', newln];
+    let 'where' := cord::str.find.grapheme[lend 's', "wör"] otherwise 0;
+    cord::print.useful["wör starts at grapheme ", 'where', newln];
+    let 'head' := cord::str.slice.grapheme[lend 's', pos 1, pos 5] otherwise "";
+    cord::print.useful['head', newln];
+    cord::print.useful[cord::str.join[lend 'words', "_"], newln];
 }

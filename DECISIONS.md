@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — Rename step 2 begins: stdkit is `cord`, lowercase in code (owner)
+
+Step 2 of renaming inside the repo, the part names, one at a time; design
+claude proposed starting with stdkit → Cord (the Nerve name chosen
+2026-10-08). The owner: "yea, go", then "lowercase syntax". So **the
+standard library is `cord` in code**, `cord::print.useful[…]` as
+`stdkit::print.useful[…]` was, and Cord in prose. `stdkit::` becomes an
+old spelling, refused naming `cord::`, as `std::` was; `std` and `stdkit`
+stay reserved as Limb prefixes. Design claude's reading, not asked:
+`not_std.int24` stays, since it says "not standard", not "not stdkit".
+
 ### 2026-10-08 — CCA emits debug info (owner; not designed)
 
 Asked whether the automatic locations bloat a program (no: compiler

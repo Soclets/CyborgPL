@@ -2,9 +2,9 @@ MAIN {
     let 'xs': list[int32] = [];
     list.append[lend.mut 'xs', 7];
     list.append[lend.mut 'xs', 8];
-    stdkit::print.useful['xs', " ", list.length[lend 'xs'], newln];
+    cord::print.useful['xs', " ", list.length[lend 'xs'], newln];
     let 'ys' := list.empty;
-    stdkit::print.useful[list.length[lend 'ys'], newln];
+    cord::print.useful[list.length[lend 'ys'], newln];
     list.append[lend.mut 'ys', "a"];
-    stdkit::print.useful['ys', newln];
+    cord::print.useful['ys', newln];
 }

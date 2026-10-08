@@ -28,6 +28,6 @@ MAIN {
     let 'd' := 'u' dot 'v' plus 1.0;          # ('u' dot 'v') plus 1.0
     let 'w' := 'u' scale 2.0 dot 'v';         # ('u' scale 2.0) dot 'v'
     let 'ok' := 'd' ~= 12.0;
-    stdkit::print.useful['d', " ", 'w', " ", 'ok', newln];
-    stdkit::print.useful[2 pow 3 plus 1, " ", 2 pow 3 pow 2, " ", -2 pow 2, " ", 2 times 3 pow 2, newln];
+    cord::print.useful['d', " ", 'w', " ", 'ok', newln];
+    cord::print.useful[2 pow 3 plus 1, " ", 2 pow 3 pow 2, " ", -2 pow 2, " ", 2 times 3 pow 2, newln];
 }

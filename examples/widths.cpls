@@ -6,5 +6,5 @@ MAIN {
     let 'b': uint32 = ('v' mod.floor 16) shl 2;
     let 'c': uint32 = not.bit ('v' plus 1);
     let 'd': uint32 = ('v' plus 1) plus.wrap 5;
-    stdkit::print.useful['a', " ", 'b', " ", 'c', " ", 'd', newln];
+    cord::print.useful['a', " ", 'b', " ", 'c', " ", 'd', newln];
 }

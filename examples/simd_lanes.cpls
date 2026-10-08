@@ -6,8 +6,8 @@ MAIN {
     let 'x': int32 = 'a'[pos 1];
     let 'u': simd[uint8, 16] = simd.fill[value 200];
     let 'w' := 'u' plus.wrap 'u';
-    stdkit::print.stored['x', " ", 'w'[pos 1], " ", 'w'[pos 16], newln];
+    cord::print.stored['x', " ", 'w'[pos 1], " ", 'w'[pos 16], newln];
     let mut 'v': simd[int32, 4] = simd.fill[value 0];
     change 'v'[pos 3] = 30;
-    stdkit::print.stored['v'[pos 3], " ", simd.sum['v'], newln];
+    cord::print.stored['v'[pos 3], " ", simd.sum['v'], newln];
 }

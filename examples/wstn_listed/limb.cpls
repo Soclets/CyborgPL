@@ -8,5 +8,5 @@ fn ทักทาย ['ชื่อ': str.utf8] -> str.utf8 {
 MAIN {
     let '🍕': int32 = 3;
     let 'नमस्ते' := ทักทาย["โลก"];
-    stdkit::print.useful['नमस्ते', " ", '🍕', newln];
+    cord::print.useful['नमस्ते', " ", '🍕', newln];
 }
