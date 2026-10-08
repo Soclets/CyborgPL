@@ -5,7 +5,7 @@ risk, not line count.
 
 ## Tier 1 — every line human-reviewed (the trusted base)
 
-A bug here does not crash CyborgPL; it makes CyborgPL *lie*.
+A bug here does not crash Nerve; it makes Nerve *lie*.
 
 - **Precog** — a wrong proof removes a check that was needed.
 - **Borrow checker and lifetime inference** — a wrong "ok" is a
@@ -28,7 +28,7 @@ Bugs here are ordinary: visible, reproducible, caught by the oracle or tests.
 
 ## Tier 3 — reviewed by Precog
 
-The standard Limb is CyborgPL source; the language's own guarantees apply to
+The standard Limb is Nerve source; the language's own guarantees apply to
 it.
 
 ## Why

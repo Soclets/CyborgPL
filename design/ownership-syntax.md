@@ -108,7 +108,7 @@ the binary): Precog finds those itself; no keyword exists for them.
 ## Why explicit
 
 Rust moves silently; the line that killed a variable says nothing, and the
-error appears two lines later. In CyborgPL nothing is implied, and these are
+error appears two lines later. In Nerve nothing is implied, and these are
 exactly the assignments that cost something at runtime — so they are the
 ones that should be visible.
 

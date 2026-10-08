@@ -1,6 +1,6 @@
 # Command-line arguments, as C hands them over (owner, 2026-09-29: "low-level shit, decided"): MAIN may
 # take 'argc' and 'argv', the program's name first, each word NUL-ended, a null pointer after the last.
-# Reading them is C's world, so it is no_check; a friendly list will be written in CyborgPL on top.
+# Reading them is C's world, so it is no_check; a friendly list will be written in Nerve on top.
 # examples/args.args holds the words the test passes: apples, 3, hello world.
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     stdkit::print.stored["argc = ", 'argc', newln];

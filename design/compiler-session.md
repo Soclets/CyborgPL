@@ -11,7 +11,7 @@ request. Read this first; then everything it points at.
 The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
-the docs do not say, it is a question, not a pick. CyborgPL is a hobby
+the docs do not say, it is a question, not a pick. Nerve is a hobby
 language: no schedule, no obligation, no scope pressure from you.
 
 ## Who you are
@@ -39,7 +39,7 @@ The full rule is in `CLAUDE.md` and `DECISIONS.md`.
 ## Where you work (owner, 2026-09-22)
 
 The same repository, `Artificial-IntelligenceAI/CyborgPL`, on `main` —
-no branch — in **your own clone** at `/Users/ts/CyborgPL v2 compiler`.
+no branch — in **your own clone** at `/Users/ts/Nerve compiler`.
 A separate folder for two reasons: two sessions in one working tree
 would step on each other's unsaved files, and Claude's memory is kept
 per folder, so a folder of your own gives you a memory of your own

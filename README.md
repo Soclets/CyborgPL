@@ -11,7 +11,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 > **Not family friendly**.
 > "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
 >
-> CyborgPL is unstable by design: any release may change or remove anything. Nothing said about its stability is a guarantee, and it comes with **no warranty**. See our licences: [`LICENSE`](LICENSE), [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0).
+> Nerve is unstable by design: any release may change or remove anything. Nothing said about its stability is a guarantee, and it comes with **no warranty**. See our licences: [`LICENSE`](LICENSE), [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0).
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.

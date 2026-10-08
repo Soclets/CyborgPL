@@ -2,15 +2,15 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-Owner's direction, 2026-09-18. A higher-level language on top of CyborgPL.
+Owner's direction, 2026-09-18. A higher-level language on top of Nerve.
 
 ## What is decided
 
 - **It exists.** Writers of it do not think about the low-level parts of
-  CyborgPL — widths (`bin16`), streams (`stdout`), the entry point (`MAIN`),
+  Nerve — widths (`bin16`), streams (`stdout`), the entry point (`MAIN`),
   and the like.
 - **The final product is compiled with Cyborg.** A script is lowered to
-  CyborgPL and goes through Precog like anything else: full proofs, the
+  Nerve and goes through Precog like anything else: full proofs, the
   three tiers, LLVM.
 - **While iterating, it compiles itself.** It has its own fast path for the
   edit-run loop. That path may assume what the real build will later prove,
@@ -36,10 +36,10 @@ liked Lua's name) — its own language, distinct from both
 Cyborg and the owner's earlier N# (`nsharp`). **Its own syntax, not
 Cyborg's.** Designer-friendly; fast to compile; safest by default; does not
 care about performance until it is handed to Cyborg. The hand-off is
-therefore a real translation — Lunae source → CyborgPL source → Precog — not
+therefore a real translation — Lunae source → Nerve source → Precog — not
 an insertion of defaults into Cyborg syntax; the translator is the
 component that has to be right, and the differential harness (Lunae's own
-compiler vs. the lowered CyborgPL through the oracle) is how that is known.
+compiler vs. the lowered Nerve through the oracle) is how that is known.
 
 ## What it implies (open)
 
@@ -57,4 +57,4 @@ compiler vs. the lowered CyborgPL through the oracle) is how that is known.
    testing applies.
 4. ~~Syntax~~ — decided: its own (above).
 5. ~~A name~~ — decided: N%, renamed **Lunae** (2026-09-27).
-6. The translator Lunae → CyborgPL, and its verification.
+6. The translator Lunae → Nerve, and its verification.

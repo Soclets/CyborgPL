@@ -41,7 +41,7 @@ A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
 seems like a good name, maybe use `->` arrows"). Each value follows a
 **`<--`**, pointing into the output, as C++'s `<<` points into `cout`
 and as `<-` points into a variable in `inline.ASM` (owner: "`<-`", over
-`-->`, which would point away from the screen — CyborgPL's arrows point
+`-->`, which would point away from the screen — Nerve's arrows point
 where the value goes). It takes no `[ ]`, and at least one value. **`.weird.stored`**
 shows the stored form, as `print.stored`; **`.weird.useful`** the
 useful form, as `print.useful` (a bare `.weird` said "stored" until
@@ -176,7 +176,7 @@ stdkit::str.slice.grapheme[lend 's', pos 1, pos 5] -> str, or fail[out_of_range]
 ```
 
 The oracle emulates these so examples run (`examples/text.cpls`); std's
-real versions will be CyborgPL.
+real versions will be Nerve.
 
 ## Comparison
 

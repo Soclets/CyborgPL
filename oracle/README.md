@@ -1,4 +1,4 @@
-# oracle — the CyborgPL reference interpreter
+# oracle — the Nerve reference interpreter
 
 The executable specification. A tree-walking interpreter in Rust that
 implements exactly what `design/` has decided, refuses everything undecided

@@ -1,6 +1,6 @@
 # The RRx2-TV session — a brief
 
-For the session that builds **RRx2-TV**, CyborgPL's own translation
+For the session that builds **RRx2-TV**, Nerve's own translation
 validator ("RRx2-TV claude"). Written 2026-10-01 by the design session,
 at the owner's request. Read this first; then everything it points at.
 
@@ -9,9 +9,9 @@ at the owner's request. Read this first; then everything it points at.
 The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
-the docs do not say, it is a question, not a pick. RRx2, like CyborgPL,
+the docs do not say, it is a question, not a pick. RRx2, like Nerve,
 is a hobby project: no timeline, no obligation. The design session
-("design claude") records decisions in CyborgPL's `DECISIONS.md`; your
+("design claude") records decisions in Nerve's `DECISIONS.md`; your
 questions go to the owner, directly or through it.
 
 The owner is a programmer, not a compiler theorist, and answers "what"
@@ -20,7 +20,7 @@ means in practice.
 
 ## Why RRx2-TV exists
 
-CyborgPL's compiler, CCA, hands its code to LLVM and lets LLVM optimise
+Nerve's compiler, CCA, hands its code to LLVM and lets LLVM optimise
 it. That code carries facts Precog proved — "this add cannot overflow"
 (`nsw`/`nuw`), value ranges, "these pointers do not overlap" — and LLVM
 optimises on the strength of them. RRx2-TV proves that what LLVM gives
@@ -34,12 +34,12 @@ most of a program into `main`, where one-function-at-a-time checking
 cannot judge, and Alive2 21.0 is built for LLVM 21 while this machine
 runs LLVM 23. **RRx2-TV checks whole programs.**
 
-**It is for CyborgPL only** (owner: "it's for CyborgPL, not an Alive2
+**It is for Nerve only** (owner: "it's for Nerve, not an Alive2
 competitor"). It must understand the LLVM IR that CCA actually emits,
 not all of LLVM IR. Where it meets something it does not model, it says
 so and judges nothing; it never guesses.
 
-**CyborgPL is paused until RRx2-TV exists** (owner, 2026-09-30). The
+**Nerve is paused until RRx2-TV exists** (owner, 2026-09-30). The
 compiler, check and synthia sessions have stopped and wait on you.
 That is a reason to get to a working RRx2-TV, not to cut corners: what
 "exists" means is the owner's to say (see Open).
@@ -48,14 +48,14 @@ That is a reason to get to a working RRx2-TV, not to cut corners: what
 
 A verdict of "proven" must never be wrong. "Could not decide" is always
 an acceptable answer; a false "proven" is the one failure that makes
-RRx2-TV worse than nothing, because CyborgPL would then trust a broken
+RRx2-TV worse than nothing, because Nerve would then trust a broken
 optimisation. So every instruction RRx2-TV models follows LLVM's own
 Language Reference, including poison, `undef` and undefined behaviour,
 and every gap in the model shows up as "not judged".
 
 **You are a different author from Precog's and from CCA's.** Read
 `design/`, `DECISIONS.md`, the LLVM Language Reference, and the IR CCA
-writes; never `cca/` or `oracle/src` in CyborgPL's repo. If RRx2-TV
+writes; never `cca/` or `oracle/src` in Nerve's repo. If RRx2-TV
 learned what CCA meant from CCA's own code, it would repeat CCA's
 mistakes instead of catching them.
 
@@ -74,7 +74,7 @@ mistakes instead of catching them.
   `-fsanitize=address,undefined`; the final build goes without them,
   since RRx2-TV's runs are long. Warnings are errors in both (`-Wall
   -Wextra -Werror`), and no raw `new`/`delete`.
-- **Licence**: Apache-2.0 WITH LLVM-exception, as CyborgPL; not copyleft
+- **Licence**: Apache-2.0 WITH LLVM-exception, as Nerve; not copyleft
   (owner: "No, not copyleft"). Alive2's code is MIT and may be borrowed,
   with its notice kept, if the owner rules that way (see Open).
 - **Names and marks**: the validator is **RRx2** and the language is
@@ -94,26 +94,26 @@ sentence` (`feature.tv.memory: …`, `fix.tv: …`), trailer
 README's toolchain and licence sections are the owner's wording; change
 them only when the owner asks.
 
-You read CyborgPL's repo at `/Users/ts/CyborgPL v2` and never edit it.
+You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
 
 ## What you have to work with
 
 - **CCA writes its IR before and after LLVM's passes**: `cca build
   file.cpls --emit-llvm DIR` writes `DIR/before.ll` and `DIR/after.ll`
   (ae478cd). A CCA built at f497869 is at
-  `/Users/ts/CyborgPL v2/cca/target/release/cca`; running it is fine,
+  `/Users/ts/Nerve/cca/target/release/cca`; running it is fine,
   reading its source is not. CCA emits LLVM 22 IR (it builds against
   `llvm@22`); you read it with LLVM 23. Check that this holds.
 - **Programs to run it on**: CCA's own test programs,
   `cca/compiler/tests/**/*.cpls` (owner, 2026-10-01: "yes, use them") —
   the programs and the IR CCA writes from them only, never CCA's code, and
   their comments' expected answers are CCA's author's, not truth;
-  `examples/*.cpls` in CyborgPL's repo, and
-  check claude's corpus in `/Users/ts/CyborgPL v2
+  `examples/*.cpls` in Nerve's repo, and
+  check claude's corpus in `/Users/ts/Nerve
   verification/check/corpus/` (read-only).
 - **What CCA's IR may rely on**: `design/precog.md` (what Precog proves),
   `design/compiler-verification.md` ("Our own: RRx2-TV"),
-  `design/types.md` and `design/operators.md` (CyborgPL's arithmetic).
+  `design/types.md` and `design/operators.md` (Nerve's arithmetic).
 - **Alive2's results** from check claude's first run, as a baseline:
   where both judge a function, they must agree.
 
@@ -134,14 +134,14 @@ You read CyborgPL's repo at `/Users/ts/CyborgPL v2` and never edit it.
 - **Cores**: the machine has 10. You may use up to **8** at once for
   builds, tests and runs (`-j8`), leaving 1 for the desktop and 1 for the
   design session (owner, 2026-10-01: "raise", since RRx2-TV is the only
-  session working while CyborgPL is paused).
+  session working while Nerve is paused).
 - **When you write to the owner**, lead with the outcome in plain
   sentences, spell out terms, and keep it short. They read your messages,
   not your tool output.
 
 ## Reaching other sessions
 
-Send by permanent session id (CyborgPL's `CLAUDE.md` lists them):
+Send by permanent session id (Nerve's `CLAUDE.md` lists them):
 design claude is `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`. Under
 "the owner says" put only the owner's own words; mark your additions as
 yours.
@@ -155,8 +155,8 @@ Ask these, one at a time, when the work reaches them:
    Reference, test files and IR library, and the optimiser only for the
    shapes of its output (`DECISIONS.md`).
 2. ~~What "RRx2-TV exists" means~~ Decided 2026-10-01: it covers what
-   CyborgPL supports at the pause (owner: "It should cover what CyborgPL
+   Nerve supports at the pause (owner: "It should cover what CyborgPL
    currently supports"); read as no program refused for an unmodelled
    feature (`DECISIONS.md`).
-3. How check claude runs it, and what it reports, once CyborgPL resumes.
+3. How check claude runs it, and what it reports, once Nerve resumes.
 4. The command-line shape, and the output format.

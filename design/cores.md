@@ -41,7 +41,7 @@ your limbs  everything else
 
 When people say "CyborgPL" they mean Signatar with whatever cores, "like
 how they say BIOS for UEFI" (owner); the website will say **Signatar
-CyborgPL** when this lands, "Or else, it would just be an Assembly
+Nerve** when this lands, "Or else, it would just be an Assembly
 monster" (owner).
 
 ## The three kinds of thing
@@ -49,10 +49,10 @@ monster" (owner).
 | | What it is | Authority | Written in |
 |---|---|---|---|
 | **Signatar** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits cores | (CCA itself) |
-| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to limbs, and may take them away (2026-10-07); may add syntax | Rust plugin + CyborgPL |
-| **A limb** | a library | only the powers granted to it | CyborgPL |
+| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to limbs, and may take them away (2026-10-07); may add syntax | Rust plugin + Nerve |
+| **A limb** | a library | only the powers granted to it | Nerve |
 
-- **Cores make dialects**, which are still CyborgPL. A restricted
+- **Cores make dialects**, which are still Nerve. A restricted
   dialect, a game engine's say, is a core that takes powers away from the
   programs that list it (owner, 2026-10-07: "`a`"). Until 2026-10-07 a
   codextra was a category, another language on the base ("this shit could
@@ -169,7 +169,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 without ASP is refused, so std's maths always has true values and checks,
 and without IEG too, which grants std its operators.
 
-Written in CyborgPL, calling the Rust runtime for what CyborgPL cannot
+Written in Nerve, calling the Rust runtime for what Nerve cannot
 express yet. It holds **every operator**: `plus`, `minus`, `times`,
 `div.X` / `mod.X`, `pow`, comparisons, `and`, `or`, `not`, `not.bit`, `-`
 (so `-5` is std's `-` applied to `5`), bitwise and `++`; the text and
@@ -205,7 +205,7 @@ makes its own lists and allocator, as Linux does.
 
 ## Manifests
 
-`CCA.cplr` is one real CyborgPL value, not named `const`s ("if the syntax
+`CCA.cplr` is one real Nerve value, not named `const`s ("if the syntax
 looks real, but it's not real. It feels like a child roleplaying", owner):
 
 ```
@@ -241,7 +241,7 @@ is *sketch*: `cca::Installed[ … ]`. **There is an uninstaller**
 (owner): with nothing named it removes everything the installer put
 there, with a piece named (std, say) only that piece; never a project. It
 comes with Synthia only, which can uninstall itself too (owner); a
-CCA-only user removes CyborgPL by hand, "just like how a CCA user would
+CCA-only user removes Nerve by hand, "just like how a CCA user would
 have to change a limb's prefix themselves" (owner).
 
 ## Code for one machine

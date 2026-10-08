@@ -215,7 +215,16 @@ same day and pushed `main` (3d674c85) into it. The same day every session
 moved to its clone of it (`/Users/ts/Nerve`, `… compiler`, `… verification`,
 `… website`); the old repository was frozen at 087cdfc8, the old folders'
 pushes disabled, and **the old repository archived** on GitHub (owner:
-"yea, archive it"): read-only, kept, history intact. Not yet asked:
+"yea, archive it"): read-only, kept, history intact. Then step 1 of renaming inside the repo (owner: "You could do only step 1
+for tonight, tell the others to hop off"): **"CyborgPL" became "Nerve" in
+the prose of `design/`, the example comments, the oracle's comments and
+messages, and the README**. Kept as they were: words in double quotes (the
+owner's and others'), the old v1 language ("legacy CyborgPL",
+`CyborgPL-legacy`), what `.cpls` / `.cplr` / `.cplm` abbreviate ("CyborgPL
+Source"), the install path `%APPDATA%\CyborgPL\`, the session titles, this
+log (history), `bench/`, and every licence and trademark statement
+(`design/licensing.md`, the README's "CyborgPL™" lines), which wait for the
+owner. Old clone paths in the session briefs now name the Nerve folders. Not yet asked:
 whether names inside the code (CCA, stdkit, Limb, core) change
 with it to the Nerve names above; the domain; the other sessions'
 clones.

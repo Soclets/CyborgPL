@@ -5,10 +5,10 @@
 Decided 2026-09-14. Same source, same compiler, same *named* target →
 byte-identical binary, on any machine, any day.
 
-## Why CyborgPL is more exposed than other compilers
+## Why Nerve is more exposed than other compilers
 
 In C or Rust, nondeterministic optimisation yields a slower or faster binary
-that does the same thing. In CyborgPL, Precog's proofs decide **behaviour**:
+that does the same thing. In Nerve, Precog's proofs decide **behaviour**:
 a bound proven on one machine and not on another means one binary has no
 runtime check and the other has one — two different programs. SMT solvers
 are nondeterministic by default (time limits, seeds, memory, clause order),

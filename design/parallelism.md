@@ -85,7 +85,7 @@ same way) nor drop rounds whose results look unused. It may still do the
 work faster — SIMD, or across cores — so `!cheat` is about whether the work
 happens, not how; add `seq` for one round at a time, in order (owner:
 "Skipping work, because `seq` could be used with `!c`"). Written in
-CyborgPL for timing code and the like, where today an empty
+Nerve for timing code and the like, where today an empty
 `inline.ASM` passing the value through a register does the job.
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):

@@ -2,7 +2,7 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-For CyborgPL's own developers — not for users of CyborgPL. Nothing here
+For Nerve's own developers — not for users of Nerve. Nothing here
 ships or is user-configurable. Owner's direction, 2026-09-14: an oracle plus
 the optimised generator.
 
@@ -11,13 +11,13 @@ the optimised generator.
 - **The oracle** — a reference interpreter: slow, small, written for
   obviousness, straight from the spec. No Precog, no LLVM, no optimisation.
   Correct by inspection. It is also the *executable specification*: what
-  CyborgPL does in a given case is what the oracle does.
+  Nerve does in a given case is what the oracle does.
 - **The generator** — the real compiler: Precog + LLVM, targeting the exact
   machine and using everything the hardware has.
 
 ## The method: differential testing
 
-A program generator produces large numbers of random, valid CyborgPL programs
+A program generator produces large numbers of random, valid Nerve programs
 (as Csmith / YARPGen do for C and C++). Each runs through both
 implementations. Any difference in output is a bug in one of them, and either
 way it has been found. This runs continuously in the compiler's CI.
@@ -40,7 +40,7 @@ exists (owner, 2026-09-22), so **each generated program carries a small
 printer written in the base language**: the number turned into ASCII
 digits in a `list[uint8]`, handed to C's `write` under `!check`, as
 `examples/ffi.cpls` does. Both implementations already agree on it.
-The printer is ordinary CyborgPL, so a bug in *it* is a finding too.
+The printer is ordinary Nerve, so a bug in *it* is a finding too.
 When std has a print, the generator switches to `std::print.useful` and the
 printer goes. Proposed alternative: wait for std, and compare only the
 exit code and where a check fired — which would delay every output bug
@@ -101,7 +101,7 @@ fun"). Translation validation for the LLVM half becomes ours, not
 borrowed: a checker named RRx2-TV, which can check a whole program where
 Alive2 checks one function at a time (CCA folds most of a program into
 `main`), and can read Precog's facts directly. Check claude ran
-Alive2 first (93c6e49); CyborgPL is paused until RRx2-TV exists (owner). The paragraph above is why "Borrow it"
+Alive2 first (93c6e49); Nerve is paused until RRx2-TV exists (owner). The paragraph above is why "Borrow it"
 was chosen, and it still holds as the cost: most of Alive2 is an exact
 meaning for every LLVM instruction, and a mistake there says "proven"
 where nothing is. Like check claude's tools, it must not share Precog's

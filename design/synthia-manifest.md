@@ -95,7 +95,7 @@ x86_64-windows.runner = wine
   the one built when none is named. One target is one line.
 
 **CCA's package manager can do whatever Synthia can** (owner, 2026-09-29:
-"yea"), in its plainer CyborgPL-syntax way; Synthia's edge is convenience,
+"yea"), in its plainer Nerve-syntax way; Synthia's edge is convenience,
 never capability, so CCA never needs it. The owner asked whether CCA's
 package manager could do "some Synthia shit", since otherwise "that feels
 like the base lang not being able to do inline ASM". So `CCA.cplr`'s
@@ -132,7 +132,7 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   not a Windows device name — each is written in code as `name::`.
   The prefix later took that job; `name` stays strict all the same, in
   both manifests (owner, 2026-09-30: "strict").
-- **Comments are `#`**, a space after it, as in CyborgPL (owner).
+- **Comments are `#`**, a space after it, as in Nerve (owner).
 - **A line is written one way** (owner, 2026-09-29: "refuse"): `key =
   value` with one space each side of `=`, no indentation, and a comment on
   its own line. `name=shop`, an indented line, and a comment after a value

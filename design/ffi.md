@@ -237,7 +237,7 @@ there; the std Limb offers `std::c.errno[]` backed by the real thing.
 
 ## `layout.C` — a struct in C's shape
 
-**A language's name is capitalized wherever CyborgPL writes it** (owner,
+**A language's name is capitalized wherever Nerve writes it** (owner,
 2026-10-02: "BIG"): `layout.C`, `inline.ASM`, `inline.MSL`, `inline.C`
 when it comes. The owner said "inline.C has a big c" on 2026-10-01;
 design claude generalized it then without recording it, and `layout.c`

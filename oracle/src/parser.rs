@@ -819,7 +819,7 @@ impl Parser {
                     if prog.main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
                     // the command line, as C hands it over: a count and the words (owner, 2026-09-29:
-                    // "low-level shit, decided"); anything friendlier is written in CyborgPL on top
+                    // "low-level shit, decided"); anything friendlier is written in Nerve on top
                     if *self.peek() == Tok::LBracket {
                         self.advance();
                         let mut names = Vec::new();
@@ -1509,7 +1509,7 @@ impl Parser {
         // Rust names that are not aliases say why (owner, 2026-10-02: only the number names)
         if segs.len() == 1 {
             match segs[0].as_str() {
-                "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no CyborgPL type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
+                "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no Nerve type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
                 "String" => return self.err("text is `str.utf8`; Rust's `String` is not an alias"),
                 "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `stdkit::uenr` is exact rather than wider"),
                 _ => {}
@@ -2645,7 +2645,7 @@ impl Parser {
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {
             path.push("stdout".into());
         }
-        // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
+        // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with Nerve's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
         if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
             return self.err("`.weird` comes first, the strongest modifier: `stdkit::print.weird.useful.stdout <- …`");
@@ -3697,7 +3697,7 @@ pub fn module_name_ok(name: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Other names for CyborgPL's types (owner, 2026-10-02): Rust's number names, and the brain
+/// Other names for Nerve's types (owner, 2026-10-02): Rust's number names, and the brain
 /// float's `bfloat16` / `bf16` — the only aliases a type has.
 pub fn rust_alias(name: &str) -> Option<&'static str> {
     Some(match name {

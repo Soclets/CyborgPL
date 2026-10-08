@@ -4,7 +4,7 @@
 
 Owner, 2026-09-14.
 
-- **Cyborg Chassis Assembler (CCA)** — the CyborgPL compiler (owner,
+- **Cyborg Chassis Assembler (CCA)** — the Nerve compiler (owner,
   2026-09-18; spelling of "Chassis" to confirm — owner wrote "Chasis").
   Not an assembler in the `as` sense; the owner accepts the possible
   confusion. The chassis is the frame; Precog is what is bolted to it.
@@ -37,7 +37,7 @@ Owner, 2026-09-14.
   TETR.IO replays). `.ttsr` is free everywhere. What the syntax looks like
   is open; Synthia is not being built yet.
 
-- **`.cpls`** — a CyborgPL source file (*CyborgPL Source*). `.cpl` is
+- **`.cpls`** — a Nerve source file (*CyborgPL Source*, the language's name then). `.cpl` is
   deliberately avoided.
 - **`synthia sync`** (owner, 2026-10-06, via synthia claude): writes the
   project's `CCA.cplr` from `Synthia.ttsr`, one for each needed Limb that
@@ -48,8 +48,8 @@ Owner, 2026-09-14.
   `CCA.cplr` in its own folder, never a copy (owner: "`a`").
 - **CCA's package manager** (owner, 2026-09-29) — a second, built-in one,
   "because a hobby is supposed to be fun": `cca add …`, no name of its own.
-  Its manifest is **`CCA.cplr`**, written in CyborgPL syntax on purpose:
-  `.cplr` (*CyborgPL Related*) is the extension for CyborgPL-syntax files
+  Its manifest is **`CCA.cplr`**, written in Nerve syntax on purpose:
+  `.cplr` (*CyborgPL Related*) is the extension for Nerve-syntax files
   that belong to the tooling, and the file's name says which one it is.
   **One value, `cca::Manifest[ … ];`** (owner, 2026-10-06: "`c`. It may
   not look as complex, but at least it's not much of a roleplay"; from
@@ -88,7 +88,7 @@ Owner, 2026-09-14.
   "Just edit the source code"), so a dependency line names no word:
   `cca::Dep[path = "../money"]`. Not in the oracle yet. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
-  computed lives in **`build.cplr`**, a full CyborgPL program (functions,
+  computed lives in **`build.cplr`**, a full Nerve program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
   chosen ones or all of them, a dependency's included. Both package managers
   run it. The command is **`cca prepare`** (owner, 2026-09-29: b):
@@ -150,8 +150,8 @@ Whether it is its own program or a VS Code extension is open (owner:
 owner's order:
 
 1. **Quick Fix** — "biggest one": "a way to fix your code instantly (not
-   literally) from update breaking your code". When a new CyborgPL
-   changes a spelling (CyborgPL is unstable forever, and an old spelling
+   literally) from update breaking your code". When a new Nerve
+   changes a spelling (Nerve is unstable forever, and an old spelling
    is refused with an error naming the new one: `/` → `div`, `<==` →
    `</==`, `let` dropped), Quick Fix rewrites your code to the new
    spelling — Rust's `cargo fix --edition` and Go's `go fix` do the same
@@ -186,7 +186,7 @@ owner's order:
    first**, and **upgrades an outdated dependency in a copy under
    `.synthia/`**, as the prefix override does. Those parts, and the name
    `spellings.cplr`, are design claude's; the owner: "whatever is good,
-   bro". Both files are CyborgPL syntax, so `.cplr`, no new extension.
+   bro". Both files are Nerve syntax, so `.cplr`, no new extension.
 
    **CCA has a command that says where and what to change; Synthia makes
    the changes** (owner, 2026-10-02: "I think CCA's one should be a
@@ -220,7 +220,7 @@ owner's order:
    than Chrome's own art.
 
 Noted by design claude, not ruled: the description in a code picker
-needs somewhere to come from, and CyborgPL has no doc comments yet; in VS
+needs somewhere to come from, and Nerve has no doc comments yet; in VS
 Code, 3 ships built in, 6 is the existing `clangd` extension, 7 has
 existing `.ll` extensions, and 1, 2 and 5 come from a language server
 running CCA.

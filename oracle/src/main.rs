@@ -1,4 +1,4 @@
-//! `oracle file.cpls` — run a CyborgPL program the slow, obvious way.
+//! `oracle file.cpls` — run a Nerve program the slow, obvious way.
 //!
 //! This is the reference interpreter: the executable specification. It knows
 //! exactly what `design/` has decided and refuses everything else with a
@@ -165,7 +165,7 @@ fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
 
 fn load_files(path: &Path) -> Result<ast::Program, String> {
     if path.is_file() {
-        if path.extension().map(|x| x != "cpls").unwrap_or(true) { return Err("oracle: a CyborgPL source file ends in .cpls".into()); }
+        if path.extension().map(|x| x != "cpls").unwrap_or(true) { return Err("oracle: a Nerve source file ends in .cpls".into()); }
         return parse_file(path, Vec::new());
     }
     if !path.is_dir() { return Err(format!("oracle: {} is neither a .cpls file nor a Limb directory", path.display())); }
@@ -227,7 +227,7 @@ const OFFICIAL_CORES: [&str; 15] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "M
 
 use parser::CORE_IDS;
 
-/// Read a Limb's `CCA.cplr`: one CyborgPL value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
+/// Read a Limb's `CCA.cplr`: one Nerve value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
 /// per setting. Returns its 'prefix' (none when there is no `CCA.cplr`), its dependencies and its cores.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), String> {

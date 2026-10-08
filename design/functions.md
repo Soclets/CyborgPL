@@ -151,7 +151,7 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
 Exactly these two types (the names are free); the program's name comes
 first, each word ends in a NUL, and `argv[argc]` is a null pointer. Reading
 them is C's world, so `!check`. Anything friendlier — a list of text,
-flags, `--help` — is written in CyborgPL on top, in std or a Limb. The
+flags, `--help` — is written in Nerve on top, in std or a Limb. The
 2026-09-14 line here said the arguments "come from the std Limb"; the
 owner put the door in the base language instead. Proposed alternatives: a
 ready `list[str.utf8]` (design claude's recommendation); `std::args[]`;

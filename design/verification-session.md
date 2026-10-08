@@ -10,7 +10,7 @@ owner's request. Read this first; then everything it points at.
 The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
-the docs do not say, it is a question, not a pick. CyborgPL is a hobby
+the docs do not say, it is a question, not a pick. Nerve is a hobby
 language: no schedule, no obligation, no scope pressure from you.
 
 ## Who you are
@@ -56,7 +56,7 @@ their outputs, their reports. Reading their insides is not.
 ## Where you work
 
 The same repository, `Cyborg-Assembly-Manufacturing-Site/CyborgPL`, on
-`main` — no branch — in **your own clone** at `/Users/ts/CyborgPL v2
+`main` — no branch — in **your own clone** at `/Users/ts/Nerve
 verification`. A separate folder because two sessions in one working
 tree step on each other's unsaved files, and because Claude's memory is
 per folder, so your own folder gives you your own memory. Your code
@@ -102,7 +102,7 @@ direction. If a session is not running, ask the owner.
 Not a schedule. The first two are what find bugs today; the third and
 fourth are the deeper checks.
 
-1. **The program generator.** Random *valid* CyborgPL programs, built
+1. **The program generator.** Random *valid* Nerve programs, built
    from the grammar so they are correct by construction, with a seed so
    any finding replays exactly. Kespar's found three Precog bugs in one
    commit. Cover what the corpus does not: deep call chains, nested
