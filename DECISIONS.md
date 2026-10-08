@@ -16,7 +16,12 @@ good at kernel & bootloader". This **replaces** the principle of a few hours
 earlier ("the base shouldn't be practical to use, even in low-level
 environments", below): **the base is meant to be usable on its own, with no
 heap and no operating system**, the way Rust's `core` is. What moves into
-it is asked one thing at a time.
+it is asked one thing at a time. **The operators move into the base** (owner: "`a`"): every
+one (`plus`, `minus`, `times`, `pow`, `div.X`, `mod.X`, `equal_to`,
+`not_equal`, `<`, `>`, `at_most`, `at_least`, `and`, `or`, `not`, the bitwise
+ones), with `.wrap` and `.ieee`, over (b) staying stdkit's; this undoes
+2026-10-06's move of `plus` and `div` to std. A type may still define its
+own (`op plus`) by the existing power (design claude's reading). Not built.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
