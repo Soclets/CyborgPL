@@ -21,7 +21,19 @@ one (`plus`, `minus`, `times`, `pow`, `div.X`, `mod.X`, `equal_to`,
 `not_equal`, `<`, `>`, `at_most`, `at_least`, `and`, `or`, `not`, the bitwise
 ones), with `.wrap` and `.ieee`, over (b) staying stdkit's; this undoes
 2026-10-06's move of `plus` and `div` to std. A type may still define its
-own (`op plus`) by the existing power (design claude's reading). Not built.
+own (`op plus`) by the existing power (design claude's reading). Not built. **Numbers in the base mean their true values: ASP's number rules move
+into the base** (owner: "`a`, but didn't you just argue that they don't want
+this?"): `200` is two hundred, maths exact in between and checked where it
+lands (proven, or refused in a final build), wrapping written `.wrap`; over
+(b) the machine's maths in the base, ASP on top. Design claude answered the
+owner's question: it had argued that kernels wrap on purpose, think in bits
+and meet friction; the costs stand, but with the base now meant to be
+practical the default decides what happens when nobody thinks, and the
+friction has outs (`.wrap`; `0xFF` in a `uint8` is just 255; a reinterpretation
+`to.int8.bits[…]`; `no_check` for the unprovable), while (b)'s silent
+wraparound is where kernel overflow bugs begin; a kernel core or Limb could
+relax it later. Not yet asked: what stays in ASP (`to.`, range types) or
+whether it folds into the base.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
