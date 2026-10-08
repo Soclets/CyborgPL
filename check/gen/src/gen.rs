@@ -110,14 +110,14 @@ pub struct Config {
     pub shadow: bool,
     pub shadow_wrong: u64,
     /// stdkit's `str.at` / `str.slice` (CCA has no stdkit yet).
-    pub stdkit: bool,
+    pub cord: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, stdkit: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, new_words: true }
     }
 }
 
@@ -1806,8 +1806,8 @@ impl Gen {
         const TEXTS: &[&str] = &["hello", "h\u{e9}llo", "", "Z", "ZZ", "7", "a b", "\u{65e5}\u{672c}", "caf\u{e9}!", "\u{e9}"];
         let q = |n: &str| format!("'{n}'");
         // `str.at.<unit>` and `str.slice.grapheme` by position, out of range
-        // sometimes (owner, 2026-10-08); stdkit's, so not in CCA's runs yet
-        if self.cfg.stdkit && self.rng.chance(30) {
+        // sometimes (owner, 2026-10-08); cord's (once stdkit), so not in CCA's runs yet
+        if self.cfg.cord && self.rng.chance(30) {
             let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
             let n = t.chars().count() as i128;
             let s = self.name("t");

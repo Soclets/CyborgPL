@@ -23,9 +23,9 @@ generator writes neither. Older notes below keep the spellings of their day.
 known (once per life of the list, outside `check`); shadows a visible plain name (never a loop's
 counter) with `shadow`, in the same scope or an inner one, and in 50 programs in 1000
 (`--shadow-wrong`) writes a plain `let` over it instead, a mistake both engines must refuse;
-and, with `stdkit` not avoided, reads text by `str.at.byte/point/grapheme` and
+and, with `cord` (the standard library, stdkit until 2026-10-09) not avoided, reads text by `str.at.byte/point/grapheme` and
 `str.slice.grapheme`, out of range sometimes. The evaluator models remove and shadow; the text
-reads are compared between the engines only. Default avoid: `stdkit` (CCA has no stdkit yet).
+reads are compared between the engines only. Default avoid: `cord` (CCA has no standard library yet).
 
 ## What is here
 
