@@ -22,7 +22,10 @@ won't have to make a linker? Just use lld?", then **"We'll use `lld`"**,
 and on design claude's worry about reaching it through C++: "bro, C++ isn't
 gonna make you guys have a stroke". lld has no C interface, so CCA reaches
 it through the C++ LLVM wrapper `implementation-languages.md` already
-allows. Not yet asked: when CCA switches from the system linker.
+allows. **CCA switches to lld now** (owner: "`a`"), so every build links
+as the final one will and cross-building is ready when the rest is; over
+(b) switching only when cross-building is first needed. Design claude
+recommended (a).
 
 ### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
 
