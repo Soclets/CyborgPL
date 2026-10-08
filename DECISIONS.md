@@ -15,9 +15,14 @@ names the line, values and operator; Precog's errors carry spans), but a
 function the programmer writes cannot learn its caller's line, unlike
 Rust's `#[track_caller]` (`Location::caller()`, how `.unwrap()` names the
 line that panicked). The owner: "I want the track thingy". So **a function
-can get the location it was called from**. Not yet asked: whether a
-function must be marked to get it, what the location holds, its spelling,
-and the base or a core.
+can get the location it was called from**. **No mark: it is automatic**
+(owner: "Shouldn't it be auto?", then "auto"): a function that asks gets
+the location, and the compiler, seeing the whole program, passes it at
+every call to that function; over (a) a mark as Rust's, which design
+claude first recommended, then changed to auto. Design claude's reading,
+not asked: a function called from C, or through a function value Precog
+cannot resolve, gets "unknown" or is refused. Not yet asked: what the
+location holds, its spelling, the base or a core.
 
 ### 2026-10-08 — A build may read environment variables (owner; how not yet asked)
 
