@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — A function can know where it was called from, as Rust's `#[track_caller]` (owner; not designed)
+
+From "Do we need another IR for macros?" (no: macros work on tokens and the
+AST, which CyborgPL has; Rust has no macro IR, its HIR/THIR/MIR coming
+after expansion; CyborgPL has no macros), "What are macros for?" and "What
+about the knowing the source?": built-ins already know it (TAS's `must`
+names the line, values and operator; Precog's errors carry spans), but a
+function the programmer writes cannot learn its caller's line, unlike
+Rust's `#[track_caller]` (`Location::caller()`, how `.unwrap()` names the
+line that panicked). The owner: "I want the track thingy". So **a function
+can get the location it was called from**. Not yet asked: whether a
+function must be marked to get it, what the location holds, its spelling,
+and the base or a core.
+
 ### 2026-10-08 — A build may read environment variables (owner; how not yet asked)
 
 The owner said "I kinda want include bytes, tbh"; design claude pointed out
