@@ -67,8 +67,21 @@ function, and the copies each generic produced. **An iterator's `next` returns a
 after "What's the diff?"), so the base gets a type for "an item, or none",
 which can be stored and passed on, as Rust's `Option`; over (a) `next`
 failing with `done`, which design claude recommended (one way to say
-"nothing", the failures). Not yet asked: its name and cases; the iterator
-interface's spelling; how adapters chain.
+"nothing", the failures). **Its name is `optional`, its cases `value` and
+`none`** (owner: "yea"): `enum optional <T: any> { value: <T>  none }`,
+built `optional.value[5]` / `optional.none` and matched bare,
+`value 'x' { … }` / `none { … }`, as every enum (2026-09-20). The names
+went `Maybe` → "Is `maybe` correct?" → `optional`, lowercase like `list` →
+`some` ("What is `some` for?", "So, one value, or multiple?") →
+`singular` → `just` ("It could read as 5 values. Wait, where's the word
+`value`?") → `value`. Design claude first showed `value` bare (`value[5]`,
+`none`), then the prefixed version without saying it had changed; the
+owner caught it ("that was not the same as you showed me"), asked "Is the
+not bare version correct?" (yes: the 2026-09-20 rule; bare refused, the
+generic enum run in the oracle) and "Why is it bare inside `match`?" (the
+matched value names the type; the arms copy `otherwise`'s). `value` is also
+the label in `list.fill[value 0, count 10]`; the prefix keeps them apart.
+Not yet asked: the iterator interface's spelling; how adapters chain.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
