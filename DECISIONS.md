@@ -144,7 +144,7 @@ it's needed": **the static, self-contained build (LLVM and lld built by us
 and copied into `cca`) waits for a release or a need**; Homebrew's shared
 libraries until then.
 
-### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, then likely): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
+### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, then likely): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, the compiler the Synapse, Precog the Cortex, the runtime the Axon (owner)
 
 Brainstorming names "in case I wanna rename" (owner: "CyborgPL is already a
 good name, just finding more"), checked by design claude for clashes and
@@ -167,7 +167,14 @@ names offered, not asked: Synapse (the linker; CCA calls the system
 linker, so there is none to name), and, to Axon offered for the compiler, the owner: "Wouldn't that be the
 runtime?". **The runtime would be the Axon** (owner: "`Axon`", after "Any
 alts?": Impulse, Reflex, Myelin, Synapse, Signal), carrying the signal
-while the program runs; today it is unnamed (`cca-runtime`). **The compiler, CCA, would be the Cortex**
+while the program runs; today it is unnamed (`cca-runtime`). Later, the
+owner: "CCA changes to Synapse instead of Cortex? And Precog becomes
+Cortex?"; design claude agreed on Synapse (where code crosses from human
+to machine) and recommended keeping Precog for recognition; the owner:
+"`b`, only the people with the link have seen it, and bots". So **in
+Nerve, the compiler is the Synapse and Precog becomes the Cortex**,
+replacing the two choices above (CCA the Cortex; Precog keeping its
+name). **The compiler, CCA, would be the Cortex**
 (owner: "Cortex is CCA"), the part that plans before anything moves, and
 **Precog keeps its name** (owner: "yea, keep Precog"; Prefrontal and
 Cerebellum offered). **stdkit would be the Cord** (owner: "`Cord`", after "Any alts":
