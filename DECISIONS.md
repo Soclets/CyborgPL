@@ -50,9 +50,13 @@ for larger code, design claude's reading). On Xerpia's look inside, the
 owner: "Nah, I'll just show you" (design claude had offered CyborgPL's look,
 a look of its own, or CyborgPL's structure with `$` names). **Xerpia's
 memory is manual** (owner: "Manual"), over CyborgPL's ownership, a
-collector, one arena per run (recommended) or values only. Not yet asked:
-what a leak, a double free or a use after free does; the core's own name;
-the step budget. The fourth IR LNIR (2026-10-01)
+collector, one arena per run (recommended) or values only. **On a memory
+mistake, Xerpia is lenient by default, and `#bad_girl` makes it an error**
+(owner: "Xerpia is submissive by default. With `#bad_girl`, she'll error."),
+asked whether a use after free, a double free or a leak should stop the
+build (design claude recommended errors, a leak a warning). Not yet asked:
+what the lenient default does with each mistake; where `#bad_girl` goes;
+the core's own name; the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
