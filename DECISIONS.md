@@ -14,8 +14,14 @@ info?" (DWARF / PDB tables mapping machine code back to lines, variables
 and types, for debuggers and readable crash reports; often bigger than the
 code, so usually stripped or kept in a separate file; CCA emits none
 today, and nothing had been ruled). The owner: "There should be". So
-**CCA emits debug info**. Not yet asked: in which builds, and whether a
-final build carries it, strips it, or writes it to a separate file.
+**CCA emits debug info**. **A working build carries it inside; a final
+build writes it to a separate file and the shipped program has none**
+(owner: "`a`"), as macOS's `.dSYM`, Linux's split DWARF and Windows's
+`.pdb`; over (b) every build carrying it and (c) working builds only.
+Design claude recommended (a): the final product stays lean, and since
+builds are reproducible the separate file always matches its program.
+Not yet asked: the format per target (DWARF, PDB), and the file's name
+and place.
 
 ### 2026-10-08 — A function can know where it was called from, as Rust's `#[track_caller]` (owner; not designed)
 
