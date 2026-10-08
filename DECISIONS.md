@@ -25,8 +25,24 @@ core of its own**, run after the program is typed and before MIR (design
 claude's placement, so generated code is checked and proven as written
 code is), **behind a power `compile_time`, narrowed with `.`
 (`compile_time.io`)** as `raw_memory.read` narrows `raw_memory`, so a
-program may deny it. Not yet asked: the narrowings, the core's name, the
-sub-language's syntax, the step budget. The fourth IR LNIR (2026-10-01)
+program may deny it. **The narrowings** (design claude's set, the owner:
+"yea, but there should be a way to be more specific", then, shown the
+specific forms and asked whether compile-time code may write files, "`b`"):
+
+```
+compile_time.io.read["assets/logo.png", "schema/"]   # only these files or folders
+compile_time.io.write["include/"]                    # write, narrowed the same way
+compile_time.io.env["VERSION", "BUILD_ID"]           # only these environment variables
+compile_time.reflect["Point", "Order"]               # look only at these types
+compile_time.emit.fn / .struct / .op                 # generate only these kinds
+```
+
+with `deny`'s `.except[…]` and `.for[…]` as for every power; plain
+`compile_time` is all of it, and pure computation needs no power (Precog
+does it already). Design claude recommended (a) no writing; the owner chose
+(b), writing too, for example a header for C. Design claude's reading, not
+asked: every path, read or written, is inside the Limb's own folder. Not
+yet asked: the core's name, the sub-language's syntax, the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
