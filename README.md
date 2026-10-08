@@ -2,7 +2,7 @@
   <img src="brand/logo.svg" alt="" width="96">
 </p>
 
-<h3 align="center">CyborgPL™</h3>
+<h3 align="center">Nerve™</h3>
 
 <p align="center">Just a small hobby lang 😊<br>
 Very slow at the development, fast &amp; safe at the final product (no warranty 🤣).</p>
@@ -21,7 +21,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 - [`brand/`](brand/) — the mark (a circular C wrapping `:=`). On a pure white or pure black background use the single-colour versions, never the purple one.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`): copy it, translate it, remix it, with credit. Credit it exactly as:
-  `Original: CyborgPL™ (product name) at (one of the product's locations) cyborgpl.dev (official website)`
+  `Original: Nerve™ (product name) at (one of the product's locations) nerve-lang.com (official website)`
   The parentheses and what is inside them are part of the credit, not placeholders. As the licence asks, also say the text is under CC BY 4.0, and whether you changed it. The site's code stays under `LICENSE`.
 
 ## Contributing
@@ -38,7 +38,7 @@ No security support. No private reports, no fixes promised, no supported version
 
 ## Credits
 
-CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
+Nerve™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
 
 **Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as four [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log, the oracle and the benchmarks in `bench/`), *compiler claude* (CCA), *check claude* (the program generator, differential testing and translation validation in `check/`) and *website claude* (`website/`). Two more work in their own repos: *synthia claude* on [Synthia](https://github.com/Cyborg-Assembly-Manufacturing-Site/Synthia), and *RRx2-TV claude* on RRx2's translation validator. Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
 
@@ -54,7 +54,7 @@ CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECI
 - [Node.js](https://nodejs.org) and npm: the website's build.
 - [Homebrew](https://brew.sh): LLVM, Z3, cvc5, Alive2 and most of the benchmark's toolchains on the build machine.
 - [Git](https://git-scm.com), [GitHub](https://github.com) and the [GitHub CLI](https://cli.github.com): hosting and history.
-- [Cloudflare](https://www.cloudflare.com) Workers and Wrangler: cyborgpl.dev.
+- [Cloudflare](https://www.cloudflare.com) Workers and Wrangler: nerve-lang.com (and the old cyborgpl.dev).
 - macOS and Xcode's command-line tools, by Apple.
 
 **Data**
@@ -88,4 +88,4 @@ The oracle and the verification harness use no crates.
 - **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
 
 Copyright 2026 Tankun Sriket.
-CyborgPL™, Precog™ and Limb™ are names of this project.
+Nerve™ (formerly CyborgPL™), Precog™ and Limb™ are names of this project.

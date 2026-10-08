@@ -223,8 +223,13 @@ owner's and others'), the old v1 language ("legacy CyborgPL",
 `CyborgPL-legacy`), what `.cpls` / `.cplr` / `.cplm` abbreviate ("CyborgPL
 Source"), the install path `%APPDATA%\CyborgPL\`, the session titles, this
 log (history), `bench/`, and every licence and trademark statement
-(`design/licensing.md`, the README's "CyborgPL™" lines), which wait for the
-owner. Old clone paths in the session briefs now name the Nerve folders. Not yet asked:
+(`design/licensing.md`, the README's "CyborgPL™" lines), which waited for
+the owner. Then the owner: "Change the trademark shit". **The trademark
+and licence wording names Nerve**: the README's heading, credit line and
+attribution example (`Original: Nerve™ … nerve-lang.com (official
+website)`), "Nerve™ (formerly CyborgPL™), Precog™ and Limb™ are names of
+this project", and `design/licensing.md` throughout. Precog™ and Limb™
+keep their names until the part names are renamed (step 2). Old clone paths in the session briefs now name the Nerve folders. Not yet asked:
 whether names inside the code (CCA, stdkit, Limb, core) change
 with it to the Nerve names above; the domain; the other sessions'
 clones.
