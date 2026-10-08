@@ -570,6 +570,7 @@ range_type_on_range [fnv:bde7b04c0713065f] :: int32 in range[0, 3]`
 raw_in_bin [fnv:ad5eb2ee2d32acbc] :: what a literal means in bin64 without ASP is not decided
 raw_too_wide [fnv:c4428a0590df9bd5] :: `256` does not fit the 8 bits of int8: without ASP a literal is a bit pattern, 0 to 255
 raw_too_wide_return [fnv:83b3b1ac9aa76dd9] :: `65536` does not fit the 16 bits of uint16
+remove_needs_pos [fnv:ab2e9906df557f37] :: the position says `pos`: `list.remove[lend.mut 'xs', pos 2]`
 return_group_through_call [fnv:0d648b1bc81e861d] :: returns a borrow of 'c', which is not in @x
 return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
 return_needs_type [fnv:3bf50314ac10e1f2] :: `three` returns a value, so it says its type: `-> int32`
@@ -624,6 +625,7 @@ std_underscore_old [fnv:10bd3366d6968a05] :: `!std.` is an old spelling: write `
 std_width_overflow [fnv:d15cb0d6ab33d980] :: the value can be outside what a `not_std.uint4` holds
 std_wrong_version [fnv:de1d73720dc699e5] :: CCA knows stdkit `2026-10-06T12:57:14+07:00` only
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
+str_at_needs_pos [fnv:7db50ff2fe10eb31] :: a position says `pos`: `stdkit::str.at.point[lend 's', pos 3]`
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
 str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
 str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, or `.byte`

@@ -6,7 +6,7 @@ MAIN {
     }
     let 'len': int32 = list.length[lend 'xs'];
     let 'last': int32 = 'xs'[pos 100];
-    let 'first': int32 = list.remove[lend.mut 'xs', 1];
+    let 'first': int32 = list.remove[lend.mut 'xs', pos 1];
     let 'now_first': int32 = 'xs'[pos 1];
     let 'shorter': int32 = list.length[lend 'xs'];
     no_check my.exit['len' minus 'last' plus 'first' plus 'now_first' plus 'shorter' minus 99];

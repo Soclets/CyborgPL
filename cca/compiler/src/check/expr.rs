@@ -3495,7 +3495,11 @@ impl Checker {
                     }
                     other => return err(Diagnostic::error(format!("`list.remove` takes a list, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
                 };
-                let i = self.expr(ctx, positional[1])?;
+                // `pos` on every position (owner, 2026-10-07: "`a`").
+                let AK::Pos(at) = &positional[1].kind else {
+                    return err(Diagnostic::error("the position says `pos`: `list.remove[lend.mut 'xs', pos 2]`").at(positional[1].span));
+                };
+                let i = self.expr(ctx, at)?;
                 if !self.resolve(&i.ty).is_int() {
                     return err(Diagnostic::error("`list.remove` takes a 1-based position").at(positional[1].span));
                 }
@@ -4401,7 +4405,15 @@ impl Checker {
             }
             "c.errno" => Ty::int(true, 32),
             _ if name.starts_with("str.") => {
-                for e in &positional {
+                // `str.at.X` and `str.slice.X` say each position with `pos`
+                // (owner, 2026-10-07: "`a`, if it's correct").
+                let positions = name.starts_with("str.at.") || name.starts_with("str.slice.");
+                for (k, e) in positional.iter().enumerate() {
+                    let e: &ast::Expr = match (&e.kind, positions && k >= 1) {
+                        (AK::Pos(inner), true) => inner,
+                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `stdkit::{}[lend 's', pos 3]`", name)).at(e.span)),
+                        _ => e,
+                    };
                     let v = self.expr(ctx, e)?;
                     let v = self.as_operand(ctx, v)?;
                     hargs.push(Arg::Value(v));
