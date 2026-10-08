@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — The base should be practical, and good at kernels and bootloaders (owner; replaces the morning's principle)
+
+After comparing base CyborgPL with Rust's `core` (operators, `Option` /
+`Result`, iterators, formatting without a heap; usable for a kernel as it
+is) and asking "Does base Rust have ASP?" (partly: literal range checks and
+checked conversions, overflow checked in debug builds only, nothing proven),
+the owner: "You know what? Base CyborgPL should be practical, while being
+good at kernel & bootloader". This **replaces** the principle of a few hours
+earlier ("the base shouldn't be practical to use, even in low-level
+environments", below): **the base is meant to be usable on its own, with no
+heap and no operating system**, the way Rust's `core` is. What moves into
+it is asked one thing at a time.
+
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
 The owner: "Feeling like making a turing complete compile time language".
@@ -83,7 +96,7 @@ what
 allocating "for that" means under manual memory; the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
-### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
+### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner; the principle replaced the same day, above)
 
 Right after choosing (c) below, asked whether the heap-free part should be a
 Limb or a core ("I thought it was a core") and whether "a kernel really
