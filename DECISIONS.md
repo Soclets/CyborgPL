@@ -28,7 +28,9 @@ spellings, refused naming `shadow`, and `$` is no longer part of the
 language. `shadow` is a keyword. Built in the oracle; reject tests
 `old_shadow_walrus`, `old_shadow_eq`, `shadow_with_let`. The owner also
 asked about abbreviations for `grapheme`: there are none (a unit is
-written out, 2026-09-22).
+written out, 2026-09-22). Shown `->` beside `>>` (with `<<`, `<<>>`) for the arrows,
+the owner kept `->`: "Yeah, nvm. Even though `>>` is faster to write, my eyes
+are getting confused with it."
 
 ### 2026-10-08 — `pos` on every position, `list.remove` and `str.at` / `str.slice` too (owner: a)
 
