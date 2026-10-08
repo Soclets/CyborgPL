@@ -174,7 +174,14 @@ to machine) and recommended keeping Precog for recognition; the owner:
 "`b`, only the people with the link have seen it, and bots". So **in
 Nerve, the compiler is the Synapse and Precog becomes the Cortex**,
 replacing the two choices above (CCA the Cortex; Precog keeping its
-name). **The compiler, CCA, would be the Cortex**
+name). **In Nerve, a source file ends `.nrv`** (owner: "`.nrv` then"), after
+design claude checked the others asked about: `.n` (Nemerle's source,
+Neko's bytecode), `.nv` (old data formats such as MAME saves; reads as
+NVIDIA), `.n1` (Envisat satellite data, an old virus generator; reads as
+"version 1"), `.syn` (TextPad syntax files, chip synthesis; names the
+compiler, not the language), `.nvr` (network video recorders); `.nrv`
+overlaps only with Nero's old disc-compilation projects, and `.rs` has
+such overlaps too. **The compiler, CCA, would be the Cortex**
 (owner: "Cortex is CCA"), the part that plans before anything moves, and
 **Precog keeps its name** (owner: "yea, keep Precog"; Prefrontal and
 Cerebellum offered). **stdkit would be the Cord** (owner: "`Cord`", after "Any alts":
