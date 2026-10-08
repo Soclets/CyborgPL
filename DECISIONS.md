@@ -46,8 +46,13 @@ sub-language is named Xerpia** (owner: "Xerpia is the sub lang's name. Let's
 do the syntax"). **Xerpia is written `inline.Xerpia { … }`** (owner: "`a`"), joining
 `inline.ASM`, `inline.LL`, `inline.MSL`, where an item or a value goes,
 over a keyword `xerpia { … }` or separate files only (which may come later
-for larger code, design claude's reading). Not yet asked: the core's own
-name, Xerpia's syntax inside, the step budget. The fourth IR LNIR (2026-10-01)
+for larger code, design claude's reading). On Xerpia's look inside, the
+owner: "Nah, I'll just show you" (design claude had offered CyborgPL's look,
+a look of its own, or CyborgPL's structure with `$` names). **Xerpia's
+memory is manual** (owner: "Manual"), over CyborgPL's ownership, a
+collector, one arena per run (recommended) or values only. Not yet asked:
+what a leak, a double free or a use after free does; the core's own name;
+the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
 ### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
