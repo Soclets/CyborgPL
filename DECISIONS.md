@@ -85,7 +85,11 @@ the label in `list.fill[value 0, count 10]`; the prefix keeps them apart.
 after "what" to a first try that asked two things at once): `for` takes any
 type whose interface says it has a `next` returning `optional[…]`, the rule
 written in CyborgPL like `Ordered`; over (b) the base knowing the shape
-without an interface. Design claude recommended (a). **Each type says once
+without an interface. Design claude recommended (a). Correction: design
+claude told the owner an interface could list only `op`s and types, having
+looked at the examples only; `design/interfaces.md` has had `fn` entries
+from the start (`Printable`), and the oracle runs them. So what was chosen
+is the iterator being an interface; nothing new was needed for it. **Each type says once
 what it hands out, and `Iterator[int32]` checks it** (owner: "yea"): a
 type that fits `Iterator` declares its item type (a type belonging to
 another type, Rust's associated type; new to CyborgPL, spelling not
