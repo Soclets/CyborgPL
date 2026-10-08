@@ -32,8 +32,12 @@ practical the default decides what happens when nobody thinks, and the
 friction has outs (`.wrap`; `0xFF` in a `uint8` is just 255; a reinterpretation
 `to.int8.bits[…]`; `no_check` for the unprovable), while (b)'s silent
 wraparound is where kernel overflow bugs begin; a kernel core or Limb could
-relax it later. Not yet asked: what stays in ASP (`to.`, range types) or
-whether it folds into the base.
+relax it later. **ASP folds into the base entirely** (owner: "`a`"): the
+`to.` conversions, checked and raw, `check`, and range types and length
+bounds are base CyborgPL, and the core ASP is retired (its ID
+`4882d1f3…676f` no longer names a core), over (b) ASP keeping only range
+types and (c) ASP keeping all three. stdkit's "needs ASP" goes with it
+(design claude's reading).
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
