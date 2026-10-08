@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — Shadowing is `shadow 'x' := 2;`, a verb in `let`'s place; `$:=` and `$=` are gone (owner: yea)
+
+```
+let 'x' := 1;
+if true {
+    shadow 'x' := 2;            # a new 'x' for this block
+}
+shadow 'x': int32 = 3;          # typed
+shadow mut 'y' := 0;
+let no_shadow 'total' := 0;     # its twin, unchanged
+```
+
+Asked how shadowing looks today (`let 'x' $:= 2;`, `let 'x': int32 $= 3;`
+since 2026-09-14; a plain `let` over a visible name refused; `no_shadow`
+forbidding it), the owner: "I think we should change it to `shadow`".
+Design claude showed `let shadow 'x' := 2;`, in `no_shadow`'s place; the
+owner: "Not `let`"; design claude showed `shadow` taking `let`'s place, a
+verb like `change` (`let` declares, `shadow` declares again over an old
+name, `change` changes); the owner: "yea". So `$:=` and `$=` are old
+spellings, refused naming `shadow`, and `$` is no longer part of the
+language. `shadow` is a keyword. Built in the oracle; reject tests
+`old_shadow_walrus`, `old_shadow_eq`, `shadow_with_let`. The owner also
+asked about abbreviations for `grapheme`: there are none (a unit is
+written out, 2026-09-22).
+
 ### 2026-10-08 — `pos` on every position, `list.remove` and `str.at` / `str.slice` too (owner: a)
 
 ```

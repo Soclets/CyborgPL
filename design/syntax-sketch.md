@@ -48,7 +48,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
   `let` back (not the entire era), honestly. It just reads more
   naturally"). Every statement that touches a variable starts with a word
   saying what it does: `let 'x' := 1;` declares, `change 'x' = 2;`
-  changes, `let 'x' $:= 3;` shadows. History: `var` until 2026-09-19,
+  changes, `shadow 'x' := 3;` shadows. History: `var` until 2026-09-19,
   `let` 2026-09-19 to 09-25 (when a change was a bare `'x' = 2;`), no
   word 2026-09-25 to 10-02 (when `change` arrived), `let` again since,
   with `change` kept. `change` is the word because it cannot be read as
@@ -151,8 +151,8 @@ without the rest of that redesign. See `DECISIONS.md`.
 - Borrowed prints (`std::printc`/`std::c.printf`, `std::printrs`/`std::rs.println`)
   existed for a day (2026-09-19) and were removed by the owner on
   2026-09-20; `print` and `print.useful` are the prints.
-- **`$:=` / `$=` shadow** (decided 2026-09-14): redeclaring a visible name
-  needs the `$`; `let 'x' $:= 2;`. A name marked `!$` cannot be shadowed; an
+- **`shadow 'x' := …;` shadows** (owner, 2026-10-08; `$:=` / `$=` from 2026-09-14): redeclaring a visible name
+  needs the `$`; `shadow 'x' := 2;`. A name marked `!$` cannot be shadowed; an
   `!mut` one can (2026-09-25: `!mut` only forbids `change`).
 - **Numbers** (decided 2026-09-17): digit grouping is `_` only
   (`1_000_000`); `1,000` is an error that points at `_`; leading zeros are

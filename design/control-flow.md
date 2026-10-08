@@ -30,13 +30,13 @@ if 'x' > 10 {
 A block is a scope. A variable declared in it is gone when it ends.
 **Shadowing is never silent** (decided 2026-09-14): a name visible from an
 enclosing scope cannot be redeclared with `:=` or `=`. It *can* be
-deliberately hidden with `$:=` / `$=`, the `$` marking the intent:
+deliberately hidden with `shadow 'x' := …;` (owner, 2026-10-08; `$:=` / `$=` until then, the `$` marking the intent):
 
 ```
 let 'x' := 1;
 if true {
-    let 'x' $:= 2;            # shadows the outer 'x' until the block ends
-    let 'y': int32 $= 3;      # error: there is no 'y' to shadow
+    shadow 'x' := 2;            # shadows the outer 'x' until the block ends
+    shadow 'y': int32 = 3;      # error: there is no 'y' to shadow
 }
 ```
 

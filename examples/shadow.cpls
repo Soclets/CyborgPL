@@ -1,10 +1,10 @@
 MAIN {
     let 'x' := 1;
     if true {
-        let 'x' $:= 2;
+        shadow 'x' := 2;
         stdkit::print.useful['x', newln];
     }
     stdkit::print.useful['x', newln];
-    let 'x': int32 $= 3;
+    shadow 'x': int32 = 3;
     stdkit::print.useful['x', newln];
 }

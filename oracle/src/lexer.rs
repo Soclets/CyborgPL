@@ -358,9 +358,10 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         if rest.starts_with("!mu") && chars[i..].iter().take(4).collect::<String>() == "!mut" && !chars.get(i + 4).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("immut".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!mut".into(), "immut")); i += 4; col += 4; continue;
         }
-        if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); i += 3; col += 3; continue; }
-        if two == "$=" { push(Tok::ShadowEq, &mut toks); i += 2; col += 2; continue; }
-        if c == '$' { return err(tl, tc, "`$` marks a shadowing declaration and sits on the operator: `$:=` or `$=`".into()); }
+        // shadowing is the word `shadow` in `let`'s place since 2026-10-08 (owner: "yea"): `$:=`, `$=` are old
+        if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); toks.last_mut().unwrap().mtm = Some(("$:=".into(), "shadow 'x' := …")); i += 3; col += 3; continue; }
+        if two == "$=" { push(Tok::ShadowEq, &mut toks); toks.last_mut().unwrap().mtm = Some(("$=".into(), "shadow 'x': T = …")); i += 2; col += 2; continue; }
+        if c == '$' { return err(tl, tc, "`$` is not part of the language: a shadowing declaration is `shadow 'x' := …;` (owner, 2026-10-08)".into()); }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }
         if two == ":=" { push(Tok::Walrus, &mut toks); i += 2; col += 2; continue; }
         if c == ':' { push(Tok::Colon, &mut toks); i += 1; col += 1; continue; }

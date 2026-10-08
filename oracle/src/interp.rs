@@ -489,7 +489,7 @@ impl<'p> Interp<'p> {
     fn declare_shadow(&mut self, name: &str, mut slot: Slot, shadow: bool, line: usize) -> Result<(), RuntimeError> {
         if matches!(slot.kind, SlotKind::Lent | SlotKind::LentMut) { slot.since = self.write_count; slot.deps = std::mem::take(&mut self.pending_deps); }
         match (self.lookup(name), shadow) {
-            (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `$:=` or `$=`")),
+            (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `shadow '{name}' := …;` (owner, 2026-10-08)")),
             (None, true) => return rt(line, format!("`$` shadows an existing '{name}', but none is visible here")),
             (Some(existing), true) if existing.kind == SlotKind::Const => return rt(line, format!("'{name}' is a const and cannot be shadowed")),
             // `immut` only forbids `change` now; `!$` forbids shadowing (owner, 2026-09-25)

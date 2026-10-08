@@ -12,7 +12,7 @@ use crate::value::ty_name;
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "change", "giveS", "gives", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
+    "fn", "let", "shadow", "change", "giveS", "gives", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
     "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
@@ -1771,7 +1771,14 @@ impl Parser {
                 "let" => {
                     self.advance();
                     if *self.peek() == Tok::Dot { return self.err("`let` is a word of its own, then `mut`: `let mut 'x' := …;`"); }
-                    self.decl()
+                    self.decl(false)
+                }
+                // `shadow 'x' := 2;` declares a new 'x' over an old one, in `let`'s place (owner, 2026-10-08:
+                // "Not `let`", then "yea"), as `change` changes one
+                "shadow" => {
+                    self.advance();
+                    if self.is_word("let") { return self.err("`shadow` takes `let`'s place: `shadow 'x' := …;`"); }
+                    self.decl(true)
                 }
                 "var" => self.err("`var` is gone: declare with `let 'x' := 1;` or `let 'x': int32 = 1;`"),
                 "mut" | "immut" => self.err(format!("a declaration starts with `let`: `let {w} 'x' := …;`")),
@@ -2083,7 +2090,7 @@ impl Parser {
                 }
                 match self.peek() {
                     Tok::Eq => {}
-                    Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq | Tok::Colon => return self.err(format!("`change` changes what exists, with `=`: `change '{name}' = …;` (a new '{name}' is `let '{name}' := …;`, a shadow `let '{name}' $:= …;`)")),
+                    Tok::Walrus | Tok::ShadowWalrus | Tok::ShadowEq | Tok::Colon => return self.err(format!("`change` changes what exists, with `=`: `change '{name}' = …;` (a new '{name}' is `let '{name}' := …;`, a shadow `shadow '{name}' := …;`)")),
                     other => return self.err(format!("expected `=` after `change '{name}'`, found {other}")),
                 }
                 self.advance();
@@ -2096,7 +2103,7 @@ impl Parser {
     }
 
     // decl := 'let' '!$'? ('mut' | 'immut')? Var (':' type)? (':=' | '=' | '$:=' | '$=') rhs ';'   (`let` back, owner 2026-10-02); `let` already read
-    fn decl(&mut self) -> PResult<Stmt> {
+    fn decl(&mut self, shadow_word: bool) -> PResult<Stmt> {
         let line = self.line();
         let sealed = if *self.peek() == Tok::NoShadow { self.advance(); true } else { false };
         let mut mutability = None;
@@ -2110,14 +2117,12 @@ impl Parser {
             other => return self.err(format!("expected a quoted variable name, found {other}")),
         };
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
-        let shadow;
+        let shadow = shadow_word;
         match (self.peek().clone(), &ty) {
-            (Tok::Walrus, None) => { self.advance(); shadow = false; }
-            (Tok::Eq, Some(_)) => { self.advance(); shadow = false; }
-            (Tok::ShadowWalrus, None) => { self.advance(); shadow = true; }
-            (Tok::ShadowEq, Some(_)) => { self.advance(); shadow = true; }
-            (Tok::Walrus | Tok::ShadowWalrus, Some(_)) => return self.err("`:=` means Precog chooses the type; with an explicit type write `=` (or `$=` to shadow)"),
-            (Tok::Eq | Tok::ShadowEq, None) => return self.err("`=` means you said everything; with no type write `:=` (or `$:=` to shadow)"),
+            (Tok::Walrus, None) => { self.advance(); }
+            (Tok::Eq, Some(_)) => { self.advance(); }
+            (Tok::Walrus, Some(_)) => return self.err("`:=` means Precog chooses the type; with an explicit type write `=`"),
+            (Tok::Eq, None) => return self.err("`=` means you said everything; with no type write `:=`"),
             (Tok::Semi, _) => return self.err(format!("'{name}' needs a value; there are no implicit zero values")),
             (other, _) => return self.err(format!("expected `:=` or `=`, found {other}")),
         }
