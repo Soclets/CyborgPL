@@ -338,13 +338,13 @@ fn check_fn(p: &Program, fi: usize, sources: &SourceMap, problems: &mut Vec<Stri
                     // 2026-09-29: a), as Rust does.
                     let later = next_use(f, bi, i, *l).map(|sp| {
                         let s = f.span(sp);
-                        sources.get(s.file).line_col(s.start).0
+                        sources.get(s.file).line_of(s.start)
                     });
                     let kind = if exclusive { "`lent.mut` " } else { "" };
                     let tail = match (f.locals[l.0 as usize].name.clone(), later) {
-                        (Some(n), Some(line)) => format!("'{}' still borrows it {}and is used on line {}", n, kind, line),
+                        (Some(n), Some(line)) => format!("'{}' still borrows it {}and is used on {}", n, kind, line),
                         (Some(n), None) => format!("'{}' still borrows it {}and is used after this", n, kind),
-                        (None, Some(line)) => format!("the loop on line {} is still going through it", line),
+                        (None, Some(line)) => format!("the loop on {} is still going through it", line),
                         (None, None) => "a borrow of it is still in use".to_string(),
                     };
                     let mut d = Diagnostic::error(format!("'{}' cannot be {} here: {}", owner, what, tail)).at(f.span(*span));

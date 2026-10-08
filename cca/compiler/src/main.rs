@@ -258,10 +258,17 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
         Some(1) => Some(stderr.lines().find(|l| l.starts_with("line ")).unwrap_or("a `must` did not hold").to_string()),
         Some(code @ (101 | 104)) => {
             let what = stderr.lines().find_map(|l| l.strip_prefix("check: ").or_else(|| l.strip_prefix("proof failed: "))).unwrap_or("a check fired");
-            let line = stderr.lines().find_map(|l| l.strip_prefix("where: ")).and_then(|w| w.split(", line ").nth(1)).and_then(|w| w.split(',').next());
+            // "where: FILE, line N, column C", told as "line N of FILE"
+            // (owner, 2026-10-08: every place names its file).
+            let place = stderr.lines().find_map(|l| l.strip_prefix("where: ")).and_then(|w| {
+                let (file, rest) = w.split_once(", line ")?;
+                let line = rest.split(',').next()?;
+                let file = std::path::Path::new(file).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| file.to_string());
+                Some(format!("line {} of {}", line, file))
+            });
             let what = if code == 104 { format!("proof failed: {}", what) } else { what.to_string() };
-            Some(match line {
-                Some(n) => format!("line {}: {}", n, what),
+            Some(match place {
+                Some(p) => format!("{}: {}", p, what),
                 None => what,
             })
         }

@@ -85,6 +85,18 @@ impl SourceFile {
     pub fn display_name(&self) -> String {
         self.path.display().to_string()
     }
+
+    /// The file a second place in a message names (owner, 2026-10-08:
+    /// every place a message names gives its file, "`a`", always): its
+    /// name, the `where:` line holding the whole path.
+    pub fn short_name(&self) -> String {
+        self.path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| self.display_name())
+    }
+
+    /// "line 6 of shop.cpls".
+    pub fn line_of(&self, offset: u32) -> String {
+        format!("line {} of {}", self.line_col(offset).0, self.short_name())
+    }
 }
 
 /// Every source file of the build, indexed by `FileId`.

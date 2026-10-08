@@ -1,9 +1,9 @@
-test plain_bool ... FAILED: line 10: `must` does not hold
-test no_fail ... FAILED: line 13: `must.fail`: it did not fail
-test no_stop ... FAILED: line 17: `must.stop`: no check fired
-test stops_anyway ... FAILED: line 22: the position can be past the end
+test plain_bool ... FAILED: line 10 of outcomes.cpls: `must` does not hold
+test no_fail ... FAILED: line 13 of outcomes.cpls: `must.fail`: it did not fail
+test no_stop ... FAILED: line 17 of outcomes.cpls: `must.stop`: no check fired
+test stops_anyway ... FAILED: line 22 of outcomes.cpls: the position can be past the end
 test fails_ok ... ok
-test and_expr ... FAILED: line 32: `must` does not hold
-test texts ... FAILED: line 36: `must` does not hold: the left side is abc, and it must be `equal_to` abd
-test after_stop ... FAILED: line 42: `must` does not hold: the left side is 2, and it must be `equal_to` 5
+test and_expr ... FAILED: line 32 of outcomes.cpls: `must` does not hold
+test texts ... FAILED: line 36 of outcomes.cpls: `must` does not hold: the left side is abc, and it must be `equal_to` abd
+test after_stop ... FAILED: line 42 of outcomes.cpls: `must` does not hold: the left side is 2, and it must be `equal_to` 5
 8 tests: 1 passed, 7 failed

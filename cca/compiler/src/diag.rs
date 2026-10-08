@@ -122,9 +122,7 @@ impl Diagnostic {
             for (i, (w, at)) in self.why.iter().enumerate() {
                 let w = match at {
                     Some(sp) => {
-                        let f = sources.get(sp.file);
-                        let (line, _) = f.line_col(sp.start);
-                        format!("{} — line {}", w, line)
+                        format!("{} — {}", w, sources.get(sp.file).line_of(sp.start))
                     }
                     None => w.clone(),
                 };
@@ -146,7 +144,8 @@ impl Diagnostic {
                 let label = if i == 0 { "fix:  " } else { "   or " };
                 match f.line {
                     Some(l) => {
-                        let _ = writeln!(out, "{} line {}:", label, l);
+                        let file = self.span.map(|s| format!(" of {}", sources.get(s.file).short_name())).unwrap_or_default();
+                        let _ = writeln!(out, "{} line {}{}:", label, l, file);
                         let _ = writeln!(out, "       {}", f.text);
                     }
                     None => {

@@ -808,11 +808,11 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
         return err(Diagnostic::error("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`").at(*at));
     }
     let lines = CASE_LINES.with(|k| k.borrow().clone());
-    let line = |at: Span| sources.get(at.file).line_col(at.start).0;
+    let line = |at: Span| sources.get(at.file).line_of(at.start);
     let spelled = |b: bool| if b { "case.insensitive" } else { "case.sensitive" };
     let decide = |marks: &[(bool, Span)], what: &str, at: Span| -> Result<bool> {
         if let (Some(i), Some(s)) = (marks.iter().find(|m| m.0), marks.iter().find(|m| !m.0)) {
-            return err(Diagnostic::error(format!("{} is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error (owner, 2026-10-06)", what, spelled(true), line(i.1), spelled(false), line(s.1))).at(at));
+            return err(Diagnostic::error(format!("{} is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error (owner, 2026-10-06)", what, spelled(true), line(i.1), spelled(false), line(s.1))).at(at));
         }
         Ok(marks.first().is_some_and(|m| m.0))
     };
@@ -823,7 +823,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
         if let Some((other, other_at, other_ins)) = seen.iter().find(|(n, _, _)| *n != name && fold_case(n) == f) {
             if ins || *other_ins {
                 let which = if *other_ins { other.as_str() } else { name };
-                return err(Diagnostic::error(format!("{} and {} (line {}) differ only in case, and {} is `case.insensitive`: they would be one name", shown(name), shown(other), line(*other_at), shown(which))).at(at));
+                return err(Diagnostic::error(format!("{} and {} ({}) differ only in case, and {} is `case.insensitive`: they would be one name", shown(name), shown(other), line(*other_at), shown(which))).at(at));
             }
         }
         seen.push((name.to_string(), at, ins));
@@ -927,7 +927,7 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
         return err(Diagnostic::error(format!("`{} [ … ];` covers the whole Limb, so it is written in `limb.cpls`", m.spelled())).at(*at));
     }
     let kinds = BARE_KINDS.with(|k| k.borrow().clone());
-    let line = |at: crate::source::Span| sources.get(at.file).line_col(at.start).0;
+    let line = |at: crate::source::Span| sources.get(at.file).line_of(at.start);
     fn walk(items: &[Item], path: &str, chain: &mut Vec<(Bare, crate::source::Span)>, each: &mut dyn FnMut(&Item, String, &[(Bare, crate::source::Span)]) -> Result<()>) -> Result<()> {
         for it in items {
             let named = |n: &str| if path.is_empty() { n.to_string() } else { format!("{}.{}", path, n) };
@@ -981,7 +981,7 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
             _ => "op",
         };
         let both = |a: (Bare, crate::source::Span), b: (Bare, crate::source::Span)| {
-            err(Diagnostic::error(format!("`{} {}` is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error", kind, name, a.0.spelled(), line(a.1), b.0.spelled(), line(b.1))).at(it.span))
+            err(Diagnostic::error(format!("`{} {}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", kind, name, a.0.spelled(), line(a.1), b.0.spelled(), line(b.1))).at(it.span))
         };
         // Its own mark, then the block modules around it, inner first.
         let chain: Vec<(Bare, crate::source::Span)> = it.bare.iter().copied().chain(modules.iter().copied()).collect();

@@ -94,28 +94,15 @@ extern "C" {
 /// expects is the test passing, not a message.
 static mut QUIET_STOP: bool = false;
 
-/// A `must` that does not hold: `line N: msg` on stderr, and the test ends.
+/// A `must` that does not hold: `line N of FILE: msg` on stderr (the
+/// place written by the compiler, owner 2026-10-08: every place names its
+/// file), and the test ends.
 ///
 /// # Safety
-/// `msg` must point at `len` readable bytes.
+/// `msg` must point at `len` readable bytes, `at` at `at_len`.
 #[no_mangle]
-pub unsafe extern "C" fn cyborg_must_report(msg: *const u8, len: u64, line: u64) -> ! {
-    let mut buf = [0u8; 48];
-    let mut n = 0;
-    for &b in b"line " {
-        buf[n] = b;
-        n += 1;
-    }
-    let mut digits = [0u8; 20];
-    let d = digits_of(line as u128, &mut digits);
-    for &b in &digits[d..] {
-        buf[n] = b;
-        n += 1;
-    }
-    buf[n] = b':';
-    buf[n + 1] = b' ';
-    n += 2;
-    write(2, buf.as_ptr(), n);
+pub unsafe extern "C" fn cyborg_must_report(msg: *const u8, len: u64, at: *const u8, at_len: u64) -> ! {
+    write(2, at, at_len as usize);
     write(2, msg, (len & !STATIC) as usize);
     write(2, b"\n".as_ptr(), 1);
     exit(1)

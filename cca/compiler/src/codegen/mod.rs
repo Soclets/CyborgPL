@@ -3263,11 +3263,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let (b, si) = (self.here.0 as usize, self.here.1 as usize);
                 let block = &f.blocks[b];
                 let span = f.span(block.stmts.get(si).map(|s| s.span).unwrap_or(block.term_span));
-                let (line, _) = self.sources.get(span.file).line_col(span.start);
+                let at = format!("{}: ", self.sources.get(span.file).line_of(span.start));
                 let i64t = self.ctx.i64_type();
                 let p = self.ctx.ptr_type(AddressSpace::default());
-                let rf = self.module.get_function("cyborg_must_report").unwrap_or_else(|| self.module.add_function("cyborg_must_report", self.ctx.void_type().fn_type(&[p.into(), i64t.into(), i64t.into()], false), None));
-                let _ = self.builder.build_call(rf, &[ptr.into(), len.into(), i64t.const_int(line as u64, false).into()], "");
+                let rf = self.module.get_function("cyborg_must_report").unwrap_or_else(|| self.module.add_function("cyborg_must_report", self.ctx.void_type().fn_type(&[p.into(), i64t.into(), p.into(), i64t.into()], false), None));
+                let at_len = at.len() as u64;
+                let at_ptr = self.builder.build_global_string_ptr(&at, "must_at").ok()?.as_pointer_value();
+                let _ = self.builder.build_call(rf, &[ptr.into(), len.into(), at_ptr.into(), i64t.const_int(at_len, false).into()], "");
                 Some(None)
             }
             Op::MustStopFork => {
