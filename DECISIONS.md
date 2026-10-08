@@ -32,9 +32,10 @@ the one for humans"), **and the human one names everything the IDE one
 holds** (owner: "Bro, with that, the human can't see where, if they read
 human ver only" to design claude's first sample, which left out the file;
 then "yea"): `called from parse_header, at line 12, column 5, in
-main.cpls` and `main.cpls:12:5`. Not yet asked: whether the compiler's
-own human location (`diagnostics.md`: "called from MAIN at line 48") gets
-the file too; the spelling; the base or a core.
+main.cpls` and `main.cpls:12:5`. **The compiler's own human locations name the file too**
+(owner: "yea"): every place a message names gives its file, so
+`diagnostics.md`'s "called from MAIN at line 48" becomes "… at line 48 of
+shop.cpls". Not yet asked: the spelling; the base or a core.
 
 ### 2026-10-08 — A build may read environment variables (owner; how not yet asked)
 

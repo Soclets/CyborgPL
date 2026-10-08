@@ -27,7 +27,7 @@ indentation by spaces only:
 
 ```
 check: 'k' can be past the end of 'xs'
-where: shop.cpls, line 31, column 20 — in `pick`, called from MAIN at line 48
+where: shop.cpls, line 31, column 20 — in `pick`, called from MAIN at line 48 of shop.cpls
 code:  'xs'['k']
 when:  'k' is 101 and 'xs' has 100 elements — there is no element to take
 
@@ -108,8 +108,10 @@ Proposed alternative: the later use.
    counterexample as real input values and the exact command that
    reproduces it.
 3. **Two locations, always.** A human-readable one — *where in the
-   program's own terms*: "in `pick`, the loop starting at line 9, called
-   from MAIN at line 48" — and an IDE-readable one, `file:line:col`,
+   program's own terms*: "in `pick`, the loop starting at line 9 of
+   shop.cpls, called from MAIN at line 48 of shop.cpls" (every place it
+   names gives its file, owner 2026-10-08: "yea") — and an IDE-readable
+   one, `file:line:col`,
    plus a machine format (`--message-format json`, as rustc: severity,
    spans with byte offsets, the help edits as text replacements) so an
    editor can underline, jump, and apply the fix.
