@@ -144,7 +144,7 @@ it's needed": **the static, self-contained build (LLVM and lld built by us
 and copied into `cca`) waits for a release or a need**; Homebrew's shared
 libraries until then.
 
-### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, then likely): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, the compiler the Synapse, Precog the Cortex, the runtime the Axon (owner)
+### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, then likely): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, the compiler the Synapse, Precog the Cortex, the runtime the Axon, the package manager Kinesin, files `.nrv` (owner)
 
 Brainstorming names "in case I wanna rename" (owner: "CyborgPL is already a
 good name, just finding more"), checked by design claude for clashes and
@@ -181,7 +181,13 @@ NVIDIA), `.n1` (Envisat satellite data, an old virus generator; reads as
 "version 1"), `.syn` (TextPad syntax files, chip synthesis; names the
 compiler, not the language), `.nvr` (network video recorders); `.nrv`
 overlaps only with Nero's old disc-compilation projects, and `.rs` has
-such overlaps too. **The compiler, CCA, would be the Cortex**
+such overlaps too. **The compiler's built-in package manager (CCA's today, `CCA.cplr`;
+Synthia is separate) would be Kinesin** (owner: "Kinesin, it is"), the
+motor protein that walks along an axon's microtubules carrying vesicles,
+its "cargo", to the end; after Plexus (recommended first), Vesicle, Glia,
+Dendrite, Ganglion, and the owner's "What's the thing that is the path,
+the road for them" (Tract, Microtubule; Kinesin offered as what rides on
+it, recommended). Not yet asked: the manifest's name and ending. **The compiler, CCA, would be the Cortex**
 (owner: "Cortex is CCA"), the part that plans before anything moves, and
 **Precog keeps its name** (owner: "yea, keep Precog"; Prefrontal and
 Cerebellum offered). **stdkit would be the Cord** (owner: "`Cord`", after "Any alts":
