@@ -52,7 +52,18 @@ as Rust's `core` has, over (a) `for` only, which design claude recommended
 (`for` covers walking arrays and buffers, and chains of closures are harder
 for Precog); asked "What is it for?": shorter common patterns, no lists in
 between, handing over a sequence without building it, endless or generated
-sequences. Not designed yet.
+sequences. Not designed yet. **Genny folds into the base** (owner: "`a`. After finished
+compiling, it will report size with a breakdown"): generics and interfaces
+are base CyborgPL, so iterators can be ordinary code (an iterator interface,
+adapters as generic functions), and the core Genny is retired; over (b)
+iterators built into the language with Genny kept a core. The owner had
+asked "I heard you said generics would be bad in storage critical stuff"
+(`cores.md`: Genny's cost is "paid in program size and build time"; design
+claude: one copy per type a generic is used with, the same size as
+hand-written for one type, identical copies merged by LLVM, short chains
+inlined). **Every build ends with a report of the program's size, broken
+down**; design claude's reading of the breakdown, not asked: by Limb, by
+function, and the copies each generic produced.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
