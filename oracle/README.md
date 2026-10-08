@@ -111,6 +111,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - The oracle is not parameterised by target (pointer size, `bin128` in hardware or not); it behaves as one 64-bit machine. Cross-target proofs would need it to take those as inputs (noted 2026-09-21).
 
+- **A second place's file in a Limb**: every second place a message names gives its file (owner, 2026-10-08), `line 6 of shop.cpls`, the name without folders, as CCA spells it; the oracle keeps no file per line, so in a Limb directory every such place names `limb.cpls`, as the first place already names the directory.
 
 Each is marked "provisional" in the source. They are picks the interpreter
 had to make to run at all; none is a decision.

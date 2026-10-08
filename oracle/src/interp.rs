@@ -32,6 +32,18 @@ pub struct RuntimeError {
     pub leave: Option<Flow>,
 }
 
+thread_local! { static SHOWN_FILE: std::cell::RefCell<String> = std::cell::RefCell::new(String::new()); }
+
+/// The file a message's second places name, without its folders (`shop.cpls`).
+pub fn set_shown_file(name: &str) { SHOWN_FILE.with(|f| *f.borrow_mut() = name.to_string()); }
+
+/// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.cpls`.
+/// A Limb's places all name the program's root file: the oracle keeps no file per line.
+pub fn line_of(line: impl std::borrow::Borrow<usize>) -> String {
+    let line = *line.borrow();
+    SHOWN_FILE.with(|f| { let f = f.borrow(); if f.is_empty() { format!("line {line}") } else { format!("line {line} of {f}") } })
+}
+
 fn rt<T>(line: usize, msg: impl Into<String>) -> Result<T, RuntimeError> {
     Err(RuntimeError { line, msg: msg.into(), exit: None, site: false, leave: None })
 }
@@ -244,7 +256,7 @@ impl<'p> Interp<'p> {
             let r = self.run_body(t, Vec::new());
             let line = match r {
                 Ok(_) => { passed += 1; format!("test {} ... ok", t.name) }
-                Err(e) => { failed += 1; format!("test {} ... FAILED: line {}: {}", t.name, e.line, if e.msg.is_empty() { "it left early".to_string() } else { e.msg.clone() }) }
+                Err(e) => { failed += 1; format!("test {} ... FAILED: {}: {}", t.name, line_of(e.line), if e.msg.is_empty() { "it left early".to_string() } else { e.msg.clone() }) }
             };
             writeln!(self.out, "{line}").map_err(|e| RuntimeError { line: 0, msg: e.to_string(), exit: None, site: false, leave: None })?;
         }
@@ -299,7 +311,7 @@ impl<'p> Interp<'p> {
         let mut seen: HashMap<String, usize> = HashMap::new();
         for f in self.prog.funcs.iter().filter(|f| !f.is_op) {
             let k = format!("fn {}", join_path(&f.module, &f.name));
-            if let Some(l) = seen.insert(k.clone(), f.line) { return rt(f.line, format!("`{}` is defined twice (first at line {l})", &k[3..])); }
+            if let Some(l) = seen.insert(k.clone(), f.line) { return rt(f.line, format!("`{}` is defined twice (first at {})", &k[3..], line_of(l))); }
         }
         // An operator may be defined for several types (2026-09-20), generic or not (owner,
         // 2026-09-29), but two meanings for the same types are an error (2026-09-23), and so is a
@@ -320,14 +332,14 @@ impl<'p> Interp<'p> {
                 let (later, earlier) = (*g, *f);
                 match (generic(earlier), generic(later)) {
                     (None, None) => if shapes(earlier) == shapes(later) {
-                        return rt(later.line, format!("`{}` is defined twice for {} (first at line {}): two meanings of one operator for the same types", later.name, shapes(later).join(", "), earlier.line));
+                        return rt(later.line, format!("`{}` is defined twice for {} (first at {}): two meanings of one operator for the same types", later.name, shapes(later).join(", "), line_of(earlier.line)));
                     },
                     (Some(bound), None) | (None, Some(bound)) => {
                         let (gen, spec) = if generic(earlier).is_some() { (earlier, later) } else { (later, earlier) };
                         let shape = shapes(spec).first().cloned().unwrap_or_default();
                         let covered = match &bound { None => true, Some(i) => self.satisfies(&shape, i, gen.line)?.is_ok() };
                         let tname = spec.params.first().and_then(|p| p.ty.as_ref()).map(ty_name).unwrap_or_default();
-                        if covered { return rt(later.line, format!("`{}` for {tname} (line {}) and the generic `{}` (line {}) both cover {tname}: two meanings of one operator for the same types; narrow the generic one's bound so {tname} does not keep it, or drop one", gen.name, spec.line, gen.name, gen.line)); }
+                        if covered { return rt(later.line, format!("`{}` for {tname} ({}) and the generic `{}` ({}) both cover {tname}: two meanings of one operator for the same types; narrow the generic one's bound so {tname} does not keep it, or drop one", gen.name, line_of(spec.line), gen.name, line_of(gen.line))); }
                     }
                     // the oracle's reading: two generic ones may always meet on some type
                     (Some(_), Some(_)) => return rt(later.line, format!("two generic `{}` (lines {} and {}) could both cover one type", later.name, earlier.line, later.line)),
@@ -336,20 +348,20 @@ impl<'p> Interp<'p> {
         }
         for d in &self.prog.structs {
             let k = format!("struct {}", d.name);
-            if let Some(l) = seen.insert(k.clone(), d.line) { return rt(d.line, format!("struct `{}` is defined twice (first at line {l})", d.name)); }
+            if let Some(l) = seen.insert(k.clone(), d.line) { return rt(d.line, format!("struct `{}` is defined twice (first at {})", d.name, line_of(l))); }
         }
         for e in &self.prog.enums {
             let k = format!("struct {}", e.name);   // structs and enums share the type namespace
-            if let Some(l) = seen.insert(k.clone(), e.line) { return rt(e.line, format!("type `{}` is defined twice (first at line {l})", e.name)); }
+            if let Some(l) = seen.insert(k.clone(), e.line) { return rt(e.line, format!("type `{}` is defined twice (first at {})", e.name, line_of(l))); }
         }
         for m in &self.prog.modules {
             let k = format!("module {}", m.path.join("."));
-            if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at line {l}) — a file and a block cannot both be it", m.path.join("."))); }
+            if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at {}) — a file and a block cannot both be it", m.path.join("."), line_of(l))); }
             // One name, one thing, per Limb (decided 2026-09-21): a module and a type cannot share a name.
             let path = m.path.join(".");
             let clash = self.prog.structs.iter().map(|d| (&d.name, d.line, "struct")).chain(self.prog.enums.iter().map(|e| (&e.name, e.line, "enum"))).chain(self.prog.interfaces.iter().map(|i| (&i.name, i.line, "interface"))).find(|(n, _, _)| **n == path);
             if let Some((_, l, what)) = clash {
-                let where_ = if m.line == 0 { format!("the file `{path}.cpls` and a {what} at line {l}") } else { format!("a module block at line {} and a {what} at line {}", m.line, l) };
+                let where_ = if m.line == 0 { format!("the file `{path}.cpls` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
                 return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a Limb — rename one"));
             }
         }
@@ -871,7 +883,7 @@ impl<'p> Interp<'p> {
                         if let Some((n, key)) = &walked {
                             if let Some((w, at, what, _)) = self.writes.get(key) {
                                 // the error is at the change (owner, 2026-09-29: a)
-                                if *w > started { return rt(*at, format!("'{n}' is {what} here while the loop on line {line} is going through it: a loop over `lend '{n}'` borrows it until the loop ends")); }
+                                if *w > started { return rt(*at, format!("'{n}' is {what} here while the loop on {} is going through it: a loop over `lend '{n}'` borrows it until the loop ends", line_of(line))); }
                             }
                         }
                         match r {
@@ -1110,9 +1122,9 @@ impl<'p> Interp<'p> {
                 match r {
                     Err(e) if e.site => {
                         let msg = match tier {
-                            Tier::Check => format!("`check` at line {line} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", e.msg),
-                            Tier::NoCheck => format!("`no_check` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
-                            Tier::NoChecksAtAll => format!("`NO_FUCKING_CHECKS` at line {line} lied: {} — the compiled program would be undefined here", e.msg),
+                            Tier::Check => format!("`check` at {} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", line_of(line), e.msg),
+                            Tier::NoCheck => format!("`no_check` at {} lied: {} — the compiled program would be undefined here", line_of(line), e.msg),
+                            Tier::NoChecksAtAll => format!("`NO_FUCKING_CHECKS` at {} lied: {} — the compiled program would be undefined here", line_of(line), e.msg),
                         };
                         Err(RuntimeError { line: e.line, msg, exit: None, site: false, leave: None })
                     }
@@ -1647,7 +1659,7 @@ impl<'p> Interp<'p> {
                         if matches!(nb, Some((n, _, _)) if n == r) { break; }   // a new 'r': the old borrow is over
                         if let Some((at, what)) = wrote { if uses(t, r) {
                             // the error is at the change, the line to move or fix (owner, 2026-09-29: a)
-                            return rt(at, format!("'{s}' is {what} here while '{r}' still {rel} and is used on line {line}: a borrow never aliases a change and never outlives its owner"));
+                            return rt(at, format!("'{s}' is {what} here while '{r}' still {rel} and is used on {}: a borrow never aliases a change and never outlives its owner", line_of(line)));
                         } }
                         if wrote.is_none() { if let Some(w) = writes(t, s) { wrote = Some((*line, w)); } }
                     }
@@ -1679,7 +1691,7 @@ impl<'p> Interp<'p> {
                 if w.read_at.get().is_none() { w.read_at.set(Some(line)); }
             } else if Rc::ptr_eq(&s.cell, &w.elem) {
                 if let Some(at) = w.read_at.get() {
-                    return rt(at, format!("'{}' is used here while '{}', the loop's element, still borrows it `lend.mut` and is used on line {line}: inside `for '{}' in lend.mut '{}'`, the list can be read only after the element's last use in that trip", w.name, w.elem_name, w.elem_name, w.name));
+                    return rt(at, format!("'{}' is used here while '{}', the loop's element, still borrows it `lend.mut` and is used on {}: inside `for '{}' in lend.mut '{}'`, the list can be read only after the element's last use in that trip", w.name, w.elem_name, line_of(line), w.elem_name, w.name));
                 }
             }
         }
@@ -1690,7 +1702,7 @@ impl<'p> Interp<'p> {
                 if *n > s.since {
                     // the error is at the change, the line to move or fix (owner, 2026-09-29: a)
                     let rel = if *key == own { "borrows it" } else { "depends on it" };
-                    return rt(*at, format!("'{owner}' is {what} here while '{name}' still {rel} and is used on line {line}: a borrow never aliases a change and never outlives its owner"));
+                    return rt(*at, format!("'{owner}' is {what} here while '{name}' still {rel} and is used on {}: a borrow never aliases a change and never outlives its owner", line_of(line)));
                 }
             }
         }

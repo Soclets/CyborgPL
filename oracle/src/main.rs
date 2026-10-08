@@ -684,7 +684,7 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
             return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other Limbs write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `limb.cpls` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
         };
         if let Some(other) = covering.iter().find(|m| m.mode != first.mode) {
-            return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error", word(first.mode), first.line, word(other.mode), other.line));
+            return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", word(first.mode), crate::interp::line_of(first.line), word(other.mode), crate::interp::line_of(other.line)));
         }
         marks.insert(interp::bare_key(kind, &module, last), first.mode);
     }
@@ -742,6 +742,7 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
 
 /// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
+    interp::set_shown_file(&if path.is_dir() { "limb.cpls".to_string() } else { path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() });
     let prog = load(path)?;
     let marks = check_bare(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let mut interp = interp::Interp::new(&prog, out);

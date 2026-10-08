@@ -51,7 +51,7 @@ fn covered(prog: &Program, kind: &str, module: &[String], last: Option<&str>, li
     }).collect();
     let Some(first) = marks.first() else { return Ok(false) };
     if let Some(other) = marks.iter().find(|m| m.insensitive != first.insensitive) {
-        return Err(format!("line {line}: {shown} is marked both `{}` (line {}) and `{}` (line {}): marks that disagree are an error (owner, 2026-10-06)", word_mark(first.insensitive), first.line, word_mark(other.insensitive), other.line));
+        return Err(format!("line {line}: {shown} is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error (owner, 2026-10-06)", word_mark(first.insensitive), crate::interp::line_of(first.line), word_mark(other.insensitive), crate::interp::line_of(other.line)));
     }
     Ok(first.insensitive)
 }
@@ -131,7 +131,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
         let pool = if word { declared.get(&root) } else { consts.get(&root) };
         if let Some((other, oline)) = pool.and_then(|p| p.iter().find(|(o, _)| *o != name && fold(o) == f)) {
             let (a, b) = if word { (format!("`{other}`"), format!("`{name}`")) } else { (format!("`'{other}'`"), format!("`'{name}'`")) };
-            return Err(format!("line {oline}: {a} and {b} (line {line}) differ only in case, and {b} is `case.insensitive`: they would be one name"));
+            return Err(format!("line {oline}: {a} and {b} ({}) differ only in case, and {b} is `case.insensitive`: they would be one name", crate::interp::line_of(line)));
         }
         let lc = plan.entry(root).or_default();
         let (all, public_map) = if word { (&mut lc.words, &mut lc.pub_words) } else { (&mut lc.vars, &mut lc.pub_vars) };
@@ -153,7 +153,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
     for m in &prog.case_marks {
         if let (BareTarget::File(p) | BareTarget::Block(p), false) = (&m.target, m.insensitive) {
             if let Some(k) = prog.case_marks.iter().find(|k| matches!(&k.target, BareTarget::Kind(x) if x == "var") && k.insensitive && k.limb_root == m.limb_root) {
-                return Err(format!("line {}: the variables of `{}` are marked both `case.insensitive` (line {}) and `case.sensitive` (line {}): marks that disagree are an error (owner, 2026-10-06)", m.line, p.iter().map(|s| s.trim_start_matches("::")).collect::<Vec<_>>().join("."), k.line, m.line));
+                return Err(format!("line {}: the variables of `{}` are marked both `case.insensitive` ({}) and `case.sensitive` ({}): marks that disagree are an error (owner, 2026-10-06)", m.line, p.iter().map(|s| s.trim_start_matches("::")).collect::<Vec<_>>().join("."), crate::interp::line_of(k.line), crate::interp::line_of(m.line)));
             }
         }
     }

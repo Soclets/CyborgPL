@@ -1,6 +1,6 @@
 test adds_up ... ok
-test catches_a_bug ... FAILED: line 12: `must` does not hold: the left side is 6, and it must be `equal_to` 5
+test catches_a_bug ... FAILED: line 12 of testing.cpls: `must` does not hold: the left side is 6, and it must be `equal_to` 5
 test parsing ... ok
-test wrong_reason ... FAILED: line 21: `must.fail.out_of_range`: it failed with `not_a_number`
+test wrong_reason ... FAILED: line 21 of testing.cpls: `must.fail.out_of_range`: it failed with `not_a_number`
 test guards ... ok
 5 tests: 3 passed, 2 failed

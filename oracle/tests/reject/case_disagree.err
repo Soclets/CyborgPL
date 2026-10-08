@@ -1,1 +1,1 @@
-`fn Area` is marked both `case.insensitive` (line 1) and `case.sensitive` (line 2): marks that disagree are an error (owner, 2026-10-06)
+`fn Area` is marked both `case.insensitive` (line 1 of case_disagree.cpls) and `case.sensitive` (line 2 of case_disagree.cpls): marks that disagree are an error (owner, 2026-10-06)
