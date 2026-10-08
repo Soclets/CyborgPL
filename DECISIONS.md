@@ -25,7 +25,16 @@ it through the C++ LLVM wrapper `implementation-languages.md` already
 allows. **CCA switches to lld now** (owner: "`a`"), so every build links
 as the final one will and cross-building is ready when the rest is; over
 (b) switching only when cross-building is first needed. Design claude
-recommended (a).
+recommended (a). **lld is built into CCA, Zig's way** (owner: "`a`", asked
+by compiler claude): CCA calls lld's library through a small C++ shim, so
+lld is always inside `cca`; building CCA needs a C++ compiler, today on
+Homebrew's lld dylibs as on its LLVM, and a self-contained release needs a
+custom LLVM build for static libraries; lld's library is not made to run
+twice in one process, which matters only if CCA links more than once per
+run. Over (b) running whatever lld is installed and (c) shipping lld's
+program beside `cca`, Rust's way (`rust-lld`), which compiler claude
+recommended and design claude agreed with. Compiler claude checked first
+that `ld64.lld` links a CCA object and the program runs as with `cc`.
 
 ### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron, the base the Brainstem, a core a Lobe, stdkit the Cord, CCA the Cortex, the runtime the Axon (owner)
 
