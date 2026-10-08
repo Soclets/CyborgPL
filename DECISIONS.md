@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — If CyborgPL were renamed Nerve (a what-if, not a rename): a library is a Neuron (owner)
+
+Brainstorming names "in case I wanna rename" (owner: "CyborgPL is already a
+good name, just finding more"), checked by design claude for clashes and
+domains: Nerve was the front-runner (no language by that name; Elixir's
+Nerves nearby; `nervelang.com` free), over Tin, Ion (Amazon Ion), Zenith,
+Proof and others. The owner then found Nerve "not so fitting" and argued
+for the current name: "It's human and machine, so you're mixing yourself
+with the machine. … CCA isn't a submissive fuck like C, and it doesn't have
+a GC either"; Nerve "is more like Rust, one syllable, and another way to
+misread it". **CyborgPL stays.** Then, on "the feature names in Nerve":
+syntax is never themed ("`no_check` is syntax, we don't theme that, bro"),
+and Limb is the word for a library. **In Nerve, a library would be a
+Neuron** (owner: "Neuron"), over Plexus (more accurate) and Ganglion
+(accurate, clunky); the owner's bar: "catchy + kinda accurate is fine".
+Design claude noted a neuron is closer to a function in size. Other Nerve
+names offered, not asked: Brainstem (the base), Lobe (cores), Spine
+(stdkit), Synapse (the linker, not the compiler), Precog stays.
+
 ### 2026-10-08 — Xerpia is dropped: Precog is the compile-time language (owner: yea)
 
 The owner, after the talk turned to the name's third reason ("multiple ways
