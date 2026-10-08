@@ -69,8 +69,13 @@ to allocate for that. `%` means local, `^` means level, one `^` means
 variable, and then stacking could result in another thing (const, fn,
 whatever)."): the type first, then the name with its marks; `%` marks a
 local (as in LLVM IR), and the count of `^` says what kind of name it is,
-one `^` a variable, more for other kinds not yet assigned. Not yet asked:
-what each further `^` is; the twin of `%` (a non-local name); what
+one `^` a variable, more for other kinds. **The ladder: `^` a variable,
+`^^` a constant, `^^^` a function** (owner: "yea. People are gonna have a
+stroke reading this shit, especially with manual. But, whatever"), more `^`
+meaning more fixed, room left above (a type at `^^^^`, design claude's
+example, not asked); `fn %^^^twice [bin16 %^n] -> bin16 { … }` was design
+claude's illustration of where the marks go, not a ruling on functions.
+Not yet asked: the twin of `%` (a non-local name); what
 allocating "for that" means under manual memory; the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
