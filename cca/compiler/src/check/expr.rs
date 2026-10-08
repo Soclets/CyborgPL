@@ -1020,6 +1020,8 @@ impl Checker {
                     // 2026-09-23).
                     Ty::Int(IntW::Free(_)) if matches!(rt.base(), Ty::Int(IntW::Fixed { .. })) => {
                         let ty = rt.base().clone();
+                        let mut l = l;
+                        exact_group(&mut l);
                         return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span });
                     }
                     Ty::Int(IntW::Free(_)) if literal_only(&l) && literal_only(&r) => {
@@ -1034,6 +1036,12 @@ impl Checker {
                     return err(Diagnostic::error(format!("`{}` takes integers on both sides; the right side is {}", op.spelled(), crate::types::a_type(&self.spell(&rt)))).at(rhs.span));
                 }
                 let ty = lt.base().clone();
+                // A group of bare numbers beside the typed side is plain
+                // maths, as wide as its own values need, landing in the
+                // operator's width (check claude, seed 34247: `'v'
+                // plus.wrap (9223372036854775807 plus 1)` with a `uint64`).
+                let mut r = r;
+                exact_group(&mut r);
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
             }
             BinOp::Join => {
@@ -4166,6 +4174,16 @@ fn literal_only(e: &Expr) -> bool {
 /// zero, a negative power) or one past every width there is.
 /// The exact type a group of bare numbers is worked at: as wide as its
 /// values need, at least 64 bits (check claude, seeds 28093, 28563).
+/// A group of bare numbers (not one literal) worked exactly at its own
+/// size, at least 64 bits.
+fn exact_group(e: &mut Expr) {
+    if literal_only(e) && !matches!(e.kind, K::Int(_)) && matches!(e.ty.base(), Ty::Int(IntW::Free(_))) {
+        if let Some(bits) = literal_group_bits(e) {
+            retype_literal_arith(e, &Ty::exact_at(bits.max(64)));
+        }
+    }
+}
+
 fn exact_for(e: &Expr) -> Ty {
     Ty::exact_at(literal_group_bits(e).unwrap_or(64).max(64))
 }
