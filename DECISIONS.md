@@ -35,7 +35,12 @@ then "yea"): `called from parse_header, at line 12, column 5, in
 main.cpls` and `main.cpls:12:5`. **The compiler's own human locations name the file too**
 (owner: "yea"): every place a message names gives its file, so
 `diagnostics.md`'s "called from MAIN at line 48" becomes "… at line 48 of
-shop.cpls". Not yet asked: the spelling; the base or a core.
+shop.cpls". **It is in the base** (owner: "yea, base"): a location is
+fixed text and two numbers, needing no heap or OS, and kernels report
+where first (Linux's `BUG()` / `WARN()` with `__FILE__` / `__LINE__`);
+only calls to a function that asks carry one, so a program that never
+asks pays nothing (design claude's reasoning, recommended). Not yet asked:
+the spelling (`caller.location` was design claude's placeholder).
 
 ### 2026-10-08 — A build may read environment variables (owner; how not yet asked)
 
