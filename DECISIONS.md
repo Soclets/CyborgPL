@@ -21,8 +21,13 @@ the location, and the compiler, seeing the whole program, passes it at
 every call to that function; over (a) a mark as Rust's, which design
 claude first recommended, then changed to auto. Design claude's reading,
 not asked: a function called from C, or through a function value Precog
-cannot resolve, gets "unknown" or is refused. Not yet asked: what the
-location holds, its spelling, the base or a core.
+cannot resolve, gets "unknown" or is refused. **The location holds the
+file, line, column and the calling function's name** (owner: "`c`"), as
+`main.cpls:12:5 in parse_header`; over (a) file, line and column, which
+design claude recommended (the names make a program bigger, which matters
+in kernels), and (b) file and line. Not yet asked: how it is shown (the
+owner: "shouldn't there be two location displays, the one for IDE, and
+the one for humans"), its spelling, the base or a core.
 
 ### 2026-10-08 — A build may read environment variables (owner; how not yet asked)
 
