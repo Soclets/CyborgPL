@@ -1,9 +1,11 @@
-# CyborgPL v2
+# Nerve
 
-Design repository for **CyborgPL v2**, a new programming language. This is a
-from-scratch design — **not** a continuation of v1
-(`Artificial-IntelligenceAI/CyborgPL-legacy`). No v1 syntax carries over unless
-the owner explicitly chooses it.
+Design repository for **Nerve**, a new programming language. **Nerve is what
+was called CyborgPL v2** until 2026-10-08, when the owner renamed it (the
+notes, `DECISIONS.md` and old commits say "CyborgPL" or "v2" for it). It is a
+from-scratch design — **not** a continuation of CyborgPL v1, the owner's
+earlier, unrelated language (`Artificial-IntelligenceAI/CyborgPL-legacy`). No
+v1 syntax carries over unless the owner explicitly chooses it.
 
 ## Ground rules
 
@@ -16,7 +18,7 @@ the owner explicitly chooses it.
   chose versus what was proposed.
 - Stated identity (from the website hero): *"Very slow at the development,
   fast & safe at the final product."*
-- **CyborgPL is a hobby language** (owner, 2026-09-17). No timeline, no
+- **Nerve is a hobby language** (owner, 2026-09-17, of CyborgPL). No timeline, no
   obligation to build any part by any date, no team unless the owner feels
   like one. Estimates, hiring notes, and the review policy in `design/` are
   for if-and-when, not commitments. Do not push for schedules or scope.
@@ -49,12 +51,12 @@ the owner explicitly chooses it.
 - `design/` — design documents, one topic per file, as they are written.
 - `examples/` — `.cpls` programs using settled syntax only, each with its
   expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
-- `website/` — the open-source CyborgPL website (owner, 2026-09-23), built by
+- `website/` — the open-source Nerve website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.
-  cyborgpl.dev serves the real site from `website/site/` (Cloudflare), no
-  longer a placeholder (owner, 2026-09-30: "`cyborgpl.dev` isn't a
-  placeholder").
-- `bench/` — CyborgPL against every other language installed here (the owner's
+  **nerve-lang.com** serves it from `website/site/` (Cloudflare, since
+  2026-10-08); cyborgpl.dev still serves the last CyborgPL build and gets no
+  new deploys.
+- `bench/` — Nerve against every other language installed here (the owner's
   own languages excepted, contributed-to ones like Lust included), the same four
   programs each, checked against C's answers (owner, 2026-09-30). The design
   session's; `python3 bench/run.py`, results in `bench/RESULTS.md`.
@@ -66,15 +68,16 @@ the owner explicitly chooses it.
 
 ## Repository (moved 2026-10-08)
 
-CyborgPL is being renamed **Nerve** (owner: "we'll likely rename to Nerve.
+CyborgPL v2 is now **Nerve** (owner: "we'll likely rename to Nerve.
 But we'll do it cleanly, new GH repo, new local, but same code"). The
 repository is now **`Soclets/Nerve-lang`** (private, full history); the
 design clone is `/Users/ts/Nerve`, the others `/Users/ts/Nerve compiler`,
 `/Users/ts/Nerve verification`, `/Users/ts/Nerve website`. The old repo
 `Cyborg-Assembly-Manufacturing-Site/CyborgPL` and the `/Users/ts/CyborgPL v2…`
-folders are frozen at 087cdfc8: never push there. The code still says
-CyborgPL / CCA / `.cpls`; renaming inside it is a later step, one piece at a
-time (the Nerve names are in `DECISIONS.md`).
+folders are frozen at 087cdfc8: never push there. The prose says Nerve
+(step 1, 2026-10-08); the code and its words still say CCA, Precog, Limb,
+stdkit, `.cpls`, `CCA.cplr`, renamed later one piece at a time (the Nerve
+names are in `DECISIONS.md`).
 
 ## Git
 
@@ -86,5 +89,5 @@ time (the Nerve names are in `DECISIONS.md`).
 ## Related
 
 - The old private website, `CyborgPL-v2-website` on GitHub, is history. It
-  used to be checked out at `/Users/ts/CyborgPL v2 website`, which now holds
-  the website session's clone of this repo.
+  used to be checked out at `/Users/ts/CyborgPL v2 website`, which then held
+  the website session's clone of this repo, frozen since the move.
