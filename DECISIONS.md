@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — A build may read environment variables (owner; how not yet asked)
+
+The owner said "I kinda want include bytes, tbh"; design claude pointed out
+that reproducible builds rule 3 (2026-09-14: "Precog never reads a file,
+clock, or environment variable at compile time") forbids it, and proposed
+an exception (files inside the Limb counting as source), not yet answered.
+The owner asked why environment variables are banned (invisible inputs:
+different per machine, unrecorded, can leak secrets), what they are for,
+whether there is an alternative, whether `tune` replaces them (no: it only
+holds loop timings), then for useful cases and today's alternatives
+(version: a hand-written `const`; build ID, feature switches, C library
+paths: nothing designed; target: `on.target`; secrets: read at run time).
+The owner: "We should have env vars". So **rule 3 no longer bans
+environment variables: a build may read them**. Not yet asked: how (which
+variables, whether a Limb names them, whether the build records the values
+it read so it can be repeated, whether a power gates it), and the
+`include_bytes` exception.
+
 ### 2026-10-08 — Precog's proof cache has a cache buster, and a final build may use the cache (owner: a; not built)
 
 Talking about LLVM-sized programs under Precog, design claude recalled the
