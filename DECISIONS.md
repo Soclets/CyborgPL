@@ -5,7 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-08 — stdkit splits: a heap-free Limb holds the operators, stdkit the rest (owner: c; not built)
+### 2026-10-08 — No split after all: stdkit stays one Limb; kernels get a core or Limb of their own later; the base "shouldn't be practical to use" (owner)
+
+Right after choosing (c) below, asked whether the heap-free part should be a
+Limb or a core ("I thought it was a core") and whether "a kernel really
+want[s] ASP" (design claude: not necessarily; kernels wrap on purpose and
+think in bits, and the owner's own "Signatar + IEG is for kernels", 2026-10-06,
+has no ASP; so the heap-free part should need only IEG, its operators
+following whatever number rules the program has), the owner: "Or just keep
+the base the same, but we'll later add a specialized kernel core/limb".
+Asked whether that replaces (c): "Yeah. the base shouldn't be practical to
+use, even in low-level environments, but that doesn't mean the base should
+have nothing either." So **(c) is undone: stdkit stays one Limb, operators
+and heap together; the base is unchanged; a kernel core or Limb comes
+later**, designed for kernels (their maths, their testing), not designed
+now. What `plus` does without ASP waits for it. **The owner's principle
+for the base: it is not meant to be practical to use, even for low-level
+work, yet it is not empty.**
+
+### 2026-10-08 — (undone the same day) stdkit splits: a heap-free Limb holds the operators, stdkit the rest (owner: c; not built)
 
 The owner: "Should we make the base less lower-level?" Design claude: not
 the base (low on purpose, 2026-10-06), but one gap: the operators are
