@@ -75,7 +75,11 @@ stroke reading this shit, especially with manual. But, whatever"), more `^`
 meaning more fixed, room left above (a type at `^^^^`, design claude's
 example, not asked); `fn %^^^twice [bin16 %^n] -> bin16 { … }` was design
 claude's illustration of where the marks go, not a ruling on functions.
-Not yet asked: the twin of `%` (a non-local name); what
+**No `fn` in front: `^^^` alone makes a function**, and **`@` marks a
+global**, the twin of `%` (owner: "Btw, you don't say `fn` infront. `@` means
+global."). Not yet asked: how wide a global is (one block, or every Xerpia
+block in the Limb); how a function's parameters and result are written;
+what
 allocating "for that" means under manual memory; the step budget. The fourth IR LNIR (2026-10-01)
 is unrelated: it is for loops.
 
