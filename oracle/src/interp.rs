@@ -4732,7 +4732,7 @@ impl<'p> Interp<'p> {
             _ => Vec::new(),
         };
         if path.starts_with("str.") {
-            self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
+            self.check_handler(c.handler.as_ref(), &fails, &format!("stdkit::{path}"), c.line)?;
             let mut vals = Vec::new();
             for a in &c.args.values {
                 let (v, prov) = self.value(a)?;
@@ -4741,7 +4741,7 @@ impl<'p> Interp<'p> {
             }
             let text = |i: usize| -> Result<String, RuntimeError> { match vals.get(i) { Some(Value::Str(s)) => Ok(s.clone()), Some(Value::Char(_, ch)) => Ok(ch.clone()), Some(o) => rt(c.line, format!("stdkit::{path}: argument {} must be text, got {}", i + 1, o.kind())), None => rt(c.line, format!("stdkit::{path}: missing argument {}", i + 1)) } };
             let int = |i: usize| -> Result<i128, RuntimeError> { match vals.get(i) { Some(Value::Int(n)) => Ok(*n), Some(o) => rt(c.line, format!("stdkit::{path}: argument {} must be an integer, got {}", i + 1, o.kind())), None => rt(c.line, format!("stdkit::{path}: missing argument {}", i + 1)) } };
-            let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), reason.into(), None, value_used) };
+            let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("stdkit::{path}"), reason.into(), None, value_used) };
             return match path.as_str() {
                 "str.split" => { let (s, sep) = (text(0)?, text(1)?); if sep.is_empty() { return rt(c.line, "stdkit::str.split: an empty separator"); } Ok(Value::List(s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect())) }
                 "str.contains" => Ok(Value::Bool(text(0)?.contains(text(1)?.as_str()))),
@@ -4776,7 +4776,7 @@ impl<'p> Interp<'p> {
                 // a boundary (decided 2026-09-20): text as it came; `closed` when there is none
                 if !c.args.values.is_empty() { return rt(c.line, format!("stdkit::{path} takes no arguments")); }
                 let fails = vec![FailCase { name: "closed".into(), ty: None }];
-                self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
+                self.check_handler(c.handler.as_ref(), &fails, &format!("stdkit::{path}"), c.line)?;
                 let mut text = String::new();
                 let got = if path == "input.line" {
                     match std::io::stdin().read_line(&mut text) { Ok(0) => false, Ok(_) => { if text.ends_with('\n') { text.pop(); if text.ends_with('\r') { text.pop(); } } true }, Err(_) => false }
@@ -4784,7 +4784,7 @@ impl<'p> Interp<'p> {
                     use std::io::Read;
                     match std::io::stdin().read_to_string(&mut text) { Ok(0) => false, Ok(_) => true, Err(_) => false }
                 };
-                if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), "closed".into(), None, value_used); }
+                if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("stdkit::{path}"), "closed".into(), None, value_used); }
                 Ok(Value::Str(text))
             }
             "round" | "floor" | "ceil" | "trunc" => {

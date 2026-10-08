@@ -154,8 +154,8 @@ list).
 
 `'s'[3]` is a compile error — the 3rd byte or the 3rd grapheme? The
 positional forms live in std with the unit spelled and a failure for out
-of range: `std::str.at.grapheme[lend 's', 3] otherwise …`,
-`std::str.slice.grapheme[lend 's', 1, 5] otherwise …`. Most "the 3rd
+of range: `std::str.at.grapheme[lend 's', pos 3] otherwise …`,
+`std::str.slice.grapheme[lend 's', pos 1, pos 5] otherwise …`. Most "the 3rd
 character" code is a `split` or a `find` in disguise.
 
 ## The toolbox is std's
@@ -171,8 +171,8 @@ stdkit::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
 stdkit::str.trim / upper / lower[lend 's']
 stdkit::str.replace[lend 's', "a", "b"]
 stdkit::str.find.grapheme[lend 's', "x"]  -> int32 or fail[missing]   (1-based grapheme position)
-stdkit::str.at.<unit>[lend 's', 3]        -> that unit, or fail[out_of_range]
-stdkit::str.slice.grapheme[lend 's', 1, 5] -> str, or fail[out_of_range]
+stdkit::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
+stdkit::str.slice.grapheme[lend 's', pos 1, pos 5] -> str, or fail[out_of_range]
 ```
 
 The oracle emulates these so examples run (`examples/text.cpls`); std's

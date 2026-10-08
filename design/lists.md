@@ -170,9 +170,9 @@ growing or giving away the list inside stays refused for the whole loop.
 ```
 let 'n' := list.length[lend 'xs'];
 list.append[lend.mut 'xs', 40];
-list.remove[lend.mut 'xs', 1];            # by 1-based position; the element is dropped
-let 'first' := list.remove[lend.mut 'xs', 1];   # or handed back (decided 2026-09-21)
-run[list.remove[lend.mut 'queue', 1]];    # straight into a call: moved, never copied
+list.remove[lend.mut 'xs', pos 1];            # by 1-based position; the element is dropped
+let 'first' := list.remove[lend.mut 'xs', pos 1];   # or handed back (decided 2026-09-21)
+run[list.remove[lend.mut 'queue', pos 1]];    # straight into a call: moved, never copied
 let 'm' := array.length[lend 'fixed'];
 ```
 

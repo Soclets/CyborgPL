@@ -12,7 +12,7 @@ MAIN {
     let 'n' := list.length[lend 'xs'];
     stdkit::print.useful["length ", 'n', newln];
     list.append[lend.mut 'xs', 40];
-    list.remove[lend.mut 'xs', 1];
+    list.remove[lend.mut 'xs', pos 1];
     stdkit::print.useful['xs', " length ", list.length[lend 'xs'], newln];
     stdkit::print.useful["sum ", sum[lend 'xs'], newln];
     for 'i' in range[from 1, to list.length[lend 'xs'], by 1] {

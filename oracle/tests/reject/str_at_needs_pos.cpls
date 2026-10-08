@@ -1,0 +1,4 @@
+MAIN {
+    let 's' := "abc";
+    let 'c' := stdkit::str.at.point[lend 's', 1] otherwise `?`;
+}

@@ -2,7 +2,7 @@ struct Item { name: str.utf8  grams: int32[1, 50_000] }
 
 fn heaviest [...'items': Item] -> Item or fail[none] {
     if list.length[lend 'items'] equal_to 0 { fail none; }
-    let mut 'best' := list.remove[lend.mut 'items', 1];
+    let mut 'best' := list.remove[lend.mut 'items', pos 1];
     for 'it' in lend 'items' {
         if 'it'.grams > 'best'.grams { change 'best' = copy 'it'; }
     }
@@ -15,7 +15,7 @@ fn kilos ['grams': int32] -> int32 or fail[not_whole, out_of_range] {
 }
 
 fn initial [lent 'name': str.utf8] -> char.point {
-    let 'first' := stdkit::str.at.point[lend 'name', 1] otherwise `?`;
+    let 'first' := stdkit::str.at.point[lend 'name', pos 1] otherwise `?`;
     let 'code' := char.code['first'];
     if 'code' at_least 97 and 'code' at_most 122 {
         return char.point.from_code['code' minus 32] otherwise `?`;
@@ -39,6 +39,6 @@ MAIN {
     let 'kg' := kilos['top'.grams] otherwise -1;
     stdkit::print.useful['top'.name, " is ", 'kg', " kg", newln];
 
-    let 'gone' := list.remove[lend.mut 'shelf', 2];
+    let 'gone' := list.remove[lend.mut 'shelf', pos 2];
     stdkit::print.useful["removed ", 'gone'.name, ", ", list.length[lend 'shelf'], " left", newln];
 }

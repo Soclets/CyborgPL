@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — `pos` on every position, `list.remove` and `str.at` / `str.slice` too (owner: a)
+
+```
+list.remove[lend.mut 'xs', pos 1];
+let 'third' := str.at.grapheme[lend 's', pos 3] otherwise `?`;
+let 'start' := str.slice.grapheme[lend 's', pos 1, pos 4] otherwise "";
+```
+
+Compiler claude, building the revision, read `list.remove`'s position as
+bare, as design claude had built it: `pos` had gone only where `#strict`
+put it (an index, `list.slice`, `simd.load` / `store`). The owner asked
+what that meant ("Wdym?"); design claude showed the bare positions left
+(`list.remove`, `str.at.<unit>`, `str.slice.<unit>`, so `list.slice` said
+`pos` and `str.slice.grapheme` did not) and offered (a) `pos` on every
+position, recommended, or (b) leave them. The owner: "Let me see `a`",
+then "`a`, if it's correct". Design claude checked they are positions
+(`design/lists.md`: "by 1-based position"; `strings.md`: "the 3rd",
+"graphemes 1 to 5"; `map.remove`'s key is not one), and corrected its own
+example, which had left out the `otherwise` that `str.at` and `str.slice`
+need. Built in the oracle; reject tests `remove_needs_pos`,
+`str_at_needs_pos`.
+
 ### 2026-10-08 — In `Synthia.ttsr`, a Limb's powers are `power.` lines in `[my needed things]` (owner: a; relayed by synthia claude)
 
 ```

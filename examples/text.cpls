@@ -16,12 +16,12 @@ MAIN {
     stdkit::print.useful[list.length[lend 'words'], " words; first is ", 'words'[pos 1], newln];
     stdkit::print.useful[stdkit::str.upper[lend 's'], newln];
     stdkit::print.useful[stdkit::str.contains[lend 's', "wör"], " ", stdkit::str.starts_with[lend 's', "hé"], newln];
-    let 'third' := stdkit::str.at.grapheme[lend 's', 3] otherwise `?`;
-    let 'family' := stdkit::str.at.grapheme[lend 's', 7] otherwise `?`;
+    let 'third' := stdkit::str.at.grapheme[lend 's', pos 3] otherwise `?`;
+    let 'family' := stdkit::str.at.grapheme[lend 's', pos 7] otherwise `?`;
     stdkit::print.useful['third', " ", 'family', newln];
     let 'where' := stdkit::str.find.grapheme[lend 's', "wör"] otherwise 0;
     stdkit::print.useful["wör starts at grapheme ", 'where', newln];
-    let 'head' := stdkit::str.slice.grapheme[lend 's', 1, 5] otherwise "";
+    let 'head' := stdkit::str.slice.grapheme[lend 's', pos 1, pos 5] otherwise "";
     stdkit::print.useful['head', newln];
     stdkit::print.useful[stdkit::str.join[lend 'words', "_"], newln];
 }

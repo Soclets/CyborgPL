@@ -2668,7 +2668,22 @@ impl Parser {
             (Some("std"), Some("format"), None, Tok::Text(_, raw)) => Some(raw.clone()),
             _ => None,
         };
-        let mut args = self.bracket()?;
+        // `str.at.grapheme[lend 's', pos 3]`, `str.slice.grapheme[lend 's', pos 1, pos 4]`: positions say
+        // `pos` (owner, 2026-10-08: "`a`, if it's correct")
+        let positional = limb.as_deref() == Some("std") && path.len() == 3 && path[0] == "str" && (path[1] == "at" || path[1] == "slice");
+        let mut args = if positional {
+            let bline = self.line();
+            self.expect(Tok::LBracket, "`[`")?;
+            let mut values = vec![self.value()?];
+            while *self.peek() == Tok::Comma {
+                self.advance();
+                if !self.is_word("pos") { return self.err(format!("a position says `pos`: `stdkit::{}[lend 's', pos 3]` (owner, 2026-10-08)", path.join("."))); }
+                self.advance();
+                values.push(self.value()?);
+            }
+            self.expect(Tok::RBracket, "`]`")?;
+            Bracket { values, line: bline, one_list: false }
+        } else { self.bracket()? };
         if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
         let path = if limb.is_none() { self.resolve(&path) } else { path };
         if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), limb.as_deref() == Some("std"), line))); }
@@ -2745,6 +2760,19 @@ impl Parser {
                 values.push(self.value()?);
             }
             self.expect(Tok::RBracket, "`]`")?;
+            return Ok((head, op, Bracket { values, line, one_list: false }));
+        }
+        // `list.remove[lend.mut 'xs', pos 2]`: the position says `pos`, as every position does (owner,
+        // 2026-10-08: "`a`, if it's correct")
+        if head == "list" && op == "remove" {
+            let line = self.line();
+            self.advance();
+            let mut values = vec![self.value()?];
+            self.expect(Tok::Comma, "`,` before the position: `list.remove[lend.mut 'xs', pos 2]`")?;
+            if !self.is_word("pos") { return self.err("the position says `pos`: `list.remove[lend.mut 'xs', pos 2]` (owner, 2026-10-08)"); }
+            self.advance();
+            values.push(self.value()?);
+            self.expect(Tok::RBracket, "`]` after the position")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
         // `list.fill[value 0, count 10]`: ten copies of 0 (owner, 2026-09-30); both say what they are
