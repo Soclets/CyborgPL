@@ -45,7 +45,14 @@ on x86) so a debugger shows the spot; only working builds have run-time
 checks. The owner: "There is another machine with an OS to develop the
 bootloader, right?" (yes: it is built on one, then run in an emulator such
 as QEMU with a debugger attached, or on the board through a hardware debug
-probe).
+probe). Failures (`-> T or fail[…]`, `otherwise`) are already the base's,
+Rust's `Option` / `Result`. **The base gets iterators** (owner: "Let's do
+iterators"): sequences described as a chain of steps, lazy and needing no heap,
+as Rust's `core` has, over (a) `for` only, which design claude recommended
+(`for` covers walking arrays and buffers, and chains of closures are harder
+for Precog); asked "What is it for?": shorter common patterns, no lists in
+between, handing over a sequence without building it, endless or generated
+sequences. Not designed yet.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
