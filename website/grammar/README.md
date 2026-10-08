@@ -9,7 +9,7 @@ the token shapes and `oracle/src/parser.rs` for the keyword list and the type
 spellings — so it follows the same rules the reference interpreter enforces,
 including the 2026-10-07 revision: `->` / `<-`, comparison in words
 (`equal_to`, `at_most`…), `immut` / `no_check` / `no_cheat` / `no_shadow`, `newln`,
-`stdkit::`, `shadow`, `is`, `pos` and labelled ranges.
+`cord::`, `shadow`, `is`, `pos` and labelled ranges.
 
 ## What it knows
 
@@ -89,6 +89,6 @@ Since 2026-10-08 it also knows: `newln`; comparison words; `is`; `shadow`; `no_c
 `my.` paths; std's names written bare (`print.useful[…]`, `duration`); registers in an inline
 block's `with […]`; `list.fill[value 0, count 10]`; names in any script (WSTN). The retired
 spellings (`-->`, `==`, `</==`, `!mut`, `!$`, `$:=`, `nocheck`, `\n` outside text,
-`!std_int24`, `#strict`) are marked deprecated.
+`stdkit::` / `std::`, `!std_int24`, `#strict`) are marked deprecated.
 
-Last run on 2026-10-08 against all 159 programs: no unscoped spans.
+Last run on 2026-10-09 against all 159 programs: no unscoped spans.

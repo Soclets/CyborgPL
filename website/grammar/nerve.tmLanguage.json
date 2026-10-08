@@ -754,7 +754,19 @@
           }
         },
         {
-          "comment": "Limb path: std::print.stdout[…]. The :: is a Limb boundary.",
+          "comment": "`stdkit::` and `std::` are the standard library's old spellings; it is `cord::` since 2026-10-09.",
+          "match": "\\b(stdkit|std)(::)",
+          "captures": {
+            "1": {
+              "name": "invalid.deprecated.nerve"
+            },
+            "2": {
+              "name": "punctuation.separator.namespace.nerve"
+            }
+          }
+        },
+        {
+          "comment": "Limb path: cord::print.useful[…]. The :: is a Limb boundary.",
           "match": "\\b([\\p{L}_][\\p{L}\\p{N}_]*)(::)((?:[\\p{L}_][\\p{L}\\p{N}_]*)(?:\\.[\\p{L}_][\\p{L}\\p{N}_]*)*)",
           "captures": {
             "1": {

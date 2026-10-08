@@ -49,7 +49,7 @@ export const SYNTAX = [
   { title: "Calls use brackets", text: "Arguments go in `[ ]`, not `( )`.", code: "add[1, 2]" },
   { title: "Arithmetic uses words", text: "`plus`, `minus` and `times` are operators. Division and remainder name their rounding, such as `div.floor` and `mod.floor`; `pow` raises to a power.", code: "let 'by3' := ('n' mod.floor 3) == 0;" },
   { title: "Positions start at 1", text: "The first element is position 1, and every position says `pos`.", code: "return 'xs'[pos 1];" },
-  { title: "The newline is outside the string", text: "A string is exactly its characters. The newline is its own piece, `newln`.", code: "stdkit::print.stored[\"Hello, World!\", newln];" },
+  { title: "The newline is outside the string", text: "A string is exactly its characters. The newline is its own piece, `newln`.", code: "cord::print.stored[\"Hello, World!\", newln];" },
   { title: "Ownership at the call site", text: "The caller says whether it lends, gives or copies.", code: "describe[lend 'l']" },
   { title: "A dot narrows", text: "The thing on the left, made more specific: `str.utf8`, `lend.mut`, `list.length`.", code: "if list.length[lend 'xs'] equal_to 0 { fail empty; }" },
   { title: "Comments", text: "`#` runs to the end of the line.", code: "# like this" },
