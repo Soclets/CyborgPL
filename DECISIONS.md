@@ -21,7 +21,12 @@ The owner: "We should have env vars". So **rule 3 no longer bans
 environment variables: a build may read them**. Not yet asked: how (which
 variables, whether a Limb names them, whether the build records the values
 it read so it can be repeated, whether a power gates it), and the
-`include_bytes` exception.
+`include_bytes` exception. Asked how the build stays repeatable — (a) a
+Limb names its variables in `CCA.cplr` and the build records the values it
+read, recommended; (b) named only; (c) free — **any code may read any
+environment variable while building, as Rust's `env!`** (owner: "`c`"),
+knowing builds that read one are no longer repeatable from the source
+alone and a secret read then can end up in the binary.
 
 ### 2026-10-08 — Precog's proof cache has a cache buster, and a final build may use the cache (owner: a; not built)
 

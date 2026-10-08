@@ -25,8 +25,9 @@ and "compile for the exact machine" makes the target part of the input.
    clock, or environment variable at compile time. Those are bounded values
    with explicit types like any other input. (Closes the earlier open
    question.) **Revised 2026-10-08** (owner: "We should have env vars"):
-   a build may read environment variables; how it keeps the build
-   repeatable is not yet decided (`DECISIONS.md`).
+   a build may read any environment variable, freely, as Rust's `env!`
+   (owner: "`c`"); a build that reads one is repeatable only with the same
+   values, which nothing records.
 4. **Measurements are inputs too** (owner, 2026-09-28): `cca tune` times
    loops once, on purpose, and writes `tune.cplr` (`synthia tune` runs it); builds read the file
    and never time anything themselves (`gpu.md`).
