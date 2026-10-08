@@ -490,7 +490,7 @@ impl<'p> Interp<'p> {
         if matches!(slot.kind, SlotKind::Lent | SlotKind::LentMut) { slot.since = self.write_count; slot.deps = std::mem::take(&mut self.pending_deps); }
         match (self.lookup(name), shadow) {
             (Some(_), false) => return rt(line, format!("'{name}' is already declared in an enclosing scope; to shadow it deliberately write `shadow '{name}' := …;` (owner, 2026-10-08)")),
-            (None, true) => return rt(line, format!("`$` shadows an existing '{name}', but none is visible here")),
+            (None, true) => return rt(line, format!("`shadow` declares over an existing '{name}', but none is visible here")),
             (Some(existing), true) if existing.kind == SlotKind::Const => return rt(line, format!("'{name}' is a const and cannot be shadowed")),
             // `immut` only forbids `change` now; `!$` forbids shadowing (owner, 2026-09-25)
             (Some(existing), true) if existing.sealed => return rt(line, format!("'{name}' cannot be shadowed: it is `no_shadow` (or a loop's own counter)")),
@@ -4732,6 +4732,10 @@ impl<'p> Interp<'p> {
             _ => Vec::new(),
         };
         if path.starts_with("str.") {
+            // one the oracle does not have says so first, before anything about its `otherwise` (check claude, 2026-10-08)
+            let known = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.trim" | "str.upper" | "str.lower" | "str.replace" | "str.join"
+                | "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" | "str.find.grapheme");
+            if !known { return rt(c.line, format!("stdkit::{path} is not in the oracle's stdkit (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")); }
             self.check_handler(c.handler.as_ref(), &fails, &format!("stdkit::{path}"), c.line)?;
             let mut vals = Vec::new();
             for a in &c.args.values {

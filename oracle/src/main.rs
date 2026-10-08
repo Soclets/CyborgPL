@@ -83,6 +83,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let prog = load_files(path)?;
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     // a bare call with more than one candidate is refused where it is written, run or not (owner,
     // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
     for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
@@ -558,6 +559,92 @@ fn check_type_names(prog: &ast::Program) -> Result<(), String> {
             let shown = n.trim_start_matches("::");
             return Err(format!("line {line}: no type named `{shown}` is declared"));
         }
+    }
+    Ok(())
+}
+
+/// A plain `let` over a visible name is refused, and `shadow` needs one to shadow, in code that runs
+/// or not (check claude, 2026-10-08: the oracle checked only where it ran; owner, 2026-09-14 and
+/// 2026-10-08). Scopes as the interpreter keeps them: a function's parameters, then each block;
+/// a closure starts afresh with its parameters and captures.
+fn check_redeclared(prog: &ast::Program) -> Result<(), String> {
+    use ast::{Stmt, Expr, Handler, AsmBind};
+    type Scopes = Vec<Vec<(String, bool)>>;   // (name, sealed)
+    // a const sits in the outermost scope, its name marked `const:`
+    fn find<'a>(sc: &'a Scopes, n: &str) -> Option<&'a (String, bool)> { sc.iter().rev().flat_map(|s| s.iter()).find(|(m, _)| m == n || m.strip_prefix("const:") == Some(n)) }
+    fn decl(sc: &mut Scopes, n: &str, shadow: bool, sealed: bool, line: usize) -> Result<(), String> {
+        match (find(sc, n), shadow) {
+            (Some(_), false) => return Err(format!("line {line}: '{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow '{n}' := …;` (owner, 2026-10-08)")),
+            (None, true) => return Err(format!("line {line}: `shadow` declares over an existing '{n}', but none is visible here")),
+            (Some((m, true)), true) if m.starts_with("const:") => return Err(format!("line {line}: '{n}' is a const and cannot be shadowed")),
+            (Some((_, true)), true) => return Err(format!("line {line}: '{n}' cannot be shadowed: it is `no_shadow` (or a loop's own counter)")),
+            _ => {}
+        }
+        sc.last_mut().unwrap().push((n.to_string(), sealed));
+        Ok(())
+    }
+    fn block(sc: &mut Scopes, body: &[Stmt], extra: &[(String, bool)]) -> Result<(), String> {
+        sc.push(extra.to_vec());
+        for st in body { stmt(sc, st)?; }
+        sc.pop();
+        Ok(())
+    }
+    fn arms(sc: &mut Scopes, arms: &[ast::Arm]) -> Result<(), String> {
+        for a in arms {
+            if let Some(v) = &a.value { expr(sc, v)?; }
+            block(sc, &a.body, &a.bind.iter().map(|b| (b.clone(), false)).collect::<Vec<_>>())?;
+        }
+        Ok(())
+    }
+    fn handler(sc: &mut Scopes, h: &Option<Handler>) -> Result<(), String> {
+        match h { Some(Handler::Arms(a)) => arms(sc, a), Some(Handler::Leave(st)) => stmt(sc, st), _ => Ok(()) }
+    }
+    fn bracket(sc: &mut Scopes, b: &ast::Bracket) -> Result<(), String> {
+        for ast::Value::Expr(e) in &b.values { expr(sc, e)?; }
+        Ok(())
+    }
+    fn expr(sc: &mut Scopes, e: &Expr) -> Result<(), String> {
+        match e {
+            Expr::Call(c) => { bracket(sc, &c.args)?; handler(sc, &c.handler) }
+            Expr::Match(v, a, _) => { bracket(sc, v)?; arms(sc, a) }
+            Expr::Lambda(f, caps, _) => {
+                let mut fresh: Scopes = vec![caps.iter().map(|(_, n)| (n.clone(), false)).chain(f.params.iter().map(|p| (p.name.clone(), false))).collect()];
+                block(&mut fresh, &f.body, &[])
+            }
+            _ => Ok(()),
+        }
+    }
+    fn stmt(sc: &mut Scopes, st: &Stmt) -> Result<(), String> {
+        match st {
+            Stmt::Decl { name, value, shadow, sealed, line, .. } => { bracket(sc, value)?; decl(sc, name, *shadow, *sealed, *line) }
+            Stmt::If { arms: a, otherwise, .. } => { for (c, b) in a { bracket(sc, c)?; block(sc, b, &[])?; } if let Some(o) = otherwise { block(sc, o, &[])?; } Ok(()) }
+            Stmt::Loop { body, .. } | Stmt::Block { body, .. } => block(sc, body, &[]),
+            Stmt::While { cond, body, .. } => { bracket(sc, cond)?; block(sc, body, &[]) }
+            Stmt::For { name, index, over, body, .. } => {
+                bracket(sc, over)?;
+                let mut names = vec![(name.clone(), true)];
+                if let Some(i) = index { names.push((i.clone(), true)); }
+                block(sc, body, &names)
+            }
+            Stmt::Range { name, bounds, body, .. } => { bracket(sc, bounds)?; block(sc, body, &[(name.clone(), true)]) }
+            Stmt::Tier { body, .. } => stmt(sc, body),
+            Stmt::Match { value, arms: a, .. } => { bracket(sc, value)?; arms(sc, a) }
+            Stmt::Call { call, .. } => { bracket(sc, &call.args)?; handler(sc, &call.handler) }
+            Stmt::CallValue { args, handler: h, .. } | Stmt::MapFailStmt { args, handler: h, .. } => { bracket(sc, args)?; handler(sc, h) }
+            Stmt::Concur { body, handler: h, .. } => { block(sc, body, &[])?; handler(sc, h) }
+            Stmt::Whichever { arms: a, handler: h, .. } => { for w in a { block(sc, &w.body, &[(w.name.clone(), false)])?; } handler(sc, h) }
+            Stmt::Asm { binds, line, .. } => { for b in binds { if let AsmBind::Out(v, _) = b { if find(sc, v).is_none() { decl(sc, v, false, false, *line)?; } } } Ok(()) }
+            _ => Ok(()),
+        }
+    }
+    let consts = |module: &[String]| -> Vec<(String, bool)> { prog.consts.iter().filter(|c| c.module == module).map(|c| (format!("const:{}", c.name), true)).collect() };
+    for f in &prog.funcs {
+        let mut sc: Scopes = vec![consts(&f.module), f.params.iter().map(|p| (p.name.clone(), false)).collect()];
+        block(&mut sc, &f.body, &[])?;
+    }
+    if let Some(m) = &prog.main {
+        let mut sc: Scopes = vec![consts(&[]), prog.main_args.iter().flat_map(|(a, b)| [(a.clone(), false), (b.clone(), false)]).collect()];
+        block(&mut sc, m, &[])?;
     }
     Ok(())
 }
