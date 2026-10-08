@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-08 — stdkit splits: a heap-free Limb holds the operators, stdkit the rest (owner: c; not built)
+
+The owner: "Should we make the base less lower-level?" Design claude: not
+the base (low on purpose, 2026-10-06), but one gap: the operators are
+stdkit's, and stdkit brings the heap (lists, maps, text, printing), so a
+kernel cannot add two numbers without an allocator it cannot use; Rust
+splits `core` / `alloc` / `std` for this. Offered (a) leave it, (b) the
+operators back into the base, undoing 2026-10-06, (c) split stdkit into a
+heap-free part and the rest, recommended. Asked what (c) does, then "Do
+kernels need ASP?" (not strictly: ASP costs nothing at run time in a final
+build, every check proven or refused; kernels are where silent overflow
+becomes a security hole; the very bottom, a bootloader or register
+bit-twiddling, may skip it). The owner: "`c`, if it's correct". Design
+claude checked: every operator works without a heap (arithmetic,
+comparisons, logic, bitwise, `.wrap` / `.ieee`, WSMW's fixed-size wide
+integers, `equal_to` on text literals); `++` makes new text, so it stays in
+stdkit. So **a heap-free Limb holds every operator, negation,
+`round` / `floor` / `ceil` / `trunc` and the everyday interfaces (`Number`,
+`Ordered`)**, and **stdkit keeps lists, maps, text operations and `++`,
+printing, `format`, input, time and `exit`**, including the heap-free part.
+The base is unchanged. Design claude's readings, not asked: the heap-free
+part needs ASP and IEG, as stdkit does. Not yet asked: its name; how a
+program listing only stdkit reaches the operators (stdkit passing them on,
+or listing both).
+
 ### 2026-10-08 — Shadowing is `shadow 'x' := 2;`, a verb in `let`'s place; `$:=` and `$=` are gone (owner: yea)
 
 ```
