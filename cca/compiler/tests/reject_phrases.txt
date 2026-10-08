@@ -47,7 +47,7 @@ assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
 bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
-bare_clash_not_run [fnv:a2bbed97e1526c24] :: `round` could be any of `my.m.round` (this Limb's), `stdkit::round`: write the path
+bare_clash_not_run [fnv:526639d5075009d1] :: `round` could be any of `my.m.round` (this Limb's), `cord::round`: write the path
 bare_const_item [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
 bare_const_kind [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
 bare_disagree [fnv:2b664eb8db1601d1] :: `fn shapes.area` is marked both
@@ -139,7 +139,7 @@ concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so
 concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it
 const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
 const_bare_name [fnv:c290386092499bc9] :: `const 'max' := …;`
-const_effect_value [fnv:1221654939803659] :: `stdkit::exit` has an effect, so it cannot make one
+const_effect_value [fnv:1221654939803659] :: `cord::exit` has an effect, so it cannot make one
 const_from_variable [fnv:652fb6ee6f955c44] :: 'y' is not declared
 const_in_body [fnv:9b3a6a83cc747ff7] :: a `const` sits at the top level: inside a body a declaration is `let 'x' := …;`
 const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
@@ -170,9 +170,9 @@ div_lands_too_small [fnv:cd716c13c720d27d] :: the value can be outside what an `
 div_trunc_std_moved [fnv:c49e7eedef3eb706] :: is an operator in the language now
 div_unknown_rounding [fnv:75fa1273c8a55e85] :: no `div.round`
 div_zero [fnv:55d00aed3abcab4f] :: the divisor can be zero, and nothing can be divided by zero
-duration_literal_without_std [fnv:60d415bcc2864b6f] :: a duration literal (`5 seconds`) is stdkit's
+duration_literal_without_std [fnv:9b1e4932c6a1b0ea] :: a duration literal (`5 seconds`) is cord's
 duration_negative [fnv:8b34ab9b24a2319a] :: a duration is a length of time, and this can take it below zero
-duration_without_std [fnv:d24c1a7670f52bbe] :: `duration` is stdkit's
+duration_without_std [fnv:277c8171e7a593ab] :: `duration` is cord's
 else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare words
 empty_array [fnv:8e009c1193ae6fd2] :: an array is fixed at the size it was made with
 empty_int [fnv:46819038938fd6c9] :: `[]` is an empty list, but the declared type is an `int32`
@@ -312,7 +312,7 @@ old_rust_name [fnv:ce24587a783da6fe] :: `i32` is an old spelling: write `int32`
 old_shadow_eq [fnv:3ef9fe1da93b0bfc] :: `$=` is an old spelling: write `shadow 'x': T = …`
 old_shadow_walrus [fnv:2b12b45390216440] :: `$:=` is an old spelling: write `shadow 'x' := …`
 old_std_i [fnv:2c5376858ebb8036] :: `not_std.i24` is an old spelling: write `not_std.int24`
-old_std_path [fnv:5671323b2142c858] :: `std` is an old spelling: write `stdkit`
+old_std_path [fnv:e4e86bc349371b5b] :: `std` is an old spelling: write `cord`
 old_two_long_arrows [fnv:472bf2fa455f76eb] :: `<---->` is an old spelling: write `<->`
 plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `plus`
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
@@ -329,7 +329,7 @@ index_past_end [fnv:7914d123bba99015] :: the position can be past the end
 index_zero [fnv:7914d123bba99015] :: the position can be past the end
 inline_c [fnv:d5c6f5df25514a20] :: `inline.C` is not decided
 input_unhandled [fnv:42153828b7c05b82] :: `std::input.line` can fail (closed): say what happens
-input_with_args [fnv:53d190f847e97a96] :: `stdkit::input.line` takes no arguments
+input_with_args [fnv:53d190f847e97a96] :: `cord::input.line` takes no arguments
 int8_overflow [fnv:388d1c9b5cc5a035] :: the value can be outside what an `int8` holds
 int_into_bin_var [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 int_with_params [fnv:cd6cedbd18d65cb2] :: `int32` takes no type parameters; a bracket after it is a range
@@ -365,7 +365,7 @@ lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', 
 limb_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
 limb_dep_names_word [fnv:4e354bca24585094] :: a dependency names no word
 limb_prefix_clash [fnv:5613861e39c25451] :: two Limbs have the prefix `areas`
-limb_prefix_std [fnv:60f74d14c2ed9b9d] :: has the prefix `std`, which names the built-in `stdkit::`
+limb_prefix_std [fnv:841a6629f1d6a704] :: has the prefix `std`, which names the built-in `cord::`
 limb_private [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_pub_limb [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
 limb_registry_needs_id [fnv:59952df433346243] :: which knows a Limb by its ID
@@ -453,15 +453,15 @@ no_ieg_nocheck [fnv:f5f8439818da21dc] :: `no_check` is IEG's
 no_mcps_concur [fnv:85f83276fc15bc2c] :: `concur` is MCPS's
 no_mcps_para [fnv:80b8efddb44c83df] :: `for para` is MCPS's
 no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
-no_std_compare [fnv:8bafdb74d43af956] :: `equal_to` is stdkit's
-no_std_div [fnv:75b49e266696a3e7] :: `div.floor` is stdkit's
-no_std_list [fnv:8504626b2e4b50e3] :: a growing list (`list`) is stdkit's
-no_std_map [fnv:4c1b50a820137406] :: a map (`map`) is stdkit's
-no_std_negative [fnv:6d4400b1f11d80eb] :: `-` is stdkit's
-no_std_not [fnv:43b031f45189b10d] :: `not` is stdkit's
-no_std_plus [fnv:19bc2d63e43cc2b4] :: `plus` is stdkit's, and this Limb's CCA.cplr does not list stdkit
-no_std_print [fnv:529012af67eb1a1e] :: `stdkit::print` is stdkit's
-no_std_text [fnv:c62f6fc8f09442f5] :: a text operation (`str.…`) is stdkit's
+no_std_compare [fnv:4373beb6dacde353] :: `equal_to` is cord's
+no_std_div [fnv:19038edc27cd983c] :: `div.floor` is cord's
+no_std_list [fnv:2e321b84a09d7e30] :: a growing list (`list`) is cord's
+no_std_map [fnv:5149b9e8f16923d5] :: a map (`map`) is cord's
+no_std_negative [fnv:e09337d1f21210a8] :: `-` is cord's
+no_std_not [fnv:1e5730f94e9f7b4e] :: `not` is cord's
+no_std_plus [fnv:897293c05a4336c2] :: `plus` is cord's, and this Limb's CCA.cplr does not list cord
+no_std_print [fnv:280a5fd8020bccee] :: `cord::print` is cord's
+no_std_text [fnv:704e2ab507e60726] :: a text operation (`str.…`) is cord's
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
 nocheck_lied [fnv:86874220d4213c96] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
@@ -533,8 +533,8 @@ print_format_unused_numbered [fnv:0c9676228756aeee] :: !pending `std::print.form
 print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
 print_weird_brackets [fnv:5c46b85e34e5d282] :: with arrows, not
 print_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
-printf_renamed [fnv:f00f3624793808a6] :: is spelled stdkit::print.format.stdout now
-printu_renamed [fnv:7c119360f8278a9d] :: is spelled stdkit::print.useful.stdout now
+printf_renamed [fnv:d0404eda5b18deab] :: is spelled cord::print.format.stdout now
+printu_renamed [fnv:0d0a6994f92dd780] :: is spelled cord::print.useful.stdout now
 ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_null`
 ptr_cast_keeps_readonly [fnv:8094e2137b68463e] :: `ptr.write` needs a `ptr.mut`
 ptr_cast_needs_nocheck [fnv:e2d596a2bd4a2610] :: `ptr.cast` says the bytes are a different type
@@ -620,24 +620,25 @@ spread_owned_needs_verb [fnv:b64e38d86c3a19e9] :: say `...copy 'w'` or `...give 
 spread_plain_no_verb [fnv:c21efae9ad74426b] :: its elements are plain `integer` values, which copy by themselves
 spread_unknown_length [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
 star_operator [fnv:b20e9f542727bd69] :: multiply is `times`
-std_needs_asp [fnv:f072a1fd96e09647] :: stdkit needs the core ASP
-std_needs_ieg [fnv:33c126fdbc70319c] :: stdkit needs the core IEG
+std_needs_asp [fnv:fdf75c60c7ba90e2] :: cord needs the core ASP
+std_needs_ieg [fnv:b8e91f60a0af5109] :: cord needs the core IEG
 std_not_a_type [fnv:e456092e8ffcd94f] :: is not a type: a non-standard integer
 std_on_standard [fnv:b6b921c48995d42b] :: `int32` is standard: write `int32`
 std_too_wide [fnv:685422467bc9f0ae] :: past the widest integer there is
-std_twice [fnv:899eb851df95ce1b] :: stdkit is listed twice
+std_twice [fnv:0eca5c69b5a688f4] :: cord is listed twice
 std_underscore_old [fnv:10bd3366d6968a05] :: `!std.` is an old spelling: write `not_std.`
 std_width_overflow [fnv:d15cb0d6ab33d980] :: the value can be outside what a `not_std.uint4` holds
-std_wrong_version [fnv:de1d73720dc699e5] :: CCA knows stdkit `2026-10-06T12:57:14+07:00` only
+std_wrong_version [fnv:1b72971a82122954] :: CCA knows cord `2026-10-06T12:57:14+07:00` only
+stdkit_old_spelling [fnv:070e6259742aa278] :: `stdkit` is an old spelling: write `cord`
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
-str_at_needs_pos [fnv:7db50ff2fe10eb31] :: a position says `pos`: `stdkit::str.at.point[lend 's', pos 3]`
+str_at_needs_pos [fnv:4ecdfaa4d5b9319c] :: a position says `pos`: `cord::str.at.point[lend 's', pos 3]`
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
 str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
 str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, or `.byte`
 str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
 str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
-str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is stdkit's
-str_slice_byte_unknown [fnv:0a1a2b674fc7c6b7] :: `stdkit::str.slice.byte` does not exist
+str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is cord's
+str_slice_byte_unknown [fnv:0407a6e8109d1ffb] :: `cord::str.slice.byte` does not exist
 strict_gone [fnv:70e4490d609cdd7e] :: `#strict` is gone
 struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it
 struct_bound_unkept [fnv:91778bbd2a224911] :: needs `<T>: Number`
@@ -691,7 +692,7 @@ type_name_unknown [fnv:89a5ec489926ad73] :: there is no item `nosuchtype`
 types_two_prefixes [fnv:a01733d380e5e9a7] :: expected a value of the declared type (areas::Circle), found a `shapes::Circle`
 uint_negative [fnv:66ac7011902821d4] :: the value can be outside what a `uint8` holds
 unitect_missing [fnv:681105d57c941ecc] :: `char.grapheme` is UniTect's
-unknown_std [fnv:46c62b9861ef3858] :: `stdkit::println` does not exist
+unknown_std [fnv:46c62b9861ef3858] :: `cord::println` does not exist
 use_after_give [fnv:7b0240d30516a476] :: was given away and no longer owns anything
 useful_after_type [fnv:9996cbd34a84574b] :: `.useful` follows the verb: `to.useful.deci64[…]`
 useful_to_int [fnv:a30aee9b51a7b709] :: `to.useful` makes text or a deci

@@ -212,7 +212,7 @@ fn limbs_reach_their_dependencies() {
     // even when the one using it lists std.
     let r = Command::new(cca()).arg("check").arg(limbs.join("uses_bare_dep")).output().unwrap();
     let err = String::from_utf8_lossy(&r.stderr);
-    assert!(!r.status.success() && err.contains("`plus.wrap` is stdkit's") && err.contains("bare_dep/limb.cpls"), "a Limb without std reached `plus.wrap`:\n{}", err);
+    assert!(!r.status.success() && err.contains("`plus.wrap` is cord's") && err.contains("bare_dep/limb.cpls"), "a Limb without std reached `plus.wrap`:\n{}", err);
     // A lone target saying `default = false` leaves no default (owner,
     // 2026-09-30): checking is fine, a build with no `--target` is
     // refused, and one naming it builds.

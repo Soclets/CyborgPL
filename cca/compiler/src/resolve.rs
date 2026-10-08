@@ -728,7 +728,7 @@ impl Items {
             }
         }
         if std && !self.no_std_roots.contains(&here) {
-            found.push((format!("`stdkit::{}`", written), Bareness::Std));
+            found.push((format!("`cord::{}`", written), Bareness::Std));
         }
         let mut never: Option<String> = None;
         if let Some(deps) = self.limb_deps.get(&here) {
@@ -783,7 +783,7 @@ impl Items {
         let mut cur = m;
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
-                return err(Diagnostic::error(format!("`{}` is not available yet: there is no `stdkit` Limb for now — the base language comes first", path.spelled())).at(path.span));
+                return err(Diagnostic::error(format!("`{}` is not available yet: there is no `cord` Limb for now — the base language comes first", path.spelled())).at(path.span));
             }
             cur = self.dependency(limb, m)?;
             if path.segs.first().map_or(false, |s| s.name == "my") {
@@ -826,7 +826,7 @@ impl Items {
     pub fn lookup_const_path(&self, path: &ast::Path, name: &ast::QName, m: ModuleId) -> Result<crate::hir::ConstId> {
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
-                return err(Diagnostic::error("`stdkit::` is not available yet: there is no `stdkit` Limb for now").at(path.span));
+                return err(Diagnostic::error("`cord::` is not available yet: there is no `cord` Limb for now").at(path.span));
             }
             if path.segs.is_empty() {
                 let root = self.dependency(limb, m)?;
@@ -1269,7 +1269,7 @@ impl Items {
                 }
                 "duration" => return Ok(Ty::Duration),
                 "fn" => unreachable!(),
-                "uenr" => return err(Diagnostic::error("`uenr` is the standard Limb's type, `stdkit::uenr`, and `stdkit::` is not available yet").at(span)),
+                "uenr" => return err(Diagnostic::error("`uenr` is the standard Limb's type, `cord::uenr`, and `cord::` is not available yet").at(span)),
                 _ => {}
             }
         }

@@ -46,7 +46,7 @@ impl Path {
         let mut s = String::new();
         if let Some(l) = &self.limb {
             // `std` inside, `stdkit` as written (owner, 2026-10-07).
-            s.push_str(if l.name == "std" { "stdkit" } else { &l.name });
+            s.push_str(if l.name == "std" { "cord" } else { &l.name });
             s.push_str("::");
         }
         s.push_str(&self.segs.iter().map(|x| x.name.as_str()).collect::<Vec<_>>().join("."));

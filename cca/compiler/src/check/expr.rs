@@ -411,7 +411,7 @@ impl Checker {
                         return err(Diagnostic::error("one lane of a vector is read (`'v'[1]`) and written (`change 'v'[3] = 30;`); lending one out to be changed is not decided yet").at(e.span));
                     }
                     Ty::Simd { elem, .. } => (**elem).clone(),
-                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `stdkit::str.at.<unit>` when stdkit exists, or walk it with `str.each.<unit>`").at(e.span)),
+                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `cord::str.at.<unit>` when cord exists, or walk it with `str.each.<unit>`").at(e.span)),
                     Ty::Map { .. } => return err(Diagnostic::error("a map is looked up by key with `map.get[lend 'm', key] otherwise …`, not by position").at(e.span)),
                     Ty::Bundle(_) => return err(Diagnostic::error("a mixed bundle has no `[…]`: walk it with `for`").at(e.span)),
                     other => {
@@ -1096,7 +1096,7 @@ impl Checker {
                 self.bare_group_exact(&mut r);
                 let lt = self.resolve(&l.ty);
                 if lt.is_text() {
-                    return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is stdkit's — compare lengths or use a stdkit function", op.spelled())).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is cord's — compare lengths or use a cord function", op.spelled())).at(op_span));
                 }
                 // Characters compare by content (`==`); an order between
                 // them was never decided, and the oracle refuses one.
@@ -1726,7 +1726,7 @@ impl Checker {
                 return Ok((l, r, Ty::Deci(*b)));
             }
             if matches!(lt.base(), Ty::Deci(_)) {
-                return err(Diagnostic::error(format!("a deci power's exponent is an integer or a whole literal, and this one is {}: roots are stdkit's math", crate::types::a_type(&self.spell(&rt)))).at(r.span));
+                return err(Diagnostic::error(format!("a deci power's exponent is an integer or a whole literal, and this one is {}: roots are cord's math", crate::types::a_type(&self.spell(&rt)))).at(r.span));
             }
             return err(Diagnostic::error("a deci power's exponent is an integer or a whole literal: the deci goes on the left of `xx`").at(op_span));
         }
@@ -1803,7 +1803,7 @@ impl Checker {
             }
             let hint = match spelling {
                 "*" => "multiply is `times`",
-                "^" => "the power is stdkit's `pow`",
+                "^" => "the power is cord's `pow`",
                 "%" => "remainder is `mod.floor` (or `.ceil`, `.trunc`, `.near`)",
                 "&" | "|" | "!" => "the boolean operators are `and`, `or`, `!`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is `lend 'x'`",
                 "&+" | "&-" | "+%" | "-%" | "*%" => "wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`",
@@ -2161,7 +2161,7 @@ impl Checker {
             if let Some(new) = renamed {
                 let rest = segs[1..].join(".");
                 let (old, new) = if rest.is_empty() { (segs[0].to_string(), new.to_string()) } else { (format!("{}.{}", segs[0], rest), format!("{}.{}", new, rest)) };
-                return err(Diagnostic::error(format!("stdkit::{} is spelled stdkit::{} now", old, new)).at(span));
+                return err(Diagnostic::error(format!("cord::{} is spelled cord::{} now", old, new)).at(span));
             }
         }
         // Every print says its form (owner, 2026-10-02): `.stored` or
@@ -2170,16 +2170,16 @@ impl Checker {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             match segs.as_slice() {
                 ["print"] => {
-                    return err(Diagnostic::error("say which form a print shows: `stdkit::print.stored[…]` (what is stored) or `stdkit::print.useful[…]` (the useful value) (owner, 2026-10-02)").at(span));
+                    return err(Diagnostic::error("say which form a print shows: `cord::print.stored[…]` (what is stored) or `cord::print.useful[…]` (the useful value) (owner, 2026-10-02)").at(span));
                 }
                 ["print", stream @ ("stdout" | "stderr")] => {
-                    return err(Diagnostic::error(format!("say which form a print shows: `stdkit::print.stored.{}[…]` (what is stored) or `stdkit::print.useful.{}[…]` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                    return err(Diagnostic::error(format!("say which form a print shows: `cord::print.stored.{}[…]` (what is stored) or `cord::print.useful.{}[…]` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
                 }
                 ["print", "weird", stream @ ("stdout" | "stderr")] => {
-                    return err(Diagnostic::error(format!("say which form a print shows: `stdkit::print.weird.stored.{} <- …` (what is stored) or `stdkit::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                    return err(Diagnostic::error(format!("say which form a print shows: `cord::print.weird.stored.{} <- …` (what is stored) or `cord::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
                 }
                 ["print", f @ ("stored" | "useful"), "weird", rest @ ..] => {
-                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `stdkit::print.weird.{}.{} <- …`", f, rest.join("."))).at(span));
+                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `cord::print.weird.{}.{} <- …`", f, rest.join("."))).at(span));
                 }
                 _ => {}
             }
@@ -2188,7 +2188,7 @@ impl Checker {
         if path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             if let [w @ ("div" | "mod"), "trunc"] = segs.as_slice() {
-                return err(Diagnostic::error(format!("`stdkit::{w}.trunc` is an operator in the language now: `'a' {w}.trunc 'b'`")).at(span));
+                return err(Diagnostic::error(format!("`cord::{w}.trunc` is an operator in the language now: `'a' {w}.trunc 'b'`")).at(span));
             }
         }
         if self.std_stubs && path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
@@ -2470,7 +2470,7 @@ impl Checker {
                         None => None,
                     };
                     if used && given.is_none() && !super::stmt::leaves_block(&body) {
-                        return err(Diagnostic::error(format!("the `{}` arm must give the call's value (`{{ 0 }}`) or leave (`return`, `fail`, `break`, `continue` or `stdkit::exit`)", arm.name.name)).at(arm.body.span));
+                        return err(Diagnostic::error(format!("the `{}` arm must give the call's value (`{{ 0 }}`) or leave (`return`, `fail`, `break`, `continue` or `cord::exit`)", arm.name.name)).at(arm.body.span));
                     }
                     out.push(hir::FailArm { index: fi, bind, body, gives: given });
                 }
@@ -3325,7 +3325,7 @@ impl Checker {
                 "grapheme" => BuiltinHead::B(Builtin::StrEach(Unit::Grapheme)),
                 other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).at(span)),
             },
-            ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is stdkit's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `stdkit::` is not available yet", other)).at(span)),
+            ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is cord's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `cord::` is not available yet", other)).at(span)),
             ("char", ["code"]) => BuiltinHead::B(Builtin::CharCode),
             // Built by the parser from `on.machine.chip X` (owner, 2026-10-06).
             ("on", ["machine", "chip", f]) => match ast::ON_FEATURES.iter().position(|n| n == f) {
@@ -4391,7 +4391,7 @@ impl Checker {
             }
             "exit" => {
                 if positional.len() != 1 {
-                    return err(Diagnostic::error("`stdkit::exit` takes one value, the exit code").at(span));
+                    return err(Diagnostic::error("`cord::exit` takes one value, the exit code").at(span));
                 }
                 let v = self.expr(ctx, positional[0])?;
                 let v = self.expect_store(ctx, v, &Ty::int(false, 8), "the exit code")?;
@@ -4400,7 +4400,7 @@ impl Checker {
             }
             "input.line" | "input.all" => {
                 if !positional.is_empty() {
-                    return err(Diagnostic::error(format!("`stdkit::{}` takes no arguments", name)).at(span));
+                    return err(Diagnostic::error(format!("`cord::{}` takes no arguments", name)).at(span));
                 }
                 fails.push(("closed".into(), None));
                 Ty::utf8()
@@ -4430,7 +4430,7 @@ impl Checker {
                 for (k, e) in positional.iter().enumerate() {
                     let e: &ast::Expr = match (&e.kind, positions && k >= 1) {
                         (AK::Pos(inner), true) => inner,
-                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `stdkit::{}[lend 's', pos 3]`", name)).at(e.span)),
+                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `cord::{}[lend 's', pos 3]`", name)).at(e.span)),
                         _ => e,
                     };
                     let v = self.expr(ctx, e)?;
@@ -4461,10 +4461,10 @@ impl Checker {
                         fails.push(("out_of_range".into(), None));
                         Ty::utf8()
                     }
-                    other => return err(Diagnostic::error(format!("`stdkit::str.{}` does not exist", other)).at(span)),
+                    other => return err(Diagnostic::error(format!("`cord::str.{}` does not exist", other)).at(span)),
                 }
             }
-            _ => return err(Diagnostic::error(format!("`stdkit::{}` does not exist", name)).at(span)),
+            _ => return err(Diagnostic::error(format!("`cord::{}` does not exist", name)).at(span)),
         };
         let ow = self.call_otherwise(ctx, otherwise, &fails, &ty, used, span, &format!("std::{}", name))?;
         Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::Std(name)), args: hargs, otherwise: ow, fails }, ty, span })

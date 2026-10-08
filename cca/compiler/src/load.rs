@@ -324,8 +324,10 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
         None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()),
     };
     if let Some((manifest_at, written)) = from {
-        if prefix == "std" || prefix == "cca" {
-            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, if prefix == "std" { "stdkit" } else { &prefix })).place(manifest_at.display().to_string()));
+        // `cord` is reserved beside the old `std` and `stdkit` (owner,
+        // 2026-10-09).
+        if matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca") {
+            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, if prefix == "cca" { "cca" } else { "cord" })).place(manifest_at.display().to_string()));
         }
         // No override: two Limbs with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
@@ -724,10 +726,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     if let (Some((i, ispan)), Some((v, vspan))) = (&id, &version) {
                         if i == crate::parser::STD_ID {
                             if v != crate::parser::STD_VERSION {
-                                return err(Diagnostic::error(format!("CCA knows stdkit `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
+                                return err(Diagnostic::error(format!("CCA knows cord `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
                             }
                             if out.has_std {
-                                return err(Diagnostic::error("stdkit is listed twice in `dependencies`").at(*ispan));
+                                return err(Diagnostic::error("cord is listed twice in `dependencies`").at(*ispan));
                             }
                             out.has_std = true;
                             continue;
@@ -769,12 +771,12 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // std's maths always has true values and checks (owner, 2026-10-06):
     // a Limb that lists std lists ASP.
     if out.has_std && !out.cores.iter().any(|c| c == "ASP") {
-        return err(Diagnostic::error(format!("stdkit needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", crate::ast::core_line("ASP"))).at(value.span));
+        return err(Diagnostic::error(format!("cord needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", crate::ast::core_line("ASP"))).at(value.span));
     }
     // And IEG, which grants it the operators on built-in types (owner,
     // 2026-10-06: "`a`").
     if out.has_std && !out.cores.iter().any(|c| c == "IEG") {
-        return err(Diagnostic::error(format!("stdkit needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", crate::ast::core_line("IEG"))).at(value.span));
+        return err(Diagnostic::error(format!("cord needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", crate::ast::core_line("IEG"))).at(value.span));
     }
     if out.targets.is_empty() {
         return err(Diagnostic::error(format!("the manifest has no target: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));

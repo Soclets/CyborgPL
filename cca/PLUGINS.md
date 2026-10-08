@@ -54,7 +54,7 @@ lets `concur` and `for para` parse; and so on. Concretely, today:
 | MCPS | `concur`, `whichever`, `channel`, `for para` in the gate; `par.rs`, `codegen/par.rs`, `codegen/tasks.rs` |
 | WSTN | a parser pre-scan refusing a name past ASCII |
 | TAS, AI, WSMW, Money, UniTect, CAPS | words in the gate (`test fn`, `must`, `brain16`, `int128`, `not_std.`, `deci64`, `char.grapheme`, `case.insensitive`, …); their meaning still all of `check/` |
-| stdkit | not a core: a limb CCA does not have yet (`stdkit::` is a stub) |
+| cord | not a core: a limb CCA does not have yet (`cord::` is a stub) |
 | MTM | gone (2026-10-07): its spellings are old ones, refused by name in every limb |
 
 So "moving the cores out" is two different jobs: the thin ones (WSTN,

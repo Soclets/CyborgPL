@@ -893,7 +893,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     // Say whose call: a std one waits on the std Limb, not
                     // on the base language.
                     let what = match callee {
-                        Callee::Op(Op::Std(name)) => format!("`stdkit::{}`, a call that can fail, has no shape in the generated code yet: stdkit's", name),
+                        Callee::Op(Op::Std(name)) => format!("`cord::{}`, a call that can fail, has no shape in the generated code yet: cord's", name),
                         _ => "this call that can fail has no shape in the generated code yet".to_string(),
                     };
                     self.cannot(what, Some(f.span(f.blocks[b].term_span)));

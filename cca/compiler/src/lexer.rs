@@ -529,14 +529,16 @@ impl<'a> Lexer<'a> {
             "at_most" => Tok::Op("</==".into()),
             "at_least" => Tok::Op(">/==".into()),
             "newln" => Tok::Newline,
-            "stdkit" => Tok::Word("std".into()),
+            // The standard library is `cord` (owner, 2026-10-09: "yea,
+            // go"), held as the `std` it always was inside.
+            "cord" | "stdkit" => Tok::Word("std".into()),
             "auto_newln" => Tok::Word("auto_newline".into()),
             _ => Tok::Word(text.clone()),
         };
         // Its old spellings, refused naming the new (owner: "MTM is gone.").
         let alt = match text.as_str() {
             "nocheck" => Some((text.clone(), "no_check")),
-            "std" => Some((text.clone(), "stdkit")),
+            "std" | "stdkit" => Some((text.clone(), "cord")),
             "auto_newline" => Some((text.clone(), "auto_newln")),
             "gives" | "giveS" => Some((text.clone(), "is")),
             _ => None,

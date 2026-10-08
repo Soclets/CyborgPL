@@ -456,7 +456,7 @@ impl Checker {
                     return err(Diagnostic::error("a task is a block, not a function: `return` cannot leave it").at(s.span));
                 }
                 if ctx.is_main {
-                    return err(Diagnostic::error("`MAIN` is a block, not a function: it has no `return` — ending it exits 0, and any other code is `stdkit::exit[n]`").at(s.span));
+                    return err(Diagnostic::error("`MAIN` is a block, not a function: it has no `return` — ending it exits 0, and any other code is `cord::exit[n]`").at(s.span));
                 }
                 match value {
                     Some(v) => {
@@ -670,7 +670,7 @@ impl Checker {
 
     fn fail_stmt(&mut self, ctx: &mut FnCtx, name: &ast::Ident, payload: Option<&ast::Expr>, span: Span) -> Result<hir::StmtKind> {
         if ctx.is_main {
-            return err(Diagnostic::error("`MAIN` cannot fail: it exits — `stdkit::exit[1]` says the code").at(span));
+            return err(Diagnostic::error("`MAIN` cannot fail: it exits — `cord::exit[1]` says the code").at(span));
         }
         let Some(index) = ctx.fails.iter().position(|(n, _)| *n == name.name) else {
             if ctx.fails.is_empty() {

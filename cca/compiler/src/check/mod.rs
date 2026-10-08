@@ -463,7 +463,7 @@ impl Checker {
                 }
                 Ok(())
             }
-            hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(name)), .. } => err(Diagnostic::error(format!("a const is a value known at compile time: `stdkit::{}` has an effect, so it cannot make one", name)).at(e.span)),
+            hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(name)), .. } => err(Diagnostic::error(format!("a const is a value known at compile time: `cord::{}` has an effect, so it cannot make one", name)).at(e.span)),
             hir::ExprKind::Call { callee: hir::Callee::Extern(_), .. } => err(Diagnostic::error("a const is a value known at compile time: a call into C cannot make one").at(e.span)),
             _ => err(Diagnostic::error("a const is a value known at compile time: a literal, arithmetic on literals, another const, or a pure call").at(e.span)),
         }

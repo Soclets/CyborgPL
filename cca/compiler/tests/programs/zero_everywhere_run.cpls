@@ -38,7 +38,7 @@ MAIN {
     let 'vn': simd[bin64, 2] = simd.fill[value 'n'];
     let 's' := plus[simd.max['vm']] plus plus[simd.min['vm']] plus plus[simd.sum['vm']] plus plus[simd.max['vz' times 'vn']] plus plus[simd.max['vz' times.ieee 'vn']];
     let 'r' := three[];
-    let 'x' := plus[(-'r') mod.trunc 'r'] plus ieee[(-'r') mod.trunc.ieee 'r'] plus ieee['r' mod.floor.ieee (-'r')] plus plus[(-'t') pow 3] plus ieee[(-'t') pow.ieee 3] plus ieee[(-'t') stdkit::pow.ieee 3];
+    let 'x' := plus[(-'r') mod.trunc 'r'] plus ieee[(-'r') mod.trunc.ieee 'r'] plus ieee['r' mod.floor.ieee (-'r')] plus plus[(-'t') pow 3] plus ieee[(-'t') pow.ieee 3] plus ieee[(-'t') cord::pow.ieee 3];
     let 'lit' := plus[0.0 times (-2.0)] plus ieee[0.0 times.ieee (-2.0)] plus plus[-0.0] plus ieee[neg.ieee 0.0];
     no_check my.exit[to.int32['a' plus 'b' plus 'c' plus 'd' plus 'e' plus 'f' plus 'g' plus 'h' plus 's' plus 'x' plus 'lit']];
 }
