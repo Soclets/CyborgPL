@@ -63,7 +63,12 @@ claude: one copy per type a generic is used with, the same size as
 hand-written for one type, identical copies merged by LLVM, short chains
 inlined). **Every build ends with a report of the program's size, broken
 down**; design claude's reading of the breakdown, not asked: by Limb, by
-function, and the copies each generic produced.
+function, and the copies each generic produced. **An iterator's `next` returns an `Option`-like value** (owner: "`b`",
+after "What's the diff?"), so the base gets a type for "an item, or none",
+which can be stored and passed on, as Rust's `Option`; over (a) `next`
+failing with `done`, which design claude recommended (one way to say
+"nothing", the failures). Not yet asked: its name and cases; the iterator
+interface's spelling; how adapters chain.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
