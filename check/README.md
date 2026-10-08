@@ -18,6 +18,15 @@ corpus are written in it — `->`, `equal_to` / `not_equal` / `at_most` / `at_le
 (required for a borrow from two inputs), `brain16` only. `#strict` and MTM are gone, so the
 generator writes neither. Older notes below keep the spellings of their day.
 
+**list.remove, shadow, str.at / str.slice** (owner, 2026-10-08): the generator removes an item
+(`pos`, its item printed or dropped; past the end as a risk) where the list's least length stays
+known (once per life of the list, outside `check`); shadows a visible plain name (never a loop's
+counter) with `shadow`, in the same scope or an inner one, and in 50 programs in 1000
+(`--shadow-wrong`) writes a plain `let` over it instead, a mistake both engines must refuse;
+and, with `stdkit` not avoided, reads text by `str.at.byte/point/grapheme` and
+`str.slice.grapheme`, out of range sometimes. The evaluator models remove and shadow; the text
+reads are compared between the engines only. Default avoid: `stdkit` (CCA has no stdkit yet).
+
 ## What is here
 
 - **`gen/`** — the program generator. `seed → program` is a pure function

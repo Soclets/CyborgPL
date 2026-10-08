@@ -103,13 +103,21 @@ pub struct Config {
     pub mutator: bool,
     /// The `.ieee` operators and `neg.ieee` in brain16 blocks (owner, 2026-10-07).
     pub ieee: bool,
+    /// `list.remove` (owner, 2026-10-08).
+    pub remove: bool,
+    /// `shadow` declarations (owner, 2026-10-08), and how often in 1000 a
+    /// program gets a plain `let` over a visible name instead, a mistake.
+    pub shadow: bool,
+    pub shadow_wrong: u64,
+    /// stdkit's `str.at` / `str.slice` (CCA has no stdkit yet).
+    pub stdkit: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, stdkit: true, new_words: true }
     }
 }
 
@@ -224,6 +232,8 @@ struct Gen {
     /// `m1 [lent.mut 'a', lent 'b']` is defined: one call may not lend one
     /// list both ways (owner: a, 38c91e7).
     mutator: bool,
+    /// A plain `let` over a visible name was written on purpose.
+    shadow_mistake: bool,
     /// How many call arguments the expression being built is inside.
     call_nest: u32,
     /// A `#strict` file: the whole program under the generator's `check`
@@ -269,6 +279,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         unevaluable: false,
         extra_fns: vec![],
         mutator: false,
+        shadow_mistake: false,
         call_nest: 0,
     };
     if strict {
@@ -338,7 +349,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some(), strict, new_words, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, unevaluable: g.unevaluable }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -376,7 +387,7 @@ fn floor_div(a: i128, b: i128) -> i128 {
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
-        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) => false,
+        Expr::Var(_) | Expr::Call(..) | Expr::To(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) | Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) | Expr::Remove(..) => false,
         Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => is_literal_only(a) && is_literal_only(b),
         Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) => is_literal_only(a),
     }
@@ -408,7 +419,10 @@ impl Gen {
     /// an unseen one).
     fn vars(&self) -> impl Iterator<Item = &VarInfo> {
         let in_check = self.in_check > 0;
-        self.scopes.iter().flatten().filter(move |v| v.list.is_none() && v.en.is_none() && v.simd.is_none() && !(in_check && v.unseen))
+        // a shadowed declaration is out of sight: only the innermost of a name
+        let all: Vec<&VarInfo> = self.scopes.iter().flatten().collect();
+        let seen: Vec<&VarInfo> = all.iter().enumerate().filter(|(i, v)| !all[i + 1..].iter().any(|w| w.name == v.name)).map(|(_, v)| *v).collect();
+        seen.into_iter().filter(move |v| v.list.is_none() && v.en.is_none() && v.simd.is_none() && !(in_check && v.unseen))
     }
 
     /// Whether `v` is read only through `to.T[…]` (an engine gives it no width).
@@ -437,7 +451,7 @@ impl Gen {
                 Expr::Var(n) => f(n),
                 // A length's bounds and an item's range are the generator's.
                 // A lane's range is the generator's too.
-                Expr::Len(_) | Expr::At(..) | Expr::Match(..) | Expr::SimdFold(..) => true,
+                Expr::Len(_) | Expr::At(..) | Expr::Match(..) | Expr::SimdFold(..) | Expr::Remove(..) => true,
                 Expr::SimdFill(a) => walk(a, f),
                 Expr::ToEnum(_, a, b) => walk(a, f) || walk(b, f),
                 // a conversion's result is the generator's guess at most
@@ -714,6 +728,8 @@ impl Gen {
             if self.in_check == 0 && !self.lists().is_empty() { 6 } else { 0 },    // loop over a list's positions
             // no Precog domain yet: every site is a run-time check, which a `check` must not hold
             if self.cfg.brain16 && self.in_check == 0 { 2 } else { 0 },             // brain16
+            if self.removable().is_empty() { 0 } else { 2 },                        // list.remove
+            if self.shadowable().is_empty() { 0 } else { 1 },                       // shadow
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -736,6 +752,8 @@ impl Gen {
             19 => self.deci_episode(),
             20 => self.list_loop(),
             21 => self.brain_episode(),
+            22 => self.remove(),
+            23 => self.shadow_stmt(),
             6 if self.rng.chance(8) => self.min_by_minus_one(),
             6 => {
                 let t = self.int_ty();
@@ -793,6 +811,36 @@ impl Gen {
             let l = v.list.as_ref().unwrap();
             l.mutable && l.frozen == 0 && l.len_now + (self.mult / l.decl_mult.max(1)).max(1) <= l.cap
         }).collect()
+    }
+
+    /// Lists an item may be removed from: changeable, not being walked, and
+    /// here once per life of the list, so its least length stays known.
+    fn removable(&self) -> Vec<VarInfo> {
+        if self.in_check > 0 || !self.cfg.remove {
+            return vec![];
+        }
+        self.lists().into_iter().filter(|v| {
+            let l = v.list.as_ref().unwrap();
+            l.mutable && l.frozen == 0 && self.mult == l.decl_mult && l.lo >= 1
+        }).collect()
+    }
+
+    /// `list.remove[lend.mut 'xs', pos p]` (lists.md; `pos`, owner 2026-10-08),
+    /// its item dropped or printed; past the end, as a risk taken, a check site.
+    fn remove(&mut self) -> Stmt {
+        let v = self.rng.pick(&self.removable()).clone();
+        let lo = v.list.as_ref().unwrap().lo as i128;
+        let k = if self.take_risk() { lo + self.rng.range(1, 2) } else { self.rng.range(1, lo) };
+        let l = self.list_mut(&v.name);
+        l.lo -= 1;
+        l.len_now = l.len_now.saturating_sub(1).max(l.lo);
+        let pos = Expr::Lit(k);
+        if self.rng.chance(50) {
+            Stmt::Remove { name: v.name, pos }
+        } else {
+            let (t, signed) = if v.ty.signed() { (Ty::I64, true) } else { (Ty::U64, false) };
+            Stmt::Print { signed, value: Expr::To(t, Box::new(Expr::Remove(v.name, Box::new(pos)))) }
+        }
     }
 
     fn walkable(&self) -> Vec<VarInfo> {
@@ -1757,6 +1805,30 @@ impl Gen {
     fn text_part(&mut self, body: &mut Vec<Stmt>) {
         const TEXTS: &[&str] = &["hello", "h\u{e9}llo", "", "Z", "ZZ", "7", "a b", "\u{65e5}\u{672c}", "caf\u{e9}!", "\u{e9}"];
         let q = |n: &str| format!("'{n}'");
+        // `str.at.<unit>` and `str.slice.grapheme` by position, out of range
+        // sometimes (owner, 2026-10-08); stdkit's, so not in CCA's runs yet
+        if self.cfg.stdkit && self.rng.chance(30) {
+            let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
+            let n = t.chars().count() as i128;
+            let s = self.name("t");
+            body.push(Stmt::TypedLet { name: s.clone(), mutable: false, ty: "str.utf8".into(), value: Expr::Text(t.into()) });
+            let r = self.name("t");
+            let k = self.rng.range(0, n + 2);
+            let line = match self.rng.below(4) {
+                0 => format!("let {} := str.at.byte[lend {}, pos {k}] otherwise 7;\nput_u[to.uint64[{}]];", q(&r), q(&s), q(&r)),
+                1 => format!("let {} := str.at.point[lend {}, pos {k}] otherwise `?`;\nput_u[to.uint64[char.code[{}]]];", q(&r), q(&s), q(&r)),
+                2 => format!("let {} := str.at.grapheme[lend {}, pos {k}] otherwise `?`;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r)),
+                _ => {
+                    let a = self.rng.range(0, n + 1);
+                    let b = self.rng.range(a.max(1) - 1, n + 2);
+                    format!("let {} := str.slice.grapheme[lend {}, pos {a}, pos {b}] otherwise \"\";\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
+                }
+            };
+            for l in line.split('\n') {
+                body.push(Stmt::Src(l.to_string()));
+            }
+            return;
+        }
         match self.rng.below(5) {
             0 => {
                 let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
@@ -1858,6 +1930,37 @@ impl Gen {
             self.mark_unseen(&name);
         }
         Stmt::Let { tier, name, mutability, ty: tr, value }
+    }
+
+    /// Names a declaration may shadow: plain values, not lists, enums,
+    /// vectors, a walk's item or an arm's data.
+    fn shadowable(&self) -> Vec<VarInfo> {
+        if !self.cfg.shadow {
+            return vec![];
+        }
+        // a loop's counter or a walk's position is the loop's: never shadowed
+        self.vars().filter(|v| !v.item && !v.data && !v.name.starts_with('i')).cloned().collect()
+    }
+
+    /// `shadow 'x' := …;` / `shadow mut 'x': T = …;` over a visible name, in
+    /// the same scope or an inner one (owner, 2026-10-08); or, as a mistake
+    /// on purpose, the same with a plain `let`, which is refused.
+    fn shadow_stmt(&mut self) -> Stmt {
+        let old = self.rng.pick(&self.shadowable()).name.clone();
+        let mistake = !self.shadow_mistake && self.rng.below(1000) < self.cfg.shadow_wrong;
+        let s = self.let_stmt();
+        let Stmt::Let { tier, name, mutability, ty, value } = s else { unreachable!() };
+        // the new declaration takes the old name
+        if let Some(v) = self.scopes.last_mut().unwrap().iter_mut().rev().find(|v| v.name == name) {
+            v.name = old.clone();
+        }
+        let s = Stmt::Let { tier, name: old, mutability, ty, value };
+        if mistake {
+            self.shadow_mistake = true;
+            s
+        } else {
+            Stmt::Shadow(Box::new(s))
+        }
     }
 
     fn assign_stmt(&mut self) -> Stmt {

@@ -312,6 +312,8 @@ pub enum Expr {
     /// Source text as written, for leaves nothing else models (a char
     /// literal, a list of bytes, `str.points[lend 't']`).
     Src(String),
+    /// `list.remove[lend.mut 'xs', pos p]`, its item handed back (lists.md).
+    Remove(String, Box<Expr>),
     /// `to.K[v] otherwise { out_of_range { K.c1 } }`: a number into a
     /// `layout.C enum`, the fallback where no case has it (owner, 2026-09-27).
     ToEnum(String, Box<Expr>, Box<Expr>),
@@ -404,6 +406,11 @@ pub enum Stmt {
     AutoLet { name: String, value: Expr },
     /// A statement as written (a call with `lend.mut`, for one).
     Src(String),
+    /// `list.remove[lend.mut 'xs', pos p];`, the item dropped.
+    Remove { name: String, pos: Expr },
+    /// A declaration written with `shadow` in `let`'s place: a name already
+    /// visible, declared again on purpose (owner, 2026-10-08).
+    Shadow(Box<Stmt>),
     /// `mut 's': simd[int32, 4] = …;`
     SimdLet { name: String, mutable: bool, elem: Ty, lanes: usize, value: Expr },
 }
@@ -489,7 +496,7 @@ fn level(e: &Expr) -> Option<u8> {
     match e {
         Expr::Lit(v) if *v < 0 => Some(2),
         Expr::Num(t) if t.starts_with('-') => Some(2),
-        Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) => Some(0),
+        Expr::Num(_) | Expr::Text(_) | Expr::Conv(..) | Expr::StrBytes(_) | Expr::Src(_) | Expr::Remove(..) => Some(0),
         Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::To(..) | Expr::Call(..) | Expr::At(..) | Expr::Len(_) | Expr::Lend(_) | Expr::Case(..) | Expr::Match(..) | Expr::SimdFill(_) | Expr::SimdFold(..) | Expr::ToEnum(..) => Some(0),
         Expr::Bin(BinOp::Pow, ..) => Some(1),
         Expr::Neg(_) => Some(2),
@@ -681,6 +688,11 @@ impl<'a> Wr<'a> {
             Expr::Len(n) => self.out.push_str(&format!("list.length[lend {}]", q(n))),
             Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
             Expr::Num(t) | Expr::Src(t) => self.out.push_str(t),
+            Expr::Remove(n, p) => {
+                self.out.push_str(&format!("list.remove[lend.mut {}, pos ", q(n)));
+                self.e(p);
+                self.out.push(']');
+            }
             Expr::Text(t) => self.out.push_str(&format!("{t:?}")),
             Expr::StrBytes(n) => self.out.push_str(&format!("str.bytes[lend {}]", q(n))),
             Expr::Conv(t, v, fb) => {
@@ -790,6 +802,20 @@ impl<'a> Wr<'a> {
                 self.out.push('\n');
             }
             Stmt::Src(t) => self.out.push_str(&format!("{pad}{t}\n")),
+            Stmt::Remove { name, pos } => {
+                self.out.push_str(&format!("{pad}list.remove[lend.mut {}, pos ", q(name)));
+                self.e(pos);
+                self.out.push_str("];\n");
+            }
+            Stmt::Shadow(inner) => {
+                // the declaration as it is, `shadow` in `let`'s place
+                let start = self.out.len();
+                self.s(inner, indent);
+                let line = self.out[start..].to_string();
+                let fixed = line.replacen("let ", "shadow ", 1);
+                self.out.truncate(start);
+                self.out.push_str(&fixed);
+            }
             Stmt::TypedLet { name, mutable, ty, value } => {
                 let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
                 let head = format!("let {m}{}: {ty} = ", q(name));

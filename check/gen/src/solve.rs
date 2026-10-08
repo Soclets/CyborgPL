@@ -227,6 +227,10 @@ impl<'a> Enc<'a> {
         match e {
             // A list's items and length are not modelled: any value, which
             // the evaluator's confirmation of every refutation makes safe.
+            Expr::Remove(..) => {
+                self.too_big = true;
+                self.fresh_int()
+            }
             Expr::At(_, p) => {
                 self.expr(ctx, p, Some(Ty::U64));
                 self.fresh_int()
@@ -641,7 +645,8 @@ impl<'a> Enc<'a> {
                 self.land(&c, &v, *ty, &format!("let '{name}'"));
                 self.scopes.last_mut().unwrap().insert(name.clone(), Var { term: v, ty: *ty });
             }
-            Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) => {
+            Stmt::Shadow(inner) => self.stmt(ctx, inner, leave),
+            Stmt::Remove { .. } | Stmt::SetAt { .. } | Stmt::Append { .. } | Stmt::ForEach { .. } | Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) => {
                 // Not modelled yet: the whole program is left to the other attacks.
                 self.too_big = true;
             }

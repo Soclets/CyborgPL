@@ -88,7 +88,7 @@ pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, env
     let env: Env = envs.first().cloned().unwrap_or_default();
     let mut d = String::new();
     let o = oracle(tools, &file, dir, &env);
-    let _ = writeln!(d, "a borrow mistake on purpose; oracle: {}", oracle_text(&o));
+    let _ = writeln!(d, "a mistake on purpose (a borrow, or a plain let over a visible name); oracle: {}", oracle_text(&o));
     let b = cca_build(tools, &file, dir, Mode::Normal);
     match &b {
         Build::Refused { line, msg } => {
@@ -101,12 +101,12 @@ pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, env
         Build::Timeout => return Verdict::SlowBuild,
     }
     let kind = match (&o, &b) {
-        (Oracle::Ran { .. }, Build::Built(_)) => "both-accepted-borrow-mistake",
-        (Oracle::Ran { .. }, _) => "oracle-accepted-borrow-mistake",
-        (_, Build::Built(_)) => "cca-accepted-borrow-mistake",
+        (Oracle::Ran { .. }, Build::Built(_)) => "both-accepted-mistake",
+        (Oracle::Ran { .. }, _) => "oracle-accepted-mistake",
+        (_, Build::Built(_)) => "cca-accepted-mistake",
         (Oracle::Timeout, _) => "oracle-timeout",
         // both refused it, as they should: say so, not "both ran"
-        _ => return Verdict::Agree { oracle_stopped: Some(format!("a borrow mistake on purpose, refused by both: {}", oracle_text(&o))) },
+        _ => return Verdict::Agree { oracle_stopped: Some(format!("a mistake on purpose, refused by both: {}", oracle_text(&o))) },
     };
     Verdict::Finding(Finding { kind, mode: Mode::Normal, sig: kind.to_string(), env, detail: d })
 }

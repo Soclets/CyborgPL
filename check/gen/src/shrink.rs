@@ -68,6 +68,8 @@ fn stmt_size(s: &Stmt) -> usize {
         Stmt::Borrow { value, .. } | Stmt::EnumLet { value, .. } | Stmt::SimdLet { value, .. } | Stmt::TypedLet { value, .. } | Stmt::AutoLet { value, .. } => expr_size(value),
         Stmt::ListFill { value, count, .. } => expr_size(value) + expr_size(count),
         Stmt::Src(_) => 0,
+        Stmt::Remove { pos, .. } => expr_size(pos),
+        Stmt::Shadow(inner) => stmt_size(inner),
         Stmt::MatchStmt { scrut, arms } => expr_size(scrut) + arms_size(arms),
         Stmt::Give { .. } => 0,
     }
@@ -76,6 +78,7 @@ fn stmt_size(s: &Stmt) -> usize {
 fn expr_size(e: &Expr) -> usize {
     1 + match e {
         Expr::Lit(_) | Expr::Bool(_) | Expr::Var(_) | Expr::Len(_) | Expr::Lend(_) => 0,
+        Expr::Remove(_, p) => expr_size(p),
         Expr::At(_, a) => expr_size(a),
         Expr::Case(_, _, d) => d.as_ref().map_or(0, |d| expr_size(d)),
         Expr::SimdFill(a) | Expr::SimdFold(_, a) => expr_size(a),
@@ -265,7 +268,7 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 out.push(vec![Stmt::Append { name: name.clone(), value: e }]);
             }
         }
-        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) => {}
+        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) | Stmt::Remove { .. } | Stmt::Shadow(_) => {}
         Stmt::MatchStmt { scrut, arms } => {
             for i in 0..arms.len() {
                 for b in block_variants(&arms[i].body) {
@@ -445,6 +448,8 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
             ok
         }
         Stmt::Src(_) => true,
+        Stmt::Remove { name, pos } => known(scopes, name) && e(pos, scopes),
+        Stmt::Shadow(inner) => stmt_ok(inner, scopes, arity),
         Stmt::ListFill { name, value, count, .. } => {
             let ok = e(value, scopes) && e(count, scopes);
             scopes.last_mut().unwrap().push(name.clone());
@@ -471,7 +476,7 @@ fn expr_ok(e: &Expr, scopes: &Vec<Vec<String>>, arity: &[(String, usize)]) -> bo
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
         Expr::Var(n) | Expr::Len(n) | Expr::Lend(n) => known(scopes, n),
-        Expr::At(n, p) => known(scopes, n) && expr_ok(p, scopes, arity),
+        Expr::At(n, p) | Expr::Remove(n, p) => known(scopes, n) && expr_ok(p, scopes, arity),
         Expr::Case(_, _, d) => d.as_ref().map_or(true, |d| expr_ok(d, scopes, arity)),
         Expr::SimdFill(a) | Expr::SimdFold(_, a) => expr_ok(a, scopes, arity),
         Expr::ToEnum(_, a, b) => expr_ok(a, scopes, arity) && expr_ok(b, scopes, arity),

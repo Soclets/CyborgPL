@@ -76,7 +76,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("none".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("stdkit".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -109,6 +109,10 @@ impl Args {
             roundings: !avoid.contains("rounding"),
             mutator: !avoid.contains("mutator"),
             ieee: !avoid.contains("ieee"),
+            remove: !avoid.contains("remove"),
+            shadow: !avoid.contains("shadow"),
+            shadow_wrong: self.num("shadow-wrong", 50),
+            stdkit: !avoid.contains("stdkit"),
             new_words: !avoid.contains("new-words"),
         }
     }
