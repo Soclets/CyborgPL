@@ -37,7 +37,15 @@ relax it later. **ASP folds into the base entirely** (owner: "`a`"): the
 bounds are base CyborgPL, and the core ASP is retired (its ID
 `4882d1f3…676f` no longer names a core), over (b) ASP keeping only range
 types and (c) ASP keeping all three. stdkit's "needs ASP" goes with it
-(design claude's reading).
+(design claude's reading). Asked "Would `check` work in kernel & bootloader": yes, it
+leaves no code (a proof at compile time, or a compile error). **A run-time
+check that fails where there is no operating system freezes the CPU there**
+(owner: "yea, freeze there"), with a trap instruction (`brk` on ARM, `ud2`
+on x86) so a debugger shows the spot; only working builds have run-time
+checks. The owner: "There is another machine with an OS to develop the
+bootloader, right?" (yes: it is built on one, then run in an emulator such
+as QEMU with a debugger attached, or on the board through a hardware debug
+probe).
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
