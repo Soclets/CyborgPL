@@ -182,8 +182,10 @@ Later the same day, the owner: "Also, we'll likely rename to Nerve. But
 we'll do it cleanly, new GH repo, new local, but same code." So **the
 rename to Nerve is likely, not done**: when it happens, a new GitHub
 repository and a new local folder, with the same code. Nothing is renamed
-or created yet. Not yet asked: whether the new repository keeps the git
-history; whether names inside the code (CCA, stdkit, Limb, core) change
+or created yet. **The new repository keeps the git history** (owner:
+"`a`"): the existing commits are pushed into it, so the commit IDs the
+notes cite keep working; over (b) one fresh first commit. Not yet asked:
+whether names inside the code (CCA, stdkit, Limb, core) change
 with it to the Nerve names above; the domain; the other sessions'
 clones.
 ### 2026-10-08 — Xerpia is dropped: Precog is the compile-time language (owner: yea)
