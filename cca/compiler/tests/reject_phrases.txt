@@ -287,6 +287,8 @@ index_needs_pos [fnv:4bc10e32735f4756] :: a read says it is a position: `'xs'[po
 index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position: `'xs'[pos 2]`
 inline_ll_not_built [fnv:e2c382ebdb39d9d5] :: `inline.LL`, LLVM IR in place, is IEG's
 inline_msl_not_built [fnv:ef3056a3ef130c95] :: `inline.MSL`, the Metal Shading Language, is the Metal core's
+let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
+let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
 money_missing [fnv:55c193a2f84e0f3e] :: `deci64` is Money's
 neg_ieee_on_int [fnv:49dd57d5cf27f472] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`
@@ -635,6 +637,7 @@ str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, 
 str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
 str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
 str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is stdkit's
+str_slice_byte_unknown [fnv:0a1a2b674fc7c6b7] :: `stdkit::str.slice.byte` does not exist
 strict_gone [fnv:70e4490d609cdd7e] :: `#strict` is gone
 struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it
 struct_bound_unkept [fnv:91778bbd2a224911] :: needs `<T>: Number`

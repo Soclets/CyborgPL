@@ -4457,7 +4457,7 @@ impl Checker {
                         fails.push(("out_of_range".into(), None));
                         Ty::Char(Unit::Byte)
                     }
-                    "slice.grapheme" | "slice.point" | "slice.byte" => {
+                    "slice.grapheme" | "slice.point" => {
                         fails.push(("out_of_range".into(), None));
                         Ty::utf8()
                     }
