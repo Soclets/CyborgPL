@@ -85,8 +85,22 @@ the label in `list.fill[value 0, count 10]`; the prefix keeps them apart.
 after "what" to a first try that asked two things at once): `for` takes any
 type whose interface says it has a `next` returning `optional[…]`, the rule
 written in CyborgPL like `Ordered`; over (b) the base knowing the shape
-without an interface. Design claude recommended (a). Not yet asked: how
-the interface names its item type; how adapters chain.
+without an interface. Design claude recommended (a). **Each type says once
+what it hands out, and `Iterator[int32]` checks it** (owner: "yea"): a
+type that fits `Iterator` declares its item type (a type belonging to
+another type, Rust's associated type; new to CyborgPL, spelling not
+designed), read back as `Iterator.item[<I>]`; `<I: Iterator>` takes any
+iterator, `<I: Iterator[int32]>` only those whose declared item is `int32`
+(Rust's `Iterator<Item = i32>`); a type is an iterator of one thing only,
+so `for` always knows the item. Design claude first offered (a) the item a
+second blank filled at the use, recommended; (b) the type declaring it.
+The owner asked "diff?", "perf diff?" (none: both resolved while
+compiling, one copy per type), "What's `Item`?", "Is `b` a generic?" (no),
+"what about usefulness?" — design claude changed to (b), having not said
+earlier that (a) lets a type be two kinds of iterator, leaving `for`
+unsure, and makes every wrapper carry the item blank — then "what if
+allowed both?": (b) with (a)'s brackets as a check, recommended. Not yet
+asked: the spelling of a type's item declaration; how adapters chain.
 
 ### 2026-10-08 — A Turing-complete compile-time sub-language, in a core of its own, behind a `compile_time` power (owner: b; not designed)
 
