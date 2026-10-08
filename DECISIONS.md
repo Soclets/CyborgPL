@@ -211,8 +211,11 @@ notes cite keep working; over (b) one fresh first commit. **The new
 repository is `Soclets/Nerve-lang`, private** (owner: "yea, create it under
 Soclets. `Nerve-lang`", over design claude's proposal of
 `Cyborg-Assembly-Manufacturing-Site/Nerve`); design claude created it the
-same day and pushed `main` (3d674c85) into it. The old repository stays
-the one everyone pushes to until the move is finished. Not yet asked:
+same day and pushed `main` (3d674c85) into it. The same day every session
+moved to its clone of it (`/Users/ts/Nerve`, `… compiler`, `… verification`,
+`… website`); the old repository was frozen at 087cdfc8, the old folders'
+pushes disabled, and **the old repository archived** on GitHub (owner:
+"yea, archive it"): read-only, kept, history intact. Not yet asked:
 whether names inside the code (CCA, stdkit, Limb, core) change
 with it to the Nerve names above; the domain; the other sessions'
 clones.
