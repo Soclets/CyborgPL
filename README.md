@@ -29,19 +29,8 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 
   As the licence asks, also say they are under CC BY 4.0, and whether you changed them. The site's code stays under `LICENSE`.
 
-## Contributing
-
-Pull requests and issues are accepted only when the owner wants them.
-
-## Code of Conduct
-
-The Code of Conduct depends on the owner, and likely won't be statically stated.
-
-## Security
-
-No security support. No private reports, no fixes promised, no supported versions. Use at your own risk.
-
-## Credits
+<details>
+<summary><h2>Credits</h2></summary>
 
 Nerve™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
 
@@ -91,6 +80,8 @@ The oracle and the verification harness use no crates.
 - **Kespar**, another of the owner's languages: Cortex's design notes and its first provisional limits.
 - **Xag**, the owner's C++ language: the reference for everything outside Cortex, and the licence.
 - **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
+
+</details>
 
 Copyright 2026 Tankun Sriket.
 Nerve™ (formerly CyborgPL™), Cortex™ (formerly Precog™) and Neuron™ (formerly Limb™) are names of this project, and the NERVE wordmark and its mark are its logos. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Nerve — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Nerve, made or endorsed by this project, when it isn't.

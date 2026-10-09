@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The README drops Contributing, Code of Conduct and Security; Credits fold away (owner)
+
+The owner: "remove CoC, Contri, Security from the README. Make the Credits
+section a Q&A opener thingy, but not actually a Q&A". So **the README has no
+Contributing, Code of Conduct or Security sections**, and **Credits is a
+`<details>` block, closed until clicked** (the click-to-open shape FAQ pages
+use, with its usual content, not questions); the copyright and trademark
+lines stay visible below it. Same message: website claude told to update the
+licence page's credit lines.
+
 ### 2026-10-09 — The Nerve icon is official; tried at the README's top, then taken out (owner, via website claude)
 
 Relayed by website claude with the owner's words: "Tell design claude to put
