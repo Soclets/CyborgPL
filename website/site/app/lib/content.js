@@ -65,7 +65,13 @@ export const LICENCE = [
       { label: "LLVM exception", href: "https://spdx.org/licenses/LLVM-exception.html" },
       { label: "LICENSE in the repo", href: `${REPO_URL}/blob/main/LICENSE` },
     ] },
-  { title: "This site’s text", text: "CC BY 4.0: copy, translate and reuse it, with credit.",
+  // The credit lines are the owner's (2026-10-09), word for word as in the README.
+  { title: "This site’s text and the logos", text: "CC BY 4.0: copy, translate, remix and use them anywhere, with credit. Credit them exactly as:",
+    credits: [
+      { label: "This site’s text", line: "Nerve website text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang" },
+      { label: "The logos", line: "Nerve logo(s): https://nerve-lang.com, https://github.com/Soclets/Nerve-lang" },
+    ],
+    note: "As the licence asks, also say they’re under CC BY 4.0, and whether you changed them. The site’s code stays under Apache-2.0, above.",
     links: [
       { label: "CC BY 4.0", href: "https://creativecommons.org/licenses/by/4.0/" },
       { label: "Legal code", href: "https://creativecommons.org/licenses/by/4.0/legalcode" },

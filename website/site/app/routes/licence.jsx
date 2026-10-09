@@ -4,7 +4,7 @@ import Warranty from "../components/Warranty.jsx";
 import { LICENCE } from "../lib/content.js";
 import { seo } from "../lib/seo.js";
 
-export const meta = () => seo({ title: "Licence · Nerve", description: "Nerve’s code is Apache-2.0 with the LLVM exception; this site’s text is CC BY 4.0; the names and logo are trademarks.", path: "/licence" });
+export const meta = () => seo({ title: "Licence · Nerve", description: "Nerve’s code is Apache-2.0 with the LLVM exception; this site’s text and the logos are CC BY 4.0; the names and logos are trademarks.", path: "/licence" });
 
 export default function Licence() {
   return (
@@ -16,6 +16,12 @@ export default function Licence() {
         {LICENCE.map((l) => (
           <article key={l.title} className="lesson">
             <b>{l.title}</b><p>{l.text}</p>
+            {l.credits && (
+              <ul className="lic-credits">
+                {l.credits.map((c) => <li key={c.label}><small>{c.label}</small><code>{c.line}</code></li>)}
+              </ul>
+            )}
+            {l.note && <p>{l.note}</p>}
             {l.links && (
               <ul className="lic-links">
                 {l.links.map((k) => (
