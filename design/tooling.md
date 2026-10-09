@@ -28,7 +28,7 @@ Owner, 2026-09-14.
   Rust library linked into every program (thread pool, check-failure
   handler, program entry, the OS edge). Named for the fibre that carries a
   neuron's signal while it fires, as the runtime is what runs while the
-  program runs. Its crate is still `cca-runtime` until the code-name step.
+  program runs. Its crate is still `synapse-runtime` until the code-name step.
 
 - **Neuron** — the unit of code distribution, exactly like Rust's *crate*:
   every library or program is a Neuron, Synthia installs Neurons, and the standard
@@ -85,7 +85,7 @@ Owner, 2026-09-14.
   **`name`, `version` and at least one target are required** (owner,
   2026-09-29: "yea"), as in `Synthia.ttsr`. `name` follows the module-name rule, as
   in `Synthia.ttsr` (owner, 2026-09-30: "strict"). A target must be one Synapse can
-  build, from its one list, `cca/targets.txt` (owner, 2026-09-30:
+  build, from its one list, `synapse/targets.txt` (owner, 2026-09-30:
   "refuse", as `Synthia.ttsr`); today that is `aarch64-macos` alone, so a
   cross target and its `runner` wait until Synapse builds for one. A lone target marked `default = false` means the
   Neuron has no default: a compile that names no target on the command line

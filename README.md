@@ -17,7 +17,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 - [`design/`](design/) — the design documents, one topic per file.
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
-- [`cca/`](cca/) — the compiler.
+- [`synapse/`](synapse/) — the compiler.
 - [`brand/`](brand/) — the mark (a circular C wrapping `:=`). On a pure white or pure black background use the single-colour versions, never the purple one.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`): copy it, translate it, remix it, with credit. Credit it exactly as:
@@ -47,7 +47,7 @@ Nerve™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIO
 - [LLVM](https://llvm.org) 22: Synapse's code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
 - [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Cortex™'s proofs, and the independent check of them.
 - [Alive2](https://github.com/AliveToolkit/alive2): check claude's first translation validation, proving LLVM's rewrites of Synapse's code.
-- [Clang](https://clang.llvm.org): the C programs Synapse is benchmarked against (`cca/bench/`, `bench/`), and the C side of `bench/gpu/`.
+- [Clang](https://clang.llvm.org): the C programs Synapse is benchmarked against (`synapse/bench/`, `bench/`), and the C side of `bench/gpu/`.
 - Metal and Xcode's Metal Toolchain, by Apple: the GPU side of `bench/gpu/`.
 - The compilers and runtimes of `bench/`'s other languages (26 with C): C++, Rust, Go, Zig, Swift, Nim, Fortran (gfortran), OCaml, Dart, Java, Kotlin, C# (.NET), JavaScript and TypeScript (Node), Julia, LuaJIT, PyPy, Elixir, Erlang, Lust, Python, Ruby, Lua, Perl and R.
 - [Python](https://www.python.org): the benchmark runners.
@@ -60,7 +60,7 @@ Nerve™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIO
 **Data**
 - The [Unicode Character Database](https://www.unicode.org/ucd/) 17.0.0 and [UAX #29](https://www.unicode.org/reports/tr29/): grapheme clusters in `str` and `char`.
 
-**Rust crates** (Synapse, from `cca/Cargo.lock`)
+**Rust crates** (Synapse, from `synapse/Cargo.lock`)
 
 `anyhow` 1.0.104, `bitflags` 2.13.2, `cc` 1.4.7, `find-msvc-tools` 0.1.13, `inkwell` 0.10.0, `inkwell_internals` 0.15.0, `lazy_static` 1.5.0, `libc` 0.2.189, `llvm-sys` 221.1.0, `proc-macro2` 1.0.107, `quote` 1.0.47, `regex-lite` 0.1.9, `semver` 1.0.28, `shlex` 2.0.1, `syn` 3.0.6, `thiserror` 2.0.20, `thiserror-impl` 2.0.20, `unicode-ident` 1.0.26, `unicode-segmentation` 1.13.3.
 

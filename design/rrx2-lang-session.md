@@ -41,7 +41,7 @@ that.
 **You are a different author from Nerve's.** RR must share no
 code with Nerve's `std::uenr` or with Synapse, or it cannot judge them.
 Learn Nerve's number rules from `design/` and `DECISIONS.md`; never
-read `cca/` or `oracle/src` in Nerve's repo.
+read `synapse/` or `oracle/src` in Nerve's repo.
 
 ## What is decided (owner, 2026-09-30)
 

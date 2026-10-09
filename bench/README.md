@@ -58,7 +58,7 @@ python3 run.py --quick             # tiny sizes: does everything build and agree
 CCA=/path/to/cca LUST=/path/to/lust-lang/target/release/lust python3 run.py
 ```
 
-It needs CCA built (`cca/target/release/cca`, or `CCA=`), and runs one program at
+It needs CCA built (`synapse/target/release/synapse`, or `CCA=`), and runs one program at
 a time: every language on one core, CyborgPL also on 3 threads.
 
 ## GPU: Clang C against Metal

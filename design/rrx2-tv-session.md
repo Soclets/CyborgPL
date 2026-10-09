@@ -55,7 +55,7 @@ and every gap in the model shows up as "not judged".
 
 **You are a different author from Cortex's and from Synapse's.** Read
 `design/`, `DECISIONS.md`, the LLVM Language Reference, and the IR Synapse
-writes; never `cca/` or `oracle/src` in Nerve's repo. If RRx2-TV
+writes; never `synapse/` or `oracle/src` in Nerve's repo. If RRx2-TV
 learned what Synapse meant from Synapse's own code, it would repeat Synapse's
 mistakes instead of catching them.
 
@@ -101,11 +101,11 @@ You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
 - **Synapse writes its IR before and after LLVM's passes**: `synapse build
   file.nrv --emit-llvm DIR` writes `DIR/before.ll` and `DIR/after.ll`
   (ae478cd). A Synapse built at f497869 is at
-  `/Users/ts/Nerve/cca/target/release/cca`; running it is fine,
+  `/Users/ts/Nerve/synapse/target/release/synapse`; running it is fine,
   reading its source is not. Synapse emits LLVM 22 IR (it builds against
   `llvm@22`); you read it with LLVM 23. Check that this holds.
 - **Programs to run it on**: Synapse's own test programs,
-  `cca/compiler/tests/**/*.nrv` (owner, 2026-10-01: "yes, use them") —
+  `synapse/compiler/tests/**/*.nrv` (owner, 2026-10-01: "yes, use them") —
   the programs and the IR Synapse writes from them only, never Synapse's code, and
   their comments' expected answers are Synapse's author's, not truth;
   `examples/*.nrv` in Nerve's repo, and

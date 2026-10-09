@@ -9,9 +9,9 @@ startup included; each case keeps the best of RUNS, and a run past TIMEOUT secon
 is recorded as a timeout.
 
     python3 run.py                   # every language that is installed
-    python3 run.py c rust cyborgpl   # only these
+    python3 run.py c rust nerve   # only these
     python3 run.py --quick           # tiny sizes, one run: does everything build and agree?
-    CCA=/path/to/cca LUST=/path/to/lust python3 run.py
+    SYNAPSE=/path/to/synapse LUST=/path/to/lust python3 run.py
 
 The results are written to RESULTS.md.
 """
@@ -26,7 +26,7 @@ if "--quick" in sys.argv:  # tiny sizes, one run: checks every language builds a
     sys.argv.remove("--quick")
     CASES = [("sum", 100_000), ("fib", 20), ("lists", 100_000), ("sieve", 100_000)]
     RUNS = 1
-CCA = os.environ.get("CCA", os.path.join(HERE, "..", "cca", "target", "release", "cca"))
+SYNAPSE = os.environ.get("SYNAPSE", os.path.join(HERE, "..", "synapse", "target", "release", "synapse"))
 LUST = os.environ.get("LUST", "lust")
 
 
@@ -51,11 +51,11 @@ def native(cmd):
     return lambda src, d, b: sh(cmd(src, os.path.join(d, b)))
 
 
-def cca_build(src, d, b):
+def synapse_build(src, d, b):
     out = os.path.join(d, b)
-    r = subprocess.run([CCA, "build", "--final", src, "-o", out], capture_output=True, text=True)
+    r = subprocess.run([SYNAPSE, "build", "--final", src, "-o", out], capture_output=True, text=True)
     if r.returncode != 0:
-        sh([CCA, "build", src, "-o", out])
+        sh([SYNAPSE, "build", src, "-o", out])
 
 
 def ocaml_build(src, d, b):
@@ -80,8 +80,8 @@ def ts_build(src, d, b):
 
 
 LANGS = {
-    "cyborgpl": (f"CyborgPL (CCA, final build, {os.environ.get('CYBORG_BENCH_THREADS', '3')} threads)", None, "{b}.nrv", cca_build, lambda s, d, b: [os.path.join(d, b)]),
-    "cyborgpl1": ("CyborgPL (CCA, final build, 1 thread)", None, "{b}.nrv", cca_build, lambda s, d, b: [os.path.join(d, b)]),
+    "nerve": (f"Nerve (Synapse, final build, {os.environ.get('CYBORG_BENCH_THREADS', '3')} threads)", None, "{b}.nrv", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
+    "nerve1": ("Nerve (Synapse, final build, 1 thread)", None, "{b}.nrv", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O2)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O2", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O2)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O2", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
@@ -114,8 +114,8 @@ LANGS = {
 
 def available(key):
     label, tool, *_ = LANGS[key]
-    if key.startswith("cyborgpl"):
-        return os.path.exists(CCA)
+    if key.startswith("nerve"):
+        return os.path.exists(SYNAPSE)
     if key == "lust":
         return shutil.which(LUST) is not None or os.path.exists(LUST)
     return shutil.which(tool) is not None
@@ -125,7 +125,7 @@ def available(key):
 # its plain code. It gets this session's share, 3 threads, and a second row pins it to 1.
 # `CYBORG_BENCH_THREADS=10 python3 run.py` gives it every core, when nothing else is running
 # (owner, 2026-10-06: "uncapped")
-THREADS = {"cyborgpl": os.environ.get("CYBORG_BENCH_THREADS", "3"), "cyborgpl1": "1"}
+THREADS = {"nerve": os.environ.get("CYBORG_BENCH_THREADS", "3"), "nerve1": "1"}
 
 
 def run_once(cmd, n, lust, key=""):
@@ -200,7 +200,7 @@ def write_results(keys, missing, results):
              "Every answer is checked against C's.", ""]
     for name, n in CASES:
         lines += [f"## {name} (N = {n:,})", "", "| Language | Time | vs CyborgPL |", "|---|---|---|"]
-        base = results.get(("cyborgpl", name), (None,))[0]
+        base = results.get(("nerve", name), (None,))[0]
         rows = []
         for key in keys:
             t, status = results.get((key, name), (None, "not run"))

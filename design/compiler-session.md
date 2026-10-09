@@ -44,9 +44,9 @@ no branch — in **your own clone** at `/Users/ts/Nerve compiler`.
 A separate folder for two reasons: two sessions in one working tree
 would step on each other's unsaved files, and Claude's memory is kept
 per folder, so a folder of your own gives you a memory of your own
-(owner's point). Your code lives in **`cca/`** (a Cargo crate), beside `design/`, `oracle/` and `examples/`, so the
+(owner's point). Your code lives in **`synapse/`** (a Cargo crate), beside `design/`, `oracle/` and `examples/`, so the
 docs and the tests you build against are always the current ones and
-the differential harness runs `oracle/` and `cca/` side by side. Commit
+the differential harness runs `oracle/` and `synapse/` side by side. Commit
 to `main`; `git pull --rebase` before every push — the design session
 pushes to the same `main` from its own clone. You do not edit
 `design/`, `oracle/` or `examples/` — a change there is a question to

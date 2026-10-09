@@ -40,7 +40,7 @@ The compiler cannot check its own work. **You are a different author
 from Cortex's**, and that is the whole point of this session existing
 separately (`design/compiler-verification.md`, owner 2026-09-21). So:
 
-- **Never read `cca/`.** Not the source, not the comments. You attack
+- **Never read `synapse/`.** Not the source, not the comments. You attack
   what Synapse *claims* — its output, its binaries, its proof report —
   never its reasoning. A bug you inherit from reading its code is a bug
   you cannot find.
@@ -61,10 +61,10 @@ verification`. A separate folder because two sessions in one working
 tree step on each other's unsaved files, and because Claude's memory is
 per folder, so your own folder gives you your own memory. Your code
 lives in **`check/`** (a Cargo workspace), beside `design/`, `oracle/`,
-`examples/` and `cca/`. Commit to `main`; `git pull --rebase` before
+`examples/` and `synapse/`. Commit to `main`; `git pull --rebase` before
 every push — three sessions push to the same `main`. You do not edit
-`design/`, `oracle/`, `examples/` or `cca/` — a change there is a
-question to the design session, or to compiler claude for `cca/`.
+`design/`, `oracle/`, `examples/` or `synapse/` — a change there is a
+question to the design session, or to compiler claude for `synapse/`.
 
 ## How to reach the other sessions
 
@@ -141,7 +141,7 @@ re-run for ever.
 Not picks:
 
 - Any disagreement the specification does not settle.
-- Every provisional pick in `oracle/README.md` and `cca/README.md` that
+- Every provisional pick in `oracle/README.md` and `synapse/README.md` that
   your tools trip over — they are open questions, not decisions.
 - The solver versions to pin, and where CVC5 comes from (`brew install
   cvc5`; the copy inside SPARK's prover is not ours to build against).

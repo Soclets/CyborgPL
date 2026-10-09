@@ -66,7 +66,7 @@ hand — the worst a **wrong proof**: `'n' times 10000000000000000000` into a
 `uint64` reported proven, with the binary silently overflowing at n = 2
 where the oracle stops. That is the class of bug the proofs-as-
 assertions mode exists for, and the reason the verification session
-does not read `cca/`.
+does not read `synapse/`.
 
 ## Three oracles (owner, 2026-09-21)
 
