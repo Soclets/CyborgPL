@@ -1315,7 +1315,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// holds that the type cannot is `out_of_range`, however many digits
     /// (owner, 2026-09-24: c).
     #[allow(clippy::too_many_arguments)]
-    fn emit_failing_convert(&mut self, fi: usize, to: &Ty, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+    fn emit_failing_convert(&mut self, fi: usize, to: &Ty, written: bool, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         let arg = args.first()?;
         let from = match arg {
             Arg::Value(o) => o.place().map(|p| {
@@ -1385,7 +1385,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             return self.text_into_bin(fi, crate::types::BRAIN_BITS, to, arg, dest, ok, fail, blocks, slots, func);
         }
         if let Ty::Deci(_) = to.base() {
-            return self.into_deci(fi, to, &from, arg, dest, ok, fail, blocks, slots, func);
+            return self.into_deci(fi, to, written, &from, arg, dest, ok, fail, blocks, slots, func);
         }
         // A number into a C enum (owner, 2026-09-27): one of its cases'
         // numbers, or `out_of_range`.
@@ -1750,7 +1750,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// `too_many_digits`; text fails `not_a_number`, `out_of_range` or
     /// `too_many_digits`, in that order.
     #[allow(clippy::too_many_arguments)]
-    fn into_deci(&mut self, fi: usize, to: &Ty, from: &Ty, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
+    fn into_deci(&mut self, fi: usize, to: &Ty, written: bool, from: &Ty, arg: &Arg, dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         let Ty::Deci(bits) = to.base().clone() else { return None };
         let o = match arg {
             Arg::Value(o) => o.clone(),
@@ -1780,7 +1780,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Ty::Str(_) => {
                 let (p, n) = self.text_parts(v)?;
                 let f = self.rt_deci("cyborg_deci_parse")?;
-                let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
+                let written = i8t.const_int(written as u64, false);
+                let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), width.into(), out.into(), written.into()], "status").ok()?)?.into_int_value();
                 (Some(status), vec![(1, Ok("not_a_number")), (2, Ok("out_of_range")), (3, Ok("too_many_digits"))])
             }
             // Past 128 bits: its digits, read as text into a deci is.
@@ -1789,7 +1790,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let text = self.wide_int_text(v.into_int_value(), signed)?;
                 let (p, n) = self.text_parts(text)?;
                 let f = self.rt_deci("cyborg_deci_parse")?;
-                let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), width.into(), out.into()], "status").ok()?)?.into_int_value();
+                // A whole number's digits all count, as they always have.
+                let all = i8t.const_int(1, false);
+                let status = basic_result(self.builder.build_call(f, &[p.into(), n.into(), width.into(), out.into(), all.into()], "status").ok()?)?.into_int_value();
                 let free = self.rt("cyborg_str_free");
                 let _ = self.builder.build_call(free, &[p.into(), n.into()], "");
                 (Some(status), vec![(2, Ok("too_many_digits")), (3, Ok("too_many_digits"))])
@@ -2001,8 +2004,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if let Callee::Extern(id) = callee {
             return self.emit_ranged_extern(fi, *id, callee, args, dest, ok, fail, blocks, slots, func);
         }
-        if let Callee::Convert(to) = callee {
-            return self.emit_failing_convert(fi, to, args, dest, ok, fail, blocks, slots, func);
+        if let Callee::Convert(to, written) = callee {
+            return self.emit_failing_convert(fi, to, *written, args, dest, ok, fail, blocks, slots, func);
         }
         if let Callee::Op(Op::PtrRead) = callee {
             return self.emit_checked_ptr_read(fi, args, dest, ok, fail, blocks, slots, func);

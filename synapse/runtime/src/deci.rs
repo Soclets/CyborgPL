@@ -722,24 +722,32 @@ fn shortest(x: f64, bits: u32, out: &mut [u8]) -> usize {
 /// # Safety
 /// `p` must have `len` readable bytes, and `out` must be writable.
 #[no_mangle]
-pub unsafe extern "C" fn cyborg_deci_parse(p: *const u8, len: u64, bits: u32, out: *mut u128) -> u8 {
+pub unsafe extern "C" fn cyborg_deci_parse(p: *const u8, len: u64, bits: u32, out: *mut u128, written: u8) -> u8 {
     let w = width(bits);
     let len = len & !STATIC;
     let b = if len == 0 { &[][..] } else { core::slice::from_raw_parts(p, len as usize) };
     let Some(parts) = bin_grammar(b) else { return 1 };
+    // The digits that count, from the first that is not a leading zero, and
+    // how many zeros end them.
+    let digits = || parts.int.iter().chain(parts.frac.iter()).copied().skip_while(|&c| c == b'0');
+    let n = digits().count();
+    let mut trailing = 0usize;
+    for c in digits() {
+        trailing = if c == b'0' { trailing + 1 } else { 0 };
+    }
+    let mut q = parts.exp - parts.frac.len() as i64;
+    // By the value (owner, 2026-10-09): a trailing zero is dropped where the
+    // width needs it gone, so "1234567.0" is a deci32's 1234567. Counted
+    // as written (`to.decimN.written`), every one counts.
+    let keep = if written == 0 && n > w.digits as usize { n - trailing.min(n - w.digits as usize) } else { n };
+    if keep > w.digits as usize {
+        return 3;
+    }
+    q += (n - keep) as i64;
     let mut coef: u128 = 0;
-    let mut count = 0u32;
-    for &c in parts.int.iter().chain(parts.frac.iter()) {
-        if count == 0 && c == b'0' {
-            continue;
-        }
-        count += 1;
-        if count > w.digits {
-            return 3;
-        }
+    for c in digits().take(keep) {
         coef = coef * 10 + (c - b'0') as u128;
     }
-    let q = parts.exp - parts.frac.len() as i64;
     let mut d = Dec { neg: parts.neg, coef, exp: 0 };
     if q < w.qmin as i64 {
         return 2;

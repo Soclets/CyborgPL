@@ -392,7 +392,9 @@ pub enum Callee {
     /// failing `to.…`).
     Op(Op),
     /// `to.T[…]` that can fail.
-    Convert(Ty),
+    /// A failing conversion; `true` for `to.decimN.written` (owner,
+    /// 2026-10-09).
+    Convert(Ty, bool),
 }
 
 #[derive(Debug, Clone)]

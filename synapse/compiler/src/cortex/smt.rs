@@ -539,7 +539,7 @@ impl<'a> Enc<'a> {
             Callee::Extern(id) => self.p.items.externs[id.0 as usize].name.clone(),
             Callee::Value(_) => "that function".to_string(),
             Callee::Op(_) => "that operation".to_string(),
-            Callee::Convert(t) => format!("that `to.{}`", crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }),
+            Callee::Convert(t, _) => format!("that `to.{}`", crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }),
         }
     }
 

@@ -92,7 +92,7 @@ fn callee_s(c: &Callee, spell: &dyn Fn(&Ty) -> String) -> String {
         Callee::Extern(i) => format!("extern{}", i.0),
         Callee::Value(_) => "a held function".into(),
         Callee::Op(op) => format!("{:?}", op),
-        Callee::Convert(t) => format!("to.{}", spell(t)),
+        Callee::Convert(t, _) => format!("to.{}", spell(t)),
     }
 }
 

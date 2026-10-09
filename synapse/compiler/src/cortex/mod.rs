@@ -1118,7 +1118,7 @@ impl Precog {
                     // taken (`let 'big' := to.brain16["3e38"] otherwise 0;` is
                     // 3e38, never 0).
                     let cannot_fail = match callee {
-                        Callee::Convert(to) if to.is_brain() => match args.first().map(|a| self.arg_domain(f, &env, a)) {
+                        Callee::Convert(to, _) if to.is_brain() => match args.first().map(|a| self.arg_domain(f, &env, a)) {
                             Some(Domain::Text { values: Some(vs), .. }) => !vs.is_empty() && vs.iter().all(|v| plain_number(v).is_some_and(|x| x.abs() < BRAIN_ROUND_LIMIT)),
                             _ => false,
                         },
@@ -2123,7 +2123,7 @@ impl Precog {
                 let ops: Vec<Operand> = args.iter().map(arg_operand).collect();
                 self.eval_op(f, op, &ops, env)
             }
-            Callee::Convert(to) => {
+            Callee::Convert(to, _) => {
                 let d = args.first().map(|a| self.arg_domain(f, env, a)).unwrap_or(Domain::Any);
                 self.convert(to, &d)
             }

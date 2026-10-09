@@ -1750,7 +1750,7 @@ impl<'a> FnBuilder<'a> {
                 }
                 (c, margs, otherwise.as_deref(), fails.clone())
             }
-            hir::ExprKind::Conv { target, expr, otherwise, fails, useful, bits } => {
+            hir::ExprKind::Conv { target, expr, otherwise, fails, useful, bits, written } => {
                 let mut op = self.eval(expr, span);
                 let mut from_ty = self.resolve_ty(&expr.ty);
                 // `to.int8.bits[…]`: at most the type's bits, -128 to 255
@@ -1803,7 +1803,7 @@ impl<'a> FnBuilder<'a> {
                 // A bin or deci into a whole-number type fails `not_whole`, or
                 // `out_of_range` when it is too big (owner, 2026-09-30: a) —
                 // one failing call, as text into a number is; no site.
-                (Callee::Convert(target.clone()), vec![Arg::Value(op)], otherwise.as_deref(), f)
+                (Callee::Convert(target.clone(), *written), vec![Arg::Value(op)], otherwise.as_deref(), f)
             }
             _ => unreachable!("call_into on {:?}", e.kind),
         };

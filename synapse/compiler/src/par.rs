@@ -132,7 +132,7 @@ fn effects(p: &Program) -> Vec<Effects> {
                         own[i].join(op_effects(op));
                     }
                     Callee::Fn(idx) => calls[i].push(idx.0 as usize),
-                    Callee::Convert(_) => {}
+                    Callee::Convert(..) => {}
                 },
                 Terminator::Whichever { .. } | Terminator::Join { .. } | Terminator::TaskOutcome { .. } => own[i].never = true,
                 _ => {}
@@ -431,7 +431,7 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
                 Callee::Fn(idx) => {
                     effects_here.join(eff[idx.0 as usize]);
                 }
-                Callee::Convert(_) => {}
+                Callee::Convert(..) => {}
             },
             Terminator::Whichever { .. } | Terminator::Join { .. } | Terminator::TaskOutcome { .. } => return conflict("it waits on tasks or channels".into()),
             _ => {}

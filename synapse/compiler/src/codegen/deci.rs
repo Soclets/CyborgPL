@@ -28,7 +28,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_deci_compare" => i32t.fn_type(&[w.into(), w.into(), w.into(), w.into(), i32t.into()], false),
             "cyborg_deci_from_int" => i8t.fn_type(&[w.into(), w.into(), i32t.into(), p.into()], false),
             "cyborg_deci_from_bin" => i8t.fn_type(&[self.ctx.f64_type().into(), i32t.into(), i32t.into(), p.into()], false),
-            "cyborg_deci_parse" => i8t.fn_type(&[p.into(), w.into(), i32t.into(), p.into()], false),
+            "cyborg_deci_parse" => i8t.fn_type(&[p.into(), w.into(), i32t.into(), p.into(), i8t.into()], false),
             "cyborg_deci_to_int" => i8t.fn_type(&[w.into(), w.into(), i32t.into(), p.into()], false),
             "cyborg_deci_to_bin" => self.ctx.f64_type().fn_type(&[w.into(), w.into(), i32t.into(), i32t.into()], false),
             "cyborg_deci_hash" => w.fn_type(&[w.into(), w.into(), i32t.into()], false),

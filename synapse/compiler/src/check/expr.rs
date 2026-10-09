@@ -3092,6 +3092,20 @@ impl Checker {
         // deci — the conversion says which.
         let (form, stripped) = conv_form(target)?;
         let target = stripped.as_ref().unwrap_or(target);
+        // `to.deci32.written[…]` (owner, 2026-10-09: "yea, `.written`"):
+        // text's digits counted as written, trailing zeros included.
+        let mut written = false;
+        let unwritten;
+        let target = match &target.kind {
+            ast::TypeKind::Path { path, args } if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "written") => {
+                let mut p = path.clone();
+                p.segs.pop();
+                written = true;
+                unwritten = ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span };
+                &unwritten
+            }
+            _ => target,
+        };
         // `to.int8.bits[…]` (owner, 2026-10-06): the raw form, the Brainstem's since 2026-10-08.
         if let ast::TypeKind::Path { path, args } = &target.kind {
             if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "bits") {
@@ -3263,8 +3277,11 @@ impl Checker {
                 return err(Diagnostic::error(format!("say which value `to.{}` takes of a bin: `to.stored.{}[…]` (what is stored) or `to.useful.{}[…]` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).at(span));
             }
         }
+        if written && !(matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Str(_))) {
+            return err(Diagnostic::error(format!("`.written` counts the digits of text as written into a deci, trailing zeros included — `to.deci32.written[\"1234567.0\"]`; `to.{}.written` of {} has nothing written to count", target_spelling, crate::types::a_type(&self.spell(&vt)))).at(span));
+        }
         let fails_owned: Vec<String> = fails.iter().map(|s| s.to_string()).collect();
-        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful, bits: false }, ty: t, span })
+        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful, bits: false, written }, ty: t, span })
     }
 
     /// `to.int8.bits[…]` (owner, 2026-10-06): a whole number's bits read as
@@ -3307,7 +3324,7 @@ impl Checker {
         if !matches!(vt.base(), Ty::Int(_)) {
             return err(Diagnostic::error(format!("`to.{}.bits` reads a whole number's bits, and this is {}", self.spell(&t), article(&self.spell(&vt)))).at(v.span));
         }
-        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: None, fails: Vec::new(), useful: false, bits: true }, ty: t, span })
+        Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: None, fails: Vec::new(), useful: false, bits: true, written: false }, ty: t, span })
     }
 
     // ------------------------------------------------------------ builtins
