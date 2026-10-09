@@ -114,6 +114,7 @@ impl Args {
             shadow_wrong: self.num("shadow-wrong", 50),
             cord: !avoid.contains("cord") && !avoid.contains("stdkit"),
             iterators: !avoid.contains("iterators"),
+            print: !avoid.contains("print"),
             new_words: !avoid.contains("new-words"),
         }
     }

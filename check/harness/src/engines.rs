@@ -198,7 +198,7 @@ pub fn oracle(t: &Tools, file: &Path, dir: &Path, env: &[(String, String)]) -> O
 }
 
 /// Messages by which CCA says a construct is not built yet: coverage, not a finding.
-const NOT_YET: [&str; 4] = ["not yet", "is not available yet", "CCA carries whole numbers up to", "has no shape in the generated code"];
+const NOT_YET: [&str; 5] = ["not yet", "is not available yet", "is not built yet", "CCA carries whole numbers up to", "has no shape in the generated code"];
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Build {

@@ -18,6 +18,12 @@ corpus are written in it — `->`, `equal_to` / `not_equal` / `at_most` / `at_le
 (required for a borrow from two inputs), `brain16` only. `#strict` and MTM are gone, so the
 generator writes neither. Older notes below keep the spellings of their day.
 
+**cord::print, iterators, optional** (2026-10-09): deci and brain16 blocks sometimes print a value
+with `cord::print.useful` / `.stored` (`.auto_newln` on `useful` only, as Synapse builds it), so the
+engines' own text of those numbers is compared; about 30 programs in 100 get a `Counter` iterator
+(walked by hand, by `for … in lend.mut`, by `for … in give`) and `half`'s `optional`. Shadowing
+touches only the generator's own `'v…'` locals. `--avoid print` / `iterators` leave them out.
+
 **list.remove, shadow, str.at / str.slice** (owner, 2026-10-08): the generator removes an item
 (`pos`, its item printed or dropped; past the end as a risk) where the list's least length stays
 known (once per life of the list, outside `check`); shadows a visible plain name (never a loop's

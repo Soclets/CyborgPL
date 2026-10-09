@@ -113,13 +113,15 @@ pub struct Config {
     pub cord: bool,
     /// A `Counter` iterator and `optional` (owner, 2026-10-09).
     pub iterators: bool,
+    /// `cord::print` of decis and brain16, their own text (Synapse 252fa188).
+    pub print: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, new_words: true }
     }
 }
 
@@ -1635,6 +1637,12 @@ impl Gen {
             body.push(Stmt::TypedLet { name: name.clone(), mutable: false, ty: "deci64[0.0, 1.0]".into(), value });
             decis.push(name);
         }
+        // printed by cord, its own text, stored or useful (Synapse 252fa188)
+        if self.cfg.print && self.rng.chance(50) {
+            let d = self.rng.pick(&decis).clone();
+            let line = self.cord_print(&d);
+            body.push(Stmt::Src(line));
+        }
         // what is seen: scaled into an integer, compared, and as text
         for _ in 0..1 + self.rng.below(3) {
             let d = Expr::Var(self.rng.pick(&decis).clone());
@@ -1816,6 +1824,11 @@ impl Gen {
             body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Var(d)), Some(Box::new(Expr::Lit(-1)))) });
             body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
         }
+        if self.cfg.print && self.rng.chance(50) {
+            let w = self.rng.pick(&bs).clone();
+            let line = self.cord_print(&w);
+            body.push(Stmt::Src(line));
+        }
         for _ in 0..1 + self.rng.below(3) {
             let w = Expr::Var(self.rng.pick(&bs).clone());
             match self.rng.below(4) {
@@ -1846,6 +1859,18 @@ impl Gen {
             }
         }
         Stmt::Block { tier: Tier::Default, body }
+    }
+
+    /// `cord::print.useful['x', newln];` or `.stored`, or `.auto_newln` with
+    /// no newln: the value's own text, compared between the engines.
+    fn cord_print(&mut self, name: &str) -> String {
+        let form = if self.rng.chance(50) { "useful" } else { "stored" };
+        // Synapse builds `auto_newln` only on `useful` (252fa188)
+        if form == "useful" && self.rng.chance(40) {
+            format!("cord::print.{form}.auto_newln['{name}'];")
+        } else {
+            format!("cord::print.{form}['{name}', newln];")
+        }
     }
 
     fn text_part(&mut self, body: &mut Vec<Stmt>) {
@@ -1984,8 +2009,10 @@ impl Gen {
         if !self.cfg.shadow {
             return vec![];
         }
-        // a loop's counter or a walk's position is the loop's: never shadowed
-        self.vars().filter(|v| !v.item && !v.data && !v.name.starts_with('i')).cloned().collect()
+        // only the generator's own locals ('v…'): a loop's counter is the loop's,
+        // and a parameter or a recursion's result is read by fixed code (a
+        // function's `return 'pr'`, seed 44056)
+        self.vars().filter(|v| !v.item && !v.data && v.name.starts_with('v')).cloned().collect()
     }
 
     /// `shadow 'x' := …;` / `shadow mut 'x': T = …;` over a visible name, in
