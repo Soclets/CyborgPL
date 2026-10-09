@@ -155,11 +155,15 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     let mut root: Option<(Vec<String>, Option<(String, crate::source::Span)>)> = None;
     let mut layouts: Vec<(String, String, crate::source::Span)> = Vec::new();
     let mut root_dir: Option<PathBuf> = None;
+    let mut outputs: Vec<(String, String, crate::source::Span)> = Vec::new();
+    let mut exits: Vec<(String, String, crate::source::Span)> = Vec::new();
     if path.is_dir() {
-        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None, root_layouts: Vec::new(), root_dir: None };
+        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None, root_layouts: Vec::new(), root_outputs: Vec::new(), root_exits: Vec::new(), root_dir: None };
         load_limb(sources, &mut items, path, None, &mut state)?;
         root = state.root;
         layouts = state.root_layouts;
+        outputs = state.root_outputs;
+        exits = state.root_exits;
         root_dir = state.root_dir;
     }
     // What is built is a target from the manifest, never the host
@@ -189,6 +193,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         (Purpose::Compile(None), Some((_, Some((t, s))))) => Some((t.clone(), Some(*s))),
         (Purpose::Compile(None), None) => None,
     };
+    let mut board: (Option<(String, crate::source::Span)>, Option<(String, crate::source::Span)>) = (None, None);
     // A no-OS target is linked against the Neuron's own script, named by
     // its `layout` (owner, 2026-10-09: "`c` now", then "`b`").
     if let Some((t, span)) = chosen.as_ref().filter(|(t, _)| t.ends_with("-none")) {
@@ -207,6 +212,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
             return err(Diagnostic::error(format!("the linker script `{}`, the `layout` of `{}`, is not there: the path is from the Neuron's folder", file, t)).at(*at));
         }
         crate::target::set_layout(Some((script, file.clone())));
+        board = (outputs.into_iter().find(|(n, _, _)| n == t).map(|(_, f, s)| (f, s)), exits.into_iter().find(|(n, _, _)| n == t).map(|(_, f, s)| (f, s)));
     }
     if let Some((t, span)) = chosen {
         let here = crate::target::host();
@@ -232,7 +238,47 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     let base = crate::parser::parse_file(&crate::lexer::lex(base_id, BASE_SOURCE)?)?;
     items.add_base(&base)?;
     items.resolve_all()?;
+    // The board's output and exit, now that its functions are known.
+    if let Some((f, at)) = board.0 {
+        items.board_output = Some(board_fn(&items, &f, at, "output")?);
+    }
+    if let Some((f, at)) = board.1 {
+        items.board_exit = Some(board_fn(&items, &f, at, "exit")?.0);
+    }
     Ok(items)
+}
+
+/// A function the target names, `my.serial.write`, of the Neuron being
+/// built, of the shape its field asks: an `output` takes one `uint8` or a
+/// `lent` `array[uint8]` (owner, 2026-10-09: "Yeah", both); an `exit` takes
+/// the code, a `uint8` as `cord::exit`'s is. Neither returns a value or fails.
+fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) -> Result<(crate::resolve::FnId, crate::resolve::OutputForm)> {
+    use crate::resolve::{ItemRef, OutputForm};
+    use crate::types::{ParamKind, SeqKind, Ty};
+    let segs: Vec<crate::ast::Ident> = written.split('.').map(|s| crate::ast::Ident { name: s.to_string(), span: at }).collect();
+    if segs.iter().any(|s| s.name.is_empty()) {
+        return err(Diagnostic::error(format!("a target's `{}` names a function as code does, `my.serial.write`; `{}` is not one", field, written)).at(at));
+    }
+    let path = crate::ast::Path { limb: None, segs, span: at };
+    let id = match items.lookup_path(&path, crate::resolve::ROOT) {
+        Ok(ItemRef::Fn(id)) => id,
+        Ok(other) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, is a {}: it names a function", field, written, other.what())).at(at)),
+        Err(e) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, names no function of this Neuron: {}", field, written, e.sentence)).at(at)),
+    };
+    let f = &items.fns[id.0 as usize];
+    let one = |kind: ParamKind, ty: &Ty| f.params.len() == 1 && f.params[0].kind == kind && f.params[0].ty.as_ref() == Some(ty);
+    let plain = f.ret == Ty::Nothing && f.fails.is_empty() && f.blanks.is_empty();
+    let byte = Ty::int(false, 8);
+    let form = if plain && one(ParamKind::Owned, &byte) {
+        OutputForm::Byte
+    } else if field == "output" && plain && one(ParamKind::Lent, &Ty::Seq { elem: Box::new(byte.clone()), kind: SeqKind::Array }) {
+        OutputForm::Chunk
+    } else if field == "output" {
+        return err(Diagnostic::error(format!("the target's `output`, `fn {}`, takes the bytes `cord::print` writes in one of two forms: `['b': uint8]`, a byte a call, or `[lent 'bytes': array[uint8]]`, a chunk a call; returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+    } else {
+        return err(Diagnostic::error(format!("the target's `exit`, `fn {}`, takes the code `cord::exit` is given, `['code': uint8]`, returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+    };
+    Ok((id, form))
 }
 
 /// What every program has without writing it (owner, 2026-10-08: "yea").
@@ -383,6 +429,8 @@ struct Loading {
     root: Option<(Vec<String>, Option<(String, crate::source::Span)>)>,
     /// Its folder and its no-OS targets' linker scripts.
     root_layouts: Vec<(String, String, crate::source::Span)>,
+    root_outputs: Vec<(String, String, crate::source::Span)>,
+    root_exits: Vec<(String, String, crate::source::Span)>,
     root_dir: Option<PathBuf>,
 }
 
@@ -440,6 +488,8 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if from.is_none() && dir.join(MANIFEST).is_file() {
         state.root = Some((manifest.targets.clone(), manifest.default_target.clone()));
         state.root_layouts = manifest.layouts.clone();
+        state.root_outputs = manifest.outputs.clone();
+        state.root_exits = manifest.exits.clone();
         state.root_dir = Some(dir.to_path_buf());
         if !crate::target::is_set() {
             crate::target::set(manifest.default_target.as_ref().map(|(t, _)| t.as_str()));
@@ -540,6 +590,11 @@ struct Manifest {
     /// A no-OS target's linker script (owner, 2026-10-09: "`b`"): the
     /// target, the path as written (from the Neuron's folder), and where.
     layouts: Vec<(String, String, crate::source::Span)>,
+    /// A no-OS target's output and exit, each a function of the Neuron
+    /// named as code names it (owner, 2026-10-09: "`a`", "c"): the target,
+    /// the path, where.
+    outputs: Vec<(String, String, crate::source::Span)>,
+    exits: Vec<(String, String, crate::source::Span)>,
     /// std is listed, by its ID and version (owner, 2026-10-06); a Limb
     /// that does not list it reaches no operator and no `std::`.
     has_std: bool,
@@ -565,7 +620,7 @@ const MANIFEST_SHAPE: &str = "`kin::Manifest[name = \"areas\", prefix = \"areas\
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
     use crate::lexer::Tok;
-    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), has_std: false, cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), outputs: Vec::new(), exits: Vec::new(), has_std: false, cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
     let at = dir.join(MANIFEST);
     if !at.is_file() {
         return Ok(out);
@@ -656,6 +711,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     }
                     let mut name = None;
                     let mut layout: Option<(String, crate::source::Span)> = None;
+                    let mut board: Vec<(&str, String, crate::source::Span)> = Vec::new();
                     let mut is_default = false;
                     let mut said_not = false;
                     for a in args {
@@ -670,6 +726,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             // A no-OS target's linker script, from the
                             // Neuron's folder (owner, 2026-10-09: "`b`").
                             "layout" => layout = Some((text(v, "a target's `layout`")?, v.span)),
+                            // Where `cord::print`'s bytes go, and what
+                            // `cord::exit` calls, with no OS (owner,
+                            // 2026-10-09: "f", "`a`", "c").
+                            "output" => board.push(("output", text(v, "a target's `output`")?, v.span)),
+                            "exit" => board.push(("exit", text(v, "a target's `exit`")?, v.span)),
                             // The one built when none is named (owner,
                             // 2026-09-29: b).
                             "default" => match &v.kind {
@@ -679,7 +740,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                                 }
                                 _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
                             },
-                            other => return err(Diagnostic::error(format!("a `kin::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, `default = true` on the one built when none is named, and a `layout` on one with no OS", other)).at(field.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, `default = true` on the one built when none is named, and on one with no OS a `layout`, an `output` and an `exit`", other)).at(field.span)),
                         }
                     }
                     let Some((n, span)) = name else {
@@ -687,6 +748,12 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     };
                     if names.contains(&n) {
                         return err(Diagnostic::error(format!("the target `{}` is listed twice in `targets`", n)).at(span));
+                    }
+                    for (field, f, at) in board {
+                        if !n.ends_with("-none") {
+                            return err(Diagnostic::error(format!("`{}` is for a target with no OS, which names its own; on `{}` the OS {}", field, n, if field == "output" { "takes what `cord::print` writes" } else { "takes `cord::exit`'s code" })).at(at));
+                        }
+                        if field == "output" { out.outputs.push((n.clone(), f, at)) } else { out.exits.push((n.clone(), f, at)) }
                     }
                     match layout {
                         Some((file, at)) if n.ends_with("-none") => out.layouts.push((n.clone(), file, at)),

@@ -36,6 +36,16 @@ pub enum Bareness {
     Std,
 }
 
+/// How a board's output takes `cord::print`'s bytes (owner, 2026-10-09:
+/// both).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OutputForm {
+    /// `['b': uint8]`: one a call.
+    Byte,
+    /// `[lent 'bytes': array[uint8]]`: a chunk a call.
+    Chunk,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ItemRef {
     Fn(FnId),
@@ -229,6 +239,10 @@ pub struct Items {
     pub type_fns: HashMap<(ItemRef, String), FnId>,
     /// The Brainstem's `optional` (owner, 2026-10-08), in every program.
     pub base_optional: Option<EnumId>,
+    /// With no OS, the board's output and exit the target names (owner,
+    /// 2026-10-09).
+    pub board_output: Option<(FnId, OutputForm)>,
+    pub board_exit: Option<FnId>,
 }
 
 pub const ROOT: ModuleId = ModuleId(0);

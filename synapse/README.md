@@ -57,6 +57,18 @@ linked as one shared library, the one lld's libraries use; a self-contained
 release will need LLVM and lld built as static libraries. Linking is built
 for macOS hosts so far (the SDK found by `xcrun`).
 
+**Of cord, `cord::print` and `cord::exit`** (owner, 2026-10-09: "`b`, not
+the entire fucking neuron"; "No `std::` for now" stands for the rest).
+`print.useful` and `print.stored`, each to `.stdout` (the default) or
+`.stderr`, `print.useful.auto_newln` and the two `.weird` forms build: each
+value becomes its text as `to.str.utf8` makes it (`compiler/src/codegen/
+print.rs`), and the pieces go out in one `writev`; `cord::exit[code]` is the
+OS's `exit`, and as an `otherwise` it leaves. Every other print
+(`print.format`, `format[…]`) is refused by name, and the rest of cord as
+before. Every example is built and run against the oracle's `.out` and
+`.exit` (`examples_run_as_the_oracle_prints`); the ones that cannot build
+yet are in `tests/examples_unbuilt.txt` with their refusal's words.
+
 **A chip with no OS: `aarch64-none`** (owner, 2026-10-09). Built from any
 host, run on the bare chip (tested in QEMU's `virt` machine,
 `compiler/tests/bare/`). The Neuron names its own linker script on the

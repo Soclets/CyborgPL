@@ -487,7 +487,7 @@ impl Checker {
                 }
                 match local.kind {
                     LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).at(span).why_at(local.span, "lent here")),
-                    LocalKind::LoopVar => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).at(span).why_at(local.span, "the loop's variable")),
+                    LocalKind::LoopVar | LocalKind::LoopLent => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).at(span).why_at(local.span, "the loop's variable")),
                     _ => {}
                 }
             }
@@ -498,7 +498,7 @@ impl Checker {
                 if local.kind == LocalKind::Lent {
                     return err(Diagnostic::error(format!("'{}' is lent (shared): it cannot be lent mutably on — `lent.mut` would allow it", name)).at(span));
                 }
-                if local.kind == LocalKind::LoopVar {
+                if matches!(local.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
                     return err(Diagnostic::error(format!("'{}' is the loop's element: it cannot be changed through the loop", name)).at(span));
                 }
             }
@@ -506,7 +506,7 @@ impl Checker {
                 if matches!(local.kind, LocalKind::Lent | LocalKind::LentMut) {
                     return err(Diagnostic::error(format!("'{}' is lent: you cannot give away what you only borrowed", name)).at(span));
                 }
-                if local.kind == LocalKind::LoopVar {
+                if matches!(local.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
                     return err(Diagnostic::error(format!("'{}' is the loop's element and belongs to the list: `copy` it", name)).at(span));
                 }
             }
@@ -778,6 +778,14 @@ impl Checker {
             }
         }
         if self.unify(&vt, &t) {
+            // A list literal is built as the place's list: a struct's
+            // field or an argument holds `list[int32]`, never the bare
+            // numbers' own 64-bit `list[integer]` (examples/gradebook: Bo's
+            // `[40, 55]` was read as 40, 0 once appended to).
+            let mut v = v;
+            if matches!(v.kind, K::List(_)) && matches!(t.base(), Ty::Seq { .. }) {
+                v.ty = t.base().clone();
+            }
             return Ok(v);
         }
         // Say it in the writer's terms.
@@ -1369,6 +1377,11 @@ impl Checker {
             match elem.base() {
                 Ty::Seq { .. } => {
                     moved |= self.items_in_context(item, &elem)?;
+                    // The nested list is of the element type itself, its
+                    // layout the outer list's to hold.
+                    if matches!(item.kind, K::List(_)) {
+                        item.ty = elem.clone();
+                    }
                 }
                 Ty::Int(IntW::Fixed { .. }) => {
                     if matches!(self.resolve(&item.ty).base(), Ty::Int(IntW::Free(_)) | Ty::Infer(_)) && literal_only(item) && !matches!(item.kind, K::Int(_)) {
@@ -2175,6 +2188,19 @@ impl Checker {
         if self.std_stubs && path.limb.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             return self.std_stub(ctx, path, args, otherwise, span, used);
         }
+        // Of cord, `print` and `exit` are built (owner, 2026-10-09: "`b`,
+        // not the entire fucking neuron"); each other print is refused by
+        // name, and the rest of cord as before.
+        if path.limb.as_ref().is_some_and(|l| l.name == "std") {
+            let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
+            if BUILT_CORD.contains(&name.as_str()) {
+                return self.std_stub(ctx, path, args, otherwise, span, used);
+            }
+            if name == "format" || name.starts_with("print.") {
+                let shown = name.replace("auto_newline", "auto_newln");
+                return err(Diagnostic::error(format!("`cord::{}` is not built yet: of cord, Synapse builds `cord::print.useful`, `cord::print.stored` (each with `.stdout` or `.stderr`), `cord::print.useful.auto_newln`, the two `.weird` forms and `cord::exit` (owner, 2026-10-09)", shown)).at(path.span));
+            }
+        }
         // Language operations first.
         if path.limb.is_none() {
             if let Some(b) = self.builtin_head(path, span)? {
@@ -2384,6 +2410,11 @@ impl Checker {
                         self.check_stored_value(ctx, &v, ret)?;
                         return Ok(hir::Otherwise::Value(v));
                     }
+                }
+                // `cord::exit[…]` leaves: no value is given.
+                if matches!(&v.kind, K::Call { callee: Callee::Builtin(Builtin::Std(n)), .. } if n == "exit") {
+                    let span = v.span;
+                    return Ok(hir::Otherwise::Leave(Box::new(hir::Stmt { kind: hir::StmtKind::Expr(v), span, tier: ctx.tier })));
                 }
                 Ok(hir::Otherwise::Value(v))
             }
@@ -4340,6 +4371,19 @@ fn same_literal(a: &Expr, b: &Expr) -> bool {
     }
 }
 
+
+/// The cord calls Synapse builds (owner, 2026-10-09): the prints and
+/// `exit`. A print goes to stdout unless it says `.stderr`.
+pub const BUILT_CORD: [&str; 18] = [
+    "exit",
+    "print.useful", "print.useful.stdout", "print.useful.stderr",
+    "print.stored", "print.stored.stdout", "print.stored.stderr",
+    "print.useful.auto_newline", "print.useful.auto_newline.stdout", "print.useful.auto_newline.stderr",
+    "print.weird.useful", "print.weird.useful.stdout", "print.weird.useful.stderr",
+    "print.weird.stored", "print.weird.stored.stdout", "print.weird.stored.stderr",
+    "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output",
+    "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error",
+];
 
 impl Checker {
     /// Testing aid: `std::` typed as the oracle emulates it. Not std.

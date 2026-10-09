@@ -38,6 +38,9 @@ pub enum LocalKind {
     LentMut,
     /// A loop counter or element: cannot be assigned.
     LoopVar,
+    /// A loop's element taken by `lend`: a loop variable that is a borrow
+    /// of the list's element, never a value of its own to drop.
+    LoopLent,
     /// A captured lend inside a function literal.
     Captured,
 }

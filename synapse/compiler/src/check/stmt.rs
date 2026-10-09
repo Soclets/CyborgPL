@@ -262,7 +262,7 @@ impl Checker {
                     if ctx.sealed.contains(&prev) {
                         return Some(err(Diagnostic::error(format!("'{}' cannot be shadowed: it is `no_shadow`", name.name)).at(name.span).why_at(p.span, "declared `no_shadow` here")));
                     }
-                    if p.kind == LocalKind::LoopVar {
+                    if matches!(p.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
                         return Some(err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be shadowed: the header alone says what it is on every pass", name.name)).at(name.span).why_at(p.span, "the loop's counter")));
                     }
                     None
@@ -603,7 +603,7 @@ impl Checker {
                                     Some("is `immut`")
                                 } else if local.kind == LocalKind::Lent {
                                     Some("is lent (shared)")
-                                } else if local.kind == LocalKind::LoopVar {
+                                } else if matches!(local.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
                                     Some("is the loop's element")
                                 } else {
                                     None
@@ -818,7 +818,12 @@ impl Checker {
                 let pos_id = pos.map(|p| ctx.declare(&p.name, Local { name: p.name.clone(), ty: Ty::u64(), mutability: None, kind: LocalKind::LoopVar, from_blank: false, span: p.span }));
                 let id = ctx.declare(&name.name, Local { name: name.name.clone(), ty: elem_ty, mutability: None, kind: if elem_kind == LocalKind::Owned { LocalKind::LoopVar } else { elem_kind }, from_blank: false, span: name.span });
                 // A lent element is a loop variable too: not assignable.
-                ctx.locals[id.0 as usize].kind = LocalKind::LoopVar;
+                // One taken by `lend` stays a borrow (examples/gradebook: a
+                // `for 's' in lend 'students'` gave each Student away and
+                // dropped it, and the list dropped them again).
+                // A plain number is read as itself.
+                let owns = self.resolve(&ctx.locals[id.0 as usize].ty).is_owned();
+                ctx.locals[id.0 as usize].kind = if elem_kind == LocalKind::Lent && owns { LocalKind::LoopLent } else { LocalKind::LoopVar };
                 if elem_kind == LocalKind::LentMut {
                     ctx.locals[id.0 as usize].kind = LocalKind::LentMut;
                 }

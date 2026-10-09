@@ -547,6 +547,10 @@ fn bare_metal_runs_in_qemu() {
     refused(&bare.join("layout_missing"), "the linker script `boards/nowhere.ld`, the `layout` of `aarch64-none`, is not there");
     refused(&dir().join("arithmetic.nrv"), "a lone file is not built for `aarch64-none`");
     refused(&bare.join("no_stack_top"), "the linker script `boards/virt.ld` does not define `__stack_top`, where the stack starts");
+    // The output and exit a target names (owner, 2026-10-09): a function
+    // of one of the two shapes, on a target with no OS only.
+    refused(&bare.join("bad_output"), "the target's `output`, `fn my.serial.write`, takes the bytes `cord::print` writes in one of two forms");
+    refused(&bare.join("output_with_os"), "`exit` is for a target with no OS");
     let qemu = Command::new("qemu-system-aarch64").arg("--version").output();
     if !qemu.is_ok_and(|o| o.status.success()) {
         eprintln!("note: no qemu-system-aarch64 on this machine, so the aarch64-none programs were built but not run");

@@ -1541,6 +1541,14 @@ impl Precog {
                 // Wrapping arithmetic is exact modulo the width; the domain
                 // is only narrowed when the plain answer already fits.
                 BinOp::WrapAdd | BinOp::WrapSub | BinOp::WrapMul | BinOp::WrapPow | BinOp::DivWrap(_) => {
+                    // The one quotient past `i128`, its lowest value by -1
+                    // (2^127, wrapping to itself at 128 bits): the sets'
+                    // division saturates it, so it is not folded
+                    // (examples/div_wrap, run once `cord::print` was built:
+                    // it was folded to the highest value).
+                    if matches!(op, BinOp::DivWrap(_)) && x.contains(i128::MIN) && y.contains(-1) {
+                        return Domain::of_ty(&ty, &self.prog().items);
+                    }
                     let plain = match op {
                         BinOp::WrapAdd => x.add(y),
                         BinOp::WrapSub => x.sub(y),

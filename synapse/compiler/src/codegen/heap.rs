@@ -2115,6 +2115,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Operand::Const(Const::Deci { bits, .. }) => Ty::Deci(*bits),
             Operand::Const(Const::Str(_)) => Ty::Str(crate::types::Enc::Utf8),
             Operand::Const(Const::Char(_)) => Ty::Char(crate::types::Unit::Point),
+            // `size.of[…]` and `align.of[…]`: a byte count, a `uint64`.
+            Operand::Const(Const::SizeOf { .. }) => Ty::u64(),
             _ => self.operand_cy_ty(fi, operand)?,
         };
         let shape = match self.ty(to)? {

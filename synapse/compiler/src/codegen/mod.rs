@@ -43,6 +43,7 @@ mod deci;
 mod heap;
 pub mod bare;
 mod par;
+mod print;
 pub mod size;
 mod tasks;
 
@@ -2821,7 +2822,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 self.builder.build_int_cast_sign_flag(i, t, signed, "fit").map(|x| x.into()).unwrap_or(v)
             }
             (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(t)) => self.builder.build_signed_int_to_float(i, t, "fit").map(|x| x.into()).unwrap_or(v),
-            (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(t)) if x.get_type() != t => self.builder.build_float_cast(x, t, "fit").map(|y| y.into()).unwrap_or(v),
+            // Through `float_cast`, so a value narrowed to nothing lands as
+            // 0, never -0 (examples/zero_everywhere: `'w': bin32 = 'e30'
+            // times 'e30' times (-1.0)` printed -0).
+            (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(t)) if x.get_type() != t => self.float_cast(x, t).map(|y| y.into()).unwrap_or(v),
             _ => v,
         }
     }
@@ -3045,6 +3049,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// which is why the handle carries one.
     fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>, dest_ty: Option<Ty>) -> Option<Option<BasicValueEnum<'ctx>>> {
         match op {
+            // Of cord, the prints and `exit` (owner, 2026-10-09).
+            Op::Std(name) if name == "exit" => {
+                self.emit_exit(fi, args, slots)?;
+                Some(None)
+            }
+            Op::Std(name) if crate::check::expr::BUILT_CORD.contains(&name.as_str()) => {
+                self.emit_print(fi, name, args, slots)?;
+                Some(None)
+            }
             // `list.append` hands nothing back (`lists.md`), so it is
             // handled and has no value — which is not the same as not
             // being handled at all.

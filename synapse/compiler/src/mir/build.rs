@@ -270,7 +270,7 @@ impl<'a> FnBuilder<'a> {
         for l in &body.locals {
             let span = fb.span_id(l.span);
             let kind = match l.kind {
-                hir::LocalKind::Lent => LocalKind::Lent { mutable: false },
+                hir::LocalKind::Lent | hir::LocalKind::LoopLent => LocalKind::Lent { mutable: false },
                 hir::LocalKind::LentMut => LocalKind::Lent { mutable: true },
                 _ if l.ty.is_owned() => LocalKind::Owned,
                 _ => LocalKind::Plain,
@@ -1401,11 +1401,11 @@ impl<'a> FnBuilder<'a> {
                 Rvalue::Use(Operand::Read(Place::local(dest)))
             }
             hir::ExprKind::List(items) => {
-                let ops = items.iter().map(|a| self.arg_operand(a, span)).collect();
+                let ops = items.iter().map(|a| self.arg_owned(a, span)).collect();
                 Rvalue::MakeList(ops)
             }
             hir::ExprKind::MapLit(pairs) => {
-                let ps = pairs.iter().map(|(k, v)| (self.arg_operand(k, span), self.arg_operand(v, span))).collect();
+                let ps = pairs.iter().map(|(k, v)| (self.arg_owned(k, span), self.arg_owned(v, span))).collect();
                 Rvalue::MakeMap(ps)
             }
             hir::ExprKind::ListEmpty => Rvalue::MakeList(Vec::new()),
@@ -1418,7 +1418,7 @@ impl<'a> FnBuilder<'a> {
                 };
                 let mut ops = Vec::new();
                 for (i, a) in fields.iter().enumerate() {
-                    let op = self.arg_operand(a, span);
+                    let op = self.arg_owned(a, span);
                     if let Some(fi) = info.fields.get(i) {
                         let want = fi.ty.subst(&args);
                         let have = self.arg_ty(a);
@@ -1429,7 +1429,7 @@ impl<'a> FnBuilder<'a> {
                 Rvalue::MakeStruct { id: *id, fields: ops }
             }
             hir::ExprKind::EnumCase { id, case, payload } => {
-                let p = payload.as_ref().map(|a| self.arg_operand(a, span));
+                let p = payload.as_ref().map(|a| self.arg_owned(a, span));
                 // A case's data lands where a field's does: checked there
                 // (check claude, seed 15174: `E1.c4[0 minus 5]` with a
                 // `uint64` case wrapped to 2^64 - 5).
@@ -1639,6 +1639,18 @@ impl<'a> FnBuilder<'a> {
     }
 
     /// An argument that is being stored rather than passed: the operand it is.
+    /// An item of a value being built — a list's, a map's, a struct's
+    /// field, a case's data. A new value made for it (a nested list, a
+    /// `copy`) is moved in, so the temporary that held it is not dropped
+    /// too: the value being built owns it now.
+    fn arg_owned(&mut self, a: &hir::Arg, span: SpanId) -> Operand {
+        let op = self.arg_operand(a, span);
+        match (a, op) {
+            (hir::Arg::Value(_) | hir::Arg::Copy(_), Operand::Read(p)) if p.proj.is_empty() && self.locals[p.local.0 as usize].name.is_none() && self.locals[p.local.0 as usize].kind == LocalKind::Owned => Operand::Move(p),
+            (_, op) => op,
+        }
+    }
+
     fn arg_operand(&mut self, a: &hir::Arg, span: SpanId) -> Operand {
         match a {
             hir::Arg::Value(e) => self.eval(e, span),

@@ -274,3 +274,55 @@ fn fingerprint(path: &Path) -> String {
 fn indent(s: &str) -> String {
     s.lines().map(|l| format!("    {}", l)).collect::<Vec<_>>().join("\n")
 }
+
+/// Every example built and run, its output and exit the oracle's (`.out`,
+/// `.exit`), since Synapse builds `cord::print` and `cord::exit` (owner,
+/// 2026-10-09: "`b`, not the entire fucking neuron"). One Synapse cannot
+/// build yet is listed in `examples_unbuilt.txt` with words of its refusal;
+/// the test insists it is still refused so, and the day it builds, says to
+/// drop the line.
+#[test]
+fn examples_run_as_the_oracle_prints() {
+    let unbuilt = load_list("examples_unbuilt.txt");
+    let synapse = PathBuf::from(env!("CARGO_BIN_EXE_synapse"));
+    let dir = repo().join("examples");
+    let all: Vec<PathBuf> = targets(&dir).into_iter().filter(|p| dir.join(format!("{}.out", name_of(p))).is_file()).collect();
+    let seen: Vec<String> = all.iter().map(|p| name_of(p)).collect();
+    let mut failures: Vec<String> = common::par_map(&all, |src| -> Option<String> {
+        let name = name_of(src);
+        let want = std::fs::read(dir.join(format!("{}.out", name))).unwrap();
+        let code = std::fs::read_to_string(dir.join(format!("{}.exit", name))).ok().and_then(|t| t.trim().rsplit(':').next().and_then(|n| n.trim().parse::<i32>().ok())).unwrap_or(0);
+        let words: Vec<String> = std::fs::read_to_string(dir.join(format!("{}.args", name))).map(|t| t.lines().filter(|l| !l.is_empty()).map(str::to_string).collect()).unwrap_or_default();
+        let mut cmd = Command::new(&synapse);
+        cmd.arg("run").arg(src).stdin(std::process::Stdio::null());
+        if !words.is_empty() {
+            cmd.arg("--").args(&words);
+        }
+        let r = cmd.output().unwrap();
+        let err = String::from_utf8_lossy(&r.stderr);
+        let refused = r.stdout.is_empty() && err.lines().any(|l| l.starts_with("error:")) && r.status.code() != Some(code);
+        match (unbuilt.get(&name), refused) {
+            (Some(why), true) => (!err.contains(why.as_str())).then(|| format!("{}: still not built, but not for the reason tests/examples_unbuilt.txt gives (`{}`):\n{}", name, why, indent(&err))),
+            (Some(_), false) => Some(format!("{}: builds now — drop its line in tests/examples_unbuilt.txt (it {} the oracle)", name, if r.stdout == want && r.status.code() == Some(code) { "runs as" } else { "differs from" })),
+            (None, true) => Some(format!("{}: refused to build:\n{}", name, indent(&err))),
+            (None, false) => {
+                if r.stdout != want || r.status.code() != Some(code) {
+                    Some(format!("{}: exit {:?} (the oracle's {}), and its output\n{}\n  the oracle's\n{}", name, r.status.code(), code, indent(&String::from_utf8_lossy(&r.stdout)), indent(&String::from_utf8_lossy(&want))))
+                } else {
+                    None
+                }
+            }
+        }
+    })
+    .into_iter()
+    .flatten()
+    .collect();
+    for name in unbuilt.keys() {
+        if !seen.contains(name) {
+            failures.push(format!("{}: listed in tests/examples_unbuilt.txt, but there is no such example with a .out", name));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
+use std::process::Command;
