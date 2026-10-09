@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["base", "compiler", "runtime", "lobes/*"]
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+debug = 1
+
+[profile.dev]
+panic = "abort"
+# Optimised in development too (owner: optimised everywhere, the tooling
+# too): the test suite runs Precog over every program, and at opt-level 0
+# that was the slowest part of the day. Overflow checks and debug
+# assertions stay on — they are what catches Precog's own arithmetic.
+opt-level = 2
+
+[profile.dev.package."*"]
+opt-level = 3

@@ -1,0 +1,10 @@
+[package]
+name = "synapse-lobe-tas"
+version = "0.0.1"
+edition = "2021"
+description = "TAS, an official lobe (design/cores.md), built into Synapse; empty until its step of synapse/PLUGINS.md's build order"
+publish = false
+
+[lib]
+name = "synapse_lobe_tas"
+path = "src/lib.rs"

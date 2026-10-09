@@ -1,0 +1,10 @@
+[package]
+name = "synapse-base"
+version = "0.0.1"
+edition = "2021"
+description = "The power ledger of the Brainstem, the compiler inside Synapse (synapse/PLUGINS.md)"
+publish = false
+
+[lib]
+name = "synapse_base"
+path = "src/lib.rs"
