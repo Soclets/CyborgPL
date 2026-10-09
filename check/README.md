@@ -29,8 +29,8 @@ reads are compared between the engines only. Default avoid: `cord` (CCA has no s
 
 
 **Precog is Cortex** (owner, 2026-10-09): CCA's analyzer's Nerve name. The notes below say Precog,
-as they did when written; `check claims` asks `cca precog --json`, or `cca cortex --json` once CCA
-answers to that name instead.
+as they did when written; `check claims` asks `cca cortex --json` (`cca precog` is refused, owner
+2026-10-09: one spelling per thing).
 
 ## What is here
 
