@@ -1,7 +1,9 @@
-This licence covers only the text of the Nerve website (`website/`: its
-copy and documentation prose) and the logo files (`brand/`). Everything
-else in this repository, the website's code included, is under LICENSE
-(Apache-2.0 WITH LLVM-exception). Credit them as README.md says. Neither
+This licence covers only Nerve's writing and logos: this repository's
+Markdown files (`*.md`: README.md, DECISIONS.md, design/ and the other
+notes), the text of the Nerve website (`website/`: its copy and
+documentation prose) and the logo files (`brand/`). Everything else in this
+repository, the code, its comments and the website's code included, is
+under LICENSE (Apache-2.0 WITH LLVM-exception). Credit them as README.md says. Neither
 licence grants trademark rights; for using the names and logos, see
 README.md.
 

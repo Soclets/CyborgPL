@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The repo's Markdown is CC BY 4.0, credited "Nerve GitHub repo text" (owner)
+
+The owner: "what license is the GH repo's words": Apache-2.0 WITH
+LLVM-exception, by the 2026-09-23 ruling that left `design/` and
+`DECISIONS.md` under the repo's licence; unusual for prose, and unlike the
+website's text. Offered (a) keep or (b) CC BY 4.0 for the repo's prose;
+the owner: "`b`", then, for the credit, "`Nerve GitHub repo text`". So
+**every Markdown file in the repository (`*.md`: README, `DECISIONS.md`,
+`design/`, the other notes) is CC BY 4.0, credited `Nerve GitHub repo text:
+https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`**; code and
+its comments stay Apache-2.0 WITH LLVM-exception. Where the line falls
+(`*.md` files) is design claude's reading of "the GH repo's words". The
+same exchange: the repo's GitHub website set to https://nerve-lang.com and
+six topics added; its description, "One word: "Cortex"", kept (owner: "It
+sparks curiosity").
+
 ### 2026-10-09 — The README drops Contributing, Code of Conduct and Security; Credits fold away (owner)
 
 The owner: "remove CoC, Contri, Security from the README. Make the Credits

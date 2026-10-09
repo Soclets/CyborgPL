@@ -48,7 +48,11 @@ note of changes; and the Nerve name and logo are reserved, since
 neither licence grants trademark rights. The code-only wording above
 had left prose unaddressed. The rest of the repo's prose (`design/`,
 `DECISIONS.md`, this file) has no separate ruling and stays under the
-repo's licence.
+repo's licence. **Revised 2026-10-09: the repo's prose is CC BY 4.0 too** (owner:
+"`b`"): every Markdown file in the repository (README, `DECISIONS.md`,
+`design/`, the other notes), credited `Nerve GitHub repo text:
+https://nerve-lang.com, https://github.com/Soclets/Nerve-lang` (owner's
+words); code and code comments stay Apache-2.0 WITH LLVM-exception.
 
 **The names and logos are trademarks, not registered, and anyone may use
 them anywhere, as long as they don't pretend to be the project** (owner,
