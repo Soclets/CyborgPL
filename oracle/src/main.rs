@@ -723,8 +723,9 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
             prefix.push(name);
             collect(&p, prefix, out)?;
             prefix.pop();
-        } else if name.ends_with(".cpls") || name == "CCA.cplr" {
-            return Err(format!("{}: `{name}` has the old name: rename it to `{}` (owner, 2026-10-09)", p.display(), if name == "CCA.cplr" { "Kinesin.nrp".to_string() } else { name.replace(".cpls", ".nrv") }));
+        } else if name.ends_with(".cpls") || name == "CCA.cplr" || name == "build.cplr" {
+            let new = match name.as_str() { "CCA.cplr" => "Kinesin.nrp".to_string(), "build.cplr" => "build.nrv".to_string(), _ => name.replace(".cpls", ".nrv") };
+            return Err(format!("{}: `{name}` has the old name: rename it to `{new}` (owner, 2026-10-09)", p.display()));
         } else if let Some(stem) = name.strip_suffix(".nrv") {
             if prefix.is_empty() && stem == "neuron" { continue; }
             // a Neuron's `build.nrv` is its build program, run by `cca prepare`, not a module (owner, 2026-10-09: "yea")
