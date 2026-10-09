@@ -23,7 +23,11 @@ time: **Q1, where the program sits in memory: a Neuron targeting
 (owner: "`c` now", as Rust's `memory.x` and C's `-T`), over (a) one built-in
 layout per target (QEMU `virt`), which compiler claude and design claude
 recommended first, and (b) a new `kin::Target` field for RAM start, size and
-stack.
+stack. **The Neuron names its script in `Kinesin.nrp`, on the target:
+`kin::Target[name = "aarch64-none", layout = "boards/virt.ld"]`** (owner:
+"`b`"), so one Neuron can build for several boards, over (a) a fixed file
+name in the Neuron's folder; design claude recommended (b), and named the
+field `layout`.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
